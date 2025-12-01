@@ -40,6 +40,7 @@ function App() {
   const [fontSize, setFontSize] = useState(14);
   const [fileTitleMap, setFileTitleMap] = useState({});
   const [fileLabelMode, setFileLabelMode] = useState("auto"); // auto | filename
+  const [fileTagsMap, setFileTagsMap] = useState({});
 
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
@@ -48,7 +49,7 @@ function App() {
 
   useEffect(() => {
     if (hasTitle) {
-      setShowTitle(true);
+      setShowTitle(false); // 預設摺疊
     } else {
       setShowTitle(false);
     }
@@ -90,6 +91,65 @@ function App() {
       setFileLabelMode(savedLabelMode);
     }
   }, []);
+
+  // 抽取標題欄位與 tags（首段 key:value 直到空行，僅 key 含 tag 的視為 tags）
+  const extractTitleMeta = (text) => {
+    const entries = [];
+    const lines = (text || "").split("\n");
+    let current = null;
+    for (const raw of lines) {
+      if (!raw.trim()) break;
+      const match = raw.match(/^(\s*)([^:]+):(.*)$/);
+      if (match) {
+        const [, , key, rest] = match;
+        const val = rest.trim();
+        current = { key: key.trim(), values: val ? [val] : [] };
+        entries.push(current);
+      } else if (current) {
+        const cont = raw.trim();
+        if (cont) current.values.push(cont);
+      }
+    }
+    const titleEntry = entries.find((e) => e.key.toLowerCase() === "title");
+    const title = titleEntry?.values?.[0] || "";
+    const tags = [];
+    entries.forEach((e) => {
+      const key = e.key.toLowerCase();
+      if (!key.includes("tag")) return;
+      e.values
+        ?.flatMap((v) =>
+          v
+            .split(/[，,]/)
+            .map((s) => s.trim())
+            .filter(Boolean)
+        )
+        .forEach((t) => tags.push(t));
+    });
+    return { title, tags };
+  };
+
+  // 預先建立標題/標籤索引供搜尋
+  useEffect(() => {
+    if (!files.length) return;
+    (async () => {
+      const titleMap = {};
+      const tagsMap = {};
+      await Promise.all(
+        files.map(async (file) => {
+          try {
+            const content = await file.loader();
+            const { title, tags } = extractTitleMeta(content);
+            if (title) titleMap[file.name] = title;
+            if (tags.length) tagsMap[file.name] = tags;
+          } catch (err) {
+            console.warn("建立標題索引失敗", file.name, err);
+          }
+        })
+      );
+      setFileTitleMap((prev) => ({ ...titleMap, ...prev }));
+      setFileTagsMap(tagsMap);
+    })();
+  }, [files]);
 
   const fetchLastModified = async (file) => {
     try {
@@ -292,6 +352,7 @@ function App() {
             setFontSize={setFontSize}
             openHome={handleOpenHome}
             fileTitleMap={fileTitleMap}
+            fileTagsMap={fileTagsMap}
             fileLabelMode={fileLabelMode}
             setFileLabelMode={(mode) => {
               setFileLabelMode(mode);
