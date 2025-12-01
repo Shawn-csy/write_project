@@ -26,8 +26,8 @@ function ScriptViewer({
     };
   }, [text]);
 
-  // 抽取標題區塊為 entry 陣列，保留縮排，所有 key 都獨立
-  const titleEntries = useMemo(() => {
+  // 解析標題行（原文字，直到第一個空行）
+  const rawTitleEntries = useMemo(() => {
     if (!text) return [];
     const lines = (text || '').split('\n');
     const entries = [];
@@ -35,15 +35,14 @@ function ScriptViewer({
 
     for (const raw of lines) {
       if (!raw.trim()) break; // 標題頁到第一個空行結束
-
       const match = raw.match(/^(\s*)([^:]+):(.*)$/);
       if (match) {
         const [, indent, key, rest] = match;
-        const value = rest.trim();
+        const val = rest.trim();
         current = {
           key: key.trim(),
           indent: indent.length,
-          values: value ? [value] : [],
+          values: val ? [val] : [],
         };
         entries.push(current);
       } else if (current) {
@@ -51,9 +50,71 @@ function ScriptViewer({
         if (continuation) current.values.push(continuation);
       }
     }
-
     return entries;
   }, [text]);
+
+  // 從 fountain tokens 取得官方欄位並拆出額外行
+  const tokenTitleEntries = useMemo(() => {
+    const entries = [];
+    const titleTokens = (parsed.tokens || []).filter((t) => t.is_title);
+
+    titleTokens.forEach((token) => {
+      const lines = (token.text || '').split('\n');
+      if (!lines.length) return;
+      const first = lines.shift();
+      entries.push({
+        key: token.type.replace(/_/g, ' '),
+        indent: 0,
+        values: [first?.trim() || ''].filter(Boolean),
+      });
+
+      let current = null;
+      lines.forEach((raw) => {
+        if (!raw.trim()) return;
+        const match = raw.match(/^(\s*)([^:]+):(.*)$/);
+        if (match) {
+          const [, indent, key, rest] = match;
+          const val = rest.trim();
+          current = {
+            key: key.trim(),
+            indent: indent.length,
+            values: val ? [val] : [],
+          };
+          entries.push(current);
+        } else if (current) {
+          current.values.push(raw.trim());
+        }
+      });
+    });
+
+    return entries;
+  }, [parsed.tokens]);
+
+  // 合併官方欄位與自訂欄位（避免自訂覆蓋官方）
+  const titleEntries = useMemo(() => {
+    const knownKeys = new Set([
+      'title',
+      'credit',
+      'author',
+      'authors',
+      'contact',
+      'copyright',
+      'date',
+      'draft_date',
+      'draft date',
+      'notes',
+      'revision',
+      'source',
+      'cc', // fountain-js 會把 CC 欄位標成 cc
+    ]);
+
+    const existingKeys = new Set(tokenTitleEntries.map((e) => e.key.toLowerCase()));
+    const customFromRaw = rawTitleEntries.filter((e) => {
+      const key = e.key.toLowerCase();
+      return !knownKeys.has(key) && !existingKeys.has(key);
+    });
+    return [...tokenTitleEntries, ...customFromRaw];
+  }, [tokenTitleEntries, rawTitleEntries]);
 
   const escapeHtml = (str) =>
     str
@@ -149,11 +210,23 @@ function ScriptViewer({
         }
       });
 
+    // 解析 @角色 標記（例如 @阿上）
+    (text || '')
+      .split('\n')
+      .forEach((line) => {
+        const m = line.match(/^\s*@\s*([^\s].*)$/);
+        if (m) {
+          const name = m[1].trim();
+          if (name) characters.add(name.toUpperCase());
+        }
+      });
+
     // 從原始 Fountain 文字嘗試抓角色名（簡易判斷：全大寫且長度適中，排除場景/轉場）
     (text || '')
       .split('\n')
       .map((l) => l.trim())
       .forEach((line) => {
+        if (line.includes(':')) return; // 排除像 CC: 這種標題欄位行
         const isCandidate =
           line &&
           line === line.toUpperCase() &&
