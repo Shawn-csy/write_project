@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Fountain } from 'fountain-js';
 
 function ScriptViewer({
@@ -14,6 +14,7 @@ function ScriptViewer({
   theme,
   fontSize = 14,
 }) {
+  const colorCache = useRef(new Map());
   // 解析 Fountain 文字
   const parsed = useMemo(() => {
     const fountain = new Fountain();
@@ -220,12 +221,66 @@ function ScriptViewer({
 
   // 依角色過濾內容
   const filteredHtml = useMemo(() => {
-    // 不選角色或未開啟「順讀模式」時，直接顯示原文
-    if (!filterCharacter || filterCharacter === '__ALL__' || !focusMode) return parsed.script;
     const doc = new DOMParser().parseFromString(parsed.script, 'text/html');
+
+    const getGray = (name) => {
+      if (!name) return 'hsl(0 0% 50%)';
+      const key = name.toUpperCase();
+      if (colorCache.current.has(key)) return colorCache.current.get(key);
+      const palette = [
+        'hsl(0 0% 24%)',
+        'hsl(0 0% 32%)',
+        'hsl(0 0% 40%)',
+        'hsl(0 0% 48%)',
+        'hsl(0 0% 56%)',
+        'hsl(0 0% 64%)',
+        'hsl(0 0% 72%)',
+        'hsl(0 0% 80%)',
+      ];
+      const idx = colorCache.current.size % palette.length;
+      const color = palette[idx];
+      colorCache.current.set(key, color);
+      return color;
+    };
+
+    if (!focusMode || !filterCharacter || filterCharacter === '__ALL__') {
+      // 一般模式：僅加上淡線提示，不改變內容
+      const markBundle = (nodes) => {
+        const name = nodes?.[0]?.textContent?.trim();
+        const color = getGray(name);
+        nodes.forEach((n) => {
+          n.classList.add('character-block');
+          n.style.setProperty('--char-color', color);
+          n.style.setProperty('--char-color-tint', color);
+        });
+      };
+
+      const characters = Array.from(doc.querySelectorAll('.character'));
+      characters.forEach((charNode) => {
+        const bundle = [charNode];
+        let sibling = charNode.nextElementSibling;
+        while (
+          sibling &&
+          (sibling.classList.contains('dialogue') || sibling.classList.contains('parenthetical'))
+        ) {
+          bundle.push(sibling);
+          sibling = sibling.nextElementSibling;
+        }
+        markBundle(bundle);
+      });
+
+      doc.querySelectorAll('.dialogue').forEach((dlg) => {
+        const h4 = dlg.querySelector('h4');
+        if (!h4) return;
+        markBundle([dlg]);
+      });
+
+      return doc.body.innerHTML;
+    }
+
+    // 順讀模式：維持原本高亮/淡化邏輯
     const target = filterCharacter.toUpperCase();
 
-    // 工具：處理一組角色節點與其後對白
     const handleBundle = (isTarget, nodes) => {
       if (focusEffect === 'hide') {
         if (!isTarget) nodes.forEach((n) => n.remove());
@@ -240,7 +295,6 @@ function ScriptViewer({
       }
     };
 
-    // 結構 1：.character + dialogue/parenthetical
     const characters = Array.from(doc.querySelectorAll('.character'));
     characters.forEach((charNode) => {
       const name = charNode.textContent?.trim().toUpperCase();
@@ -257,7 +311,6 @@ function ScriptViewer({
       handleBundle(isTarget, bundle);
     });
 
-    // 結構 2：div.dialogue > h4 + p
     doc.querySelectorAll('.dialogue').forEach((dlg) => {
       const h4 = dlg.querySelector('h4');
       const name = h4?.textContent?.trim().toUpperCase();
@@ -267,6 +320,10 @@ function ScriptViewer({
 
     return doc.body.innerHTML;
   }, [parsed.script, filterCharacter, focusMode, focusEffect]);
+
+  useEffect(() => {
+    colorCache.current = new Map();
+  }, [text]);
 
   return (
     <article
