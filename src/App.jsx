@@ -8,7 +8,12 @@ import HomePanel from "./components/HomePanel";
 import ScriptPanel from "./components/ScriptPanel";
 import ReaderHeader from "./components/ReaderHeader";
 import { useTheme } from "./components/theme-provider";
-import { accentThemes, accentOptions, defaultAccent } from "./constants/accent";
+import {
+  accentThemes,
+  accentOptions,
+  accentClasses,
+  defaultAccent,
+} from "./constants/accent";
 import { buildPrintHtml } from "./lib/print";
 
 const scriptModules = import.meta.glob("./scripts/**/*.fountain", {
@@ -45,7 +50,16 @@ function App() {
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
   const appliedTheme = resolvedTheme || "light";
-  const accentStyle = accentThemes[accent] || accentThemes.emerald;
+  const accentStyle = accentClasses;
+  const accentConfig = accentThemes[accent] || accentThemes[defaultAccent];
+  useEffect(() => {
+    const root = document.documentElement;
+    const cfg = accentConfig;
+    root.style.setProperty("--accent", cfg.accent);
+    root.style.setProperty("--accent-foreground", cfg.accentForeground);
+    root.style.setProperty("--accent-muted", cfg.accentMuted || cfg.accent);
+    root.style.setProperty("--accent-strong", cfg.accentStrong || cfg.accent);
+  }, [accentConfig]);
 
   useEffect(() => {
     if (hasTitle) {
@@ -256,11 +270,24 @@ function App() {
       return;
     }
 
+    const accentValue =
+      getComputedStyle(document.documentElement).getPropertyValue("--accent") ||
+      accentThemes[defaultAccent].accent;
+    const accentForegroundValue =
+      getComputedStyle(document.documentElement).getPropertyValue("--accent-foreground") ||
+      accentThemes[defaultAccent].accentForeground;
+    const accentMutedValue =
+      getComputedStyle(document.documentElement).getPropertyValue("--accent-muted") ||
+      accentThemes[defaultAccent].accentMuted;
+
     const exportHtml = buildPrintHtml({
       titleName,
       activeFile,
       titleHtml,
       rawScriptHtml,
+      accent: accentValue.trim(),
+      accentForeground: accentForegroundValue.trim(),
+      accentMuted: accentMutedValue.trim(),
     });
 
     // Render into a hidden iframe and trigger print (no new window).

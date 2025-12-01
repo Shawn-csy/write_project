@@ -14,20 +14,20 @@ export const aboutContent = {
         
         <div class="rounded-lg border bg-card p-4 text-card-foreground shadow-sm">
           <div class="mb-2 flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="accent-label"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
             <h3 class="font-semibold">開發初衷</h3>
           </div>
           <ul class="space-y-2 text-sm text-muted-foreground">
             <li class="flex items-start gap-2">
-              <span class="mt-1 block h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60"></span>
+              <span class="mt-1 block h-1.5 w-1.5 shrink-0 rounded-full accent-dot"></span>
               <span>Google Docs 用到煩了</span>
             </li>
             <li class="flex items-start gap-2">
-              <span class="mt-1 block h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60"></span>
+              <span class="mt-1 block h-1.5 w-1.5 shrink-0 rounded-full accent-dot"></span>
               <span>預設掃描專案目錄，便於版本控管。</span>
             </li>
             <li class="flex items-start gap-2">
-              <span class="mt-1 block h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60"></span>
+              <span class="mt-1 block h-1.5 w-1.5 shrink-0 rounded-full accent-dot"></span>
               <del><span class="italic text-foreground">"主要是為了上班打的時候，看起來像是在寫 Code。"</span></del>
             </li>
           </ul>
@@ -36,11 +36,11 @@ export const aboutContent = {
         <div class="rounded-lg border bg-card p-4 text-card-foreground shadow-sm flex flex-col justify-between">
           <div>
             <div class="mb-2 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="accent-label"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
               <h3 class="font-semibold">版本日誌</h3>
             </div>
             <div class="mb-4 flex items-center gap-2">
-              <span class="rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20">Current v0.1.0</span>
+              <span class="rounded-md px-2 py-1 text-xs font-medium accent-pill">Current v0.1.0</span>
             </div>
             <p class="text-sm text-muted-foreground">
               目前已實裝：

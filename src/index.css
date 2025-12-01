@@ -11,9 +11,15 @@
     --muted: 220 14% 96%;
     --muted-foreground: 220 9% 46%;
     --border: 221 13% 90%;
+    --accent: 160 84% 39%;
+    --accent-foreground: 154 44% 16%;
+    --accent-muted: 160 60% 92%;
+    --accent-strong: 160 78% 34%;
     --paper-bg: #ffffff;
     --paper-border: #e2e8f0;
     --paper-shadow: rgba(0, 0, 0, 0.12);
+    --note-bg: color-mix(in srgb, hsl(var(--accent)) 16%, hsl(var(--background)) 84%);
+    --note-border: color-mix(in srgb, hsl(var(--accent)) 30%, transparent);
   }
 
   .dark {
@@ -24,6 +30,9 @@
     --muted: 217 33% 17%;
     --muted-foreground: 215 20% 65%;
     --border: 217 33% 18%;
+    --accent-foreground: 210 36% 94%;
+    --accent-muted: 160 32% 18%;
+    --accent-strong: 160 72% 60%;
     --paper-bg: #0b1224;
     --paper-border: #1f2937;
     --paper-shadow: rgba(0, 0, 0, 0.4);
@@ -33,6 +42,55 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-family: 'Courier New', Courier, monospace;
+  }
+
+  /* accent helpers driven by CSS variables */
+  .accent-label {
+    color: hsl(var(--accent));
+  }
+  .accent-dot {
+    background-color: hsl(var(--accent));
+  }
+  .accent-border {
+    border-color: hsl(var(--accent));
+  }
+  .accent-folder-bg {
+    background-color: color-mix(in srgb, hsl(var(--accent)) 12%, hsl(var(--background)) 88%);
+  }
+  .dark .accent-folder-bg {
+    background-color: color-mix(in srgb, hsl(var(--accent)) 18%, hsl(var(--background)) 82%);
+  }
+  .accent-folder-bg-dark {
+    background-color: color-mix(in srgb, hsl(var(--accent)) 18%, hsl(var(--background)) 82%);
+  }
+  .accent-folder-text {
+    color: color-mix(in srgb, hsl(var(--accent)) 55%, hsl(var(--foreground)) 45%);
+  }
+  .accent-folder-text-dark {
+    color: color-mix(in srgb, hsl(var(--accent)) 65%, hsl(var(--foreground)) 35%);
+  }
+  .accent-file-hover-bg:hover {
+    background-color: color-mix(in srgb, hsl(var(--accent)) 12%, hsl(var(--background)) 88%);
+  }
+  .dark .accent-file-hover-bg:hover {
+    background-color: color-mix(in srgb, hsl(var(--accent)) 18%, hsl(var(--background)) 82%);
+  }
+  .accent-file-active-bg {
+    background-color: color-mix(in srgb, hsl(var(--accent)) 18%, hsl(var(--background)) 82%);
+  }
+  .accent-file-active-text {
+    color: color-mix(in srgb, hsl(var(--accent)) 60%, hsl(var(--foreground)) 40%);
+  }
+  .accent-pill {
+    background-color: color-mix(in srgb, hsl(var(--accent)) 14%, hsl(var(--background)) 86%);
+    color: color-mix(in srgb, hsl(var(--accent)) 60%, hsl(var(--foreground)) 40%);
+    border: 1px solid color-mix(in srgb, hsl(var(--accent)) 30%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, hsl(var(--accent)) 16%, transparent) inset;
+  }
+  .accent-focus-ring:focus,
+  .accent-focus-ring:focus-visible {
+    outline: 2px solid hsl(var(--accent));
+    outline-offset: 2px;
   }
 }
 
@@ -44,9 +102,29 @@
   opacity: 0.2;
 }
 
+.screenplay .character-block {
+  --char-color: hsl(var(--accent));
+  border-radius: 0;
+  padding: 4px 0 6px 0;
+  margin: 8px 0;
+  display: block;
+  position: relative;
+  transition: opacity 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  border-left: 2px solid color-mix(in srgb, var(--char-color) 32%, transparent);
+  padding-left: 10px;
+}
+
+.screenplay .character-block.character {
+  width: 100%;
+  text-align: left;
+  padding-bottom: 4px;
+  background-color: color-mix(in srgb, var(--char-color) 12%, transparent);
+  border-radius: 4px;
+}
+
 .screenplay .highlight {
-  background: rgba(16, 185, 129, 0.08);
-  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.15);
+  background: color-mix(in srgb, hsl(var(--accent)) 10%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, hsl(var(--accent)) 25%, transparent);
 }
 
 .bg-background {
@@ -93,9 +171,9 @@
   inset: 12px;
   border-radius: 12px;
   pointer-events: none;
-  background: radial-gradient(circle at 20% 20%, rgba(16, 185, 129, 0.04), transparent 40%),
-    radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.04), transparent 35%),
-    radial-gradient(circle at 50% 80%, rgba(236, 72, 153, 0.04), transparent 35%);
+  background: radial-gradient(circle at 20% 20%, color-mix(in srgb, hsl(var(--accent)) 18%, transparent) 0%, transparent 40%),
+    radial-gradient(circle at 80% 0%, color-mix(in srgb, hsl(var(--accent)) 12%, transparent) 0%, transparent 35%),
+    radial-gradient(circle at 50% 80%, color-mix(in srgb, hsl(var(--accent)) 10%, transparent) 0%, transparent 35%);
 }
 
 .paper-inner {
@@ -205,17 +283,17 @@
 
 .screenplay .synopsis {
   font-style: italic;
-  color: #4b5563;
+  color: hsl(var(--muted-foreground));
   margin: 8px 0;
 }
 
 .screenplay .note {
-  color: #0f172a;
-  background: #fef9c3;
+  color: hsl(var(--foreground));
+  background: hsl(var(--note-bg));
   padding: 6px 10px;
   border-radius: 8px;
   margin: 10px 0;
-  border: 1px solid #fcd34d;
+  border: 1px solid hsl(var(--note-border));
 }
 
 .title-page h1 {
@@ -230,7 +308,7 @@
 
 .screenplay .dialogue {
   margin: 0 auto 12px;
-  width: 70%;
+  width: 85%;
 }
 
 .screenplay .parenthetical {
@@ -243,13 +321,13 @@
 
 @media (max-width: 640px) {
   .screenplay {
-    font-size: 13px;
+    font-size: var(--script-font-size, 14px);
   }
   .screenplay .character {
     width: 70%;
   }
   .screenplay .dialogue {
-    width: 85%;
+    width: 95%;
   }
   .screenplay .parenthetical {
     width: 70%;

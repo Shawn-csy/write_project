@@ -17,8 +17,8 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
-import { accentThemes } from "../constants/accent";
 import { homeContent } from "../constants/homeContent";
+import { accentThemes } from "../constants/accent";
 
 function Sidebar({
   groupedFiles,
@@ -136,7 +136,7 @@ function Sidebar({
                 value={searchTerm}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder="搜尋檔案或資料夾..."
-                className={`w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 ${accentStyle.focusRing}`}
+                className={`w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none ${accentStyle.focusRing}`}
               />
               {searchTerm && (
                 <Button
@@ -346,20 +346,21 @@ function Sidebar({
             <div className="flex items-center gap-1">
               {accentOptions.map((opt) => {
                 const active = accent === opt.value;
-                const dotColor =
-                  accentThemes[opt.value]?.dot || "bg-emerald-500";
-                const activeBorder =
-                  accentThemes[opt.value]?.fileActiveBorder ||
-                  "border-emerald-500";
+                const palette = accentThemes[opt.value];
+                const swatch = palette?.accent;
+                const borderColor = active
+                  ? `hsl(${swatch})`
+                  : undefined;
                 return (
                   <Button
                     key={opt.value}
                     variant="ghost"
                     size="icon"
                     aria-label={`重點色 ${opt.label}`}
-                    className={`h-9 w-9 p-0 border ${
-                      active ? activeBorder : "border-border/60"
-                    } bg-background`}
+                    className="h-9 w-9 p-0 border bg-background"
+                    style={{
+                      borderColor: borderColor || undefined,
+                    }}
                     onClick={() => {
                       setAccent(opt.value);
                       localStorage.setItem(
@@ -368,7 +369,10 @@ function Sidebar({
                       );
                     }}
                   >
-                    <span className={`h-3 w-3 rounded-full ${dotColor}`} />
+                    <span
+                      className="h-3 w-3 rounded-full"
+                      style={{ backgroundColor: swatch ? `hsl(${swatch})` : undefined }}
+                    />
                   </Button>
                 );
               })}
