@@ -38,6 +38,9 @@ function App() {
   const [hasTitle, setHasTitle] = useState(false);
   const [rawScriptHtml, setRawScriptHtml] = useState("");
   const [fontSize, setFontSize] = useState(14);
+  const [fileTitleMap, setFileTitleMap] = useState({});
+  const [fileLabelMode, setFileLabelMode] = useState("auto"); // auto | filename
+  const [fileTagsMap, setFileTagsMap] = useState({});
 
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
@@ -46,11 +49,17 @@ function App() {
 
   useEffect(() => {
     if (hasTitle) {
-      setShowTitle(true);
+      setShowTitle(false); // 預設摺疊
     } else {
       setShowTitle(false);
     }
   }, [hasTitle, activeFile]);
+
+  useEffect(() => {
+    if (homeOpen || aboutOpen) {
+      setShowTitle(false);
+    }
+  }, [homeOpen, aboutOpen]);
 
   useEffect(() => {
     const entries = Object.entries(scriptModules).map(([path, loader]) => ({
@@ -60,17 +69,87 @@ function App() {
       display: path.replace("./scripts/", ""),
     }));
     setFiles(entries);
-    if (entries.length > 0) {
-      loadScript(entries[0]);
-    }
   }, []);
+
+  useEffect(() => {
+    if (!files.length) return;
+    const url = new URL(window.location.href);
+    const param = url.searchParams.get("file");
+    const target =
+      (param && files.find((f) => f.display === param || f.name === param)) ||
+      files[0];
+    if (target) loadScript(target);
+  }, [files]);
 
   useEffect(() => {
     const savedAccent = localStorage.getItem("screenplay-reader-accent");
     if (savedAccent && accentThemes[savedAccent]) {
       setAccent(savedAccent);
     }
+    const savedLabelMode = localStorage.getItem("screenplay-reader-label-mode");
+    if (savedLabelMode === "auto" || savedLabelMode === "filename") {
+      setFileLabelMode(savedLabelMode);
+    }
   }, []);
+
+  // 抽取標題欄位與 tags（首段 key:value 直到空行，僅 key 含 tag 的視為 tags）
+  const extractTitleMeta = (text) => {
+    const entries = [];
+    const lines = (text || "").split("\n");
+    let current = null;
+    for (const raw of lines) {
+      if (!raw.trim()) break;
+      const match = raw.match(/^(\s*)([^:]+):(.*)$/);
+      if (match) {
+        const [, , key, rest] = match;
+        const val = rest.trim();
+        current = { key: key.trim(), values: val ? [val] : [] };
+        entries.push(current);
+      } else if (current) {
+        const cont = raw.trim();
+        if (cont) current.values.push(cont);
+      }
+    }
+    const titleEntry = entries.find((e) => e.key.toLowerCase() === "title");
+    const title = titleEntry?.values?.[0] || "";
+    const tags = [];
+    entries.forEach((e) => {
+      const key = e.key.toLowerCase();
+      if (!key.includes("tag")) return;
+      e.values
+        ?.flatMap((v) =>
+          v
+            .split(/[，,]/)
+            .map((s) => s.trim())
+            .filter(Boolean)
+        )
+        .forEach((t) => tags.push(t));
+    });
+    return { title, tags };
+  };
+
+  // 預先建立標題/標籤索引供搜尋
+  useEffect(() => {
+    if (!files.length) return;
+    (async () => {
+      const titleMap = {};
+      const tagsMap = {};
+      await Promise.all(
+        files.map(async (file) => {
+          try {
+            const content = await file.loader();
+            const { title, tags } = extractTitleMeta(content);
+            if (title) titleMap[file.name] = title;
+            if (tags.length) tagsMap[file.name] = tags;
+          } catch (err) {
+            console.warn("建立標題索引失敗", file.name, err);
+          }
+        })
+      );
+      setFileTitleMap((prev) => ({ ...titleMap, ...prev }));
+      setFileTagsMap(tagsMap);
+    })();
+  }, [files]);
 
   const fetchLastModified = async (file) => {
     try {
@@ -85,6 +164,14 @@ function App() {
     } catch (err) {
       console.warn("取得檔案時間失敗", err);
     }
+  };
+
+  const setUrlFile = (file) => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (file) url.searchParams.set("file", file.display);
+    else url.searchParams.delete("file");
+    window.history.replaceState({}, "", url);
   };
 
   const loadScript = async (file) => {
@@ -102,6 +189,7 @@ function App() {
       setShowTitle(false);
       setRawScriptHtml("");
       setHomeOpen(false);
+      setUrlFile(file);
       fetchLastModified(file);
     } catch (err) {
       console.error("載入劇本失敗:", err);
@@ -114,6 +202,16 @@ function App() {
     () => files.slice().sort((a, b) => a.name.localeCompare(b.name)),
     [files]
   );
+
+  useEffect(() => {
+    if (!files.length) return;
+    const url = new URL(window.location.href);
+    const param = url.searchParams.get("file");
+    const target =
+      (param && files.find((f) => f.display === param || f.name === param)) ||
+      files[0];
+    if (target) loadScript(target);
+  }, [files]);
 
   const containerBg = "bg-background text-foreground";
   const sidebarWrapper = isSidebarOpen
@@ -184,12 +282,37 @@ function App() {
     document.body.appendChild(iframe);
   };
 
+  const handleTitleName = (name) => {
+    setTitleName(name);
+    if (activeFile) {
+      setFileTitleMap((prev) => ({
+        ...prev,
+        [activeFile]: name,
+      }));
+    }
+  };
+
+  const handleOpenHome = () => {
+    setHomeOpen(true);
+    setAboutOpen(false);
+    setShowTitle(false);
+  };
+
+  const handleOpenAbout = () => {
+    setAboutOpen(true);
+    setHomeOpen(false);
+    setShowTitle(false);
+  };
+
+  const headerTitle =
+    homeOpen ? "Home" : aboutOpen ? "About" : titleName || activeFile || "選擇一個劇本";
+
   return (
     <div className={`min-h-screen ${containerBg}`}>
       {/* Floating opener when sidebar collapsed on desktop */}
       {!isSidebarOpen && (
         <button
-          className="fixed left-4 top-4 z-30 hidden h-9 w-9 items-center justify-center text-foreground/80 hover:text-foreground transition-colors lg:inline-flex"
+          className="fixed left-2 top-1/2 -translate-y-1/2 z-30 hidden h-10 w-10 items-center justify-center text-foreground/80 hover:text-foreground transition-colors lg:inline-flex"
           aria-label="展開列表"
           onClick={() => setSidebarOpen(true)}
         >
@@ -220,13 +343,21 @@ function App() {
             accentOptions={accentOptions}
             accent={accent}
             setAccent={setAccent}
-            setAboutOpen={setAboutOpen}
+            openAbout={handleOpenAbout}
+            closeAbout={() => setAboutOpen(false)}
             setSidebarOpen={setSidebarOpen}
             isDark={isDark}
             setTheme={setTheme}
             fontSize={fontSize}
             setFontSize={setFontSize}
-            setHomeOpen={setHomeOpen}
+            openHome={handleOpenHome}
+            fileTitleMap={fileTitleMap}
+            fileTagsMap={fileTagsMap}
+            fileLabelMode={fileLabelMode}
+            setFileLabelMode={(mode) => {
+              setFileLabelMode(mode);
+              localStorage.setItem("screenplay-reader-label-mode", mode);
+            }}
           />
         </div>
 
@@ -235,9 +366,9 @@ function App() {
           <div>
             <ReaderHeader
               accentStyle={accentStyle}
-              hasTitle={hasTitle}
+              hasTitle={!homeOpen && !aboutOpen && hasTitle}
               onToggleTitle={() => setShowTitle((v) => !v)}
-              titleName={titleName}
+              titleName={headerTitle}
               activeFile={activeFile}
               fileMeta={fileMeta}
               setSidebarOpen={setSidebarOpen}
@@ -250,7 +381,7 @@ function App() {
               setFilterCharacter={setFilterCharacter}
               setFocusMode={setFocusMode}
             />
-            {hasTitle && showTitle && (
+            {!homeOpen && !aboutOpen && hasTitle && showTitle && (
               <Card className="border border-border border-t-0 rounded-t-none">
                 <CardContent className="p-4">
                   <div
@@ -283,7 +414,7 @@ function App() {
               focusEffect={focusEffect}
               setCharacterList={setCharacterList}
               setTitleHtml={setTitleHtml}
-              setTitleName={setTitleName}
+              setTitleName={handleTitleName}
               setHasTitle={setHasTitle}
               setRawScriptHtml={setRawScriptHtml}
               theme={appliedTheme}
