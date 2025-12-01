@@ -178,71 +178,24 @@ function ScriptViewer({
     };
   }, [parsed.titlePage, parsed.titleName, titleEntries]);
 
-  // 取得角色列表（HTML 解析 + 原始文字雙保險）
+  // 取得角色列表（僅依 @角色 定義）
   useEffect(() => {
-    if (!parsed.script && !text) return;
-    const characters = new Set();
-
-    // 從 HTML 抓 .character
-    if (parsed.script) {
-      const doc = new DOMParser().parseFromString(parsed.script, 'text/html');
-      doc.querySelectorAll('.character').forEach((node) => {
-        const name = node.textContent?.trim();
-        if (name) characters.add(name.toUpperCase());
-      });
-      doc.querySelectorAll('.dialogue h4').forEach((node) => {
-        const name = node.textContent?.trim();
-        if (name) characters.add(name.toUpperCase());
-      });
+    if (!text) {
+      onCharacters?.([]);
+      return;
     }
-
-    // 解析標題欄位：Chart/Character/Characters: A,B,C
+    const characters = new Set();
     (text || '')
       .split('\n')
       .forEach((line) => {
-        const m = line.match(/^\s*(chart|character|characters)\s*:\s*(.+)$/i);
-        if (m) {
-          m[2]
-            .split(',')
-            .map((c) => c.trim())
-            .filter(Boolean)
-            .forEach((c) => characters.add(c.toUpperCase()));
-        }
-      });
-
-    // 解析 @角色 標記（例如 @阿上）
-    (text || '')
-      .split('\n')
-      .forEach((line) => {
-        const m = line.match(/^\s*@\s*([^\s].*)$/);
+        const m = line.match(/^\s*@\s*([^\s].*?)\s*$/);
         if (m) {
           const name = m[1].trim();
           if (name) characters.add(name.toUpperCase());
         }
       });
-
-    // 從原始 Fountain 文字嘗試抓角色名（簡易判斷：全大寫且長度適中，排除場景/轉場）
-    (text || '')
-      .split('\n')
-      .map((l) => l.trim())
-      .forEach((line) => {
-        if (line.includes(':')) return; // 排除像 CC: 這種標題欄位行
-        const isCandidate =
-          line &&
-          line === line.toUpperCase() &&
-          line.length <= 32 &&
-          /[A-Z]/.test(line) &&
-          !/^INT\.|^EXT\.|^EST\./.test(line) &&
-          !/^FADE/.test(line) &&
-          !/TO:$/.test(line) &&
-          !line.includes('--');
-        if (isCandidate) {
-          characters.add(line.toUpperCase());
-        }
-      });
-
     onCharacters?.(Array.from(characters).sort());
-  }, [parsed.script, text, onCharacters]);
+  }, [text, onCharacters]);
 
   // 回傳標題頁 HTML 給父層顯示
   useEffect(() => {
