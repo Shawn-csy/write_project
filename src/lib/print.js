@@ -1,4 +1,15 @@
-export function buildPrintHtml({ titleName, activeFile, titleHtml, rawScriptHtml }) {
+export function buildPrintHtml({
+  titleName,
+  activeFile,
+  titleHtml,
+  rawScriptHtml,
+  accent,
+  accentForeground,
+  accentMuted,
+}) {
+  const accentValue = accent ? `hsl(${accent})` : '#10b981';
+  const accentFgValue = accentForeground ? `hsl(${accentForeground})` : '#0f172a';
+  const accentMutedValue = accentMuted ? `hsl(${accentMuted})` : '#e3f4ec';
   return `
 <!doctype html>
 <html>
@@ -11,6 +22,11 @@ export function buildPrintHtml({ titleName, activeFile, titleHtml, rawScriptHtml
       --muted-foreground: #475569;
       --paper-bg: #ffffff;
       --paper-border: #e2e8f0;
+      --accent: ${accentValue};
+      --accent-foreground: ${accentFgValue};
+      --accent-muted: ${accentMutedValue};
+      --note-bg: color-mix(in srgb, var(--accent) 16%, #ffffff 84%);
+      --note-border: color-mix(in srgb, var(--accent) 32%, transparent);
     }
     body {
       font-family: 'Courier New', Courier, monospace;
@@ -40,7 +56,9 @@ export function buildPrintHtml({ titleName, activeFile, titleHtml, rawScriptHtml
     .lyrics { margin-left: 40px; margin-bottom: 12px; font-style: italic; }
     .section { font-weight: 700; margin: 12px 0; }
     .synopsis { font-style: italic; color: var(--muted-foreground); margin: 8px 0; }
-    .note { color: var(--foreground); background: #fef9c3; padding: 6px 10px; border-radius: 8px; margin: 10px 0; border: 1px solid #fcd34d; }
+    .note { color: var(--foreground); background: var(--note-bg); padding: 6px 10px; border-radius: 8px; margin: 10px 0; border: 1px solid var(--note-border); }
+    .character-block { border-left: 6px solid var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); padding: 4px 8px; border-radius: 8px; }
+    .highlight { background: color-mix(in srgb, var(--accent) 10%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent); }
     .title-page { max-width: 720px; margin: 0 auto 32px; }
     .title-page h1 { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
     .title-page p { margin: 2px 0; }
