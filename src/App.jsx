@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PanelLeftOpen } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent } from "./components/ui/card";
@@ -46,6 +46,8 @@ function App() {
   const [fileTitleMap, setFileTitleMap] = useState({});
   const [fileLabelMode, setFileLabelMode] = useState("auto"); // auto | filename
   const [fileTagsMap, setFileTagsMap] = useState({});
+  const [shareCopied, setShareCopied] = useState(false);
+  const shareCopiedTimer = useRef(null);
 
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
@@ -227,6 +229,40 @@ function App() {
     if (target) loadScript(target);
   }, [files]);
 
+  const handleShareUrl = async (e) => {
+    e?.stopPropagation?.();
+    if (typeof window === "undefined") return;
+    const shareUrl = window.location.href;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        if (shareCopiedTimer.current) clearTimeout(shareCopiedTimer.current);
+        setShareCopied(true);
+        shareCopiedTimer.current = setTimeout(() => setShareCopied(false), 1800);
+        return;
+      }
+      window.prompt("複製分享連結", shareUrl);
+    } catch (err) {
+      console.error("分享連結失敗", err);
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(shareUrl);
+          if (shareCopiedTimer.current) clearTimeout(shareCopiedTimer.current);
+          setShareCopied(true);
+          shareCopiedTimer.current = setTimeout(() => setShareCopied(false), 1800);
+        }
+      } catch (copyErr) {
+        console.error("複製連結失敗", copyErr);
+      }
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (shareCopiedTimer.current) clearTimeout(shareCopiedTimer.current);
+    };
+  }, []);
+
   const containerBg = "bg-background text-foreground";
   const sidebarWrapper = isSidebarOpen
     ? "w-[88vw] sm:w-80 lg:w-72 translate-x-0 pointer-events-auto relative lg:static"
@@ -333,6 +369,7 @@ function App() {
 
   const headerTitle =
     homeOpen ? "Home" : aboutOpen ? "About" : titleName || activeFile || "選擇一個劇本";
+  const canShare = !homeOpen && !aboutOpen && Boolean(activeFile);
 
   return (
     <div className={`min-h-screen ${containerBg}`}>
@@ -400,6 +437,9 @@ function App() {
               fileMeta={fileMeta}
               setSidebarOpen={setSidebarOpen}
               handleExportPdf={handleExportPdf}
+              onShareUrl={handleShareUrl}
+              canShare={canShare}
+              shareCopied={shareCopied}
               focusMode={focusMode}
               focusEffect={focusEffect}
               setFocusEffect={setFocusEffect}
