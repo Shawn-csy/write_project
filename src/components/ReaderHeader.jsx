@@ -1,5 +1,5 @@
 import React from "react";
-import { Printer, PanelLeftOpen } from "lucide-react";
+import { Printer, PanelLeftOpen, Share2 } from "lucide-react";
 import { Button } from "./ui/button";
 import {
   Select,
@@ -21,6 +21,9 @@ function ReaderHeader({
   fileMeta,
   setSidebarOpen,
   handleExportPdf,
+  onShareUrl,
+  canShare,
+  shareCopied,
   focusMode,
   focusEffect,
   setFocusEffect,
@@ -64,6 +67,25 @@ function ReaderHeader({
         </div>
 
         <div className="flex flex-nowrap items-center gap-3 sm:gap-3 ml-auto no-print">
+          {canShare && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onShareUrl?.(e);
+                }}
+                aria-label="分享連結"
+                className="h-8 w-8 inline-flex items-center justify-center rounded hover:text-foreground bg-transparent text-foreground/80 transition-colors"
+              >
+                <Share2 className="h-4 w-4" />
+              </button>
+              {shareCopied && (
+                <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                  已複製連結
+                </span>
+              )}
+            </div>
+          )}
           <button
             onClick={handleExportPdf}
             aria-label="匯出 PDF"
