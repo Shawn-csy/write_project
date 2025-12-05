@@ -24,6 +24,10 @@ function ReaderHeader({
   onShareUrl,
   canShare,
   shareCopied,
+  sceneList = [],
+  currentSceneId,
+  onSelectScene,
+  titleNote,
   focusMode,
   focusEffect,
   setFocusEffect,
@@ -67,6 +71,37 @@ function ReaderHeader({
         </div>
 
         <div className="flex flex-nowrap items-center gap-3 sm:gap-3 ml-auto no-print">
+          {titleNote && (
+            <span className="hidden sm:inline-flex items-center rounded-full bg-muted px-3 py-1 text-[11px] text-muted-foreground">
+              {titleNote}
+            </span>
+          )}
+          {sceneList.length > 0 && (
+            <div className="min-w-[140px] sm:min-w-[200px]">
+              <Select
+                value={currentSceneId || "__top__"}
+                onValueChange={(val) => {
+                  const next = val === "__top__" ? "" : val;
+                  onSelectScene?.(next);
+                }}
+              >
+                <SelectTrigger className="h-8 px-2 text-xs sm:h-9 sm:px-3 sm:text-sm">
+                  <SelectValue placeholder="場景" />
+                </SelectTrigger>
+                <SelectContent align="start">
+                  <SelectGroup>
+                    <SelectLabel>場景跳轉</SelectLabel>
+                    <SelectItem value="__top__">回到開頭</SelectItem>
+                    {sceneList.map((scene) => (
+                      <SelectItem key={scene.id} value={scene.id}>
+                        {scene.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           {canShare && (
             <div className="flex items-center gap-2">
               <button

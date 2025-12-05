@@ -76,6 +76,18 @@ export const homeContent = {
             <span class="font-mono font-bold text-foreground">/* 隱藏 */</span> 
             <span>→ 跨行隱藏</span>
           </li>
+          <li class="flex items-center gap-2">
+            <span class="font-mono font-bold text-foreground">長留白</span> 
+            <span>→ 插入兩行空白</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="font-mono font-bold text-foreground">短留白</span> 
+            <span>→ 插入一行空白</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="font-mono font-bold text-foreground">(長留白) / (短留白)</span> 
+            <span>→ 括號包住也會套用</span>
+          </li>
         </ul>
       </div>
 
