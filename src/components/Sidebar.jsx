@@ -97,32 +97,35 @@ function Sidebar({
   return (
     <Card className="relative h-full min-h-0 overflow-hidden bg-muted/50 border-border/70 flex flex-col">
       <CardHeader className="flex-row items-center justify-between space-y-0 border-b border-border/60">
-        <button
-          className="space-y-1 text-left"
-          onClick={() => {
-            openHome();
-            closeAbout();
-            setSidebarOpen(false);
-          }}
-          aria-label="回首頁使用說明"
-        >
-          <p
-            className={`text-[11px] uppercase tracking-[0.2em] ${accentStyle.label}`}
+        <div className="flex w-full items-center justify-between gap-3">
+          <button
+            className="space-y-1 text-left flex-1"
+            onClick={() => {
+              openHome();
+              closeAbout();
+              setSidebarOpen(false);
+            }}
+            aria-label="回首頁使用說明"
           >
-            Scripts
-          </p>
-          <CardTitle className="text-lg">Screenplay Reader</CardTitle>
-          <CardDescription>{homeContent.label}</CardDescription>
-        </button>
+            <p
+              className={`text-[11px] uppercase tracking-[0.2em] ${accentStyle.label}`}
+            >
+              Scripts
+            </p>
+            <CardTitle className="text-lg">Screenplay Reader</CardTitle>
+            <CardDescription>{homeContent.label}</CardDescription>
+          </button>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="收合列表"
+            className="shrink-0"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <PanelLeftClose className="h-5 w-5" />
+          </Button>
+        </div>
       </CardHeader>
-
-      <button
-        aria-label="收合列表"
-        onClick={() => setSidebarOpen(false)}
-        className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 inline-flex items-center justify-center text-foreground/80 hover:text-foreground transition-colors z-20"
-      >
-        <PanelLeftClose className="h-5 w-5" />
-      </button>
 
       <CardContent className="p-0 flex-1 min-h-0 overflow-hidden flex flex-col">
         <div className="p-4 border-b border-border/60 bg-card/80 backdrop-blur sticky top-0 z-10">

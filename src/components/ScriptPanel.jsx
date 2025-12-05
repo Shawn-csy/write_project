@@ -10,8 +10,11 @@ function ScriptPanel({
   setCharacterList,
   setTitleHtml,
   setTitleName,
+  setTitleNote,
   setHasTitle,
   setRawScriptHtml,
+  setScenes,
+  scrollToScene,
   theme,
   fontSize = 14,
 }) {
@@ -32,8 +35,11 @@ function ScriptPanel({
               onCharacters={setCharacterList}
               onTitle={setTitleHtml}
               onTitleName={setTitleName}
+              onTitleNote={setTitleNote}
               onHasTitle={setHasTitle}
               onRawHtml={setRawScriptHtml}
+              onScenes={setScenes}
+              scrollToScene={scrollToScene}
               theme={theme}
               fontSize={fontSize}
             />

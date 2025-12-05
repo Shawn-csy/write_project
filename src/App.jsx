@@ -14,6 +14,7 @@ import {
   accentClasses,
   defaultAccent,
 } from "./constants/accent";
+import generatedFileMeta from "./constants/fileMeta.generated.json";
 import { buildPrintHtml } from "./lib/print";
 
 const scriptModules = import.meta.glob("./scripts/**/*.fountain", {
@@ -39,6 +40,7 @@ function App() {
   const [openFolders, setOpenFolders] = useState(new Set(["__root__"]));
   const [titleHtml, setTitleHtml] = useState("");
   const [titleName, setTitleName] = useState("");
+  const [titleNote, setTitleNote] = useState("");
   const [showTitle, setShowTitle] = useState(false);
   const [hasTitle, setHasTitle] = useState(false);
   const [rawScriptHtml, setRawScriptHtml] = useState("");
@@ -48,6 +50,10 @@ function App() {
   const [fileTagsMap, setFileTagsMap] = useState({});
   const [shareCopied, setShareCopied] = useState(false);
   const shareCopiedTimer = useRef(null);
+  const [sceneList, setSceneList] = useState([]);
+  const [scrollSceneId, setScrollSceneId] = useState("");
+  const [currentSceneId, setCurrentSceneId] = useState("");
+  const initialParamsRef = useRef({ char: null, scene: null });
 
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
@@ -98,6 +104,21 @@ function App() {
   }, [files]);
 
   useEffect(() => {
+    if (!sceneList.length) return;
+    const initialScene = initialParamsRef.current.scene;
+    if (initialScene && sceneList.some((s) => s.id === initialScene)) {
+      setCurrentSceneId(initialScene);
+      setScrollSceneId(initialScene);
+      initialParamsRef.current.scene = null;
+    }
+  }, [sceneList]);
+
+  useEffect(() => {
+    if (!files.length || !activeFile) return;
+    syncUrl();
+  }, [filterCharacter, currentSceneId, activeFile, files]);
+
+  useEffect(() => {
     const savedAccent = localStorage.getItem("screenplay-reader-accent");
     if (savedAccent && accentThemes[savedAccent]) {
       setAccent(savedAccent);
@@ -105,6 +126,23 @@ function App() {
     const savedLabelMode = localStorage.getItem("screenplay-reader-label-mode");
     if (savedLabelMode === "auto" || savedLabelMode === "filename") {
       setFileLabelMode(savedLabelMode);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    initialParamsRef.current = {
+      char: url.searchParams.get("char"),
+      scene: url.searchParams.get("scene"),
+    };
+    const charParam = initialParamsRef.current.char;
+    if (charParam) {
+      setFilterCharacter(charParam);
+      if (charParam !== "__ALL__") {
+        setFocusMode(true);
+        setFocusEffect("dim");
+      }
     }
   }, []);
 
@@ -182,11 +220,23 @@ function App() {
     }
   };
 
-  const setUrlFile = (file) => {
+  const syncUrl = ({ fileName, character, sceneId } = {}) => {
     if (typeof window === "undefined") return;
     const url = new URL(window.location.href);
-    if (file) url.searchParams.set("file", file.display);
+    const fileEntry =
+      (fileName && files.find((f) => f.name === fileName)) ||
+      (activeFile && files.find((f) => f.name === activeFile));
+    if (fileEntry) url.searchParams.set("file", fileEntry.display);
     else url.searchParams.delete("file");
+
+    const charVal = character !== undefined ? character : filterCharacter;
+    if (charVal && charVal !== "__ALL__") url.searchParams.set("char", charVal);
+    else url.searchParams.delete("char");
+
+    const sceneVal = sceneId !== undefined ? sceneId : currentSceneId;
+    if (sceneVal) url.searchParams.set("scene", sceneVal);
+    else url.searchParams.delete("scene");
+
     window.history.replaceState({}, "", url);
   };
 
@@ -196,17 +246,38 @@ function App() {
       const content = await file.loader();
       setActiveFile(file.name);
       setRawScript(content);
-      setFilterCharacter("__ALL__");
-      setFocusMode(false);
-      setFocusEffect("hide");
+      const initChar = initialParamsRef.current.char;
+      if (initChar) {
+        setFilterCharacter(initChar);
+        if (initChar !== "__ALL__") {
+          setFocusMode(true);
+          setFocusEffect("dim");
+        } else {
+          setFocusMode(false);
+          setFocusEffect("hide");
+        }
+        initialParamsRef.current.char = null;
+      } else {
+        setFilterCharacter("__ALL__");
+        setFocusMode(false);
+        setFocusEffect("hide");
+      }
+      setSceneList([]);
+      setCurrentSceneId("");
+      setScrollSceneId("");
       setTitleHtml("");
       setTitleName("");
       setHasTitle(false);
       setShowTitle(false);
       setRawScriptHtml("");
       setHomeOpen(false);
-      setUrlFile(file);
-      fetchLastModified(file);
+      syncUrl({ fileName: file.name, sceneId: "" });
+      const metaKey = file.display || file.name;
+      if (generatedFileMeta?.[metaKey]) {
+        setFileMeta((prev) => ({ ...prev, [file.name]: new Date(generatedFileMeta[metaKey]) }));
+      } else {
+        fetchLastModified(file);
+      }
     } catch (err) {
       console.error("載入劇本失敗:", err);
     } finally {
@@ -228,6 +299,16 @@ function App() {
       files[0];
     if (target) loadScript(target);
   }, [files]);
+
+  useEffect(() => {
+    if (generatedFileMeta && Object.keys(generatedFileMeta).length) {
+      const normalized = {};
+      Object.entries(generatedFileMeta).forEach(([key, iso]) => {
+        normalized[key] = new Date(iso);
+      });
+      setFileMeta((prev) => ({ ...normalized, ...prev }));
+    }
+  }, []);
 
   const handleShareUrl = async (e) => {
     e?.stopPropagation?.();
@@ -367,6 +448,13 @@ function App() {
     setShowTitle(false);
   };
 
+  const handleSelectScene = (sceneId) => {
+    const next = sceneId || "";
+    setCurrentSceneId(next);
+    setScrollSceneId(next);
+    syncUrl({ sceneId: next });
+  };
+
   const headerTitle =
     homeOpen ? "Home" : aboutOpen ? "About" : titleName || activeFile || "選擇一個劇本";
   const canShare = !homeOpen && !aboutOpen && Boolean(activeFile);
@@ -440,6 +528,10 @@ function App() {
               onShareUrl={handleShareUrl}
               canShare={canShare}
               shareCopied={shareCopied}
+              sceneList={sceneList}
+              currentSceneId={currentSceneId}
+              onSelectScene={handleSelectScene}
+              titleNote={titleNote}
               focusMode={focusMode}
               focusEffect={focusEffect}
               setFocusEffect={setFocusEffect}
@@ -482,8 +574,11 @@ function App() {
               setCharacterList={setCharacterList}
               setTitleHtml={setTitleHtml}
               setTitleName={handleTitleName}
+              setTitleNote={setTitleNote}
               setHasTitle={setHasTitle}
               setRawScriptHtml={setRawScriptHtml}
+              setScenes={setSceneList}
+              scrollToScene={scrollSceneId}
               theme={appliedTheme}
               fontSize={fontSize}
             />
