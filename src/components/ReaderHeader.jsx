@@ -28,9 +28,6 @@ function ReaderHeader({
   currentSceneId,
   onSelectScene,
   titleNote,
-  focusMode,
-  focusEffect,
-  setFocusEffect,
   characterList,
   filterCharacter,
   setFilterCharacter,
@@ -128,22 +125,6 @@ function ReaderHeader({
           >
             <Printer className="h-4 w-4" />
           </button>
-          {focusMode && (
-            <div className="min-w-[90px] sm:min-w-[140px]">
-              <Select value={focusEffect} onValueChange={setFocusEffect}>
-                <SelectTrigger className="h-8 px-2 text-xs sm:h-9 sm:px-3 sm:text-sm">
-                  <SelectValue placeholder="效果" />
-                </SelectTrigger>
-                <SelectContent align="start">
-                  <SelectGroup>
-                    <SelectLabel>順讀效果</SelectLabel>
-                    <SelectItem value="hide">隱藏其他</SelectItem>
-                    <SelectItem value="dim">淡化其他</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
           {characterList.length > 0 && (
             <div className="min-w-[100px] sm:min-w-[160px]">
               <Select
@@ -152,7 +133,6 @@ function ReaderHeader({
                   setFilterCharacter(val);
                   if (val && val !== "__ALL__") {
                     setFocusMode(true);
-                    setFocusEffect("dim");
                   } else {
                     setFocusMode(false);
                   }

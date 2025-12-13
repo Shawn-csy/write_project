@@ -1,5 +1,11 @@
 import React, { useMemo, useState } from "react";
-import { PanelLeftClose, Sun, Moon, Type, FileText, ChevronDown } from "lucide-react";
+import {
+  PanelLeftClose,
+  Type,
+  FileText,
+  ChevronDown,
+  Settings,
+} from "lucide-react";
 import { Button } from "./ui/button";
 import {
   Select,
@@ -18,10 +24,9 @@ import {
   CardTitle,
 } from "./ui/card";
 import { homeContent } from "../constants/homeContent";
-import { accentThemes } from "../constants/accent";
 
 function Sidebar({
-  groupedFiles,
+  fileTree,
   searchTerm,
   onSearchChange,
   openFolders,
@@ -29,17 +34,11 @@ function Sidebar({
   activeFile,
   onSelectFile,
   accentStyle,
-  accentOptions,
-  accent,
-  setAccent,
   openAbout,
+  openSettings,
   closeAbout,
   setSidebarOpen,
   openHome,
-  isDark,
-  setTheme,
-  fontSize,
-  setFontSize,
   fileTitleMap,
   fileTagsMap = {},
   fileLabelMode,
@@ -48,26 +47,138 @@ function Sidebar({
   const [tagMenuOpen, setTagMenuOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState([]);
 
-  const filteredGroups = useMemo(() => {
-    if (!searchTerm.trim()) return groupedFiles;
-    const q = searchTerm.toLowerCase();
-    return groupedFiles
-      .map(({ folder, items }) => {
-        const folderMatch = folder.toLowerCase().includes(q);
-        const matchedItems = items.filter((f) =>
-          f.name.toLowerCase().includes(q) ||
-          f.display?.toLowerCase().includes(q) ||
-          (fileTitleMap[f.name]?.toLowerCase() || "").includes(q) ||
-          (fileTagsMap[f.name]?.join(" ").toLowerCase().includes(q) ?? false)
-        );
-        if (!folderMatch && matchedItems.length === 0) return null;
-        return {
-          folder,
-          items: folderMatch ? items : matchedItems,
-        };
-      })
-      .filter(Boolean);
-  }, [groupedFiles, searchTerm, fileTitleMap, fileTagsMap]);
+  const renderNode = (node, depth = 0) => {
+    if (!node) return null;
+    const isRoot = node.path === "__root__";
+    const expanded = searchTerm ? true : openFolders.has(node.path);
+    const label = isRoot ? "根目錄" : node.name;
+    const indentPx = 16 + depth * 12;
+    const folderDepthClass =
+      depth === 0
+        ? "folder-depth-0"
+        : depth === 1
+        ? "folder-depth-1"
+        : "folder-depth-2";
+    const fileDepthClass =
+      depth === 0
+        ? "file-depth-0"
+        : depth === 1
+        ? "file-depth-1"
+        : "file-depth-2";
+
+    if (isRoot) {
+      return (
+        <div key={node.path}>
+          {node.files?.map((file) => (
+            <div key={file.path}>
+              <Button
+                variant="ghost"
+                className={`w-full justify-start rounded-none px-6 py-3 text-sm text-left ${
+                  accentStyle.fileHoverBg
+                } ${
+                  activeFile === file.name
+                    ? `${accentStyle.fileActiveBg} ${accentStyle.fileActiveText} border-l-4 ${accentStyle.fileActiveBorder} font-semibold`
+                    : `text-foreground ${fileDepthClass}`
+                }`}
+                onClick={() => {
+                  closeAbout();
+                  onSelectFile(file);
+                  if (setSidebarOpen) {
+                    const isDesktop = window.matchMedia(
+                      "(min-width: 1024px)"
+                    ).matches;
+                    if (!isDesktop) {
+                      setSidebarOpen(false);
+                    }
+                  }
+                }}
+                style={{
+                  paddingLeft: `${indentPx + 12}px`,
+                }}
+              >
+                <span
+                  className={`h-2 w-2 rounded-full ${accentStyle.dot} mr-3`}
+                />
+                <span className="truncate">
+                  {fileLabelMode === "filename"
+                    ? file.name
+                    : fileTitleMap[file.name]?.trim() || file.name}
+                </span>
+              </Button>
+            </div>
+          ))}
+          {node.children?.map((child) => renderNode(child, depth))}
+        </div>
+      );
+    }
+
+    return (
+      <div key={node.path}>
+        <Button
+          variant="ghost"
+          className={`w-full justify-between rounded-none px-4 py-3 text-sm font-semibold ${accentStyle.folderText} ${accentStyle.folderTextDark} ${folderDepthClass}`}
+          onClick={() => toggleFolder(node.path)}
+          disabled={Boolean(searchTerm)}
+          style={{
+            paddingLeft: `${indentPx}px`,
+          }}
+        >
+          <span className="truncate">{label}</span>
+          <span className="text-xs text-muted-foreground">
+            {expanded ? "收合" : "展開"}
+          </span>
+        </Button>
+        {expanded && (
+          <div className="divide-y divide-border/60">
+            {node.files?.map((file) => (
+              <div key={file.path}>
+                <Button
+                  variant="ghost"
+                  className={`w-full justify-start rounded-none px-6 py-3 text-sm text-left ${
+                    accentStyle.fileHoverBg
+                  } ${
+                    activeFile === file.name
+                      ? `${accentStyle.fileActiveBg} ${accentStyle.fileActiveText} border-l-4 ${accentStyle.fileActiveBorder} font-semibold`
+                      : `text-foreground ${fileDepthClass}`
+                  }`}
+                  onClick={() => {
+                    closeAbout();
+                    onSelectFile(file);
+                    if (setSidebarOpen) {
+                      const isDesktop = window.matchMedia(
+                        "(min-width: 1024px)"
+                      ).matches;
+                      if (!isDesktop) {
+                        setSidebarOpen(false);
+                      }
+                    }
+                  }}
+                  style={{
+                    paddingLeft: `${indentPx + 12}px`,
+                  }}
+                >
+                  <span
+                    className={`h-2 w-2 rounded-full ${accentStyle.dot} mr-3`}
+                  />
+                  <span className="truncate">
+                    {fileLabelMode === "filename"
+                      ? file.name
+                      : fileTitleMap[file.name]?.trim() || file.name}
+                  </span>
+                </Button>
+              </div>
+            ))}
+            {node.children?.map((child) => renderNode(child, depth + 1))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const hasFiles =
+    fileTree &&
+    ((fileTree.files && fileTree.files.length > 0) ||
+      (fileTree.children && fileTree.children.length > 0));
 
   const tagSuggestions = useMemo(() => {
     const set = new Set();
@@ -211,12 +322,16 @@ function Sidebar({
                           key={tag}
                           onClick={() => toggleTagSelect(tag)}
                           className={`w-full flex items-center gap-2 text-left text-sm px-2 py-1 rounded ${
-                            selected ? `${accentStyle.fileActiveBg} ${accentStyle.fileActiveText}` : "hover:bg-muted/60"
+                            selected
+                              ? `${accentStyle.fileActiveBg} ${accentStyle.fileActiveText}`
+                              : "hover:bg-muted/60"
                           }`}
                         >
                           <span
                             className={`h-4 w-4 inline-flex items-center justify-center rounded border ${
-                              selected ? accentStyle.fileActiveBorder : "border-border/60"
+                              selected
+                                ? accentStyle.fileActiveBorder
+                                : "border-border/60"
                             }`}
                           >
                             {selected ? "✓" : ""}
@@ -233,166 +348,43 @@ function Sidebar({
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto">
-          {filteredGroups.length === 0 ? (
+          {!hasFiles ? (
             <p className="p-4 text-sm text-muted-foreground">
               未找到符合的檔案
             </p>
           ) : (
             <div className="divide-y divide-border/70">
-              {filteredGroups.map(({ folder, items }) => {
-                const expanded = searchTerm ? true : openFolders.has(folder);
-                return (
-                  <div key={folder} className="bg-muted/30">
-                    <Button
-                      variant="ghost"
-                      className={`w-full justify-between rounded-none px-4 py-3 text-sm font-semibold ${accentStyle.folderBg} ${accentStyle.folderBgDark} ${accentStyle.folderText} ${accentStyle.folderTextDark}`}
-                      onClick={() => toggleFolder(folder)}
-                      disabled={Boolean(searchTerm)}
-                    >
-                      <span className="truncate">
-                        {folder === "__root__" ? "根目錄" : folder}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {expanded ? "收合" : "展開"}
-                      </span>
-                    </Button>
-                    {expanded && (
-                      <ul className="divide-y divide-border/60">
-                        {items.map((file) => (
-                          <li key={file.path}>
-                            <Button
-                              variant="ghost"
-                              className={`w-full justify-start rounded-none px-6 py-3 text-sm text-left ${
-                                accentStyle.fileHoverBg
-                              } ${
-                                activeFile === file.name
-                                  ? `${accentStyle.fileActiveBg} ${accentStyle.fileActiveText} border-l-4 ${accentStyle.fileActiveBorder} font-semibold`
-                                  : "text-foreground"
-                              }`}
-                              onClick={() => {
-                                closeAbout();
-                                onSelectFile(file);
-                                if (setSidebarOpen) {
-                                  const isDesktop = window.matchMedia(
-                                    "(min-width: 1024px)"
-                                  ).matches;
-                                  if (!isDesktop) {
-                                    setSidebarOpen(false);
-                                  }
-                                }
-                              }}
-                            >
-                              <span
-                                className={`h-2 w-2 rounded-full ${accentStyle.dot} mr-3`}
-                              />
-                              <span className="truncate">
-                                {fileLabelMode === "filename"
-                                  ? file.name
-                                  : fileTitleMap[file.name]?.trim() || file.name}
-                              </span>
-                            </Button>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                );
-              })}
+              {renderNode(fileTree)}
             </div>
           )}
         </div>
       </CardContent>
 
       <div className="mt-auto border-t border-border/60 bg-background/60 px-4 py-3 flex flex-col gap-3 shrink-0">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            字級
-          </span>
-          <div className="flex items-center gap-1">
-            {[16, 24, 36, 72].map((size) => (
-              <button
-                key={size}
-                aria-label={`字級 ${size}px`}
-                onClick={() => setFontSize(size)}
-                className={`h-8 w-8 inline-flex items-center justify-center rounded border ${
-                  fontSize === size
-                    ? accentStyle.fileActiveBorder
-                    : "border-border/60"
-                } text-foreground/80 hover:text-foreground transition-colors`}
-              >
-                <span
-                  style={{ fontSize: size <= 24 ? 12 : size >= 72 ? 20 : 16 }}
-                >
-                  A
-                </span>
-              </button>
-            ))}
-          </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            className="flex-1 justify-between rounded-lg px-3 py-2 text-sm font-semibold"
+            onClick={() => {
+              openAbout();
+              setSidebarOpen(false);
+            }}
+          >
+            <span className="truncate">About</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="設定"
+            className="h-10 w-10 rounded-lg border border-border/60"
+            onClick={(e) => {
+              e.stopPropagation();
+              openSettings();
+            }}
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
         </div>
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            顯示模式
-          </span>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="切換主題"
-              onClick={() => setTheme(isDark ? "light" : "dark")}
-            >
-              {isDark ? (
-                <Sun className="h-5 w-5" />
-              ) : (
-                <Moon className="h-5 w-5" />
-              )}
-            </Button>
-            <div className="flex items-center gap-1">
-              {accentOptions.map((opt) => {
-                const active = accent === opt.value;
-                const palette = accentThemes[opt.value];
-                const swatch = palette?.accent;
-                const borderColor = active
-                  ? `hsl(${swatch})`
-                  : undefined;
-                return (
-                  <Button
-                    key={opt.value}
-                    variant="ghost"
-                    size="icon"
-                    aria-label={`重點色 ${opt.label}`}
-                    className="h-9 w-9 p-0 border bg-background"
-                    style={{
-                      borderColor: borderColor || undefined,
-                    }}
-                    onClick={() => {
-                      setAccent(opt.value);
-                      localStorage.setItem(
-                        "screenplay-reader-accent",
-                        opt.value
-                      );
-                    }}
-                  >
-                    <span
-                      className="h-3 w-3 rounded-full"
-                      style={{ backgroundColor: swatch ? `hsl(${swatch})` : undefined }}
-                    />
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-        <Button
-          variant="ghost"
-          className="w-full justify-between rounded-lg px-3 py-2 text-sm font-semibold"
-          onClick={() => {
-            openAbout();
-            setSidebarOpen(false);
-          }}
-        >
-          <span className="truncate">About</span>
-          <span className="text-xs text-muted-foreground">查看</span>
-        </Button>
       </div>
     </Card>
   );

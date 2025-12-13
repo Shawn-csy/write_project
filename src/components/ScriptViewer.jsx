@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Fountain } from 'fountain-js';
+import { buildAccentPalette } from '../constants/accent';
 
 function ScriptViewer({
   text,
@@ -16,10 +17,17 @@ function ScriptViewer({
   scrollToScene,
   theme,
   fontSize = 14,
+  focusContentMode = "all",
+  highlightCharacters = true,
+  highlightSfx = true,
+  accentColor,
 }) {
   const colorCache = useRef(new Map());
-  const BLANK_LONG = '__SCREENPLAY_BLANK_LONG__';
-  const BLANK_SHORT = '__SCREENPLAY_BLANK_SHORT__';
+  // 使用不會被 Fountain 斜體/底線解析的占位字串
+  const BLANK_LONG = 'SCREENPLAY-PLACEHOLDER-BLANK-LONG';
+  const BLANK_MID = 'SCREENPLAY-PLACEHOLDER-BLANK-MID';
+  const BLANK_SHORT = 'SCREENPLAY-PLACEHOLDER-BLANK-SHORT';
+  const BLANK_PURE = 'SCREENPLAY-PLACEHOLDER-BLANK-PURE';
   const matchWhitespaceCommand = (line) => {
     const trimmed = (line || '').trim();
     if (!trimmed) return null;
@@ -27,7 +35,9 @@ function ScriptViewer({
       .replace(/^[(（]\s*/, '')
       .replace(/\s*[)）]$/, '');
     if (stripped === '長留白') return 'long';
+    if (stripped === '中留白') return 'mid';
     if (stripped === '短留白') return 'short';
+    if (stripped === '留白') return 'pure';
     return null;
   };
 
@@ -38,9 +48,13 @@ function ScriptViewer({
     lines.forEach((line) => {
       const kind = matchWhitespaceCommand(line);
       if (kind === 'long') {
-        output.push(BLANK_LONG, BLANK_LONG); // 使用占位符避免破壞對話解析
+        output.push(BLANK_LONG);
+      } else if (kind === 'mid') {
+        output.push(BLANK_MID);
       } else if (kind === 'short') {
         output.push(BLANK_SHORT);
+      } else if (kind === 'pure') {
+        output.push(BLANK_PURE);
       } else {
         output.push(line);
       }
@@ -221,22 +235,145 @@ function ScriptViewer({
     onScenes(sceneList);
   }, [sceneList, onScenes]);
 
+  // 預先計算好該主題色對應的調色盤
+  const themePalette = useMemo(() => {
+    // 預設傳入 accentColor (字串 "H S L")，若無則用 emrald 預設值
+    return buildAccentPalette(accentColor || '160 84% 39%');
+  }, [accentColor]);
+
   // 依角色過濾內容
   const filteredHtml = useMemo(() => {
     const doc = new DOMParser().parseFromString(parsedBody.script, 'text/html');
 
-    const replacePlaceholders = (html) =>
-      html
-        .replaceAll(
-          BLANK_LONG,
-          '<span class="whitespace-gap whitespace-gap-long" aria-hidden="true"></span>'
-        )
-        .replaceAll(
-          BLANK_SHORT,
-          '<span class="whitespace-gap whitespace-gap-short" aria-hidden="true"></span>'
-        );
+    const replacePlaceholders = () => {
+      const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+      const targets = [];
+      while (walker.nextNode()) {
+        targets.push(walker.currentNode);
+      }
+      const buildGap = (kind) => {
+        const wrap = doc.createElement('div');
+        wrap.className = `whitespace-block whitespace-${kind}`;
+        const top = doc.createElement('div');
+        top.className = 'whitespace-line';
+        const mid = doc.createElement('div');
+        mid.className = 'whitespace-line whitespace-label';
+        const bottom = doc.createElement('div');
+        bottom.className = 'whitespace-line';
+        const labelMap = {
+          short: '停頓一秒',
+          mid: '停頓三秒',
+          long: '停頓五秒',
+          pure: '',
+        };
+        mid.textContent = labelMap[kind] || '';
+        if (!mid.textContent) mid.classList.add('whitespace-label-empty');
+        wrap.appendChild(top);
+        wrap.appendChild(mid);
+        wrap.appendChild(bottom);
+        return wrap;
+      };
 
-    doc.body.innerHTML = replacePlaceholders(doc.body.innerHTML);
+      const consumeTextNode = (textNode) => {
+        const raw = textNode.textContent || '';
+        if (
+          !raw.includes(BLANK_SHORT) &&
+          !raw.includes(BLANK_LONG) &&
+          !raw.includes(BLANK_MID) &&
+          !raw.includes(BLANK_PURE)
+        )
+          return;
+        const frag = doc.createDocumentFragment();
+        let rest = raw;
+        const findNext = () => {
+          const indices = [
+            { idx: rest.indexOf(BLANK_SHORT), kind: 'short', token: BLANK_SHORT },
+            { idx: rest.indexOf(BLANK_MID), kind: 'mid', token: BLANK_MID },
+            { idx: rest.indexOf(BLANK_LONG), kind: 'long', token: BLANK_LONG },
+            { idx: rest.indexOf(BLANK_PURE), kind: 'pure', token: BLANK_PURE },
+          ].filter((e) => e.idx !== -1);
+          if (!indices.length) return null;
+          return indices.sort((a, b) => a.idx - b.idx)[0];
+        };
+        while (rest.length) {
+          const next = findNext();
+          if (!next) {
+            frag.appendChild(doc.createTextNode(rest));
+            break;
+          }
+          if (next.idx > 0) {
+            frag.appendChild(doc.createTextNode(rest.slice(0, next.idx)));
+          }
+          frag.appendChild(buildGap(next.kind));
+          rest = rest.slice(next.idx + next.token.length);
+        }
+        textNode.replaceWith(frag);
+      };
+
+      targets.forEach(consumeTextNode);
+    };
+
+    replacePlaceholders();
+
+    // 標記 SFX 行（(SFX: ... )）
+    const markSfx = () => {
+      if (!highlightSfx) return;
+      const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+      const targets = [];
+      while (walker.nextNode()) {
+        const node = walker.currentNode;
+        const raw = node.textContent || '';
+        const match = raw.match(/^\s*\(sfx[:：]\s*(.+?)\)\s*$/i);
+        if (match) {
+          targets.push({ node, content: match[1] });
+        }
+      }
+      targets.forEach(({ node, content }) => {
+        const wrap = doc.createElement('div');
+        wrap.className = 'sfx-cue';
+        const badge = doc.createElement('span');
+        badge.className = 'sfx-label';
+        badge.textContent = 'SFX';
+        const text = doc.createElement('span');
+        text.className = 'sfx-text';
+        text.textContent = content.trim();
+        wrap.appendChild(badge);
+        wrap.appendChild(text);
+        node.parentNode.replaceChild(wrap, node);
+      });
+    };
+
+    markSfx();
+
+    const serializeWithGaps = () => {
+      const blockHtml = (kind) => {
+        const labelMap = {
+          short: '停頓一秒',
+          mid: '停頓三秒',
+          long: '停頓五秒',
+          pure: '',
+        };
+        const label = labelMap[kind] || '';
+        return `
+          <div class="whitespace-block whitespace-${kind}">
+            <div class="whitespace-line"></div>
+            <div class="whitespace-line whitespace-label${label ? '' : ' whitespace-label-empty'}">${label}</div>
+            <div class="whitespace-line"></div>
+          </div>
+        `;
+      };
+      const raw = doc.body.innerHTML;
+      return raw
+        .replaceAll(BLANK_LONG, blockHtml('long'))
+        .replaceAll(BLANK_MID, blockHtml('mid'))
+        .replaceAll(BLANK_SHORT, blockHtml('short'))
+        .replaceAll(BLANK_PURE, blockHtml('pure'))
+        // 舊版占位符兼容（避免舊資料仍殘留）
+        .replaceAll('__SCREENPLAY_BLANK_LONG__', blockHtml('long'))
+        .replaceAll('__SCREENPLAY_BLANK_SHORT__', blockHtml('short'))
+        .replaceAll('_SCREENPLAY_BLANK_LONG_', blockHtml('long'))
+        .replaceAll('_SCREENPLAY_BLANK_SHORT_', blockHtml('short'));
+    };
 
     const sceneHeadings = Array.from(doc.querySelectorAll('.scene-heading, h3'));
     sceneHeadings.forEach((node, idx) => {
@@ -244,39 +381,71 @@ function ScriptViewer({
       if (scene) node.id = scene.id;
     });
 
-    const getGray = (name) => {
+    const getCharacterColor = (name) => {
       if (!name) return 'hsl(0 0% 50%)';
       const key = name.toUpperCase();
       if (colorCache.current.has(key)) return colorCache.current.get(key);
-      const palette = [
-        'hsl(0 0% 24%)',
-        'hsl(0 0% 32%)',
-        'hsl(0 0% 40%)',
-        'hsl(0 0% 48%)',
-        'hsl(0 0% 56%)',
-        'hsl(0 0% 64%)',
-        'hsl(0 0% 72%)',
-        'hsl(0 0% 80%)',
-      ];
-      const idx = colorCache.current.size % palette.length;
-      const color = palette[idx];
+
+      // 基於名稱雜湊選擇 Palette 中的顏色
+      let hash = 0;
+      for (let i = 0; i < key.length; i++) {
+        hash = key.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      // themePalette 長度固定為 10
+      const colorIndex = Math.abs(hash) % themePalette.length;
+      const color = themePalette[colorIndex];
+      
       colorCache.current.set(key, color);
       return color;
     };
 
+    const applyBlockClass = (nodes) => {
+      nodes.forEach((n) => {
+        n.classList.add('character-block');
+        if (highlightCharacters) {
+          n.classList.remove('no-highlight');
+        } else {
+          n.classList.add('no-highlight');
+        }
+      });
+    };
+
+    const pruneBundle = (nodes) => {
+      if (focusContentMode !== 'dialogue') return nodes;
+      const allowed = nodes.filter(
+        (n) =>
+          n.classList.contains('dialogue') ||
+          n.classList.contains('character')
+      );
+      nodes.forEach((n) => {
+        if (!allowed.includes(n)) n.remove();
+      });
+      return allowed;
+    };
+
     if (!focusMode || !filterCharacter || filterCharacter === '__ALL__') {
-      // 一般模式：僅加上淡線提示，不改變內容
+      // 一般模式：顯示色塊高亮
       const markBundle = (nodes) => {
-        const name = nodes?.[0]?.textContent?.trim();
-        const color = getGray(name);
+        // 從 bundle 找出角色名稱
+        let charNode = nodes.find((n) => n.classList.contains('character'));
+        if (!charNode) {
+          // Fountain 產生的對話標題通常是 h4
+          const heading = nodes.find((n) => n.tagName === 'H4');
+          if (heading) {
+            heading.classList.add('character');
+            charNode = heading;
+          }
+        }
+        const name = charNode?.textContent?.trim();
+        const color = getCharacterColor(name);
+        
+        applyBlockClass(nodes);
         nodes.forEach((n) => {
-          n.classList.add('character-block');
           n.style.setProperty('--char-color', color);
-          n.style.setProperty('--char-color-tint', color);
         });
       };
 
-      const characters = Array.from(doc.querySelectorAll('.character'));
+      const characters = Array.from(doc.querySelectorAll('.character, .dialogue > h4'));
       characters.forEach((charNode) => {
         const bundle = [charNode];
         let sibling = charNode.nextElementSibling;
@@ -289,28 +458,37 @@ function ScriptViewer({
         }
         markBundle(bundle);
       });
-
+      
+      // 處理孤立對話（極少見，防禦性編碼）
       doc.querySelectorAll('.dialogue').forEach((dlg) => {
-        const h4 = dlg.querySelector('h4');
-        if (!h4) return;
-        markBundle([dlg]);
+         if (dlg.classList.contains('character-block')) return; // 已處理
+         const h4 = dlg.querySelector('h4'); // 部分格式可能將角色名包在 h4
+         if (h4) {
+             const name = h4.textContent.trim();
+             const color = getCharacterColor(name);
+             dlg.classList.add('character-block');
+             dlg.style.setProperty('--char-color', color);
+         }
       });
 
-      return doc.body.innerHTML;
+      return serializeWithGaps();
     }
 
     // 順讀模式：維持原本高亮/淡化邏輯
     const target = filterCharacter.toUpperCase();
 
     const handleBundle = (isTarget, nodes) => {
+      applyBlockClass(nodes);
+      const pruned = pruneBundle(nodes);
+      if (!pruned.length) return;
       if (focusEffect === 'hide') {
         if (isTarget) {
-          nodes.forEach((n) => n.classList.add('highlight'));
+          pruned.forEach((n) => n.classList.add('highlight'));
         } else {
-          nodes.forEach((n) => n.remove());
+          pruned.forEach((n) => n.remove());
         }
       } else {
-        nodes.forEach((n) => {
+        pruned.forEach((n) => {
           if (isTarget) {
             n.classList.add('highlight');
           } else {
@@ -320,8 +498,11 @@ function ScriptViewer({
       }
     };
 
-    const characters = Array.from(doc.querySelectorAll('.character'));
+    const characters = Array.from(doc.querySelectorAll('.character, .dialogue > h4'));
     characters.forEach((charNode) => {
+      if (!charNode.classList.contains('character')) {
+        charNode.classList.add('character');
+      }
       const name = charNode.textContent?.trim().toUpperCase();
       const isTarget = name && name === target;
       const bundle = [charNode];
@@ -343,8 +524,8 @@ function ScriptViewer({
       handleBundle(isTarget, [dlg]);
     });
 
-    return doc.body.innerHTML;
-  }, [parsedBody.script, filterCharacter, focusMode, focusEffect, sceneList]);
+    return serializeWithGaps();
+  }, [parsedBody.script, filterCharacter, focusMode, focusEffect, focusContentMode, sceneList, themePalette, highlightCharacters]);
 
   useEffect(() => {
     colorCache.current = new Map();

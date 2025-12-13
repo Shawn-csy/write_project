@@ -7,6 +7,7 @@ import AboutPanel from "./components/AboutPanel";
 import HomePanel from "./components/HomePanel";
 import ScriptPanel from "./components/ScriptPanel";
 import ReaderHeader from "./components/ReaderHeader";
+import SettingsPanel from "./components/SettingsPanel";
 import { useTheme } from "./components/theme-provider";
 import {
   accentThemes,
@@ -17,7 +18,7 @@ import {
 import generatedFileMeta from "./constants/fileMeta.generated.json";
 import { buildPrintHtml } from "./lib/print";
 
-const scriptModules = import.meta.glob("./scripts/**/*.fountain", {
+const scriptModules = import.meta.glob("./scripts_file/**/*.fountain", {
   query: "?raw",
   import: "default",
 });
@@ -31,8 +32,13 @@ function App() {
   const [filterCharacter, setFilterCharacter] = useState("__ALL__");
   const [focusMode, setFocusMode] = useState(false);
   const [focusEffect, setFocusEffect] = useState("hide"); // hide | dim
+  const [focusContentMode, setFocusContentMode] = useState("all"); // all | dialogue
+  const [highlightCharacters, setHighlightCharacters] = useState(true);
+  const [highlightSfx, setHighlightSfx] = useState(true);
+  const contentScrollRef = useRef(null);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [accent, setAccent] = useState(defaultAccent);
   const [homeOpen, setHomeOpen] = useState(false);
@@ -78,17 +84,17 @@ function App() {
   }, [hasTitle, activeFile]);
 
   useEffect(() => {
-    if (homeOpen || aboutOpen) {
+    if (homeOpen || aboutOpen || settingsOpen) {
       setShowTitle(false);
     }
-  }, [homeOpen, aboutOpen]);
+  }, [homeOpen, aboutOpen, settingsOpen]);
 
   useEffect(() => {
     const entries = Object.entries(scriptModules).map(([path, loader]) => ({
       name: path.split("/").pop(),
       path,
       loader,
-      display: path.replace("./scripts/", ""),
+      display: path.replace("./scripts_file/", ""),
     }));
     setFiles(entries);
   }, []);
@@ -127,6 +133,22 @@ function App() {
     if (savedLabelMode === "auto" || savedLabelMode === "filename") {
       setFileLabelMode(savedLabelMode);
     }
+    const savedFocusEffect = localStorage.getItem("screenplay-reader-focus-effect");
+    if (savedFocusEffect === "hide" || savedFocusEffect === "dim") {
+      setFocusEffect(savedFocusEffect);
+    }
+    const savedFocusContent = localStorage.getItem("screenplay-reader-focus-content");
+    if (savedFocusContent === "all" || savedFocusContent === "dialogue") {
+      setFocusContentMode(savedFocusContent);
+    }
+    const savedHighlight = localStorage.getItem("screenplay-reader-highlight");
+    if (savedHighlight === "off") {
+      setHighlightCharacters(false);
+    }
+    const savedSfx = localStorage.getItem("screenplay-reader-sfx");
+    if (savedSfx === "off") {
+      setHighlightSfx(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -141,7 +163,6 @@ function App() {
       setFilterCharacter(charParam);
       if (charParam !== "__ALL__") {
         setFocusMode(true);
-        setFocusEffect("dim");
       }
     }
   }, []);
@@ -251,16 +272,13 @@ function App() {
         setFilterCharacter(initChar);
         if (initChar !== "__ALL__") {
           setFocusMode(true);
-          setFocusEffect("dim");
         } else {
           setFocusMode(false);
-          setFocusEffect("hide");
         }
         initialParamsRef.current.char = null;
       } else {
         setFilterCharacter("__ALL__");
         setFocusMode(false);
-        setFocusEffect("hide");
       }
       setSceneList([]);
       setCurrentSceneId("");
@@ -271,6 +289,8 @@ function App() {
       setShowTitle(false);
       setRawScriptHtml("");
       setHomeOpen(false);
+      setAboutOpen(false);
+      setSettingsOpen(false);
       syncUrl({ fileName: file.name, sceneId: "" });
       const metaKey = file.display || file.name;
       if (generatedFileMeta?.[metaKey]) {
@@ -344,6 +364,66 @@ function App() {
     };
   }, []);
 
+  // 全域快捷鍵：字級調整、側欄開合、順讀切換
+  useEffect(() => {
+    const fontSteps = [16, 24, 36, 72];
+    const adjustFont = (delta) => {
+      const idx = fontSteps.findIndex((v) => v === fontSize);
+      if (idx === -1) {
+        setFontSize(fontSteps[0]);
+        return;
+      }
+      const next = fontSteps[idx + delta];
+      if (next) setFontSize(next);
+    };
+
+    const handler = (e) => {
+      const tag = e.target?.tagName?.toLowerCase();
+      if (tag === "input" || tag === "textarea" || e.target?.isContentEditable) return;
+      const meta = e.metaKey || e.ctrlKey;
+      if (!meta) return;
+      const key = e.key.toLowerCase();
+      if (key === "[" || key === "{") {
+        e.preventDefault();
+        adjustFont(-1);
+      } else if (key === "]" || key === "}") {
+        e.preventDefault();
+        adjustFont(1);
+      } else if (key === "b") {
+        e.preventDefault();
+        setSidebarOpen((v) => !v);
+      } else if (key === "g") {
+        if (filterCharacter && filterCharacter !== "__ALL__") {
+          e.preventDefault();
+          setFocusMode((v) => !v);
+        }
+      } else if (key === "arrowup" || key === "arrowdown") {
+        if (!sceneList.length) return;
+        e.preventDefault();
+        const ids = sceneList.map((s) => s.id);
+        const idx = ids.findIndex((id) => id === currentSceneId);
+        if (key === "arrowup") {
+          if (idx > 0) handleSelectScene(ids[idx - 1]);
+          else handleSelectScene("");
+        } else {
+          if (idx === -1) handleSelectScene(ids[0]);
+          else if (idx < ids.length - 1) handleSelectScene(ids[idx + 1]);
+        }
+      } else if (key === "arrowright" || key === "arrowleft") {
+        e.preventDefault();
+        const el = contentScrollRef.current;
+        if (el) {
+          const lineHeight = fontSize * 1.6;
+          const deltaLines = 6;
+          const delta = lineHeight * deltaLines * (key === "arrowright" ? 1 : -1);
+          el.scrollTop = Math.max(0, el.scrollTop + delta);
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [fontSize, filterCharacter, sceneList, currentSceneId]);
+
   const containerBg = "bg-background text-foreground";
   const sidebarWrapper = isSidebarOpen
     ? "w-[88vw] sm:w-80 lg:w-72 translate-x-0 pointer-events-auto relative lg:static"
@@ -352,23 +432,71 @@ function App() {
     "fixed inset-y-0 left-0 z-40 lg:z-20 lg:static transition-transform duration-200 overflow-hidden min-h-0";
   const layoutGap = isSidebarOpen ? "gap-4 lg:gap-6" : "gap-0";
 
-  const groupedFiles = useMemo(() => {
-    const groups = {};
-    sortedFiles.forEach((file) => {
-      const rel = file.path.replace("./scripts/", "");
-      const parts = rel.split("/");
-      const folder =
-        parts.length > 1 ? parts.slice(0, -1).join("/") : "__root__";
-      if (!groups[folder]) groups[folder] = [];
-      groups[folder].push(file);
+  const fileTree = useMemo(() => {
+    const buildTree = () => ({
+      name: "__root__",
+      path: "__root__",
+      children: new Map(),
+      files: [],
     });
-    return Object.entries(groups)
-      .map(([folder, items]) => ({
-        folder,
-        items: items.sort((a, b) => a.name.localeCompare(b.name)),
-      }))
-      .sort((a, b) => a.folder.localeCompare(b.folder));
+
+    const root = buildTree();
+    sortedFiles.forEach((file) => {
+      const rel = file.path.replace("./scripts_file/", "");
+      const parts = rel.split("/");
+      const filename = parts.pop();
+      let node = root;
+      parts.forEach((part, idx) => {
+        if (!node.children.has(part)) {
+          const childPath = node.path === "__root__" ? part : `${node.path}/${part}`;
+          node.children.set(part, {
+            name: part,
+            path: childPath,
+            children: new Map(),
+            files: [],
+          });
+        }
+        node = node.children.get(part);
+      });
+      node.files.push({ ...file, rel: filename });
+    });
+
+    const toArrayTree = (node) => ({
+      name: node.name,
+      path: node.path,
+      files: node.files.sort((a, b) => a.name.localeCompare(b.name)),
+      children: Array.from(node.children.values())
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((child) => toArrayTree(child)),
+    });
+
+    return toArrayTree(root);
   }, [sortedFiles]);
+
+  const filteredTree = useMemo(() => {
+    if (!searchTerm.trim()) return fileTree;
+    const q = searchTerm.toLowerCase();
+
+    const matchFile = (file) =>
+      file.name.toLowerCase().includes(q) ||
+      file.display?.toLowerCase().includes(q) ||
+      (fileTitleMap[file.name]?.toLowerCase() || "").includes(q) ||
+      (fileTagsMap[file.name]?.join(" ").toLowerCase().includes(q) ?? false);
+
+    const filterNode = (node) => {
+      const folderMatch =
+        node.name !== "__root__" && node.name.toLowerCase().includes(q);
+      const files = folderMatch ? node.files : node.files.filter(matchFile);
+      const children = node.children
+        .map((child) => filterNode(child))
+        .filter(Boolean);
+      if (folderMatch) return { ...node, files, children };
+      if (files.length || children.length) return { ...node, files, children };
+      return null;
+    };
+
+    return filterNode(fileTree);
+  }, [fileTree, searchTerm, fileTitleMap, fileTagsMap]);
 
   const toggleFolder = (folder) => {
     setOpenFolders((prev) => {
@@ -439,12 +567,21 @@ function App() {
   const handleOpenHome = () => {
     setHomeOpen(true);
     setAboutOpen(false);
+    setSettingsOpen(false);
     setShowTitle(false);
   };
 
   const handleOpenAbout = () => {
     setAboutOpen(true);
     setHomeOpen(false);
+    setSettingsOpen(false);
+    setShowTitle(false);
+  };
+
+  const handleOpenSettings = () => {
+    setSettingsOpen(true);
+    setHomeOpen(false);
+    setAboutOpen(false);
     setShowTitle(false);
   };
 
@@ -455,9 +592,14 @@ function App() {
     syncUrl({ sceneId: next });
   };
 
-  const headerTitle =
-    homeOpen ? "Home" : aboutOpen ? "About" : titleName || activeFile || "選擇一個劇本";
-  const canShare = !homeOpen && !aboutOpen && Boolean(activeFile);
+  const headerTitle = homeOpen
+    ? "Home"
+    : aboutOpen
+      ? "About"
+      : settingsOpen
+        ? "Settings"
+        : titleName || activeFile || "選擇一個劇本";
+  const canShare = !homeOpen && !aboutOpen && !settingsOpen && Boolean(activeFile);
 
   return (
     <div className={`min-h-screen ${containerBg}`}>
@@ -484,7 +626,7 @@ function App() {
         {/* Sidebar */}
         <div className={`${sidebarBase} ${sidebarWrapper}`}>
           <Sidebar
-            groupedFiles={groupedFiles}
+            fileTree={filteredTree}
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
             openFolders={openFolders}
@@ -492,16 +634,10 @@ function App() {
             activeFile={activeFile}
             onSelectFile={loadScript}
             accentStyle={accentStyle}
-            accentOptions={accentOptions}
-            accent={accent}
-            setAccent={setAccent}
             openAbout={handleOpenAbout}
+            openSettings={handleOpenSettings}
             closeAbout={() => setAboutOpen(false)}
             setSidebarOpen={setSidebarOpen}
-            isDark={isDark}
-            setTheme={setTheme}
-            fontSize={fontSize}
-            setFontSize={setFontSize}
             openHome={handleOpenHome}
             fileTitleMap={fileTitleMap}
             fileTagsMap={fileTagsMap}
@@ -517,8 +653,8 @@ function App() {
         <main className="flex-1 overflow-hidden flex flex-col gap-3 lg:gap-4">
           <div>
             <ReaderHeader
-              accentStyle={accentStyle}
-              hasTitle={!homeOpen && !aboutOpen && hasTitle}
+            accentStyle={accentStyle}
+              hasTitle={!homeOpen && !aboutOpen && !settingsOpen && hasTitle}
               onToggleTitle={() => setShowTitle((v) => !v)}
               titleName={headerTitle}
               activeFile={activeFile}
@@ -532,15 +668,12 @@ function App() {
               currentSceneId={currentSceneId}
               onSelectScene={handleSelectScene}
               titleNote={titleNote}
-              focusMode={focusMode}
-              focusEffect={focusEffect}
-              setFocusEffect={setFocusEffect}
               characterList={characterList}
               filterCharacter={filterCharacter}
               setFilterCharacter={setFilterCharacter}
               setFocusMode={setFocusMode}
             />
-            {!homeOpen && !aboutOpen && hasTitle && showTitle && (
+            {!homeOpen && !aboutOpen && !settingsOpen && hasTitle && showTitle && (
               <Card className="border border-border border-t-0 rounded-t-none">
                 <CardContent className="p-4">
                   <div
@@ -564,6 +697,44 @@ function App() {
             />
           ) : aboutOpen ? (
             <AboutPanel accentStyle={accentStyle} onClose={() => setAboutOpen(false)} />
+          ) : settingsOpen ? (
+            <SettingsPanel
+              isDark={isDark}
+              setTheme={setTheme}
+              accent={accent}
+              accentOptions={accentOptions}
+              setAccent={(val) => {
+                setAccent(val);
+                localStorage.setItem("screenplay-reader-accent", val);
+              }}
+              fontSize={fontSize}
+              setFontSize={setFontSize}
+              fileLabelMode={fileLabelMode}
+              setFileLabelMode={(mode) => {
+                setFileLabelMode(mode);
+                localStorage.setItem("screenplay-reader-label-mode", mode);
+              }}
+              focusEffect={focusEffect}
+              setFocusEffect={(mode) => {
+                setFocusEffect(mode);
+                localStorage.setItem("screenplay-reader-focus-effect", mode);
+              }}
+              focusContentMode={focusContentMode}
+              setFocusContentMode={(mode) => {
+                setFocusContentMode(mode);
+                localStorage.setItem("screenplay-reader-focus-content", mode);
+              }}
+              highlightCharacters={highlightCharacters}
+              setHighlightCharacters={(val) => {
+                setHighlightCharacters(val);
+                localStorage.setItem("screenplay-reader-highlight", val ? "on" : "off");
+              }}
+              highlightSfx={highlightSfx}
+              setHighlightSfx={(val) => {
+                setHighlightSfx(val);
+                localStorage.setItem("screenplay-reader-sfx", val ? "on" : "off");
+              }}
+            />
           ) : (
             <ScriptPanel
               isLoading={isLoading}
@@ -571,6 +742,9 @@ function App() {
               filterCharacter={filterCharacter}
               focusMode={focusMode}
               focusEffect={focusEffect}
+              focusContentMode={focusContentMode}
+              highlightCharacters={highlightCharacters}
+              highlightSfx={highlightSfx}
               setCharacterList={setCharacterList}
               setTitleHtml={setTitleHtml}
               setTitleName={handleTitleName}
@@ -581,6 +755,8 @@ function App() {
               scrollToScene={scrollSceneId}
               theme={appliedTheme}
               fontSize={fontSize}
+              accentColor={accentConfig.accent}
+              scrollRef={contentScrollRef}
             />
           )}
         </main>

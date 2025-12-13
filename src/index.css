@@ -9,12 +9,18 @@
     --card: 0 0% 100%;
     --card-foreground: 221 39% 11%;
     --muted: 220 14% 96%;
+    --muted-strong: 220 14% 92%;
+    --muted-stronger: 220 14% 88%;
     --muted-foreground: 220 9% 46%;
     --border: 221 13% 90%;
     --accent: 160 84% 39%;
     --accent-foreground: 154 44% 16%;
     --accent-muted: 160 60% 92%;
     --accent-strong: 160 78% 34%;
+    --surface-1: 250 40% 98%;
+    --surface-2: 220 14% 96%;
+    --surface-3: 220 14% 92%;
+    --surface-4: 220 14% 88%;
     --paper-bg: #ffffff;
     --paper-border: #e2e8f0;
     --paper-shadow: rgba(0, 0, 0, 0.12);
@@ -28,11 +34,17 @@
     --card: 222 47% 13%;
     --card-foreground: 214 32% 91%;
     --muted: 217 33% 17%;
+    --muted-strong: 217 28% 22%;
+    --muted-stronger: 215 26% 26%;
     --muted-foreground: 215 20% 65%;
     --border: 217 33% 18%;
     --accent-foreground: 210 36% 94%;
     --accent-muted: 160 32% 18%;
     --accent-strong: 160 72% 60%;
+    --surface-1: 222 47% 11%;
+    --surface-2: 217 33% 17%;
+    --surface-3: 217 28% 22%;
+    --surface-4: 215 26% 26%;
     --paper-bg: #0b1224;
     --paper-border: #1f2937;
     --paper-shadow: rgba(0, 0, 0, 0.4);
@@ -55,31 +67,52 @@
     border-color: hsl(var(--accent));
   }
   .accent-folder-bg {
-    background-color: color-mix(in srgb, hsl(var(--accent)) 12%, hsl(var(--background)) 88%);
+    background-color: hsl(var(--accent) / 0.12);
   }
   .dark .accent-folder-bg {
-    background-color: color-mix(in srgb, hsl(var(--accent)) 18%, hsl(var(--background)) 82%);
+    background-color: hsl(var(--accent) / 0.18);
   }
   .accent-folder-bg-dark {
-    background-color: color-mix(in srgb, hsl(var(--accent)) 18%, hsl(var(--background)) 82%);
+    background-color: hsl(var(--accent) / 0.18);
   }
   .accent-folder-text {
-    color: color-mix(in srgb, hsl(var(--accent)) 55%, hsl(var(--foreground)) 45%);
+    color: hsl(var(--accent-strong));
   }
   .accent-folder-text-dark {
-    color: color-mix(in srgb, hsl(var(--accent)) 65%, hsl(var(--foreground)) 35%);
+    color: hsl(var(--accent-foreground));
   }
   .accent-file-hover-bg:hover {
-    background-color: color-mix(in srgb, hsl(var(--accent)) 12%, hsl(var(--background)) 88%);
+    background-color: hsl(var(--accent) / 0.12);
   }
   .dark .accent-file-hover-bg:hover {
-    background-color: color-mix(in srgb, hsl(var(--accent)) 18%, hsl(var(--background)) 82%);
+    background-color: hsl(var(--accent) / 0.18);
   }
   .accent-file-active-bg {
-    background-color: color-mix(in srgb, hsl(var(--accent)) 18%, hsl(var(--background)) 82%);
+    background-color: hsl(var(--accent) / 0.18);
   }
   .accent-file-active-text {
-    color: color-mix(in srgb, hsl(var(--accent)) 60%, hsl(var(--foreground)) 40%);
+    color: hsl(var(--accent-foreground));
+  }
+  .folder-depth-0 {
+    background-color: hsl(var(--surface-2));
+    border-left: 2px solid hsl(var(--accent) / 0.16);
+  }
+  .folder-depth-1 {
+    background-color: hsl(var(--surface-3));
+    border-left: 2px solid hsl(var(--accent) / 0.12);
+  }
+  .folder-depth-2 {
+    background-color: hsl(var(--surface-4));
+    border-left: 2px solid hsl(var(--accent) / 0.08);
+  }
+  .file-depth-0 {
+    background-color: hsl(var(--surface-1));
+  }
+  .file-depth-1 {
+    background-color: hsl(var(--surface-2));
+  }
+  .file-depth-2 {
+    background-color: hsl(var(--surface-3));
   }
   .accent-pill {
     background-color: color-mix(in srgb, hsl(var(--accent)) 14%, hsl(var(--background)) 86%);
@@ -105,22 +138,121 @@
 .screenplay .character-block {
   --char-color: hsl(var(--accent));
   border-radius: 0;
-  padding: 4px 0 6px 0;
+  padding: 0;
   margin: 8px 0;
   display: block;
   position: relative;
   transition: opacity 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-  border-left: 2px solid color-mix(in srgb, var(--char-color) 32%, transparent);
-  padding-left: 10px;
 }
 
 .screenplay .character-block.character {
-  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  max-width: 82%;
   text-align: left;
-  padding-bottom: 4px;
-  background-color: color-mix(in srgb, var(--char-color) 12%, transparent);
-  border-radius: 4px;
+  gap: 6px;
+  padding: 5px 10px;
+  margin: 6px auto 6px 0;
+  background-color: color-mix(in srgb, var(--char-color, hsl(var(--accent))) 18%, hsl(var(--surface-1)));
+  color: hsl(var(--accent-foreground));
+  border-radius: 999px;
+  border: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
+.dark .screenplay .character-block.character {
+  background-color: color-mix(in srgb, var(--char-color, hsl(var(--accent))) 36%, hsl(var(--surface-2)));
+  color: hsl(var(--accent-foreground));
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.screenplay .character-block.character::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--char-color, hsl(var(--accent))) 75%, transparent);
+}
+.dark .screenplay .character-block.character::before {
+  background: color-mix(in srgb, var(--char-color, hsl(var(--accent))) 88%, transparent);
+}
+
+.screenplay .character-block.character.no-highlight {
+  background: transparent;
+  color: hsl(var(--foreground));
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 4px 0;
+  gap: 4px;
+  max-width: 100%;
+}
+.screenplay .character-block.character.no-highlight::before {
+  display: none;
+}
+
+.screenplay .sfx-cue {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  margin: 8px 0;
+  border-radius: 12px;
+  background: color-mix(in srgb, hsl(var(--accent)) 12%, hsl(var(--surface-1)));
+  border: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+}
+.dark .screenplay .sfx-cue {
+  background: color-mix(in srgb, hsl(var(--accent)) 30%, hsl(var(--surface-2)));
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.screenplay .sfx-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  min-width: 32px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, hsl(var(--accent)) 20%, hsl(var(--surface-1)));
+  color: hsl(var(--accent-foreground));
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.dark .screenplay .sfx-label {
+  background: color-mix(in srgb, hsl(var(--accent)) 45%, hsl(var(--surface-2)));
+  color: hsl(var(--accent-foreground));
+}
+
+.screenplay .whitespace-block {
+  margin: 12px 0;
+  display: grid;
+  gap: 2px;
+}
+
+.screenplay .whitespace-line {
+  min-height: 12px;
+}
+
+.screenplay .whitespace-label {
+  text-align: center;
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+  font-style: italic;
+}
+
+.screenplay .whitespace-label-empty {
+  min-height: 12px;
+}
+
+.screenplay .sfx-text {
+  font-size: 14px;
+  color: hsl(var(--foreground));
+}
+
 
 .screenplay .highlight {
   background: color-mix(in srgb, hsl(var(--accent)) 10%, transparent);

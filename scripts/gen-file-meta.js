@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-const scriptsDir = path.resolve(process.cwd(), "src/scripts");
+const scriptsDir = path.resolve(process.cwd(), "src/scripts_file");
 const outputFile = path.resolve(process.cwd(), "src/constants/fileMeta.generated.json");
 
 const entries = {};
@@ -23,6 +23,7 @@ const walk = (dir) => {
 
 if (!fs.existsSync(scriptsDir)) {
   console.error(`scripts directory not found: ${scriptsDir}`);
+  console.error("請確認劇本資料夾是否為 src/scripts_file/");
   process.exit(1);
 }
 
