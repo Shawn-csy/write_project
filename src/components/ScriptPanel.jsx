@@ -7,6 +7,9 @@ function ScriptPanel({
   filterCharacter,
   focusMode,
   focusEffect,
+  focusContentMode,
+  highlightCharacters,
+  highlightSfx,
   setCharacterList,
   setTitleHtml,
   setTitleName,
@@ -17,13 +20,15 @@ function ScriptPanel({
   scrollToScene,
   theme,
   fontSize = 14,
+  accentColor,
+  scrollRef,
 }) {
   return (
     <div
       className="flex-1 min-h-0 overflow-hidden border border-border bg-background/60 rounded-xl shadow-sm reader-surface"
       style={{ '--script-font-size': `${fontSize}px` }}
     >
-      <div className="h-full overflow-y-auto scrollbar-hide">
+      <div className="h-full overflow-y-auto scrollbar-hide" ref={scrollRef}>
         <div className="max-w-5xl mx-auto px-5 sm:px-8 py-6 sm:py-10 space-y-4">
           {isLoading && <p className="text-sm text-muted-foreground">載入中...</p>}
           {!isLoading && rawScript && (
@@ -32,6 +37,9 @@ function ScriptPanel({
               filterCharacter={filterCharacter}
               focusMode={focusMode}
               focusEffect={focusEffect}
+              focusContentMode={focusContentMode}
+              highlightCharacters={highlightCharacters}
+              highlightSfx={highlightSfx}
               onCharacters={setCharacterList}
               onTitle={setTitleHtml}
               onTitleName={setTitleName}
@@ -42,6 +50,7 @@ function ScriptPanel({
               scrollToScene={scrollToScene}
               theme={theme}
               fontSize={fontSize}
+              accentColor={accentColor}
             />
           )}
           {!isLoading && !rawScript && (

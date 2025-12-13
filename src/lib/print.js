@@ -10,6 +10,37 @@ export function buildPrintHtml({
   const accentValue = accent ? `hsl(${accent})` : '#10b981';
   const accentFgValue = accentForeground ? `hsl(${accentForeground})` : '#0f172a';
   const accentMutedValue = accentMuted ? `hsl(${accentMuted})` : '#e3f4ec';
+
+  const renderWhitespace = (kind) => {
+    const labelMap = {
+      short: '停頓一秒',
+      mid: '停頓三秒',
+      long: '停頓五秒',
+      pure: '',
+    };
+    const label = labelMap[kind] || '';
+    return `
+      <div class="whitespace-block whitespace-${kind}">
+        <div class="whitespace-line"></div>
+        <div class="whitespace-line whitespace-label${label ? '' : ' whitespace-label-empty'}">${label}</div>
+        <div class="whitespace-line"></div>
+      </div>
+    `;
+  };
+
+  const replacePlaceholders = (html = '') =>
+    html
+      .replaceAll('SCREENPLAY-PLACEHOLDER-BLANK-LONG', renderWhitespace('long'))
+      .replaceAll('SCREENPLAY-PLACEHOLDER-BLANK-MID', renderWhitespace('mid'))
+      .replaceAll('SCREENPLAY-PLACEHOLDER-BLANK-SHORT', renderWhitespace('short'))
+      .replaceAll('SCREENPLAY-PLACEHOLDER-BLANK-PURE', renderWhitespace('pure'))
+      // 舊版相容
+      .replaceAll('__SCREENPLAY_BLANK_LONG__', renderWhitespace('long'))
+      .replaceAll('__SCREENPLAY_BLANK_SHORT__', renderWhitespace('short'))
+      .replaceAll('_SCREENPLAY_BLANK_LONG_', renderWhitespace('long'))
+      .replaceAll('_SCREENPLAY_BLANK_SHORT_', renderWhitespace('short'));
+
+  const finalScriptHtml = replacePlaceholders(rawScriptHtml || "");
   return `
 <!doctype html>
 <html>
@@ -62,11 +93,15 @@ export function buildPrintHtml({
     .title-page { max-width: 720px; margin: 0 auto 32px; }
     .title-page h1 { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
     .title-page p { margin: 2px 0; }
+    .whitespace-block { margin: 12px 0; display: grid; gap: 2px; }
+    .whitespace-line { min-height: 12px; }
+    .whitespace-label { text-align: center; font-size: 12px; color: var(--muted-foreground); font-style: italic; }
+    .whitespace-label-empty { min-height: 12px; }
   </style>
 </head>
 <body>
   ${titleHtml || ""}
-  <article class="screenplay">${rawScriptHtml || ""}</article>
+  <article class="screenplay">${finalScriptHtml}</article>
 </body>
 </html>
 `.trim();

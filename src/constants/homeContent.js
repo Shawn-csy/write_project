@@ -7,6 +7,7 @@ export const homeContent = {
         本閱讀器支援標準 <strong>Fountain</strong> 語法。以下是撰寫時的速查表，所有範例皆可直接複製使用。
       </p>
       <p>右上角的選單可以選擇角色高亮或是隱藏其他角色進行順讀，旁邊的印表機可以下載為PDF。</>
+      <p class="text-xs text-muted-foreground">快捷鍵：Ctrl/Cmd + [ 或 ] 調整字級、Ctrl/Cmd + B 開合列表、Ctrl/Cmd + G 切換順讀（需先選角色）、Ctrl/Cmd + ↑/↓ 跳場景、Ctrl/Cmd + ←/→ 固定行數捲動。</p>
 
       <div>
         <h3 class="mb-3 text-lg font-semibold tracking-tight">撰寫指南核心元素</h3>
@@ -77,16 +78,20 @@ export const homeContent = {
             <span>→ 跨行隱藏</span>
           </li>
           <li class="flex items-center gap-2">
-            <span class="font-mono font-bold text-foreground">長留白</span> 
-            <span>→ 插入兩行空白</span>
-          </li>
-          <li class="flex items-center gap-2">
             <span class="font-mono font-bold text-foreground">短留白</span> 
-            <span>→ 插入一行空白</span>
+            <span>→ 三行區塊，中央顯示「停頓一秒」</span>
           </li>
           <li class="flex items-center gap-2">
-            <span class="font-mono font-bold text-foreground">(長留白) / (短留白)</span> 
-            <span>→ 括號包住也會套用</span>
+            <span class="font-mono font-bold text-foreground">中留白</span> 
+            <span>→ 三行區塊，中央顯示「停頓三秒」</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="font-mono font-bold text-foreground">長留白</span> 
+            <span>→ 三行區塊，中央顯示「停頓五秒」</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="font-mono font-bold text-foreground">留白</span> 
+            <span>→ 三行空白（無文字）</span>
           </li>
         </ul>
       </div>
