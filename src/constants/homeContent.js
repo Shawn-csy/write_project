@@ -8,6 +8,7 @@ export const homeContent = {
       </p>
       <p>右上角的選單可以選擇角色高亮或是隱藏其他角色進行順讀，旁邊的印表機可以下載為PDF。</>
       <p class="text-xs text-muted-foreground">快捷鍵：Ctrl/Cmd + [ 或 ] 調整字級、Ctrl/Cmd + B 開合列表、Ctrl/Cmd + G 切換順讀（需先選角色）、Ctrl/Cmd + ↑/↓ 跳場景、Ctrl/Cmd + ←/→ 固定行數捲動。</p>
+      <p class="text-xs text-muted-foreground">測試：專案內建 <code>npm test</code>（Node 20+），涵蓋劇本前處理與 PDF 標記轉換。</p>
 
       <div>
         <h3 class="mb-3 text-lg font-semibold tracking-tight">撰寫指南核心元素</h3>
@@ -92,6 +93,18 @@ export const homeContent = {
           <li class="flex items-center gap-2">
             <span class="font-mono font-bold text-foreground">留白</span> 
             <span>→ 三行空白（無文字）</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="font-mono font-bold text-foreground">[SFX: 海浪聲]</span>
+            <span>→ 音效標記，顯示為 SFX 色塊</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="font-mono font-bold text-foreground">[遠處左方]</span>
+            <span>→ 方位/距離標記，淡色區塊</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="font-mono font-bold text-foreground">(低聲)</span>
+            <span>→ 情緒/口氣/動作（括號）</span>
           </li>
         </ul>
       </div>

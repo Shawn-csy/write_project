@@ -15,6 +15,8 @@ import {
   accentClasses,
   defaultAccent,
 } from "./constants/accent";
+import { STORAGE_KEYS } from "./constants/storageKeys";
+import { readNumber, readString, writeValue } from "./lib/storage";
 import generatedFileMeta from "./constants/fileMeta.generated.json";
 import { buildPrintHtml } from "./lib/print";
 
@@ -35,7 +37,24 @@ function App() {
   const [focusContentMode, setFocusContentMode] = useState("all"); // all | dialogue
   const [highlightCharacters, setHighlightCharacters] = useState(true);
   const [highlightSfx, setHighlightSfx] = useState(true);
+  const [bodyFontSize, setBodyFontSize] = useState(14); // 全文
+  const [dialogueFontSize, setDialogueFontSize] = useState(14); // 對白
+  const [processedScriptHtml, setProcessedScriptHtml] = useState("");
+  const [exportMode, setExportMode] = useState("processed"); // processed | raw
   const contentScrollRef = useRef(null);
+
+  const setFontSizePersist = (size) => {
+    setFontSize(size);
+    writeValue(STORAGE_KEYS.FONT_SIZE, size);
+  };
+  const setBodyFontPersist = (size) => {
+    setBodyFontSize(size);
+    writeValue(STORAGE_KEYS.BODY_FONT, size);
+  };
+  const setDialogueFontPersist = (size) => {
+    setDialogueFontSize(size);
+    writeValue(STORAGE_KEYS.DIALOGUE_FONT, size);
+  };
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -60,6 +79,7 @@ function App() {
   const [scrollSceneId, setScrollSceneId] = useState("");
   const [currentSceneId, setCurrentSceneId] = useState("");
   const initialParamsRef = useRef({ char: null, scene: null });
+  const [scrollProgress, setScrollProgress] = useState(0);
 
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
@@ -125,29 +145,45 @@ function App() {
   }, [filterCharacter, currentSceneId, activeFile, files]);
 
   useEffect(() => {
-    const savedAccent = localStorage.getItem("screenplay-reader-accent");
+    const savedAccent = readString(STORAGE_KEYS.ACCENT);
     if (savedAccent && accentThemes[savedAccent]) {
       setAccent(savedAccent);
     }
-    const savedLabelMode = localStorage.getItem("screenplay-reader-label-mode");
+    const savedLabelMode = readString(STORAGE_KEYS.LABEL_MODE, ["auto", "filename"]);
     if (savedLabelMode === "auto" || savedLabelMode === "filename") {
       setFileLabelMode(savedLabelMode);
     }
-    const savedFocusEffect = localStorage.getItem("screenplay-reader-focus-effect");
+    const savedFocusEffect = readString(STORAGE_KEYS.FOCUS_EFFECT, ["hide", "dim"]);
     if (savedFocusEffect === "hide" || savedFocusEffect === "dim") {
       setFocusEffect(savedFocusEffect);
     }
-    const savedFocusContent = localStorage.getItem("screenplay-reader-focus-content");
+    const savedFocusContent = readString(STORAGE_KEYS.FOCUS_CONTENT, ["all", "dialogue"]);
     if (savedFocusContent === "all" || savedFocusContent === "dialogue") {
       setFocusContentMode(savedFocusContent);
     }
-    const savedHighlight = localStorage.getItem("screenplay-reader-highlight");
+    const savedHighlight = readString(STORAGE_KEYS.HIGHLIGHT_CHAR, ["on", "off"]);
     if (savedHighlight === "off") {
       setHighlightCharacters(false);
     }
-    const savedSfx = localStorage.getItem("screenplay-reader-sfx");
+    const savedSfx = readString(STORAGE_KEYS.HIGHLIGHT_SFX, ["on", "off"]);
     if (savedSfx === "off") {
       setHighlightSfx(false);
+    }
+    const savedFontSize = readNumber(STORAGE_KEYS.FONT_SIZE);
+    if (savedFontSize) {
+      setFontSize(savedFontSize);
+    }
+    const savedBodyFont = readNumber(STORAGE_KEYS.BODY_FONT);
+    if (savedBodyFont) {
+      setBodyFontSize(savedBodyFont);
+    }
+    const savedDlgFont = readNumber(STORAGE_KEYS.DIALOGUE_FONT);
+    if (savedDlgFont) {
+      setDialogueFontSize(savedDlgFont);
+    }
+    const savedExportMode = readString(STORAGE_KEYS.EXPORT_MODE, ["processed", "raw"]);
+    if (savedExportMode === "processed" || savedExportMode === "raw") {
+      setExportMode(savedExportMode);
     }
   }, []);
 
@@ -310,6 +346,11 @@ function App() {
     [files]
   );
 
+  const totalLines = useMemo(() => {
+    if (!rawScript) return 0;
+    return rawScript.split(/\r?\n/).length;
+  }, [rawScript]);
+
   useEffect(() => {
     if (!files.length) return;
     const url = new URL(window.location.href);
@@ -366,15 +407,15 @@ function App() {
 
   // 全域快捷鍵：字級調整、側欄開合、順讀切換
   useEffect(() => {
-    const fontSteps = [16, 24, 36, 72];
+    const fontSteps = [12, 14, 16, 24, 36, 72];
     const adjustFont = (delta) => {
       const idx = fontSteps.findIndex((v) => v === fontSize);
       if (idx === -1) {
-        setFontSize(fontSteps[0]);
+        setFontSizePersist(fontSteps[0]);
         return;
       }
       const next = fontSteps[idx + delta];
-      if (next) setFontSize(next);
+      if (next) setFontSizePersist(next);
     };
 
     const handler = (e) => {
@@ -509,7 +550,11 @@ function App() {
 
   const handleExportPdf = (e) => {
     e.stopPropagation();
-    const hasContent = Boolean(rawScriptHtml || titleHtml);
+    const bodyHtml =
+      exportMode === "processed"
+        ? processedScriptHtml || rawScriptHtml
+        : rawScriptHtml;
+    const hasContent = Boolean(bodyHtml || titleHtml);
     if (!hasContent) {
       window.print();
       return;
@@ -529,7 +574,7 @@ function App() {
       titleName,
       activeFile,
       titleHtml,
-      rawScriptHtml,
+      rawScriptHtml: bodyHtml,
       accent: accentValue.trim(),
       accentForeground: accentForegroundValue.trim(),
       accentMuted: accentMutedValue.trim(),
@@ -579,10 +624,10 @@ function App() {
   };
 
   const handleOpenSettings = () => {
-    setSettingsOpen(true);
     setHomeOpen(false);
     setAboutOpen(false);
     setShowTitle(false);
+    setSettingsOpen((prev) => !prev);
   };
 
   const handleSelectScene = (sceneId) => {
@@ -642,11 +687,11 @@ function App() {
             fileTitleMap={fileTitleMap}
             fileTagsMap={fileTagsMap}
             fileLabelMode={fileLabelMode}
-            setFileLabelMode={(mode) => {
-              setFileLabelMode(mode);
-              localStorage.setItem("screenplay-reader-label-mode", mode);
-            }}
-          />
+              setFileLabelMode={(mode) => {
+                setFileLabelMode(mode);
+                localStorage.setItem(STORAGE_KEYS.LABEL_MODE, mode);
+              }}
+            />
         </div>
 
         {/* Main */}
@@ -672,6 +717,8 @@ function App() {
               filterCharacter={filterCharacter}
               setFilterCharacter={setFilterCharacter}
               setFocusMode={setFocusMode}
+              scrollProgress={scrollProgress}
+              totalLines={totalLines}
             />
             {!homeOpen && !aboutOpen && !settingsOpen && hasTitle && showTitle && (
               <Card className="border border-border border-t-0 rounded-t-none">
@@ -705,34 +752,43 @@ function App() {
               accentOptions={accentOptions}
               setAccent={(val) => {
                 setAccent(val);
-                localStorage.setItem("screenplay-reader-accent", val);
+                writeValue(STORAGE_KEYS.ACCENT, val);
               }}
               fontSize={fontSize}
-              setFontSize={setFontSize}
+              setFontSize={setFontSizePersist}
+              bodyFontSize={bodyFontSize}
+              setBodyFontSize={setBodyFontPersist}
+              dialogueFontSize={dialogueFontSize}
+              setDialogueFontSize={setDialogueFontPersist}
               fileLabelMode={fileLabelMode}
               setFileLabelMode={(mode) => {
                 setFileLabelMode(mode);
-                localStorage.setItem("screenplay-reader-label-mode", mode);
+                writeValue(STORAGE_KEYS.LABEL_MODE, mode);
               }}
               focusEffect={focusEffect}
               setFocusEffect={(mode) => {
                 setFocusEffect(mode);
-                localStorage.setItem("screenplay-reader-focus-effect", mode);
+                writeValue(STORAGE_KEYS.FOCUS_EFFECT, mode);
               }}
               focusContentMode={focusContentMode}
               setFocusContentMode={(mode) => {
                 setFocusContentMode(mode);
-                localStorage.setItem("screenplay-reader-focus-content", mode);
+                writeValue(STORAGE_KEYS.FOCUS_CONTENT, mode);
               }}
               highlightCharacters={highlightCharacters}
               setHighlightCharacters={(val) => {
                 setHighlightCharacters(val);
-                localStorage.setItem("screenplay-reader-highlight", val ? "on" : "off");
+                writeValue(STORAGE_KEYS.HIGHLIGHT_CHAR, val ? "on" : "off");
               }}
               highlightSfx={highlightSfx}
               setHighlightSfx={(val) => {
                 setHighlightSfx(val);
-                localStorage.setItem("screenplay-reader-sfx", val ? "on" : "off");
+                writeValue(STORAGE_KEYS.HIGHLIGHT_SFX, val ? "on" : "off");
+              }}
+              exportMode={exportMode}
+              setExportMode={(mode) => {
+                setExportMode(mode);
+                writeValue(STORAGE_KEYS.EXPORT_MODE, mode);
               }}
             />
           ) : (
@@ -751,12 +807,16 @@ function App() {
               setTitleNote={setTitleNote}
               setHasTitle={setHasTitle}
               setRawScriptHtml={setRawScriptHtml}
+              setRawScriptHtmlProcessed={setProcessedScriptHtml}
               setScenes={setSceneList}
               scrollToScene={scrollSceneId}
               theme={appliedTheme}
               fontSize={fontSize}
+              bodyFontSize={bodyFontSize}
+              dialogueFontSize={dialogueFontSize}
               accentColor={accentConfig.accent}
               scrollRef={contentScrollRef}
+              onScrollProgress={setScrollProgress}
             />
           )}
         </main>

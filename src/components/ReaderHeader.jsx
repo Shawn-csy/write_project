@@ -32,7 +32,10 @@ function ReaderHeader({
   filterCharacter,
   setFilterCharacter,
   setFocusMode,
+  scrollProgress = 0,
+  totalLines = 0,
 }) {
+  const progressLabel = `${Math.round(scrollProgress)}%`;
   return (
     <Card
       className={`border border-border bg-card/80 backdrop-blur ${
@@ -56,23 +59,29 @@ function ReaderHeader({
             <p className={`text-[10px] uppercase tracking-[0.2em] ${accentStyle.label}`}>
               Viewer
             </p>
-            <h2 className="text-sm sm:text-2xl font-semibold truncate">
-              {titleName || activeFile || "選擇一個劇本"}
-            </h2>
-            <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
-              {activeFile && fileMeta[activeFile]
-                ? `最後更新：${fileMeta[activeFile].toLocaleString()}`
-                : "最後更新：未知"}
-            </p>
+            <div className="flex flex-col gap-1">
+              <h2 className="text-sm sm:text-2xl font-semibold truncate">
+                {titleName || activeFile || "選擇一個劇本"}
+              </h2>
+              <div className="flex flex-wrap items-center gap-3 text-[10px] sm:text-xs text-muted-foreground">
+                <span>{progressLabel}</span>
+                {totalLines > 0 && <span>約 {totalLines} 行</span>}
+                <span className="ml-auto truncate">
+                  {activeFile && fileMeta[activeFile]
+                    ? `最後更新：${fileMeta[activeFile].toLocaleString()}`
+                    : "最後更新：未知"}
+                </span>
+                {titleNote && (
+                  <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] sm:text-xs text-foreground/80 max-w-[60vw] sm:max-w-[360px] truncate">
+                    {titleNote}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
         <div className="flex flex-nowrap items-center gap-3 sm:gap-3 ml-auto no-print">
-          {titleNote && (
-            <span className="hidden sm:inline-flex items-center rounded-full bg-muted px-3 py-1 text-[11px] text-muted-foreground">
-              {titleNote}
-            </span>
-          )}
           {sceneList.length > 0 && (
             <div className="min-w-[140px] sm:min-w-[200px]">
               <Select
