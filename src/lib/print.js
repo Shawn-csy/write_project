@@ -1,3 +1,13 @@
+import {
+  BLANK_LONG,
+  BLANK_MID,
+  BLANK_PURE,
+  BLANK_SHORT,
+  DIR_TOKEN,
+  SFX_TOKEN,
+  renderWhitespaceBlock,
+} from "./screenplayTokens.js";
+
 export function buildPrintHtml({
   titleName,
   activeFile,
@@ -11,36 +21,32 @@ export function buildPrintHtml({
   const accentFgValue = accentForeground ? `hsl(${accentForeground})` : '#0f172a';
   const accentMutedValue = accentMuted ? `hsl(${accentMuted})` : '#e3f4ec';
 
-  const renderWhitespace = (kind) => {
-    const labelMap = {
-      short: '停頓一秒',
-      mid: '停頓三秒',
-      long: '停頓五秒',
-      pure: '',
-    };
-    const label = labelMap[kind] || '';
-    return `
-      <div class="whitespace-block whitespace-${kind}">
-        <div class="whitespace-line"></div>
-        <div class="whitespace-line whitespace-label${label ? '' : ' whitespace-label-empty'}">${label}</div>
-        <div class="whitespace-line"></div>
-      </div>
-    `;
-  };
+  const replaceTokens = (html = '') =>
+    html
+      .replace(
+        new RegExp(`!?${SFX_TOKEN.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}\\s*([^<\\n]+)`, "g"),
+        (_, content) =>
+          `<span class="sfx-cue"><span class="sfx-text">[SFX: ${content.trim()}]</span></span>`
+      )
+      .replace(
+        new RegExp(`!?${DIR_TOKEN.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}\\s*([^<\\n]+)`, "g"),
+        (_, content) =>
+          `<span class="dir-cue"><span class="dir-text">[${content.trim()}]</span></span>`
+      );
 
   const replacePlaceholders = (html = '') =>
     html
-      .replaceAll('SCREENPLAY-PLACEHOLDER-BLANK-LONG', renderWhitespace('long'))
-      .replaceAll('SCREENPLAY-PLACEHOLDER-BLANK-MID', renderWhitespace('mid'))
-      .replaceAll('SCREENPLAY-PLACEHOLDER-BLANK-SHORT', renderWhitespace('short'))
-      .replaceAll('SCREENPLAY-PLACEHOLDER-BLANK-PURE', renderWhitespace('pure'))
+      .replaceAll(BLANK_LONG, renderWhitespaceBlock('long'))
+      .replaceAll(BLANK_MID, renderWhitespaceBlock('mid'))
+      .replaceAll(BLANK_SHORT, renderWhitespaceBlock('short'))
+      .replaceAll(BLANK_PURE, renderWhitespaceBlock('pure'))
       // 舊版相容
-      .replaceAll('__SCREENPLAY_BLANK_LONG__', renderWhitespace('long'))
-      .replaceAll('__SCREENPLAY_BLANK_SHORT__', renderWhitespace('short'))
-      .replaceAll('_SCREENPLAY_BLANK_LONG_', renderWhitespace('long'))
-      .replaceAll('_SCREENPLAY_BLANK_SHORT_', renderWhitespace('short'));
+      .replaceAll('__SCREENPLAY_BLANK_LONG__', renderWhitespaceBlock('long'))
+      .replaceAll('__SCREENPLAY_BLANK_SHORT__', renderWhitespaceBlock('short'))
+      .replaceAll('_SCREENPLAY_BLANK_LONG_', renderWhitespaceBlock('long'))
+      .replaceAll('_SCREENPLAY_BLANK_SHORT_', renderWhitespaceBlock('short'));
 
-  const finalScriptHtml = replacePlaceholders(rawScriptHtml || "");
+  const finalScriptHtml = replacePlaceholders(replaceTokens(rawScriptHtml || ""));
   return `
 <!doctype html>
 <html>
@@ -95,8 +101,23 @@ export function buildPrintHtml({
     .title-page p { margin: 2px 0; }
     .whitespace-block { margin: 12px 0; display: grid; gap: 2px; }
     .whitespace-line { min-height: 12px; }
-    .whitespace-label { text-align: center; font-size: 12px; color: var(--muted-foreground); font-style: italic; }
+    .whitespace-label { text-align: left; padding-left: 6px; font-size: 12px; color: var(--muted-foreground); font-style: italic; }
     .whitespace-label-empty { min-height: 12px; }
+    .sfx-cue, .dir-cue {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 6px;
+      margin: 2px 0;
+      border-radius: 10px;
+      border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+    }
+    .dir-cue {
+      border-color: color-mix(in srgb, var(--muted-foreground) 28%, transparent);
+      background: color-mix(in srgb, var(--muted-foreground) 10%, transparent);
+    }
+    .sfx-text, .dir-text { font-size: 12px; font-style: italic; }
   </style>
 </head>
 <body>

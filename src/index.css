@@ -29,24 +29,24 @@
   }
 
   .dark {
-    --background: 222 47% 11%;
-    --foreground: 214 32% 91%;
-    --card: 222 47% 13%;
-    --card-foreground: 214 32% 91%;
-    --muted: 217 33% 17%;
-    --muted-strong: 217 28% 22%;
-    --muted-stronger: 215 26% 26%;
-    --muted-foreground: 215 20% 65%;
-    --border: 217 33% 18%;
-    --accent-foreground: 210 36% 94%;
-    --accent-muted: 160 32% 18%;
+    --background: 220 8% 10%;
+    --foreground: 210 15% 92%;
+    --card: 220 8% 12%;
+    --card-foreground: 210 15% 92%;
+    --muted: 220 6% 16%;
+    --muted-strong: 220 6% 22%;
+    --muted-stronger: 220 6% 28%;
+    --muted-foreground: 220 10% 68%;
+    --border: 220 6% 24%;
+    --accent-foreground: 210 24% 94%;
+    --accent-muted: 160 20% 18%;
     --accent-strong: 160 72% 60%;
-    --surface-1: 222 47% 11%;
-    --surface-2: 217 33% 17%;
-    --surface-3: 217 28% 22%;
-    --surface-4: 215 26% 26%;
-    --paper-bg: #0b1224;
-    --paper-border: #1f2937;
+    --surface-1: 220 8% 10%;
+    --surface-2: 220 6% 16%;
+    --surface-3: 220 6% 22%;
+    --surface-4: 220 6% 28%;
+    --paper-bg: #0d0d0f;
+    --paper-border: #1f1f24;
     --paper-shadow: rgba(0, 0, 0, 0.4);
   }
 
@@ -152,18 +152,19 @@
   max-width: 82%;
   text-align: left;
   gap: 6px;
-  padding: 5px 10px;
-  margin: 6px auto 6px 0;
+  padding: 4px 8px;
+  margin: 4px auto 4px 0;
   background-color: color-mix(in srgb, var(--char-color, hsl(var(--accent))) 18%, hsl(var(--surface-1)));
   color: hsl(var(--accent-foreground));
   border-radius: 999px;
   border: none;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: none;
 }
 .dark .screenplay .character-block.character {
-  background-color: color-mix(in srgb, var(--char-color, hsl(var(--accent))) 36%, hsl(var(--surface-2)));
-  color: hsl(var(--accent-foreground));
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  background-color: color-mix(in srgb, var(--char-color, hsl(var(--accent))) 42%, hsl(var(--surface-3)));
+  color: hsl(var(--card));
+  border: none;
+  box-shadow: none;
 }
 
 .screenplay .character-block.character::before {
@@ -194,36 +195,55 @@
 .screenplay .sfx-cue {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  margin: 8px 0;
-  border-radius: 12px;
-  background: color-mix(in srgb, hsl(var(--accent)) 12%, hsl(var(--surface-1)));
+  gap: 4px;
+  padding: 3px 6px;
+  margin: 4px 0;
+  border-radius: 10px;
+  background: color-mix(in srgb, hsl(var(--accent)) 10%, hsl(var(--surface-1)));
   border: none;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 .dark .screenplay .sfx-cue {
-  background: color-mix(in srgb, hsl(var(--accent)) 30%, hsl(var(--surface-2)));
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  background: color-mix(in srgb, hsl(var(--accent)) 40%, hsl(var(--surface-3)));
+  border: 1px solid color-mix(in srgb, hsl(var(--accent)) 55%, transparent);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+}
+
+.screenplay .dir-cue {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  margin: 4px 0;
+  border-radius: 10px;
+  background: color-mix(in srgb, hsl(var(--muted)) 28%, hsl(var(--surface-1)));
+  border: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  font-size: 12px;
+}
+.dark .screenplay .dir-cue {
+  background: color-mix(in srgb, hsl(var(--muted)) 45%, hsl(var(--surface-3)));
+  border: 1px solid color-mix(in srgb, hsl(var(--muted)) 60%, transparent);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
 }
 
 .screenplay .sfx-label {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 22px;
-  min-width: 32px;
-  padding: 0 8px;
+  height: 14px;
+  min-width: 22px;
+  padding: 0 4px;
   border-radius: 999px;
   background: color-mix(in srgb, hsl(var(--accent)) 20%, hsl(var(--surface-1)));
   color: hsl(var(--accent-foreground));
-  font-size: 11px;
-  letter-spacing: 0.05em;
+  font-size: 9px;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   font-weight: 700;
 }
 .dark .screenplay .sfx-label {
-  background: color-mix(in srgb, hsl(var(--accent)) 45%, hsl(var(--surface-2)));
+  background: color-mix(in srgb, hsl(var(--accent)) 55%, hsl(var(--surface-3)));
   color: hsl(var(--accent-foreground));
 }
 
@@ -238,7 +258,8 @@
 }
 
 .screenplay .whitespace-label {
-  text-align: center;
+  text-align: left;
+  padding-left: 6px;
   font-size: 12px;
   color: hsl(var(--muted-foreground));
   font-style: italic;
@@ -249,9 +270,16 @@
 }
 
 .screenplay .sfx-text {
-  font-size: 14px;
+  font-size: 12px;
   color: hsl(var(--foreground));
+  font-style: italic;
 }
+.screenplay .dir-text {
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+  font-style: italic;
+}
+
 
 
 .screenplay .highlight {
@@ -332,12 +360,12 @@
   background: color-mix(in srgb, hsl(var(--background)) 85%, hsl(var(--muted)) 15%);
 }
 .dark .reader-surface {
-  background: color-mix(in srgb, hsl(var(--background)) 60%, #0b1224 40%);
+  background: color-mix(in srgb, hsl(var(--background)) 70%, hsl(var(--muted)) 30%);
 }
 
 .screenplay {
   font-family: 'Courier New', Courier, monospace;
-  font-size: var(--script-font-size, 14px);
+  font-size: var(--body-font-size, var(--script-font-size, 14px));
   line-height: 1.6;
   color: hsl(var(--foreground));
   max-width: 720px;
@@ -481,6 +509,7 @@
 .screenplay .dialogue {
   margin: 0 auto 12px;
   width: 85%;
+  font-size: var(--dialogue-font-size, var(--script-font-size, 14px));
 }
 
 .screenplay .parenthetical {

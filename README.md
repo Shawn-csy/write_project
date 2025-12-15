@@ -1,23 +1,26 @@
 # Screenplay Reader
 
-React + Vite 的 Fountain 劇本閱讀器。自動掃描 `src/scripts_file/*.fountain`，提供順讀模式、角色篩選、匯出 PDF 與可調字級的閱讀體驗。
+React + Vite 的 Fountain 劇本閱讀器。自動掃描 `src/scripts_file/*.fountain`，提供順讀模式、角色篩選、匯出 PDF、可調字級與基礎單元測試。
 
 ## 開發
 ```bash
 npm install
 npm run dev
+# 單元測試（Node 20+）
+npm test
 ```
 
 ## 功能
 - 自動載入 `src/scripts_file` 下的 `.fountain` 檔案
 - 角色篩選／順讀模式（淡化或隱藏其他對白），可切換「顯示段落 / 僅台詞」
-- 字級快速切換：16 / 24 / 36 / 72，主題/重點色可自訂
+- 字級快速切換：12 / 14 / 16 / 24 / 36 / 72，主題/重點色可自訂；全文與對白字級可分開設定
 - 快捷鍵：`Ctrl/Cmd + [` 或 `]` 調整字級、`Ctrl/Cmd + B` 開合側欄、`Ctrl/Cmd + G` 切換順讀（需先選角色）、`Ctrl/Cmd + ↑/↓` 快速跳場景、`Ctrl/Cmd + ←/→` 每次捲動固定行數
-- 匯出 PDF（保留標題頁、留白標記與 SFX 標記）
+- 匯出 PDF（保留標題頁、留白標記、SFX/方位標記），可選匯出目前視圖或原始解析 HTML
 - Sidebar：使用說明首頁、About（版權/簡介）、設定
-- 設定分頁：主題/重點色、字級、列表顯示（檔名/標題）、順讀效果（隱藏/淡化）、專注內容（段落/台詞）、角色色塊開關、SFX 標記開關
+- 設定分頁：主題/重點色、字級（全文/對白）、列表顯示（檔名/標題）、順讀效果（隱藏/淡化）、專注內容（段落/台詞）、角色色塊開關、SFX 標記開關、匯出模式切換
 - 留白標記：短留白(1秒)、中留白(3秒)、長留白(5秒)、留白(純空白) 會轉成三行區塊（PDF 亦同）
-- SFX 標記：(SFX: ...) 會呈現標籤色塊，可在設定開關
+- 標記：`(SFX: ...)` 或 `[SFX: ...]` 會呈現音效色塊；`[方位/距離]` 以淡色塊顯示；括號 `(...)` 用於情緒/口氣
+- 測試：`npm test`（node --test），涵蓋劇本前處理與 PDF 標記轉換
 
 ## 劇本檔案
 - 把 `.fountain` 檔案放在 `src/scripts_file/`（可用子資料夾），頁面會自動出現清單。
@@ -30,8 +33,10 @@ npm run dev
 - `src/App.jsx`：主要狀態與佈局
 - `src/components/`：UI 元件、Sidebar、ReaderHeader、ScriptPanel、AboutPanel、HomePanel 等
 - `src/components/ScriptViewer.jsx`：Fountain 解析顯示
-- `src/constants/`：色系、使用說明／About 文案
+- `src/constants/`：色系、使用說明／About 文案、localStorage key
 - `src/lib/print.js`：匯出 PDF 的 HTML 模板
+- `src/lib/screenplayParser.js` / `src/lib/screenplayDom.js` / `src/lib/screenplayCharacters.js`：劇本解析與 DOM 標記 helper
+- `src/lib/storage.js`：localStorage 存取 helper
 
 ## Docker
 - 建置：`docker build -t screenplay-reader .`
