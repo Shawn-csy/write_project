@@ -14,6 +14,7 @@ function ScriptPanel({
   setTitleHtml,
   setTitleName,
   setTitleNote,
+  setTitleSummary,
   setHasTitle,
   setRawScriptHtml,
   setRawScriptHtmlProcessed,
@@ -64,6 +65,7 @@ function ScriptPanel({
               onTitle={setTitleHtml}
               onTitleName={setTitleName}
               onTitleNote={setTitleNote}
+              onSummary={setTitleSummary}
               onHasTitle={setHasTitle}
               onRawHtml={setRawScriptHtml}
               onProcessedHtml={setRawScriptHtmlProcessed}

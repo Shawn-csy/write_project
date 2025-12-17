@@ -10,8 +10,6 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# Serve built assets with Vite preview (simple, not the smallest)
-ENV HOST=0.0.0.0
-ENV PORT=8080
 EXPOSE 8080
-CMD ["sh", "-c", "npm run preview -- --host ${HOST} --port ${PORT}"]
+
+CMD ["node", "server.js"]

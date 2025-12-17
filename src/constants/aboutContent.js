@@ -56,6 +56,42 @@ export const aboutContent = {
         </div>
       </div>
 
+      <div class="rounded-lg border bg-card p-4 text-card-foreground shadow-sm">
+        <div class="mb-3 flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="accent-label"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>
+          <h3 class="font-semibold">未來規劃 (Roadmap)</h3>
+        </div>
+        <div class="space-y-4 text-sm text-muted-foreground">
+          
+          <div class="flex flex-col gap-1">
+            <span class="font-medium text-foreground flex items-center gap-2">
+              <span class="block h-1.5 w-1.5 rounded-full accent-dot"></span>
+              雲端整合 (Backend Integration)
+            </span>
+            <p class="pl-3.5">實作使用者登入/登出，並串接資料庫保存劇本設定。目前評估使用 <span class="text-foreground">Firebase</span>。</p>
+          </div>
+
+          <div class="flex flex-col gap-1">
+             <span class="font-medium text-foreground flex items-center gap-2">
+              <span class="block h-1.5 w-1.5 rounded-full accent-dot"></span>
+              權限架構 (SaaS Model)
+            </span>
+            <p class="pl-3.5">導入RBAC權限管理，支援多層級用戶與專案協作。</p>
+          </div>
+
+          <div class="flex flex-col gap-1">
+             <span class="font-medium text-foreground flex items-center gap-2">
+              <span class="block h-1.5 w-1.5 rounded-full accent-dot"></span>
+              多媒體擴充 (Audio Features)
+            </span>
+            <p class="pl-3.5">
+              新增錄音存檔、BGM 上傳與管理功能(可能做也可能不做，太貴了)。
+            </p>
+          </div>
+
+        </div>
+      </div>
+
       <div>
         <h3 class="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wider">Connect</h3>
         <div class="grid gap-3 sm:grid-cols-3">

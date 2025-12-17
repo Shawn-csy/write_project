@@ -26,6 +26,7 @@ function ScriptViewer({
   onTitle,
   onTitleName,
   onTitleNote,
+  onSummary,
   onHasTitle,
   onRawHtml,
   onProcessedHtml,
@@ -126,6 +127,28 @@ function ScriptViewer({
     };
   }, [titleEntries]);
 
+  const titleSummary = useMemo(() => {
+    if (!titleEntries.length) return '';
+    const summaryKeys = [
+      'summary',
+      'synopsis',
+      'logline',
+      'description',
+      '摘要',
+      '簡介',
+      '簡述',
+      '說明',
+    ];
+    const match = titleEntries.find((e) => {
+      const key = e.key.toLowerCase();
+      return summaryKeys.some((k) => key === k || key.includes(k));
+    });
+    if (match?.values?.length) {
+      return match.values.join(' ');
+    }
+    return '';
+  }, [titleEntries]);
+
   // 取得角色列表（從解析後 tokens）
   useEffect(() => {
     if (!parsedBody.tokens.length) {
@@ -159,6 +182,11 @@ function ScriptViewer({
       onTitleNote?.('');
     }
   }, [titlePage, onTitle, onTitleName, onHasTitle, onTitleNote]);
+
+  useEffect(() => {
+    const summaryText = titleSummary || titlePage.note || '';
+    onSummary?.(summaryText);
+  }, [titleSummary, titlePage.note, onSummary]);
 
   useEffect(() => {
     if (!onScenes) return;

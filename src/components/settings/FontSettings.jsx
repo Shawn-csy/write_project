@@ -1,5 +1,7 @@
 import React, { useState } from "react";
+import { CaseSensitive, Check } from "lucide-react";
 import { useSettings } from "../../contexts/SettingsContext";
+import { cn } from "../../lib/utils";
 
 export function FontSettings() {
   const {
@@ -14,28 +16,31 @@ export function FontSettings() {
   const unifiedPresets = [
     { label: "更小", value: 12 },
     { label: "小", value: 14 },
+    { label: "預設", value: 16 },
     { label: "中", value: 18 },
     { label: "大", value: 24 },
     { label: "特大", value: 36 },
   ];
-  const detailOptions = [12, 14, 16, 18, 24, 32, 36];
+  const detailOptions = [12, 14, 16, 18, 20, 24, 28, 32, 36];
   const [showDetailSizes, setShowDetailSizes] = useState(false);
 
-  const renderSizeButtons = (current, onSelect, options = detailOptions) => (
-    <div className="flex items-center gap-2 flex-wrap">
-      {options.map((size) => {
+  const renderSizeButtons = (current, onSelect) => (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      {detailOptions.map((size) => {
         const active = current === size;
         return (
           <button
             key={size}
             aria-label={`字級 ${size}px`}
             onClick={() => onSelect(size)}
-            className={`h-10 px-3 inline-flex items-center justify-center rounded border ${
-              active ? "border-foreground font-semibold bg-accent/10" : "border-border/70"
-            } text-foreground/80 hover:text-foreground transition-colors`}
+            className={cn(
+              "h-8 px-2.5 min-w-[2.5rem] inline-flex items-center justify-center rounded-md border text-xs transition-all duration-200",
+              active
+                ? "border-primary/50 bg-primary/10 text-primary font-bold shadow-sm"
+                : "border-border/60 text-muted-foreground hover:text-foreground hover:border-foreground/30 hover:bg-muted/30"
+            )}
           >
-            <span style={{ fontSize: size <= 16 ? 12 : size >= 24 ? 18 : 14 }}>A</span>
-            <span className="ml-2 text-sm">{size}px</span>
+             {size}
           </button>
         );
       })}
@@ -43,71 +48,78 @@ export function FontSettings() {
   );
 
   return (
-    <div className="space-y-3">
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium">快速字級</p>
-            <p className="text-xs text-muted-foreground">套用到正文與對白</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
+    <div className="space-y-5">
+      <div className="flex items-center gap-2">
+         <div className="p-2 rounded-md bg-primary/10 text-primary">
+            <CaseSensitive className="w-4 h-4" />
+         </div>
+         <div>
+           <p className="text-base font-semibold text-foreground">字體大小</p>
+           <p className="text-xs text-muted-foreground">調整閱讀時的舒適度</p>
+         </div>
+      </div>
+
+      {/* Quick Presets */}
+      <div className="space-y-3">
+        <label className="text-sm font-medium text-foreground/90">快速設定</label>
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
           {unifiedPresets.map((opt) => {
-            const active =
-              bodyFontSize === opt.value && dialogueFontSize === opt.value;
+            const active = bodyFontSize === opt.value && dialogueFontSize === opt.value;
             return (
               <button
                 key={opt.value}
-                className={`h-9 px-3 rounded-lg border text-xs ${
-                  active
-                    ? "border-foreground font-semibold bg-accent/10"
-                    : "border-border/70 text-foreground/80"
-                } hover:text-foreground transition-colors`}
                 onClick={() => {
                   setBodyFontSize(opt.value);
                   setDialogueFontSize(opt.value);
                   setFontSize(opt.value);
                 }}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-1 py-2 rounded-lg border transition-all duration-200",
+                  active
+                    ? "border-primary/50 bg-primary/5 text-primary ring-1 ring-primary/20"
+                    : "border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                )}
               >
-                {opt.label}
+                <span className="text-xs font-medium">{opt.label}</span>
               </button>
             );
           })}
         </div>
-        <div className="flex items-center justify-between">
-          <button
-            className="text-xs text-foreground/80 hover:text-foreground underline underline-offset-4"
+      </div>
+
+      {/* Advanced Toggle */}
+      <div className="pt-2">
+         <button
+            className="text-xs flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
             onClick={() => setShowDetailSizes((v) => !v)}
           >
-            {showDetailSizes ? "收合字級設定" : "展開個別字級"}
+            <span className={cn("transition-transform duration-200", showDetailSizes ? "rotate-90" : "")}>▶</span>
+            {showDetailSizes ? "收合進階設定" : "顯示進階微調"}
           </button>
+      </div>
+      
+      {/* Detailed Settings */}
+      <div className={cn(
+          "grid transition-all duration-300 ease-in-out pl-4 border-l-2 border-border/30 gap-5 overflow-hidden",
+          showDetailSizes ? "grid-rows-[1fr] opacity-100 mt-2" : "grid-rows-[0fr] opacity-0 mt-0"
+      )}>
+        <div className="min-h-0 space-y-5 py-1">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                 <label className="text-sm font-medium">正文大小</label>
+                 <span className="text-xs text-muted-foreground">{bodyFontSize}px</span>
+              </div>
+              {renderSizeButtons(bodyFontSize, setBodyFontSize)}
+            </div>
+            
+            <div className="space-y-2">
+               <div className="flex justify-between items-center">
+                 <label className="text-sm font-medium">對白大小</label>
+                 <span className="text-xs text-muted-foreground">{dialogueFontSize}px</span>
+              </div>
+              {renderSizeButtons(dialogueFontSize, setDialogueFontSize)}
+            </div>
         </div>
-        {showDetailSizes && (
-          <>
-            <div className="border-t border-border/70 my-2" />
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <p className="text-sm font-medium">全文字級</p>
-                <p className="text-xs text-muted-foreground">影響正文/標題顯示</p>
-              </div>
-            </div>
-            {renderSizeButtons(bodyFontSize, setBodyFontSize)}
-            <p className="text-xs text-muted-foreground">
-              預覽：<span style={{ fontSize: `${bodyFontSize}px` }}>這是正文示範字級</span>
-            </p>
-            <div className="border-t border-border/70 my-3" />
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <p className="text-sm font-medium">對白字級</p>
-                <p className="text-xs text-muted-foreground">只影響對白/括號</p>
-              </div>
-            </div>
-            {renderSizeButtons(dialogueFontSize, setDialogueFontSize)}
-            <p className="text-xs text-muted-foreground">
-              預覽：<span style={{ fontSize: `${dialogueFontSize}px`, fontStyle: "italic" }}>（這是對白示範字級）</span>
-            </p>
-          </>
-        )}
       </div>
     </div>
   );
