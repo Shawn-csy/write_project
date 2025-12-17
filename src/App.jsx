@@ -104,6 +104,7 @@ function App() {
   const [titleHtml, setTitleHtml] = useState("");
   const [titleName, setTitleName] = useState("");
   const [titleNote, setTitleNote] = useState("");
+  const [titleSummary, setTitleSummary] = useState("");
   const [showTitle, setShowTitle] = useState(false);
   const [hasTitle, setHasTitle] = useState(false);
   const [rawScriptHtml, setRawScriptHtml] = useState("");
@@ -309,6 +310,7 @@ function App() {
       setScrollSceneId("");
       setTitleHtml("");
       setTitleName("");
+      setTitleSummary("");
       setHasTitle(false);
       setShowTitle(false);
       setRawScriptHtml("");
@@ -318,7 +320,9 @@ function App() {
       syncUrl({ fileName: file.name, sceneId: "" });
       const metaKey = file.display || file.name;
       if (generatedFileMeta?.[metaKey]) {
-        setFileMeta((prev) => ({ ...prev, [file.name]: new Date(generatedFileMeta[metaKey]) }));
+        const val = generatedFileMeta[metaKey];
+        const dateStr = typeof val === "object" ? val.mtime : val;
+        setFileMeta((prev) => ({ ...prev, [file.name]: new Date(dateStr) }));
       } else {
         fetchLastModified(file);
       }
@@ -352,8 +356,9 @@ function App() {
   useEffect(() => {
     if (generatedFileMeta && Object.keys(generatedFileMeta).length) {
       const normalized = {};
-      Object.entries(generatedFileMeta).forEach(([key, iso]) => {
-        normalized[key] = new Date(iso);
+      Object.entries(generatedFileMeta).forEach(([key, val]) => {
+        const dateStr = typeof val === "object" ? val.mtime : val;
+        normalized[key] = new Date(dateStr);
       });
       setFileMeta((prev) => ({ ...normalized, ...prev }));
     }
@@ -362,28 +367,48 @@ function App() {
   const handleShareUrl = async (e) => {
     e?.stopPropagation?.();
     if (typeof window === "undefined") return;
+
     const shareUrl = window.location.href;
+    const title = titleName || activeFile || "Screenplay Reader";
+    // 優先順序：劇本摘要 -> 劇本註記 -> 預設文字
+    const summary =
+      titleSummary ||
+      titleNote ||
+      (titleName ? `${titleName} 劇本摘要` : "線上閱讀、瀏覽與分享 Fountain 劇本的閱讀器。");
+
+    // 1. 嘗試使用 Web Share API (原生分享選單)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: title,
+          text: summary,
+          url: shareUrl,
+        });
+        return; // 分享成功則結束
+      } catch (err) {
+        // 使用者取消或不支援，則繼續執行複製流程
+        if (err.name !== "AbortError") {
+          console.warn("Web Share API error:", err);
+        }
+      }
+    }
+
+    // 2. 複製豐富文字到剪貼簿
+    const richText = `【${title}】\n${summary}\n\n${shareUrl}`;
+
     try {
       if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(shareUrl);
+        await navigator.clipboard.writeText(richText);
+        
         if (shareCopiedTimer.current) clearTimeout(shareCopiedTimer.current);
         setShareCopied(true);
         shareCopiedTimer.current = setTimeout(() => setShareCopied(false), 1800);
         return;
       }
+      // Fallback
       window.prompt("複製分享連結", shareUrl);
     } catch (err) {
       console.error("分享連結失敗", err);
-      try {
-        if (navigator.clipboard?.writeText) {
-          await navigator.clipboard.writeText(shareUrl);
-          if (shareCopiedTimer.current) clearTimeout(shareCopiedTimer.current);
-          setShareCopied(true);
-          shareCopiedTimer.current = setTimeout(() => setShareCopied(false), 1800);
-        }
-      } catch (copyErr) {
-        console.error("複製連結失敗", copyErr);
-      }
     }
   };
 
@@ -627,6 +652,41 @@ function App() {
         : titleName || activeFile || "選擇一個劇本";
   const canShare = !homeOpen && !aboutOpen && !settingsOpen && Boolean(activeFile);
 
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const setMetaTag = (attr, key, content) => {
+      if (!key) return;
+      const selector = `meta[${attr}="${key}"]`;
+      let el = document.head.querySelector(selector);
+      if (!el) {
+        el = document.createElement("meta");
+        el.setAttribute(attr, key);
+        document.head.appendChild(el);
+      }
+      el.setAttribute("content", content || "");
+    };
+
+    const cleanText = (text = "") => text.replace(/\s+/g, " ").trim();
+    const summary =
+      cleanText(titleSummary) ||
+      cleanText(titleNote) ||
+      (titleName ? `${titleName} 劇本摘要` : "");
+    const description =
+      summary.slice(0, 200) ||
+      "線上閱讀、瀏覽與分享 Fountain 劇本的閱讀器。";
+    const shareTitle = titleName || activeFile || "Screenplay Reader";
+    const fullTitle = titleName ? `${titleName}｜Screenplay Reader` : shareTitle;
+    const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+
+    document.title = fullTitle;
+    setMetaTag("name", "description", description);
+    setMetaTag("property", "og:title", shareTitle);
+    setMetaTag("property", "og:description", description);
+    setMetaTag("property", "og:url", shareUrl);
+    setMetaTag("property", "og:type", activeFile ? "article" : "website");
+  }, [titleName, titleSummary, titleNote, activeFile, filterCharacter, currentSceneId]);
+
   return (
     <MainLayout
       isDesktopSidebarOpen={isDesktopSidebarOpen}
@@ -728,6 +788,7 @@ function App() {
               setTitleHtml={setTitleHtml}
               setTitleName={handleTitleName}
               setTitleNote={setTitleNote}
+              setTitleSummary={setTitleSummary}
               setHasTitle={setHasTitle}
               setRawScriptHtml={setRawScriptHtml}
               setRawScriptHtmlProcessed={setProcessedScriptHtml}
@@ -748,4 +809,3 @@ function App() {
 }
 
 export default App;
-

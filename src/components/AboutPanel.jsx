@@ -18,7 +18,7 @@ function AboutPanel({ accentStyle, onClose }) {
           )}
           {aboutContent.quickGuide?.length > 0 && (
             <>
-              <h3 className="text-xl font-semibold">30秒快速說明</h3>
+              <h3 className="text-xl font-semibold">快速說明</h3>
               <ul className="list-disc pl-5 space-y-1">
                 {aboutContent.quickGuide.map((item) => (
                   <li key={item}>{item}</li>

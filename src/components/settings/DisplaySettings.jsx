@@ -1,8 +1,46 @@
 import React from "react";
-import { Type } from "lucide-react";
+import { Type, LayoutList, Eye, Highlighter, FileText, Rabbit } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
-import { Button } from "../ui/button";
 import { useSettings } from "../../contexts/SettingsContext";
+import { cn } from "../../lib/utils";
+
+const SettingRow = ({ icon: Icon, title, description, children }) => (
+  <div className="flex items-center justify-between gap-4 py-2">
+    <div className="flex items-start gap-3 min-w-0">
+      {Icon && (
+        <div className="mt-0.5 p-1.5 rounded-md bg-muted/50 text-muted-foreground">
+          <Icon className="w-4 h-4" />
+        </div>
+      )}
+      <div className="space-y-0.5">
+        <p className="text-sm font-medium text-foreground">{title}</p>
+        {description && <p className="text-xs text-muted-foreground line-clamp-1">{description}</p>}
+      </div>
+    </div>
+    <div className="shrink-0">
+      {children}
+    </div>
+  </div>
+);
+
+const ToggleGroup = ({ options, value, onChange }) => (
+  <div className="inline-flex rounded-lg border border-border/50 bg-muted/30 p-1">
+    {options.map((opt) => (
+      <button
+        key={opt.value}
+        onClick={() => onChange(opt.value)}
+        className={cn(
+          "px-3 py-1 text-xs font-medium rounded-md transition-all duration-200",
+          value === opt.value
+            ? "bg-background text-foreground shadow-sm ring-1 ring-border/50"
+            : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+        )}
+      >
+        {opt.label}
+      </button>
+    ))}
+  </div>
+);
 
 export function DisplaySettings({ sectionRef }) {
   const {
@@ -21,187 +59,109 @@ export function DisplaySettings({ sectionRef }) {
   } = useSettings();
 
   return (
-    <Card className="border border-border/80" ref={sectionRef}>
-        <CardHeader>
-          <CardTitle>列表 / 順讀</CardTitle>
-          <CardDescription>調整側欄呈現與專注模式行為。</CardDescription>
+    <Card className="border border-border/60 bg-card/50 shadow-sm transition-all hover:bg-card/80 hover:shadow-md hover:border-border/80" ref={sectionRef}>
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-2">
+             <div className="p-2 rounded-md bg-primary/10 text-primary">
+                <LayoutList className="w-4 h-4" />
+             </div>
+             <div>
+               <CardTitle className="text-base">閱讀體驗</CardTitle>
+               <CardDescription className="text-xs mt-0.5">自訂列表顯示與順讀模式</CardDescription>
+             </div>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <Type className="h-4 w-4" />
-                <div>
-                  <p className="text-sm font-medium">列表顯示</p>
-                  <p className="text-xs text-muted-foreground">檔名或標題</p>
-                </div>
-              </div>
-              <div className="inline-flex rounded-md border border-border/70 overflow-hidden">
-                <Button
-                  size="sm"
-                  variant={fileLabelMode === "auto" ? "default" : "ghost"}
-                  className="px-3"
-                  onClick={() => setFileLabelMode("auto")}
-                >
-                  標題
-                </Button>
-                <Button
-                  size="sm"
-                  variant={fileLabelMode === "filename" ? "default" : "ghost"}
-                  className="px-3"
-                  onClick={() => setFileLabelMode("filename")}
-                >
-                  檔名
-                </Button>
-              </div>
-            </div>
-          </div>
+        <CardContent className="space-y-2 divide-y divide-border/30">
+          <SettingRow 
+             icon={Type} 
+             title="列表標題" 
+             description="側邊欄位標題顯示方式"
+          >
+             <ToggleGroup 
+                value={fileLabelMode} 
+                onChange={setFileLabelMode}
+                options={[
+                  { label: "標題", value: "auto" },
+                  { label: "檔名", value: "filename" }
+                ]}
+             />
+          </SettingRow>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium">順讀效果</p>
-                <p className="text-xs text-muted-foreground">非目標內容處理</p>
-              </div>
-              <div className="inline-flex rounded-md border border-border/70 overflow-hidden">
-                <Button
-                  size="sm"
-                  variant={focusEffect === "hide" ? "default" : "ghost"}
-                  className="px-3"
-                  onClick={() => setFocusEffect("hide")}
-                >
-                  隱藏
-                </Button>
-                <Button
-                  size="sm"
-                  variant={focusEffect === "dim" ? "default" : "ghost"}
-                  className="px-3"
-                  onClick={() => setFocusEffect("dim")}
-                >
-                  淡化
-                </Button>
-              </div>
-            </div>
-          </div>
+          <SettingRow 
+             icon={Eye} 
+             title="順讀效果" 
+             description="非焦點區域的視覺處理"
+          >
+             <ToggleGroup 
+                value={focusEffect} 
+                onChange={setFocusEffect}
+                options={[
+                  { label: "隱藏", value: "hide" },
+                  { label: "淡化", value: "dim" }
+                ]}
+             />
+          </SettingRow>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium">專注內容</p>
-                <p className="text-xs text-muted-foreground">角色專注時顯示</p>
-              </div>
-              <div className="inline-flex rounded-md border border-border/70 overflow-hidden">
-                <Button
-                  size="sm"
-                  variant={focusContentMode === "all" ? "default" : "ghost"}
-                  className="px-3"
-                  onClick={() => setFocusContentMode("all")}
-                >
-                  段落
-                </Button>
-                <Button
-                  size="sm"
-                  variant={focusContentMode === "dialogue" ? "default" : "ghost"}
-                  className="px-3"
-                  onClick={() => setFocusContentMode("dialogue")}
-                >
-                  台詞
-                </Button>
-              </div>
-            </div>
-          </div>
+          <SettingRow 
+             icon={Rabbit} 
+             title="專注範圍" 
+             description="角色專注模式下的顯示內容"
+          >
+             <ToggleGroup 
+                value={focusContentMode} 
+                onChange={setFocusContentMode}
+                options={[
+                  { label: "整段", value: "all" },
+                  { label: "僅台詞", value: "dialogue" }
+                ]}
+             />
+          </SettingRow>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium">角色色塊</p>
-                <p className="text-xs text-muted-foreground">高亮角色名稱</p>
-              </div>
-              <div className="inline-flex rounded-md border border-border/70 overflow-hidden">
-                <Button
-                  size="sm"
-                  variant={highlightCharacters ? "default" : "ghost"}
-                  className="px-3"
-                  onClick={() => setHighlightCharacters(true)}
-                >
-                  開
-                </Button>
-                <Button
-                  size="sm"
-                  variant={!highlightCharacters ? "default" : "ghost"}
-                  className="px-3"
-                  onClick={() => setHighlightCharacters(false)}
-                >
-                  關
-                </Button>
-              </div>
-            </div>
-          </div>
+          <SettingRow 
+             icon={Highlighter} 
+             title="角色標記" 
+             description="是否顯示角色名稱底色"
+          >
+             <ToggleGroup 
+                value={highlightCharacters} 
+                onChange={(v) => setHighlightCharacters(v)}
+                options={[
+                  { label: "開啟", value: true },
+                  { label: "關閉", value: false }
+                ]}
+             />
+          </SettingRow>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium">SFX 標記</p>
-                <p className="text-xs text-muted-foreground">顯示 SFX 色塊</p>
-              </div>
-              <div className="inline-flex rounded-md border border-border/70 overflow-hidden">
-                <Button
-                  size="sm"
-                  variant={highlightSfx ? "default" : "ghost"}
-                  className="px-3"
-                  onClick={() => setHighlightSfx(true)}
-                >
-                  開
-                </Button>
-                <Button
-                  size="sm"
-                  variant={!highlightSfx ? "default" : "ghost"}
-                  className="px-3"
-                  onClick={() => setHighlightSfx(false)}
-                >
-                  關
-                </Button>
-              </div>
-            </div>
-          </div>
+          <SettingRow 
+             icon={Highlighter} 
+             title="SFX / 方位" 
+             description="強調顯示 SFX 與方位標記"
+          >
+             <ToggleGroup 
+                value={highlightSfx} 
+                onChange={(v) => setHighlightSfx(v)}
+                options={[
+                  { label: "開啟", value: true },
+                  { label: "關閉", value: false }
+                ]}
+             />
+          </SettingRow>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium">方位/距離</p>
-                <p className="text-xs text-muted-foreground">顯示 [] 標記的色塊</p>
-              </div>
-              <p className="text-xs text-muted-foreground">已啟用，採用與 SFX 不同的淡色。</p>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium">PDF / 匯出內容</p>
-                <p className="text-xs text-muted-foreground">選擇匯出的 HTML 來源</p>
-              </div>
-              <div className="inline-flex rounded-md border border-border/70 overflow-hidden">
-                <Button
-                  size="sm"
-                  variant={exportMode === "processed" ? "default" : "ghost"}
-                  className="px-3"
-                  onClick={() => setExportMode("processed")}
-                >
-                  目前視圖
-                </Button>
-                <Button
-                  size="sm"
-                  variant={exportMode === "raw" ? "default" : "ghost"}
-                  className="px-3"
-                  onClick={() => setExportMode("raw")}
-                >
-                  原始解析
-                </Button>
-              </div>
-            </div>
-          </div>
+          <SettingRow 
+             icon={FileText} 
+             title="匯出來源" 
+             description="PDF 與複製內容的來源格式"
+          >
+             <ToggleGroup 
+                value={exportMode} 
+                onChange={setExportMode}
+                options={[
+                  { label: "目前視圖", value: "processed" },
+                  { label: "原始碼", value: "raw" }
+                ]}
+             />
+          </SettingRow>
         </CardContent>
-      </Card>
+    </Card>
   );
 }
