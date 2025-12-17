@@ -161,9 +161,9 @@
   box-shadow: none;
 }
 .dark .screenplay .character-block.character {
-  background-color: color-mix(in srgb, var(--char-color, hsl(var(--accent))) 42%, hsl(var(--surface-3)));
-  color: hsl(var(--card));
-  border: none;
+  background-color: color-mix(in srgb, var(--char-color, hsl(var(--accent))) 25%, hsl(var(--surface-3)));
+  color: hsl(var(--foreground));
+  border: 1px solid color-mix(in srgb, var(--char-color, hsl(var(--accent))) 35%, transparent);
   box-shadow: none;
 }
 

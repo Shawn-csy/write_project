@@ -40,7 +40,7 @@ export const aboutContent = {
               <h3 class="font-semibold">版本日誌</h3>
             </div>
             <div class="mb-4 flex items-center gap-2">
-              <span class="rounded-md px-2 py-1 text-xs font-medium accent-pill">Current v0.1.0</span>
+              <span class="rounded-md px-2 py-1 text-xs font-medium accent-pill">Current v0.2.2</span>
             </div>
             <p class="text-sm text-muted-foreground">
               目前已實裝：
@@ -68,7 +68,7 @@ export const aboutContent = {
             <span>Discord</span>
           </a>
 
-          <a href="https://github.com/Shawn-csy" target="_blank" rel="noreferrer"
+          <a href="https://github.com/Shawn-csy/write_project" target="_blank" rel="noreferrer"
              class="group flex items-center justify-center gap-2 rounded-md border bg-background px-4 py-3 text-sm font-medium transition-colors hover:bg-muted hover:text-foreground">
             <svg class="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" fill="currentColor" viewBox="0 0 24 24"><path d="M12 .5C5.65.5.5 5.64.5 12c0 5.1 3.3 9.41 7.88 10.94.58.1.79-.25.79-.56 0-.28-.01-1.03-.02-2.02-3.2.69-3.87-1.54-3.87-1.54-.53-1.36-1.3-1.72-1.3-1.72-1.07-.74.08-.73.08-.73 1.18.08 1.8 1.22 1.8 1.22 1.05 1.8 2.74 1.28 3.41.98.1-.76.41-1.28.75-1.58-2.55-.29-5.23-1.28-5.23-5.69 0-1.26.45-2.29 1.2-3.1-.12-.29-.52-1.45.11-3.02 0 0 .98-.31 3.2 1.18a11.1 11.1 0 0 1 5.82 0c2.22-1.49 3.2-1.18 3.2-1.18.63 1.57.23 2.73.11 3.02.75.81 1.2 1.84 1.2 3.1 0 4.43-2.69 5.4-5.25 5.68.42.36.8 1.08.8 2.18 0 1.58-.02 2.85-.02 3.23 0 .31.21.67.8.56A10.52 10.52 0 0 0 23.5 12c0-6.36-5.15-11.5-11.5-11.5Z"/></svg>
             <span>GitHub</span>
