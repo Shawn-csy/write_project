@@ -2,23 +2,32 @@ export const accentThemes = {
   emerald: {
     label: "綠色",
     accent: "160 84% 39%",
+    accentDark: "160 70% 55%", // Lighter for Dark Mode
     accentForeground: "154 44% 16%",
     accentMuted: "160 60% 92%",
     accentStrong: "160 78% 34%",
+    accentMutedDark: "160 20% 18%",
+    accentStrongDark: "160 72% 60%",
   },
   indigo: {
     label: "靛藍",
     accent: "234 89% 67%",
+    accentDark: "234 89% 72%", // Slightly lighter
     accentForeground: "233 47% 18%",
     accentMuted: "234 74% 92%",
     accentStrong: "234 79% 60%",
+    accentMutedDark: "234 20% 18%",
+    accentStrongDark: "234 72% 60%",
   },
   amber: {
     label: "琥珀",
     accent: "38 92% 50%",
+    accentDark: "38 92% 50%", // Amber is already bright, keep same or adjust
     accentForeground: "28 56% 18%",
     accentMuted: "38 88% 90%",
     accentStrong: "38 90% 44%",
+    accentMutedDark: "38 20% 18%",
+    accentStrongDark: "38 92% 50%",
   },
 };
 

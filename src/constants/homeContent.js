@@ -6,9 +6,17 @@ export const homeContent = {
       <p class="text-muted-foreground">
         本閱讀器支援標準 <strong>Fountain</strong> 語法。以下是撰寫時的速查表，所有範例皆可直接複製使用。
       </p>
-      <p>右上角的選單可以選擇角色高亮或是隱藏其他角色進行順讀，旁邊的印表機可以下載為PDF。</>
-      <p class="text-xs text-muted-foreground">快捷鍵：Ctrl/Cmd + [ 或 ] 調整字級、Ctrl/Cmd + B 開合列表、Ctrl/Cmd + G 切換順讀（需先選角色）、Ctrl/Cmd + ↑/↓ 跳場景、Ctrl/Cmd + ←/→ 固定行數捲動。</p>
-      <p class="text-xs text-muted-foreground">測試：專案內建 <code>npm test</code>（Node 20+），涵蓋劇本前處理與 PDF 標記轉換。</p>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-muted-foreground bg-muted/30 p-3 rounded-lg border border-border/50">
+        <ul class="space-y-1 list-disc pl-4">
+          <li><strong>左側選單</strong>：支援關鍵字搜尋與資料夾收合。</li>
+          <li><strong>設定面板</strong>：點擊左下角 <span class="inline-block align-middle"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span> 圖示，可調整主題、字級與顯示模式。</li>
+        </ul>
+        <ul class="space-y-1 list-disc pl-4">
+          <li><strong>閱讀工具</strong>：上方標題列可快速跳轉場景或篩選特定角色。</li>
+          <li><strong>快捷鍵</strong>：<code>Cmd/Ctrl + B</code> 收合列表、<code>Cmd/Ctrl + [ / ]</code> 調整字級。</li>
+        </ul>
+      </div>
 
       <div>
         <h3 class="mb-3 text-lg font-semibold tracking-tight">撰寫指南核心元素</h3>
@@ -134,9 +142,10 @@ export const homeContent = {
     </div>
   `,
   quickGuide: [
-    "📁 拖曳或點擊左側區域載入 .fountain 檔案",
-    "👁️ 點擊右上角「角色選單」開啟順讀模式（Focus Mode）",
-    "📄 匯出 PDF 會自動套用標準劇本格式，適合列印",
+    "📁 點擊劇本列表載入檔案，可利用上方搜尋框過濾。",
+    "🎨 透過設定面板 (Settings) 自訂最舒適的閱讀體驗。",
+    "👁️ 點擊標題列「角色」可開啟專注模式，僅高亮選定角色台詞。",
+    "📄 隨時可匯出標準格式 PDF 進行列印或分享。",
   ],
   demo: `Title: Demo Screenplay
 Author: Your Name
