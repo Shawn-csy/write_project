@@ -23,6 +23,7 @@ function ReaderHeader({
   titleName,
   activeFile,
   fileMeta,
+  isSidebarOpen,
   setSidebarOpen,
   handleExportPdf,
   onShareUrl,
@@ -79,10 +80,13 @@ function ReaderHeader({
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                e.currentTarget.blur();
                 setSidebarOpen(true);
               }}
               aria-label="展開列表"
-              className="lg:hidden h-9 w-9 inline-flex items-center justify-center -ml-1 text-foreground/80 hover:text-foreground transition-colors shrink-0"
+              className={`h-9 w-9 inline-flex items-center justify-center -ml-1 text-foreground/80 hover:text-foreground transition-colors shrink-0 ${
+                isSidebarOpen ? "lg:hidden" : ""
+              }`}
             >
               <PanelLeftOpen className="h-5 w-5" />
             </button>
