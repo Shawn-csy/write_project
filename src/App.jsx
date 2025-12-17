@@ -2,7 +2,14 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PanelLeftOpen } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent } from "./components/ui/card";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerTitle,
+  DrawerDescription,
+} from "./components/ui/drawer";
 import Sidebar from "./components/Sidebar";
+import MobileMenu from "./components/MobileMenu";
 import AboutPanel from "./components/AboutPanel";
 import HomePanel from "./components/HomePanel";
 import ScriptPanel from "./components/ScriptPanel";
@@ -55,7 +62,28 @@ function App() {
     setDialogueFontSize(size);
     writeValue(STORAGE_KEYS.DIALOGUE_FONT, size);
   };
-  const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const isSidebarOpen = isDesktopSidebarOpen; // For backward compatibility if needed, or derived
+  const setSidebarOpen = (open) => {
+     // Hybrid setter: if mobile size, toggle drawer; if desktop, toggle sidebar
+     if (window.innerWidth < 1024) {
+       setIsMobileDrawerOpen(open);
+     } else {
+       setIsDesktopSidebarOpen(open);
+     }
+  };
+  
+  // Sync states on resize (optional but good for consistency)
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024 && isMobileDrawerOpen) {
+        setIsMobileDrawerOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isMobileDrawerOpen]);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -466,12 +494,12 @@ function App() {
   }, [fontSize, filterCharacter, sceneList, currentSceneId]);
 
   const containerBg = "bg-background text-foreground";
-  const sidebarWrapper = isSidebarOpen
-    ? "w-[88vw] sm:w-80 lg:w-72 translate-x-0 pointer-events-auto relative lg:static"
-    : "absolute lg:absolute w-0 h-0 -translate-x-full pointer-events-none";
+  const sidebarWrapper = isDesktopSidebarOpen
+    ? "w-80 lg:w-72 translate-x-0 pointer-events-auto relative lg:static"
+    : "lg:absolute w-0 h-0 -translate-x-full pointer-events-none";
   const sidebarBase =
     "fixed inset-y-0 left-0 z-40 lg:z-20 lg:static transition-transform duration-200 overflow-hidden min-h-0";
-  const layoutGap = isSidebarOpen ? "gap-4 lg:gap-6" : "gap-0";
+  const layoutGap = isDesktopSidebarOpen ? "gap-4 lg:gap-6" : "gap-0";
 
   const fileTree = useMemo(() => {
     const buildTree = () => ({
@@ -661,15 +689,32 @@ function App() {
       <div
         className={`mx-auto flex h-screen max-w-7xl ${layoutGap} px-4 py-4 lg:px-6 lg:py-6`}
       >
-        {/* Mobile overlay */}
-        {isSidebarOpen && (
-          <div
-            className="fixed inset-0 z-30 bg-black/30 backdrop-blur-sm lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-        {/* Sidebar */}
-        <div className={`${sidebarBase} ${sidebarWrapper}`}>
+        {/* Mobile Drawer with MobileMenu */}
+        <Drawer open={isMobileDrawerOpen} onOpenChange={setIsMobileDrawerOpen}>
+          <DrawerContent className="h-[85vh] outline-none">
+             <div className="sr-only">
+               <DrawerTitle>導航選單</DrawerTitle>
+               <DrawerDescription>劇本導航</DrawerDescription>
+             </div>
+             <MobileMenu 
+                fileTree={filteredTree}
+                activeFile={activeFile}
+                onSelectFile={loadScript}
+                accentStyle={accentStyle}
+                openAbout={handleOpenAbout}
+                openSettings={handleOpenSettings}
+                onClose={() => setIsMobileDrawerOpen(false)}
+                fileTitleMap={fileTitleMap}
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                openFolders={openFolders}
+                toggleFolder={toggleFolder}
+             />
+          </DrawerContent>
+        </Drawer>
+
+        {/* Desktop Sidebar */}
+        <div className={`hidden lg:block ${sidebarBase} ${sidebarWrapper}`}>
           <Sidebar
             fileTree={filteredTree}
             searchTerm={searchTerm}
@@ -682,16 +727,16 @@ function App() {
             openAbout={handleOpenAbout}
             openSettings={handleOpenSettings}
             closeAbout={() => setAboutOpen(false)}
-            setSidebarOpen={setSidebarOpen}
+            setSidebarOpen={setIsDesktopSidebarOpen}
             openHome={handleOpenHome}
             fileTitleMap={fileTitleMap}
             fileTagsMap={fileTagsMap}
             fileLabelMode={fileLabelMode}
-              setFileLabelMode={(mode) => {
-                setFileLabelMode(mode);
-                localStorage.setItem(STORAGE_KEYS.LABEL_MODE, mode);
-              }}
-            />
+            setFileLabelMode={(mode) => {
+              setFileLabelMode(mode);
+              localStorage.setItem(STORAGE_KEYS.LABEL_MODE, mode);
+            }}
+          />
         </div>
 
         {/* Main */}
