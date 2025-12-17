@@ -43,9 +43,18 @@ function Sidebar({
   fileTagsMap = {},
   fileLabelMode,
   setFileLabelMode,
+  className,
 }) {
   const [tagMenuOpen, setTagMenuOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState([]);
+
+  const closeSidebarIfMobile = () => {
+    if (!setSidebarOpen || typeof window === "undefined") return;
+    const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
+    if (!isDesktop) {
+      setSidebarOpen(false);
+    }
+  };
 
   const renderNode = (node, depth = 0) => {
     if (!node) return null;
@@ -83,14 +92,7 @@ function Sidebar({
                 onClick={() => {
                   closeAbout();
                   onSelectFile(file);
-                  if (setSidebarOpen) {
-                    const isDesktop = window.matchMedia(
-                      "(min-width: 1024px)"
-                    ).matches;
-                    if (!isDesktop) {
-                      setSidebarOpen(false);
-                    }
-                  }
+                  closeSidebarIfMobile();
                 }}
                 style={{
                   paddingLeft: `${indentPx + 12}px`,
@@ -144,14 +146,7 @@ function Sidebar({
                   onClick={() => {
                     closeAbout();
                     onSelectFile(file);
-                    if (setSidebarOpen) {
-                      const isDesktop = window.matchMedia(
-                        "(min-width: 1024px)"
-                      ).matches;
-                      if (!isDesktop) {
-                        setSidebarOpen(false);
-                      }
-                    }
+                    closeSidebarIfMobile();
                   }}
                   style={{
                     paddingLeft: `${indentPx + 12}px`,
@@ -206,7 +201,7 @@ function Sidebar({
   };
 
   return (
-    <Card className="relative h-full min-h-0 overflow-hidden bg-muted/50 border-border/70 flex flex-col">
+    <Card className={`relative h-full min-h-0 overflow-hidden bg-muted/50 border-border/70 flex flex-col ${className}`}>
       <CardHeader className="flex-row items-center justify-between space-y-0 border-b border-border/60">
         <div className="flex w-full items-center justify-between gap-3">
           <button
@@ -226,15 +221,30 @@ function Sidebar({
             <CardTitle className="text-lg">Screenplay Reader</CardTitle>
             <CardDescription>{homeContent.label}</CardDescription>
           </button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="收合列表"
-            className="shrink-0"
-            onClick={() => setSidebarOpen(false)}
-          >
-            <PanelLeftClose className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="設定"
+              className="shrink-0 lg:hidden"
+              onClick={(e) => {
+                e.stopPropagation();
+                openSettings();
+                closeSidebarIfMobile();
+              }}
+            >
+              <Settings className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="收合列表"
+              className="shrink-0"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <PanelLeftClose className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
@@ -360,7 +370,10 @@ function Sidebar({
         </div>
       </CardContent>
 
-      <div className="mt-auto border-t border-border/60 bg-background/60 px-4 py-3 flex flex-col gap-3 shrink-0">
+      <div
+        className="mt-auto border-t border-border/60 bg-background/60 px-4 pt-3 flex flex-col gap-3 shrink-0"
+        style={{ paddingBottom: "max(env(safe-area-inset-bottom), 1rem)" }}
+      >
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
@@ -380,6 +393,7 @@ function Sidebar({
             onClick={(e) => {
               e.stopPropagation();
               openSettings();
+              closeSidebarIfMobile();
             }}
           >
             <Settings className="h-4 w-4" />
