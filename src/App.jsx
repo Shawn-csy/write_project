@@ -10,12 +10,16 @@ import {
 } from "./components/ui/drawer";
 import Sidebar from "./components/Sidebar";
 import MobileMenu from "./components/MobileMenu";
-import AboutPanel from "./components/AboutPanel";
 import HomePanel from "./components/HomePanel";
 import ScriptPanel from "./components/ScriptPanel";
 import ReaderHeader from "./components/ReaderHeader";
-import SettingsPanel from "./components/SettingsPanel";
+import { MainLayout } from "./components/MainLayout";
+// import SettingsPanel from "./components/SettingsPanel"; // Lazy loaded
+// import AboutPanel from "./components/AboutPanel"; // Lazy loaded
 import { useTheme } from "./components/theme-provider";
+
+const SettingsPanel = React.lazy(() => import("./components/SettingsPanel"));
+const AboutPanel = React.lazy(() => import("./components/AboutPanel"));
 import {
   accentThemes,
   accentOptions,
@@ -26,6 +30,7 @@ import { STORAGE_KEYS } from "./constants/storageKeys";
 import { readNumber, readString, writeValue } from "./lib/storage";
 import generatedFileMeta from "./constants/fileMeta.generated.json";
 import { buildPrintHtml } from "./lib/print";
+import { useSettings } from "./contexts/SettingsContext";
 
 const scriptModules = import.meta.glob("./scripts_file/**/*.fountain", {
   query: "?raw",
@@ -33,6 +38,26 @@ const scriptModules = import.meta.glob("./scripts_file/**/*.fountain", {
 });
 
 function App() {
+  const {
+      isDark,
+      // Theme logic is handled by provider but we might need isDark for layout classes if any
+      accent,
+      accentConfig,
+      // accentStyle is derived from imports, not state, so we keep using accentClasses
+      fontSize,
+      bodyFontSize,
+      dialogueFontSize,
+      exportMode,
+      fileLabelMode,
+      setFileLabelMode,
+      focusEffect,
+      focusContentMode,
+      highlightCharacters,
+      highlightSfx,
+      adjustFont,
+      // Setters if needed
+  } = useSettings();
+
   const [files, setFiles] = useState([]);
   const [activeFile, setActiveFile] = useState(null);
   const [rawScript, setRawScript] = useState("");
@@ -40,28 +65,12 @@ function App() {
   const [characterList, setCharacterList] = useState([]);
   const [filterCharacter, setFilterCharacter] = useState("__ALL__");
   const [focusMode, setFocusMode] = useState(false);
-  const [focusEffect, setFocusEffect] = useState("hide"); // hide | dim
-  const [focusContentMode, setFocusContentMode] = useState("all"); // all | dialogue
-  const [highlightCharacters, setHighlightCharacters] = useState(true);
-  const [highlightSfx, setHighlightSfx] = useState(true);
-  const [bodyFontSize, setBodyFontSize] = useState(14); // 全文
-  const [dialogueFontSize, setDialogueFontSize] = useState(14); // 對白
+  // settings removed
   const [processedScriptHtml, setProcessedScriptHtml] = useState("");
-  const [exportMode, setExportMode] = useState("processed"); // processed | raw
+  // exportMode removed
   const contentScrollRef = useRef(null);
 
-  const setFontSizePersist = (size) => {
-    setFontSize(size);
-    writeValue(STORAGE_KEYS.FONT_SIZE, size);
-  };
-  const setBodyFontPersist = (size) => {
-    setBodyFontSize(size);
-    writeValue(STORAGE_KEYS.BODY_FONT, size);
-  };
-  const setDialogueFontPersist = (size) => {
-    setDialogueFontSize(size);
-    writeValue(STORAGE_KEYS.DIALOGUE_FONT, size);
-  };
+  // Persistence helpers removed
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const isSidebarOpen = isDesktopSidebarOpen; // For backward compatibility if needed, or derived
@@ -84,10 +93,11 @@ function App() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [isMobileDrawerOpen]);
+  // Removed local settings state definitions
   const [aboutOpen, setAboutOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [accent, setAccent] = useState(defaultAccent);
+  // accent removed
   const [homeOpen, setHomeOpen] = useState(false);
   const [fileMeta, setFileMeta] = useState({});
   const [openFolders, setOpenFolders] = useState(new Set(["__root__"]));
@@ -97,9 +107,9 @@ function App() {
   const [showTitle, setShowTitle] = useState(false);
   const [hasTitle, setHasTitle] = useState(false);
   const [rawScriptHtml, setRawScriptHtml] = useState("");
-  const [fontSize, setFontSize] = useState(14);
+  // fontSize removed
   const [fileTitleMap, setFileTitleMap] = useState({});
-  const [fileLabelMode, setFileLabelMode] = useState("auto"); // auto | filename
+  // fileLabelMode removed
   const [fileTagsMap, setFileTagsMap] = useState({});
   const [shareCopied, setShareCopied] = useState(false);
   const shareCopiedTimer = useRef(null);
@@ -109,19 +119,10 @@ function App() {
   const initialParamsRef = useRef({ char: null, scene: null });
   const [scrollProgress, setScrollProgress] = useState(0);
 
-  const { resolvedTheme, setTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
-  const appliedTheme = resolvedTheme || "light";
+  // useTheme removed (using SettingsContext)
+  const appliedTheme = isDark ? "dark" : "light";
   const accentStyle = accentClasses;
-  const accentConfig = accentThemes[accent] || accentThemes[defaultAccent];
-  useEffect(() => {
-    const root = document.documentElement;
-    const cfg = accentConfig;
-    root.style.setProperty("--accent", cfg.accent);
-    root.style.setProperty("--accent-foreground", cfg.accentForeground);
-    root.style.setProperty("--accent-muted", cfg.accentMuted || cfg.accent);
-    root.style.setProperty("--accent-strong", cfg.accentStrong || cfg.accent);
-  }, [accentConfig]);
+  // accentConfig effect removed (moved to Context)
 
   useEffect(() => {
     if (hasTitle) {
@@ -172,48 +173,7 @@ function App() {
     syncUrl();
   }, [filterCharacter, currentSceneId, activeFile, files]);
 
-  useEffect(() => {
-    const savedAccent = readString(STORAGE_KEYS.ACCENT);
-    if (savedAccent && accentThemes[savedAccent]) {
-      setAccent(savedAccent);
-    }
-    const savedLabelMode = readString(STORAGE_KEYS.LABEL_MODE, ["auto", "filename"]);
-    if (savedLabelMode === "auto" || savedLabelMode === "filename") {
-      setFileLabelMode(savedLabelMode);
-    }
-    const savedFocusEffect = readString(STORAGE_KEYS.FOCUS_EFFECT, ["hide", "dim"]);
-    if (savedFocusEffect === "hide" || savedFocusEffect === "dim") {
-      setFocusEffect(savedFocusEffect);
-    }
-    const savedFocusContent = readString(STORAGE_KEYS.FOCUS_CONTENT, ["all", "dialogue"]);
-    if (savedFocusContent === "all" || savedFocusContent === "dialogue") {
-      setFocusContentMode(savedFocusContent);
-    }
-    const savedHighlight = readString(STORAGE_KEYS.HIGHLIGHT_CHAR, ["on", "off"]);
-    if (savedHighlight === "off") {
-      setHighlightCharacters(false);
-    }
-    const savedSfx = readString(STORAGE_KEYS.HIGHLIGHT_SFX, ["on", "off"]);
-    if (savedSfx === "off") {
-      setHighlightSfx(false);
-    }
-    const savedFontSize = readNumber(STORAGE_KEYS.FONT_SIZE);
-    if (savedFontSize) {
-      setFontSize(savedFontSize);
-    }
-    const savedBodyFont = readNumber(STORAGE_KEYS.BODY_FONT);
-    if (savedBodyFont) {
-      setBodyFontSize(savedBodyFont);
-    }
-    const savedDlgFont = readNumber(STORAGE_KEYS.DIALOGUE_FONT);
-    if (savedDlgFont) {
-      setDialogueFontSize(savedDlgFont);
-    }
-    const savedExportMode = readString(STORAGE_KEYS.EXPORT_MODE, ["processed", "raw"]);
-    if (savedExportMode === "processed" || savedExportMode === "raw") {
-      setExportMode(savedExportMode);
-    }
-  }, []);
+  // Hydration effect removed (moved to Context)
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -434,17 +394,10 @@ function App() {
   }, []);
 
   // 全域快捷鍵：字級調整、側欄開合、順讀切換
+  // adjustFont handler moved to Context
   useEffect(() => {
-    const fontSteps = [12, 14, 16, 24, 36, 72];
-    const adjustFont = (delta) => {
-      const idx = fontSteps.findIndex((v) => v === fontSize);
-      if (idx === -1) {
-        setFontSizePersist(fontSteps[0]);
-        return;
-      }
-      const next = fontSteps[idx + delta];
-      if (next) setFontSizePersist(next);
-    };
+    // Removed local adjustFont definition
+
 
     const handler = (e) => {
       const tag = e.target?.tagName?.toLowerCase();
@@ -491,7 +444,7 @@ function App() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [fontSize, filterCharacter, sceneList, currentSceneId]);
+  }, [fontSize, filterCharacter, sceneList, currentSceneId, adjustFont]);
 
   const containerBg = "bg-background text-foreground";
   const sidebarWrapper = isDesktopSidebarOpen
@@ -675,81 +628,47 @@ function App() {
   const canShare = !homeOpen && !aboutOpen && !settingsOpen && Boolean(activeFile);
 
   return (
-    <div className={`min-h-screen ${containerBg}`}>
-      {/* Floating opener when sidebar collapsed on desktop */}
-      {!isSidebarOpen && (
-        <button
-          className="fixed left-2 top-1/2 -translate-y-1/2 z-30 hidden h-10 w-10 items-center justify-center text-foreground/80 hover:text-foreground transition-colors lg:inline-flex"
-          aria-label="展開列表"
-          onClick={() => setSidebarOpen(true)}
-        >
-          <PanelLeftOpen className="h-5 w-5" />
-        </button>
-      )}
-      <div
-        className={`mx-auto flex h-screen max-w-7xl ${layoutGap} px-4 py-4 lg:px-6 lg:py-6`}
-      >
-        {/* Mobile Drawer with MobileMenu */}
-        <Drawer open={isMobileDrawerOpen} onOpenChange={setIsMobileDrawerOpen}>
-          <DrawerContent className="h-[85vh] outline-none">
-             <div className="sr-only">
-               <DrawerTitle>導航選單</DrawerTitle>
-               <DrawerDescription>劇本導航</DrawerDescription>
-             </div>
-             <MobileMenu 
-                fileTree={filteredTree}
-                activeFile={activeFile}
-                onSelectFile={loadScript}
-                accentStyle={accentStyle}
-                openAbout={handleOpenAbout}
-                openSettings={handleOpenSettings}
-                onClose={() => setIsMobileDrawerOpen(false)}
-                fileTitleMap={fileTitleMap}
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-                openFolders={openFolders}
-                toggleFolder={toggleFolder}
-             />
-          </DrawerContent>
-        </Drawer>
-
-        {/* Desktop Sidebar */}
-        <div className={`hidden lg:block ${sidebarBase} ${sidebarWrapper}`}>
-          <Sidebar
-            fileTree={filteredTree}
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            openFolders={openFolders}
-            toggleFolder={toggleFolder}
-            activeFile={activeFile}
-            onSelectFile={loadScript}
-            accentStyle={accentStyle}
-            openAbout={handleOpenAbout}
-            openSettings={handleOpenSettings}
-            closeAbout={() => setAboutOpen(false)}
-            setSidebarOpen={setIsDesktopSidebarOpen}
-            openHome={handleOpenHome}
-            fileTitleMap={fileTitleMap}
-            fileTagsMap={fileTagsMap}
-            fileLabelMode={fileLabelMode}
-            setFileLabelMode={(mode) => {
-              setFileLabelMode(mode);
-              localStorage.setItem(STORAGE_KEYS.LABEL_MODE, mode);
-            }}
-          />
-        </div>
-
-        {/* Main */}
-        <main className="flex-1 overflow-hidden flex flex-col gap-3 lg:gap-4">
+    <MainLayout
+      isDesktopSidebarOpen={isDesktopSidebarOpen}
+      setIsDesktopSidebarOpen={setIsDesktopSidebarOpen}
+      isMobileDrawerOpen={isMobileDrawerOpen}
+      setIsMobileDrawerOpen={setIsMobileDrawerOpen}
+      fileTree={filteredTree}
+      activeFile={activeFile}
+      onSelectFile={loadScript}
+      accentStyle={accentStyle}
+      openAbout={handleOpenAbout}
+      openSettings={handleOpenSettings}
+      closeAbout={() => setAboutOpen(false)}
+      openHome={handleOpenHome}
+      files={files}
+      fileTitleMap={fileTitleMap}
+      searchTerm={searchTerm}
+      setSearchTerm={setSearchTerm}
+      openFolders={openFolders}
+      toggleFolder={toggleFolder}
+      fileTagsMap={fileTagsMap}
+      fileLabelMode={fileLabelMode}
+      setFileLabelMode={setFileLabelMode}
+    >
+        {/* Main Content */}
+        <main className="flex-1 overflow-hidden flex flex-col gap-3 lg:gap-4 h-full">
           <div>
             <ReaderHeader
-            accentStyle={accentStyle}
+              accentStyle={accentStyle}
               hasTitle={!homeOpen && !aboutOpen && !settingsOpen && hasTitle}
               onToggleTitle={() => setShowTitle((v) => !v)}
               titleName={headerTitle}
               activeFile={activeFile}
               fileMeta={fileMeta}
-              setSidebarOpen={setSidebarOpen}
+              isSidebarOpen={isDesktopSidebarOpen}
+              setSidebarOpen={() => {
+                if (window.innerWidth >= 1024) {
+                  setIsDesktopSidebarOpen(true);
+                } else {
+                  setIsMobileDrawerOpen(true);
+                }
+              }}
               handleExportPdf={handleExportPdf}
               onShareUrl={handleShareUrl}
               canShare={canShare}
@@ -783,59 +702,18 @@ function App() {
               onClose={() => {
                 setHomeOpen(false);
                 if (!activeFile) {
-                  setAboutOpen(false);
+                  setAboutOpen(false); // Should this be setSettingsOpen? Logic seems specific.
                 }
               }}
             />
           ) : aboutOpen ? (
-            <AboutPanel accentStyle={accentStyle} onClose={() => setAboutOpen(false)} />
+            <React.Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
+              <AboutPanel accentStyle={accentStyle} onClose={() => setAboutOpen(false)} />
+            </React.Suspense>
           ) : settingsOpen ? (
-            <SettingsPanel
-              isDark={isDark}
-              setTheme={setTheme}
-              accent={accent}
-              accentOptions={accentOptions}
-              setAccent={(val) => {
-                setAccent(val);
-                writeValue(STORAGE_KEYS.ACCENT, val);
-              }}
-              fontSize={fontSize}
-              setFontSize={setFontSizePersist}
-              bodyFontSize={bodyFontSize}
-              setBodyFontSize={setBodyFontPersist}
-              dialogueFontSize={dialogueFontSize}
-              setDialogueFontSize={setDialogueFontPersist}
-              fileLabelMode={fileLabelMode}
-              setFileLabelMode={(mode) => {
-                setFileLabelMode(mode);
-                writeValue(STORAGE_KEYS.LABEL_MODE, mode);
-              }}
-              focusEffect={focusEffect}
-              setFocusEffect={(mode) => {
-                setFocusEffect(mode);
-                writeValue(STORAGE_KEYS.FOCUS_EFFECT, mode);
-              }}
-              focusContentMode={focusContentMode}
-              setFocusContentMode={(mode) => {
-                setFocusContentMode(mode);
-                writeValue(STORAGE_KEYS.FOCUS_CONTENT, mode);
-              }}
-              highlightCharacters={highlightCharacters}
-              setHighlightCharacters={(val) => {
-                setHighlightCharacters(val);
-                writeValue(STORAGE_KEYS.HIGHLIGHT_CHAR, val ? "on" : "off");
-              }}
-              highlightSfx={highlightSfx}
-              setHighlightSfx={(val) => {
-                setHighlightSfx(val);
-                writeValue(STORAGE_KEYS.HIGHLIGHT_SFX, val ? "on" : "off");
-              }}
-              exportMode={exportMode}
-              setExportMode={(mode) => {
-                setExportMode(mode);
-                writeValue(STORAGE_KEYS.EXPORT_MODE, mode);
-              }}
-            />
+            <React.Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
+              <SettingsPanel />
+            </React.Suspense>
           ) : (
             <ScriptPanel
               isLoading={isLoading}
@@ -865,9 +743,9 @@ function App() {
             />
           )}
         </main>
-      </div>
-    </div>
+    </MainLayout>
   );
 }
 
 export default App;
+

@@ -209,7 +209,7 @@ function Sidebar({
             onClick={() => {
               openHome();
               closeAbout();
-              setSidebarOpen(false);
+              closeSidebarIfMobile();
             }}
             aria-label="回首頁使用說明"
           >
@@ -380,7 +380,7 @@ function Sidebar({
             className="flex-1 justify-between rounded-lg px-3 py-2 text-sm font-semibold"
             onClick={() => {
               openAbout();
-              setSidebarOpen(false);
+              closeSidebarIfMobile();
             }}
           >
             <span className="truncate">About</span>
