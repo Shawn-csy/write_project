@@ -518,6 +518,8 @@
   margin: 0 0 8px;
   width: 100%;
   font-size: calc(var(--script-font-size, 14px) * 0.92);
+  color: color-mix(in srgb, hsl(var(--foreground)) 55%, hsl(var(--muted-foreground)) 45%);
+  padding-left: 8px;
 }
 
 @media (max-width: 640px) {
