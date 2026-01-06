@@ -400,7 +400,12 @@
 }
 
 .screenplay .action {
-  margin-bottom: 12px;
+  margin-bottom: 24px;
+  line-height: 1.75;
+  max-width: 650px;
+  width: 95%;
+  padding-left: 2px;
+  color: color-mix(in srgb, hsl(var(--foreground)) 90%, transparent);
 }
 
 .screenplay .character {
@@ -507,19 +512,26 @@
 }
 
 .screenplay .dialogue {
-  margin: 0 auto 12px;
-  width: 85%;
+  margin: 0 0 12px 2px;
+  width: 95%;
+  max-width: 600px;
   font-size: var(--dialogue-font-size, var(--script-font-size, 14px));
+  line-height: 1.5;
 }
 
 .screenplay .parenthetical {
   font-style: italic;
   text-align: left;
-  margin: 0 0 8px;
+  margin: 0 0 2px;
   width: 100%;
   font-size: calc(var(--script-font-size, 14px) * 0.92);
-  color: color-mix(in srgb, hsl(var(--foreground)) 55%, hsl(var(--muted-foreground)) 45%);
-  padding-left: 8px;
+  color: color-mix(in srgb, hsl(var(--foreground)) 70%, hsl(var(--muted-foreground)) 30%);
+  padding-left: 6px;
+}
+
+.screenplay .parenthetical + .parenthetical {
+  margin-top: -2px; /* Pull consecutive parentheticals closer */
+  padding-top: 0;
 }
 
 @media (max-width: 640px) {
