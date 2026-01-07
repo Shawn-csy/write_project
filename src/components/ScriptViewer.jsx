@@ -14,6 +14,7 @@ import {
   replaceWhitespacePlaceholders,
   markSfxAndDirections,
   injectWhitespaceBlocks,
+  highlightParentheses,
 } from '../lib/screenplayDom';
 import { applyCharacterBlocks } from '../lib/screenplayCharacters';
 
@@ -239,6 +240,8 @@ function ScriptViewer({
       focusContentMode,
     });
 
+    highlightParentheses(doc);
+
     return serializeWithGaps();
   }, [parsedBody.script, filterCharacter, focusMode, focusEffect, focusContentMode, sceneList, themePalette, highlightCharacters]);
 
@@ -272,4 +275,4 @@ function ScriptViewer({
   );
 }
 
-export default ScriptViewer;
+export default React.memo(ScriptViewer);

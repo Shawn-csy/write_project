@@ -529,9 +529,34 @@
   padding-left: 6px;
 }
 
+
 .screenplay .parenthetical + .parenthetical {
   margin-top: -2px; /* Pull consecutive parentheticals closer */
   padding-top: 0;
+}
+
+.screenplay .script-paren {
+  color: hsl(var(--accent));
+  font-weight: bold;
+  opacity: 0.8;
+}
+
+.screenplay .script-paren-distance {
+  color: #ea580c; /* Orange-600 */
+  font-weight: bold;
+  opacity: 0.9;
+}
+.dark .screenplay .script-paren-distance {
+  color: #fb923c; /* Orange-400 */
+}
+
+.screenplay .script-note-red {
+  color: #dc2626; /* Red-600 */
+  font-weight: bold;
+  opacity: 0.9;
+}
+.dark .screenplay .script-note-red {
+  color: #f87171; /* Red-400 */
 }
 
 @media (max-width: 640px) {
