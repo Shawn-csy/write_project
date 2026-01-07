@@ -28,17 +28,34 @@ function ScriptPanel({
   scrollRef,
   onScrollProgress,
 }) {
+  const rafRef = React.useRef(null);
+
   const handleScroll = () => {
     if (!scrollRef?.current || !onScrollProgress) return;
-    const el = scrollRef.current;
-    const max = el.scrollHeight - el.clientHeight;
-    if (max <= 0) {
-      onScrollProgress(0);
-      return;
+    
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
     }
-    const percent = Math.min(100, Math.max(0, (el.scrollTop / max) * 100));
-    onScrollProgress(Number.isFinite(percent) ? percent : 0);
+
+    rafRef.current = requestAnimationFrame(() => {
+      const el = scrollRef.current;
+      if (!el) return;
+      
+      const max = el.scrollHeight - el.clientHeight;
+      if (max <= 0) {
+        onScrollProgress(0);
+        return;
+      }
+      const percent = Math.min(100, Math.max(0, (el.scrollTop / max) * 100));
+      onScrollProgress(Number.isFinite(percent) ? percent : 0);
+    });
   };
+
+  React.useEffect(() => {
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
 
   return (
     <div
@@ -87,4 +104,5 @@ function ScriptPanel({
   );
 }
 
-export default ScriptPanel;
+
+export default React.memo(ScriptPanel);
