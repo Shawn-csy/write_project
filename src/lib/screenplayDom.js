@@ -138,6 +138,7 @@ export const injectWhitespaceBlocks = (html = "") =>
     .replaceAll("_SCREENPLAY_BLANK_LONG_", renderWhitespace("long"))
     .replaceAll("_SCREENPLAY_BLANK_SHORT_", renderWhitespace("short"));
 
+
 const renderWhitespace = (kind) => {
   const label = whitespaceLabels[kind] || "";
   return `
@@ -148,3 +149,70 @@ const renderWhitespace = (kind) => {
       </div>
     `;
 };
+
+export const highlightParentheses = (doc) => {
+  const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+  const targets = [];
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    if (node.textContent && (node.textContent.includes('(') || node.textContent.includes(')'))) {
+      targets.push(node);
+    }
+  }
+
+  targets.forEach((node) => {
+    const raw = node.textContent;
+    const frag = doc.createDocumentFragment();
+    let lastIndex = 0;
+    
+    // Regex matches:
+    // 1. (...) -> Parentheses content
+    // 2. {...} -> Curly braces content
+    // 3. |...  -> Pipe followed by rest of text (or until newline if we had multi-line, but text nodes usually split? assume rest of node)
+    //    Actually, we'll assume | and following chars until another special char or end?
+    //    User said "|開頭", implies "starts with |".
+    //    Let's assume it captures `|` and everything after it in the node, OR distinct `|...`.
+    //    Let's try to match segments:
+    //    \([^)]*\)|[()]   (Parentheses)
+    //    \{[^}]*\}        (Braces)
+    //    \|.*             (Pipe to end)
+    
+    const regex = /(\([^)]*\)|[()])|(\{[^}]*\})|(\|.*)/g;
+    let match;
+    
+    while ((match = regex.exec(raw)) !== null) {
+      if (match.index > lastIndex) {
+        frag.appendChild(doc.createTextNode(raw.slice(lastIndex, match.index)));
+      }
+      
+      const text = match[0];
+      const span = doc.createElement('span');
+      
+      if (text.startsWith('{')) {
+        // Curly braces -> Orange (Distance color)
+        span.className = 'script-paren-distance';
+        span.textContent = text;
+      } else if (text.startsWith('|')) {
+        // Pipe -> Red (Special note)
+        span.className = 'script-note-red';
+        span.textContent = text;
+      } else {
+        // Parentheses -> Check for distance
+        const content = text.replace(/^[(（]/, '').replace(/[)）]$/, '').trim().toUpperCase();
+        const isDistance = /^(V\.?O\.?|O\.?S\.?|O\.?C\.?|畫外音|旁白|電話|話筒)$/.test(content);
+        span.className = isDistance ? 'script-paren-distance' : 'script-paren';
+        span.textContent = text;
+      }
+      
+      frag.appendChild(span);
+      lastIndex = regex.lastIndex;
+    }
+    
+    if (lastIndex < raw.length) {
+      frag.appendChild(doc.createTextNode(raw.slice(lastIndex)));
+    }
+    
+    node.replaceWith(frag);
+  });
+};
+

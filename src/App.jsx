@@ -605,15 +605,18 @@ function App() {
     document.body.appendChild(iframe);
   };
 
-  const handleTitleName = (name) => {
+  const handleTitleName = React.useCallback((name) => {
     setTitleName(name);
     if (activeFile) {
-      setFileTitleMap((prev) => ({
-        ...prev,
-        [activeFile]: name,
-      }));
+      setFileTitleMap((prev) => {
+        if (prev[activeFile] === name) return prev;
+        return {
+          ...prev,
+          [activeFile]: name,
+        };
+      });
     }
-  };
+  }, [activeFile]);
 
   const handleOpenHome = () => {
     setHomeOpen(true);
