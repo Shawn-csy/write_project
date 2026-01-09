@@ -281,6 +281,68 @@
 }
 
 
+/* Sound Effects Styling */
+
+.sound-continuous-layer {
+  position: relative;
+  border-left: 4px solid hsl(var(--accent));
+  padding-left: 16px;
+  margin: 16px 0;
+  /* background removed as per user request */
+  border-radius: 0 8px 8px 0;
+}
+.dark .sound-continuous-layer {
+  /* background removed */
+}
+
+.sound-continuous-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: hsl(var(--accent));
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.9;
+  user-select: none;
+}
+
+.sound-continuous-footer {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: hsl(var(--accent));
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  user-select: none;
+}
+
+.sfx-simultaneous {
+  float: right;
+  font-size: 12px;
+  color: hsl(var(--accent-strong));
+  background: color-mix(in srgb, hsl(var(--accent)) 12%, transparent);
+  padding: 2px 8px;
+  border-radius: 99px;
+  margin-left: 12px;
+  font-weight: bold;
+  transform: translateY(-2px);
+  white-space: nowrap;
+}
+.dark .sfx-simultaneous {
+  color: hsl(var(--accent-foreground));
+  background: color-mix(in srgb, hsl(var(--accent)) 25%, transparent);
+}
+
+/* Markers are hidden logic elements, but if they persist... */
+.sound-start-marker,
+.sound-end-marker {
+  display: none;
+}
+
+
+
 
 .screenplay .highlight {
   background: color-mix(in srgb, hsl(var(--accent)) 10%, transparent);
@@ -552,11 +614,22 @@
 
 .screenplay .script-note-red {
   color: #dc2626; /* Red-600 */
-  font-weight: bold;
+  font-weight: 500;
+  font-size: 0.9em;
+  font-style: italic;
   opacity: 0.9;
 }
 .dark .screenplay .script-note-red {
   color: #f87171; /* Red-400 */
+}
+
+/* Reduced spacing for short whitespace */
+.screenplay .whitespace-short {
+  margin: 6px 0;
+  gap: 0;
+}
+.screenplay .whitespace-short .whitespace-line {
+  min-height: 8px;
 }
 
 @media (max-width: 640px) {

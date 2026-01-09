@@ -5,6 +5,7 @@ import {
   BLANK_SHORT,
   DIR_TOKEN,
   SFX_TOKEN,
+  MARKER_TOKEN,
   whitespaceLabels,
 } from "./screenplayTokens.js";
 
@@ -87,13 +88,22 @@ export const markSfxAndDirections = (doc, { highlightSfx = true } = {}) => {
     const raw = node.textContent || "";
     const dirInline = raw.includes(DIR_TOKEN);
     const sfxInline = raw.includes(SFX_TOKEN);
-    const parenSfx = raw.match(/^\s*\(sfx[:：]\s*(.+?)\)\s*$/i); // 相容舊寫法
+    const markerInline = raw.includes(MARKER_TOKEN);
+    const parenSfx = raw.match(/^\s*\(sfx[:：]\s*(.+?)\)\s*$/i);
+    // (SFX: ...)^ with caret, for simultaneous sound
+    const simultaneousSfx = raw.match(/\(SFX[:：]\s*(.+?)\)\^/i);
+
     if (dirInline) {
       const cleaned = raw.replace(DIR_TOKEN, "").replace(/^!/, "").trim();
       targets.push({ node, content: cleaned, kind: "dir" });
     } else if (sfxInline) {
       const cleaned = raw.replace(SFX_TOKEN, "").replace(/^!/, "").trim();
       targets.push({ node, content: cleaned, kind: "sfx" });
+    } else if (markerInline) {
+      const cleaned = raw.replace(MARKER_TOKEN, "").replace(/^!/, "").trim();
+      targets.push({ node, content: cleaned, kind: "marker" });
+    } else if (simultaneousSfx) {
+      targets.push({ node, content: simultaneousSfx[1], kind: "simultaneous" });
     } else if (parenSfx) {
       targets.push({ node, content: parenSfx[1], kind: "sfx" });
     }
@@ -106,7 +116,37 @@ export const markSfxAndDirections = (doc, { highlightSfx = true } = {}) => {
       text.className = "dir-text";
       text.textContent = `[${content.trim()}]`;
       wrap.appendChild(text);
-      node.parentNode.replaceChild(wrap, node);
+      if (node.parentNode) node.parentNode.replaceChild(wrap, node);
+    } else if (kind === "marker") {
+      const marker = doc.createElement("div");
+      marker.className = "script-marker";
+      marker.dataset.content = content.trim(); // generic marker
+      // Initially render as hidden or just a marker, logic below will handle grouping.
+      if (node.parentNode) node.parentNode.replaceChild(marker, node);
+    } else if (kind === "simultaneous") {
+      // Find the specific text in the node's current value (it might have changed?)
+      // Actually `node` is the text node.
+      // We need to split it if there is preceding text.
+      const raw = node.textContent;
+      const regex = /\(SFX[:：]\s*(.+?)\)\^/i;
+      const match = raw.match(regex);
+      if (match) {
+        const frag = doc.createDocumentFragment();
+        const pre = raw.slice(0, match.index);
+        const sfxText = match[1];
+        const post = raw.slice(match.index + match[0].length);
+        
+        if (pre) frag.appendChild(doc.createTextNode(pre));
+        
+        const span = doc.createElement("span");
+        span.className = "sfx-simultaneous";
+        span.textContent = `(SFX) ${sfxText}`; // Or any icon/format we want
+        frag.appendChild(span);
+        
+        if (post) frag.appendChild(doc.createTextNode(post));
+        
+        if (node.parentNode) node.parentNode.replaceChild(frag, node);
+      }
     } else {
       if (highlightSfx) {
         const wrap = doc.createElement("div");
@@ -214,5 +254,89 @@ export const highlightParentheses = (doc) => {
     
     node.replaceWith(frag);
   });
+};
+
+// 改為通用配對邏輯：找到一對相同內容的 marker 就視為一組 Start/End
+export const groupContinuousSounds = (doc) => {
+  // 取得所有 marker
+  const markers = Array.from(doc.querySelectorAll(".script-marker"));
+  const openMap = new Map(); // key: content, value: startNode
+
+  markers.forEach((marker) => {
+    const content = marker.dataset.content;
+    
+    if (openMap.has(content)) {
+      // Found the closing marker for this content
+      const startNode = openMap.get(content);
+      openMap.delete(content); // Close it
+      
+      // Perform grouping
+      const rangeNodes = [];
+      
+      // Block Level Logic
+      let blockStart = startNode;
+      while (blockStart.parentNode && blockStart.parentNode !== doc.body) {
+        blockStart = blockStart.parentNode;
+      }
+      
+      let blockEnd = marker;
+      while (blockEnd.parentNode && blockEnd.parentNode !== doc.body) {
+        blockEnd = blockEnd.parentNode;
+      }
+
+      // Collect nodes between blockStart and blockEnd
+      let pointer = blockStart.nextElementSibling;
+      while (pointer && pointer !== blockEnd) {
+        rangeNodes.push(pointer);
+        pointer = pointer.nextElementSibling;
+      }
+      
+      // Create Wrapper
+      const wrapper = doc.createElement("div");
+      wrapper.className = "sound-continuous-layer";
+      wrapper.dataset.sound = content;
+      
+      const label = doc.createElement("div");
+      label.className = "sound-continuous-label";
+      // label.textContent = `♫ ${content}`; // User wanted just the line, no separate label text? 
+      // User said "不需要背景色 有那一條直得線就可以了". 
+      // But maybe the label text matches the "Sound Name"? 
+      // Let's keep the label logic but maybe style it minimal, or just keep it as is (user only asked to remove bg).
+      // Actually, if we use {{Rain}}, we probably want to see "Rain" somewhere. 
+      // Let's keep the label.
+      label.textContent = content; 
+      
+      wrapper.appendChild(label);
+      
+      if (rangeNodes.length > 0) {
+        rangeNodes[0].parentNode.insertBefore(wrapper, rangeNodes[0]);
+        rangeNodes.forEach(node => wrapper.appendChild(node));
+      } else {
+        // No content between? Just insert after start
+        blockStart.parentNode.insertBefore(wrapper, blockStart.nextSibling);
+      }
+
+      // Add Footer Label (End Marker)
+      const footer = doc.createElement("div");
+      footer.className = "sound-continuous-footer";
+      footer.textContent = content;
+      wrapper.appendChild(footer);
+      
+      // Remove markers
+      blockStart.remove();
+      blockEnd.remove();
+      
+    } else {
+      // This is a start marker
+      openMap.set(content, marker);
+    }
+  });
+
+  // Clean up any unclosed markers? 
+  // If user typed {{Rain}} but never closed it, it stays as a hidden marker or we leave it.
+  // Currently .script-marker has no style, so it's invisible but takes space if valid div.
+  // Maybe we should allow it to be visible if unclosed?
+  // Let's leave them invisible for now or mark them? 
+  // For now, unmatched markers just sit there.
 };
 

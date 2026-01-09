@@ -5,6 +5,7 @@ export const BLANK_PURE = "SCREENPLAY-PLACEHOLDER-BLANK-PURE";
 
 export const DIR_TOKEN = "SCREENPLAY-DIR-TOKEN::";
 export const SFX_TOKEN = "SCREENPLAY-SFX-TOKEN::";
+export const MARKER_TOKEN = "SCREENPLAY-MARKER-TOKEN::";
 
 export const whitespaceLabels = {
   short: "停頓一秒",
