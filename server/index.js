@@ -32,6 +32,15 @@ console.log('Database initialized at', dbPath);
 
 // Routes
 
+// Root/Health Check
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'Server is running',
+    version: '1.0.0'
+  });
+});
+
 // GET /api/scripts - List all scripts for a user
 app.get('/api/scripts', (req, res) => {
   const ownerId = req.headers['x-user-id'];
