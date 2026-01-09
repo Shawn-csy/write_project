@@ -2,6 +2,7 @@ import {
   matchWhitespaceCommand,
   DIR_TOKEN,
   SFX_TOKEN,
+  MARKER_TOKEN,
   BLANK_LONG,
   BLANK_MID,
   BLANK_SHORT,
@@ -22,6 +23,24 @@ export const preprocessRawScript = (text = "") => {
   const lines = text.split("\n");
   const output = [];
   lines.forEach((line) => {
+    // 偵測 {{...}} 雙大括號作為通用標記 (Continuous Sound Marker)
+    const doubleBrace = line.match(/^\s*\{\{(.+?)\}\}\s*$/);
+    if (doubleBrace) {
+      const content = doubleBrace[1].trim();
+      // 統一為 MARKER，由 DOM 決定是 Start 還是 End (配對邏輯)
+      output.push(`!${MARKER_TOKEN}${content}`);
+      return;
+    }
+
+    // 優先處理雙括號 Note 格式 [[...]] -> 保留原樣或忽略
+    const doubleBracket = line.match(/^\s*\[\[(.+?)\]\]\s*$/);
+    if (doubleBracket) {
+      // Fountain 標準 Note，保留原樣讓 parser 處理，或我們不處理
+      output.push(line);
+      return;
+    }
+
+
     const bracket = line.match(/^\s*\[(.+?)\]\s*$/);
     if (bracket) {
       const content = bracket[1].trim();

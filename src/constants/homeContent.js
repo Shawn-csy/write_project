@@ -88,31 +88,39 @@ export const homeContent = {
           </li>
           <li class="flex items-center gap-2">
             <span class="font-mono font-bold text-foreground">短留白</span> 
-            <span>→ 三行區塊，中央顯示「停頓一秒」</span>
+            <span>→ 停頓一秒</span>
           </li>
           <li class="flex items-center gap-2">
             <span class="font-mono font-bold text-foreground">中留白</span> 
-            <span>→ 三行區塊，中央顯示「停頓三秒」</span>
+            <span>→ 停頓三秒</span>
           </li>
           <li class="flex items-center gap-2">
             <span class="font-mono font-bold text-foreground">長留白</span> 
-            <span>→ 三行區塊，中央顯示「停頓五秒」</span>
+            <span>→ 停頓五秒</span>
           </li>
           <li class="flex items-center gap-2">
-            <span class="font-mono font-bold text-foreground">留白</span> 
-            <span>→ 三行空白（無文字）</span>
+            <span class="font-mono font-bold text-foreground">| 提示</span> 
+            <span>→ <span class="text-red-500 italic">行內紅色提示</span></span>
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="font-mono font-bold text-foreground">{{雨聲}} ... {{雨聲}}</span>
+            <span>→ 持續音效 (開始/結束)</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="font-mono font-bold text-foreground">(SFX: 爆炸)^</span>
+            <span>→ 同時發聲音效</span>
           </li>
           <li class="flex items-center gap-2">
             <span class="font-mono font-bold text-foreground">[SFX: 海浪聲]</span>
-            <span>→ 音效標記，顯示為 SFX 色塊</span>
+            <span>→ 傳統音效標記</span>
           </li>
           <li class="flex items-center gap-2">
             <span class="font-mono font-bold text-foreground">[遠處左方]</span>
-            <span>→ 方位/距離標記，淡色區塊</span>
+            <span>→ 方位指示</span>
           </li>
           <li class="flex items-center gap-2">
             <span class="font-mono font-bold text-foreground">(低聲)</span>
-            <span>→ 情緒/口氣/動作（括號）</span>
+            <span>→ 情緒/動作</span>
           </li>
         </ul>
       </div>
@@ -152,31 +160,30 @@ Author: Your Name
 Credit: Written by
 Source: Story Source
 
-.INT. STAGE - NIGHT
+{{背景雨聲}}
 
-!燈光暗下，遠處傳來雷聲。
+.INT. COFFEE SHOP - NIGHT
+
+!外頭的雨勢越來越大。
 
 @旁白
-(低聲且神秘)
-今晚，一切將被改寫。
+(低聲)
+有人說，雨天最適合說謊。
 
-JENNY ^
-我聽見了。
+JOHNNY
+聽著，我沒有時間解釋了。 | 焦急地看錶
+
+短留白
 
 MIKE
-我也是。
+(冷笑)
+你以為我會在乎嗎？ (SFX: 槍上膛聲)^
 
-!兩人互看一眼。
+!兩人互看一眼，氣氛凝重。
 
-~Singing softly in the rain...
+{{背景雨聲}}
 
->SMASH CUT TO:
+~Music fades out...
 
-EXT. ROOFTOP - DAWN
-
-/* 這裡是隱藏的筆記：
-記得檢查這一場的轉場效果
-*/
-
-[[導演筆記：這裡需要強光]]`,
+>THE END<`,
 };
