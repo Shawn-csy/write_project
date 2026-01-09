@@ -15,6 +15,7 @@ import {
   markSfxAndDirections,
   injectWhitespaceBlocks,
   highlightParentheses,
+  groupContinuousSounds,
 } from '../lib/screenplayDom';
 import { applyCharacterBlocks } from '../lib/screenplayCharacters';
 
@@ -208,6 +209,7 @@ function ScriptViewer({
 
     replaceWhitespacePlaceholders(doc);
     markSfxAndDirections(doc, { highlightSfx });
+    groupContinuousSounds(doc);
 
     const serializeWithGaps = () => {
       const blockHtml = (kind) => {
