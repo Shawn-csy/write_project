@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+// import { AuthProvider } from "./contexts/AuthContext";
+import UserMenu from "./components/auth/UserMenu";
 import { PanelLeftOpen } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent } from "./components/ui/card";
@@ -20,6 +22,9 @@ import { useTheme } from "./components/theme-provider";
 
 const SettingsPanel = React.lazy(() => import("./components/SettingsPanel"));
 const AboutPanel = React.lazy(() => import("./components/AboutPanel"));
+import Dashboard from "./components/dashboard/Dashboard";
+import LiveEditor from "./components/editor/LiveEditor";
+import { useAuth } from "./contexts/AuthContext";
 import {
   accentThemes,
   accentOptions,
@@ -57,6 +62,7 @@ function App() {
       adjustFont,
       // Setters if needed
   } = useSettings();
+  const { currentUser } = useAuth();
 
   const [files, setFiles] = useState([]);
   const [activeFile, setActiveFile] = useState(null);
@@ -67,6 +73,7 @@ function App() {
   const [focusMode, setFocusMode] = useState(false);
   // settings removed
   const [processedScriptHtml, setProcessedScriptHtml] = useState("");
+  const [activeCloudScript, setActiveCloudScript] = useState(null); // { id, title, content }
   // exportMode removed
   const contentScrollRef = useRef(null);
 
@@ -716,8 +723,9 @@ function App() {
     >
         {/* Main Content */}
         <main className="flex-1 overflow-hidden flex flex-col gap-3 lg:gap-4 h-full">
-          <div>
-            <ReaderHeader
+          {!activeCloudScript && (
+            <div>
+              <ReaderHeader
               accentStyle={accentStyle}
               hasTitle={!homeOpen && !aboutOpen && !settingsOpen && hasTitle}
               onToggleTitle={() => setShowTitle((v) => !v)}
@@ -746,6 +754,7 @@ function App() {
               setFocusMode={setFocusMode}
               scrollProgress={scrollProgress}
               totalLines={totalLines}
+              extraActions={<UserMenu />}
             />
             {!homeOpen && !aboutOpen && !settingsOpen && hasTitle && showTitle && (
               <Card className="border border-border border-t-0 rounded-t-none">
@@ -758,17 +767,36 @@ function App() {
               </Card>
             )}
           </div>
+          )}
+
 
           {homeOpen ? (
+            currentUser ? (
+               activeCloudScript ? (
+                 <LiveEditor 
+                   scriptId={activeCloudScript.id} 
+                   initialData={activeCloudScript}
+                   onClose={() => setActiveCloudScript(null)} 
+                 />
+               ) : (
+                 <Dashboard 
+                   onSelectScript={(script) => {
+                     setActiveCloudScript(script);
+                     setHomeOpen(true); // Ensure main view is still open (technically it is, but logically consistent)
+                   }} 
+                 />
+               )
+            ) : (
             <HomePanel
               accentStyle={accentStyle}
               onClose={() => {
                 setHomeOpen(false);
                 if (!activeFile) {
-                  setAboutOpen(false); // Should this be setSettingsOpen? Logic seems specific.
+                  setAboutOpen(false);
                 }
               }}
             />
+            )
           ) : aboutOpen ? (
             <React.Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
               <AboutPanel accentStyle={accentStyle} onClose={() => setAboutOpen(false)} />
@@ -807,7 +835,7 @@ function App() {
             />
           )}
         </main>
-    </MainLayout>
+      </MainLayout>
   );
 }
 

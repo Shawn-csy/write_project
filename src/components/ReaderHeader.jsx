@@ -39,6 +39,7 @@ function ReaderHeader({
   setFocusMode,
   scrollProgress = 0,
   totalLines = 0,
+  extraActions,
 }) {
   const [collapsed, setCollapsed] = useState(true);
   const [autoCollapse, setAutoCollapse] = useState(true);
@@ -228,6 +229,7 @@ function ReaderHeader({
               >
                 <Printer className="h-4 w-4" />
               </button>
+              {extraActions}
             </div>
           </div>
         )}
