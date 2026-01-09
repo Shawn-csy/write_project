@@ -12,21 +12,34 @@ app.use(express.json({ limit: '10mb' })); // Allow larger scripts
 
 // Database Setup
 const dbPath = process.env.DB_PATH || path.join(__dirname, 'scripts.db');
-const db = new Database(dbPath);
-
-// Initialize Tables
-db.exec(`
+const db = new Database('scripts.db');
+db.prepare(`
   CREATE TABLE IF NOT EXISTS scripts (
     id TEXT PRIMARY KEY,
-    ownerId TEXT NOT NULL,
+    ownerId TEXT,
     title TEXT,
     content TEXT,
     createdAt INTEGER,
     lastModified INTEGER,
-    isPublic INTEGER DEFAULT 0
-  );
-  CREATE INDEX IF NOT EXISTS idx_ownerId ON scripts(ownerId);
-`);
+    isPublic INTEGER DEFAULT 0,
+    type TEXT DEFAULT 'script',
+    folder TEXT DEFAULT '/'
+  )
+`).run();
+
+// Migration helper
+const migrate = () => {
+  try {
+    db.prepare("ALTER TABLE scripts ADD COLUMN isPublic INTEGER DEFAULT 0").run();
+  } catch (e) {}
+  try {
+    db.prepare("ALTER TABLE scripts ADD COLUMN type TEXT DEFAULT 'script'").run();
+  } catch (e) {}
+  try {
+    db.prepare("ALTER TABLE scripts ADD COLUMN folder TEXT DEFAULT '/'").run();
+  } catch (e) {}
+};
+migrate();
 
 console.log('Database initialized at', dbPath);
 
@@ -41,12 +54,29 @@ app.get('/', (req, res) => {
   });
 });
 
+// GET /api/public-scripts - List all public scripts
+app.get('/api/public-scripts', (req, res) => {
+  const stmt = db.prepare('SELECT id, ownerId, title, lastModified, isPublic, type, folder FROM scripts WHERE isPublic = 1 ORDER BY lastModified DESC');
+  const scripts = stmt.all();
+  res.json(scripts);
+});
+
+// GET /api/public-scripts/:id - Get a single public script
+app.get('/api/public-scripts/:id', (req, res) => {
+  const { id } = req.params;
+  const stmt = db.prepare('SELECT * FROM scripts WHERE id = ? AND isPublic = 1');
+  const script = stmt.get(id);
+
+  if (!script) return res.status(404).json({ error: 'Script not found or private' });
+  res.json(script);
+});
+
 // GET /api/scripts - List all scripts for a user
 app.get('/api/scripts', (req, res) => {
   const ownerId = req.headers['x-user-id'];
   if (!ownerId) return res.status(401).json({ error: 'Missing X-User-ID header' });
 
-  const stmt = db.prepare('SELECT id, ownerId, title, lastModified, isPublic FROM scripts WHERE ownerId = ? ORDER BY lastModified DESC');
+  const stmt = db.prepare('SELECT id, ownerId, title, lastModified, isPublic, type, folder FROM scripts WHERE ownerId = ? ORDER BY lastModified DESC');
   const scripts = stmt.all(ownerId);
   res.json(scripts);
 });
@@ -69,26 +99,28 @@ app.post('/api/scripts', (req, res) => {
   const ownerId = req.headers['x-user-id'];
   if (!ownerId) return res.status(401).json({ error: 'Missing X-User-ID header' });
 
-  const { title } = req.body;
+  const { title, type, folder } = req.body;
   const id = Math.random().toString(36).substr(2, 9); // Simple ID generation
   const now = Date.now();
 
-  const stmt = db.prepare('INSERT INTO scripts (id, ownerId, title, content, createdAt, lastModified) VALUES (?, ?, ?, ?, ?, ?)');
-  stmt.run(id, ownerId, title || 'Untitled Script', '', now, now);
+  const stmt = db.prepare('INSERT INTO scripts (id, ownerId, title, content, createdAt, lastModified, type, folder) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+  stmt.run(id, ownerId, title || 'Untitled', '', now, now, type || 'script', folder || '/');
 
-  res.json({ id, title, content: '', lastModified: now });
+  res.json({ id, title, content: '', lastModified: now, type: type || 'script', folder: folder || '/' });
 });
 
 // PUT /api/scripts/:id - Update a script
 app.put('/api/scripts/:id', (req, res) => {
   const ownerId = req.headers['x-user-id'];
   const { id } = req.params;
-  const { content, title } = req.body;
+  const { content, title, isPublic, folder, type } = req.body;
+  
+  console.log(`[PUT] Update script ${id} params:`, { contentLen: content?.length, title, isPublic, folder, type });
+
   if (!ownerId) return res.status(401).json({ error: 'Missing X-User-ID header' });
 
   const now = Date.now();
 
-  // Dynamic update query construction could be better, but simple is fine here
   let query = 'UPDATE scripts SET lastModified = ?';
   const params = [now];
 
@@ -99,6 +131,18 @@ app.put('/api/scripts/:id', (req, res) => {
   if (title !== undefined) {
     query += ', title = ?';
     params.push(title);
+  }
+  if (isPublic !== undefined) {
+    query += ', isPublic = ?';
+    params.push(isPublic ? 1 : 0);
+  }
+  if (folder !== undefined) {
+    query += ', folder = ?';
+    params.push(folder);
+  }
+  if (type !== undefined) {
+    query += ', type = ?';
+    params.push(type);
   }
 
   query += ' WHERE id = ? AND ownerId = ?';

@@ -29,12 +29,12 @@ async function fetchApi(endpoint, options = {}) {
 }
 
 // Create a new script
-export const createScript = async (title = "Untitled Script") => {
-  const data = await fetchApi("/scripts", {
+export const createScript = async (title, type = 'script', folder = '/') => {
+  const res = await fetchApi("/scripts", {
     method: "POST",
-    body: JSON.stringify({ title }),
+    body: JSON.stringify({ title, type, folder }),
   });
-  return data.id;
+  return res.id;
 };
 
 // Get all scripts for the current user
@@ -60,4 +60,22 @@ export const deleteScript = async (scriptId) => {
   return fetchApi(`/scripts/${scriptId}`, {
     method: "DELETE",
   });
+};
+
+// --- Public API ---
+
+const fetchPublic = async (endpoint) => {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`);
+  if (!response.ok) {
+     throw new Error(`API Error: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+export const getPublicScripts = async () => {
+    return fetchPublic("/public-scripts");
+};
+
+export const getPublicScript = async (id) => {
+    return fetchPublic(`/public-scripts/${id}`);
 };

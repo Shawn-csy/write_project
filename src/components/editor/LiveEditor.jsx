@@ -1,28 +1,40 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { oneDark } from "@codemirror/theme-one-dark";
-import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
-import { languages } from "@codemirror/language-data";
 import { updateScript, getScript } from "../../lib/db";
-import { Loader2, ArrowLeft, Save } from "lucide-react";
+import { Loader2, ArrowLeft, Save, Eye, EyeOff, Columns, BarChart2, Download } from "lucide-react";
+import { fountainLanguage } from "./fountain-mode";
 import { debounce } from "lodash";
 import UserMenu from "../auth/UserMenu";
+import ScriptViewer from "../ScriptViewer";
+import StatsDialog from "./StatsDialog";
+import { useSettings } from "../../contexts/SettingsContext";
 
 // Basic Fountain highlighting (can be improved later)
 // For now treating it as Markdown which is close enough for Phase 1
 
 export default function LiveEditor({ scriptId, initialData, onClose }) {
+  const {
+    theme = "system",
+    fontSize,
+    bodyFontSize,
+    dialogueFontSize,
+    accentConfig,
+  } = useSettings();
+
   const [content, setContent] = useState(initialData?.content || "");
   const [title, setTitle] = useState(initialData?.title || "Untitled");
   const [loading, setLoading] = useState(!initialData);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [showStats, setShowStats] = useState(false);
 
   // Load initial script if not provided or if switching IDs
   useEffect(() => {
-    // If we have initialData matching this ID, use it and don't fetch
-    if (initialData && initialData.id === scriptId) {
-      setContent(initialData.content || "");
+    // If we have initialData matching this ID AND it has content defined, use it
+    if (initialData && initialData.id === scriptId && initialData.content !== undefined) {
+      setContent(initialData.content);
       setTitle(initialData.title || "Untitled");
       setLoading(false);
       return;
@@ -46,10 +58,10 @@ export default function LiveEditor({ scriptId, initialData, onClose }) {
 
   // Debounced save function
   const debouncedSave = useCallback(
-    debounce(async (id, newContent) => {
+    debounce(async (id, newContent, newTitle) => {
       setSaving(true);
       try {
-        await updateScript(id, { content: newContent });
+        await updateScript(id, { content: newContent, title: newTitle });
         setLastSaved(new Date());
       } catch (err) {
         console.error("Auto-save failed", err);
@@ -62,8 +74,30 @@ export default function LiveEditor({ scriptId, initialData, onClose }) {
 
   const handleChange = (val) => {
     setContent(val);
-    debouncedSave(scriptId, val);
+    debouncedSave(scriptId, val, title);
   };
+
+  const handleTitleUpdate = (newTitle) => {
+    if (newTitle && newTitle !== title) {
+        setTitle(newTitle);
+        debouncedSave(scriptId, content, newTitle);
+    }
+  };
+
+  const handleDownload = () => {
+    const element = document.createElement("a");
+    const file = new Blob([content], { type: "text/plain" });
+    element.href = URL.createObjectURL(file);
+    element.download = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || "script"}.fountain`;
+    document.body.appendChild(element); // Required for this to work in FireFox
+    element.click();
+    document.body.removeChild(element);
+  };
+
+  // For now, Print relies on the Preview pane being open or user browser print
+  // Ideally we use the iframe method from App.jsx, but for Phase 3 iteration 1, 
+  // we can just simple print window (LiveEditor hides other UI elements via CSS @media print if needed)
+  // But a better UX is the "Export PDF" button triggering the system print dialog.
 
   if (loading) {
     return (
@@ -76,11 +110,12 @@ export default function LiveEditor({ scriptId, initialData, onClose }) {
   return (
     <div className="flex flex-col h-full bg-background relative z-50">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card shrink-0">
         <div className="flex items-center gap-2">
           <button 
             onClick={onClose}
             className="p-2 hover:bg-muted rounded-full transition-colors"
+            title="Back to Dashboard"
           >
             <ArrowLeft className="w-5 h-5 text-muted-foreground" />
           </button>
@@ -101,28 +136,77 @@ export default function LiveEditor({ scriptId, initialData, onClose }) {
             </div>
           </div>
         </div>
-        <UserMenu />
+        <div className="flex items-center gap-2">
+            <button
+                onClick={handleDownload}
+                className="p-2 hover:bg-muted rounded-md transition-colors text-muted-foreground hover:text-foreground"
+                title="Download .fountain"
+            >
+                <Download className="w-4 h-4" />
+            </button>
+            <button
+                onClick={() => setShowStats(true)}
+                className="p-2 hover:bg-muted rounded-md transition-colors text-muted-foreground hover:text-foreground"
+                title="Statistics"
+            >
+                <BarChart2 className="w-4 h-4" />
+            </button>
+            <button
+                onClick={() => setShowPreview(!showPreview)}
+                className={`p-2 rounded-md transition-colors flex items-center gap-2 text-sm ${showPreview ? "bg-primary/10 text-primary" : "hover:bg-muted text-muted-foreground"}`}
+                title="Toggle Live Preview"
+            >
+                {showPreview ? <Columns className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                <span className="hidden sm:inline">{showPreview ? "編輯+預覽" : "預覽模式"}</span>
+            </button>
+            <UserMenu />
+        </div>
       </div>
 
       {/* Editor Area */}
-      <div className="flex-1 overflow-hidden relative">
-        <CodeMirror
-          value={content}
-          height="100%"
-          theme={oneDark} // TODO: Make this responsive to app theme
-          extensions={[
-            markdown({ base: markdownLanguage, codeLanguages: languages })
-            // TODO: Add custom Fountain extension here later
-          ]}
-          onChange={handleChange}
-          className="h-full text-base font-mono"
-          basicSetup={{
-            lineNumbers: false,
-            foldGutter: false,
-            highlightActiveLine: false,
-          }}
-        />
+      <div className="flex-1 overflow-hidden relative flex">
+        {/* Code Editor Pane */}
+        <div className={`h-full ${showPreview ? "w-1/2 border-r border-border" : "w-full"} transition-all duration-300`}>
+            <CodeMirror
+            value={content}
+            height="100%"
+            theme={oneDark} // TODO: Make this responsive to app theme
+            extensions={[
+                fountainLanguage
+            ]}
+            onChange={handleChange}
+            className="h-full text-base font-mono"
+            basicSetup={{
+                lineNumbers: false,
+                foldGutter: false,
+                highlightActiveLine: false,
+            }}
+            />
+        </div>
+
+        {/* Preview Pane */}
+        {showPreview && (
+             <div className="w-1/2 h-full overflow-hidden bg-background">
+                 <div className="h-full overflow-y-auto px-4 py-8">
+                    <ScriptViewer 
+                        text={content}
+                        theme={theme === 'dark' ? 'dark' : 'light'}
+                        fontSize={fontSize}
+                        bodyFontSize={bodyFontSize}
+                        dialogueFontSize={dialogueFontSize}
+                        accentColor={accentConfig?.accent}
+                        onTitleName={handleTitleUpdate}
+                    />
+                 </div>
+             </div>
+        )}
       </div>
+
+      <StatsDialog 
+        open={showStats} 
+        onOpenChange={setShowStats} 
+        content={content} 
+      />
     </div>
   );
 }
