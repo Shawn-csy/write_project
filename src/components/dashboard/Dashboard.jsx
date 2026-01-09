@@ -39,7 +39,10 @@ export default function Dashboard({ onSelectScript }) {
 
   const formatDate = (timestamp) => {
     if (!timestamp) return "";
-    return new Date(timestamp.toMillis()).toLocaleDateString();
+    const date = typeof timestamp.toMillis === 'function' 
+      ? new Date(timestamp.toMillis()) 
+      : new Date(timestamp);
+    return date.toLocaleDateString();
   };
 
   if (loading) {
