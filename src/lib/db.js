@@ -135,8 +135,16 @@ const fetchPublic = async (endpoint) => {
   return response.json();
 }
 
-export const getPublicScripts = async () => {
-    return fetchPublic("/public-scripts");
+export const getPublicScripts = async (ownerId, folder) => {
+    let url = "/public-scripts";
+    const params = new URLSearchParams();
+    if (ownerId) params.append("ownerId", ownerId);
+    if (folder) params.append("folder", folder);
+    
+    if (params.toString()) {
+        url += `?${params.toString()}`;
+    }
+    return fetchPublic(url);
 };
 
 export const getPublicScript = async (id) => {

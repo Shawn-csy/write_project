@@ -12,3 +12,4 @@ services:
     environment:
       - PORT=1091
       - DB_PATH=/data/scripts.db
+    command: uvicorn main:app --host 0.0.0.0 --port 1091 --reload

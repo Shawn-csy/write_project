@@ -88,7 +88,7 @@ function ReaderHeader({
                 onBack?.();
               }}
               aria-label="回上一頁"
-              className="lg:hidden h-9 w-9 inline-flex items-center justify-center -ml-1 text-foreground/80 hover:text-foreground transition-colors shrink-0"
+              className="h-9 w-9 inline-flex items-center justify-center -ml-1 text-foreground/80 hover:text-foreground transition-colors shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
             </button> 
