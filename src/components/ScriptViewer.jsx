@@ -42,8 +42,13 @@ function ScriptViewer({
   highlightCharacters = true,
   highlightSfx = true,
   accentColor,
+  type = 'script', // 'script' | 'novel' | 'text'
 }) {
   const colorCache = useRef(new Map());
+
+  // Mode check
+  const isScript = type === 'script';
+
   const preprocessText = useMemo(
     () => preprocessRawScript(text || ''),
     [text]
@@ -263,6 +268,24 @@ function ScriptViewer({
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [scrollToScene, filteredHtml]);
+
+  // Non-script rendering (Simple Text)
+  if (!isScript) {
+      return (
+        <article
+            className={`screenplay ${theme === 'dark' ? 'screenplay-dark' : 'screenplay-light'} p-8 max-w-3xl mx-auto`}
+            style={{
+                '--body-font-size': `${bodyFontSize}px`,
+                fontSize: `${bodyFontSize}px`,
+                lineHeight: '1.8',
+            }}
+        >
+            <div className="whitespace-pre-wrap font-serif text-foreground/90">
+                {text}
+            </div>
+        </article>
+      );
+  }
 
   return (
     <article

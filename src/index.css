@@ -216,15 +216,17 @@
   padding: 3px 6px;
   margin: 4px 0;
   border-radius: 10px;
-  background: color-mix(in srgb, hsl(var(--muted)) 28%, hsl(var(--surface-1)));
-  border: none;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-  font-size: 12px;
+  background: color-mix(in srgb, hsl(var(--foreground)) 5%, hsl(var(--surface-1)));
+  border: 2px solid color-mix(in srgb, hsl(var(--foreground)) 20%, transparent);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-size: 13px;
+  font-weight: 800;
+  padding: 4px 8px;
 }
 .dark .screenplay .dir-cue {
-  background: color-mix(in srgb, hsl(var(--muted)) 45%, hsl(var(--surface-3)));
-  border: 1px solid color-mix(in srgb, hsl(var(--muted)) 60%, transparent);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+  background: color-mix(in srgb, hsl(var(--foreground)) 15%, hsl(var(--surface-3)));
+  border: 2px solid color-mix(in srgb, hsl(var(--foreground)) 40%, transparent);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
 }
 
 .screenplay .sfx-label {
@@ -275,9 +277,11 @@
   font-style: italic;
 }
 .screenplay .dir-text {
-  font-size: 12px;
-  color: hsl(var(--muted-foreground));
-  font-style: italic;
+  font-size: 13px;
+  color: hsl(var(--foreground));
+  font-style: normal;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 
@@ -336,6 +340,83 @@
 }
 
 /* Markers are hidden logic elements, but if they persist... */
+
+/* Section Continuous (Paragraph) - Bracket Style */
+.section-continuous-layer {
+  position: relative;
+  border-left: 4px solid #ea580c; /* Orange */
+  margin: 24px 0;
+  padding: 8px 0 8px 16px;
+}
+.section-continuous-layer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -4px;
+  width: 12px;
+  height: 4px;
+  background: #ea580c;
+}
+.section-continuous-layer::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: -4px;
+  width: 12px;
+  height: 4px;
+  background: #ea580c;
+}
+
+.section-continuous-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: #ea580c;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-left: 4px;
+}
+
+.section-continuous-footer {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ea580c;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-left: 4px;
+}
+
+/* Post-production Marker (Post) - Purple Style */
+.post-continuous-layer {
+  position: relative;
+  border-left: 4px solid #9333ea; /* Purple */
+  padding-left: 16px;
+  margin: 16px 0;
+}
+
+.post-continuous-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #9333ea;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.post-continuous-footer {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #9333ea;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .sound-start-marker,
 .sound-end-marker {
   display: none;

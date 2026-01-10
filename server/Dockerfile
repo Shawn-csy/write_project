@@ -1,22 +1,18 @@
-FROM node:20-alpine
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install build dependencies for native modules (better-sqlite3)
-RUN apk add --no-cache python3 make g++
+RUN apt-get update && apt-get install -y sqlite3 && rm -rf /var/lib/apt/lists/*
 
-COPY package*.json ./
-
-RUN npm install --production
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Create directory for database persistence
 RUN mkdir -p /data
-# Set environment variable for DB path
 ENV DB_PATH=/data/scripts.db
 ENV PORT=1091
 
 EXPOSE 1091
 
-CMD ["node", "index.js"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "1091"]

@@ -109,6 +109,12 @@ export function SettingsProvider({ children }) {
     writeValue(STORAGE_KEYS.HIGHLIGHT_SFX, val ? "on" : "off");
   };
 
+  const [enableLocalFiles, setEnableLocalFilesState] = useState(true);
+  const setEnableLocalFiles = (val) => {
+      setEnableLocalFilesState(val);
+      writeValue("enableLocalFiles", val ? "on" : "off");
+  };
+
   // --- Initialization / Hydration ---
   useEffect(() => {
     // Accent
@@ -150,6 +156,9 @@ export function SettingsProvider({ children }) {
     const savedExportMode = readString(STORAGE_KEYS.EXPORT_MODE, ["processed", "raw"]);
     if (savedExportMode) setExportModeState(savedExportMode);
 
+    const savedLocalFiles = readString("enableLocalFiles", ["on", "off"]);
+    if (savedLocalFiles === "off") setEnableLocalFilesState(false);
+
   }, []);
 
   const value = {
@@ -187,6 +196,10 @@ export function SettingsProvider({ children }) {
     setHighlightCharacters,
     highlightSfx,
     setHighlightSfx,
+    
+    // Feature Flags
+    enableLocalFiles,
+    setEnableLocalFiles,
   };
 
   return (

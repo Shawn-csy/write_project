@@ -6,6 +6,8 @@ import {
   DIR_TOKEN,
   SFX_TOKEN,
   MARKER_TOKEN,
+  SECTION_TOKEN,
+  POST_TOKEN,
   whitespaceLabels,
 } from "./screenplayTokens.js";
 
@@ -89,6 +91,8 @@ export const markSfxAndDirections = (doc, { highlightSfx = true } = {}) => {
     const dirInline = raw.includes(DIR_TOKEN);
     const sfxInline = raw.includes(SFX_TOKEN);
     const markerInline = raw.includes(MARKER_TOKEN);
+    const sectionInline = raw.includes(SECTION_TOKEN);
+    const postInline = raw.includes(POST_TOKEN);
     const parenSfx = raw.match(/^\s*\(sfx[:：]\s*(.+?)\)\s*$/i);
     // (SFX: ...)^ with caret, for simultaneous sound
     const simultaneousSfx = raw.match(/\(SFX[:：]\s*(.+?)\)\^/i);
@@ -101,27 +105,33 @@ export const markSfxAndDirections = (doc, { highlightSfx = true } = {}) => {
       targets.push({ node, content: cleaned, kind: "sfx" });
     } else if (markerInline) {
       const cleaned = raw.replace(MARKER_TOKEN, "").replace(/^!/, "").trim();
-      targets.push({ node, content: cleaned, kind: "marker" });
+      targets.push({ node, content: cleaned, kind: "marker", type: "sound" });
+    } else if (sectionInline) {
+      const cleaned = raw.replace(SECTION_TOKEN, "").replace(/^!/, "").trim();
+      targets.push({ node, content: cleaned, kind: "marker", type: "section" });
+    } else if (postInline) {
+      const cleaned = raw.replace(POST_TOKEN, "").replace(/^!/, "").trim();
+      targets.push({ node, content: cleaned, kind: "marker", type: "post" });
     } else if (simultaneousSfx) {
       targets.push({ node, content: simultaneousSfx[1], kind: "simultaneous" });
     } else if (parenSfx) {
       targets.push({ node, content: parenSfx[1], kind: "sfx" });
     }
   }
-  targets.forEach(({ node, content, kind }) => {
+  targets.forEach(({ node, content, kind, type }) => {
     if (kind === "dir") {
       const wrap = doc.createElement("div");
       wrap.className = "dir-cue";
-      const text = doc.createElement("span");
+      const text = doc.createElement("strong"); // Use Strong for clarity
       text.className = "dir-text";
-      text.textContent = `[${content.trim()}]`;
+      text.textContent = `[ ${content.trim()} ]`; // Add spacing
       wrap.appendChild(text);
       if (node.parentNode) node.parentNode.replaceChild(wrap, node);
     } else if (kind === "marker") {
       const marker = doc.createElement("div");
       marker.className = "script-marker";
-      marker.dataset.content = content.trim(); // generic marker
-      // Initially render as hidden or just a marker, logic below will handle grouping.
+      marker.dataset.content = content.trim();
+      marker.dataset.type = type || "sound";
       if (node.parentNode) node.parentNode.replaceChild(marker, node);
     } else if (kind === "simultaneous") {
       // Find the specific text in the node's current value (it might have changed?)
@@ -260,15 +270,17 @@ export const highlightParentheses = (doc) => {
 export const groupContinuousSounds = (doc) => {
   // 取得所有 marker
   const markers = Array.from(doc.querySelectorAll(".script-marker"));
-  const openMap = new Map(); // key: content, value: startNode
+  const openMap = new Map(); // key: content+type, value: startNode
 
   markers.forEach((marker) => {
     const content = marker.dataset.content;
+    const type = marker.dataset.type || "sound";
+    const key = `${type}:${content}`;
     
-    if (openMap.has(content)) {
-      // Found the closing marker for this content
-      const startNode = openMap.get(content);
-      openMap.delete(content); // Close it
+    if (openMap.has(key)) {
+      // Found the closing marker
+      const startNode = openMap.get(key);
+      openMap.delete(key);
       
       // Perform grouping
       const rangeNodes = [];
@@ -293,11 +305,13 @@ export const groupContinuousSounds = (doc) => {
       
       // Create Wrapper
       const wrapper = doc.createElement("div");
-      wrapper.className = "sound-continuous-layer";
-      wrapper.dataset.sound = content;
+      wrapper.className = `${type}-continuous-layer`; // sound-continuous-layer | section-continuous-layer | post-continuous-layer
+      wrapper.dataset.label = content;
+
       
       const label = doc.createElement("div");
-      label.className = "sound-continuous-label";
+      label.className = `${type}-continuous-label`;
+
       // label.textContent = `♫ ${content}`; // User wanted just the line, no separate label text? 
       // User said "不需要背景色 有那一條直得線就可以了". 
       // But maybe the label text matches the "Sound Name"? 
@@ -318,8 +332,9 @@ export const groupContinuousSounds = (doc) => {
 
       // Add Footer Label (End Marker)
       const footer = doc.createElement("div");
-      footer.className = "sound-continuous-footer";
+      footer.className = `${type}-continuous-footer`;
       footer.textContent = content;
+
       wrapper.appendChild(footer);
       
       // Remove markers
@@ -328,7 +343,7 @@ export const groupContinuousSounds = (doc) => {
       
     } else {
       // This is a start marker
-      openMap.set(content, marker);
+      openMap.set(key, marker);
     }
   });
 

@@ -1,0 +1,150 @@
+from fastapi import FastAPI, Depends, HTTPException, Header, Request
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+from typing import List, Optional
+import models, schemas, crud, database
+import json
+
+models.Base.metadata.create_all(bind=database.engine)
+
+# Migration Helper
+def run_migrations():
+    from sqlalchemy import text
+    try:
+        with database.engine.connect() as conn:
+            # Check existing columns
+            result = conn.execute(text("PRAGMA table_info(scripts)"))
+            columns = [row.name for row in result.fetchall()]
+            
+            if 'type' not in columns:
+                print("Migrating: Adding 'type' column")
+                conn.execute(text("ALTER TABLE scripts ADD COLUMN type TEXT DEFAULT 'script'"))
+            
+            if 'folder' not in columns:
+                print("Migrating: Adding 'folder' column")
+                conn.execute(text("ALTER TABLE scripts ADD COLUMN folder TEXT DEFAULT '/'"))
+                
+            if 'sortOrder' not in columns:
+                print("Migrating: Adding 'sortOrder' column")
+                conn.execute(text("ALTER TABLE scripts ADD COLUMN sortOrder REAL DEFAULT 0.0"))
+            
+            conn.commit()
+    except Exception as e:
+        print(f"Migration failed: {e}")
+
+run_migrations()
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+def get_db():
+    db = database.SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+async def get_current_user_id(x_user_id: Optional[str] = Header(None)):
+    if not x_user_id:
+        raise HTTPException(status_code=401, detail="Missing X-User-ID header")
+    return x_user_id
+
+@app.get("/api/scripts", response_model=List[schemas.Script])
+def read_scripts(db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    return crud.get_scripts(db, ownerId=ownerId)
+
+@app.post("/api/scripts")
+def create_script(script: schemas.ScriptCreate, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    return crud.create_script(db=db, script=script, ownerId=ownerId)
+
+@app.get("/api/scripts/{script_id}", response_model=schemas.Script)
+def read_script(script_id: str, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    script = crud.get_script(db, script_id, ownerId)
+    if not script:
+        raise HTTPException(status_code=404, detail="Script not found")
+    return script
+
+@app.put("/api/scripts/{script_id}")
+def update_script(script_id: str, script: schemas.ScriptUpdate, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    updated = crud.update_script(db, script_id, script, ownerId)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Script not found")
+    return {"success": True, "lastModified": updated.lastModified}
+
+@app.delete("/api/scripts/{script_id}")
+def delete_script(script_id: str, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    success = crud.delete_script(db, script_id, ownerId)
+    if not success:
+         raise HTTPException(status_code=404, detail="Script not found")
+    return {"success": True}
+
+@app.put("/api/scripts/reorder")
+def reorder_scripts(updates: List[schemas.ScriptReorderItem], db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    crud.reorder_scripts(db, updates, ownerId)
+    return {"success": True}
+
+
+# Tags
+@app.get("/api/tags", response_model=List[schemas.Tag])
+def read_tags(db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    return crud.get_tags(db, ownerId)
+
+@app.post("/api/tags")
+def create_tag(tag: schemas.TagCreate, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    return crud.create_tag(db, tag, ownerId)
+
+@app.delete("/api/tags/{tag_id}")
+def delete_tag(tag_id: int, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    crud.delete_tag(db, tag_id, ownerId)
+    return {"success": True}
+
+@app.post("/api/scripts/{script_id}/tags")
+def attach_tag(script_id: str, payload: dict, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    crud.add_tag_to_script(db, script_id, payload.get('tagId'))
+    return {"success": True}
+
+@app.delete("/api/scripts/{script_id}/tags/{tag_id}")
+def detach_tag(script_id: str, tag_id: int, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    crud.remove_tag_from_script(db, script_id, tag_id)
+    return {"success": True}
+
+# User
+@app.get("/api/me", response_model=schemas.User)
+def read_users_me(db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    user = crud.get_user(db, ownerId)
+    if not user:
+        return {"id": ownerId, "settings": {}}
+    # Parse settings JSON
+    user.settings = json.loads(user.settings) if user.settings else {}
+    return user
+
+@app.put("/api/me")
+def update_user_me(user: schemas.UserCreate, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    crud.update_user(db, ownerId, user)
+    return {"success": True}
+
+# Public
+@app.get("/api/public-scripts")
+def read_public_scripts(db: Session = Depends(get_db)):
+    return crud.get_public_scripts(db)
+
+@app.get("/api/public-scripts/{script_id}")
+def read_public_script(script_id: str, db: Session = Depends(get_db)):
+    # Re-use get_script but ignore ownerId checking for fetching, verify isPublic instead is manual
+    # But crud.get_script filters by ownerId. So we query manually or add special method.
+    script = db.query(models.Script).filter(models.Script.id == script_id, models.Script.isPublic == 1).first()
+    if not script:
+        raise HTTPException(status_code=404, detail="Script not found")
+    return script
+
+# Search
+@app.get("/api/search")
+def search(q: str, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    return crud.search_scripts(db, q, ownerId)

@@ -4,6 +4,8 @@ import {
   PanelLeftOpen,
   Share2,
   SlidersHorizontal,
+  PenBox,
+  ArrowLeft,
 } from "lucide-react";
 import {
   Select,
@@ -22,7 +24,7 @@ function ReaderHeader({
   onToggleTitle,
   titleName,
   activeFile,
-  fileMeta,
+  fileMeta = {},
   isSidebarOpen,
   setSidebarOpen,
   handleExportPdf,
@@ -33,13 +35,15 @@ function ReaderHeader({
   currentSceneId,
   onSelectScene,
   titleNote,
-  characterList,
+  characterList = [],
   filterCharacter,
   setFilterCharacter,
   setFocusMode,
   scrollProgress = 0,
   totalLines = 0,
+  onEdit, 
   extraActions,
+  onBack,
 }) {
   const [collapsed, setCollapsed] = useState(true);
   const [autoCollapse, setAutoCollapse] = useState(true);
@@ -81,11 +85,22 @@ function ReaderHeader({
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                onBack?.();
+              }}
+              aria-label="回上一頁"
+              className="lg:hidden h-9 w-9 inline-flex items-center justify-center -ml-1 text-foreground/80 hover:text-foreground transition-colors shrink-0"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button> 
+            
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
                 e.currentTarget.blur();
                 setSidebarOpen(true);
               }}
               aria-label="展開列表"
-              className={`h-9 w-9 inline-flex items-center justify-center -ml-1 text-foreground/80 hover:text-foreground transition-colors shrink-0 ${
+              className={`h-9 w-9 inline-flex items-center justify-center text-foreground/80 hover:text-foreground transition-colors shrink-0 ${
                 isSidebarOpen ? "lg:hidden" : ""
               }`}
             >
@@ -229,6 +244,15 @@ function ReaderHeader({
               >
                 <Printer className="h-4 w-4" />
               </button>
+              {onEdit && (
+                <button
+                  onClick={onEdit}
+                  aria-label="編輯劇本"
+                  className="h-10 w-10 inline-flex items-center justify-center rounded-full hover:bg-muted text-foreground/80 transition-colors"
+                >
+                  <PenBox className="h-4 w-4" />
+                </button>
+              )}
               {extraActions}
             </div>
           </div>

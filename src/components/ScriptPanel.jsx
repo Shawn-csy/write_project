@@ -27,6 +27,7 @@ function ScriptPanel({
   accentColor,
   scrollRef,
   onScrollProgress,
+  onDoubleClick, // Add onDoubleClick
 }) {
   const rafRef = React.useRef(null);
 
@@ -65,6 +66,7 @@ function ScriptPanel({
         '--body-font-size': `${bodyFontSize}px`,
         '--dialogue-font-size': `${dialogueFontSize}px`,
       }}
+      onDoubleClick={onDoubleClick} // Bind onDoubleClick
     >
       <div className="h-full overflow-y-auto scrollbar-hide" ref={scrollRef} onScroll={handleScroll}>
         <div className="max-w-5xl mx-auto px-5 sm:px-8 py-6 sm:py-10 space-y-4">

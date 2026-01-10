@@ -1,0 +1,75 @@
+from pydantic import BaseModel
+from typing import List, Optional, Any, Dict
+
+# Tag Schemas
+class TagBase(BaseModel):
+    name: str
+    color: str = "bg-gray-500"
+
+class TagCreate(TagBase):
+    pass
+
+class Tag(TagBase):
+    id: int
+    ownerId: str
+
+    class Config:
+        from_attributes = True
+
+# Script Schemas
+class ScriptBase(BaseModel):
+    title: str
+    content: Optional[str] = None
+    isPublic: Optional[bool] = False
+    parent_folder: Optional[str] = None # Renamed from 'folder' in implementation to avoid confusion, but DB has 'folder'
+    type: Optional[str] = "script"
+    
+class ScriptCreate(BaseModel):
+    title: Optional[str] = "Untitled"
+    type: Optional[str] = "script"
+    folder: Optional[str] = "/"
+
+class ScriptUpdate(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    isPublic: Optional[bool] = None
+    folder: Optional[str] = None
+    type: Optional[str] = None
+
+class ScriptReorderItem(BaseModel):
+    id: str
+    sortOrder: float
+
+class Script(BaseModel):
+    id: str
+    ownerId: str
+    title: str
+    content: str
+    createdAt: int
+    lastModified: int
+    isPublic: int
+    type: str # 'script' or 'folder'
+    folder: str
+    sortOrder: float
+    tags: List[Tag] = []
+
+    class Config:
+        from_attributes = True
+
+# User Schemas
+class UserBase(BaseModel):
+    handle: Optional[str] = None
+    displayName: Optional[str] = None
+    bio: Optional[str] = None
+    avatar: Optional[str] = None
+    settings: Optional[dict] = {}
+
+class UserCreate(UserBase):
+    pass
+
+class User(UserBase):
+    id: str
+    settings: Any # JSON parsed
+    
+    class Config:
+        from_attributes = True

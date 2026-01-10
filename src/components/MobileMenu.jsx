@@ -1,105 +1,134 @@
-import React, { useState } from "react";
+import React from "react";
 import { 
   Settings, 
   Info, 
-  FileText, 
-  ChevronRight,
-  ChevronDown,
-  BookOpen
+  Home,
+  AlignLeft, 
+  PanelLeftClose
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
 import { Separator } from "./ui/separator";
-import MenuNode from "./MenuNode";
 
 function MobileMenu({
-  fileTree,
+  // Scene Props
+  sceneList = [],
+  currentSceneId,
+  onSelectScene,
+  
+  // Navigation
   activeFile,
-  onSelectFile,
-  accentStyle,
   openAbout,
   openSettings,
+  openHome, // handleReturnHome
   onClose,
-  fileTitleMap,
-  searchTerm,
-  onSearchChange,
-  openFolders,
-  toggleFolder
+  accentStyle
 }) {
-  const [showFiles, setShowFiles] = useState(false);
+
+  const handleHome = () => {
+     if (openHome) openHome();
+     onClose();
+  };
 
   return (
     <div className="flex flex-col h-full bg-background text-foreground">
-      {/* Header & Actions Compact Row */}
+      {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border/60 bg-muted/20">
         <div>
-          <h2 className="text-lg font-bold tracking-tight">Menu</h2>
+           <Button variant="ghost" className="p-0 hover:bg-transparent" onClick={handleHome}>
+             <h2 className={`text-lg font-bold tracking-tight uppercase ${accentStyle.label}`}>Screenplay Reader</h2>
+           </Button>
         </div>
-        <div className="flex items-center gap-2">
-           <Button
-            variant="ghost"
-            size="sm"
-            className="flex items-center gap-1.5 h-9"
-            onClick={() => {
-              openSettings();
-              onClose();
-            }}
-          >
-            <Settings className="h-4 w-4" />
-            <span className="text-xs">設定</span>
-          </Button>
+        <Button variant="ghost" size="icon" onClick={onClose}>
+           <PanelLeftClose className="h-5 w-5" />
+        </Button>
+      </div>
+
+      {/* Main Content: Scene Outline or Menu */}
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        
+        {/* Context Header */}
+        <div className="px-4 py-3 bg-card/50 border-b border-border/60 flex items-center gap-2">
+           {activeFile ? (
+               <>
+                 <AlignLeft className="h-4 w-4 text-muted-foreground" />
+                 <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Scene Outline</span>
+                 <span className="ml-auto text-xs text-muted-foreground truncate max-w-[150px]">{activeFile}</span>
+               </>
+           ) : (
+               <>
+                 <Home className="h-4 w-4 text-muted-foreground" />
+                 <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Navigation</span>
+               </>
+           )}
+        </div>
+
+        {/* Scene List */}
+        <ScrollArea className="flex-1">
+           <div className="p-2">
+             {activeFile && sceneList.length > 0 ? (
+                 <div className="flex flex-col gap-1">
+                     {sceneList.map((scene) => (
+                         <button
+                           key={scene.id}
+                           onClick={() => {
+                               onSelectScene(scene.id);
+                               onClose();
+                           }}
+                           className={`
+                             w-full text-left px-4 py-3 rounded-md text-sm font-medium transition-colors border border-transparent
+                             ${currentSceneId === scene.id 
+                               ? `${accentStyle.fileActiveBg} ${accentStyle.fileActiveText} font-bold border-border/50 shadow-sm` 
+                               : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                             }
+                           `}
+                         >
+                            {scene.label}
+                         </button>
+                     ))}
+                 </div>
+             ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-4 text-center">
+                   {activeFile ? (
+                       <p className="text-sm">此劇本沒有場景標題</p>
+                   ) : (
+                       <div className="flex flex-col gap-4 w-full px-8">
+                         <p className="text-sm">回到儀表板選擇劇本</p>
+                         <Button onClick={handleHome} variant="outline" className="w-full">
+                             Go to Dashboard
+                         </Button>
+                       </div>
+                   )}
+                </div>
+             )}
+           </div>
+        </ScrollArea>
+      </div>
+
+      {/* Footer Actions */}
+      <div className="p-4 border-t border-border/60 bg-muted/10 grid grid-cols-2 gap-3 shrink-0">
           <Button
             variant="ghost"
-            size="sm"
-             className="flex items-center gap-1.5 h-9"
+            className="flex items-center justify-start gap-2 h-10 px-4 rounded-lg border border-border/40 bg-background/50"
             onClick={() => {
               openAbout();
               onClose();
             }}
           >
             <Info className="h-4 w-4" />
-            <span className="text-xs">關於</span>
+            <span className="text-sm">關於</span>
           </Button>
-        </div>
-      </div>
-
-      <div className="flex-1 min-h-0 flex flex-col px-4 pt-4 pb-6 overflow-y-auto">
-        {/* Search & Script List */}
-        <div className="flex flex-col gap-2 flex-1">
-           {/* Search Input */}
-           <div className="mb-2">
-              <input
-                value={searchTerm || ""}
-                onChange={(e) => onSearchChange(e.target.value)}
-                placeholder="搜尋檔案或資料夾..."
-                className={`w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none ${accentStyle.focusRing}`}
-              />
-           </div>
-           
-           <div className="rounded-xl border border-border/60 bg-card overflow-hidden flex-1 min-h-[50vh]">
-             <ScrollArea className="h-full">
-               <div className="p-2 flex flex-col gap-1">
-                 <MenuNode
-                   node={fileTree}
-                   depth={0}
-                   searchTerm={searchTerm}
-                   openFolders={openFolders}
-                   toggleFolder={toggleFolder}
-                   activeFile={activeFile}
-                   onSelectFile={onSelectFile}
-                   onClose={onClose}
-                   fileTitleMap={fileTitleMap}
-                   accentStyle={accentStyle}
-                 />
-                 {(!fileTree || (fileTree.files.length === 0 && fileTree.children.length === 0 && fileTree.children.size === 0)) && (
-                   <div className="p-8 text-center text-muted-foreground text-sm">
-                     {searchTerm ? "未找到符合的檔案" : "無與劇本檔案"}
-                   </div>
-                 )}
-               </div>
-             </ScrollArea>
-           </div>
-        </div>
+          <Button
+            variant="ghost"
+            className="flex items-center justify-start gap-2 h-10 px-4 rounded-lg border border-border/40 bg-background/50"
+            onClick={() => {
+              openSettings();
+              onClose();
+            }}
+          >
+            <Settings className="h-4 w-4" />
+            <span className="text-sm">設定</span>
+          </Button>
       </div>
     </div>
   );
