@@ -52,7 +52,7 @@ export default function UserMenu() {
               <span className="text-xs font-medium">{currentUser.displayName?.[0]}</span>
             </div>
           )}
-          <span className="text-xs font-medium hidden sm:block max-w-[100px] truncate">
+          <span className="text-xs font-medium hidden lg:block max-w-[100px] truncate">
             {currentUser.displayName}
           </span>
           <ChevronDown className={`w-3 h-3 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`} />

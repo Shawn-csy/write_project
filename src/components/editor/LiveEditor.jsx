@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { oneDark } from "@codemirror/theme-one-dark";
+import { EditorView } from "@codemirror/view";
 import { updateScript, getScript } from "../../lib/db";
 import { Loader2, ArrowLeft, Save, Eye, EyeOff, Columns, BarChart2, Download } from "lucide-react";
 import { fountainLanguage } from "./fountain-mode";
@@ -13,7 +14,7 @@ import { useSettings } from "../../contexts/SettingsContext";
 // Basic Fountain highlighting (can be improved later)
 // For now treating it as Markdown which is close enough for Phase 1
 
-export default function LiveEditor({ scriptId, initialData, onClose }) {
+export default function LiveEditor({ scriptId, initialData, onClose, initialSceneId, defaultShowPreview = false }) {
   const {
     theme = "system",
     fontSize,
@@ -27,7 +28,7 @@ export default function LiveEditor({ scriptId, initialData, onClose }) {
   const [loading, setLoading] = useState(!initialData);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
-  const [showPreview, setShowPreview] = useState(false);
+  const [showPreview, setShowPreview] = useState(defaultShowPreview);
   const [showStats, setShowStats] = useState(false);
 
   // Load initial script if not provided or if switching IDs
@@ -107,13 +108,38 @@ export default function LiveEditor({ scriptId, initialData, onClose }) {
     );
   }
 
+  // Track active scene based on cursor
+  const [scenes, setScenes] = useState([]);
+  const [activeSceneId, setActiveSceneId] = useState(initialSceneId);
+
+  const handleCursorUpdate = useCallback((update) => {
+      if (update.selectionSet) {
+          const line = update.state.doc.lineAt(update.state.selection.main.head).number;
+          // Find the scene corresponding to this line
+          // Scenes are sorted by line? usually.
+          // Find the last scene with scene.line <= currentLine
+          if (!scenes.length) return;
+          
+          // Simple search
+          let current = null;
+          for (let s of scenes) {
+              if (s.line <= line) {
+                  current = s;
+              } else {
+                  break; 
+              }
+          }
+          if (current) setActiveSceneId(current.id);
+      }
+  }, [scenes]);
+
   return (
     <div className="flex flex-col h-full bg-background relative z-50">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card shrink-0">
         <div className="flex items-center gap-2">
           <button 
-            onClick={onClose}
+            onClick={() => onClose(activeSceneId)}
             className="p-2 hover:bg-muted rounded-full transition-colors"
             title="Back to Dashboard"
           >
@@ -159,8 +185,7 @@ export default function LiveEditor({ scriptId, initialData, onClose }) {
                 {showPreview ? <Columns className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 <span className="hidden sm:inline">{showPreview ? "編輯+預覽" : "預覽模式"}</span>
             </button>
-            <UserMenu />
-        </div>
+     </div>
       </div>
 
       {/* Editor Area */}
@@ -170,11 +195,14 @@ export default function LiveEditor({ scriptId, initialData, onClose }) {
             <CodeMirror
             value={content}
             height="100%"
-            theme={oneDark} // TODO: Make this responsive to app theme
-            extensions={[
-                fountainLanguage
-            ]}
+            theme={oneDark} 
+            extensions={
+                (initialData?.type === 'script' || !initialData?.type) 
+                ? [fountainLanguage, EditorView.lineWrapping] 
+                : [EditorView.lineWrapping] 
+            }
             onChange={handleChange}
+            onUpdate={handleCursorUpdate}
             className="h-full text-base font-mono"
             basicSetup={{
                 lineNumbers: false,
@@ -184,19 +212,30 @@ export default function LiveEditor({ scriptId, initialData, onClose }) {
             />
         </div>
 
-        {/* Preview Pane */}
+        {/* Preview Pane - Always render but hide if needed to keep scene parsing? 
+            No, if hidden ScriptViewer unmounts. 
+            We need scenes even if hidden? 
+            If hidden, we can't sync scenes easily unless we parse manually.
+            For now, assume user edits with preview OPEN or accepts that if closed, syncing might not update until they open it?
+            Actually, let's keep it simple: Only sync if ScriptViewer has provided scenes.
+        */}
         {showPreview && (
              <div className="w-1/2 h-full overflow-hidden bg-background">
                  <div className="h-full overflow-y-auto px-4 py-8">
+                 <div className="h-full overflow-y-auto px-4 py-8">
                     <ScriptViewer 
                         text={content}
+                        type={initialData?.type || "script"}
                         theme={theme === 'dark' ? 'dark' : 'light'}
                         fontSize={fontSize}
                         bodyFontSize={bodyFontSize}
                         dialogueFontSize={dialogueFontSize}
                         accentColor={accentConfig?.accent}
                         onTitleName={handleTitleUpdate}
+                        scrollToScene={initialSceneId}
+                        onScenes={setScenes} // Capture scenes
                     />
+                 </div>
                  </div>
              </div>
         )}

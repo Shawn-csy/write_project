@@ -4,11 +4,13 @@ import { useSettings } from "./contexts/SettingsContext";
 import { useScriptManager } from "./hooks/useScriptManager";
 import { useAppNavigation } from "./hooks/useAppNavigation";
 import { useUrlSync } from "./hooks/useUrlSync";
-import { getPublicScript } from "./lib/db";
+import { getPublicScript, getScript } from "./lib/db";
 
 // Components
-import UserMenu from "./components/auth/UserMenu";
+// Components
 import { Card, CardContent } from "./components/ui/card";
+import { Button } from "./components/ui/button";
+import { Globe, SlidersHorizontal } from "lucide-react";
 import HybridDashboard from "./components/dashboard/HybridDashboard";
 import LiveEditor from "./components/editor/LiveEditor";
 import ScriptPanel from "./components/ScriptPanel";
@@ -37,6 +39,7 @@ function App() {
       highlightCharacters,
       highlightSfx,
       adjustFont,
+      enableLocalFiles,
   } = useSettings();
   const { currentUser } = useAuth();
 
@@ -58,7 +61,7 @@ function App() {
   
   // Destructure scriptManager for easier usage
   const { 
-      files, activeFile, loadScript, rawScript, rawScriptHtml, isLoading, setIsLoading,
+      files, activeFile, setActiveFile, loadScript, rawScript, setRawScript, rawScriptHtml, isLoading, setIsLoading,
       fileMeta, fileTitleMap, fileTagsMap, setFileMeta, setFileTitleMap, setFileTagsMap,
       sceneList, setSceneList, characterList, setCharacterList, setRawScriptHtml, setProcessedScriptHtml,
       titleHtml, setTitleHtml, titleName, setTitleName, titleNote, setTitleNote, titleSummary, setTitleSummary,
@@ -67,16 +70,10 @@ function App() {
       currentSceneId, setCurrentSceneId, scrollSceneId, setScrollSceneId
   } = scriptManager;
 
-  // 4. URL Sync
-  const { syncUrl } = useUrlSync({
-      activeFile,
-      files,
-      filterCharacter,
-      currentSceneId
-  });
-
   // 5. Local State mainly for UI not covered by hooks
   const [activeCloudScript, setActiveCloudScript] = useState(null);
+  const [cloudScriptMode, setCloudScriptMode] = useState("read"); // read | edit
+  const [activePublicScriptId, setActivePublicScriptId] = useState(null);
   const [openFolders, setOpenFolders] = useState(new Set(["__root__"]));
   const [searchTerm, setSearchTerm] = useState("");
   const [shareCopied, setShareCopied] = useState(false);
@@ -84,21 +81,69 @@ function App() {
   const contentScrollRef = useRef(null);
   const [scrollProgress, setScrollProgress] = useState(0);
 
+  // 4. URL Sync
+  const { syncUrl } = useUrlSync({
+      activeFile,
+      activeCloudScript,
+      activePublicScriptId,
+      files,
+      filterCharacter,
+      currentSceneId
+  });
+
   // 6. Effects
   // -- Load Initial File from URL
+  // -- Load Initial File from URL
   useEffect(() => {
-    if (!files.length) return;
-    const url = new URL(window.location.href);
-    const param = url.searchParams.get("file");
-    const target =
-      (param && files.find((f) => f.display === param || f.name === param)) ||
-      files[0];
-    
-    // Only load if not already active and no cloud script active
-    if (target && !activeFile && !activeCloudScript) {
-        loadScript(target);
-    }
-  }, [files]); // Run when files populate
+    // Initial Load Logic
+    const syncStateFromUrl = async () => {
+        const url = new URL(window.location.href);
+        const editId = url.searchParams.get("edit");
+        const readId = url.searchParams.get("read");
+        const param = url.searchParams.get("file");
+
+        // 1. Edit (Cloud Script)
+        if (editId) {
+             try {
+                const script = await getScript(editId);
+                handleSelectCloudScript(script); // Use new handler
+                // Also close Home if open
+                if (nav.homeOpen) nav.setHomeOpen(false);
+                nav.setSettingsOpen(false); 
+                nav.setAboutOpen(false);
+             } catch (e) { console.error(e); }
+             return;
+        }
+
+        // 2. Read (Public Script)
+        if (readId) {
+             handleLoadPublicScript({ id: readId }); 
+             return;
+        }
+
+        // 3. Local File
+        const target = (param && files.find((f) => f.display === param || f.name === param));
+        
+        if (target) {
+            if (activeFile !== target.name) loadScript(target);
+            nav.resetToReader(); 
+        } else {
+             if (activeFile) {
+                 setActiveFile(null);
+                 nav.openHome();
+             } else if (!nav.homeOpen && !activeCloudScript && !activePublicScriptId) {
+                 nav.openHome();
+             }
+        }
+    };
+
+    syncStateFromUrl(); 
+
+    const handlePopState = () => syncStateFromUrl();
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+
+  }, [files]); 
 
   // -- Auto-hide Title on Nav
   useEffect(() => {
@@ -157,21 +202,40 @@ function App() {
   // 7. Handlers
   const handleLoadScript = async (file) => {
       await loadScript(file);
-      nav.resetToReader(); // Close overlays
+      nav.resetToReader(); 
       syncUrl({ fileName: file.name, sceneId: "" });
+  };
+
+  const handleSelectCloudScript = (script) => {
+      setActiveCloudScript(script);
+      setCloudScriptMode("read"); // Default to Read
+      setRawScript(script.content || "");
+      setTitleName(script.title || "Untitled");
+      // Clear local file state if needed
+      setActiveFile(null); 
+      nav.resetToReader();
+  };
+
+  const handleReturnHome = () => {
+    setActiveFile(null);
+    setActiveCloudScript(null);
+    setActivePublicScriptId(null);
+    nav.openHome();
+    syncUrl({ fileName: null, cloudScriptId: null, publicScriptId: null, character: null, sceneId: null });
+    document.title = "Screenplay Reader";
   };
 
   const handleLoadPublicScript = async (script) => {
       setIsLoading(true);
       try {
           const fullScript = await getPublicScript(script.id);
-          setRawScriptHtml(fullScript.content || "");
+          setRawScript(fullScript.content || "");
           setTitleName(fullScript.title || "Public Script");
-          setActiveFile(fullScript.title || "Public Script"); // Use title as ID for now
+          setActiveFile(fullScript.title || "Public Script"); 
+          setActivePublicScriptId(script.id);
           
           nav.resetToReader();
           setShowTitle(false);
-          // TODO: Can we set URL for public script? Maybe not easily without file map.
       } catch (err) {
           console.error("Failed to load public script", err);
       } finally {
@@ -182,15 +246,11 @@ function App() {
   const handleExportPdf = (e) => {
       e?.stopPropagation();
       const bodyHtml = exportMode === "processed" ? processedScriptHtml || rawScriptHtml : rawScriptHtml;
-      // ... (Print Logic, referencing lib/print ideally, but here inline slightly modified)
        const hasContent = Boolean(bodyHtml || titleHtml);
        if (!hasContent) {
            window.print();
            return;
        }
-       // We need computed styles or context values
-       // ... existing logic copies computed styles ...
-       // Simplified for brevity in refactor (can extract to hook later)
        const accentValue = getComputedStyle(document.documentElement).getPropertyValue("--accent") || accentConfig.accent;
        const accentForegroundValue = getComputedStyle(document.documentElement).getPropertyValue("--accent-foreground") || accentConfig.accentForeground;
        const accentMutedValue = getComputedStyle(document.documentElement).getPropertyValue("--accent-muted") || accentConfig.accentMuted;
@@ -224,8 +284,6 @@ function App() {
   };
 
   const handleShareUrl = async (e) => {
-       // ... existing share logic ...
-       // Ideally extract to useShare hook
        e?.stopPropagation?.();
        if (typeof window === "undefined") return;
        const shareUrl = window.location.href;
@@ -266,25 +324,19 @@ function App() {
                   e.preventDefault(); setFocusMode(v => !v);
               }
           }
-          // Arrows logic omitted for brevity, contained in ScriptPanel/hook usually, or kept here if essential
       };
       window.addEventListener("keydown", handler);
       return () => window.removeEventListener("keydown", handler);
-  }, [adjustFont, nav, filterCharacter]); // simplified deps
+  }, [adjustFont, nav, filterCharacter]); 
 
-  // 8. File Tree Logic (Memoized)
+  // 8. File Tree Logic ... (unchanged)
   const sortedFiles = useMemo(() => files.slice().sort((a, b) => a.name.localeCompare(b.name)), [files]);
   
-  // Re-implement basic tree builder inside component or extract to utils?
-  // Let's keep it here for now as it depends on `sortedFiles` and returns `filteredTree`.
-  // Ideally `useScriptFileTree` hook.
-  
   const fileTree = useMemo(() => {
-      // ... (Same logic as before, constructing tree from sortedFiles)
        const buildTree = () => ({ name: "__root__", path: "__root__", children: new Map(), files: [] });
        const root = buildTree();
        sortedFiles.forEach((file) => {
-          const rel = file.path.replace("../scripts_file/", ""); // Adjusted path
+          const rel = file.path.replace("../scripts_file/", ""); 
           const parts = rel.split("/");
           const filename = parts.pop();
           let node = root;
@@ -309,7 +361,6 @@ function App() {
   const filteredTree = useMemo(() => {
       if (!searchTerm.trim()) return fileTree;
       const q = searchTerm.toLowerCase();
-      // ... filter logic ...
       const matchFile = (file) => file.name.toLowerCase().includes(q) || (fileTitleMap[file.name]?.toLowerCase() || "").includes(q);
       const filterNode = (node) => {
           const folderMatch = node.name !== "__root__" && node.name.toLowerCase().includes(q);
@@ -329,8 +380,11 @@ function App() {
       });
   };
 
-  const headerTitle = nav.homeOpen ? "Home" : nav.aboutOpen ? "About" : nav.settingsOpen ? "Settings" : titleName || activeFile || "選擇一個劇本";
+  const headerTitle = nav.homeOpen ? "Screenplay Reader" : nav.aboutOpen ? "About" : nav.settingsOpen ? "Settings" : titleName || activeFile || activeCloudScript?.title || "選擇一個劇本";
   const canShare = !nav.homeOpen && !nav.aboutOpen && !nav.settingsOpen && Boolean(activeFile);
+  const showReaderHeader = !nav.homeOpen && !nav.aboutOpen && !nav.settingsOpen && (
+    activeFile || (activeCloudScript && cloudScriptMode === 'read')
+  );
 
   // 9. Render
   return (
@@ -346,7 +400,7 @@ function App() {
       openAbout={nav.openAbout}
       openSettings={nav.openSettings}
       closeAbout={() => nav.setAboutOpen(false)}
-      openHome={nav.openHome}
+      openHome={handleReturnHome}
       files={files}
       fileTitleMap={fileTitleMap}
       searchTerm={searchTerm}
@@ -356,14 +410,17 @@ function App() {
       fileTagsMap={fileTagsMap}
       fileLabelMode={fileLabelMode}
       setFileLabelMode={setFileLabelMode}
+      sceneList={sceneList}
+      currentSceneId={currentSceneId}
+      onSelectScene={(id) => { setCurrentSceneId(id); setScrollSceneId(id); syncUrl({ sceneId: id }); }}
     >
         {/* Main Content */}
         <main className="flex-1 overflow-hidden flex flex-col gap-3 lg:gap-4 h-full">
-          {!activeCloudScript && (
+          {showReaderHeader && (
             <div>
               <ReaderHeader
               accentStyle={accentStyle}
-              hasTitle={!nav.homeOpen && !nav.aboutOpen && !nav.settingsOpen && hasTitle}
+              hasTitle={showReaderHeader && hasTitle}
               onToggleTitle={() => setShowTitle((v) => !v)}
               titleName={headerTitle}
               activeFile={activeFile}
@@ -383,8 +440,19 @@ function App() {
               setFilterCharacter={setFilterCharacter}
               setFocusMode={setFocusMode}
               scrollProgress={scrollProgress}
-              totalLines={0} // Calc in useEffect/memo if needed
-              extraActions={<UserMenu />}
+              totalLines={0} 
+              onEdit={activeCloudScript ? () => setCloudScriptMode("edit") : null}
+              onBack={handleReturnHome}
+              extraActions={
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" onClick={() => nav.setAboutOpen(true)} title="關於">
+                    <Globe className="w-5 h-5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => nav.setSettingsOpen(true)} title="設定">
+                    <SlidersHorizontal className="w-5 h-5" />
+                  </Button>
+                </div>
+              }
             />
             {!nav.homeOpen && !nav.aboutOpen && !nav.settingsOpen && hasTitle && showTitle && (
               <Card className="border border-border border-t-0 rounded-t-none">
@@ -396,40 +464,36 @@ function App() {
           </div>
           )}
 
-          {nav.homeOpen ? (
-               activeCloudScript ? (
-                 <LiveEditor 
-                   scriptId={activeCloudScript.id} 
-                   initialData={activeCloudScript}
-                   onClose={() => setActiveCloudScript(null)} 
-                 />
-               ) : (
-                 <HybridDashboard 
-                    localFiles={files}
-                    onSelectLocalFile={handleLoadScript}
-                    onSelectCloudScript={setActiveCloudScript}
-                    onSelectPublicScript={handleLoadPublicScript}
-                 />
-               )
-          ) : nav.aboutOpen ? (
+          {nav.aboutOpen ? (
             <React.Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
               <AboutPanelLazy accentStyle={accentStyle} onClose={() => nav.setAboutOpen(false)} />
             </React.Suspense>
           ) : nav.settingsOpen ? (
             <React.Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
-              <SettingsPanel />
+              <SettingsPanel onClose={() => nav.setSettingsOpen(false)} />
             </React.Suspense>
-          ) : (
-            <ScriptPanel
+          ) : activeCloudScript && cloudScriptMode === "edit" ? (
+              <LiveEditor 
+                scriptId={activeCloudScript.id} 
+                initialData={activeCloudScript}
+                onClose={(finalSceneId) => {
+                   setCloudScriptMode("read");
+                   if (finalSceneId) {
+                       setCurrentSceneId(finalSceneId);
+                       setScrollSceneId(finalSceneId);
+                   }
+                   getScript(activeCloudScript.id).then(s => {
+                       setRawScript(s.content);
+                       setActiveCloudScript(s);
+                   });
+                }}
+                initialSceneId={currentSceneId}
+                defaultShowPreview={true}
+              />
+          ) : (activeFile || (activeCloudScript && cloudScriptMode === "read")) ? (
+             <ScriptPanel
               isLoading={isLoading}
-              rawScript={rawScript} // Or rawScriptHtml if panel expects html
-              // Wait, ScriptPanel expects raw text or parsed?
-              // Original App.jsx: passed rawScript={rawScript} (which was actually rawScriptHtml state??)
-              // Let's check: ScriptPanel prop types.
-              // Logic: <ScriptPanel rawScript={rawScript} ... setRawScriptHtmlProcessed ... />
-              // It seems it takes raw text and parses it. 
-              // My new hook has `rawScript` as text content. Correct.
-              
+              rawScript={rawScript}
               filterCharacter={filterCharacter}
               focusMode={focusMode}
               focusEffect={focusEffect}
@@ -438,7 +502,7 @@ function App() {
               highlightSfx={highlightSfx}
               setCharacterList={setCharacterList}
               setTitleHtml={setTitleHtml}
-              setTitleName={(name) => { setTitleName(name); /* update map logic */ }} 
+              setTitleName={(name) => { setTitleName(name);  }} 
               setTitleNote={setTitleNote}
               setTitleSummary={setTitleSummary}
               setHasTitle={setHasTitle}
@@ -446,15 +510,24 @@ function App() {
               setRawScriptHtmlProcessed={setProcessedScriptHtml}
               setScenes={setSceneList}
               scrollToScene={scrollSceneId}
-              // theme/fontSize from Context inside Panel? Or passed?
-              // Original passed them.
               fontSize={fontSize}
               bodyFontSize={bodyFontSize}
               dialogueFontSize={dialogueFontSize}
               accentColor={accentConfig.accent}
               scrollRef={contentScrollRef}
               onScrollProgress={setScrollProgress}
+              onDoubleClick={activeCloudScript ? () => setCloudScriptMode("edit") : null}
             />
+          ) : (
+             <HybridDashboard 
+                localFiles={enableLocalFiles ? files : []}
+                onSelectLocalFile={handleLoadScript}
+                onSelectCloudScript={handleSelectCloudScript}
+                onSelectPublicScript={handleLoadPublicScript}
+                enableLocalFiles={enableLocalFiles}
+                openSettings={nav.openSettings}
+                openAbout={nav.openAbout}
+             />
           )}
         </main>
     </MainLayout>

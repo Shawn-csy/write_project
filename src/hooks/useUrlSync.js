@@ -2,20 +2,41 @@ import { useEffect } from "react";
 
 export function useUrlSync({
     activeFile,
+    activeCloudScript,
+    activePublicScriptId,
     files,
     filterCharacter,
     currentSceneId,
 }) {
-    const syncUrl = ({ fileName, character, sceneId } = {}) => {
+    const syncUrl = ({ fileName, cloudScriptId, publicScriptId, character, sceneId } = {}) => {
         if (typeof window === "undefined") return;
         const url = new URL(window.location.href);
         
-        // File
-        const fileEntry =
-        (fileName && files.find((f) => f.name === fileName)) ||
-        (activeFile && files.find((f) => f.name === activeFile));
-        if (fileEntry) url.searchParams.set("file", fileEntry.display);
-        else url.searchParams.delete("file");
+        // 1. Cloud Script (Editor) - ?edit=ID
+        const targetCloud = cloudScriptId !== undefined ? cloudScriptId : activeCloudScript?.id;
+        if (targetCloud) {
+            url.searchParams.set("edit", targetCloud);
+            url.searchParams.delete("read");
+            url.searchParams.delete("file");
+        } 
+        // 2. Public Script (Reader) - ?read=ID
+        else {
+             url.searchParams.delete("edit");
+             const targetPublic = publicScriptId !== undefined ? publicScriptId : activePublicScriptId;
+             
+             if (targetPublic) {
+                 url.searchParams.set("read", targetPublic);
+                 url.searchParams.delete("file");
+             } 
+             // 3. Local File (Reader) - ?file=NAME
+             else {
+                 url.searchParams.delete("read");
+                 const targetName = fileName !== undefined ? fileName : activeFile;
+                 const fileEntry = targetName && files.find((f) => f.name === targetName);
+                 if (fileEntry) url.searchParams.set("file", fileEntry.display);
+                 else url.searchParams.delete("file");
+             }
+        }
 
         // Character
         const charVal = character !== undefined ? character : filterCharacter;
@@ -31,9 +52,9 @@ export function useUrlSync({
     };
 
     useEffect(() => {
-        if (!files.length || !activeFile) return;
+        // Sync on state changes
         syncUrl();
-    }, [filterCharacter, currentSceneId, activeFile, files]);
+    }, [filterCharacter, currentSceneId, activeFile, activeCloudScript, activePublicScriptId, files]);
 
     return { syncUrl };
 }

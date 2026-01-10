@@ -3,6 +3,8 @@ import {
   DIR_TOKEN,
   SFX_TOKEN,
   MARKER_TOKEN,
+  SECTION_TOKEN,
+  POST_TOKEN,
   BLANK_LONG,
   BLANK_MID,
   BLANK_SHORT,
@@ -27,8 +29,23 @@ export const preprocessRawScript = (text = "") => {
     const doubleBrace = line.match(/^\s*\{\{(.+?)\}\}\s*$/);
     if (doubleBrace) {
       const content = doubleBrace[1].trim();
-      // 統一為 MARKER，由 DOM 決定是 Start 還是 End (配對邏輯)
       output.push(`!${MARKER_TOKEN}${content}`);
+      return;
+    }
+
+    // 偵測 ((...)) 雙圓括號作為段落標記 (Section/Paragraph Marker)
+    const doubleParen = line.match(/^\s*\(\((.+?)\)\)\s*$/);
+    if (doubleParen) {
+      const content = doubleParen[1].trim();
+      output.push(`!${SECTION_TOKEN}${content}`);
+      return;
+    }
+
+    // 偵測 <<...>> 雙尖括號作為後製標記 (Post-production Marker)
+    const doubleAngle = line.match(/^\s*<<(.+?)>>\s*$/);
+    if (doubleAngle) {
+      const content = doubleAngle[1].trim();
+      output.push(`!${POST_TOKEN}${content}`);
       return;
     }
 
@@ -70,8 +87,22 @@ export const preprocessRawScript = (text = "") => {
 export const splitTitleAndBody = (preprocessedText = "") => {
   if (!preprocessedText) return { titleLines: [], bodyText: "" };
   const lines = preprocessedText.split("\n");
+  
+  // Fountain Spec: First line MUST be key:value to be a title page
+  const firstLineIsTitle = /^\s*([^:]+):/.test(lines[0] || "");
+  
+  if (!firstLineIsTitle) {
+      return { titleLines: [], bodyText: preprocessedText };
+  }
+
   const blankIdx = lines.findIndex((line) => !line.trim());
   if (blankIdx === -1) {
+    // If entire text looks like title properties (very rare script), treat as title
+    // But usually scripts without blank lines are short snippets/drafts -> Treat as body
+    // Let's decide based on whether *most* lines look like keys.
+    // Simpler: If no blank line, but started with Key:, assume it's just a title page??
+    // Safer: If no blank line, treat as Body unless it's strictly keys.
+    // For now, let's assume if it started with Key:, it's a title block.
     return { titleLines: lines, bodyText: "" };
   }
   return {
