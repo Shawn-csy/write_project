@@ -14,7 +14,7 @@ import { useSettings } from "../../contexts/SettingsContext";
 // Basic Fountain highlighting (can be improved later)
 // For now treating it as Markdown which is close enough for Phase 1
 
-export default function LiveEditor({ scriptId, initialData, onClose, initialSceneId, defaultShowPreview = false }) {
+export default function LiveEditor({ scriptId, initialData, onClose, initialSceneId, defaultShowPreview = false, readOnly = false, onRequestEdit }) {
   const {
     theme = "system",
     fontSize,
@@ -28,7 +28,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   const [loading, setLoading] = useState(!initialData);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
-  const [showPreview, setShowPreview] = useState(defaultShowPreview);
+  const [showPreview, setShowPreview] = useState(defaultShowPreview || readOnly);
   const [showStats, setShowStats] = useState(false);
 
   // Load initial script if not provided or if switching IDs
@@ -75,13 +75,17 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
 
   const handleChange = (val) => {
     setContent(val);
-    debouncedSave(scriptId, val, title);
+    if (!readOnly) {
+        debouncedSave(scriptId, val, title);
+    }
   };
 
   const handleTitleUpdate = (newTitle) => {
     if (newTitle && newTitle !== title) {
         setTitle(newTitle);
-        debouncedSave(scriptId, content, newTitle);
+        if (!readOnly) {
+            debouncedSave(scriptId, content, newTitle);
+        }
     }
   };
 
@@ -136,6 +140,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   return (
     <div className="flex flex-col h-full bg-background relative z-50">
       {/* Header */}
+      {!readOnly && (
       <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card shrink-0">
         <div className="flex items-center gap-2">
           <button 
@@ -185,44 +190,45 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
                 {showPreview ? <Columns className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 <span className="hidden sm:inline">{showPreview ? "編輯+預覽" : "預覽模式"}</span>
             </button>
-     </div>
+        </div>
       </div>
+      )}
 
       {/* Editor Area */}
       <div className="flex-1 overflow-hidden relative flex">
         {/* Code Editor Pane */}
-        <div className={`h-full ${showPreview ? "w-1/2 border-r border-border" : "w-full"} transition-all duration-300`}>
-            <CodeMirror
-            value={content}
-            height="100%"
-            theme={oneDark} 
-            extensions={
-                (initialData?.type === 'script' || !initialData?.type) 
-                ? [fountainLanguage, EditorView.lineWrapping] 
-                : [EditorView.lineWrapping] 
-            }
-            onChange={handleChange}
-            onUpdate={handleCursorUpdate}
-            className="h-full text-base font-mono"
-            basicSetup={{
-                lineNumbers: false,
-                foldGutter: false,
-                highlightActiveLine: false,
-            }}
-            />
-        </div>
+        {!readOnly && (
+            <div className={`h-full ${showPreview ? "w-1/2 border-r border-border" : "w-full"} transition-all duration-300`}>
+                <CodeMirror
+                value={content}
+                height="100%"
+                theme={oneDark} 
+                extensions={
+                    (initialData?.type === 'script' || !initialData?.type) 
+                    ? [fountainLanguage, EditorView.lineWrapping] 
+                    : [EditorView.lineWrapping] 
+                }
+                onChange={handleChange}
+                onUpdate={handleCursorUpdate}
+                className="h-full text-base font-mono"
+                basicSetup={{
+                    lineNumbers: false,
+                    foldGutter: false,
+                    highlightActiveLine: false,
+                }}
+                />
+            </div>
+        )}
 
-        {/* Preview Pane - Always render but hide if needed to keep scene parsing? 
-            No, if hidden ScriptViewer unmounts. 
-            We need scenes even if hidden? 
-            If hidden, we can't sync scenes easily unless we parse manually.
-            For now, assume user edits with preview OPEN or accepts that if closed, syncing might not update until they open it?
-            Actually, let's keep it simple: Only sync if ScriptViewer has provided scenes.
-        */}
-        {showPreview && (
-             <div className="w-1/2 h-full overflow-hidden bg-background">
-                 <div className="h-full overflow-y-auto px-4 py-8">
-                 <div className="h-full overflow-y-auto px-4 py-8">
+        {/* Preview Pane */}
+        {(showPreview || readOnly) && (
+             <div className={`${readOnly ? "w-full" : "w-1/2"} h-full overflow-hidden bg-background`}>
+                 <div 
+                    className="h-full overflow-y-auto px-4 py-8"
+                    onDoubleClick={() => {
+                        if (readOnly && onRequestEdit) onRequestEdit();
+                    }}
+                 >
                     <ScriptViewer 
                         text={content}
                         type={initialData?.type || "script"}
@@ -235,7 +241,6 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
                         scrollToScene={initialSceneId}
                         onScenes={setScenes} // Capture scenes
                     />
-                 </div>
                  </div>
              </div>
         )}

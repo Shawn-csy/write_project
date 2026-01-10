@@ -1,8 +1,12 @@
-from fastapi import FastAPI, Depends, HTTPException, Header, Request
+from fastapi import FastAPI, Depends, HTTPException, Header, status, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import models, schemas, crud, database
+import io
+import zipfile
+import urllib.parse
 import json
 
 models.Base.metadata.create_all(bind=database.engine)
@@ -65,11 +69,40 @@ def create_script(script: schemas.ScriptCreate, db: Session = Depends(get_db), o
     return crud.create_script(db=db, script=script, ownerId=ownerId)
 
 @app.get("/api/scripts/{script_id}", response_model=schemas.Script)
-def read_script(script_id: str, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
-    script = crud.get_script(db, script_id, ownerId)
-    if not script:
+def read_script(script_id: str, x_user_id: str = Header(...), db: Session = Depends(get_db)):
+    db_script = crud.get_script(db, script_id=script_id, ownerId=x_user_id)
+    if db_script is None:
         raise HTTPException(status_code=404, detail="Script not found")
-    return script
+    return db_script
+
+@app.get("/api/export/all")
+def export_all_scripts(x_user_id: str = Header(...), db: Session = Depends(get_db)):
+    scripts = crud.get_scripts(db, x_user_id)
+    
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+        for s in scripts:
+            if s.type == 'script':
+                # Sanitization
+                safe_title = "".join(c for c in s.title if c.isalnum() or c in (' ', '-', '_')).strip()
+                filename = f"{safe_title}.fountain"
+                
+                # Folder path
+                folder = s.folder.strip('/')
+                if folder:
+                    safe_folder = "/".join(["".join(c for c in part if c.isalnum() or c in (' ', '-', '_')).strip() for part in folder.split('/')])
+                    full_path = f"{safe_folder}/{filename}"
+                else:
+                    full_path = filename
+                
+                zip_file.writestr(full_path, s.content or "")
+    
+    zip_buffer.seek(0)
+    return StreamingResponse(
+        zip_buffer, 
+        media_type="application/zip", 
+        headers={"Content-Disposition": "attachment; filename=scripts_backup.zip"}
+    )
 
 @app.put("/api/scripts/{script_id}")
 def update_script(script_id: str, script: schemas.ScriptUpdate, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
@@ -132,8 +165,8 @@ def update_user_me(user: schemas.UserCreate, db: Session = Depends(get_db), owne
 
 # Public
 @app.get("/api/public-scripts")
-def read_public_scripts(db: Session = Depends(get_db)):
-    return crud.get_public_scripts(db)
+def read_public_scripts(ownerId: Optional[str] = None, folder: Optional[str] = None, db: Session = Depends(get_db)):
+    return crud.get_public_scripts(db, ownerId=ownerId, folder=folder)
 
 @app.get("/api/public-scripts/{script_id}")
 def read_public_script(script_id: str, db: Session = Depends(get_db)):

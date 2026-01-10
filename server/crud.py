@@ -6,6 +6,26 @@ import time
 import uuid
 import json
 
+
+def touch_parent_folders(db: Session, folder_path: str, ownerId: str, timestamp: int):
+    if not folder_path or folder_path == "/": return
+    path = folder_path
+    while path != "/":
+        parts = path.split('/') # /A/B -> ['', 'A', 'B']
+        if len(parts) < 2: break 
+        title = parts[-1]
+        # Parent Folder Path: /A
+        parent = "/" + "/".join(parts[1:-1])
+        
+        db.query(models.Script).filter(
+             models.Script.ownerId == ownerId,
+             models.Script.type == 'folder',
+             models.Script.title == title,
+             models.Script.folder == parent
+        ).update({"lastModified": timestamp})
+        
+        path = parent
+
 def get_scripts(db: Session, ownerId: str):
     return db.query(models.Script).filter(models.Script.ownerId == ownerId).order_by(models.Script.sortOrder.asc(), models.Script.lastModified.desc()).all()
 
@@ -28,6 +48,11 @@ def create_script(db: Session, script: schemas.ScriptCreate, ownerId: str):
     db.add(db_script)
     db.commit()
     db.refresh(db_script)
+    
+    # Touch parents
+    touch_parent_folders(db, db_script.folder, ownerId, int(time.time() * 1000))
+    db.commit()
+    
     return db_script
 
 def get_script(db: Session, script_id: str, ownerId: str):
@@ -56,6 +81,7 @@ def update_script(db: Session, script_id: str, script: schemas.ScriptUpdate, own
              setattr(db_script, key, value)
     
     db_script.lastModified = int(time.time() * 1000)
+    touch_parent_folders(db, db_script.folder, ownerId, db_script.lastModified)
     db.commit()
     return db_script
 
@@ -138,8 +164,37 @@ def update_user(db: Session, user_id: str, user_update: schemas.UserCreate):
     return db_user
 
 # Public & Search
-def get_public_scripts(db: Session):
-    return db.query(models.Script).filter(models.Script.isPublic == 1, models.Script.type == 'script').order_by(models.Script.lastModified.desc()).limit(50).all()
+def get_public_scripts(db: Session, ownerId: Optional[str] = None, folder: Optional[str] = None):
+    q = db.query(models.Script).filter(models.Script.isPublic == 1)
+    
+    if ownerId and folder is not None:
+         # Browsing a specific public folder
+         q = q.filter(models.Script.ownerId == ownerId, models.Script.folder == folder)
+         return q.order_by(models.Script.sortOrder.asc(), models.Script.title.asc()).all()
+    else:
+         # Public Feed (Recent)
+         # Filter out items that are inside a Public Folder (to prevent clutter)
+         
+         # 1. Get all public folders to identify "Public Contents"
+         pub_folders = db.query(models.Script).filter(models.Script.isPublic == 1, models.Script.type == 'folder').all()
+         public_paths = set()
+         for f in pub_folders:
+             path = (f.folder if f.folder != '/' else '') + '/' + f.title
+             public_paths.add((f.ownerId, path))
+             
+         # 2. Fetch candidates (over-fetch to allow filtering)
+         candidates = q.order_by(models.Script.lastModified.desc()).limit(200).all()
+         
+         results = []
+         for s in candidates:
+             # If the folder containing this item is ALSO public, we hide this item 
+             # (assuming user should enter the folder to see it)
+             if (s.ownerId, s.folder) in public_paths:
+                 continue
+             results.append(s)
+             if len(results) >= 50: break
+             
+         return results
 
 def search_scripts(db: Session, query: str, ownerId: str):
     # Simple LIKE search for now, FTS not explicitly supported in simple ORM without extending

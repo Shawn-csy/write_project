@@ -33,10 +33,16 @@ export function useScriptManager(initialParamsRef) {
   const [showTitle, setShowTitle] = useState(false);
 
   // Focus & Filter State (often reset on load)
+  // Focus & Filter State (often reset on load)
   const [filterCharacter, setFilterCharacter] = useState("__ALL__");
   const [focusMode, setFocusMode] = useState(false);
   const [currentSceneId, setCurrentSceneId] = useState("");
   const [scrollSceneId, setScrollSceneId] = useState("");
+
+  // App Flow State (Moved from App.jsx)
+  const [activeCloudScript, setActiveCloudScript] = useState(null);
+  const [cloudScriptMode, setCloudScriptMode] = useState("read"); // read | edit
+  const [activePublicScriptId, setActivePublicScriptId] = useState(null);
 
   // 1. Initialize Files
   useEffect(() => {
@@ -226,6 +232,11 @@ export function useScriptManager(initialParamsRef) {
     filterCharacter, setFilterCharacter,
     focusMode, setFocusMode,
     currentSceneId, setCurrentSceneId,
-    scrollSceneId, setScrollSceneId
+    currentSceneId, setCurrentSceneId,
+    scrollSceneId, setScrollSceneId,
+    // Cloud/Public State
+    activeCloudScript, setActiveCloudScript,
+    cloudScriptMode, setCloudScriptMode,
+    activePublicScriptId, setActivePublicScriptId
   };
 }
