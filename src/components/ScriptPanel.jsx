@@ -1,5 +1,6 @@
 import React from "react";
 import ScriptViewer from "./ScriptViewer";
+import { useSettings } from "../contexts/SettingsContext";
 
 function ScriptPanel({
   isLoading,
@@ -29,6 +30,7 @@ function ScriptPanel({
   onScrollProgress,
   onDoubleClick, // Add onDoubleClick
 }) {
+  const { markerConfigs } = useSettings();
   const rafRef = React.useRef(null);
 
   const handleScroll = () => {
@@ -95,6 +97,7 @@ function ScriptPanel({
               bodyFontSize={bodyFontSize}
               dialogueFontSize={dialogueFontSize}
               accentColor={accentColor}
+              markerConfigs={markerConfigs}
             />
           )}
           {!isLoading && !rawScript && (

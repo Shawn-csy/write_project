@@ -1,24 +1,10 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { Fountain } from 'fountain-js';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { buildAccentPalette } from '../constants/accent';
-import {
-  whitespaceLabels,
-} from '../lib/screenplayTokens';
-import {
-  preprocessRawScript,
-  splitTitleAndBody,
-  extractTitleEntries,
-  buildSceneListFromTokens,
-} from '../lib/screenplayParser';
-import {
-  replaceWhitespacePlaceholders,
-  markSfxAndDirections,
-  injectWhitespaceBlocks,
-  highlightParentheses,
-  groupContinuousSounds,
-} from '../lib/screenplayDom';
-import { applyCharacterBlocks } from '../lib/screenplayCharacters';
+import { parseScreenplay } from '../lib/screenplayAST';
+import { ScriptRenderer } from './renderer/ScriptRenderer';
 
+// 1. Add prop
 function ScriptViewer({
   text,
   filterCharacter,
@@ -42,43 +28,18 @@ function ScriptViewer({
   highlightCharacters = true,
   highlightSfx = true,
   accentColor,
-  type = 'script', // 'script' | 'novel' | 'text'
+  type = 'script',
+  markerConfigs = [], // Added default empty array
 }) {
   const colorCache = useRef(new Map());
 
   // Mode check
   const isScript = type === 'script';
 
-  const preprocessText = useMemo(
-    () => preprocessRawScript(text || ''),
-    [text]
-  );
-
-  // 分離標題區與正文：第一個空行之後視為正文
-  const { titleLines, bodyText } = useMemo(
-    () => splitTitleAndBody(preprocessText),
-    [preprocessText]
-  );
-
-  // 僅解析正文，避免自訂標題欄位被渲染到劇本文字
-  const parsedBody = useMemo(() => {
-    const fountain = new Fountain();
-    const result = fountain.parse(bodyText || '', true);
-    return {
-      script: result?.html?.script || '',
-      tokens: result?.tokens || [],
-    };
-  }, [bodyText]);
-
-  const sceneList = useMemo(
-    () => buildSceneListFromTokens(parsedBody.tokens || []),
-    [parsedBody.tokens]
-  );
-
-  // 解析標題行（原文字，直到第一個空行）
-  const titleEntries = useMemo(
-    () => extractTitleEntries(titleLines),
-    [titleLines]
+  // Unified Parsing Pipeline
+  const { ast, scenes: sceneList, titleEntries } = useMemo(
+    () => parseScreenplay(text || '', markerConfigs), // Pass configs here
+    [text, markerConfigs] // Add dependency
   );
 
   const escapeHtml = (str) =>
@@ -98,7 +59,7 @@ function ScriptViewer({
 
   // 以 fountain 標準欄位為主，再附加自訂欄位（不覆蓋）
   const titlePage = useMemo(() => {
-    if (!titleEntries.length) return { html: '', title: '', has: false };
+    if (!titleEntries || !titleEntries.length) return { html: '', title: '', has: false };
 
     const renderEntries = (entries) =>
       entries
@@ -135,7 +96,7 @@ function ScriptViewer({
   }, [titleEntries]);
 
   const titleSummary = useMemo(() => {
-    if (!titleEntries.length) return '';
+    if (!titleEntries || !titleEntries.length) return '';
     const summaryKeys = [
       'summary',
       'synopsis',
@@ -156,20 +117,20 @@ function ScriptViewer({
     return '';
   }, [titleEntries]);
 
-  // 取得角色列表（從解析後 tokens）
+  // Extract Characters from AST
   useEffect(() => {
-    if (!parsedBody.tokens.length) {
+    if (!ast) {
       onCharacters?.([]);
       return;
     }
-    const characters = new Set(
-      (parsedBody.tokens || [])
-        .filter((t) => t.type === 'character' && t.text)
-        .map((t) => t.text.trim().toUpperCase())
-        .filter(Boolean)
-    );
-    onCharacters?.(Array.from(characters).sort());
-  }, [parsedBody.tokens, onCharacters]);
+    const chars = new Set();
+    ast.children.forEach(node => {
+        if (node.type === 'speech' && node.character) {
+            chars.add(node.character.trim().toUpperCase());
+        }
+    });
+    onCharacters?.(Array.from(chars).sort());
+  }, [ast, onCharacters]);
 
   // 回傳標題頁 HTML 給父層顯示
   useEffect(() => {
@@ -206,60 +167,43 @@ function ScriptViewer({
     return buildAccentPalette(accentColor || '160 84% 39%');
   }, [accentColor]);
 
-  // 依角色過濾內容
+  // 依角色過濾內容 (Used for onProcessedHtml for Print/PDF)
   const filteredHtml = useMemo(() => {
-    const doc = new DOMParser().parseFromString(parsedBody.script, 'text/html');
-    doc.body.style.setProperty('--body-font-size', `${bodyFontSize}px`);
-    doc.body.style.setProperty('--dialogue-font-size', `${dialogueFontSize}px`);
-
-    replaceWhitespacePlaceholders(doc);
-    markSfxAndDirections(doc, { highlightSfx });
-    groupContinuousSounds(doc);
-
-    const serializeWithGaps = () => {
-      const blockHtml = (kind) => {
-        const label = whitespaceLabels[kind] || '';
-        return `
-          <div class="whitespace-block whitespace-${kind}">
-            <div class="whitespace-line"></div>
-            <div class="whitespace-line whitespace-label${label ? '' : ' whitespace-label-empty'}">${label}</div>
-            <div class="whitespace-line"></div>
-          </div>
-        `;
-      };
-      const raw = doc.body.innerHTML;
-      return injectWhitespaceBlocks(raw);
-    };
-
-    const sceneHeadings = Array.from(doc.querySelectorAll('.scene-heading, h3'));
-    sceneHeadings.forEach((node, idx) => {
-      const scene = sceneList[idx];
-      if (scene) node.id = scene.id;
-    });
-
-    applyCharacterBlocks(doc, {
-      highlightCharacters,
-      themePalette,
-      colorCache,
-      focusMode,
-      filterCharacter,
-      focusEffect,
-      focusContentMode,
-    });
-
-    highlightParentheses(doc);
-
-    return serializeWithGaps();
-  }, [parsedBody.script, filterCharacter, focusMode, focusEffect, focusContentMode, sceneList, themePalette, highlightCharacters]);
+    if (!ast) return '';
+    return renderToStaticMarkup(
+       <ScriptRenderer 
+         ast={ast} 
+         fontSize={bodyFontSize || fontSize}
+         filterCharacter={filterCharacter}
+         focusMode={focusMode}
+         focusEffect={focusEffect}
+         themePalette={themePalette}
+         colorCache={colorCache}
+         markerConfigs={markerConfigs} // Pass to renderer
+       />
+     );
+  }, [ast, filterCharacter, focusMode, focusEffect, themePalette, bodyFontSize, fontSize, colorCache, markerConfigs]);
 
   useEffect(() => {
-    onRawHtml?.(parsedBody.script || '');
+    onRawHtml?.(''); // Legacy
     onProcessedHtml?.(filteredHtml || '');
-  }, [parsedBody.script, filteredHtml, onRawHtml, onProcessedHtml]);
+  }, [filteredHtml, onRawHtml, onProcessedHtml]);
 
   useEffect(() => {
-    colorCache.current = new Map();
-  }, [bodyText]);
+    // Reset Color Cache when text substantially changes? 
+    // Usually only needed if user reloads script completely.
+    // If text changes slightly, retaining colors is better.
+    // Let's keep it safe: reset if new text is unrelated?
+    // Using `text` dep might be too aggressive if typing.
+    // But `bodyText` change logic was used before.
+    // Let's rely on simple mount or text change.
+    // Actually, preserving colors while typing is GOOD.
+    // Removing the reset effect is safer for UX unless it leaks memory (Map grows).
+    // 50 chars limit?
+    // Let's keep it but maybe debounced? 
+    // Old code reset on `bodyText`.
+    // I will remove the reset effect to persist colors during edit.
+  }, []);
 
   useEffect(() => {
     if (!scrollToScene) return;
@@ -295,8 +239,18 @@ function ScriptViewer({
         '--dialogue-font-size': `${dialogueFontSize}px`,
         '--script-font-size': `${fontSize}px`,
       }}
-      dangerouslySetInnerHTML={{ __html: filteredHtml }}
-    />
+    >
+      <ScriptRenderer 
+        ast={ast}
+        fontSize={bodyFontSize || fontSize}
+        filterCharacter={filterCharacter}
+        focusMode={focusMode}
+        focusEffect={focusEffect}
+        themePalette={themePalette}
+        colorCache={colorCache}
+        markerConfigs={markerConfigs} // Pass here too
+      />
+    </article>
   );
 }
 
