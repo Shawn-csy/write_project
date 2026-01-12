@@ -1,12 +1,3 @@
-import {
-  BLANK_LONG,
-  BLANK_MID,
-  BLANK_PURE,
-  BLANK_SHORT,
-  DIR_TOKEN,
-  SFX_TOKEN,
-  renderWhitespaceBlock,
-} from "./screenplayTokens.js";
 
 export function buildPrintHtml({
   titleName,
@@ -21,32 +12,9 @@ export function buildPrintHtml({
   const accentFgValue = accentForeground ? `hsl(${accentForeground})` : '#0f172a';
   const accentMutedValue = accentMuted ? `hsl(${accentMuted})` : '#e3f4ec';
 
-  const replaceTokens = (html = '') =>
-    html
-      .replace(
-        new RegExp(`!?${SFX_TOKEN.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}\\s*([^<\\n]+)`, "g"),
-        (_, content) =>
-          `<span class="sfx-cue"><span class="sfx-text">[SFX: ${content.trim()}]</span></span>`
-      )
-      .replace(
-        new RegExp(`!?${DIR_TOKEN.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}\\s*([^<\\n]+)`, "g"),
-        (_, content) =>
-          `<span class="dir-cue"><span class="dir-text">[${content.trim()}]</span></span>`
-      );
+  // ScriptRenderer already handles formatting
+  const finalScriptHtml = rawScriptHtml || "";
 
-  const replacePlaceholders = (html = '') =>
-    html
-      .replaceAll(BLANK_LONG, renderWhitespaceBlock('long'))
-      .replaceAll(BLANK_MID, renderWhitespaceBlock('mid'))
-      .replaceAll(BLANK_SHORT, renderWhitespaceBlock('short'))
-      .replaceAll(BLANK_PURE, renderWhitespaceBlock('pure'))
-      // 舊版相容
-      .replaceAll('__SCREENPLAY_BLANK_LONG__', renderWhitespaceBlock('long'))
-      .replaceAll('__SCREENPLAY_BLANK_SHORT__', renderWhitespaceBlock('short'))
-      .replaceAll('_SCREENPLAY_BLANK_LONG_', renderWhitespaceBlock('long'))
-      .replaceAll('_SCREENPLAY_BLANK_SHORT_', renderWhitespaceBlock('short'));
-
-  const finalScriptHtml = replacePlaceholders(replaceTokens(rawScriptHtml || ""));
   return `
 <!doctype html>
 <html>

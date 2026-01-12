@@ -1,13 +1,12 @@
-import React, { useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { getPublicScript } from "../lib/db";
-import ScriptPanel from "../components/ScriptPanel";
+import { useSettings } from "../contexts/SettingsContext";
 
 export default function PublicReaderPage({ scriptManager, navProps }) {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { markerConfigs } = useSettings(); // Get configs
   
   const { 
+  // ... (keep existing descructuring) ...
       setActivePublicScriptId, setRawScript, setTitleName, setActiveFile,
       isLoading, setIsLoading,
       // Props required for ScriptPanel
@@ -16,25 +15,7 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
       scrollSceneId, fontSize, bodyFontSize, dialogueFontSize, accentConfig, contentScrollRef, setScrollProgress, setCloudScriptMode
   } = scriptManager;
 
-  useEffect(() => {
-      if (!id) return;
-      navProps.nav.resetToReader();
-      setIsLoading(true);
-      getPublicScript(id).then(fullScript => {
-          setRawScript(fullScript.content || "");
-          setTitleName(fullScript.title || "Public Script");
-          setActiveFile(fullScript.title || "Public Script"); // UI HACK to show header
-          setActivePublicScriptId(id);
-          setCloudScriptMode("read");
-          // Clear others
-          scriptManager.setActiveCloudScript(null);
-      }).catch(err => {
-          console.error("Failed to load public script", err);
-          navigate("/");
-      }).finally(() => {
-          setIsLoading(false);
-      });
-  }, [id]);
+// ... (keep existing useEffect) ...
 
   return (
       <ScriptPanel
@@ -62,6 +43,7 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
         accentColor={accentConfig?.accent || "#3b82f6"}
         scrollRef={navProps?.contentScrollRef}
         onScrollProgress={setScrollProgress}
+        markerConfigs={markerConfigs} // Pass to ScriptPanel
       />
   );
 }

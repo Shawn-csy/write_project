@@ -34,6 +34,7 @@
     "fountain-js": "^1.2.4",
     "lodash": "^4.17.21",
     "lucide-react": "^0.473.0",
+    "parsimmon": "^1.18.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.12.0",

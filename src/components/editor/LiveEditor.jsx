@@ -21,6 +21,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     bodyFontSize,
     dialogueFontSize,
     accentConfig,
+    markerConfigs,
   } = useSettings();
 
   const [content, setContent] = useState(initialData?.content || "");
@@ -237,6 +238,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
                         bodyFontSize={bodyFontSize}
                         dialogueFontSize={dialogueFontSize}
                         accentColor={accentConfig?.accent}
+                        markerConfigs={markerConfigs}
                         onTitleName={handleTitleUpdate}
                         scrollToScene={initialSceneId}
                         onScenes={setScenes} // Capture scenes

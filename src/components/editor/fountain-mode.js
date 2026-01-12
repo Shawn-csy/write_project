@@ -88,26 +88,26 @@ const fountainParserWithState = {
       if (stream.match(/^((?:INT|EXT|EST|INT\.\/EXT|INT\/EXT|I\/E)[\.\s])|^(\.[^\.]+)/i)) {
         state.lastToken = 'scene-header';
         stream.skipToEnd();
-        return "heading scene-header"; // Using standard tag mapping often helps
+        return "heading"; 
       }
       
       // Check for Transition
       if (stream.match(/^[A-Z\s]+TO:$/) || stream.match(/^>.*$/)) {
          state.lastToken = 'transition';
          // stream.skipToEnd(); // match consumes it
-         return "keyword transition";
+         return "keyword";
       }
       
       // Section
       if (stream.match(/^#+/)) {
           stream.skipToEnd();
-          return "meta section";
+          return "meta";
       }
 
        // Synopsis
       if (stream.match(/^=/)) {
           stream.skipToEnd();
-          return "meta synopsis";
+          return "meta";
       }
     }
 
@@ -118,7 +118,7 @@ const fountainParserWithState = {
      if (stream.sol() && stream.match(/^[A-Z][A-Z0-9\s\.\(\)\-\']*$/)) {
         state.lastToken = 'character';
         state.inDialogue = true;
-        return "variableName character";
+        return "typeName";
      }
 
      // Parenthetical
@@ -126,7 +126,7 @@ const fountainParserWithState = {
          // Should be inside dialogue
          if (state.inDialogue) {
              state.lastToken = 'paren';
-             return "comment paren";
+             return "comment";
          }
      }
 
@@ -138,13 +138,13 @@ const fountainParserWithState = {
      if (state.inDialogue) {
           stream.skipToEnd();
           state.lastToken = 'dialogue';
-          return "string dialogue"; // utilizing string color for dialogue
+          return "string"; // utilizing string color for dialogue
      }
 
      // Action (Default)
      stream.skipToEnd();
      state.lastToken = 'action';
-     return "content action";
+     return null;
   },
 
   startState: () => ({ lastToken: null, inDialogue: false }),

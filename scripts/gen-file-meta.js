@@ -2,10 +2,9 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import {
-  preprocessRawScript,
   splitTitleAndBody,
   extractTitleEntries,
-} from "../src/lib/screenplayParser.js";
+} from "../src/lib/screenplayAST.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -48,7 +47,7 @@ const walk = (dir) => {
     
     try {
       const content = fs.readFileSync(full, "utf-8");
-      const preprocessed = preprocessRawScript(content);
+      const preprocessed = content.replace(/\r\n/g, '\n');
       const { titleLines } = splitTitleAndBody(preprocessed);
       const titleEntries = extractTitleEntries(titleLines);
       

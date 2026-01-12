@@ -3,6 +3,7 @@ import { ThemeSettings } from "./settings/ThemeSettings";
 import { DisplaySettings } from "./settings/DisplaySettings";
 import { FontSettings } from "./settings/FontSettings";
 import { ProfileSettings } from "./settings/ProfileSettings";
+import { MarkerSettings } from "./settings/MarkerSettings";
 import TagManager from "./dashboard/TagManager";
 import { cn } from "../lib/utils";
 
@@ -17,13 +18,15 @@ function SettingsPanel({ onClose }) {
     profile: useRef(null),
     tags: useRef(null),
     list: useRef(null),
+    markers: useRef(null),
   };
 
   const tabs = [
     { key: "display", label: "顯示 / 字級" },
-    { key: "profile", label: "身份 / 設定" },
-    { key: "tags", label: "標籤管理" },
     { key: "list", label: "列表 / 順讀" },
+    { key: "markers", label: "自訂標記" },
+    { key: "tags", label: "標籤管理" },
+    { key: "profile", label: "身份 / 設定" },
   ];
 
   const handleTabClick = (key) => {
@@ -82,6 +85,15 @@ function SettingsPanel({ onClose }) {
                      </div>
                   </div>
                 </div>
+              </div>
+          )}
+          
+          {activeTab === "markers" && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="flex items-center gap-2 pb-2 border-b border-border/40">
+                  <h3 className="text-lg font-semibold tracking-tight text-foreground/90">自訂標記設定</h3>
+                </div>
+                <MarkerSettings />
               </div>
           )}
 

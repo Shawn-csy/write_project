@@ -109,10 +109,80 @@ export function SettingsProvider({ children }) {
     writeValue(STORAGE_KEYS.HIGHLIGHT_SFX, val ? "on" : "off");
   };
 
+
   const [enableLocalFiles, setEnableLocalFilesState] = useState(true);
   const setEnableLocalFiles = (val) => {
       setEnableLocalFilesState(val);
       writeValue("enableLocalFiles", val ? "on" : "off");
+  };
+
+  // --- Markers ---
+  const defaultMarkerConfigs = [
+      // Block Markers
+      { id: 'sound', label: '效果音', start: '{{', end: '}}', isBlock: true, type: 'block', style: { fontWeight: 'bold', color: '#eab308' } },
+      { id: 'section', label: '段落', start: '((', end: '))', isBlock: true, type: 'block', style: { fontWeight: 'bold', borderLeft: '4px solid #94a3b8' } },
+      { id: 'post', label: '後期', start: '<<', end: '>>', isBlock: true, type: 'block', style: { color: '#94a3b8', fontStyle: 'italic' } },
+      
+      // Inline Markers (Migrated from hardcoded)
+      { 
+          id: 'paren', 
+          label: '括號與距離', 
+          start: '(', 
+          end: ')', 
+          type: 'inline', 
+          matchMode: 'enclosure', 
+          keywords: ['V.O.', 'O.S.', 'O.C.', '畫外音', '旁白', '電話', '話筒'], 
+          style: { color: '#f97316' }, // Orange for distance
+          dimIfNotKeyword: true,       // Opacity 0.6 if not distance
+          showDelimiters: true
+      },
+      { 
+          id: 'brace', 
+          label: '花括號', 
+          start: '{', 
+          end: '}', 
+          type: 'inline', 
+          matchMode: 'enclosure', 
+          style: { color: '#f97316' }, // Orange
+          showDelimiters: true // Usually shown? Or hidden? Fountain spec says {notes} are strictly ignored? 
+          // Implementation before: {Orange} -> text-orange-500. So content is shown.
+      },
+      { 
+          id: 'pipe', 
+          label: '紅字備註', 
+          start: '|', 
+          end: '', 
+          type: 'inline', 
+          matchMode: 'prefix', 
+          style: { color: '#ef4444' } // Red
+      },
+    // System Markers exposed as Regex
+    { 
+        id: 'sfx_system', 
+        label: '音效 (SFX)', 
+        type: 'inline', 
+        matchMode: 'regex', 
+        regex: '\\[\\s*(?:sfx|SFX)[:：]\\s*(.*?)\\s*\\]', 
+        style: { color: 'var(--script-sfx-color, #a855f7)', fontSize: '0.9em' },
+        showDelimiters: false,
+        priority: 100 // High priority
+    },
+    {
+        id: 'whitespace_system',
+        label: '留白指令',
+        type: 'inline',
+        matchMode: 'regex',
+        // Matches (長留白) or （長留白）
+        regex: '^[（\\(]\\s*(長留白|中留白|短留白|留白)\\s*[）\\)]$',
+        style: { display: 'block', textAlign: 'center', margin: '1em 0', fontStyle: 'italic', color: '#94a3b8' },
+        priority: 100
+    }
+  ];
+  const [markerConfigs, setMarkerConfigsState] = useState(defaultMarkerConfigs);
+
+  const setMarkerConfigs = (val) => {
+    setMarkerConfigsState(val);
+    writeValue('markerConfigs', JSON.stringify(val));
   };
 
   // --- Initialization / Hydration ---
@@ -159,6 +229,50 @@ export function SettingsProvider({ children }) {
     const savedLocalFiles = readString("enableLocalFiles", ["on", "off"]);
     if (savedLocalFiles === "off") setEnableLocalFilesState(false);
 
+    // Markers
+    // Markers
+    const savedMarkers = readString('markerConfigs');
+    if (savedMarkers) {
+        try {
+            const parsed = JSON.parse(savedMarkers);
+            if (Array.isArray(parsed)) {
+                // Migration/Merge Logic:
+                // Ensure all default markers (by ID) exist in the loaded config.
+                // If a user accidentally deleted them, this will restore them.
+                // If we want to allow deletion, we should use a version flag.
+                // But for this major refactor, forcing the new defaults is safer.
+                
+                const merged = [...parsed];
+                defaultMarkerConfigs.forEach(def => {
+                    const exists = merged.find(m => m.id === def.id);
+                    if (!exists) {
+                        merged.push(def);
+                    } else {
+                        // Optional: Update properties of existing default markers if schema changed?
+                        // For example, if 'type' is missing on old config for 'sound', add it.
+                        if (!exists.type && def.type) {
+                            exists.type = def.type;
+                        }
+                         if (!exists.matchMode && def.matchMode) {
+                            exists.matchMode = def.matchMode;
+                        }
+                        
+                        // CRITICAL FIX: Force correct type/isBlock for core inline markers
+                        // to prevent them from being treated as blocks if local storage is corrupted.
+                        if (['paren', 'brace', 'pipe'].includes(def.id)) {
+                             exists.type = 'inline';
+                             exists.isBlock = false;
+                        }
+                    }
+                });
+                
+                setMarkerConfigsState(merged);
+            }
+        } catch (e) {
+            console.error("Failed to parse markers", e);
+        }
+    }
+
   }, []);
 
   const value = {
@@ -200,6 +314,10 @@ export function SettingsProvider({ children }) {
     // Feature Flags
     enableLocalFiles,
     setEnableLocalFiles,
+    
+    // Markers
+    markerConfigs,
+    setMarkerConfigs,
   };
 
   return (
