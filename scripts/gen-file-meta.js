@@ -4,7 +4,7 @@ import { fileURLToPath } from "url";
 import {
   splitTitleAndBody,
   extractTitleEntries,
-} from "../src/lib/screenplayAST.js";
+} from "../src/lib/parsers/titlePageParser.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

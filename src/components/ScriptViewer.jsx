@@ -16,7 +16,7 @@ function ScriptViewer({
   onTitleNote,
   onSummary,
   onHasTitle,
-  onRawHtml,
+
   onProcessedHtml,
   onScenes,
   scrollToScene,
@@ -57,40 +57,35 @@ function ScriptViewer({
     return html;
   };
 
+  const renderTitlePageHtml = (entries) => {
+    if (!entries.length) return '';
+    return entries.map((e) => {
+        const margin = e.indent > 0 ? ` style="margin-left:${Math.min(e.indent / 2, 8)}rem"` : '';
+        const values = e.values && e.values.length > 0 ? e.values.map(formatInline) : [];
+        const isTitle = e.key.toLowerCase() === 'title';
+        const value = values.length > 0 ? values.join(isTitle ? ' ' : '<br />') : '';
+        if (isTitle) return `<h1>${value}</h1>`;
+        return `<p class="title-field"${margin}><strong>${escapeHtml(e.key)}:</strong> ${value}</p>`;
+    }).join('');
+  };
+
   // 以 fountain 標準欄位為主，再附加自訂欄位（不覆蓋）
   const titlePage = useMemo(() => {
     if (!titleEntries || !titleEntries.length) return { html: '', title: '', has: false };
 
-    const renderEntries = (entries) =>
-      entries
-        .map((e) => {
-          const margin =
-            e.indent > 0 ? ` style="margin-left:${Math.min(e.indent / 2, 8)}rem"` : '';
-          const values =
-            e.values && e.values.length > 0 ? e.values.map((v) => formatInline(v)) : [];
-          const isTitle = e.key.toLowerCase() === 'title';
-          const value = values.length > 0 ? values.join(isTitle ? ' ' : '<br />') : '';
-          if (isTitle) {
-            return `<h1>${value}</h1>`;
-          }
-          return `<p class="title-field"${margin}><strong>${escapeHtml(e.key)}:</strong> ${value}</p>`;
-        })
-        .join('');
-
     const wrapperStart = `<div class="title-page">`;
     const wrapperEnd = `</div>`;
+    const html = `${wrapperStart}${renderTitlePageHtml(titleEntries)}${wrapperEnd}`;
 
-    const html = `${wrapperStart}${renderEntries(titleEntries)}${wrapperEnd}`;
-
-    const titleEntry = titleEntries.find((e) => e.key.toLowerCase() === 'title');
-    const titleText = (titleEntry?.values || []).join(' ');
-    const noteEntry = titleEntries.find((e) => e.key.toLowerCase() === 'note');
-    const noteText = (noteEntry?.values || []).join(' ');
+    const getValue = (keyName) => {
+        const entry = titleEntries.find((e) => e.key.toLowerCase() === keyName);
+        return (entry?.values || []).join(' ');
+    };
 
     return {
       html,
-      title: titleText,
-      note: noteText,
+      title: getValue('title'),
+      note: getValue('note'),
       has: Boolean(html.trim()),
     };
   }, [titleEntries]);
@@ -185,9 +180,8 @@ function ScriptViewer({
   }, [ast, filterCharacter, focusMode, focusEffect, themePalette, bodyFontSize, fontSize, colorCache, markerConfigs]);
 
   useEffect(() => {
-    onRawHtml?.(''); // Legacy
     onProcessedHtml?.(filteredHtml || '');
-  }, [filteredHtml, onRawHtml, onProcessedHtml]);
+  }, [filteredHtml, onProcessedHtml]);
 
   useEffect(() => {
     // Reset Color Cache when text substantially changes? 

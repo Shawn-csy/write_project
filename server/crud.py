@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, desc, asc
+from sqlalchemy import or_, desc, asc, orm
 import models, schemas
 from typing import List, Optional
 import time
@@ -196,10 +196,48 @@ def get_public_scripts(db: Session, ownerId: Optional[str] = None, folder: Optio
              
          return results
 
-def search_scripts(db: Session, query: str, ownerId: str):
-    # Simple LIKE search for now, FTS not explicitly supported in simple ORM without extending
     search = f"%{query}%"
     return db.query(models.Script).filter(
         models.Script.ownerId == ownerId,
         or_(models.Script.title.like(search), models.Script.content.like(search))
     ).limit(20).all()
+
+# Marker Themes
+def get_user_themes(db: Session, ownerId: str):
+    return db.query(models.MarkerTheme).filter(models.MarkerTheme.ownerId == ownerId).all()
+
+
+def get_public_themes(db: Session):
+    return db.query(models.MarkerTheme).options(orm.joinedload(models.MarkerTheme.owner)).filter(models.MarkerTheme.isPublic == True).order_by(models.MarkerTheme.updatedAt.desc()).limit(100).all()
+
+def create_theme(db: Session, theme: schemas.MarkerThemeCreate, ownerId: str):
+    db_theme = models.MarkerTheme(
+        id=theme.id if theme.id else str(uuid.uuid4()),
+        ownerId=ownerId,
+        name=theme.name,
+        configs=theme.configs,
+        isPublic=theme.isPublic,
+        description=theme.description
+    )
+    db.add(db_theme)
+    db.commit()
+    db.refresh(db_theme)
+    return db_theme
+
+def update_theme(db: Session, theme_id: str, theme: schemas.MarkerThemeUpdate, ownerId: str):
+    db_theme = db.query(models.MarkerTheme).filter(models.MarkerTheme.id == theme_id, models.MarkerTheme.ownerId == ownerId).first()
+    if not db_theme:
+        return None
+    
+    update_data = theme.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_theme, key, value)
+    
+    db_theme.updatedAt = int(time.time() * 1000)
+    db.commit()
+    db.refresh(db_theme)
+    return db_theme
+
+def delete_theme(db: Session, theme_id: str, ownerId: str):
+    db.query(models.MarkerTheme).filter(models.MarkerTheme.id == theme_id, models.MarkerTheme.ownerId == ownerId).delete()
+    db.commit()

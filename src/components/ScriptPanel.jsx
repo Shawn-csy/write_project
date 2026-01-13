@@ -70,7 +70,7 @@ function ScriptPanel({
       }}
       onDoubleClick={onDoubleClick} // Bind onDoubleClick
     >
-      <div className="h-full overflow-y-auto scrollbar-hide" ref={scrollRef} onScroll={handleScroll}>
+      <div className="h-full overflow-y-auto overflow-x-hidden scrollbar-hide" ref={scrollRef} onScroll={handleScroll}>
         <div className="max-w-5xl mx-auto px-5 sm:px-8 py-6 sm:py-10 space-y-4">
           {isLoading && <p className="text-sm text-muted-foreground">載入中...</p>}
           {!isLoading && rawScript && (

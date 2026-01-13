@@ -37,14 +37,16 @@ function SettingsPanel({ onClose }) {
   return (
     <div className="flex-1 min-h-0 overflow-hidden border border-border/40 bg-background/60 backdrop-blur-xl rounded-2xl shadow-sm data-[state=open]:animate-in data-[state=closed]:animate-out fade-in-0 zoom-in-95 flex flex-col">
         {/* Main Header with Close Button (Mobile Friendly) */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-background/80 backdrop-blur-md shrink-0">
-            <h2 className="text-xl font-bold tracking-tight">設定 (Settings)</h2>
+        {/* Main Header with Close Button (Mobile Friendly) */}
+        <div className="flex items-center gap-4 px-6 py-4 border-b border-border/50 bg-background/80 backdrop-blur-md shrink-0">
             <button 
                 onClick={onClose}
-                className="p-2 rounded-full hover:bg-muted/80 transition-colors text-muted-foreground hover:text-foreground"
+                className="p-2 -ml-2 rounded-full hover:bg-muted/80 transition-colors text-muted-foreground hover:text-foreground"
+                title="關閉"
             >
                 <X className="w-5 h-5" />
             </button>
+            <h2 className="text-xl font-bold tracking-tight flex-1">設定 (Settings)</h2>
         </div>
 
         {/* Tabs Scroller */}
