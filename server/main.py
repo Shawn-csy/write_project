@@ -31,6 +31,10 @@ def run_migrations():
             if 'sortOrder' not in columns:
                 print("Migrating: Adding 'sortOrder' column")
                 conn.execute(text("ALTER TABLE scripts ADD COLUMN sortOrder REAL DEFAULT 0.0"))
+
+            if 'markerThemeId' not in columns:
+                print("Migrating: Adding 'markerThemeId' column")
+                conn.execute(text("ALTER TABLE scripts ADD COLUMN markerThemeId TEXT DEFAULT NULL"))
             
             conn.commit()
     except Exception as e:
@@ -181,3 +185,47 @@ def read_public_script(script_id: str, db: Session = Depends(get_db)):
 @app.get("/api/search")
 def search(q: str, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
     return crud.search_scripts(db, q, ownerId)
+
+# Marker Themes
+@app.get("/api/themes", response_model=List[schemas.MarkerTheme])
+def read_themes(db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    return crud.get_user_themes(db, ownerId)
+
+@app.get("/api/themes/public", response_model=List[schemas.MarkerTheme])
+def read_public_themes(db: Session = Depends(get_db)):
+    return crud.get_public_themes(db)
+
+@app.post("/api/themes")
+def create_theme(theme: schemas.MarkerThemeCreate, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    return crud.create_theme(db, theme, ownerId)
+
+@app.put("/api/themes/{theme_id}")
+def update_theme(theme_id: str, theme: schemas.MarkerThemeUpdate, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    updated = crud.update_theme(db, theme_id, theme, ownerId)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Theme not found")
+    return updated
+
+@app.delete("/api/themes/{theme_id}")
+def delete_theme(theme_id: str, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    crud.delete_theme(db, theme_id, ownerId)
+    return {"success": True}
+
+@app.post("/api/themes/{theme_id}/copy")
+def copy_theme(theme_id: str, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    # 1. Get original theme (ignoring owner check, but checking public status)
+    original = db.query(models.MarkerTheme).filter(models.MarkerTheme.id == theme_id).first()
+    if not original:
+         raise HTTPException(status_code=404, detail="Theme not found")
+    
+    if not original.isPublic and original.ownerId != ownerId:
+         raise HTTPException(status_code=403, detail="Cannot copy private theme")
+         
+    # 2. Create copy
+    new_theme = schemas.MarkerThemeCreate(
+        name=f"{original.name} (Copy)",
+        configs=original.configs,
+        isPublic=False,
+        description=original.description
+    )
+    return crud.create_theme(db, new_theme, ownerId)

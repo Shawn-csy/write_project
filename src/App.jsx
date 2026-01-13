@@ -35,6 +35,8 @@ function App() {
       setFileLabelMode,
       adjustFont,
       enableLocalFiles,
+      markerThemes,
+      setCurrentThemeId,
   } = useSettings();
 
   // 2. Refs (for initial params)
@@ -82,6 +84,16 @@ function App() {
       exportMode, accentConfig, processedScriptHtml, rawScriptHtml, 
       titleHtml, titleName, activeFile, titleSummary, titleNote 
   });
+
+  // Auto-switch Theme based on Script
+  useEffect(() => {
+      if (activeCloudScript?.markerThemeId) {
+          const themeExists = markerThemes.some(t => t.id === activeCloudScript.markerThemeId);
+          if (themeExists) {
+              setCurrentThemeId(activeCloudScript.markerThemeId);
+          }
+      }
+  }, [activeCloudScript?.id, activeCloudScript?.markerThemeId, markerThemes, setCurrentThemeId]);
 
   // 7. Effects
   // -- Auto-hide Title on Nav

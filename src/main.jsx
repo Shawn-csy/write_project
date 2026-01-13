@@ -11,11 +11,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <ThemeProvider defaultTheme="system" storageKey="screenplay-reader-theme">
-        <SettingsProvider>
-          <AuthProvider>
+        <AuthProvider>
+          <SettingsProvider>
             <App />
-          </AuthProvider>
-        </SettingsProvider>
+          </SettingsProvider>
+        </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>
   </React.StrictMode>,

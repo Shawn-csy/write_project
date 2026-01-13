@@ -1,11 +1,13 @@
 import React, { useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { calculateStats } from "../../lib/statistics";
+import { useSettings } from "../../contexts/SettingsContext";
 import { BarChart, Clock, MessageSquare, MapPin, Users } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
 
 export default function StatsDialog({ open, onOpenChange, content }) {
-  const stats = useMemo(() => calculateStats(content), [content]);
+  const { markerConfigs } = useSettings();
+  const stats = useMemo(() => calculateStats(content, markerConfigs), [content, markerConfigs]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
