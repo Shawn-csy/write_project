@@ -69,7 +69,14 @@ env/
 
 # Database
 *.db
-server/data/*.db
+*.sqlite3
+server/data/
 
 # Pytest
 .pytest_cache/
+
+# Temporary Scripts
+check_user_data.py
+transfer_data.py
+server/check_user_data.py
+server/transfer_data.py
