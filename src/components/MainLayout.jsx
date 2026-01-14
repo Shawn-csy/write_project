@@ -52,7 +52,7 @@ export function MainLayout({
           onOpenChange={setIsMobileDrawerOpen}
           direction="left"
         >
-          <DrawerContent className="h-[85vh] outline-none">
+          <DrawerContent className="h-[85vh] outline-none z-[100]">
             <DrawerTitle className="sr-only">Menu</DrawerTitle>
             <DrawerDescription className="sr-only">Script Navigation</DrawerDescription>
             <MobileMenu

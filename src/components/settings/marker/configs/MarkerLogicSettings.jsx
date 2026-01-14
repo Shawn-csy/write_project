@@ -33,34 +33,43 @@ export function MarkerLogicSettings({ config, idx, updateMarker }) {
                     </select>
                 </div>
                 {config.matchMode === 'regex' ? (
-                    <div className="sm:col-span-2">
-                        <label className="text-[10px] text-muted-foreground block mb-1">Regex Pattern</label>
+                    <div className="sm:col-span-2 space-y-1">
+                        <label className="text-[10px] text-muted-foreground block mb-1">Regex Pattern <span className="text-red-500">*</span></label>
                         <Input 
                             value={config.regex || ''}
                             onChange={(e) => updateMarker(idx, 'regex', e.target.value)}
-                            className="h-8 font-mono text-xs"
+                            className={`h-8 font-mono text-xs ${!config.regex ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                             placeholder="Example: ^\\[sfx:(.*?)\\]"
                         />
+                        {!config.regex && (
+                             <p className="text-[10px] text-red-500 font-medium">請輸入正規表達式</p>
+                        )}
                     </div>
                 ) : (
                     <>
                         <div className="flex gap-2">
-                            <div className="flex-1">
-                                <label className="text-[10px] text-muted-foreground block mb-1">開始符號 (Start)</label>
+                            <div className="flex-1 space-y-1">
+                                <label className="text-[10px] text-muted-foreground block mb-1">開始符號 (Start) <span className="text-red-500">*</span></label>
                                 <Input 
                                     value={config.start || ''} 
                                     onChange={(e) => updateMarker(idx, 'start', e.target.value)}
-                                    className="h-8 font-mono text-xs text-center"
+                                    className={`h-8 font-mono text-xs text-center ${!config.start ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                                 />
+                                {!config.start && (
+                                    <p className="text-[10px] text-red-500 font-medium">必填欄位</p>
+                                )}
                             </div>
                             {(isBlock || config.matchMode !== 'prefix') && (
-                                <div className="flex-1">
-                                    <label className="text-[10px] text-muted-foreground block mb-1">結束符號 (End)</label>
+                                <div className="flex-1 space-y-1">
+                                    <label className="text-[10px] text-muted-foreground block mb-1">結束符號 (End) <span className="text-red-500">*</span></label>
                                     <Input 
                                         value={config.end || ''} 
                                         onChange={(e) => updateMarker(idx, 'end', e.target.value)}
-                                        className="h-8 font-mono text-xs text-center"
+                                        className={`h-8 font-mono text-xs text-center ${!config.end ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                                     />
+                                    {!config.end && (
+                                        <p className="text-[10px] text-red-500 font-medium">必填欄位</p>
+                                    )}
                                 </div>
                             )}
                         </div>

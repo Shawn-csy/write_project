@@ -17,20 +17,7 @@ export function useMarkerThemes(currentUser) {
     // Derived State: Active Markers with System Merge Logic
     const markerConfigs = useMemo(() => {
         const activeTheme = markerThemes.find(t => t.id === currentThemeId);
-        const rawConfigs = activeTheme?.configs || defaultMarkerConfigs;
-        
-        // Ensure "System Default" markers (like 'dual') are present even in old themes
-        const mandatoryIds = ['dual', 'sound', 'section', 'post']; 
-        
-        const merged = [...rawConfigs];
-        mandatoryIds.forEach(id => {
-            if (!merged.find(c => c.id === id)) {
-                const def = defaultMarkerConfigs.find(d => d.id === id);
-                if (def) merged.push(def);
-            }
-        });
-        
-        return merged;
+        return activeTheme?.configs || defaultMarkerConfigs;
     }, [markerThemes, currentThemeId]);
 
     // Actions

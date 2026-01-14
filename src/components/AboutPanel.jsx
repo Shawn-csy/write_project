@@ -10,8 +10,7 @@ function AboutPanel({ accentStyle, onClose }) {
 
   return (
     <div className="flex-1 min-h-0 overflow-hidden border border-border bg-background/60 rounded-xl shadow-sm flex flex-col">
-       <div className="p-4 border-b border-border/60 bg-muted/20 flex-shrink-0 flex items-center justify-between">
-          <h2 className="text-xl font-bold tracking-tight">System Info & Guide</h2>
+       <div className="p-4 border-b border-border/60 bg-muted/20 flex-shrink-0 flex items-center gap-3">
           <button
               onClick={onClose}
               className="rounded-full p-2 hover:bg-muted-foreground/10 transition-colors"
@@ -19,6 +18,7 @@ function AboutPanel({ accentStyle, onClose }) {
           >
              <X className="h-5 w-5 text-muted-foreground" />
           </button>
+          <h2 className="text-xl font-bold tracking-tight">System Info & Guide</h2>
        </div>
 
        <div className="flex-1 min-h-0">

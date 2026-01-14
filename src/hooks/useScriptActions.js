@@ -56,16 +56,12 @@ export function useScriptActions({
         const title = titleName || activeFile || "Screenplay Reader";
         const summary = titleSummary || titleNote || (titleName ? `${titleName} 劇本摘要` : "線上閱讀、瀏覽與分享 Fountain 劇本的閱讀器。");
 
-        if (navigator.share) {
-            try {
-                await navigator.share({ title, text: summary, url: shareUrl });
-                return;
-            } catch (err) {}
-        }
-        const richText = `【${title}】\n${summary}\n\n${shareUrl}`;
+        // Force Clipboard Copy (User requested to skip native share menu)
+        // Fallback: Copy to clipboard (URL only for better preview generation)
+        const textToCopy = shareUrl;
         try {
             if (navigator.clipboard?.writeText) {
-                await navigator.clipboard.writeText(richText);
+                await navigator.clipboard.writeText(textToCopy);
                 setShareCopied(true);
                 if (shareCopiedTimer.current) clearTimeout(shareCopiedTimer.current);
                 shareCopiedTimer.current = setTimeout(() => setShareCopied(false), 1800);

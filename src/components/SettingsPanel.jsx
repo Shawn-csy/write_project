@@ -9,9 +9,15 @@ import { cn } from "../lib/utils";
 
 import { X } from "lucide-react";
 
-function SettingsPanel({ onClose }) {
+import { useAuth } from "../contexts/AuthContext";
+
+function SettingsPanel({ onClose, activeTab, onTabChange }) {
+  const { currentUser } = useAuth();
   const scrollContainerRef = useRef(null);
-  const [activeTab, setActiveTab] = useState("display");
+  const [internalTab, setInternalTab] = useState("display");
+  
+  const currentTab = activeTab || internalTab;
+  const setTab = onTabChange || setInternalTab;
   
   const sectionRefs = {
     display: useRef(null),
@@ -21,13 +27,15 @@ function SettingsPanel({ onClose }) {
     markers: useRef(null),
   };
 
-  const tabs = [
+  const allTabs = [
     { key: "display", label: "顯示 / 字級" },
     { key: "list", label: "列表 / 順讀" },
-    { key: "markers", label: "自訂標記" },
-    { key: "tags", label: "標籤管理" },
-    { key: "profile", label: "身份 / 設定" },
+    { key: "markers", label: "自訂標記", authRequired: true },
+    { key: "tags", label: "標籤管理", authRequired: true },
+    { key: "profile", label: "身份 / 設定", authRequired: true },
   ];
+
+  const tabs = allTabs.filter(tab => !tab.authRequired || currentUser);
 
   const handleTabClick = (key) => {
     setActiveTab(key);
@@ -55,10 +63,10 @@ function SettingsPanel({ onClose }) {
             {tabs.map((item) => (
               <button
                 key={item.key}
-                onClick={() => handleTabClick(item.key)}
+                onClick={() => setTab(item.key)}
                 className={cn(
                   "px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200",
-                  activeTab === item.key
+                  currentTab === item.key
                     ? "bg-background text-foreground shadow-sm ring-1 ring-border/50"
                     : "text-muted-foreground hover:text-foreground hover:bg-background/50"
                 )}
@@ -74,7 +82,7 @@ function SettingsPanel({ onClose }) {
           className="flex-1 overflow-y-auto scrollbar-hide p-4 sm:p-6 space-y-6"
           ref={scrollContainerRef}
         >
-          {activeTab === "display" && (
+          {currentTab === "display" && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div className="flex items-center gap-2 pb-2 border-b border-border/40">
                   <h3 className="text-lg font-semibold tracking-tight text-foreground/90">顯示設定</h3>
@@ -90,7 +98,7 @@ function SettingsPanel({ onClose }) {
               </div>
           )}
           
-          {activeTab === "markers" && (
+          {currentTab === "markers" && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div className="flex items-center gap-2 pb-2 border-b border-border/40">
                   <h3 className="text-lg font-semibold tracking-tight text-foreground/90">自訂標記設定</h3>
@@ -99,13 +107,13 @@ function SettingsPanel({ onClose }) {
               </div>
           )}
 
-          {activeTab === "profile" && (
+          {currentTab === "profile" && (
               <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <ProfileSettings />
               </div>
           )}
 
-          {activeTab === "tags" && (
+          {currentTab === "tags" && (
               <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <div className="flex items-center gap-2 pb-2 border-b border-border/40 mb-4">
                       <h3 className="text-lg font-semibold tracking-tight text-foreground/90">全域標籤管理</h3>
@@ -114,7 +122,7 @@ function SettingsPanel({ onClose }) {
               </div>
           )}
 
-          {activeTab === "list" && (
+          {currentTab === "list" && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div className="flex items-center gap-2 pb-2 border-b border-border/40">
                   <h3 className="text-lg font-semibold tracking-tight text-foreground/90">列表與閱讀</h3>

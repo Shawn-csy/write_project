@@ -60,7 +60,8 @@ export const processAction = (token, state, blockMarkers, activeConfigs) => {
                             layerType: config.id, 
                             markerType: config.type,
                             children: [], 
-                            label: content 
+                            label: content,
+                            inlineLabel: doParseInline(content, activeConfigs) // Recursive Parse
                         };
                         children().push(layer);
                         stack.push(layer);
@@ -109,16 +110,33 @@ export const processAction = (token, state, blockMarkers, activeConfigs) => {
                     const parent = current();
                     const isSameLayer = parent.type === 'layer' && parent.layerType === config.id;
                     if (isSameLayer) {
-                        if (endLabel) parent.endLabel = endLabel;
+                        if (endLabel) {
+                             parent.endLabel = endLabel;
+                             parent.inlineEndLabel = doParseInline(endLabel, activeConfigs);
+                        }
                         stack.pop();
                     } else {
-                        const layer = { type: 'layer', layerType: config.id, markerType: config.type, children: [], label };
+                        const layer = { 
+                            type: 'layer', 
+                            layerType: config.id, 
+                            markerType: config.type, 
+                            children: [], 
+                            label,
+                            inlineLabel: label ? doParseInline(label, activeConfigs) : [] 
+                        };
                         children().push(layer);
                         stack.push(layer);
                     }
                 } else {
                     if (isStart) {
-                        const layer = { type: 'layer', layerType: config.id, markerType: config.type, children: [], label };
+                        const layer = { 
+                            type: 'layer', 
+                            layerType: config.id, 
+                            markerType: config.type, 
+                            children: [], 
+                            label,
+                            inlineLabel: label ? doParseInline(label, activeConfigs) : [] 
+                        };
                         children().push(layer);
                         stack.push(layer);
                     } else if (isEnd) {
@@ -126,7 +144,10 @@ export const processAction = (token, state, blockMarkers, activeConfigs) => {
                         
                         const parent = current();
                         if (parent.type === 'layer' && parent.layerType === config.id) {
-                            if (endLabel) parent.endLabel = endLabel;
+                            if (endLabel) {
+                                parent.endLabel = endLabel;
+                                parent.inlineEndLabel = doParseInline(endLabel, activeConfigs);
+                            }
                             stack.pop();
                         }
                     }

@@ -7,7 +7,9 @@ const scriptModules = import.meta.glob("../scripts_file/**/*.fountain", {
   import: "default",
 });
 
-export function useScriptManager(initialParamsRef) {
+import { parseScreenplay } from "../lib/screenplayAST";
+
+export function useScriptManager(initialParamsRef, markerConfigs = []) {
   const [files, setFiles] = useState([]);
   const [activeFile, setActiveFile] = useState(null);
   const [rawScript, setRawScript] = useState("");
@@ -18,6 +20,11 @@ export function useScriptManager(initialParamsRef) {
   const [fileTitleMap, setFileTitleMap] = useState({});
   const [fileTagsMap, setFileTagsMap] = useState({});
   
+  // AST Parsing (Centralized)
+  const { ast } = useMemo(() => {
+    return parseScreenplay(rawScript || "", markerConfigs);
+  }, [rawScript, markerConfigs]);
+
   // Script Content State
   const [sceneList, setSceneList] = useState([]);
   const [characterList, setCharacterList] = useState([]);
@@ -237,6 +244,7 @@ export function useScriptManager(initialParamsRef) {
     // Cloud/Public State
     activeCloudScript, setActiveCloudScript,
     cloudScriptMode, setCloudScriptMode,
-    activePublicScriptId, setActivePublicScriptId
+    activePublicScriptId, setActivePublicScriptId,
+    ast // Expose AST
   };
 }

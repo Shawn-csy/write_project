@@ -4,6 +4,7 @@ export function useAppNavigation() {
   const [homeOpen, setHomeOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState("display");
   
   // Sidebar State
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
@@ -62,6 +63,7 @@ export function useAppNavigation() {
     homeOpen, setHomeOpen,
     aboutOpen, setAboutOpen,
     settingsOpen, setSettingsOpen,
+    settingsTab, setSettingsTab,
     isDesktopSidebarOpen, setIsDesktopSidebarOpen,
     isMobileDrawerOpen, setIsMobileDrawerOpen,
     setSidebarOpen,

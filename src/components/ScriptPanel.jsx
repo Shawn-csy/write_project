@@ -101,7 +101,7 @@ function ScriptPanel({
             />
           )}
           {!isLoading && !rawScript && (
-            <p className="text-sm text-muted-foreground">請從左側選擇一個劇本。</p>
+            <p className="text-sm text-muted-foreground">乖乖過期了嗎。</p>
           )}
         </div>
       </div>

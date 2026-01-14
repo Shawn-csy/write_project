@@ -44,6 +44,7 @@ export default function DashboardPage({ scriptManager, navProps }) {
         enableLocalFiles={enableLocalFiles}
         openSettings={nav.openSettings}
         openAbout={nav.openAbout}
+        openMobileMenu={() => nav.setIsMobileDrawerOpen(true)}
       />
   );
 }

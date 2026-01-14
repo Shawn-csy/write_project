@@ -26,6 +26,28 @@
     --paper-shadow: rgba(0, 0, 0, 0.12);
     --note-bg: color-mix(in srgb, hsl(var(--accent)) 16%, hsl(var(--background)) 84%);
     --note-border: color-mix(in srgb, hsl(var(--accent)) 30%, transparent);
+
+    /* Marker Colors (Light Mode) */
+    --marker-color-red: #dc2626;
+    --marker-color-orange: #ea580c;
+    --marker-color-amber: #d97706;
+    --marker-color-yellow: #ca8a04;
+    --marker-color-lime: #65a30d;
+    --marker-color-green: #16a34a;
+    --marker-color-emerald: #059669;
+    --marker-color-teal: #0d9488;
+    --marker-color-cyan: #0891b2;
+    --marker-color-sky: #0284c7;
+    --marker-color-blue: #2563eb;
+    --marker-color-indigo: #4f46e5;
+    --marker-color-violet: #7c3aed;
+    --marker-color-purple: #9333ea;
+    --marker-color-fuchsia: #c026d3;
+    --marker-color-pink: #db2777;
+    --marker-color-rose: #e11d48;
+    --marker-color-slate: #475569;
+    --marker-color-gray: #4b5563;
+    --marker-color-zinc: #52525b;
   }
 
   .dark {
@@ -48,6 +70,28 @@
     --paper-bg: #0d0d0f;
     --paper-border: #1f1f24;
     --paper-shadow: rgba(0, 0, 0, 0.4);
+
+    /* Marker Colors (Dark Mode) */
+    --marker-color-red: #f87171;
+    --marker-color-orange: #fb923c;
+    --marker-color-amber: #fbbf24;
+    --marker-color-yellow: #facc15;
+    --marker-color-lime: #a3e635;
+    --marker-color-green: #4ade80;
+    --marker-color-emerald: #34d399;
+    --marker-color-teal: #2dd4bf;
+    --marker-color-cyan: #22d3ee;
+    --marker-color-sky: #38bdf8;
+    --marker-color-blue: #60a5fa;
+    --marker-color-indigo: #818cf8;
+    --marker-color-violet: #a78bfa;
+    --marker-color-purple: #c084fc;
+    --marker-color-fuchsia: #e879f9;
+    --marker-color-pink: #f472b6;
+    --marker-color-rose: #fb7185;
+    --marker-color-slate: #94a3b8;
+    --marker-color-gray: #9ca3af;
+    --marker-color-zinc: #a1a1aa;
   }
 
   body {
@@ -541,6 +585,12 @@
   background: var(--accent);
   opacity: 0.8;
 }
+
+.cm-highlight-line {
+  background: color-mix(in srgb, hsl(var(--accent)) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, hsl(var(--accent)) 28%, transparent);
+}
+
 
 .screenplay .action {
   margin-bottom: 24px;
