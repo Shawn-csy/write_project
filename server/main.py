@@ -64,7 +64,7 @@ async def get_current_user_id(x_user_id: Optional[str] = Header(None)):
         raise HTTPException(status_code=401, detail="Missing X-User-ID header")
     return x_user_id
 
-@app.get("/api/scripts", response_model=List[schemas.Script])
+@app.get("/api/scripts", response_model=List[schemas.ScriptSummary])
 def read_scripts(db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
     return crud.get_scripts(db, ownerId=ownerId)
 

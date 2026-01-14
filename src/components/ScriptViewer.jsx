@@ -164,7 +164,7 @@ function ScriptViewer({
 
   // 依角色過濾內容 (Used for onProcessedHtml for Print/PDF)
   const filteredHtml = useMemo(() => {
-    if (!ast) return '';
+    if (!onProcessedHtml || !ast) return '';
     return renderToStaticMarkup(
        <ScriptRenderer 
          ast={ast} 
@@ -178,7 +178,7 @@ function ScriptViewer({
          markerConfigs={markerConfigs} // Pass to renderer
        />
      );
-  }, [ast, filterCharacter, focusMode, focusEffect, themePalette, bodyFontSize, fontSize, colorCache, markerConfigs]);
+  }, [ast, filterCharacter, focusMode, focusEffect, themePalette, bodyFontSize, fontSize, colorCache, markerConfigs, onProcessedHtml]);
 
   useEffect(() => {
     onProcessedHtml?.(filteredHtml || '');

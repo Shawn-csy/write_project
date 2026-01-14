@@ -27,7 +27,7 @@ def touch_parent_folders(db: Session, folder_path: str, ownerId: str, timestamp:
         path = parent
 
 def get_scripts(db: Session, ownerId: str):
-    return db.query(models.Script).filter(models.Script.ownerId == ownerId).order_by(models.Script.sortOrder.asc(), models.Script.lastModified.desc()).all()
+    return db.query(models.Script).options(orm.defer(models.Script.content)).filter(models.Script.ownerId == ownerId).order_by(models.Script.sortOrder.asc(), models.Script.lastModified.desc()).all()
 
 def create_script(db: Session, script: schemas.ScriptCreate, ownerId: str):
     db_script = models.Script(

@@ -59,6 +59,23 @@ class Script(BaseModel):
     class Config:
         from_attributes = True
 
+class ScriptSummary(BaseModel):
+    id: str
+    ownerId: str
+    title: str
+    # content excluded
+    createdAt: int
+    lastModified: int
+    isPublic: int
+    type: str
+    folder: str
+    sortOrder: float
+    markerThemeId: Optional[str] = None
+    tags: List[Tag] = []
+
+    class Config:
+        from_attributes = True
+
 # User Schemas
 class UserBase(BaseModel):
     handle: Optional[str] = None
