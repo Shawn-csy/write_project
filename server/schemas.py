@@ -103,8 +103,6 @@ class User(UserBase):
     
     class Config:
         from_attributes = True
-    class Config:
-        from_attributes = True
 
 # Marker Theme Schemas
 class MarkerThemeBase(BaseModel):
