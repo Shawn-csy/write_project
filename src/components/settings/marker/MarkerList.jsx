@@ -20,8 +20,8 @@ export function MarkerList({
     setLocalConfigs,
     updateMarker,
     removeMarker,
-    expandedId,
-    setExpandedId
+    selectedId,
+    onSelect
 }) {
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -68,8 +68,8 @@ export function MarkerList({
                             config={config}
                             updateMarker={updateMarker}
                             removeMarker={removeMarker}
-                            expandedId={expandedId}
-                            setExpandedId={setExpandedId}
+                            selectedId={selectedId}
+                            onSelect={onSelect}
                         />
                     ))}
                 </div>

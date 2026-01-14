@@ -7,6 +7,7 @@ import { useSettings } from "../../contexts/SettingsContext";
 import { MarkerThemeHeader } from "./marker/MarkerThemeHeader";
 import { MarkerList } from "./marker/MarkerList";
 import { MarkerJsonEditor } from "./marker/MarkerJsonEditor";
+import { MarkerDetailEditor } from "./marker/MarkerDetailEditor";
 
 export function MarkerSettings({ sectionRef }) {
   const { 
@@ -131,19 +132,33 @@ export function MarkerSettings({ sectionRef }) {
                   setLocalConfigs={setLocalConfigs} 
               />
           ) : (
-              <>
-                <MarkerList 
-                    localConfigs={localConfigs}
-                    setLocalConfigs={setLocalConfigs}
-                    updateMarker={updateMarker}
-                    removeMarker={removeMarker}
-                    expandedId={expandedId}
-                    setExpandedId={setExpandedId}
-                />
-                <Button onClick={addMarker} variant="outline" className="w-full mt-4 border-dashed">
-                    <Plus className="w-4 h-4 mr-2" /> 新增標記 (Add New)
-                </Button>
-              </>
+              <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-6 items-start h-[600px]">
+                  {/* Left Column: List */}
+                  <div className="h-full flex flex-col min-h-0">
+                      <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
+                        <MarkerList 
+                            localConfigs={localConfigs}
+                            setLocalConfigs={setLocalConfigs}
+                            updateMarker={updateMarker}
+                            removeMarker={removeMarker}
+                            selectedId={expandedId}
+                            onSelect={setExpandedId}
+                        />
+                      </div>
+                      <Button onClick={addMarker} variant="outline" className="w-full mt-2 border-dashed shrink-0">
+                          <Plus className="w-4 h-4 mr-2" /> 新增標記
+                      </Button>
+                  </div>
+
+                  {/* Right Column: Editor */}
+                  <div className="h-full min-h-0">
+                    <MarkerDetailEditor 
+                        config={localConfigs.find(c => (c.id || c._tempId) === expandedId)}
+                        idx={localConfigs.findIndex(c => (c.id || c._tempId) === expandedId)}
+                        updateMarker={updateMarker}
+                    />
+                  </div>
+              </div>
           )}
       </CardContent>
     </Card>

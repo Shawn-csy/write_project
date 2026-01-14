@@ -1,7 +1,7 @@
 import { auth } from "./firebase";
 
 // Basic DB Layer wrapping API calls
-const API_BASE_URL = "http://localhost:1091/api"; 
+const API_BASE_URL = "/api"; 
 
 async function fetchApi(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;

@@ -137,15 +137,21 @@ export const buildScriptAST = (tokens, markerConfigs = []) => {
             scene_heading: () => processSceneHeading(token, state, activeConfigs),
             parenthetical: () => state.pushNode({ 
                 ...token, 
-                inline: parseInline(token.text, activeConfigs) 
+                inline: parseInline(token.text, activeConfigs),
+                lineStart: token.lineStart,
+                lineEnd: token.lineEnd
             }),
             transition: () => state.pushNode({ 
                 ...token, 
-                inline: [{ type: 'text', content: token.text }] 
+                inline: [{ type: 'text', content: token.text }],
+                lineStart: token.lineStart,
+                lineEnd: token.lineEnd
             }),
             centered: () => state.pushNode({ 
                 ...token, 
-                inline: parseInline(token.text, activeConfigs) 
+                inline: parseInline(token.text, activeConfigs),
+                lineStart: token.lineStart,
+                lineEnd: token.lineEnd
             })
         };
 
@@ -163,12 +169,44 @@ export const buildScriptAST = (tokens, markerConfigs = []) => {
     return root;
 };
 
+const attachLineInfo = (tokens = [], bodyText = "") => {
+  const lines = (bodyText || "").split("\n");
+  let searchStart = 0;
+
+  return tokens.map((token) => {
+    if (!token?.text) return token;
+    const tokenLines = token.text.split("\n");
+    let found = -1;
+
+    for (let i = searchStart; i <= lines.length - tokenLines.length; i++) {
+      let match = true;
+      for (let j = 0; j < tokenLines.length; j++) {
+        if (lines[i + j].trim() !== tokenLines[j].trim()) {
+          match = false;
+          break;
+        }
+      }
+      if (match) {
+        found = i;
+        break;
+      }
+    }
+
+    if (found === -1) return token;
+
+    const lineStart = found + 1;
+    const lineEnd = lineStart + tokenLines.length - 1;
+    searchStart = found + tokenLines.length;
+    return { ...token, lineStart, lineEnd };
+  });
+};
+
 export const parseScreenplay = (text = "", markerConfigs = []) => {
   const { titleLines, bodyText } = splitTitleAndBody(text);
   
   const fountain = new Fountain();
   const result = fountain.parse(bodyText || '', true);
-  const tokens = result?.tokens || [];
+  const tokens = attachLineInfo(result?.tokens || [], bodyText || "");
   
   const ast = buildScriptAST(tokens, markerConfigs);
   
