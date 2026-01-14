@@ -28,6 +28,10 @@ import { StatisticsPanel } from "./components/statistics/StatisticsPanel";
 const SettingsPanel = React.lazy(() => import("./components/SettingsPanel"));
 const AboutPanelLazy = React.lazy(() => import("./components/AboutPanel"));
 
+// New Imports
+import { useTextLocator } from "./hooks/useTextLocator";
+import { GlobalListeners } from "./components/GlobalListeners";
+
 function App() {
   // 1. Contexts
   const {
@@ -39,9 +43,9 @@ function App() {
       adjustFont,
       enableLocalFiles,
       markerThemes,
-      markerConfigs, // Destructure markerConfigs
+      markerConfigs,
       setCurrentThemeId,
-      currentThemeId, // Add this
+      currentThemeId, 
   } = useSettings();
 
   // 2. Refs (for initial params)
@@ -56,7 +60,7 @@ function App() {
     };
   }, []);
 
-  // 5. Custom Hooks
+  // 3. Custom Hooks
   // Pass markerConfigs to manager for AST parsing
   const scriptManager = useScriptManager(initialParamsRef, markerConfigs);
   const nav = useAppNavigation();
@@ -78,84 +82,22 @@ function App() {
       ast // Get AST from manager
   } = scriptManager;
 
-  // 5. Local State mainly for UI not covered by hooks
+  // 4. Local State
   const [searchTerm, setSearchTerm] = useState("");
   const [showStats, setShowStats] = useState(false);
-  const contentScrollRef = useRef(null);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const readerHighlightRef = useRef(null);
-  const readerHighlightTimeoutRef = useRef(null);
 
-  // 6. Extracted Hooks
+  // 5. Extracted Hooks & Logic
   const { filteredTree, openFolders, toggleFolder } = useFileTree(files, searchTerm, fileTitleMap);
-  useAppShortcuts({ adjustFont, nav, filterCharacter, setFocusMode });
+  const { contentScrollRef, handleLocateText } = useTextLocator(rawScript);
+  
   useInitialScroll(sceneList, initialParamsRef, setCurrentSceneId, setScrollSceneId);
   const { handleExportPdf, handleShareUrl, shareCopied } = useScriptActions({
       exportMode, accentConfig, processedScriptHtml, rawScriptHtml, 
       titleHtml, titleName, activeFile, titleSummary, titleNote 
   });
 
-  const clearReaderHighlight = useCallback(() => {
-    if (readerHighlightTimeoutRef.current) {
-      clearTimeout(readerHighlightTimeoutRef.current);
-      readerHighlightTimeoutRef.current = null;
-    }
-    if (readerHighlightRef.current) {
-      readerHighlightRef.current.classList.remove("reader-locate-highlight");
-      readerHighlightRef.current = null;
-    }
-  }, []);
-
-  const handleLocateText = useCallback((text, lineNumber) => {
-    const container = contentScrollRef.current;
-    if (!container || !rawScript) return;
-
-    const targetLine = Number.isFinite(lineNumber) ? lineNumber : null;
-    if (targetLine) {
-      const targetEl = container.querySelector(`[data-line-start="${targetLine}"]`);
-
-      if (targetEl) {
-        clearReaderHighlight();
-        const containerRect = container.getBoundingClientRect();
-        const targetRect = targetEl.getBoundingClientRect();
-        const offsetTop = targetRect.top - containerRect.top + container.scrollTop;
-        const targetTop = offsetTop - container.clientHeight / 2 + targetRect.height / 2;
-        const maxTop = Math.max(0, container.scrollHeight - container.clientHeight);
-        container.scrollTo({
-          top: Math.max(0, Math.min(maxTop, targetTop)),
-          behavior: "smooth",
-        });
-        targetEl.classList.add("reader-locate-highlight");
-        readerHighlightRef.current = targetEl;
-        readerHighlightTimeoutRef.current = setTimeout(() => {
-          clearReaderHighlight();
-        }, 1400);
-        return;
-      }
-    }
-
-    const lines = rawScript.split("\n");
-    let idx = typeof lineNumber === "number"
-      ? lineNumber - 1
-      : lines.findIndex((line) => line.includes(text || ""));
-    if (idx < 0 && text) {
-      const trimmed = text.trim();
-      idx = lines.findIndex((line) => line.trim() === trimmed);
-    }
-
-    if (idx < 0) return;
-    const max = container.scrollHeight - container.clientHeight;
-    if (max <= 0) return;
-    const ratio = idx / Math.max(1, lines.length - 1);
-    container.scrollTo({ top: max * ratio, behavior: "smooth" });
-  }, [rawScript, contentScrollRef, clearReaderHighlight]);
-
-  useEffect(() => {
-    return () => {
-      clearReaderHighlight();
-    };
-  }, [clearReaderHighlight]);
-
+  // 6. Effects
   useEffect(() => {
       if (activeCloudScript?.markerThemeId) {
           const themeExists = markerThemes.some(t => t.id === activeCloudScript.markerThemeId);
@@ -169,8 +111,6 @@ function App() {
        if (!activeCloudScript || !newTitle) return;
        // Optimistic update
        scriptManager.setTitleName(newTitle); 
-       // Need to update activeCloudScript in manager too if we want persistence across navigation without reload?
-       // Currently useScriptManager exposes setActiveCloudScript but it's a state setter.
        scriptManager.setActiveCloudScript(prev => ({...prev, title: newTitle}));
        
        try {
@@ -180,38 +120,17 @@ function App() {
        }
   }, [activeCloudScript, scriptManager]);
 
-  // 7. Effects
-  // -- Auto-hide Title on Nav
-  useEffect(() => {
-    if (nav.homeOpen || nav.aboutOpen || nav.settingsOpen) {
-      setShowTitle(false);
-    }
-  }, [nav.homeOpen, nav.aboutOpen, nav.settingsOpen]);
-
-  // Reset overlays on route change
-  useEffect(() => {
-    if (location.pathname !== '/' && (nav.homeOpen || nav.aboutOpen || nav.settingsOpen)) {
-       nav.setHomeOpen(false);
-       nav.setAboutOpen(false);
-       nav.setSettingsOpen(false);
-    }
-  }, [location.pathname]);
-
-  // 7. Handlers moved to Pages or simplified
   const handleReturnHome = () => {
     nav.openHome();
     navigate("/");
   };
   
- // Navigation Props Bundle
   const navProps = {
       nav,
       enableLocalFiles,
       contentScrollRef
   }
   
-  // 8. Render
-
   const headerTitle = nav.homeOpen ? "Screenplay Reader" : nav.aboutOpen ? "About" : nav.settingsOpen ? "Settings" : titleName || (typeof activeFile === 'object' ? activeFile?.name : activeFile) || activeCloudScript?.title || "選擇一個劇本";
   const canShare = !nav.homeOpen && !nav.aboutOpen && !nav.settingsOpen && Boolean(activeFile);
   
@@ -220,7 +139,6 @@ function App() {
     activeFile || (activeCloudScript && cloudScriptMode === 'read') || isPublicReader
   );
 
-  // 9. Render
   return (
     <>
     <MetaTags 
@@ -230,6 +148,14 @@ function App() {
         activeFile={activeFile} 
         currentSceneId={currentSceneId} 
     />
+    <GlobalListeners 
+        nav={nav} 
+        adjustFont={adjustFont} 
+        filterCharacter={filterCharacter} 
+        setFocusMode={setFocusMode} 
+        setShowTitle={setShowTitle} 
+    />
+
     <MainLayout
       isDesktopSidebarOpen={nav.isDesktopSidebarOpen}
       setIsDesktopSidebarOpen={nav.setIsDesktopSidebarOpen}
@@ -304,7 +230,7 @@ function App() {
                     </div>
                   }
                   setFocusMode={setFocusMode}
-                  isFocusMode={scriptManager.focusMode} // Pass the boolean state
+                  isFocusMode={scriptManager.focusMode} 
                   markerThemes={markerThemes}
                   currentThemeId={currentThemeId}
                   switchTheme={setCurrentThemeId}

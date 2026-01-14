@@ -29,10 +29,14 @@ class ScriptCreate(BaseModel):
     type: Optional[str] = "script"
     folder: Optional[str] = "/"
     markerThemeId: Optional[str] = None
-
+    author: Optional[str] = None
+    draftDate: Optional[str] = None
+    
 class ScriptUpdate(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
+    author: Optional[str] = None
+    draftDate: Optional[str] = None
     isPublic: Optional[bool] = None
     folder: Optional[str] = None
     type: Optional[str] = None
@@ -46,9 +50,12 @@ class Script(BaseModel):
     id: str
     ownerId: str
     title: str
+    title: str
     content: str
     createdAt: int
     lastModified: int
+    author: Optional[str] = None
+    draftDate: Optional[str] = None
     isPublic: int
     type: str # 'script' or 'folder'
     folder: str
@@ -63,9 +70,12 @@ class ScriptSummary(BaseModel):
     id: str
     ownerId: str
     title: str
+    contentLength: Optional[int] = 0
     # content excluded
     createdAt: int
     lastModified: int
+    author: Optional[str] = None
+    draftDate: Optional[str] = None
     isPublic: int
     type: str
     folder: str

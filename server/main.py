@@ -35,6 +35,14 @@ def run_migrations():
             if 'markerThemeId' not in columns:
                 print("Migrating: Adding 'markerThemeId' column")
                 conn.execute(text("ALTER TABLE scripts ADD COLUMN markerThemeId TEXT DEFAULT NULL"))
+
+            if 'author' not in columns:
+                print("Migrating: Adding 'author' column")
+                conn.execute(text("ALTER TABLE scripts ADD COLUMN author TEXT DEFAULT ''"))
+
+            if 'draftDate' not in columns:
+                print("Migrating: Adding 'draftDate' column")
+                conn.execute(text("ALTER TABLE scripts ADD COLUMN draftDate TEXT DEFAULT ''"))
             
             conn.commit()
     except Exception as e:

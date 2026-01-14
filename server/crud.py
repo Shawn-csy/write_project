@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, desc, asc, orm
+from sqlalchemy import or_, desc, asc, orm, func
 import models, schemas
 from typing import List, Optional
 import time
@@ -27,7 +27,18 @@ def touch_parent_folders(db: Session, folder_path: str, ownerId: str, timestamp:
         path = parent
 
 def get_scripts(db: Session, ownerId: str):
-    return db.query(models.Script).options(orm.defer(models.Script.content)).filter(models.Script.ownerId == ownerId).order_by(models.Script.sortOrder.asc(), models.Script.lastModified.desc()).all()
+    # Fetch Script AND calculated content length (characters)
+    results = db.query(models.Script, func.length(models.Script.content).label('contentLength'))\
+        .filter(models.Script.ownerId == ownerId)\
+        .order_by(models.Script.sortOrder.asc(), models.Script.lastModified.desc())\
+        .all()
+    
+    out = []
+    for script, length in results:
+        # Attach dynamic property for Pydantic to read
+        script.contentLength = length or 0 
+        out.append(script)
+    return out
 
 def create_script(db: Session, script: schemas.ScriptCreate, ownerId: str):
     db_script = models.Script(
@@ -36,7 +47,9 @@ def create_script(db: Session, script: schemas.ScriptCreate, ownerId: str):
         title=script.title or "Untitled",
         content="",
         type=script.type,
-        folder=script.folder
+        folder=script.folder,
+        author=script.author or "",
+        draftDate=script.draftDate or ""
     )
     # Calc sort order
     max_order = db.query(models.Script).filter(models.Script.ownerId == ownerId, models.Script.folder == script.folder).order_by(models.Script.sortOrder.desc()).first()

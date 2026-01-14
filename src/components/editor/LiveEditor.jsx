@@ -12,7 +12,8 @@ import { StatisticsPanel } from "../statistics/StatisticsPanel";
 import { parseScreenplay } from "../../lib/screenplayAST";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useEditorSync } from "../../hooks/useEditorSync";
-
+import { usePersistentState } from "../../hooks/usePersistentState";
+import { extractMetadata } from "../../lib/fountain";
 import { EditorHeader } from "./EditorHeader";
 import { PreviewPanel } from "./PreviewPanel";
 import { MarkerRulesPanel } from "./MarkerRulesPanel";
@@ -145,7 +146,13 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   const performSave = async (id, newContent, newTitle) => {
       try {
         setSaveStatus("saving");
-        await updateScript(id, { content: newContent, title: newTitle });
+        const meta = extractMetadata(newContent);
+        await updateScript(id, { 
+            content: newContent, 
+            title: newTitle,
+            author: meta.author || meta.authors || "",
+            draftDate: meta.date || meta.draftdate || ""
+        });
         setLastSaved(new Date());
         setSaveStatus("saved");
         lastSavedContent.current = newContent;
