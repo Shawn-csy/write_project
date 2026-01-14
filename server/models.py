@@ -12,6 +12,8 @@ class Script(Base):
     content = Column(String, default="")
     createdAt = Column(Integer, default=lambda: int(time.time() * 1000))
     lastModified = Column(Integer, default=lambda: int(time.time() * 1000))
+    author = Column(String, default="")
+    draftDate = Column(String, default="")
     isPublic = Column(Integer, default=0, index=True) # 0 or 1
     type = Column(String, default="script") # 'script' or 'folder'
     folder = Column(String, default="/", index=True)

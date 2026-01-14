@@ -24,29 +24,10 @@ import {
     SortableContext, 
     verticalListSortingStrategy
 } from '@dnd-kit/sortable';
-import { updateScript } from "../../../lib/db"; // Needed for inline theme update? or pass handler? 
+import { updateScript, getScript } from "../../../lib/db"; // Needed for inline theme update? or pass handler? 
 // Passed handler is better but for now keep consistent with original logic mix
 
-// Helper to parse Fountain metadata (reused)
-const extractMetadata = (content) => {
-    if (!content) return {};
-    const meta = {};
-    const lines = content.split('\n');
-    let readingMeta = true;
-    for (let line of lines) {
-        line = line.trim();
-        if (!readingMeta) break;
-        if (line === '') continue; 
-        const match = line.match(/^([^:]+):\s*(.+)$/);
-        if (match) {
-            const key = match[1].toLowerCase().replace(' ', '');
-            meta[key] = match[2];
-        } else {
-            readingMeta = false; 
-        }
-    }
-    return meta;
-};
+import { extractMetadata } from "../../../lib/fountain"; // Shared utility
 
 // Helper: assureContent
 async function assureContent(item) {
@@ -57,7 +38,6 @@ async function assureContent(item) {
         // For refactoring speed, we will assume content is loaded or handle in parent.
         // Actually the original component imported getScript. 
         // Let's import it here for the download button.
-        const { getScript } = await import("../../../lib/db");
         const full = await getScript(item.id);
         return full.content || "";
     } catch (e) {
@@ -141,9 +121,9 @@ export function ScriptList({
 
                      {/* Items */}
                      {visibleItems.map((item) => {
-                        const metaData = extractMetadata(item.content);
-                        const displayDate = metaData.date || metaData.draftdate || new Date(item.lastModified || item.createdAt).toLocaleDateString();
-                        const displayAuthor = metaData.author || metaData.authors || "Me";
+                        const metaData = item.content ? extractMetadata(item.content) : {};
+                        const displayDate = item.draftDate || metaData.date || metaData.draftdate || new Date(item.lastModified || item.createdAt).toLocaleDateString();
+                        const displayAuthor = item.author || metaData.author || metaData.authors || "User";
 
                         return (
                         <SortableFileRow 
@@ -196,7 +176,7 @@ export function ScriptList({
                                      {item.type !== 'folder' && (
                                          <>
                                             <div className="w-24 text-right text-xs text-muted-foreground hidden sm:block">
-                                                {item.content ? Math.ceil(item.content.length / 2) : 0} 字
+                                                {item.contentLength ? Math.ceil(item.contentLength / 2) : (item.content ? Math.ceil(item.content.length / 2) : 0)} 字
                                             </div>
                                             <div className="w-32 text-right text-xs text-muted-foreground hidden sm:block">{formatDate(item.lastModified)}</div>
                                          </>

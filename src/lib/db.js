@@ -5,11 +5,13 @@ const API_BASE_URL = "/api";
 
 async function fetchApi(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
-  const userId = "test-user"; // Simplified auth for now
+  
+  // Use Firebase Auth UID if available, otherwise fallback to test-user (for local dev/unauthed compliance)
+  const userId = auth.currentUser?.uid || "test-user";
 
   const headers = {
     "Content-Type": "application/json",
-    "X-User-ID": userId, // Simple Auth
+    "X-User-ID": userId, 
     ...options.headers,
   };
 
