@@ -167,7 +167,10 @@ def read_users_me(db: Session = Depends(get_db), ownerId: str = Depends(get_curr
     if not user:
         return {"id": ownerId, "settings": {}}
     # Parse settings JSON
-    user.settings = json.loads(user.settings) if user.settings else {}
+    try:
+        user.settings = json.loads(user.settings) if user.settings else {}
+    except ValueError:
+        user.settings = {}
     return user
 
 @app.put("/api/me")
