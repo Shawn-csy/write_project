@@ -56,11 +56,11 @@ export function MarkerSettings({ sectionRef }) {
           label: '新標記',
           type: 'inline',
           matchMode: 'enclosure',
-          start: '★',
-          end: '★',
+          start: '',
+          end: '',
           isBlock: false,
           priority: 500,
-          style: { color: '#000000', fontWeight: 'bold' }
+          style: { color: '#000000', fontWeight: 'bold', textAlign: 'left', fontFamily: "'Courier New', 'Songti TC', 'SimSun', serif" }
       };
       
       const newConfigs = [newMarker, ...localConfigs].map((item, index) => ({
@@ -90,14 +90,25 @@ export function MarkerSettings({ sectionRef }) {
                 <CardDescription className="text-xs mt-0.5">拖曳列表以改變優先權 (越上方越優先)</CardDescription>
             </div>
            </div>
-           <Button 
-                variant={viewMode === 'ui' ? 'default' : 'outline'} 
-                size="sm" 
-                onClick={() => setViewMode(viewMode === 'ui' ? 'json' : 'ui')}
-                className="h-7 text-xs"
-           >
-                {viewMode === 'ui' ? 'JSON 模式' : 'UI 模式'}
-           </Button>
+           <div className="flex items-center gap-2">
+               <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setMarkerConfigs(localConfigs)}
+                    className="h-7 text-xs"
+                    title="手動儲存設定"
+               >
+                    儲存 (Save)
+               </Button>
+               <Button 
+                    variant={viewMode === 'ui' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setViewMode(viewMode === 'ui' ? 'json' : 'ui')}
+                    className="h-7 text-xs"
+               >
+                    {viewMode === 'ui' ? 'JSON 模式' : 'UI 模式'}
+               </Button>
+           </div>
         </div>
       </CardHeader>
       <CardContent>

@@ -11,8 +11,12 @@ export const createDynamicParsers = (configs = []) => {
     const parsers = {};
 
     configs.forEach(config => {
-        // Only generate parsers for inline markers or block markers that have inline representation
-        if (config.isBlock && config.type !== 'inline') return;
+        // [MODIFIED] Relaxed restriction: Allow Block markers to be parsed inline.
+        // This enables "Nested Block Markers" (e.g. using a Block Enclosure inside a Prefix Rule).
+        // Since doParseInline generates 'highlight' nodes, this will render them as styled spans/text
+        // instead of structural Layers, which is exactly what we want for nested usage.
+        
+        // if (config.isBlock && config.type !== 'inline') return; 
 
         const type = config.type || 'inline';
         const id = config.id || `custom-${Math.random().toString(36).substr(2, 9)}`;
@@ -22,30 +26,36 @@ export const createDynamicParsers = (configs = []) => {
         if (config.matchMode === 'regex' && config.regex) {
              try {
                  const re = new RegExp(config.regex);
+                 // Warning: If regex matches empty string, it causes infinite loop in many().
+                 // We cannot easily check this, but we assume user regexes are for content.
                  parser = P.regex(re, 1).map(content => ({ type: 'highlight', id, content }));
              } catch (e) {
                  console.warn(`Invalid regex for marker ${config.label}:`, e);
              }
         } else if (config.matchMode === 'prefix' || (!config.end && config.start)) {
-             // Prefix Mode: e.g. | Text
+             // Prefix Mode
+             if (!config.start || typeof config.start !== 'string' || config.start.length === 0) return;
+             
              const start = P.string(config.start);
-             // Use regex to consume the rest of the node content
              parser = start.then(P.regex(/.*/)).map(content => ({ 
                  type: 'highlight', 
                  id, 
                  content: content.trim() 
              }));
         } else {
-             // Enclosure Mode: e.g. { content }
+             // Enclosure Mode
              const startStr = config.start || '{';
              const endStr = config.end || '}';
              
+             if (!startStr || startStr.length === 0) return; // Prevent empty start
+
              const start = P.string(startStr);
              const end = P.string(endStr);
              
-             // Robust content parser using Regex lookahead
-             // Matches any sequence of characters that does not start with endStr
              const escapedEnd = escapeRegExp(endStr);
+             // Ensure we don't catch newline if it's meant to be inline
+             // (Though P.regex usually is multiline in Parsimmon? No, default is just regex exec)
+             // We use dot which doesn't match newline.
              const contentRegex = new RegExp(`^(?:(?!${escapedEnd}).)*`);
              
              const safeContent = P.regex(contentRegex);

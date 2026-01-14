@@ -68,7 +68,7 @@ async def get_current_user_id(x_user_id: Optional[str] = Header(None)):
 def read_scripts(db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
     return crud.get_scripts(db, ownerId=ownerId)
 
-@app.post("/api/scripts")
+@app.post("/api/scripts", response_model=schemas.Script)
 def create_script(script: schemas.ScriptCreate, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
     return crud.create_script(db=db, script=script, ownerId=ownerId)
 
@@ -229,3 +229,101 @@ def copy_theme(theme_id: str, db: Session = Depends(get_db), ownerId: str = Depe
         description=original.description
     )
     return crud.create_theme(db, new_theme, ownerId)
+
+# ----------------------------------------------------------------
+# SEO & Static File Serving
+# ----------------------------------------------------------------
+from fastapi.responses import HTMLResponse
+import os
+import traceback
+
+DIST_DIR = os.path.join(os.path.dirname(__file__), "..", "dist")
+INDEX_PATH = os.path.join(DIST_DIR, "index.html")
+
+@app.get("/read/{script_id}", response_class=HTMLResponse)
+def read_script_seo(script_id: str, db: Session = Depends(get_db)):
+    try:
+        # 1. Try to find the script
+        script = db.query(models.Script).filter(models.Script.id == script_id).first()
+        
+        # 2. Read template
+        if not os.path.exists(INDEX_PATH):
+            return HTMLResponse(content="<h1>Development Mode: Build frontend to see SEO tags.</h1><script>window.location.reload()</script>", status_code=200)
+            
+        with open(INDEX_PATH, "r", encoding="utf-8") as f:
+            html_content = f.read()
+
+        # 3. Inject Tags
+        if script and script.isPublic:
+            title = f"{script.title}｜Screenplay Reader"
+            desc = (script.content[:200] + "...") if script.content else "線上閱讀、瀏覽與分享 Fountain 劇本的閱讀器。"
+            desc = desc.replace('"', '&quot;').replace('\n', ' ')
+            
+            # Helper to replace meta content
+            def replace_meta(html, property_name, new_content):
+                import re
+                pattern = rf'(<meta property="{property_name}" content=")([^"]*)(" />)'
+                # Check if pattern exists first to avoid errors if regex fails
+                if re.search(pattern, html):
+                    return re.sub(pattern, rf'\g<1>{new_content}\g<3>', html)
+                return html
+                
+            html_content = html_content.replace("<title>Screenplay Reader</title>", f"<title>{title}</title>")
+            html_content = replace_meta(html_content, "og:title", script.title)
+            html_content = replace_meta(html_content, "og:description", desc)
+            html_content = html_content.replace('<meta name="description" content="線上閱讀、瀏覽與分享 Fountain 劇本的閱讀器。" />', f'<meta name="description" content="{desc}" />')
+
+        return HTMLResponse(content=html_content)
+    except Exception as e:
+        error_msg = f"SEO Injection Error: {str(e)}\n{traceback.format_exc()}"
+        print(error_msg)
+        return HTMLResponse(content=f"<h1>500 Internal Server Error</h1><pre>{error_msg}</pre>", status_code=500)
+
+    # 3. Inject Tags if script found & public (or just found? Let's show meta for shared links even if private? No, secure it.)
+    # If standard user visits /read/ID, the React app handles auth. 
+    # But for SEO bot, if it's private, we probably shouldn't show details.
+    # However, if user shares a private link, maybe they want the preview? 
+    # Let's stick to: If public, show specific meta. If not, show generic.
+    
+    if script and script.isPublic:
+        title = f"{script.title}｜Screenplay Reader"
+        desc = (script.content[:200] + "...") if script.content else "線上閱讀、瀏覽與分享 Fountain 劇本的閱讀器。"
+        desc = desc.replace('"', '&quot;').replace('\n', ' ')
+        
+        # Replace Title
+        html_content = html_content.replace("<title>Screenplay Reader</title>", f"<title>{title}</title>")
+        
+        # Replace OG Tags
+        html_content = html_content.replace('content="Screenplay Reader"', f'content="{script.title}"') # Naive replacement for OG Title if it matches default
+        html_content = html_content.replace('content="線上閱讀、瀏覽與分享 Fountain 劇本的閱讀器。"', f'content="{desc}"')
+        
+        # Or better, regex replacement or specific token if we prepared index.html
+        # Since we didn't prepare tokens, we'll do robust replacement:
+        # We know the specific strings from index.html
+        
+        # Helper to replace meta content
+        def replace_meta(html, property_name, new_content):
+            import re
+            pattern = rf'(<meta property="{property_name}" content=")([^"]*)(" />)'
+            return re.sub(pattern, rf'\g<1>{new_content}\g<3>', html)
+            
+        html_content = replace_meta(html_content, "og:title", script.title)
+        html_content = replace_meta(html_content, "og:description", desc)
+        # Also standard description
+        html_content = html_content.replace('<meta name="description" content="線上閱讀、瀏覽與分享 Fountain 劇本的閱讀器。" />', f'<meta name="description" content="{desc}" />')
+
+    return HTMLResponse(content=html_content)
+
+
+# Serve Static Files (SPA Fallback)
+from fastapi.staticfiles import StaticFiles
+
+if os.path.exists(DIST_DIR):
+    app.mount("/assets", StaticFiles(directory=os.path.join(DIST_DIR, "assets")), name="assets")
+    
+    # Catch-all for React Router (Must be last)
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        if os.path.exists(INDEX_PATH):
+             return HTMLResponse(content=open(INDEX_PATH, "r", encoding="utf-8").read())
+        return {"error": "Frontend not built"}

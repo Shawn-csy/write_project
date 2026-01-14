@@ -3,11 +3,11 @@ import { useScriptData } from "./write/useScriptData";
 import { useScriptActions } from "./write/useScriptActions";
 import { useScriptDragDrop } from "./write/useScriptDragDrop";
 
-export function useWriteTab() {
+export function useWriteTab(refreshTrigger) {
     const { markerThemes } = useSettings();
     
     // 1. Data & Navigation
-    const data = useScriptData();
+    const data = useScriptData(refreshTrigger);
     
     // 2. Actions
     const actions = useScriptActions({ 

@@ -10,12 +10,29 @@ import {
 import { Button } from "../ui/button";
 import { getPublicScripts } from "../../lib/db";
 import { FileRow } from "./FileRow";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
+
+import { useFileTree } from "../../hooks/useFileTree";
 
 export function ReadTab({ localFiles, onSelectLocalFile, onSelectPublicScript, enableLocalFiles, onImportFile, onImportAll }) {
     const [publicScripts, setPublicScripts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [expandedPublic, setExpandedPublic] = useState(new Set()); 
     const [publicCache, setPublicCache] = useState({}); 
+
+    // Import Confirmation State
+    const [importConfirmOpen, setImportConfirmOpen] = useState(false);
+    const [filesToImport, setFilesToImport] = useState([]);
+
+    // Use File Tree Hook for local files
+    const { filteredTree, openFolders, toggleFolder } = useFileTree(localFiles, "", {});
 
     useEffect(() => {
         getPublicScripts()
@@ -26,15 +43,21 @@ export function ReadTab({ localFiles, onSelectLocalFile, onSelectPublicScript, e
 
     const formatDate = (ts) => new Date(ts).toLocaleDateString();
 
-    const handleImport = async (e, file) => {
+    const handleImportClick = (e, files) => {
+        e.preventDefault();
         e.stopPropagation();
-        if (!confirm(`確定要將 ${file.name} 匯入到資料庫嗎？`)) return;
-        try {
-            await onImportFile(file);
-        } catch(err) {
-            console.error(err);
-            alert("匯入失敗");
+        setFilesToImport(files);
+        setImportConfirmOpen(true);
+    };
+
+    const confirmImport = async () => {
+        setImportConfirmOpen(false);
+        if (filesToImport.length === 1 && onImportFile) {
+            await onImportFile(filesToImport[0]);
+        } else if (filesToImport.length > 1 && onImportAll) {
+            await onImportAll(filesToImport);
         }
+        setFilesToImport([]);
     };
 
     const togglePublicExpand = async (e, item) => {
@@ -60,6 +83,91 @@ export function ReadTab({ localFiles, onSelectLocalFile, onSelectPublicScript, e
             }
         }
     };
+
+    const renderLocalItems = (nodes, level = 0) => {
+        if (!nodes) return null;
+        return nodes.map((node) => {
+            const isFolder = !!node.children;
+            const isOpen = openFolders.has(node.path);
+
+            return (
+                <React.Fragment key={node.path}>
+                    <FileRow
+                        style={{ paddingLeft: `${16 + (level * 20)}px` }}
+                        isFolder={true}
+                        icon={<Folder className={`w-4 h-4 ${isOpen ? "fill-blue-500/20" : ""}`} />}
+                        title={node.name}
+                        onClick={() => toggleFolder(node.path)}
+                    />
+                    {isOpen && (
+                         <>
+                            {renderLocalItems(node.children, level + 1)}
+                            {node.files.map(file => (
+                                <FileRow 
+                                    key={file.path}
+                                    style={{ paddingLeft: `${16 + ((level + 1) * 20)}px` }}
+                                    icon={<FileText className="w-4 h-4" />}
+                                    title={file.name}
+                                    meta={file.display} 
+                                    onClick={() => onSelectLocalFile(file)}
+                                    actions={
+                                        onImportFile && (
+                                            <div className="flex items-center">
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                                    onClick={(e) => handleImportClick(e, [file])}
+                                                    title="匯入到資料庫"
+                                                >
+                                                    <CloudUpload className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+                                        )
+                                    }
+                                />
+                            ))}
+                         </>
+                    )}
+                </React.Fragment>
+            );
+        });
+    };
+
+    // Helper to render root files that are not in any folder
+    const renderRoot = () => {
+        if (!filteredTree) return null;
+        return (
+            <>
+               {renderLocalItems(filteredTree.children)}
+               {filteredTree.files.map(file => (
+                   <FileRow 
+                        key={file.path}
+                        style={{ paddingLeft: "16px" }}
+                        icon={<FileText className="w-4 h-4" />}
+                        title={file.name}
+                        meta={file.display}
+                        onClick={() => onSelectLocalFile(file)}
+                        actions={
+                            onImportFile && (
+                                <div className="flex items-center">
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                        onClick={(e) => handleImportClick(e, [file])}
+                                        title="匯入到資料庫"
+                                    >
+                                        <CloudUpload className="w-4 h-4" />
+                                    </Button>
+                                </div>
+                            )
+                        }
+                    />
+               ))}
+            </>
+        )
+    }
 
     const renderPublicItems = (items, level = 0) => {
         if (!items) return null;
@@ -113,7 +221,7 @@ export function ReadTab({ localFiles, onSelectLocalFile, onSelectPublicScript, e
                             variant="outline" 
                             size="sm" 
                             className="h-7 text-xs gap-1"
-                            onClick={() => onImportAll(localFiles)}
+                            onClick={(e) => handleImportClick(e, localFiles)}
                         >
                             <CloudUpload className="w-3 h-3" /> 全部匯入
                         </Button>
@@ -123,30 +231,7 @@ export function ReadTab({ localFiles, onSelectLocalFile, onSelectPublicScript, e
                      {localFiles.length === 0 ? (
                         <p className="text-sm text-muted-foreground p-4">沒有本地檔案</p>
                     ) : (
-                        localFiles.map(file => (
-                            <FileRow 
-                                key={file.path}
-                                icon={<FileText className="w-4 h-4" />}
-                                title={file.name}
-                                meta={file.display}
-                                onClick={() => onSelectLocalFile(file)}
-                                actions={
-                                    onImportFile && (
-                                        <div className="flex items-center">
-                                            <Button 
-                                                variant="ghost" 
-                                                size="icon" 
-                                                className="h-8 w-8 text-muted-foreground hover:text-primary"
-                                                onClick={(e) => handleImport(e, file)}
-                                                title="匯入到資料庫"
-                                            >
-                                                <CloudUpload className="w-4 h-4" />
-                                            </Button>
-                                        </div>
-                                    )
-                                }
-                            />
-                        ))
+                        renderRoot()
                     )}
                 </div>
             </div>
@@ -170,6 +255,24 @@ export function ReadTab({ localFiles, onSelectLocalFile, onSelectPublicScript, e
                     )}
                 </div>
             </div>
+
+            <Dialog open={importConfirmOpen} onOpenChange={setImportConfirmOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>確認匯入</DialogTitle>
+                        <DialogDescription>
+                            {filesToImport.length === 1 
+                                ? `確定要將 "${filesToImport[0]?.name}" 匯入到資料庫嗎？`
+                                : `確定要將 ${filesToImport.length} 個本地檔案全部匯入雲端嗎？`
+                            }
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setImportConfirmOpen(false)}>取消</Button>
+                        <Button onClick={confirmImport}>確認匯入</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { getUserScripts } from "../../lib/db";
 
-export function useScriptData() {
+export function useScriptData(refreshTrigger = 0) {
     const { currentUser } = useAuth();
     const [scripts, setScripts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -25,7 +25,7 @@ export function useScriptData() {
 
     useEffect(() => {
         fetchScripts();
-    }, [currentUser]);
+    }, [currentUser, refreshTrigger]);
 
     // URL Sync
     useEffect(() => {

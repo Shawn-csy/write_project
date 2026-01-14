@@ -27,7 +27,14 @@ const whitespaceLabels = {
 
 // --- Node Renderer ---
 const NodeRenderer = ({ node, context, isDual = false }) => {
-    const { getCharacterColor } = context;
+    const { getCharacterColor, focusMode, focusEffect } = context;
+
+    // Helper for applying focus effect to non-dialogue nodes
+    const getFocusStyle = () => {
+        if (!focusMode) return {};
+        if (focusEffect === 'hide') return { display: 'none' };
+        return { opacity: 0.3, transition: 'opacity 0.3s' };
+    };
 
     switch (node.type) {
         case 'root':
@@ -38,8 +45,11 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
         
         case 'whitespace':
             const label = whitespaceLabels[node.kind] || '';
+            const style = getFocusStyle(); 
+            if (style.display === 'none') return null; // Optimization
+            
             return (
-                <div className={`whitespace-block whitespace-${node.kind}`}>
+                <div className={`whitespace-block whitespace-${node.kind}`} style={style}>
                     <div className="whitespace-line"></div>
                     <div className={`whitespace-line whitespace-label${label ? '' : ' whitespace-label-empty'}`}>{label}</div>
                     <div className="whitespace-line"></div>
@@ -53,6 +63,7 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
             return <SpeechNode node={node} context={context} isDual={isDual} NodeRenderer={NodeRenderer} />;
 
         case 'character':
+             // Should not happen directly usually, but if so:
              const cleanName = node.text.replace(/\s*\(.*\)$/, '').toUpperCase();
              const color = getCharacterColor(cleanName);
              return (
@@ -64,20 +75,30 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
              );
 
         case 'scene_heading':
+            const sceneStyle = getFocusStyle();
+            if (sceneStyle.display === 'none') return null;
+
             return (
-                <h3 id={node.id || node.scene_number || node.text} className="scene-heading font-bold mt-6 mb-2 text-lg uppercase pl-4 border-l-4 border-primary/50">
+                <h3 id={node.id || node.scene_number || node.text} 
+                    className="scene-heading font-bold mt-6 mb-2 text-lg uppercase pl-4 border-l-4 border-primary/50 transition-opacity"
+                    style={sceneStyle}
+                >
                     {node.text}
                 </h3>
             );
 
         case 'action':
+             const actionStyle = getFocusStyle();
+             if (actionStyle.display === 'none') return null;
+
              return (
-                 <p className="action my-2 whitespace-pre-wrap leading-relaxed">
+                 <p className="action my-2 whitespace-pre-wrap leading-relaxed transition-opacity" style={actionStyle}>
                      <InlineRenderer nodes={node.inline} context={context} />
                  </p>
              );
 
         case 'parenthetical':
+             // usually inside speech, handled by SpeechNode. If loose, apply style.
              return (
                  <div className={`parenthetical -mt-0 mb-0 text-center w-full mx-auto text-sm opacity-80 ${isDual ? 'max-w-full' : 'max-w-[50%]'}`}>
                      <InlineRenderer nodes={node.inline} context={context} />
@@ -85,6 +106,7 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
              );
 
         case 'dialogue':
+             // usually inside speech
              return (
                  <div className={`dialogue my-0 mb-4 w-full mx-auto text-center whitespace-pre-wrap leading-relaxed ${isDual ? 'max-w-full' : 'max-w-[80%]'}`}>
                      <InlineRenderer nodes={node.inline} context={context} />
@@ -92,15 +114,21 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
              );
         
         case 'transition':
+             const transStyle = getFocusStyle();
+             if (transStyle.display === 'none') return null;
+
              return (
-                 <div className="transition text-right font-bold uppercase my-4">
+                 <div className="transition text-right font-bold uppercase my-4 transition-opacity" style={transStyle}>
                      {node.text}
                  </div>
              );
 
         case 'centered':
+             const centerStyle = getFocusStyle();
+             if (centerStyle.display === 'none') return null;
+
              return (
-                 <div className="centered text-center my-4 uppercase">
+                 <div className="centered text-center my-4 uppercase transition-opacity" style={centerStyle}>
                     <InlineRenderer nodes={node.inline || [{type:'text', content:node.text}]} context={context} />
                  </div>
              );
@@ -120,6 +148,7 @@ export const ScriptRenderer = React.memo(({
     filterCharacter, 
     focusMode, 
     focusEffect, 
+    focusContentMode,
     themePalette, 
     colorCache,
     markerConfigs = [],
@@ -134,6 +163,7 @@ export const ScriptRenderer = React.memo(({
         filterCharacter,
         focusMode,
         focusEffect,
+        focusContentMode,
         getCharacterColor,
         markerConfigs
     };

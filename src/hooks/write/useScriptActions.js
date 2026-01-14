@@ -12,6 +12,24 @@ export function useScriptActions({
     const [newTitle, setNewTitle] = useState("");
     const [newType, setNewType] = useState("script");
     const [creating, setCreating] = useState(false);
+    
+    // Rename State
+    const [isRenameOpen, setIsRenameOpen] = useState(false);
+    const [renameId, setRenameId] = useState(null);
+    const [renameTitle, setRenameTitle] = useState("");
+    const [renameType, setRenameType] = useState("script");
+    const [oldRenameTitle, setOldRenameTitle] = useState(""); // Track old name for folder rename
+    const [oldRenameFolder, setOldRenameFolder] = useState(""); // Track old folder path
+    const [renaming, setRenaming] = useState(false);
+
+    const openRenameDialog = (item) => {
+        setRenameId(item.id);
+        setRenameTitle(item.title);
+        setOldRenameTitle(item.title);
+        setOldRenameFolder(item.folder); // We need this for folder rename logic
+        setRenameType(item.type || 'script');
+        setIsRenameOpen(true);
+    };
 
     const handleCreate = async () => {
         if (!newTitle.trim()) return;
@@ -25,6 +43,53 @@ export function useScriptActions({
             console.error(error);
         } finally {
             setCreating(false);
+        }
+    };
+
+    const handleRename = async () => {
+        if (!renameTitle.trim() || renameTitle === oldRenameTitle) {
+            setIsRenameOpen(false);
+            return;
+        }
+        setRenaming(true);
+        try {
+            // 1. Rename the item itself
+            await updateScript(renameId, { title: renameTitle });
+
+            // 2. If it's a folder, update all children
+            if (renameType === 'folder') {
+                const oldPrefix = (oldRenameFolder === '/' ? '' : oldRenameFolder) + '/' + oldRenameTitle;
+                const newPrefix = (oldRenameFolder === '/' ? '' : oldRenameFolder) + '/' + renameTitle;
+                
+                // Find all scripts that are in this folder or subfolders
+                const children = scripts.filter(s => s.folder === oldPrefix || s.folder.startsWith(oldPrefix + '/'));
+                
+                // Update their folder path
+                await Promise.all(children.map(c => {
+                    const newFolder = c.folder.replace(oldPrefix, newPrefix);
+                    return updateScript(c.id, { folder: newFolder });
+                }));
+            }
+
+            // Update local state optimistic (optional, but fetchScripts handles it)
+            setScripts(prev => prev.map(s => {
+                if (s.id === renameId) return { ...s, title: renameTitle };
+                if (renameType === 'folder') {
+                    const oldPrefix = (oldRenameFolder === '/' ? '' : oldRenameFolder) + '/' + oldRenameTitle;
+                    const newPrefix = (oldRenameFolder === '/' ? '' : oldRenameFolder) + '/' + renameTitle;
+                    if (s.folder === oldPrefix || s.folder.startsWith(oldPrefix + '/')) {
+                        return { ...s, folder: s.folder.replace(oldPrefix, newPrefix) };
+                    }
+                }
+                return s;
+            }));
+
+            setIsRenameOpen(false);
+            fetchScripts();
+        } catch (error) {
+            console.error("Rename failed", error);
+        } finally {
+            setRenaming(false);
         }
     };
 
@@ -42,6 +107,7 @@ export function useScriptActions({
     const handleTogglePublic = async (e, item) => {
         e.stopPropagation();
         const newStatus = !item.isPublic;
+        // Logic for folder confirmation
         if (item.type === 'folder' && !confirm(newStatus ? "確定要將此資料夾內所有內容設為公開嗎？" : "確定要將此資料夾內所有內容設為私有嗎？")) {
              return;
         }
@@ -77,6 +143,13 @@ export function useScriptActions({
         creating,
         handleCreate,
         handleDelete,
-        handleTogglePublic
+        handleTogglePublic,
+        // Rename Exports
+        isRenameOpen, setIsRenameOpen,
+        renameTitle, setRenameTitle,
+        renameType,
+        openRenameDialog,
+        handleRename,
+        renaming
     };
 }

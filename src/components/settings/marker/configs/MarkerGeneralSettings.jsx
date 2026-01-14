@@ -5,15 +5,18 @@ export function MarkerGeneralSettings({ config, idx, updateMarker, setExpandedId
     return (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 items-end">
             <div className="col-span-1 space-y-1">
-                <label className="text-[10px] uppercase text-muted-foreground font-semibold">標記名稱</label>
+                <label className="text-[10px] uppercase text-muted-foreground font-semibold">標記名稱 <span className="text-red-500">*</span></label>
                 <Input 
                     value={config.label || ''} 
                     onChange={(e) => updateMarker(idx, 'label', e.target.value)}
-                    className="h-8 text-xs"
+                    className={`h-8 text-xs ${!config.label ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                 />
+                {!config.label && (
+                    <p className="text-[10px] text-red-500 font-medium">必填</p>
+                )}
             </div>
             <div className="col-span-1 space-y-1">
-                <label className="text-[10px] uppercase text-muted-foreground font-semibold">代碼 (ID)</label>
+                <label className="text-[10px] uppercase text-muted-foreground font-semibold">代碼 (ID) <span className="text-red-500">*</span></label>
                 <Input 
                     defaultValue={config.id || ''} 
                     onBlur={(e) => {
@@ -23,9 +26,12 @@ export function MarkerGeneralSettings({ config, idx, updateMarker, setExpandedId
                             setExpandedId(newId);
                          }
                     }}
-                    className="h-8 text-xs font-mono"
+                    className={`h-8 text-xs font-mono ${!config.id ? 'border-red-500 focus-visible:ring-red-500' : ''}`} 
                     placeholder="unique-id"
                 />
+                {!config.id && (
+                    <p className="text-[10px] text-red-500 font-medium">必填</p>
+                )}
             </div>
              <div className="col-span-1 space-y-1">
                 <label className="text-[10px] uppercase text-muted-foreground font-semibold">類型</label>

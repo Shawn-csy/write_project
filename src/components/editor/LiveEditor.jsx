@@ -1,20 +1,22 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { EditorView } from "@codemirror/view";
 import { updateScript, getScript } from "../../lib/db";
-import { Loader2, ArrowLeft, Save, Eye, EyeOff, Columns, BarChart2, Download } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { fountainLanguage } from "./fountain-mode";
 import { debounce } from "lodash";
-import UserMenu from "../auth/UserMenu";
-import ScriptViewer from "../ScriptViewer";
-import StatsDialog from "./StatsDialog";
+import { StatisticsPanel } from "../statistics/StatisticsPanel";
+
+import { parseScreenplay } from "../../lib/screenplayAST";
 import { useSettings } from "../../contexts/SettingsContext";
+import { useEditorSync } from "../../hooks/useEditorSync";
 
-// Basic Fountain highlighting (can be improved later)
-// For now treating it as Markdown which is close enough for Phase 1
+import { EditorHeader } from "./EditorHeader";
+import { PreviewPanel } from "./PreviewPanel";
+import { MarkerRulesPanel } from "./MarkerRulesPanel";
 
-export default function LiveEditor({ scriptId, initialData, onClose, initialSceneId, defaultShowPreview = false, readOnly = false, onRequestEdit }) {
+export default function LiveEditor({ scriptId, initialData, onClose, initialSceneId, defaultShowPreview = false, readOnly = false, onRequestEdit, onOpenMarkerSettings, contentScrollRef, isSidebarOpen, onSetSidebarOpen, onTitleHtml, onHasTitle, onTitleNote, onTitleSummary, onTitleName }) {
   const {
     theme = "system",
     fontSize,
@@ -31,10 +33,34 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   const [lastSaved, setLastSaved] = useState(null);
   const [showPreview, setShowPreview] = useState(defaultShowPreview || readOnly);
   const [showStats, setShowStats] = useState(false);
+  const [showRules, setShowRules] = useState(false);
 
-  // Load initial script if not provided or if switching IDs
+  // Parse AST for Statistics & Sync
+  const { ast } = useMemo(() => {
+    return parseScreenplay(content || "", markerConfigs);
+  }, [content, markerConfigs]);
+
+  // Sync Hook
+  const {
+    previewRef,
+    editorViewRef,
+    scrollSyncExtension,
+    highlightExtension,
+    handleViewUpdate,
+    handleEditorScroll,
+    setEditorReady,
+    scrollEditorToLine,
+    highlightEditorLine,
+    clearHighlightLine
+    // scenes (if needed later)
+  } = useEditorSync({ readOnly, showPreview });
+
+  // Track scenes for stats? (No, logic was moved to useEditorSync but useEditorSync doesn't export setScenes/scenes except active).
+  // Originally LiveEditor passed setScenes to ScriptViewer.
+  const [scenes, setScenes] = useState([]); // Kept for ScriptViewer prop compatibility if needed
+
+  // Load initial script
   useEffect(() => {
-    // If we have initialData matching this ID AND it has content defined, use it
     if (initialData && initialData.id === scriptId && initialData.content !== undefined) {
       setContent(initialData.content);
       setTitle(initialData.title || "Untitled");
@@ -58,7 +84,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     load();
   }, [scriptId, initialData]);
 
-  // Debounced save function
+  // Debounced save
   const debouncedSave = useCallback(
     debounce(async (id, newContent, newTitle) => {
       setSaving(true);
@@ -84,6 +110,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   const handleTitleUpdate = (newTitle) => {
     if (newTitle && newTitle !== title) {
         setTitle(newTitle);
+        onTitleName?.(newTitle);
         if (!readOnly) {
             debouncedSave(scriptId, content, newTitle);
         }
@@ -95,15 +122,78 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     const file = new Blob([content], { type: "text/plain" });
     element.href = URL.createObjectURL(file);
     element.download = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || "script"}.fountain`;
-    document.body.appendChild(element); // Required for this to work in FireFox
+    document.body.appendChild(element); 
     element.click();
     document.body.removeChild(element);
   };
 
-  // For now, Print relies on the Preview pane being open or user browser print
-  // Ideally we use the iframe method from App.jsx, but for Phase 3 iteration 1, 
-  // we can just simple print window (LiveEditor hides other UI elements via CSS @media print if needed)
-  // But a better UX is the "Export PDF" button triggering the system print dialog.
+  const findLineIndex = useCallback((text) => {
+    if (!text) return -1;
+    const lines = (content || "").split("\n");
+    let idx = lines.findIndex((line) => line.includes(text));
+    if (idx !== -1) return idx;
+    const trimmed = text.trim();
+    if (!trimmed) return -1;
+    idx = lines.findIndex((line) => line.trim() === trimmed);
+    return idx;
+  }, [content]);
+
+  const handleLocateText = useCallback((text, lineNumber) => {
+    if (!text && !lineNumber) return;
+    if (readOnly) {
+      const container = previewRef.current;
+      if (!container) return;
+      const lines = (content || "").split("\n");
+      let idx = typeof lineNumber === "number" ? lineNumber - 1 : findLineIndex(text);
+      if (idx < 0) return;
+      const max = container.scrollHeight - container.clientHeight;
+      if (max <= 0) return;
+      const ratio = idx / Math.max(1, lines.length - 1);
+      container.scrollTo({ top: max * ratio, behavior: "smooth" });
+      return;
+    }
+
+    const idx = typeof lineNumber === "number" ? lineNumber : findLineIndex(text) + 1;
+    if (!idx || idx < 1) return;
+    scrollEditorToLine(idx, "smooth");
+    highlightEditorLine(idx);
+    setTimeout(() => {
+      clearHighlightLine();
+    }, 1200);
+  }, [content, findLineIndex, previewRef, readOnly, scrollEditorToLine, highlightEditorLine, clearHighlightLine]);
+
+  const setPreviewContainerRef = useCallback(
+    (node) => {
+      previewRef.current = node;
+      if (contentScrollRef) {
+        contentScrollRef.current = node;
+      }
+    },
+    [previewRef, contentScrollRef]
+  );
+
+  const handleBack = async () => {
+      debouncedSave.cancel();
+      try {
+          await updateScript(scriptId, { content, title });
+      } catch (e) {
+          console.error("Save on exit failed", e);
+      }
+      onClose();
+  };
+
+  const handleManualSave = () => {
+        if (!saving) {
+            debouncedSave.cancel();
+            setSaving(true);
+            updateScript(scriptId, { content, title })
+                .then(() => {
+                    setLastSaved(new Date());
+                })
+                .catch(err => console.error("Manual save failed", err))
+                .finally(() => setSaving(false));
+        }
+  };
 
   if (loading) {
     return (
@@ -113,107 +203,81 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     );
   }
 
-  // Track active scene based on cursor
-  const [scenes, setScenes] = useState([]);
-  const [activeSceneId, setActiveSceneId] = useState(initialSceneId);
-
-  const handleCursorUpdate = useCallback((update) => {
-      if (update.selectionSet) {
-          const line = update.state.doc.lineAt(update.state.selection.main.head).number;
-          // Find the scene corresponding to this line
-          // Scenes are sorted by line? usually.
-          // Find the last scene with scene.line <= currentLine
-          if (!scenes.length) return;
-          
-          // Simple search
-          let current = null;
-          for (let s of scenes) {
-              if (s.line <= line) {
-                  current = s;
-              } else {
-                  break; 
-              }
-          }
-          if (current) setActiveSceneId(current.id);
-      }
-  }, [scenes]);
-
   return (
-    <div className="flex flex-col h-full bg-background relative z-50">
-      {/* Header */}
-      {!readOnly && (
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card shrink-0">
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={() => onClose(activeSceneId)}
-            className="p-2 hover:bg-muted rounded-full transition-colors"
-            title="Back to Dashboard"
-          >
-            <ArrowLeft className="w-5 h-5 text-muted-foreground" />
-          </button>
-          <div>
-            <h2 className="font-semibold text-sm sm:text-base">{title}</h2>
-            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-               {saving ? (
-                 <span className="flex items-center gap-1">
-                   <Loader2 className="w-3 h-3 animate-spin" /> 儲存中...
-                 </span>
-               ) : lastSaved ? (
-                 <span className="flex items-center gap-1">
-                   <Save className="w-3 h-3" /> 已儲存 {lastSaved.toLocaleTimeString()}
-                 </span>
-               ) : (
-                 <span>準備就緒</span>
-               )}
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-            <button
-                onClick={handleDownload}
-                className="p-2 hover:bg-muted rounded-md transition-colors text-muted-foreground hover:text-foreground"
-                title="Download .fountain"
-            >
-                <Download className="w-4 h-4" />
-            </button>
-            <button
-                onClick={() => setShowStats(true)}
-                className="p-2 hover:bg-muted rounded-md transition-colors text-muted-foreground hover:text-foreground"
-                title="Statistics"
-            >
-                <BarChart2 className="w-4 h-4" />
-            </button>
-            <button
-                onClick={() => setShowPreview(!showPreview)}
-                className={`p-2 rounded-md transition-colors flex items-center gap-2 text-sm ${showPreview ? "bg-primary/10 text-primary" : "hover:bg-muted text-muted-foreground"}`}
-                title="Toggle Live Preview"
-            >
-                {showPreview ? <Columns className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                <span className="hidden sm:inline">{showPreview ? "編輯+預覽" : "預覽模式"}</span>
-            </button>
-        </div>
-      </div>
-      )}
+    <div className="flex flex-col h-full bg-background relative z-0">
+      <EditorHeader 
+        readOnly={readOnly}
+        title={title}
+        onBack={handleBack}
+        onManualSave={handleManualSave}
+        saving={saving}
+        lastSaved={lastSaved}
+        showRules={showRules}
+        onToggleRules={() => setShowRules(prev => !prev)}
+        onDownload={handleDownload}
+        onToggleStats={() => setShowStats(true)}
+        showPreview={showPreview}
+        onTogglePreview={() => setShowPreview(!showPreview)}
+        isSidebarOpen={isSidebarOpen}
+        onSetSidebarOpen={onSetSidebarOpen}
+        onTitleChange={handleTitleUpdate}
+      />
 
       {/* Editor Area */}
       <div className="flex-1 overflow-hidden relative flex">
         {/* Code Editor Pane */}
         {!readOnly && (
-            <div className={`h-full ${showPreview ? "w-1/2 border-r border-border" : "w-full"} transition-all duration-300`}>
+            <div className={`h-full ${showPreview ? "w-1/2 border-r border-border" : "w-full"} transition-all duration-300 flex flex-col`}>
                 <CodeMirror
                 value={content}
                 height="100%"
                 theme={oneDark} 
+                onCreateEditor={(view) => {
+                    editorViewRef.current = view;
+                    setEditorReady(true);
+                    handleEditorScroll();
+                }}
                 extensions={
                     (initialData?.type === 'script' || !initialData?.type) 
-                    ? [fountainLanguage, EditorView.lineWrapping] 
-                    : [EditorView.lineWrapping] 
+                    ? [
+                        fountainLanguage, 
+                        EditorView.lineWrapping,
+                        scrollSyncExtension,
+                        highlightExtension,
+                        EditorView.theme({
+                            ".cm-gutters": {
+                                backgroundColor: "hsl(var(--muted) / 0.3)",
+                                color: "hsl(var(--muted-foreground) / 0.6)",
+                                borderRight: "1px solid hsl(var(--border) / 0.6)",
+                                userSelect: "none",
+                                minWidth: "30px"
+                            },
+                            ".cm-lineNumbers .cm-gutterElement": {
+                                paddingLeft: "4px",
+                                cursor: "default",
+                                userSelect: "none"
+                            }
+                        })
+                      ] 
+                    : [
+                        EditorView.lineWrapping, 
+                        scrollSyncExtension,
+                        highlightExtension,
+                        EditorView.theme({
+                            ".cm-gutters": {
+                                backgroundColor: "hsl(var(--muted) / 0.3)",
+                                color: "hsl(var(--muted-foreground) / 0.6)",
+                                borderRight: "1px solid hsl(var(--border) / 0.6)",
+                                userSelect: "none"
+                            }
+                        })
+                      ] 
                 }
                 onChange={handleChange}
-                onUpdate={handleCursorUpdate}
-                className="h-full text-base font-mono"
+                onUpdate={handleViewUpdate}
+                className="h-full text-base font-mono flex-1 overflow-hidden"
                 basicSetup={{
-                    lineNumbers: false,
+                    lineNumbers: true,
                     foldGutter: false,
                     highlightActiveLine: false,
                 }}
@@ -222,37 +286,55 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
         )}
 
         {/* Preview Pane */}
-        {(showPreview || readOnly) && (
-             <div className={`${readOnly ? "w-full" : "w-1/2"} h-full overflow-hidden bg-background`}>
-                 <div 
-                    className="h-full overflow-y-auto px-4 py-8"
-                    onDoubleClick={() => {
-                        if (readOnly && onRequestEdit) onRequestEdit();
-                    }}
-                 >
-                    <ScriptViewer 
-                        text={content}
-                        type={initialData?.type || "script"}
-                        theme={theme === 'dark' ? 'dark' : 'light'}
-                        fontSize={fontSize}
-                        bodyFontSize={bodyFontSize}
-                        dialogueFontSize={dialogueFontSize}
-                        accentColor={accentConfig?.accent}
-                        markerConfigs={markerConfigs}
-                        onTitleName={handleTitleUpdate}
-                        scrollToScene={initialSceneId}
-                        onScenes={setScenes} // Capture scenes
-                    />
-                 </div>
-             </div>
-        )}
-      </div>
+        <PreviewPanel 
+            ref={setPreviewContainerRef}
+            show={showPreview}
+            readOnly={readOnly}
+            content={content}
+            type={initialData?.type || "script"}
+            theme={theme === 'dark' ? 'dark' : 'light'}
+            fontSize={fontSize}
+            bodyFontSize={bodyFontSize}
+            dialogueFontSize={dialogueFontSize}
+            accentColor={accentConfig?.accent}
+            markerConfigs={markerConfigs}
+            onTitleName={handleTitleUpdate}
+            onTitleHtml={onTitleHtml}
+            onHasTitle={onHasTitle}
+            onTitleNote={onTitleNote}
+            onTitleSummary={onTitleSummary}
+            initialSceneId={initialSceneId}
+            onScenes={setScenes}
+            onRequestEdit={readOnly ? onRequestEdit : undefined}
+        />
 
-      <StatsDialog 
-        open={showStats} 
-        onOpenChange={setShowStats} 
-        content={content} 
-      />
+        {/* Stats Side Panel (Non-modal) */}
+        {showStats && (
+            <div className="w-[400px] border-l border-border bg-background shrink-0 flex flex-col h-full shadow-xl z-20 transition-all duration-300">
+                <div className="h-12 border-b flex items-center px-4 shrink-0 bg-muted/20 gap-3">
+                    <button 
+                        onClick={() => setShowStats(false)} 
+                        className="text-muted-foreground hover:text-foreground text-sm"
+                    >
+                        ✕
+                    </button>
+                    <h3 className="font-semibold text-sm">統計分析面板</h3>
+                </div>
+                <div className="flex-1 min-h-0 overflow-hidden">
+                    <StatisticsPanel rawScript={content} scriptAst={ast} onLocateText={handleLocateText} />
+                </div>
+            </div>
+        )}
+
+        <MarkerRulesPanel 
+            show={showRules} 
+            onClose={() => setShowRules(false)}
+            markerConfigs={markerConfigs}
+            readOnly={readOnly}
+            onOpenMarkerSettings={onOpenMarkerSettings}
+        />
+
+      </div>
     </div>
   );
 }

@@ -9,7 +9,7 @@ export default function CloudEditorPage({ scriptManager, navProps }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const nav = useAppNavigation(); // We might need to lift nav too, but keeping consistent for now
+  // nav removed as it was unused and shadowed navProps.nav
   
   // Script Manager Context
   const { 
@@ -68,6 +68,18 @@ export default function CloudEditorPage({ scriptManager, navProps }) {
         }}
         initialSceneId={currentSceneId}
         defaultShowPreview={true}
+        contentScrollRef={navProps?.contentScrollRef}
+        onTitleHtml={scriptManager.setTitleHtml}
+        onHasTitle={scriptManager.setHasTitle}
+        onTitleNote={scriptManager.setTitleNote}
+        onTitleSummary={scriptManager.setTitleSummary}
+        onTitleName={scriptManager.setTitleName}
+        onOpenMarkerSettings={() => {
+            navProps.nav.setSettingsTab("markers");
+            navProps.nav.setSettingsOpen(true);
+        }}
+        isSidebarOpen={navProps.nav.isDesktopSidebarOpen}
+        onSetSidebarOpen={navProps.nav.setSidebarOpen}
       />
   );
 }

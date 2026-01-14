@@ -7,7 +7,8 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from "../../components/ui/select"; // Adjust path if needed. ReaderControls is in src/components/reader/ so ../../components/ui/select
+} from "../../components/ui/select"; 
+
 
 export function ReaderControls({
     sceneList = [],
@@ -16,34 +17,38 @@ export function ReaderControls({
     characterList = [],
     filterCharacter,
     setFilterCharacter,
-    setFocusMode
+
+    setFocusMode,
+    isFocusMode,
+    markerThemes,
+    currentThemeId,
+    switchTheme
 }) {
     return (
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3 lg:flex-nowrap w-full sm:w-auto sm:items-center">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap sm:gap-3 lg:flex-nowrap w-full sm:w-auto sm:items-center">
             {sceneList.length > 0 && (
-                <div className="w-full sm:min-w-[200px] sm:w-auto">
-                  <Select
-                    value={currentSceneId || "__top__"}
-                    onValueChange={(val) => {
-                      const next = val === "__top__" ? "" : val;
-                      onSelectScene?.(next);
-                    }}
-                  >
-                    <SelectTrigger className="h-10 px-3 text-sm w-full bg-muted/40 hover:bg-muted/60 border-transparent hover:border-border transition-all font-medium">
-                      <SelectValue placeholder="場景跳轉" />
-                    </SelectTrigger>
-                    <SelectContent align="start" className="max-h-[300px]">
-                      <SelectGroup>
-                        <SelectLabel>場景列表</SelectLabel>
-                        <SelectItem value="__top__">回到開頭</SelectItem>
-                        {sceneList.map((scene) => (
-                          <SelectItem key={scene.id} value={scene.id} className="font-mono text-xs sm:text-sm py-2.5">
-                            {scene.label}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
+                <div className="w-full sm:min-w-[150px] sm:w-auto">
+                    <Select
+                        value={currentSceneId}
+                        onValueChange={onSelectScene}
+                    >
+                        <SelectTrigger className="h-10 px-3 text-sm w-full bg-muted/40 hover:bg-muted/60 border-transparent hover:border-border transition-all font-medium">
+                            <SelectValue placeholder="選擇場景" />
+                        </SelectTrigger>
+                        <SelectContent align="start" className="max-h-[300px]">
+                            <SelectGroup>
+                                <SelectLabel>場景</SelectLabel>
+                                {sceneList.map((scene) => (
+                                    <SelectItem key={scene.id} value={scene.id} className="font-semibold">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-muted-foreground text-xs min-w-[20px]">{scene.index}</span>
+                                            <span className="truncate">{scene.header}</span>
+                                        </div>
+                                    </SelectItem>
+                                ))}
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
                 </div>
             )}
             {characterList.length > 0 && (

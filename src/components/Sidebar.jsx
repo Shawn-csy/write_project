@@ -109,53 +109,80 @@ function Sidebar({
                          </button>
                      ))}
                  </div>
+             ) : !activeFile ? (
+                <>
+                {/* Quick Navigation when no file is active */}
+                <div className="space-y-1">
+                    <Button 
+                        onClick={handleHome} 
+                        variant="ghost" 
+                        className="w-full justify-start text-xs h-9 font-normal text-muted-foreground hover:text-foreground"
+                    >
+                        <Home className="w-4 h-4 mr-2" />
+                        閱讀 (Read)
+                    </Button>
+                    <Button 
+                        onClick={() => { handleHome(); }} 
+                        variant="ghost" 
+                        className="w-full justify-start text-xs h-9 font-normal text-muted-foreground hover:text-foreground"
+                    >
+                        <AlignLeft className="w-4 h-4 mr-2" />
+                        寫作 (Write)
+                    </Button>
+                    <Button 
+                        onClick={() => { openAbout(); closeSidebarIfMobile(); }} 
+                        variant="ghost" 
+                        className="w-full justify-start text-xs h-9 font-normal text-muted-foreground hover:text-foreground"
+                    >
+                        <Info className="w-4 h-4 mr-2" />
+                        關於 (About)
+                    </Button>
+                    <Button 
+                        onClick={() => { openSettings(); closeSidebarIfMobile(); }} 
+                        variant="ghost" 
+                        className="w-full justify-start text-xs h-9 font-normal text-muted-foreground hover:text-foreground"
+                    >
+                        <Settings className="w-4 h-4 mr-2" />
+                        設定 (Settings)
+                    </Button>
+                </div>
+                </>
              ) : (
                 <div className="flex flex-col items-center justify-center h-40 text-muted-foreground gap-3 p-4 text-center">
-                   {activeFile ? (
-                       <p className="text-xs">此劇本沒有場景標題</p>
-                   ) : (
-                       <Button onClick={handleHome} variant="outline" size="sm" className="w-full text-xs h-8">
-                           Go to Dashboard
-                       </Button>
-                   )}
+                   <p className="text-xs">此劇本沒有場景標題</p>
                 </div>
              )}
           </div>
       </div>
 
       {/* Footer */}
-      <div className="mt-auto border-t border-border/40 p-3 flex flex-col gap-2 shrink-0 bg-background/20 backdrop-blur-sm">
-        {/* User Profile Block */}
-        <div className="pb-2 border-b border-border/40">
-            <UserMenu />
-        </div>
+      {/* Footer */}
+      <div className="mt-auto border-t border-border/40 p-3 shrink-0 bg-background/20 backdrop-blur-sm space-y-2">
+        {/* User Profile */}
+        <UserMenu />
         
-        {/* App Meta Actions */}
-        <div className="flex items-center gap-1 pt-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="flex-1 justify-start gap-2 h-8 text-xs font-medium text-muted-foreground hover:text-foreground px-2"
-            onClick={() => {
-              openAbout();
-              closeSidebarIfMobile();
-            }}
-          >
-            <Info className="h-3.5 w-3.5" />
-            About
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            onClick={(e) => {
-                e.stopPropagation();
-                openSettings();
-                closeSidebarIfMobile();
-            }}
-          >
-             <Settings className="h-3.5 w-3.5" />
-          </Button>
+        {/* App Actions (Settings, About) */}
+        <div className="flex items-center gap-1">
+             <Button 
+                variant="ghost" 
+                size="sm"
+                className="flex-1 justify-start h-8 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                onClick={() => { openSettings(); closeSidebarIfMobile(); }}
+                title="設定 (Settings)"
+            >
+                <Settings className="w-4 h-4 mr-2" />
+                <span className="truncate">設定</span>
+            </Button>
+            
+            <Button 
+                variant="ghost" 
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/60 shrink-0"
+                onClick={() => { openAbout(); closeSidebarIfMobile(); }}
+                title="關於 (About)"
+            >
+                <Info className="w-4 h-4" />
+            </Button>
         </div>
       </div>
     </aside>

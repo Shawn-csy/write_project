@@ -1,7 +1,20 @@
 import React from "react";
-import { Loader2, Plus, Download, Trash2, Folder, ChevronRight, FileText } from "lucide-react";
+import { Loader2, Plus, Download, Trash2, Folder, ChevronRight, FileText, MoreHorizontal, Settings, Globe, Check } from "lucide-react";
 import { Button } from "../../ui/button";
 import { FileRow, SortableFileRow } from "../FileRow";
+import { 
+    DropdownMenu, 
+    DropdownMenuContent, 
+    DropdownMenuItem, 
+    DropdownMenuLabel, 
+    DropdownMenuSeparator, 
+    DropdownMenuTrigger,
+    DropdownMenuSub,
+    DropdownMenuSubTrigger,
+    DropdownMenuSubContent,
+    DropdownMenuRadioGroup, 
+    DropdownMenuRadioItem
+} from "../../ui/dropdown-menu";
 import { 
     DndContext, 
     closestCenter,
@@ -66,6 +79,7 @@ export function ScriptList({
     onToggleExpand,
     onDelete,
     onTogglePublic,
+    onRename, // Add this
     onGoUp,
     
     // Drag Props
@@ -107,12 +121,8 @@ export function ScriptList({
                          <div className="flex-1">名稱</div>
                          <div className="w-24 text-right hidden sm:block">字數 (約)</div>
                          <div className="w-32 text-right hidden sm:block">修改日期</div>
-                         <div className="w-20 text-center">狀態</div>
-                         <div className="flex-1">名稱</div>
-                         <div className="w-24 text-right hidden sm:block">字數 (約)</div>
-                         <div className="w-32 text-right hidden sm:block">修改日期</div>
                          <div className="w-28 text-center hidden md:block">標記主題</div>
-                         <div className="w-20 text-center">狀態</div>
+                         <div className="w-20 text-center hidden sm:block">狀態</div>
                          <div className="w-10"></div>
                      </div>
 
@@ -151,10 +161,22 @@ export function ScriptList({
                                     title={item.title || "Untitled"}
                                     meta={
                                         item.type === 'folder' ? null : (
-                                        <div className="flex items-center gap-2 text-xs text-muted-foreground w-full">
-                                            <span>{displayDate}</span>
-                                            <span>·</span>
-                                            <span className="truncate max-w-[100px]">{displayAuthor}</span>
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground w-full flex-wrap">
+                                            <span className="hidden sm:inline">{displayDate}</span>
+                                            <span className="hidden sm:inline">·</span>
+                                            <span className="truncate max-w-[100px] hidden sm:inline">{displayAuthor}</span>
+                                            
+                                            {/* Mobile: Show theme and public status */}
+                                            <div className="flex items-center gap-1 sm:hidden">
+                                                {item.markerThemeId && markerThemes && (
+                                                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-600 border border-blue-200">
+                                                        {markerThemes.find(t => t.id === item.markerThemeId)?.name || '主題'}
+                                                    </span>
+                                                )}
+                                                <span className={`px-1.5 py-0.5 rounded text-[10px] border ${item.isPublic ? 'bg-green-500/10 text-green-600 border-green-200' : 'bg-muted text-muted-foreground border-border'}`}>
+                                                    {item.isPublic ? 'Public' : 'Private'}
+                                                </span>
+                                            </div>
                                         </div>
                                         )
                                     }
@@ -170,6 +192,7 @@ export function ScriptList({
                                     }}
                                 actions={
                                     <>
+
                                      {item.type !== 'folder' && (
                                          <>
                                             <div className="w-24 text-right text-xs text-muted-foreground hidden sm:block">
@@ -185,7 +208,7 @@ export function ScriptList({
                                             <div className="w-28 hidden md:block"></div>
                                          </>
                                      )}
-                                        {/* Theme Selector */}
+                                        {/* Theme Selector (Desktop Only) */}
                                         {item.type !== 'folder' && !readOnly && (
                                             <div className="w-28 text-center hidden md:block" onClick={e => e.stopPropagation()}>
                                                 <select 
@@ -194,7 +217,6 @@ export function ScriptList({
                                                     onChange={async (e) => {
                                                         const newVal = e.target.value;
                                                         try {
-                                                            // Optimistic Update
                                                             setScripts(prev => prev.map(s => s.id === item.id ? { ...s, markerThemeId: newVal } : s));
                                                             await updateScript(item.id, { markerThemeId: newVal });
                                                         } catch(err) {
@@ -209,7 +231,9 @@ export function ScriptList({
                                                 </select>
                                             </div>
                                         )}
-                                        <div className="w-20 flex justify-center">
+                                        
+                                        {/* Public Status (Desktop Only or Icon) */}
+                                        <div className="w-20 flex justify-center hidden sm:flex">
                                             <div 
                                                 onClick={(e) => !readOnly && onTogglePublic(e, item)}
                                                 className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider border ${!readOnly ? "cursor-pointer hover:opacity-80" : ""} ${item.isPublic ? 'bg-green-500/10 text-green-600 border-green-200' : 'bg-muted text-muted-foreground border-border'}`}
@@ -218,28 +242,99 @@ export function ScriptList({
                                                 {item.isPublic ? "Public" : "Private"}
                                             </div>
                                         </div>
-                                     <div className="w-10 flex justify-end flex items-center gap-1">
-                                        {!readOnly && item.type !== 'folder' && (
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity" onClick={async (e) => {
-                                            e.stopPropagation();
-                                            const content = await assureContent(item);
-                                            const element = document.createElement("a");
-                                            const file = new Blob([content], { type: "text/plain" });
-                                            element.href = URL.createObjectURL(file);
-                                            element.download = `${(item.title || "script").replace(/[^a-z0-9]/gi, '_').toLowerCase()}.fountain`;
-                                            document.body.appendChild(element);
-                                            element.click();
-                                            document.body.removeChild(element);
-                                        }} title="下載 (Export)">
-                                            <Download className="w-4 h-4" />
-                                        </Button>
-                                        )}
-                                        {!readOnly && (
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => onDelete(e, item.id)}>
-                                            <Trash2 className="w-4 h-4" />
-                                        </Button>
-                                        )}
-                                     </div>
+
+                                        {/* Actions Dropdown (Replaces Hover Buttons) */}
+                                        <div className="w-10 flex justify-end items-center" onClick={e => e.stopPropagation()}>
+                                            {!readOnly && (
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                                                            <MoreHorizontal className="w-4 h-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-48">
+                                                        <DropdownMenuLabel>操作選項</DropdownMenuLabel>
+                                                        <DropdownMenuSeparator />
+                                                        
+                                                        <DropdownMenuItem onClick={(e) => onTogglePublic(e, item) }>
+                                                            <Globe className="w-4 h-4 mr-2" />
+                                                            <span>{item.isPublic ? "設為私人" : "設為公開"}</span>
+                                                        </DropdownMenuItem>
+
+                                                        {item.type !== 'folder' && (
+                                                            <DropdownMenuSub>
+                                                                <DropdownMenuSubTrigger>
+                                                                    <Settings className="w-4 h-4 mr-2" />
+                                                                    <span>標記主題</span>
+                                                                </DropdownMenuSubTrigger>
+                                                                <DropdownMenuSubContent>
+                                                                    <DropdownMenuRadioGroup 
+                                                                        value={item.markerThemeId || ""} 
+                                                                        onValueChange={async (val) => {
+                                                                             try {
+                                                                                const newVal = val === "__default__" ? "" : val;
+                                                                                setScripts(prev => prev.map(s => s.id === item.id ? { ...s, markerThemeId: newVal } : s));
+                                                                                await updateScript(item.id, { markerThemeId: newVal });
+                                                                            } catch(err) {
+                                                                                console.error("Theme update failed", err);
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <DropdownMenuRadioItem value="__default__">
+                                                                            (預設主題)
+                                                                        </DropdownMenuRadioItem>
+                                                                        {markerThemes.map(t => (
+                                                                            <DropdownMenuRadioItem key={t.id} value={t.id}>
+                                                                                {t.name}
+                                                                            </DropdownMenuRadioItem>
+                                                                        ))}
+                                                                    </DropdownMenuRadioGroup>
+                                                                </DropdownMenuSubContent>
+                                                            </DropdownMenuSub>
+                                                        )}
+
+                                                        <DropdownMenuSeparator />
+                                                        
+                                                        {item.type !== 'folder' && (
+                                                            <DropdownMenuItem onClick={async () => {
+                                                                const content = await assureContent(item);
+                                                                const element = document.createElement("a");
+                                                                const file = new Blob([content], { type: "text/plain" });
+                                                                element.href = URL.createObjectURL(file);
+                                                                element.download = `${(item.title || "script").replace(/[^a-z0-9]/gi, '_').toLowerCase()}.fountain`;
+                                                                document.body.appendChild(element);
+                                                                element.click();
+                                                                document.body.removeChild(element);
+                                                            }}>
+                                                                <Download className="w-4 h-4 mr-2" />
+                                                                <span>下載 .fountain</span>
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        
+                                                        <DropdownMenuItem 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                // onRename should trigger dialog with item
+                                                                onRename && onRename(item); 
+                                                            }}
+                                                        >
+                                                            <div className="flex items-center">
+                                                                <FileText className="w-4 h-4 mr-2" /> 
+                                                                <span>重新命名</span>
+                                                            </div>
+                                                        </DropdownMenuItem>
+
+                                                        <DropdownMenuItem 
+                                                            onClick={(e) => onDelete(e, item.id)}
+                                                            className="text-destructive focus:text-destructive"
+                                                        >
+                                                            <Trash2 className="w-4 h-4 mr-2" />
+                                                            <span>刪除</span>
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            )}
+                                        </div>
                                     </>
                                 }
                             />

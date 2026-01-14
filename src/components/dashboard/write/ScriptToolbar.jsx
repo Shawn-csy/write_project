@@ -34,12 +34,14 @@ export function ScriptToolbar({
              </div>
 
             <div className="flex items-center gap-2 text-sm text-muted-foreground overflow-hidden px-2">
+                {currentPath !== '/' && (
                 <button 
                     onClick={() => navigateTo("/")}
-                    className={`flex items-center hover:text-foreground transition-colors ${currentPath === '/' ? 'text-foreground font-semibold' : ''}`}
+                    className={`flex items-center hover:text-foreground transition-colors mr-1`}
                 >
-                    <Home className="w-4 h-4 mr-1" />
+                    <Home className="w-4 h-4" />
                 </button>
+                )}
                 {breadcrumbs.map((crumb, i) => (
                     <React.Fragment key={crumb.path}>
                         <ChevronRight className="w-3 h-3 opacity-50" />

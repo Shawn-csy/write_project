@@ -108,10 +108,13 @@ export function SettingsProvider({ children }) {
   // --- Cloud Sync ---
   // 1. Load from Cloud on Login
   useEffect(() => {
+      if (!currentUser) return; // Don't run if no user
+
       async function loadSettings() {
           const data = await fetchUserSettings(currentUser);
           if (data) {
                   if (data.settings && Object.keys(data.settings).length > 0) {
+                      console.log("Applying cloud settings...");
                       isRemoteUpdate.current = true;
                       const s = data.settings;
                       
@@ -136,6 +139,25 @@ export function SettingsProvider({ children }) {
 
                       // Reset flag after render cycle
                       setTimeout(() => { isRemoteUpdate.current = false; }, 100);
+                  } else {
+                      // CLOUD IS EMPTY: Push current local settings to cloud
+                      // This ensures initial sync for new users or first-time login
+                      console.log("Cloud settings empty, syncing local to cloud...");
+                       const payload = {
+                          accent,
+                          fontSize,
+                          bodyFontSize,
+                          dialogueFontSize,
+                          exportMode,
+                          fileLabelMode,
+                          focusEffect,
+                          focusContentMode,
+                          highlightCharacters,
+                          highlightSfx,
+                          enableLocalFiles,
+                          currentThemeId: themes.currentThemeId
+                      };
+                      await saveUserSettings(currentUser, payload);
                   }
               }
       }

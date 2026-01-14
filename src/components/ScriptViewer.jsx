@@ -172,6 +172,7 @@ function ScriptViewer({
          filterCharacter={filterCharacter}
          focusMode={focusMode}
          focusEffect={focusEffect}
+         focusContentMode={focusContentMode}
          themePalette={themePalette}
          colorCache={colorCache}
          markerConfigs={markerConfigs} // Pass to renderer
@@ -240,6 +241,7 @@ function ScriptViewer({
         filterCharacter={filterCharacter}
         focusMode={focusMode}
         focusEffect={focusEffect}
+        focusContentMode={focusContentMode} // Pass this
         themePalette={themePalette}
         colorCache={colorCache}
         markerConfigs={markerConfigs} // Pass here too

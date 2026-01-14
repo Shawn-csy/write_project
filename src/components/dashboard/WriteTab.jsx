@@ -3,10 +3,11 @@ import { useWriteTab } from "../../hooks/useWriteTab";
 import { ScriptToolbar } from "./write/ScriptToolbar";
 import { ScriptList } from "./write/ScriptList";
 import { CreateScriptDialog } from "./write/CreateScriptDialog";
+import { RenameScriptDialog } from "./write/RenameScriptDialog";
 
-export function WriteTab({ onSelectScript, readOnly = false }) {
+export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     // Hooks
-    const manager = useWriteTab();
+    const manager = useWriteTab(refreshTrigger);
     
     // Breadcrumbs Logic
     const breadcrumbs = useMemo(() => {
@@ -72,6 +73,7 @@ export function WriteTab({ onSelectScript, readOnly = false }) {
                     onToggleExpand={manager.toggleExpand}
                     onDelete={manager.handleDelete}
                     onTogglePublic={manager.handleTogglePublic}
+                    onRename={manager.openRenameDialog}
                     onGoUp={manager.goUp}
                     onDragStart={manager.handleDragStart}
                     onDragEnd={manager.handleDragEnd}
@@ -91,6 +93,18 @@ export function WriteTab({ onSelectScript, readOnly = false }) {
                 handleCreate={manager.handleCreate}
                 creating={manager.creating}
                 currentPath={manager.currentPath}
+            />
+
+            {/* Rename Dialog */}
+            <RenameScriptDialog
+                open={manager.isRenameOpen}
+                onOpenChange={manager.setIsRenameOpen}
+                type={manager.renameType}
+                oldName={manager.oldRenameTitle} 
+                newName={manager.renameTitle}
+                setNewName={manager.setRenameTitle}
+                handleRename={manager.handleRename}
+                renaming={manager.renaming}
             />
         </div>
     );
