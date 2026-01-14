@@ -3,7 +3,7 @@ import { auth } from "./firebase";
 // Basic DB Layer wrapping API calls
 const API_BASE_URL = import.meta.env.VITE_API_URL || "/api"; 
 
-async function fetchApi(endpoint, options = {}) {
+async function fetchApi(endpoint, options = {}, retries = 3, backoff = 500) {
   const url = `${API_BASE_URL}${endpoint}`;
   
   // Use Firebase Auth UID if available, otherwise fallback to test-user (for local dev/unauthed compliance)
@@ -15,16 +15,26 @@ async function fetchApi(endpoint, options = {}) {
     ...options.headers,
   };
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
 
-  if (!response.ok) {
-    throw new Error(`API Error: ${response.statusText}`);
+    if (!response.ok) {
+       // If 5xx error, maybe retry? For now throw.
+       throw new Error(`API Error: ${response.statusText}`);
+    }
+
+    return response.json();
+  } catch (err) {
+    if (retries > 0) {
+      console.warn(`Fetch failed, retrying in ${backoff}ms... (${retries} left)`, err);
+      await new Promise(r => setTimeout(r, backoff));
+      return fetchApi(endpoint, options, retries - 1, backoff * 1.5);
+    }
+    throw err;
   }
-
-  return response.json();
 }
 // ... (rest of the file) ...
 // Below usage needs no change if I rename the const back to API_BASE_URL
