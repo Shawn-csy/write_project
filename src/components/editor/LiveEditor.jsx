@@ -174,7 +174,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   const debouncedSave = useCallback(
     debounce((id, newContent, newTitle) => {
       performSave(id, newContent, newTitle);
-    }, 5000), // Increased to 5s
+    }, 60000), // Increased to 60s
     []
   );
 
