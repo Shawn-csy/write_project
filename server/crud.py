@@ -173,7 +173,16 @@ def update_user(db: Session, user_id: str, user_update: schemas.UserCreate):
         setattr(db_user, key, value)
     
     db_user.lastLogin = int(time.time() * 1000)
-    db.commit()
+    try:
+        db.commit()
+    except Exception as e:
+        print(f"Error updating user: {e}")
+        db.rollback()
+        # Re-raise so main.py can handle specifics like 409 Conflict if needed, 
+        # or return None to signal failure.
+        # Given existing pattern, we might want to return None, but main.py expects success.
+        # Let's raise a ValueError or similar that main calls can catch.
+        raise e
     return db_user
 
 # Public & Search

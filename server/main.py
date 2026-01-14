@@ -175,7 +175,14 @@ def read_users_me(db: Session = Depends(get_db), ownerId: str = Depends(get_curr
 
 @app.put("/api/me")
 def update_user_me(user: schemas.UserCreate, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
-    crud.update_user(db, ownerId, user)
+    try:
+        crud.update_user(db, ownerId, user)
+    except Exception as e:
+        # Check for integrity error (e.g. unique handle)
+        print(f"Update failed: {e}")
+        if "UNIQUE constraint failed" in str(e): 
+             raise HTTPException(status_code=409, detail="Handle already taken")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
     return {"success": True}
 
 # Public
