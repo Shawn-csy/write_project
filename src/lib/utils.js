@@ -7,7 +7,7 @@ export function cn(...inputs) {
 
 export function debounce(func, wait) {
   let timeout;
-  return function executedFunction(...args) {
+  const debounced = function(...args) {
     const later = () => {
       clearTimeout(timeout);
       func(...args);
@@ -15,4 +15,10 @@ export function debounce(func, wait) {
     clearTimeout(timeout);
     timeout = setTimeout(later, wait);
   };
+  
+  debounced.cancel = () => {
+    clearTimeout(timeout);
+  };
+
+  return debounced;
 }
