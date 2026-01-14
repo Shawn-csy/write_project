@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useAppShortcuts } from "../hooks/useAppShortcuts";
 
@@ -16,11 +16,17 @@ export function GlobalListeners({ nav, adjustFont, filterCharacter, setFocusMode
     }, [nav.homeOpen, nav.aboutOpen, nav.settingsOpen, setShowTitle]);
 
     // 3. Reset overlays on route change
+    const prevPathRef = React.useRef(location.pathname);
+
     useEffect(() => {
-        if (location.pathname !== '/' && (nav.homeOpen || nav.aboutOpen || nav.settingsOpen)) {
-            nav.setHomeOpen(false);
-            nav.setAboutOpen(false);
-            nav.setSettingsOpen(false);
+        if (prevPathRef.current !== location.pathname) {
+            // Path changed
+            if (nav.homeOpen || nav.aboutOpen || nav.settingsOpen) {
+                 nav.setHomeOpen(false);
+                 nav.setAboutOpen(false);
+                 nav.setSettingsOpen(false);
+            }
+            prevPathRef.current = location.pathname;
         }
     }, [location.pathname, nav]);
 
