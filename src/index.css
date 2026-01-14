@@ -48,6 +48,26 @@
     --marker-color-slate: #475569;
     --marker-color-gray: #4b5563;
     --marker-color-zinc: #52525b;
+    
+    /* Morandi Palette (Default - Darker for Light Mode) */
+    --marker-color-verdigris: #4B8F84;
+    --marker-color-sage: #6B966A;
+    --marker-color-cadet: #6D8F8C;
+    --marker-color-steel: #587B88;
+    --marker-color-periwinkle: #7582C0;
+    --marker-color-pastel-rose: #B87B7B;
+    --marker-color-sand: #B89C72;
+    --marker-color-olive: #8C8C78;
+    --marker-color-warm-gray: #63625F;
+    --marker-color-orchid: #96708F;
+
+    /* Morandi High Contrast (Light Mode - Extra Dark) */
+    --marker-color-deep-teal: #26524C;
+    --marker-color-russet: #663A35;
+    --marker-color-slate-blue: #3D4C5C;
+    --marker-color-antique-gold: #70552D;
+    --marker-color-deep-iris: #4E4057;
+    --marker-color-charcoal: #333333;
   }
 
   .dark {
@@ -92,6 +112,26 @@
     --marker-color-slate: #94a3b8;
     --marker-color-gray: #9ca3af;
     --marker-color-zinc: #a1a1aa;
+
+    /* Morandi Palette (Dark Mode - Lighter) */
+    --marker-color-verdigris: #8CC9BE;
+    --marker-color-sage: #AED9AD;
+    --marker-color-cadet: #B0CCC9;
+    --marker-color-steel: #9ABCC9;
+    --marker-color-periwinkle: #BDC8F2;
+    --marker-color-pastel-rose: #EBC0C0;
+    --marker-color-sand: #E8D1AC;
+    --marker-color-olive: #CBCBBA;
+    --marker-color-warm-gray: #A8A7A4;
+    --marker-color-orchid: #D9B9D2;
+
+    /* Morandi High Contrast (Dark Mode - Brighter) */
+    --marker-color-deep-teal: #6EA39C;
+    --marker-color-russet: #B3837D;
+    --marker-color-slate-blue: #7D8D9E;
+    --marker-color-antique-gold: #BC9E6A;
+    --marker-color-deep-iris: #91809C;
+    --marker-color-charcoal: #808080;
   }
 
   body {
@@ -472,6 +512,13 @@
 .screenplay .highlight {
   background: color-mix(in srgb, hsl(var(--accent)) 10%, transparent);
   box-shadow: 0 0 0 1px color-mix(in srgb, hsl(var(--accent)) 25%, transparent);
+}
+
+.screenplay .reader-locate-highlight {
+  background: color-mix(in srgb, hsl(var(--accent)) 18%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, hsl(var(--accent)) 28%, transparent);
+  border-radius: 6px;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .bg-background {

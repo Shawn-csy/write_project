@@ -1,22 +1,34 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 
-export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
-  },
-  server: {
-    proxy: {
-      "/api": {
-        target: "http://localhost:1091",
-        changeOrigin: true,
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  const apiUrl = env.VITE_API_URL || "http://localhost:1091";
+
+  return {
+    plugins: [react()],
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
       },
     },
-  },
+    server: {
+      proxy: {
+        "/api": {
+          target: apiUrl,
+          changeOrigin: true,
+          rewrite: (path) => {
+             // If the API URL already ends with /api, strip /api from the request path
+             // so we don't end up with /api/api/...
+             if (apiUrl.endsWith('/api')) {
+                 return path.replace(/^\/api/, '');
+             }
+             return path;
+          }
+        },
+      },
+    },
   preview: {
     allowedHosts: [
       "scripts-666540946249.asia-east1.run.app",
@@ -37,4 +49,5 @@ export default defineConfig({
       },
     },
   },
+  };
 });

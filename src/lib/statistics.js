@@ -281,6 +281,74 @@ export function calculateScriptStatsFromText(rawScript = "", markerConfigs = [],
   let blockBuffer = [];
   let activeBlockLine = null;
 
+  const handleInlineMarkers = (trimmed, lineNumber) => {
+    for (const config of sortedInline) {
+      if (config.matchMode === "regex" && config.regex) {
+        try {
+          const re = new RegExp(config.regex);
+          const match = trimmed.match(re);
+          if (match) {
+            const content = match[1] || match[0] || "";
+            addMarkerItem(config, content.trim(), { raw: trimmed, line: lineNumber });
+            return true;
+          }
+        } catch (e) {
+          console.warn("Invalid regex for marker", config.id, e);
+        }
+        continue;
+      }
+
+      if (config.matchMode === "enclosure" && config.start && config.end) {
+        const start = escapeRegExp(config.start);
+        const end = escapeRegExp(config.end);
+        const re = new RegExp(`${start}(.*?)${end}`, "g");
+        let match = null;
+        let found = false;
+        while ((match = re.exec(trimmed)) !== null) {
+          const content = (match[1] || "").trim();
+          if (content) {
+            addMarkerItem(config, content, { raw: trimmed, line: lineNumber });
+            found = true;
+          }
+        }
+        if (found) return true;
+      }
+
+      if (config.matchMode === "prefix" || config.start) {
+        const prefix = config.start || "";
+        if (!prefix) continue;
+        const content = getPrefixContent(trimmed, prefix);
+        if (content !== null) {
+          addMarkerItem(config, content, { raw: trimmed, line: lineNumber });
+          if (prefix.startsWith("/p")) {
+            const seconds = parseFloat(content);
+            if (!Number.isNaN(seconds)) {
+              result.pauseSeconds += seconds;
+              result.pauseItems.push({ seconds, raw: trimmed, line: lineNumber });
+            }
+          }
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  const handleSingleLineBlocks = (trimmed, lineNumber, excludeId) => {
+    for (const config of sortedBlocks) {
+      if (excludeId && config.id === excludeId) continue;
+      const startTag = config.start || "";
+      const endTag = config.end || "";
+      if (!startTag || !endTag) continue;
+      if (trimmed.startsWith(startTag) && trimmed.endsWith(endTag) && trimmed.length > startTag.length + endTag.length) {
+        const content = trimmed.slice(startTag.length, trimmed.length - endTag.length).trim();
+        if (content) addMarkerItem(config, content, { raw: trimmed, line: lineNumber });
+        return true;
+      }
+    }
+    return false;
+  };
+
   const flushBlock = () => {
     if (!activeBlock) return;
     const content = blockBuffer.join("\n").trim();
@@ -302,7 +370,11 @@ export function calculateScriptStatsFromText(rawScript = "", markerConfigs = [],
       if (endTag && trimmed.startsWith(endTag)) {
         flushBlock();
       } else {
-        blockBuffer.push(trimmed);
+        const lineNumber = i + 1;
+        const handled = handleSingleLineBlocks(trimmed, lineNumber, activeBlock.id) || handleInlineMarkers(trimmed, lineNumber);
+        if (!handled) {
+          blockBuffer.push(trimmed);
+        }
       }
       continue;
     }
@@ -334,59 +406,8 @@ export function calculateScriptStatsFromText(rawScript = "", markerConfigs = [],
 
     if (handled) continue;
 
-    for (const config of sortedInline) {
-      if (config.matchMode === "regex" && config.regex) {
-        try {
-          const re = new RegExp(config.regex);
-          const match = trimmed.match(re);
-          if (match) {
-            const content = match[1] || match[0] || "";
-            addMarkerItem(config, content.trim(), { raw: trimmed, line: i + 1 });
-            handled = true;
-            break;
-          }
-        } catch (e) {
-          console.warn("Invalid regex for marker", config.id, e);
-        }
-        continue;
-      }
-
-      if (config.matchMode === "enclosure" && config.start && config.end) {
-        const start = escapeRegExp(config.start);
-        const end = escapeRegExp(config.end);
-        const re = new RegExp(`${start}(.*?)${end}`, "g");
-        let match = null;
-        let found = false;
-        while ((match = re.exec(trimmed)) !== null) {
-          const content = (match[1] || "").trim();
-          if (content) {
-            addMarkerItem(config, content, { raw: trimmed, line: i + 1 });
-            found = true;
-          }
-        }
-        if (found) {
-          handled = true;
-          break;
-        }
-      }
-
-      if (config.matchMode === "prefix" || config.start) {
-        const prefix = config.start || "";
-        if (!prefix) continue;
-        const content = getPrefixContent(trimmed, prefix);
-        if (content !== null) {
-          addMarkerItem(config, content, { raw: trimmed, line: i + 1 });
-          if (prefix.startsWith("/p")) {
-            const seconds = parseFloat(content);
-            if (!Number.isNaN(seconds)) {
-              result.pauseSeconds += seconds;
-              result.pauseItems.push({ seconds, raw: trimmed, line: i + 1 });
-            }
-          }
-          handled = true;
-          break;
-        }
-      }
+    if (!handled) {
+      handled = handleInlineMarkers(trimmed, i + 1);
     }
 
     if (handled) continue;

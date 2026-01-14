@@ -1,24 +1,33 @@
 export const MARKER_COLORS = [
-    { id: 'red', name: 'Coral Red', light: '#dc2626', dark: '#f87171' },
-    { id: 'orange', name: 'Pumpkin', light: '#ea580c', dark: '#fb923c' },
-    { id: 'amber', name: 'Amber', light: '#d97706', dark: '#fbbf24' },
-    { id: 'yellow', name: 'Daisy', light: '#ca8a04', dark: '#facc15' },
-    { id: 'lime', name: 'Lime', light: '#65a30d', dark: '#a3e635' },
-    { id: 'green', name: 'Forest', light: '#16a34a', dark: '#4ade80' },
-    { id: 'emerald', name: 'Emerald', light: '#059669', dark: '#34d399' },
-    { id: 'teal', name: 'Teal', light: '#0d9488', dark: '#2dd4bf' },
-    { id: 'cyan', name: 'Cyan', light: '#0891b2', dark: '#22d3ee' },
-    { id: 'sky', name: 'Sky', light: '#0284c7', dark: '#38bdf8' },
-    { id: 'blue', name: 'Royal', light: '#2563eb', dark: '#60a5fa' },
-    { id: 'indigo', name: 'Indigo', light: '#4f46e5', dark: '#818cf8' },
-    { id: 'violet', name: 'Violet', light: '#7c3aed', dark: '#a78bfa' },
-    { id: 'purple', name: 'Purple', light: '#9333ea', dark: '#c084fc' },
-    { id: 'fuchsia', name: 'Fuchsia', light: '#c026d3', dark: '#e879f9' },
-    { id: 'pink', name: 'Pink', light: '#db2777', dark: '#f472b6' },
-    { id: 'rose', name: 'Rose', light: '#e11d48', dark: '#fb7185' },
-    { id: 'slate', name: 'Slate', light: '#475569', dark: '#94a3b8' },
-    { id: 'gray', name: 'Gray', light: '#4b5563', dark: '#9ca3af' },
-    { id: 'zinc', name: 'Zinc', light: '#52525b', dark: '#a1a1aa' },
+    // Red / Pink
+    { id: 'russet', name: 'Russet (赭紅)', light: '#663A35', dark: '#B3837D' },
+    { id: 'pastel-rose', name: 'Rose (乾燥玫瑰)', light: '#B87B7B', dark: '#EBC0C0' },
+    
+    // Yellow / Brown
+    { id: 'antique-gold', name: 'Antique Gold (古金)', light: '#70552D', dark: '#BC9E6A' },
+    { id: 'sand', name: 'Sand (沙色)', light: '#B89C72', dark: '#E8D1AC' },
+    
+    // Green
+    { id: 'olive', name: 'Olive (橄欖灰)', light: '#8C8C78', dark: '#CBCBBA' },
+    { id: 'sage', name: 'Sage (鼠尾草)', light: '#6B966A', dark: '#AED9AD' },
+    { id: 'deep-teal', name: 'Deep Teal (墨綠)', light: '#26524C', dark: '#6EA39C' },
+    { id: 'verdigris', name: 'Verdigris (灰綠)', light: '#4B8F84', dark: '#8CC9BE' },
+
+    // Blue
+    { id: 'cadet', name: 'Cadet (灰藍)', light: '#6D8F8C', dark: '#B0CCC9' },
+    { id: 'steel', name: 'Steel (鐵灰藍)', light: '#587B88', dark: '#9ABCC9' },
+    { id: 'slate-blue', name: 'Slate Blue (靛灰)', light: '#3D4C5C', dark: '#7D8D9E' },
+    
+    // Purple
+    { id: 'periwinkle', name: 'Periwinkle (長春花)', light: '#7582C0', dark: '#BDC8F2' },
+    { id: 'deep-iris', name: 'Deep Iris (深鳶尾)', light: '#4E4057', dark: '#91809C' },
+    { id: 'orchid', name: 'Orchid (蘭花紫)', light: '#96708F', dark: '#D9B9D2' },
+
+    // Grays
+    { id: 'warm-gray', name: 'Warm Gray (暖灰)', light: '#63625F', dark: '#A8A7A4' },
+    { id: 'charcoal', name: 'Charcoal (炭灰)', light: '#333333', dark: '#808080' },
+
+    // Legacy mapping support kept in index.css but hidden from UI default list
 ];
 
 export const getCssDetails = (colorId) => {

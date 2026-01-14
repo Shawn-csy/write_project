@@ -16,6 +16,8 @@ export const processAction = (token, state, blockMarkers, activeConfigs) => {
     const { current, stack, children, pushNode } = state;
     const lines = token.text.split('\n');
     let contentBuffer = [];
+    let bufferStartLine = null;
+    const baseLine = Number.isFinite(token.lineStart) ? token.lineStart : null;
 
     const flushBuffer = () => {
         if (contentBuffer.length === 0) return;
@@ -23,14 +25,18 @@ export const processAction = (token, state, blockMarkers, activeConfigs) => {
         const node = { 
             type: 'action', 
             text: text, 
-            inline: doParseInline(text, activeConfigs)
+            inline: doParseInline(text, activeConfigs),
+            lineStart: bufferStartLine,
+            lineEnd: bufferStartLine ? bufferStartLine + contentBuffer.length - 1 : bufferStartLine
         };
         children().push(node);
         contentBuffer = [];
+        bufferStartLine = null;
     };
 
-    lines.forEach(rawLine => {
+    lines.forEach((rawLine, lineIndex) => {
         const text = rawLine.trim();
+        const lineNumber = baseLine ? baseLine + lineIndex : null;
 
         // Marker Detection
         let isMarker = false;
@@ -51,6 +57,7 @@ export const processAction = (token, state, blockMarkers, activeConfigs) => {
                     const isSameLayer = parent.type === 'layer' && parent.layerType === config.id;
 
                     if (isSameLayer) {
+                        if (lineNumber) parent.endLine = lineNumber;
                         stack.pop(); // Close
                     } else {
                         // Open
@@ -61,7 +68,8 @@ export const processAction = (token, state, blockMarkers, activeConfigs) => {
                             markerType: config.type,
                             children: [], 
                             label: content,
-                            inlineLabel: doParseInline(content, activeConfigs) // Recursive Parse
+                            inlineLabel: doParseInline(content, activeConfigs), // Recursive Parse
+                            lineStart: lineNumber
                         };
                         children().push(layer);
                         stack.push(layer);
@@ -77,9 +85,13 @@ export const processAction = (token, state, blockMarkers, activeConfigs) => {
                             { 
                                 type: 'action', 
                                 text: content, 
-                                inline: doParseInline(content, activeConfigs) 
+                                inline: doParseInline(content, activeConfigs),
+                                lineStart: lineNumber,
+                                lineEnd: lineNumber
                             }
-                        ] 
+                        ],
+                        lineStart: lineNumber,
+                        endLine: lineNumber
                     };
                     children().push(layer);
                 }
@@ -114,6 +126,7 @@ export const processAction = (token, state, blockMarkers, activeConfigs) => {
                              parent.endLabel = endLabel;
                              parent.inlineEndLabel = doParseInline(endLabel, activeConfigs);
                         }
+                        if (lineNumber) parent.endLine = lineNumber;
                         stack.pop();
                     } else {
                         const layer = { 
@@ -122,7 +135,8 @@ export const processAction = (token, state, blockMarkers, activeConfigs) => {
                             markerType: config.type, 
                             children: [], 
                             label,
-                            inlineLabel: label ? doParseInline(label, activeConfigs) : [] 
+                            inlineLabel: label ? doParseInline(label, activeConfigs) : [],
+                            lineStart: lineNumber
                         };
                         children().push(layer);
                         stack.push(layer);
@@ -135,7 +149,8 @@ export const processAction = (token, state, blockMarkers, activeConfigs) => {
                             markerType: config.type, 
                             children: [], 
                             label,
-                            inlineLabel: label ? doParseInline(label, activeConfigs) : [] 
+                            inlineLabel: label ? doParseInline(label, activeConfigs) : [],
+                            lineStart: lineNumber
                         };
                         children().push(layer);
                         stack.push(layer);
@@ -148,6 +163,7 @@ export const processAction = (token, state, blockMarkers, activeConfigs) => {
                                 parent.endLabel = endLabel;
                                 parent.inlineEndLabel = doParseInline(endLabel, activeConfigs);
                             }
+                            if (lineNumber) parent.endLine = lineNumber;
                             stack.pop();
                         }
                     }
@@ -157,6 +173,9 @@ export const processAction = (token, state, blockMarkers, activeConfigs) => {
         }
 
         if (isMarker) return;
+        if (bufferStartLine === null && lineNumber) {
+            bufferStartLine = lineNumber;
+        }
         contentBuffer.push(rawLine);
     });
     
@@ -172,7 +191,9 @@ export const processCharacter = (token, state, activeConfigs) => {
         type: 'speech',
         character: characterName, 
         dual: isDual ? 'right' : undefined,
-        children: []
+        children: [],
+        lineStart: token.lineStart,
+        lineEnd: token.lineEnd
     };
     
     if (isDual) {
@@ -228,6 +249,8 @@ export const processDialogue = (token, state, blockMarkers, activeConfigs) => {
              const lines = token.text.split('\n');
              const dialogueBuffer = [];
              let consumed = false;
+             let bufferStartIdx = 0;
+             const baseLine = Number.isFinite(token.lineStart) ? token.lineStart : null;
              
              for (let i = 0; i < lines.length; i++) {
                  const line = lines[i];
@@ -236,10 +259,14 @@ export const processDialogue = (token, state, blockMarkers, activeConfigs) => {
                  if (endMatch) {
                      if (dialogueBuffer.length > 0) {
                          const text = dialogueBuffer.join('\n');
+                         const lineStart = baseLine ? baseLine + bufferStartIdx : null;
+                         const lineEnd = baseLine ? baseLine + bufferStartIdx + dialogueBuffer.length - 1 : lineStart;
                          current().children.push({
                              ...token,
                              text: text,
-                             inline: doParseInline(text, activeConfigs)
+                             inline: doParseInline(text, activeConfigs),
+                             lineStart,
+                             lineEnd
                          });
                      }
                      
@@ -248,6 +275,7 @@ export const processDialogue = (token, state, blockMarkers, activeConfigs) => {
                          endLabel = line.trim().slice(config.end.length).trim();
                      }
                      if (endLabel) parent.endLabel = endLabel;
+                     if (baseLine) parent.endLine = baseLine + i;
                      stack.pop(); 
                      consumed = true;
                      break; 
@@ -261,7 +289,9 @@ export const processDialogue = (token, state, blockMarkers, activeConfigs) => {
     
     current().children.push({ 
         ...token, 
-        inline: doParseInline(token.text, activeConfigs) 
+        inline: doParseInline(token.text, activeConfigs),
+        lineStart: token.lineStart,
+        lineEnd: token.lineEnd
     });
 };
 
@@ -276,7 +306,9 @@ export const processSceneHeading = (token, state, activeConfigs) => {
     const node = {
         ...token,
         id,
-        inline: doParseInline(token.text, activeConfigs)
+        inline: doParseInline(token.text, activeConfigs),
+        lineStart: token.lineStart,
+        lineEnd: token.lineEnd
     };
     
     children().push(node);

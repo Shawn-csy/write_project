@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { EditorView } from "@codemirror/view";
@@ -29,8 +29,14 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   const [content, setContent] = useState(initialData?.content || "");
   const [title, setTitle] = useState(initialData?.title || "Untitled");
   const [loading, setLoading] = useState(!initialData);
-  const [saving, setSaving] = useState(false);
+  // Save State Machine: 'saved' | 'saving' | 'unsaved' | 'error'
+  const [saveStatus, setSaveStatus] = useState("saved");
   const [lastSaved, setLastSaved] = useState(null);
+  
+  // Track if we have unsaved changes related to content ref
+  const lastSavedContent = useRef(initialData?.content || "");
+  const lastSavedTitle = useRef(initialData?.title || "Untitled");
+
   const [showPreview, setShowPreview] = useState(defaultShowPreview || readOnly);
   const [showStats, setShowStats] = useState(false);
   const [showRules, setShowRules] = useState(false);
@@ -55,15 +61,40 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     // scenes (if needed later)
   } = useEditorSync({ readOnly, showPreview });
 
-  // Track scenes for stats? (No, logic was moved to useEditorSync but useEditorSync doesn't export setScenes/scenes except active).
-  // Originally LiveEditor passed setScenes to ScriptViewer.
-  const [scenes, setScenes] = useState([]); // Kept for ScriptViewer prop compatibility if needed
+  const [scenes, setScenes] = useState([]); 
 
-  // Load initial script
+  // Local Storage Key Helper
+  const getDraftKey = (id) => `draft_script_${id}`;
+
+  // Load initial script w/ Local Draft Check
   useEffect(() => {
     if (initialData && initialData.id === scriptId && initialData.content !== undefined) {
-      setContent(initialData.content);
-      setTitle(initialData.title || "Untitled");
+      // Check for local draft
+      const draftKey = getDraftKey(scriptId);
+      const draftJson = localStorage.getItem(draftKey);
+      let loadedContent = initialData.content;
+      let loadedTitle = initialData.title || "Untitled";
+      let isRestored = false;
+
+      if (draftJson) {
+          try {
+              const draft = JSON.parse(draftJson);
+              const serverMtime = new Date(initialData.lastModified || Date.now()).getTime();
+              if (draft.mtime > serverMtime) {
+                  // Draft is newer, use draft
+                  loadedContent = draft.content;
+                  loadedTitle = draft.title;
+                  isRestored = true;
+                  setSaveStatus("local-saved");
+                  console.log("Restored from local draft");
+              }
+          } catch(e) { console.error("Bad draft", e); }
+      }
+
+      setContent(loadedContent);
+      setTitle(loadedTitle);
+      lastSavedContent.current = loadedContent;
+      lastSavedTitle.current = loadedTitle;
       setLoading(false);
       return;
     }
@@ -73,8 +104,30 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
       try {
         setLoading(true);
         const data = await getScript(scriptId);
-        setContent(data.content || "");
-        setTitle(data.title || "Untitled");
+        
+        let loadedContent = data.content || "";
+        let loadedTitle = data.title || "Untitled";
+        
+        // Draft Check Logic duplicated (cleaner to extract but inline is fine)
+        const draftKey = getDraftKey(scriptId);
+        const draftJson = localStorage.getItem(draftKey);
+        if (draftJson) {
+             try {
+                 const draft = JSON.parse(draftJson);
+                 const serverMtime = new Date(data.lastModified || Date.now()).getTime();
+                 if (draft.mtime > serverMtime) {
+                     loadedContent = draft.content;
+                     loadedTitle = draft.title;
+                     setSaveStatus("local-saved"); 
+                 }
+             } catch(e) {}
+        }
+
+        setContent(loadedContent);
+        setTitle(loadedTitle);
+        lastSavedContent.current = loadedContent;
+        lastSavedTitle.current = loadedTitle;
+        setLastSaved(new Date(data.lastModified || Date.now()));
       } catch (error) {
         console.error("Failed to load script", error);
       } finally {
@@ -84,25 +137,87 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     load();
   }, [scriptId, initialData]);
 
-  // Debounced save
-  const debouncedSave = useCallback(
-    debounce(async (id, newContent, newTitle) => {
-      setSaving(true);
+  // Persistence Logic
+  const performSave = async (id, newContent, newTitle) => {
       try {
+        setSaveStatus("saving");
         await updateScript(id, { content: newContent, title: newTitle });
         setLastSaved(new Date());
+        setSaveStatus("saved");
+        lastSavedContent.current = newContent;
+        lastSavedTitle.current = newTitle;
+        
+        // Clear local draft after successful synced save? 
+        // No, keep it as backup until newer data comes. 
+        // Or update its timestamp? 
+        // Actually, if we saved to server, server mtime is now new.
+        // We can remove draft or update it.
+        // Let's keep writing draft in handleChange.
       } catch (err) {
         console.error("Auto-save failed", err);
-      } finally {
-        setSaving(false);
+        setSaveStatus("error");
       }
-    }, 2000),
+  };
+
+  // Debounced save
+  const debouncedSave = useCallback(
+    debounce((id, newContent, newTitle) => {
+      performSave(id, newContent, newTitle);
+    }, 5000), // Increased to 5s
     []
   );
+
+  // BeforeUnload Warning
+  useEffect(() => {
+      const handleBeforeUnload = (e) => {
+          if (saveStatus === 'unsaved' || saveStatus === 'saving' || saveStatus === 'error' || saveStatus === 'local-saved') {
+             // local-saved is technically safe locally, but maybe user wants to ensure cloud?
+             // Prompt anyway to be safe? 
+             // "已儲存至本機" means browser close is SAFE.
+             // So if status is 'local-saved', we DO NOT need to warn about data loss,
+             // BUT we might want to warn about "upload pending".
+             // However, user specifically asked for "Local Draft" to be safe against crash/close.
+             // So we can SKIP warning if saved to local.
+             
+             // Let's check diff against CLOUD lastSavedContent
+             if (content !== lastSavedContent.current || title !== lastSavedTitle.current) {
+                 // It IS dirty relative to cloud.
+                 // But is it dirty relative to local? 
+                 // We write local on every change. So local is sync.
+                 
+                 // If status is 'local-saved', we can probably let them go, 
+                 // but maybe just warn "Changes saved to THIS BROWSER only".
+                 // For now, let's KEEP warning but maybe change text?
+                 // Or just keep standard warning. Safest.
+                 e.preventDefault();
+                 e.returnValue = "尚未上傳至雲端，若現在離開，變更將只保留在此瀏覽器中。";
+                 return e.returnValue;
+             }
+          }
+      };
+      window.addEventListener("beforeunload", handleBeforeUnload);
+      return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [saveStatus, content, title]);
+
 
   const handleChange = (val) => {
     setContent(val);
     if (!readOnly) {
+        // 1. Save to LocalStorage immediately
+        try {
+            const draftKey = getDraftKey(scriptId);
+            localStorage.setItem(draftKey, JSON.stringify({
+                content: val,
+                title: title,
+                mtime: Date.now()
+            }));
+            // Update status only if not currently 'saving' or 'error' (priority)
+            // Actually 'saving' should override 'local-saved' in UI, but logically we are local-saved.
+            // If we are 'saving', we stay 'saving'.
+            setSaveStatus(prev => (prev === 'saving' ? 'saving' : 'local-saved'));
+        } catch(e) { console.error("Local save failed", e); }
+
+        // 2. Queue Cloud Save
         debouncedSave(scriptId, val, title);
     }
   };
@@ -112,6 +227,17 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
         setTitle(newTitle);
         onTitleName?.(newTitle);
         if (!readOnly) {
+            // Local Save
+            try {
+                const draftKey = getDraftKey(scriptId);
+                localStorage.setItem(draftKey, JSON.stringify({
+                    content: content,
+                    title: newTitle,
+                    mtime: Date.now()
+                }));
+                setSaveStatus(prev => (prev === 'saving' ? 'saving' : 'local-saved'));
+            } catch(e) {}
+
             debouncedSave(scriptId, content, newTitle);
         }
     }
@@ -174,24 +300,17 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
 
   const handleBack = async () => {
       debouncedSave.cancel();
-      try {
-          await updateScript(scriptId, { content, title });
-      } catch (e) {
-          console.error("Save on exit failed", e);
+      // If unsaved, save immediately before leaving
+      if (saveStatus === 'unsaved' || saveStatus === 'saving') {
+          await performSave(scriptId, content, title);
       }
       onClose();
   };
 
   const handleManualSave = () => {
-        if (!saving) {
+        if (saveStatus !== 'saving') {
             debouncedSave.cancel();
-            setSaving(true);
-            updateScript(scriptId, { content, title })
-                .then(() => {
-                    setLastSaved(new Date());
-                })
-                .catch(err => console.error("Manual save failed", err))
-                .finally(() => setSaving(false));
+            performSave(scriptId, content, title);
         }
   };
 
@@ -210,7 +329,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
         title={title}
         onBack={handleBack}
         onManualSave={handleManualSave}
-        saving={saving}
+        saveStatus={saveStatus}
         lastSaved={lastSaved}
         showRules={showRules}
         onToggleRules={() => setShowRules(prev => !prev)}

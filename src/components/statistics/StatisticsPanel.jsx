@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -11,6 +11,7 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText }) {
   const { markerConfigs } = useSettings();
   const stats = useScriptStats({ rawScript, scriptAst, markerConfigs, options: { wordCountMode: "pure" } });
   const statsAvailable = Boolean(stats);
+  const [collapsedMarkerIds, setCollapsedMarkerIds] = useState(new Set());
 
   const {
     durationMinutes = 0,
@@ -33,6 +34,10 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText }) {
     return entries.sort((a, b) => (b.count || 0) - (a.count || 0));
   }, [markers]);
 
+  useEffect(() => {
+    setCollapsedMarkerIds(new Set(markerEntries.map((entry) => entry.id)));
+  }, [markerEntries]);
+
   const showPauses = pauseSeconds > 0;
 
   const handleLocate = (payload) => {
@@ -41,9 +46,21 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText }) {
       onLocateText(payload);
       return;
     }
-    const text = payload.raw || payload.text || "";
+    const text = payload.text || payload.raw || "";
     if (!text) return;
     onLocateText(text, payload.line || null);
+  };
+
+  const toggleMarkerSection = (id) => {
+    setCollapsedMarkerIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
   };
 
   if (!statsAvailable) {
@@ -157,23 +174,32 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText }) {
                          <div className="space-y-6">
                              {markerEntries.map((entry) => (
                                <div key={entry.id}>
-                                 <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                                   <Badge variant="outline">{entry.label}</Badge>
-                                   <span className="text-[10px] text-muted-foreground">{entry.id}</span>
-                                   <span className="text-xs text-muted-foreground">{entry.count} 筆</span>
-                                 </h3>
-                                 <div className="bg-muted/30 rounded-lg p-3 space-y-2">
-                                   {entry.items.map((item, idx) => (
-                                     <button
-                                       key={idx}
-                                       type="button"
-                                       onClick={() => handleLocate(item)}
-                                       className="w-full text-left text-sm border-l-2 border-primary/50 pl-2 whitespace-pre-wrap hover:text-foreground transition-colors"
-                                     >
-                                       {typeof item === "string" ? item : item.text}
-                                     </button>
-                                   ))}
-                                 </div>
+                                 <button
+                                   type="button"
+                                   onClick={() => toggleMarkerSection(entry.id)}
+                                   className="w-full text-left"
+                                   aria-expanded={!collapsedMarkerIds.has(entry.id)}
+                                 >
+                                   <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                     <Badge variant="outline">{entry.label}</Badge>
+                                     <span className="text-[10px] text-muted-foreground">{entry.id}</span>
+                                     <span className="text-xs text-muted-foreground">{entry.count} 筆</span>
+                                   </h3>
+                                 </button>
+                                 {!collapsedMarkerIds.has(entry.id) && (
+                                   <div className="bg-muted/30 rounded-lg p-3 space-y-2">
+                                     {entry.items.map((item, idx) => (
+                                       <button
+                                         key={idx}
+                                         type="button"
+                                         onClick={() => handleLocate(item)}
+                                         className="w-full text-left text-sm border-l-2 border-primary/50 pl-2 whitespace-pre-wrap hover:text-foreground transition-colors"
+                                       >
+                                         {typeof item === "string" ? item : item.text}
+                                       </button>
+                                     ))}
+                                   </div>
+                                 )}
                                </div>
                              ))}
                          </div>

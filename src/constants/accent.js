@@ -69,16 +69,16 @@ export const buildAccentPalette = (hsl) => {
   const parsed = parse(hsl);
   if (!parsed) {
     return [
-      "#10B981",
-      "#3B82F6",
-      "#F59E0B",
-      "#EF4444",
-      "#8B5CF6",
-      "#EC4899",
-      "#06B6D4",
-      "#F97316",
-      "#22C55E",
-      "#0EA5E9",
+      "#79B4A9", // Verdigris
+      "#9CC69B", // Cambridge Blue
+      "#9DB5B2", // Cadet Blue
+      "#87A8B3", // Muted Steel Blue
+      "#A6B1E1", // Muted Periwinkle
+      "#D4A5A5", // Pastel Pink
+      "#E3C8A0", // Latte
+      "#B7B7A4", // Artichoke
+      "#8E8D8A", // Warm Gray
+      "#C0A0B9", // Muted Orchid
     ];
   }
   const offsets = [0, 24, -20, 48, -36, 72, -52, 96, -68, 120];

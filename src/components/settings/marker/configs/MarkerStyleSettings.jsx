@@ -125,7 +125,7 @@ export function MarkerStyleSettings({ config, idx, updateMarker }) {
                         </div>
                         
                         <TabsContent value="preset" className="mt-0">
-                            <div className="grid grid-cols-10 gap-1.5 p-1">
+                            <div className="grid grid-cols-2 gap-2 p-1 max-h-[220px] overflow-y-auto custom-scrollbar">
                                 {MARKER_COLORS.map((color) => {
                                     const variable = `var(--marker-color-${color.id})`;
                                     const isSelected = config.style?.color === variable;
@@ -136,14 +136,28 @@ export function MarkerStyleSettings({ config, idx, updateMarker }) {
                                             type="button"
                                             onClick={() => updateStyle('color', variable)}
                                             className={cn(
-                                                "w-6 h-6 rounded-full shadow-sm transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
-                                                isSelected && "ring-2 ring-foreground ring-offset-1 scale-110"
+                                                "relative flex flex-col h-14 rounded-lg overflow-hidden border transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 text-left group",
+                                                isSelected 
+                                                    ? "ring-2 ring-primary ring-offset-2 border-primary/50 shadow-md transform scale-[1.02]" 
+                                                    : "border-border/40 hover:border-border"
                                             )}
-                                            style={{ backgroundColor: variable }}
-                                            title={`${color.name}`}
                                         >
-                                            {isSelected && <Check className="w-3 h-3 text-white mix-blend-difference mx-auto" strokeWidth={3} />}
-                                            <span className="sr-only">{color.name}</span>
+                                            {/* Color Swaych Area */}
+                                            <div 
+                                                className="flex-1 w-full relative transition-all"
+                                                style={{ backgroundColor: variable }}
+                                            >
+                                                {isSelected && (
+                                                    <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                                                       <Check className="w-4 h-4 text-white drop-shadow-md" strokeWidth={3} />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            
+                                            {/* Label Area */}
+                                            <div className="h-6 w-full bg-card flex items-center px-2 text-[10px] font-medium text-muted-foreground group-hover:text-foreground">
+                                                <span className="truncate w-full">{color.name}</span>
+                                            </div>
                                         </button>
                                     );
                                 })}

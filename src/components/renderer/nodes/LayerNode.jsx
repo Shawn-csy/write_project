@@ -7,6 +7,14 @@ export const LayerNode = ({ node, context, NodeRenderer }) => {
     const borderColor = style.color || undefined;
     const bgColor = style.backgroundColor || undefined;
     const template = config?.renderer?.template;
+
+    const lineProps = (lineValue) => {
+        if (!lineValue) return {};
+        return {
+            "data-line-start": lineValue,
+            "data-line-end": lineValue
+        };
+    };
     
     // If template exists, we need to inject the inline nodes into the template
     const renderLabelContent = (inlineNodes, rawLabel) => {
@@ -42,14 +50,18 @@ export const LayerNode = ({ node, context, NodeRenderer }) => {
             }}
         >
              <div className={`${node.layerType}-continuous-label text-xs opacity-70 font-mono mb-1`}>
-                {renderLabelContent(node.inlineLabel, node.label)}
+                <span {...lineProps(node.lineStart)}>
+                    {renderLabelContent(node.inlineLabel, node.label)}
+                </span>
              </div>
              <div className="layer-content">
                 {node.children.map((child, i) => <NodeRenderer key={i} node={child} context={context} />)}
              </div>
              {showEndLabel && (
                 <div className={`${node.layerType}-continuous-footer text-xs opacity-70 font-mono mt-1`}>
-                    {renderLabelContent(node.inlineEndLabel, node.endLabel || node.label)}
+                    <span {...lineProps(node.endLine)}>
+                        {renderLabelContent(node.inlineEndLabel, node.endLabel || node.label)}
+                    </span>
                 </div>
              )}
         </div>
