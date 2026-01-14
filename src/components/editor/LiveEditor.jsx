@@ -1,11 +1,12 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef, useDeferredValue } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { EditorView } from "@codemirror/view";
 import { updateScript, getScript } from "../../lib/db";
 import { Loader2 } from "lucide-react";
 import { fountainLanguage } from "./fountain-mode";
-import { debounce } from "lodash";
+// import { debounce } from "lodash";
+import { debounce } from "../../lib/utils";
 import { StatisticsPanel } from "../statistics/StatisticsPanel";
 
 import { parseScreenplay } from "../../lib/screenplayAST";
@@ -27,6 +28,8 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   } = useSettings();
 
   const [content, setContent] = useState(initialData?.content || "");
+  const deferredContent = useDeferredValue(content);
+
   const [title, setTitle] = useState(initialData?.title || "Untitled");
   const [loading, setLoading] = useState(!initialData);
   // Save State Machine: 'saved' | 'saving' | 'unsaved' | 'error'
@@ -43,8 +46,9 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
 
   // Parse AST for Statistics & Sync
   const { ast } = useMemo(() => {
-    return parseScreenplay(content || "", markerConfigs);
-  }, [content, markerConfigs]);
+    if (!showStats) return { ast: null };
+    return parseScreenplay(deferredContent || "", markerConfigs);
+  }, [deferredContent, markerConfigs, showStats]);
 
   // Sync Hook
   const {
@@ -409,7 +413,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
             ref={setPreviewContainerRef}
             show={showPreview}
             readOnly={readOnly}
-            content={content}
+            content={deferredContent}
             type={initialData?.type || "script"}
             theme={theme === 'dark' ? 'dark' : 'light'}
             fontSize={fontSize}
@@ -440,7 +444,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
                     <h3 className="font-semibold text-sm">統計分析面板</h3>
                 </div>
                 <div className="flex-1 min-h-0 overflow-hidden">
-                    <StatisticsPanel rawScript={content} scriptAst={ast} onLocateText={handleLocateText} />
+                    <StatisticsPanel rawScript={deferredContent} scriptAst={ast} onLocateText={handleLocateText} />
                 </div>
             </div>
         )}
