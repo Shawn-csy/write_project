@@ -15,7 +15,9 @@ export default function HybridDashboard({
     onSelectCloudScript,
     onSelectPublicScript,
     enableLocalFiles = true,
-    openMobileMenu // new prop
+    openMobileMenu, // new prop
+    isSidebarOpen,
+    setSidebarOpen
 }) {
   const { currentUser, login } = useAuth();
   
@@ -70,6 +72,18 @@ export default function HybridDashboard({
                     <div className="lg:hidden">
                         <Button variant="ghost" size="icon" onClick={openMobileMenu}>
                             <PanelLeftOpen className="w-5 h-5" />
+                        </Button>
+                    </div>
+
+                    {/* Desktop Sidebar Toggle (Visible only when sidebar is closed) */}
+                    <div className={`hidden lg:block ${isSidebarOpen ? "lg:hidden" : ""}`}>
+                         <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => setSidebarOpen && setSidebarOpen(true)}
+                            title="展開側邊欄"
+                         >
+                            <PanelLeftOpen className="w-5 h-5 text-muted-foreground" />
                         </Button>
                     </div>
 

@@ -69,7 +69,11 @@ export function useScriptData(refreshTrigger = 0) {
             byFolder[f].push(s);
         });
 
-        const sortFn = (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0);
+        const sortFn = (a, b) => {
+            const diff = (a.sortOrder || 0) - (b.sortOrder || 0);
+            if (Math.abs(diff) > 0.01) return diff;
+            return (b.lastModified || 0) - (a.lastModified || 0);
+        };
 
         const buildFlat = (path, depth = 0) => {
             const items = byFolder[path] || [];

@@ -24,7 +24,11 @@ export function useScriptDragDrop({
     const [activeDragId, setActiveDragId] = useState(null);
 
     const sensors = useSensors(
-        useSensor(PointerSensor),
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        }),
         useSensor(KeyboardSensor, {
             coordinateGetter: sortableKeyboardCoordinates,
         })
@@ -109,9 +113,14 @@ export function useScriptDragDrop({
                  }).catch(console.error);
 
                  return items.map(s => {
-                     if (s.id === active.id) return { ...s, folder: newFolder };
-                     if (updateMap.has(s.id)) return { ...s, sortOrder: updateMap.get(s.id).sortOrder };
-                     return s;
+                     let newS = s;
+                     if (s.id === active.id) {
+                         newS = { ...newS, folder: newFolder };
+                     }
+                     if (updateMap.has(s.id)) {
+                         newS = { ...newS, sortOrder: updateMap.get(s.id).sortOrder };
+                     }
+                     return newS;
                  });
             });
         }

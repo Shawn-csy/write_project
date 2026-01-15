@@ -51,7 +51,7 @@ try {
   console.error("Failed to load fileMeta", e);
 }
 
-app.get("*", (req, res) => {
+app.get("*", async (req, res) => {
   if (!indexHtml) {
     return res.status(404).send("Not Found: index.html missing");
   }
@@ -102,6 +102,48 @@ app.get("*", (req, res) => {
         `<meta property="og:description" content="${desc}" />`
       );
     }
+  }
+
+  // --- OG Tag Injection for /read/:id ---
+  const readMatch = req.path.match(/^\/read\/([^\/]+)$/);
+  if (readMatch) {
+      const scriptId = readMatch[1];
+      const apiUrl = process.env.VITE_API_URL || "https://scripts-api.shawnup.com/api"; // Fallback if env missing
+      
+      try {
+          const resp = await fetch(`${apiUrl}/public-scripts/${scriptId}`);
+          if (resp.ok) {
+              const script = await resp.json();
+              if (script) {
+                  const title = `${script.title}｜Screenplay Reader`;
+                  let desc = script.content || "";
+                  // Simple truncation
+                  if (desc.length > 150) desc = desc.substring(0, 150) + "...";
+                  desc = desc.replace(/"/g, '&quot;').replace(/\n/g, ' ');
+
+                  // Inject title
+                  sentHtml = sentHtml.replace(/<title>.*?<\/title>/, `<title>${title}</title>`);
+                  
+                  // Inject og:title
+                  sentHtml = sentHtml.replace(
+                    /<meta property="og:title" content=".*?" \/>/, 
+                    `<meta property="og:title" content="${title}" />`
+                  );
+                  
+                  // Inject description & og:description
+                  sentHtml = sentHtml.replace(
+                    /<meta name="description" content=".*?" \/>/, 
+                    `<meta name="description" content="${desc}" />`
+                  );
+                  sentHtml = sentHtml.replace(
+                    /<meta property="og:description" content=".*?" \/>/, 
+                    `<meta property="og:description" content="${desc}" />`
+                  );
+              }
+          }
+      } catch (e) {
+          console.error("Failed to fetch script for OG:", e);
+      }
   }
 
   // --- Runtime Env Injection for Cloud Run ---

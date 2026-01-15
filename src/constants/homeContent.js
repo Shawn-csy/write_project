@@ -1,12 +1,22 @@
 export const homeContent = {
   label: "使用說明",
   title: "Fountain 快速指南",
-  introHtml: `
+  // 1. 總覽 (Overview)
+  guideOverview: `
     <div class="space-y-6 text-sm">
-      <p class="text-muted-foreground">
-        本閱讀器支援標準 <strong>Fountain</strong> 語法。以下是撰寫時的速查表，所有範例皆可直接複製使用。
-      </p>
-      
+      <div class="rounded-lg border bg-card p-6 shadow-sm">
+        <h3 class="text-lg font-bold mb-2">歡迎使用劇本寫作工具</h3>
+        <p class="text-muted-foreground leading-relaxed">
+          這是一個專為編劇設計的 Fountain 語法編輯器，結合了標準劇本格式與強大的自訂標記功能。<br/>
+          您可以透過上方分頁深入了解不同功能：
+        </p>
+        <ul class="mt-4 space-y-2 list-disc pl-5 text-muted-foreground">
+           <li><strong>Fountain 語法</strong>：標準劇本格式速查 (場景、角色、對話)。</li>
+           <li><strong>自訂標記</strong>：設定專屬於您的視覺提示 (顏色、圖示、筆記)。</li>
+           <li><strong>版本資訊</strong>：查看最新功能與更新日誌。</li>
+        </ul>
+      </div>
+
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-muted-foreground bg-muted/30 p-3 rounded-lg border border-border/50">
         <ul class="space-y-1 list-disc pl-4">
           <li><strong>左側選單</strong>：支援關鍵字搜尋與資料夾收合。</li>
@@ -17,9 +27,18 @@ export const homeContent = {
           <li><strong>快捷鍵</strong>：<code>Cmd/Ctrl + B</code> 收合列表、<code>Cmd/Ctrl + [ / ]</code> 調整字級。</li>
         </ul>
       </div>
+    </div>
+  `,
+
+  // 2. Fountain 語法說明
+  fountainGuide: `
+    <div class="space-y-6 text-sm">
+      <p class="text-muted-foreground">
+         以下是標準 <strong>Fountain</strong> 語法速查表。
+      </p>
 
       <div>
-        <h3 class="mb-3 text-lg font-semibold tracking-tight">撰寫指南核心元素</h3>
+        <h3 class="mb-3 text-lg font-semibold tracking-tight">核心元素</h3>
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           
           <div class="rounded-lg border bg-card p-3 text-card-foreground shadow-sm">
@@ -86,42 +105,6 @@ export const homeContent = {
             <span class="font-mono font-bold text-foreground">/* 隱藏 */</span> 
             <span>→ 跨行隱藏</span>
           </li>
-          <li class="flex items-center gap-2">
-            <span class="font-mono font-bold text-foreground">短留白</span> 
-            <span>→ 停頓一秒</span>
-          </li>
-          <li class="flex items-center gap-2">
-            <span class="font-mono font-bold text-foreground">中留白</span> 
-            <span>→ 停頓三秒</span>
-          </li>
-          <li class="flex items-center gap-2">
-            <span class="font-mono font-bold text-foreground">長留白</span> 
-            <span>→ 停頓五秒</span>
-          </li>
-          <li class="flex items-center gap-2">
-            <span class="font-mono font-bold text-foreground">| 提示</span> 
-            <span>→ <span class="text-red-500 italic">行內紅色提示</span></span>
-          </li>
-          <li class="flex items-center gap-2">
-            <span class="font-mono font-bold text-foreground">{{雨聲}} ... {{雨聲}}</span>
-            <span>→ 持續音效 (開始/結束)</span>
-          </li>
-          <li class="flex items-center gap-2">
-            <span class="font-mono font-bold text-foreground">(SFX: 爆炸)^</span>
-            <span>→ 同時發聲音效</span>
-          </li>
-          <li class="flex items-center gap-2">
-            <span class="font-mono font-bold text-foreground">[SFX: 海浪聲]</span>
-            <span>→ 傳統音效標記</span>
-          </li>
-          <li class="flex items-center gap-2">
-            <span class="font-mono font-bold text-foreground">[遠處左方]</span>
-            <span>→ 方位指示</span>
-          </li>
-          <li class="flex items-center gap-2">
-            <span class="font-mono font-bold text-foreground">(低聲)</span>
-            <span>→ 情緒/動作</span>
-          </li>
         </ul>
       </div>
 
@@ -141,49 +124,78 @@ export const homeContent = {
           </div>
 
           <div class="flex flex-col gap-1 border-l-2 pl-3">
-            <strong class="text-foreground">章節與大綱</strong>
-            <span class="text-xs text-muted-foreground"><code>#</code> 為章節 (Section)，<code>=</code> 為大綱 (Synopsis)。</span>
+            <strong class="text-foreground">章節與大綱 (Sections & Folding)</strong>
+            <span class="text-xs text-muted-foreground"><code>#</code> 為章節，<code>=</code> 為大綱。<strong>支援點擊標題折疊/展開內容。</strong></span>
             <code class="block w-fit rounded bg-muted/50 px-2 py-1 text-xs"># 第一幕 / = 英雄遇見導師</code>
           </div>
         </div>
       </div>
     </div>
   `,
+
+  // 3. 自訂標記手冊 (已替換為互動組件)
+  // customMarkerGuide: `...`,
+
   quickGuide: [
     "點擊劇本列表載入檔案，可利用上方搜尋框過濾。",
-    "透過設定面板自訂閱讀體驗。",
+    "透過設定面板自訂閱讀體驗，包含「自訂標記」與「主題切換」。",
     "點擊標題列可開啟專注模式，僅高亮選定角色台詞。",
     "隨時可匯出標準格式 PDF 進行列印或分享。",
   ],
-  demo: `Title: Demo Screenplay
+
+  fountainDemo: `Title: Fountain Demo
 Author: Your Name
 Credit: Written by
-Source: Story Source
 
-{{背景雨聲}}
+!一般動作：點擊右側內容可即時編輯。
 
-.INT. COFFEE SHOP - NIGHT
-
-!外頭的雨勢越來越大。
+.INT. COFFEE SHOP - DAY
 
 @旁白
 (低聲)
-有人說，雨天最適合說謊。
+這是一個標準的劇本寫作範例。
 
 JOHNNY
-聽著，我沒有時間解釋了。 | 焦急地看錶
+看來格式都很正常。
 
-短留白
+# 第一章：分頁測試
 
-MIKE
-(冷笑)
-你以為我會在乎嗎？ (SFX: 槍上膛聲)^
+= 這是大綱
 
-!兩人互看一眼，氣氛凝重。
+>置中文字<
+
+*斜體* 與 **粗體** 混用。
+
+[[隱藏筆記：印出時不會顯示]]`,
+
+  markerDemo: `Title: Custom Marker Demo
+Author: Your Name
+
+# 測試自訂標記
 
 {{背景雨聲}}
 
-~Music fades out...
+.INT. BASEMENT - NIGHT
+
+!這裡示範各種自訂標記的效果：
+
+@HERO
+(低聲)
+(V.O.) 我內心的聲音變色了嗎？
+(憤怒) 情緒標記應該不同顏色。
+
+{手機震動}
+
+JOHNNY
+快看這個！ | 驚訝地指著螢幕
+
+[SFX: 爆炸聲]
+
+<系統提示>
+請嘗試在設定面板中修改這些符號的樣式。
+</系統提示>
+
+~Love is in the air... (Lyrics)
 
 >THE END<`,
 };
