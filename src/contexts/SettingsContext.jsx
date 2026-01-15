@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useEffect, useRef } from "react";
+import { useAuth } from "./AuthContext";
 import { useTheme } from "../components/theme-provider";
 import {
   accentThemes,
@@ -7,63 +8,29 @@ import {
   defaultAccent,
 } from "../constants/accent";
 import { STORAGE_KEYS } from "../constants/storageKeys";
-import { readNumber, readString, writeValue } from "../lib/storage";
+import { writeValue } from "../lib/storage";
+import { apiCall as serviceApiCall, fetchUserSettings, saveUserSettings } from "../services/settingsApi.js";
+
+import { useMarkerThemes } from "../hooks/useMarkerThemes";
+import { usePersistentState } from "../hooks/usePersistentState";
 
 const SettingsContext = createContext();
 
 export function SettingsProvider({ children }) {
   // --- Theme (Wrapped) ---
   const { resolvedTheme, setTheme } = useTheme();
+
   const isDark = resolvedTheme === "dark";
+  const { currentUser } = useAuth();
+  const isRemoteUpdate = useRef(false);
 
-  // --- Accent ---
-  const [accent, setAccentState] = useState(defaultAccent);
+  // --- Persistent State ---
+  const [accent, setAccent] = usePersistentState(STORAGE_KEYS.ACCENT, defaultAccent);
   
-  // Update CSS variables when accent changes
-  const accentConfig = accentThemes[accent] || accentThemes[defaultAccent];
-  useEffect(() => {
-    const root = document.documentElement;
-    const cfg = accentConfig;
-    
-    
-    if (isDark) {
-      root.style.setProperty("--accent", cfg.accentDark || cfg.accent);
-      root.style.setProperty("--accent-foreground", cfg.accentForeground); // Usually stays dark text on accent? Or should invert? 
-      // Actually standard pattern is Accent is Background, Foreground is Text on top.
-      // If Accent is light in Dark Mode, Foreground should be Dark.
-      
-      root.style.setProperty("--accent-muted", cfg.accentMutedDark || cfg.accentMuted || cfg.accent);
-      root.style.setProperty("--accent-strong", cfg.accentStrongDark || cfg.accentStrong || cfg.accent);
-    } else {
-      root.style.setProperty("--accent", cfg.accent);
-      root.style.setProperty("--accent-foreground", cfg.accentForeground);
-      root.style.setProperty("--accent-muted", cfg.accentMuted || cfg.accent);
-      root.style.setProperty("--accent-strong", cfg.accentStrong || cfg.accent);
-    }
-  }, [accentConfig, isDark]);
-
-  const setAccent = (val) => {
-    setAccentState(val);
-    writeValue(STORAGE_KEYS.ACCENT, val);
-  };
-
-  // --- Font Sizes ---
-  const [fontSize, setFontSizeState] = useState(14); // Scene Heading
-  const [bodyFontSize, setBodyFontSizeState] = useState(14); // Action/General
-  const [dialogueFontSize, setDialogueFontSizeState] = useState(14); // Dialogue
-
-  const setFontSize = (size) => {
-    setFontSizeState(size);
-    writeValue(STORAGE_KEYS.FONT_SIZE, size);
-  };
-  const setBodyFontSize = (size) => {
-    setBodyFontSizeState(size);
-    writeValue(STORAGE_KEYS.BODY_FONT, size);
-  };
-  const setDialogueFontSize = (size) => {
-    setDialogueFontSizeState(size);
-    writeValue(STORAGE_KEYS.DIALOGUE_FONT, size);
-  };
+  // Font Sizes
+  const [fontSize, setFontSize] = usePersistentState(STORAGE_KEYS.FONT_SIZE, 14, 'number');
+  const [bodyFontSize, setBodyFontSize] = usePersistentState(STORAGE_KEYS.BODY_FONT, 14, 'number');
+  const [dialogueFontSize, setDialogueFontSize] = usePersistentState(STORAGE_KEYS.DIALOGUE_FONT, 14, 'number');
 
   const fontSteps = [12, 14, 16, 24, 36, 72];
   const adjustFont = (delta) => {
@@ -76,84 +43,171 @@ export function SettingsProvider({ children }) {
     if (next) setFontSize(next);
   };
 
-  // --- Display Modes ---
-  const [exportMode, setExportModeState] = useState("processed");
-  const [fileLabelMode, setFileLabelModeState] = useState("auto");
-  const [focusEffect, setFocusEffectState] = useState("hide");
-  const [focusContentMode, setFocusContentModeState] = useState("all");
-  const [highlightCharacters, setHighlightCharactersState] = useState(true);
-  const [highlightSfx, setHighlightSfxState] = useState(true);
+  // Display Modes
+  const [exportMode, setExportMode] = usePersistentState(STORAGE_KEYS.EXPORT_MODE, "processed");
+  const [fileLabelMode, setFileLabelMode] = usePersistentState(STORAGE_KEYS.LABEL_MODE, "auto");
+  const [focusEffect, setFocusEffect] = usePersistentState(STORAGE_KEYS.FOCUS_EFFECT, "hide");
+  const [focusContentMode, setFocusContentMode] = usePersistentState(STORAGE_KEYS.FOCUS_CONTENT, "all");
+  
+  // Booleans mapped to 'on'/'off' via a wrapper or handled in hook?
+  // Current hook uses raw values. Existing code used "on"/"off" strings for boolean storage in some cases?
+  // Let's check storage.js or original code.
+  // Original: writeValue(KEY, val ? "on" : "off")
+  // So we need to handle boolean <-> string conversion if we want to maintain EXACT storage compatibility.
+  // Or we update usePersistentState to handle transformation?
+  // For now, let's keep it simple and do manual wrapper for booleans if needed, OR just store booleans if storage.js supports it.
+  // storage.js `readString` returns string. `readNumber` parsed int.
+  // If we store boolean as JSON string "true"/"false" it works?
+  // Original used "on"/"off". 
+  // Let's stick to "on"/"off" for compat or migrating? 
+  // I will use a custom setter wrapper for these specific boolean fields to maintain "on"/"off" string storage.
+  
+  // Actually, usePersistentState reads string. 
+  // Let's implement valid state as string "on"/"off" and expose helper boolean getters?
+  // Or just migrate to booleans if "on"/"off" is not critical external usage?
+  // Let's wrap it to be safe.
+  
+  const [highlightCharactersStr, setHighlightCharactersStr] = usePersistentState(STORAGE_KEYS.HIGHLIGHT_CHAR, "on");
+  const highlightCharacters = highlightCharactersStr === "on";
+  const setHighlightCharacters = (val) => setHighlightCharactersStr(val ? "on" : "off");
 
-  const setExportMode = (val) => {
-    setExportModeState(val);
-    writeValue(STORAGE_KEYS.EXPORT_MODE, val);
-  };
-  const setFileLabelMode = (val) => {
-    setFileLabelModeState(val);
-    writeValue(STORAGE_KEYS.LABEL_MODE, val);
-  };
-  const setFocusEffect = (val) => {
-    setFocusEffectState(val);
-    writeValue(STORAGE_KEYS.FOCUS_EFFECT, val);
-  };
-  const setFocusContentMode = (val) => {
-    setFocusContentModeState(val);
-    writeValue(STORAGE_KEYS.FOCUS_CONTENT, val);
-  };
-  const setHighlightCharacters = (val) => {
-    setHighlightCharactersState(val);
-    writeValue(STORAGE_KEYS.HIGHLIGHT_CHAR, val ? "on" : "off");
-  };
-  const setHighlightSfx = (val) => {
-    setHighlightSfxState(val);
-    writeValue(STORAGE_KEYS.HIGHLIGHT_SFX, val ? "on" : "off");
-  };
+  const [highlightSfxStr, setHighlightSfxStr] = usePersistentState(STORAGE_KEYS.HIGHLIGHT_SFX, "on");
+  const highlightSfx = highlightSfxStr === "on";
+  const setHighlightSfx = (val) => setHighlightSfxStr(val ? "on" : "off");
 
-  // --- Initialization / Hydration ---
+  const [enableLocalFilesStr, setEnableLocalFilesStr] = usePersistentState("enableLocalFiles", "on");
+  const enableLocalFiles = enableLocalFilesStr === "on";
+  const setEnableLocalFiles = (val) => setEnableLocalFilesStr(val ? "on" : "off");
+
+
+  // --- Theme Hook ---
+  const themes = useMarkerThemes(currentUser);
+
+  // API Helper
+  const apiCall = (url, method, body) => serviceApiCall(currentUser, url, method, body);
+  
+  // Update CSS variables when accent changes
+  const accentConfig = accentThemes[accent] || accentThemes[defaultAccent];
   useEffect(() => {
-    // Accent
-    const savedAccent = readString(STORAGE_KEYS.ACCENT);
-    if (savedAccent && accentThemes[savedAccent]) {
-      setAccentState(savedAccent);
+    const root = document.documentElement;
+    const cfg = accentConfig;
+    
+    if (isDark) {
+      root.style.setProperty("--accent", cfg.accentDark || cfg.accent);
+      root.style.setProperty("--accent-foreground", cfg.accentForeground);
+      root.style.setProperty("--accent-muted", cfg.accentMutedDark || cfg.accentMuted || cfg.accent);
+      root.style.setProperty("--accent-strong", cfg.accentStrongDark || cfg.accentStrong || cfg.accent);
+    } else {
+      root.style.setProperty("--accent", cfg.accent);
+      root.style.setProperty("--accent-foreground", cfg.accentForeground);
+      root.style.setProperty("--accent-muted", cfg.accentMuted || cfg.accent);
+      root.style.setProperty("--accent-strong", cfg.accentStrong || cfg.accent);
     }
-    // Label Mode
-    const savedLabelMode = readString(STORAGE_KEYS.LABEL_MODE, ["auto", "filename"]);
-    if (savedLabelMode) setFileLabelModeState(savedLabelMode);
+  }, [accentConfig, isDark]);
 
-    // Focus Effect
-    const savedFocusEffect = readString(STORAGE_KEYS.FOCUS_EFFECT, ["hide", "dim"]);
-    if (savedFocusEffect) setFocusEffectState(savedFocusEffect);
+  // --- Cloud Sync ---
+  // 1. Load from Cloud on Login
+  useEffect(() => {
+      if (!currentUser) return; // Don't run if no user
 
-    // Focus Content
-    const savedFocusContent = readString(STORAGE_KEYS.FOCUS_CONTENT, ["all", "dialogue"]);
-    if (savedFocusContent) setFocusContentModeState(savedFocusContent);
+      async function loadSettings() {
+          const data = await fetchUserSettings(currentUser);
+          if (data) {
+                  if (data.settings && Object.keys(data.settings).length > 0) {
+                      console.log("Applying cloud settings...");
+                      isRemoteUpdate.current = true;
+                      const s = data.settings;
+                      
+                      // Batch Updates
+                      if(s.accent) setAccent(s.accent);
+                      if(s.fontSize) setFontSize(s.fontSize);
+                      if(s.editorFontSize) setBodyFontSize(s.editorFontSize); 
+                      if(s.bodyFontSize) setBodyFontSize(s.bodyFontSize);
+                      if(s.dialogueFontSize) setDialogueFontSize(s.dialogueFontSize);
+                      if(s.exportMode) setExportMode(s.exportMode);
+                      if(s.fileLabelMode) setFileLabelMode(s.fileLabelMode);
+                      if(s.focusEffect) setFocusEffect(s.focusEffect);
+                      if(s.focusContentMode) setFocusContentMode(s.focusContentMode);
+                      if(s.highlightCharacters !== undefined) setHighlightCharacters(s.highlightCharacters);
+                      if(s.highlightSfx !== undefined) setHighlightSfx(s.highlightSfx);
+                      if(s.enableLocalFiles !== undefined) setEnableLocalFiles(s.enableLocalFiles);
+                      
+                      if(s.markerThemes) {
+                          themes.setMarkerThemes(s.markerThemes);
+                          if(s.currentThemeId) themes.setCurrentThemeId(s.currentThemeId);
+                      }
 
-    // Highlight
-    const savedHighlight = readString(STORAGE_KEYS.HIGHLIGHT_CHAR, ["on", "off"]);
-    if (savedHighlight === "off") setHighlightCharactersState(false);
+                      // Reset flag after render cycle
+                      setTimeout(() => { isRemoteUpdate.current = false; }, 100);
+                  } else {
+                      // CLOUD IS EMPTY: Push current local settings to cloud
+                      // This ensures initial sync for new users or first-time login
+                      console.log("Cloud settings empty, syncing local to cloud...");
+                       const payload = {
+                          accent,
+                          fontSize,
+                          bodyFontSize,
+                          dialogueFontSize,
+                          exportMode,
+                          fileLabelMode,
+                          focusEffect,
+                          focusContentMode,
+                          highlightCharacters,
+                          highlightSfx,
+                          enableLocalFiles,
+                          currentThemeId: themes.currentThemeId
+                      };
+                      await saveUserSettings(currentUser, payload);
+                  }
+              }
+      }
+      loadSettings();
+  }, [currentUser]);
 
-    // SFX
-    const savedSfx = readString(STORAGE_KEYS.HIGHLIGHT_SFX, ["on", "off"]);
-    if (savedSfx === "off") setHighlightSfxState(false);
+  // 2. Auto-Save to Cloud on Change
+  useEffect(() => {
+      if (!currentUser || isRemoteUpdate.current) return;
+      
+      const payload = {
+          accent,
+          fontSize,
+          bodyFontSize,
+          dialogueFontSize,
+          exportMode,
+          fileLabelMode,
+          focusEffect,
+          focusContentMode,
+          highlightCharacters,
+          highlightSfx,
+          enableLocalFiles,
+          currentThemeId: themes.currentThemeId
+      };
 
-    // Fonts
-    const savedFontSize = readNumber(STORAGE_KEYS.FONT_SIZE);
-    if (savedFontSize) setFontSizeState(savedFontSize);
-    
-    const savedBodyFont = readNumber(STORAGE_KEYS.BODY_FONT);
-    if (savedBodyFont) setBodyFontSizeState(savedBodyFont);
-    
-    const savedDlgFont = readNumber(STORAGE_KEYS.DIALOGUE_FONT);
-    if (savedDlgFont) setDialogueFontSizeState(savedDlgFont);
+      const timer = setTimeout(async () => {
+          await saveUserSettings(currentUser, payload);
+      }, 2000); // 2s debounce
 
-    // Export
-    const savedExportMode = readString(STORAGE_KEYS.EXPORT_MODE, ["processed", "raw"]);
-    if (savedExportMode) setExportModeState(savedExportMode);
-
-  }, []);
+      return () => clearTimeout(timer);
+  }, [
+      currentUser,
+      accent,
+      fontSize,
+      bodyFontSize,
+      dialogueFontSize,
+      exportMode,
+      fileLabelMode,
+      focusEffect,
+      focusContentMode,
+      highlightCharacters,
+      highlightSfx,
+      enableLocalFiles,
+      themes.markerThemes,
+      themes.currentThemeId
+  ]);
 
   const value = {
     // Theme
+    currentUser,
     isDark,
     setTheme,
     
@@ -161,32 +215,32 @@ export function SettingsProvider({ children }) {
     accent,
     setAccent,
     accentOptions,
-    accentStyle: accentClasses, // Provided for convenience
+    accentStyle: accentClasses,
     accentConfig,
     accentThemes,
-    
-    // Fonts
-    fontSize,
-    setFontSize,
-    bodyFontSize,
-    setBodyFontSize,
-    dialogueFontSize,
-    setDialogueFontSize,
+
+    // Font Sizes
+    fontSize, setFontSize,
+    bodyFontSize, setBodyFontSize,
+    dialogueFontSize, setDialogueFontSize,
     adjustFont,
 
     // Modes
-    exportMode,
-    setExportMode,
-    fileLabelMode,
-    setFileLabelMode,
-    focusEffect,
-    setFocusEffect,
-    focusContentMode,
-    setFocusContentMode,
-    highlightCharacters,
-    setHighlightCharacters,
-    highlightSfx,
-    setHighlightSfx,
+    exportMode, setExportMode,
+    fileLabelMode, setFileLabelMode,
+    focusEffect, setFocusEffect,
+    focusContentMode, setFocusContentMode,
+    highlightCharacters, setHighlightCharacters,
+    highlightSfx, setHighlightSfx,
+    enableLocalFiles, setEnableLocalFiles,
+
+    // Markers (Backwards Compatible + Theme Aware)
+    markerConfigs: themes.markerConfigs, 
+    setMarkerConfigs: themes.setMarkerConfigs,
+    updateMarkerConfigs: themes.setMarkerConfigs,
+
+    // Themes (New API)
+    ...themes
   };
 
   return (
@@ -196,10 +250,10 @@ export function SettingsProvider({ children }) {
   );
 }
 
-export function useSettings() {
+export const useSettings = () => {
   const context = useContext(SettingsContext);
   if (!context) {
     throw new Error("useSettings must be used within a SettingsProvider");
   }
   return context;
-}
+};

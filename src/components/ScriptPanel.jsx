@@ -1,5 +1,6 @@
 import React from "react";
 import ScriptViewer from "./ScriptViewer";
+import { useSettings } from "../contexts/SettingsContext";
 
 function ScriptPanel({
   isLoading,
@@ -27,7 +28,9 @@ function ScriptPanel({
   accentColor,
   scrollRef,
   onScrollProgress,
+  onDoubleClick, // Add onDoubleClick
 }) {
+  const { markerConfigs } = useSettings();
   const rafRef = React.useRef(null);
 
   const handleScroll = () => {
@@ -65,8 +68,9 @@ function ScriptPanel({
         '--body-font-size': `${bodyFontSize}px`,
         '--dialogue-font-size': `${dialogueFontSize}px`,
       }}
+      onDoubleClick={onDoubleClick} // Bind onDoubleClick
     >
-      <div className="h-full overflow-y-auto scrollbar-hide" ref={scrollRef} onScroll={handleScroll}>
+      <div className="h-full overflow-y-auto overflow-x-hidden scrollbar-hide" ref={scrollRef} onScroll={handleScroll}>
         <div className="max-w-5xl mx-auto px-5 sm:px-8 py-6 sm:py-10 space-y-4">
           {isLoading && <p className="text-sm text-muted-foreground">載入中...</p>}
           {!isLoading && rawScript && (
@@ -93,10 +97,11 @@ function ScriptPanel({
               bodyFontSize={bodyFontSize}
               dialogueFontSize={dialogueFontSize}
               accentColor={accentColor}
+              markerConfigs={markerConfigs}
             />
           )}
           {!isLoading && !rawScript && (
-            <p className="text-sm text-muted-foreground">請從左側選擇一個劇本。</p>
+            <p className="text-sm text-muted-foreground">乖乖過期了嗎。</p>
           )}
         </div>
       </div>

@@ -1,47 +1,82 @@
-# Screenplay Reader
+# Fountain Pro 劇本編輯與閱讀器
 
-React + Vite 的 Fountain 劇本閱讀器。自動掃描 `src/scripts_file/*.fountain`，提供順讀模式、角色篩選、匯出 PDF、可調字級與基礎單元測試。
+一個專業級的 Fountain 劇本編輯平台，專為編劇與劇組設計。整合了雲端專案管理、即時預覽編輯、強大的自訂標記系統與數據分析功能。
 
-## 開發
+## ✨ 核心功能詳解
+
+### 1. 編輯與寫作 (Editor & Writing)
+- **Live Editor**: 左側編輯 Markdown/Fountain 原始碼，右側即時預覽標準劇本格式。
+- **語法高亮**: 針對場景 (Slugline)、角色 (Character)、對白 (Dialogue)、括號 (Parenthetical) 的專屬高亮配色。
+- **自動補全**: 智慧記憶角色與場景名稱，加速寫作流程。
+- **快捷鍵支援**:
+  - `Cmd/Ctrl + B`: 開闔側邊欄
+  - `Cmd/Ctrl + [` / `]`: 調整字級大小
+  - `Cmd/Ctrl + G`: 快速切換對白專注模式 (需先選定角色)
+  - `Cmd/Ctrl + S`: 手動儲存 (雲端模式亦支援自動儲存)
+
+### 2. 智慧標記系統 (Smart Marker System)
+本系統支援高度客製化的「標記主題」，不僅是簡單的文字替換，更支援正則表達式 (Regex) 與區塊標記：
+- **自訂規則**: 可設定 Inline (行內) 或 Block (區塊) 類型的標記。
+- **樣式控制**: 針對每個標記設定獨立的顏色、字重、字體 (如宋體、黑體) 與對齊方式。
+- **優先權排序**: 透過拖曳 UI 決定標記解析的優先順序。
+- **預設支援**:
+  - `(SFX: ...)`: 音效提示 (自動變色)
+  - `[方位]`: 舞台指示
+  - 支援自訂 JSON 匯入/匯出標記設定。
+
+### 3. 數據統計與分析 (Statistics & Analysis)
+內建 `StatisticsPanel` 提供劇本的量化分析數據：
+- **預估時長**: 根據對話字數與動作用詞估算總片長。
+- **指令統計**: 自動計算 SFX、VFX 等指令出現次數。
+- **停頓分析**: 識別 `(..)` 或 `(pause)` 等停頓指令並統計總秒數。
+- **對白分布**: 統計各角色的台詞行數與字數佔比。
+
+### 4. 閱讀體驗 (Reading Experience)
+- **雙模式架構**:
+  - **Cloud Dashboard**: 管理多個雲端劇本，支援資料夾分類、封面設定。
+  - **Local Reader**: 直接讀取 `src/scripts_file` 資料夾內的 `.fountain` 檔案，無需上傳。
+- **沉浸式閱讀**:
+  - **角色篩選**: 點擊角色名，其餘內容淡化，僅高亮該角色對白。
+  - **順讀模式**: 隱藏場景描述與動作，僅顯示對白流。
+  - **字級獨立設定**: 可分別調整「全文」與「對白」的字級大小，適應不同閱讀習慣 (例如演員背詞需求)。
+- **RWD 響應式設計**: 支援手機版 Drawer 導覽與觸控操作。
+
+### 5. 輸出與分享 (Export & Share)
+- **PDF 匯出**: 
+  - 工業標準格式，包含頁碼、場景號。
+  - 支援「留白標記」轉換為實體空白行 (方便筆記)。
+- **SEO 優化分享**:
+  - 內建 Express Server (`server.js`) 處理動態 Meta Tags。
+  - 分享連結時，預覽圖與標題會自動對應劇本內容 (Title/Summary)。
+
+## 🛠 技術架構
+
+- **前端核心**: React 18, Vite, React Router v7
+- **編輯器引擎**: CodeMirror 6 (自定義 Fountain Language Support)
+- **解析核心**: 
+  - 採用 Dispatcher Pattern 的 AST 解析器 (`src/lib/screenplayAST.js`)。
+  - 支援 Dual Dialogue (雙人對話) 解析與渲染。
+- **狀態管理**: Context API (`SettingsContext`, `AuthContext`) + Custom Hooks。
+- **樣式系統**: TailwindCSS + Radix UI Primitives + CSS Variables (支援動態主題切換)。
+- **部署**: Docker Ready (包含 Node.js SEO Server)。
+
+## � 開發指南
+
+### 環境設置
+
 ```bash
 npm install
 npm run dev
-# 單元測試（Node 20+）
-npm test
 ```
 
-## 功能
-- 自動載入 `src/scripts_file` 下的 `.fountain` 檔案
-- 角色篩選／順讀模式（淡化或隱藏其他對白），可切換「顯示段落 / 僅台詞」
-- 字級快速切換：12 / 14 / 16 / 24 / 36 / 72，主題/重點色可自訂；全文與對白字級可分開設定
-- 快捷鍵：`Ctrl/Cmd + [` 或 `]` 調整字級、`Ctrl/Cmd + B` 開合側欄、`Ctrl/Cmd + G` 切換順讀（需先選角色）、`Ctrl/Cmd + ↑/↓` 快速跳場景、`Ctrl/Cmd + ←/→` 每次捲動固定行數
-- 匯出 PDF（保留標題頁、留白標記、SFX/方位標記），可選匯出目前視圖或原始解析 HTML
-- Sidebar：使用說明首頁、About（版權/簡介）、設定
-- 設定分頁：主題/重點色、字級（全文/對白）、列表顯示（檔名/標題）、順讀效果（隱藏/淡化）、專注內容（段落/台詞）、角色色塊開關、SFX 標記開關、匯出模式切換
-- 留白標記：短留白(1秒)、中留白(3秒)、長留白(5秒)、留白(純空白) 會轉成三行區塊（PDF 亦同）
-- 標記：`(SFX: ...)` 或 `[SFX: ...]` 會呈現音效色塊；`[方位/距離]` 以淡色塊顯示；括號 `(...)` 用於情緒/口氣
-- 測試：`npm test`（node --test），涵蓋劇本前處理與 PDF 標記轉換
+### Docker 部署
+```bash
+docker build -t screenplay-reader .
+docker run -p 8080:8080 screenplay-reader
+```
 
-## 劇本檔案
-- 把 `.fountain` 檔案放在 `src/scripts_file/`（可用子資料夾），頁面會自動出現清單。
-- 想指向特定檔案可用 `?file=subdir/name.fountain` 查詢參數。
-
-## 路徑別名
-- `@/` 指向 `src/`（定義於 `jsconfig.json`），例如 `import Sidebar from "@/components/Sidebar"`。
-
-## 專案結構
-- `src/App.jsx`：主要狀態與佈局
-- `src/components/`：UI 元件、Sidebar、ReaderHeader、ScriptPanel、AboutPanel、HomePanel 等
-- `src/components/ScriptViewer.jsx`：Fountain 解析顯示
-- `src/constants/`：色系、使用說明／About 文案、localStorage key
-- `src/lib/print.js`：匯出 PDF 的 HTML 模板
-- `src/lib/screenplayParser.js` / `src/lib/screenplayDom.js` / `src/lib/screenplayCharacters.js`：劇本解析與 DOM 標記 helper
-- `src/lib/storage.js`：localStorage 存取 helper
-
-## Docker
-- 建置：`docker build -t screenplay-reader .`
-- 執行：`docker run --rm -p 8080:8080 screenplay-reader`（內部以 `npm run preview` 提供 8080 端口）。
-- 如果要用本機劇本檔案：`docker run --rm -p 8080:8080 -v $(pwd)/src/scripts_file:/app/src/scripts_file screenplay-reader`
-
-## 其它
-- Tailwind 用於樣式，`src/index.css` 定義主題變數與劇本文字樣式。
+### 檔案結構說明
+- `src/components/renderer/`: 負責將 AST 轉換為 HTML/React Node 的渲染器。
+- `src/components/settings/`: 包含 MarkerSettings 等複雜設定 UI。
+- `src/lib/parsers/`: Fountain 語法解析邏輯 (Inline/Block/TitlePage)。
+- `src/services/`: 負責與後端 API 溝通 (Settings, Auth)。
