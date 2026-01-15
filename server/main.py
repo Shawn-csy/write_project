@@ -123,6 +123,12 @@ def export_all_scripts(x_user_id: str = Header(...), db: Session = Depends(get_d
         headers={"Content-Disposition": "attachment; filename=scripts_backup.zip"}
     )
 
+@app.put("/api/scripts/reorder")
+def reorder_scripts(payload: schemas.ScriptReorderRequest, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    print(f"Reordering {len(payload.items)} items")
+    crud.reorder_scripts(db, payload.items, ownerId)
+    return {"success": True}
+
 @app.put("/api/scripts/{script_id}")
 def update_script(script_id: str, script: schemas.ScriptUpdate, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
     updated = crud.update_script(db, script_id, script, ownerId)
@@ -137,11 +143,7 @@ def delete_script(script_id: str, db: Session = Depends(get_db), ownerId: str = 
          raise HTTPException(status_code=404, detail="Script not found")
     return {"success": True}
 
-@app.put("/api/scripts/reorder")
-@app.put("/api/scripts/reorder")
-def reorder_scripts(payload: schemas.ScriptReorderRequest, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
-    crud.reorder_scripts(db, payload.items, ownerId)
-    return {"success": True}
+
 
 
 # Tags
