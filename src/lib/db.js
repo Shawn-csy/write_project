@@ -90,7 +90,7 @@ export const deleteScript = async (scriptId) => {
 export const reorderScripts = async (updates) => {
   return fetchApi("/scripts/reorder", {
     method: "PUT",
-    body: JSON.stringify(updates),
+    body: JSON.stringify({ items: updates }),
   });
 };
 
