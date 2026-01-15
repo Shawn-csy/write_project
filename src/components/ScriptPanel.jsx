@@ -22,6 +22,7 @@ function ScriptPanel({
   setScenes,
   scrollToScene,
   theme,
+  markerConfigs: propMarkerConfigs, // Receive prop
   fontSize = 14,
   bodyFontSize = 14,
   dialogueFontSize = 14,
@@ -30,7 +31,10 @@ function ScriptPanel({
   onScrollProgress,
   onDoubleClick, // Add onDoubleClick
 }) {
-  const { markerConfigs } = useSettings();
+  const { markerConfigs: globalMarkerConfigs } = useSettings();
+  // Use prop if available (e.g. from PublicReaderPage override), else global
+  const effectiveMarkerConfigs = propMarkerConfigs || globalMarkerConfigs;
+
   const rafRef = React.useRef(null);
 
   const handleScroll = () => {
@@ -97,7 +101,7 @@ function ScriptPanel({
               bodyFontSize={bodyFontSize}
               dialogueFontSize={dialogueFontSize}
               accentColor={accentColor}
-              markerConfigs={markerConfigs}
+              markerConfigs={effectiveMarkerConfigs}
             />
           )}
           {!isLoading && !rawScript && (
