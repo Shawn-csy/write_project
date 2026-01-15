@@ -168,3 +168,7 @@ export const getPublicScripts = async (ownerId, folder) => {
 export const getPublicScript = async (id) => {
     return fetchPublic(`/public-scripts/${id}`);
 };
+
+export const getPublicThemes = async () => {
+    return fetchPublic("/themes/public");
+};
