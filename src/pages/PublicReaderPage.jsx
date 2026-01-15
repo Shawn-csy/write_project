@@ -11,6 +11,15 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
   
   const [overrideConfigs, setOverrideConfigs] = React.useState(null);
 
+  const { 
+      setActivePublicScriptId, setRawScript, setTitleName, setActiveFile,
+      isLoading, setIsLoading, setActiveCloudScript,
+      // Props required for ScriptPanel
+      rawScript, filterCharacter, focusMode, focusEffect, focusContentMode,
+      highlightCharacters, highlightSfx, setCharacterList, setTitleHtml, setTitleNote, setTitleSummary, setHasTitle, setRawScriptHtml, setProcessedScriptHtml, setSceneList,
+      scrollSceneId, fontSize, bodyFontSize, dialogueFontSize, accentConfig, contentScrollRef, setScrollProgress, setCloudScriptMode
+  } = scriptManager;
+
   useEffect(() => {
     // Reset override on mount/unmount or id change
     setOverrideConfigs(null);
