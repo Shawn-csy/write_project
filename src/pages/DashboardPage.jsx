@@ -45,6 +45,8 @@ export default function DashboardPage({ scriptManager, navProps }) {
         openSettings={nav.openSettings}
         openAbout={nav.openAbout}
         openMobileMenu={() => nav.setIsMobileDrawerOpen(true)}
+        isSidebarOpen={nav.isDesktopSidebarOpen}
+        setSidebarOpen={nav.setIsDesktopSidebarOpen}
       />
   );
 }

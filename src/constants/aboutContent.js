@@ -40,17 +40,18 @@ export const aboutContent = {
               <h3 class="font-semibold">版本日誌</h3>
             </div>
             <div class="mb-4 flex items-center gap-2">
-              <span class="rounded-md px-2 py-1 text-xs font-medium accent-pill">Current v0.2.2</span>
+              <span class="rounded-md px-2 py-1 text-xs font-medium accent-pill">Current v0.3.0</span>
             </div>
             <p class="text-sm text-muted-foreground">
               目前已實裝：
             </p>
             <ul class="mt-1 text-sm text-muted-foreground list-disc list-inside">
-              <li>劇本載入與過濾</li>
-              <li>角色過濾 (順讀模式)</li>
+              <li><strong>自訂標記樣式 (Custom Markers)</strong>：自由設定括號、音效與備註的顏色與圖示。</li>
+              <li><strong>主題切換 (Themes)</strong>：儲存並分享您的標記設定，或下載公開主題。</li>
+              <li><strong>雲端同步 (Cloud Sync)</strong>：設定與主題自動備份至雲端。</li>
+              <li><strong>公開頁面作者樣式</strong>：分享連結時，讀者將看到您設定的專屬主題。</li>
+              <li>劇本載入與過濾、角色過濾 (順讀模式)</li>
               <li>PDF 匯出與樣式調整</li>
-              <li>色彩樣式＆基本靜態部署</li>
-              <li>基本url分享支援</li>
             </ul>
           </div>
         </div>
@@ -63,13 +64,7 @@ export const aboutContent = {
         </div>
         <div class="space-y-4 text-sm text-muted-foreground">
           
-          <div class="flex flex-col gap-1">
-            <span class="font-medium text-foreground flex items-center gap-2">
-              <span class="block h-1.5 w-1.5 rounded-full accent-dot"></span>
-              雲端整合 (Backend Integration)
-            </span>
-            <p class="pl-3.5">實作使用者登入/登出，並串接資料庫保存劇本設定。目前評估使用 <span class="text-foreground">Firebase</span>。</p>
-          </div>
+
 
           <div class="flex flex-col gap-1">
              <span class="font-medium text-foreground flex items-center gap-2">
