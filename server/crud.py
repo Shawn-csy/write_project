@@ -28,7 +28,9 @@ def touch_parent_folders(db: Session, folder_path: str, ownerId: str, timestamp:
 
 def get_scripts(db: Session, ownerId: str):
     # Fetch Script AND calculated content length (characters)
+    # OPTIMIZATION: Defer loading 'content' to avoid memory spike on large scripts list
     results = db.query(models.Script, func.length(models.Script.content).label('contentLength'))\
+        .options(orm.defer(models.Script.content))\
         .filter(models.Script.ownerId == ownerId)\
         .order_by(models.Script.sortOrder.asc(), models.Script.lastModified.desc())\
         .all()
