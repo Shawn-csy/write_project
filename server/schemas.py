@@ -16,6 +16,60 @@ class Tag(TagBase):
     class Config:
         from_attributes = True
 
+# User Schemas
+class UserBase(BaseModel):
+    handle: Optional[str] = None
+    displayName: Optional[str] = None
+    bio: Optional[str] = None
+    avatar: Optional[str] = None
+    settings: Optional[dict] = {}
+
+class UserCreate(UserBase):
+    pass
+
+class User(UserBase):
+    id: str
+    settings: Any # JSON parsed
+    
+    class Config:
+        from_attributes = True
+
+# Marker Theme Schemas
+class MarkerThemeBase(BaseModel):
+    name: str
+    configs: str = "[]"
+    isPublic: bool = False
+    description: Optional[str] = ""
+
+class MarkerThemeCreate(MarkerThemeBase):
+    id: Optional[str] = None
+
+class MarkerThemeUpdate(BaseModel):
+    name: Optional[str] = None
+    configs: Optional[str] = None
+    isPublic: Optional[bool] = None
+    description: Optional[str] = None
+
+class UserPublic(BaseModel):
+    id: str
+    handle: Optional[str] = None
+    displayName: Optional[str] = "Anonymous"
+    avatar: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class MarkerTheme(MarkerThemeBase):
+    id: str
+    ownerId: str
+    owner: Optional[UserPublic] = None
+    createdAt: int
+    updatedAt: int
+
+    class Config:
+        from_attributes = True
+
+
 # Script Schemas
 class ScriptBase(BaseModel):
     title: str
@@ -86,59 +140,6 @@ class ScriptSummary(BaseModel):
     sortOrder: float
     markerThemeId: Optional[str] = None
     tags: List[Tag] = []
-
-    class Config:
-        from_attributes = True
-
-# User Schemas
-class UserBase(BaseModel):
-    handle: Optional[str] = None
-    displayName: Optional[str] = None
-    bio: Optional[str] = None
-    avatar: Optional[str] = None
-    settings: Optional[dict] = {}
-
-class UserCreate(UserBase):
-    pass
-
-class User(UserBase):
-    id: str
-    settings: Any # JSON parsed
-    
-    class Config:
-        from_attributes = True
-
-# Marker Theme Schemas
-class MarkerThemeBase(BaseModel):
-    name: str
-    configs: str = "[]"
-    isPublic: bool = False
-    description: Optional[str] = ""
-
-class MarkerThemeCreate(MarkerThemeBase):
-    id: Optional[str] = None
-
-class MarkerThemeUpdate(BaseModel):
-    name: Optional[str] = None
-    configs: Optional[str] = None
-    isPublic: Optional[bool] = None
-    description: Optional[str] = None
-
-class UserPublic(BaseModel):
-    id: str
-    handle: Optional[str] = None
-    displayName: Optional[str] = "Anonymous"
-    avatar: Optional[str] = None
-
-    class Config:
-        from_attributes = True
-
-class MarkerTheme(MarkerThemeBase):
-    id: str
-    ownerId: str
-    owner: Optional[UserPublic] = None
-    createdAt: int
-    updatedAt: int
 
     class Config:
         from_attributes = True

@@ -22,6 +22,7 @@ class Script(Base):
 
     # Relationships
     tags = relationship("Tag", secondary="script_tags", back_populates="scripts")
+    markerTheme = relationship("MarkerTheme", primaryjoin="Script.markerThemeId==MarkerTheme.id", foreign_keys=[markerThemeId], lazy="joined")
 
 class User(Base):
     __tablename__ = "users"
