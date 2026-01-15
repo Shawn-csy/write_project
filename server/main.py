@@ -207,6 +207,13 @@ def read_public_script(script_id: str, db: Session = Depends(get_db)):
     script = db.query(models.Script).filter(models.Script.id == script_id, models.Script.isPublic == 1).first()
     if not script:
         raise HTTPException(status_code=404, detail="Script not found")
+    
+    # Attach marker theme if exists
+    if script.markerThemeId:
+        theme = db.query(models.MarkerTheme).filter(models.MarkerTheme.id == script.markerThemeId).first()
+        if theme:
+            script.markerTheme = theme
+            
     return script
 
 # Search
