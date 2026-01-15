@@ -9,7 +9,7 @@ import {
 } from "../constants/accent";
 import { STORAGE_KEYS } from "../constants/storageKeys";
 import { writeValue } from "../lib/storage";
-import { apiCall as serviceApiCall, fetchUserSettings, saveUserSettings } from "../services/settingsApi.js";
+import { apiCall as serviceApiCall, fetchUserSettings, saveUserSettings, fetchUserThemes } from "../services/settingsApi.js";
 
 import { useMarkerThemes } from "../hooks/useMarkerThemes";
 import { usePersistentState } from "../hooks/usePersistentState";
@@ -133,8 +133,23 @@ export function SettingsProvider({ children }) {
                       if(s.enableLocalFiles !== undefined) setEnableLocalFiles(s.enableLocalFiles);
                       
                       if(s.markerThemes) {
-                          themes.setMarkerThemes(s.markerThemes);
-                          if(s.currentThemeId) themes.setCurrentThemeId(s.currentThemeId);
+                          // Prioritize fetching real themes from API to avoid stale data
+                          const realThemes = await fetchUserThemes(currentUser);
+                          if (realThemes && realThemes.length > 0) {
+                              themes.setMarkerThemes(realThemes);
+                              
+                              // Validate currentThemeId
+                              const themeExists = realThemes.find(t => t.id === s.currentThemeId);
+                              if (themeExists) {
+                                  themes.setCurrentThemeId(s.currentThemeId);
+                              } else {
+                                  themes.setCurrentThemeId('default');
+                              }
+                          } else {
+                              // Fallback if API fails (rare) or user has no themes
+                              themes.setMarkerThemes(s.markerThemes);
+                              if(s.currentThemeId) themes.setCurrentThemeId(s.currentThemeId);
+                          }
                       }
 
                       // Reset flag after render cycle
