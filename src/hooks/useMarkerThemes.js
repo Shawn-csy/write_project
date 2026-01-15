@@ -39,7 +39,7 @@ export function useMarkerThemes(currentUser) {
         setMarkerThemes(newThemes);
         
         if (currentUser && currentThemeId !== 'default') {
-            apiCall(`/api/themes/${currentThemeId}`, 'PUT', { configs: JSON.stringify(newConfigs) });
+            apiCall(`/themes/${currentThemeId}`, 'PUT', { configs: JSON.stringify(newConfigs) });
         }
     };
 
@@ -57,7 +57,7 @@ export function useMarkerThemes(currentUser) {
         setCurrentThemeId(newId);
         
         if (currentUser) {
-            await apiCall('/api/themes', 'POST', newTheme);
+            await apiCall('/themes', 'POST', newTheme);
         }
     };
 
@@ -74,7 +74,7 @@ export function useMarkerThemes(currentUser) {
         setCurrentThemeId(newId);
 
         if (currentUser) {
-                await apiCall('/api/themes', 'POST', newTheme);
+                await apiCall('/themes', 'POST', newTheme);
         }
     };
 
@@ -87,7 +87,7 @@ export function useMarkerThemes(currentUser) {
         }
         
         if (currentUser && id !== 'default') {
-            await apiCall(`/api/themes/${id}`, 'DELETE');
+            await apiCall(`/themes/${id}`, 'DELETE');
         }
     };
 
@@ -98,7 +98,7 @@ export function useMarkerThemes(currentUser) {
         setMarkerThemes(newThemes);
         
         if (currentUser && id !== 'default') {
-            apiCall(`/api/themes/${id}`, 'PUT', { name: newName });
+            apiCall(`/themes/${id}`, 'PUT', { name: newName });
         }
     };
 
@@ -109,7 +109,7 @@ export function useMarkerThemes(currentUser) {
         setMarkerThemesState(newThemes);
         
         if (currentUser) {
-            await apiCall(`/api/themes/${id}`, 'PUT', { isPublic });
+            await apiCall(`/themes/${id}`, 'PUT', { isPublic });
         }
     };
 
@@ -119,13 +119,13 @@ export function useMarkerThemes(currentUser) {
         );
         setMarkerThemesState(newThemes);
         if (currentUser) {
-           await apiCall(`/api/themes/${id}`, 'PUT', { description });
+           await apiCall(`/themes/${id}`, 'PUT', { description });
         }
     };
     
     const copyPublicTheme = async (themeId) => {
         if (!currentUser) return;
-        const copied = await apiCall(`/api/themes/${themeId}/copy`, 'POST');
+        const copied = await apiCall(`/themes/${themeId}/copy`, 'POST');
         if (copied) {
             const parsed = { ...copied, configs: JSON.parse(copied.configs) };
             setMarkerThemesState(prev => [...prev, parsed]);
