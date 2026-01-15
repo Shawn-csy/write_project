@@ -65,7 +65,11 @@ export const buildScriptAST = (tokens, markerConfigs = []) => {
 
     tokens.forEach(token => {
         let newToken = { ...token };
-        const text = newToken.text ? newToken.text.trim() : "";
+        // Guard: Ensure text exists to prevent processor crashes
+        if (newToken.text === undefined || newToken.text === null) {
+            newToken.text = "";
+        }
+        const text = newToken.text.trim();
 
         // 0. Pre-check: Force Markers to Action
         // Any token that matches a start/end marker for a block should be action
