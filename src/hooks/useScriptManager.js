@@ -99,6 +99,10 @@ export function useScriptManager(initialParamsRef, markerConfigs = []) {
   };
 
   // 3. indexing
+  // 3. indexing
+  // OPTIMIZATION: Removed eager loading of all files to extract titles.
+  // This was causing massive memory usage (800MB+) as it loaded every single file into memory at startup.
+  /*
   useEffect(() => {
     if (!files.length) return;
     (async () => {
@@ -120,6 +124,7 @@ export function useScriptManager(initialParamsRef, markerConfigs = []) {
       setFileTagsMap(tagsMap);
     })();
   }, [files]);
+  */
 
   // 4. File Meta (Dates)
   useEffect(() => {
