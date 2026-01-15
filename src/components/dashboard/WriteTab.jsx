@@ -22,18 +22,16 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     const handleExport = async () => {
          if(!manager.currentUser) return;
          try {
-              const res = await fetch("/api/export/all", {
-                  headers: { "X-User-ID": manager.currentUser.uid }
-              });
-              if(!res.ok) throw new Error("Export failed");
-              const blob = await res.blob();
-              const url = window.URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = "scripts_backup.zip";
-              document.body.appendChild(a);
-              a.click();
-              a.remove();
+             import("../../lib/db").then(async ({ exportScripts }) => {
+                  const blob = await exportScripts();
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = "scripts_backup.zip";
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+             });
          } catch(e) {
              console.error(e);
              alert("匯出失敗");

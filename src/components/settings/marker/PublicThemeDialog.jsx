@@ -19,11 +19,12 @@ export function PublicThemeDialog() {
     useEffect(() => {
         if (open) {
             setLoading(true);
-            fetch('/api/themes/public')
-                .then(res => res.json())
-                .then(data => setPublicThemes(data))
-                .catch(e => console.error(e))
-                .finally(() => setLoading(false));
+            import("../../../lib/db").then(({ getPublicThemes }) => 
+                getPublicThemes()
+            )
+            .then(data => setPublicThemes(data))
+            .catch(e => console.error(e))
+            .finally(() => setLoading(false));
         }
     }, [open]);
 
