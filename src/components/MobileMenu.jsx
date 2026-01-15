@@ -1,105 +1,166 @@
-import React, { useState } from "react";
+import React from "react";
 import { 
   Settings, 
   Info, 
-  FileText, 
-  ChevronRight,
-  ChevronDown,
-  BookOpen
+  Home,
+  AlignLeft, 
+  PanelLeftClose,
+  PenBox
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
 import { Separator } from "./ui/separator";
-import MenuNode from "./MenuNode";
+import UserMenu from "./auth/UserMenu";
 
 function MobileMenu({
-  fileTree,
+  // Scene Props
+  sceneList = [],
+  currentSceneId,
+  onSelectScene,
+  
+  // Navigation
   activeFile,
-  onSelectFile,
-  accentStyle,
   openAbout,
   openSettings,
+  openHome, // handleReturnHome
   onClose,
-  fileTitleMap,
-  searchTerm,
-  onSearchChange,
-  openFolders,
-  toggleFolder
+  accentStyle
 }) {
-  const [showFiles, setShowFiles] = useState(false);
+  const [activeTab, setActiveTab] = React.useState(activeFile ? "outline" : "menu");
+
+  const handleHome = () => {
+     if (openHome) openHome();
+     onClose();
+  };
 
   return (
     <div className="flex flex-col h-full bg-background text-foreground">
-      {/* Header & Actions Compact Row */}
-      <div className="flex items-center justify-between p-4 border-b border-border/60 bg-muted/20">
-        <div>
-          <h2 className="text-lg font-bold tracking-tight">Menu</h2>
-        </div>
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border/60 bg-muted/20 shrink-0">
         <div className="flex items-center gap-2">
-           <Button
-            variant="ghost"
-            size="sm"
-            className="flex items-center gap-1.5 h-9"
-            onClick={() => {
-              openSettings();
-              onClose();
-            }}
-          >
-            <Settings className="h-4 w-4" />
-            <span className="text-xs">設定</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-             className="flex items-center gap-1.5 h-9"
-            onClick={() => {
-              openAbout();
-              onClose();
-            }}
-          >
-            <Info className="h-4 w-4" />
-            <span className="text-xs">關於</span>
-          </Button>
+           <Button variant="ghost" className="p-0 hover:bg-transparent h-auto" onClick={handleHome}>
+             <div className="flex flex-col items-start leading-none">
+                <h2 className={`text-base font-bold tracking-tight uppercase ${accentStyle.label}`}>Screenplay</h2>
+                <span className="text-[10px] text-muted-foreground tracking-widest pl-[1px]">READER</span>
+             </div>
+           </Button>
         </div>
+        <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
+           <PanelLeftClose className="h-5 w-5" />
+        </Button>
       </div>
 
-      <div className="flex-1 min-h-0 flex flex-col px-4 pt-4 pb-6 overflow-y-auto">
-        {/* Search & Script List */}
-        <div className="flex flex-col gap-2 flex-1">
-           {/* Search Input */}
-           <div className="mb-2">
-              <input
-                value={searchTerm || ""}
-                onChange={(e) => onSearchChange(e.target.value)}
-                placeholder="搜尋檔案或資料夾..."
-                className={`w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none ${accentStyle.focusRing}`}
-              />
-           </div>
-           
-           <div className="rounded-xl border border-border/60 bg-card overflow-hidden flex-1 min-h-[50vh]">
-             <ScrollArea className="h-full">
-               <div className="p-2 flex flex-col gap-1">
-                 <MenuNode
-                   node={fileTree}
-                   depth={0}
-                   searchTerm={searchTerm}
-                   openFolders={openFolders}
-                   toggleFolder={toggleFolder}
-                   activeFile={activeFile}
-                   onSelectFile={onSelectFile}
-                   onClose={onClose}
-                   fileTitleMap={fileTitleMap}
-                   accentStyle={accentStyle}
-                 />
-                 {(!fileTree || (fileTree.files.length === 0 && fileTree.children.length === 0 && fileTree.children.size === 0)) && (
-                   <div className="p-8 text-center text-muted-foreground text-sm">
-                     {searchTerm ? "未找到符合的檔案" : "無與劇本檔案"}
+      {/* Tabs Switcher */}
+      <div className="p-2 grid grid-cols-2 gap-1 border-b border-border/60 shrink-0">
+          <button
+              onClick={() => setActiveTab("menu")}
+              className={`py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeTab === "menu" 
+                  ? "bg-muted text-foreground" 
+                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+              }`}
+          >
+              導覽 (Menu)
+          </button>
+          <button
+              onClick={() => setActiveTab("outline")}
+              className={`py-2 text-sm font-medium rounded-md transition-colors relative ${
+                  activeTab === "outline" 
+                  ? "bg-muted text-foreground" 
+                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+              } ${!activeFile ? "opacity-50 cursor-not-allowed" : ""}`}
+              disabled={!activeFile}
+          >
+              大綱 (Outline)
+              {activeFile && <span className="absolute top-1 right-2 w-1.5 h-1.5 rounded-full bg-primary/80" />}
+          </button>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        
+        {activeTab === "outline" ? (
+             /* --- OUTLINE TAB --- */
+             <>
+                <div className="px-4 py-2 bg-card/50 border-b border-border/60 flex items-center gap-2 shrink-0">
+                   <AlignLeft className="h-4 w-4 text-muted-foreground" />
+                   <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Scene List</span>
+                   <span className="ml-auto text-xs text-muted-foreground truncate max-w-[150px]">
+                      {typeof activeFile === 'object' ? activeFile.name : activeFile}
+                   </span>
+                </div>
+                <ScrollArea className="flex-1">
+                   <div className="p-2">
+                     {sceneList.length > 0 ? (
+                         <div className="flex flex-col gap-0.5">
+                             {sceneList.map((scene) => (
+                                 <button
+                                   key={scene.id}
+                                   onClick={() => {
+                                       onSelectScene(scene.id);
+                                       onClose();
+                                   }}
+                                   className={`
+                                     w-full text-left px-3 py-2.5 rounded-md text-sm transition-colors border-l-2
+                                     ${currentSceneId === scene.id 
+                                       ? `${accentStyle.border} ${accentStyle.fileActiveBg} font-medium text-foreground` 
+                                       : "border-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                                     }
+                                   `}
+                                 >
+                                    <span className="line-clamp-1">{scene.label}</span>
+                                 </button>
+                             ))}
+                         </div>
+                     ) : (
+                        <div className="py-12 text-center text-muted-foreground text-sm">
+                           此劇本沒有場景標題
+                        </div>
+                     )}
                    </div>
-                 )}
-               </div>
+                </ScrollArea>
+             </>
+        ) : (
+             /* --- MENU TAB --- */
+             <ScrollArea className="flex-1">
+                 <div className="p-4 space-y-4">
+                     <div className="space-y-1">
+                         <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">快速導航</div>
+                         <Button variant="ghost" className="w-full justify-start gap-3 h-12 text-base" onClick={handleHome}>
+                             <Home className="w-5 h-5 text-muted-foreground" />
+                             閱讀 (Read)
+                         </Button>
+                         <Button variant="ghost" className="w-full justify-start gap-3 h-12 text-base" onClick={handleHome}>
+                             <PenBox className="w-5 h-5 text-muted-foreground" />
+                             寫作 (Write)
+                         </Button>
+                     </div>
+
+                     <Separator />
+
+                     <div className="space-y-1">
+                         <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">應用程式</div>
+                         <Button variant="ghost" className="w-full justify-start gap-3 h-12" onClick={() => { openAbout(); onClose(); }}>
+                             <Info className="w-5 h-5 text-muted-foreground" />
+                             關於 (About)
+                         </Button>
+                         <Button variant="ghost" className="w-full justify-start gap-3 h-12" onClick={() => { openSettings(); onClose(); }}>
+                             <Settings className="w-5 h-5 text-muted-foreground" />
+                             設定 (Settings)
+                         </Button>
+                     </div>
+                 </div>
              </ScrollArea>
-           </div>
-        </div>
+        )}
+
+      </div>
+      
+      {/* Footer: User Login/Profile */}
+      <div className="p-3 border-t border-border/60 bg-background/80 backdrop-blur-sm shrink-0">
+          <UserMenu 
+              openSettings={() => { openSettings(); onClose(); }} 
+              openAbout={() => { openAbout(); onClose(); }}
+          />
       </div>
     </div>
   );

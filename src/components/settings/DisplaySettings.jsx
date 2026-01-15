@@ -55,7 +55,9 @@ export function DisplaySettings({ sectionRef }) {
     highlightSfx,
     setHighlightSfx,
     exportMode,
-    setExportMode
+    setExportMode,
+    enableLocalFiles,
+    setEnableLocalFiles
   } = useSettings();
 
   return (
@@ -158,6 +160,21 @@ export function DisplaySettings({ sectionRef }) {
                 options={[
                   { label: "目前視圖", value: "processed" },
                   { label: "原始碼", value: "raw" }
+                ]}
+             />
+          </SettingRow>
+
+          <SettingRow 
+             icon={FileText} 
+             title="本地檔案" 
+             description="是否啟用讀取本地端 scripts_file 資料夾"
+          >
+             <ToggleGroup 
+                value={enableLocalFiles} 
+                onChange={setEnableLocalFiles}
+                options={[
+                  { label: "開啟", value: true },
+                  { label: "關閉", value: false }
                 ]}
              />
           </SettingRow>

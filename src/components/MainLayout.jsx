@@ -32,7 +32,11 @@ export function MainLayout({
   toggleFolder,
   fileTagsMap,
   fileLabelMode,
-  setFileLabelMode
+  setFileLabelMode,
+  sceneList,
+  currentSceneId,
+  onSelectScene, // Add this back
+  showSidebar = true
 }) {
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -48,7 +52,7 @@ export function MainLayout({
           onOpenChange={setIsMobileDrawerOpen}
           direction="left"
         >
-          <DrawerContent className="h-[85vh] outline-none">
+          <DrawerContent className="h-[85vh] outline-none z-[100]">
             <DrawerTitle className="sr-only">Menu</DrawerTitle>
             <DrawerDescription className="sr-only">Script Navigation</DrawerDescription>
             <MobileMenu
@@ -74,10 +78,10 @@ export function MainLayout({
           className={`
             hidden lg:block h-full border border-border bg-muted/20 rounded-2xl
             transition-all duration-300 ease-in-out overflow-hidden
-            ${isDesktopSidebarOpen ? "w-64 opacity-100" : "w-0 opacity-0 border-0"}
+            ${(isDesktopSidebarOpen && showSidebar) ? "w-52 opacity-100" : "w-0 opacity-0 border-0"}
           `}
         >
-          <div className="w-64 h-full flex flex-col">
+          <div className="w-52 h-full flex flex-col">
             <Sidebar
               fileTree={fileTree}
               activeFile={activeFile}
@@ -97,6 +101,9 @@ export function MainLayout({
               fileLabelMode={fileLabelMode}
               setFileLabelMode={setFileLabelMode}
               setSidebarOpen={setIsDesktopSidebarOpen}
+              sceneList={sceneList}
+              currentSceneId={currentSceneId}
+              onSelectScene={onSelectScene}
             />
           </div>
         </div>

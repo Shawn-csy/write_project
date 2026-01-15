@@ -26,6 +26,48 @@
     --paper-shadow: rgba(0, 0, 0, 0.12);
     --note-bg: color-mix(in srgb, hsl(var(--accent)) 16%, hsl(var(--background)) 84%);
     --note-border: color-mix(in srgb, hsl(var(--accent)) 30%, transparent);
+
+    /* Marker Colors (Light Mode) */
+    --marker-color-red: #dc2626;
+    --marker-color-orange: #ea580c;
+    --marker-color-amber: #d97706;
+    --marker-color-yellow: #ca8a04;
+    --marker-color-lime: #65a30d;
+    --marker-color-green: #16a34a;
+    --marker-color-emerald: #059669;
+    --marker-color-teal: #0d9488;
+    --marker-color-cyan: #0891b2;
+    --marker-color-sky: #0284c7;
+    --marker-color-blue: #2563eb;
+    --marker-color-indigo: #4f46e5;
+    --marker-color-violet: #7c3aed;
+    --marker-color-purple: #9333ea;
+    --marker-color-fuchsia: #c026d3;
+    --marker-color-pink: #db2777;
+    --marker-color-rose: #e11d48;
+    --marker-color-slate: #475569;
+    --marker-color-gray: #4b5563;
+    --marker-color-zinc: #52525b;
+    
+    /* Morandi Palette (Default - Darker for Light Mode) */
+    --marker-color-verdigris: #4B8F84;
+    --marker-color-sage: #6B966A;
+    --marker-color-cadet: #6D8F8C;
+    --marker-color-steel: #587B88;
+    --marker-color-periwinkle: #7582C0;
+    --marker-color-pastel-rose: #B87B7B;
+    --marker-color-sand: #B89C72;
+    --marker-color-olive: #8C8C78;
+    --marker-color-warm-gray: #63625F;
+    --marker-color-orchid: #96708F;
+
+    /* Morandi High Contrast (Light Mode - Extra Dark) */
+    --marker-color-deep-teal: #26524C;
+    --marker-color-russet: #663A35;
+    --marker-color-slate-blue: #3D4C5C;
+    --marker-color-antique-gold: #70552D;
+    --marker-color-deep-iris: #4E4057;
+    --marker-color-charcoal: #333333;
   }
 
   .dark {
@@ -48,6 +90,48 @@
     --paper-bg: #0d0d0f;
     --paper-border: #1f1f24;
     --paper-shadow: rgba(0, 0, 0, 0.4);
+
+    /* Marker Colors (Dark Mode) */
+    --marker-color-red: #f87171;
+    --marker-color-orange: #fb923c;
+    --marker-color-amber: #fbbf24;
+    --marker-color-yellow: #facc15;
+    --marker-color-lime: #a3e635;
+    --marker-color-green: #4ade80;
+    --marker-color-emerald: #34d399;
+    --marker-color-teal: #2dd4bf;
+    --marker-color-cyan: #22d3ee;
+    --marker-color-sky: #38bdf8;
+    --marker-color-blue: #60a5fa;
+    --marker-color-indigo: #818cf8;
+    --marker-color-violet: #a78bfa;
+    --marker-color-purple: #c084fc;
+    --marker-color-fuchsia: #e879f9;
+    --marker-color-pink: #f472b6;
+    --marker-color-rose: #fb7185;
+    --marker-color-slate: #94a3b8;
+    --marker-color-gray: #9ca3af;
+    --marker-color-zinc: #a1a1aa;
+
+    /* Morandi Palette (Dark Mode - Lighter) */
+    --marker-color-verdigris: #8CC9BE;
+    --marker-color-sage: #AED9AD;
+    --marker-color-cadet: #B0CCC9;
+    --marker-color-steel: #9ABCC9;
+    --marker-color-periwinkle: #BDC8F2;
+    --marker-color-pastel-rose: #EBC0C0;
+    --marker-color-sand: #E8D1AC;
+    --marker-color-olive: #CBCBBA;
+    --marker-color-warm-gray: #A8A7A4;
+    --marker-color-orchid: #D9B9D2;
+
+    /* Morandi High Contrast (Dark Mode - Brighter) */
+    --marker-color-deep-teal: #6EA39C;
+    --marker-color-russet: #B3837D;
+    --marker-color-slate-blue: #7D8D9E;
+    --marker-color-antique-gold: #BC9E6A;
+    --marker-color-deep-iris: #91809C;
+    --marker-color-charcoal: #808080;
   }
 
   body {
@@ -216,15 +300,17 @@
   padding: 3px 6px;
   margin: 4px 0;
   border-radius: 10px;
-  background: color-mix(in srgb, hsl(var(--muted)) 28%, hsl(var(--surface-1)));
-  border: none;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-  font-size: 12px;
+  background: color-mix(in srgb, hsl(var(--foreground)) 5%, hsl(var(--surface-1)));
+  border: 2px solid color-mix(in srgb, hsl(var(--foreground)) 20%, transparent);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-size: 13px;
+  font-weight: 800;
+  padding: 4px 8px;
 }
 .dark .screenplay .dir-cue {
-  background: color-mix(in srgb, hsl(var(--muted)) 45%, hsl(var(--surface-3)));
-  border: 1px solid color-mix(in srgb, hsl(var(--muted)) 60%, transparent);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+  background: color-mix(in srgb, hsl(var(--foreground)) 15%, hsl(var(--surface-3)));
+  border: 2px solid color-mix(in srgb, hsl(var(--foreground)) 40%, transparent);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
 }
 
 .screenplay .sfx-label {
@@ -275,9 +361,11 @@
   font-style: italic;
 }
 .screenplay .dir-text {
-  font-size: 12px;
-  color: hsl(var(--muted-foreground));
-  font-style: italic;
+  font-size: 13px;
+  color: hsl(var(--foreground));
+  font-style: normal;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 
@@ -336,6 +424,83 @@
 }
 
 /* Markers are hidden logic elements, but if they persist... */
+
+/* Section Continuous (Paragraph) - Bracket Style */
+.section-continuous-layer {
+  position: relative;
+  border-left: 4px solid #ea580c; /* Orange */
+  margin: 24px 0;
+  padding: 8px 0 8px 16px;
+}
+.section-continuous-layer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -4px;
+  width: 12px;
+  height: 4px;
+  background: #ea580c;
+}
+.section-continuous-layer::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: -4px;
+  width: 12px;
+  height: 4px;
+  background: #ea580c;
+}
+
+.section-continuous-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: #ea580c;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-left: 4px;
+}
+
+.section-continuous-footer {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ea580c;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-left: 4px;
+}
+
+/* Post-production Marker (Post) - Purple Style */
+.post-continuous-layer {
+  position: relative;
+  border-left: 4px solid #9333ea; /* Purple */
+  padding-left: 16px;
+  margin: 16px 0;
+}
+
+.post-continuous-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #9333ea;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.post-continuous-footer {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #9333ea;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .sound-start-marker,
 .sound-end-marker {
   display: none;
@@ -347,6 +512,13 @@
 .screenplay .highlight {
   background: color-mix(in srgb, hsl(var(--accent)) 10%, transparent);
   box-shadow: 0 0 0 1px color-mix(in srgb, hsl(var(--accent)) 25%, transparent);
+}
+
+.screenplay .reader-locate-highlight {
+  background: color-mix(in srgb, hsl(var(--accent)) 18%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, hsl(var(--accent)) 28%, transparent);
+  border-radius: 6px;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .bg-background {
@@ -460,6 +632,12 @@
   background: var(--accent);
   opacity: 0.8;
 }
+
+.cm-highlight-line {
+  background: color-mix(in srgb, hsl(var(--accent)) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, hsl(var(--accent)) 28%, transparent);
+}
+
 
 .screenplay .action {
   margin-bottom: 24px;
