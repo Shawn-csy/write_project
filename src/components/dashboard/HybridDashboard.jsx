@@ -60,7 +60,12 @@ export default function HybridDashboard({
       if (currentUser) {
           setShowLanding(false);
       } else {
-          setShowLanding(true);
+          // Only show landing if no tab is present in URL
+          // This prevents overriding the view when returning from backend with ?tab=read
+          const params = new URLSearchParams(window.location.search);
+          if (!params.get("tab")) {
+              setShowLanding(true);
+          }
       }
   }, [currentUser]);
 
