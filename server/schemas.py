@@ -46,6 +46,9 @@ class ScriptReorderItem(BaseModel):
     id: str
     sortOrder: float
 
+class ScriptReorderRequest(BaseModel):
+    items: List[ScriptReorderItem]
+
 class Script(BaseModel):
     id: str
     ownerId: str

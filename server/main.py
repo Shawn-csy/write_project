@@ -138,8 +138,9 @@ def delete_script(script_id: str, db: Session = Depends(get_db), ownerId: str = 
     return {"success": True}
 
 @app.put("/api/scripts/reorder")
-def reorder_scripts(updates: List[schemas.ScriptReorderItem], db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
-    crud.reorder_scripts(db, updates, ownerId)
+@app.put("/api/scripts/reorder")
+def reorder_scripts(payload: schemas.ScriptReorderRequest, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    crud.reorder_scripts(db, payload.items, ownerId)
     return {"success": True}
 
 
