@@ -54,7 +54,14 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    # allow_origins=["*"], # Wildcard '*' is invalid with allow_credentials=True
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:8080",
+        "https://scripts.shawnup.com",
+        "https://scripts-api.shawnup.com",
+        "https://scripts-666540946249.asia-east1.run.app"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
