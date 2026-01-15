@@ -55,6 +55,25 @@ export const fetchUserSettings = async (currentUser) => {
     return null;
 };
 
+export const fetchUserThemes = async (currentUser) => {
+    if (!currentUser) return null;
+    try {
+        const token = await currentUser.getIdToken();
+        const res = await fetch(`${API_BASE_URL}/themes`, {
+             headers: { 
+                 'X-User-ID': currentUser.uid,
+                 'Authorization': `Bearer ${token}` 
+             }
+        });
+        if (res.ok) {
+            return await res.json();
+        }
+    } catch(e) {
+        console.error("Fetch themes failed", e);
+    }
+    return null;
+};
+
 export const saveUserSettings = async (currentUser, payload) => {
       if (!currentUser) return;
       try {
