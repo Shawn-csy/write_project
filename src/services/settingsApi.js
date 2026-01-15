@@ -1,8 +1,19 @@
+const getEnv = (key) => {
+  if (typeof window !== "undefined" && window.__ENV__ && window.__ENV__[key]) {
+      return window.__ENV__[key];
+  }
+  return import.meta.env[key];
+};
+const API_BASE_URL = getEnv("VITE_API_URL") || "/api";
+
 export const apiCall = async (currentUser, url, method, body) => {
       if (!currentUser) return null;
       try {
           const token = await currentUser.getIdToken();
-          const res = await fetch(url, {
+          // Ensure url is tied to base if not absolute
+          const fullUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url.startsWith("/") ? "" : "/"}${url}`;
+
+          const res = await fetch(fullUrl, {
               method: method,
               headers: {
                   'Content-Type': 'application/json',
@@ -12,7 +23,7 @@ export const apiCall = async (currentUser, url, method, body) => {
               body: body ? JSON.stringify(body) : undefined
           });
           if (!res.ok) {
-               console.error(`API ${method} ${url} failed:`, res.statusText);
+               console.error(`API ${method} ${fullUrl} failed:`, res.statusText);
                return null;
           }
           if (res.status === 204) return true;
@@ -29,7 +40,7 @@ export const fetchUserSettings = async (currentUser) => {
     if (!currentUser) return null;
     try {
         const token = await currentUser.getIdToken();
-        const res = await fetch('/api/me', {
+        const res = await fetch(`${API_BASE_URL}/me`, {
             headers: { 
                 'X-User-ID': currentUser.uid,
                 'Authorization': `Bearer ${token}` 
@@ -48,7 +59,7 @@ export const saveUserSettings = async (currentUser, payload) => {
       if (!currentUser) return;
       try {
           const token = await currentUser.getIdToken();
-          await fetch('/api/me', {
+          await fetch(`${API_BASE_URL}/me`, {
               method: 'PUT',
               headers: {
                   'Content-Type': 'application/json',

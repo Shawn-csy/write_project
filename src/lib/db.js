@@ -90,7 +90,7 @@ export const deleteScript = async (scriptId) => {
 export const reorderScripts = async (updates) => {
   return fetchApi("/scripts/reorder", {
     method: "PUT",
-    body: JSON.stringify({ updates }),
+    body: JSON.stringify(updates),
   });
 };
 
@@ -141,6 +141,16 @@ export const updateUserProfile = async (updates) => {
         method: "PUT",
         body: JSON.stringify(updates)
     });
+};
+
+export const exportScripts = async () => {
+    const url = `${API_BASE_URL}/export/all`;
+    const userId = auth.currentUser?.uid || "test-user";
+    const res = await fetch(url, {
+         headers: { "X-User-ID": userId }
+    });
+    if (!res.ok) throw new Error("Export failed");
+    return res.blob();
 };
 
 // --- Public API ---

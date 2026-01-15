@@ -104,10 +104,8 @@ export function useScriptDragDrop({
                      }
                  }
                  
-                 fetch("/api/scripts/reorder", {
-                     method: "PUT",
-                     headers: { "Content-Type": "application/json", "X-User-ID": currentUser?.uid || "test-user" },
-                     body: JSON.stringify(updates.map(({id, sortOrder}) => ({id, sortOrder})))
+                 import("../../lib/db").then(({ reorderScripts }) => {
+                     reorderScripts(updates.map(({id, sortOrder}) => ({id, sortOrder})));
                  }).catch(console.error);
 
                  return items.map(s => {
