@@ -200,7 +200,7 @@ def update_user_me(user: schemas.UserCreate, db: Session = Depends(get_db), owne
 def read_public_scripts(ownerId: Optional[str] = None, folder: Optional[str] = None, db: Session = Depends(get_db)):
     return crud.get_public_scripts(db, ownerId=ownerId, folder=folder)
 
-@app.get("/api/public-scripts/{script_id}")
+@app.get("/api/public-scripts/{script_id}", response_model=schemas.Script)
 def read_public_script(script_id: str, db: Session = Depends(get_db)):
     # Re-use get_script but ignore ownerId checking for fetching, verify isPublic instead is manual
     # But crud.get_script filters by ownerId. So we query manually or add special method.
@@ -208,12 +208,6 @@ def read_public_script(script_id: str, db: Session = Depends(get_db)):
     if not script:
         raise HTTPException(status_code=404, detail="Script not found")
     
-    # Attach marker theme if exists
-    if script.markerThemeId:
-        theme = db.query(models.MarkerTheme).filter(models.MarkerTheme.id == script.markerThemeId).first()
-        if theme:
-            script.markerTheme = theme
-            
     return script
 
 # Search
