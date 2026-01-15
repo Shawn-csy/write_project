@@ -18,11 +18,11 @@ class Script(Base):
     type = Column(String, default="script") # 'script' or 'folder'
     folder = Column(String, default="/", index=True)
     sortOrder = Column(Float, default=0.0)
-    markerThemeId = Column(String, nullable=True)
-
+    markerThemeId = Column(String, ForeignKey("marker_themes.id"), nullable=True)
+    
     # Relationships
     tags = relationship("Tag", secondary="script_tags", back_populates="scripts")
-    markerTheme = relationship("MarkerTheme", primaryjoin="Script.markerThemeId==MarkerTheme.id", foreign_keys=[markerThemeId], lazy="joined")
+    markerTheme = relationship("MarkerTheme", lazy="joined")
 
 class User(Base):
     __tablename__ = "users"
