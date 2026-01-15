@@ -121,6 +121,37 @@ function App() {
   }, [activeCloudScript, scriptManager]);
 
   const handleReturnHome = () => {
+    if (activeCloudScript) {
+        if (isPublicReader) {
+            // Visitor Mode: Go to Read Tab and expand folder
+            // Format: ownerId:folderPath (folderPath includes leading slash if not root)
+            // But wait, the folder in script object is stored as e.g "/Folder". 
+            // The item key in ReadTab is `ownerId:folderPath`. 
+            // Let's pass the full path.
+            
+            const folder = activeCloudScript.folder === '/' ? '' : activeCloudScript.folder;
+            // If the script is effectively at root (folder='/'), no need to expand anything, just go to tab=read.
+            // But if it's in a folder, we want to expand that folder.
+            
+            if (activeCloudScript.folder && activeCloudScript.folder !== '/') {
+                 const targetExpand = `${activeCloudScript.ownerId}:${activeCloudScript.folder}`;
+                 // We rely on ReadTab to parse this and expand parents recursively if needed
+                 navigate(`/?tab=read&public_expand=${encodeURIComponent(targetExpand)}`);
+                 return;
+            } else {
+                 navigate("/?tab=read");
+                 return;
+            }
+        } else {
+            // Editor Mode: Go to Write Tab and open folder
+            if (activeCloudScript.folder) {
+                navigate(`/?tab=write&folder=${encodeURIComponent(activeCloudScript.folder)}`);
+                return;
+            }
+        }
+    }
+    
+    // Default Fallback
     nav.openHome();
     navigate("/");
   };
