@@ -1,7 +1,13 @@
 import { auth } from "./firebase";
 
 // Basic DB Layer wrapping API calls
-const API_BASE_URL = import.meta.env.VITE_API_URL || "/api"; 
+const getEnv = (key) => {
+  if (typeof window !== "undefined" && window.__ENV__ && window.__ENV__[key]) {
+      return window.__ENV__[key];
+  }
+  return import.meta.env[key];
+};
+const API_BASE_URL = getEnv("VITE_API_URL") || "/api"; 
 
 async function fetchApi(endpoint, options = {}, retries = 3, backoff = 500) {
   const url = `${API_BASE_URL}${endpoint}`;
