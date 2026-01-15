@@ -64,6 +64,7 @@ class Script(BaseModel):
     folder: str
     sortOrder: float
     markerThemeId: Optional[str] = None
+    markerTheme: Optional[MarkerTheme] = None
     tags: List[Tag] = []
 
     class Config:

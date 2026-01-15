@@ -46,7 +46,20 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                 setCloudScriptMode("read");
                 
                 // Fetch & Apply Public Theme if exists
-                if (script.markerThemeId) {
+                if (script.markerTheme) {
+                    // 1. Use embedded theme (works for private themes too)
+                     try {
+                         const matched = script.markerTheme;
+                         if (matched && matched.configs) {
+                             // Parse configs if string
+                             const parsed = typeof matched.configs === 'string' ? JSON.parse(matched.configs) : matched.configs;
+                             setOverrideConfigs(parsed);
+                         }
+                    } catch (e) {
+                         console.error("Failed to apply embedded theme", e);
+                    }
+                } else if (script.markerThemeId) {
+                    // 2. Fallback: Try to fetch from public themes (only works if theme is public)
                     try {
                         const themes = await getPublicThemes();
                         const matched = themes.find(t => t.id === script.markerThemeId);
