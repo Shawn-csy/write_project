@@ -2,21 +2,19 @@ import React, { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSettings } from "../contexts/SettingsContext";
 import ScriptPanel from "../components/ScriptPanel";
-import { getPublicScript } from "../lib/db";
+import { getPublicScript, getPublicThemes } from "../lib/db";
 
 export default function PublicReaderPage({ scriptManager, navProps }) {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { markerConfigs } = useSettings();
+  const { markerConfigs, setMarkerConfigs } = useSettings();
   
-  const { 
-      setActivePublicScriptId, setRawScript, setTitleName, setActiveFile,
-      isLoading, setIsLoading, setActiveCloudScript,
-      // Props required for ScriptPanel
-      rawScript, filterCharacter, focusMode, focusEffect, focusContentMode,
-      highlightCharacters, highlightSfx, setCharacterList, setTitleHtml, setTitleNote, setTitleSummary, setHasTitle, setRawScriptHtml, setProcessedScriptHtml, setSceneList,
-      scrollSceneId, fontSize, bodyFontSize, dialogueFontSize, accentConfig, contentScrollRef, setScrollProgress, setCloudScriptMode
-  } = scriptManager;
+  const [overrideConfigs, setOverrideConfigs] = React.useState(null);
+
+  useEffect(() => {
+    // Reset override on mount/unmount or id change
+    setOverrideConfigs(null);
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
@@ -29,18 +27,31 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
             if (script) {
                 setRawScript(script.content || "");
                 setTitleName(script.title || "Untitled");
-                // For public view, we might not need full file object, but setting active file helps consistency
                 setActiveFile({ 
                     id: script.id, 
                     name: script.title,
                     type: 'script',
                     isPublic: true 
                 });
-                setActiveCloudScript(script); // Added for safety if App.jsx uses it
+                setActiveCloudScript(script); 
                 setCloudScriptMode("read");
+                
+                // Fetch & Apply Public Theme if exists
+                if (script.markerThemeId) {
+                    try {
+                        const themes = await getPublicThemes();
+                        const matched = themes.find(t => t.id === script.markerThemeId);
+                        if (matched && matched.configs) {
+                             // Parse configs if string
+                             const parsed = typeof matched.configs === 'string' ? JSON.parse(matched.configs) : matched.configs;
+                             setOverrideConfigs(parsed);
+                        }
+                    } catch (e) {
+                         console.error("Failed to load theme", e);
+                    }
+                }
             } else {
                 console.error("Script not found");
-                // navigate("/"); // Optional: redirect if not found
             }
         } catch (error) {
             console.error("Failed to load public script:", error);
@@ -78,7 +89,7 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
         accentColor={accentConfig?.accent || "#3b82f6"}
         scrollRef={navProps?.contentScrollRef}
         onScrollProgress={setScrollProgress}
-        markerConfigs={markerConfigs}
+        markerConfigs={overrideConfigs || markerConfigs}
       />
   );
 }
