@@ -43,14 +43,29 @@ export default function HybridDashboard({
       }
   };
 
-  const [showLanding, setShowLanding] = useState(!currentUser);
+  const getInitialShowLanding = () => {
+    if (currentUser) return false;
+    if (typeof window !== "undefined") {
+        const params = new URLSearchParams(window.location.search);
+        // If specific tab requested (e.g. back button from reader), skip landing
+        if (params.get("tab")) return false; 
+    }
+    return true;
+  };
+
+  const [showLanding, setShowLanding] = useState(getInitialShowLanding);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
       if (currentUser) {
           setShowLanding(false);
       } else {
-          setShowLanding(true);
+          // Only show landing if no tab is present in URL
+          // This prevents overriding the view when returning from backend with ?tab=read
+          const params = new URLSearchParams(window.location.search);
+          if (!params.get("tab")) {
+              setShowLanding(true);
+          }
       }
   }, [currentUser]);
 

@@ -263,5 +263,9 @@ def update_theme(db: Session, theme_id: str, theme: schemas.MarkerThemeUpdate, o
     return db_theme
 
 def delete_theme(db: Session, theme_id: str, ownerId: str):
+    # 1. Clean up references in scripts
+    db.query(models.Script).filter(models.Script.ownerId == ownerId, models.Script.markerThemeId == theme_id).update({models.Script.markerThemeId: None})
+    
+    # 2. Delete the theme
     db.query(models.MarkerTheme).filter(models.MarkerTheme.id == theme_id, models.MarkerTheme.ownerId == ownerId).delete()
     db.commit()
