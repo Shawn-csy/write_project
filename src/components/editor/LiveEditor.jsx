@@ -333,6 +333,42 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     );
   }
 
+  // ... (previous hooks)
+  
+  const extensions = useMemo(() => {
+    const baseExtensions = [
+        EditorView.lineWrapping, 
+        scrollSyncExtension,
+        highlightExtension,
+        EditorView.theme({
+            ".cm-gutters": {
+                backgroundColor: "hsl(var(--muted) / 0.3)",
+                color: "hsl(var(--muted-foreground) / 0.6)",
+                borderRight: "1px solid hsl(var(--border) / 0.6)",
+                userSelect: "none",
+                minWidth: "30px"
+            },
+             ".cm-lineNumbers .cm-gutterElement": {
+                paddingLeft: "4px",
+                cursor: "default",
+                userSelect: "none"
+            }
+        })
+    ];
+
+    if (initialData?.type === 'script' || !initialData?.type) {
+        return [fountainLanguage, ...baseExtensions];
+    }
+    return baseExtensions;
+  }, [scrollSyncExtension, highlightExtension, initialData?.type]);
+
+  // Memoized handlers
+  const handleEditorCreate = useCallback((view) => {
+      editorViewRef.current = view;
+      setEditorReady(true);
+      handleEditorScroll();
+  }, [setEditorReady, handleEditorScroll]);
+
   return (
     <div className="flex flex-col h-full bg-background relative z-0">
       <EditorHeader 
@@ -359,61 +395,23 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
         {!readOnly && (
             <div className={`h-full ${showPreview ? "w-1/2 border-r border-border" : "w-full"} transition-all duration-300 flex flex-col`}>
                 <CodeMirror
-                value={content}
-                height="100%"
-                theme={oneDark} 
-                onCreateEditor={(view) => {
-                    editorViewRef.current = view;
-                    setEditorReady(true);
-                    handleEditorScroll();
-                }}
-                extensions={
-                    (initialData?.type === 'script' || !initialData?.type) 
-                    ? [
-                        fountainLanguage, 
-                        EditorView.lineWrapping,
-                        scrollSyncExtension,
-                        highlightExtension,
-                        EditorView.theme({
-                            ".cm-gutters": {
-                                backgroundColor: "hsl(var(--muted) / 0.3)",
-                                color: "hsl(var(--muted-foreground) / 0.6)",
-                                borderRight: "1px solid hsl(var(--border) / 0.6)",
-                                userSelect: "none",
-                                minWidth: "30px"
-                            },
-                            ".cm-lineNumbers .cm-gutterElement": {
-                                paddingLeft: "4px",
-                                cursor: "default",
-                                userSelect: "none"
-                            }
-                        })
-                      ] 
-                    : [
-                        EditorView.lineWrapping, 
-                        scrollSyncExtension,
-                        highlightExtension,
-                        EditorView.theme({
-                            ".cm-gutters": {
-                                backgroundColor: "hsl(var(--muted) / 0.3)",
-                                color: "hsl(var(--muted-foreground) / 0.6)",
-                                borderRight: "1px solid hsl(var(--border) / 0.6)",
-                                userSelect: "none"
-                            }
-                        })
-                      ] 
-                }
-                onChange={handleChange}
-                onUpdate={handleViewUpdate}
-                className="h-full text-base font-mono flex-1 overflow-hidden"
-                basicSetup={{
-                    lineNumbers: true,
-                    foldGutter: false,
-                    highlightActiveLine: false,
-                }}
+                    value={content}
+                    height="100%"
+                    theme={oneDark} 
+                    onCreateEditor={handleEditorCreate}
+                    extensions={extensions}
+                    onChange={handleChange}
+                    onUpdate={handleViewUpdate}
+                    className="h-full text-base font-mono flex-1 overflow-hidden"
+                    basicSetup={{
+                        lineNumbers: true,
+                        foldGutter: false,
+                        highlightActiveLine: false,
+                    }}
                 />
             </div>
         )}
+
 
         {/* Preview Pane */}
         <PreviewPanel 
