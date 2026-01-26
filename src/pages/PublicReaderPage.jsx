@@ -23,6 +23,9 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
   useEffect(() => {
     // Reset override on mount/unmount or id change
     setOverrideConfigs(null);
+    if(scriptManager.setOverrideMarkerConfigs) {
+        scriptManager.setOverrideMarkerConfigs(null);
+    }
   }, [id]);
 
   useEffect(() => {
@@ -46,6 +49,7 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                 setCloudScriptMode("read");
                 
                 // Fetch & Apply Public Theme if exists
+                // Fetch & Apply Public Theme if exists
                 if (script.markerTheme) {
                     // 1. Use embedded theme (works for private themes too)
                      try {
@@ -54,6 +58,10 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                              // Parse configs if string
                              const parsed = typeof matched.configs === 'string' ? JSON.parse(matched.configs) : matched.configs;
                              setOverrideConfigs(parsed);
+                             // Push to Script Manager so AST is parsed correctly
+                             if (scriptManager.setOverrideMarkerConfigs) {
+                                 scriptManager.setOverrideMarkerConfigs(parsed);
+                             }
                          }
                     } catch (e) {
                          console.error("Failed to apply embedded theme", e);
@@ -67,6 +75,9 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                              // Parse configs if string
                              const parsed = typeof matched.configs === 'string' ? JSON.parse(matched.configs) : matched.configs;
                              setOverrideConfigs(parsed);
+                             if (scriptManager.setOverrideMarkerConfigs) {
+                                 scriptManager.setOverrideMarkerConfigs(parsed);
+                             }
                         }
                     } catch (e) {
                          console.error("Failed to load theme", e);

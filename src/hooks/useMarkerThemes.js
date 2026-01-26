@@ -1,6 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { defaultMarkerConfigs } from "../constants/defaultMarkers.js";
-import { readString, writeValue } from "../lib/storage";
 import { apiCall as serviceApiCall } from "../services/settingsApi.js";
 
 export function useMarkerThemes(currentUser) {
@@ -14,7 +13,7 @@ export function useMarkerThemes(currentUser) {
     // API Helper
     const apiCall = (url, method, body) => serviceApiCall(currentUser, url, method, body);
 
-    // Derived State: Active Markers with System Merge Logic
+    // Derived State: Active Markers
     const markerConfigs = useMemo(() => {
         const activeTheme = markerThemes.find(t => t.id === currentThemeId);
         return activeTheme?.configs || defaultMarkerConfigs;
@@ -23,12 +22,10 @@ export function useMarkerThemes(currentUser) {
     // Actions
     const setMarkerThemes = (val) => {
         setMarkerThemesState(val);
-        writeValue('markerThemes', JSON.stringify(val));
     };
 
     const setCurrentThemeId = (id) => {
         setCurrentThemeIdState(id);
-        writeValue('currentThemeId', id);
     };
 
     // Update CURRENT theme's configs
@@ -134,57 +131,9 @@ export function useMarkerThemes(currentUser) {
         }
     };
 
-    // Migration Effect
-    useEffect(() => {
-        // Markers & Themes Migration
-        const savedThemes = readString('markerThemes');
-        const savedCurrentId = readString('currentThemeId');
-        const legacyConfigs = readString('markerConfigs');
-    
-        if (savedThemes) {
-            try {
-                const parsedThemes = JSON.parse(savedThemes);
-                if (Array.isArray(parsedThemes) && parsedThemes.length > 0) {
-                    setMarkerThemesState(parsedThemes);
-                    if (savedCurrentId) {
-                        const exists = parsedThemes.find(t => t.id === savedCurrentId);
-                        if (exists) setCurrentThemeIdState(savedCurrentId);
-                    }
-                }
-            } catch (e) {
-                console.error("Failed to load themes", e);
-            }
-        } else if (legacyConfigs) {
-            // MIGRATION: Convert legacy configs to Default Theme
-            try {
-                const parsedLegacy = JSON.parse(legacyConfigs);
-                // Merge logic (restore defaults if missing)
-                const merged = [...parsedLegacy];
-                defaultMarkerConfigs.forEach(def => {
-                     if (!merged.find(m => m.id === def.id)) {
-                         merged.push(def);
-                     }
-                });
-                
-                const migratedTheme = {
-                    id: DEFAULT_THEME_ID,
-                    name: '預設主題 (Default)',
-                    configs: merged
-                };
-                setMarkerThemesState([migratedTheme]);
-                setCurrentThemeIdState(DEFAULT_THEME_ID);
-                
-                // Save immediately to complete migration
-                writeValue('markerThemes', JSON.stringify([migratedTheme]));
-            } catch (e) {
-                console.error("Legacy migration failed", e);
-            }
-        }
-    }, []);
-
     return {
         markerThemes,
-        setMarkerThemes, // Exposed for external sync if needed
+        setMarkerThemes, // Exposed for external sync
         currentThemeId,
         setCurrentThemeId,
         markerConfigs,

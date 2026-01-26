@@ -74,6 +74,18 @@ npm run dev
 docker build -t screenplay-reader .
 docker run -p 8080:8080 screenplay-reader
 ```
+docker run -p 8080:8080 screenplay-reader
+```
+
+### 後端測試 (Backend Testing)
+本專案包含完整的後端單元測試，涵蓋 API、安全性與資料匯出。
+
+**執行自動化測試**:
+```bash
+cd server
+./run_tests.sh
+```
+此腳本會自動建立虛擬環境、安裝相依套件並執行所有測試。
 
 ### 檔案結構說明
 - `src/components/renderer/`: 負責將 AST 轉換為 HTML/React Node 的渲染器。

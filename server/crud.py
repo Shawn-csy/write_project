@@ -47,11 +47,13 @@ def create_script(db: Session, script: schemas.ScriptCreate, ownerId: str):
         id=str(uuid.uuid4()),
         ownerId=ownerId,
         title=script.title or "Untitled",
-        content="",
+        content=script.content or "",
         type=script.type,
         folder=script.folder,
         author=script.author or "",
-        draftDate=script.draftDate or ""
+        draftDate=script.draftDate or "",
+        isPublic=1 if script.isPublic else 0,
+        markerThemeId=script.markerThemeId  # Ensure this is set too
     )
     # Calc sort order
     max_order = db.query(models.Script).filter(models.Script.ownerId == ownerId, models.Script.folder == script.folder).order_by(models.Script.sortOrder.desc()).first()
@@ -220,6 +222,7 @@ def get_public_scripts(db: Session, ownerId: Optional[str] = None, folder: Optio
              
          return results
 
+def search_scripts(db: Session, query: str, ownerId: str):
     search = f"%{query}%"
     return db.query(models.Script).filter(
         models.Script.ownerId == ownerId,

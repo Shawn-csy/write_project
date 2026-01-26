@@ -128,32 +128,26 @@ export function SettingsProvider({ children }) {
                       if(s.fileLabelMode) setFileLabelMode(s.fileLabelMode);
                       if(s.focusEffect) setFocusEffect(s.focusEffect);
                       if(s.focusContentMode) setFocusContentMode(s.focusContentMode);
-                      if(s.highlightCharacters !== undefined) setHighlightCharacters(s.highlightCharacters);
-                      if(s.highlightSfx !== undefined) setHighlightSfx(s.highlightSfx);
                       if(s.enableLocalFiles !== undefined) setEnableLocalFiles(s.enableLocalFiles);
                       
-                      if(s.markerThemes) {
-                          // Prioritize fetching real themes from API to avoid stale data
-                          const realThemes = await fetchUserThemes(currentUser);
-                          if (realThemes && realThemes.length > 0) {
-                              themes.setMarkerThemes(realThemes);
-                              
-                              // Validate currentThemeId
-                              const themeExists = realThemes.find(t => t.id === s.currentThemeId);
-                              if (themeExists) {
-                                  themes.setCurrentThemeId(s.currentThemeId);
-                              } else {
-                                  themes.setCurrentThemeId('default');
-                              }
+                      // Always fetch themes from API for logged in users
+                      const realThemes = await fetchUserThemes(currentUser);
+                      if (realThemes && realThemes.length > 0) {
+                          themes.setMarkerThemes(realThemes);
+                          
+                          // Validate currentThemeId
+                          const targetId = s.currentThemeId || 'default';
+                          const themeExists = realThemes.find(t => t.id === targetId);
+                          if (themeExists) {
+                              themes.setCurrentThemeId(targetId);
                           } else {
-                              // Fallback if API fails (rare) or user has no themes
-                              themes.setMarkerThemes(s.markerThemes);
-                              if(s.currentThemeId) themes.setCurrentThemeId(s.currentThemeId);
+                              themes.setCurrentThemeId('default');
                           }
+                      } else if (s.markerThemes) {
+                          // Fallback to settings bundle if API returned nothing (rare)
+                          themes.setMarkerThemes(s.markerThemes);
+                          if(s.currentThemeId) themes.setCurrentThemeId(s.currentThemeId);
                       }
-
-                      // Reset flag after render cycle
-                      setTimeout(() => { isRemoteUpdate.current = false; }, 100);
                   } else {
                       // CLOUD IS EMPTY: Push current local settings to cloud
                       // This ensures initial sync for new users or first-time login
@@ -173,6 +167,8 @@ export function SettingsProvider({ children }) {
                           currentThemeId: themes.currentThemeId
                       };
                       await saveUserSettings(currentUser, payload);
+                      // Also sync default marker themes if needed? 
+                      // Actually addTheme calls API, so we don't need to do anything here for themes if they are empty.
                   }
               }
       }
