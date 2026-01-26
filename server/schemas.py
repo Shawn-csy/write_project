@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional, Any, Dict
 
 # Tag Schemas
@@ -13,8 +13,7 @@ class Tag(TagBase):
     id: int
     ownerId: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # User Schemas
 class UserBase(BaseModel):
@@ -31,8 +30,7 @@ class User(UserBase):
     id: str
     settings: Any # JSON parsed
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Marker Theme Schemas
 class MarkerThemeBase(BaseModel):
@@ -56,8 +54,7 @@ class UserPublic(BaseModel):
     displayName: Optional[str] = "Anonymous"
     avatar: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class MarkerTheme(MarkerThemeBase):
     id: str
@@ -66,8 +63,7 @@ class MarkerTheme(MarkerThemeBase):
     createdAt: int
     updatedAt: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Script Schemas
@@ -80,11 +76,12 @@ class ScriptBase(BaseModel):
     
 class ScriptCreate(BaseModel):
     title: Optional[str] = "Untitled"
-    type: Optional[str] = "script"
-    folder: Optional[str] = "/"
-    markerThemeId: Optional[str] = None
+class ScriptCreate(ScriptBase):
+    title: Optional[str] = "Untitled" # Override title to be optional with default
+    folder: Optional[str] = "/" # Corresponds to parent_folder in ScriptBase
     author: Optional[str] = None
     draftDate: Optional[str] = None
+    markerThemeId: Optional[str] = None
     
 class ScriptUpdate(BaseModel):
     title: Optional[str] = None
@@ -121,8 +118,7 @@ class Script(BaseModel):
     markerTheme: Optional[MarkerTheme] = None
     tags: List[Tag] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ScriptSummary(BaseModel):
     id: str
@@ -141,5 +137,4 @@ class ScriptSummary(BaseModel):
     markerThemeId: Optional[str] = None
     tags: List[Tag] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

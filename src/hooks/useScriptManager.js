@@ -9,7 +9,7 @@ const scriptModules = import.meta.glob("../scripts_file/**/*.fountain", {
 
 import { parseScreenplay } from "../lib/screenplayAST";
 
-export function useScriptManager(initialParamsRef, markerConfigs = []) {
+export function useScriptManager(initialParamsRef, initialMarkerConfigs = []) {
   const [files, setFiles] = useState([]);
   const [activeFile, setActiveFile] = useState(null);
   const [rawScript, setRawScript] = useState("");
@@ -19,11 +19,17 @@ export function useScriptManager(initialParamsRef, markerConfigs = []) {
   const [fileMeta, setFileMeta] = useState({});
   const [fileTitleMap, setFileTitleMap] = useState({});
   const [fileTagsMap, setFileTagsMap] = useState({});
+
+  // Allow dynamic override (e.g. for Public Scripts using Author's settings)
+  const [overrideMarkerConfigs, setOverrideMarkerConfigs] = useState(null);
+  
+  // Effective Configs
+  const effectiveMarkerConfigs = overrideMarkerConfigs || initialMarkerConfigs;
   
   // AST Parsing (Centralized)
   const { ast } = useMemo(() => {
-    return parseScreenplay(rawScript || "", markerConfigs);
-  }, [rawScript, markerConfigs]);
+    return parseScreenplay(rawScript || "", effectiveMarkerConfigs);
+  }, [rawScript, effectiveMarkerConfigs]);
 
   // Script Content State
   const [sceneList, setSceneList] = useState([]);
@@ -40,7 +46,6 @@ export function useScriptManager(initialParamsRef, markerConfigs = []) {
   const [showTitle, setShowTitle] = useState(false);
 
   // Focus & Filter State (often reset on load)
-  // Focus & Filter State (often reset on load)
   const [filterCharacter, setFilterCharacter] = useState("__ALL__");
   const [focusMode, setFocusMode] = useState(false);
   const [currentSceneId, setCurrentSceneId] = useState("");
@@ -50,6 +55,9 @@ export function useScriptManager(initialParamsRef, markerConfigs = []) {
   const [activeCloudScript, setActiveCloudScript] = useState(null);
   const [cloudScriptMode, setCloudScriptMode] = useState("read"); // read | edit
   const [activePublicScriptId, setActivePublicScriptId] = useState(null);
+
+  // Reset override when closing/changing active script context if needed?
+  // Ideally, invoker manages this. PublicReaderPage should set it.
 
   // 1. Initialize Files
   useEffect(() => {
@@ -98,34 +106,6 @@ export function useScriptManager(initialParamsRef, markerConfigs = []) {
     return { title, tags };
   };
 
-  // 3. indexing
-  // 3. indexing
-  // OPTIMIZATION: Removed eager loading of all files to extract titles.
-  // This was causing massive memory usage (800MB+) as it loaded every single file into memory at startup.
-  /*
-  useEffect(() => {
-    if (!files.length) return;
-    (async () => {
-      const titleMap = {};
-      const tagsMap = {};
-      await Promise.all(
-        files.map(async (file) => {
-          try {
-            const content = await file.loader();
-            const { title, tags } = extractTitleMeta(content);
-            if (title) titleMap[file.name] = title;
-            if (tags.length) tagsMap[file.name] = tags;
-          } catch (err) {
-            console.warn("建立標題索引失敗", file.name, err);
-          }
-        })
-      );
-      setFileTitleMap((prev) => ({ ...titleMap, ...prev }));
-      setFileTagsMap(tagsMap);
-    })();
-  }, [files]);
-  */
-
   // 4. File Meta (Dates)
   useEffect(() => {
     if (generatedFileMeta && Object.keys(generatedFileMeta).length) {
@@ -140,18 +120,10 @@ export function useScriptManager(initialParamsRef, markerConfigs = []) {
 
   const fetchLastModified = async (file) => {
     try {
-       // Fix path resolution for vite production/dev diffs
-       // Original logic: file.path starts with ../scripts_file/
-       // client side fetch needs /src/scripts_file/ if dev?
-       // Just keep original logic safely
       const url = file.path.startsWith("./") 
         ? new URL(file.path.replace("./", "/src/"), window.location.origin)
         : new URL(file.path, window.location.origin);
         
-      // Actually file.path in glob is relative
-      // If we use import.meta.glob("../scripts_file"), paths are relative to THIS file
-      // checking App.jsx, it used "./scripts_file" relative to App.jsx.
-    
       const res = await fetch(new URL(file.path, import.meta.url).href, { method: "HEAD" });
       const header = res.headers.get("last-modified");
       if (header) {
@@ -250,6 +222,9 @@ export function useScriptManager(initialParamsRef, markerConfigs = []) {
     activeCloudScript, setActiveCloudScript,
     cloudScriptMode, setCloudScriptMode,
     activePublicScriptId, setActivePublicScriptId,
-    ast // Expose AST
+    ast, // Expose AST,
+    // Config Override
+    setOverrideMarkerConfigs,
+    effectiveMarkerConfigs
   };
 }
