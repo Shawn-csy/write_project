@@ -16,7 +16,7 @@ export const buildScriptAST = (tokens, markerConfigs = []) => {
     if (!tokens || tokens.length === 0) return { type: 'root', children: [] };
     
     const root = { type: 'root', children: [] };
-    const activeConfigs = markerConfigs || [];
+    const activeConfigs = Array.isArray(markerConfigs) ? markerConfigs : [];
     
     // Pre-compile Regex for Block Markers
     const blockMarkers = activeConfigs.filter(c => c.isBlock).map(config => {
@@ -210,6 +210,7 @@ export const parseScreenplay = (text = "", markerConfigs = []) => {
   
   const fountain = new Fountain();
   const result = fountain.parse(bodyText || '', true);
+  // console.log("Fountain Tokens:", result.tokens);
   const tokens = attachLineInfo(result?.tokens || [], bodyText || "");
   
   const ast = buildScriptAST(tokens, markerConfigs);

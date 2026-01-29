@@ -1,28 +1,32 @@
 import React from 'react';
 
 const renderHighlight = (node, key, context) => {
+    // Check if hidden
+    if (context.hiddenMarkerIds?.includes(node.id)) return null;
+
     const config = context.markerConfigs?.find(c => c.id === node.id) || {};
     const style = { ...config.style };
     
+    let displayText = node.content || "";
     let extraClasses = "";
     if (config.keywords && config.keywords.length > 0) {
         const isKeyword = config.keywords.some(k => 
-            node.content.toUpperCase().includes(k.toUpperCase())
+            displayText.toUpperCase().includes(k.toUpperCase())
         );
         if (!isKeyword && config.dimIfNotKeyword) {
             extraClasses = "opacity-60";
         }
     }
     
-    let displayText = node.content;
+    displayText = node.content || "";
     
     if (config.renderer && config.renderer.template) {
         displayText = config.renderer.template.replace('{{content}}', displayText);
     } 
-    else if (config.start && config.end && config.showDelimiters) {
-        displayText = `${config.start}${displayText}${config.end}`;
-    } else if (config.matchMode === 'enclosure') {
-       displayText = `${config.start || ''}${displayText}${config.end || ''}`;
+    else if (config.start && config.end) {
+        if (config.showDelimiters) {
+            displayText = `${config.start}${displayText}${config.end}`;
+        }
     }
     
     if (style.textAlign) {

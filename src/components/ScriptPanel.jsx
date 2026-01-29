@@ -29,7 +29,8 @@ function ScriptPanel({
   accentColor,
   scrollRef,
   onScrollProgress,
-  onDoubleClick, // Add onDoubleClick
+  onDoubleClick,
+  hiddenMarkerIds = [], // Added
 }) {
   const { markerConfigs: globalMarkerConfigs } = useSettings();
   // Use prop if available (e.g. from PublicReaderPage override), else global
@@ -102,6 +103,7 @@ function ScriptPanel({
               dialogueFontSize={dialogueFontSize}
               accentColor={accentColor}
               markerConfigs={effectiveMarkerConfigs}
+              hiddenMarkerIds={hiddenMarkerIds}
             />
           )}
           {!isLoading && !rawScript && (

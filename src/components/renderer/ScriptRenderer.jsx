@@ -193,6 +193,7 @@ export const ScriptRenderer = React.memo(({
     themePalette, 
     colorCache,
     markerConfigs = [],
+    hiddenMarkerIds = [],
 }) => {
     
     const getCharacterColor = useMemo(() => {
@@ -206,7 +207,8 @@ export const ScriptRenderer = React.memo(({
         focusEffect,
         focusContentMode,
         getCharacterColor,
-        markerConfigs
+        markerConfigs: Array.isArray(markerConfigs) ? markerConfigs : [],
+        hiddenMarkerIds // Add to context
     };
 
     return (

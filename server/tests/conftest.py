@@ -37,6 +37,8 @@ def db_session():
     transaction.rollback()
     connection.close()
 
+from database import get_db as database_get_db
+
 @pytest.fixture(scope="function")
 def client(db_session):
     def override_get_db():
@@ -46,5 +48,7 @@ def client(db_session):
             db_session.close()
 
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[database_get_db] = override_get_db
     with TestClient(app) as c:
         yield c
+        app.dependency_overrides.clear()

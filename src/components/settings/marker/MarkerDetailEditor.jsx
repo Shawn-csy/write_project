@@ -3,6 +3,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../ui/tabs";
 import { MarkerGeneralSettings } from "./configs/MarkerGeneralSettings";
 import { MarkerLogicSettings } from "./configs/MarkerLogicSettings";
 import { MarkerStyleSettings } from "./configs/MarkerStyleSettings";
+import { MarkerAnalysisSettings } from "./configs/MarkerAnalysisSettings";
 import { AlertCircle } from "lucide-react";
 
 export function MarkerDetailEditor({ config, idx, updateMarker }) {
@@ -31,6 +32,7 @@ export function MarkerDetailEditor({ config, idx, updateMarker }) {
                         <TabsTrigger value="general">一般 (General)</TabsTrigger>
                         <TabsTrigger value="logic">邏輯 (Logic)</TabsTrigger>
                         <TabsTrigger value="style">樣式 (Style)</TabsTrigger>
+                        <TabsTrigger value="analysis">分析 (Stats)</TabsTrigger>
                     </TabsList>
                     
                     <TabsContent value="general" className="mt-0 space-y-4">
@@ -52,6 +54,14 @@ export function MarkerDetailEditor({ config, idx, updateMarker }) {
                     
                     <TabsContent value="style" className="mt-0 space-y-4">
                          <MarkerStyleSettings 
+                             config={config} 
+                             idx={idx} 
+                             updateMarker={updateMarker} 
+                        />
+                    </TabsContent>
+
+                    <TabsContent value="analysis" className="mt-0 space-y-4">
+                         <MarkerAnalysisSettings 
                              config={config} 
                              idx={idx} 
                              updateMarker={updateMarker} 

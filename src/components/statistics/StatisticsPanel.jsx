@@ -7,9 +7,9 @@ import { useScriptStats } from '@/hooks/useScriptStats';
 import { Badge } from "@/components/ui/badge";
 import { useSettings } from "@/contexts/SettingsContext";
 
-export function StatisticsPanel({ rawScript, scriptAst, onLocateText }) {
+export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }) {
   const { markerConfigs } = useSettings();
-  const stats = useScriptStats({ rawScript, scriptAst, markerConfigs, options: { wordCountMode: "pure" } });
+  const stats = useScriptStats({ scriptId, rawScript, scriptAst, markerConfigs, options: { wordCountMode: "pure" } });
   const statsAvailable = Boolean(stats);
   const [collapsedMarkerIds, setCollapsedMarkerIds] = useState(new Set());
 

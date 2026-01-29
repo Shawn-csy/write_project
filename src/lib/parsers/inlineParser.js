@@ -8,7 +8,8 @@ export const parseInline = (text, configs = []) => {
 
     // 1. Build Dynamic Parsers
     // Prioritize by explicit 'priority' field (descending), then by functionality (Regex > others)
-    const sortedConfigs = [...configs].sort((a, b) => {
+    const safeConfigs = Array.isArray(configs) ? configs : [];
+    const sortedConfigs = [...safeConfigs].sort((a, b) => {
         // Priority check: Higher number = higher priority
         const pA = a.priority || 0;
         const pB = b.priority || 0;
@@ -27,7 +28,7 @@ export const parseInline = (text, configs = []) => {
     
     // 2. Build Dynamic Text Parser
     // It must exclude start chars of all markers to give them a chance to parse
-    const DynamicText = createTextParser(configs);
+    const DynamicText = createTextParser(safeConfigs);
 
     // 3. Assemble All Parsers
     const AllParsers = [

@@ -86,6 +86,14 @@ function App() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showStats, setShowStats] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [hiddenMarkerIds, setHiddenMarkerIds] = useState([]);
+  
+  const handleToggleMarker = useCallback((id) => {
+      setHiddenMarkerIds(prev => {
+          if (prev.includes(id)) return prev.filter(x => x !== id);
+          return [...prev, id];
+      });
+  }, []);
 
   // 5. Extracted Hooks & Logic
   const { filteredTree, openFolders, toggleFolder } = useFileTree(files, searchTerm, fileTitleMap);
@@ -266,6 +274,11 @@ function App() {
                   currentThemeId={currentThemeId}
                   switchTheme={setCurrentThemeId}
                   onTitleChange={activeCloudScript && !isPublicReader ? handleCloudTitleUpdate : undefined}
+                  
+                  // Marker Visibility Props
+                  markerConfigs={Array.isArray(scriptManager.effectiveMarkerConfigs || markerConfigs) ? (scriptManager.effectiveMarkerConfigs || markerConfigs) : Object.values(scriptManager.effectiveMarkerConfigs || markerConfigs || {})}
+                  visibleMarkerIds={(Array.isArray(scriptManager.effectiveMarkerConfigs || markerConfigs) ? (scriptManager.effectiveMarkerConfigs || markerConfigs) : Object.values(scriptManager.effectiveMarkerConfigs || markerConfigs || {})).filter(c => !hiddenMarkerIds.includes(c.id)).map(c => c.id)}
+                  onToggleMarker={handleToggleMarker}
                 />
                 {!nav.homeOpen && !nav.aboutOpen && !nav.settingsOpen && hasTitle && showTitle && (
                   <Card className="border border-border border-t-0 rounded-t-none">
@@ -293,8 +306,8 @@ function App() {
                 <Routes>
                     <Route path="/" element={<DashboardPage scriptManager={scriptManager} navProps={navProps} />} />
                     <Route path="/edit/:id" element={<CloudEditorPage scriptManager={scriptManager} navProps={navProps} />} />
-                    <Route path="/read/:id" element={<PublicReaderPage scriptManager={scriptManager} navProps={navProps} />} />
-                    <Route path="/file/:name" element={<LocalReaderPage scriptManager={scriptManager} navProps={navProps} />} />
+                    <Route path="/read/:id" element={<PublicReaderPage scriptManager={scriptManager} navProps={navProps} hiddenMarkerIds={hiddenMarkerIds} />} />
+                    <Route path="/file/:name" element={<LocalReaderPage scriptManager={scriptManager} navProps={navProps} hiddenMarkerIds={hiddenMarkerIds} />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               )}
