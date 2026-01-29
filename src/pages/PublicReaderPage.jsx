@@ -4,7 +4,7 @@ import { useSettings } from "../contexts/SettingsContext";
 import ScriptPanel from "../components/ScriptPanel";
 import { getPublicScript, getPublicThemes } from "../lib/db";
 
-export default function PublicReaderPage({ scriptManager, navProps }) {
+export default function PublicReaderPage({ scriptManager, navProps, hiddenMarkerIds = [] }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const { markerConfigs, setMarkerConfigs } = useSettings();
@@ -57,10 +57,11 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                          if (matched && matched.configs) {
                              // Parse configs if string
                              const parsed = typeof matched.configs === 'string' ? JSON.parse(matched.configs) : matched.configs;
-                             setOverrideConfigs(parsed);
+                             const normalized = Array.isArray(parsed) ? parsed : (parsed ? Object.values(parsed) : []);
+                             setOverrideConfigs(normalized);
                              // Push to Script Manager so AST is parsed correctly
                              if (scriptManager.setOverrideMarkerConfigs) {
-                                 scriptManager.setOverrideMarkerConfigs(parsed);
+                                 scriptManager.setOverrideMarkerConfigs(normalized);
                              }
                          }
                     } catch (e) {
@@ -74,9 +75,10 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                         if (matched && matched.configs) {
                              // Parse configs if string
                              const parsed = typeof matched.configs === 'string' ? JSON.parse(matched.configs) : matched.configs;
-                             setOverrideConfigs(parsed);
+                             const normalized = Array.isArray(parsed) ? parsed : (parsed ? Object.values(parsed) : []);
+                             setOverrideConfigs(normalized);
                              if (scriptManager.setOverrideMarkerConfigs) {
-                                 scriptManager.setOverrideMarkerConfigs(parsed);
+                                 scriptManager.setOverrideMarkerConfigs(normalized);
                              }
                         }
                     } catch (e) {
@@ -99,6 +101,7 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
   return (
       <ScriptPanel
         isLoading={isLoading}
+        hiddenMarkerIds={hiddenMarkerIds}
         rawScript={rawScript}
         filterCharacter={filterCharacter}
         focusMode={focusMode}
@@ -122,7 +125,7 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
         accentColor={accentConfig?.accent || "#3b82f6"}
         scrollRef={navProps?.contentScrollRef}
         onScrollProgress={setScrollProgress}
-        markerConfigs={overrideConfigs || markerConfigs}
+        markerConfigs={Array.isArray(overrideConfigs || markerConfigs) ? (overrideConfigs || markerConfigs) : Object.values(overrideConfigs || markerConfigs || {})}
       />
   );
 }

@@ -80,3 +80,10 @@ check_user_data.py
 transfer_data.py
 server/check_user_data.py
 server/transfer_data.py
+
+# Test Artifacts
+test-results/
+playwright-report/
+blob-report/
+coverage/
+.vitest-results.json

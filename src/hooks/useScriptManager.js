@@ -24,7 +24,12 @@ export function useScriptManager(initialParamsRef, initialMarkerConfigs = []) {
   const [overrideMarkerConfigs, setOverrideMarkerConfigs] = useState(null);
   
   // Effective Configs
-  const effectiveMarkerConfigs = overrideMarkerConfigs || initialMarkerConfigs;
+  const rawConfigs = overrideMarkerConfigs || initialMarkerConfigs;
+  const effectiveMarkerConfigs = useMemo(() => {
+      if (Array.isArray(rawConfigs)) return rawConfigs;
+      if (rawConfigs && typeof rawConfigs === 'object') return Object.values(rawConfigs);
+      return [];
+  }, [rawConfigs]);
   
   // AST Parsing (Centralized)
   const { ast } = useMemo(() => {

@@ -16,6 +16,7 @@ function ScriptViewer({
   onTitleNote,
   onSummary,
   onHasTitle,
+  onRawHtml, // Add this line
 
   onProcessedHtml,
   onScenes,
@@ -29,7 +30,8 @@ function ScriptViewer({
   highlightSfx = true,
   accentColor,
   type = 'script',
-  markerConfigs = [], // Added default empty array
+  markerConfigs = [],
+  hiddenMarkerIds = [], // Added
 }) {
   const colorCache = useRef(new Map());
 
@@ -175,14 +177,43 @@ function ScriptViewer({
          focusContentMode={focusContentMode}
          themePalette={themePalette}
          colorCache={colorCache}
-         markerConfigs={markerConfigs} // Pass to renderer
+         markerConfigs={markerConfigs}
+         hiddenMarkerIds={hiddenMarkerIds} // Pass to renderer for print
        />
      );
-  }, [ast, filterCharacter, focusMode, focusEffect, themePalette, bodyFontSize, fontSize, colorCache, markerConfigs, onProcessedHtml]);
+  }, [ast, filterCharacter, focusMode, focusEffect, themePalette, bodyFontSize, fontSize, colorCache, markerConfigs, onProcessedHtml, hiddenMarkerIds]);
+
+  // Generate RAW HTML (No Filters) for fallback
+  const rawHtml = useMemo(() => {
+      // If we don't have onRawHtml, skip calculation to save performance
+      if (!ast) return '';
+      // If no filters are active, rawHtml === filteredHtml
+      if (!filterCharacter && !focusMode && filterCharacter !== "__ALL__") return filteredHtml;
+      
+      return renderToStaticMarkup(
+          <ScriptRenderer 
+            ast={ast} 
+            fontSize={bodyFontSize || fontSize}
+            filterCharacter={null}
+            focusMode={false}
+            focusEffect={focusEffect}
+            focusContentMode={focusContentMode}
+            themePalette={themePalette}
+            colorCache={colorCache}
+            markerConfigs={markerConfigs}
+            hiddenMarkerIds={hiddenMarkerIds} // Pass to renderer
+          />
+      );
+  }, [ast, themePalette, bodyFontSize, fontSize, colorCache, markerConfigs, filterCharacter, focusMode, filteredHtml, hiddenMarkerIds]);
+
 
   useEffect(() => {
     onProcessedHtml?.(filteredHtml || '');
   }, [filteredHtml, onProcessedHtml]);
+
+  useEffect(() => {
+      onRawHtml?.(rawHtml || ''); // Fix: Actually emit rawHtml
+  }, [rawHtml, onRawHtml]);
 
   useEffect(() => {
     // Reset Color Cache when text substantially changes? 
@@ -244,7 +275,8 @@ function ScriptViewer({
         focusContentMode={focusContentMode} // Pass this
         themePalette={themePalette}
         colorCache={colorCache}
-        markerConfigs={markerConfigs} // Pass here too
+        markerConfigs={markerConfigs}
+        hiddenMarkerIds={hiddenMarkerIds} // Pass here too
       />
     </article>
   );

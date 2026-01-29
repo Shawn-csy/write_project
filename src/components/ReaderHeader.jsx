@@ -39,7 +39,11 @@ function ReaderHeader({
   markerThemes,
   currentThemeId,
   switchTheme,
-  onTitleChange
+  onTitleChange,
+  
+  markerConfigs,
+  visibleMarkerIds,
+  onToggleMarker
 }) {
   const [collapsed, setCollapsed] = useState(true);
   const [autoCollapse, setAutoCollapse] = useState(true);
@@ -205,6 +209,10 @@ function ReaderHeader({
                 markerThemes={markerThemes}
                 currentThemeId={currentThemeId}
                 switchTheme={switchTheme}
+                
+                markerConfigs={markerConfigs}
+                visibleMarkerIds={visibleMarkerIds}
+                onToggleMarker={onToggleMarker}
             />
             
             <ReaderActions 

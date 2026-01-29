@@ -16,36 +16,58 @@ export function useScriptActions({
             window.print();
             return;
         }
-        const accentValue = getComputedStyle(document.documentElement).getPropertyValue("--accent") || accentConfig.accent;
-        const accentForegroundValue = getComputedStyle(document.documentElement).getPropertyValue("--accent-foreground") || accentConfig.accentForeground;
-        const accentMutedValue = getComputedStyle(document.documentElement).getPropertyValue("--accent-muted") || accentConfig.accentMuted;
+        // Clone all styles from the main document (Tailwind, global CSS, etc.)
+        const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+            .map(node => node.cloneNode(true));
 
         const exportHtml = buildPrintHtml({
             titleName,
             activeFile,
             titleHtml,
             rawScriptHtml: bodyHtml,
-            accent: accentValue.trim(),
-            accentForeground: accentForegroundValue.trim(),
-            accentMuted: accentMutedValue.trim(),
         });
 
         const blob = new Blob([exportHtml], { type: "text/html" });
         const url = URL.createObjectURL(blob);
+        
         const iframe = document.createElement("iframe");
         iframe.style.position = "fixed";
         iframe.style.right = "-9999px";
         iframe.style.bottom = "-9999px";
-        iframe.src = url;
-        iframe.onload = () => {
-            iframe.contentWindow?.focus();
-            iframe.contentWindow?.print();
-            setTimeout(() => {
-                URL.revokeObjectURL(url);
-                iframe.remove();
-            }, 1000);
-        };
+        iframe.style.width = "0px";
+        iframe.style.height = "0px";
+        iframe.style.border = "none";
+        
         document.body.appendChild(iframe);
+        
+        // Write content and inject styles
+        const iframeDoc = iframe.contentWindow?.document;
+        if (iframeDoc) {
+            iframeDoc.open();
+            iframeDoc.write(exportHtml);
+            iframeDoc.close();
+            
+            // Append cloned styles to head
+            styles.forEach(styleNode => {
+                iframeDoc.head.appendChild(styleNode);
+            });
+
+            // Wait for images/fonts/styles to apply
+            setTimeout(() => {
+                iframe.contentWindow?.focus();
+                iframe.contentWindow?.print();
+                
+                // Cleanup after print dialog might be closed (approx)
+                // Note: There is no reliable event for "print finished" across browsers.
+                setTimeout(() => {
+                     URL.revokeObjectURL(url);
+                     iframe.remove();
+                }, 2000); // Give user time to see dialog
+            }, 500);
+        } else {
+             // Fallback if iframe access fails (unlikely for blob)
+             console.error("Failed to access print iframe");
+        }
     };
 
     const handleShareUrl = async (e) => {

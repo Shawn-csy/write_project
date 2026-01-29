@@ -9,8 +9,9 @@ export const escapeRegExp = (string) => {
 
 export const createDynamicParsers = (configs = []) => {
     const parsers = {};
+    const safeConfigs = Array.isArray(configs) ? configs : [];
 
-    configs.forEach(config => {
+    safeConfigs.forEach(config => {
         // [MODIFIED] Relaxed restriction: Allow Block markers to be parsed inline.
         // This enables "Nested Block Markers" (e.g. using a Block Enclosure inside a Prefix Rule).
         // Since doParseInline generates 'highlight' nodes, this will render them as styled spans/text
@@ -26,9 +27,13 @@ export const createDynamicParsers = (configs = []) => {
         if (config.matchMode === 'regex' && config.regex) {
              try {
                  const re = new RegExp(config.regex);
-                 // Warning: If regex matches empty string, it causes infinite loop in many().
-                 // We cannot easily check this, but we assume user regexes are for content.
-                 parser = P.regex(re, 1).map(content => ({ type: 'highlight', id, content }));
+                 // Smart group detection: only use group 1 if parentheses are present and not escaped.
+                 const hasGroup = /\([^?]/.test(config.regex);
+                 parser = (hasGroup ? P.regex(re, 1) : P.regex(re)).map(content => ({ 
+                     type: 'highlight', 
+                     id, 
+                     content: content || "" 
+                 }));
              } catch (e) {
                  console.warn(`Invalid regex for marker ${config.label}:`, e);
              }
@@ -90,7 +95,9 @@ export const createTextParser = (configs = []) => {
     // Collect all start characters from configs to exclude them from Text
     // Only exclude '[' by default because DirectionParser is hardcoded to use it.
     const startChars = new Set(['[']); 
-    configs.forEach(c => {
+    const safeConfigs = Array.isArray(configs) ? configs : [];
+
+    safeConfigs.forEach(c => {
         // Only exclude start char if this config generates an INLINE parser.
         const generatesParser = !(c.isBlock && c.type !== 'inline'); 
         

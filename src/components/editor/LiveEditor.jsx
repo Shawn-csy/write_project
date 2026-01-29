@@ -449,7 +449,12 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
                     <h3 className="font-semibold text-sm">統計分析面板</h3>
                 </div>
                 <div className="flex-1 min-h-0 overflow-hidden">
-                    <StatisticsPanel rawScript={deferredContent} scriptAst={ast} onLocateText={handleLocateText} />
+                    <StatisticsPanel 
+                        rawScript={deferredContent} 
+                        scriptAst={ast} 
+                        onLocateText={handleLocateText} 
+                        scriptId={scriptId}
+                    />
                 </div>
             </div>
         )}

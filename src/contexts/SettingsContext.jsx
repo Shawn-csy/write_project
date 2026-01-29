@@ -133,7 +133,18 @@ export function SettingsProvider({ children }) {
                       // Always fetch themes from API for logged in users
                       const realThemes = await fetchUserThemes(currentUser);
                       if (realThemes && realThemes.length > 0) {
-                          themes.setMarkerThemes(realThemes);
+                          const parsedThemes = realThemes.map(t => {
+                              try {
+                                  return { 
+                                      ...t, 
+                                      configs: typeof t.configs === 'string' ? JSON.parse(t.configs) : t.configs 
+                                  };
+                              } catch (e) {
+                                  console.error("Theme parse error", t.id, e);
+                                  return t;
+                              }
+                          });
+                          themes.setMarkerThemes(parsedThemes);
                           
                           // Validate currentThemeId
                           const targetId = s.currentThemeId || 'default';

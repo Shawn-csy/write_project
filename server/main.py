@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, Header, status, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from routers import analysis
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -51,6 +52,8 @@ def run_migrations():
 run_migrations()
 
 app = FastAPI()
+
+app.include_router(analysis.router)
 
 app.add_middleware(
     CORSMiddleware,
