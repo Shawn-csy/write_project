@@ -87,3 +87,4 @@ playwright-report/
 blob-report/
 coverage/
 .vitest-results.json
+convert_example

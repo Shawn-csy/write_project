@@ -40,16 +40,17 @@ export function useMarkerThemes(currentUser) {
         }
     };
 
-    const addTheme = async (name) => {
+    const addTheme = async (name, initialConfigs = null) => {
         const newId = crypto.randomUUID();
+        const configsToSave = initialConfigs || defaultMarkerConfigs;
         const newTheme = {
             id: newId,
             name: name,
-            configs: JSON.stringify(defaultMarkerConfigs), // Server expects string
+            configs: JSON.stringify(configsToSave), // Server expects string
             isPublic: false
         };
         // Optimistic
-        const themeForState = { ...newTheme, configs: defaultMarkerConfigs };
+        const themeForState = { ...newTheme, configs: configsToSave };
         setMarkerThemesState(prev => [...prev, themeForState]);
         setCurrentThemeId(newId);
         
