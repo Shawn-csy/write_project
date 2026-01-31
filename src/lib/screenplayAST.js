@@ -90,14 +90,6 @@ export const buildScriptAST = (tokens, markerConfigs = []) => {
         // Heuristic Helpers
         const isAction = newToken.type === 'action';
         const isForced = text.startsWith('@');
-        
-        // CJK Detection: Common CJK ranges
-        const hasCJK = /[\u4e00-\u9fff\u3400-\u4dbf]/.test(text);
-        // Short Name: usually 2-4 chars, rarely > 5 without title
-        const isShort = text.length > 0 && text.length <= 6;
-        // No Punctuation at end (names usually don't have periods/commas)
-        // Check for common Chinese & English punctuation
-        const hasPunctuation = /[。，、；：？！.!?,;:]$/.test(text);
 
         // Special Case: "Voice" / "音聲" usually implies a character even if formatting is weird
         const isVoice = text.includes('音聲');
@@ -106,15 +98,12 @@ export const buildScriptAST = (tokens, markerConfigs = []) => {
              newToken.type = 'character';
              forcingDialogue = true;
         } else if (isAction && isForced) {
+            // Explicit character forcing with @ prefix
             newToken.type = 'character';
             newToken.text = text.replace(/^@/, '');
             forcingDialogue = true;
-        } else if (isAction && hasCJK && isShort && !hasPunctuation && !text.includes('\n')) {
-             // Implicit CJK Character Detection
-             // If it's short, CJK, and no punctuation, treat as Character
-             newToken.type = 'character';
-             forcingDialogue = true;
         } else if (forcingDialogue && isAction && text && !isMarker) {
+            // Continue dialogue after a forced character
             newToken.type = 'dialogue';
         } else if (['character', 'scene_heading', 'transition'].includes(newToken.type) || (isAction && !text)) {
              if (newToken.type !== 'parenthetical') {

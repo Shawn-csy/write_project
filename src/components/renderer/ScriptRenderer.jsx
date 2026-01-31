@@ -106,7 +106,7 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
              const cleanName = node.text.replace(/\s*\(.*\)$/, '').toUpperCase();
              const color = getCharacterColor(cleanName);
             return (
-                <div className={`character mt-4 mb-0 font-bold text-center w-full mx-auto ${isDual ? 'max-w-full' : 'max-w-[60%]'}`}
+                <div className={`character mt-4 mb-0 font-bold text-left w-full ${isDual ? 'max-w-full' : ''}`}
                      style={{ color, '--char-color': color }}
                      {...getLineProps(node)}
                  >
@@ -141,7 +141,7 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
         case 'parenthetical':
              // usually inside speech, handled by SpeechNode. If loose, apply style.
             return (
-                <div className={`parenthetical -mt-0 mb-0 text-center w-full mx-auto text-sm opacity-80 ${isDual ? 'max-w-full' : 'max-w-[50%]'}`}>
+                <div className={`parenthetical -mt-0 mb-0 text-left w-full text-sm opacity-80 ${isDual ? 'max-w-full' : ''}`}>
                      {renderInlineLines(node, context)}
                 </div>
             );
@@ -149,7 +149,7 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
         case 'dialogue':
              // usually inside speech
             return (
-                <div className={`dialogue my-0 mb-4 w-full mx-auto text-center whitespace-pre-wrap leading-relaxed ${isDual ? 'max-w-full' : 'max-w-[80%]'}`}>
+                <div className={`dialogue my-0 mb-4 w-full text-left whitespace-pre-wrap leading-relaxed ${isDual ? 'max-w-full' : ''}`}>
                      {renderInlineLines(node, context)}
                 </div>
             );
