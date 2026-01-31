@@ -3,6 +3,7 @@ import { Loader2, ClipboardPaste, FileText, Eye, Wand2, CheckCircle2 } from "luc
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "../../ui/dialog";
+import { ScrollArea } from "../../ui/scroll-area";
 import { parseScreenplay } from "../../../lib/screenplayAST.js";
 import { useSettings } from "../../../contexts/SettingsContext";
 
@@ -15,6 +16,7 @@ import { ImportStageConfigure } from "./import/ImportStageConfigure";
 import { preprocess, TextPreprocessor } from "../../../lib/importPipeline/textPreprocessor.js";
 import { discoverMarkers, MarkerDiscoverer } from "../../../lib/importPipeline/markerDiscoverer.js";
 import { buildAST, DirectASTBuilder } from "../../../lib/importPipeline/directASTBuilder.js";
+import { extractMetadata } from "../../../lib/importPipeline/metadataExtractor.js";
 
 const STEPS = {
     INPUT: 'input',       // 貼入文本
@@ -34,15 +36,18 @@ export function ImportScriptDialog({
     const [step, setStep] = useState(STEPS.INPUT);
     const [rawInput, setRawInput] = useState("");
     const [title, setTitle] = useState("");
+    const [metadataInput, setMetadataInput] = useState(""); // Metadata 貼上區
     const [importing, setImporting] = useState(false);
     
     // 處理結果
     const [preprocessResult, setPreprocessResult] = useState(null);
     const [discoveryResult, setDiscoveryResult] = useState(null);
+    const [metadata, setMetadata] = useState({}); // New State
     
     // Config State
     const [selectedConfigId, setSelectedConfigId] = useState('auto');
     const [activeRules, setActiveRules] = useState([]);
+    const [showSaveAlert, setShowSaveAlert] = useState(false); // Save Prompt
     
     // Result State
     const [ast, setAst] = useState(null);
@@ -93,24 +98,38 @@ export function ImportScriptDialog({
     
     // Stage 1: 預處理
     const handlePreprocess = useCallback(() => {
-        if (!rawInput.trim()) return;
+        if (!rawInput.trim() && !metadataInput.trim()) return;
         
-        const result = preprocess(rawInput);
+        // 合併 Metadata 與 本文
+        const fullText = (metadataInput.trim() ? metadataInput.trim() + '\n\n' : '') + rawInput;
+
+        // 1. 基本清理
+        const result = preprocess(fullText);
         setPreprocessResult(result);
         
-        // 自動偵測標題
-        const lines = result.cleanedText.split('\n');
-        const firstContentLine = lines.find(l => l.trim() && !l.startsWith('#'));
-        if (!title && firstContentLine) {
-            // 嘗試從章節標題提取
-            const chapterMatch = firstContentLine.match(/^\d+\.\s*(.+)$/);
-            if (chapterMatch) {
-                setTitle(chapterMatch[1].substring(0, 30));
+        // 2. Metadata 提取
+        const { metadata: extractedMeta } = extractMetadata(result.cleanedText);
+        setMetadata(extractedMeta);
+        
+        // 自動偵測標題 (優先使用 Metadata Title, 否則嘗試 Regex)
+        if (!title) {
+            if (extractedMeta && extractedMeta.Title) {
+                setTitle(extractedMeta.Title);
+            } else {
+                // Fallback logic
+                const lines = result.cleanedText.split('\n');
+                const firstContentLine = lines.find(l => l.trim() && !l.startsWith('#'));
+                if (firstContentLine) {
+                     const chapterMatch = firstContentLine.match(/^\d+\.\s*(.+)$/);
+                     if (chapterMatch) {
+                         setTitle(chapterMatch[1].substring(0, 30));
+                     }
+                }
             }
         }
         
         setStep(STEPS.PREVIEW);
-    }, [rawInput, title]);
+    }, [rawInput, title, metadataInput]);
 
     // Stage 2: 標記發現 & 進入設定階段
     const handleDiscoverMarkers = useCallback(() => {
@@ -194,11 +213,20 @@ export function ImportScriptDialog({
 
     // Stage 3: 確認設定並進入最終結果
     const handleConfirmConfig = useCallback(() => {
-        // 這裡不需要重新 build AST，直接用 previewFountain 即可 (因為下一步是存 Fountain)
-        // 但為了保持一致性，我們傳遞 fountain 到下一步即可，Result 頁面會需要它
-        setAst(renderAst); // 這裡 setAst 原本是用於 DirectAST，現在改成 RenderAST 也無妨，或者我們直接依賴 fountain
-        // 其實 Result Stage 的 fountainOutput 可以直接依賴 previewFountain
-        // 但為了邏輯保留，我們 setAst
+        // 如果是自動偵測，且尚未儲存，提示儲存
+        if (selectedConfigId === 'auto') {
+            setShowSaveAlert(true);
+            return;
+        }
+        
+        // 這裡不需要重新 build AST，直接用 previewFountain 即可
+        setAst(renderAst); 
+        setStep(STEPS.RESULT);
+    }, [renderAst, selectedConfigId]);
+
+    const handleProceedWithoutSave = useCallback(() => {
+        setShowSaveAlert(false);
+        setAst(renderAst);
         setStep(STEPS.RESULT);
     }, [renderAst]);
     
@@ -218,16 +246,39 @@ export function ImportScriptDialog({
     }, [step, previewFountain]);
 
 
+    // 生成 Fountain Metadata Header
+    const generateMetadataHeader = useCallback((meta) => {
+        const lines = [];
+        const order = ['Title', 'Author', 'Source', 'Description', 'Rating', 'Duration', 'Tags'];
+        for (const key of order) {
+            if (meta[key]) {
+                lines.push(`${key}: ${meta[key]}`);
+            }
+        }
+        // 其他自訂欄位
+        for (const [key, value] of Object.entries(meta)) {
+            if (!order.includes(key) && value) {
+                lines.push(`${key}: ${value}`);
+            }
+        }
+        return lines.length > 0 ? lines.join('\n') + '\n\n' : '';
+    }, []);
+
     // 確認匯入
     const handleConfirmImport = useCallback(async () => {
         if (!finalFountain || !title.trim()) return;
         
         setImporting(true);
         try {
+            // 將 Metadata 加入到 Fountain 開頭
+            const metadataHeader = generateMetadataHeader(metadata);
+            const contentWithMeta = metadataHeader + finalFountain;
+            
             await onImport({
                 title: title.trim(),
-                content: finalFountain,
-                folder: currentPath
+                content: contentWithMeta,
+                folder: currentPath,
+                metadata: metadata
             });
             handleOpenChange(false);
         } catch (err) {
@@ -235,11 +286,12 @@ export function ImportScriptDialog({
         } finally {
             setImporting(false);
         }
-    }, [finalFountain, title, currentPath, onImport, handleOpenChange]);
+    }, [finalFountain, title, currentPath, onImport, handleOpenChange, metadata, generateMetadataHeader]);
 
     // ... (return JSX)
 
     return (
+        <>
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent className="max-w-5xl h-[85vh] flex flex-col">
                 <DialogHeader>
@@ -289,11 +341,13 @@ export function ImportScriptDialog({
                                 </Button>
                             </div>
                             <ImportStageInput 
-                                text={rawInput}
-                                setText={setRawInput}
-                                onFileUpload={handleFileUpload}
-                                isUploading={importing}
-                            /> 
+                                    text={rawInput}
+                                    setText={setRawInput}
+                                    metadataText={metadataInput}
+                                    setMetadataText={setMetadataInput}
+                                    onFileUpload={handleFileUpload}
+                                    isUploading={importing}
+                                /> 
                         </div>
                     )}
 
@@ -315,6 +369,8 @@ export function ImportScriptDialog({
                             onConfigChange={handleConfigChange}
                             onSaveConfig={(name) => addTheme(name, activeRules)}
                             renderAst={renderAst}
+                            metadata={metadata}
+                            setMetadata={setMetadata}
                         />
                      )}
 
@@ -378,5 +434,21 @@ export function ImportScriptDialog({
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+        
+        <Dialog open={showSaveAlert} onOpenChange={setShowSaveAlert}>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>建議儲存解析規則</DialogTitle>
+                    <DialogDescription>
+                        您目前使用的是自動偵測的規則。建立專屬的設定檔可以確保未來匯入類似劇本時的準確性。
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="flex-col gap-2 sm:gap-0">
+                    <Button variant="outline" onClick={() => setShowSaveAlert(false)}>返回儲存</Button>
+                    <Button onClick={handleProceedWithoutSave}>不儲存，直接繼續</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        </>
     );
 }

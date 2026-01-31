@@ -9,7 +9,6 @@
 
 import { parseInline } from '../parsers/inlineParser.js';
 import { 
-  CHARACTER_PATTERNS, 
   CHAPTER_PATTERNS, 
   isBlankLine 
 } from './constants.js';
@@ -71,7 +70,8 @@ export class DirectASTBuilder {
     
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      const node = this._parseLine(line, i, context);
+      const nextLine = lines[i + 1]; // 傳遞下一行供角色偵測
+      const node = this._parseLine(line, i, context, nextLine);
       
       if (node) {
         this._updateContext(node, context);
@@ -86,7 +86,7 @@ export class DirectASTBuilder {
    * 解析單行
    * @private
    */
-  _parseLine(line, lineNumber, context) {
+  _parseLine(line, lineNumber, context, nextLine) {
     const trimmed = line.trim();
     
     // 空行處理
@@ -117,29 +117,8 @@ export class DirectASTBuilder {
       return markerNode;
     }
     
-    // 3. 判斷是否為角色名
-    if (this._looksLikeCharacter(trimmed, context)) {
-      return {
-        type: 'character',
-        name: trimmed,
-        lineNumber: lineNumber + 1,
-        raw: line
-      };
-    }
-    
-    // 4. 在角色名之後的文本 → 對話
-    if (context.currentCharacter) {
-      return {
-        type: 'dialogue',
-        content: trimmed,
-        character: context.currentCharacter.name,
-        children: this._parseInlineContent(trimmed),
-        lineNumber: lineNumber + 1,
-        raw: line
-      };
-    }
-    
-    // 5. 預設：動作/描述
+    // 3. 預設：所有未匹配的內容都是 action（動作/描述）
+    // 角色偵測完全依賴用戶定義的規則，不再自動猜測
     return {
       type: 'action',
       content: trimmed,
@@ -236,35 +215,6 @@ export class DirectASTBuilder {
     return null;
   }
 
-  /**
-   * 判斷是否看起來像角色名
-   * @private
-   */
-  _looksLikeCharacter(line, context) {
-    // 如果已經在對話中且不是空行後，可能不是角色名
-    if (context.inDialogueBlock) {
-      return false;
-    }
-    
-    // 角色名通常是：
-    // 1. 2-4 個中文字
-    // 2. 後面可能有括號
-    // 3. 不包含特殊標記符號
-    
-    // 排除以標記符號開頭的行
-    if (/^[#@><\/\\▼▲☆＊*（(【《]/.test(line)) {
-      return false;
-    }
-    
-    // 檢查是否符合角色名模式
-    for (const pattern of CHARACTER_PATTERNS) {
-      if (pattern.test(line)) {
-        return true;
-      }
-    }
-    
-    return false;
-  }
 
   /**
    * 解析行內內容
