@@ -1,6 +1,6 @@
 import React from "react";
-import ScriptViewer from "./ScriptViewer";
-import { useSettings } from "../contexts/SettingsContext";
+import ScriptSurface from "./ScriptSurface";
+import { useScriptViewerDefaults } from "../hooks/useScriptViewerDefaults";
 
 function ScriptPanel({
   isLoading,
@@ -30,88 +30,50 @@ function ScriptPanel({
   scrollRef,
   onScrollProgress,
   onDoubleClick,
-  hiddenMarkerIds = [], // Added
+  hiddenMarkerIds: propHiddenMarkerIds, // Optional override
 }) {
-  const { markerConfigs: globalMarkerConfigs } = useSettings();
-  // Use prop if available (e.g. from PublicReaderPage override), else global
-  const effectiveMarkerConfigs = propMarkerConfigs || globalMarkerConfigs;
-
-  const rafRef = React.useRef(null);
-
-  const handleScroll = () => {
-    if (!scrollRef?.current || !onScrollProgress) return;
-    
-    if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current);
-    }
-
-    rafRef.current = requestAnimationFrame(() => {
-      const el = scrollRef.current;
-      if (!el) return;
-      
-      const max = el.scrollHeight - el.clientHeight;
-      if (max <= 0) {
-        onScrollProgress(0);
-        return;
-      }
-      const percent = Math.min(100, Math.max(0, (el.scrollTop / max) * 100));
-      onScrollProgress(Number.isFinite(percent) ? percent : 0);
-    });
-  };
-
-  React.useEffect(() => {
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, []);
+  const viewerDefaults = useScriptViewerDefaults({
+    theme,
+    fontSize,
+    bodyFontSize,
+    dialogueFontSize,
+    accentColor,
+    markerConfigs: propMarkerConfigs,
+    hiddenMarkerIds: propHiddenMarkerIds
+  });
 
   return (
-    <div
-      className="flex-1 min-h-0 overflow-hidden border border-border bg-background/60 rounded-xl shadow-sm reader-surface"
-      style={{
-        '--script-font-size': `${fontSize}px`,
-        '--body-font-size': `${bodyFontSize}px`,
-        '--dialogue-font-size': `${dialogueFontSize}px`,
+    <ScriptSurface
+      outerClassName="flex-1 min-h-0 overflow-hidden border border-border bg-background/60 rounded-xl shadow-sm reader-surface"
+      scrollClassName="h-full overflow-y-auto overflow-x-hidden scrollbar-hide"
+      contentClassName="max-w-5xl mx-auto px-5 sm:px-8 py-6 sm:py-10 space-y-4"
+      scrollRef={scrollRef}
+      onScrollProgress={onScrollProgress}
+      onDoubleClick={onDoubleClick}
+      isLoading={isLoading}
+      loadingMessage="載入中..."
+      emptyMessage="乖乖過期了嗎。"
+      text={rawScript}
+      viewerProps={{
+        filterCharacter,
+        focusMode,
+        focusEffect,
+        focusContentMode,
+        highlightCharacters,
+        highlightSfx,
+        onCharacters: setCharacterList,
+        onTitle: setTitleHtml,
+        onTitleName: setTitleName,
+        onTitleNote: setTitleNote,
+        onSummary: setTitleSummary,
+        onHasTitle: setHasTitle,
+        onRawHtml: setRawScriptHtml,
+        onProcessedHtml: setRawScriptHtmlProcessed,
+        onScenes: setScenes,
+        scrollToScene,
+        ...viewerDefaults
       }}
-      onDoubleClick={onDoubleClick} // Bind onDoubleClick
-    >
-      <div className="h-full overflow-y-auto overflow-x-hidden scrollbar-hide" ref={scrollRef} onScroll={handleScroll}>
-        <div className="max-w-5xl mx-auto px-5 sm:px-8 py-6 sm:py-10 space-y-4">
-          {isLoading && <p className="text-sm text-muted-foreground">載入中...</p>}
-          {!isLoading && rawScript && (
-            <ScriptViewer
-              text={rawScript}
-              filterCharacter={filterCharacter}
-              focusMode={focusMode}
-              focusEffect={focusEffect}
-              focusContentMode={focusContentMode}
-              highlightCharacters={highlightCharacters}
-              highlightSfx={highlightSfx}
-              onCharacters={setCharacterList}
-              onTitle={setTitleHtml}
-              onTitleName={setTitleName}
-              onTitleNote={setTitleNote}
-              onSummary={setTitleSummary}
-              onHasTitle={setHasTitle}
-              onRawHtml={setRawScriptHtml}
-              onProcessedHtml={setRawScriptHtmlProcessed}
-              onScenes={setScenes}
-              scrollToScene={scrollToScene}
-              theme={theme}
-              fontSize={fontSize}
-              bodyFontSize={bodyFontSize}
-              dialogueFontSize={dialogueFontSize}
-              accentColor={accentColor}
-              markerConfigs={effectiveMarkerConfigs}
-              hiddenMarkerIds={hiddenMarkerIds}
-            />
-          )}
-          {!isLoading && !rawScript && (
-            <p className="text-sm text-muted-foreground">乖乖過期了嗎。</p>
-          )}
-        </div>
-      </div>
-    </div>
+    />
   );
 }
 

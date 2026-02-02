@@ -133,7 +133,7 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
              if (actionStyle.display === 'none') return null;
 
             return (
-                <div className="action my-2 whitespace-pre-wrap leading-relaxed transition-opacity" style={actionStyle}>
+                <div className="action whitespace-pre-wrap transition-opacity" style={actionStyle}>
                      {renderInlineLines(node, context)}
                 </div>
             );
@@ -141,7 +141,7 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
         case 'parenthetical':
              // usually inside speech, handled by SpeechNode. If loose, apply style.
             return (
-                <div className={`parenthetical -mt-0 mb-0 text-left w-full text-sm opacity-80 ${isDual ? 'max-w-full' : ''}`}>
+                <div className={`parenthetical text-left w-full text-sm opacity-80 ${isDual ? 'max-w-full' : ''}`}>
                      {renderInlineLines(node, context)}
                 </div>
             );
@@ -149,7 +149,7 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
         case 'dialogue':
              // usually inside speech
             return (
-                <div className={`dialogue my-0 mb-4 w-full text-left whitespace-pre-wrap leading-relaxed ${isDual ? 'max-w-full' : ''}`}>
+                <div className={`dialogue text-left whitespace-pre-wrap ${isDual ? 'max-w-full' : ''}`}>
                      {renderInlineLines(node, context)}
                 </div>
             );
@@ -173,6 +173,10 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
                     {renderInlineLines(node, context)}
                 </div>
             );
+
+        case 'blank':
+             // 純 Marker 模式的空行
+             return <div className="blank-line my-1" {...getLineProps(node)} />;
 
         case 'note':
              return null;

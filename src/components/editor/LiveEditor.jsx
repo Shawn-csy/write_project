@@ -13,19 +13,23 @@ import { parseScreenplay } from "../../lib/screenplayAST";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useEditorSync } from "../../hooks/useEditorSync";
 import { usePersistentState } from "../../hooks/usePersistentState";
-import { extractMetadata } from "../../lib/fountain";
+import { extractMetadata } from "../../lib/metadataParser";
 import { EditorHeader } from "./EditorHeader";
 import { PreviewPanel } from "./PreviewPanel";
 import { MarkerRulesPanel } from "./MarkerRulesPanel";
 
-export default function LiveEditor({ scriptId, initialData, onClose, initialSceneId, defaultShowPreview = false, readOnly = false, onRequestEdit, onOpenMarkerSettings, contentScrollRef, isSidebarOpen, onSetSidebarOpen, onTitleHtml, onHasTitle, onTitleNote, onTitleSummary, onTitleName }) {
+// LiveEditor Component
+export default function LiveEditor({ scriptId, initialData, onClose, initialSceneId, defaultShowPreview = false, readOnly = false, onRequestEdit, onOpenMarkerSettings, contentScrollRef, isSidebarOpen, onSetSidebarOpen, onTitleHtml, onHasTitle, onTitleNote, onTitleSummary, onTitleName, showHeader = true }) {
   const {
     theme = "system",
     fontSize,
     bodyFontSize,
     dialogueFontSize,
+    lineHeight,
     accentConfig,
     markerConfigs,
+    hiddenMarkerIds,
+    toggleMarkerVisibility
   } = useSettings();
 
   const [content, setContent] = useState(initialData?.content || "");
@@ -371,6 +375,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
 
   return (
     <div className="flex flex-col h-full bg-background relative z-0">
+      {showHeader && (
       <EditorHeader 
         readOnly={readOnly}
         title={title}
@@ -387,7 +392,11 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
         isSidebarOpen={isSidebarOpen}
         onSetSidebarOpen={onSetSidebarOpen}
         onTitleChange={handleTitleUpdate}
+        markerConfigs={markerConfigs}
+        hiddenMarkerIds={hiddenMarkerIds}
+        onToggleMarker={toggleMarkerVisibility}
       />
+      )}
 
       {/* Editor Area */}
       <div className="flex-1 overflow-hidden relative flex">
@@ -424,6 +433,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
             fontSize={fontSize}
             bodyFontSize={bodyFontSize}
             dialogueFontSize={dialogueFontSize}
+            lineHeight={lineHeight}
             accentColor={accentConfig?.accent}
             markerConfigs={markerConfigs}
             onTitleName={handleTitleUpdate}
@@ -434,6 +444,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
             initialSceneId={initialSceneId}
             onScenes={setScenes}
             onRequestEdit={readOnly ? onRequestEdit : undefined}
+            hiddenMarkerIds={hiddenMarkerIds}
         />
 
         {/* Stats Side Panel (Non-modal) */}

@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import ScriptPanel from "../components/ScriptPanel";
 
-export default function LocalReaderPage({ scriptManager, navProps, hiddenMarkerIds = [] }) {
+export default function LocalReaderPage({ scriptManager, navProps }) {
   const { name } = useParams(); // Filename
   const navigate = useNavigate();
   
@@ -41,7 +41,6 @@ export default function LocalReaderPage({ scriptManager, navProps, hiddenMarkerI
   return (
       <ScriptPanel
         isLoading={isLoading}
-        hiddenMarkerIds={hiddenMarkerIds}
         rawScript={rawScript}
         filterCharacter={filterCharacter}
         focusMode={focusMode}
@@ -65,7 +64,6 @@ export default function LocalReaderPage({ scriptManager, navProps, hiddenMarkerI
         accentColor={accentConfig?.accent || "#3b82f6"}
         scrollRef={navProps?.contentScrollRef}
         onScrollProgress={setScrollProgress}
-        markerConfigs={Array.isArray(scriptManager.effectiveMarkerConfigs) ? scriptManager.effectiveMarkerConfigs : (scriptManager.effectiveMarkerConfigs ? Object.values(scriptManager.effectiveMarkerConfigs) : [])}
       />
   );
 }

@@ -26,7 +26,7 @@ export {
 } from './constants.js';
 
 /**
- * 完整的三階段處理流程
+ * 完整的三階段處理流程（純 Marker 模式）
  * 
  * @param {string} rawText - 原始文本
  * @param {Object} options - 選項
@@ -38,12 +38,10 @@ export const processScript = (rawText, options = {}) => {
   const { existingConfigs = [], autoApplyDiscovered = false } = options;
   
   // Stage 1: 預處理
-  const { TextPreprocessor } = await import('./textPreprocessor.js');
   const preprocessor = new TextPreprocessor();
   const preprocessResult = preprocessor.preprocess(rawText);
   
   // Stage 2: 標記發現
-  const { MarkerDiscoverer } = await import('./markerDiscoverer.js');
   const discoverer = new MarkerDiscoverer(existingConfigs);
   const discoveryResult = discoverer.discover(preprocessResult.cleanedText);
   
@@ -60,7 +58,6 @@ export const processScript = (rawText, options = {}) => {
   }
   
   // Stage 3: 建構 AST
-  const { DirectASTBuilder } = await import('./directASTBuilder.js');
   const builder = new DirectASTBuilder(finalConfigs);
   const ast = builder.parse(preprocessResult.cleanedText);
   
@@ -71,9 +68,6 @@ export const processScript = (rawText, options = {}) => {
     ast,
     
     // 使用的 configs
-    usedConfigs: finalConfigs,
-    
-    // 便利方法
-    toFountain: () => builder.toFountain(ast)
+    usedConfigs: finalConfigs
   };
 };

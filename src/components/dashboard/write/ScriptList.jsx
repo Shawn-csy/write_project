@@ -27,7 +27,7 @@ import {
 import { updateScript, getScript } from "../../../lib/db"; // Needed for inline theme update? or pass handler? 
 // Passed handler is better but for now keep consistent with original logic mix
 
-import { extractMetadata } from "../../../lib/fountain"; // Shared utility
+import { extractMetadata } from "../../../lib/metadataParser"; // Metadata extraction utility
 
 // Helper: assureContent
 async function assureContent(item) {

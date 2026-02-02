@@ -1,16 +1,10 @@
 import React, { useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { useSettings } from "../contexts/SettingsContext";
+import { useParams } from "react-router-dom";
 import ScriptPanel from "../components/ScriptPanel";
 import { getPublicScript, getPublicThemes } from "../lib/db";
 
-export default function PublicReaderPage({ scriptManager, navProps, hiddenMarkerIds = [] }) {
+export default function PublicReaderPage({ scriptManager, navProps }) {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const { markerConfigs, setMarkerConfigs } = useSettings();
-  
-  const [overrideConfigs, setOverrideConfigs] = React.useState(null);
-
   const { 
       setActivePublicScriptId, setRawScript, setTitleName, setActiveFile,
       isLoading, setIsLoading, setActiveCloudScript,
@@ -22,7 +16,6 @@ export default function PublicReaderPage({ scriptManager, navProps, hiddenMarker
 
   useEffect(() => {
     // Reset override on mount/unmount or id change
-    setOverrideConfigs(null);
     if(scriptManager.setOverrideMarkerConfigs) {
         scriptManager.setOverrideMarkerConfigs(null);
     }
@@ -58,7 +51,6 @@ export default function PublicReaderPage({ scriptManager, navProps, hiddenMarker
                              // Parse configs if string
                              const parsed = typeof matched.configs === 'string' ? JSON.parse(matched.configs) : matched.configs;
                              const normalized = Array.isArray(parsed) ? parsed : (parsed ? Object.values(parsed) : []);
-                             setOverrideConfigs(normalized);
                              // Push to Script Manager so AST is parsed correctly
                              if (scriptManager.setOverrideMarkerConfigs) {
                                  scriptManager.setOverrideMarkerConfigs(normalized);
@@ -76,7 +68,6 @@ export default function PublicReaderPage({ scriptManager, navProps, hiddenMarker
                              // Parse configs if string
                              const parsed = typeof matched.configs === 'string' ? JSON.parse(matched.configs) : matched.configs;
                              const normalized = Array.isArray(parsed) ? parsed : (parsed ? Object.values(parsed) : []);
-                             setOverrideConfigs(normalized);
                              if (scriptManager.setOverrideMarkerConfigs) {
                                  scriptManager.setOverrideMarkerConfigs(normalized);
                              }
@@ -101,7 +92,6 @@ export default function PublicReaderPage({ scriptManager, navProps, hiddenMarker
   return (
       <ScriptPanel
         isLoading={isLoading}
-        hiddenMarkerIds={hiddenMarkerIds}
         rawScript={rawScript}
         filterCharacter={filterCharacter}
         focusMode={focusMode}
@@ -125,7 +115,6 @@ export default function PublicReaderPage({ scriptManager, navProps, hiddenMarker
         accentColor={accentConfig?.accent || "#3b82f6"}
         scrollRef={navProps?.contentScrollRef}
         onScrollProgress={setScrollProgress}
-        markerConfigs={Array.isArray(overrideConfigs || markerConfigs) ? (overrideConfigs || markerConfigs) : Object.values(overrideConfigs || markerConfigs || {})}
       />
   );
 }

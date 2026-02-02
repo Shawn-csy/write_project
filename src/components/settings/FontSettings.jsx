@@ -11,6 +11,8 @@ export function FontSettings() {
     setBodyFontSize,
     dialogueFontSize,
     setDialogueFontSize,
+    lineHeight,
+    setLineHeight,
   } = useSettings();
 
   const unifiedPresets = [
@@ -22,6 +24,16 @@ export function FontSettings() {
     { label: "特大", value: 36 },
   ];
   const detailOptions = [12, 14, 16, 18, 20, 24, 28, 32, 36];
+  const lineHeightOptions = [
+    { label: "極窄", value: 1.0 },
+    { label: "更緊", value: 1.1 },
+    { label: "緊湊", value: 1.2 },
+    { label: "較緊", value: 1.3 },
+    { label: "標準", value: 1.4 },
+    { label: "舒適", value: 1.5 },
+    { label: "寬鬆", value: 1.6 },
+    { label: "加寬", value: 1.8 },
+  ];
   const [showDetailSizes, setShowDetailSizes] = useState(false);
 
   const renderSizeButtons = (current, onSelect) => (
@@ -54,7 +66,7 @@ export function FontSettings() {
             <CaseSensitive className="w-4 h-4" />
          </div>
          <div>
-           <p className="text-base font-semibold text-foreground">字體大小</p>
+           <p className="text-base font-semibold text-foreground">字體大小與行距</p>
            <p className="text-xs text-muted-foreground">調整閱讀時的舒適度</p>
          </div>
       </div>
@@ -81,6 +93,34 @@ export function FontSettings() {
                 )}
               >
                 <span className="text-xs font-medium">{opt.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Line Height */}
+      <div className="space-y-3">
+        <div className="flex justify-between items-center">
+          <label className="text-sm font-medium text-foreground/90">行距</label>
+          <span className="text-xs text-muted-foreground">{lineHeight}</span>
+        </div>
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+          {lineHeightOptions.map((opt) => {
+            const active = Math.abs(lineHeight - opt.value) < 0.05;
+            return (
+              <button
+                key={opt.value}
+                onClick={() => setLineHeight(opt.value)}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-1 py-2 rounded-lg border transition-all duration-200",
+                  active
+                    ? "border-primary/50 bg-primary/5 text-primary ring-1 ring-primary/20"
+                    : "border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                )}
+              >
+                <span className="text-xs font-medium">{opt.label}</span>
+                <span className="text-[10px] text-muted-foreground">{opt.value}</span>
               </button>
             );
           })}
@@ -124,3 +164,4 @@ export function FontSettings() {
     </div>
   );
 }
+

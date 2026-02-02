@@ -31,7 +31,8 @@ function ScriptViewer({
   accentColor,
   type = 'script',
   markerConfigs = [],
-  hiddenMarkerIds = [], // Added
+  hiddenMarkerIds = [],
+  lineHeight = 1.4,
 }) {
   const colorCache = useRef(new Map());
 
@@ -71,7 +72,7 @@ function ScriptViewer({
     }).join('');
   };
 
-  // 以 fountain 標準欄位為主，再附加自訂欄位（不覆蓋）
+  // 標題頁解析
   const titlePage = useMemo(() => {
     if (!titleEntries || !titleEntries.length) return { html: '', title: '', has: false };
 
@@ -114,7 +115,7 @@ function ScriptViewer({
     return '';
   }, [titleEntries]);
 
-  // Extract Characters from AST
+  // 提取角色列表（純 Marker 模式：從 layer 節點的特定類型提取）
   useEffect(() => {
     if (!ast) {
       onCharacters?.([]);
@@ -122,8 +123,11 @@ function ScriptViewer({
     }
     const chars = new Set();
     ast.children.forEach(node => {
+        // 支援舊格式 (speech) 和純 Marker 格式 (character layer)
         if (node.type === 'speech' && node.character) {
             chars.add(node.character.trim().toUpperCase());
+        } else if (node.type === 'layer' && node.layerType === 'character' && node.text) {
+            chars.add(node.text.trim().toUpperCase());
         }
     });
     onCharacters?.(Array.from(chars).sort());
@@ -247,7 +251,7 @@ function ScriptViewer({
             style={{
                 '--body-font-size': `${bodyFontSize}px`,
                 fontSize: `${bodyFontSize}px`,
-                lineHeight: '1.8',
+                lineHeight: lineHeight,
             }}
         >
             <div className="whitespace-pre-wrap font-serif text-foreground/90">
@@ -264,6 +268,8 @@ function ScriptViewer({
         '--body-font-size': `${bodyFontSize}px`,
         '--dialogue-font-size': `${dialogueFontSize}px`,
         '--script-font-size': `${fontSize}px`,
+        '--line-height': lineHeight,
+        lineHeight: lineHeight,
       }}
     >
       <ScriptRenderer 

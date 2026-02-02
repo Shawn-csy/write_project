@@ -24,6 +24,7 @@ import ReaderHeader from "./components/ReaderHeader";
 import { MainLayout } from "./components/MainLayout";
 
 import { StatisticsPanel } from "./components/statistics/StatisticsPanel";
+import { ScriptViewProvider } from "./contexts/ScriptViewContext";
 
 const SettingsPanel = React.lazy(() => import("./components/SettingsPanel"));
 const AboutPanelLazy = React.lazy(() => import("./components/AboutPanel"));
@@ -45,7 +46,6 @@ function App() {
       markerThemes,
       markerConfigs,
       setCurrentThemeId,
-      currentThemeId, 
   } = useSettings();
 
   // 2. Refs (for initial params)
@@ -86,14 +86,6 @@ function App() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showStats, setShowStats] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const [hiddenMarkerIds, setHiddenMarkerIds] = useState([]);
-  
-  const handleToggleMarker = useCallback((id) => {
-      setHiddenMarkerIds(prev => {
-          if (prev.includes(id)) return prev.filter(x => x !== id);
-          return [...prev, id];
-      });
-  }, []);
 
   // 5. Extracted Hooks & Logic
   const { filteredTree, openFolders, toggleFolder } = useFileTree(files, searchTerm, fileTitleMap);
@@ -195,41 +187,41 @@ function App() {
         setShowTitle={setShowTitle} 
     />
 
-    <MainLayout
-      isDesktopSidebarOpen={nav.isDesktopSidebarOpen}
-      setIsDesktopSidebarOpen={nav.setIsDesktopSidebarOpen}
-      isMobileDrawerOpen={nav.isMobileDrawerOpen}
-      setIsMobileDrawerOpen={nav.setIsMobileDrawerOpen}
-      fileTree={filteredTree}
-      activeFile={activeFile}
-      onSelectFile={(file) => navigate("/file/" + encodeURIComponent(file.name))} 
-      accentStyle={accentStyle}
-      openAbout={nav.openAbout}
-      openSettings={nav.openSettings}
-      closeAbout={() => nav.setAboutOpen(false)}
-      openHome={() => {
-        nav.openHome();
-        navigate("/");
-      }}
-      files={files}
-      fileTitleMap={fileTitleMap}
-      searchTerm={searchTerm}
-      setSearchTerm={setSearchTerm}
-      openFolders={openFolders}
-      toggleFolder={toggleFolder}
-      fileTagsMap={fileTagsMap}
-      fileLabelMode={fileLabelMode}
-      setFileLabelMode={setFileLabelMode}
-      sceneList={sceneList}
-      currentSceneId={currentSceneId}
-      onSelectScene={(id) => { setCurrentSceneId(id); setScrollSceneId(id); }}
-    >
+    <ScriptViewProvider scriptManager={scriptManager}>
+      <MainLayout
+        isDesktopSidebarOpen={nav.isDesktopSidebarOpen}
+        setIsDesktopSidebarOpen={nav.setIsDesktopSidebarOpen}
+        isMobileDrawerOpen={nav.isMobileDrawerOpen}
+        setIsMobileDrawerOpen={nav.setIsMobileDrawerOpen}
+        fileTree={filteredTree}
+        activeFile={activeFile}
+        onSelectFile={(file) => navigate("/file/" + encodeURIComponent(file.name))} 
+        accentStyle={accentStyle}
+        openAbout={nav.openAbout}
+        openSettings={nav.openSettings}
+        closeAbout={() => nav.setAboutOpen(false)}
+        openHome={() => {
+          nav.openHome();
+          navigate("/");
+        }}
+        files={files}
+        fileTitleMap={fileTitleMap}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        openFolders={openFolders}
+        toggleFolder={toggleFolder}
+        fileTagsMap={fileTagsMap}
+        fileLabelMode={fileLabelMode}
+        setFileLabelMode={setFileLabelMode}
+        sceneList={sceneList}
+        currentSceneId={currentSceneId}
+        onSelectScene={(id) => { setCurrentSceneId(id); setScrollSceneId(id); }}
+      >
         <main className="flex-1 overflow-hidden flex flex-row h-full relative">
            <div className="flex-1 flex flex-col h-full min-w-0 relative">
               {showReaderHeader && (
                 <div>
                   <ReaderHeader
-                  accentStyle={accentStyle}
                   hasTitle={showReaderHeader && hasTitle}
                   onToggleTitle={() => setShowTitle((v) => !v)}
                   titleName={headerTitle}
@@ -244,7 +236,6 @@ function App() {
                   sceneList={sceneList}
                   currentSceneId={currentSceneId}
                   onSelectScene={(id) => { setCurrentSceneId(id); setScrollSceneId(id); }}
-                  titleNote={titleNote}
                   characterList={characterList}
                   filterCharacter={filterCharacter}
                   setFilterCharacter={setFilterCharacter}
@@ -269,16 +260,10 @@ function App() {
                     </div>
                   }
                   setFocusMode={setFocusMode}
-                  isFocusMode={scriptManager.focusMode} 
-                  markerThemes={markerThemes}
-                  currentThemeId={currentThemeId}
-                  switchTheme={setCurrentThemeId}
                   onTitleChange={activeCloudScript && !isPublicReader ? handleCloudTitleUpdate : undefined}
                   
                   // Marker Visibility Props
-                  markerConfigs={Array.isArray(scriptManager.effectiveMarkerConfigs || markerConfigs) ? (scriptManager.effectiveMarkerConfigs || markerConfigs) : Object.values(scriptManager.effectiveMarkerConfigs || markerConfigs || {})}
-                  visibleMarkerIds={(Array.isArray(scriptManager.effectiveMarkerConfigs || markerConfigs) ? (scriptManager.effectiveMarkerConfigs || markerConfigs) : Object.values(scriptManager.effectiveMarkerConfigs || markerConfigs || {})).filter(c => !hiddenMarkerIds.includes(c.id)).map(c => c.id)}
-                  onToggleMarker={handleToggleMarker}
+                  markerConfigs={scriptManager.effectiveMarkerConfigs}
                 />
                 {!nav.homeOpen && !nav.aboutOpen && !nav.settingsOpen && hasTitle && showTitle && (
                   <Card className="border border-border border-t-0 rounded-t-none">
@@ -306,8 +291,8 @@ function App() {
                 <Routes>
                     <Route path="/" element={<DashboardPage scriptManager={scriptManager} navProps={navProps} />} />
                     <Route path="/edit/:id" element={<CloudEditorPage scriptManager={scriptManager} navProps={navProps} />} />
-                    <Route path="/read/:id" element={<PublicReaderPage scriptManager={scriptManager} navProps={navProps} hiddenMarkerIds={hiddenMarkerIds} />} />
-                    <Route path="/file/:name" element={<LocalReaderPage scriptManager={scriptManager} navProps={navProps} hiddenMarkerIds={hiddenMarkerIds} />} />
+                    <Route path="/read/:id" element={<PublicReaderPage scriptManager={scriptManager} navProps={navProps} />} />
+                    <Route path="/file/:name" element={<LocalReaderPage scriptManager={scriptManager} navProps={navProps} />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               )}
@@ -331,7 +316,8 @@ function App() {
                </div>
            )}
         </main>
-    </MainLayout>
+      </MainLayout>
+    </ScriptViewProvider>
     </>
   );
 }
