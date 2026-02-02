@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from "react";
 import {
-  PanelLeftOpen,
   SlidersHorizontal,
-  ArrowLeft,
 } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { ReaderControls } from "./reader/ReaderControls";
 import { ReaderActions } from "./reader/ReaderActions";
+import { useSettings } from "../contexts/SettingsContext";
+import { useEditableTitle } from "../hooks/useEditableTitle";
+import EditableTitle from "./header/EditableTitle";
+import HeaderTitleBlock from "./header/HeaderTitleBlock";
 
 function ReaderHeader({
-  accentStyle,
   hasTitle,
   onToggleTitle,
   titleName,
@@ -24,27 +25,27 @@ function ReaderHeader({
   sceneList = [],
   currentSceneId,
   onSelectScene,
-  titleNote,
   characterList = [],
   filterCharacter,
   setFilterCharacter,
   setFocusMode,
-  isFocusMode,
   scrollProgress = 0,
   totalLines = 0,
   onEdit, 
   extraActions,
   onBack,
   onToggleStats, // New prop
-  markerThemes,
-  currentThemeId,
-  switchTheme,
   onTitleChange,
   
   markerConfigs,
-  visibleMarkerIds,
-  onToggleMarker
+  visibleMarkerIds: visibleMarkerIdsProp,
+  hiddenMarkerIds: hiddenMarkerIdsProp,
+  onToggleMarker: onToggleMarkerProp
 }) {
+  const { hiddenMarkerIds: ctxHiddenMarkerIds, toggleMarkerVisibility } = useSettings();
+  const effectiveHiddenMarkerIds = hiddenMarkerIdsProp ?? ctxHiddenMarkerIds ?? [];
+  const effectiveToggleMarker = onToggleMarkerProp ?? toggleMarkerVisibility;
+  const effectiveVisibleMarkerIds = visibleMarkerIdsProp ?? (Array.isArray(markerConfigs) ? markerConfigs.filter(c => !effectiveHiddenMarkerIds.includes(c.id)).map(c => c.id) : []);
   const [collapsed, setCollapsed] = useState(true);
   const [autoCollapse, setAutoCollapse] = useState(true);
   const [isLg, setIsLg] = useState(false);
@@ -65,22 +66,13 @@ function ReaderHeader({
   }, [autoCollapse]);
 
   const progressLabel = `${Math.round(scrollProgress)}%`;
-  const progressPercent = Math.min(100, Math.max(0, scrollProgress));
-  const [isEditing, setIsEditing] = useState(false);
-  const [editTitle, setEditTitle] = useState(titleName || "");
-
-  useEffect(() => {
-     setEditTitle(titleName || "");
-  }, [titleName]);
-
-  const handleTitleSubmit = () => {
-     if (editTitle.trim() && editTitle !== titleName) {
-        onTitleChange?.(editTitle);
-     } else {
-        setEditTitle(titleName || "");
-     }
-     setIsEditing(false);
-  };
+  const {
+    isEditing,
+    editTitle,
+    setEditTitle,
+    startEditing,
+    submitTitle
+  } = useEditableTitle(titleName || "", onTitleChange);
 
   const showTools = isLg || !collapsed;
 
@@ -94,89 +86,80 @@ function ReaderHeader({
       >
         <div className="flex w-full flex-col gap-2 min-w-0 max-w-[1000px]">
           <div className="flex items-center gap-2 min-w-0">
-             {/* ... (unchanged title/back buttons) */}
-             {/* Note: I'm not re-writing the whole big block to minimize diff risk. 
-                 Will focus on the END of the file where ReaderActions is called. 
-                 Wait, I must produce a contiguous replacement. 
-                 I'll target the end return block. 
-             */}
-             <button
-               onClick={(e) => {
-                 e.stopPropagation();
-                 onBack?.();
-               }}
-               aria-label="回上一頁"
-               className="h-9 w-9 inline-flex items-center justify-center -ml-1 text-foreground/80 hover:text-foreground transition-colors shrink-0"
-             >
-               <ArrowLeft className="h-5 w-5" />
-             </button> 
-            
-            <button
-              onClick={(e) => {
+            <HeaderTitleBlock
+              onBack={(e) => {
                 e.stopPropagation();
-                e.currentTarget.blur();
-                setSidebarOpen(true);
+                onBack?.();
               }}
-              aria-label="展開列表"
-              className={`h-9 w-9 inline-flex items-center justify-center text-foreground/80 hover:text-foreground transition-colors shrink-0 ${
+              backButtonClassName="h-9 w-9 inline-flex items-center justify-center -ml-1 text-foreground/80 hover:text-foreground transition-colors shrink-0"
+              backIconClassName="h-5 w-5"
+              onOpenSidebar={() => setSidebarOpen(true)}
+              sidebarButtonClassName={`h-9 w-9 inline-flex items-center justify-center text-foreground/80 hover:text-foreground transition-colors shrink-0 ${
                 isSidebarOpen ? "lg:hidden" : ""
               }`}
-            >
-              <PanelLeftOpen className="h-5 w-5" />
-            </button>
-            
-            <div className="min-w-0 flex-1 flex flex-col justify-center">
-              <div className="flex items-center gap-2 min-w-0">
-                {isEditing && onTitleChange ? (
-                    <input 
-                        className="text-base sm:text-2xl font-semibold border border-primary/50 rounded px-1 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary min-w-[200px] w-full"
-                        value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                        onBlur={handleTitleSubmit}
-                        onKeyDown={(e) => e.key === 'Enter' && handleTitleSubmit()}
-                        autoFocus
-                        onClick={(e) => e.stopPropagation()}
-                    />
-                ) : (
-                    <button
-                    type="button"
-                    onClick={(e) => {
-                        if (!hasTitle) return;
-                        e.stopPropagation();
-                        onToggleTitle?.();
+              sidebarIconClassName="h-5 w-5"
+              containerClassName="flex items-center gap-2 min-w-0"
+              titleWrapperClassName="min-w-0 flex-1 flex flex-col justify-center"
+              titleNode={
+                <div className="flex items-center gap-2 min-w-0">
+                  <EditableTitle
+                    isEditing={isEditing && Boolean(onTitleChange)}
+                    editTitle={editTitle}
+                    setEditTitle={(val) => setEditTitle(val)}
+                    onSubmit={submitTitle}
+                    inputClassName="text-base sm:text-2xl font-semibold border border-primary/50 rounded px-1 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary min-w-[200px] w-full"
+                    inputProps={{
+                      onClick: (e) => e.stopPropagation(),
                     }}
-                    onDoubleClick={(e) => {
-                         if (onTitleChange) {
-                             e.stopPropagation();
-                             setIsEditing(true);
-                         }
-                    }}
-                    className={`text-left flex-1 min-w-0 ${
-                        hasTitle ? "cursor-pointer" : "cursor-default"
-                    }`}
-                    title={onTitleChange ? "雙擊重新命名" : ""}
-                    >
-                    <h2 className="text-base sm:text-2xl font-semibold truncate flex-1 leading-tight min-w-0">
-                        {titleName || (typeof activeFile === 'object' ? activeFile?.name : activeFile) || "選擇一個劇本"}
-                    </h2>
-                    </button>
-                )}
-              </div>
-              
-              <div className="flex items-center gap-2 text-[10px] text-muted-foreground min-w-0">
-                <span className="truncate max-w-[120px]">
-                  {(typeof activeFile === 'string' && fileMeta[activeFile]) ? fileMeta[activeFile].toLocaleDateString() : ""}
-                </span>
-                {totalLines > 0 && (
-                   <>
-                    <span className="opacity-50">·</span>
-                    <span className="whitespace-nowrap">{totalLines} 行</span>
-                   </>
-                )}
-                <span className="opacity-50">·</span>
-                <span className="whitespace-nowrap">{progressLabel}</span>
-              </div>
-            </div>
+                    renderDisplay={() => (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          if (!hasTitle) return;
+                          e.stopPropagation();
+                          onToggleTitle?.();
+                        }}
+                        onDoubleClick={(e) => {
+                          if (onTitleChange) {
+                            e.stopPropagation();
+                            startEditing();
+                          }
+                        }}
+                        className={`text-left flex-1 min-w-0 ${
+                          hasTitle ? "cursor-pointer" : "cursor-default"
+                        }`}
+                        title={onTitleChange ? "雙擊重新命名" : ""}
+                      >
+                        <h2 className="text-base sm:text-2xl font-semibold truncate flex-1 leading-tight min-w-0">
+                          {titleName ||
+                            (typeof activeFile === "object"
+                              ? activeFile?.name
+                              : activeFile) ||
+                            "選擇一個劇本"}
+                        </h2>
+                      </button>
+                    )}
+                  />
+                </div>
+              }
+              metaNode={
+                <div className="flex items-center gap-2 text-[10px] text-muted-foreground min-w-0">
+                  <span className="truncate max-w-[120px]">
+                    {typeof activeFile === "string" && fileMeta[activeFile]
+                      ? fileMeta[activeFile].toLocaleDateString()
+                      : ""}
+                  </span>
+                  {totalLines > 0 && (
+                    <>
+                      <span className="opacity-50">·</span>
+                      <span className="whitespace-nowrap">{totalLines} 行</span>
+                    </>
+                  )}
+                  <span className="opacity-50">·</span>
+                  <span className="whitespace-nowrap">{progressLabel}</span>
+                </div>
+              }
+            />
 
             {!isLg && (
               <button
@@ -205,14 +188,9 @@ function ReaderHeader({
 
                 setFocusMode={setFocusMode} 
  
-                isFocusMode={isFocusMode} // Pass down
-                markerThemes={markerThemes}
-                currentThemeId={currentThemeId}
-                switchTheme={switchTheme}
-                
                 markerConfigs={markerConfigs}
-                visibleMarkerIds={visibleMarkerIds}
-                onToggleMarker={onToggleMarker}
+                visibleMarkerIds={effectiveVisibleMarkerIds}
+                onToggleMarker={effectiveToggleMarker}
             />
             
             <ReaderActions 

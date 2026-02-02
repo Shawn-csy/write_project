@@ -221,7 +221,6 @@ export function useScriptManager(initialParamsRef, initialMarkerConfigs = []) {
     filterCharacter, setFilterCharacter,
     focusMode, setFocusMode,
     currentSceneId, setCurrentSceneId,
-    currentSceneId, setCurrentSceneId,
     scrollSceneId, setScrollSceneId,
     // Cloud/Public State
     activeCloudScript, setActiveCloudScript,

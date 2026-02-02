@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { useTheme } from "../components/theme-provider";
 import {
@@ -31,6 +31,9 @@ export function SettingsProvider({ children }) {
   const [fontSize, setFontSize] = usePersistentState(STORAGE_KEYS.FONT_SIZE, 14, 'number');
   const [bodyFontSize, setBodyFontSize] = usePersistentState(STORAGE_KEYS.BODY_FONT, 14, 'number');
   const [dialogueFontSize, setDialogueFontSize] = usePersistentState(STORAGE_KEYS.DIALOGUE_FONT, 14, 'number');
+  
+  // Line Height (1.2 ~ 2.0, default 1.4)
+  const [lineHeight, setLineHeight] = usePersistentState(STORAGE_KEYS.LINE_HEIGHT, 1.4, 'number');
 
   const fontSteps = [12, 14, 16, 24, 36, 72];
   const adjustFont = (delta) => {
@@ -79,6 +82,14 @@ export function SettingsProvider({ children }) {
   const enableLocalFiles = enableLocalFilesStr === "on";
   const setEnableLocalFiles = (val) => setEnableLocalFilesStr(val ? "on" : "off");
 
+  // Marker visibility (session-level)
+  const [hiddenMarkerIds, setHiddenMarkerIds] = useState([]);
+  const toggleMarkerVisibility = (id) => {
+    setHiddenMarkerIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      return [...prev, id];
+    });
+  };
 
   // --- Theme Hook ---
   const themes = useMarkerThemes(currentUser);
@@ -129,6 +140,7 @@ export function SettingsProvider({ children }) {
                       if(s.focusEffect) setFocusEffect(s.focusEffect);
                       if(s.focusContentMode) setFocusContentMode(s.focusContentMode);
                       if(s.enableLocalFiles !== undefined) setEnableLocalFiles(s.enableLocalFiles);
+                      if(s.lineHeight) setLineHeight(s.lineHeight);
                       
                       // Always fetch themes from API for logged in users
                       const realThemes = await fetchUserThemes(currentUser);
@@ -175,6 +187,7 @@ export function SettingsProvider({ children }) {
                           highlightCharacters,
                           highlightSfx,
                           enableLocalFiles,
+                          lineHeight,
                           currentThemeId: themes.currentThemeId
                       };
                       await saveUserSettings(currentUser, payload);
@@ -202,6 +215,7 @@ export function SettingsProvider({ children }) {
           highlightCharacters,
           highlightSfx,
           enableLocalFiles,
+          lineHeight,
           currentThemeId: themes.currentThemeId
       };
 
@@ -223,6 +237,7 @@ export function SettingsProvider({ children }) {
       highlightCharacters,
       highlightSfx,
       enableLocalFiles,
+      lineHeight,
       themes.markerThemes,
       themes.currentThemeId
   ]);
@@ -245,6 +260,7 @@ export function SettingsProvider({ children }) {
     fontSize, setFontSize,
     bodyFontSize, setBodyFontSize,
     dialogueFontSize, setDialogueFontSize,
+    lineHeight, setLineHeight,
     adjustFont,
 
     // Modes
@@ -260,6 +276,11 @@ export function SettingsProvider({ children }) {
     markerConfigs: themes.markerConfigs, 
     setMarkerConfigs: themes.setMarkerConfigs,
     updateMarkerConfigs: themes.setMarkerConfigs,
+
+    // Marker visibility
+    hiddenMarkerIds,
+    setHiddenMarkerIds,
+    toggleMarkerVisibility,
 
     // Themes (New API)
     ...themes

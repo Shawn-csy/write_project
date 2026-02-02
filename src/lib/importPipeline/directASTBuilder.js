@@ -14,24 +14,29 @@ import {
 } from './constants.js';
 
 /**
- * AST 節點類型
- * @typedef {'screenplay'|'chapter'|'character'|'dialogue'|'action'|'marker'|'blank'} NodeType
+ * AST 節點類型 (純 Marker 模式)
+ * @typedef {'root'|'scene_heading'|'action'|'layer'|'blank'} NodeType
  */
 
 /**
  * AST 節點
  * @typedef {Object} ASTNode
  * @property {NodeType} type - 節點類型
- * @property {string} [content] - 文本內容
- * @property {Array} [children] - 子節點（inline 解析結果）
- * @property {number} lineNumber - 原始行號
+ * @property {string} [text] - 文本內容
+ * @property {Array} [inline] - 行內解析結果
+ * @property {number} lineStart - 起始行號
+ * @property {number} [lineEnd] - 結束行號
  * @property {string} raw - 原始文本
- * @property {Object} [metadata] - 額外資訊
  */
 
 export class DirectASTBuilder {
   constructor(markerConfigs = []) {
-    this.configs = markerConfigs;
+    // 正規化配置：自動推斷 matchMode
+    this.configs = markerConfigs.map(c => ({
+      ...c,
+      // 如果沒有 matchMode，根據是否有 end 來推斷
+      matchMode: c.matchMode || (c.end ? 'enclosure' : 'prefix')
+    }));
     
     // 分離 block 和 inline markers
     this.blockMarkers = this.configs.filter(c => c.isBlock || c.type === 'prefix');
@@ -54,12 +59,8 @@ export class DirectASTBuilder {
   parse(text) {
     const lines = text.split('\n');
     const ast = { 
-      type: 'screenplay', 
-      children: [],
-      metadata: {
-        totalLines: lines.length,
-        parsedAt: new Date().toISOString()
-      }
+      type: 'root', 
+      children: []
     };
     
     const context = {
@@ -93,7 +94,8 @@ export class DirectASTBuilder {
     if (isBlankLine(line)) {
       return { 
         type: 'blank', 
-        lineNumber: lineNumber + 1,
+        lineStart: lineNumber + 1,
+        lineEnd: lineNumber + 1,
         raw: line
       };
     }
@@ -102,11 +104,13 @@ export class DirectASTBuilder {
     const chapterMatch = this._matchChapter(trimmed);
     if (chapterMatch) {
       return {
-        type: 'chapter',
-        content: chapterMatch.content,
+        type: 'scene_heading',
+        text: chapterMatch.content,
         title: chapterMatch.title,
         number: chapterMatch.number,
-        lineNumber: lineNumber + 1,
+        id: this._slugify(chapterMatch.content),
+        lineStart: lineNumber + 1,
+        lineEnd: lineNumber + 1,
         raw: line
       };
     }
@@ -118,12 +122,13 @@ export class DirectASTBuilder {
     }
     
     // 3. 預設：所有未匹配的內容都是 action（動作/描述）
-    // 角色偵測完全依賴用戶定義的規則，不再自動猜測
+    // 純 Marker 模式：不進行角色偵測
     return {
       type: 'action',
-      content: trimmed,
-      children: this._parseInlineContent(trimmed),
-      lineNumber: lineNumber + 1,
+      text: trimmed,
+      inline: this._parseInlineContent(trimmed),
+      lineStart: lineNumber + 1,
+      lineEnd: lineNumber + 1,
       raw: line
     };
   }
@@ -181,15 +186,18 @@ export class DirectASTBuilder {
       if (marker.matchMode === 'prefix' && line.startsWith(marker.start)) {
         const content = line.slice(marker.start.length).trim();
         return {
-          type: 'marker',
-          markerId: marker.id,
-          markerLabel: marker.label,
+          type: 'layer',
+          layerType: marker.id,
           markerType: marker.type,
-          content: content,
-          children: this._parseInlineContent(content),
-          lineNumber: lineNumber + 1,
+          text: content,
+          label: marker.label,
+          inline: this._parseInlineContent(content),
+          inlineLabel: this._parseInlineContent(content),
+          lineStart: lineNumber + 1,
+          lineEnd: lineNumber + 1,
           raw: line,
-          style: marker.style
+          style: marker.style,
+          children: []
         };
       }
       
@@ -198,15 +206,18 @@ export class DirectASTBuilder {
         if (line.startsWith(marker.start) && line.endsWith(marker.end)) {
           const content = line.slice(marker.start.length, -marker.end.length).trim();
           return {
-            type: 'marker',
-            markerId: marker.id,
-            markerLabel: marker.label,
+            type: 'layer',
+            layerType: marker.id,
             markerType: marker.type,
-            content: content,
-            children: this._parseInlineContent(content),
-            lineNumber: lineNumber + 1,
+            text: content,
+            label: marker.label,
+            inline: this._parseInlineContent(content),
+            inlineLabel: this._parseInlineContent(content),
+            lineStart: lineNumber + 1,
+            lineEnd: lineNumber + 1,
             raw: line,
-            style: marker.style
+            style: marker.style,
+            children: []
           };
         }
       }
@@ -226,106 +237,29 @@ export class DirectASTBuilder {
   }
 
   /**
-   * 更新上下文
+   * 更新上下文（純 Marker 模式簡化版）
    * @private
    */
   _updateContext(node, context) {
-    switch (node.type) {
-      case 'chapter':
-        context.currentChapter = node;
-        context.currentCharacter = null;
-        context.inDialogueBlock = false;
-        break;
-        
-      case 'character':
-        context.currentCharacter = node;
-        context.inDialogueBlock = true;
-        break;
-        
-      case 'blank':
-        // 空行重置角色上下文
-        context.currentCharacter = null;
-        context.inDialogueBlock = false;
-        break;
-        
-      case 'dialogue':
-        // 保持在對話塊中
-        context.inDialogueBlock = true;
-        break;
-        
-      case 'marker':
-      case 'action':
-        // 這些不影響角色上下文
-        break;
+    if (node.type === 'scene_heading') {
+      context.currentChapter = node;
+    } else if (node.type === 'blank') {
+      // 空行可以重置一些狀態（如果需要的話）
     }
+    // 純 Marker 模式不需要追蹤角色/對話狀態
   }
 
   /**
-   * 將 AST 轉換為 Fountain 格式文本
-   * @param {ASTNode} ast - AST 根節點
-   * @returns {string} Fountain 格式文本
+   * 生成 URL-friendly 的 ID
+   * @private
    */
-
-  toFountain(ast) {
-    const lines = [];
-    let lastType = null;
-
-    
-    for (const node of ast.children) {
-      switch (node.type) {
-        case 'chapter':
-          lines.push('');
-          lines.push(`# ${node.content}`);
-          lines.push('');
-          lastType = 'chapter';
-          break;
-          
-        case 'character':
-          lines.push('');
-          lines.push(node.name.toUpperCase());
-          lastType = 'character';
-          break;
-          
-        case 'dialogue':
-          lines.push(node.content);
-          lastType = 'dialogue';
-          break;
-          
-        case 'action':
-          lines.push('');
-          lines.push(node.content);
-          lastType = 'action';
-          break;
-          
-        case 'marker':
-          // 特殊處理 <blank> 標記
-          if (node.markerType === 'visual_blank') {
-            // 如果上一個節點是角色、對話或括號動作，則插入零寬度空格
-            // 這樣在 Fountain 中會被視為對話的一部分，不會斷開
-            if (lastType === 'character' || lastType === 'dialogue' || lastType === 'parenthetical') {
-              lines.push('\u200B'); // Zero Width Space
-              lastType = 'dialogue'; // 維持對話上下文
-            } else {
-              lines.push(''); // 一般空行
-              lastType = 'blank';
-            }
-          } else if (node.markerType === 'prefix') {
-            lines.push(`[${node.markerLabel}: ${node.content}]`);
-            lastType = 'action';
-          } else {
-            lines.push(node.raw);
-            lastType = 'action';
-          }
-          break;
-          
-        case 'blank':
-          lines.push('');
-          lastType = 'blank';
-          break;
-      }
-    }
-    
-    return lines.join('\n');
+  _slugify(text = '') {
+    return text
+      .toLowerCase()
+      .replace(/[^a-z0-9\u4e00-\u9fa5\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-') || 'scene';
   }
 }
 

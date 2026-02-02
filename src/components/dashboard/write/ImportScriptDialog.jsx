@@ -12,10 +12,10 @@ import { ImportStageInput } from "./import/ImportStageInput";
 import { ImportStagePreview } from "./import/ImportStagePreview";
 import { ImportStageConfigure } from "./import/ImportStageConfigure";
 
-// 三階段處理流程
+// 三階段處理流程 (純 Marker 模式)
 import { preprocess, TextPreprocessor } from "../../../lib/importPipeline/textPreprocessor.js";
 import { discoverMarkers, MarkerDiscoverer } from "../../../lib/importPipeline/markerDiscoverer.js";
-import { buildAST, DirectASTBuilder } from "../../../lib/importPipeline/directASTBuilder.js";
+import { buildAST } from "../../../lib/importPipeline/directASTBuilder.js";
 import { extractMetadata } from "../../../lib/importPipeline/metadataExtractor.js";
 
 const STEPS = {
@@ -185,31 +185,17 @@ export function ImportScriptDialog({
     // const [savePopoverOpen, setSavePopoverOpen] = useState(false);
     // ... replaced by direct arrow function props or moved logic
 
-    // 1. 生成 Fountain 預覽 (中間產物)
-    const previewFountain = useMemo(() => {
-        if (!preprocessResult || !activeRules) return "";
+    // 純 Marker 模式：直接使用 buildAST 產生的 AST
+    const renderAst = useMemo(() => {
+        if (!preprocessResult || !activeRules) return null;
         try {
-            const tempAst = buildAST(preprocessResult.cleanedText, activeRules);
-            const builder = new DirectASTBuilder([]);
-            return builder.toFountain(tempAst);
+            // 直接使用 DirectASTBuilder 產生 AST，不再經過 fountain-js
+            return buildAST(preprocessResult.cleanedText, activeRules);
         } catch (e) {
-            console.error("Preview Generation Failed:", e);
-            return "";
+            console.error("AST Building Failed:", e);
+            return null;
         }
     }, [preprocessResult, activeRules]);
-
-    // 2. 生成渲染用 AST (模擬編輯器行為)
-    const renderAst = useMemo(() => {
-        if (!previewFountain) return null;
-        try {
-            // 使用 parseScreenplay 解析 Fountain 文本，這保證了預覽與編輯器完全一致
-            const { ast } = parseScreenplay(previewFountain, activeRules);
-            return ast;
-        } catch (e) {
-             console.error("AST Parsing Failed:", e);
-             return null;
-        }
-    }, [previewFountain, activeRules]);
 
     // Stage 3: 確認設定並進入最終結果
     const handleConfirmConfig = useCallback(() => {
@@ -219,7 +205,6 @@ export function ImportScriptDialog({
             return;
         }
         
-        // 這裡不需要重新 build AST，直接用 previewFountain 即可
         setAst(renderAst); 
         setStep(STEPS.RESULT);
     }, [renderAst, selectedConfigId]);
@@ -229,21 +214,7 @@ export function ImportScriptDialog({
         setAst(renderAst);
         setStep(STEPS.RESULT);
     }, [renderAst]);
-    
-    // Result Stage Fountain (可以直接沿用 previewFountain，但為了避免變數命名衝突或 scope 問題)
-    // 我們可以把 previewFountain 保存到 state? 或者在此重新 memo
-    // 簡單起見，我們讓 result 頁面顯示 previewFountain 的內容 (但 step 切換後 activeRules 可能還在)
-    // 為了安全，我們讓 handleConfirmConfig 把 fountain 存起來? 
-    // 或者直接使用 previewFountain?
-    
-    // 為了讓 handleConfirmImport 能夠存取最終結果，我們需要一個 Ref 或 State 存 FinalFountain
-    const [finalFountain, setFinalFountain] = useState("");
-    
-    useEffect(() => {
-        if (step === STEPS.CONFIGURE && previewFountain) {
-            setFinalFountain(previewFountain);
-        }
-    }, [step, previewFountain]);
+
 
 
     // 生成 Fountain Metadata Header
@@ -264,15 +235,15 @@ export function ImportScriptDialog({
         return lines.length > 0 ? lines.join('\n') + '\n\n' : '';
     }, []);
 
-    // 確認匯入
+    // 確認匯入（純 Marker 模式：儲存原始 cleanedText）
     const handleConfirmImport = useCallback(async () => {
-        if (!finalFountain || !title.trim()) return;
+        if (!preprocessResult?.cleanedText || !title.trim()) return;
         
         setImporting(true);
         try {
-            // 將 Metadata 加入到 Fountain 開頭
+            // 將 Metadata 加入到內容開頭
             const metadataHeader = generateMetadataHeader(metadata);
-            const contentWithMeta = metadataHeader + finalFountain;
+            const contentWithMeta = metadataHeader + preprocessResult.cleanedText;
             
             await onImport({
                 title: title.trim(),
@@ -286,7 +257,7 @@ export function ImportScriptDialog({
         } finally {
             setImporting(false);
         }
-    }, [finalFountain, title, currentPath, onImport, handleOpenChange, metadata, generateMetadataHeader]);
+    }, [preprocessResult, title, currentPath, onImport, handleOpenChange, metadata, generateMetadataHeader]);
 
     // ... (return JSX)
 
@@ -375,7 +346,7 @@ export function ImportScriptDialog({
                      )}
 
                      {/* Step 4: Final Confirmation */}
-                     {step === STEPS.RESULT && finalFountain && (
+                     {step === STEPS.RESULT && preprocessResult?.cleanedText && (
                         <div className="flex flex-col gap-4 h-full">
                             <div className="text-sm text-green-600 font-medium flex items-center gap-2">
                                 <CheckCircle2 className="w-4 h-4" />
@@ -389,7 +360,7 @@ export function ImportScriptDialog({
                             <div className="flex-1 min-h-0 border rounded relative">
                                 <ScrollArea className="h-full absolute inset-0">
                                     <div className="p-4">
-                                        <pre className="text-xs font-mono whitespace-pre-wrap">{finalFountain}</pre>
+                                        <pre className="text-xs font-mono whitespace-pre-wrap">{preprocessResult.cleanedText}</pre>
                                     </div>
                                 </ScrollArea>
                             </div>

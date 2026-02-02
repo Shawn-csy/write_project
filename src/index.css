@@ -600,7 +600,7 @@
 .screenplay {
   font-family: 'Courier New', Courier, monospace;
   font-size: var(--body-font-size, var(--script-font-size, 14px));
-  line-height: 1.6;
+  line-height: var(--line-height, 1.4);
   color: hsl(var(--foreground));
   max-width: 720px;
   margin: 0 auto;
@@ -614,8 +614,8 @@
 .screenplay .scene-heading {
   font-weight: 700;
   text-transform: uppercase;
-  margin-top: 28px;
-  margin-bottom: 14px;
+  margin-top: calc(var(--line-height, 1.4) * 2em);
+  margin-bottom: calc(var(--line-height, 1.4) * 1em);
   letter-spacing: 0.08em;
   position: relative;
   padding-left: 14px;
@@ -640,8 +640,8 @@
 
 
 .screenplay .action {
-  margin-bottom: 24px;
-  line-height: 1.75;
+  margin-bottom: calc(var(--line-height, 1.4) * 1em);
+  line-height: var(--line-height, 1.5);
   max-width: 650px;
   width: 95%;
   padding-left: 2px;
@@ -752,11 +752,11 @@
 }
 
 .screenplay .dialogue {
-  margin: 0 0 12px 2px;
+  margin: 0 0 calc(var(--line-height, 1.4) * 0.8em) 2px;
   width: 95%;
   max-width: 600px;
   font-size: var(--dialogue-font-size, var(--script-font-size, 14px));
-  line-height: 1.5;
+  line-height: var(--line-height, 1.4);
 }
 
 .screenplay .parenthetical {

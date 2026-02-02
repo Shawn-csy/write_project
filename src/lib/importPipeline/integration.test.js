@@ -1,5 +1,5 @@
 /**
- * 整合測試：使用真實範例檔案測試三階段流程
+ * 整合測試：使用真實範例檔案測試三階段流程（純 Marker 模式）
  */
 
 import { describe, it } from 'node:test';
@@ -7,14 +7,14 @@ import assert from 'node:assert';
 import { readFileSync } from 'fs';
 import { preprocess } from './textPreprocessor.js';
 import { discoverMarkers, MarkerDiscoverer } from './markerDiscoverer.js';
-import { buildAST, DirectASTBuilder } from './directASTBuilder.js';
+import { buildAST } from './directASTBuilder.js';
 
 // 讀取真實範例檔案
 const file1 = readFileSync('./convert_example/file1', 'utf-8');
 const file2 = readFileSync('./convert_example/file2', 'utf-8');
 const file3 = readFileSync('./convert_example/file3', 'utf-8');
 
-describe('Integration Tests with Real Examples', () => {
+describe('Integration Tests with Real Examples (Pure Marker Mode)', () => {
   
   describe('File 1 (凜峰式台本)', () => {
     it('Stage 1: should preprocess file1 correctly', () => {
@@ -52,7 +52,7 @@ describe('Integration Tests with Real Examples', () => {
       }
     });
 
-    it('Stage 3: should build AST for file1', () => {
+    it('Stage 3: should build AST for file1 (pure marker mode)', () => {
       const preprocessed = preprocess(file1);
       const discovery = discoverMarkers(preprocessed.cleanedText);
       
@@ -60,8 +60,8 @@ describe('Integration Tests with Real Examples', () => {
       const configs = discovery.discoveredMarkers.map(m => MarkerDiscoverer.toMarkerConfig(m));
       const ast = buildAST(preprocessed.cleanedText, configs);
       
-      // 檢查 AST 結構
-      assert.strictEqual(ast.type, 'screenplay');
+      // 檢查 AST 結構（純 Marker 模式使用 'root' 而非 'screenplay'）
+      assert.strictEqual(ast.type, 'root');
       assert.ok(ast.children.length > 0);
       
       // 統計節點類型
@@ -73,10 +73,12 @@ describe('Integration Tests with Real Examples', () => {
       console.log(`  File1 Stage 3: Built AST with ${ast.children.length} nodes`);
       console.log(`    Types:`, typeCounts);
       
-      // 應該有章節
-      assert.ok(typeCounts.chapter > 0, 'Should have chapters');
-      // 應該有角色
-      assert.ok(typeCounts.character > 0, 'Should have characters');
+      // 應該有場景標題
+      assert.ok(typeCounts.scene_heading > 0, 'Should have scene_heading');
+      // 純 Marker 模式：應該有 layer (markers)
+      assert.ok(typeCounts.layer > 0, 'Should have layer (markers)');
+      // 純 Marker 模式：應該有 action
+      assert.ok(typeCounts.action > 0, 'Should have action');
     });
   });
 
@@ -94,11 +96,13 @@ describe('Integration Tests with Real Examples', () => {
       const configs = discovery.discoveredMarkers.map(m => MarkerDiscoverer.toMarkerConfig(m));
       const ast = buildAST(preprocessed.cleanedText, configs);
       
-      assert.strictEqual(ast.type, 'screenplay');
+      assert.strictEqual(ast.type, 'root');
+      assert.ok(ast.children.length > 0);
       
-      // 找到角色 "依晴"
-      const character = ast.children.find(n => n.type === 'character' && n.name === '依晴');
-      assert.ok(character, 'Should find character 依晴');
+      // 純 Marker 模式：角色名會被當作 action
+      // 不再測試角色偵測
+      const hasContent = ast.children.some(n => n.type === 'action' || n.type === 'layer');
+      assert.ok(hasContent, 'Should have content nodes');
       
       console.log(`  File2: Pipeline completed, ${ast.children.length} nodes`);
     });
@@ -152,7 +156,7 @@ describe('Integration Tests with Real Examples', () => {
         const configs = discovery.discoveredMarkers.map(m => MarkerDiscoverer.toMarkerConfig(m));
         const ast = buildAST(preprocessed.cleanedText, configs);
         
-        assert.strictEqual(ast.type, 'screenplay');
+        assert.strictEqual(ast.type, 'root');
         assert.ok(ast.children.length > 0);
         
         console.log(`  ${file.name}: ✓ ${ast.children.length} nodes`);

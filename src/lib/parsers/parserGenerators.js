@@ -80,21 +80,12 @@ export const createDynamicParsers = (configs = []) => {
     return parsers;
 };
 
-// [Direction] or [sfx: ...]
-export const DirectionParser = P.string('[')
-  .then(P.noneOf(']').atLeast(1).map(x => x.join('')))
-  .skip(P.string(']'))
-  .map(content => {
-      if (content.match(/^sfx[:：]/i)) {
-          return { type: 'sfx', content: content.replace(/^sfx[:：]\s*/i, '').trim() };
-      }
-      return { type: 'direction', content: content.trim() };
-  });
+// [已移除] DirectionParser - 純 Marker 模式不再使用硬編碼的 [sfx:]/[direction] 解析
+// 所有 [...] 解析都由雲端設定 (markerConfigs) 決定
 
 export const createTextParser = (configs = []) => {
-    // Collect all start characters from configs to exclude them from Text
-    // Only exclude '[' by default because DirectionParser is hardcoded to use it.
-    const startChars = new Set(['[']); 
+    // 純 Marker 模式：只排除 configs 中定義的 start 字元
+    const startChars = new Set(); 
     const safeConfigs = Array.isArray(configs) ? configs : [];
 
     safeConfigs.forEach(c => {

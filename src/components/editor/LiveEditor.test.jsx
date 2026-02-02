@@ -31,7 +31,9 @@ describe('LiveEditor', () => {
     beforeEach(() => {
         useSettings.mockReturnValue({
             theme: 'dark',
-            markerConfigs: []
+            markerConfigs: [],
+            hiddenMarkerIds: [],
+            toggleMarkerVisibility: vi.fn()
         });
     });
 

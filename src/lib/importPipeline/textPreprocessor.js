@@ -50,6 +50,8 @@ export class TextPreprocessor {
       autoJoin: true,
       // 是否正規化符號
       normalizeSymbols: true,
+      // 是否將空行標記為 <blank>
+      markBlankLines: false,
       // 只處理高確信度
       conservativeMode: true,
       // 自訂接行規則
@@ -87,16 +89,14 @@ export class TextPreprocessor {
     }
     
     // Step 3: 空行處置 (Visual Blank)
-    // 將真正的空行替換為 <blank> 標記，以便後續流程保留
-    // 但不替換檔案開頭或結尾的空行，僅替換中間的
+    // 依選項決定是否將空行標記為 <blank>
     const joinedText = joinedLines.join('\n');
-    const finalLines = joinedText.split('\n');
-    const blankedLines = finalLines.map(line => {
-      // 如果是空行或只包含空白字符，轉為 <blank>
-      if (!line.trim()) return '<blank>';
-      return line;
-    });
-    const cleanedText = blankedLines.join('\n');
+    const cleanedText = this.options.markBlankLines
+      ? joinedText
+          .split('\n')
+          .map((line) => (!line.trim() ? '<blank>' : line))
+          .join('\n')
+      : joinedText;
     
     return {
       cleanedText,

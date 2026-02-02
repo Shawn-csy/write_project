@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { parseScreenplay } from './screenplayAST.js';
 
-describe('ScreenplayAST', () => {
+describe('ScreenplayAST (Pure Marker Mode)', () => {
     it('should parse a basic script with title and body', () => {
         const text = "Title: Test\nAuthor: Any\n\n\nINT. ROOM - DAY\n\nHello.";
         const result = parseScreenplay(text);
@@ -9,47 +9,49 @@ describe('ScreenplayAST', () => {
         expect(result.titleLines).toContain("Title: Test");
         expect(result.ast.type).toBe('root');
         
-        const scene = result.ast.children.find(n => n.type === 'scene_heading');
-        expect(scene).toBeDefined();
+        // scene_heading 需要符合 CHAPTER_PATTERNS
+        // "INT. ROOM - DAY" 不符合中文章節格式，會被當作 action
+        const action = result.ast.children.find(n => n.type === 'action');
+        expect(action).toBeDefined();
     });
 
-    it('should correctly process block markers', () => {
-        const text = "/e\nFeeling happy\n/e";
+    it('should correctly process block markers as layer', () => {
+        const text = "/e Feeling happy";
         const markerConfigs = [
             {
                 id: 'emotion',
                 label: 'Emotion',
                 start: '/e',
-                end: '/e',
                 isBlock: true,
-                matchMode: 'enclosure'
+                matchMode: 'prefix'
             }
         ];
         
         const result = parseScreenplay(text, markerConfigs);
-        // console.log("AST:", JSON.stringify(result.ast, null, 2));
         const layer = result.ast.children.find(n => n.type === 'layer');
         
         expect(layer).toBeDefined();
         expect(layer.layerType).toBe('emotion');
+        expect(layer.text).toBe('Feeling happy');
     });
 
-    it('should identify CJK characters as speakers', () => {
+    it('should NOT detect characters automatically in pure marker mode', () => {
         const text = "小明\n你好嗎？";
         const result = parseScreenplay(text);
         
-        const speech = result.ast.children.find(n => n.type === 'speech');
-        expect(speech).toBeDefined();
-        expect(speech.character).toBe('小明');
+        // 純 Marker 模式：不會自動偵測角色，全部都是 action
+        const actions = result.ast.children.filter(n => n.type === 'action');
+        expect(actions.length).toBe(2);
+        expect(actions[0].text).toBe('小明');
     });
 
-    it('should handle forced character names with @', () => {
+    it('should treat @ prefix as action in pure marker mode', () => {
         const text = "@BOT\nI am a bot.";
         const result = parseScreenplay(text);
         
-        const speech = result.ast.children.find(n => n.type === 'speech');
-        expect(speech).toBeDefined();
-        expect(speech.character).toBe('BOT');
+        // 純 Marker 模式：@BOT 是 action
+        const actions = result.ast.children.filter(n => n.type === 'action');
+        expect(actions.length).toBeGreaterThan(0);
     });
 
     it('should parse inline styles correctly', () => {
@@ -72,31 +74,37 @@ describe('ScreenplayAST', () => {
         expect(highlighted.content).toBe('world');
     });
 
-    it('should handle parentheticals, transitions, and centered text', () => {
-        const text = "BOB\n(smiling)\nHello.\n\nCUT TO:\n\n> CENTERED <";
+    it('should detect Chinese chapter formats as scene_heading', () => {
+        const text = "第一章 開場\n\n這是內容";
         const result = parseScreenplay(text);
         
-        const speech = result.ast.children.find(n => n.type === 'speech');
-        const parenthetical = speech ? speech.children.find(n => n.type === 'parenthetical') : null;
-        const transition = result.ast.children.find(n => n.type === 'transition');
-        const centered = result.ast.children.find(n => n.type === 'centered');
-        
-        expect(parenthetical).toBeDefined();
-        expect(transition).toBeDefined();
-        expect(centered).toBeDefined();
+        const scene = result.ast.children.find(n => n.type === 'scene_heading');
+        expect(scene).toBeDefined();
+        expect(scene.text).toContain('第一章');
     });
 
-    it('should optimize dual dialogue layers', () => {
-        const text = "BOB\nHello.\n\n/d\nALICE\nHi!\n/d";
-        const markerConfigs = [
-            { id: 'dual', start: '/d', end: '/d', isBlock: true, layerType: 'dual' }
-        ];
-        const result = parseScreenplay(text, markerConfigs);
+    it('should detect numbered chapter formats as scene_heading', () => {
+        const text = "01. 標題\n\n內容";
+        const result = parseScreenplay(text);
         
-        // Find dual_dialogue container
-        const dual = result.ast.children.find(n => n.type === 'dual_dialogue');
-        expect(dual).toBeDefined();
-        // It should merge BOB (speech) and ALICE (new speech from dual block)
-        expect(dual.children.length).toBeGreaterThanOrEqual(1);
+        const scene = result.ast.children.find(n => n.type === 'scene_heading');
+        expect(scene).toBeDefined();
+        expect(scene.number).toBe(1);
+    });
+
+    it('should handle blank lines', () => {
+        const text = "第一行\n\n第三行";
+        const result = parseScreenplay(text);
+        
+        const blank = result.ast.children.find(n => n.type === 'blank');
+        expect(blank).toBeDefined();
+    });
+
+    it('should provide scene list from scene_headings', () => {
+        const text = "01. 第一場\n內容\n02. 第二場\n更多內容";
+        const result = parseScreenplay(text);
+        
+        expect(result.scenes.length).toBe(2);
+        expect(result.scenes[0].label).toContain('第一場');
     });
 });

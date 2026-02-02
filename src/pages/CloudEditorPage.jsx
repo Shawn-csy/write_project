@@ -53,11 +53,13 @@ export default function CloudEditorPage({ scriptManager, navProps }) {
       return <div className="flex items-center justify-center h-full">Loading...</div>;
   }
 
+  const isReadMode = cloudScriptMode === 'read';
+
   return (
       <LiveEditor 
         scriptId={activeCloudScript.id} 
         initialData={activeCloudScript}
-        readOnly={cloudScriptMode === 'read'}
+        readOnly={isReadMode}
         onRequestEdit={() => setCloudScriptMode("edit")}
         onClose={(finalSceneId) => {
            if (cloudScriptMode === 'edit') {
@@ -80,6 +82,7 @@ export default function CloudEditorPage({ scriptManager, navProps }) {
         }}
         isSidebarOpen={navProps.nav.isDesktopSidebarOpen}
         onSetSidebarOpen={navProps.nav.setSidebarOpen}
+        showHeader={!isReadMode}
       />
   );
 }
