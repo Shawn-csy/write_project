@@ -4,6 +4,7 @@ import { MarkerGeneralSettings } from "./configs/MarkerGeneralSettings";
 import { MarkerLogicSettings } from "./configs/MarkerLogicSettings";
 import { MarkerStyleSettings } from "./configs/MarkerStyleSettings";
 import { MarkerAnalysisSettings } from "./configs/MarkerAnalysisSettings";
+import { MarkerPreview } from "./configs/MarkerPreview";
 import { AlertCircle } from "lucide-react";
 
 export function MarkerDetailEditor({ config, idx, updateMarker }) {
@@ -18,12 +19,18 @@ export function MarkerDetailEditor({ config, idx, updateMarker }) {
 
     return (
         <div className="h-full flex flex-col bg-card/30 rounded-lg border border-border/50 overflow-hidden">
-            {/* Header / Preview Banner */}
+            {/* Header */}
             <div className="p-3 border-b flex items-center justify-between bg-muted/20">
                 <span className="text-xs font-mono text-muted-foreground">{config.id}</span>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                    {config.type === 'block' || config.isBlock ? 'Block (段落)' : 'Inline (行內)'}
+                    {config.matchMode === 'range' ? 'Range (區間)' : 
+                     config.type === 'block' || config.isBlock ? 'Block (段落)' : 'Inline (行內)'}
                 </span>
+            </div>
+            
+            {/* 即時預覽 */}
+            <div className="p-3 border-b bg-muted/10">
+                <MarkerPreview config={config} />
             </div>
 
             <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">

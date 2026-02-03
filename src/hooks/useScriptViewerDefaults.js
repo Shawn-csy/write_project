@@ -10,7 +10,8 @@ export const useScriptViewerDefaults = (overrides = {}) => {
     lineHeight,
     accentConfig,
     markerConfigs,
-    hiddenMarkerIds
+    hiddenMarkerIds,
+    showLineUnderline
   } = useSettings();
   const scriptView = useScriptView();
 
@@ -22,6 +23,7 @@ export const useScriptViewerDefaults = (overrides = {}) => {
     lineHeight: overrides.lineHeight ?? lineHeight,
     accentColor: overrides.accentColor ?? accentConfig?.accent,
     markerConfigs: overrides.markerConfigs ?? scriptView?.markerConfigs ?? markerConfigs,
-    hiddenMarkerIds: overrides.hiddenMarkerIds ?? hiddenMarkerIds ?? []
+    hiddenMarkerIds: overrides.hiddenMarkerIds ?? hiddenMarkerIds ?? [],
+    showLineUnderline: overrides.showLineUnderline ?? showLineUnderline ?? false
   };
 };

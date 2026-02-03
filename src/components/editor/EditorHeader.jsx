@@ -1,9 +1,11 @@
-import React from "react";
-import { Loader2, Save, Eye, Columns, BarChart2, Download, HelpCircle } from "lucide-react";
+import React, { useState } from "react";
+import { Loader2, Save, Eye, Columns, BarChart2, Download, HelpCircle, Globe, Lock } from "lucide-react";
 import { useEditableTitle } from "../../hooks/useEditableTitle";
 import EditableTitle from "../header/EditableTitle";
 import MarkerVisibilitySelect from "../MarkerVisibilitySelect";
 import HeaderTitleBlock from "../header/HeaderTitleBlock";
+import { Badge } from "../ui/badge";
+import { ScriptMetadataDialog } from "../dashboard/ScriptMetadataDialog";
 
 export function EditorHeader({
   readOnly,
@@ -23,8 +25,11 @@ export function EditorHeader({
   onTitleChange,
   markerConfigs = [],
   hiddenMarkerIds = [],
-  onToggleMarker
+  onToggleMarker,
+  script, // Full script object for metadata
+  onScriptUpdate // Callback when metadata changes
 }) {
+  const [showMetadataDialog, setShowMetadataDialog] = useState(false);
   const {
     isEditing,
     editTitle,
@@ -58,14 +63,34 @@ export function EditorHeader({
                 onSubmit={submitTitle}
                 inputClassName="font-semibold text-sm sm:text-base border border-primary/50 rounded px-1 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary min-w-[200px]"
                 renderDisplay={() => (
-                  <h2
-                    className="font-semibold text-sm sm:text-base cursor-text hover:bg-muted/50 rounded px-1 -ml-1 transition-colors"
-                    onDoubleClick={startEditing}
-                    title="雙擊即可重新命名"
-                  >
-                    {title}
-                  </h2>
+                  <div className="flex items-center gap-2">
+                    <h2
+                        className="font-semibold text-sm sm:text-base cursor-text hover:bg-muted/50 rounded px-1 -ml-1 transition-colors"
+                        onDoubleClick={startEditing}
+                        title="雙擊即可重新命名"
+                    >
+                        {title}
+                    </h2>
+                    {/* Status Badge */}
+                    <Badge 
+                        variant={script?.status === 'Public' ? "default" : "outline"} 
+                        className="h-5 px-1.5 text-[10px] cursor-pointer hover:opacity-80 flex items-center gap-1"
+                        onClick={() => setShowMetadataDialog(true)}
+                    >
+                        {script?.status === 'Public' ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                        {script?.status === 'Public' ? "Public" : "Private"}
+                    </Badge>
+                  </div>
                 )}
+              />
+              <ScriptMetadataDialog 
+                open={showMetadataDialog} 
+                onOpenChange={setShowMetadataDialog} 
+                script={script}
+                onSave={(updated) => {
+                    if (onScriptUpdate) onScriptUpdate(updated);
+                    setShowMetadataDialog(false);
+                }}
               />
               <button
                 onClick={onManualSave}

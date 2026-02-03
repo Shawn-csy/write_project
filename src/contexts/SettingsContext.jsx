@@ -35,6 +35,14 @@ export function SettingsProvider({ children }) {
   // Line Height (1.2 ~ 2.0, default 1.4)
   const [lineHeight, setLineHeight] = usePersistentState(STORAGE_KEYS.LINE_HEIGHT, 1.4, 'number');
 
+  const [transparentBgStr, setTransparentBgStr] = usePersistentState(STORAGE_KEYS.TRANSPARENT_BG, "off");
+  const transparentBg = transparentBgStr === "on";
+  const setTransparentBg = (val) => setTransparentBgStr(val ? "on" : "off");
+
+  const [showLineUnderlineStr, setShowLineUnderlineStr] = usePersistentState(STORAGE_KEYS.SHOW_UNDERLINE, "off");
+  const showLineUnderline = showLineUnderlineStr === "on";
+  const setShowLineUnderline = (val) => setShowLineUnderlineStr(val ? "on" : "off");
+
   const fontSteps = [12, 14, 16, 24, 36, 72];
   const adjustFont = (delta) => {
     const idx = fontSteps.findIndex((v) => v === fontSize);
@@ -78,9 +86,11 @@ export function SettingsProvider({ children }) {
   const highlightSfx = highlightSfxStr === "on";
   const setHighlightSfx = (val) => setHighlightSfxStr(val ? "on" : "off");
 
-  const [enableLocalFilesStr, setEnableLocalFilesStr] = usePersistentState("enableLocalFiles", "on");
-  const enableLocalFiles = enableLocalFilesStr === "on";
-  const setEnableLocalFiles = (val) => setEnableLocalFilesStr(val ? "on" : "off");
+  const [hideWhitespaceStr, setHideWhitespaceStr] = usePersistentState("hideWhitespace", "off");
+  const hideWhitespace = hideWhitespaceStr === "on";
+  const setHideWhitespace = (val) => setHideWhitespaceStr(val ? "on" : "off");
+
+
 
   // Marker visibility (session-level)
   const [hiddenMarkerIds, setHiddenMarkerIds] = useState([]);
@@ -116,6 +126,14 @@ export function SettingsProvider({ children }) {
     }
   }, [accentConfig, isDark]);
 
+  useEffect(() => {
+    if (transparentBg) {
+      document.documentElement.classList.add("transparent-mode");
+    } else {
+      document.documentElement.classList.remove("transparent-mode");
+    }
+  }, [transparentBg]);
+
   // --- Cloud Sync ---
   // 1. Load from Cloud on Login
   useEffect(() => {
@@ -139,8 +157,11 @@ export function SettingsProvider({ children }) {
                       if(s.fileLabelMode) setFileLabelMode(s.fileLabelMode);
                       if(s.focusEffect) setFocusEffect(s.focusEffect);
                       if(s.focusContentMode) setFocusContentMode(s.focusContentMode);
-                      if(s.enableLocalFiles !== undefined) setEnableLocalFiles(s.enableLocalFiles);
+                      if(s.hideWhitespace !== undefined) setHideWhitespace(s.hideWhitespace);
+
                       if(s.lineHeight) setLineHeight(s.lineHeight);
+                      if(s.transparentBg !== undefined) setTransparentBg(s.transparentBg);
+                      if(s.showLineUnderline !== undefined) setShowLineUnderline(s.showLineUnderline);
                       
                       // Always fetch themes from API for logged in users
                       const realThemes = await fetchUserThemes(currentUser);
@@ -186,8 +207,16 @@ export function SettingsProvider({ children }) {
                           focusContentMode,
                           highlightCharacters,
                           highlightSfx,
-                          enableLocalFiles,
+                          hideWhitespace,
+
                           lineHeight,
+                          transparentBg,
+                          showLineUnderline: showLineUnderline, // Use boolean for API? Or string? saveUserSettings payload usually mirrors state. 
+                          // API payload reconstruction:
+                          // wait, saveUserSettings takes payload.
+                          // lines 191-206 constructs payload.
+                          // I should add showLineUnderline there too.
+
                           currentThemeId: themes.currentThemeId
                       };
                       await saveUserSettings(currentUser, payload);
@@ -214,8 +243,11 @@ export function SettingsProvider({ children }) {
           focusContentMode,
           highlightCharacters,
           highlightSfx,
-          enableLocalFiles,
+          hideWhitespace,
+
           lineHeight,
+          transparentBg,
+          showLineUnderline,
           currentThemeId: themes.currentThemeId
       };
 
@@ -236,8 +268,11 @@ export function SettingsProvider({ children }) {
       focusContentMode,
       highlightCharacters,
       highlightSfx,
-      enableLocalFiles,
+      hideWhitespace,
+
       lineHeight,
+      transparentBg,
+      showLineUnderline,
       themes.markerThemes,
       themes.currentThemeId
   ]);
@@ -270,7 +305,10 @@ export function SettingsProvider({ children }) {
     focusContentMode, setFocusContentMode,
     highlightCharacters, setHighlightCharacters,
     highlightSfx, setHighlightSfx,
-    enableLocalFiles, setEnableLocalFiles,
+    hideWhitespace, setHideWhitespace,
+
+    transparentBg, setTransparentBg,
+    showLineUnderline, setShowLineUnderline,
 
     // Markers (Backwards Compatible + Theme Aware)
     markerConfigs: themes.markerConfigs, 

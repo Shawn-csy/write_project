@@ -14,7 +14,8 @@ export default function ScriptSurface({
   loadingMessage,
   emptyMessage,
   text,
-  viewerProps = {}
+  viewerProps = {},
+  headerNode,
 }) {
   const rafRef = React.useRef(null);
 
@@ -52,6 +53,7 @@ export default function ScriptSurface({
         onDoubleClick={onDoubleClick}
       >
         <div className={contentClassName}>
+          {headerNode}
           {isLoading && loadingMessage && (
             <p className="text-sm text-muted-foreground">{loadingMessage}</p>
           )}

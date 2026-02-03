@@ -220,4 +220,248 @@ describe('DirectASTBuilder (Pure Marker Mode)', () => {
       assert.ok('children' in layer, 'layer should have children array');
     });
   });
+
+  describe('Range Mode (區間模式 - 巢狀結構)', () => {
+    // 新格式：單一設定同時定義 start 和 end
+    const rangeConfigs = [
+      { 
+        id: 'se-continuous', 
+        label: '持續音效', 
+        start: '>>SE', 
+        end: '<<SE',
+        isBlock: true, 
+        matchMode: 'range',
+        style: { backgroundColor: 'rgba(21, 101, 192, 0.08)' }
+      }
+    ];
+
+    it('should detect range start and end markers as nested range node', () => {
+      const input = '>>SE 背景音樂開始\n內容\n<<SE 背景音樂結束';
+      const ast = buildAST(input, rangeConfigs);
+      
+      const rangeNode = ast.children.find(n => n.type === 'range');
+      assert.ok(rangeNode, 'Should create range node');
+      assert.strictEqual(rangeNode.rangeGroupId, 'se-continuous');
+      
+      // Check start node
+      assert.ok(rangeNode.startNode, 'Should have start node');
+      assert.strictEqual(rangeNode.startNode.layerType, 'se-continuous');
+      assert.strictEqual(rangeNode.startNode.rangeRole, 'start');
+      
+      // Check end node
+      assert.ok(rangeNode.endNode, 'Should have end node');
+      assert.strictEqual(rangeNode.endNode.layerType, 'se-continuous');
+      assert.strictEqual(rangeNode.endNode.rangeRole, 'end');
+    });
+
+    it('should contain content nodes inside range node children', () => {
+      const input = `>>SE 背景音樂開始
+角色A：對話內容
+這是動作描述
+<<SE 背景音樂結束`;
+      const ast = buildAST(input, rangeConfigs);
+      
+      const rangeNode = ast.children.find(n => n.type === 'range');
+      assert.ok(rangeNode, 'Should find range node');
+      
+      // 內容應該在 rangeNode.children
+      assert.strictEqual(rangeNode.children.length, 2, 'Should have 2 nodes in range children');
+      
+      // 內容節點仍應保留 inRange 屬性 (由 _parseLine 加入，方便 renderer 參考)
+      const actionNode = rangeNode.children.find(n => n.type === 'action');
+      assert.ok(actionNode.inRange && actionNode.inRange.includes('se-continuous'), 'Nodes should strictly have inRange property');
+    });
+
+    it('should handle nested ranges (recursive)', () => {
+      const input = `>>SE L1開始
+>>SE L2開始
+L2內容
+<<SE L2結束
+<<SE L1結束`;
+      const ast = buildAST(input, rangeConfigs);
+      
+      // 外層 Range
+      const outerRange = ast.children.find(n => n.type === 'range');
+      assert.ok(outerRange, 'Should find outer range');
+      assert.strictEqual(outerRange.rangeDepth, 1);
+      
+      // 內層 Range (應在 outerRange.children 中)
+      const innerRange = outerRange.children.find(n => n.type === 'range');
+      assert.ok(innerRange, 'Should find inner nested range');
+      assert.strictEqual(innerRange.rangeDepth, 2);
+      
+      // 內容在內層
+      const content = innerRange.children.find(n => n.text === 'L2內容');
+      assert.ok(content, 'Should find content inside inner range');
+    });
+
+    it('should handle pause and resume in range', () => {
+      const pauseConfigs = [
+        { 
+          id: 'se-pause', 
+          start: '>>SE', 
+          end: '<<SE',
+          pause: '><SE',
+          isBlock: true, 
+          matchMode: 'range',
+        }
+      ];
+      const input = `>>SE Start
+Content 1
+><SE Pause
+Gap Content
+><SE Resume
+Content 2
+<<SE End`;
+
+      const ast = buildAST(input, pauseConfigs);
+      
+      // 應該有兩個 range 節點 (因為被 Pause 切斷了)
+      const ranges = ast.children.filter(n => n.type === 'range');
+      assert.strictEqual(ranges.length, 2, 'Should have 2 range segments');
+      
+      // 第一個段落
+      const r1 = ranges[0];
+      assert.strictEqual(r1.startNode.text, 'Start');
+      assert.strictEqual(r1.endNode.text, 'Pause'); // Pause acts as end of segment 1
+      assert.strictEqual(r1.endNode.rangeRole, 'pause');
+      assert.strictEqual(r1.children.length, 1);
+      assert.strictEqual(r1.children[0].text, 'Content 1');
+      
+      // Gap Content 應該在 root
+      const gap = ast.children.find(n => n.text === 'Gap Content');
+      assert.ok(gap, 'Gap content should be in root');
+      assert.strictEqual(gap.type, 'action'); // or whatever default is
+      
+      // 第二個段落
+      const r2 = ranges[1];
+      assert.strictEqual(r2.startNode.text, 'Resume'); // Pause acts as start of segment 2
+      assert.strictEqual(r2.startNode.rangeRole, 'pause');
+      assert.strictEqual(r2.endNode.text, 'End');
+      assert.strictEqual(r2.children.length, 1);
+      assert.strictEqual(r2.children[0].text, 'Content 2');
+    });
+
+    it('should handle multiple different range groups', () => {
+      const multiConfigs = [
+        ...rangeConfigs,
+        { id: 'bg', label: '背景', start: '//BG', end: '//BG-END', matchMode: 'range', isBlock: true, style: { borderLeft: '2px solid green' } }
+      ];
+      
+      const input = `>>SE 音效開始
+//BG 背景開始
+兩個區間都有的內容
+//BG-END
+<<SE`;
+      const ast = buildAST(input, multiConfigs);
+      
+      // 外層 Range (se-continuous)
+      const outerRange = ast.children.find(n => n.type === 'range' && n.rangeGroupId === 'se-continuous');
+      assert.ok(outerRange, 'Should find outer range');
+      
+      // 內層 Range (bg)
+      const innerRange = outerRange.children.find(n => n.type === 'range' && n.rangeGroupId === 'bg');
+      assert.ok(innerRange, 'Should find inner range nested inside outer');
+      
+      // 內容節點應該在內層 range 中
+      const content = innerRange.children.find(n => n.text === '兩個區間都有的內容');
+      assert.ok(content, 'Should find content inside inner range');
+    });
+  });
+
+  describe('Prefix Block Markers', () => {
+    it('should parse prefix block marker like <t>', () => {
+      const configs = [
+        {
+          id: 'env-tag',
+          label: '場景',
+          type: 'block',
+          matchMode: 'prefix',
+          start: '<t>',
+          isBlock: true,
+          style: { color: 'red' },
+          showEndLabel: false
+        }
+      ];
+      
+      const input = '<t> 街道上的場景';
+      const ast = buildAST(input, configs);
+      
+      const layer = ast.children.find(n => n.type === 'layer');
+      assert.ok(layer, 'Should find layer node');
+      assert.strictEqual(layer.layerType, 'env-tag');
+      
+      // InlineLabel 應該包含內容
+      assert.ok(layer.inlineLabel && layer.inlineLabel.length > 0);
+      assert.strictEqual(layer.inlineLabel[0].content, '街道上的場景');
+      
+      // Children 應該為空（單行 prefix）
+      assert.strictEqual(layer.children.length, 0);
+    });
+
+    it('should parse block enclosure marker like <s>...</s>', () => {
+      const configs = [
+        {
+          id: 'section',
+          label: 'section',
+          type: 'block',
+          matchMode: 'enclosure',
+          start: '<s>',
+          end: '</s>',
+          isBlock: true
+        }
+      ];
+      
+      const input = '<s> Section Title </s>';
+      const ast = buildAST(input, configs);
+      
+      const layer = ast.children.find(n => n.type === 'layer');
+      assert.ok(layer, 'Should find layer node');
+      assert.strictEqual(layer.layerType, 'section');
+      
+      // Content 解析
+      assert.strictEqual(layer.inlineLabel[0].content, 'Section Title');
+    });
+
+    it('should parse fullwidth markers', () => {
+       const configs = [
+        {
+          id: 'note',
+          label: 'note',
+          type: 'inline',
+          matchMode: 'enclosure', // inline logic handled by parsing content inside action
+          start: '(',
+          end: ')'
+        },
+        {
+          id: 'prefix-block',
+          matchMode: 'prefix',
+          isBlock: true,
+          start: '<t>'
+        }
+      ];
+
+      // To test Inline, we rely on _parseInlineContent which uses inlineParser
+      // To test Block, we use DirectASTBuilder logic
+      
+      const input = '＜t＞ Title\nAction line with （note） inside.';
+      const ast = buildAST(input, configs);
+      
+      // Check Block Fullwidth
+      const blockLayer = ast.children[0];
+      assert.strictEqual(blockLayer.type, 'layer');
+      assert.strictEqual(blockLayer.layerType, 'prefix-block');
+      assert.strictEqual(blockLayer.text, 'Title'); // Removed fullwidth marker
+
+      const actionNode = ast.children[1];
+      assert.strictEqual(actionNode.type, 'action');
+      
+      // Check Inline Fullwidth
+      // ast.inline for action node
+      assert.ok(actionNode.inline && actionNode.inline.length > 0);
+      const highlight = actionNode.inline.find(n => n.type === 'highlight' && n.id === 'note');
+      assert.ok(highlight, 'Should find highlight node for fullwidth note');
+      assert.strictEqual(highlight.content, 'note');
+    });
+  });
 });

@@ -1,12 +1,12 @@
 import React from 'react';
 import { InlineRenderer } from '../InlineRenderer';
 
-export const LayerNode = ({ node, context, NodeRenderer }) => {
+export const LayerNode = ({ node, context, NodeRenderer, styleOverride }) => {
     // Check if hidden
     if (context.hiddenMarkerIds?.includes(node.layerType)) return null;
 
     const config = context.markerConfigs?.find(c => c.id === node.layerType);
-    const style = config?.style || {};
+    const style = { ...(config?.style || {}), ...styleOverride };
     const borderColor = style.color || undefined;
     const bgColor = style.backgroundColor || undefined;
     const template = config?.renderer?.template;
@@ -41,8 +41,12 @@ export const LayerNode = ({ node, context, NodeRenderer }) => {
         );
     };
 
-    const showEndLabel = config?.showEndLabel !== false; 
-    
+    const showEndLabel = !styleOverride?.hideFooter && config?.showEndLabel !== false; 
+    const isSingleLineBlock = (!node.children || node.children.length === 0) && !node.rangeRole;
+    const labelClass = isSingleLineBlock
+        ? `${node.layerType}-single-block-content layer-label mb-1`
+        : `${node.layerType}-continuous-label layer-label text-xs opacity-70 font-mono mb-1`;
+
     return (
         <div 
             className={`${node.layerType}-continuous-layer layer-node my-2 border-l-4 pl-4 relative`}
@@ -52,7 +56,7 @@ export const LayerNode = ({ node, context, NodeRenderer }) => {
                 backgroundColor: bgColor,
             }}
         >
-             <div className={`${node.layerType}-continuous-label layer-label text-xs opacity-70 font-mono mb-1`}>
+             <div className={labelClass}>
                 <span {...lineProps(node.lineStart)}>
                     {renderLabelContent(node.inlineLabel, node.label)}
                 </span>

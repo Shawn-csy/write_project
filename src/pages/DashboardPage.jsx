@@ -37,11 +37,11 @@ export default function DashboardPage({ scriptManager, navProps }) {
 
   return (
       <HybridDashboard 
-        localFiles={enableLocalFiles ? files : []}
-        onSelectLocalFile={handleSelectLocal}
+        localFiles={[]}
+        onSelectLocalFile={() => {}}
         onSelectCloudScript={handleSelectCloud}
         onSelectPublicScript={handleSelectPublic}
-        enableLocalFiles={enableLocalFiles}
+        enableLocalFiles={false}
         openSettings={nav.openSettings}
         openAbout={nav.openAbout}
         openMobileMenu={() => nav.setIsMobileDrawerOpen(true)}

@@ -1,6 +1,7 @@
 import React from "react";
 import { Settings } from "lucide-react";
 import { Input } from "../../../ui/input";
+import { ModeSelector } from "./ModeSelector";
 
 export function MarkerLogicSettings({ config, idx, updateMarker }) {
     const isBlock = config.type === 'block' || config.isBlock; 
@@ -15,23 +16,124 @@ export function MarkerLogicSettings({ config, idx, updateMarker }) {
         <div className="p-3 rounded-md bg-muted/20 space-y-3">
              <div className="flex items-center gap-2 mb-2">
                 <Settings className="w-3 h-3 text-muted-foreground" />
-                <span className="text-[11px] font-bold text-muted-foreground">匹配規則 (Matching Logic)</span>
+                <span className="text-[11px] font-bold text-muted-foreground">匹配規則</span>
+             </div>
+
+             {/* 模式選擇器 - 視覺化卡片 */}
+             <div className="mb-4">
+                <ModeSelector 
+                    value={config.matchMode || 'enclosure'} 
+                    onChange={(mode) => updateMarker(idx, 'matchMode', mode)}
+                />
              </div>
 
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label className="text-[10px] text-muted-foreground block mb-1">模式</label>
-                    <select 
-                        className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
-                        value={config.matchMode || 'enclosure'}
-                        onChange={(e) => updateMarker(idx, 'matchMode', e.target.value)}
-                        disabled={isBlock}
-                    >
-                        <option value="enclosure">包圍 (Start...End)</option>
-                        <option value="prefix">前綴 (Prefix)</option>
-                        <option value="regex">正規式 (Regex)</option>
-                    </select>
-                </div>
+                
+                {/* Range 模式專用設定 - 成對設定開始/結束 */}
+                {config.matchMode === 'range' && (
+                    <>
+                        <div className="sm:col-span-2 bg-primary/5 rounded-md p-3 border border-primary/20 space-y-3">
+                            <p className="text-[10px] text-muted-foreground">
+                                區間模式會自動追蹤開始到結束之間的所有內容
+                            </p>
+                            
+                            {/* 開始/結束符號 */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] text-muted-foreground block">開始符號 <span className="text-red-500">*</span></label>
+                                    <Input 
+                                        value={config.start || ''} 
+                                        onChange={(e) => updateMarker(idx, 'start', e.target.value)}
+                                        className={`h-8 font-mono text-xs text-center ${!config.start ? 'border-red-500' : ''}`}
+                                        placeholder="<cs>"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] text-muted-foreground block">結束符號 <span className="text-red-500">*</span></label>
+                                    <Input 
+                                        value={config.end || ''} 
+                                        onChange={(e) => updateMarker(idx, 'end', e.target.value)}
+                                        className={`h-8 font-mono text-xs text-center ${!config.end ? 'border-red-500' : ''}`}
+                                        placeholder="</cs>"
+                                    />
+                                </div>
+                            </div>
+                            
+                            {/* 暫停/切換符號 & 顯示文字 */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] text-muted-foreground block">
+                                        暫停/切換符號 (Pause Symbol) <span className="text-[9px] text-muted-foreground/50 font-normal">(選填)</span>
+                                    </label>
+                                    <Input 
+                                        value={config.pause || ''} 
+                                        onChange={(e) => updateMarker(idx, 'pause', e.target.value)}
+                                        className="h-8 font-mono text-xs text-center border-dashed"
+                                        placeholder="><SE"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] text-muted-foreground block">
+                                        暫停顯示文字 (Pause Label)
+                                    </label>
+                                    <Input 
+                                        value={config.pauseLabel !== undefined ? config.pauseLabel : '暫停'}
+                                        onChange={(e) => updateMarker(idx, 'pauseLabel', e.target.value)}
+                                        className="h-8 text-xs text-center"
+                                        placeholder="默認: 暫停"
+                                    />
+                                </div>
+                            </div>
+                            
+                            {/* 區間樣式選擇器 */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] text-muted-foreground block">區間樣式</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => updateMarker(idx, 'style', { 
+                                            ...config.style, 
+                                            borderLeft: '2px solid currentColor',
+                                            paddingLeft: '8px',
+                                            backgroundColor: undefined
+                                        })}
+                                        className={`p-2 rounded border text-[10px] flex items-center gap-1 ${
+                                            config.style?.borderLeft ? 'border-primary bg-primary/10' : 'border-border/50 hover:border-border'
+                                        }`}
+                                    >
+                                        <span className="w-[2px] h-4 bg-current rounded"></span>
+                                        連接線
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => updateMarker(idx, 'style', { 
+                                            ...config.style, 
+                                            backgroundColor: 'rgba(100, 100, 100, 0.08)',
+                                            borderLeft: undefined,
+                                            paddingLeft: undefined
+                                        })}
+                                        className={`p-2 rounded border text-[10px] flex items-center gap-1 ${
+                                            config.style?.backgroundColor && !config.style?.borderLeft ? 'border-primary bg-primary/10' : 'border-border/50 hover:border-border'
+                                        }`}
+                                    >
+                                        <span className="w-4 h-4 bg-muted rounded"></span>
+                                        背景色
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => updateMarker(idx, 'style', {})}
+                                        className={`p-2 rounded border text-[10px] ${
+                                            !config.style?.borderLeft && !config.style?.backgroundColor ? 'border-primary bg-primary/10' : 'border-border/50 hover:border-border'
+                                        }`}
+                                    >
+                                        無樣式
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                )}
+                
                 {config.matchMode === 'regex' ? (
                     <div className="sm:col-span-2 space-y-1">
                         <label className="text-[10px] text-muted-foreground block mb-1">Regex Pattern <span className="text-red-500">*</span></label>
@@ -45,7 +147,7 @@ export function MarkerLogicSettings({ config, idx, updateMarker }) {
                              <p className="text-[10px] text-red-500 font-medium">請輸入正規表達式</p>
                         )}
                     </div>
-                ) : (
+                ) : config.matchMode !== 'range' && (
                     <>
                         <div className="flex gap-2">
                             <div className="flex-1 space-y-1">
@@ -76,35 +178,29 @@ export function MarkerLogicSettings({ config, idx, updateMarker }) {
                         
                         {isBlock && (
                              <div className="col-span-1 sm:col-span-2 mt-2 pt-2 border-t border-dashed border-border/30">
-                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                                <label className="flex items-center gap-2 cursor-pointer select-none" title="在區塊底部顯示結束標記內容">
                                     <input 
                                         type="checkbox" 
-                                        checked={config.showEndLabel !== false} // Default true
+                                        checked={config.showEndLabel !== false}
                                         onChange={(e) => updateMarker(idx, 'showEndLabel', e.target.checked)}
                                         className="rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5"
                                     />
-                                    <div>
-                                        <span className="text-xs font-semibold text-foreground">顯示結尾內容 (Show End Label)</span>
-                                        <p className="text-[9px] text-muted-foreground">在區塊底部顯示結束標記的內容 (如 <code>End</code>)。若關閉則只顯示邊框。</p>
-                                    </div>
+                                    <span className="text-xs text-foreground">顯示結尾標記</span>
                                 </label>
                              </div>
                         )}
 
                         
                         {isBlock && config.matchMode === 'enclosure' && (
-                             <div className="col-span-1 sm:col-span-2 mt-2 pt-2 border-t border-dashed border-border/30">
-                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                             <div className="col-span-1 sm:col-span-2 mt-2">
+                                <label className="flex items-center gap-2 cursor-pointer select-none" title="開始與結束符號相同時，視為區塊切換開關">
                                     <input 
                                         type="checkbox" 
                                         checked={!!config.smartToggle} 
                                         onChange={(e) => updateMarker(idx, 'smartToggle', e.target.checked)}
                                         className="rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5"
                                     />
-                                    <div>
-                                        <span className="text-xs font-semibold text-foreground">允許作為區塊開關 (Smart Toggle)</span>
-                                        <p className="text-[9px] text-muted-foreground">當內容同時符合開始與結束規則時 (如 <code>{`{{...}}`}</code>)，將其視為切換開關而非單行內容。</p>
-                                    </div>
+                                    <span className="text-xs text-foreground">Smart Toggle</span>
                                 </label>
                              </div>
                         )}
@@ -113,7 +209,7 @@ export function MarkerLogicSettings({ config, idx, updateMarker }) {
              </div>
 
             <div className="space-y-2 pt-2 border-t border-dashed border-border/30">
-                <label className="text-[10px] text-muted-foreground block">顯示樣板 (Display Template, 選填)</label>
+                <label className="text-[10px] text-muted-foreground block">顯示樣板</label>
                 <Input 
                         value={config.renderer?.template || ''}
                         onChange={(e) => {
@@ -121,11 +217,8 @@ export function MarkerLogicSettings({ config, idx, updateMarker }) {
                             updateMarker(idx, 'renderer', { ...renderer, template: e.target.value });
                         }}
                         className="h-8 text-xs font-mono"
-                        placeholder="例如: [SFX: {{content}}]"
+                        placeholder="[SFX: {{content}}] ← 使用 {{content}} 代表內容"
                 />
-                <p className="text-[9px] text-muted-foreground">
-                    使用 <code className="bg-muted px-1 rounded">{'{{content}}'}</code> 代表被標記的文字內容 (或是區塊的標籤)。
-                </p>
             </div>
 
              {isInline && config.matchMode !== 'regex' && (

@@ -8,6 +8,11 @@
  */
 
 import { parseInline } from '../parsers/inlineParser.js';
+import { toFullWidth } from '../parsers/parserGenerators.js';
+
+// ... (skip lines)
+
+
 import { 
   CHAPTER_PATTERNS, 
   isBlankLine 
@@ -39,14 +44,33 @@ export class DirectASTBuilder {
     }));
     
     // 分離 block 和 inline markers
-    this.blockMarkers = this.configs.filter(c => c.isBlock || c.type === 'prefix');
-    this.inlineMarkers = this.configs.filter(c => !c.isBlock && c.type !== 'prefix');
+    // range 模式視為 block markers
+    this.blockMarkers = this.configs.filter(c => 
+      c.isBlock || c.type === 'prefix' || c.matchMode === 'range'
+    );
+    this.inlineMarkers = this.configs.filter(c => 
+      !c.isBlock && c.type !== 'prefix' && c.matchMode !== 'range' && c.matchMode !== 'virtual'
+    );
     
     // 建立 prefix 快速查找表
     this.prefixMap = new Map();
     for (const marker of this.blockMarkers) {
       if (marker.start && marker.matchMode === 'prefix') {
         this.prefixMap.set(marker.start, marker);
+      }
+    }
+    
+    // 建立 range markers 對照表
+    // 格式：matchMode='range' + start + end，使用 marker.id 作為 groupId
+    this.rangeGroups = {};
+    for (const marker of this.configs) {
+      if (marker.matchMode === 'range' && marker.start && marker.end) {
+        this.rangeGroups[marker.id] = {
+          startSymbol: marker.start,
+          endSymbol: marker.end,
+          style: marker.style,
+          marker: marker
+        };
       }
     }
   }
@@ -69,18 +93,216 @@ export class DirectASTBuilder {
       inDialogueBlock: false
     };
     
+    // Range 區間狀態追蹤
+    // 使用 Map<groupId, depth> 支援巢狀區間
+    const rangeDepth = new Map();
+    
+    // 取得當前活躍的區間列表（深度 > 0）
+    const getActiveRanges = () => {
+      return Array.from(rangeDepth.entries())
+        .filter(([, depth]) => depth > 0)
+        .map(([groupId]) => groupId);
+    };
+    
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const nextLine = lines[i + 1]; // 傳遞下一行供角色偵測
       const node = this._parseLine(line, i, context, nextLine);
       
       if (node) {
+        // 檢查是否為 range 開始/結束標記
+        const rangeInfo = this._checkRangeMarker(node, line);
+        
+        if (rangeInfo) {
+          const currentDepth = rangeDepth.get(rangeInfo.groupId) || 0;
+          
+          if (rangeInfo.role === 'start') {
+            // 開始標記：深度 +1
+            rangeDepth.set(rangeInfo.groupId, currentDepth + 1);
+            node.rangeDepth = currentDepth + 1;
+          } else if (rangeInfo.role === 'end') {
+            // 結束標記：深度 -1
+            rangeDepth.set(rangeInfo.groupId, Math.max(0, currentDepth - 1));
+            node.rangeDepth = currentDepth; // 結束時的深度是關閉前的深度
+          }
+        }
+        
+        // 標記節點所屬的區間（不包含開始/結束標記本身）
+        const activeRanges = getActiveRanges();
+        if (activeRanges.length > 0 && !rangeInfo) {
+          node.inRange = activeRanges;
+          // 記錄每個區間的當前深度
+          node.rangeDepths = {};
+          activeRanges.forEach(groupId => {
+            node.rangeDepths[groupId] = rangeDepth.get(groupId);
+          });
+          // 取得區間樣式
+          const rangeStyles = node.inRange
+            .map(groupId => this.rangeGroups[groupId]?.style)
+            .filter(Boolean);
+          if (rangeStyles.length > 0) {
+            node.rangeStyle = Object.assign({}, ...rangeStyles);
+          }
+        }
+        
         this._updateContext(node, context);
         ast.children.push(node);
       }
     }
     
+    // 將扁平的 range 標記轉換為巢狀結構
+    ast.children = this._collapseRanges(ast.children);
+    
     return ast;
+  }
+
+  /**
+   * 將扁平的 range 標記轉換為巢狀結構
+   * @private
+   */
+  _collapseRanges(nodes) {
+    const rootChildren = [];
+    // 堆疊：儲存當前開啟的 range 節點
+    const stack = [];
+    // 暫停群組集合：儲存當前處於暫停狀態的 rangeGroupId
+    const pausedGroups = new Set();
+    
+    for (const node of nodes) {
+      const parent = stack.length > 0 ? stack[stack.length - 1] : null;
+      
+      // 0. 處理 Range 暫停/恢復 (Pause/Toggle)
+      if (node.type === 'layer' && node.rangeRole === 'pause') {
+          const groupId = node.rangeGroupId;
+          const openIndex = stack.findIndex(r => r.rangeGroupId === groupId);
+          
+          if (openIndex !== -1) {
+              // 狀態：開啟 -> 暫停
+              // 把當前 Range 結束在此處
+              const rangeNode = stack[openIndex];
+              rangeNode.endNode = node; // 使用 pause node 作為視覺上的結束
+              
+              // 從堆疊移除（視為這一段結束）
+              // 注意：這會移除該 range 及其之上的所有 nested ranges (假設巢狀正確)
+              // 雖然只 splice 一個比較安全，但為了防止錯亂，我們假設它是最近一個
+              if (openIndex === stack.length - 1) {
+                  stack.pop();
+              } else {
+                   // 若不是最上層，則強制移除（這可能發生在巢狀交錯時）
+                   stack.splice(openIndex, 1);
+              }
+              
+              // 標記為暫停
+              pausedGroups.add(groupId);
+          } else if (pausedGroups.has(groupId)) {
+              // 狀態：暫停 -> 恢復
+              // 開啟新的 Range
+              pausedGroups.delete(groupId);
+              
+              const newRangeNode = {
+                  type: 'range',
+                  layerType: node.layerType,
+                  rangeGroupId: groupId,
+                  startNode: node, // 使用 pause node 作為新段落的開始
+                  endNode: null,
+                  children: [],
+                  style: node.style,
+                  rangeDepth: stack.length + 1 // 簡易深度計算，可能需要更精確的邏輯
+              };
+              
+              // 加入父節點
+              const currentParent = stack.length > 0 ? stack[stack.length - 1] : null;
+              if (currentParent) {
+                  currentParent.children.push(newRangeNode);
+              } else {
+                  rootChildren.push(newRangeNode);
+              }
+              stack.push(newRangeNode);
+          } else {
+              // 既沒開啟也沒暫停（孤立的 pause），視為普通節點
+               if (parent) parent.children.push(node);
+               else rootChildren.push(node);
+          }
+          continue;
+      }
+
+      // 1. 處理 Range 開始標記
+      if (node.type === 'layer' && node.rangeRole === 'start') {
+        const rangeNode = {
+          type: 'range',
+          layerType: node.layerType, // rangeGroupId
+          rangeGroupId: node.rangeGroupId,
+          startNode: node,
+          endNode: null, // 尚未遇到結束標記
+          children: [],
+          style: node.style,
+          rangeDepth: stack.length + 1 // 記錄深度
+        };
+        
+        // 加入父節點或根列表
+        if (parent) {
+          parent.children.push(rangeNode);
+        } else {
+          rootChildren.push(rangeNode);
+        }
+        
+        // 推入堆疊，成為新的父節點
+        stack.push(rangeNode);
+        continue;
+      }
+      
+      // 2. 處理 Range 結束標記
+      if (node.type === 'layer' && node.rangeRole === 'end') {
+        if (parent && parent.rangeGroupId === node.rangeGroupId) {
+          // 匹配當前區間：設定結束節點並彈出堆疊
+          parent.endNode = node;
+          stack.pop();
+        } else if (pausedGroups.has(node.rangeGroupId)) {
+           // 處於暫停狀態時遇到結束標記：清除暫停狀態（結束整個區間邏輯）
+           pausedGroups.delete(node.rangeGroupId);
+           // 該節點本身作為普通節點顯示（或是隱藏？通常顯示出來作為結束指示）
+           if (parent) parent.children.push(node);
+           else rootChildren.push(node);
+        } else {
+          // 不匹配（可能是交錯或孤立的結束標記），視為普通節點處理
+          if (parent) {
+            parent.children.push(node);
+          } else {
+            rootChildren.push(node);
+          }
+        }
+        continue;
+      }
+      
+      // 3. 普通內容節點
+      if (parent) {
+        parent.children.push(node);
+      } else {
+        rootChildren.push(node);
+      }
+    }
+    
+    // 如果堆疊不為空（有未關閉的 range），它們會保留在 AST 中，但 endNode 為 null
+    
+    return rootChildren;
+  }
+
+  /**
+   * 檢查是否為 range 標記
+   * @private
+   */
+  _checkRangeMarker(node, line) {
+    const trimmed = line.trim();
+    
+    for (const [groupId, group] of Object.entries(this.rangeGroups)) {
+      // 新格式：使用 startSymbol 和 endSymbol
+      if (group.startSymbol && trimmed.startsWith(group.startSymbol)) {
+        return { groupId, role: 'start' };
+      }
+      if (group.endSymbol && trimmed.startsWith(group.endSymbol)) {
+        return { groupId, role: 'end' };
+      }
+    }
+    return null;
   }
 
   /**
@@ -171,20 +393,105 @@ export class DirectASTBuilder {
   }
 
   /**
-   * 匹配 block markers
+   * 嘗試將當前行匹配為任意類型的 Block Marker
    * @private
    */
   _matchBlockMarker(line, lineNumber) {
-    // 按 start 長度排序（較長的優先匹配）
     const sortedMarkers = [...this.blockMarkers].sort(
       (a, b) => (b.start?.length || 0) - (a.start?.length || 0)
     );
-    
+
     for (const marker of sortedMarkers) {
       if (!marker.start) continue;
+
+      const fullStart = toFullWidth(marker.start);
+      const fullEnd = marker.end ? toFullWidth(marker.end) : null;
       
-      if (marker.matchMode === 'prefix' && line.startsWith(marker.start)) {
-        const content = line.slice(marker.start.length).trim();
+      const startsWithNormal = line.startsWith(marker.start);
+      const startsWithFull = line.startsWith(fullStart);
+      const matchedStart = startsWithNormal ? marker.start : (startsWithFull ? fullStart : null);
+
+      if (marker.matchMode === 'range') {
+         // 先檢查結束符號 (End Check)
+         if (marker.end) {
+             const endsWithNormal = line.startsWith(marker.end); // 注意：Range End 是獨佔一行，所以也是 startsWith
+             const endsWithFull = fullEnd ? line.startsWith(fullEnd) : false;
+             const matchedEnd = endsWithNormal ? marker.end : (endsWithFull ? fullEnd : null);
+
+             if (matchedEnd) {
+                 const content = line.slice(matchedEnd.length).trim();
+                 return {
+                     type: 'layer',
+                     rangeGroupId: marker.id,
+                     rangeRole: 'end',
+                     layerType: marker.id,
+                     // ... properties
+                     text: content,
+                     label: marker.label,
+                     inline: this._parseInlineContent(content),
+                     inlineLabel: this._parseInlineContent(content),
+                     lineStart: lineNumber + 1,
+                     lineEnd: lineNumber + 1,
+                     raw: line,
+                     style: marker.style,
+                     children: [] 
+                 };
+             }
+         }
+          
+          // Pause Check
+          if (marker.pause) {
+             const fullPause = toFullWidth(marker.pause);
+             const startsWithPause = line.startsWith(marker.pause);
+             const startsWithFullPause = line.startsWith(fullPause);
+             const matchedPause = startsWithPause ? marker.pause : (startsWithFullPause ? fullPause : null);
+
+             if (matchedPause) {
+                 const content = line.slice(matchedPause.length).trim();
+                 return {
+                     type: 'layer',
+                     layerType: marker.id,
+                     rangeGroupId: marker.id,
+                     rangeRole: 'pause',
+                     text: content,
+                     label: marker.pauseLabel ?? '暫停',
+                     inline: this._parseInlineContent(content),
+                     inlineLabel: this._parseInlineContent(content),
+                     lineStart: lineNumber + 1,
+                     lineEnd: lineNumber + 1,
+                     raw: line,
+                     style: marker.style,
+                     children: []
+                 };
+             }
+          }
+          
+          // Start Check (using matchedStart computed above)
+         if (matchedStart) {
+             const content = line.slice(matchedStart.length).trim();
+             return {
+                 type: 'layer',
+                 layerType: marker.id,
+                 rangeGroupId: marker.id,
+                 rangeRole: 'start',
+                 // ... properties
+                 text: content,
+                 label: marker.label,
+                 inline: this._parseInlineContent(content),
+                 inlineLabel: this._parseInlineContent(content),
+                 lineStart: lineNumber + 1,
+                 lineEnd: lineNumber + 1,
+                 raw: line,
+                 style: marker.style,
+                 children: []
+             };
+         }
+         continue;
+      }
+      
+      // prefix 模式
+      if (marker.matchMode === 'prefix' && matchedStart) {
+        const content = line.slice(matchedStart.length).trim();
         return {
           type: 'layer',
           layerType: marker.id,
@@ -200,26 +507,37 @@ export class DirectASTBuilder {
           children: []
         };
       }
-      
-      // Enclosure 模式（block 級別）
-      if (marker.matchMode === 'enclosure' && marker.end) {
-        if (line.startsWith(marker.start) && line.endsWith(marker.end)) {
-          const content = line.slice(marker.start.length, -marker.end.length).trim();
-          return {
-            type: 'layer',
-            layerType: marker.id,
-            markerType: marker.type,
-            text: content,
-            label: marker.label,
-            inline: this._parseInlineContent(content),
-            inlineLabel: this._parseInlineContent(content),
-            lineStart: lineNumber + 1,
-            lineEnd: lineNumber + 1,
-            raw: line,
-            style: marker.style,
-            children: []
-          };
-        }
+
+      // enclosure 模式 (Block Enclosure - 單行)
+      if (marker.matchMode === 'enclosure' && matchedStart) {
+          // Check End
+          const endsWithNormal = marker.end ? line.endsWith(marker.end) : true;
+          const endsWithFull = (marker.end && fullEnd) ? line.endsWith(fullEnd) : false;
+          const matchedEnd = endsWithNormal ? marker.end : (endsWithFull ? fullEnd : null);
+          
+          if (matchedEnd || !marker.end) {
+              let content = line.slice(matchedStart.length);
+              if (matchedEnd) {
+                  content = content.slice(0, -matchedEnd.length);
+              }
+              content = content.trim();
+              
+              return {
+                  type: 'layer',
+                  layerType: marker.id,
+                  // ...
+                  markerType: marker.type,
+                  text: content,
+                  label: marker.label,
+                  inline: this._parseInlineContent(content),
+                  inlineLabel: this._parseInlineContent(content),
+                  lineStart: lineNumber + 1,
+                  lineEnd: lineNumber + 1,
+                  raw: line,
+                  style: marker.style,
+                  children: []
+              };
+          }
       }
     }
     
