@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FileText, Plus } from "lucide-react";
+import { FileText, Plus, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { Button } from "../ui/button";
 import { useSettings } from "../../contexts/SettingsContext";
@@ -8,6 +8,7 @@ import { MarkerThemeHeader } from "./marker/MarkerThemeHeader";
 import { MarkerList } from "./marker/MarkerList";
 import { MarkerJsonEditor } from "./marker/MarkerJsonEditor";
 import { MarkerDetailEditor } from "./marker/MarkerDetailEditor";
+import { MarkerWizard } from "./marker/MarkerWizard";
 
 export function MarkerSettings({ sectionRef }) {
   const { 
@@ -18,6 +19,7 @@ export function MarkerSettings({ sectionRef }) {
   const [localConfigs, setLocalConfigs] = useState(markerConfigs);
   const [viewMode, setViewMode] = useState('ui'); // 'ui' | 'json'
   const [expandedId, setExpandedId] = useState(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   // Sync Local State
   useEffect(() => {
@@ -50,7 +52,18 @@ export function MarkerSettings({ sectionRef }) {
     });
   };
 
-  const addMarker = () => {
+  // 從 Wizard 新增標記
+  const addMarkerFromWizard = (newMarkerConfig) => {
+      const newConfigs = [newMarkerConfig, ...localConfigs].map((item, index) => ({
+           ...item,
+           priority: 1000 - (index * 10)
+      }));
+      setLocalConfigs(newConfigs);
+      setExpandedId(newMarkerConfig.id);
+  };
+
+  // 快速新增空白標記（舊方法，保留作為備用）
+  const addMarkerQuick = () => {
       const newId = `custom-${Date.now()}`;
       const newMarker = {
           id: newId,
@@ -145,9 +158,21 @@ export function MarkerSettings({ sectionRef }) {
                             onSelect={setExpandedId}
                         />
                       </div>
-                      <Button onClick={addMarker} variant="outline" className="w-full mt-2 border-dashed shrink-0">
-                          <Plus className="w-4 h-4 mr-2" /> 新增標記
-                      </Button>
+                      <div className="flex gap-2 mt-2 shrink-0">
+                          <Button onClick={() => setWizardOpen(true)} variant="default" className="flex-1 gap-1">
+                              <Sparkles className="w-4 h-4" /> 新增標記
+                          </Button>
+                          <Button onClick={addMarkerQuick} variant="outline" size="icon" title="快速新增空白標記">
+                              <Plus className="w-4 h-4" />
+                          </Button>
+                      </div>
+
+                      {/* Wizard Dialog */}
+                      <MarkerWizard
+                          open={wizardOpen}
+                          onClose={() => setWizardOpen(false)}
+                          onComplete={addMarkerFromWizard}
+                      />
                   </div>
 
                   {/* Right Column: Editor */}

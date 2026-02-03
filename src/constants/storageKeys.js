@@ -10,4 +10,6 @@ export const STORAGE_KEYS = {
   DIALOGUE_FONT: "screenplay-reader-dialogue-font",
   EXPORT_MODE: "screenplay-reader-export-mode",
   LINE_HEIGHT: "screenplay-reader-line-height",
+  TRANSPARENT_BG: "screenplay-reader-transparent-bg",
+  SHOW_UNDERLINE: "screenplay-reader-show-underline",
 };

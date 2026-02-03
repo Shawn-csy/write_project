@@ -5,7 +5,7 @@
  * - id: 唯一識別碼
  * - label: 顯示名稱
  * - start: 起始標記
- * - matchMode: 'prefix' (前綴) | 'enclosure' (包圍)
+ * - matchMode: 'prefix' (前綴) | 'enclosure' (包圍) | 'range' (區間) | 'virtual' (虛擬樣式)
  * - isBlock: true (block 級別) | false (inline)
  * 
  * 選填欄位：
@@ -13,6 +13,11 @@
  * - type: 'block' | 'inline' | 'dual'
  * - style: 渲染樣式
  * - priority: 優先權（數字越大越先匹配）
+ * 
+ * Range 模式專用欄位：
+ * - rangeRole: 'start' | 'end' (區間開始或結束)
+ * - rangeGroupId: 配對的區間群組 ID
+ * - rangeStyle: 區間內容的樣式 (用於 matchMode: 'virtual')
  */
 export const defaultMarkerConfigs = [
   // === Block Markers (Enclosure 模式) ===
@@ -55,6 +60,52 @@ export const defaultMarkerConfigs = [
     matchMode: 'enclosure',
     type: 'dual', 
     style: {} 
+  },
+
+  // === Range Markers (區間模式) ===
+  // 持續音效區間：>>SE ... <<SE
+  { 
+    id: 'se-continuous-start', 
+    label: '持續音效開始', 
+    start: '>>SE', 
+    isBlock: true, 
+    matchMode: 'range',
+    rangeRole: 'start',
+    rangeGroupId: 'se-continuous',
+    type: 'block', 
+    style: { 
+      color: '#1565C0', 
+      fontWeight: 'bold',
+      borderLeft: '4px solid #1565C0',
+      paddingLeft: '8px'
+    } 
+  },
+  { 
+    id: 'se-continuous-end', 
+    label: '持續音效結束', 
+    start: '<<SE', 
+    isBlock: true, 
+    matchMode: 'range',
+    rangeRole: 'end',
+    rangeGroupId: 'se-continuous',
+    type: 'block', 
+    style: { 
+      color: '#1565C0', 
+      fontWeight: 'bold',
+      borderLeft: '4px solid #90CAF9',
+      paddingLeft: '8px'
+    } 
+  },
+  // 區間內容的虛擬樣式
+  { 
+    id: 'se-continuous', 
+    label: '持續音效區間', 
+    matchMode: 'virtual',
+    rangeStyle: { 
+      backgroundColor: 'rgba(21, 101, 192, 0.08)',
+      borderLeft: '2px dashed #1565C0',
+      paddingLeft: '8px'
+    } 
   },
 
   // === Inline Markers ===

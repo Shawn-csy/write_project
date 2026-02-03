@@ -39,6 +39,7 @@ const getLineProps = (node) => {
 const renderInlineLines = (node, context) => {
     const lines = (node?.text || "").split("\n");
     const baseLine = Number.isFinite(node?.lineStart) ? node.lineStart : null;
+    const { showLineUnderline } = context;
 
     return lines.map((line, idx) => {
         const lineNumber = baseLine ? baseLine + idx : null;
@@ -51,7 +52,12 @@ const renderInlineLines = (node, context) => {
             <span
                 key={`${lineNumber || "line"}-${idx}`}
                 className="script-line"
-                style={{ display: "block", whiteSpace: "pre-wrap", minHeight: "1em" }}
+                style={{ 
+                    display: "block", 
+                    whiteSpace: "pre-wrap", 
+                    minHeight: "1em",
+                    borderBottom: showLineUnderline ? "1px solid hsl(var(--border))" : undefined 
+                }}
                 {...lineProps}
             >
                 {inlineNodes && inlineNodes.length > 0 ? (
@@ -64,9 +70,11 @@ const renderInlineLines = (node, context) => {
     });
 };
 
+import { RangeNode } from './nodes/RangeNode';
+
 // --- Node Renderer ---
 const NodeRenderer = ({ node, context, isDual = false }) => {
-    const { getCharacterColor, focusMode, focusEffect } = context;
+    const { getCharacterColor, focusMode, focusEffect, hiddenMarkerIds = [] } = context;
 
     // Helper for applying focus effect to non-dialogue nodes
     const getFocusStyle = () => {
@@ -75,10 +83,27 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
         return { opacity: 0.3, transition: 'opacity 0.3s' };
     };
 
+    // Helper for applying range style (區間樣式)
+    // 只套用未被隱藏的區間樣式
+    // 注意：如果是 range 類型的節點，樣式由 RangeNode 處理，這裡只處理被包在 range 內的普通節點
+    const getRangeStyle = () => {
+        if (!node.inRange || node.inRange.length === 0) return {};
+        // 過濾掉被隱藏的區間
+        const activeRanges = node.inRange.filter(id => !hiddenMarkerIds.includes(id));
+        if (activeRanges.length === 0) return {};
+        // 使用節點上預計算的 rangeStyle，或從 context 取得
+        // 對於新版巢狀 range，內容節點可能不再需要 rangeStyle，因為樣式由外層 RangeNode 統一處理
+        // 但為了向後相容或處理 flat 內容，保留此邏輯
+        return node.rangeStyle || {};
+    };
+
     switch (node.type) {
         case 'root':
             return <>{node.children.map((child, i) => <NodeRenderer key={i} node={child} context={context} />)}</>;
             
+        case 'range':
+            return <RangeNode node={node} context={context} NodeRenderer={NodeRenderer} />;
+
         case 'layer':
             return <LayerNode node={node} context={context} NodeRenderer={NodeRenderer} />;
         
@@ -133,7 +158,11 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
              if (actionStyle.display === 'none') return null;
 
             return (
-                <div className="action whitespace-pre-wrap transition-opacity" style={actionStyle}>
+                <div 
+                    className={`action whitespace-pre-wrap transition-opacity ${node.inRange ? 'in-range' : ''}`} 
+                    style={actionStyle}
+                    {...getLineProps(node)}
+                >
                      {renderInlineLines(node, context)}
                 </div>
             );
@@ -175,8 +204,20 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
             );
 
         case 'blank':
-             // 純 Marker 模式的空行
-             return <div className="blank-line my-1" {...getLineProps(node)} />;
+             // 純 Marker 模式的空行，也支援區間樣式
+             // User request: Don't show border on blank lines inside hierarchy
+             const { 
+                border, borderLeft, borderRight, borderTop, borderBottom, borderColor,
+                ...safeBlankStyle 
+             } = getRangeStyle();
+             
+             return (
+                 <div 
+                     className={`blank-line my-1 ${node.inRange ? 'in-range' : ''}`} 
+                     style={{ minHeight: '1em', ...safeBlankStyle }}
+                     {...getLineProps(node)} 
+                 />
+             );
 
         case 'note':
              return null;
@@ -198,6 +239,7 @@ export const ScriptRenderer = React.memo(({
     colorCache,
     markerConfigs = [],
     hiddenMarkerIds = [],
+    showLineUnderline = false,
 }) => {
     
     const getCharacterColor = useMemo(() => {
@@ -212,7 +254,8 @@ export const ScriptRenderer = React.memo(({
         focusContentMode,
         getCharacterColor,
         markerConfigs: Array.isArray(markerConfigs) ? markerConfigs : [],
-        hiddenMarkerIds // Add to context
+        hiddenMarkerIds, // Add to context
+        showLineUnderline // Add to context
     };
 
     return (

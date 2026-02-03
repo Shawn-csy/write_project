@@ -33,6 +33,7 @@ function ScriptViewer({
   markerConfigs = [],
   hiddenMarkerIds = [],
   lineHeight = 1.4,
+  showLineUnderline = false,
 }) {
   const colorCache = useRef(new Map());
 
@@ -183,6 +184,7 @@ function ScriptViewer({
          colorCache={colorCache}
          markerConfigs={markerConfigs}
          hiddenMarkerIds={hiddenMarkerIds} // Pass to renderer for print
+         showLineUnderline={showLineUnderline}
        />
      );
   }, [ast, filterCharacter, focusMode, focusEffect, themePalette, bodyFontSize, fontSize, colorCache, markerConfigs, onProcessedHtml, hiddenMarkerIds]);
@@ -206,6 +208,7 @@ function ScriptViewer({
             colorCache={colorCache}
             markerConfigs={markerConfigs}
             hiddenMarkerIds={hiddenMarkerIds} // Pass to renderer
+            showLineUnderline={showLineUnderline}
           />
       );
   }, [ast, themePalette, bodyFontSize, fontSize, colorCache, markerConfigs, filterCharacter, focusMode, filteredHtml, hiddenMarkerIds]);
@@ -283,6 +286,7 @@ function ScriptViewer({
         colorCache={colorCache}
         markerConfigs={markerConfigs}
         hiddenMarkerIds={hiddenMarkerIds} // Pass here too
+        showLineUnderline={showLineUnderline}
       />
     </article>
   );

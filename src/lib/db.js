@@ -1,4 +1,5 @@
 import { auth } from "./firebase";
+import { isApiOffline, markApiOffline, clearApiOffline } from "./apiHealth";
 
 // Basic DB Layer wrapping API calls
 const getEnv = (key) => {
@@ -10,6 +11,9 @@ const getEnv = (key) => {
 const API_BASE_URL = getEnv("VITE_API_URL") || "/api"; 
 
 async function fetchApi(endpoint, options = {}, retries = 3, backoff = 500) {
+  if (isApiOffline()) {
+    throw new Error("API offline (cooldown)");
+  }
   const url = `${API_BASE_URL}${endpoint}`;
   
   // Use Firebase Auth UID if available, otherwise fallback to test-user (for local dev/unauthed compliance)
@@ -32,8 +36,13 @@ async function fetchApi(endpoint, options = {}, retries = 3, backoff = 500) {
        throw new Error(`API Error: ${response.statusText}`);
     }
 
+    clearApiOffline();
     return response.json();
   } catch (err) {
+    if (err?.name === "TypeError") {
+      markApiOffline(err, "db.fetchApi");
+      throw err;
+    }
     if (retries > 0) {
       console.warn(`Fetch failed, retrying in ${backoff}ms... (${retries} left)`, err);
       await new Promise(r => setTimeout(r, backoff));
@@ -156,18 +165,31 @@ export const exportScripts = async () => {
 // --- Public API ---
 
 const fetchPublic = async (endpoint) => {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`);
-  if (!response.ok) {
-     throw new Error(`API Error: ${response.statusText}`);
+  if (isApiOffline()) {
+    throw new Error("API offline (cooldown)");
   }
-  return response.json();
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`);
+    if (!response.ok) {
+       throw new Error(`API Error: ${response.statusText}`);
+    }
+    clearApiOffline();
+    return response.json();
+  } catch (err) {
+    if (err?.name === "TypeError") {
+      markApiOffline(err, "db.fetchPublic");
+    }
+    throw err;
+  }
 }
 
-export const getPublicScripts = async (ownerId, folder) => {
+export const getPublicScripts = async (ownerId, folder, personaId, organizationId) => {
     let url = "/public-scripts";
     const params = new URLSearchParams();
     if (ownerId) params.append("ownerId", ownerId);
     if (folder) params.append("folder", folder);
+    if (personaId) params.append("personaId", personaId);
+    if (organizationId) params.append("organizationId", organizationId);
     
     if (params.toString()) {
         url += `?${params.toString()}`;
@@ -181,4 +203,97 @@ export const getPublicScript = async (id) => {
 
 export const getPublicThemes = async () => {
     return fetchPublic("/themes/public");
+};
+
+// --- Engagement API ---
+
+export const toggleScriptLike = async (scriptId) => {
+    return fetchApi(`/scripts/${scriptId}/like`, {
+        method: "POST"
+    });
+};
+
+export const incrementScriptView = async (scriptId) => {
+    return fetchApi(`/scripts/${scriptId}/view`, {
+        method: "POST"
+    });
+};
+
+// --- Organization & Admin API ---
+
+export const getOrganizations = async () => {
+    return fetchApi("/organizations");
+};
+
+export const getOrganization = async (orgId) => {
+    return fetchApi(`/organizations/${orgId}`);
+};
+
+export const createOrganization = async (data) => {
+    return fetchApi(`/organizations`, {
+        method: "POST",
+        body: JSON.stringify(data)
+    });
+};
+
+export const updateOrganization = async (orgId, updates) => {
+    return fetchApi(`/organizations/${orgId}`, {
+        method: "PUT",
+        body: JSON.stringify(updates)
+    });
+};
+
+export const deleteOrganization = async (orgId) => {
+    return fetchApi(`/organizations/${orgId}`, {
+        method: "DELETE"
+    });
+};
+
+
+export const transferOrganizationOwnership = async (orgId, targetUserId) => {
+    // Admin only endpoint
+    return fetchApi(`/admin/transfer`, {
+        method: "POST",
+        body: JSON.stringify({ orgId, targetUserId })
+    });
+};
+// --- Persona API ---
+export const getPersonas = async () => {
+    return fetchApi("/personas");
+};
+
+export const createPersona = async (data) => {
+    return fetchApi("/personas", {
+        method: "POST",
+        body: JSON.stringify(data)
+    });
+};
+
+export const updatePersona = async (id, data) => {
+    return fetchApi(`/personas/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data)
+    });
+};
+
+export const deletePersona = async (id) => {
+    return fetchApi(`/personas/${id}`, {
+        method: "DELETE"
+    });
+};
+
+export const getPublicPersona = async (id) => {
+    return fetchPublic(`/public-personas/${id}`);
+};
+
+export const getPublicOrganization = async (id) => {
+    return fetchPublic(`/public-organizations/${id}`);
+};
+
+export const getPublicPersonas = async () => {
+    return fetchPublic("/public-personas");
+};
+
+export const getPublicOrganizations = async () => {
+    return fetchPublic("/public-organizations");
 };

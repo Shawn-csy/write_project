@@ -1,5 +1,5 @@
 import React from "react";
-import { Type, LayoutList, Eye, Highlighter, FileText, Rabbit } from "lucide-react";
+import { Type, LayoutList, Eye, Highlighter, FileText, Rabbit, Ruler } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { useSettings } from "../../contexts/SettingsContext";
 import { cn } from "../../lib/utils";
@@ -56,8 +56,9 @@ export function DisplaySettings({ sectionRef }) {
     setHighlightSfx,
     exportMode,
     setExportMode,
-    enableLocalFiles,
-    setEnableLocalFiles
+
+    showLineUnderline,
+    setShowLineUnderline
   } = useSettings();
 
   return (
@@ -150,6 +151,21 @@ export function DisplaySettings({ sectionRef }) {
           </SettingRow>
 
           <SettingRow 
+             icon={Ruler} 
+             title="行底線" 
+             description="顯示每一行的閱讀輔助底線"
+          >
+             <ToggleGroup 
+                value={showLineUnderline} 
+                onChange={(v) => setShowLineUnderline(v)}
+                options={[
+                  { label: "開啟", value: true },
+                  { label: "關閉", value: false }
+                ]}
+             />
+          </SettingRow>
+
+          <SettingRow 
              icon={FileText} 
              title="匯出來源" 
              description="PDF 與複製內容的來源格式"
@@ -164,20 +180,7 @@ export function DisplaySettings({ sectionRef }) {
              />
           </SettingRow>
 
-          <SettingRow 
-             icon={FileText} 
-             title="本地檔案" 
-             description="是否啟用讀取本地端 scripts_file 資料夾"
-          >
-             <ToggleGroup 
-                value={enableLocalFiles} 
-                onChange={setEnableLocalFiles}
-                options={[
-                  { label: "開啟", value: true },
-                  { label: "關閉", value: false }
-                ]}
-             />
-          </SettingRow>
+
         </CardContent>
     </Card>
   );

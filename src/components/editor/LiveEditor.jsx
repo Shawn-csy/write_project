@@ -395,6 +395,16 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
         markerConfigs={markerConfigs}
         hiddenMarkerIds={hiddenMarkerIds}
         onToggleMarker={toggleMarkerVisibility}
+        script={initialData} // Or manage a local script state if needing deeper updates
+        onScriptUpdate={(updated) => {
+            // Update local state if needed, or just let the dialog handle the API call + prop refresh
+            // For now, we rely on the Dialog's API call and maybe a refresh to parent?
+            // Since initialData comes from parent, we might need a way to bubble up.
+            // But simple display update:
+            if (updated.title && updated.title !== title) setTitle(updated.title);
+            // Ideally we update the full object in parent scriptManager
+            // But for now, relying on next load or context update is okay.
+        }}
       />
       )}
 

@@ -825,18 +825,131 @@
   }
 }
 
+/* Print Styles for PDF Export */
 @media print {
-  body {
-    background: white;
+  @page {
+    margin: 1in;
+    size: A4;
   }
-  .no-print {
+
+  /* Reset body and html for proper paging */
+  body, html, #root {
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Hide UI Elements */
+  header, 
+  nav, 
+  button, 
+  .no-print,
+  [role="presentation"],
+  .fixed,
+  .absolute {
+    display: none !important;
+    position: static !important;
+  }
+
+  /* 1. Hide Top Level Layout Elements */
+  /* Background fix layers */
+  div[class*="inset-0 z-0"], 
+  div[class*="absolute inset-0"] {
     display: none !important;
   }
+  
+  /* 2. Reset Scroll Containers in ScriptSurface */
+  div[class*="overflow-y-auto"], 
+  div[class*="h-screen"], 
+  div[class*="h-full"] {
+    height: auto !important;
+    overflow: visible !important;
+    max-height: none !important;
+    position: static !important;
+  }
+
+  /* 3. Script Surface & Paper */
   .paper {
-    box-shadow: none;
-    border: none;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
   .paper::before {
-    display: none;
+    display: none !important;
   }
+  .paper-inner {
+    padding: 0 !important;
+  }
+
+  /* 4. Ensure Script Content Visibility */
+  .screenplay {
+    display: block !important;
+    position: static !important;
+    visibility: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    font-size: 12pt !important;
+    line-height: 1 !important;
+    color: black; /* Default to black */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  .screenplay * {
+    display: block !important;
+    position: static !important;
+    visibility: visible !important;
+    text-shadow: none !important;
+    /* Do NOT force color: black !important here, allow specific classes to override */
+  }
+
+  /* Hide badges in print */
+  .badge, div[class*="badge"], span[class*="badge"] {
+    display: none !important;
+  }
+}
+
+/* Hide Whitespace Toggle */
+.hide-whitespace .whitespace-block {
+  display: none !important;
+}
+
+.hide-whitespace .whitespace-line {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+}
+
+.hide-whitespace .whitespace-short {
+  display: none !important; 
+}
+
+/* Also hide generic blank lines */
+.hide-whitespace .blank-line {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Transparent Mode Support */
+html.transparent-mode,
+html.transparent-mode body,
+html.transparent-mode #root {
+  background-color: transparent !important;
+}
+
+html.transparent-mode .bg-background {
+  background-color: transparent !important;
+}
+
+html.transparent-mode {
+  --paper-bg: transparent !important;
 }

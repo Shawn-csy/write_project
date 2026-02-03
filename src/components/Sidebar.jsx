@@ -1,10 +1,12 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   PanelLeftClose,
   Settings,
   AlignLeft,
   Home,
-  Info
+  Info,
+  LayoutTemplate
 } from "lucide-react";
 import { Button } from "./ui/button";
 import UserMenu from "./auth/UserMenu";
@@ -25,6 +27,8 @@ function Sidebar({
   accentStyle,
   className,
 }) {
+  const navigate = useNavigate();
+
   const closeSidebarIfMobile = () => {
     if (!setSidebarOpen || typeof window === "undefined") return;
     const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
@@ -130,6 +134,22 @@ function Sidebar({
                         寫作 (Write)
                     </Button>
                     <Button 
+                        onClick={() => { navigate("/studio"); closeSidebarIfMobile(); }} 
+                        variant="ghost" 
+                        className="w-full justify-start text-xs h-9 font-normal text-muted-foreground hover:text-foreground"
+                    >
+                        <LayoutTemplate className="w-4 h-4 mr-2" />
+                        工作室 (Studio)
+                    </Button>
+                    <Button 
+                        onClick={() => { navigate("/"); closeSidebarIfMobile(); }} 
+                        variant="ghost" 
+                        className="w-full justify-start text-xs h-9 font-normal text-muted-foreground hover:text-foreground"
+                    >
+                        <Home className="w-4 h-4 mr-2" />
+                        劇本藝廊 (Gallery)
+                    </Button>
+                    <Button 
                         onClick={() => { openAbout(); closeSidebarIfMobile(); }} 
                         variant="ghost" 
                         className="w-full justify-start text-xs h-9 font-normal text-muted-foreground hover:text-foreground"
@@ -163,6 +183,26 @@ function Sidebar({
         
         {/* App Actions (Settings, About) */}
         <div className="flex items-center gap-1">
+             <Button 
+                variant="ghost" 
+                size="sm"
+                className="flex-1 justify-start h-8 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                onClick={() => { navigate("/studio"); closeSidebarIfMobile(); }}
+                title="工作室 (Studio)"
+            >
+                <LayoutTemplate className="w-4 h-4 mr-2" />
+                <span className="truncate">工作室</span>
+            </Button>
+            <Button 
+                variant="ghost" 
+                size="sm"
+                className="flex-1 justify-start h-8 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                onClick={() => { navigate("/"); closeSidebarIfMobile(); }}
+                title="劇本藝廊 (Gallery)"
+            >
+                <Home className="w-4 h-4 mr-2" />
+                <span className="truncate">藝廊</span>
+            </Button>
              <Button 
                 variant="ghost" 
                 size="sm"
