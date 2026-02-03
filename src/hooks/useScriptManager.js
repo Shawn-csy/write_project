@@ -22,6 +22,13 @@ export function useScriptManager(initialParamsRef, initialMarkerConfigs = []) {
 
   // Allow dynamic override (e.g. for Public Scripts using Author's settings)
   const [overrideMarkerConfigs, setOverrideMarkerConfigs] = useState(null);
+  const [hiddenMarkerIds, setHiddenMarkerIds] = useState([]);
+
+  const toggleMarkerVisibility = (id) => {
+    setHiddenMarkerIds((prev) =>
+      prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
+    );
+  };
   
   // Effective Configs
   const rawConfigs = overrideMarkerConfigs || initialMarkerConfigs;
@@ -229,6 +236,10 @@ export function useScriptManager(initialParamsRef, initialMarkerConfigs = []) {
     ast, // Expose AST,
     // Config Override
     setOverrideMarkerConfigs,
-    effectiveMarkerConfigs
+    effectiveMarkerConfigs,
+    
+    // Visibility
+    hiddenMarkerIds,
+    toggleMarkerVisibility
   };
 }

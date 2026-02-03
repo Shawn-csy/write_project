@@ -6,8 +6,13 @@ import { Slider } from "../../components/ui/slider";
 import { Switch } from "../../components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { useSettings } from "../../contexts/SettingsContext";
+import MarkerVisibilitySelect from "../MarkerVisibilitySelect";
 
-export function ReaderAppearanceMenu() {
+export function ReaderAppearanceMenu({
+    markerConfigs = [],
+    hiddenMarkerIds = [],
+    onToggleMarker
+}) {
   const { 
       fontSize, setFontSize, 
       isDark, setTheme,
@@ -39,6 +44,22 @@ export function ReaderAppearanceMenu() {
                     </TabsList>
                 </Tabs>
             </div>
+            {/* Markers Toggle (Mobile Only) */}
+            {markerConfigs.length > 0 && onToggleMarker && (
+                <div className="grid gap-2 pt-2 border-t mt-2 block sm:hidden">
+                     <span className="text-sm font-medium">Markers</span>
+                     <MarkerVisibilitySelect
+                        markerConfigs={markerConfigs}
+                        visibleMarkerIds={null} // Let component compute
+                        hiddenMarkerIds={hiddenMarkerIds}
+                        onToggleMarker={onToggleMarker}
+                        triggerClassName="w-full h-8"
+                        contentAlign="end"
+                        label="顯示標記"
+                        titlePrefix="標記"
+                     />
+                </div>
+            )}
           </div>
 
           <div className="space-y-2 pt-2 border-t">
