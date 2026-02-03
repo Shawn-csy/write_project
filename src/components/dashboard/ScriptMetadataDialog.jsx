@@ -11,7 +11,8 @@ import { useAuth } from "../../contexts/AuthContext";
 import { extractMetadataWithRaw, rewriteMetadata } from "../../lib/metadataParser";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, arrayMove, useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { fetchUserThemes } from "../../services/settingsApi";
+import { defaultMarkerConfigs } from "../../constants/defaultMarkers";
 
 
 const SortableField = ({ field, index, onUpdate, onRemove, onFocus, onBlur, dragDisabled }) => {
@@ -231,15 +232,28 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     const [selectedOrgId, setSelectedOrgId] = useState("");
     const [personas, setPersonas] = useState([]);
     const [orgs, setOrgs] = useState([]);
+    
+    // Marker Themes
+    const [markerThemes, setMarkerThemes] = useState([]);
+    const [markerThemeId, setMarkerThemeId] = useState("default");
 
     useEffect(() => {
         if (open && currentUser) {
             Promise.all([
                 getPersonas(),
-                getOrganizations()
-            ]).then(([pData, oData]) => {
+                getOrganizations(),
+                fetchUserThemes(currentUser)
+            ]).then(([pData, oData, tData]) => {
                 setPersonas(pData || []);
                 setOrgs(oData || []);
+                
+                const userThemes = tData || [];
+                // Ensure default is always there as option if API doesn't return it (it usually doesn't return built-ins)
+                const allThemes = [
+                    { id: 'default', name: '預設主題 (Default)' },
+                    ...userThemes
+                ];
+                setMarkerThemes(allThemes);
             });
             loadTags();
         }
@@ -271,6 +285,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
             setCoverUrl(script.coverUrl || "");
             setStatus(script.status || (script.isPublic ? "Public" : "Private"));
             setCurrentTags(script.tags || []);
+            setMarkerThemeId(script.markerThemeId || "default");
             
             // Determine Identity
             if (script.organizationId) {
@@ -340,6 +355,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setCoverUrl(localScript.coverUrl || "");
         setStatus(localScript.status || (localScript.isPublic ? "Public" : "Private"));
         setCurrentTags(localScript.tags || []);
+        setMarkerThemeId(localScript.markerThemeId || "default");
 
         if (localScript.organizationId) {
             setIdentity(`org:${localScript.organizationId}`);
@@ -555,7 +571,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                 draftDate: date,
                 isPublic: status === "Public",
                 personaId: null,
-                organizationId: null
+                organizationId: null,
+                markerThemeId: markerThemeId 
             };
 
             if (identity.startsWith("persona:")) {
@@ -583,7 +600,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                 title, coverUrl, status, 
                 content: finalContent, 
                 author, draftDate: date,
-                tags: currentTags 
+                tags: currentTags,
+                markerThemeId
             }); 
             onOpenChange(false);
         } catch (error) {
@@ -679,6 +697,23 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                          <div className="grid gap-2">
                             <label className="text-sm font-medium">日期 (Date)</label>
                             <Input value={date} onChange={e => setDate(e.target.value)} placeholder="e.g. 2024-01-01 or Draft 1" />
+                        </div>
+                    </div>
+
+                    <div className="grid gap-2">
+                        <label className="text-sm font-medium">標記主題 (Marker Theme)</label>
+                         <Select value={markerThemeId} onValueChange={setMarkerThemeId}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="選擇主題" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {markerThemes.map(t => (
+                                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <div className="text-xs text-muted-foreground">
+                            公開劇本將使用此主題來顯示自訂標記 (如 {`>>SE`})。
                         </div>
                     </div>
                     <div className="grid grid-cols-1 gap-4">

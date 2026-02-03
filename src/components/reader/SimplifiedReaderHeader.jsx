@@ -3,6 +3,7 @@ import { ArrowLeft, Share2, Settings, Download } from "lucide-react";
 import { Button } from "../ui/button";
 import { ReaderAppearanceMenu } from "./ReaderAppearanceMenu";
 import { ReaderTOC } from "./ReaderTOC";
+import MarkerVisibilitySelect from "../MarkerVisibilitySelect";
 
 export function SimplifiedReaderHeader({
   onBack,
@@ -14,6 +15,10 @@ export function SimplifiedReaderHeader({
   sceneList,
   currentSceneId,
   onSelectScene,
+  // Marker Props
+  markerConfigs = [],
+  hiddenMarkerIds = [],
+  onToggleMarker,
   className = "",
 }) {
   return (
@@ -52,8 +57,25 @@ export function SimplifiedReaderHeader({
 
       {/* Right: Actions */}
       <div className="flex items-center gap-2 shrink-0">
+        
+        {/* Marker Visibility Select (Desktop) */}
+         <div className="hidden sm:block w-[140px]">
+          <MarkerVisibilitySelect
+            markerConfigs={markerConfigs}
+            hiddenMarkerIds={hiddenMarkerIds}
+            onToggleMarker={onToggleMarker}
+            triggerClassName="h-8 px-2 text-xs w-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md border-0 transition-all font-medium"
+            contentAlign="end"
+            titlePrefix="標記"
+          />
+         </div>
+
         {/* Appearance Settings */}
-        <ReaderAppearanceMenu />
+        <ReaderAppearanceMenu 
+            markerConfigs={markerConfigs}
+            hiddenMarkerIds={hiddenMarkerIds}
+            onToggleMarker={onToggleMarker}
+        />
 
         {onExport && (
              <Button

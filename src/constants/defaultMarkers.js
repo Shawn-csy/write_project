@@ -68,6 +68,8 @@ export const defaultMarkerConfigs = [
     id: 'se-continuous-start', 
     label: '持續音效開始', 
     start: '>>SE', 
+    pause: '><SE',
+    pauseLabel: '暫停',
     isBlock: true, 
     matchMode: 'range',
     rangeRole: 'start',

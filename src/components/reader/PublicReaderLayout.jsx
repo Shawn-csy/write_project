@@ -14,6 +14,10 @@ export function PublicReaderLayout({
   onSettings,
   viewerProps,      // passed to ScriptSurface
   scriptSurfaceProps, // passed to ScriptSurface (scrollRef, etc)
+  // Marker Props
+  validMarkerConfigs = [],
+  hiddenMarkerIds = [],
+  onToggleMarker
 }) {
   const { 
     title, 
@@ -85,6 +89,11 @@ export function PublicReaderLayout({
         currentSceneId={viewerProps?.activeSceneId} // We need to ensure we track this
         onSelectScene={viewerProps?.scrollToScene} // The viewer prop usually expects an ID
         
+        // Marker Props
+        markerConfigs={validMarkerConfigs}
+        hiddenMarkerIds={hiddenMarkerIds}
+        onToggleMarker={onToggleMarker}
+
         className="bg-transparent hover:bg-background/80 transition-colors"
       />
 

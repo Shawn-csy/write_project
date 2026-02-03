@@ -170,57 +170,52 @@ export class DirectASTBuilder {
     for (const node of nodes) {
       const parent = stack.length > 0 ? stack[stack.length - 1] : null;
       
-      // 0. 處理 Range 暫停/恢復 (Pause/Toggle)
+      // 0. 處理 Range 暫停 (Pause) -> Split & Continue
       if (node.type === 'layer' && node.rangeRole === 'pause') {
           const groupId = node.rangeGroupId;
           const openIndex = stack.findIndex(r => r.rangeGroupId === groupId);
           
           if (openIndex !== -1) {
-              // 狀態：開啟 -> 暫停
-              // 把當前 Range 結束在此處
+              // 找到當前開啟的區間：在此處結束它
               const rangeNode = stack[openIndex];
-              rangeNode.endNode = node; // 使用 pause node 作為視覺上的結束
+              rangeNode.endNode = node; // 使用 pause node 作為視覺上的結束 (Footer)
               
-              // 從堆疊移除（視為這一段結束）
-              // 注意：這會移除該 range 及其之上的所有 nested ranges (假設巢狀正確)
-              // 雖然只 splice 一個比較安全，但為了防止錯亂，我們假設它是最近一個
+              // 決定新區間的父節點 (應與被關閉的區間同一層)
+              // 注意：stack[openIndex] 的父節點是在 openIndex - 1 (如果有的話)
+              const parentList = openIndex > 0 ? stack[openIndex - 1].children : rootChildren;
+
+              // 從堆疊移除舊區間
+              // 為了簡單起見，我們假設 pause 只發生在最上層或正確的層級
               if (openIndex === stack.length - 1) {
                   stack.pop();
               } else {
-                   // 若不是最上層，則強制移除（這可能發生在巢狀交錯時）
-                   stack.splice(openIndex, 1);
+                  // 如果不是最上層，強制關閉它及其上層 (雖然這在腳本語法上可能是不良結構)
+                  // splice 會移除該元素及其後所有元素 (如果我們想全部關閉)
+                  // 這裡我們只移除該元素，讓 stack 結構保持與 AST 一致
+                  stack.splice(openIndex, 1);
               }
               
-              // 標記為暫停
-              pausedGroups.add(groupId);
-          } else if (pausedGroups.has(groupId)) {
-              // 狀態：暫停 -> 恢復
-              // 開啟新的 Range
-              pausedGroups.delete(groupId);
-              
+              // 立即開啟新的區間 (延續)
               const newRangeNode = {
                   type: 'range',
-                  layerType: node.layerType,
+                  layerType: rangeNode.layerType,
                   rangeGroupId: groupId,
-                  startNode: node, // 使用 pause node 作為新段落的開始
+                  startNode: null, // 延續區間通常沒有新的 Start Header
                   endNode: null,
                   children: [],
-                  style: node.style,
-                  rangeDepth: stack.length + 1 // 簡易深度計算，可能需要更精確的邏輯
+                  style: rangeNode.style, // 繼承樣式
+                  rangeDepth: rangeNode.rangeDepth
               };
               
-              // 加入父節點
-              const currentParent = stack.length > 0 ? stack[stack.length - 1] : null;
-              if (currentParent) {
-                  currentParent.children.push(newRangeNode);
-              } else {
-                  rootChildren.push(newRangeNode);
-              }
+              // 加入到原本的父層級
+              parentList.push(newRangeNode);
+              
+              // 推入堆疊，成為當前活躍區間
               stack.push(newRangeNode);
           } else {
-              // 既沒開啟也沒暫停（孤立的 pause），視為普通節點
-               if (parent) parent.children.push(node);
-               else rootChildren.push(node);
+              // 孤立的 pause (未在區間內)，視為普通節點
+              if (parent) parent.children.push(node);
+              else rootChildren.push(node);
           }
           continue;
       }
@@ -257,9 +252,16 @@ export class DirectASTBuilder {
           parent.endNode = node;
           stack.pop();
         } else if (pausedGroups.has(node.rangeGroupId)) {
-           // 處於暫停狀態時遇到結束標記：清除暫停狀態（結束整個區間邏輯）
            pausedGroups.delete(node.rangeGroupId);
-           // 該節點本身作為普通節點顯示（或是隱藏？通常顯示出來作為結束指示）
+           // 該節點本身作為普通節點顯示，避免被視為新的 Layer Block
+           // 轉換為普通的 action 節點
+           node.type = 'action';
+           delete node.layerType;
+           delete node.rangeRole;
+           delete node.rangeGroupId;
+           delete node.label;
+           delete node.style;
+           
            if (parent) parent.children.push(node);
            else rootChildren.push(node);
         } else {
@@ -291,6 +293,14 @@ export class DirectASTBuilder {
    * @private
    */
   _checkRangeMarker(node, line) {
+    // 1. 優先檢查節點本身是否已經識別出 range 屬性 (由 _matchBlockMarker 解析)
+    if (node.rangeGroupId && node.rangeRole) {
+      return { 
+        groupId: node.rangeGroupId, 
+        role: node.rangeRole 
+      };
+    }
+
     const trimmed = line.trim();
     
     for (const [groupId, group] of Object.entries(this.rangeGroups)) {
@@ -422,7 +432,7 @@ export class DirectASTBuilder {
                  const content = line.slice(matchedEnd.length).trim();
                  return {
                      type: 'layer',
-                     rangeGroupId: marker.id,
+                     rangeGroupId: marker.rangeGroupId || marker.id,
                      rangeRole: 'end',
                      layerType: marker.id,
                      // ... properties
@@ -451,7 +461,7 @@ export class DirectASTBuilder {
                  return {
                      type: 'layer',
                      layerType: marker.id,
-                     rangeGroupId: marker.id,
+                     rangeGroupId: marker.rangeGroupId || marker.id,
                      rangeRole: 'pause',
                      text: content,
                      label: marker.pauseLabel ?? '暫停',
@@ -472,8 +482,8 @@ export class DirectASTBuilder {
              return {
                  type: 'layer',
                  layerType: marker.id,
-                 rangeGroupId: marker.id,
-                 rangeRole: 'start',
+                 rangeGroupId: marker.rangeGroupId || marker.id,
+                 rangeRole: marker.rangeRole || 'start',
                  // ... properties
                  text: content,
                  label: marker.label,

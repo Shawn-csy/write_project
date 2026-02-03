@@ -4,6 +4,7 @@ import { PublicReaderLayout } from "../components/reader/PublicReaderLayout";
 import { getPublicScript, getPublicThemes } from "../lib/db";
 import { extractMetadataWithRaw } from "../lib/metadataParser";
 import { useScriptViewerDefaults } from "../hooks/useScriptViewerDefaults";
+import { defaultMarkerConfigs } from "../constants/defaultMarkers";
 
 export default function PublicReaderPage({ scriptManager, navProps }) {
   const { id } = useParams();
@@ -211,12 +212,18 @@ They discover a glowing artifact.
                 alert("Link copied!");
             }
         }}
+        // Marker Props for Header
+        validMarkerConfigs={scriptManager.effectiveMarkerConfigs}
+        hiddenMarkerIds={scriptManager.hiddenMarkerIds}
+        onToggleMarker={scriptManager.toggleMarkerVisibility}
+        
         // onExport={() => {}} // Optional
         scriptSurfaceProps={{
             scrollRef: navProps?.contentScrollRef,
             onScrollProgress: setScrollProgress,
         }}
         viewerProps={{
+            ...viewerDefaults, // Defaults first
             filterCharacter,
             focusMode,
             focusEffect,
@@ -233,7 +240,7 @@ They discover a glowing artifact.
             onProcessedHtml: setProcessedScriptHtml,
             onScenes: setSceneList,
             scrollToScene: scrollSceneId,
-            ...viewerDefaults
+            hiddenMarkerIds: scriptManager.hiddenMarkerIds, // Override defaults
         }}
     />
   );
