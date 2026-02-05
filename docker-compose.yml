@@ -6,7 +6,6 @@ services:
       context: ./server
     ports:
       - "1091:1091"
-      - "1090:1090"
     environment:
       - DB_PATH=/data/scripts.db
       - PORT=1091
@@ -17,7 +16,6 @@ services:
     volumes:
       - ./server/data:/data
       - ./server/secrets:/secrets:ro
-      - ./dist:/app/../dist
 
   frontend-build:
     image: node:20-alpine
@@ -27,3 +25,12 @@ services:
     volumes:
       - .:/app
     command: sh -c "npm install && npm run build"
+
+  frontend-serve:
+    image: nginx:alpine
+    ports:
+      - "1090:80"
+    volumes:
+      - ./dist:/usr/share/nginx/html:ro
+    depends_on:
+      - frontend-build
