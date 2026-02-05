@@ -36,6 +36,8 @@ async def security_headers(request: Request, call_next):
         "style-src * 'unsafe-inline'; "
         "frame-ancestors 'self';",
     )
+    # Allow auth popup to close itself (Firebase)
+    response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin-allow-popups")
     response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("Referrer-Policy", "no-referrer-when-downgrade")
