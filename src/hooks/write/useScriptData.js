@@ -15,7 +15,38 @@ export function useScriptData(refreshTrigger = 0) {
         try {
             setLoading(true);
             const data = await getUserScripts();
-            setScripts(data);
+            if (!Array.isArray(data)) {
+                setScripts([]);
+                return;
+            }
+            // De-dupe folders with same path/title to avoid duplicate tree nodes
+            const folderMap = new Map();
+            const seenIds = new Set();
+            const deduped = [];
+            for (const item of data) {
+                if (!item || !item.id) continue;
+                if (seenIds.has(item.id)) continue;
+                seenIds.add(item.id);
+                if (item.type === "folder") {
+                    const key = `${item.folder || "/"}::${item.title || ""}`;
+                    const existing = folderMap.get(key);
+                    if (!existing) {
+                        folderMap.set(key, item);
+                        deduped.push(item);
+                    } else {
+                        const existingScore = existing.lastModified || existing.createdAt || 0;
+                        const itemScore = item.lastModified || item.createdAt || 0;
+                        if (itemScore > existingScore) {
+                            const idx = deduped.findIndex(s => s.id === existing.id);
+                            if (idx >= 0) deduped[idx] = item;
+                            folderMap.set(key, item);
+                        }
+                    }
+                } else {
+                    deduped.push(item);
+                }
+            }
+            setScripts(deduped);
         } catch (err) {
             console.error(err);
         } finally {

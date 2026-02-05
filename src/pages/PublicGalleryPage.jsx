@@ -8,6 +8,7 @@ import { OrgGalleryCard } from "../components/gallery/OrgGalleryCard";
 import { Button } from "../components/ui/button";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { getPublicScripts, getPublicPersonas, getPublicOrganizations } from "../lib/db";
+import { extractMetadataWithRaw } from "../lib/metadataParser";
 
 export default function PublicGalleryPage() {
   const navigate = useNavigate();
@@ -28,6 +29,8 @@ export default function PublicGalleryPage() {
   const [authors, setAuthors] = useState([]);
   const [orgs, setOrgs] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortKey, setSortKey] = useState("recent");
+  const [viewMode, setViewMode] = useState(() => searchParams.get("mode") || "standard");
   // Sync selectedTag with URL param 'tag'
   const selectedTag = searchParams.get("tag");
   const setSelectedTag = (tag) => {
@@ -61,6 +64,12 @@ export default function PublicGalleryPage() {
         params.delete("orgTag");
       }
       setSearchParams(params);
+  };
+  const handleViewModeChange = (mode) => {
+      const params = new URLSearchParams(searchParams);
+      params.set("mode", mode);
+      setSearchParams(params);
+      setViewMode(mode);
   };
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingPeople, setIsLoadingPeople] = useState(true);
@@ -117,12 +126,50 @@ export default function PublicGalleryPage() {
     loadPeople();
   }, []);
 
+  const scriptsWithMeta = useMemo(() => {
+      return (scripts || []).map((script) => {
+          if (!script?.content) {
+              return { ...script, _licenseText: "", _licenseTermsText: "" };
+          }
+          let meta = {};
+          try {
+              meta = extractMetadataWithRaw(script.content || "").meta || {};
+          } catch {
+              meta = {};
+          }
+          const license = meta.license || meta.licenseName || "";
+          let terms = meta.licenseterms || meta.licenseTerms || "";
+          if (typeof terms === "string") {
+              try {
+                  const parsed = JSON.parse(terms);
+                  if (Array.isArray(parsed)) terms = parsed;
+              } catch {}
+          }
+          const termsText = Array.isArray(terms) ? terms.join(" ") : String(terms || "");
+          return {
+              ...script,
+              _licenseText: String(license || ""),
+              _licenseTermsText: termsText
+          };
+      });
+  }, [scripts]);
+
   // Filter Logic
-  const filteredScripts = scripts.filter(script => {
-      const matchesSearch = script.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            script.author?.displayName?.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredScripts = scriptsWithMeta.filter(script => {
+      const needle = searchTerm.toLowerCase();
+      const matchesSearch =
+          script.title?.toLowerCase().includes(needle) ||
+          script.author?.displayName?.toLowerCase().includes(needle) ||
+          script._licenseText?.toLowerCase().includes(needle) ||
+          script._licenseTermsText?.toLowerCase().includes(needle);
       const matchesTag = selectedTag ? script.tags?.includes(selectedTag) : true;
       return matchesSearch && matchesTag;
+  }).sort((a, b) => {
+      if (sortKey === "views") {
+          return (b.views || 0) - (a.views || 0);
+      }
+      // recent
+      return (b.lastModified || b.updatedAt || 0) - (a.lastModified || a.updatedAt || 0);
   });
 
   const allTags = Array.from(new Set(scripts.flatMap(s => s.tags || [])));
@@ -195,6 +242,20 @@ export default function PublicGalleryPage() {
                 view === "authors" ? "搜尋作者..." :
                 "搜尋組織..."
             }
+            showSort={view === "scripts"}
+            sortValue={sortKey}
+            onSortChange={setSortKey}
+            sortOptions={[
+                { value: "recent", label: "最新更新" },
+                { value: "views", label: "點閱數" }
+            ]}
+            showViewToggle={view === "scripts"}
+            viewValue={viewMode}
+            onViewChange={handleViewModeChange}
+            viewOptions={[
+                { value: "standard", label: "標準" },
+                { value: "compact", label: "密集" }
+            ]}
         />
 
         {/* Content Grid */}
@@ -206,11 +267,12 @@ export default function PublicGalleryPage() {
                   ))}
               </div>
           ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 animate-in fade-in duration-500">
+              <div className={`grid gap-6 animate-in fade-in duration-500 ${viewMode === "compact" ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" : "grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"}`}>
                   {filteredScripts.map(script => (
                       <ScriptGalleryCard 
                           key={script.id}
                           script={script}
+                          variant={viewMode === "compact" ? "compact" : "standard"}
                           onClick={() => navigate(`/read/${script.id}`)}
                       />
                   ))}

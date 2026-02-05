@@ -66,7 +66,9 @@ export function calculateScriptStats(nodes, markerConfigs = [], options = {}) {
       totalBlocks: 0,
       // 新增：區間統計
       rangeStats: results.rangeStats || {},
-      customDurationSeconds: results.customDurationSeconds || 0
+      customDurationSeconds: results.customDurationSeconds || 0,
+      pauseSeconds: results.pauseSeconds || 0,
+      pauseItems: results.pauseItems || []
   };
   
   // Calculate Duration

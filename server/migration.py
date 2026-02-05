@@ -67,6 +67,10 @@ def run_migrations():
             if 'organizationId' not in user_columns:
                 print("Migrating: Adding 'organizationId' column to users")
                 conn.execute(text("ALTER TABLE users ADD COLUMN organizationId TEXT DEFAULT NULL"))
+            
+            if 'email' not in user_columns:
+                print("Migrating: Adding 'email' column to users")
+                conn.execute(text("ALTER TABLE users ADD COLUMN email TEXT DEFAULT NULL"))
 
             # Personas columns
             result_personas = conn.execute(text("PRAGMA table_info(personas)"))
@@ -75,6 +79,10 @@ def run_migrations():
             if 'website' not in persona_columns:
                 print("Migrating: Adding 'website' column to personas")
                 conn.execute(text("ALTER TABLE personas ADD COLUMN website TEXT DEFAULT ''"))
+
+            if 'links' not in persona_columns:
+                print("Migrating: Adding 'links' column to personas")
+                conn.execute(text("ALTER TABLE personas ADD COLUMN links TEXT DEFAULT '[]'"))
 
             if 'organizationIds' not in persona_columns:
                 print("Migrating: Adding 'organizationIds' column to personas")
@@ -95,6 +103,9 @@ def run_migrations():
             if 'defaultLicenseTerms' not in persona_columns:
                 print("Migrating: Adding 'defaultLicenseTerms' column to personas")
                 conn.execute(text("ALTER TABLE personas ADD COLUMN defaultLicenseTerms TEXT DEFAULT '[]'"))
+            if 'bannerUrl' not in persona_columns:
+                print("Migrating: Adding 'bannerUrl' column to personas")
+                conn.execute(text("ALTER TABLE personas ADD COLUMN bannerUrl TEXT DEFAULT ''"))
 
             # Organizations columns
             result_orgs = conn.execute(text("PRAGMA table_info(organizations)"))
@@ -111,6 +122,9 @@ def run_migrations():
             if 'tags' not in org_columns:
                 print("Migrating: Adding 'tags' column to organizations")
                 conn.execute(text("ALTER TABLE organizations ADD COLUMN tags TEXT DEFAULT '[]'"))
+            if 'bannerUrl' not in org_columns:
+                print("Migrating: Adding 'bannerUrl' column to organizations")
+                conn.execute(text("ALTER TABLE organizations ADD COLUMN bannerUrl TEXT DEFAULT ''"))
             
             conn.commit()
     except Exception as e:

@@ -7,7 +7,7 @@ import { Badge } from "../ui/badge";
 import { AlertTriangle, X, Plus, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "../ui/select";
 import { Textarea } from "../ui/textarea"; 
-import { updateScript, addTagToScript, removeTagFromScript, getTags, createTag, getScript, getPersonas, getOrganizations } from "../../lib/db";
+import { updateScript, addTagToScript, removeTagFromScript, getTags, createTag, getScript, getPersonas, getOrganizations, getUserProfile, getOrganization } from "../../lib/db";
 import { useAuth } from "../../contexts/AuthContext";
 import { extractMetadataWithRaw, rewriteMetadata, writeMetadata } from "../../lib/metadataParser";
 import { DndContext, closestCenter, MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
@@ -49,14 +49,14 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     const customIdRef = useRef(0);
     const initializedRef = useRef(false);
     const userEditedRef = useRef(false);
+    const contactAutoFilledRef = useRef(false);
     const [localScript, setLocalScript] = useState(null);
-    const activeScript = scriptId ? localScript : script;
+    const activeScript = scriptId ? localScript : (localScript || script);
     const sensors = useSensors(
         useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),
         useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
     );
     const [dragDisabled, setDragDisabled] = useState(false);
-    const activeSensors = dragDisabled ? [] : sensors;
 
     const handleCustomFieldUpdate = (index, field, value) => {
         userEditedRef.current = true;
@@ -123,9 +123,11 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
             if (parsed.source !== undefined) setSource(parsed.source);
             if (parsed.cover !== undefined) setCoverUrl(parsed.cover);
             if (parsed.status !== undefined) setStatus(parsed.status);
-            if (parsed.publishAs !== undefined) setIdentity(parsed.publishAs);
-            if (parsed.personaId && !parsed.publishAs) setIdentity(`persona:${parsed.personaId}`);
-            if (parsed.organizationId && !parsed.publishAs) setIdentity(`org:${parsed.organizationId}`);
+            if (parsed.publishAs !== undefined && String(parsed.publishAs).startsWith("persona:")) {
+                setIdentity(parsed.publishAs);
+            } else if (parsed.personaId) {
+                setIdentity(`persona:${parsed.personaId}`);
+            }
             if (parsed.selectedOrgId !== undefined) setSelectedOrgId(parsed.selectedOrgId);
             if (parsed.orgId !== undefined) setSelectedOrgId(parsed.orgId);
             const custom = parsed.custom || parsed.customFields || {};
@@ -165,7 +167,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
 
     // Identity Selection
     const { currentUser } = useAuth();
-    const [identity, setIdentity] = useState("user"); // user, persona:ID, org:ID
+    const [identity, setIdentity] = useState(""); // persona:ID only
     const [selectedOrgId, setSelectedOrgId] = useState("");
     const [personas, setPersonas] = useState([]);
     const [orgs, setOrgs] = useState([]);
@@ -181,10 +183,41 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
             Promise.all([
                 getPersonas(),
                 getOrganizations(),
-                fetchUserThemes(currentUser)
-            ]).then(([pData, oData, tData]) => {
+                fetchUserThemes(currentUser),
+                getUserProfile()
+            ]).then(async ([pData, oData, tData, profile]) => {
                 setPersonas(pData || []);
-                setOrgs(oData || []);
+                let mergedOrgs = oData || [];
+                const memberOrgId = profile?.organizationId;
+                const extraOrgIds = new Set();
+                if (memberOrgId && !(oData || []).some(o => o.id === memberOrgId)) {
+                    extraOrgIds.add(memberOrgId);
+                }
+                (pData || []).forEach(p => {
+                    (p.organizationIds || []).forEach(oid => {
+                        if (!(oData || []).some(o => o.id === oid)) {
+                            extraOrgIds.add(oid);
+                        }
+                    });
+                });
+                if (extraOrgIds.size > 0) {
+                    const fetched = [];
+                    for (const oid of extraOrgIds) {
+                        try {
+                            const org = await getOrganization(oid);
+                            if (org) fetched.push(org);
+                        } catch {}
+                    }
+                    mergedOrgs = [...mergedOrgs, ...fetched].filter(Boolean);
+                }
+                const deduped = [];
+                const seen = new Set();
+                for (const o of mergedOrgs) {
+                    if (!o || !o.id || seen.has(o.id)) continue;
+                    seen.add(o.id);
+                    deduped.push(o);
+                }
+                setOrgs(deduped);
                 
                 const userThemes = tData || [];
                 // Ensure default is always there as option if API doesn't return it (it usually doesn't return built-ins)
@@ -202,6 +235,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         if (!open) {
             initializedRef.current = false;
             userEditedRef.current = false;
+            contactAutoFilledRef.current = false;
             setLocalScript(null);
             return;
         }
@@ -229,27 +263,31 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
             setDisableCopy(script.disableCopy || false);
             
             // Determine Identity
-            if (script.organizationId) {
-                setIdentity(`org:${script.organizationId}`);
-                setSelectedOrgId(script.organizationId);
-            } else if (script.personaId) {
+            if (script.personaId) {
                 setIdentity(`persona:${script.personaId}`);
+                setSelectedOrgId(script.organizationId || "");
             } else {
                 const preferredPersonaId = localStorage.getItem("preferredPersonaId");
-                setIdentity(preferredPersonaId ? `persona:${preferredPersonaId}` : "user");
+                setIdentity(preferredPersonaId ? `persona:${preferredPersonaId}` : "");
+                setSelectedOrgId("");
             }
             
             // Extract from content for extended fields
             // Function to safely load content if missing
             const loadContent = async () => {
                 let content = script.content;
-                // If content is not loaded, we might need to fetch it? 
-                // Using db.getScript if content is undefined/null and script.id exists
-                if (!content && script.id) {
-                     try {
+                if (script.id) {
+                    try {
                         const full = await getScript(script.id);
-                        content = full.content;
-                     } catch(e) { console.error(e); }
+                        if (full) {
+                            if (full.content) content = full.content;
+                            setTitle(full.title || "");
+                            setCoverUrl(full.coverUrl || "");
+                            setStatus(full.status || (full.isPublic ? "Public" : "Private"));
+                            setMarkerThemeId(full.markerThemeId || "default");
+                            setDisableCopy(full.disableCopy || false);
+                        }
+                    } catch(e) { console.error(e); }
                 }
                 
                 if (content) {
@@ -316,22 +354,28 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setShowMarkerLegend(false);
         setDisableCopy(localScript.disableCopy || false);
 
-        if (localScript.organizationId) {
-            setIdentity(`org:${localScript.organizationId}`);
-            setSelectedOrgId(localScript.organizationId);
-        } else if (localScript.personaId) {
+        if (localScript.personaId) {
             setIdentity(`persona:${localScript.personaId}`);
+            setSelectedOrgId(localScript.organizationId || "");
         } else {
             const preferredPersonaId = localStorage.getItem("preferredPersonaId");
-            setIdentity(preferredPersonaId ? `persona:${preferredPersonaId}` : "user");
+            setIdentity(preferredPersonaId ? `persona:${preferredPersonaId}` : "");
+            setSelectedOrgId("");
         }
 
         const loadContent = async () => {
             let content = localScript.content;
-            if (!content && localScript.id) {
+            if (localScript.id) {
                 try {
                     const full = await getScript(localScript.id);
-                    content = full.content;
+                    if (full) {
+                        if (full.content) content = full.content;
+                        setTitle(full.title || "");
+                        setCoverUrl(full.coverUrl || "");
+                        setStatus(full.status || (full.isPublic ? "Public" : "Private"));
+                        setMarkerThemeId(full.markerThemeId || "default");
+                        setDisableCopy(full.disableCopy || false);
+                    }
                 } catch (e) {
                     console.error(e);
                 }
@@ -396,6 +440,34 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
 
         }
     }, [identity, personas]); // Only run when identity or personas list changes
+
+    // Auto-fill contact info from persona (only when empty)
+    useEffect(() => {
+        if (!open) return;
+        if (contactAutoFilledRef.current) return;
+        if (!identity || !identity.startsWith("persona:")) return;
+        if (contact || (contactFields && contactFields.length > 0)) return;
+        const personaId = identity.split(":")[1];
+        const persona = personas.find(p => p.id === personaId);
+        if (!persona) return;
+
+        const next = [];
+        if (persona.website) {
+            next.push({ id: `ct-${Date.now()}-web`, key: "Website", value: persona.website });
+        }
+        (persona.links || []).forEach((link, idx) => {
+            if (!link?.url) return;
+            next.push({
+                id: `ct-${Date.now()}-${idx}`,
+                key: link.label || "Link",
+                value: link.url
+            });
+        });
+        if (next.length > 0) {
+            setContactFields(next);
+            contactAutoFilledRef.current = true;
+        }
+    }, [open, identity, personas, contact, contactFields]);
     
     // Initial Load Logic
     useEffect(() => {
@@ -498,14 +570,6 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     };
 
     useEffect(() => {
-        if (identity === "user") {
-            setSelectedOrgId("");
-            return;
-        }
-        if (identity.startsWith("org:")) {
-            setSelectedOrgId(identity.split(":")[1]);
-            return;
-        }
         if (identity.startsWith("persona:")) {
             // Wait for personas to load before resetting
             if (personas.length === 0) return; 
@@ -513,7 +577,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
             const personaId = identity.split(":")[1];
             const persona = personas.find(p => p.id === personaId);
             if (!persona) {
-                setIdentity("user");
+                setIdentity("");
                 setSelectedOrgId("");
                 return;
             }
@@ -618,6 +682,12 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
 
             const finalContent = writeMetadata(content, orderedEntries);
 
+            if (!identity || !identity.startsWith("persona:")) {
+                alert("請先選擇作者身份");
+                setIsSaving(false);
+                return;
+            }
+
             let updatePayload = {
                 title,
                 coverUrl,
@@ -633,12 +703,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                 disableCopy: disableCopy
             };
 
-            if (identity.startsWith("persona:")) {
-                updatePayload.personaId = identity.split(":")[1];
-                updatePayload.organizationId = selectedOrgId || null;
-            } else if (identity.startsWith("org:")) {
-                updatePayload.organizationId = identity.split(":")[1];
-            }
+            updatePayload.personaId = identity.split(":")[1];
+            updatePayload.organizationId = selectedOrgId || null;
 
             await updateScript(workingScript.id, updatePayload);
 
@@ -705,25 +771,25 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                         </TabsContent>
 
                         <TabsContent value="details" className="space-y-6 mt-0">
-                            <MetadataDetailsTab 
-                                status={status}
-                                coverUrl={coverUrl} setCoverUrl={setCoverUrl}
-                                currentTags={currentTags}
-                                author={author} setAuthor={setAuthor}
-                                availableTags={availableTags}
-                                newTagInput={newTagInput} setNewTagInput={setNewTagInput}
-                                handleAddTag={handleAddTag}
-                                handleRemoveTag={handleRemoveTag}
-                                contactFields={contactFields} setContactFields={setContactFields}
-                                onAddContactField={handleAddContactField}
-                                handleContactFieldUpdate={handleContactFieldUpdate}
-                                activeSensors={activeSensors}
-                                dragDisabled={dragDisabled} setDragDisabled={setDragDisabled}
-                                customFields={customFields} setCustomFields={setCustomFields}
-                                addCustomField={addCustomField}
-                                addDivider={addDivider}
-                                handleCustomFieldUpdate={handleCustomFieldUpdate}
-                            />
+        <MetadataDetailsTab 
+            status={status} 
+            coverUrl={coverUrl} setCoverUrl={setCoverUrl}
+            currentTags={currentTags}
+            author={author} setAuthor={setAuthor}
+            availableTags={availableTags}
+            newTagInput={newTagInput} setNewTagInput={setNewTagInput}
+            handleAddTag={handleAddTag}
+            handleRemoveTag={handleRemoveTag}
+            contactFields={contactFields} setContactFields={setContactFields}
+            onAddContactField={handleAddContactField}
+            handleContactFieldUpdate={handleContactFieldUpdate}
+            activeSensors={sensors}
+            dragDisabled={dragDisabled} setDragDisabled={setDragDisabled}
+            customFields={customFields} setCustomFields={setCustomFields}
+            addCustomField={addCustomField}
+            addDivider={addDivider}
+            handleCustomFieldUpdate={handleCustomFieldUpdate}
+        />
                         </TabsContent>
 
                         <TabsContent value="license" className="space-y-4 mt-0">

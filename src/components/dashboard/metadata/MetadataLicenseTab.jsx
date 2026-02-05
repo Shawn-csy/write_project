@@ -131,18 +131,22 @@ export function MetadataLicenseTab({
                         </div>
                         <div className="grid gap-3">
                             <div className="space-y-1">
-                                <Label className="text-xs text-muted-foreground">授權名稱 (License Name)</Label>
+                                <Label className="text-xs text-muted-foreground" htmlFor="license-name">授權名稱 (License Name)</Label>
                                 <Input 
+                                    id="license-name"
+                                    name="licenseName"
                                     placeholder="e.g. MIT License / My Custom Terms" 
                                     value={license}
                                     onChange={(e) => setLicense(e.target.value)}
                                 />
                             </div>
                             <div className="space-y-1">
-                                <Label className="text-xs text-muted-foreground">授權連結 (License URL)</Label>
+                                <Label className="text-xs text-muted-foreground" htmlFor="license-url">授權連結 (License URL)</Label>
                                 <div className="relative">
                                     <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                     <Input 
+                                        id="license-url"
+                                        name="licenseUrl"
                                         className="pl-9"
                                         placeholder="https://..." 
                                         value={licenseUrl}
@@ -186,9 +190,11 @@ export function MetadataLicenseTab({
 
             {/* 3. Additional Terms */}
             <div className="space-y-3 pt-2">
-                <Label className="text-base font-semibold block">補充/額外條款 (Additional Terms)</Label>
+                <Label className="text-base font-semibold block" htmlFor="license-new-term">補充/額外條款 (Additional Terms)</Label>
                 <div className="flex gap-2">
                     <Input 
+                        id="license-new-term"
+                        name="licenseNewTerm"
                         placeholder="輸入條款後按 Enter 新增 (e.g. 禁止用於 AI 訓練)" 
                         value={newTerm}
                         onChange={(e) => setNewTerm(e.target.value)}
@@ -220,12 +226,14 @@ export function MetadataLicenseTab({
 
             {/* 4. Copyright Input */}
             <div className="pt-4 border-t">
-                <Label className="text-base font-semibold mb-2 block">版權宣告 (Copyright)</Label>
+                <Label className="text-base font-semibold mb-2 block" htmlFor="license-copyright">版權宣告 (Copyright)</Label>
                 <div className="grid gap-2">
                     <p className="text-sm text-muted-foreground">
                         (選填) 顯示版權歸屬，例如年份與擁有者。
                     </p>
                     <Input 
+                        id="license-copyright"
+                        name="licenseCopyright"
                         placeholder="e.g. © 2026 Your Name" 
                         value={copyright}
                         onChange={(e) => setCopyright(e.target.value)}

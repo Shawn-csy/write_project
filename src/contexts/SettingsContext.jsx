@@ -94,6 +94,7 @@ export function SettingsProvider({ children }) {
   const defaultStatsConfig = {
       wordCountDivisor: 200, 
       excludeNestedDuration: false,
+      excludePunctuation: false,
       customKeywords: [
           { factor: 1, keywords: "s, sec, 秒" },
           { factor: 60, keywords: "m, min, 分, 分鐘" }

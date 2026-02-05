@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Header
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Header, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
@@ -7,12 +7,39 @@ import database
 import models
 import migration
 from routers import analysis, scripts, users, orgs, personas, tags, themes, admin, public, seo
+from dependencies import get_current_user_id
+from rate_limit import limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 # Initialize Database and Run Migrations
 models.Base.metadata.create_all(bind=database.engine)
 migration.run_migrations()
 
 app = FastAPI()
+app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return Response("Rate limit exceeded", status_code=429)
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    # Loose CSP to avoid blocking current frontend behavior
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src * 'self' data: blob: 'unsafe-inline' 'unsafe-eval'; "
+        "img-src * data: blob:; "
+        "connect-src *; "
+        "style-src * 'unsafe-inline'; "
+        "frame-ancestors 'self';",
+    )
+    response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("Referrer-Policy", "no-referrer-when-downgrade")
+    return response
 
 # Middleware
 app.add_middleware(
@@ -20,8 +47,10 @@ app.add_middleware(
     # allow_origins=["*"], # Wildcard '*' is invalid with allow_credentials=True
     allow_origins=[
         "http://localhost:5173",
+        "http://localhost:1090",
         "http://localhost:8080",
         "https://scripts.shawnup.com",
+        "https://open-scripts.shawnup.com",
         "https://scripts-api.shawnup.com",
         "https://scripts-666540946249.asia-east1.run.app"
     ],
@@ -43,6 +72,11 @@ app.include_router(themes.router)
 app.include_router(admin.router)
 app.include_router(public.router)
 app.include_router(seo.router)
+
+# Simple auth check endpoint for debugging
+@app.get("/api/health/auth")
+async def auth_health_check(user_id: str = Depends(get_current_user_id)):
+    return {"ok": True, "uid": user_id}
 
 # Static File Serving (SPA Fallback)
 DIST_DIR = os.path.join(os.path.dirname(__file__), "..", "dist")

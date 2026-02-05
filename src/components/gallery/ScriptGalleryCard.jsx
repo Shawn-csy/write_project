@@ -6,7 +6,7 @@ import { Eye, Heart } from "lucide-react";
 import { toggleScriptLike, incrementScriptView } from "../../lib/db";
 import { AuthorBadge } from "../ui/AuthorBadge";
 
-export function ScriptGalleryCard({ script, onClick }) {
+export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
   const navigate = useNavigate();
   const { id, title, author, coverUrl, tags = [], views = 0, likes = 0 } = script;
   const normalizedTags = (tags || [])
@@ -48,6 +48,46 @@ export function ScriptGalleryCard({ script, onClick }) {
      incrementScriptView(id).catch(err => console.error("Failed to count view", err));
      if (onClick) onClick();
   };
+
+  if (variant === "compact") {
+    return (
+      <Card
+        onClick={handleCardClick}
+        className="group relative overflow-hidden border border-border/40 bg-background/40 hover:bg-background/70 hover:cursor-pointer transition-all duration-200"
+      >
+        <div className="flex gap-3 p-3">
+          <div className="w-16 shrink-0">
+            <div className="aspect-[2/3] w-full overflow-hidden rounded-md bg-muted">
+              {coverUrl ? (
+                <img
+                  src={coverUrl}
+                  alt={title}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-secondary/30 text-muted-foreground text-xs px-2 text-center">
+                  {title}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-semibold leading-snug line-clamp-2">{title}</div>
+            <div className="mt-1">
+              <AuthorBadge author={author} />
+            </div>
+            <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
+              <div className="flex items-center gap-1" title="Views">
+                <Eye className="w-3.5 h-3.5" />
+                <span>{views.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card 

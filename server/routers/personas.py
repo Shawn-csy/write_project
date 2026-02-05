@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
-from typing import List
+from typing import List, Optional
 from sqlalchemy.orm import Session
 import crud
 import models
 import schemas
-from dependencies import get_db, get_current_user_id
+from dependencies import get_db, get_current_user_id, is_admin_user_id
 
 router = APIRouter(prefix="/api/personas", tags=["personas"])
 
@@ -13,8 +13,13 @@ def create_persona(persona: schemas.PersonaCreate, db: Session = Depends(get_db)
     return crud.create_persona(db, persona, current_user)
 
 @router.get("", response_model=List[schemas.Persona])
-def get_personas(db: Session = Depends(get_db), current_user: str = Depends(get_current_user_id)):
-    return crud.get_user_personas(db, current_user)
+def get_personas(
+    current_user: str = Depends(get_current_user_id),
+    ownerIdQuery: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    effective_owner_id = ownerIdQuery if ownerIdQuery and is_admin_user_id(current_user) else current_user
+    return crud.get_user_personas(db, effective_owner_id)
 
 @router.put("/{persona_id}", response_model=schemas.Persona)
 def update_persona(persona_id: str, persona: schemas.PersonaCreate, db: Session = Depends(get_db), current_user: str = Depends(get_current_user_id)):
@@ -39,7 +44,10 @@ def delete_persona(persona_id: str, db: Session = Depends(get_db), current_user:
 def transfer_persona(persona_id: str, payload: schemas.ScriptTransferRequest, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
     # Reusing ScriptTransferRequest because it has 'newOwnerId'. Ideally make a GenericTransferRequest.
     # schemas.ScriptTransferRequest = { newOwnerId: str }
-    success = crud.transfer_persona_ownership(db, persona_id, payload.newOwnerId, ownerId)
+    if is_admin_user_id(ownerId):
+        success = crud.transfer_persona_ownership_admin(db, persona_id, payload.newOwnerId)
+    else:
+        success = crud.transfer_persona_ownership(db, persona_id, payload.newOwnerId, ownerId)
     if not success:
          raise HTTPException(status_code=400, detail="Transfer failed. Check permissions or validity.")
-    return {"success": True}
+    return {"success": True, "id": persona_id, "newOwnerId": payload.newOwnerId}

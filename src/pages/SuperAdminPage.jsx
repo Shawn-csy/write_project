@@ -15,6 +15,10 @@ import {
 
 export default function SuperAdminPage() {
     const { currentUser } = useAuth();
+    const apiBaseUrl =
+        (typeof window !== "undefined" && window.__ENV__ && window.__ENV__.VITE_API_URL) ||
+        import.meta.env.VITE_API_URL ||
+        "/api";
     
     // Data States
     const [orgs, setOrgs] = useState([]);
@@ -32,6 +36,10 @@ export default function SuperAdminPage() {
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
     const [isTransferring, setIsTransferring] = useState(false);
+    const [sourceQuery, setSourceQuery] = useState("");
+    const [sourceResults, setSourceResults] = useState([]);
+    const [isSourceSearching, setIsSourceSearching] = useState(false);
+    const [sourceUser, setSourceUser] = useState(null);
 
     // Create Org State
     const [newOrgName, setNewOrgName] = useState("");
@@ -40,15 +48,16 @@ export default function SuperAdminPage() {
     useEffect(() => {
         if (!currentUser) return;
         loadAllData();
-    }, [currentUser]);
+    }, [currentUser, sourceUser]);
 
     const loadAllData = async () => {
         setIsLoading(true);
         try {
+            const sourceOwnerId = sourceUser?.id;
             const [oData, sData, pData] = await Promise.all([
-                getOrganizations(),
-                getUserScripts(),
-                getPersonas()
+                getOrganizations(sourceOwnerId),
+                getUserScripts(sourceOwnerId),
+                getPersonas(sourceOwnerId)
             ]);
             setOrgs(oData || []);
             setScripts(sData || []);
@@ -80,6 +89,25 @@ export default function SuperAdminPage() {
         return () => clearTimeout(delay);
     }, [searchQuery]);
 
+    useEffect(() => {
+        if (!sourceQuery) {
+            setSourceResults([]);
+            return;
+        }
+        const delay = setTimeout(async () => {
+            setIsSourceSearching(true);
+            try {
+                const results = await searchUsers(sourceQuery);
+                setSourceResults(results || []);
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setIsSourceSearching(false);
+            }
+        }, 400);
+        return () => clearTimeout(delay);
+    }, [sourceQuery]);
+
     const handleCreateOrg = async () => {
         if (!newOrgName) return;
         try {
@@ -106,15 +134,19 @@ export default function SuperAdminPage() {
         setIsTransferring(true);
         
         try {
+            let res = null;
             if (transferType === 'org') {
-                await transferOrganizationOwnership(selectedItem.id, targetUser.id);
+                res = await transferOrganizationOwnership(selectedItem.id, targetUser.id);
             } else if (transferType === 'script') {
-                await transferScriptOwnership(selectedItem.id, targetUser.id);
+                res = await transferScriptOwnership(selectedItem.id, targetUser.id);
             } else if (transferType === 'persona') {
-                await transferPersonaOwnership(selectedItem.id, targetUser.id);
+                res = await transferPersonaOwnership(selectedItem.id, targetUser.id);
             }
-            
-            alert(`移轉成功！`);
+            if (res?.newOwnerId && res.newOwnerId !== targetUser.id) {
+                alert("移轉回傳異常：新擁有者不一致，請重新整理確認。");
+            } else {
+                alert(`移轉成功！`);
+            }
             setShowTransferModal(false);
             setSelectedItem(null);
             setTargetUser(null);
@@ -128,16 +160,62 @@ export default function SuperAdminPage() {
     };
 
     return (
-        <div className="container mx-auto p-4 sm:p-8 max-w-6xl">
+        <div className="container mx-auto p-4 sm:p-8 max-w-6xl h-full overflow-y-auto">
             <header className="mb-8 border-b pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold font-serif mb-2">超級管理員控制台</h1>
                     <p className="text-muted-foreground">預先建立資產並移轉給新加入的使用者。</p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                        Debug: API Base = {apiBaseUrl}
+                    </p>
                 </div>
                 <div className="flex items-center gap-2">
                      <Badge variant="outline" className="text-xs">已登入身分：{currentUser?.displayName || "Admin"}</Badge>
                 </div>
             </header>
+
+            <Card className="mb-8">
+                <CardHeader>
+                    <CardTitle className="text-lg">來源使用者（要被移轉的資產）</CardTitle>
+                    <CardDescription>選擇要檢視或移轉的資產擁有者。</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    <Input
+                        placeholder="輸入 email / handle / userId 查詢"
+                        value={sourceQuery}
+                        onChange={(e) => setSourceQuery(e.target.value)}
+                    />
+                    {isSourceSearching && (
+                        <div className="text-xs text-muted-foreground flex items-center gap-2">
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            搜尋中...
+                        </div>
+                    )}
+                    {sourceResults.length > 0 && (
+                        <div className="space-y-2">
+                            {sourceResults.map(u => (
+                                <button
+                                    key={`source-${u.id}`}
+                                    className="w-full text-left border rounded-md px-3 py-2 hover:bg-muted"
+                                    onClick={() => {
+                                        setSourceUser(u);
+                                        setSourceQuery("");
+                                        setSourceResults([]);
+                                    }}
+                                >
+                                    <div className="text-sm font-medium">{u.displayName || u.handle || u.email}</div>
+                                    <div className="text-xs text-muted-foreground">{u.email || u.id}</div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                    {sourceUser && (
+                        <div className="text-sm text-muted-foreground">
+                            目前來源：{sourceUser.displayName || sourceUser.handle || sourceUser.email}（{sourceUser.email || sourceUser.id}）
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
             <Tabs defaultValue="orgs" className="space-y-6">
                 <TabsList className="grid w-full grid-cols-3 max-w-md">

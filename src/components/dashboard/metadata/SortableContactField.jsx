@@ -24,6 +24,9 @@ export const SortableContactField = ({ field, index, onUpdate, onRemove, onFocus
                 ≡
             </button>
             <Input
+                id={`contact-key-${field.id}`}
+                name={`contactKey-${field.id}`}
+                aria-label="聯絡方式種類"
                 value={field.key}
                 onChange={(e) => onUpdate(index, "key", e.target.value)}
                 onFocus={onFocus}
@@ -33,6 +36,9 @@ export const SortableContactField = ({ field, index, onUpdate, onRemove, onFocus
                 className="w-1/3"
             />
             <Input
+                id={`contact-value-${field.id}`}
+                name={`contactValue-${field.id}`}
+                aria-label="聯絡方式內容"
                 value={field.value}
                 onChange={(e) => onUpdate(index, "value", e.target.value)}
                 onFocus={onFocus}

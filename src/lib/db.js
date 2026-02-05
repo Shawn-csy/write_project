@@ -9,19 +9,34 @@ const getEnv = (key) => {
   return import.meta.env[key];
 };
 const API_BASE_URL = getEnv("VITE_API_URL") || "/api"; 
+const localAuthEnabled = ["1", "true", "yes"].includes(
+  String(getEnv("VITE_LOCAL_AUTH")).toLowerCase()
+);
+const localAuthUserId = getEnv("VITE_LOCAL_AUTH_UID") || "local-test-user";
+
+async function getAuthHeaders() {
+  if (localAuthEnabled) {
+    return { "X-User-ID": localAuthUserId };
+  }
+  if (auth.currentUser?.getIdToken) {
+    const token = await auth.currentUser.getIdToken();
+    if (token) {
+      return { Authorization: `Bearer ${token}` };
+    }
+  }
+  return {};
+}
 
 async function fetchApi(endpoint, options = {}, retries = 3, backoff = 500) {
   if (isApiOffline()) {
     throw new Error("API offline (cooldown)");
   }
   const url = `${API_BASE_URL}${endpoint}`;
-  
-  // Use Firebase Auth UID if available, otherwise fallback to test-user (for local dev/unauthed compliance)
-  const userId = auth.currentUser?.uid || "test-user";
 
+  const authHeaders = await getAuthHeaders();
   const headers = {
     "Content-Type": "application/json",
-    "X-User-ID": userId, 
+    ...authHeaders,
     ...options.headers,
   };
 
@@ -71,8 +86,9 @@ export const createScript = async (title, type = 'script', folder = '/') => {
 };
 
 // Get all scripts for the current user
-export const getUserScripts = async () => {
-  return fetchApi("/scripts");
+export const getUserScripts = async (ownerId) => {
+  const qs = ownerId ? `?ownerIdQuery=${encodeURIComponent(ownerId)}` : "";
+  return fetchApi(`/scripts${qs}`);
 };
 
 // Get a single script by ID
@@ -154,10 +170,8 @@ export const updateUserProfile = async (updates) => {
 
 export const exportScripts = async () => {
     const url = `${API_BASE_URL}/export/all`;
-    const userId = auth.currentUser?.uid || "test-user";
-    const res = await fetch(url, {
-         headers: { "X-User-ID": userId }
-    });
+    const authHeaders = await getAuthHeaders();
+    const res = await fetch(url, { headers: authHeaders });
     if (!res.ok) throw new Error("Export failed");
     return res.blob();
 };
@@ -221,8 +235,9 @@ export const incrementScriptView = async (scriptId) => {
 
 // --- Organization & Admin API ---
 
-export const getOrganizations = async () => {
-    return fetchApi("/organizations");
+export const getOrganizations = async (ownerId) => {
+    const qs = ownerId ? `?ownerIdQuery=${encodeURIComponent(ownerId)}` : "";
+    return fetchApi(`/organizations${qs}`);
 };
 
 export const getOrganization = async (orgId) => {
@@ -249,11 +264,72 @@ export const deleteOrganization = async (orgId) => {
     });
 };
 
+export const getOrganizationMembers = async (orgId) => {
+    return fetchApi(`/organizations/${orgId}/members`);
+};
+
+export const searchOrganizations = async (query) => {
+    return fetchApi(`/organizations/search?q=${encodeURIComponent(query)}`);
+};
+
+export const inviteOrganizationMember = async (orgId, userId) => {
+    return fetchApi(`/organizations/${orgId}/invite`, {
+        method: "POST",
+        body: JSON.stringify({ userId })
+    });
+};
+
+export const requestToJoinOrganization = async (orgId) => {
+    return fetchApi(`/organizations/${orgId}/request`, {
+        method: "POST"
+    });
+};
+
+export const getOrganizationInvites = async (orgId) => {
+    return fetchApi(`/organizations/${orgId}/invites`);
+};
+
+export const getOrganizationRequests = async (orgId) => {
+    return fetchApi(`/organizations/${orgId}/requests`);
+};
+
+export const getMyOrganizationInvites = async () => {
+    return fetchApi(`/organizations/me/invites`);
+};
+
+export const getMyOrganizationRequests = async () => {
+    return fetchApi(`/organizations/me/requests`);
+};
+
+export const acceptOrganizationInvite = async (inviteId) => {
+    return fetchApi(`/organizations/invites/${inviteId}/accept`, {
+        method: "POST"
+    });
+};
+
+export const declineOrganizationInvite = async (inviteId) => {
+    return fetchApi(`/organizations/invites/${inviteId}/decline`, {
+        method: "POST"
+    });
+};
+
+export const acceptOrganizationRequest = async (requestId) => {
+    return fetchApi(`/organizations/requests/${requestId}/accept`, {
+        method: "POST"
+    });
+};
+
+export const declineOrganizationRequest = async (requestId) => {
+    return fetchApi(`/organizations/requests/${requestId}/decline`, {
+        method: "POST"
+    });
+};
+
 
 export const transferOrganizationOwnership = async (orgId, targetUserId) => {
     return fetchApi(`/organizations/${orgId}/transfer`, {
         method: "POST",
-        body: JSON.stringify({ newOwnerId: targetUserId, transferScripts: true })
+        body: JSON.stringify({ newOwnerId: targetUserId, transferScripts: false })
     });
 };
 
@@ -277,8 +353,9 @@ export const searchUsers = async (query) => {
     return fetchApi(`/admin/users?q=${encodeURIComponent(query)}`);
 };
 
-export const getPersonas = async () => {
-    return fetchApi("/personas");
+export const getPersonas = async (ownerId) => {
+    const qs = ownerId ? `?ownerIdQuery=${encodeURIComponent(ownerId)}` : "";
+    return fetchApi(`/personas${qs}`);
 };
 
 export const createPersona = async (data) => {

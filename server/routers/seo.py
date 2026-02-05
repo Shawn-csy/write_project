@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 import os
 import traceback
+import html
 import models
 from dependencies import get_db
 
@@ -30,9 +31,10 @@ def read_script_seo(script_id: str, db: Session = Depends(get_db)):
 
         # 3. Inject Tags
         if script and script.isPublic:
-            title = f"{script.title}｜Screenplay Reader"
-            desc = (script.content[:200] + "...") if script.content else "線上閱讀、瀏覽與分享 Fountain 劇本的閱讀器。"
-            desc = desc.replace('"', '&quot;').replace('\n', ' ')
+            safe_title = html.escape(script.title or "")
+            title = f"{safe_title}｜Screenplay Reader"
+            desc_raw = (script.content[:200] + "...") if script.content else "線上閱讀、瀏覽與分享 Fountain 劇本的閱讀器。"
+            desc = html.escape(desc_raw).replace("\n", " ")
             
             # Helper to replace meta content
             def replace_meta(html, property_name, new_content):
@@ -46,7 +48,7 @@ def read_script_seo(script_id: str, db: Session = Depends(get_db)):
             html_content = html_content.replace("<title>Screenplay Reader</title>", f"<title>{title}</title>")
             
             # OG Tags
-            html_content = replace_meta(html_content, "og:title", script.title)
+            html_content = replace_meta(html_content, "og:title", safe_title)
             html_content = replace_meta(html_content, "og:description", desc)
             
             # Standard Description

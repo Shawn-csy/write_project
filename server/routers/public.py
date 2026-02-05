@@ -145,6 +145,11 @@ def get_public_persona(persona_id: str, db: Session = Depends(get_db)):
                 persona.tags = json.loads(persona.tags)
             except Exception:
                 persona.tags = []
+        if isinstance(persona.links, str):
+            try:
+                persona.links = json.loads(persona.links)
+            except Exception:
+                persona.links = []
         orgs = []
         if persona.organizationIds:
             orgs = db.query(models.Organization).filter(models.Organization.id.in_(persona.organizationIds)).all()
@@ -167,71 +172,60 @@ def get_public_persona(persona_id: str, db: Session = Depends(get_db)):
 
 @router.get("/public-personas", response_model=List[schemas.PersonaPublic])
 def list_public_personas(db: Session = Depends(get_db)):
-    # 1. Get IDs of Personas with public scripts
+    # Return personas that have at least one explicitly public script
     persona_ids = [
         row[0]
         for row in db.query(models.Script.personaId)
-        .filter(models.Script.isPublic == 1, models.Script.personaId.isnot(None))
+        .filter(models.Script.isPublic == 1)
+        .filter(models.Script.personaId.isnot(None))
         .distinct()
         .all()
     ]
-    
-    # 2. Get IDs of Users with public scripts (where personaId is None)
-    user_ids = [
-        row[0]
-        for row in db.query(models.Script.ownerId)
-        .filter(models.Script.isPublic == 1, models.Script.personaId.is_(None))
-        .distinct()
-        .all()
-    ]
-    
+
+    if not persona_ids:
+        return []
+
+    personas = db.query(models.Persona).filter(models.Persona.id.in_(persona_ids)).all()
     results = []
 
-    # Process Personas
-    if persona_ids:
-        personas = db.query(models.Persona).filter(models.Persona.id.in_(persona_ids)).all()
-        
-        # Pre-fetch Organizations for map
-        all_org_ids = set()
-        persona_org_map = {}
-        for p in personas:
-            org_ids = p.organizationIds
-            if isinstance(org_ids, str):
-                try:
-                    org_ids = json.loads(org_ids)
-                except Exception:
-                    org_ids = []
-            if isinstance(p.tags, str):
-                try:
-                    p.tags = json.loads(p.tags)
-                except Exception:
-                    p.tags = []
-            org_ids = org_ids or []
-            persona_org_map[p.id] = org_ids
-            all_org_ids.update(org_ids)
-        
-        org_map = {}
-        if all_org_ids:
-            orgs = db.query(models.Organization).filter(models.Organization.id.in_(list(all_org_ids))).all()
-            for o in orgs:
-                if isinstance(o.tags, str):
-                    try:
-                        o.tags = json.loads(o.tags)
-                    except Exception:
-                        o.tags = []
-            org_map = {o.id: o for o in orgs}
-            
-        for p in personas:
-            result = schemas.PersonaPublic.model_validate(p)
-            result.organizations = [org_map[oid] for oid in persona_org_map.get(p.id, []) if oid in org_map]
-            results.append(result)
+    all_org_ids = set()
+    persona_org_map = {}
+    for p in personas:
+        org_ids = p.organizationIds
+        if isinstance(org_ids, str):
+            try:
+                org_ids = json.loads(org_ids)
+            except Exception:
+                org_ids = []
+        if isinstance(p.tags, str):
+            try:
+                p.tags = json.loads(p.tags)
+            except Exception:
+                p.tags = []
+        if isinstance(p.links, str):
+            try:
+                p.links = json.loads(p.links)
+            except Exception:
+                p.links = []
+        org_ids = org_ids or []
+        persona_org_map[p.id] = org_ids
+        all_org_ids.update(org_ids)
 
-    # Process Users
-    if user_ids:
-        users = db.query(models.User).filter(models.User.id.in_(user_ids)).all()
-        for u in users:
-            results.append(user_to_persona_public(u, db))
-            
+    org_map = {}
+    if all_org_ids:
+        orgs = db.query(models.Organization).filter(models.Organization.id.in_(list(all_org_ids))).all()
+        for o in orgs:
+            if isinstance(o.tags, str):
+                try:
+                    o.tags = json.loads(o.tags)
+                except Exception:
+                    o.tags = []
+        org_map = {o.id: o for o in orgs}
+
+    for p in personas:
+        result = schemas.PersonaPublic.model_validate(p)
+        result.organizations = [org_map[oid] for oid in persona_org_map.get(p.id, []) if oid in org_map]
+        results.append(result)
     return results
 
 @router.get("/public-organizations/{org_id}", response_model=schemas.OrganizationPublic)
@@ -260,22 +254,19 @@ def get_public_organization(org_id: str, db: Session = Depends(get_db)):
                 p.tags = []
         if org_ids and org_id in org_ids:
             members.append(p)
+    # Avoid validating org.members (User objects) against Persona schema
+    try:
+        org.members = []
+    except Exception:
+        pass
     result = schemas.OrganizationPublic.model_validate(org)
     result.members = members
     return result
 
 @router.get("/public-organizations", response_model=List[schemas.OrganizationPublic])
 def list_public_organizations(db: Session = Depends(get_db)):
-    org_ids = [
-        row[0]
-        for row in db.query(models.Script.organizationId)
-        .filter(models.Script.isPublic == 1, models.Script.organizationId.isnot(None))
-        .distinct()
-        .all()
-    ]
-    if not org_ids:
-        return []
-    orgs = db.query(models.Organization).filter(models.Organization.id.in_(org_ids)).all()
+    # Return all organizations (even without public scripts)
+    orgs = db.query(models.Organization).all()
     results = []
     for org in orgs:
         if isinstance(org.tags, str):
@@ -283,6 +274,10 @@ def list_public_organizations(db: Session = Depends(get_db)):
                 org.tags = json.loads(org.tags)
             except Exception:
                 org.tags = []
+        try:
+            org.members = []
+        except Exception:
+            pass
         result = schemas.OrganizationPublic.model_validate(org)
         result.members = []
         results.append(result)
