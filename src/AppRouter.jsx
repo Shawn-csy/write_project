@@ -21,6 +21,7 @@ import ReaderHeader from "./components/header/ReaderHeader";
 import { MainLayout } from "./components/layout/MainLayout";
 import { StatisticsPanel } from "./components/statistics/StatisticsPanel";
 import { RequireAuth } from "./components/auth/RequireAuth";
+import { renderSafeHtml } from "./lib/safeHtml";
 
 // Lazy Components
 const SettingsPanel = React.lazy(() => import("./components/panels/SettingsPanel"));
@@ -172,7 +173,9 @@ export function AppRouter({
                                         {!nav.homeOpen && !nav.aboutOpen && !nav.settingsOpen && hasTitle && showTitle && (
                                             <Card className="border border-border border-t-0 rounded-t-none">
                                                 <CardContent className="p-4">
-                                                    <div className="title-page prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: titleHtml }} />
+                                                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                                                        {renderSafeHtml(titleHtml)}
+                                                    </div>
                                                 </CardContent>
                                             </Card>
                                         )}

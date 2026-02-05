@@ -13,9 +13,9 @@ test('basic flow - dashboard loads', async ({ page }) => {
   await expect(page.getByRole('button', { name: /作者/ })).toBeVisible();
 });
 
-test('local reader page loads with error for missing file', async ({ page }) => {
+test('unknown file route redirects to public gallery', async ({ page }) => {
   await page.goto('/file/demo.fountain');
   
-  // The app shows "找不到檔案：demo.fountain" as seen in the failure message
-  await expect(page.locator('body')).toContainText(/找不到檔案/i);
+  // Local reader route is removed; unauthenticated should land on public gallery
+  await expect(page.getByText('公開台本').first()).toBeVisible();
 });

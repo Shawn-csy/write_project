@@ -28,6 +28,9 @@ export const SortableField = ({ field, index, onUpdate, onRemove, onFocus, onBlu
                 <div className="flex-1 flex items-center gap-2">
                     <div className="h-px bg-border flex-1"></div>
                      <input
+                        id={`custom-divider-${field.id}`}
+                        name={`customDivider-${field.id}`}
+                        aria-label="分隔線標題"
                         className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest bg-transparent border-none text-center focus:outline-none focus:text-foreground w-20 hover:text-foreground transition-colors"
                         value={field.value}
                         onChange={(e) => onUpdate(index, "value", e.target.value)}
@@ -64,6 +67,9 @@ export const SortableField = ({ field, index, onUpdate, onRemove, onFocus, onBlu
             </button>
             <div className="w-1/3">
                 <Input
+                    id={`custom-field-key-${field.id}`}
+                    name={`customFieldKey-${field.id}`}
+                    aria-label="自訂欄位名稱"
                     value={field.key}
                     onChange={(e) => onUpdate(index, "key", e.target.value)}
                     onFocus={onFocus}
@@ -74,6 +80,9 @@ export const SortableField = ({ field, index, onUpdate, onRemove, onFocus, onBlu
             </div>
             <div className="w-2/3">
                 <Textarea
+                    id={`custom-field-value-${field.id}`}
+                    name={`customFieldValue-${field.id}`}
+                    aria-label="自訂欄位內容"
                     value={field.value}
                     onChange={(e) => onUpdate(index, "value", e.target.value)}
                     onFocus={onFocus}

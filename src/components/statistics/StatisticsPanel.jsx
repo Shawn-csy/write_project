@@ -60,10 +60,35 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
 
   // Format Duration
   const formattedDuration = useMemo(() => {
-    const mins = Math.floor(durationMinutes);
-    const secs = Math.round((durationMinutes - mins) * 60);
+    const dialogueChars = Number(counts?.dialogueChars || 0);
+    const actionChars = Number(counts?.actionChars || 0);
+    const customSeconds = Number(stats?.customDurationSeconds || 0);
+    const divisor = Number(statsConfig?.wordCountDivisor || 200);
+
+    // Prefer deterministic local calculation when we have counts.
+    if (dialogueChars > 0 || actionChars > 0 || customSeconds > 0) {
+      const readingMinutes = (dialogueChars + actionChars) / (Number.isFinite(divisor) && divisor > 0 ? divisor : 200);
+      const totalMinutes = readingMinutes + (customSeconds / 60);
+      const mins = Math.floor(totalMinutes);
+      const secs = Math.round((totalMinutes - mins) * 60);
+      return `${mins} 分 ${secs} 秒`;
+    }
+
+    let safeMinutes = Number(durationMinutes);
+    if (!Number.isFinite(safeMinutes) || safeMinutes === 0) {
+      const preferAll = actionChars > 0 ? Number(stats?.estimates?.all) : Number(stats?.estimates?.pure);
+      if (Number.isFinite(preferAll)) {
+        safeMinutes = preferAll;
+      } else {
+        const fallback = Number(stats?.estimates?.pure);
+        safeMinutes = Number.isFinite(fallback) ? fallback : 0;
+      }
+    }
+    if (!Number.isFinite(safeMinutes)) return "--";
+    const mins = Math.floor(safeMinutes);
+    const secs = Math.round((safeMinutes - mins) * 60);
     return `${mins} 分 ${secs} 秒`;
-  }, [durationMinutes]);
+  }, [counts?.dialogueChars, counts?.actionChars, stats?.customDurationSeconds, statsConfig?.wordCountDivisor, durationMinutes, stats?.estimates?.pure, stats?.estimates?.all]);
 
   const markerEntries = useMemo(() => {
     // Transform customLayers (Object: { ID: [items...] }) to Array of structs

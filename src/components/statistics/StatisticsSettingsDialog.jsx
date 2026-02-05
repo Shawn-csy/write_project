@@ -16,6 +16,7 @@ export function StatisticsSettingsDialog({ open, onOpenChange, config, onSave, s
     const defaultConfig = {
         wordCountDivisor: 200,
         excludeNestedDuration: false,
+        excludePunctuation: false,
         customKeywords: [
             { factor: 1, keywords: "s, sec, 秒" },
             { factor: 60, keywords: "m, min, 分, 分鐘" }
@@ -141,6 +142,17 @@ export function StatisticsSettingsDialog({ open, onOpenChange, config, onSave, s
                         </div>
                         <p className="text-xs text-muted-foreground -mt-3 pl-6">
                             若開啟，當外層區間已有指定時長（如 &gt;&gt;SE &lt;10s&gt;）時，其內部的時間標記將不會被重複加總。
+                        </p>
+                        <div className="flex items-center gap-2 pt-2">
+                            <Checkbox 
+                                id="exclude-punctuation"
+                                checked={localConfig.excludePunctuation}
+                                onCheckedChange={(c) => setLocalConfig({...localConfig, excludePunctuation: c})}
+                            />
+                            <Label htmlFor="exclude-punctuation">排除標點符號（字數計算）</Label>
+                        </div>
+                        <p className="text-xs text-muted-foreground -mt-3 pl-6">
+                            開啟後，字數統計將忽略標點符號（例如：，。！？「」…）。
                         </p>
                     </div>
 

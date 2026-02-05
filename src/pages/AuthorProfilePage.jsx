@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Link as LinkIcon, Building2 } from "lucide-react";
+import { Link as LinkIcon, Building2, Globe, Twitter, Instagram, Youtube, Github } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { ScriptGalleryCard } from "../components/gallery/ScriptGalleryCard";
 import { getPublicPersona, getPublicScripts } from "../lib/db";
@@ -20,7 +20,10 @@ export default function AuthorProfilePage() {
       try {
         const persona = await getPublicPersona(id);
         setAuthor(persona);
-        const publicScripts = await getPublicScripts(undefined, undefined, id);
+        const isUserProfile = persona?.ownerId === persona?.id;
+        const publicScripts = isUserProfile
+          ? []
+          : await getPublicScripts(undefined, undefined, id);
         const normalizedScripts = (publicScripts || [])
           .filter(s => s.type !== "folder" && !s.isFolder)
           .map((s) => ({
@@ -41,6 +44,15 @@ export default function AuthorProfilePage() {
   }, [id]);
 
   const tagStyle = (tag) => getMorandiTagStyle(tag, author?.tags || []);
+
+  const getLinkIcon = (url = "") => {
+      const u = url.toLowerCase();
+      if (u.includes("twitter.com") || u.includes("x.com")) return Twitter;
+      if (u.includes("instagram.com")) return Instagram;
+      if (u.includes("youtube.com") || u.includes("youtu.be")) return Youtube;
+      if (u.includes("github.com")) return Github;
+      return Globe;
+  };
 
   if (isLoading) {
       return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Loading Profile...</div>;
@@ -66,11 +78,19 @@ export default function AuthorProfilePage() {
         }}
       />
 
-      <main className="container mx-auto px-4 py-8">
+      <div className="h-48 bg-muted/30">
+        {author.bannerUrl ? (
+          <img src={author.bannerUrl} alt={`${author.displayName} banner`} className="w-full h-full object-cover" />
+        ) : (
+          <div className="h-full bg-gradient-to-r from-slate-900 to-slate-700" />
+        )}
+      </div>
+
+      <main className="container mx-auto px-4 py-8 -mt-16">
         
         {/* Profile Header */}
         <div className="flex flex-col md:flex-row items-start gap-8 mb-12">
-            <Avatar className="w-32 h-32 md:w-40 md:h-40 border-4 border-muted">
+            <Avatar className="w-32 h-32 md:w-40 md:h-40 border-4 border-muted bg-background">
                 <AvatarImage src={author.avatar} />
                 <AvatarFallback>{author.displayName?.[0]}</AvatarFallback>
             </Avatar>
@@ -119,6 +139,22 @@ export default function AuthorProfilePage() {
                             Website
                         </a>
                     )}
+                    {(author.links || []).filter(l => l && l.url).map((link, idx) => {
+                        const Icon = getLinkIcon(link.url || "");
+                        const label = link.label || link.url || "Link";
+                        return (
+                            <a
+                                key={`author-link-${idx}`}
+                                href={link.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-center gap-1 hover:text-primary transition-colors"
+                            >
+                                <Icon className="w-4 h-4" />
+                                {label}
+                            </a>
+                        );
+                    })}
                 </div>
             </div>
         </div>

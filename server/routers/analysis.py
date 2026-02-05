@@ -1,11 +1,12 @@
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from database import get_db
 import crud
 from analysis import ScriptAnalyzer
 from dependencies import get_current_user_id
 import logging
+from rate_limit import limiter
 
 router = APIRouter(prefix="/api/analysis", tags=["analysis"])
 logger = logging.getLogger(__name__)
@@ -27,7 +28,13 @@ logger = logging.getLogger(__name__)
 # Let's use `/api/analysis/script/{script_id}` to be clean and separate.
 
 @router.get("/script/{script_id}")
-def analyze_script(script_id: str, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+@limiter.limit("30/minute")
+def analyze_script(
+    request: Request,
+    script_id: str,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
     script = crud.get_script(db, script_id=script_id, ownerId=ownerId)
     if not script:
         raise HTTPException(status_code=404, detail="Script not found")

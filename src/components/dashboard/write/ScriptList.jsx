@@ -220,6 +220,9 @@ export function ScriptList({
                                         {item.type !== 'folder' && !readOnly && (
                                             <div className="w-28 text-center hidden md:block" onClick={e => e.stopPropagation()}>
                                                 <select 
+                                                    id={`script-theme-${item.id}`}
+                                                    name={`scriptTheme-${item.id}`}
+                                                    aria-label="劇本標記主題"
                                                     className="w-full h-6 text-[10px] rounded border border-input bg-background px-1"
                                                     value={item.markerThemeId || ""}
                                                     onChange={async (e) => {

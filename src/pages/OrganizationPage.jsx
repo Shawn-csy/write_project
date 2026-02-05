@@ -8,10 +8,12 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs"
 import { getPublicOrganization, getPublicScripts } from "../lib/db";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { getMorandiTagStyle } from "../lib/tagColors";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function OrganizationPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { currentUser, login } = useAuth();
   const [org, setOrg] = useState(null);
   const [scripts, setScripts] = useState([]);
   const [members, setMembers] = useState([]);
@@ -41,7 +43,7 @@ export default function OrganizationPage() {
     };
 
     loadData();
-  }, [id]);
+  }, [id, currentUser]);
 
   const tagStyle = (tag) => getMorandiTagStyle(tag, org?.tags || []);
 
@@ -66,8 +68,14 @@ export default function OrganizationPage() {
         }}
       />
 
-      {/* Banner Area (Optional, gradient for now) */}
-      <div className="h-48 bg-gradient-to-r from-blue-900 to-slate-900"></div>
+      {/* Banner Area */}
+      <div className="h-48">
+        {org.bannerUrl ? (
+          <img src={org.bannerUrl} alt={`${org.name} banner`} className="w-full h-full object-cover" />
+        ) : (
+          <div className="h-full bg-gradient-to-r from-blue-900 to-slate-900" />
+        )}
+      </div>
       
       <main className="container mx-auto px-4 -mt-16 pb-12 relative animate-in slide-in-from-bottom-4 duration-700">
          {/* Org Header Card */}
@@ -108,9 +116,7 @@ export default function OrganizationPage() {
                  </div>
              </div>
              
-             <div className="flex gap-2 self-start md:self-center">
-                 <Button variant="outline">Follow</Button>
-             </div>
+             {/* 申請加入已移除（改由搜尋申請流程） */}
          </div>
 
          {/* Content Tabs */}

@@ -64,6 +64,7 @@ env/
 # IDE / Editors
 .idea/
 .vscode/
+server/secrets/
 *.swp
 *.swo
 
@@ -88,3 +89,4 @@ blob-report/
 coverage/
 .vitest-results.json
 convert_example
+service-account.json

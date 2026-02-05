@@ -67,7 +67,7 @@ export function MetadataAdvancedTab({
 
             <div className="pt-4 border-t">
                 <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium">JSON 模式</label>
+                    <label className="text-sm font-medium" htmlFor="metadata-json-text">JSON 模式</label>
                     <Button type="button" variant="outline" size="sm" onClick={() => setJsonMode(!jsonMode)}>
                         {jsonMode ? "關閉 JSON" : "開啟 JSON"}
                     </Button>
@@ -75,6 +75,9 @@ export function MetadataAdvancedTab({
                 {jsonMode && (
                         <div className="mt-2 space-y-2 animate-in fade-in zoom-in-95 duration-200">
                         <Textarea
+                            id="metadata-json-text"
+                            name="metadataJsonText"
+                            aria-label="JSON 內容"
                             value={jsonText}
                             onChange={(e) => setJsonText(e.target.value)}
                             className="font-mono text-xs h-64"
@@ -87,4 +90,3 @@ export function MetadataAdvancedTab({
         </div>
     );
 }
-

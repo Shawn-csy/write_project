@@ -21,6 +21,7 @@ class OrganizationBase(BaseModel):
     description: Optional[str] = ""
     website: Optional[str] = ""
     logoUrl: Optional[str] = ""
+    bannerUrl: Optional[str] = ""
     tags: List[str] = []
 
 class OrganizationCreate(OrganizationBase):
@@ -31,12 +32,13 @@ class OrganizationUpdate(BaseModel):
     description: Optional[str] = None
     website: Optional[str] = None
     logoUrl: Optional[str] = None
+    bannerUrl: Optional[str] = None
     tags: Optional[List[str]] = None
 
 class OrganizationTransferRequest(BaseModel):
     newOwnerId: str
     transferScripts: bool = True
-    
+
 class Organization(OrganizationBase):
     id: str
     ownerId: str
@@ -48,6 +50,7 @@ class Organization(OrganizationBase):
 # User Schemas
 class UserBase(BaseModel):
     handle: Optional[str] = None
+    email: Optional[str] = None
     displayName: Optional[str] = None
     bio: Optional[str] = None
     avatar: Optional[str] = None
@@ -60,6 +63,14 @@ class UserCreate(UserBase):
 class OrganizationMemberRequest(BaseModel):
     userId: str
 
+class OrganizationInviteRequest(BaseModel):
+    userId: Optional[str] = None
+    email: Optional[str] = None
+
+class OrganizationRequestCreate(BaseModel):
+    orgId: str
+
+
 class ScriptTransferRequest(BaseModel):
     newOwnerId: str
 
@@ -68,7 +79,9 @@ class PersonaBase(BaseModel):
     displayName: str
     bio: Optional[str] = ""
     avatar: Optional[str] = ""
+    bannerUrl: Optional[str] = ""
     website: Optional[str] = ""
+    links: List[Dict[str, Any]] = []
     organizationIds: List[str] = []
     tags: List[str] = []
     defaultLicense: Optional[str] = ""
@@ -120,11 +133,44 @@ class MarkerThemeUpdate(BaseModel):
 class UserPublic(BaseModel):
     id: str
     handle: Optional[str] = None
+    email: Optional[str] = None # Include email if needed for admin search, or maybe restrict? Assuming visible for search results.
     displayName: Optional[str] = "Anonymous"
     avatar: Optional[str] = None
     website: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+class OrganizationInvite(BaseModel):
+    id: str
+    orgId: str
+    invitedUserId: str
+    inviterUserId: str
+    status: str
+    createdAt: int
+    invitedUser: Optional[UserPublic] = None
+    inviterUser: Optional[UserPublic] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class OrganizationRequest(BaseModel):
+    id: str
+    orgId: str
+    requesterUserId: str
+    status: str
+    createdAt: int
+    requester: Optional[UserPublic] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class OrganizationMembersResponse(BaseModel):
+    users: List[UserPublic] = []
+    personas: List[Persona] = []
+
+class OrganizationInvitesResponse(BaseModel):
+    invites: List[OrganizationInvite] = []
+
+class OrganizationRequestsResponse(BaseModel):
+    requests: List[OrganizationRequest] = []
 
 class MarkerTheme(MarkerThemeBase):
     id: str

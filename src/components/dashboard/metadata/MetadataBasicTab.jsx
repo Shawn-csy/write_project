@@ -19,8 +19,8 @@ export function MetadataBasicTab({
         <div className="space-y-4 h-full">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                    <label className="text-sm font-medium">標題 (Title)</label>
-                    <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="劇本標題" />
+                    <label className="text-sm font-medium" htmlFor="metadata-title">標題 (Title)</label>
+                    <Input id="metadata-title" name="metadataTitle" value={title} onChange={e => setTitle(e.target.value)} placeholder="劇本標題" />
                 </div>
                 <div className="grid gap-2">
                     <label className="text-sm font-medium">發布身分 (Publish As)</label>
@@ -29,20 +29,11 @@ export function MetadataBasicTab({
                             <SelectValue placeholder="選擇身分" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="user">{currentUser?.displayName || "個人 (Me)"}</SelectItem>
                             {personas.length > 0 && (
                                 <SelectGroup>
                                     <SelectLabel>作者身分 (Personas)</SelectLabel>
                                     {personas.map(p => (
                                         <SelectItem key={p.id} value={`persona:${p.id}`}>{p.displayName}</SelectItem>
-                                    ))}
-                                </SelectGroup>
-                            )}
-                            {orgs.length > 0 && (
-                                <SelectGroup>
-                                    <SelectLabel>組織 (Organizations)</SelectLabel>
-                                    {orgs.map(o => (
-                                        <SelectItem key={o.id} value={`org:${o.id}`}>{o.name}</SelectItem>
                                     ))}
                                 </SelectGroup>
                             )}
@@ -89,19 +80,21 @@ export function MetadataBasicTab({
                     </Select>
                 </div>
                  <div className="grid gap-2">
-                    <label className="text-sm font-medium">日期 (Date)</label>
-                    <Input value={date} onChange={e => setDate(e.target.value)} placeholder="e.g. 2024-01-01 or Draft 1" />
+                    <label className="text-sm font-medium" htmlFor="metadata-date">日期 (Date)</label>
+                    <Input id="metadata-date" name="metadataDate" value={date} onChange={e => setDate(e.target.value)} placeholder="e.g. 2024-01-01 or Draft 1" />
                 </div>
             </div>
             
             <div className="grid gap-2">
-                <label className="text-sm font-medium">來源 (Source)</label>
-                <Input value={source} onChange={e => setSource(e.target.value)} placeholder="改編來源或其他" />
+                <label className="text-sm font-medium" htmlFor="metadata-source">來源 (Source)</label>
+                <Input id="metadata-source" name="metadataSource" value={source} onChange={e => setSource(e.target.value)} placeholder="改編來源或其他" />
             </div>
 
             <div className="grid gap-2">
-                <label className="text-sm font-medium">簡介 (Synopsis)</label>
+                <label className="text-sm font-medium" htmlFor="metadata-synopsis">簡介 (Synopsis)</label>
                 <Textarea
+                    id="metadata-synopsis"
+                    name="metadataSynopsis"
                     value={synopsis}
                     onChange={(e) => setSynopsis(e.target.value)}
                     placeholder="劇本的簡介或摘要..."

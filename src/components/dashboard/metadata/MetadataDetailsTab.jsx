@@ -47,19 +47,19 @@ export function MetadataDetailsTab({
             )}
             <div className="grid gap-4 p-4 border rounded-lg bg-muted/20">
                 <div className="grid gap-2">
-                    <label className="text-sm font-medium">作者名稱 (Author Text)</label>
-                    <Input value={author} onChange={e => setAuthor(e.target.value)} placeholder="覆蓋顯示的作者名稱..." />
+                    <label className="text-sm font-medium" htmlFor="metadata-author">作者名稱 (Author Text)</label>
+                    <Input id="metadata-author" name="metadataAuthor" value={author} onChange={e => setAuthor(e.target.value)} placeholder="覆蓋顯示的作者名稱..." />
                     <div className="text-xs text-muted-foreground">若留空則顯示發布身分的名稱。此欄位會寫入劇本標頭。</div>
                 </div>
                 <div className="grid gap-2">
-                    <label className="text-sm font-medium">封面圖片 URL (Cover)</label>
-                    <Input value={coverUrl} onChange={e => setCoverUrl(e.target.value)} placeholder="https://..." />
+                    <label className="text-sm font-medium" htmlFor="metadata-cover-url">封面圖片 URL (Cover)</label>
+                    <Input id="metadata-cover-url" name="metadataCoverUrl" value={coverUrl} onChange={e => setCoverUrl(e.target.value)} placeholder="https://..." />
                 </div>
             </div>
 
              {/* Tags */}
             <div className="grid gap-2">
-                <label className="text-sm font-medium">標籤 (Tags)</label>
+                <label className="text-sm font-medium" htmlFor="metadata-new-tag">標籤 (Tags)</label>
                 <div className="flex flex-wrap gap-2 mb-2">
                     {currentTags.map(tag => (
                         <Badge 
@@ -80,6 +80,9 @@ export function MetadataDetailsTab({
                 <div className="flex gap-2">
                     <div className="relative flex-1">
                         <Input
+                            id="metadata-new-tag"
+                            name="metadataNewTag"
+                            aria-label="新增標籤"
                             value={newTagInput}
                             onChange={(e) => setNewTagInput(e.target.value)}
                             placeholder="新增標籤..."

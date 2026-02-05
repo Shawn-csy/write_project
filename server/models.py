@@ -30,6 +30,7 @@ class User(Base):
 
     id = Column(String, primary_key=True)
     handle = Column(String, unique=True)
+    email = Column(String, index=True) # Added for search/ownership transfer
     displayName = Column(String)
     avatar = Column(String)
     bio = Column(Text)
@@ -77,6 +78,7 @@ class Organization(Base):
     description = Column(Text, default="")
     website = Column(String, default="")
     logoUrl = Column(String, default="")
+    bannerUrl = Column(String, default="")
     tags = Column(JSON, default=list)
     ownerId = Column(String, ForeignKey("users.id"))
     createdAt = Column(Integer, default=lambda: int(time.time() * 1000))
@@ -85,6 +87,25 @@ class Organization(Base):
     # Relationships
     owner = relationship("User", foreign_keys=[ownerId], backref="owned_organizations")
     members = relationship("User", foreign_keys="User.organizationId", back_populates="organization")
+
+class OrganizationInvite(Base):
+    __tablename__ = "organization_invites"
+
+    id = Column(String, primary_key=True, index=True)
+    orgId = Column(String, ForeignKey("organizations.id"), index=True)
+    invitedUserId = Column(String, ForeignKey("users.id"), index=True)
+    inviterUserId = Column(String, ForeignKey("users.id"), index=True)
+    status = Column(String, default="pending")  # pending, accepted, declined, revoked
+    createdAt = Column(Integer, default=lambda: int(time.time() * 1000))
+
+class OrganizationRequest(Base):
+    __tablename__ = "organization_requests"
+
+    id = Column(String, primary_key=True, index=True)
+    orgId = Column(String, ForeignKey("organizations.id"), index=True)
+    requesterUserId = Column(String, ForeignKey("users.id"), index=True)
+    status = Column(String, default="pending")  # pending, accepted, declined, cancelled
+    createdAt = Column(Integer, default=lambda: int(time.time() * 1000))
 
 class ScriptLike(Base):
     __tablename__ = "script_likes"
@@ -114,8 +135,10 @@ class Persona(Base):
     ownerId = Column(String, ForeignKey("users.id"))
     displayName = Column(String)
     avatar = Column(String, default="")
+    bannerUrl = Column(String, default="")
     bio = Column(Text, default="")
     website = Column(String, default="")
+    links = Column(JSON, default=list)
     organizationIds = Column(JSON, default=list)
     tags = Column(JSON, default=list)
     defaultLicense = Column(String, default="")

@@ -1,118 +1,97 @@
-# Fountain Pro 劇本編輯與閱讀器
+# 公開台本平台
 
-一個專業級的 Fountain 劇本編輯平台，專為編劇與劇組設計。整合了雲端專案管理、即時預覽編輯、強大的自訂標記系統與數據分析功能。
+面向「公開閱讀」與「創作工作室」的台本平台。提供作品上架、作者/組織公開頁、搜尋與排行，以及完整的劇本編輯與授權資訊管理。前端為 Vite/React，後端為 FastAPI + SQLite，支援自訂標記、統計分析與權限管理。
 
-## ✨ 核心功能詳解
+## 主要功能
 
-### 1. 編輯與寫作 (Editor & Writing)
-- **Live Editor**: 左側編輯 Markdown/Fountain 原始碼，右側即時預覽標準劇本格式。
-- **語法高亮**: 針對場景 (Slugline)、角色 (Character)、對白 (Dialogue)、括號 (Parenthetical) 的專屬高亮配色。
-- **自動補全**: 智慧記憶角色與場景名稱，加速寫作流程。
-- **快捷鍵支援**:
-  - `Cmd/Ctrl + B`: 開闔側邊欄
-  - `Cmd/Ctrl + [` / `]`: 調整字級大小
-  - `Cmd/Ctrl + G`: 快速切換對白專注模式 (需先選定角色)
-  - `Cmd/Ctrl + S`: 手動儲存 (雲端模式亦支援自動儲存)
+- **公開作品平台**：公開作品列表、搜尋/排序、點閱排行  
+- **作者與組織頁**：作者/組織公開頁、橫幅圖片、標籤  
+- **創作工作室**：作品管理、作者身份、組織管理、標籤管理  
+- **編輯與閱讀**：雙欄即時預覽、角色/場景解析  
+- **自訂標記**：範圍/暫停/區塊/行內標記  
+- **統計分析**：字數、預估時長、停頓/標記分析  
+- **授權與 Metadata**：License/條款/聯絡等標題頁資訊
 
-### 2. 智慧標記系統 (Smart Marker System)
-本系統支援高度客製化的「標記主題」，不僅是簡單的文字替換，更支援正則表達式 (Regex) 與區塊標記：
-- **自訂規則**: 可設定 Inline (行內) 或 Block (區塊) 類型的標記。
-- **樣式控制**: 針對每個標記設定獨立的顏色、字重、字體 (如宋體、黑體) 與對齊方式。
-- **優先權排序**: 透過拖曳 UI 決定標記解析的優先順序。
-- **預設支援**:
-  - `(SFX: ...)`: 音效提示 (自動變色)
-  - `[方位]`: 舞台指示
-  - 支援自訂 JSON 匯入/匯出標記設定。
+## 技術架構
 
-### 3. 數據統計與分析 (Statistics & Analysis)
-內建 `StatisticsPanel` 提供劇本的量化分析數據：
-- **預估時長**: 根據對話字數與動作用詞估算總片長。
-- **指令統計**: 自動計算 SFX、VFX 等指令出現次數。
-- **停頓分析**: 識別 `(..)` 或 `(pause)` 等停頓指令並統計總秒數。
-- **對白分布**: 統計各角色的台詞行數與字數佔比。
+- **前端**：React 18 + Vite + React Router
+- **後端**：FastAPI + SQLAlchemy + SQLite
+- **編輯器**：CodeMirror 6
+- **狀態管理**：Context API（Settings/Auth）
+- **樣式**：TailwindCSS + Radix UI
 
-### 4. 閱讀體驗 (Reading Experience)
-- **雙模式架構**:
-  - **Cloud Dashboard**: 管理多個雲端劇本，支援資料夾分類、封面設定。
-  - **Local Reader**: 直接讀取 `src/scripts_file` 資料夾內的 `.fountain` 檔案，無需上傳。
-- **沉浸式閱讀**:
-  - **角色篩選**: 點擊角色名，其餘內容淡化，僅高亮該角色對白。
-  - **順讀模式**: 隱藏場景描述與動作，僅顯示對白流。
-  - **字級獨立設定**: 可分別調整「全文」與「對白」的字級大小，適應不同閱讀習慣 (例如演員背詞需求)。
-- **RWD 響應式設計**: 支援手機版 Drawer 導覽與觸控操作。
+## 開發與啟動
 
-### 5. 輸出與分享 (Export & Share)
-- **PDF 匯出**: 
-  - 工業標準格式，包含頁碼、場景號。
-  - 支援「留白標記」轉換為實體空白行 (方便筆記)。
-- **SEO 優化分享**:
-  - 內建 Express Server (`server.js`) 處理動態 Meta Tags。
-  - 分享連結時，預覽圖與標題會自動對應劇本內容 (Title/Summary)。
+### 方式 1：Docker Compose（一鍵啟動）
+前端會啟動在 `1090`，後端在 `1091`。
+```bash
+docker compose up --build
+```
 
-## 🛠 技術架構
+### 方式 2：分開啟動
 
-- **前端核心**: React 18, Vite, React Router v7
-- **編輯器引擎**: CodeMirror 6 (自定義 Fountain Language Support)
-- **解析核心**: 
-  - 採用 Dispatcher Pattern 的 AST 解析器 (`src/lib/screenplayAST.js`)。
-  - 支援 Dual Dialogue (雙人對話) 解析與渲染。
-- **狀態管理**: Context API (`SettingsContext`, `AuthContext`) + Custom Hooks。
-- **樣式系統**: TailwindCSS + Radix UI Primitives + CSS Variables (支援動態主題切換)。
-- **部署**: Docker Ready (包含 Node.js SEO Server)。
-
-## � 開發指南
-
-### 環境設置
-
+前端：
 ```bash
 npm install
 npm run dev
 ```
 
-### Docker 部署
+後端：
 ```bash
-docker build -t screenplay-reader .
-docker run -p 8080:8080 screenplay-reader
-```
-docker run -p 8080:8080 screenplay-reader
+cd server
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --host 0.0.0.0 --port 1091
 ```
 
-### 後端測試 (Backend Testing)
-本專案包含完整的後端單元測試，涵蓋 API、安全性與資料匯出。
+## 環境變數
 
-**執行自動化測試**:
+前端 API 位址由 `VITE_API_URL` 控制（`.env`）：
+```
+VITE_API_URL=http://127.0.0.1:1091/api
+```
+
+## 產品結構（使用者視角）
+
+- **公開作品**：瀏覽、搜尋、排序（最新/點閱）  
+- **作者/組織頁**：展示簡介、作品、外部連結  
+- **工作室**：建立作者身份、管理作品、設定授權  
+
+## 資料流文件
+
+- 核心資料流與功能資料流：`docs/data-flows.md`
+- 架構圖：`docs/architecture.md`
+
+## 測試
+
+後端：
 ```bash
 cd server
 ./run_tests.sh
 ```
-此腳本會自動建立虛擬環境、安裝相依套件並執行所有測試。
 
-### 前端測試 (Frontend Testing)
-本專案包含單元測試與統合測試，確保核心邏輯與 UI 流程的穩定性。
-
-**單元測試 (Unit Tests)**:
-使用 Vitest 測試核心邏輯 (Parsing, Statistics)。
+前端（Vitest）：
 ```bash
 npm run test
-# 查看測試覆蓋率
 npm run coverage
 ```
 
-**統合測試 (Integration Tests)**:
-使用 Playwright 測試使用者流程 (E2E)。
+E2E（Playwright）：
 ```bash
-# 首次執行需安裝瀏覽器
 npx playwright install
-
-# 執行所有 E2E 測試
 npx playwright test
-
-# 開啟 UI 模式進行除錯
-npx playwright test --ui
 ```
 
-### 檔案結構說明
-- `src/components/renderer/`: 負責將 AST 轉換為 HTML/React Node 的渲染器。
-- `src/components/settings/`: 包含 MarkerSettings 等複雜設定 UI。
-- `src/lib/parsers/`: Fountain 語法解析邏輯 (Inline/Block/TitlePage)。
-- `src/services/`: 負責與後端 API 溝通 (Settings, Auth)。
+## 文件
+
+- 核心資料流與功能資料流：`docs/data-flows.md`
+- 架構圖：`docs/architecture.md`
+
+## 目錄結構（重點）
+
+- `src/components/renderer/`：AST → UI 渲染
+- `src/components/statistics/`：統計面板與設定
+- `src/lib/metadataParser.js`：Metadata 解析/寫入
+- `server/routers/`：API 路由
+- `server/crud.py`：DB 業務邏輯

@@ -85,26 +85,19 @@ test.describe('Reader Flow', () => {
     });
 
     test('should handle back navigation', async ({ page }) => {
-        // Direct navigation to reader (simulating shared link)
-         // Need a valid ID? Or use /file/demo if available? 
-         // Let's use /file/demo.fountain since we fixed LocalReaderPage
-         await page.goto('/file/demo.fountain');
-         
-         // Verify we are in local reader (Error state)
-         await expect(page.locator('body')).toContainText(/找不到檔案/);
-         
-         // NOW we can test back button because we added ReaderHeader to LocalReaderPage
-         const backButton = page.getByRole('button', { name: /返回/ }).first();
-         await expect(backButton).toBeVisible();
-         
-         // Optional: Click back and go to dashboard/home?
-         await backButton.click();
-         await expect(page).toHaveURL(/\/dashboard|\/$/);
-         
-         // Try navigating to home and click first script again?
-         // This is redundant with previous test. 
-         
-         // Let's skip if no real content. 
-         // We can test the "Home" navigation from 404 page if implemented? No.
+        // Start from public gallery
+        await page.goto('/');
+        await page.waitForTimeout(1000);
+
+        // Open first script card to reader
+        await page.locator('.grid > div').first().click();
+        await expect(page).toHaveURL(/\/read\/.+/);
+
+        const backButton = page.getByRole('button', { name: /返回/ }).first();
+        await expect(backButton).toBeVisible();
+
+        // Back to gallery
+        await backButton.click();
+        await expect(page.getByText('公開台本').first()).toBeVisible();
     });
 });

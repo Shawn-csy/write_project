@@ -26,6 +26,19 @@ export class BasicStatsMetric extends Metric {
 
     const text = this.getText(node).trim();
 
+    const normalizeCountText = (input) => {
+      if (!input) return "";
+      let out = String(input);
+      if (context?.statsConfig?.excludePunctuation) {
+        // Remove punctuation/symbols while keeping letters/numbers/ideographs.
+        // \p{P} = punctuation, \p{S} = symbols
+        out = out.replace(/[\p{P}\p{S}]/gu, '');
+      }
+      // Always ignore whitespace in counts
+      out = out.replace(/\s/g, '');
+      return out;
+    };
+
     switch (node.type) {
       case 'scene_heading':
         this.counts.scenes++;
@@ -36,12 +49,12 @@ export class BasicStatsMetric extends Metric {
         else if (upper.startsWith('EXT') || upper.includes('EXT.')) this.timeframeDistribution.EXT++;
         else this.timeframeDistribution.OTHER++;
         
-        this.counts.totalChars += text.length;
+        this.counts.totalChars += normalizeCountText(text).length;
         break;
 
       case 'action':
         if (text) {
-          const len = text.replace(/\s/g, '').length;
+          const len = normalizeCountText(text).length;
           this.counts.actionChars += len;
           this.counts.totalChars += len; 
           this.actionLines.push(text); // Collect content
@@ -61,7 +74,7 @@ export class BasicStatsMetric extends Metric {
 
         if (speechText) {
           this.counts.dialogueLines++;
-          const len = speechText.replace(/\s/g, '').length;
+          const len = normalizeCountText(speechText).length;
           this.counts.dialogueChars += len;
           this.counts.totalChars += len;
         }
@@ -71,7 +84,7 @@ export class BasicStatsMetric extends Metric {
         const dlgText = text;
         if (dlgText) {
           this.counts.dialogueLines++;
-          const len = dlgText.replace(/\s/g, '').length;
+          const len = normalizeCountText(dlgText).length;
           this.counts.dialogueChars += len;
           this.counts.totalChars += len;
         }

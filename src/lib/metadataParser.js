@@ -205,7 +205,25 @@ export const writeMetadata = (content, entries) => {
     
     // 2. Construct new header
     const headerLines = entries.map(e => `${e.key}: ${e.value}`);
-    const body = lines.slice(endOfMeta).join('\n').trimStart();
+
+    // 3. Remove duplicated metadata lines from body (only for reserved keys)
+    const reservedKeys = new Set([
+        "title", "credit", "author", "authors", "source", "draftdate", "date",
+        "contact", "copyright", "license", "licenseurl", "licenseterms",
+        "cover", "coverurl", "synopsis", "summary", "description", "notes",
+        "marker_legend", "show_legend"
+    ]);
+    const normalizeKey = (k) => k.toLowerCase().replace(/\s/g, '');
+    const bodyLines = lines.slice(endOfMeta);
+    const cleanedBodyLines = bodyLines.filter((line) => {
+        const trimmed = line.trim();
+        if (!trimmed) return true;
+        const match = trimmed.match(/^([^:]+):\s*(.*)$/);
+        if (!match) return true;
+        const key = normalizeKey(match[1]);
+        return !reservedKeys.has(key);
+    });
+    const body = cleanedBodyLines.join('\n').trimStart();
     
     return headerLines.join('\n') + "\n\n" + body;
 };

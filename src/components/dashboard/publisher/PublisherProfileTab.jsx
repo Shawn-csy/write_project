@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from "react-router-dom";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "../../ui/card";
@@ -10,10 +11,12 @@ import { DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, horizontalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { SortableTag } from "./SortableTag";
 import { MetadataLicenseTab } from "../metadata/MetadataLicenseTab";
+import { searchOrganizations, requestToJoinOrganization } from "../../../lib/db";
 
 export function PublisherProfileTab({
     selectedPersonaId, setSelectedPersonaId,
     personas,
+    selectedPersona,
     handleCreatePersona, isCreatingPersona,
     handleDeletePersona,
     personaDraft, setPersonaDraft,
@@ -22,28 +25,59 @@ export function PublisherProfileTab({
     handleSaveProfile, isSavingProfile,
     parseTags, addTags, getSuggestions, getTagStyle
 }) {
+    const navigate = useNavigate();
     const [viewMode, setViewMode] = React.useState("edit"); // edit or create
+    const [orgSearchQuery, setOrgSearchQuery] = React.useState("");
+    const [orgSearchResults, setOrgSearchResults] = React.useState([]);
+    const [isOrgSearching, setIsOrgSearching] = React.useState(false);
 
-    // Reset draft when selecting a new persona
     React.useEffect(() => {
         if (selectedPersonaId) {
-            const persona = personas.find(p => p.id === selectedPersonaId);
-            if (persona) {
-                setPersonaDraft({
-                    displayName: persona.displayName || "",
-                    bio: persona.bio || "",
-                    website: persona.website || "",
-                    avatar: persona.avatar || "",
-                    organizationIds: persona.organizationIds || [],
-                    tags: persona.tags || [],
-                    defaultLicense: persona.defaultLicense || "",
-                    defaultLicenseUrl: persona.defaultLicenseUrl || "",
-                    defaultLicenseTerms: persona.defaultLicenseTerms || []
-                });
-                setViewMode("edit");
+            setViewMode("edit");
+        }
+    }, [selectedPersonaId]);
+
+    React.useEffect(() => {
+        if (!orgSearchQuery) {
+            setOrgSearchResults([]);
+            return;
+        }
+        const delay = setTimeout(async () => {
+            setIsOrgSearching(true);
+            try {
+                const results = await searchOrganizations(orgSearchQuery);
+                setOrgSearchResults(results || []);
+            } catch (e) {
+                setOrgSearchResults([]);
+            } finally {
+                setIsOrgSearching(false);
+            }
+        }, 400);
+        return () => clearTimeout(delay);
+    }, [orgSearchQuery]);
+
+    const handleRequestJoinOrg = async (orgId) => {
+        await requestToJoinOrganization(orgId);
+        setOrgSearchQuery("");
+        setOrgSearchResults([]);
+    };
+
+    const safeLinks = React.useMemo(() => {
+        const draftLinks = personaDraft.links;
+        const fallback = selectedPersona?.links || [];
+        if (Array.isArray(draftLinks) && draftLinks.length > 0) return draftLinks;
+        if (Array.isArray(draftLinks) && draftLinks.length === 0 && fallback.length > 0) return fallback;
+        if (Array.isArray(draftLinks)) return draftLinks;
+        if (typeof personaDraft.links === "string") {
+            try {
+                const parsed = JSON.parse(personaDraft.links);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch {
+                return [];
             }
         }
-    }, [selectedPersonaId, personas, setPersonaDraft]);
+        return [];
+    }, [personaDraft.links, selectedPersona]);
 
     const onStartCreate = () => {
         setSelectedPersonaId(null);
@@ -51,7 +85,9 @@ export function PublisherProfileTab({
             displayName: "", 
             bio: "", 
             website: "", 
+            links: [],
             avatar: "", 
+            bannerUrl: "",
             organizationIds: [], 
             tags: [], 
             defaultLicense: "", 
@@ -103,6 +139,15 @@ export function PublisherProfileTab({
                         <h2 className="text-lg font-semibold tracking-tight">{viewMode === "create" ? "建立新身份" : "編輯身份"}</h2>
                     </div>
                     {viewMode === "edit" && selectedPersonaId && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/author/${selectedPersonaId}`)}
+                        >
+                            查看作者頁
+                        </Button>
+                    )}
+                    {viewMode === "edit" && selectedPersonaId && (
                         <Button 
                             variant="ghost" 
                             size="sm" 
@@ -125,17 +170,29 @@ export function PublisherProfileTab({
                                             <AvatarFallback className="text-2xl text-muted-foreground">IMG</AvatarFallback>
                                         </Avatar>
                                         <Input
+                                            id="persona-avatar-url"
+                                            name="personaAvatarUrl"
                                             value={personaDraft.avatar}
                                             onChange={e => setPersonaDraft({ ...personaDraft, avatar: e.target.value })}
                                             placeholder="頭像網址..."
+                                            className="text-xs h-8 text-center bg-muted/20 border-transparent hover:border-border focus:border-primary transition-colors"
+                                        />
+                                        <Input
+                                            id="persona-banner-url"
+                                            name="personaBannerUrl"
+                                            value={personaDraft.bannerUrl || ""}
+                                            onChange={e => setPersonaDraft({ ...personaDraft, bannerUrl: e.target.value })}
+                                            placeholder="橫幅圖片網址..."
                                             className="text-xs h-8 text-center bg-muted/20 border-transparent hover:border-border focus:border-primary transition-colors"
                                         />
                                     </div>
                                     
                                     <div className="flex-1 space-y-4 w-full">
                                         <div className="grid gap-1.5">
-                                            <label className="text-sm font-medium">顯示名稱 <span className="text-destructive">*</span></label>
+                                            <label className="text-sm font-medium" htmlFor="persona-display-name">顯示名稱 <span className="text-destructive">*</span></label>
                                             <Input 
+                                                id="persona-display-name"
+                                                name="personaDisplayName"
                                                 value={personaDraft.displayName} 
                                                 onChange={e => setPersonaDraft({ ...personaDraft, displayName: e.target.value })}
                                                 placeholder="e.g. 筆名"
@@ -144,8 +201,10 @@ export function PublisherProfileTab({
                                         </div>
                                         
                                         <div className="grid gap-1.5">
-                                            <label className="text-sm font-medium">個人簡介</label>
+                                            <label className="text-sm font-medium" htmlFor="persona-bio">個人簡介</label>
                                             <Textarea 
+                                                id="persona-bio"
+                                                name="personaBio"
                                                 value={personaDraft.bio}
                                                 onChange={e => setPersonaDraft({ ...personaDraft, bio: e.target.value })}
                                                 placeholder="簡單介紹..."
@@ -153,21 +212,80 @@ export function PublisherProfileTab({
                                             />
                                         </div>
 
-                                        <div className="grid gap-1.5">
-                                            <label className="text-sm font-medium">個人網站</label>
-                                            <Input 
-                                                value={personaDraft.website} 
-                                                onChange={e => setPersonaDraft({ ...personaDraft, website: e.target.value })} 
-                                                placeholder="https://" 
-                                            />
-                                        </div>
-                                    </div>
+                                <div className="grid gap-1.5">
+                                    <label className="text-sm font-medium" htmlFor="persona-website">個人網站</label>
+                                    <Input 
+                                        id="persona-website"
+                                        name="personaWebsite"
+                                        value={personaDraft.website} 
+                                        onChange={e => setPersonaDraft({ ...personaDraft, website: e.target.value })} 
+                                        placeholder="https://" 
+                                    />
                                 </div>
+                            </div>
+                        </div>
 
-                                <div className="space-y-4 pt-6 border-t">
-                                    <div className="grid gap-2">
-                                        <label className="text-sm font-medium">所屬組織</label>
-                                        <div className="flex flex-wrap gap-2">
+                        <div className="space-y-4 pt-6 border-t">
+                                        <div className="grid gap-2">
+                                            <label className="text-sm font-medium">自訂連結</label>
+                                            <div className="border rounded-md p-4 bg-muted/10 space-y-3">
+                                                {safeLinks.length === 0 && (
+                                                    <div className="text-sm text-muted-foreground">尚未新增連結</div>
+                                                )}
+                                    {safeLinks.map((link, idx) => (
+                                        <div key={`link-${idx}`} className="grid grid-cols-1 md:grid-cols-[1fr_2fr_auto] gap-2 items-center">
+                                            <Input
+                                                id={`persona-link-label-${idx}`}
+                                                name={`persona-link-label-${idx}`}
+                                                aria-label="連結名稱"
+                                                placeholder="顯示名稱"
+                                                value={link.label || ""}
+                                                onChange={(e) => {
+                                                    const next = [...safeLinks];
+                                                    next[idx] = { ...next[idx], label: e.target.value };
+                                                    setPersonaDraft({ ...personaDraft, links: next });
+                                                }}
+                                            />
+                                            <Input
+                                                id={`persona-link-url-${idx}`}
+                                                name={`persona-link-url-${idx}`}
+                                                aria-label="連結網址"
+                                                placeholder="https://"
+                                                value={link.url || ""}
+                                                onChange={(e) => {
+                                                    const next = [...safeLinks];
+                                                    next[idx] = { ...next[idx], url: e.target.value };
+                                                    setPersonaDraft({ ...personaDraft, links: next });
+                                                }}
+                                            />
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => {
+                                                    const next = safeLinks.filter((_, i) => i !== idx);
+                                                    setPersonaDraft({ ...personaDraft, links: next });
+                                                }}
+                                            >
+                                                移除
+                                            </Button>
+                                        </div>
+                                    ))}
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                            const next = [...safeLinks, { label: "", url: "" }];
+                                            setPersonaDraft({ ...personaDraft, links: next });
+                                        }}
+                                    >
+                                        新增連結
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-2">
+                                <label className="text-sm font-medium">所屬組織（需申請通過後才會出現）</label>
+                                <div className="flex flex-wrap gap-2">
                                             {orgs.length === 0 ? (
                                                 <div className="text-sm text-muted-foreground italic px-2">尚未建立任何組織。</div>
                                             ) : (
@@ -180,6 +298,8 @@ export function PublisherProfileTab({
                                                         >
                                                             <input
                                                                 type="checkbox"
+                                                                id={`persona-org-${org.id}`}
+                                                                name={`personaOrg-${org.id}`}
                                                                 checked={checked}
                                                                 onChange={(e) => {
                                                                     const next = e.target.checked
@@ -193,6 +313,32 @@ export function PublisherProfileTab({
                                                         </label>
                                                     );
                                                 })
+                                            )}
+                                        </div>
+                                        <div className="mt-2 border rounded-md p-3 bg-muted/10 space-y-2">
+                                            <div className="text-xs text-muted-foreground">搜尋其他組織並送出申請</div>
+                                            <Input
+                                                id="org-search-query"
+                                                name="orgSearchQuery"
+                                                placeholder="輸入組織名稱搜尋"
+                                                aria-label="搜尋組織名稱"
+                                                value={orgSearchQuery}
+                                                onChange={(e) => setOrgSearchQuery(e.target.value)}
+                                            />
+                                            {isOrgSearching && (
+                                                <div className="text-xs text-muted-foreground">搜尋中...</div>
+                                            )}
+                                            {orgSearchResults.length > 0 && (
+                                                <div className="space-y-2">
+                                                    {orgSearchResults.map(org => (
+                                                        <div key={org.id} className="flex items-center justify-between text-sm">
+                                                            <span>{org.name}</span>
+                                                            <Button size="sm" variant="outline" onClick={() => handleRequestJoinOrg(org.id)}>
+                                                                送出申請
+                                                            </Button>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             )}
                                         </div>
                                     </div>
@@ -234,6 +380,8 @@ export function PublisherProfileTab({
                                             
                                             <div className="relative">
                                                 <Input
+                                                    id="persona-tag-input"
+                                                    name="personaTagInput"
                                                     value={personaTagInput}
                                                     onChange={(e) => setPersonaTagInput(e.target.value)}
                                                     onKeyDown={(e) => {

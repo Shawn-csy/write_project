@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from "react-router-dom";
 import { Loader2, Plus, Trash2, Building2 } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "../../ui/card";
@@ -17,8 +18,20 @@ export function PublisherOrgTab({
     orgDraft, setOrgDraft,
     handleSaveOrg, isSavingOrg,
     orgTagInput, setOrgTagInput,
-    parseTags, addTags, getSuggestions, getTagStyle
+    parseTags, addTags, getSuggestions, getTagStyle,
+    orgMembers,
+    orgInvites,
+    orgRequests,
+    isOrgOwner,
+    inviteSearchQuery,
+    setInviteSearchQuery,
+    inviteSearchResults,
+    isInviteSearching,
+    handleInviteMember,
+    handleAcceptRequest,
+    handleDeclineRequest
 }) {
+    const navigate = useNavigate();
     const [viewMode, setViewMode] = React.useState("edit");
 
     // Reset draft when selecting a new org
@@ -41,7 +54,7 @@ export function PublisherOrgTab({
 
     const onStartCreate = () => {
         setSelectedOrgId(null);
-        setOrgDraft({ id: "", name: "", description: "", website: "", logoUrl: "", tags: [] });
+        setOrgDraft({ id: "", name: "", description: "", website: "", logoUrl: "", bannerUrl: "", tags: [] });
         setViewMode("create");
     };
 
@@ -86,6 +99,16 @@ export function PublisherOrgTab({
                         <h2 className="text-lg font-semibold tracking-tight">{viewMode === "create" ? "建立組織" : "編輯組織"}</h2>
                     </div>
                     {viewMode === "edit" && selectedOrgId && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={() => navigate(`/org/${selectedOrgId}`)}
+                        >
+                            查看組織頁
+                        </Button>
+                    )}
+                    {viewMode === "edit" && selectedOrgId && (
                         <Button 
                             variant="ghost" 
                             size="sm" 
@@ -105,8 +128,10 @@ export function PublisherOrgTab({
                                 <div className="space-y-6">
                                     <div className="grid gap-4">
                                         <div className="grid gap-1.5">
-                                            <label className="text-sm font-medium">組織名稱 <span className="text-destructive">*</span></label>
+                                            <label className="text-sm font-medium" htmlFor="org-name">組織名稱 <span className="text-destructive">*</span></label>
                                             <Input 
+                                                id="org-name"
+                                                name="orgName"
                                                 value={orgDraft.name} 
                                                 onChange={e => setOrgDraft({ ...orgDraft, name: e.target.value })}
                                                 placeholder="e.g. 某某工作室"
@@ -115,8 +140,10 @@ export function PublisherOrgTab({
                                         </div>
 
                                         <div className="grid gap-1.5">
-                                            <label className="text-sm font-medium">描述</label>
+                                            <label className="text-sm font-medium" htmlFor="org-description">描述</label>
                                             <Input 
+                                                id="org-description"
+                                                name="orgDescription"
                                                 value={orgDraft.description} 
                                                 onChange={e => setOrgDraft({ ...orgDraft, description: e.target.value })}
                                                 placeholder="關於這個組織..."
@@ -125,27 +152,41 @@ export function PublisherOrgTab({
                                         
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="grid gap-1.5">
-                                                <label className="text-sm font-medium">網站</label>
+                                                <label className="text-sm font-medium" htmlFor="org-website">網站</label>
                                                 <Input 
+                                                    id="org-website"
+                                                    name="orgWebsite"
                                                     value={orgDraft.website} 
                                                     onChange={e => setOrgDraft({ ...orgDraft, website: e.target.value })}
                                                     placeholder="https://"
                                                 />
                                             </div>
                                             <div className="grid gap-1.5">
-                                                <label className="text-sm font-medium">Logo 圖片網址</label>
+                                                <label className="text-sm font-medium" htmlFor="org-logo-url">Logo 圖片網址</label>
                                                 <Input 
+                                                    id="org-logo-url"
+                                                    name="orgLogoUrl"
                                                     value={orgDraft.logoUrl} 
                                                     onChange={e => setOrgDraft({ ...orgDraft, logoUrl: e.target.value })}
+                                                    placeholder="https://"
+                                                />
+                                            </div>
+                                            <div className="grid gap-1.5">
+                                                <label className="text-sm font-medium" htmlFor="org-banner-url">橫幅圖片網址</label>
+                                                <Input 
+                                                    id="org-banner-url"
+                                                    name="orgBannerUrl"
+                                                    value={orgDraft.bannerUrl || ""} 
+                                                    onChange={e => setOrgDraft({ ...orgDraft, bannerUrl: e.target.value })}
                                                     placeholder="https://"
                                                 />
                                             </div>
                                         </div>
                                     </div>
                                     
-                                    <div className="grid gap-2">
-                                        <label className="text-sm font-medium">組織標籤</label>
-                                        <div className="border rounded-md p-4 bg-muted/10 space-y-3">
+                                        <div className="grid gap-2">
+                                            <label className="text-sm font-medium" htmlFor="org-tag-input">組織標籤</label>
+                                            <div className="border rounded-md p-4 bg-muted/10 space-y-3">
                                             <DndContext
                                                 collisionDetection={closestCenter}
                                                 onDragEnd={({ active, over }) => {
@@ -179,6 +220,9 @@ export function PublisherOrgTab({
                                             </DndContext>
                                             <div className="relative">
                                                 <Input
+                                                    id="org-tag-input"
+                                                    name="orgTagInput"
+                                                    aria-label="新增組織標籤"
                                                     value={orgTagInput}
                                                     onChange={(e) => setOrgTagInput(e.target.value)}
                                                     onKeyDown={(e) => {
@@ -219,6 +263,109 @@ export function PublisherOrgTab({
                                                 )}
                                             </div>
                                         </div>
+
+                                        <div className="grid gap-2">
+                                            <label className="text-sm font-medium">成員</label>
+                                            <div className="border rounded-md p-4 bg-muted/10 space-y-4">
+                                                <div className="text-xs text-muted-foreground">
+                                                    使用者 {orgMembers?.users?.length || 0} 人 · 作者 {orgMembers?.personas?.length || 0} 人
+                                                </div>
+                                                {(orgMembers?.users?.length || 0) === 0 && (orgMembers?.personas?.length || 0) === 0 ? (
+                                                    <div className="text-sm text-muted-foreground">尚無成員</div>
+                                                ) : (
+                                                    <div className="space-y-2">
+                                                        {(orgMembers?.users || []).map(u => (
+                                                            <div key={`u-${u.id}`} className="flex items-center justify-between text-sm">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold">
+                                                                        {(u.displayName || u.handle || "?")[0]?.toUpperCase?.() || "?"}
+                                                                    </div>
+                                                                    <span>{u.displayName || u.handle || u.email || "User"}</span>
+                                                                </div>
+                                                                <Badge variant="outline">使用者</Badge>
+                                                            </div>
+                                                        ))}
+                                                        {(orgMembers?.personas || []).map(p => (
+                                                            <div key={`p-${p.id}`} className="flex items-center justify-between text-sm">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold">
+                                                                        {(p.displayName || "?")[0]?.toUpperCase?.() || "?"}
+                                                                    </div>
+                                                                    <span>{p.displayName || "Persona"}</span>
+                                                                </div>
+                                                                <Badge variant="secondary">作者</Badge>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {isOrgOwner && (
+                                            <>
+                                                <div className="grid gap-2">
+                                                    <label className="text-sm font-medium" htmlFor="org-invite-search">邀請成員</label>
+                                                    <div className="border rounded-md p-4 bg-muted/10 space-y-3">
+                                                        <Input
+                                                            id="org-invite-search"
+                                                            name="orgInviteSearch"
+                                                            aria-label="邀請成員搜尋"
+                                                            placeholder="輸入 Email / 暱稱 / ID 搜尋"
+                                                            value={inviteSearchQuery}
+                                                            onChange={(e) => setInviteSearchQuery(e.target.value)}
+                                                        />
+                                                        {isInviteSearching && (
+                                                            <div className="text-xs text-muted-foreground">搜尋中...</div>
+                                                        )}
+                                                        {inviteSearchResults?.length > 0 && (
+                                                            <div className="space-y-2">
+                                                                {inviteSearchResults.map(u => (
+                                                                    <div key={u.id} className="flex items-center justify-between text-sm">
+                                                                        <span>{u.displayName || u.handle || u.email || u.id}</span>
+                                                                        <Button size="sm" onClick={() => handleInviteMember(u.id)}>邀請</Button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid gap-2">
+                                                    <label className="text-sm font-medium">待處理申請</label>
+                                                    <div className="border rounded-md p-4 bg-muted/10 space-y-2">
+                                                        {(orgRequests || []).length === 0 ? (
+                                                            <div className="text-sm text-muted-foreground">目前沒有申請</div>
+                                                        ) : (
+                                                    (orgRequests || []).map(req => (
+                                                        <div key={req.id} className="flex items-center justify-between text-sm">
+                                                            <span>申請者：{req.requester?.email || req.requester?.displayName || req.requesterUserId}</span>
+                                                            <div className="flex gap-2">
+                                                                <Button size="sm" onClick={() => handleAcceptRequest(req.id)}>同意</Button>
+                                                                <Button size="sm" variant="ghost" onClick={() => handleDeclineRequest(req.id)}>拒絕</Button>
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid gap-2">
+                                                    <label className="text-sm font-medium">已發出邀請</label>
+                                                    <div className="border rounded-md p-4 bg-muted/10 space-y-2">
+                                                        {(orgInvites || []).length === 0 ? (
+                                                            <div className="text-sm text-muted-foreground">目前沒有邀請</div>
+                                                        ) : (
+                                                    (orgInvites || []).map(inv => (
+                                                        <div key={inv.id} className="flex items-center justify-between text-sm">
+                                                            <span>邀請：{inv.invitedUser?.email || inv.invitedUser?.displayName || inv.invitedUserId}</span>
+                                                            <Badge variant="outline">{inv.status}</Badge>
+                                                        </div>
+                                                    ))
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                                 

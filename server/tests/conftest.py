@@ -4,6 +4,8 @@ import os
 
 # Set DB_PATH to memory to avoid creating file during import of main
 os.environ["DB_PATH"] = ":memory:"
+os.environ["ALLOW_X_USER_ID"] = "1"
+os.environ["ADMIN_USER_IDS"] = "admin-owner"
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker

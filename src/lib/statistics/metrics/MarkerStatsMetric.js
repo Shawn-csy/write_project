@@ -11,6 +11,8 @@ export class MarkerStatsMetric extends Metric {
     this.sfxLines = [];
     this.customDurationSeconds = 0;
     this.durationOverrideStack = []; // Stack to track if we are inside a range that already accounts for duration
+    this.pauseSeconds = 0;
+    this.pauseItems = [];
   }
 
   _parseDurationFromText(text, statsConfig) {
@@ -129,30 +131,53 @@ export class MarkerStatsMetric extends Metric {
 
     if (node.type === 'layer') {
       const layerId = node.layerType; 
+      const config = markerConfigs ? markerConfigs.find(c => c.id === layerId) : null;
+      const isPause = node.rangeRole === 'pause';
       const content = this._getRecursiveText(node);
       
       if (!this.customLayers[layerId]) {
         this.customLayers[layerId] = [];
       }
-      if (content || node.rangeRole === 'start') {
-          this.customLayers[layerId].push({
-              text: content || (node.rangeRole === 'start' ? "(區間開始)" : ""),
-              line: node.lineStart,
-              type: 'block'
-          });
-          
-          if (content) {
-              this._addDuration(this._parseDurationFromText(content, statsConfig), statsConfig);
-          }
+      const displayText = content || (node.rangeRole === 'start' ? "(區間開始)" : (isPause ? "(暫停)" : ""));
+      if (displayText) {
+        this.customLayers[layerId].push({
+          text: displayText,
+          line: node.lineStart,
+          type: 'block'
+        });
       }
 
-      // Fixed Duration
-      const config = markerConfigs ? markerConfigs.find(c => c.id === layerId) : null;
-      if (config && config.fixedDuration) {
+      if (isPause) {
+        let pauseDuration = this._parseDurationFromText(content, statsConfig);
+        if (!pauseDuration && node.label) {
+          pauseDuration = this._parseDurationFromText(node.label, statsConfig);
+        }
+        if (!pauseDuration && config?.pauseLabel) {
+          pauseDuration = this._parseDurationFromText(config.pauseLabel, statsConfig);
+        }
+        if (!pauseDuration && config?.fixedDuration !== undefined) {
+          const fixed = parseFloat(config.fixedDuration);
+          if (!isNaN(fixed)) pauseDuration = fixed;
+        }
+        if (!pauseDuration) pauseDuration = 1;
+        this.pauseSeconds += pauseDuration;
+        this.pauseItems.push({
+          text: content || node.label || "暫停",
+          line: node.lineStart,
+          seconds: pauseDuration
+        });
+        this._addDuration(pauseDuration, statsConfig);
+      } else {
+        if (content) {
+          this._addDuration(this._parseDurationFromText(content, statsConfig), statsConfig);
+        }
+        // Fixed Duration (non-pause)
+        if (config && config.fixedDuration !== undefined) {
           const duration = parseFloat(config.fixedDuration);
           if (!isNaN(duration)) {
-              this._addDuration(duration, statsConfig);
+            this._addDuration(duration, statsConfig);
           }
+        }
       }
     } 
     else if (node.type === 'range') {
@@ -277,7 +302,9 @@ export class MarkerStatsMetric extends Metric {
       sentences: {
           sfx: this.sfxLines
       },
-      customDurationSeconds: this.customDurationSeconds
+      customDurationSeconds: this.customDurationSeconds,
+      pauseSeconds: this.pauseSeconds,
+      pauseItems: this.pauseItems
     };
   }
 }
