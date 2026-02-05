@@ -87,9 +87,10 @@ const walk = (dir) => {
 };
 
 if (!fs.existsSync(scriptsDir)) {
-  console.error(`scripts directory not found: ${scriptsDir}`);
-  console.error("請確認劇本資料夾是否為 src/scripts_file/");
-  process.exit(1);
+  console.warn(`scripts directory not found: ${scriptsDir}`);
+  console.warn("跳過產生檔案中繼資料（找不到 src/scripts_file/）");
+  fs.writeFileSync(outputFile, JSON.stringify({}, null, 2));
+  process.exit(0);
 }
 
 console.log("Scanning scripts...");
