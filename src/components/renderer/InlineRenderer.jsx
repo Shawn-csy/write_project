@@ -55,7 +55,7 @@ const renderers = {
     highlight: renderHighlight
 };
 
-export const InlineRenderer = ({ nodes, context }) => {
+export const InlineRenderer = React.memo(({ nodes, context }) => {
     if (!nodes) return null;
     return (
         <>
@@ -70,4 +70,4 @@ export const InlineRenderer = ({ nodes, context }) => {
             })}
         </>
     );
-};
+});

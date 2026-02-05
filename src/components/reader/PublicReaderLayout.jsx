@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { SimplifiedReaderHeader } from "./SimplifiedReaderHeader";
 import { PublicScriptInfoOverlay } from "./PublicScriptInfoOverlay";
-import ScriptSurface from "../ScriptSurface";
+import { PublicMarkerLegend } from "./PublicMarkerLegend";
+import ScriptSurface from "../editor/ScriptSurface";
 import { extractMetadata } from "../../lib/metadataParser";
 import { useSettings } from "../../contexts/SettingsContext";
 
@@ -10,8 +11,6 @@ export function PublicReaderLayout({
   isLoading,
   onBack,
   onShare,
-  onExport,
-  onSettings,
   viewerProps,      // passed to ScriptSurface
   scriptSurfaceProps, // passed to ScriptSurface (scrollRef, etc)
   // Marker Props
@@ -22,6 +21,7 @@ export function PublicReaderLayout({
   const { 
     title, 
     author, 
+    organization,
     tags, 
     synopsis, 
     description,
@@ -32,11 +32,39 @@ export function PublicReaderLayout({
     authors,
     customFields,
     coverUrl, 
-    content: rawScript 
+    content: rawScript,
+    disableCopy
   } = script || {};
   const normalizedTags = (tags || [])
     .map((tag) => (typeof tag === "string" ? tag : tag?.name))
     .filter(Boolean);
+
+  // Content Protection: Disable copy when disableCopy is true
+  useEffect(() => {
+    if (!disableCopy) return;
+
+    const preventCopy = (e) => e.preventDefault();
+    const preventContextMenu = (e) => e.preventDefault();
+    const preventKeyboardShortcuts = (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'c' || e.key === 'a' || e.key === 's' || e.key === 'x') {
+          e.preventDefault();
+        }
+      }
+    };
+
+    document.addEventListener('copy', preventCopy);
+    document.addEventListener('cut', preventCopy);
+    document.addEventListener('contextmenu', preventContextMenu);
+    document.addEventListener('keydown', preventKeyboardShortcuts);
+
+    return () => {
+      document.removeEventListener('copy', preventCopy);
+      document.removeEventListener('cut', preventCopy);
+      document.removeEventListener('contextmenu', preventContextMenu);
+      document.removeEventListener('keydown', preventKeyboardShortcuts);
+    };
+  }, [disableCopy]);
 
   // Background Style
   // If coverUrl exists, use it as a blurred background. 
@@ -60,8 +88,11 @@ export function PublicReaderLayout({
 
   const { hideWhitespace } = useSettings();
 
+  // Content protection CSS class
+  const protectionClass = disableCopy ? 'select-none' : '';
+
   return (
-    <div className={`relative w-full h-screen overflow-hidden flex flex-col bg-background ${hideWhitespace ? 'hide-whitespace' : ''}`}>
+    <div className={`relative w-full h-screen overflow-hidden flex flex-col bg-background ${hideWhitespace ? 'hide-whitespace' : ''} ${protectionClass}`}>
       
       {/* 1. Fixed Background Layer */}
       <div 
@@ -117,9 +148,11 @@ export function PublicReaderLayout({
            // I'll assume I update ScriptSurface to accept a `headerNode` prop that renders inside the scroll container.
            headerNode={
                !isLoading && script && (
+                   <>
                    <PublicScriptInfoOverlay 
                        title={title}
                        author={author}
+                       organization={organization}
                        headerAuthor={headerAuthor}
                        tags={normalizedTags}
                        synopsis={synopsis}
@@ -131,7 +164,25 @@ export function PublicReaderLayout({
                        authors={authors}
                        customFields={customFields}
                        coverUrl={coverUrl}
+                       license={script.license}
+                       licenseUrl={script.licenseUrl}
+                       licenseTerms={script.licenseTerms}
+                       copyright={script.copyright}
                    />
+                   {script.showMarkerLegend && validMarkerConfigs?.length > 0 && (
+                       <div className="w-full max-w-4xl mx-auto px-6 pb-12 flex flex-col items-center space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-100">
+                            <div className="w-full max-w-2xl">
+                                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3 opacity-80 pl-1 text-center">
+                                    標記說明 (Legend)
+                                </h4>
+                                <PublicMarkerLegend 
+                                    markerConfigs={validMarkerConfigs} 
+                                    className="rounded-xl border border-white/10 bg-background/60 backdrop-blur-md px-4 py-3 shadow-sm"
+                                />
+                            </div>
+                        </div>
+                   )}
+                   </>
                )
            }
            // Make the scroll container transparent so background shows through initially
@@ -142,3 +193,4 @@ export function PublicReaderLayout({
     </div>
   );
 }
+

@@ -41,7 +41,7 @@ export default function CloudEditorPage({ scriptManager, navProps }) {
           setRawScript(script.content || "");
           setTitleName(script.title || "Untitled");
           // Clear others
-          scriptManager.setActiveFile(null);
+          // scriptManager.setActiveFile(null); // Removed
           scriptManager.setActivePublicScriptId(null);
       }).catch(err => {
           console.error("Failed to load cloud script", err);

@@ -2,7 +2,7 @@
  * DirectASTBuilder 單元測試（純 Marker 模式）
  */
 
-import { describe, it } from 'node:test';
+import { describe, it } from 'vitest';
 import assert from 'node:assert';
 import { DirectASTBuilder, buildAST } from './directASTBuilder.js';
 

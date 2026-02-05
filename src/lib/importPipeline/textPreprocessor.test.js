@@ -2,7 +2,7 @@
  * TextPreprocessor 單元測試
  */
 
-import { describe, it } from 'node:test';
+import { describe, it } from 'vitest';
 import assert from 'node:assert';
 import { TextPreprocessor, preprocess } from './textPreprocessor.js';
 

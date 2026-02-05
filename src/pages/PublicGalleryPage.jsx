@@ -3,13 +3,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { GalleryFilterBar } from "../components/gallery/GalleryFilterBar";
 import { ScriptGalleryCard } from "../components/gallery/ScriptGalleryCard";
+import { AuthorGalleryCard } from "../components/gallery/AuthorGalleryCard";
+import { OrgGalleryCard } from "../components/gallery/OrgGalleryCard";
 import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Badge } from "../components/ui/badge";
-import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { getPublicScripts, getPublicPersonas, getPublicOrganizations } from "../lib/db";
-import { getMorandiTagStyle } from "../lib/tagColors";
 
 export default function PublicGalleryPage() {
   const navigate = useNavigate();
@@ -98,8 +96,18 @@ export default function PublicGalleryPage() {
               getPublicPersonas(),
               getPublicOrganizations()
           ]);
-          setAuthors(personaData || []);
-          setOrgs(orgData || []);
+          const normalizeEntity = (entity) => ({
+              ...entity,
+              displayName: entity.displayName || entity.name || "Unknown",
+              avatar: entity.avatar || entity.avatarUrl || entity.logoUrl || null,
+              tags: (entity.tags || []).map(t => typeof t === "string" ? t : t?.name).filter(Boolean)
+          });
+
+          setAuthors((personaData || []).map(normalizeEntity));
+          setOrgs((orgData || []).map(o => ({
+              ...o,
+              tags: (o.tags || []).map(t => typeof t === "string" ? t : t?.name).filter(Boolean)
+          })));
       } catch (e) {
           console.error("Failed to load public lists:", e);
       } finally {
@@ -161,67 +169,35 @@ export default function PublicGalleryPage() {
       />
 
       {/* Main Content */}
-      <main className="flex-1 container mx-auto px-4 pb-20">
-        {view === "scripts" ? (
-          <GalleryFilterBar 
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              selectedTag={selectedTag}
-              onSelectTag={setSelectedTag}
-              tags={allTags}
-          />
-        ) : (
-          <div className="py-6 space-y-3">
-            <Input 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={view === "authors" ? "搜尋作者" : "搜尋組織"}
-            />
-            {view === "authors" && authorTags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                <Badge
-                  variant={authorTag ? "secondary" : "default"}
-                  className="cursor-pointer"
-                  onClick={() => setAuthorTag(null)}
-                >
-                  全部
-                </Badge>
-                {authorTags.map(tag => (
-                  <button
-                    key={`author-filter-${tag}`}
-                    className={`text-xs px-2 py-1 rounded-full cursor-pointer ${authorTag === tag ? "" : "opacity-70"}`}
-                    style={tagStyle(tag, allAuthorTags)}
-                    onClick={() => setAuthorTag(tag)}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
-            )}
-            {view === "orgs" && orgTags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                <Badge
-                  variant={orgTag ? "secondary" : "default"}
-                  className="cursor-pointer"
-                  onClick={() => setOrgTag(null)}
-                >
-                  全部
-                </Badge>
-                {orgTags.map(tag => (
-                  <button
-                    key={`org-filter-${tag}`}
-                    className={`text-xs px-2 py-1 rounded-full cursor-pointer ${orgTag === tag ? "" : "opacity-70"}`}
-                    style={tagStyle(tag, allOrgTags)}
-                    onClick={() => setOrgTag(tag)}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+        
+        {/* Unified Filter Bar */}
+        <GalleryFilterBar 
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            selectedTag={
+                view === "scripts" ? selectedTag :
+                view === "authors" ? authorTag :
+                orgTag
+            }
+            onSelectTag={
+                view === "scripts" ? setSelectedTag :
+                view === "authors" ? setAuthorTag :
+                setOrgTag
+            }
+            tags={
+                view === "scripts" ? allTags :
+                view === "authors" ? authorTags :
+                orgTags
+            }
+            placeholder={
+                view === "scripts" ? "搜尋劇本..." :
+                view === "authors" ? "搜尋作者..." :
+                "搜尋組織..."
+            }
+        />
 
+        {/* Content Grid */}
         {view === "scripts" && (
           isLoading ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
@@ -255,114 +231,54 @@ export default function PublicGalleryPage() {
           isLoadingPeople ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1,2,3,4].map(i => (
-                <div key={i} className="h-28 bg-muted/30 animate-pulse rounded-lg" />
+                <div key={i} className="h-32 bg-muted/30 animate-pulse rounded-lg" />
               ))}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
               {filteredAuthors.map(author => (
-                <div
+                <AuthorGalleryCard
                   key={author.id}
-                  className="border rounded-lg p-4 hover:border-primary/50 cursor-pointer transition-colors bg-card"
+                  author={author}
                   onClick={() => navigate(`/author/${author.id}`)}
-                >
-                  <div className="flex items-center gap-4">
-                    <Avatar className="w-12 h-12">
-                      <AvatarImage src={author.avatar} />
-                      <AvatarFallback>{author.displayName?.[0]}</AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0">
-                      <div className="font-medium truncate">{author.displayName}</div>
-                      <div className="text-xs text-muted-foreground line-clamp-2">{author.bio || "尚未填寫簡介"}</div>
-                    </div>
-                  </div>
-                  {author.tags && author.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {author.tags.map((tag, i) => (
-                        <button
-                          key={`${author.id}-tag-${i}`}
-                          className="text-[10px] px-2 py-0.5 rounded-full cursor-pointer"
-                          style={tagStyle(tag, allAuthorTags)}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setAuthorTag(tag);
-                          }}
-                        >
-                          {tag}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {author.organizations && author.organizations.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-3">
-                      {author.organizations.map(org => (
-                        <Badge key={org.id} variant="secondary" className="text-[10px]">
-                          {org.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                  onTagClick={setAuthorTag}
+                />
               ))}
-              {filteredAuthors.length === 0 && (
-                <div className="col-span-full text-center text-muted-foreground py-10">找不到符合條件的作者。</div>
-              )}
             </div>
           )
+        )}
+        
+        {view === "authors" && !isLoadingPeople && filteredAuthors.length === 0 && (
+            <div className="col-span-full text-center text-muted-foreground py-10">
+                <p>找不到符合條件的作者。</p>
+            </div>
         )}
 
         {view === "orgs" && (
           isLoadingPeople ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1,2,3,4].map(i => (
-                <div key={i} className="h-28 bg-muted/30 animate-pulse rounded-lg" />
+                <div key={i} className="h-32 bg-muted/30 animate-pulse rounded-lg" />
               ))}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
               {filteredOrgs.map(org => (
-                <div
+                <OrgGalleryCard
                   key={org.id}
-                  className="border rounded-lg p-4 hover:border-primary/50 cursor-pointer transition-colors bg-card"
+                  org={org}
                   onClick={() => navigate(`/org/${org.id}`)}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-                      {org.logoUrl ? (
-                        <img src={org.logoUrl} alt={org.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-xs text-muted-foreground">LOGO</span>
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-medium truncate">{org.name}</div>
-                      <div className="text-xs text-muted-foreground line-clamp-2">{org.description || "尚未填寫描述"}</div>
-                    </div>
-                  </div>
-                  {org.tags && org.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {org.tags.map((tag, i) => (
-                        <button
-                          key={`${org.id}-tag-${i}`}
-                          className="text-[10px] px-2 py-0.5 rounded-full cursor-pointer"
-                          style={tagStyle(tag, allOrgTags)}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOrgTag(tag);
-                          }}
-                        >
-                          {tag}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                  onTagClick={setOrgTag}
+                />
               ))}
-              {filteredOrgs.length === 0 && (
-                <div className="col-span-full text-center text-muted-foreground py-10">找不到符合條件的組織。</div>
-              )}
             </div>
           )
+        )}
+
+        {view === "orgs" && !isLoadingPeople && filteredOrgs.length === 0 && (
+            <div className="col-span-full text-center text-muted-foreground py-10">
+                <p>找不到符合條件的組織。</p>
+            </div>
         )}
       </main>
     </div>

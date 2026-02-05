@@ -71,6 +71,9 @@ class PersonaBase(BaseModel):
     website: Optional[str] = ""
     organizationIds: List[str] = []
     tags: List[str] = []
+    defaultLicense: Optional[str] = ""
+    defaultLicenseUrl: Optional[str] = ""
+    defaultLicenseTerms: List[str] = []
 
 class PersonaCreate(PersonaBase):
     pass
@@ -163,6 +166,7 @@ class ScriptUpdate(BaseModel):
     coverUrl: Optional[str] = None
     organizationId: Optional[str] = None
     personaId: Optional[str] = None
+    disableCopy: Optional[bool] = None
 
 class ScriptReorderItem(BaseModel):
     id: str
@@ -196,6 +200,7 @@ class Script(BaseModel):
     personaId: Optional[str] = None
     persona: Optional[Persona] = None
     owner: Optional[UserPublic] = None
+    disableCopy: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -219,5 +224,6 @@ class ScriptSummary(BaseModel):
     sortOrder: float
     markerThemeId: Optional[str] = None
     tags: List[Tag] = []
+    disableCopy: bool = False
 
     model_config = ConfigDict(from_attributes=True)

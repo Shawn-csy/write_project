@@ -231,7 +231,12 @@ def get_public_scripts(
     ).filter(models.Script.isPublic == 1)
 
     if personaId:
-        base_q = base_q.filter(models.Script.personaId == personaId)
+        base_q = base_q.filter(
+            or_(
+                models.Script.personaId == personaId,
+                (models.Script.ownerId == personaId) & (models.Script.personaId.is_(None))
+            )
+        )
     if organizationId:
         base_q = base_q.filter(models.Script.organizationId == organizationId)
     
@@ -275,13 +280,30 @@ def get_public_scripts(
                  inherited_q = inherited_q.filter(models.Script.personaId == personaId)
              if organizationId:
                  inherited_q = inherited_q.filter(models.Script.organizationId == organizationId)
-             return inherited_q.order_by(models.Script.sortOrder.asc(), models.Script.title.asc()).all()
+             results = inherited_q.order_by(models.Script.sortOrder.asc(), models.Script.title.asc()).all()
+             for s in results:
+                 if s.persona:
+                     s.persona.tags = _ensure_list(s.persona.tags)
+                     s.persona.organizationIds = _ensure_list(s.persona.organizationIds)
+                     s.persona.defaultLicenseTerms = _ensure_list(s.persona.defaultLicenseTerms)
+                 if s.organization:
+                     s.organization.tags = _ensure_list(s.organization.tags)
+             return results
          else:
              # Standard behavior: only return explicitly public children
-             return base_q.filter(
+             results = base_q.filter(
                  models.Script.ownerId == ownerId, 
                  models.Script.folder == folder
              ).order_by(models.Script.sortOrder.asc(), models.Script.title.asc()).all()
+             
+             for s in results:
+                 if s.persona:
+                     s.persona.tags = _ensure_list(s.persona.tags)
+                     s.persona.organizationIds = _ensure_list(s.persona.organizationIds)
+                     s.persona.defaultLicenseTerms = _ensure_list(s.persona.defaultLicenseTerms)
+                 if s.organization:
+                     s.organization.tags = _ensure_list(s.organization.tags)
+             return results
     else:
          # Public Feed (Recent)
          # Filter out items that are inside a Public Folder (to prevent clutter)
@@ -296,12 +318,22 @@ def get_public_scripts(
          # 2. Fetch candidates (over-fetch to allow filtering)
          candidates = base_q.order_by(models.Script.lastModified.desc()).limit(200).all()
          
+
          results = []
          for s in candidates:
              # If the folder containing this item is ALSO public, we hide this item 
              # (assuming user should enter the folder to see it)
              if (s.ownerId, s.folder) in public_paths:
                  continue
+                 
+             # Parse nested JSON fields
+             if s.persona:
+                 s.persona.tags = _ensure_list(s.persona.tags)
+                 s.persona.organizationIds = _ensure_list(s.persona.organizationIds)
+                 s.persona.defaultLicenseTerms = _ensure_list(s.persona.defaultLicenseTerms)
+             if s.organization:
+                 s.organization.tags = _ensure_list(s.organization.tags)
+                 
              results.append(s)
              if len(results) >= 50: break
              
@@ -500,12 +532,37 @@ def create_persona(db: Session, persona: schemas.PersonaCreate, ownerId: str):
         avatar=persona.avatar,
         website=persona.website or "",
         organizationIds=persona.organizationIds or [],
-        tags=persona.tags or []
+        tags=persona.tags or [],
+        defaultLicense=persona.defaultLicense or "",
+        defaultLicenseUrl=persona.defaultLicenseUrl or "",
+        defaultLicenseTerms=persona.defaultLicenseTerms or []
     )
     db.add(db_persona)
     db.commit()
     db.refresh(db_persona)
     return db_persona
+
+
+def _ensure_list(val):
+    """Robustly parse JSON string to list, handling double encoding."""
+    if isinstance(val, list):
+        return val
+    if isinstance(val, str):
+        try:
+            # First parse
+            parsed = json.loads(val)
+            # Check for double encoding (string inside string)
+            if isinstance(parsed, str):
+                try:
+                    parsed = json.loads(parsed)
+                except Exception:
+                    pass # Keep first parse attempt
+            
+            if isinstance(parsed, list):
+                return parsed
+        except Exception:
+            pass
+    return []
 
 def update_persona(db: Session, persona_id: str, persona: schemas.PersonaCreate, ownerId: str):
     db_persona = db.query(models.Persona).filter(models.Persona.id == persona_id, models.Persona.ownerId == ownerId).first()
@@ -514,26 +571,28 @@ def update_persona(db: Session, persona_id: str, persona: schemas.PersonaCreate,
     update_data = persona.model_dump(exclude_unset=True)
     if "tags" in update_data and update_data["tags"] is None:
         update_data["tags"] = []
+    if "defaultLicenseTerms" in update_data and update_data["defaultLicenseTerms"] is None:
+        update_data["defaultLicenseTerms"] = []
+        
     for key, value in update_data.items():
         setattr(db_persona, key, value)
     db_persona.updatedAt = int(time.time() * 1000)
     db.commit()
     db.refresh(db_persona)
+    
+    # Ensure JSON fields are parsed correctly before returning
+    db_persona.tags = _ensure_list(db_persona.tags)
+    db_persona.organizationIds = _ensure_list(db_persona.organizationIds)
+    db_persona.defaultLicenseTerms = _ensure_list(db_persona.defaultLicenseTerms)
+    
     return db_persona
 
 def get_user_personas(db: Session, ownerId: str):
     personas = db.query(models.Persona).filter(models.Persona.ownerId == ownerId).all()
     for p in personas:
-        if isinstance(p.organizationIds, str):
-            try:
-                p.organizationIds = json.loads(p.organizationIds)
-            except Exception:
-                p.organizationIds = []
-        if isinstance(p.tags, str):
-            try:
-                p.tags = json.loads(p.tags)
-            except Exception:
-                p.tags = []
+        p.organizationIds = _ensure_list(p.organizationIds)
+        p.tags = _ensure_list(p.tags)
+        p.defaultLicenseTerms = _ensure_list(p.defaultLicenseTerms)
     return personas
 
 def delete_persona(db: Session, persona_id: str):
@@ -553,3 +612,31 @@ def delete_persona(db: Session, persona_id: str):
     result = db.query(models.Organization).filter(models.Organization.id == org_id, models.Organization.ownerId == ownerId).delete()
     db.commit()
     return result > 0
+
+def transfer_persona_ownership(db: Session, persona_id: str, new_owner_id: str, current_owner_id: str):
+    # 1. Verify existence and ownership
+    persona = db.query(models.Persona).filter(models.Persona.id == persona_id, models.Persona.ownerId == current_owner_id).first()
+    if not persona:
+        return False
+        
+    # 2. Verify new owner exists
+    new_owner = db.query(models.User).filter(models.User.id == new_owner_id).first()
+    if not new_owner:
+        return False
+        
+    try:
+        # 3. Update Persona Owner
+        persona.ownerId = new_owner_id
+        persona.updatedAt = int(time.time() * 1000)
+        
+        # 4. Update linked scripts (Scripts published as this Persona)
+        # We need to update the ownerId of these scripts to matching the new persona owner
+        # because specific script ownership usually follows the persona.
+        db.query(models.Script).filter(models.Script.personaId == persona_id).update({models.Script.ownerId: new_owner_id})
+        
+        db.commit()
+        return True
+    except Exception as e:
+        db.rollback()
+        print(f"Persona transfer failed: {e}")
+        return False

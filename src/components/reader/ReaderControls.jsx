@@ -1,5 +1,5 @@
 import React from "react";
-import MarkerVisibilitySelect from "../MarkerVisibilitySelect";
+import { MarkerVisibilitySelect } from "../ui/MarkerVisibilitySelect";
 import SceneSelect from "./SceneSelect";
 import CharacterSelect from "./CharacterSelect";
 import ControlsRow from "./ControlsRow";

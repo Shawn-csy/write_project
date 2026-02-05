@@ -73,7 +73,7 @@ const renderInlineLines = (node, context) => {
 import { RangeNode } from './nodes/RangeNode';
 
 // --- Node Renderer ---
-const NodeRenderer = ({ node, context, isDual = false }) => {
+const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
     const { getCharacterColor, focusMode, focusEffect, hiddenMarkerIds = [] } = context;
 
     // Helper for applying focus effect to non-dialogue nodes
@@ -88,13 +88,37 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
     // 注意：如果是 range 類型的節點，樣式由 RangeNode 處理，這裡只處理被包在 range 內的普通節點
     const getRangeStyle = () => {
         if (!node.inRange || node.inRange.length === 0) return {};
-        // 過濾掉被隱藏的區間
-        const activeRanges = node.inRange.filter(id => !hiddenMarkerIds.includes(id));
+        
+        // Filter out hidden markers AND Block markers (since LayerNode handles them)
+        const activeRanges = node.inRange.filter(id => {
+            if (hiddenMarkerIds.includes(id)) return false;
+            
+            // Check if it's a block marker
+            const config = context.markerConfigs?.find(c => c.id === id);
+            if (config?.isBlock) return false;
+            
+            return true;
+        });
+
         if (activeRanges.length === 0) return {};
-        // 使用節點上預計算的 rangeStyle，或從 context 取得
-        // 對於新版巢狀 range，內容節點可能不再需要 rangeStyle，因為樣式由外層 RangeNode 統一處理
-        // 但為了向後相容或處理 flat 內容，保留此邏輯
-        return node.rangeStyle || {};
+        
+        // Use pre-calculated rangeStyle BUT we must be careful:
+        // node.rangeStyle usually contains styles for ALL ranges covering this node.
+        // If we want to EXCLUDE block styles, we might need to RE-CALCULATE strictly from activeRanges.
+        // Or assume node.rangeStyle is specific to the node's range context.
+        // 'node.rangeStyle' in directASTBuilder is constructed by merging styles.
+        // If we cannot separate them easily, we should reconstruct.
+        
+        // Reconstruct style from active allowed ranges
+        let mergedStyle = {};
+        activeRanges.forEach(id => {
+             const config = context.markerConfigs?.find(c => c.id === id);
+             if (config?.style) {
+                 Object.assign(mergedStyle, config.style);
+             }
+        });
+        
+        return mergedStyle;
     };
 
     switch (node.type) {
@@ -154,7 +178,7 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
             );
 
         case 'action':
-             const actionStyle = getFocusStyle();
+             const actionStyle = { ...getFocusStyle(), ...getRangeStyle() };
              if (actionStyle.display === 'none') return null;
 
             return (
@@ -226,7 +250,7 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
              if (node.text) return <p className="unknown text-muted-foreground">{node.text}</p>;
              return null;
     }
-};
+});
 
 export const ScriptRenderer = React.memo(({ 
     ast, 
@@ -246,7 +270,7 @@ export const ScriptRenderer = React.memo(({
         return makeCharacterColorGetter(themePalette, colorCache);
     }, [themePalette, colorCache]);
 
-    const context = {
+    const context = useMemo(() => ({
         fontSize,
         filterCharacter,
         focusMode,
@@ -254,9 +278,9 @@ export const ScriptRenderer = React.memo(({
         focusContentMode,
         getCharacterColor,
         markerConfigs: Array.isArray(markerConfigs) ? markerConfigs : [],
-        hiddenMarkerIds, // Add to context
-        showLineUnderline // Add to context
-    };
+        hiddenMarkerIds,
+        showLineUnderline
+    }), [fontSize, filterCharacter, focusMode, focusEffect, focusContentMode, getCharacterColor, markerConfigs, hiddenMarkerIds, showLineUnderline]);
 
     return (
         <div className="script-renderer font-serif" style={{ fontSize: `${fontSize}px`, '--body-font-size': `${fontSize}px` }}>

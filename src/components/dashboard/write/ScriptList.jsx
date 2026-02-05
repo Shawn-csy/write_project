@@ -242,13 +242,15 @@ export function ScriptList({
                                         
                                         {/* Public Status (Desktop Only or Icon) */}
                                         <div className="w-20 flex justify-center hidden sm:flex">
-                                            <div 
-                                                onClick={(e) => handleStatusClick(e, item)}
-                                                className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider border ${!readOnly ? "cursor-pointer hover:opacity-80 active:scale-95 transition-all" : ""} ${item.isPublic ? 'bg-green-500/10 text-green-600 border-green-200' : 'bg-muted text-muted-foreground border-border'}`}
-                                                title={readOnly ? "" : (item.type === 'folder' ? "設定資料夾所有內容為公開/私有" : "點擊管理發布設定")}
-                                            >
-                                                {item.isPublic ? "Public" : "Private"}
-                                            </div>
+                                            {item.type !== 'folder' && (
+                                                <div 
+                                                    onClick={(e) => handleStatusClick(e, item)}
+                                                    className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider border ${!readOnly ? "cursor-pointer hover:opacity-80 active:scale-95 transition-all" : ""} ${item.isPublic ? 'bg-green-500/10 text-green-600 border-green-200' : 'bg-muted text-muted-foreground border-border'}`}
+                                                    title={readOnly ? "" : "點擊管理發布設定"}
+                                                >
+                                                    {item.isPublic ? "Public" : "Private"}
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* Actions Dropdown (Replaces Hover Buttons) */}
@@ -264,10 +266,12 @@ export function ScriptList({
                                                         <DropdownMenuLabel>操作選項</DropdownMenuLabel>
                                                         <DropdownMenuSeparator />
                                                         
-                                                        <DropdownMenuItem onClick={(e) => handleStatusClick(e, item) }>
-                                                            <Globe className="w-4 h-4 mr-2" />
-                                                            <span>發布設定...</span>
-                                                        </DropdownMenuItem>
+                                                        {item.type !== 'folder' && (
+                                                            <DropdownMenuItem onClick={(e) => handleStatusClick(e, item) }>
+                                                                <Globe className="w-4 h-4 mr-2" />
+                                                                <span>發布設定...</span>
+                                                            </DropdownMenuItem>
+                                                        )}
 
                                                         {item.type !== 'folder' && (
                                                             <DropdownMenuSub>

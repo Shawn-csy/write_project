@@ -11,7 +11,8 @@ from sqlalchemy.pool import StaticPool
 from fastapi.testclient import TestClient
 
 from database import Base
-from main import app, get_db
+from main import app
+from dependencies import get_db
 
 # Use in-memory SQLite for testing
 SQLALCHEMY_DATABASE_URL = "sqlite://"
@@ -33,8 +34,9 @@ def db_session():
 
     yield session
 
+    if transaction.is_active:
+        transaction.rollback()
     session.close()
-    transaction.rollback()
     connection.close()
 
 from database import get_db as database_get_db
@@ -45,7 +47,9 @@ def client(db_session):
         try:
             yield db_session
         finally:
-            db_session.close()
+            # Let the db_session fixture handle cleanup to avoid
+            # deassociating the transaction before rollback.
+            pass
 
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[database_get_db] = override_get_db

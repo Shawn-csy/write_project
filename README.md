@@ -87,6 +87,30 @@ cd server
 ```
 此腳本會自動建立虛擬環境、安裝相依套件並執行所有測試。
 
+### 前端測試 (Frontend Testing)
+本專案包含單元測試與統合測試，確保核心邏輯與 UI 流程的穩定性。
+
+**單元測試 (Unit Tests)**:
+使用 Vitest 測試核心邏輯 (Parsing, Statistics)。
+```bash
+npm run test
+# 查看測試覆蓋率
+npm run coverage
+```
+
+**統合測試 (Integration Tests)**:
+使用 Playwright 測試使用者流程 (E2E)。
+```bash
+# 首次執行需安裝瀏覽器
+npx playwright install
+
+# 執行所有 E2E 測試
+npx playwright test
+
+# 開啟 UI 模式進行除錯
+npx playwright test --ui
+```
+
 ### 檔案結構說明
 - `src/components/renderer/`: 負責將 AST 轉換為 HTML/React Node 的渲染器。
 - `src/components/settings/`: 包含 MarkerSettings 等複雜設定 UI。

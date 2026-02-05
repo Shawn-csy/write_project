@@ -18,6 +18,8 @@ export function ReaderTOC({ sceneList = [], currentSceneId, onSelectScene }) {
       setOpen(false);
   };
 
+  if (!sceneList || sceneList.length === 0) return null;
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>

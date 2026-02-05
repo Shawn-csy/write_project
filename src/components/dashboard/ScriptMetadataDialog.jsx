@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "../ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
@@ -8,110 +9,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGr
 import { Textarea } from "../ui/textarea"; 
 import { updateScript, addTagToScript, removeTagFromScript, getTags, createTag, getScript, getPersonas, getOrganizations } from "../../lib/db";
 import { useAuth } from "../../contexts/AuthContext";
-import { extractMetadataWithRaw, rewriteMetadata } from "../../lib/metadataParser";
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { extractMetadataWithRaw, rewriteMetadata, writeMetadata } from "../../lib/metadataParser";
+import { DndContext, closestCenter, MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, arrayMove, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { fetchUserThemes } from "../../services/settingsApi";
 import { defaultMarkerConfigs } from "../../constants/defaultMarkers";
+import { MetadataBasicTab } from "./metadata/MetadataBasicTab";
+import { MetadataDetailsTab } from "./metadata/MetadataDetailsTab";
+import { MetadataAdvancedTab } from "./metadata/MetadataAdvancedTab";
+import { MetadataLicenseTab } from "./metadata/MetadataLicenseTab";
 
 
-const SortableField = ({ field, index, onUpdate, onRemove, onFocus, onBlur, dragDisabled }) => {
-    const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } = useSortable({ id: field.id, disabled: dragDisabled });
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-    };
-    return (
-        <div ref={setNodeRef} style={style} className="flex gap-2 items-start">
-            <button
-                type="button"
-                className="mt-2 h-8 w-8 rounded-md border bg-muted/30 text-muted-foreground cursor-grab"
-                ref={setActivatorNodeRef}
-                {...listeners}
-                {...attributes}
-                aria-label="拖拉排序"
-            >
-                ≡
-            </button>
-            <div className="w-1/3">
-                <Input
-                    value={field.key}
-                    onChange={(e) => onUpdate(index, "key", e.target.value)}
-                    onFocus={onFocus}
-                    onBlur={onBlur}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    placeholder="鍵"
-                />
-            </div>
-            <div className="w-2/3">
-                <Textarea
-                    value={field.value}
-                    onChange={(e) => onUpdate(index, "value", e.target.value)}
-                    onFocus={onFocus}
-                    onBlur={onBlur}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    placeholder="值"
-                />
-            </div>
-            <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => onRemove(index)}
-            >
-                <X className="w-4 h-4" />
-            </Button>
-        </div>
-    );
-};
 
-const SortableContactField = ({ field, index, onUpdate, onRemove, onFocus, onBlur, dragDisabled }) => {
-    const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } = useSortable({ id: field.id, disabled: dragDisabled });
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-    };
-    return (
-        <div ref={setNodeRef} style={style} className="flex gap-2 items-start">
-            <button
-                type="button"
-                className="mt-1 h-8 w-8 rounded-md border bg-muted/30 text-muted-foreground cursor-grab"
-                ref={setActivatorNodeRef}
-                {...listeners}
-                {...attributes}
-                aria-label="拖拉排序"
-            >
-                ≡
-            </button>
-            <Input
-                value={field.key}
-                onChange={(e) => onUpdate(index, "key", e.target.value)}
-                onFocus={onFocus}
-                onBlur={onBlur}
-                onPointerDown={(e) => e.stopPropagation()}
-                placeholder="種類"
-                className="w-1/3"
-            />
-            <Input
-                value={field.value}
-                onChange={(e) => onUpdate(index, "value", e.target.value)}
-                onFocus={onFocus}
-                onBlur={onBlur}
-                onPointerDown={(e) => e.stopPropagation()}
-                placeholder="內容"
-                className="w-2/3"
-            />
-            <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => onRemove(index)}
-            >
-                <X className="w-4 h-4" />
-            </Button>
-        </div>
-    );
-};
+
+
 
 export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onSave }) {
     const [title, setTitle] = useState("");
@@ -123,6 +35,10 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     const [date, setDate] = useState("");
     const [contact, setContact] = useState("");
     const [contactFields, setContactFields] = useState([]);
+    const [license, setLicense] = useState("");
+    const [licenseUrl, setLicenseUrl] = useState("");
+    const [licenseTerms, setLicenseTerms] = useState([]);
+    const [copyright, setCopyright] = useState("");
     const [source, setSource] = useState("");
     const [synopsis, setSynopsis] = useState("");
     // const [description, setDescription] = useState(""); // Merged into synopsis
@@ -136,7 +52,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     const [localScript, setLocalScript] = useState(null);
     const activeScript = scriptId ? localScript : script;
     const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
+        useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),
+        useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
     );
     const [dragDisabled, setDragDisabled] = useState(false);
     const activeSensors = dragDisabled ? [] : sensors;
@@ -161,7 +78,17 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
 
     const addCustomField = (key = "", value = "") => {
         customIdRef.current += 1;
-        setCustomFields((prev) => [...prev, { id: `cf-${customIdRef.current}`, key, value }]);
+        setCustomFields((prev) => [...prev, { id: `cf-${customIdRef.current}`, key, value, type: 'text' }]);
+    };
+
+    const addDivider = () => {
+        customIdRef.current += 1;
+        setCustomFields((prev) => [...prev, { id: `cf-${customIdRef.current}`, key: `_sep_${Date.now()}`, value: 'SECTION', type: 'divider' }]);
+    };
+
+    const handleAddContactField = (preset) => {
+        customIdRef.current += 1;
+        setContactFields((prev) => [...prev, { id: `ct-${customIdRef.current}`, key: preset, value: "" }]);
     };
 
     const applyJson = async () => {
@@ -183,6 +110,16 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                     : Object.entries(cf || {}).map(([k, v], idx) => ({ id: `ct-${idx + 1}`, key: k, value: String(v ?? "") }));
                 setContactFields(next);
             }
+            if (parsed.license !== undefined) setLicense(parsed.license);
+            if (parsed.licenseUrl !== undefined) setLicenseUrl(parsed.licenseUrl);
+            if (parsed.licenseTerms !== undefined) {
+                try {
+                    setLicenseTerms(JSON.parse(parsed.licenseTerms));
+                } catch {
+                     setLicenseTerms([]);
+                }
+            }
+            if (parsed.copyright !== undefined) setCopyright(parsed.copyright);
             if (parsed.source !== undefined) setSource(parsed.source);
             if (parsed.cover !== undefined) setCoverUrl(parsed.cover);
             if (parsed.status !== undefined) setStatus(parsed.status);
@@ -219,7 +156,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         }
     };
     
-    const [showAdvanced, setShowAdvanced] = useState(false);
+    // const [showAdvanced, setShowAdvanced] = useState(false); // Deprecated by Tabs
 
     const [currentTags, setCurrentTags] = useState([]); 
     const [availableTags, setAvailableTags] = useState([]);
@@ -236,6 +173,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     // Marker Themes
     const [markerThemes, setMarkerThemes] = useState([]);
     const [markerThemeId, setMarkerThemeId] = useState("default");
+    const [showMarkerLegend, setShowMarkerLegend] = useState(false);
+    const [disableCopy, setDisableCopy] = useState(false);
 
     useEffect(() => {
         if (open && currentUser) {
@@ -286,6 +225,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
             setStatus(script.status || (script.isPublic ? "Public" : "Private"));
             setCurrentTags(script.tags || []);
             setMarkerThemeId(script.markerThemeId || "default");
+            setShowMarkerLegend(false);
+            setDisableCopy(script.disableCopy || false);
             
             // Determine Identity
             if (script.organizationId) {
@@ -322,20 +263,36 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                     setSynopsis(meta.synopsis || meta.summary || meta.description || meta.notes || "");
                     // setDescription(meta.description || meta.notes || "");
                     
+                    if (meta.marker_legend !== undefined) setShowMarkerLegend(String(meta.marker_legend) === 'true');
+                    else if (meta.show_legend !== undefined) setShowMarkerLegend(String(meta.show_legend) === 'true');
+                    
                     if (!script.coverUrl && (meta.cover || meta.coverurl)) {
                         setCoverUrl(meta.cover || meta.coverurl);
                     }
+                    
+                    setLicense(meta.license || "");
+                    setLicenseUrl(meta.licenseUrl || meta.licenseurl || "");
+                    setLicenseTerms(ensureList(meta.licenseTerms));
+
+                    setCopyright(meta.copyright || "");
 
                     const reserved = new Set([
                         "title", "credit", "author", "authors", "source",
                         "draftdate", "date", "contact", "copyright",
                         "notes", "description", "synopsis", "summary",
-                        "cover", "coverurl"
+                        "notes", "description", "synopsis", "summary",
+                        "cover", "coverurl", "marker_legend", "show_legend",
+                        "license", "licenseurl", "licenseterms", "copyright"
                     ]);
                     if (!userEditedRef.current && (customFields || []).length === 0) {
                         const custom = rawEntries
-                            .map(({ key, value }, idx) => ({ id: `${Date.now()}-${idx}`, key, value }))
+                            .map(({ key, value }, idx) => {
+                                const type = key.startsWith('_sep_') ? 'divider' : 'text';
+                                return { id: `${Date.now()}-${idx}`, key, value, type };
+                            })
                             .filter((entry) => {
+                                // Allow dividers through
+                                if (entry.type === 'divider') return true;
                                 const norm = entry.key.toLowerCase().replace(/\s/g, "");
                                 return !reserved.has(norm);
                             });
@@ -356,6 +313,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setStatus(localScript.status || (localScript.isPublic ? "Public" : "Private"));
         setCurrentTags(localScript.tags || []);
         setMarkerThemeId(localScript.markerThemeId || "default");
+        setShowMarkerLegend(false);
+        setDisableCopy(localScript.disableCopy || false);
 
         if (localScript.organizationId) {
             setIdentity(`org:${localScript.organizationId}`);
@@ -386,10 +345,19 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                 setSource(meta.source || "");
                 setSynopsis(meta.synopsis || meta.summary || meta.description || meta.notes || "");
                 // setDescription(meta.description || meta.notes || "");
+                
+                if (meta.marker_legend !== undefined) setShowMarkerLegend(String(meta.marker_legend) === 'true');
+                else if (meta.show_legend !== undefined) setShowMarkerLegend(String(meta.show_legend) === 'true');
 
                 if (!localScript.coverUrl && (meta.cover || meta.coverurl)) {
                     setCoverUrl(meta.cover || meta.coverurl);
                 }
+
+                setLicense(meta.license || "");
+                setLicenseUrl(meta.licenseUrl || meta.licenseurl || "");
+                setLicenseTerms(meta.licenseTerms ? ensureList(meta.licenseTerms) : []);
+
+                setCopyright(meta.copyright || "");
 
                 const reserved = new Set([
                     "title", "credit", "author", "authors", "source",
@@ -399,8 +367,12 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                 ]);
                 if (!userEditedRef.current && (customFields || []).length === 0) {
                     const custom = rawEntries
-                        .map(({ key, value }, idx) => ({ id: `${Date.now()}-${idx}`, key, value }))
+                        .map(({ key, value }, idx) => {
+                             const type = key.startsWith('_sep_') ? 'divider' : 'text';
+                             return { id: `${Date.now()}-${idx}`, key, value, type };
+                        })
                         .filter((entry) => {
+                             if (entry.type === 'divider') return true;
                             const norm = entry.key.toLowerCase().replace(/\s/g, "");
                             return !reserved.has(norm);
                         });
@@ -411,8 +383,24 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         loadContent();
     }, [open, scriptId, localScript]);
 
+    // Auto-fill license defaults when identity changes
     useEffect(() => {
-        if (jsonMode) return;
+        if (!license && (!licenseTerms || licenseTerms.length === 0) && identity.startsWith("persona:")) {
+            const personaId = identity.split(":")[1];
+            const persona = personas.find(p => p.id === personaId);
+            if (persona && (persona.defaultLicense || (persona.defaultLicenseTerms && persona.defaultLicenseTerms.length > 0))) {
+                if (persona.defaultLicense) setLicense(persona.defaultLicense);
+                if (persona.defaultLicenseUrl) setLicenseUrl(persona.defaultLicenseUrl);
+                if (persona.defaultLicenseTerms) setLicenseTerms(ensureList(persona.defaultLicenseTerms));
+            }
+
+        }
+    }, [identity, personas]); // Only run when identity or personas list changes
+    
+    // Initial Load Logic
+    useEffect(() => {
+        if (!script) return;
+        const load = async () => {};
         const customObject = {};
         (customFields || []).forEach(({ key, value }) => {
             if (key) customObject[key] = value;
@@ -433,6 +421,10 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
             source,
             cover: coverUrl,
             status,
+            license,
+            licenseUrl,
+            licenseTerms,
+            copyright,
             publishAs: identity,
             selectedOrgId: selectedOrgId || "",
             tags: (currentTags || []).map(t => ({ name: t.name, color: t.color })),
@@ -448,6 +440,10 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         source,
         coverUrl,
         status,
+        license,
+        licenseUrl,
+        licenseTerms,
+        copyright,
         identity,
         selectedOrgId,
         currentTags,
@@ -462,6 +458,45 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         }
     }, [open]);
 
+
+    // Helper for robust parsing with flattening
+    const ensureList = (val) => {
+        if (!val) return [];
+        let parsed = val;
+        
+        // 1. Input string? Parse it.
+        if (typeof parsed === 'string') {
+            try {
+                parsed = JSON.parse(parsed);
+            } catch {
+                // If simple string that fails JSON.parse (e.g. "Some Term"), wrap it
+                return [parsed];
+            }
+        }
+        
+        // 2. Still string? (Double encoded)
+        if (typeof parsed === 'string') {
+             try { parsed = JSON.parse(parsed); } catch { return [parsed]; }
+        }
+
+        // 3. Now we should have an array
+        if (Array.isArray(parsed)) {
+            // Check elements. If an element is a string that looks like an array, parse it and flatten.
+            // This handles the case ['["a","b"]'] -> ['a', 'b']
+            return parsed.flatMap(item => {
+                if (typeof item === 'string' && item.trim().startsWith('[') && item.trim().endsWith(']')) {
+                    try {
+                        const inner = JSON.parse(item);
+                        if (Array.isArray(inner)) return inner;
+                    } catch {}
+                }
+                return item;
+            });
+        }
+        
+        return [];
+    };
+
     useEffect(() => {
         if (identity === "user") {
             setSelectedOrgId("");
@@ -472,6 +507,9 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
             return;
         }
         if (identity.startsWith("persona:")) {
+            // Wait for personas to load before resetting
+            if (personas.length === 0) return; 
+
             const personaId = identity.split(":")[1];
             const persona = personas.find(p => p.id === personaId);
             if (!persona) {
@@ -498,6 +536,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
             console.error("Failed to load tags", e);
         }
     };
+
 
     const handleAddTag = async () => {
         if (!newTagInput.trim()) return;
@@ -540,39 +579,58 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                  content = full.content;
             }
 
-            const newContent = rewriteMetadata(content, {
-                title,
-                author,
-                date, // Standard Fountain key
-                contact: contactFields && contactFields.length > 0 ? JSON.stringify(Object.fromEntries(contactFields.filter(f => f.key).map(f => [f.key, f.value]))) : contact,
-                source,
-                synopsis,
-                // description, // Removed
-                cover: coverUrl // Save cover to fountain as well for portability
+            // 2. Batch Update to DB
+            // We use writeMetadata to ensure ORDER is preserved for dividers
+            const orderedEntries = [];
+            
+            // Standard Fields Order
+            if (title) orderedEntries.push({ key: "Title", value: title });
+            // Credit skipped if empty
+            if (author) orderedEntries.push({ key: "Author", value: author });
+            if (source) orderedEntries.push({ key: "Source", value: source });
+            if (license) orderedEntries.push({ key: "License", value: license });
+            if (licenseUrl) orderedEntries.push({ key: "LicenseUrl", value: licenseUrl });
+            if (licenseTerms && licenseTerms.length > 0) orderedEntries.push({ key: "LicenseTerms", value: JSON.stringify(licenseTerms) });
+            if (copyright) orderedEntries.push({ key: "Copyright", value: copyright });
+            if (date) orderedEntries.push({ key: "Draft date", value: date });
+            if (contact || (contactFields && contactFields.length > 0)) {
+                 const contactVal = contactFields && contactFields.length > 0 
+                    ? JSON.stringify(Object.fromEntries(contactFields.filter(f => f.key).map(f => [f.key, f.value]))) 
+                    : contact;
+                 orderedEntries.push({ key: "Contact", value: contactVal });
+            }
+            if (coverUrl) orderedEntries.push({ key: "Cover", value: coverUrl });
+            if (synopsis) orderedEntries.push({ key: "Synopsis", value: synopsis });
+
+            // Custom Fields (In Order)
+            (customFields || []).forEach(({ key, value, type }) => {
+                if (type === 'divider') {
+                    // Use user's value as section title
+                     orderedEntries.push({ key, value: value || 'SECTION' });
+                } else if (key && value) {
+                    orderedEntries.push({ key, value });
+                }
             });
 
-            const customUpdates = {};
-            (customFields || []).forEach(({ key, value }) => {
-                if (key && value) customUpdates[key] = value;
-            });
-            const finalContent = rewriteMetadata(newContent, customUpdates);
+            if (showMarkerLegend) {
+                orderedEntries.push({ key: "marker_legend", value: "true" });
+            }
 
-            // 2. Batch Update to DB
-            // Passing explicit known columns for DB optimization (if backend supported)
-            // AND the content containing the truth.
-            // 2. Batch Update to DB
-            // Parse Identity
+            const finalContent = writeMetadata(content, orderedEntries);
+
             let updatePayload = {
                 title,
                 coverUrl,
                 status,
                 content: finalContent,
-                author, // Text author fallback
+                author,
                 draftDate: date,
                 isPublic: status === "Public",
                 personaId: null,
                 organizationId: null,
-                markerThemeId: markerThemeId 
+                markerThemeId: markerThemeId,
+                showMarkerLegend: showMarkerLegend,
+                disableCopy: disableCopy
             };
 
             if (identity.startsWith("persona:")) {
@@ -622,325 +680,75 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                     </DialogDescription>
                 </DialogHeader>
                 
-                <div className="grid gap-4 py-4">
-                    {/* Basic Info */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="grid gap-2">
-                            <label className="text-sm font-medium">標題 (Title)</label>
-                            <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="劇本標題" />
-                        </div>
-                        <div className="grid gap-2">
-                            <label className="text-sm font-medium">發布身分 (Publish As)</label>
-                            <Select value={identity} onValueChange={setIdentity}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="選擇身分" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="user">{currentUser?.displayName || "個人 (Me)"}</SelectItem>
-                                    {personas.length > 0 && (
-                                        <SelectGroup>
-                                            <SelectLabel>作者身分 (Personas)</SelectLabel>
-                                            {personas.map(p => (
-                                                <SelectItem key={p.id} value={`persona:${p.id}`}>{p.displayName}</SelectItem>
-                                            ))}
-                                        </SelectGroup>
-                                    )}
-                                    {orgs.length > 0 && (
-                                        <SelectGroup>
-                                            <SelectLabel>組織 (Organizations)</SelectLabel>
-                                            {orgs.map(o => (
-                                                <SelectItem key={o.id} value={`org:${o.id}`}>{o.name}</SelectItem>
-                                            ))}
-                                        </SelectGroup>
-                                    )}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                    {identity.startsWith("persona:") && (
-                        <div className="grid gap-2">
-                            <label className="text-sm font-medium">所屬組織 (From Persona)</label>
-                            <Select value={selectedOrgId || "none"} onValueChange={(val) => setSelectedOrgId(val === "none" ? "" : val)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="不選擇" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">不選擇</SelectItem>
-                                    {(() => {
-                                        const personaId = identity.split(":")[1];
-                                        const persona = personas.find(p => p.id === personaId);
-                                        const orgIds = persona?.organizationIds || [];
-                                        return orgs
-                                            .filter(o => orgIds.includes(o.id))
-                                            .map(o => (
-                                                <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
-                                            ));
-                                    })()}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    )}
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                         <div className="grid gap-2">
-                            <label className="text-sm font-medium">發布狀態</label>
-                            <Select value={status} onValueChange={setStatus}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="選擇狀態" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Private">私有 (Private)</SelectItem>
-                                    <SelectItem value="Public">公開 (Public)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                         <div className="grid gap-2">
-                            <label className="text-sm font-medium">日期 (Date)</label>
-                            <Input value={date} onChange={e => setDate(e.target.value)} placeholder="e.g. 2024-01-01 or Draft 1" />
-                        </div>
-                    </div>
-
-                    <div className="grid gap-2">
-                        <label className="text-sm font-medium">標記主題 (Marker Theme)</label>
-                         <Select value={markerThemeId} onValueChange={setMarkerThemeId}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="選擇主題" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {markerThemes.map(t => (
-                                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <div className="text-xs text-muted-foreground">
-                            公開劇本將使用此主題來顯示自訂標記 (如 {`>>SE`})。
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-1 gap-4">
-                        <div className="grid gap-2">
-                            <label className="text-sm font-medium">簡介 (Synopsis)</label>
-                            <Textarea
-                                value={synopsis}
-                                onChange={(e) => setSynopsis(e.target.value)}
-                                placeholder="劇本的簡介或摘要..."
-                                className="h-32"
+                <Tabs defaultValue="basic" className="flex-1 overflow-hidden flex flex-col">
+                    <TabsList className="grid w-full grid-cols-4">
+                        <TabsTrigger value="basic">基本資訊</TabsTrigger>
+                        <TabsTrigger value="details">詳細設定</TabsTrigger>
+                        <TabsTrigger value="license">授權</TabsTrigger>
+                        <TabsTrigger value="advanced">進階</TabsTrigger>
+                    </TabsList>
+                    
+                    <div className="flex-1 overflow-y-auto py-4 px-1">
+                        <TabsContent value="basic" className="space-y-4 mt-0 h-full">
+                            <MetadataBasicTab 
+                                title={title} setTitle={setTitle}
+                                identity={identity} setIdentity={setIdentity}
+                                currentUser={currentUser}
+                                personas={personas}
+                                orgs={orgs}
+                                selectedOrgId={selectedOrgId} setSelectedOrgId={setSelectedOrgId}
+                                status={status} setStatus={setStatus}
+                                date={date} setDate={setDate}
+                                source={source} setSource={setSource}
+                                synopsis={synopsis} setSynopsis={setSynopsis}
                             />
-                        </div>
-                    </div>
-                
-                    {/* Status Alert */}
-                    {status === "Public" && (!coverUrl || currentTags.length === 0) && (
-                        <div className="flex w-full items-start gap-3 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-900">
-                            <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
-                            <div className="grid gap-1">
-                                <h5 className="font-medium text-yellow-900 leading-none tracking-tight">建議補充資訊</h5>
-                                <div className="text-yellow-700 opacity-90 leading-relaxed">
-                                    建議補充
-                                    {!coverUrl && " 封面"}
-                                    {!coverUrl && currentTags.length === 0 && " 與"}
-                                    {currentTags.length === 0 && " 標籤"}
-                                    以增加曝光。
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                        </TabsContent>
 
-                    {/* Advanced Toggle */}
-                    <div className="flex items-center justify-between mt-2">
-                        <div 
-                            className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer hover:text-foreground select-none"
-                            onClick={() => setShowAdvanced(!showAdvanced)}
-                        >
-                            {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                            <span>更多資訊 (封面、聯絡方式、自訂欄位)</span>
-                        </div>
-                        <Button type="button" variant="outline" size="sm" onClick={() => setJsonMode(!jsonMode)}>
-                            {jsonMode ? "表單模式" : "JSON 模式"}
-                        </Button>
-                    </div>
-
-                    {showAdvanced && !jsonMode && (
-                        <div className="grid gap-4 p-4 border rounded-lg bg-muted/20 animate-in slide-in-from-top-2 duration-200">
-                             <div className="grid gap-2">
-                                <label className="text-sm font-medium">作者名稱 (Author Text)</label>
-                                <Input value={author} onChange={e => setAuthor(e.target.value)} placeholder="覆蓋顯示的作者名稱..." />
-                                <div className="text-xs text-muted-foreground">若留空則顯示發布身分的名稱。此欄位會寫入劇本標頭。</div>
-                            </div>
-                            <div className="grid gap-2">
-                                <label className="text-sm font-medium">封面圖片 URL (Cover)</label>
-                                <Input value={coverUrl} onChange={e => setCoverUrl(e.target.value)} placeholder="https://..." />
-                            </div>
-                             <div className="grid gap-2">
-                                <label className="text-sm font-medium">聯絡方式 (Contact)</label>
-                                <div className="flex flex-wrap gap-2">
-                                    {["Email", "手機", "Discord", "IG"].map((preset) => (
-                                        <Button
-                                            key={preset}
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => {
-                                                customIdRef.current += 1;
-                                                setContactFields((prev) => [...prev, { id: `ct-${customIdRef.current}`, key: preset, value: "" }]);
-                                            }}
-                                        >
-                                            + {preset}
-                                        </Button>
-                                    ))}
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => {
-                                            customIdRef.current += 1;
-                                            setContactFields((prev) => [...prev, { id: `ct-${customIdRef.current}`, key: "", value: "" }]);
-                                        }}
-                                    >
-                                        + 新增
-                                    </Button>
-                                </div>
-                                <DndContext
-                                    sensors={activeSensors}
-                                    collisionDetection={closestCenter}
-                                    onDragEnd={({ active, over }) => {
-                                        if (!over || active.id === over.id) return;
-                                        const items = contactFields.map((f) => f.id);
-                                        const oldIndex = items.indexOf(active.id);
-                                        const newIndex = items.indexOf(over.id);
-                                        setContactFields(arrayMove(contactFields, oldIndex, newIndex));
-                                    }}
-                                >
-                                    <SortableContext
-                                        items={contactFields.map((f) => f.id)}
-                                        strategy={verticalListSortingStrategy}
-                                    >
-                                        <div className="space-y-2">
-                                            {contactFields.map((field, idx) => (
-                                                <SortableContactField 
-                                                    key={field.id} 
-                                                    field={field} 
-                                                    index={idx}
-                                                    onUpdate={handleContactFieldUpdate}
-                                                    onRemove={(i) => setContactFields(prev => prev.filter((_, idx) => idx !== i))}
-                                                    onFocus={() => setDragDisabled(true)}
-                                                    onBlur={() => setDragDisabled(false)}
-                                                    dragDisabled={dragDisabled}
-                                                />
-                                            ))}
-                                        </div>
-                                    </SortableContext>
-                                </DndContext>
-                                <div className="text-xs text-muted-foreground">可自行新增欄位，例如 Email、手機、Discord。</div>
-                            </div>
-                             <div className="grid gap-2">
-                                <label className="text-sm font-medium">來源 (Source)</label>
-                                <Input value={source} onChange={e => setSource(e.target.value)} placeholder="改編來源或其他" />
-                            </div>
-                            <div className="grid gap-2">
-                                <label className="text-sm font-medium">自訂欄位</label>
-                                <div className="flex flex-wrap gap-2">
-                                    {["角色設定", "世界觀", "備註"].map((preset) => (
-                                        <Button
-                                            key={preset}
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => addCustomField(preset, "")}
-                                        >
-                                            + {preset}
-                                        </Button>
-                                    ))}
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => addCustomField("", "")}
-                                    >
-                                        + 新增欄位
-                                    </Button>
-                                </div>
-                                <DndContext
-                                    sensors={activeSensors}
-                                    collisionDetection={closestCenter}
-                                    onDragEnd={({ active, over }) => {
-                                        if (!over || active.id === over.id) return;
-                                        const items = customFields.map((f) => f.id);
-                                        const oldIndex = items.indexOf(active.id);
-                                        const newIndex = items.indexOf(over.id);
-                                        setCustomFields(arrayMove(customFields, oldIndex, newIndex));
-                                    }}
-                                >
-                                    <SortableContext
-                                        items={customFields.map((f) => f.id)}
-                                        strategy={verticalListSortingStrategy}
-                                    >
-                                        <div className="space-y-2">
-                                            {customFields.map((field, idx) => (
-                                                <SortableField 
-                                                    key={field.id} 
-                                                    field={field} 
-                                                    index={idx}
-                                                    onUpdate={handleCustomFieldUpdate}
-                                                    onRemove={(i) => setCustomFields(prev => prev.filter((_, idx) => idx !== i))}
-                                                    onFocus={() => setDragDisabled(true)}
-                                                    onBlur={() => setDragDisabled(false)}
-                                                    dragDisabled={dragDisabled}
-                                                />
-                                            ))}
-                                        </div>
-                                    </SortableContext>
-                                </DndContext>
-                                <div className="text-xs text-muted-foreground">
-                                    這些欄位會寫入劇本標頭，可自由新增。
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {showAdvanced && jsonMode && (
-                        <div className="grid gap-3 p-4 border rounded-lg bg-muted/20">
-                            <Textarea
-                                value={jsonText}
-                                onChange={(e) => setJsonText(e.target.value)}
-                                className="min-h-[240px] font-mono text-xs"
+                        <TabsContent value="details" className="space-y-6 mt-0">
+                            <MetadataDetailsTab 
+                                status={status}
+                                coverUrl={coverUrl} setCoverUrl={setCoverUrl}
+                                currentTags={currentTags}
+                                author={author} setAuthor={setAuthor}
+                                availableTags={availableTags}
+                                newTagInput={newTagInput} setNewTagInput={setNewTagInput}
+                                handleAddTag={handleAddTag}
+                                handleRemoveTag={handleRemoveTag}
+                                contactFields={contactFields} setContactFields={setContactFields}
+                                onAddContactField={handleAddContactField}
+                                handleContactFieldUpdate={handleContactFieldUpdate}
+                                activeSensors={activeSensors}
+                                dragDisabled={dragDisabled} setDragDisabled={setDragDisabled}
+                                customFields={customFields} setCustomFields={setCustomFields}
+                                addCustomField={addCustomField}
+                                addDivider={addDivider}
+                                handleCustomFieldUpdate={handleCustomFieldUpdate}
                             />
-                            {jsonError && (
-                                <div className="text-xs text-destructive">{jsonError}</div>
-                            )}
-                            <div className="flex justify-end gap-2">
-                                <Button type="button" variant="outline" onClick={applyJson}>
-                                    套用 JSON
-                                </Button>
-                            </div>
-                        </div>
-                    )}
+                        </TabsContent>
 
-                    <div className="grid gap-2 mt-2">
-                        <label className="text-sm font-medium">標籤 (Tags)</label>
-                        <div className="flex flex-wrap gap-2 mb-2">
-                            {currentTags.map(tag => (
-                                <Badge key={tag.id} variant="secondary" className="pl-2 pr-1 h-7 flex items-center gap-1">
-                                    {tag.name}
-                                    <X 
-                                        className="w-3 h-3 cursor-pointer hover:text-destructive" 
-                                        onClick={() => handleRemoveTag(tag.id)}
-                                    />
-                                </Badge>
-                            ))}
-                        </div>
-                        <div className="flex gap-2">
-                            <Input 
-                                value={newTagInput} 
-                                onChange={e => setNewTagInput(e.target.value)} 
-                                placeholder="輸入標籤名稱..." 
-                                onKeyDown={e => e.key === 'Enter' && handleAddTag()}
+                        <TabsContent value="license" className="space-y-4 mt-0">
+                            <MetadataLicenseTab
+                                license={license} setLicense={setLicense}
+                                licenseUrl={licenseUrl} setLicenseUrl={setLicenseUrl}
+                                licenseTerms={licenseTerms} setLicenseTerms={setLicenseTerms}
+                                copyright={copyright} setCopyright={setCopyright}
                             />
-                            <Button size="icon" variant="outline" onClick={handleAddTag} disabled={!newTagInput}>
-                                <Plus className="w-4 h-4" />
-                            </Button>
-                        </div>
+                        </TabsContent>
+
+                        <TabsContent value="advanced" className="space-y-4 mt-0">
+                            <MetadataAdvancedTab
+                                markerThemeId={markerThemeId} setMarkerThemeId={setMarkerThemeId}
+                                markerThemes={markerThemes}
+                                showMarkerLegend={showMarkerLegend} setShowMarkerLegend={setShowMarkerLegend}
+                                disableCopy={disableCopy} setDisableCopy={setDisableCopy}
+                                jsonMode={jsonMode} setJsonMode={setJsonMode}
+                                jsonText={jsonText} setJsonText={setJsonText}
+                                jsonError={jsonError}
+                                applyJson={applyJson}
+                            />
+                        </TabsContent>
                     </div>
-                </div>
+                </Tabs>
 
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>

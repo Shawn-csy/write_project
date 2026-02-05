@@ -55,11 +55,8 @@ export function SettingsProvider({ children }) {
   };
 
   // Display Modes
-  const [exportMode, setExportMode] = usePersistentState(STORAGE_KEYS.EXPORT_MODE, "processed");
-  const [fileLabelMode, setFileLabelMode] = usePersistentState(STORAGE_KEYS.LABEL_MODE, "auto");
-  const [focusEffect, setFocusEffect] = usePersistentState(STORAGE_KEYS.FOCUS_EFFECT, "hide");
-  const [focusContentMode, setFocusContentMode] = usePersistentState(STORAGE_KEYS.FOCUS_CONTENT, "all");
-  
+
+
   // Booleans mapped to 'on'/'off' via a wrapper or handled in hook?
   // Current hook uses raw values. Existing code used "on"/"off" strings for boolean storage in some cases?
   // Let's check storage.js or original code.
@@ -78,14 +75,6 @@ export function SettingsProvider({ children }) {
   // Or just migrate to booleans if "on"/"off" is not critical external usage?
   // Let's wrap it to be safe.
   
-  const [highlightCharactersStr, setHighlightCharactersStr] = usePersistentState(STORAGE_KEYS.HIGHLIGHT_CHAR, "on");
-  const highlightCharacters = highlightCharactersStr === "on";
-  const setHighlightCharacters = (val) => setHighlightCharactersStr(val ? "on" : "off");
-
-  const [highlightSfxStr, setHighlightSfxStr] = usePersistentState(STORAGE_KEYS.HIGHLIGHT_SFX, "on");
-  const highlightSfx = highlightSfxStr === "on";
-  const setHighlightSfx = (val) => setHighlightSfxStr(val ? "on" : "off");
-
   const [hideWhitespaceStr, setHideWhitespaceStr] = usePersistentState("hideWhitespace", "off");
   const hideWhitespace = hideWhitespaceStr === "on";
   const setHideWhitespace = (val) => setHideWhitespaceStr(val ? "on" : "off");
@@ -100,6 +89,17 @@ export function SettingsProvider({ children }) {
       return [...prev, id];
     });
   };
+
+  // Stats Configuration
+  const defaultStatsConfig = {
+      wordCountDivisor: 200, 
+      excludeNestedDuration: false,
+      customKeywords: [
+          { factor: 1, keywords: "s, sec, 秒" },
+          { factor: 60, keywords: "m, min, 分, 分鐘" }
+      ]
+  };
+  const [statsConfig, setStatsConfig] = usePersistentState("statsConfig", defaultStatsConfig);
 
   // --- Theme Hook ---
   const themes = useMarkerThemes(currentUser);
@@ -153,15 +153,14 @@ export function SettingsProvider({ children }) {
                       if(s.editorFontSize) setBodyFontSize(s.editorFontSize); 
                       if(s.bodyFontSize) setBodyFontSize(s.bodyFontSize);
                       if(s.dialogueFontSize) setDialogueFontSize(s.dialogueFontSize);
-                      if(s.exportMode) setExportMode(s.exportMode);
-                      if(s.fileLabelMode) setFileLabelMode(s.fileLabelMode);
-                      if(s.focusEffect) setFocusEffect(s.focusEffect);
-                      if(s.focusContentMode) setFocusContentMode(s.focusContentMode);
                       if(s.hideWhitespace !== undefined) setHideWhitespace(s.hideWhitespace);
 
                       if(s.lineHeight) setLineHeight(s.lineHeight);
                       if(s.transparentBg !== undefined) setTransparentBg(s.transparentBg);
+                      if(s.lineHeight) setLineHeight(s.lineHeight);
+                      if(s.transparentBg !== undefined) setTransparentBg(s.transparentBg);
                       if(s.showLineUnderline !== undefined) setShowLineUnderline(s.showLineUnderline);
+                      if(s.statsConfig) setStatsConfig(s.statsConfig);
                       
                       // Always fetch themes from API for logged in users
                       const realThemes = await fetchUserThemes(currentUser);
@@ -201,12 +200,7 @@ export function SettingsProvider({ children }) {
                           fontSize,
                           bodyFontSize,
                           dialogueFontSize,
-                          exportMode,
-                          fileLabelMode,
-                          focusEffect,
-                          focusContentMode,
-                          highlightCharacters,
-                          highlightSfx,
+
                           hideWhitespace,
 
                           lineHeight,
@@ -237,17 +231,13 @@ export function SettingsProvider({ children }) {
           fontSize,
           bodyFontSize,
           dialogueFontSize,
-          exportMode,
-          fileLabelMode,
-          focusEffect,
-          focusContentMode,
-          highlightCharacters,
-          highlightSfx,
+
           hideWhitespace,
 
           lineHeight,
           transparentBg,
           showLineUnderline,
+          statsConfig,
           currentThemeId: themes.currentThemeId
       };
 
@@ -262,12 +252,7 @@ export function SettingsProvider({ children }) {
       fontSize,
       bodyFontSize,
       dialogueFontSize,
-      exportMode,
-      fileLabelMode,
-      focusEffect,
-      focusContentMode,
-      highlightCharacters,
-      highlightSfx,
+
       hideWhitespace,
 
       lineHeight,
@@ -299,12 +284,6 @@ export function SettingsProvider({ children }) {
     adjustFont,
 
     // Modes
-    exportMode, setExportMode,
-    fileLabelMode, setFileLabelMode,
-    focusEffect, setFocusEffect,
-    focusContentMode, setFocusContentMode,
-    highlightCharacters, setHighlightCharacters,
-    highlightSfx, setHighlightSfx,
     hideWhitespace, setHideWhitespace,
 
     transparentBg, setTransparentBg,
@@ -313,12 +292,14 @@ export function SettingsProvider({ children }) {
     // Markers (Backwards Compatible + Theme Aware)
     markerConfigs: themes.markerConfigs, 
     setMarkerConfigs: themes.setMarkerConfigs,
-    updateMarkerConfigs: themes.setMarkerConfigs,
-
     // Marker visibility
     hiddenMarkerIds,
     setHiddenMarkerIds,
     toggleMarkerVisibility,
+
+    // Stats Config
+    statsConfig,
+    setStatsConfig,
 
     // Themes (New API)
     ...themes

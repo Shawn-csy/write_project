@@ -118,6 +118,9 @@ class Persona(Base):
     website = Column(String, default="")
     organizationIds = Column(JSON, default=list)
     tags = Column(JSON, default=list)
+    defaultLicense = Column(String, default="")
+    defaultLicenseUrl = Column(String, default="")
+    defaultLicenseTerms = Column(JSON, default=list)
     createdAt = Column(Integer, default=lambda: int(time.time() * 1000))
     updatedAt = Column(Integer, default=lambda: int(time.time() * 1000))
     
@@ -125,3 +128,4 @@ class Persona(Base):
 
 Script.personaId = Column(String, ForeignKey("personas.id"), nullable=True)
 Script.persona = relationship("Persona", lazy="joined")
+Script.disableCopy = Column(Boolean, default=False)  # Content protection: disable copy on public page

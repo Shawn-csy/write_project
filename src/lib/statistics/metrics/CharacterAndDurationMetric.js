@@ -34,6 +34,18 @@ export class CharacterAndDurationMetric extends Metric {
         }
         this.dialogueByChar[charName].push(speechText);
       }
+    } else if (node.type === 'character') {
+        this.currentCharacterName = (node.text || "UNKNOWN").trim();
+    } else if (node.type === 'dialogue') {
+         if (this.currentCharacterName) {
+             const speechText = this.getText(node).trim();
+             if (speechText) {
+                if (!this.dialogueByChar[this.currentCharacterName]) {
+                  this.dialogueByChar[this.currentCharacterName] = [];
+                }
+                this.dialogueByChar[this.currentCharacterName].push(speechText);
+             }
+         }
     }
   }
 

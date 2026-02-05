@@ -138,4 +138,10 @@ export const CHAPTER_PATTERNS = [
   /^Chapter\s+\d+/i,  // Chapter X
   /^ACT\s+\d+/i,  // ACT X
   /^SCENE\s+\d+/i,  // SCENE X
+  // Standard Fountain Scene Headings
+  /^(INT|EXT|EST|I\/E|INT\/EXT)[\.\s]/i, 
+  /^(INT\.|EXT\.|EST\.|I\/E|INT\/EXT\.)/i, // Explicit dot support if needed, though covered above
+  /^[\w\s]+ TO:$/ // Transitions sometimes used as headings, but usually Transitions are right aligned.
+  // Actually Fountain Spec: "Scene Heading" must start with INT, EXT, EST, INT./EXT, I/E.
+
 ];

@@ -17,6 +17,7 @@ export class BasicStatsMetric extends Metric {
       dialogueLines: 0
     };
     this.locations = [];
+    this.actionLines = []; // New collection
     this.timeframeDistribution = { INT: 0, EXT: 0, OTHER: 0 };
   }
 
@@ -42,7 +43,8 @@ export class BasicStatsMetric extends Metric {
         if (text) {
           const len = text.replace(/\s/g, '').length;
           this.counts.actionChars += len;
-          this.counts.totalChars += len; // or text.length? Old logic mixed them. Let's use clean length for weight.
+          this.counts.totalChars += len; 
+          this.actionLines.push(text); // Collect content
         }
         break;
 
@@ -64,13 +66,25 @@ export class BasicStatsMetric extends Metric {
           this.counts.totalChars += len;
         }
         break;
+
+      case 'dialogue': // Fallback for flat AST
+        const dlgText = text;
+        if (dlgText) {
+          this.counts.dialogueLines++;
+          const len = dlgText.replace(/\s/g, '').length;
+          this.counts.dialogueChars += len;
+          this.counts.totalChars += len;
+        }
+        break;
     }
   }
 
   getResult() {
     return {
       counts: this.counts,
+      counts: this.counts,
       locations: this.locations,
+      actionLines: this.actionLines, // Return Collected Lines
       timeframeDistribution: this.timeframeDistribution,
       // Calculate Ratios here
       dialogueRatio: this.counts.totalChars ? Math.round((this.counts.dialogueChars / this.counts.totalChars) * 100) : 0,

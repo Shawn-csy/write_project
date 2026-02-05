@@ -89,3 +89,40 @@ def test_folder_parent_timestamp(client):
     updated_ts = res.json()["lastModified"]
     
     assert updated_ts >= initial_ts
+
+def test_script_disable_copy_default(client):
+    """Test that disableCopy defaults to False"""
+    headers = {"X-User-ID": "u1"}
+    payload = {"title": "Test Script"}
+    response = client.post("/api/scripts", json=payload, headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data.get("disableCopy") == False
+
+def test_script_disable_copy_update(client):
+    """Test updating disableCopy setting"""
+    headers = {"X-User-ID": "u1"}
+    # Create
+    res = client.post("/api/scripts", json={"title": "Protected Script"}, headers=headers)
+    script_id = res.json()["id"]
+    
+    # Update disableCopy to True
+    update_payload = {"disableCopy": True}
+    res = client.put(f"/api/scripts/{script_id}", json=update_payload, headers=headers)
+    assert res.status_code == 200
+    
+    # Verify
+    res = client.get(f"/api/scripts/{script_id}", headers=headers)
+    data = res.json()
+    assert data["disableCopy"] == True
+    
+    # Update disableCopy back to False
+    update_payload = {"disableCopy": False}
+    res = client.put(f"/api/scripts/{script_id}", json=update_payload, headers=headers)
+    assert res.status_code == 200
+    
+    # Verify
+    res = client.get(f"/api/scripts/{script_id}", headers=headers)
+    data = res.json()
+    assert data["disableCopy"] == False
+

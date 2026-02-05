@@ -3,7 +3,7 @@ import { ArrowLeft, Share2, Settings, Download } from "lucide-react";
 import { Button } from "../ui/button";
 import { ReaderAppearanceMenu } from "./ReaderAppearanceMenu";
 import { ReaderTOC } from "./ReaderTOC";
-import MarkerVisibilitySelect from "../MarkerVisibilitySelect";
+import { MarkerVisibilitySelect } from "../ui/MarkerVisibilitySelect";
 
 export function SimplifiedReaderHeader({
   onBack,
@@ -33,6 +33,7 @@ export function SimplifiedReaderHeader({
           onClick={onBack}
           className="rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md shrink-0"
           title="Back"
+          aria-label="返回"
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>

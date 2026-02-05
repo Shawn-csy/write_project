@@ -3,8 +3,31 @@ import { useParams, useNavigate } from "react-router-dom";
 import { PublicReaderLayout } from "../components/reader/PublicReaderLayout";
 import { getPublicScript, getPublicThemes } from "../lib/db";
 import { extractMetadataWithRaw } from "../lib/metadataParser";
+import ScriptViewer from "../components/renderer/ScriptViewer";
 import { useScriptViewerDefaults } from "../hooks/useScriptViewerDefaults";
 import { defaultMarkerConfigs } from "../constants/defaultMarkers";
+
+// Helper for robust list parsing (handles double-encoded JSON strings)
+const ensureList = (val) => {
+    if (!val) return [];
+    let parsed = val;
+    if (typeof parsed === 'string') {
+        try { parsed = JSON.parse(parsed); } catch { return [parsed]; }
+    }
+    if (typeof parsed === 'string') {
+        try { parsed = JSON.parse(parsed); } catch { return [parsed]; }
+    }
+    if (Array.isArray(parsed)) {
+        return parsed.flatMap(item => {
+            if (typeof item === 'string' && item.trim().startsWith('[') && item.trim().endsWith(']')) {
+                try { const inner = JSON.parse(item); if (Array.isArray(inner)) return inner; } catch {}
+            }
+            return item;
+        });
+    }
+    return [];
+};
+
 
 export default function PublicReaderPage({ scriptManager, navProps }) {
   const { id } = useParams();
@@ -43,24 +66,31 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
             if (script) {
                 setRawScript(script.content || "");
                 setTitleName(script.title || "Untitled");
-                setActiveFile({ 
+                setTitleName(script.title || "Untitled");
+                // Removed setActiveFile as it caused a crash and might not be needed for public view context
+                /* setActiveFile({ 
                     id: script.id, 
                     name: script.title,
                     type: 'script',
                     isPublic: true 
-                });
+                }); */
                 setActiveCloudScript(script); 
                 setCloudScriptMode("read");
 
                 // --- Real Extended Metadata ---
-                const author = script.persona || script.owner || null;
+                // --- Real Extended Metadata ---
+                const organization = script.organization;
+                const person = script.persona || script.owner;
+                
                 const { meta, rawEntries } = extractMetadataWithRaw(script.content || "");
                 const reserved = new Set([
                     "title", "credit", "author", "authors", "source",
                     "draftdate", "date", "contact", "copyright",
                     "notes", "description", "synopsis", "summary",
-                    "cover", "coverurl"
+                    "cover", "coverurl", "marker_legend", "show_legend",
+                    "license", "licenseurl", "licenseterms"
                 ]);
+
                 const customFields = rawEntries
                     .map(({ key, value }) => ({ key, value }))
                     .filter((entry) => {
@@ -72,16 +102,19 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                     const parsedContact = JSON.parse(contactValue);
                     contactValue = parsedContact;
                 } catch {}
+                
                 setMockMeta({
                     coverUrl: script.coverUrl || null,
-                    author: author ? {
-                        id: author.id,
-                        displayName: author.displayName || "Unknown",
-                        avatarUrl: author.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${author.displayName}`
-                    } : {
-                        id: script.ownerId || "unknown",
-                        displayName: script.author || "Unknown",
-                    },
+                    author: person ? {
+                        id: person.id,
+                        displayName: person.displayName || person.name || "Unknown",
+                        avatarUrl: person.avatar || person.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${person.displayName || person.name || "U"}`
+                    } : null,
+                    organization: organization ? {
+                        id: organization.id,
+                        name: organization.name || organization.displayName,
+                        logoUrl: organization.logoUrl || organization.avatar || organization.avatarUrl
+                    } : null,
                     tags: script.tags ? script.tags.map(t => t.name) : [],
                     synopsis: meta.synopsis || meta.summary || "",
                     description: meta.description || meta.notes || "",
@@ -90,7 +123,14 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                     source: meta.source || "",
                     credit: meta.credit || "",
                     authors: meta.authors || "",
-                    customFields
+                    license: meta.license || "",
+                    licenseUrl: meta.licenseurl || "",
+                    licenseTerms: ensureList(meta.licenseterms),
+
+
+
+                    customFields,
+                    showMarkerLegend: String(meta.marker_legend) === 'true' || String(meta.show_legend) === 'true'
                 });
                 
                 // Fetch & Apply Public Theme if exists

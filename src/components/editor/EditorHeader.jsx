@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Loader2, Save, Eye, Columns, BarChart2, Download, HelpCircle, Globe, Lock } from "lucide-react";
 import { useEditableTitle } from "../../hooks/useEditableTitle";
 import EditableTitle from "../header/EditableTitle";
-import MarkerVisibilitySelect from "../MarkerVisibilitySelect";
+import { MarkerVisibilitySelect } from "../ui/MarkerVisibilitySelect";
 import HeaderTitleBlock from "../header/HeaderTitleBlock";
 import { Badge } from "../ui/badge";
 import { ScriptMetadataDialog } from "../dashboard/ScriptMetadataDialog";

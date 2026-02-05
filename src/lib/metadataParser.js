@@ -12,7 +12,7 @@ export const extractMetadata = (content) => {
         line = line.trim();
         if (!readingMeta) break;
         if (line === '') continue; 
-        const match = line.match(/^([^:]+):\s*(.+)$/);
+        const match = line.match(/^([^:]+):\s*(.*)$/);
         if (match) {
             const key = match[1].toLowerCase().replace(' ', '');
             meta[key] = match[2];
@@ -40,7 +40,7 @@ export const extractMetadataWithRaw = (content) => {
         line = line.trim();
         if (!readingMeta) break;
         if (line === '') continue;
-        const match = line.match(/^([^:]+):\s*(.+)$/);
+        const match = line.match(/^([^:]+):\s*(.*)$/);
         if (match) {
             const rawKey = match[1].trim();
             const value = match[2];
@@ -97,7 +97,7 @@ export const rewriteMetadata = (content, updates) => {
              break;
         }
         
-        const match = line.match(/^([^:]+):\s*(.+)$/);
+        const match = line.match(/^([^:]+):\s*(.*)$/);
         if (match) {
             // It's a metadata line
             const key = match[1].toLowerCase().replace(/\s/g, '');
@@ -174,5 +174,38 @@ export const rewriteMetadata = (content, updates) => {
     
     // Construct new content
     const body = lines.slice(endOfMeta).join('\n').trimStart(); // Content after header, trim leading newline
+    return headerLines.join('\n') + "\n\n" + body;
+};
+
+/**
+ * Completely replaces the metadata header with the provided ordered entries.
+ * This ensures the order of keys (including custom fields) is preserved.
+ * @param {string} content - Original script content
+ * @param {Array<{key: string, value: string}>} entries - Ordered list of metadata entries
+ * @returns {string} - New content with replaced header
+ */
+export const writeMetadata = (content, entries) => {
+    if (!content) content = "";
+    const lines = content.split('\n');
+    let endOfMeta = 0;
+    
+    // 1. Find end of existing header
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line === '') {
+             if (i === 0) continue;
+             endOfMeta = i; 
+             break;
+        }
+        if (!line.includes(':')) {
+            endOfMeta = i;
+            break;
+        }
+    }
+    
+    // 2. Construct new header
+    const headerLines = entries.map(e => `${e.key}: ${e.value}`);
+    const body = lines.slice(endOfMeta).join('\n').trimStart();
+    
     return headerLines.join('\n') + "\n\n" + body;
 };

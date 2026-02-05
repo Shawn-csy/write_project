@@ -4,11 +4,13 @@ test('basic flow - dashboard loads', async ({ page }) => {
   await page.goto('/');
   
   // Wait for the app to load
-  await expect(page.locator('body')).toContainText(/Screenplay Reader/i);
+  // await expect(page.locator('body')).toContainText(/公開台本/i);
+  await expect(page.getByText('公開台本').first()).toBeVisible();
   
   // Check if Dashboard tabs are present (using button locator as fallback for Radix Tabs)
-  await expect(page.getByRole('button', { name: /閱讀/ })).toBeVisible();
-  await expect(page.getByRole('button', { name: /寫作/ })).toBeVisible();
+  // Check if Public Gallery tabs are present
+  await expect(page.getByRole('button', { name: /作品/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /作者/ })).toBeVisible();
 });
 
 test('local reader page loads with error for missing file', async ({ page }) => {

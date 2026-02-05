@@ -2,16 +2,16 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import generatedFileMeta from "../constants/fileMeta.generated.json";
 
 // Import scripts directly here
-const scriptModules = import.meta.glob("../scripts_file/**/*.fountain", {
-  query: "?raw",
-  import: "default",
-});
+// const scriptModules = import.meta.glob("../scripts_file/**/*.fountain", {
+//   query: "?raw",
+//   import: "default",
+// });
 
 import { parseScreenplay } from "../lib/screenplayAST";
 
 export function useScriptManager(initialParamsRef, initialMarkerConfigs = []) {
-  const [files, setFiles] = useState([]);
-  const [activeFile, setActiveFile] = useState(null);
+  // const [files, setFiles] = useState([]);
+  // const [activeFile, setActiveFile] = useState(null);
   const [rawScript, setRawScript] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
@@ -67,20 +67,16 @@ export function useScriptManager(initialParamsRef, initialMarkerConfigs = []) {
   const [activeCloudScript, setActiveCloudScript] = useState(null);
   const [cloudScriptMode, setCloudScriptMode] = useState("read"); // read | edit
   const [activePublicScriptId, setActivePublicScriptId] = useState(null);
-
-  // Reset override when closing/changing active script context if needed?
-  // Ideally, invoker manages this. PublicReaderPage should set it.
-
-  // 1. Initialize Files
-  useEffect(() => {
-    const entries = Object.entries(scriptModules).map(([path, loader]) => ({
-      name: path.split("/").pop(),
-      path,
-      loader,
-      display: path.replace("../scripts_file/", ""),
-    }));
-    setFiles(entries);
-  }, []);
+  // 1. Initialize Files (Removed)
+  // useEffect(() => {
+  //   const entries = Object.entries(scriptModules).map(([path, loader]) => ({
+  //     name: path.split("/").pop(),
+  //     path,
+  //     loader,
+  //     display: path.replace("../scripts_file/", ""),
+  //   }));
+  //   setFiles(entries);
+  // }, []);
 
   // 2. Extract Title/Tags Helper
   const extractTitleMeta = (text) => {
@@ -147,64 +143,14 @@ export function useScriptManager(initialParamsRef, initialMarkerConfigs = []) {
   };
 
 
-  // 5. Load Script Function
-  const loadScript = async (file) => {
-    setIsLoading(true);
-    try {
-      const content = await file.loader();
-      setActiveFile(file.name);
-      setRawScript(content);
-
-      // Handle Initial Params (Char focus)
-      const initChar = initialParamsRef?.current?.char;
-      if (initChar) {
-        setFilterCharacter(initChar);
-        if (initChar !== "__ALL__") {
-          setFocusMode(true);
-        } else {
-          setFocusMode(false);
-        }
-        if (initialParamsRef.current) initialParamsRef.current.char = null;
-      } else {
-        setFilterCharacter("__ALL__");
-        setFocusMode(false);
-      }
-
-      // Reset Content States
-      setSceneList([]);
-      setCurrentSceneId("");
-      setScrollSceneId("");
-      setTitleHtml("");
-      setTitleName("");
-      setTitleSummary("");
-      setHasTitle(false);
-      setShowTitle(false);
-      setRawScriptHtml("");
-      
-      // Update Meta
-      const metaKey = file.display || file.name;
-      if (generatedFileMeta?.[metaKey]) {
-        const val = generatedFileMeta[metaKey];
-        const dateStr = typeof val === "object" ? val.mtime : val;
-        setFileMeta((prev) => ({ ...prev, [file.name]: new Date(dateStr) }));
-      } else {
-        fetchLastModified(file);
-      }
-      
-      return true; // Signal success
-    } catch (err) {
-      console.error("載入劇本失敗:", err);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // 5. Load Script Function (Removed)
+  // const loadScript = async (file) => { ... }
 
   return {
-    files,
-    setFiles,
-    activeFile,
-    setActiveFile, // Needed for URL sync or manual overrides
+    // files,
+    // setFiles,
+    // activeFile,
+    // setActiveFile, // Needed for URL sync or manual overrides
     rawScript,
     setRawScript,
     isLoading,
@@ -212,7 +158,7 @@ export function useScriptManager(initialParamsRef, initialMarkerConfigs = []) {
     fileMeta,
     fileTitleMap,
     fileTagsMap,
-    loadScript,
+    // loadScript,
     // Content States
     sceneList, setSceneList,
     characterList, setCharacterList,
