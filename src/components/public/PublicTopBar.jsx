@@ -5,7 +5,7 @@ import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
 
 export function PublicTopBar({
-  title = "劇本藝廊",
+  title = "公開台本",
   showBack = false,
   onBack,
   tabs = [],
@@ -17,7 +17,7 @@ export function PublicTopBar({
 
   return (
     <header className="border-b sticky top-0 bg-background/80 backdrop-blur z-20">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-3">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
           {showBack && (
             <Button variant="ghost" size="icon" onClick={onBack || (() => navigate(-1))} aria-label="返回">
@@ -57,7 +57,7 @@ export function PublicTopBar({
 
       {tabs.length > 0 && (
         <div className="md:hidden border-t">
-          <div className="container mx-auto px-4 py-2 flex items-center gap-2 overflow-x-auto">
+          <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center gap-2 overflow-x-auto">
             {tabs.map((tab) => (
               <button
                 key={tab.key}

@@ -3,12 +3,14 @@ import { User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "../../lib/utils";
 
-export function AuthorBadge({ author, className, showAvatar = true }) {
+export function AuthorBadge({ author, className, showAvatar = true, link }) {
   const navigate = useNavigate();
 
   const handleClick = (e) => {
     e.stopPropagation();
-    if (author?.id) {
+    if (link) {
+        navigate(link);
+    } else if (author?.id) {
       navigate(`/author/${author.id}`);
     }
   };

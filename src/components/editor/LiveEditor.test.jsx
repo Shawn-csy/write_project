@@ -27,6 +27,12 @@ vi.mock('../../hooks/useEditorSync', () => ({
   })
 }));
 
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    currentUser: { uid: 'test-user' }
+  })
+}));
+
 describe('LiveEditor', () => {
     beforeEach(() => {
         useSettings.mockReturnValue({

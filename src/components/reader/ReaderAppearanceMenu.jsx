@@ -6,7 +6,7 @@ import { Slider } from "../../components/ui/slider";
 import { Switch } from "../../components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { useSettings } from "../../contexts/SettingsContext";
-import MarkerVisibilitySelect from "../MarkerVisibilitySelect";
+import { MarkerVisibilitySelect } from "../ui/MarkerVisibilitySelect";
 
 export function ReaderAppearanceMenu({
     markerConfigs = [],

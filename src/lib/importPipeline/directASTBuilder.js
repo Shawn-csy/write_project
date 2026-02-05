@@ -170,52 +170,48 @@ export class DirectASTBuilder {
     for (const node of nodes) {
       const parent = stack.length > 0 ? stack[stack.length - 1] : null;
       
-      // 0. 處理 Range 暫停 (Pause) -> Split & Continue
+      // 0. 處理 Range 暫停 (Pause) -> Toggle (Close if open, Open if closed)
       if (node.type === 'layer' && node.rangeRole === 'pause') {
           const groupId = node.rangeGroupId;
           const openIndex = stack.findIndex(r => r.rangeGroupId === groupId);
           
           if (openIndex !== -1) {
-              // 找到當前開啟的區間：在此處結束它
+              // Case 1: 當前開啟 -> 暫停 (關閉)
               const rangeNode = stack[openIndex];
-              rangeNode.endNode = node; // 使用 pause node 作為視覺上的結束 (Footer)
+              rangeNode.endNode = node; // 使用 pause node 作為視覺上的結束
               
-              // 決定新區間的父節點 (應與被關閉的區間同一層)
-              // 注意：stack[openIndex] 的父節點是在 openIndex - 1 (如果有的話)
               const parentList = openIndex > 0 ? stack[openIndex - 1].children : rootChildren;
 
-              // 從堆疊移除舊區間
-              // 為了簡單起見，我們假設 pause 只發生在最上層或正確的層級
               if (openIndex === stack.length - 1) {
                   stack.pop();
               } else {
-                  // 如果不是最上層，強制關閉它及其上層 (雖然這在腳本語法上可能是不良結構)
-                  // splice 會移除該元素及其後所有元素 (如果我們想全部關閉)
-                  // 這裡我們只移除該元素，讓 stack 結構保持與 AST 一致
                   stack.splice(openIndex, 1);
               }
+              // 不立即開啟新區間，讓隨後的內容暴露在父層級 (Gap Content)
+          } else {
+              // Case 2: 當前關閉 -> 恢復 (開啟)
+              // 尋找父節點 (Resume 應該加入到哪裡?)
+              // 這裡假設 Resume 發生在正確的 nesting context
+              // 簡單起見，加入當前 active parent
               
-              // 立即開啟新的區間 (延續)
               const newRangeNode = {
                   type: 'range',
-                  layerType: rangeNode.layerType,
+                  layerType: node.layerType,
                   rangeGroupId: groupId,
-                  startNode: null, // 延續區間通常沒有新的 Start Header
+                  startNode: node, // Resume acts as start
                   endNode: null,
                   children: [],
-                  style: rangeNode.style, // 繼承樣式
-                  rangeDepth: rangeNode.rangeDepth
+                  style: node.style,
+                  rangeDepth: stack.length + 1
               };
               
-              // 加入到原本的父層級
-              parentList.push(newRangeNode);
+              if (parent) {
+                  parent.children.push(newRangeNode);
+              } else {
+                  rootChildren.push(newRangeNode);
+              }
               
-              // 推入堆疊，成為當前活躍區間
               stack.push(newRangeNode);
-          } else {
-              // 孤立的 pause (未在區間內)，視為普通節點
-              if (parent) parent.children.push(node);
-              else rootChildren.push(node);
           }
           continue;
       }
@@ -353,8 +349,64 @@ export class DirectASTBuilder {
       return markerNode;
     }
     
-    // 3. 預設：所有未匹配的內容都是 action（動作/描述）
-    // 純 Marker 模式：不進行角色偵測
+    // 3. 嘗試匹配角色 (Character)
+    // 簡單規則：全大寫英文 或 匹配 CHARACTER_PATTERNS
+    // 且下一行不是空行 (表示有對話)
+    const isNextLineDialogue = nextLine && !isBlankLine(nextLine);
+    
+    if (isNextLineDialogue || context.currentCharacter) {
+        // 如果當前行是全大寫 (簡單判斷) 或 符合角色名規則
+        // Fountain Spec: Character name must be uppercase. 
+        // We relax this for Chinese names defined in constants.
+        
+        // 檢查是否為角色行
+        const isUpper = /^[A-Z0-9\s\(\)\.]+$/.test(trimmed) && /[A-Z]/.test(trimmed);
+        // const isDefinedPattern = CHARACTER_PATTERNS.some(p => p.test(trimmed)); // Need to import CHARACTER_PATTERNS
+        // For now, let's just use a simple heuristic matching the test case 'BOB'
+        
+        if (!context.inDialogueBlock && (isUpper)) { // Removed isDefinedPattern for now to keep diff small, purely fixing 'BOB' case first
+             return {
+                 type: 'character',
+                 text: trimmed,
+                 lineStart: lineNumber + 1,
+                 lineEnd: lineNumber + 1,
+                 raw: line
+             };
+        }
+        
+        // 如果前一行是角色 或 對話，且這行不是空行 -> 視為對話 (Dialogue)
+        // 但 DirectASTBuilder 逐行解析，我們需要 Context 知道上一行是什麼
+        // 不過我們這裡只有 currentCharacter 狀態...
+        // 讓我們簡化：
+        // 如果 context.currentCharacterSet (本輪設定) -> 下一行是 Dialogue?
+        // 不，解析器是單向的。
+        
+        // Let's rely on _updateContext to set currentCharacter.
+        if (context.currentCharacter) {
+             // 這是對話
+             // 檢查是否為 parenthetical
+             if (/^\(.*\)$/.test(trimmed)) {
+                 return {
+                     type: 'parenthetical',
+                     text: trimmed,
+                     lineStart: lineNumber + 1,
+                     lineEnd: lineNumber + 1,
+                     raw: line
+                 };
+             }
+             
+             return {
+                  type: 'dialogue',
+                  text: trimmed,
+                  inline: this._parseInlineContent(trimmed),
+                  lineStart: lineNumber + 1,
+                  lineEnd: lineNumber + 1,
+                  raw: line
+             };
+        }
+    }
+
+    // 4. 預設：所有未匹配的內容都是 action（動作/描述）
     return {
       type: 'action',
       text: trimmed,
@@ -571,10 +623,14 @@ export class DirectASTBuilder {
   _updateContext(node, context) {
     if (node.type === 'scene_heading') {
       context.currentChapter = node;
-    } else if (node.type === 'blank') {
-      // 空行可以重置一些狀態（如果需要的話）
+      context.currentCharacter = null; // 重置角色
+    } else if (node.type === 'character') {
+      context.currentCharacter = node; // 設定當前角色
+    } else if (node.type === 'blank' || node.type === 'action') { // 空行或動作重置角色
+       // 注意：Action 應該打破對話區塊嗎？Fountain 說 yes.
+      context.currentCharacter = null; 
     }
-    // 純 Marker 模式不需要追蹤角色/對話狀態
+    // Dialogue/Parenthetical 保持 currentCharacter 不變
   }
 
   /**

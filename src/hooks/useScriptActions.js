@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { buildPrintHtml } from "../lib/print";
 
 export function useScriptActions({ 
-    exportMode, accentConfig, processedScriptHtml, rawScriptHtml, 
+    accentConfig, processedScriptHtml, rawScriptHtml, 
     titleHtml, titleName, activeFile, titleSummary, titleNote 
 }) {
     const [shareCopied, setShareCopied] = useState(false);
@@ -10,7 +10,7 @@ export function useScriptActions({
 
     const handleExportPdf = (e) => {
         e?.stopPropagation();
-        const bodyHtml = exportMode === "processed" ? processedScriptHtml || rawScriptHtml : rawScriptHtml;
+        const bodyHtml = processedScriptHtml || rawScriptHtml;
         const hasContent = Boolean(bodyHtml || titleHtml);
         if (!hasContent) {
             window.print();

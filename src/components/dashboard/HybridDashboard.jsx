@@ -7,7 +7,6 @@ import { Button } from "../ui/button";
 import WelcomeLanding from "./WelcomeLanding";
 import { ReadTab } from "./ReadTab";
 import { WriteTab } from "./WriteTab";
-import { ProfileTab } from "./ProfileTab";
 import { getUserScripts, createScript, updateScript } from "../../lib/db";
 
 export default function HybridDashboard({ 
@@ -23,7 +22,7 @@ export default function HybridDashboard({
         if (typeof window !== "undefined") {
             const params = new URLSearchParams(window.location.search);
             const t = params.get("tab");
-            if (t && ["read", "write", "profile"].includes(t)) {
+            if (t && ["read", "write"].includes(t)) {
                 return t;
             }
         }
@@ -103,7 +102,6 @@ export default function HybridDashboard({
                     <TabsList className="flex-1 sm:flex-none">
                         <TabsTrigger value="read" className="flex-1 sm:w-auto px-4 sm:px-6">閱讀 (Read)</TabsTrigger>
                         <TabsTrigger value="write" className="flex-1 sm:w-auto px-4 sm:px-6">創作 (Write)</TabsTrigger>
-                        {currentUser && <TabsTrigger value="profile" className="flex-1 sm:w-auto px-4 sm:px-6">個人 (Profile)</TabsTrigger>}
                     </TabsList>
                     
                     {!currentUser && (
@@ -222,11 +220,6 @@ export default function HybridDashboard({
                         </div>
                     )}
                 </TabsContent>
-
-                <TabsContent value="profile" className={`flex-1 min-h-0 overflow-hidden flex-col p-4 sm:p-6 mt-0 h-full ${activeTab === 'profile' ? 'flex' : 'hidden'} overflow-y-auto`}>
-                    {currentUser && <ProfileTab />}
-                </TabsContent>
-
 
             </Tabs>
           )}

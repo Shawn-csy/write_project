@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
-import { calculateScriptStats, calculateScriptStatsFromText } from '../lib/statistics';
+import { calculateScriptStats } from '../lib/statistics';
+import { buildAST } from '../lib/importPipeline/directASTBuilder';
 
 
 /**
@@ -15,16 +16,26 @@ export function useScriptStats({ scriptId, rawScript, scriptAst, markerConfigs =
 
   // Local calculation (fallback or realtime)
   const localStats = useMemo(() => {
+    // 1. Try AST first (Most accurate/synced with editor)
+    if (scriptAst) {
+        try {
+            return calculateScriptStats(scriptAst, markerConfigs, options);
+        } catch (e) {
+            console.error("Error calculating script stats from AST:", e);
+        }
+    }
+    
+    // 2. Fallback to raw text if no AST available
     if (rawScript !== undefined && rawScript !== null && markerConfigs.length > 0) {
-        return calculateScriptStatsFromText(rawScript || "", markerConfigs, options);
+        try {
+            const ast = buildAST(rawScript || "", markerConfigs);
+            return calculateScriptStats(ast, markerConfigs, options);
+        } catch (e) {
+            console.error("Error calculating script stats from raw text:", e);
+        }
     }
-    if (!scriptAst) return null;
-    try {
-      return calculateScriptStats(scriptAst, markerConfigs, options);
-    } catch (e) {
-      console.error("Error calculating script stats:", e);
-      return null;
-    }
+
+    return null;
   }, [rawScript, scriptAst, markerConfigsKey, JSON.stringify(options)]);
 
   // Remote Fetching
@@ -75,5 +86,6 @@ export function useScriptStats({ scriptId, rawScript, scriptAst, markerConfigs =
   // Does not update on typing. This fulfills "Move to backend" (offloading).
   // Users must save to update backend stats.
 
-  return remoteStats || localStats;
+  // Return localStats if available (real-time, settings-aware), otherwise fallback to remote
+  return localStats || remoteStats;
 }

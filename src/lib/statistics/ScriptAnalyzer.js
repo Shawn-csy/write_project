@@ -49,6 +49,13 @@ export class ScriptAnalyzer {
          if (node.left) this._traverse([node.left], context);
          if (node.right) this._traverse([node.right], context);
       }
+
+      // Notify metrics about exit
+      for (const metric of this.metrics) {
+        if (metric.onExitNode) {
+            metric.onExitNode(node, context);
+        }
+      }
     }
   }
 }
@@ -65,6 +72,13 @@ export class Metric {
    * @param {Object} context 
    */
   onNode(node, context) {}
+
+  /**
+   * Called when leaving a node (after processing children).
+   * @param {Object} node 
+   * @param {Object} context 
+   */
+  onExitNode(node, context) {}
 
   /**
    * Returns the final data object to be merged into the stats result.

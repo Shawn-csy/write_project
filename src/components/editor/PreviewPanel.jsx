@@ -1,5 +1,5 @@
 import React, { forwardRef } from "react";
-import ScriptSurface from "../ScriptSurface";
+import ScriptSurface from "./ScriptSurface";
 import { useScriptViewerDefaults } from "../../hooks/useScriptViewerDefaults";
 
 export const PreviewPanel = forwardRef(function PreviewPanel({

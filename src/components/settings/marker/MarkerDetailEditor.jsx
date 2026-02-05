@@ -18,7 +18,7 @@ export function MarkerDetailEditor({ config, idx, updateMarker }) {
     }
 
     return (
-        <div className="h-full flex flex-col bg-card/30 rounded-lg border border-border/50 overflow-hidden">
+        <div className="h-full flex flex-col overflow-hidden">
             {/* Header */}
             <div className="p-3 border-b flex items-center justify-between bg-muted/20">
                 <span className="text-xs font-mono text-muted-foreground">{config.id}</span>

@@ -2,7 +2,7 @@
  * 整合測試：使用真實範例檔案測試三階段流程（純 Marker 模式）
  */
 
-import { describe, it } from 'node:test';
+import { describe, it } from 'vitest';
 import assert from 'node:assert';
 import { readFileSync } from 'fs';
 import { preprocess } from './textPreprocessor.js';

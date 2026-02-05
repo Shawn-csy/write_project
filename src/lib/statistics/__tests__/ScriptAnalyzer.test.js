@@ -43,7 +43,7 @@ describe('ScriptAnalyzer', () => {
 
         const stats = calculateScriptStats(mockAST, markerConfigs);
         
-        expect(stats.customLayers['Blue Mark']).toBeDefined();
+        expect(stats.customLayers['blue_mark']).toBeDefined();
         // Depending on implementation, layer content is either text property or children
         // The mock AST here is simple. The implementation uses recursive text.
         // Let's verify our mock is minimal enough. ScriptAnalyzer handles recursive text.

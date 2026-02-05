@@ -21,7 +21,9 @@ export default function AuthorProfilePage() {
         const persona = await getPublicPersona(id);
         setAuthor(persona);
         const publicScripts = await getPublicScripts(undefined, undefined, id);
-        const normalizedScripts = (publicScripts || []).map((s) => ({
+        const normalizedScripts = (publicScripts || [])
+          .filter(s => s.type !== "folder" && !s.isFolder)
+          .map((s) => ({
           ...s,
           author: s.persona || s.owner || s.author,
         }));

@@ -251,13 +251,32 @@ export const deleteOrganization = async (orgId) => {
 
 
 export const transferOrganizationOwnership = async (orgId, targetUserId) => {
-    // Admin only endpoint
-    return fetchApi(`/admin/transfer`, {
+    return fetchApi(`/organizations/${orgId}/transfer`, {
         method: "POST",
-        body: JSON.stringify({ orgId, targetUserId })
+        body: JSON.stringify({ newOwnerId: targetUserId, transferScripts: true })
     });
 };
+
+export const transferScriptOwnership = async (scriptId, targetUserId) => {
+    return fetchApi(`/scripts/${scriptId}/transfer`, {
+        method: "POST",
+        body: JSON.stringify({ newOwnerId: targetUserId })
+    });
+};
+
 // --- Persona API ---
+export const transferPersonaOwnership = async (personaId, targetUserId) => {
+    return fetchApi(`/personas/${personaId}/transfer`, {
+        method: "POST",
+        body: JSON.stringify({ newOwnerId: targetUserId })
+    });
+};
+
+// --- Admin ---
+export const searchUsers = async (query) => {
+    return fetchApi(`/admin/users?q=${encodeURIComponent(query)}`);
+};
+
 export const getPersonas = async () => {
     return fetchApi("/personas");
 };
