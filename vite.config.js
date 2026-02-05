@@ -14,6 +14,9 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      allowedHosts: [
+        "open-scripts.shawnup.com",
+      ],
       proxy: {
         "/api": {
           target: apiUrl,
@@ -33,6 +36,7 @@ export default defineConfig(({ mode }) => {
     allowedHosts: [
       "scripts-666540946249.asia-east1.run.app",
       "scripts.shawnup.com",
+      "open-scripts.shawnup.com",
     ],
   },
   build: {
