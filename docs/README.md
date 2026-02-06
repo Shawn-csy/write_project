@@ -40,10 +40,6 @@
 - `scripts/`：工具腳本
 - `examples/`：範例資料
 - `tests-e2e/`：E2E 測試
-- `logs/`：本機日誌（已忽略，不進 Git）
+- `logs/`：本機日誌
 
-## 產物/暫存（不建議進 Git）
-- `dist/`：前端 build 產物
-- `coverage/`：測試覆蓋率
-- `test-results/`：測試輸出
-- `node_modules/`：依賴
+
