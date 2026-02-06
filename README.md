@@ -26,6 +26,4 @@
 
 ## 常用連結（可自行補充）
 - 前端：`https://open-scripts.shawnup.com`
-- 後端 API：`https://scripts-api.shawnup.com/api`
 
-> 若你不是開發者，以上資訊已足夠。技術細節請參考 `docs/README.md`。
