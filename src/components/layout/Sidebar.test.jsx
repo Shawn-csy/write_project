@@ -45,7 +45,6 @@ describe('Sidebar Component', () => {
     sceneList: [],
     currentSceneId: null,
     onSelectScene: vi.fn(),
-    activeFile: null,
     openAbout: vi.fn(),
     openSettings: vi.fn(),
     closeAbout: vi.fn(),
@@ -58,59 +57,15 @@ describe('Sidebar Component', () => {
   it('renders Navigation Menu when no active file', () => {
     render(
       <MemoryRouter initialEntries={['/']}>
-        <Sidebar {...mockProps} activeFile={null} />
+        <Sidebar {...mockProps} />
       </MemoryRouter>
     );
 
-    // Should see Gallery and Studio
+    // Should see primary nav items
     expect(screen.getByText('公開台本 (Gallery)')).toBeDefined();
     expect(screen.getByText('工作室 (Studio)')).toBeDefined();
-    
-    // Should NOT see Scene Outline
-    expect(screen.queryByText('Scene Outline')).toBeNull();
-  });
-
-  it('renders Scene List when active file is present', () => {
-    const sceneProps = {
-      ...mockProps,
-      activeFile: { id: '1', name: 'Script' },
-      sceneList: [
-        { id: 's1', label: 'Scene 1' },
-        { id: 's2', label: 'Scene 2' }
-      ]
-    };
-
-    render(
-      <MemoryRouter>
-        <Sidebar {...sceneProps} />
-      </MemoryRouter>
-    );
-
-    expect(screen.getByText('Scene Outline')).toBeDefined();
-    expect(screen.getByText('Scene 1')).toBeDefined();
-    expect(screen.getByText('Scene 2')).toBeDefined();
-    
-    // Navigation Menu should be hidden
-    expect(screen.queryByText('公開台本 (Gallery)')).toBeNull();
-  });
-
-  it('calls onSelectScene when a scene is clicked', () => {
-    const onSelectScene = vi.fn();
-    const sceneProps = {
-      ...mockProps,
-      activeFile: { id: '1' },
-      sceneList: [{ id: 's1', label: 'Scene 1' }],
-      onSelectScene
-    };
-
-    render(
-      <MemoryRouter>
-        <Sidebar {...sceneProps} />
-      </MemoryRouter>
-    );
-
-    fireEvent.click(screen.getByText('Scene 1'));
-    expect(onSelectScene).toHaveBeenCalledWith('s1');
+    expect(screen.getByText('閱讀與寫作 (Workspace)')).toBeDefined();
+    expect(screen.getByText('超級管理員')).toBeDefined();
   });
 
   it('clicking Settings in footer calls openSettings', () => {

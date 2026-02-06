@@ -2,7 +2,8 @@ import React from "react";
 import { Input } from "../../ui/input";
 import { Button } from "../../ui/button";
 import { Badge } from "../../ui/badge";
-import { AlertTriangle, X, Plus } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
+import { AlertTriangle, X, Plus, Check } from "lucide-react";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { SortableField } from "./SortableField";
@@ -77,39 +78,75 @@ export function MetadataDetailsTab({
                         </Badge>
                     ))}
                 </div>
-                <div className="flex gap-2">
-                    <div className="relative flex-1">
-                        <Input
-                            id="metadata-new-tag"
-                            name="metadataNewTag"
-                            aria-label="新增標籤"
-                            value={newTagInput}
-                            onChange={(e) => setNewTagInput(e.target.value)}
-                            placeholder="新增標籤..."
-                            onKeyDown={(e) => e.key === "Enter" && handleAddTag()}
-                        />
-                        {newTagInput && (
-                            <div className="absolute top-full left-0 right-0 z-10 bg-popover border rounded-md shadow-md mt-1 max-h-40 overflow-y-auto">
-                                {availableTags
-                                    .filter(t => t.name.toLowerCase().includes(newTagInput.toLowerCase()) && !currentTags.find(ct => ct.id === t.id))
-                                    .map(t => (
-                                        <div 
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button type="button" variant="outline" size="sm" className="w-fit">
+                            <Plus className="w-4 h-4 mr-2" />
+                            新增標籤
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[90vw] sm:w-80 p-2" align="start">
+                        <div className="p-2">
+                            <Input
+                                id="metadata-new-tag"
+                                name="metadataNewTag"
+                                aria-label="新增標籤"
+                                value={newTagInput}
+                                onChange={(e) => setNewTagInput(e.target.value)}
+                                placeholder="搜尋或新增標籤..."
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        handleAddTag();
+                                    }
+                                }}
+                                className="h-8"
+                            />
+                        </div>
+                        <div className="max-h-56 overflow-y-auto">
+                            {newTagInput.trim() && !availableTags.find(t => t.name.toLowerCase() === newTagInput.trim().toLowerCase()) && (
+                                <button
+                                    type="button"
+                                    className="w-full flex items-center justify-between px-3 py-2 text-sm rounded hover:bg-accent"
+                                    onClick={() => handleAddTag(newTagInput)}
+                                >
+                                    <span className="truncate">新增「{newTagInput.trim()}」</span>
+                                    <Plus className="w-4 h-4 text-primary" />
+                                </button>
+                            )}
+                            {availableTags
+                                .filter(t => t.name.toLowerCase().includes(newTagInput.toLowerCase()))
+                                .map(t => {
+                                    const selected = currentTags.some(ct => ct.id === t.id);
+                                    return (
+                                        <button
                                             key={t.id}
-                                            className="px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground"
+                                            type="button"
+                                            className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded hover:bg-accent ${
+                                                selected ? "bg-accent/50" : ""
+                                            }`}
                                             onClick={() => {
-                                                setNewTagInput(t.name);
+                                                if (selected) {
+                                                    handleRemoveTag(t.id);
+                                                } else {
+                                                    handleAddTag(t.name);
+                                                }
                                             }}
                                         >
-                                            {t.name}
-                                        </div>
-                                    ))}
-                            </div>
-                        )}
-                    </div>
-                    <Button type="button" variant="secondary" onClick={handleAddTag}>
-                        <Plus className="w-4 h-4" />
-                    </Button>
-                </div>
+                                            <span className="truncate">{t.name}</span>
+                                            {selected ? (
+                                                <Check className="w-4 h-4 text-primary" />
+                                            ) : (
+                                                <span className="w-4 h-4" />
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            {availableTags.length === 0 && (
+                                <div className="px-3 py-2 text-xs text-muted-foreground">尚無可用標籤</div>
+                            )}
+                        </div>
+                    </PopoverContent>
+                </Popover>
             </div>
 
             <div className="grid gap-2">

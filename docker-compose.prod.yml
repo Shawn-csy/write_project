@@ -1,0 +1,36 @@
+
+services:
+  write_project-backend:
+    build:
+      context: ./server
+    ports:
+      - "1091:1091"
+    environment:
+      - DB_PATH=/data/scripts.db
+      - PORT=1091
+      - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}
+      - FIREBASE_CREDENTIALS=/secrets/firebase-service-account.json
+      - FIREBASE_CREDENTIALS_JSON=${FIREBASE_CREDENTIALS_JSON}
+      - VITE_API_URL=${VITE_API_URL}
+    volumes:
+      - ./server/data:/data
+      - ./server/secrets:/secrets:ro
+
+  write_project-frontend-build:
+    image: node:20-alpine
+    working_dir: /app
+    environment:
+      - VITE_API_URL=${VITE_API_URL}
+    volumes:
+      - .:/app
+    command: sh -c "npm install && npm run build"
+
+  write_project-frontend:
+    image: nginx:alpine
+    ports:
+      - "1090:80"
+    volumes:
+      - ./dist:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - write_project-frontend-build

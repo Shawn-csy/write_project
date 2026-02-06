@@ -303,6 +303,13 @@ def test_public_personas_and_orgs_empty(client):
     assert res_orgs.status_code == 200
     assert res_orgs.json() == []
 
+    res_bundle = client.get("/api/public-bundle")
+    assert res_bundle.status_code == 200
+    payload = res_bundle.json()
+    assert payload.get("scripts") == []
+    assert payload.get("personas") == []
+    assert payload.get("organizations") == []
+
 
 def test_public_script_missing_returns_404(client):
     res = client.get("/api/public-scripts/missing-script-id")
@@ -338,7 +345,8 @@ def test_read_script_seo_injects_meta(client, db_session, tmp_path, monkeypatch)
     index_path = tmp_path / "index.html"
     index_path.write_text(html, encoding="utf-8")
 
-    monkeypatch.setattr(main, "INDEX_PATH", str(index_path))
+    import routers.seo as seo
+    monkeypatch.setattr(seo, "INDEX_PATH", str(index_path))
 
     res = client.get(f"/read/{script_id}")
     assert res.status_code == 200

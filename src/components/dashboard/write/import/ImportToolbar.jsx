@@ -23,10 +23,10 @@ export function ImportToolbar({
     }, [newConfigName, onSaveConfig]);
 
     return (
-        <div className="flex items-center gap-4 bg-muted/30 p-2 rounded border">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 bg-muted/30 p-2 rounded border">
             <span className="text-sm font-medium">使用設定檔：</span>
             <Select value={selectedConfigId} onValueChange={onConfigChange}>
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-full sm:w-[200px]">
                     <SelectValue placeholder="選擇設定檔" />
                 </SelectTrigger>
                 <SelectContent>
@@ -69,7 +69,7 @@ export function ImportToolbar({
                 </PopoverContent>
             </Popover>
             
-            <div className="ml-auto text-xs text-muted-foreground">
+            <div className="sm:ml-auto text-xs text-muted-foreground">
                 套用 {activeRules.length} 條規則
             </div>
         </div>

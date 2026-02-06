@@ -14,6 +14,18 @@ const localAuthEnabled = ["1", "true", "yes"].includes(
 );
 const localAuthUserId = getEnv("VITE_LOCAL_AUTH_UID") || "local-test-user";
 
+const DEFAULT_CACHE_TTL_MS = 5000;
+const DEFAULT_PUBLIC_CACHE_TTL_MS = 15000;
+const _cache = new Map();
+const _inflight = new Map();
+const _publicCache = new Map();
+const _publicInflight = new Map();
+
+const getUserKey = () => {
+  if (localAuthEnabled) return localAuthUserId;
+  return auth.currentUser?.uid || "anon";
+};
+
 async function getAuthHeaders() {
   if (localAuthEnabled) {
     return { "X-User-ID": localAuthUserId };
@@ -32,6 +44,21 @@ async function fetchApi(endpoint, options = {}, retries = 3, backoff = 500) {
     throw new Error("API offline (cooldown)");
   }
   const url = `${API_BASE_URL}${endpoint}`;
+  const method = (options.method || "GET").toUpperCase();
+  const noCache = options.cache === "no-store" || options.noCache === true;
+  const cacheTtl = typeof options.cacheTtlMs === "number" ? options.cacheTtlMs : DEFAULT_CACHE_TTL_MS;
+  const cacheKey = `${method}:${getUserKey()}:${url}`;
+
+  if (method === "GET" && !noCache) {
+    const cached = _cache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value;
+    }
+    const inflight = _inflight.get(cacheKey);
+    if (inflight) {
+      return inflight;
+    }
+  }
 
   const authHeaders = await getAuthHeaders();
   const headers = {
@@ -41,19 +68,36 @@ async function fetchApi(endpoint, options = {}, retries = 3, backoff = 500) {
   };
 
   try {
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
+    const inflightPromise = (async () => {
+      const response = await fetch(url, {
+        ...options,
+        headers,
+      });
 
-    if (!response.ok) {
-       // If 5xx error, maybe retry? For now throw.
-       throw new Error(`API Error: ${response.statusText}`);
+      if (!response.ok) {
+        // If 5xx error, maybe retry? For now throw.
+        throw new Error(`API Error: ${response.statusText}`);
+      }
+
+      clearApiOffline();
+      const data = await response.json();
+      if (method === "GET" && !noCache) {
+        _cache.set(cacheKey, { value: data, expiresAt: Date.now() + cacheTtl });
+        _inflight.delete(cacheKey);
+      } else {
+        _cache.clear();
+        _inflight.clear();
+      }
+      return data;
+    })();
+
+    if (method === "GET" && !noCache) {
+      _inflight.set(cacheKey, inflightPromise);
     }
 
-    clearApiOffline();
-    return response.json();
+    return await inflightPromise;
   } catch (err) {
+    _inflight.delete(cacheKey);
     if (err?.name === "TypeError") {
       markApiOffline(err, "db.fetchApi");
       throw err;
@@ -157,7 +201,7 @@ export const removeTagFromScript = async (scriptId, tagId) => {
 
 // --- User/Settings API ---
 export const getUserProfile = async () => {
-    return fetchApi("/me");
+    return fetchApi("/me", { cacheTtlMs: 10000 });
 };
 
 export const updateUserProfile = async (updates) => {
@@ -178,18 +222,50 @@ export const exportScripts = async () => {
 
 // --- Public API ---
 
-const fetchPublic = async (endpoint) => {
+const fetchPublic = async (endpoint, options = {}) => {
   if (isApiOffline()) {
     throw new Error("API offline (cooldown)");
   }
-  try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`);
-    if (!response.ok) {
-       throw new Error(`API Error: ${response.statusText}`);
+  const url = `${API_BASE_URL}${endpoint}`;
+  const method = (options.method || "GET").toUpperCase();
+  const noCache = options.cache === "no-store" || options.noCache === true;
+  const cacheTtl = typeof options.cacheTtlMs === "number" ? options.cacheTtlMs : DEFAULT_PUBLIC_CACHE_TTL_MS;
+  const cacheKey = `${method}:public:${url}`;
+
+  if (method === "GET" && !noCache) {
+    const cached = _publicCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value;
     }
-    clearApiOffline();
-    return response.json();
+    const inflight = _publicInflight.get(cacheKey);
+    if (inflight) {
+      return inflight;
+    }
+  }
+  try {
+    const inflightPromise = (async () => {
+      const response = await fetch(url);
+      if (!response.ok) {
+         throw new Error(`API Error: ${response.statusText}`);
+      }
+      clearApiOffline();
+      const data = await response.json();
+      if (method === "GET" && !noCache) {
+        _publicCache.set(cacheKey, { value: data, expiresAt: Date.now() + cacheTtl });
+        _publicInflight.delete(cacheKey);
+      } else {
+        _publicCache.clear();
+        _publicInflight.clear();
+      }
+      return data;
+    })();
+
+    if (method === "GET" && !noCache) {
+      _publicInflight.set(cacheKey, inflightPromise);
+    }
+    return await inflightPromise;
   } catch (err) {
+    _publicInflight.delete(cacheKey);
     if (err?.name === "TypeError") {
       markApiOffline(err, "db.fetchPublic");
     }
@@ -392,4 +468,8 @@ export const getPublicPersonas = async () => {
 
 export const getPublicOrganizations = async () => {
     return fetchPublic("/public-organizations");
+};
+
+export const getPublicBundle = async () => {
+    return fetchPublic("/public-bundle", { cacheTtlMs: 15000 });
 };

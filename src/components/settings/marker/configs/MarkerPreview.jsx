@@ -62,7 +62,7 @@ export function MarkerPreview({ config }) {
                 <span className="text-[10px] font-bold text-muted-foreground uppercase">即時預覽</span>
             </div>
             
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* 原始文字 */}
                 <div className="space-y-1">
                     <span className="text-[9px] text-muted-foreground">原始標記</span>

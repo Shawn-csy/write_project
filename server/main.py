@@ -7,10 +7,15 @@ import database
 import models
 import migration
 from routers import analysis, scripts, users, orgs, personas, tags, themes, admin, public, seo
+from routers import public_bundle
 from dependencies import get_current_user_id
-from rate_limit import limiter
-from slowapi.errors import RateLimitExceeded
-from slowapi.middleware import SlowAPIMiddleware
+from rate_limit import limiter, RATE_LIMIT_ENABLED
+try:
+    from slowapi.errors import RateLimitExceeded
+    from slowapi.middleware import SlowAPIMiddleware
+except Exception:
+    RateLimitExceeded = None
+    SlowAPIMiddleware = None
 
 # Initialize Database and Run Migrations
 models.Base.metadata.create_all(bind=database.engine)
@@ -18,11 +23,12 @@ migration.run_migrations()
 
 app = FastAPI()
 app.state.limiter = limiter
-app.add_middleware(SlowAPIMiddleware)
+if RATE_LIMIT_ENABLED and SlowAPIMiddleware and RateLimitExceeded:
+    app.add_middleware(SlowAPIMiddleware)
 
-@app.exception_handler(RateLimitExceeded)
-async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
-    return Response("Rate limit exceeded", status_code=429)
+    @app.exception_handler(RateLimitExceeded)
+    async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+        return Response("Rate limit exceeded", status_code=429)
 
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
@@ -73,6 +79,7 @@ app.include_router(tags.router)
 app.include_router(themes.router)
 app.include_router(admin.router)
 app.include_router(public.router)
+app.include_router(public_bundle.router)
 app.include_router(seo.router)
 
 # Simple auth check endpoint for debugging

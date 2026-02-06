@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT_DIR"
+
 echo "🚀 Starting Full Test Suite..."
 
 # Frontend Tests
@@ -14,7 +17,12 @@ echo "--- Running Backend Tests (Pytest) ---"
 if [ -f "./server/run_tests.sh" ]; then
     bash ./server/run_tests.sh
 else
-    echo "⚠️ Backend test script not found at ./server/run_tests.sh"
+    if [ -x "./server/venv/bin/python" ]; then
+        (cd server && ./venv/bin/python -m pytest -q)
+    else
+        echo "⚠️ Backend venv not found; run: python -m pip install -r server/requirements.txt"
+        exit 1
+    fi
 fi
 
 echo ""

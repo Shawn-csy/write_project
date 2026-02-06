@@ -24,7 +24,7 @@ function DemoEditor({ initialText, accentStyle, title, showMarkers = false }) {
             <h3 className="text-lg font-semibold mb-3">{title}</h3>
             <p className="text-sm text-muted-foreground mb-4">您可以直接在左側編輯內容，右側將即時渲染效果：</p>
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[500px] border border-border/60 rounded-lg overflow-hidden">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-auto lg:h-[500px] border border-border/60 rounded-lg overflow-hidden">
                 {/* Source */}
                 <div className="bg-muted flex flex-col overflow-hidden border-b lg:border-b-0 lg:border-r border-border/60">
                     <div className="p-2 border-b border-border/40 bg-muted/50 text-xs text-muted-foreground font-bold uppercase tracking-wider shrink-0">Source Input</div>

@@ -43,7 +43,9 @@ describe('LiveEditor', () => {
         });
     });
 
-    it('should show loading state initially', () => {
+    it('should show loading state initially', async () => {
+        const { getScript } = await import('../../lib/db');
+        getScript.mockImplementationOnce(() => new Promise(() => {}));
         const { container } = render(<LiveEditor scriptId="123" />);
         // Look for the animate-spin class which is on the Loader2 icon
         expect(container.querySelector('.animate-spin')).toBeInTheDocument();

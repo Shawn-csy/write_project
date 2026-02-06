@@ -62,7 +62,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                 <h4 className="text-sm font-medium flex items-center gap-2">
                     基本資訊
                 </h4>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="col-span-2 space-y-1">
                         <label className="text-xs text-muted-foreground">
                             標記名稱 <span className="text-red-500">*</span>
@@ -89,7 +89,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                     </span>
                 </h4>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {/* 開始符號 */}
                     <div className="space-y-1">
                         <label className="text-xs text-muted-foreground">
@@ -161,7 +161,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                     <p className="text-[10px] text-muted-foreground">
                         設定暫停符號可讓區間在中途中斷並繼續
                     </p>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="space-y-1">
                             <label className="text-xs text-muted-foreground">暫停符號</label>
                             <Input

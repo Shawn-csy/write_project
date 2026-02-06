@@ -1,4 +1,5 @@
 # Backend Auth Verification (Firebase ID Token)
+最後更新：2026-02-06
 
 This backend now verifies Firebase ID Tokens sent via `Authorization: Bearer <id_token>`.
 

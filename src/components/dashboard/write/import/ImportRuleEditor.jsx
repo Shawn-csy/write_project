@@ -33,7 +33,7 @@ export function ImportRuleEditor({ rule, index, onUpdate }) {
                     <div className="w-2 h-2 rounded-full ml-auto" style={{ backgroundColor: ruleColor }} />
                 </div>
             </PopoverTrigger>
-            <PopoverContent className="w-96" side="right" align="start">
+            <PopoverContent className="w-[90vw] sm:w-96" side="bottom" align="start">
                 <div className="grid gap-4 max-h-[500px] overflow-y-auto">
                     <div className="space-y-2">
                         <h4 className="font-medium leading-none">編輯標記規則</h4>
@@ -45,7 +45,7 @@ export function ImportRuleEditor({ rule, index, onUpdate }) {
                     {/* 樣式設定 (Style) */}
                     <div className="grid gap-2 p-3 bg-muted/20 rounded-md">
                         <div className="text-xs font-semibold text-muted-foreground mb-1">顯示樣式</div>
-                        <div className="grid grid-cols-3 items-center gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
                             <Label htmlFor={`color-${index}`} className="text-xs">顏色</Label>
                             <div className="col-span-2 flex gap-2">
                                 <Input
@@ -62,12 +62,12 @@ export function ImportRuleEditor({ rule, index, onUpdate }) {
                                 />
                             </div>
                         </div>
-                        <div className="grid grid-cols-3 items-center gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
                             <Label htmlFor={`label-${index}`} className="text-xs">顯示標籤</Label>
                             <Input
                                 id={`label-${index}`}
                                 value={rule.label || ""}
-                                className="col-span-2 h-6 text-xs"
+                                className="sm:col-span-2 h-6 text-xs"
                                 onChange={(e) => updateRule('label', e.target.value)}
                             />
                         </div>
@@ -78,7 +78,7 @@ export function ImportRuleEditor({ rule, index, onUpdate }) {
                         <div className="text-xs font-semibold text-muted-foreground mb-1">識別邏輯</div>
                         
                         {/* 模式選擇 */}
-                        <div className="grid grid-cols-3 items-center gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
                             <Label className="text-xs">模式</Label>
                             <Select 
                                 value={rule.matchMode || (rule.type === 'prefix' ? 'prefix' : 'enclosure')}
@@ -90,7 +90,7 @@ export function ImportRuleEditor({ rule, index, onUpdate }) {
                                     }
                                 }}
                             >
-                                <SelectTrigger className="col-span-2 h-7 text-xs">
+                                <SelectTrigger className="sm:col-span-2 h-7 text-xs">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -102,7 +102,7 @@ export function ImportRuleEditor({ rule, index, onUpdate }) {
                         </div>
 
                         {/* 區塊/行內切換 */}
-                        <div className="grid grid-cols-3 items-center gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
                             <Label className="text-xs">層級</Label>
                             <div className="col-span-2 flex items-center gap-2">
                                 <label className="flex items-center gap-2 cursor-pointer">
@@ -129,21 +129,21 @@ export function ImportRuleEditor({ rule, index, onUpdate }) {
                             </div>
                         ) : (
                             <>
-                                <div className="grid grid-cols-3 items-center gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
                                     <Label className="text-xs">開始符號</Label>
                                     <Input
                                         value={rule.start || ""}
-                                        className="col-span-2 h-7 text-xs font-mono"
+                                        className="sm:col-span-2 h-7 text-xs font-mono"
                                         onChange={(e) => updateRule('start', e.target.value)}
                                     />
                                 </div>
                                 
                                 {(rule.matchMode === 'enclosure' || (!rule.matchMode && rule.end)) && (
-                                    <div className="grid grid-cols-3 items-center gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
                                         <Label className="text-xs">結束符號</Label>
                                         <Input
                                             value={rule.end || ""}
-                                            className="col-span-2 h-7 text-xs font-mono"
+                                            className="sm:col-span-2 h-7 text-xs font-mono"
                                             onChange={(e) => updateRule('end', e.target.value)}
                                         />
                                     </div>

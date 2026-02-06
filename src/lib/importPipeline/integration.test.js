@@ -10,9 +10,9 @@ import { discoverMarkers, MarkerDiscoverer } from './markerDiscoverer.js';
 import { buildAST } from './directASTBuilder.js';
 
 // 讀取真實範例檔案
-const file1 = readFileSync('./convert_example/file1', 'utf-8');
-const file2 = readFileSync('./convert_example/file2', 'utf-8');
-const file3 = readFileSync('./convert_example/file3', 'utf-8');
+const file1 = readFileSync('./examples/convert_example/file1', 'utf-8');
+const file2 = readFileSync('./examples/convert_example/file2', 'utf-8');
+const file3 = readFileSync('./examples/convert_example/file3', 'utf-8');
 
 describe('Integration Tests with Real Examples (Pure Marker Mode)', () => {
   

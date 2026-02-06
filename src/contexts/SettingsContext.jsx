@@ -144,7 +144,9 @@ export function SettingsProvider({ children }) {
           const data = await fetchUserSettings(currentUser);
           if (data) {
                   if (data.settings && Object.keys(data.settings).length > 0) {
-                      console.log("Applying cloud settings...");
+                      if (!isRemoteUpdate.current) {
+                          console.log("Applying cloud settings...");
+                      }
                       isRemoteUpdate.current = true;
                       const s = data.settings;
                       

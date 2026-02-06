@@ -38,7 +38,7 @@ export function MarkerLogicSettings({ config, idx, updateMarker }) {
                             </p>
                             
                             {/* 開始/結束符號 */}
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div className="space-y-1">
                                     <label className="text-[10px] text-muted-foreground block">開始符號 <span className="text-red-500">*</span></label>
                                     <Input 
@@ -60,7 +60,7 @@ export function MarkerLogicSettings({ config, idx, updateMarker }) {
                             </div>
                             
                             {/* 暫停/切換符號 & 顯示文字 */}
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div className="space-y-1">
                                     <label className="text-[10px] text-muted-foreground block">
                                         暫停/切換符號 (Pause Symbol) <span className="text-[9px] text-muted-foreground/50 font-normal">(選填)</span>
@@ -88,7 +88,7 @@ export function MarkerLogicSettings({ config, idx, updateMarker }) {
                             {/* 區間樣式選擇器 */}
                             <div className="space-y-2">
                                 <label className="text-[10px] text-muted-foreground block">區間樣式</label>
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                     <button
                                         type="button"
                                         onClick={() => updateMarker(idx, 'style', { 
@@ -149,7 +149,7 @@ export function MarkerLogicSettings({ config, idx, updateMarker }) {
                     </div>
                 ) : config.matchMode !== 'range' && (
                     <>
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                             <div className="flex-1 space-y-1">
                                 <label className="text-[10px] text-muted-foreground block mb-1">開始符號 (Start) <span className="text-red-500">*</span></label>
                                 <Input 

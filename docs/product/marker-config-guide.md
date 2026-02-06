@@ -1,10 +1,11 @@
 # Marker 設定與解析說明
+最後更新：2026-02-06
 
 ## 設定面板位置
 
 設定面板組件位於：
-- [MarkerDetailEditor.jsx](file:///Users/shanti/project_base/write_project/src/components/settings/marker/MarkerDetailEditor.jsx)
-- [MarkerLogicSettings.jsx](file:///Users/shanti/project_base/write_project/src/components/settings/marker/configs/MarkerLogicSettings.jsx)
+- `src/components/settings/marker/MarkerDetailEditor.jsx`
+- `src/components/settings/marker/configs/MarkerLogicSettings.jsx`
 
 ---
 
@@ -118,7 +119,7 @@ flowchart TD
 
 | 檔案 | 說明 |
 |------|------|
-| [directASTBuilder.js](file:///Users/shanti/project_base/write_project/src/lib/importPipeline/directASTBuilder.js) | 解析器核心 |
-| [defaultMarkers.js](file:///Users/shanti/project_base/write_project/src/lib/importPipeline/defaultMarkers.js) | 預設 marker 設定 |
-| [ModeSelector.jsx](file:///Users/shanti/project_base/write_project/src/components/settings/marker/configs/ModeSelector.jsx) | 模式選擇器 UI |
-| [MarkerPreview.jsx](file:///Users/shanti/project_base/write_project/src/components/settings/marker/configs/MarkerPreview.jsx) | 即時預覽組件 |
+| `src/lib/importPipeline/directASTBuilder.js` | 解析器核心 |
+| `src/lib/importPipeline/defaultMarkers.js` | 預設 marker 設定 |
+| `src/components/settings/marker/configs/ModeSelector.jsx` | 模式選擇器 UI |
+| `src/components/settings/marker/configs/MarkerPreview.jsx` | 即時預覽組件 |

@@ -100,7 +100,7 @@ export function MarkerSettings({ sectionRef }) {
   };
 
   return (
-    <Card className="border border-border/60 bg-card/50 shadow-sm overflow-hidden flex flex-col h-[750px]" ref={sectionRef}>
+    <Card className="border border-border/60 bg-card/50 shadow-sm overflow-hidden flex flex-col h-auto md:h-[750px]" ref={sectionRef}>
       <CardHeader className="pb-3 px-5 py-4 border-b bg-muted/20 shrink-0">
         <div className="flex items-center justify-between">
            <div className="flex items-center gap-2">
