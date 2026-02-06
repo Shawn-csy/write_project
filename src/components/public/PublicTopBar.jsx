@@ -1,8 +1,9 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, ArrowLeft } from "lucide-react";
+import { BookOpen, ArrowLeft, Sun, Moon } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
+import { useSettings } from "../../contexts/SettingsContext";
 
 export function PublicTopBar({
   title = "公開台本",
@@ -14,6 +15,7 @@ export function PublicTopBar({
   actions,
 }) {
   const navigate = useNavigate();
+  const { isDark, setTheme } = useSettings();
 
   return (
     <header className="border-b sticky top-0 bg-background/80 backdrop-blur z-20">
@@ -52,7 +54,18 @@ export function PublicTopBar({
           </div>
         )}
 
-        <div className="flex items-center gap-2">{actions}</div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(isDark ? "light" : "dark")}
+            title={isDark ? "切換亮色" : "切換暗色"}
+            aria-label={isDark ? "切換亮色" : "切換暗色"}
+          >
+            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </Button>
+          {actions}
+        </div>
       </div>
 
       {tabs.length > 0 && (

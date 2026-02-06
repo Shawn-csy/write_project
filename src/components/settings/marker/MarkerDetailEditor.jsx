@@ -35,7 +35,7 @@ export function MarkerDetailEditor({ config, idx, updateMarker }) {
 
             <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">
                 <Tabs defaultValue="general" className="w-full">
-                    <TabsList className="w-full grid grid-cols-3 mb-4">
+                    <TabsList className="w-full grid grid-cols-2 sm:grid-cols-3 mb-4 gap-1 h-auto sm:h-9">
                         <TabsTrigger value="general">一般 (General)</TabsTrigger>
                         <TabsTrigger value="logic">邏輯 (Logic)</TabsTrigger>
                         <TabsTrigger value="style">樣式 (Style)</TabsTrigger>

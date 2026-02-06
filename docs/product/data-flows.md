@@ -1,4 +1,5 @@
 # 核心與功能資料流（檔案到檔案）
+最後更新：2026-02-06
 
 本文件整理「核心資料流」與「各功能資料流」的走向，描述資料從前端到後端、以及在後端的路徑。重點放在「從什麼檔案到什麼檔案」。
 
@@ -25,22 +26,16 @@ db.js (API Client)
 ### 公開作品列表（Public Gallery）
 ```mermaid
 flowchart LR
-  A[src/pages/PublicGalleryPage.jsx\n搜尋/排序/篩選] --> B[src/lib/db.js:getPublicScripts]
-  A --> C[src/lib/db.js:getPublicPersonas]
-  A --> D[src/lib/db.js:getPublicOrganizations]
-  B --> E[server/routers/public.py\nGET /api/public-scripts]
-  C --> F[server/routers/public.py\nGET /api/public-personas]
-  D --> G[server/routers/public.py\nGET /api/public-organizations]
-  E --> H[server/crud.py:get_public_scripts]
-  H --> I[server/models.py:Script\n(含 persona/org/tags)]
+  A[src/pages/PublicGalleryPage.jsx\n搜尋/排序/篩選] --> B[src/lib/db.js:getPublicBundle]
+  B --> C[server/routers/public_bundle.py\nGET /api/public-bundle]
+  C --> D[server/crud.py\nget_public_*]
+  D --> E[server/models.py\nScript/Persona/Organization]
 ```
 
 ```
 Public Gallery（ASCII）
 PublicGalleryPage.jsx
-  ├─> db.js:getPublicScripts → public.py:/public-scripts → crud.py:get_public_scripts → Script
-  ├─> db.js:getPublicPersonas → public.py:/public-personas → Persona
-  └─> db.js:getPublicOrganizations → public.py:/public-organizations → Organization
+  └─> db.js:getPublicBundle → public_bundle.py:/public-bundle → crud.py:get_public_* → Script/Persona/Organization
 ```
 
 ### 公開作品閱讀頁（Public Reader）
@@ -215,30 +210,33 @@ PublicReaderPage.jsx → extractMetadataWithRaw → PublicScriptInfoOverlay
 flowchart LR
   A[src/lib/firebase.js\nFirebase Auth] --> B[src/contexts/AuthContext.jsx]
   B --> C[src/lib/db.js\nfetchApi]
-  C --> D[HTTP Header: X-User-ID]
+  C --> D[HTTP Header: Authorization: Bearer <id_token>]
   D --> E[server/dependencies.py\nget_current_user_id]
   E --> F[server/routers/*.py]
 ```
 
 ```
 Auth（ASCII）
-firebase.js → AuthContext → db.js:fetchApi → Header: X-User-ID
+firebase.js → AuthContext → db.js:fetchApi → Header: Authorization: Bearer <id_token>
+（本機可選）Header: X-User-ID
 server/dependencies.py:get_current_user_id → routers
 ```
 
-### CORS / 環境變數（前端 API 指向）
+### API 指向 / 同源 / CORS
 ```mermaid
 flowchart LR
-  A[.env\nVITE_API_URL] --> B[vite.config.js]
-  B --> C[src/lib/db.js\nAPI_BASE_URL]
-  C --> D[Browser Request]
-  D --> E[server/main.py\nCORSMiddleware allow_origins]
+  A[.env\nVITE_API_URL] --> B[src/lib/db.js\nAPI_BASE_URL]
+  B --> C[Browser Request]
+  C --> D{同源?}
+  D -->|是| E[Nginx /api 反代 → Backend]
+  D -->|否| F[server/main.py\nCORSMiddleware allow_origins]
 ```
 
 ```
-CORS（ASCII）
-.env (VITE_API_URL) → vite.config.js → db.js:API_BASE_URL
-Browser → server/main.py CORSMiddleware allow_origins
+API Base（ASCII）
+.env (VITE_API_URL) → db.js:API_BASE_URL
+同源時：Nginx /api 反代，不需要 CORS
+跨網域時：server/main.py 啟用 CORSMiddleware
 ```
 
 ### 統計設定流程（Settings → Stats）

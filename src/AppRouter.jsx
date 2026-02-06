@@ -203,6 +203,7 @@ export function AppRouter({
                                                 <PublisherDashboard
                                                     isSidebarOpen={nav.isDesktopSidebarOpen}
                                                     setSidebarOpen={nav.setIsDesktopSidebarOpen}
+                                                    openMobileMenu={() => nav.setIsMobileDrawerOpen(true)}
                                                 />
                                             }
                                         />

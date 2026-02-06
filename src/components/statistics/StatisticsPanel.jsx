@@ -168,7 +168,7 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
   return (
     <div className="flex flex-col h-full gap-4 p-1 font-mono">
       {/* Overview Cards - Compact Grid */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <Card className="shadow-none border bg-muted/20">
                 <CardHeader className="p-3 pb-1">
                     <CardTitle className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">預估時長</CardTitle>
@@ -189,7 +189,7 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
             </Card>
         </div>
         
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
              <div className="bg-muted/10 rounded-md p-2 text-center border">
                 <div className="text-[10px] text-muted-foreground uppercase">台詞行數</div>
                 <div className="text-lg font-semibold">{counts.dialogueLines}</div>

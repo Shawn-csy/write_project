@@ -409,10 +409,10 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
       )}
 
       {/* Editor Area */}
-      <div className="flex-1 overflow-hidden relative flex">
+      <div className="flex-1 overflow-hidden relative flex flex-col sm:flex-row">
         {/* Code Editor Pane */}
         {!readOnly && (
-            <div className={`h-full ${showPreview ? "w-1/2 border-r border-border" : "w-full"} transition-all duration-300 flex flex-col`}>
+            <div className={`h-full ${showPreview ? "w-full sm:w-1/2 sm:border-r sm:border-border" : "w-full"} transition-all duration-300 flex flex-col`}>
                 <CodeMirror
                     value={content}
                     height="100%"
@@ -459,7 +459,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
 
         {/* Stats Side Panel (Non-modal) */}
         {showStats && (
-            <div className="w-[400px] border-l border-border bg-background shrink-0 flex flex-col h-full shadow-xl z-20 transition-all duration-300">
+            <div className="w-full sm:w-[400px] border-l border-border bg-background shrink-0 flex flex-col h-full shadow-xl z-20 transition-all duration-300">
                 <div className="h-12 border-b flex items-center px-4 shrink-0 bg-muted/20 gap-3">
                     <button 
                         onClick={() => setShowStats(false)} 

@@ -1,7 +1,8 @@
 # 三階段式腳本匯入處理系統
+最後更新：2026-02-06
 
 > 建立時間：2026-01-30  
-> 狀態：規劃中
+> 狀態：規劃中（尚未完全實作）
 
 ## 概述
 
@@ -237,11 +238,11 @@ src/lib/importPipeline/
 
 ### 自動化測試
 
-使用 Node.js test runner (`node --test`) 執行：
+使用 Vitest 執行：
 
 ```bash
 # 執行所有新增的測試
-node --test src/lib/importPipeline/*.test.js
+npx vitest src/lib/importPipeline/*.test.js
 ```
 
 #### 測試案例
@@ -268,7 +269,7 @@ node --test src/lib/importPipeline/*.test.js
 1. 開啟 http://localhost:5173
 2. 進入「寫作」頁面
 3. 點擊「匯入腳本」
-4. 分別貼上 `convert_example/file1`、`file2`、`file3` 的內容
+4. 分別貼上 `examples/convert_example/file1`、`file2`、`file3` 的內容
 5. 確認：
    - 預覽畫面正確顯示清洗後的結果
    - 偵測到的標記規則與文件內容相符

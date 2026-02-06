@@ -37,7 +37,7 @@ const MODES = [
  */
 export function ModeSelector({ value, onChange }) {
     return (
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {MODES.map(mode => {
                 const Icon = mode.icon;
                 const isActive = value === mode.id;

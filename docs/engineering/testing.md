@@ -1,6 +1,7 @@
 # 測試指南 (Testing Guide)
+最後更新：2026-02-06
 
-Fountain Pro 專案採用 Vitest 進行單元測試，Playwright 進行統合測試 (E2E)。本文件旨在協助開發者了解如何執行與撰寫測試。
+本專案採用 Vitest 進行單元測試，Playwright 進行統合測試 (E2E)。本文件旨在協助開發者了解如何執行與撰寫測試。
 
 ## 1. 測試環境概觀
 
@@ -14,19 +15,10 @@ Fountain Pro 專案採用 Vitest 進行單元測試，Playwright 進行統合測
 主要針對 `src/lib/` 下的核心邏輯進行驗證，包含 Parser、AST Builder 與 Statistics 模組。
 
 ### 執行指令
-
-```bash
-# 執行所有單元測試
-npm run test
-
-# 監聽模式 (開發時推薦)
+單元測試與 CI 指令請參考：`docs/engineering/ci-process.md`  
+本地開發可使用：
+```
 npx vitest
-
-# 執行特定檔案
-npx vitest src/lib/metadataParser.test.js
-
-# 查看覆蓋率報告
-npm run coverage
 ```
 
 ### 關鍵測試檔案

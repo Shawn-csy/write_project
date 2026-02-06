@@ -182,7 +182,7 @@ export function AppearanceSettings({ sectionRef }) {
 
              {/* Advanced Font Controls */}
              {showAdvancedFont && (
-                <div className="grid grid-cols-2 gap-4 pt-2 animate-in fade-in slide-in-from-top-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 animate-in fade-in slide-in-from-top-1">
                    <div className="space-y-1.5">
                        <div className="flex justify-between px-1">
                           <span className="text-[10px] text-muted-foreground">正文: {bodyFontSize}px</span>

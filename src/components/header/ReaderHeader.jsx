@@ -108,7 +108,7 @@ function ReaderHeader({
                     editTitle={editTitle}
                     setEditTitle={(val) => setEditTitle(val)}
                     onSubmit={submitTitle}
-                    inputClassName="text-base sm:text-2xl font-semibold border border-primary/50 rounded px-1 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary min-w-[200px] w-full"
+                    inputClassName="text-base sm:text-2xl font-semibold border border-primary/50 rounded px-1 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary min-w-[120px] sm:min-w-[200px] w-[45vw] sm:w-auto max-w-[60vw]"
                     inputProps={{
                       onClick: (e) => e.stopPropagation(),
                     }}

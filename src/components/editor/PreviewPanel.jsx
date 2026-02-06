@@ -41,7 +41,7 @@ export const PreviewPanel = forwardRef(function PreviewPanel({
     <ScriptSurface
       show={show}
       readOnly={readOnly}
-      outerClassName={`${readOnly ? "w-full" : "w-1/2"} h-full overflow-hidden bg-background flex flex-col`}
+      outerClassName={`${readOnly ? "w-full" : "w-full sm:w-1/2"} h-full overflow-hidden bg-background flex flex-col`}
       scrollClassName="h-full overflow-y-auto px-4 py-8"
       contentClassName=""
       scrollRef={ref}

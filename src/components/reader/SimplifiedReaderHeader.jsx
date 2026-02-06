@@ -1,9 +1,10 @@
 import React from "react";
-import { ArrowLeft, Share2, Settings, Download } from "lucide-react";
+import { ArrowLeft, Share2, Settings, Download, Sun, Moon } from "lucide-react";
 import { Button } from "../ui/button";
 import { ReaderAppearanceMenu } from "./ReaderAppearanceMenu";
 import { ReaderTOC } from "./ReaderTOC";
 import { MarkerVisibilitySelect } from "../ui/MarkerVisibilitySelect";
+import { useSettings } from "../../contexts/SettingsContext";
 
 export function SimplifiedReaderHeader({
   onBack,
@@ -21,6 +22,8 @@ export function SimplifiedReaderHeader({
   onToggleMarker,
   className = "",
 }) {
+  const { isDark, setTheme } = useSettings();
+
   return (
     <header
       className={`fixed top-0 left-0 right-0 h-14 md:h-16 px-4 z-50 flex items-center justify-between transition-all duration-300 ${className}`}
@@ -77,6 +80,17 @@ export function SimplifiedReaderHeader({
             hiddenMarkerIds={hiddenMarkerIds}
             onToggleMarker={onToggleMarker}
         />
+
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setTheme(isDark ? "light" : "dark")}
+          className="rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md"
+          title={isDark ? "切換亮色" : "切換暗色"}
+          aria-label={isDark ? "切換亮色" : "切換暗色"}
+        >
+          {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </Button>
 
         {onExport && (
              <Button

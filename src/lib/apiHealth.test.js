@@ -2,13 +2,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { isApiOffline, markApiOffline, clearApiOffline } from './apiHealth.js';
 
 describe('apiHealth', () => {
+  let warnSpy;
   beforeEach(() => {
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     clearApiOffline();
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2025-01-01T00:00:00Z'));
   });
 
   afterEach(() => {
+    warnSpy?.mockRestore();
     vi.useRealTimers();
   });
 

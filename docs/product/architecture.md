@@ -1,4 +1,5 @@
 # 系統架構圖（Mermaid）
+最後更新：2026-02-06
 
 以下架構圖提供給新加入成員快速理解系統組成與資料走向。
 
@@ -89,7 +90,8 @@ flowchart LR
 │ - src/lib/db.js (API Client)  │
 │ - src/lib/firebase.js (Auth)  │
 └───────────────┬──────────────┘
-                │ HTTP (X-User-ID)
+                │ HTTP (Authorization: Bearer)
+                │ Local fallback: X-User-ID
                 ▼
 ┌──────────────────────────────┐
 │ Backend (FastAPI)             │

@@ -7,7 +7,7 @@ import { AuthorGalleryCard } from "../components/gallery/AuthorGalleryCard";
 import { OrgGalleryCard } from "../components/gallery/OrgGalleryCard";
 import { Button } from "../components/ui/button";
 import { PublicTopBar } from "../components/public/PublicTopBar";
-import { getPublicScripts, getPublicPersonas, getPublicOrganizations } from "../lib/db";
+import { getPublicBundle } from "../lib/db";
 import { extractMetadataWithRaw } from "../lib/metadataParser";
 
 export default function PublicGalleryPage() {
@@ -28,38 +28,53 @@ export default function PublicGalleryPage() {
   const [scripts, setScripts] = useState([]);
   const [authors, setAuthors] = useState([]);
   const [orgs, setOrgs] = useState([]);
+  const [topTags, setTopTags] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortKey, setSortKey] = useState("recent");
-  const [viewMode, setViewMode] = useState(() => searchParams.get("mode") || "standard");
-  // Sync selectedTag with URL param 'tag'
-  const selectedTag = searchParams.get("tag");
-  const setSelectedTag = (tag) => {
-      if (tag) {
-          const params = new URLSearchParams(searchParams);
-          params.set("tag", tag);
-          params.set("view", "scripts");
-          setSearchParams(params);
-      } else {
-          const params = new URLSearchParams(searchParams);
-          params.delete("tag");
-          setSearchParams(params);
+  const [viewMode, setViewMode] = useState(() => {
+      const fromUrl = searchParams.get("mode");
+      if (fromUrl) return fromUrl;
+      if (typeof window !== "undefined") {
+          if (window.matchMedia && window.matchMedia("(max-width: 640px)").matches) {
+              return "compact";
+          }
       }
+      return "standard";
+  });
+  const parseTagParam = (value) => {
+      if (!value) return [];
+      return value.split(",").map(v => v.trim()).filter(Boolean);
   };
-  const setAuthorTag = (tag) => {
+  // Sync selected tags with URL params
+  const selectedTags = parseTagParam(searchParams.get("tag"));
+  const selectedAuthorTags = parseTagParam(searchParams.get("authorTag"));
+  const selectedOrgTags = parseTagParam(searchParams.get("orgTag"));
+
+  const setSelectedTags = (tags) => {
+      const params = new URLSearchParams(searchParams);
+      if (tags.length > 0) {
+          params.set("tag", tags.join(","));
+          params.set("view", "scripts");
+      } else {
+          params.delete("tag");
+      }
+      setSearchParams(params);
+  };
+  const setAuthorTags = (tags) => {
       const params = new URLSearchParams(searchParams);
       params.set("view", "authors");
-      if (tag) {
-        params.set("authorTag", tag);
+      if (tags.length > 0) {
+        params.set("authorTag", tags.join(","));
       } else {
         params.delete("authorTag");
       }
       setSearchParams(params);
   };
-  const setOrgTag = (tag) => {
+  const setOrgTags = (tags) => {
       const params = new URLSearchParams(searchParams);
       params.set("view", "orgs");
-      if (tag) {
-        params.set("orgTag", tag);
+      if (tags.length > 0) {
+        params.set("orgTag", tags.join(","));
       } else {
         params.delete("orgTag");
       }
@@ -76,11 +91,17 @@ export default function PublicGalleryPage() {
 
   // Data Fetching
   useEffect(() => {
-    const loadScripts = async () => {
+    const loadBundle = async () => {
       setIsLoading(true);
+      setIsLoadingPeople(true);
       try {
-          const data = await getPublicScripts();
-          const normalized = (data || []).map((script) => ({
+          const data = await getPublicBundle();
+          const scriptsData = data?.scripts || [];
+          const personasData = data?.personas || [];
+          const orgsData = data?.organizations || [];
+          const hotTags = data?.topTags || [];
+
+          const normalized = scriptsData.map((script) => ({
               ...script,
               author: script.persona || script.owner || script.author,
               tags: (script.tags || []).map((tag) =>
@@ -88,23 +109,7 @@ export default function PublicGalleryPage() {
               ).filter(Boolean),
           }));
           setScripts(normalized);
-      } catch (e) {
-          console.error("Failed to load public scripts:", e);
-      } finally {
-          setIsLoading(false);
-      }
-    };
-    loadScripts();
-  }, []);
 
-  useEffect(() => {
-    const loadPeople = async () => {
-      setIsLoadingPeople(true);
-      try {
-          const [personaData, orgData] = await Promise.all([
-              getPublicPersonas(),
-              getPublicOrganizations()
-          ]);
           const normalizeEntity = (entity) => ({
               ...entity,
               displayName: entity.displayName || entity.name || "Unknown",
@@ -112,18 +117,20 @@ export default function PublicGalleryPage() {
               tags: (entity.tags || []).map(t => typeof t === "string" ? t : t?.name).filter(Boolean)
           });
 
-          setAuthors((personaData || []).map(normalizeEntity));
-          setOrgs((orgData || []).map(o => ({
+          setAuthors(personasData.map(normalizeEntity));
+          setOrgs(orgsData.map(o => ({
               ...o,
               tags: (o.tags || []).map(t => typeof t === "string" ? t : t?.name).filter(Boolean)
           })));
+          setTopTags(hotTags);
       } catch (e) {
-          console.error("Failed to load public lists:", e);
+          console.error("Failed to load public bundle:", e);
       } finally {
+          setIsLoading(false);
           setIsLoadingPeople(false);
       }
     };
-    loadPeople();
+    loadBundle();
   }, []);
 
   const scriptsWithMeta = useMemo(() => {
@@ -162,7 +169,9 @@ export default function PublicGalleryPage() {
           script.author?.displayName?.toLowerCase().includes(needle) ||
           script._licenseText?.toLowerCase().includes(needle) ||
           script._licenseTermsText?.toLowerCase().includes(needle);
-      const matchesTag = selectedTag ? script.tags?.includes(selectedTag) : true;
+      const matchesTag = selectedTags.length > 0 
+        ? (script.tags || []).some(t => selectedTags.includes(t)) 
+        : true;
       return matchesSearch && matchesTag;
   }).sort((a, b) => {
       if (sortKey === "views") {
@@ -175,12 +184,16 @@ export default function PublicGalleryPage() {
   const allTags = Array.from(new Set(scripts.flatMap(s => s.tags || [])));
   const filteredAuthors = authors.filter(a => {
     const matchesSearch = a.displayName?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTag = authorTag ? (a.tags || []).includes(authorTag) : true;
+    const matchesTag = selectedAuthorTags.length > 0 
+      ? (a.tags || []).some(t => selectedAuthorTags.includes(t)) 
+      : true;
     return matchesSearch && matchesTag;
   });
   const filteredOrgs = orgs.filter(o => {
     const matchesSearch = o.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTag = orgTag ? (o.tags || []).includes(orgTag) : true;
+    const matchesTag = selectedOrgTags.length > 0 
+      ? (o.tags || []).some(t => selectedOrgTags.includes(t)) 
+      : true;
     return matchesSearch && matchesTag;
   });
   const tabs = useMemo(() => ([
@@ -222,16 +235,17 @@ export default function PublicGalleryPage() {
         <GalleryFilterBar 
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
-            selectedTag={
-                view === "scripts" ? selectedTag :
-                view === "authors" ? authorTag :
-                orgTag
+            selectedTags={
+                view === "scripts" ? selectedTags :
+                view === "authors" ? selectedAuthorTags :
+                selectedOrgTags
             }
-            onSelectTag={
-                view === "scripts" ? setSelectedTag :
-                view === "authors" ? setAuthorTag :
-                setOrgTag
+            onSelectTags={
+                view === "scripts" ? setSelectedTags :
+                view === "authors" ? setAuthorTags :
+                setOrgTags
             }
+            featuredTags={view === "scripts" ? topTags : []}
             tags={
                 view === "scripts" ? allTags :
                 view === "authors" ? authorTags :
@@ -261,13 +275,13 @@ export default function PublicGalleryPage() {
         {/* Content Grid */}
         {view === "scripts" && (
           isLoading ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                   {[1,2,3,4,5].map(i => (
                       <div key={i} className="aspect-[2/3] bg-muted/30 animate-pulse rounded-lg" />
                   ))}
               </div>
           ) : (
-              <div className={`grid gap-6 animate-in fade-in duration-500 ${viewMode === "compact" ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" : "grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"}`}>
+              <div className={`grid gap-6 animate-in fade-in duration-500 ${viewMode === "compact" ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5" : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"}`}>
                   {filteredScripts.map(script => (
                       <ScriptGalleryCard 
                           key={script.id}
@@ -283,7 +297,7 @@ export default function PublicGalleryPage() {
         {view === "scripts" && !isLoading && filteredScripts.length === 0 && (
           <div className="py-20 text-center text-muted-foreground">
               <p>找不到符合條件的劇本。</p>
-              <Button variant="link" onClick={() => { setSearchTerm(""); setSelectedTag(null); }}>
+              <Button variant="link" onClick={() => { setSearchTerm(""); setSelectedTags([]); }}>
                   清除篩選
               </Button>
           </div>
@@ -303,7 +317,7 @@ export default function PublicGalleryPage() {
                   key={author.id}
                   author={author}
                   onClick={() => navigate(`/author/${author.id}`)}
-                  onTagClick={setAuthorTag}
+                  onTagClick={(tag) => setAuthorTags([tag])}
                 />
               ))}
             </div>
@@ -330,7 +344,7 @@ export default function PublicGalleryPage() {
                   key={org.id}
                   org={org}
                   onClick={() => navigate(`/org/${org.id}`)}
-                  onTagClick={setOrgTag}
+                  onTagClick={(tag) => setOrgTags([tag])}
                 />
               ))}
             </div>

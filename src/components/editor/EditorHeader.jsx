@@ -41,7 +41,7 @@ export function EditorHeader({
   if (readOnly) return null;
 
   return (
-    <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card shrink-0">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-2 border-b border-border bg-card shrink-0">
       <HeaderTitleBlock
         onBack={onBack}
         backButtonClassName="p-2 hover:bg-muted rounded-full transition-colors"
@@ -61,7 +61,7 @@ export function EditorHeader({
                 editTitle={editTitle}
                 setEditTitle={(val) => setEditTitle(val)}
                 onSubmit={submitTitle}
-                inputClassName="font-semibold text-sm sm:text-base border border-primary/50 rounded px-1 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary min-w-[200px]"
+                inputClassName="font-semibold text-sm sm:text-base border border-primary/50 rounded px-1 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary min-w-[120px] sm:min-w-[200px] w-[45vw] sm:w-auto max-w-[60vw]"
                 renderDisplay={() => (
                   <div className="flex items-center gap-2">
                     <h2
@@ -118,7 +118,7 @@ export function EditorHeader({
           </div>
         }
       />
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
          {/* Marker Visibility Toggle */}
          <div className="hidden sm:block w-[140px]">
           <MarkerVisibilitySelect

@@ -218,7 +218,7 @@ export default function SuperAdminPage() {
             </Card>
 
             <Tabs defaultValue="orgs" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-3 max-w-md">
+                <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 max-w-md gap-1 h-auto sm:h-9">
                     <TabsTrigger value="orgs">組織管理</TabsTrigger>
                     <TabsTrigger value="personas">作者身分 (Personas)</TabsTrigger>
                     <TabsTrigger value="scripts">劇本管理</TabsTrigger>

@@ -29,6 +29,7 @@ export function useAuth() {
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
   function login() {
@@ -58,6 +59,7 @@ export function AuthProvider({ children }) {
 
     try {
       const profile = await getUserProfile();
+      setProfile(profile || null);
       const needsUpdate =
         !profile ||
         (desired.email && profile.email !== desired.email) ||
@@ -66,7 +68,8 @@ export function AuthProvider({ children }) {
         (desired.handle && profile.handle !== desired.handle);
 
       if (needsUpdate) {
-        await updateUserProfile(desired);
+        const updated = await updateUserProfile(desired);
+        setProfile(updated || desired || profile || null);
       }
     } catch (e) {
       console.error("Failed to sync user profile", e);
@@ -94,6 +97,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     currentUser,
+    profile,
     login,
     logout,
   };

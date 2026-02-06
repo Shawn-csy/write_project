@@ -11,6 +11,7 @@ import { DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, horizontalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { SortableTag } from "./SortableTag";
 import { MetadataLicenseTab } from "../metadata/MetadataLicenseTab";
+import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
 import { searchOrganizations, requestToJoinOrganization } from "../../../lib/db";
 
 export function PublisherProfileTab({
@@ -23,13 +24,21 @@ export function PublisherProfileTab({
     orgs,
     personaTagInput, setPersonaTagInput,
     handleSaveProfile, isSavingProfile,
-    parseTags, addTags, getSuggestions, getTagStyle
+    parseTags, addTags, getSuggestions, getTagStyle,
+    tagOptions = []
 }) {
     const navigate = useNavigate();
     const [viewMode, setViewMode] = React.useState("edit"); // edit or create
     const [orgSearchQuery, setOrgSearchQuery] = React.useState("");
     const [orgSearchResults, setOrgSearchResults] = React.useState([]);
     const [isOrgSearching, setIsOrgSearching] = React.useState(false);
+    const [tagOpen, setTagOpen] = React.useState(false);
+    const filteredTagOptions = React.useMemo(() => {
+        const needle = personaTagInput.trim().toLowerCase();
+        const names = (tagOptions || []).map(t => t.name).filter(Boolean);
+        if (!needle) return names;
+        return names.filter(n => n.toLowerCase().includes(needle));
+    }, [tagOptions, personaTagInput]);
 
     React.useEffect(() => {
         if (selectedPersonaId) {
@@ -98,9 +107,9 @@ export function PublisherProfileTab({
     };
 
     return (
-        <Card className="flex flex-col md:flex-row h-[calc(100vh-220px)] min-h-[500px] overflow-hidden border">
+        <Card className="flex flex-col md:flex-row h-auto md:h-[calc(100dvh-220px)] min-h-0 md:min-h-[500px] overflow-hidden border">
             {/* Left Sidebar: List */}
-            <div className="w-full md:w-[280px] border-r flex flex-col bg-muted/10">
+            <div className="w-full md:w-[280px] border-b md:border-b-0 md:border-r flex flex-col bg-muted/10">
                 <div className="p-4 border-b flex items-center justify-between bg-background/50 backdrop-blur-sm sticky top-0 z-10">
                     <h3 className="font-semibold text-sm">作者列表</h3>
                     <Button size="icon" variant="ghost" className="h-8 w-8 ml-auto" onClick={onStartCreate}>
@@ -378,49 +387,93 @@ export function PublisherProfileTab({
                                                 </SortableContext>
                                             </DndContext>
                                             
-                                            <div className="relative">
-                                                <Input
-                                                    id="persona-tag-input"
-                                                    name="personaTagInput"
-                                                    value={personaTagInput}
-                                                    onChange={(e) => setPersonaTagInput(e.target.value)}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === "Enter" || e.key === "," || e.key === "，") {
-                                                            e.preventDefault();
-                                                            const incoming = parseTags(personaTagInput);
-                                                            if (incoming.length === 0) return;
-                                                            setPersonaDraft({
-                                                                ...personaDraft,
-                                                                tags: addTags(personaDraft.tags || [], incoming),
-                                                            });
-                                                            setPersonaTagInput("");
-                                                        }
-                                                    }}
-                                                    placeholder="輸入新標籤..."
-                                                    className="bg-transparent"
-                                                />
-                                                {personaTagInput.trim() && (
-                                                    <div className="absolute z-10 mt-1 w-full rounded-md border bg-background shadow-lg p-2 flex flex-wrap gap-2 animate-in fade-in zoom-in-95 duration-200">
-                                                        {getSuggestions(personaTagInput, personaDraft.tags || []).map(tag => (
-                                                            <button
-                                                                key={tag.id}
-                                                                type="button"
-                                                                className="text-xs px-2 py-1 rounded-full border hover:bg-accent transition-colors"
-                                                                style={getTagStyle(tag.name)}
-                                                                onClick={() => {
+                                            <Popover open={tagOpen} onOpenChange={setTagOpen}>
+                                                <PopoverTrigger asChild>
+                                                    <Button type="button" variant="outline" size="sm" className="w-fit">
+                                                        新增標籤
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[90vw] sm:w-80 p-2" align="start">
+                                                    <div className="p-2">
+                                                        <Input
+                                                            id="persona-tag-input"
+                                                            name="personaTagInput"
+                                                            value={personaTagInput}
+                                                            onChange={(e) => setPersonaTagInput(e.target.value)}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === "Enter" || e.key === "," || e.key === "，") {
+                                                                    e.preventDefault();
+                                                                    const incoming = parseTags(personaTagInput);
+                                                                    if (incoming.length === 0) return;
                                                                     setPersonaDraft({
                                                                         ...personaDraft,
-                                                                        tags: addTags(personaDraft.tags || [], [tag.name]),
+                                                                        tags: addTags(personaDraft.tags || [], incoming),
                                                                     });
+                                                                    setPersonaTagInput("");
+                                                                    setTagOpen(false);
+                                                                }
+                                                            }}
+                                                            placeholder="搜尋或新增標籤..."
+                                                            className="h-8"
+                                                        />
+                                                    </div>
+                                                    <div className="max-h-56 overflow-y-auto px-1 pb-1">
+                                                        {personaTagInput.trim() && (
+                                                            <button
+                                                                type="button"
+                                                                className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent"
+                                                                onClick={() => {
+                                                                    const incoming = parseTags(personaTagInput);
+                                                                    if (incoming.length === 0) return;
+                                                                    setPersonaDraft({
+                                                                        ...personaDraft,
+                                                                        tags: addTags(personaDraft.tags || [], incoming),
+                                                                    });
+                                                                    setPersonaTagInput("");
+                                                                    setTagOpen(false);
+                                                                }}
+                                                            >
+                                                                新增「{personaTagInput.trim()}」
+                                                            </button>
+                                                        )}
+                                                        {filteredTagOptions.map(name => {
+                                                            const selected = (personaDraft.tags || []).includes(name);
+                                                            return (
+                                                            <button
+                                                                key={name}
+                                                                type="button"
+                                                                className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded hover:bg-accent ${
+                                                                    selected ? "bg-accent/50" : ""
+                                                                }`}
+                                                                onClick={() => {
+                                                                    if (selected) {
+                                                                        setPersonaDraft({
+                                                                            ...personaDraft,
+                                                                            tags: (personaDraft.tags || []).filter(t => t !== name),
+                                                                        });
+                                                                    } else {
+                                                                        setPersonaDraft({
+                                                                            ...personaDraft,
+                                                                            tags: addTags(personaDraft.tags || [], [name]),
+                                                                        });
+                                                                    }
                                                                     setPersonaTagInput("");
                                                                 }}
                                                             >
-                                                                {tag.name}
+                                                                <span className="truncate">{name}</span>
+                                                                <span
+                                                                    className="inline-block h-2 w-2 rounded-full"
+                                                                    style={{ backgroundColor: getTagStyle(name)?.backgroundColor || "#CBD5E1" }}
+                                                                />
                                                             </button>
-                                                        ))}
+                                                            );
+                                                        })}
+                                                        {personaTagInput.trim() && filteredTagOptions.length === 0 && (
+                                                            <div className="px-3 py-2 text-xs text-muted-foreground">沒有符合的標籤</div>
+                                                        )}
                                                     </div>
-                                                )}
-                                            </div>
+                                                </PopoverContent>
+                                            </Popover>
                                         </div>
                                     </div>
                                 </div>

@@ -13,7 +13,7 @@ import { useAuth } from "../contexts/AuthContext";
 
 
 export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMenu }) {
-  const { currentUser } = useAuth();
+  const { currentUser, profile: currentProfile } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("works");
   const [editingScript, setEditingScript] = useState(null);
@@ -93,12 +93,11 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
     if (!currentUser) return;
     if (!isBackground) setIsLoading(true);
     try {
-        const [personaData, orgData, scriptData, tagData, profile] = await Promise.all([
+        const [personaData, orgData, scriptData, tagData] = await Promise.all([
             getPersonas(),
             getOrganizations(),
             getUserScripts(),
             getTags(),
-            getUserProfile()
         ]);
         let normalizedPersonas = (personaData || []).map(p => {
             let links = p?.links;
@@ -126,7 +125,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         setPersonas(normalizedPersonas);
         setPersonasLoadedAt(Date.now());
         setOrgs(orgData || []);
-        const memberOrgId = profile?.organizationId;
+        const memberOrgId = currentProfile?.organizationId;
         let mergedOrgs = orgData || [];
         const extraOrgIds = new Set();
         if (memberOrgId && !(orgData || []).some(o => o.id === memberOrgId)) {
@@ -189,7 +188,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
   const refreshOrgChoices = async () => {
       if (!currentUser) return;
       try {
-          const profile = await getUserProfile();
+          const profile = currentProfile || await getUserProfile();
           const memberOrgId = profile?.organizationId;
           let mergedOrgs = orgs || [];
           if (memberOrgId && !(orgs || []).some(o => o.id === memberOrgId)) {
@@ -476,6 +475,18 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-6">
         <div className="flex items-center gap-4">
+            {/* Mobile Menu Toggle */}
+            <div className="lg:hidden">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => openMobileMenu?.()}
+                    title="展開選單"
+                    className="-ml-2"
+                >
+                    <PanelLeftOpen className="w-5 h-5 text-muted-foreground" />
+                </Button>
+            </div>
             {/* Desktop Sidebar Toggle */}
             <div className={`hidden lg:block ${isSidebarOpen ? "lg:hidden" : ""}`}>
                 <Button 
@@ -527,7 +538,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full md:w-[400px] grid-cols-3">
+        <TabsList className="grid w-full md:w-[400px] grid-cols-1 sm:grid-cols-3 gap-1 h-auto sm:h-9">
             <TabsTrigger value="works">我的作品</TabsTrigger>
             <TabsTrigger value="profile">作者身份</TabsTrigger>
             <TabsTrigger value="org">組織</TabsTrigger>
@@ -557,6 +568,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 personaTagInput={personaTagInput} setPersonaTagInput={setPersonaTagInput}
                 handleSaveProfile={handleSaveProfile} isSavingProfile={isSavingProfile}
                 parseTags={parseTags} addTags={addTags} getSuggestions={getSuggestions} getTagStyle={getTagStyle}
+                tagOptions={availableTags}
             />
         </TabsContent>
 
@@ -581,6 +593,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 handleSaveOrg={handleSaveOrg} isSavingOrg={isSavingOrg}
                 orgTagInput={orgTagInput} setOrgTagInput={setOrgTagInput}
                 parseTags={parseTags} addTags={addTags} getSuggestions={getSuggestions} getTagStyle={getTagStyle}
+                tagOptions={availableTags}
                 orgMembers={orgMembers}
                 orgInvites={orgInvites}
                 orgRequests={orgRequests}

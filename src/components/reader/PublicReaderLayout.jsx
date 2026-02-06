@@ -92,7 +92,7 @@ export function PublicReaderLayout({
   const protectionClass = disableCopy ? 'select-none' : '';
 
   return (
-    <div className={`relative w-full h-screen overflow-hidden flex flex-col bg-background ${hideWhitespace ? 'hide-whitespace' : ''} ${protectionClass}`}>
+    <div className={`relative w-full h-[100dvh] overflow-hidden flex flex-col bg-background ${hideWhitespace ? 'hide-whitespace' : ''} ${protectionClass}`}>
       
       {/* 1. Fixed Background Layer */}
       <div 
@@ -188,9 +188,8 @@ export function PublicReaderLayout({
            // Make the scroll container transparent so background shows through initially
            outerClassName="flex-1 min-h-0 relative z-10"
            scrollClassName="h-full overflow-y-auto overflow-x-hidden scrollbar-hide perspective-1000"
-           contentClassName="max-w-4xl mx-auto px-5 sm:px-8 pb-32 pt-16 min-h-screen" 
+           contentClassName="max-w-4xl mx-auto px-5 sm:px-8 pb-32 pt-16 min-h-[100dvh]" 
         />
     </div>
   );
 }
-

@@ -39,7 +39,7 @@ export function MainLayout({
   showSidebar = true
 }) {
   return (
-    <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
+    <div className="flex h-[100dvh] w-full bg-background text-foreground overflow-hidden">
       {/* Mobile Drawer */}
       <Drawer
         open={isMobileDrawerOpen}
