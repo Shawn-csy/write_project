@@ -13,19 +13,23 @@ import { parseScreenplay } from "../../lib/screenplayAST";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useEditorSync } from "../../hooks/useEditorSync";
 import { usePersistentState } from "../../hooks/usePersistentState";
-import { extractMetadata } from "../../lib/fountain";
+import { extractMetadata } from "../../lib/metadataParser";
 import { EditorHeader } from "./EditorHeader";
 import { PreviewPanel } from "./PreviewPanel";
 import { MarkerRulesPanel } from "./MarkerRulesPanel";
 
-export default function LiveEditor({ scriptId, initialData, onClose, initialSceneId, defaultShowPreview = false, readOnly = false, onRequestEdit, onOpenMarkerSettings, contentScrollRef, isSidebarOpen, onSetSidebarOpen, onTitleHtml, onHasTitle, onTitleNote, onTitleSummary, onTitleName }) {
+// LiveEditor Component
+export default function LiveEditor({ scriptId, initialData, onClose, initialSceneId, defaultShowPreview = false, readOnly = false, onRequestEdit, onOpenMarkerSettings, contentScrollRef, isSidebarOpen, onSetSidebarOpen, onTitleHtml, onHasTitle, onTitleNote, onTitleSummary, onTitleName, showHeader = true }) {
   const {
     theme = "system",
     fontSize,
     bodyFontSize,
     dialogueFontSize,
+    lineHeight,
     accentConfig,
     markerConfigs,
+    hiddenMarkerIds,
+    toggleMarkerVisibility
   } = useSettings();
 
   const [content, setContent] = useState(initialData?.content || "");
@@ -371,6 +375,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
 
   return (
     <div className="flex flex-col h-full bg-background relative z-0">
+      {showHeader && (
       <EditorHeader 
         readOnly={readOnly}
         title={title}
@@ -387,13 +392,27 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
         isSidebarOpen={isSidebarOpen}
         onSetSidebarOpen={onSetSidebarOpen}
         onTitleChange={handleTitleUpdate}
+        markerConfigs={markerConfigs}
+        hiddenMarkerIds={hiddenMarkerIds}
+        onToggleMarker={toggleMarkerVisibility}
+        script={initialData} // Or manage a local script state if needing deeper updates
+        onScriptUpdate={(updated) => {
+            // Update local state if needed, or just let the dialog handle the API call + prop refresh
+            // For now, we rely on the Dialog's API call and maybe a refresh to parent?
+            // Since initialData comes from parent, we might need a way to bubble up.
+            // But simple display update:
+            if (updated.title && updated.title !== title) setTitle(updated.title);
+            // Ideally we update the full object in parent scriptManager
+            // But for now, relying on next load or context update is okay.
+        }}
       />
+      )}
 
       {/* Editor Area */}
-      <div className="flex-1 overflow-hidden relative flex">
+      <div className="flex-1 overflow-hidden relative flex flex-col sm:flex-row">
         {/* Code Editor Pane */}
         {!readOnly && (
-            <div className={`h-full ${showPreview ? "w-1/2 border-r border-border" : "w-full"} transition-all duration-300 flex flex-col`}>
+            <div className={`h-full ${showPreview ? "w-full sm:w-1/2 sm:border-r sm:border-border" : "w-full"} transition-all duration-300 flex flex-col`}>
                 <CodeMirror
                     value={content}
                     height="100%"
@@ -424,6 +443,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
             fontSize={fontSize}
             bodyFontSize={bodyFontSize}
             dialogueFontSize={dialogueFontSize}
+            lineHeight={lineHeight}
             accentColor={accentConfig?.accent}
             markerConfigs={markerConfigs}
             onTitleName={handleTitleUpdate}
@@ -434,11 +454,12 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
             initialSceneId={initialSceneId}
             onScenes={setScenes}
             onRequestEdit={readOnly ? onRequestEdit : undefined}
+            hiddenMarkerIds={hiddenMarkerIds}
         />
 
         {/* Stats Side Panel (Non-modal) */}
         {showStats && (
-            <div className="w-[400px] border-l border-border bg-background shrink-0 flex flex-col h-full shadow-xl z-20 transition-all duration-300">
+            <div className="w-full sm:w-[400px] border-l border-border bg-background shrink-0 flex flex-col h-full shadow-xl z-20 transition-all duration-300">
                 <div className="h-12 border-b flex items-center px-4 shrink-0 bg-muted/20 gap-3">
                     <button 
                         onClick={() => setShowStats(false)} 
@@ -449,7 +470,12 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
                     <h3 className="font-semibold text-sm">統計分析面板</h3>
                 </div>
                 <div className="flex-1 min-h-0 overflow-hidden">
-                    <StatisticsPanel rawScript={deferredContent} scriptAst={ast} onLocateText={handleLocateText} />
+                    <StatisticsPanel 
+                        rawScript={deferredContent} 
+                        scriptAst={ast} 
+                        onLocateText={handleLocateText} 
+                        scriptId={scriptId}
+                    />
                 </div>
             </div>
         )}

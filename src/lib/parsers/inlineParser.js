@@ -1,18 +1,22 @@
 import Parsimmon from 'parsimmon';
-import { createDynamicParsers, createTextParser, DirectionParser, mergeTextNodes } from './parserGenerators.js';
+import { createDynamicParsers, createTextParser, mergeTextNodes } from './parserGenerators.js';
 
 const P = Parsimmon;
 
+/**
+ * 純 Marker 模式的 Inline 解析器
+ * 所有解析規則都來自 markerConfigs（雲端設定）
+ */
 export const parseInline = (text, configs = []) => {
     if (!text) return [];
 
-    // 1. Build Dynamic Parsers
-    // Prioritize by explicit 'priority' field (descending), then by functionality (Regex > others)
-    const sortedConfigs = [...configs].sort((a, b) => {
+    // 1. Build Dynamic Parsers from configs
+    const safeConfigs = Array.isArray(configs) ? configs : [];
+    const sortedConfigs = [...safeConfigs].sort((a, b) => {
         // Priority check: Higher number = higher priority
         const pA = a.priority || 0;
         const pB = b.priority || 0;
-        if (pA !== pB) return pB - pA; // Descending
+        if (pA !== pB) return pB - pA;
 
         // Tie-breaker: Regex is usually more specific than Enclosure
         if (a.matchMode === 'regex' && b.matchMode !== 'regex') return -1;
@@ -26,16 +30,13 @@ export const parseInline = (text, configs = []) => {
     Object.values(customParsers).forEach(p => dynamicParsers.push(p));
     
     // 2. Build Dynamic Text Parser
-    // It must exclude start chars of all markers to give them a chance to parse
-    const DynamicText = createTextParser(configs);
+    const DynamicText = createTextParser(safeConfigs);
 
-    // 3. Assemble All Parsers
+    // 3. Assemble All Parsers (純 Marker 模式：無硬編碼 fallback)
     const AllParsers = [
-        ...dynamicParsers, // Custom configs should take precedence over standard DirectionParser
-        DirectionParser, // Keep Direction as fallback if no custom rule matches
+        ...dynamicParsers,
         DynamicText,
-        // Fallback: If a char is excluded from Text (e.g. '[') but fails to match its specific parser 
-        // (e.g. malformed direction), we must consume it as plain text to avoid infinite loops or empty results.
+        // Fallback: consume any unmatched char as plain text
         P.any.map(c => ({ type: 'text', content: c }))
     ];
 

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { MarkerGeneralSettings } from "../settings/marker/configs/MarkerGeneralSettings";
 import { MarkerLogicSettings } from "../settings/marker/configs/MarkerLogicSettings";
 import { MarkerStyleSettings } from "../settings/marker/configs/MarkerStyleSettings";
-import ScriptViewer from "../ScriptViewer"; // Assuming this path, check later
+import ScriptViewer from "../renderer/ScriptViewer"; // Assuming this path, check later
 
 export function MarkerSettingsGuide() {
     // Dummy state for the interactive guide

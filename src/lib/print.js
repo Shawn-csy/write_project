@@ -1,18 +1,13 @@
 
+
 export function buildPrintHtml({
   titleName,
   activeFile,
   titleHtml,
   rawScriptHtml,
-  accent,
-  accentForeground,
-  accentMuted,
 }) {
-  const accentValue = accent ? `hsl(${accent})` : '#10b981';
-  const accentFgValue = accentForeground ? `hsl(${accentForeground})` : '#0f172a';
-  const accentMutedValue = accentMuted ? `hsl(${accentMuted})` : '#e3f4ec';
-
-  // ScriptRenderer already handles formatting
+  // ScriptRenderer generates HTML with classes that match our Tailwind/Global CSS.
+  // Since we clone all styles into the print iframe, we don't need to redefine them here.
   const finalScriptHtml = rawScriptHtml || "";
 
   return `
@@ -22,70 +17,36 @@ export function buildPrintHtml({
   <meta charset="utf-8" />
   <title>${titleName || activeFile || "Screenplay"}</title>
   <style>
-    :root {
-      --foreground: #0f172a;
-      --muted-foreground: #475569;
-      --paper-bg: #ffffff;
-      --paper-border: #e2e8f0;
-      --accent: ${accentValue};
-      --accent-foreground: ${accentFgValue};
-      --accent-muted: ${accentMutedValue};
-      --note-bg: color-mix(in srgb, var(--accent) 16%, #ffffff 84%);
-      --note-border: color-mix(in srgb, var(--accent) 32%, transparent);
-    }
-    body {
-      font-family: 'Courier New', Courier, monospace;
-      color: var(--foreground);
-      background: var(--paper-bg);
-      padding: 48px;
-    }
+    /* Print-specific Overrides */
     @media print {
+      @page {
+        margin: 20mm;
+      }
       body {
-        background: #ffffff;
-        color: #0f172a;
+        background: white !important;
+        color: black !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      /* Ensure container spans full width without scrollbars */
+      .screenplay {
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+      }
+      /* Hide UI elements if any slipped in (though we export raw html) */
+      .no-print {
+        display: none !important;
       }
     }
-    .screenplay {
-      font-size: 14px;
-      line-height: 1.6;
-      max-width: 720px;
-      margin: 0 auto;
+
+    /* Base Layout for the Print View (before printing) */
+    body {
+      background: white;
+      padding: 24px; /* Visible padding in the iframe preview if inspected */
     }
-    .scene-heading { font-weight: 700; text-transform: uppercase; margin-top: 24px; margin-bottom: 12px; }
-    .action { margin-bottom: 12px; }
-    .character { font-weight: 700; text-align: center; margin: 0 auto 4px; width: 50%; }
-    .dialogue { margin: 0 auto 12px; width: 70%; }
-    .parenthetical { font-style: italic; text-align: center; margin: 0 auto 8px; width: 60%; font-size: 13px; }
-    .centered { text-align: center; margin: 24px auto; font-weight: 700; letter-spacing: 0.08em; }
-    .transition { text-align: right; margin: 16px 0; font-weight: 700; }
-    .lyrics { margin-left: 40px; margin-bottom: 12px; font-style: italic; }
-    .section { font-weight: 700; margin: 12px 0; }
-    .synopsis { font-style: italic; color: var(--muted-foreground); margin: 8px 0; }
-    .note { color: var(--foreground); background: var(--note-bg); padding: 6px 10px; border-radius: 8px; margin: 10px 0; border: 1px solid var(--note-border); }
-    .character-block { border-left: 6px solid var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); padding: 4px 8px; border-radius: 8px; }
-    .highlight { background: color-mix(in srgb, var(--accent) 10%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent); }
-    .title-page { max-width: 720px; margin: 0 auto 32px; }
-    .title-page h1 { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
-    .title-page p { margin: 2px 0; }
-    .whitespace-block { margin: 12px 0; display: grid; gap: 2px; }
-    .whitespace-line { min-height: 12px; }
-    .whitespace-label { text-align: left; padding-left: 6px; font-size: 12px; color: var(--muted-foreground); font-style: italic; }
-    .whitespace-label-empty { min-height: 12px; }
-    .sfx-cue, .dir-cue {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px 6px;
-      margin: 2px 0;
-      border-radius: 10px;
-      border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
-      background: color-mix(in srgb, var(--accent) 10%, transparent);
-    }
-    .dir-cue {
-      border-color: color-mix(in srgb, var(--muted-foreground) 28%, transparent);
-      background: color-mix(in srgb, var(--muted-foreground) 10%, transparent);
-    }
-    .sfx-text, .dir-text { font-size: 12px; font-style: italic; }
   </style>
 </head>
 <body>

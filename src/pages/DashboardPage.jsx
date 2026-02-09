@@ -5,8 +5,8 @@ import { useNavigate } from "react-router-dom";
 export default function DashboardPage({ scriptManager, navProps }) {
   const navigate = useNavigate();
   const { 
-      files, 
-      setActiveFile, setActiveCloudScript, setActivePublicScriptId, 
+      // files, // Removed
+      setActiveCloudScript, setActivePublicScriptId, 
       setRawScript, setTitleName, setCloudScriptMode
   } = scriptManager;
 
@@ -14,7 +14,7 @@ export default function DashboardPage({ scriptManager, navProps }) {
 
   // On mount, ensure cleaner state
   useEffect(() => {
-      setActiveFile(null);
+      // setActiveFile(null); // Removed
       setActiveCloudScript(null);
       setActivePublicScriptId(null);
       setRawScript("");
@@ -23,9 +23,9 @@ export default function DashboardPage({ scriptManager, navProps }) {
       document.title = "Screenplay Reader";
   }, []);
 
-  const handleSelectLocal = (file) => {
-      navigate(`/file/${file.name}`);
-  };
+  // const handleSelectLocal = (file) => {
+  //     navigate(`/file/${file.name}`);
+  // };
 
   const handleSelectCloud = (script) => {
       navigate(`/edit/${script.id}?mode=read`);
@@ -37,11 +37,11 @@ export default function DashboardPage({ scriptManager, navProps }) {
 
   return (
       <HybridDashboard 
-        localFiles={enableLocalFiles ? files : []}
-        onSelectLocalFile={handleSelectLocal}
+        localFiles={[]}
+        onSelectLocalFile={() => {}}
         onSelectCloudScript={handleSelectCloud}
         onSelectPublicScript={handleSelectPublic}
-        enableLocalFiles={enableLocalFiles}
+        enableLocalFiles={false}
         openSettings={nav.openSettings}
         openAbout={nav.openAbout}
         openMobileMenu={() => nav.setIsMobileDrawerOpen(true)}

@@ -2,16 +2,16 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import generatedFileMeta from "../constants/fileMeta.generated.json";
 
 // Import scripts directly here
-const scriptModules = import.meta.glob("../scripts_file/**/*.fountain", {
-  query: "?raw",
-  import: "default",
-});
+// const scriptModules = import.meta.glob("../scripts_file/**/*.fountain", {
+//   query: "?raw",
+//   import: "default",
+// });
 
 import { parseScreenplay } from "../lib/screenplayAST";
 
-export function useScriptManager(initialParamsRef, markerConfigs = []) {
-  const [files, setFiles] = useState([]);
-  const [activeFile, setActiveFile] = useState(null);
+export function useScriptManager(initialParamsRef, initialMarkerConfigs = []) {
+  // const [files, setFiles] = useState([]);
+  // const [activeFile, setActiveFile] = useState(null);
   const [rawScript, setRawScript] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
@@ -19,11 +19,29 @@ export function useScriptManager(initialParamsRef, markerConfigs = []) {
   const [fileMeta, setFileMeta] = useState({});
   const [fileTitleMap, setFileTitleMap] = useState({});
   const [fileTagsMap, setFileTagsMap] = useState({});
+
+  // Allow dynamic override (e.g. for Public Scripts using Author's settings)
+  const [overrideMarkerConfigs, setOverrideMarkerConfigs] = useState(null);
+  const [hiddenMarkerIds, setHiddenMarkerIds] = useState([]);
+
+  const toggleMarkerVisibility = (id) => {
+    setHiddenMarkerIds((prev) =>
+      prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
+    );
+  };
+  
+  // Effective Configs
+  const rawConfigs = overrideMarkerConfigs || initialMarkerConfigs;
+  const effectiveMarkerConfigs = useMemo(() => {
+      if (Array.isArray(rawConfigs)) return rawConfigs;
+      if (rawConfigs && typeof rawConfigs === 'object') return Object.values(rawConfigs);
+      return [];
+  }, [rawConfigs]);
   
   // AST Parsing (Centralized)
   const { ast } = useMemo(() => {
-    return parseScreenplay(rawScript || "", markerConfigs);
-  }, [rawScript, markerConfigs]);
+    return parseScreenplay(rawScript || "", effectiveMarkerConfigs);
+  }, [rawScript, effectiveMarkerConfigs]);
 
   // Script Content State
   const [sceneList, setSceneList] = useState([]);
@@ -40,7 +58,6 @@ export function useScriptManager(initialParamsRef, markerConfigs = []) {
   const [showTitle, setShowTitle] = useState(false);
 
   // Focus & Filter State (often reset on load)
-  // Focus & Filter State (often reset on load)
   const [filterCharacter, setFilterCharacter] = useState("__ALL__");
   const [focusMode, setFocusMode] = useState(false);
   const [currentSceneId, setCurrentSceneId] = useState("");
@@ -50,17 +67,16 @@ export function useScriptManager(initialParamsRef, markerConfigs = []) {
   const [activeCloudScript, setActiveCloudScript] = useState(null);
   const [cloudScriptMode, setCloudScriptMode] = useState("read"); // read | edit
   const [activePublicScriptId, setActivePublicScriptId] = useState(null);
-
-  // 1. Initialize Files
-  useEffect(() => {
-    const entries = Object.entries(scriptModules).map(([path, loader]) => ({
-      name: path.split("/").pop(),
-      path,
-      loader,
-      display: path.replace("../scripts_file/", ""),
-    }));
-    setFiles(entries);
-  }, []);
+  // 1. Initialize Files (Removed)
+  // useEffect(() => {
+  //   const entries = Object.entries(scriptModules).map(([path, loader]) => ({
+  //     name: path.split("/").pop(),
+  //     path,
+  //     loader,
+  //     display: path.replace("../scripts_file/", ""),
+  //   }));
+  //   setFiles(entries);
+  // }, []);
 
   // 2. Extract Title/Tags Helper
   const extractTitleMeta = (text) => {
@@ -98,34 +114,6 @@ export function useScriptManager(initialParamsRef, markerConfigs = []) {
     return { title, tags };
   };
 
-  // 3. indexing
-  // 3. indexing
-  // OPTIMIZATION: Removed eager loading of all files to extract titles.
-  // This was causing massive memory usage (800MB+) as it loaded every single file into memory at startup.
-  /*
-  useEffect(() => {
-    if (!files.length) return;
-    (async () => {
-      const titleMap = {};
-      const tagsMap = {};
-      await Promise.all(
-        files.map(async (file) => {
-          try {
-            const content = await file.loader();
-            const { title, tags } = extractTitleMeta(content);
-            if (title) titleMap[file.name] = title;
-            if (tags.length) tagsMap[file.name] = tags;
-          } catch (err) {
-            console.warn("建立標題索引失敗", file.name, err);
-          }
-        })
-      );
-      setFileTitleMap((prev) => ({ ...titleMap, ...prev }));
-      setFileTagsMap(tagsMap);
-    })();
-  }, [files]);
-  */
-
   // 4. File Meta (Dates)
   useEffect(() => {
     if (generatedFileMeta && Object.keys(generatedFileMeta).length) {
@@ -140,18 +128,10 @@ export function useScriptManager(initialParamsRef, markerConfigs = []) {
 
   const fetchLastModified = async (file) => {
     try {
-       // Fix path resolution for vite production/dev diffs
-       // Original logic: file.path starts with ../scripts_file/
-       // client side fetch needs /src/scripts_file/ if dev?
-       // Just keep original logic safely
       const url = file.path.startsWith("./") 
         ? new URL(file.path.replace("./", "/src/"), window.location.origin)
         : new URL(file.path, window.location.origin);
         
-      // Actually file.path in glob is relative
-      // If we use import.meta.glob("../scripts_file"), paths are relative to THIS file
-      // checking App.jsx, it used "./scripts_file" relative to App.jsx.
-    
       const res = await fetch(new URL(file.path, import.meta.url).href, { method: "HEAD" });
       const header = res.headers.get("last-modified");
       if (header) {
@@ -163,64 +143,14 @@ export function useScriptManager(initialParamsRef, markerConfigs = []) {
   };
 
 
-  // 5. Load Script Function
-  const loadScript = async (file) => {
-    setIsLoading(true);
-    try {
-      const content = await file.loader();
-      setActiveFile(file.name);
-      setRawScript(content);
-
-      // Handle Initial Params (Char focus)
-      const initChar = initialParamsRef?.current?.char;
-      if (initChar) {
-        setFilterCharacter(initChar);
-        if (initChar !== "__ALL__") {
-          setFocusMode(true);
-        } else {
-          setFocusMode(false);
-        }
-        if (initialParamsRef.current) initialParamsRef.current.char = null;
-      } else {
-        setFilterCharacter("__ALL__");
-        setFocusMode(false);
-      }
-
-      // Reset Content States
-      setSceneList([]);
-      setCurrentSceneId("");
-      setScrollSceneId("");
-      setTitleHtml("");
-      setTitleName("");
-      setTitleSummary("");
-      setHasTitle(false);
-      setShowTitle(false);
-      setRawScriptHtml("");
-      
-      // Update Meta
-      const metaKey = file.display || file.name;
-      if (generatedFileMeta?.[metaKey]) {
-        const val = generatedFileMeta[metaKey];
-        const dateStr = typeof val === "object" ? val.mtime : val;
-        setFileMeta((prev) => ({ ...prev, [file.name]: new Date(dateStr) }));
-      } else {
-        fetchLastModified(file);
-      }
-      
-      return true; // Signal success
-    } catch (err) {
-      console.error("載入劇本失敗:", err);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // 5. Load Script Function (Removed)
+  // const loadScript = async (file) => { ... }
 
   return {
-    files,
-    setFiles,
-    activeFile,
-    setActiveFile, // Needed for URL sync or manual overrides
+    // files,
+    // setFiles,
+    // activeFile,
+    // setActiveFile, // Needed for URL sync or manual overrides
     rawScript,
     setRawScript,
     isLoading,
@@ -228,7 +158,7 @@ export function useScriptManager(initialParamsRef, markerConfigs = []) {
     fileMeta,
     fileTitleMap,
     fileTagsMap,
-    loadScript,
+    // loadScript,
     // Content States
     sceneList, setSceneList,
     characterList, setCharacterList,
@@ -244,12 +174,18 @@ export function useScriptManager(initialParamsRef, markerConfigs = []) {
     filterCharacter, setFilterCharacter,
     focusMode, setFocusMode,
     currentSceneId, setCurrentSceneId,
-    currentSceneId, setCurrentSceneId,
     scrollSceneId, setScrollSceneId,
     // Cloud/Public State
     activeCloudScript, setActiveCloudScript,
     cloudScriptMode, setCloudScriptMode,
     activePublicScriptId, setActivePublicScriptId,
-    ast // Expose AST
+    ast, // Expose AST,
+    // Config Override
+    setOverrideMarkerConfigs,
+    effectiveMarkerConfigs,
+    
+    // Visibility
+    hiddenMarkerIds,
+    toggleMarkerVisibility
   };
 }

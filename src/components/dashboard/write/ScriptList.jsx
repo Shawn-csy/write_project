@@ -27,7 +27,9 @@ import {
 import { updateScript, getScript } from "../../../lib/db"; // Needed for inline theme update? or pass handler? 
 // Passed handler is better but for now keep consistent with original logic mix
 
-import { extractMetadata } from "../../../lib/fountain"; // Shared utility
+import { ScriptMetadataDialog } from "../../dashboard/ScriptMetadataDialog"; // Adjust path as needed
+import { extractMetadata } from "../../../lib/metadataParser";
+import { useState } from "react";
 
 // Helper: assureContent
 async function assureContent(item) {
@@ -84,7 +86,30 @@ export function ScriptList({
 
     const formatDate = (ts) => new Date(ts).toLocaleDateString();
 
+
+    const [editingScriptId, setEditingScriptId] = useState(null);
+
+    const handleStatusClick = (e, item) => {
+        if (readOnly) return;
+        e.stopPropagation();
+        setEditingScriptId(item.id);
+    };
+
+    const handleMetadataSave = (updatedScript) => {
+        // Ideally we update the local list locally before waiting for refresh
+        // But the dialog already calls API.
+        // We can just trigger a refresh or let the parent handle it via onTogglePublic if it did refresh logic?
+        // Actually, let's just update local state if we can.
+        // setScripts(prev => prev.map(s => s.id === updatedScript.id ? { ...s, ...updatedScript } : s));
+        // But setScripts is passed from props.
+        if (setScripts) {
+             setScripts(prev => prev.map(s => s.id === updatedScript.id ? { ...s, ...updatedScript, isPublic: updatedScript.status === 'Public' } : s));
+        }
+    };
+
+
     return (
+        <>
         <DndContext 
             sensors={readOnly ? [] : sensors}
             collisionDetection={closestCenter}
@@ -153,7 +178,10 @@ export function ScriptList({
                                                         {markerThemes.find(t => t.id === item.markerThemeId)?.name || '主題'}
                                                     </span>
                                                 )}
-                                                <span className={`px-1.5 py-0.5 rounded text-[10px] border ${item.isPublic ? 'bg-green-500/10 text-green-600 border-green-200' : 'bg-muted text-muted-foreground border-border'}`}>
+                                                <span 
+                                                    onClick={(e) => handleStatusClick(e, item)}
+                                                    className={`px-1.5 py-0.5 rounded text-[10px] border ${item.isPublic ? 'bg-green-500/10 text-green-600 border-green-200' : 'bg-muted text-muted-foreground border-border'} ${!readOnly ? "cursor-pointer active:scale-95 transition-transform" : ""}`}
+                                                >
                                                     {item.isPublic ? 'Public' : 'Private'}
                                                 </span>
                                             </div>
@@ -192,6 +220,9 @@ export function ScriptList({
                                         {item.type !== 'folder' && !readOnly && (
                                             <div className="w-28 text-center hidden md:block" onClick={e => e.stopPropagation()}>
                                                 <select 
+                                                    id={`script-theme-${item.id}`}
+                                                    name={`scriptTheme-${item.id}`}
+                                                    aria-label="劇本標記主題"
                                                     className="w-full h-6 text-[10px] rounded border border-input bg-background px-1"
                                                     value={item.markerThemeId || ""}
                                                     onChange={async (e) => {
@@ -214,13 +245,15 @@ export function ScriptList({
                                         
                                         {/* Public Status (Desktop Only or Icon) */}
                                         <div className="w-20 flex justify-center hidden sm:flex">
-                                            <div 
-                                                onClick={(e) => !readOnly && onTogglePublic(e, item)}
-                                                className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider border ${!readOnly ? "cursor-pointer hover:opacity-80" : ""} ${item.isPublic ? 'bg-green-500/10 text-green-600 border-green-200' : 'bg-muted text-muted-foreground border-border'}`}
-                                                title={readOnly ? "" : (item.type === 'folder' ? "設定資料夾所有內容為公開/私有" : "設定公開/私有")}
-                                            >
-                                                {item.isPublic ? "Public" : "Private"}
-                                            </div>
+                                            {item.type !== 'folder' && (
+                                                <div 
+                                                    onClick={(e) => handleStatusClick(e, item)}
+                                                    className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider border ${!readOnly ? "cursor-pointer hover:opacity-80 active:scale-95 transition-all" : ""} ${item.isPublic ? 'bg-green-500/10 text-green-600 border-green-200' : 'bg-muted text-muted-foreground border-border'}`}
+                                                    title={readOnly ? "" : "點擊管理發布設定"}
+                                                >
+                                                    {item.isPublic ? "Public" : "Private"}
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* Actions Dropdown (Replaces Hover Buttons) */}
@@ -236,10 +269,12 @@ export function ScriptList({
                                                         <DropdownMenuLabel>操作選項</DropdownMenuLabel>
                                                         <DropdownMenuSeparator />
                                                         
-                                                        <DropdownMenuItem onClick={(e) => onTogglePublic(e, item) }>
-                                                            <Globe className="w-4 h-4 mr-2" />
-                                                            <span>{item.isPublic ? "設為私人" : "設為公開"}</span>
-                                                        </DropdownMenuItem>
+                                                        {item.type !== 'folder' && (
+                                                            <DropdownMenuItem onClick={(e) => handleStatusClick(e, item) }>
+                                                                <Globe className="w-4 h-4 mr-2" />
+                                                                <span>發布設定...</span>
+                                                            </DropdownMenuItem>
+                                                        )}
 
                                                         {item.type !== 'folder' && (
                                                             <DropdownMenuSub>
@@ -330,6 +365,16 @@ export function ScriptList({
                     </div>
                  ) : null}
             </DragOverlay>
+            
         </DndContext>
+
+        {/* Metadata Dialog */}
+            <ScriptMetadataDialog 
+                open={!!editingScriptId}
+                onOpenChange={(open) => !open && setEditingScriptId(null)}
+                scriptId={editingScriptId}
+                onSave={handleMetadataSave}
+            />
+        </>
     );
 }

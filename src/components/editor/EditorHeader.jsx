@@ -1,5 +1,11 @@
-import React from "react";
-import { Loader2, ArrowLeft, Save, Eye, Columns, BarChart2, Download, HelpCircle, PanelLeftOpen } from "lucide-react";
+import React, { useState } from "react";
+import { Loader2, Save, Eye, Columns, BarChart2, Download, HelpCircle, Globe, Lock } from "lucide-react";
+import { useEditableTitle } from "../../hooks/useEditableTitle";
+import EditableTitle from "../header/EditableTitle";
+import { MarkerVisibilitySelect } from "../ui/MarkerVisibilitySelect";
+import HeaderTitleBlock from "../header/HeaderTitleBlock";
+import { Badge } from "../ui/badge";
+import { ScriptMetadataDialog } from "../dashboard/ScriptMetadataDialog";
 
 export function EditorHeader({
   readOnly,
@@ -16,96 +22,115 @@ export function EditorHeader({
   onTogglePreview,
   isSidebarOpen,
   onSetSidebarOpen,
-  onTitleChange
+  onTitleChange,
+  markerConfigs = [],
+  hiddenMarkerIds = [],
+  onToggleMarker,
+  script, // Full script object for metadata
+  onScriptUpdate // Callback when metadata changes
 }) {
-  const [isEditing, setIsEditing] = React.useState(false);
-  const [editTitle, setEditTitle] = React.useState(title);
-
-  React.useEffect(() => {
-     setEditTitle(title);
-  }, [title]);
-
-  const handleTitleSubmit = () => {
-     if (editTitle.trim() && editTitle !== title) {
-        onTitleChange(editTitle);
-     } else {
-        setEditTitle(title);
-     }
-     setIsEditing(false);
-  };
+  const [showMetadataDialog, setShowMetadataDialog] = useState(false);
+  const {
+    isEditing,
+    editTitle,
+    setEditTitle,
+    startEditing,
+    submitTitle
+  } = useEditableTitle(title, onTitleChange);
 
   if (readOnly) return null;
 
   return (
-    <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card shrink-0">
-      <div className="flex items-center gap-2">
-        <button
-          onClick={onBack}
-          className="p-2 hover:bg-muted rounded-full transition-colors"
-          title="Back to Dashboard"
-        >
-          <ArrowLeft className="w-5 h-5 text-muted-foreground" />
-        </button>
-        <button
-            type="button"
-            onClick={(e) => {
-                console.log("Sidebar toggle clicked", { isSidebarOpen });
-                e.stopPropagation();
-                e.currentTarget.blur();
-                if (onSetSidebarOpen) onSetSidebarOpen(true);
-                else console.error("onSetSidebarOpen is undefined");
-            }}
-            className={`p-2 hover:bg-muted rounded-full transition-colors ${isSidebarOpen ? "lg:hidden" : ""}`}
-            title="展開列表"
-        >
-            <PanelLeftOpen className="w-5 h-5 text-muted-foreground" />
-        </button>
-        <div>
-          <div className="flex items-center gap-2">
-            {isEditing ? (
-                <input 
-                    className="font-semibold text-sm sm:text-base border border-primary/50 rounded px-1 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary min-w-[200px]"
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                    onBlur={handleTitleSubmit}
-                    onKeyDown={(e) => e.key === 'Enter' && handleTitleSubmit()}
-                    autoFocus
-                />
-            ) : (
-                <h2 
-                    className="font-semibold text-sm sm:text-base cursor-text hover:bg-muted/50 rounded px-1 -ml-1 transition-colors"
-                    onDoubleClick={() => setIsEditing(true)}
-                    title="雙擊即可重新命名"
-                >
-                    {title}
-                </h2>
-            )}
-            <button
-              onClick={onManualSave}
-              className={`p-1 px-2 rounded flex items-center gap-1 text-[10px] sm:text-xs border transition-colors ${
-                  saveStatus === 'error' ? 'bg-red-100 text-red-600 border-red-200 hover:bg-red-200' :
-                  saveStatus === 'local-saved' ? 'bg-yellow-50 text-yellow-600 border-yellow-200 hover:bg-yellow-100' :
-                  saveStatus === 'unsaved' ? 'bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100' :
-                  saveStatus === 'saving' ? 'bg-blue-50 text-blue-600 border-blue-200' :
-                  'bg-green-50 text-green-600 border-green-200 hover:bg-green-100' // saved
-              }`}
-              title={saveStatus === 'error' ? "儲存失敗，點擊重試" : saveStatus === 'local-saved' ? "已儲存至本機，等待上傳" : "點擊手動儲存"}
-            >
-              {saveStatus === 'saving' ? (
-                <Loader2 className="w-3 h-3 animate-spin" />
-              ) : (
-                <Save className="w-3 h-3" />
-              )}
-              {saveStatus === 'saving' ? "儲存中..." :
-               saveStatus === 'unsaved' ? "未儲存" :
-               saveStatus === 'local-saved' ? "已暫存" :
-               saveStatus === 'error' ? "儲存失敗" :
-               lastSaved ? `已儲存 ${lastSaved.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : "已儲存"}
-            </button>
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-2 border-b border-border bg-card shrink-0">
+      <HeaderTitleBlock
+        onBack={onBack}
+        backButtonClassName="p-2 hover:bg-muted rounded-full transition-colors"
+        backIconClassName="w-5 h-5 text-muted-foreground"
+        backTitle="Back to Dashboard"
+        backAriaLabel="Back to Dashboard"
+        onOpenSidebar={() => onSetSidebarOpen?.(true)}
+        sidebarButtonClassName={`p-2 hover:bg-muted rounded-full transition-colors ${isSidebarOpen ? "lg:hidden" : ""}`}
+        sidebarIconClassName="w-5 h-5 text-muted-foreground"
+        containerClassName="flex items-center gap-2"
+        titleWrapperClassName=""
+        titleNode={
+          <div>
+            <div className="flex items-center gap-2">
+              <EditableTitle
+                isEditing={isEditing}
+                editTitle={editTitle}
+                setEditTitle={(val) => setEditTitle(val)}
+                onSubmit={submitTitle}
+                inputClassName="font-semibold text-sm sm:text-base border border-primary/50 rounded px-1 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary min-w-[120px] sm:min-w-[200px] w-[45vw] sm:w-auto max-w-[60vw]"
+                renderDisplay={() => (
+                  <div className="flex items-center gap-2">
+                    <h2
+                        className="font-semibold text-sm sm:text-base cursor-text hover:bg-muted/50 rounded px-1 -ml-1 transition-colors"
+                        onDoubleClick={startEditing}
+                        title="雙擊即可重新命名"
+                    >
+                        {title}
+                    </h2>
+                    {/* Status Badge */}
+                    <Badge 
+                        variant={script?.status === 'Public' ? "default" : "outline"} 
+                        className="h-5 px-1.5 text-[10px] cursor-pointer hover:opacity-80 flex items-center gap-1"
+                        onClick={() => setShowMetadataDialog(true)}
+                    >
+                        {script?.status === 'Public' ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                        {script?.status === 'Public' ? "Public" : "Private"}
+                    </Badge>
+                  </div>
+                )}
+              />
+              <ScriptMetadataDialog 
+                open={showMetadataDialog} 
+                onOpenChange={setShowMetadataDialog} 
+                script={script}
+                onSave={(updated) => {
+                    if (onScriptUpdate) onScriptUpdate(updated);
+                    setShowMetadataDialog(false);
+                }}
+              />
+              <button
+                onClick={onManualSave}
+                className={`p-1 px-2 rounded flex items-center gap-1 text-[10px] sm:text-xs border transition-colors ${
+                    saveStatus === 'error' ? 'bg-red-100 text-red-600 border-red-200 hover:bg-red-200' :
+                    saveStatus === 'local-saved' ? 'bg-yellow-50 text-yellow-600 border-yellow-200 hover:bg-yellow-100' :
+                    saveStatus === 'unsaved' ? 'bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100' :
+                    saveStatus === 'saving' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                    'bg-green-50 text-green-600 border-green-200 hover:bg-green-100' // saved
+                }`}
+                title={saveStatus === 'error' ? "儲存失敗，點擊重試" : saveStatus === 'local-saved' ? "已儲存至本機，等待上傳" : "點擊手動儲存"}
+              >
+                {saveStatus === 'saving' ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Save className="w-3 h-3" />
+                )}
+                {saveStatus === 'saving' ? "儲存中..." :
+                 saveStatus === 'unsaved' ? "未儲存" :
+                 saveStatus === 'local-saved' ? "已暫存" :
+                 saveStatus === 'error' ? "儲存失敗" :
+                 lastSaved ? `已儲存 ${lastSaved.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : "已儲存"}
+              </button>
+            </div>
           </div>
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
+        }
+      />
+      <div className="flex items-center gap-2 flex-wrap">
+         {/* Marker Visibility Toggle */}
+         <div className="hidden sm:block w-[140px]">
+          <MarkerVisibilitySelect
+            markerConfigs={markerConfigs}
+            hiddenMarkerIds={hiddenMarkerIds}
+            onToggleMarker={onToggleMarker}
+            triggerClassName="h-8 px-2 text-xs w-full bg-background border hover:bg-muted/50 transition-all"
+            contentAlign="end"
+            titlePrefix="標記"
+          />
+         </div>
+
         <button
           onClick={onToggleRules}
           className={`p-2 hover:bg-muted rounded-md transition-colors ${

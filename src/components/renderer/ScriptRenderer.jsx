@@ -39,6 +39,7 @@ const getLineProps = (node) => {
 const renderInlineLines = (node, context) => {
     const lines = (node?.text || "").split("\n");
     const baseLine = Number.isFinite(node?.lineStart) ? node.lineStart : null;
+    const { showLineUnderline } = context;
 
     return lines.map((line, idx) => {
         const lineNumber = baseLine ? baseLine + idx : null;
@@ -51,7 +52,12 @@ const renderInlineLines = (node, context) => {
             <span
                 key={`${lineNumber || "line"}-${idx}`}
                 className="script-line"
-                style={{ display: "block", whiteSpace: "pre-wrap", minHeight: "1em" }}
+                style={{ 
+                    display: "block", 
+                    whiteSpace: "pre-wrap", 
+                    minHeight: "1em",
+                    borderBottom: showLineUnderline ? "1px solid hsl(var(--border))" : undefined 
+                }}
                 {...lineProps}
             >
                 {inlineNodes && inlineNodes.length > 0 ? (
@@ -64,9 +70,11 @@ const renderInlineLines = (node, context) => {
     });
 };
 
+import { RangeNode } from './nodes/RangeNode';
+
 // --- Node Renderer ---
-const NodeRenderer = ({ node, context, isDual = false }) => {
-    const { getCharacterColor, focusMode, focusEffect } = context;
+const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
+    const { getCharacterColor, focusMode, focusEffect, hiddenMarkerIds = [] } = context;
 
     // Helper for applying focus effect to non-dialogue nodes
     const getFocusStyle = () => {
@@ -75,10 +83,51 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
         return { opacity: 0.3, transition: 'opacity 0.3s' };
     };
 
+    // Helper for applying range style (區間樣式)
+    // 只套用未被隱藏的區間樣式
+    // 注意：如果是 range 類型的節點，樣式由 RangeNode 處理，這裡只處理被包在 range 內的普通節點
+    const getRangeStyle = () => {
+        if (!node.inRange || node.inRange.length === 0) return {};
+        
+        // Filter out hidden markers AND Block markers (since LayerNode handles them)
+        const activeRanges = node.inRange.filter(id => {
+            if (hiddenMarkerIds.includes(id)) return false;
+            
+            // Check if it's a block marker
+            const config = context.markerConfigs?.find(c => c.id === id);
+            if (config?.isBlock) return false;
+            
+            return true;
+        });
+
+        if (activeRanges.length === 0) return {};
+        
+        // Use pre-calculated rangeStyle BUT we must be careful:
+        // node.rangeStyle usually contains styles for ALL ranges covering this node.
+        // If we want to EXCLUDE block styles, we might need to RE-CALCULATE strictly from activeRanges.
+        // Or assume node.rangeStyle is specific to the node's range context.
+        // 'node.rangeStyle' in directASTBuilder is constructed by merging styles.
+        // If we cannot separate them easily, we should reconstruct.
+        
+        // Reconstruct style from active allowed ranges
+        let mergedStyle = {};
+        activeRanges.forEach(id => {
+             const config = context.markerConfigs?.find(c => c.id === id);
+             if (config?.style) {
+                 Object.assign(mergedStyle, config.style);
+             }
+        });
+        
+        return mergedStyle;
+    };
+
     switch (node.type) {
         case 'root':
             return <>{node.children.map((child, i) => <NodeRenderer key={i} node={child} context={context} />)}</>;
             
+        case 'range':
+            return <RangeNode node={node} context={context} NodeRenderer={NodeRenderer} />;
+
         case 'layer':
             return <LayerNode node={node} context={context} NodeRenderer={NodeRenderer} />;
         
@@ -106,7 +155,7 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
              const cleanName = node.text.replace(/\s*\(.*\)$/, '').toUpperCase();
              const color = getCharacterColor(cleanName);
             return (
-                <div className={`character mt-4 mb-0 font-bold text-center w-full mx-auto ${isDual ? 'max-w-full' : 'max-w-[60%]'}`}
+                <div className={`character mt-4 mb-0 font-bold text-left w-full ${isDual ? 'max-w-full' : ''}`}
                      style={{ color, '--char-color': color }}
                      {...getLineProps(node)}
                  >
@@ -129,11 +178,15 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
             );
 
         case 'action':
-             const actionStyle = getFocusStyle();
+             const actionStyle = { ...getFocusStyle(), ...getRangeStyle() };
              if (actionStyle.display === 'none') return null;
 
             return (
-                <div className="action my-2 whitespace-pre-wrap leading-relaxed transition-opacity" style={actionStyle}>
+                <div 
+                    className={`action whitespace-pre-wrap transition-opacity ${node.inRange ? 'in-range' : ''}`} 
+                    style={actionStyle}
+                    {...getLineProps(node)}
+                >
                      {renderInlineLines(node, context)}
                 </div>
             );
@@ -141,7 +194,7 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
         case 'parenthetical':
              // usually inside speech, handled by SpeechNode. If loose, apply style.
             return (
-                <div className={`parenthetical -mt-0 mb-0 text-center w-full mx-auto text-sm opacity-80 ${isDual ? 'max-w-full' : 'max-w-[50%]'}`}>
+                <div className={`parenthetical text-left w-full text-sm opacity-80 ${isDual ? 'max-w-full' : ''}`}>
                      {renderInlineLines(node, context)}
                 </div>
             );
@@ -149,7 +202,7 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
         case 'dialogue':
              // usually inside speech
             return (
-                <div className={`dialogue my-0 mb-4 w-full mx-auto text-center whitespace-pre-wrap leading-relaxed ${isDual ? 'max-w-full' : 'max-w-[80%]'}`}>
+                <div className={`dialogue text-left whitespace-pre-wrap ${isDual ? 'max-w-full' : ''}`}>
                      {renderInlineLines(node, context)}
                 </div>
             );
@@ -174,6 +227,22 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
                 </div>
             );
 
+        case 'blank':
+             // 純 Marker 模式的空行，也支援區間樣式
+             // User request: Don't show border on blank lines inside hierarchy
+             const { 
+                border, borderLeft, borderRight, borderTop, borderBottom, borderColor,
+                ...safeBlankStyle 
+             } = getRangeStyle();
+             
+             return (
+                 <div 
+                     className={`blank-line my-1 ${node.inRange ? 'in-range' : ''}`} 
+                     style={{ minHeight: '1em', ...safeBlankStyle }}
+                     {...getLineProps(node)} 
+                 />
+             );
+
         case 'note':
              return null;
 
@@ -181,7 +250,7 @@ const NodeRenderer = ({ node, context, isDual = false }) => {
              if (node.text) return <p className="unknown text-muted-foreground">{node.text}</p>;
              return null;
     }
-};
+});
 
 export const ScriptRenderer = React.memo(({ 
     ast, 
@@ -193,21 +262,25 @@ export const ScriptRenderer = React.memo(({
     themePalette, 
     colorCache,
     markerConfigs = [],
+    hiddenMarkerIds = [],
+    showLineUnderline = false,
 }) => {
     
     const getCharacterColor = useMemo(() => {
         return makeCharacterColorGetter(themePalette, colorCache);
     }, [themePalette, colorCache]);
 
-    const context = {
+    const context = useMemo(() => ({
         fontSize,
         filterCharacter,
         focusMode,
         focusEffect,
         focusContentMode,
         getCharacterColor,
-        markerConfigs
-    };
+        markerConfigs: Array.isArray(markerConfigs) ? markerConfigs : [],
+        hiddenMarkerIds,
+        showLineUnderline
+    }), [fontSize, filterCharacter, focusMode, focusEffect, focusContentMode, getCharacterColor, markerConfigs, hiddenMarkerIds, showLineUnderline]);
 
     return (
         <div className="script-renderer font-serif" style={{ fontSize: `${fontSize}px`, '--body-font-size': `${fontSize}px` }}>

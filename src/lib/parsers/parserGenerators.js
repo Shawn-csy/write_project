@@ -7,15 +7,18 @@ export const escapeRegExp = (string) => {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
+// Helper: Convert ASCII Punctuation to Fullwidth (Keep alphanumeric as is)
+export const toFullWidth = (str) => {
+    return str.replace(/[\x21-\x2F\x3A-\x40\x5B-\x60\x7B-\x7E]/g, (char) => String.fromCharCode(char.charCodeAt(0) + 0xfee0))
+              .replace(/ /g, '\u3000');
+};
+
 export const createDynamicParsers = (configs = []) => {
     const parsers = {};
+    const safeConfigs = Array.isArray(configs) ? configs : [];
 
-    configs.forEach(config => {
+    safeConfigs.forEach(config => {
         // [MODIFIED] Relaxed restriction: Allow Block markers to be parsed inline.
-        // This enables "Nested Block Markers" (e.g. using a Block Enclosure inside a Prefix Rule).
-        // Since doParseInline generates 'highlight' nodes, this will render them as styled spans/text
-        // instead of structural Layers, which is exactly what we want for nested usage.
-        
         // if (config.isBlock && config.type !== 'inline') return; 
 
         const type = config.type || 'inline';
@@ -26,9 +29,12 @@ export const createDynamicParsers = (configs = []) => {
         if (config.matchMode === 'regex' && config.regex) {
              try {
                  const re = new RegExp(config.regex);
-                 // Warning: If regex matches empty string, it causes infinite loop in many().
-                 // We cannot easily check this, but we assume user regexes are for content.
-                 parser = P.regex(re, 1).map(content => ({ type: 'highlight', id, content }));
+                 const hasGroup = /\([^?]/.test(config.regex);
+                 parser = (hasGroup ? P.regex(re, 1) : P.regex(re)).map(content => ({ 
+                     type: 'highlight', 
+                     id, 
+                     content: content || "" 
+                 }));
              } catch (e) {
                  console.warn(`Invalid regex for marker ${config.label}:`, e);
              }
@@ -36,31 +42,51 @@ export const createDynamicParsers = (configs = []) => {
              // Prefix Mode
              if (!config.start || typeof config.start !== 'string' || config.start.length === 0) return;
              
-             const start = P.string(config.start);
-             parser = start.then(P.regex(/.*/)).map(content => ({ 
+             const startStr = config.start;
+             const fullStartStr = toFullWidth(startStr);
+             
+             // Support both Halfwidth and Fullwidth
+             const startParser = startStr === fullStartStr 
+                ? P.string(startStr)
+                : P.alt(P.string(startStr), P.string(fullStartStr));
+             
+             parser = startParser.then(P.regex(/.*/)).map(content => ({ 
                  type: 'highlight', 
                  id, 
                  content: content.trim() 
+                 // Note: We don't distinguish which variance was matched, usually fine.
              }));
         } else {
              // Enclosure Mode
              const startStr = config.start || '{';
              const endStr = config.end || '}';
              
-             if (!startStr || startStr.length === 0) return; // Prevent empty start
+             if (!startStr || startStr.length === 0) return;
 
-             const start = P.string(startStr);
-             const end = P.string(endStr);
+             const fullStartStr = toFullWidth(startStr);
+             const fullEndStr = toFullWidth(endStr);
+             
+             const startParser = startStr === fullStartStr
+                ? P.string(startStr)
+                : P.alt(P.string(startStr), P.string(fullStartStr));
+                
+             const endParser = endStr === fullEndStr
+                ? P.string(endStr)
+                : P.alt(P.string(endStr), P.string(fullEndStr));
              
              const escapedEnd = escapeRegExp(endStr);
-             // Ensure we don't catch newline if it's meant to be inline
-             // (Though P.regex usually is multiline in Parsimmon? No, default is just regex exec)
-             // We use dot which doesn't match newline.
-             const contentRegex = new RegExp(`^(?:(?!${escapedEnd}).)*`);
+             const escapedFullEnd = escapeRegExp(fullEndStr);
+             
+             // We need to stop at either end string
+             const pattern = endStr === fullEndStr 
+                ? escapedEnd 
+                : `${escapedEnd}|${escapedFullEnd}`;
+                
+             const contentRegex = new RegExp(`^(?:(?!${pattern}).)*`);
              
              const safeContent = P.regex(contentRegex);
 
-             parser = start.then(safeContent).skip(end).map(content => ({
+             parser = startParser.then(safeContent).skip(endParser).map(content => ({
                  type: 'highlight',
                  id,
                  content: content.trim()
@@ -75,27 +101,22 @@ export const createDynamicParsers = (configs = []) => {
     return parsers;
 };
 
-// [Direction] or [sfx: ...]
-export const DirectionParser = P.string('[')
-  .then(P.noneOf(']').atLeast(1).map(x => x.join('')))
-  .skip(P.string(']'))
-  .map(content => {
-      if (content.match(/^sfx[:：]/i)) {
-          return { type: 'sfx', content: content.replace(/^sfx[:：]\s*/i, '').trim() };
-      }
-      return { type: 'direction', content: content.trim() };
-  });
+// [已移除] DirectionParser
 
 export const createTextParser = (configs = []) => {
-    // Collect all start characters from configs to exclude them from Text
-    // Only exclude '[' by default because DirectionParser is hardcoded to use it.
-    const startChars = new Set(['[']); 
-    configs.forEach(c => {
+    // 純 Marker 模式：排除 configs 中定義的 start 字元 (含全形)
+    const startChars = new Set(); 
+    const safeConfigs = Array.isArray(configs) ? configs : [];
+
+    safeConfigs.forEach(c => {
         // Only exclude start char if this config generates an INLINE parser.
         const generatesParser = !(c.isBlock && c.type !== 'inline'); 
         
         if (generatesParser && c.start && c.start.length > 0) {
             startChars.add(c.start.charAt(0));
+            // Also exclude fullwidth char
+            const fullStart = toFullWidth(c.start);
+            startChars.add(fullStart.charAt(0));
         }
     });
     

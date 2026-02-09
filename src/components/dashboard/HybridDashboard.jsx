@@ -10,14 +10,11 @@ import { WriteTab } from "./WriteTab";
 import { getUserScripts, createScript, updateScript } from "../../lib/db";
 
 export default function HybridDashboard({ 
-    localFiles = [], 
-    onSelectLocalFile, 
-    onSelectCloudScript,
-    onSelectPublicScript,
-    enableLocalFiles = true,
-    openMobileMenu, // new prop
     isSidebarOpen,
-    setSidebarOpen
+    setSidebarOpen,
+    onSelectPublicScript,
+    onSelectCloudScript,
+    openMobileMenu
 }) {
   const { currentUser, login } = useAuth();
   
@@ -119,10 +116,10 @@ export default function HybridDashboard({
 
                 <TabsContent value="read" className={`flex-1 min-h-0 overflow-hidden flex-col p-4 sm:p-6 mt-0 h-full ${activeTab === 'read' ? 'flex' : 'hidden'}`}>
                     <ReadTab 
-                        localFiles={localFiles} 
-                        onSelectLocalFile={onSelectLocalFile}
+                        localFiles={[]} 
+                        onSelectLocalFile={() => {}}
                         onSelectPublicScript={onSelectPublicScript}
-                        enableLocalFiles={enableLocalFiles}
+                        enableLocalFiles={false}
                         onImportFile={currentUser ? (async (file) => {
                             // Removed native confirm, handled by UI now
                             const content = await file.loader();
@@ -223,7 +220,6 @@ export default function HybridDashboard({
                         </div>
                     )}
                 </TabsContent>
-
 
             </Tabs>
           )}

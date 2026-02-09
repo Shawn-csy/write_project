@@ -1,3 +1,5 @@
+import { isApiOffline, markApiOffline, clearApiOffline } from "../lib/apiHealth";
+
 const getEnv = (key) => {
   if (typeof window !== "undefined" && window.__ENV__ && window.__ENV__[key]) {
       return window.__ENV__[key];
@@ -8,6 +10,7 @@ const API_BASE_URL = getEnv("VITE_API_URL") || "/api";
 
 export const apiCall = async (currentUser, url, method, body) => {
       if (!currentUser) return null;
+      if (isApiOffline()) return null;
       try {
           const token = await currentUser.getIdToken();
           // Ensure url is tied to base if not absolute
@@ -26,11 +29,15 @@ export const apiCall = async (currentUser, url, method, body) => {
                console.error(`API ${method} ${fullUrl} failed:`, res.statusText);
                return null;
           }
+          clearApiOffline();
           if (res.status === 204) return true;
           // Handle empty responses
           const text = await res.text();
           return text ? JSON.parse(text) : true;
       } catch (e) {
+          if (e?.name === "TypeError") {
+              markApiOffline(e, "settings.apiCall");
+          }
           console.error("API Call Error", e);
           return null;
       }
@@ -38,6 +45,7 @@ export const apiCall = async (currentUser, url, method, body) => {
 
 export const fetchUserSettings = async (currentUser) => {
     if (!currentUser) return null;
+    if (isApiOffline()) return null;
     try {
         const token = await currentUser.getIdToken();
         const res = await fetch(`${API_BASE_URL}/me`, {
@@ -47,9 +55,13 @@ export const fetchUserSettings = async (currentUser) => {
             }
         });
         if (res.ok) {
+            clearApiOffline();
             return await res.json();
         }
     } catch (e) {
+        if (e?.name === "TypeError") {
+            markApiOffline(e, "settings.fetchUserSettings");
+        }
         console.error("Cloud load failed", e);
     }
     return null;
@@ -57,6 +69,7 @@ export const fetchUserSettings = async (currentUser) => {
 
 export const fetchUserThemes = async (currentUser) => {
     if (!currentUser) return null;
+    if (isApiOffline()) return null;
     try {
         const token = await currentUser.getIdToken();
         const res = await fetch(`${API_BASE_URL}/themes`, {
@@ -66,9 +79,13 @@ export const fetchUserThemes = async (currentUser) => {
              }
         });
         if (res.ok) {
+            clearApiOffline();
             return await res.json();
         }
     } catch(e) {
+        if (e?.name === "TypeError") {
+            markApiOffline(e, "settings.fetchUserThemes");
+        }
         console.error("Fetch themes failed", e);
     }
     return null;
@@ -76,9 +93,10 @@ export const fetchUserThemes = async (currentUser) => {
 
 export const saveUserSettings = async (currentUser, payload) => {
       if (!currentUser) return;
+      if (isApiOffline()) return;
       try {
           const token = await currentUser.getIdToken();
-          await fetch(`${API_BASE_URL}/me`, {
+          const res = await fetch(`${API_BASE_URL}/me`, {
               method: 'PUT',
               headers: {
                   'Content-Type': 'application/json',
@@ -92,8 +110,14 @@ export const saveUserSettings = async (currentUser, payload) => {
                   handle: currentUser.email ? currentUser.email.split('@')[0] : undefined
               })
           });
-          console.log("Settings synced to cloud");
+          if (res.ok) {
+              clearApiOffline();
+              console.log("Settings synced to cloud");
+          }
       } catch(e) {
+          if (e?.name === "TypeError") {
+              markApiOffline(e, "settings.saveUserSettings");
+          }
           console.error("Cloud save failed", e);
       }
 };

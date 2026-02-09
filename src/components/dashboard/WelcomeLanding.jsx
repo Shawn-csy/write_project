@@ -48,7 +48,7 @@ export default function WelcomeLanding({ onBrowsePublic, onLoginRequest }) {
                     </Button>
                 </div>
                 
-                <div className="pt-8 grid grid-cols-3 gap-8 text-center text-sm text-muted-foreground/60 w-full max-w-lg mx-auto">
+                <div className="pt-8 grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 text-center text-sm text-muted-foreground/60 w-full max-w-lg mx-auto">
                     <div className="flex flex-col items-center gap-2">
                         <BookOpen className="w-6 h-6 opacity-50" />
                         <span>流暢閱讀體驗</span>

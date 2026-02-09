@@ -38,6 +38,9 @@ export default function SearchBar({ onSelectResult }) {
             <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
+                    id="dashboard-search"
+                    name="dashboardSearch"
+                    aria-label="搜尋劇本"
                     placeholder="搜尋劇本..."
                     value={query}
                     onChange={e => setQuery(e.target.value)}
