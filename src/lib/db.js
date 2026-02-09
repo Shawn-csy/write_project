@@ -1,4 +1,5 @@
 import { auth } from "./firebase";
+import { isApiOffline, markApiOffline, clearApiOffline } from "./apiHealth";
 
 // Basic DB Layer wrapping API calls
 const getEnv = (key) => {
@@ -8,32 +9,99 @@ const getEnv = (key) => {
   return import.meta.env[key];
 };
 const API_BASE_URL = getEnv("VITE_API_URL") || "/api"; 
+const localAuthEnabled = ["1", "true", "yes"].includes(
+  String(getEnv("VITE_LOCAL_AUTH")).toLowerCase()
+);
+const localAuthUserId = getEnv("VITE_LOCAL_AUTH_UID") || "local-test-user";
+
+const DEFAULT_CACHE_TTL_MS = 5000;
+const DEFAULT_PUBLIC_CACHE_TTL_MS = 15000;
+const _cache = new Map();
+const _inflight = new Map();
+const _publicCache = new Map();
+const _publicInflight = new Map();
+
+const getUserKey = () => {
+  if (localAuthEnabled) return localAuthUserId;
+  return auth.currentUser?.uid || "anon";
+};
+
+async function getAuthHeaders() {
+  if (localAuthEnabled) {
+    return { "X-User-ID": localAuthUserId };
+  }
+  if (auth.currentUser?.getIdToken) {
+    const token = await auth.currentUser.getIdToken();
+    if (token) {
+      return { Authorization: `Bearer ${token}` };
+    }
+  }
+  return {};
+}
 
 async function fetchApi(endpoint, options = {}, retries = 3, backoff = 500) {
+  if (isApiOffline()) {
+    throw new Error("API offline (cooldown)");
+  }
   const url = `${API_BASE_URL}${endpoint}`;
-  
-  // Use Firebase Auth UID if available, otherwise fallback to test-user (for local dev/unauthed compliance)
-  const userId = auth.currentUser?.uid || "test-user";
+  const method = (options.method || "GET").toUpperCase();
+  const noCache = options.cache === "no-store" || options.noCache === true;
+  const cacheTtl = typeof options.cacheTtlMs === "number" ? options.cacheTtlMs : DEFAULT_CACHE_TTL_MS;
+  const cacheKey = `${method}:${getUserKey()}:${url}`;
 
+  if (method === "GET" && !noCache) {
+    const cached = _cache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value;
+    }
+    const inflight = _inflight.get(cacheKey);
+    if (inflight) {
+      return inflight;
+    }
+  }
+
+  const authHeaders = await getAuthHeaders();
   const headers = {
     "Content-Type": "application/json",
-    "X-User-ID": userId, 
+    ...authHeaders,
     ...options.headers,
   };
 
   try {
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
+    const inflightPromise = (async () => {
+      const response = await fetch(url, {
+        ...options,
+        headers,
+      });
 
-    if (!response.ok) {
-       // If 5xx error, maybe retry? For now throw.
-       throw new Error(`API Error: ${response.statusText}`);
+      if (!response.ok) {
+        // If 5xx error, maybe retry? For now throw.
+        throw new Error(`API Error: ${response.statusText}`);
+      }
+
+      clearApiOffline();
+      const data = await response.json();
+      if (method === "GET" && !noCache) {
+        _cache.set(cacheKey, { value: data, expiresAt: Date.now() + cacheTtl });
+        _inflight.delete(cacheKey);
+      } else {
+        _cache.clear();
+        _inflight.clear();
+      }
+      return data;
+    })();
+
+    if (method === "GET" && !noCache) {
+      _inflight.set(cacheKey, inflightPromise);
     }
 
-    return response.json();
+    return await inflightPromise;
   } catch (err) {
+    _inflight.delete(cacheKey);
+    if (err?.name === "TypeError") {
+      markApiOffline(err, "db.fetchApi");
+      throw err;
+    }
     if (retries > 0) {
       console.warn(`Fetch failed, retrying in ${backoff}ms... (${retries} left)`, err);
       await new Promise(r => setTimeout(r, backoff));
@@ -62,8 +130,9 @@ export const createScript = async (title, type = 'script', folder = '/') => {
 };
 
 // Get all scripts for the current user
-export const getUserScripts = async () => {
-  return fetchApi("/scripts");
+export const getUserScripts = async (ownerId) => {
+  const qs = ownerId ? `?ownerIdQuery=${encodeURIComponent(ownerId)}` : "";
+  return fetchApi(`/scripts${qs}`);
 };
 
 // Get a single script by ID
@@ -132,7 +201,7 @@ export const removeTagFromScript = async (scriptId, tagId) => {
 
 // --- User/Settings API ---
 export const getUserProfile = async () => {
-    return fetchApi("/me");
+    return fetchApi("/me", { cacheTtlMs: 10000 });
 };
 
 export const updateUserProfile = async (updates) => {
@@ -145,29 +214,72 @@ export const updateUserProfile = async (updates) => {
 
 export const exportScripts = async () => {
     const url = `${API_BASE_URL}/export/all`;
-    const userId = auth.currentUser?.uid || "test-user";
-    const res = await fetch(url, {
-         headers: { "X-User-ID": userId }
-    });
+    const authHeaders = await getAuthHeaders();
+    const res = await fetch(url, { headers: authHeaders });
     if (!res.ok) throw new Error("Export failed");
     return res.blob();
 };
 
 // --- Public API ---
 
-const fetchPublic = async (endpoint) => {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`);
-  if (!response.ok) {
-     throw new Error(`API Error: ${response.statusText}`);
+const fetchPublic = async (endpoint, options = {}) => {
+  if (isApiOffline()) {
+    throw new Error("API offline (cooldown)");
   }
-  return response.json();
+  const url = `${API_BASE_URL}${endpoint}`;
+  const method = (options.method || "GET").toUpperCase();
+  const noCache = options.cache === "no-store" || options.noCache === true;
+  const cacheTtl = typeof options.cacheTtlMs === "number" ? options.cacheTtlMs : DEFAULT_PUBLIC_CACHE_TTL_MS;
+  const cacheKey = `${method}:public:${url}`;
+
+  if (method === "GET" && !noCache) {
+    const cached = _publicCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value;
+    }
+    const inflight = _publicInflight.get(cacheKey);
+    if (inflight) {
+      return inflight;
+    }
+  }
+  try {
+    const inflightPromise = (async () => {
+      const response = await fetch(url);
+      if (!response.ok) {
+         throw new Error(`API Error: ${response.statusText}`);
+      }
+      clearApiOffline();
+      const data = await response.json();
+      if (method === "GET" && !noCache) {
+        _publicCache.set(cacheKey, { value: data, expiresAt: Date.now() + cacheTtl });
+        _publicInflight.delete(cacheKey);
+      } else {
+        _publicCache.clear();
+        _publicInflight.clear();
+      }
+      return data;
+    })();
+
+    if (method === "GET" && !noCache) {
+      _publicInflight.set(cacheKey, inflightPromise);
+    }
+    return await inflightPromise;
+  } catch (err) {
+    _publicInflight.delete(cacheKey);
+    if (err?.name === "TypeError") {
+      markApiOffline(err, "db.fetchPublic");
+    }
+    throw err;
+  }
 }
 
-export const getPublicScripts = async (ownerId, folder) => {
+export const getPublicScripts = async (ownerId, folder, personaId, organizationId) => {
     let url = "/public-scripts";
     const params = new URLSearchParams();
     if (ownerId) params.append("ownerId", ownerId);
     if (folder) params.append("folder", folder);
+    if (personaId) params.append("personaId", personaId);
+    if (organizationId) params.append("organizationId", organizationId);
     
     if (params.toString()) {
         url += `?${params.toString()}`;
@@ -181,4 +293,183 @@ export const getPublicScript = async (id) => {
 
 export const getPublicThemes = async () => {
     return fetchPublic("/themes/public");
+};
+
+// --- Engagement API ---
+
+export const toggleScriptLike = async (scriptId) => {
+    return fetchApi(`/scripts/${scriptId}/like`, {
+        method: "POST"
+    });
+};
+
+export const incrementScriptView = async (scriptId) => {
+    return fetchApi(`/scripts/${scriptId}/view`, {
+        method: "POST"
+    });
+};
+
+// --- Organization & Admin API ---
+
+export const getOrganizations = async (ownerId) => {
+    const qs = ownerId ? `?ownerIdQuery=${encodeURIComponent(ownerId)}` : "";
+    return fetchApi(`/organizations${qs}`);
+};
+
+export const getOrganization = async (orgId) => {
+    return fetchApi(`/organizations/${orgId}`);
+};
+
+export const createOrganization = async (data) => {
+    return fetchApi(`/organizations`, {
+        method: "POST",
+        body: JSON.stringify(data)
+    });
+};
+
+export const updateOrganization = async (orgId, updates) => {
+    return fetchApi(`/organizations/${orgId}`, {
+        method: "PUT",
+        body: JSON.stringify(updates)
+    });
+};
+
+export const deleteOrganization = async (orgId) => {
+    return fetchApi(`/organizations/${orgId}`, {
+        method: "DELETE"
+    });
+};
+
+export const getOrganizationMembers = async (orgId) => {
+    return fetchApi(`/organizations/${orgId}/members`);
+};
+
+export const searchOrganizations = async (query) => {
+    return fetchApi(`/organizations/search?q=${encodeURIComponent(query)}`);
+};
+
+export const inviteOrganizationMember = async (orgId, userId) => {
+    return fetchApi(`/organizations/${orgId}/invite`, {
+        method: "POST",
+        body: JSON.stringify({ userId })
+    });
+};
+
+export const requestToJoinOrganization = async (orgId) => {
+    return fetchApi(`/organizations/${orgId}/request`, {
+        method: "POST"
+    });
+};
+
+export const getOrganizationInvites = async (orgId) => {
+    return fetchApi(`/organizations/${orgId}/invites`);
+};
+
+export const getOrganizationRequests = async (orgId) => {
+    return fetchApi(`/organizations/${orgId}/requests`);
+};
+
+export const getMyOrganizationInvites = async () => {
+    return fetchApi(`/organizations/me/invites`);
+};
+
+export const getMyOrganizationRequests = async () => {
+    return fetchApi(`/organizations/me/requests`);
+};
+
+export const acceptOrganizationInvite = async (inviteId) => {
+    return fetchApi(`/organizations/invites/${inviteId}/accept`, {
+        method: "POST"
+    });
+};
+
+export const declineOrganizationInvite = async (inviteId) => {
+    return fetchApi(`/organizations/invites/${inviteId}/decline`, {
+        method: "POST"
+    });
+};
+
+export const acceptOrganizationRequest = async (requestId) => {
+    return fetchApi(`/organizations/requests/${requestId}/accept`, {
+        method: "POST"
+    });
+};
+
+export const declineOrganizationRequest = async (requestId) => {
+    return fetchApi(`/organizations/requests/${requestId}/decline`, {
+        method: "POST"
+    });
+};
+
+
+export const transferOrganizationOwnership = async (orgId, targetUserId) => {
+    return fetchApi(`/organizations/${orgId}/transfer`, {
+        method: "POST",
+        body: JSON.stringify({ newOwnerId: targetUserId, transferScripts: false })
+    });
+};
+
+export const transferScriptOwnership = async (scriptId, targetUserId) => {
+    return fetchApi(`/scripts/${scriptId}/transfer`, {
+        method: "POST",
+        body: JSON.stringify({ newOwnerId: targetUserId })
+    });
+};
+
+// --- Persona API ---
+export const transferPersonaOwnership = async (personaId, targetUserId) => {
+    return fetchApi(`/personas/${personaId}/transfer`, {
+        method: "POST",
+        body: JSON.stringify({ newOwnerId: targetUserId })
+    });
+};
+
+// --- Admin ---
+export const searchUsers = async (query) => {
+    return fetchApi(`/admin/users?q=${encodeURIComponent(query)}`);
+};
+
+export const getPersonas = async (ownerId) => {
+    const qs = ownerId ? `?ownerIdQuery=${encodeURIComponent(ownerId)}` : "";
+    return fetchApi(`/personas${qs}`);
+};
+
+export const createPersona = async (data) => {
+    return fetchApi("/personas", {
+        method: "POST",
+        body: JSON.stringify(data)
+    });
+};
+
+export const updatePersona = async (id, data) => {
+    return fetchApi(`/personas/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data)
+    });
+};
+
+export const deletePersona = async (id) => {
+    return fetchApi(`/personas/${id}`, {
+        method: "DELETE"
+    });
+};
+
+export const getPublicPersona = async (id) => {
+    return fetchPublic(`/public-personas/${id}`);
+};
+
+export const getPublicOrganization = async (id) => {
+    return fetchPublic(`/public-organizations/${id}`);
+};
+
+export const getPublicPersonas = async () => {
+    return fetchPublic("/public-personas");
+};
+
+export const getPublicOrganizations = async () => {
+    return fetchPublic("/public-organizations");
+};
+
+export const getPublicBundle = async () => {
+    return fetchPublic("/public-bundle", { cacheTtlMs: 15000 });
 };

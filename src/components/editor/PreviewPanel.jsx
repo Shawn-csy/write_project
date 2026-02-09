@@ -1,5 +1,6 @@
 import React, { forwardRef } from "react";
-import ScriptViewer from "../ScriptViewer";
+import ScriptSurface from "./ScriptSurface";
+import { useScriptViewerDefaults } from "../../hooks/useScriptViewerDefaults";
 
 export const PreviewPanel = forwardRef(function PreviewPanel({
   show,
@@ -10,6 +11,7 @@ export const PreviewPanel = forwardRef(function PreviewPanel({
   fontSize,
   bodyFontSize,
   dialogueFontSize,
+  lineHeight,
   accentColor,
   markerConfigs,
   onTitleHtml,
@@ -19,37 +21,45 @@ export const PreviewPanel = forwardRef(function PreviewPanel({
   onTitleName,
   initialSceneId,
   onScenes,
-  onRequestEdit
+  onRequestEdit,
+  hiddenMarkerIds
 }, ref) {
   if (!show && !readOnly) return null;
 
+  const viewerDefaults = useScriptViewerDefaults({
+    theme,
+    fontSize,
+    bodyFontSize,
+    dialogueFontSize,
+    lineHeight,
+    accentColor,
+    markerConfigs,
+    hiddenMarkerIds
+  });
+
   return (
-    <div className={`${readOnly ? "w-full" : "w-1/2"} h-full overflow-hidden bg-background flex flex-col`}>
-      <div
-        ref={ref}
-        className="h-full overflow-y-auto px-4 py-8"
-        onDoubleClick={() => {
-          if (readOnly && onRequestEdit) onRequestEdit();
-        }}
-      >
-        <ScriptViewer
-          text={content}
-          type={type}
-          theme={theme}
-          fontSize={fontSize}
-          bodyFontSize={bodyFontSize}
-          dialogueFontSize={dialogueFontSize}
-          accentColor={accentColor}
-          markerConfigs={markerConfigs}
-          onTitle={onTitleHtml}
-          onHasTitle={onHasTitle}
-          onTitleNote={onTitleNote}
-          onSummary={onTitleSummary}
-          onTitleName={onTitleName}
-          scrollToScene={initialSceneId}
-          onScenes={onScenes}
-        />
-      </div>
-    </div>
+    <ScriptSurface
+      show={show}
+      readOnly={readOnly}
+      outerClassName={`${readOnly ? "w-full" : "w-full sm:w-1/2"} h-full overflow-hidden bg-background flex flex-col`}
+      scrollClassName="h-full overflow-y-auto px-4 py-8"
+      contentClassName=""
+      scrollRef={ref}
+      onDoubleClick={() => {
+        if (readOnly && onRequestEdit) onRequestEdit();
+      }}
+      text={content}
+      viewerProps={{
+        type,
+        onTitle: onTitleHtml,
+        onHasTitle,
+        onTitleNote,
+        onSummary: onTitleSummary,
+        onTitleName,
+        scrollToScene: initialSceneId,
+        onScenes,
+        ...viewerDefaults
+      }}
+    />
   );
 });

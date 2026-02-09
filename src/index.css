@@ -371,7 +371,9 @@
 
 /* Sound Effects Styling */
 
-.sound-continuous-layer {
+.sound-continuous-layer,
+.se-continuous-start-continuous-layer,
+.se-continuous-end-continuous-layer {
   position: relative;
   border-left: 4px solid hsl(var(--accent));
   padding-left: 16px;
@@ -379,11 +381,15 @@
   /* background removed as per user request */
   border-radius: 0 8px 8px 0;
 }
-.dark .sound-continuous-layer {
+.dark .sound-continuous-layer,
+.dark .se-continuous-start-continuous-layer,
+.dark .se-continuous-end-continuous-layer {
   /* background removed */
 }
 
-.sound-continuous-label {
+.sound-continuous-label,
+.se-continuous-start-continuous-label,
+.se-continuous-end-continuous-label {
   font-size: 11px;
   font-weight: 700;
   color: hsl(var(--accent));
@@ -394,7 +400,9 @@
   user-select: none;
 }
 
-.sound-continuous-footer {
+.sound-continuous-footer,
+.se-continuous-start-continuous-footer,
+.se-continuous-end-continuous-footer {
   display: inline-block;
   margin-top: 8px;
   font-size: 11px;
@@ -600,7 +608,7 @@
 .screenplay {
   font-family: 'Courier New', Courier, monospace;
   font-size: var(--body-font-size, var(--script-font-size, 14px));
-  line-height: 1.6;
+  line-height: var(--line-height, 1.4);
   color: hsl(var(--foreground));
   max-width: 720px;
   margin: 0 auto;
@@ -614,8 +622,8 @@
 .screenplay .scene-heading {
   font-weight: 700;
   text-transform: uppercase;
-  margin-top: 28px;
-  margin-bottom: 14px;
+  margin-top: calc(var(--line-height, 1.4) * 2em);
+  margin-bottom: calc(var(--line-height, 1.4) * 1em);
   letter-spacing: 0.08em;
   position: relative;
   padding-left: 14px;
@@ -640,8 +648,8 @@
 
 
 .screenplay .action {
-  margin-bottom: 24px;
-  line-height: 1.75;
+  margin-bottom: calc(var(--line-height, 1.4) * 1em);
+  line-height: var(--line-height, 1.5);
   max-width: 650px;
   width: 95%;
   padding-left: 2px;
@@ -752,11 +760,11 @@
 }
 
 .screenplay .dialogue {
-  margin: 0 0 12px 2px;
+  margin: 0 0 calc(var(--line-height, 1.4) * 0.8em) 2px;
   width: 95%;
   max-width: 600px;
   font-size: var(--dialogue-font-size, var(--script-font-size, 14px));
-  line-height: 1.5;
+  line-height: var(--line-height, 1.4);
 }
 
 .screenplay .parenthetical {
@@ -825,18 +833,131 @@
   }
 }
 
+/* Print Styles for PDF Export */
 @media print {
-  body {
-    background: white;
+  @page {
+    margin: 1in;
+    size: A4;
   }
-  .no-print {
+
+  /* Reset body and html for proper paging */
+  body, html, #root {
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Hide UI Elements */
+  header, 
+  nav, 
+  button, 
+  .no-print,
+  [role="presentation"],
+  .fixed,
+  .absolute {
+    display: none !important;
+    position: static !important;
+  }
+
+  /* 1. Hide Top Level Layout Elements */
+  /* Background fix layers */
+  div[class*="inset-0 z-0"], 
+  div[class*="absolute inset-0"] {
     display: none !important;
   }
+  
+  /* 2. Reset Scroll Containers in ScriptSurface */
+  div[class*="overflow-y-auto"], 
+  div[class*="h-screen"], 
+  div[class*="h-full"] {
+    height: auto !important;
+    overflow: visible !important;
+    max-height: none !important;
+    position: static !important;
+  }
+
+  /* 3. Script Surface & Paper */
   .paper {
-    box-shadow: none;
-    border: none;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
   .paper::before {
-    display: none;
+    display: none !important;
   }
+  .paper-inner {
+    padding: 0 !important;
+  }
+
+  /* 4. Ensure Script Content Visibility */
+  .screenplay {
+    display: block !important;
+    position: static !important;
+    visibility: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    font-size: 12pt !important;
+    line-height: 1 !important;
+    color: black; /* Default to black */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  .screenplay * {
+    display: block !important;
+    position: static !important;
+    visibility: visible !important;
+    text-shadow: none !important;
+    /* Do NOT force color: black !important here, allow specific classes to override */
+  }
+
+  /* Hide badges in print */
+  .badge, div[class*="badge"], span[class*="badge"] {
+    display: none !important;
+  }
+}
+
+/* Hide Whitespace Toggle */
+.hide-whitespace .whitespace-block {
+  display: none !important;
+}
+
+.hide-whitespace .whitespace-line {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+}
+
+.hide-whitespace .whitespace-short {
+  display: none !important; 
+}
+
+/* Also hide generic blank lines */
+.hide-whitespace .blank-line {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Transparent Mode Support */
+html.transparent-mode,
+html.transparent-mode body,
+html.transparent-mode #root {
+  background-color: transparent !important;
+}
+
+html.transparent-mode .bg-background {
+  background-color: transparent !important;
+}
+
+html.transparent-mode {
+  --paper-bg: transparent !important;
 }

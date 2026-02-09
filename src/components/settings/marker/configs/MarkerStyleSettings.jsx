@@ -166,14 +166,17 @@ export function MarkerStyleSettings({ config, idx, updateMarker }) {
                         
                         <TabsContent value="custom" className="mt-0">
                             <div className="flex items-center gap-4 p-1">
-                                <div className="flex items-center gap-2 group relative">
-                                    <div className="w-8 h-8 rounded-full border shadow-sm" style={{ backgroundColor: config.style?.color || '#000000' }} />
-                                    <input 
-                                        type="color" 
-                                        className="absolute inset-0 opacity-0 cursor-pointer" 
-                                        value={config.style?.color && !config.style.color.startsWith('var--') ? config.style.color : '#000000'}
-                                        onChange={(e) => updateStyle('color', e.target.value)} 
-                                    />
+                                {/* Text Color */}
+                                <div className="flex items-center gap-2 group">
+                                    <div className="relative w-8 h-8 rounded-full border shadow-sm overflow-hidden">
+                                        <div className="w-full h-full" style={{ backgroundColor: config.style?.color || '#000000' }} />
+                                        <input 
+                                            type="color" 
+                                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" 
+                                            value={config.style?.color && !config.style.color.startsWith('var--') ? config.style.color : '#000000'}
+                                            onChange={(e) => updateStyle('color', e.target.value)} 
+                                        />
+                                    </div>
                                     <div className="text-xs font-mono text-muted-foreground">
                                         文字顏色
                                     </div>
@@ -181,18 +184,31 @@ export function MarkerStyleSettings({ config, idx, updateMarker }) {
 
                                 <div className="w-px h-6 bg-border/50 mx-2" />
 
-                                <div className="flex items-center gap-2 group relative">
-                                     <div className="w-8 h-8 rounded border shadow-sm flex items-center justify-center text-[9px] text-muted-foreground/50 bg-checkboard" style={{ backgroundColor: config.style?.backgroundColor || 'transparent' }}>
-                                        {!config.style?.backgroundColor && 'BG'}
+                                {/* Background Color */}
+                                <div className="flex items-center gap-2 group">
+                                     <div className="relative w-8 h-8 rounded border shadow-sm overflow-hidden bg-checkboard">
+                                        <div className="w-full h-full flex items-center justify-center text-[9px] text-muted-foreground/50" style={{ backgroundColor: config.style?.backgroundColor || 'transparent' }}>
+                                            {!config.style?.backgroundColor && 'BG'}
+                                        </div>
+                                        <input 
+                                            type="color" 
+                                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" 
+                                            value={config.style?.backgroundColor || '#ffffff'} 
+                                            onChange={(e) => updateStyle('backgroundColor', e.target.value)} 
+                                        />
                                     </div>
-                                    <input 
-                                        type="color" 
-                                        className="absolute inset-0 opacity-0 cursor-pointer" 
-                                        value={config.style?.backgroundColor || '#ffffff'} 
-                                        onChange={(e) => updateStyle('backgroundColor', e.target.value)} 
-                                    />
-                                    <div className="text-xs font-mono text-muted-foreground">
-                                        背景顏色
+                                    <div className="flex flex-col">
+                                        <div className="text-xs font-mono text-muted-foreground">
+                                            背景顏色
+                                        </div>
+                                        <button 
+                                            type="button"
+                                            className="text-[10px] text-muted-foreground/60 hover:text-destructive text-left underline decoration-dotted transition-colors"
+                                            onClick={() => updateStyle('backgroundColor', 'transparent')}
+                                            title="移除背景色 (Remove Background)"
+                                        >
+                                            設為透明
+                                        </button>
                                     </div>
                                 </div>
                             </div>

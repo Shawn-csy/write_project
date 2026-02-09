@@ -1,36 +1,20 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useSettings } from "./contexts/SettingsContext";
 import { useScriptManager } from "./hooks/useScriptManager";
 import { useAppNavigation } from "./hooks/useAppNavigation";
-import { useFileTree } from "./hooks/useFileTree";
-import { useAppShortcuts } from "./hooks/useAppShortcuts";
-import { MetaTags } from "./components/MetaTags.jsx";
+
+import { MetaTags } from "./components/common/MetaTags.jsx";
 import { useScriptActions } from "./hooks/useScriptActions";
 import { useInitialScroll } from "./hooks/useInitialScroll";
 import { updateScript } from "./lib/db";
 
-// Pages
-import DashboardPage from "./pages/DashboardPage";
-import CloudEditorPage from "./pages/CloudEditorPage";
-import PublicReaderPage from "./pages/PublicReaderPage";
-import LocalReaderPage from "./pages/LocalReaderPage";
-
-// Components
-import { Card, CardContent } from "./components/ui/card";
-import { Button } from "./components/ui/button";
-import { Globe, SlidersHorizontal } from "lucide-react";
-import ReaderHeader from "./components/ReaderHeader";
-import { MainLayout } from "./components/MainLayout";
-
-import { StatisticsPanel } from "./components/statistics/StatisticsPanel";
-
-const SettingsPanel = React.lazy(() => import("./components/SettingsPanel"));
-const AboutPanelLazy = React.lazy(() => import("./components/AboutPanel"));
+import { ScriptViewProvider } from "./contexts/ScriptViewContext";
 
 // New Imports
 import { useTextLocator } from "./hooks/useTextLocator";
-import { GlobalListeners } from "./components/GlobalListeners";
+import { GlobalListeners } from "./components/common/GlobalListeners";
+import { AppRouter } from "./AppRouter";
 
 function App() {
   // 1. Contexts
@@ -41,11 +25,9 @@ function App() {
       fileLabelMode,
       setFileLabelMode,
       adjustFont,
-      enableLocalFiles,
       markerThemes,
       markerConfigs,
       setCurrentThemeId,
-      currentThemeId, 
   } = useSettings();
 
   // 2. Refs (for initial params)
@@ -69,17 +51,12 @@ function App() {
 
   // Destructure scriptManager for easier usage
   const { 
-      files, activeFile, 
-      rawScript, rawScriptHtml, processedScriptHtml,
-      fileMeta, fileTitleMap, fileTagsMap,
-      sceneList, characterList,
-      titleHtml, titleName, titleNote, titleSummary,
-      hasTitle, showTitle, setShowTitle,
-      filterCharacter, setFilterCharacter, setFocusMode, 
-      currentSceneId, setCurrentSceneId, setScrollSceneId,
-      // New additions from hook
+      // activeFile, 
       activeCloudScript, cloudScriptMode, setCloudScriptMode,
-      ast // Get AST from manager
+      titleName, titleSummary, titleNote,
+      currentSceneId, setCurrentSceneId, setScrollSceneId,
+      sceneList,
+      rawScript
   } = scriptManager;
 
   // 4. Local State
@@ -88,13 +65,15 @@ function App() {
   const [scrollProgress, setScrollProgress] = useState(0);
 
   // 5. Extracted Hooks & Logic
-  const { filteredTree, openFolders, toggleFolder } = useFileTree(files, searchTerm, fileTitleMap);
   const { contentScrollRef, handleLocateText } = useTextLocator(rawScript);
   
   useInitialScroll(sceneList, initialParamsRef, setCurrentSceneId, setScrollSceneId);
   const { handleExportPdf, handleShareUrl, shareCopied } = useScriptActions({
-      exportMode, accentConfig, processedScriptHtml, rawScriptHtml, 
-      titleHtml, titleName, activeFile, titleSummary, titleNote 
+      exportMode, accentConfig, 
+      processedScriptHtml: scriptManager.processedScriptHtml, 
+      rawScriptHtml: scriptManager.rawScriptHtml, 
+      titleHtml: scriptManager.titleHtml, 
+      titleName, activeFile: null, titleSummary, titleNote 
   });
 
   // 6. Effects
@@ -122,20 +101,11 @@ function App() {
 
   const handleReturnHome = () => {
     if (activeCloudScript) {
-        if (isPublicReader) {
-            // Visitor Mode: Go to Read Tab and expand folder
-            // Format: ownerId:folderPath (folderPath includes leading slash if not root)
-            // But wait, the folder in script object is stored as e.g "/Folder". 
-            // The item key in ReadTab is `ownerId:folderPath`. 
-            // Let's pass the full path.
-            
+        if (location.pathname.startsWith("/read/")) {
+            // Visitor Mode
             const folder = activeCloudScript.folder === '/' ? '' : activeCloudScript.folder;
-            // If the script is effectively at root (folder='/'), no need to expand anything, just go to tab=read.
-            // But if it's in a folder, we want to expand that folder.
-            
             if (activeCloudScript.folder && activeCloudScript.folder !== '/') {
                  const targetExpand = `${activeCloudScript.ownerId}:${activeCloudScript.folder}`;
-                 // We rely on ReadTab to parse this and expand parents recursively if needed
                  navigate(`/?tab=read&public_expand=${encodeURIComponent(targetExpand)}`);
                  return;
             } else {
@@ -143,9 +113,9 @@ function App() {
                  return;
             }
         } else {
-            // Editor Mode: Go to Write Tab and open folder
+            // Editor Mode
             if (activeCloudScript.folder) {
-                navigate(`/?tab=write&folder=${encodeURIComponent(activeCloudScript.folder)}`);
+                navigate(`/dashboard?tab=write&folder=${encodeURIComponent(activeCloudScript.folder)}`);
                 return;
             }
         }
@@ -153,21 +123,21 @@ function App() {
     
     // Default Fallback
     nav.openHome();
-    navigate("/");
+    navigate("/dashboard");
   };
   
   const navProps = {
       nav,
-      enableLocalFiles,
-      contentScrollRef
+      contentScrollRef, 
+      handleLocateText // Ensure this is passed
   }
   
-  const headerTitle = nav.homeOpen ? "Screenplay Reader" : nav.aboutOpen ? "About" : nav.settingsOpen ? "Settings" : titleName || (typeof activeFile === 'object' ? activeFile?.name : activeFile) || activeCloudScript?.title || "選擇一個劇本";
-  const canShare = !nav.homeOpen && !nav.aboutOpen && !nav.settingsOpen && Boolean(activeFile);
+  const headerTitle = nav.homeOpen ? "Screenplay Reader" : nav.aboutOpen ? "About" : nav.settingsOpen ? "Settings" : titleName || activeCloudScript?.title || "選擇一個劇本";
+  const canShare = !nav.homeOpen && !nav.aboutOpen && !nav.settingsOpen && Boolean(activeCloudScript);
   
   const isPublicReader = location.pathname.startsWith("/read/");
   const showReaderHeader = !nav.homeOpen && !nav.aboutOpen && !nav.settingsOpen && (
-    activeFile || (activeCloudScript && cloudScriptMode === 'read') || isPublicReader
+    (activeCloudScript && cloudScriptMode === 'read') || isPublicReader
   );
 
   return (
@@ -176,149 +146,51 @@ function App() {
         titleName={titleName} 
         titleSummary={titleSummary} 
         titleNote={titleNote} 
-        activeFile={activeFile} 
+        activeFile={null} 
         currentSceneId={currentSceneId} 
     />
     <GlobalListeners 
         nav={nav} 
         adjustFont={adjustFont} 
-        filterCharacter={filterCharacter} 
-        setFocusMode={setFocusMode} 
-        setShowTitle={setShowTitle} 
+        filterCharacter={scriptManager.filterCharacter} 
+        setFocusMode={scriptManager.setFocusMode} 
+        setShowTitle={scriptManager.setShowTitle} 
     />
 
-    <MainLayout
-      isDesktopSidebarOpen={nav.isDesktopSidebarOpen}
-      setIsDesktopSidebarOpen={nav.setIsDesktopSidebarOpen}
-      isMobileDrawerOpen={nav.isMobileDrawerOpen}
-      setIsMobileDrawerOpen={nav.setIsMobileDrawerOpen}
-      fileTree={filteredTree}
-      activeFile={activeFile}
-      onSelectFile={(file) => navigate("/file/" + encodeURIComponent(file.name))} 
-      accentStyle={accentStyle}
-      openAbout={nav.openAbout}
-      openSettings={nav.openSettings}
-      closeAbout={() => nav.setAboutOpen(false)}
-      openHome={() => {
-        nav.openHome();
-        navigate("/");
-      }}
-      files={files}
-      fileTitleMap={fileTitleMap}
-      searchTerm={searchTerm}
-      setSearchTerm={setSearchTerm}
-      openFolders={openFolders}
-      toggleFolder={toggleFolder}
-      fileTagsMap={fileTagsMap}
-      fileLabelMode={fileLabelMode}
-      setFileLabelMode={setFileLabelMode}
-      sceneList={sceneList}
-      currentSceneId={currentSceneId}
-      onSelectScene={(id) => { setCurrentSceneId(id); setScrollSceneId(id); }}
-    >
-        <main className="flex-1 overflow-hidden flex flex-row h-full relative">
-           <div className="flex-1 flex flex-col h-full min-w-0 relative">
-              {showReaderHeader && (
-                <div>
-                  <ReaderHeader
-                  accentStyle={accentStyle}
-                  hasTitle={showReaderHeader && hasTitle}
-                  onToggleTitle={() => setShowTitle((v) => !v)}
-                  titleName={headerTitle}
-                  activeFile={activeFile}
-                  fileMeta={fileMeta}
-                  isSidebarOpen={nav.isDesktopSidebarOpen}
-                  setSidebarOpen={nav.setSidebarOpen}
-                  handleExportPdf={handleExportPdf}
-                  onShareUrl={handleShareUrl}
-                  canShare={canShare}
-                  shareCopied={shareCopied}
-                  sceneList={sceneList}
-                  currentSceneId={currentSceneId}
-                  onSelectScene={(id) => { setCurrentSceneId(id); setScrollSceneId(id); }}
-                  titleNote={titleNote}
-                  characterList={characterList}
-                  filterCharacter={filterCharacter}
-                  setFilterCharacter={setFilterCharacter}
-
-                  scrollProgress={scrollProgress}
-                  totalLines={0} 
-                  onEdit={
-                      activeCloudScript && !isPublicReader
-                      ? () => setCloudScriptMode("edit")
-                      : null
-                  }
-                  onBack={handleReturnHome}
-                  onToggleStats={() => setShowStats(!showStats)}
-                  extraActions={
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => nav.setAboutOpen(true)} title="關於">
-                        <Globe className="w-5 h-5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => nav.setSettingsOpen(true)} title="設定">
-                        <SlidersHorizontal className="w-5 h-5" />
-                      </Button>
-                    </div>
-                  }
-                  setFocusMode={setFocusMode}
-                  isFocusMode={scriptManager.focusMode} 
-                  markerThemes={markerThemes}
-                  currentThemeId={currentThemeId}
-                  switchTheme={setCurrentThemeId}
-                  onTitleChange={activeCloudScript && !isPublicReader ? handleCloudTitleUpdate : undefined}
-                />
-                {!nav.homeOpen && !nav.aboutOpen && !nav.settingsOpen && hasTitle && showTitle && (
-                  <Card className="border border-border border-t-0 rounded-t-none">
-                    <CardContent className="p-4">
-                      <div className="title-page prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: titleHtml }} />
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-              )}
-
-              {nav.aboutOpen ? (
-                <React.Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
-                  <AboutPanelLazy accentStyle={accentStyle} onClose={() => nav.setAboutOpen(false)} />
-                </React.Suspense>
-              ) : nav.settingsOpen ? (
-                <React.Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
-                  <SettingsPanel 
-                    onClose={() => nav.setSettingsOpen(false)} 
-                    activeTab={nav.settingsTab}
-                    onTabChange={nav.setSettingsTab}
-                  />
-                </React.Suspense>
-              ) : (
-                <Routes>
-                    <Route path="/" element={<DashboardPage scriptManager={scriptManager} navProps={navProps} />} />
-                    <Route path="/edit/:id" element={<CloudEditorPage scriptManager={scriptManager} navProps={navProps} />} />
-                    <Route path="/read/:id" element={<PublicReaderPage scriptManager={scriptManager} navProps={navProps} />} />
-                    <Route path="/file/:name" element={<LocalReaderPage scriptManager={scriptManager} navProps={navProps} />} />
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              )}
-           </div>
-           
-           {/* Reader Stats Side Panel */}
-           {showStats && showReaderHeader && (
-               <div className="w-[400px] border-l border-border bg-background shrink-0 flex flex-col h-full shadow-xl z-20 transition-all duration-300">
-                    <div className="h-12 border-b flex items-center px-4 shrink-0 bg-muted/20 gap-3">
-                        <button 
-                            onClick={() => setShowStats(false)} 
-                            className="text-muted-foreground hover:text-foreground text-sm"
-                        >
-                            ✕
-                        </button>
-                        <h3 className="font-semibold text-sm">統計分析面板</h3>
-                    </div>
-                    <div className="flex-1 min-h-0 overflow-hidden">
-                        <StatisticsPanel rawScript={rawScript} scriptAst={ast} onLocateText={handleLocateText} />
-                    </div>
-               </div>
-           )}
-        </main>
-    </MainLayout>
+    <ScriptViewProvider scriptManager={scriptManager}>
+       <AppRouter 
+          scriptManager={scriptManager}
+          nav={nav}
+          navProps={navProps}
+          
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          showStats={showStats}
+          setShowStats={setShowStats}
+          scrollProgress={scrollProgress}
+          
+          headerTitle={headerTitle}
+          canShare={canShare}
+          isPublicReader={isPublicReader}
+          showReaderHeader={showReaderHeader}
+          
+          handleExportPdf={handleExportPdf}
+          handleShareUrl={handleShareUrl}
+          shareCopied={shareCopied}
+          handleReturnHome={handleReturnHome}
+          handleCloudTitleUpdate={handleCloudTitleUpdate}
+          
+          accentStyle={accentStyle}
+          fileLabelMode={fileLabelMode}
+          setFileLabelMode={setFileLabelMode}
+          
+          activeFile={null}
+          activeCloudScript={activeCloudScript}
+          files={scriptManager.files}
+          fileTitleMap={scriptManager.fileTitleMap}
+          fileTagsMap={scriptManager.fileTagsMap}
+       />
+    </ScriptViewProvider>
     </>
   );
 }

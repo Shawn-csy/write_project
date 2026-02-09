@@ -8,8 +8,12 @@ services:
     volumes:
       - ./data:/data
       - .:/app
+      - ./secrets:/secrets:ro
     restart: unless-stopped
     environment:
       - PORT=1091
       - DB_PATH=/data/scripts.db
+      - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}
+      - FIREBASE_CREDENTIALS=/secrets/firebase-service-account.json
+      - FIREBASE_CREDENTIALS_JSON=${FIREBASE_CREDENTIALS_JSON}
     command: uvicorn main:app --host 0.0.0.0 --port 1091 --reload

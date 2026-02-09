@@ -41,7 +41,7 @@ export default function CloudEditorPage({ scriptManager, navProps }) {
           setRawScript(script.content || "");
           setTitleName(script.title || "Untitled");
           // Clear others
-          scriptManager.setActiveFile(null);
+          // scriptManager.setActiveFile(null); // Removed
           scriptManager.setActivePublicScriptId(null);
       }).catch(err => {
           console.error("Failed to load cloud script", err);
@@ -53,11 +53,13 @@ export default function CloudEditorPage({ scriptManager, navProps }) {
       return <div className="flex items-center justify-center h-full">Loading...</div>;
   }
 
+  const isReadMode = cloudScriptMode === 'read';
+
   return (
       <LiveEditor 
         scriptId={activeCloudScript.id} 
         initialData={activeCloudScript}
-        readOnly={cloudScriptMode === 'read'}
+        readOnly={isReadMode}
         onRequestEdit={() => setCloudScriptMode("edit")}
         onClose={(finalSceneId) => {
            if (cloudScriptMode === 'edit') {
@@ -80,6 +82,7 @@ export default function CloudEditorPage({ scriptManager, navProps }) {
         }}
         isSidebarOpen={navProps.nav.isDesktopSidebarOpen}
         onSetSidebarOpen={navProps.nav.setSidebarOpen}
+        showHeader={!isReadMode}
       />
   );
 }

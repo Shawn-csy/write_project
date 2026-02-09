@@ -5,7 +5,8 @@ import {
     Plus, 
     ArrowLeft, 
     Home, 
-    ChevronRight 
+    ChevronRight,
+    Upload
 } from "lucide-react";
 import { Button } from "../../ui/button";
 import SearchBar from "../SearchBar";
@@ -19,6 +20,7 @@ export function ScriptToolbar({
     goUp,
     navigateTo,
     onExport,
+    onImport,
     onCreateFolder,
     onCreateScript
 }) {
@@ -59,6 +61,9 @@ export function ScriptToolbar({
             <div className="flex items-center gap-1">
                  <Button size="icon" variant="ghost" onClick={() => onExport && onExport()} title="全部匯出 (Backup)">
                     <Download className="w-4 h-4" />
+                 </Button>
+                 <Button size="icon" variant="ghost" onClick={() => onImport && onImport()} title="匯入台本">
+                    <Upload className="w-4 h-4" />
                  </Button>
                  <div className="w-px h-4 bg-border/60 mx-1" />
                  <Button size="icon" variant="ghost" onClick={onCreateFolder} title="新增資料夾">

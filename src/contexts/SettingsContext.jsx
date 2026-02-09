@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { useTheme } from "../components/theme-provider";
 import {
@@ -31,6 +31,17 @@ export function SettingsProvider({ children }) {
   const [fontSize, setFontSize] = usePersistentState(STORAGE_KEYS.FONT_SIZE, 14, 'number');
   const [bodyFontSize, setBodyFontSize] = usePersistentState(STORAGE_KEYS.BODY_FONT, 14, 'number');
   const [dialogueFontSize, setDialogueFontSize] = usePersistentState(STORAGE_KEYS.DIALOGUE_FONT, 14, 'number');
+  
+  // Line Height (1.2 ~ 2.0, default 1.4)
+  const [lineHeight, setLineHeight] = usePersistentState(STORAGE_KEYS.LINE_HEIGHT, 1.4, 'number');
+
+  const [transparentBgStr, setTransparentBgStr] = usePersistentState(STORAGE_KEYS.TRANSPARENT_BG, "off");
+  const transparentBg = transparentBgStr === "on";
+  const setTransparentBg = (val) => setTransparentBgStr(val ? "on" : "off");
+
+  const [showLineUnderlineStr, setShowLineUnderlineStr] = usePersistentState(STORAGE_KEYS.SHOW_UNDERLINE, "off");
+  const showLineUnderline = showLineUnderlineStr === "on";
+  const setShowLineUnderline = (val) => setShowLineUnderlineStr(val ? "on" : "off");
 
   const fontSteps = [12, 14, 16, 24, 36, 72];
   const adjustFont = (delta) => {
@@ -44,11 +55,8 @@ export function SettingsProvider({ children }) {
   };
 
   // Display Modes
-  const [exportMode, setExportMode] = usePersistentState(STORAGE_KEYS.EXPORT_MODE, "processed");
-  const [fileLabelMode, setFileLabelMode] = usePersistentState(STORAGE_KEYS.LABEL_MODE, "auto");
-  const [focusEffect, setFocusEffect] = usePersistentState(STORAGE_KEYS.FOCUS_EFFECT, "hide");
-  const [focusContentMode, setFocusContentMode] = usePersistentState(STORAGE_KEYS.FOCUS_CONTENT, "all");
-  
+
+
   // Booleans mapped to 'on'/'off' via a wrapper or handled in hook?
   // Current hook uses raw values. Existing code used "on"/"off" strings for boolean storage in some cases?
   // Let's check storage.js or original code.
@@ -67,18 +75,32 @@ export function SettingsProvider({ children }) {
   // Or just migrate to booleans if "on"/"off" is not critical external usage?
   // Let's wrap it to be safe.
   
-  const [highlightCharactersStr, setHighlightCharactersStr] = usePersistentState(STORAGE_KEYS.HIGHLIGHT_CHAR, "on");
-  const highlightCharacters = highlightCharactersStr === "on";
-  const setHighlightCharacters = (val) => setHighlightCharactersStr(val ? "on" : "off");
+  const [hideWhitespaceStr, setHideWhitespaceStr] = usePersistentState("hideWhitespace", "off");
+  const hideWhitespace = hideWhitespaceStr === "on";
+  const setHideWhitespace = (val) => setHideWhitespaceStr(val ? "on" : "off");
 
-  const [highlightSfxStr, setHighlightSfxStr] = usePersistentState(STORAGE_KEYS.HIGHLIGHT_SFX, "on");
-  const highlightSfx = highlightSfxStr === "on";
-  const setHighlightSfx = (val) => setHighlightSfxStr(val ? "on" : "off");
 
-  const [enableLocalFilesStr, setEnableLocalFilesStr] = usePersistentState("enableLocalFiles", "on");
-  const enableLocalFiles = enableLocalFilesStr === "on";
-  const setEnableLocalFiles = (val) => setEnableLocalFilesStr(val ? "on" : "off");
 
+  // Marker visibility (session-level)
+  const [hiddenMarkerIds, setHiddenMarkerIds] = useState([]);
+  const toggleMarkerVisibility = (id) => {
+    setHiddenMarkerIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      return [...prev, id];
+    });
+  };
+
+  // Stats Configuration
+  const defaultStatsConfig = {
+      wordCountDivisor: 200, 
+      excludeNestedDuration: false,
+      excludePunctuation: false,
+      customKeywords: [
+          { factor: 1, keywords: "s, sec, 秒" },
+          { factor: 60, keywords: "m, min, 分, 分鐘" }
+      ]
+  };
+  const [statsConfig, setStatsConfig] = usePersistentState("statsConfig", defaultStatsConfig);
 
   // --- Theme Hook ---
   const themes = useMarkerThemes(currentUser);
@@ -105,6 +127,14 @@ export function SettingsProvider({ children }) {
     }
   }, [accentConfig, isDark]);
 
+  useEffect(() => {
+    if (transparentBg) {
+      document.documentElement.classList.add("transparent-mode");
+    } else {
+      document.documentElement.classList.remove("transparent-mode");
+    }
+  }, [transparentBg]);
+
   // --- Cloud Sync ---
   // 1. Load from Cloud on Login
   useEffect(() => {
@@ -114,7 +144,9 @@ export function SettingsProvider({ children }) {
           const data = await fetchUserSettings(currentUser);
           if (data) {
                   if (data.settings && Object.keys(data.settings).length > 0) {
-                      console.log("Applying cloud settings...");
+                      if (!isRemoteUpdate.current) {
+                          console.log("Applying cloud settings...");
+                      }
                       isRemoteUpdate.current = true;
                       const s = data.settings;
                       
@@ -124,36 +156,44 @@ export function SettingsProvider({ children }) {
                       if(s.editorFontSize) setBodyFontSize(s.editorFontSize); 
                       if(s.bodyFontSize) setBodyFontSize(s.bodyFontSize);
                       if(s.dialogueFontSize) setDialogueFontSize(s.dialogueFontSize);
-                      if(s.exportMode) setExportMode(s.exportMode);
-                      if(s.fileLabelMode) setFileLabelMode(s.fileLabelMode);
-                      if(s.focusEffect) setFocusEffect(s.focusEffect);
-                      if(s.focusContentMode) setFocusContentMode(s.focusContentMode);
-                      if(s.highlightCharacters !== undefined) setHighlightCharacters(s.highlightCharacters);
-                      if(s.highlightSfx !== undefined) setHighlightSfx(s.highlightSfx);
-                      if(s.enableLocalFiles !== undefined) setEnableLocalFiles(s.enableLocalFiles);
-                      
-                      if(s.markerThemes) {
-                          // Prioritize fetching real themes from API to avoid stale data
-                          const realThemes = await fetchUserThemes(currentUser);
-                          if (realThemes && realThemes.length > 0) {
-                              themes.setMarkerThemes(realThemes);
-                              
-                              // Validate currentThemeId
-                              const themeExists = realThemes.find(t => t.id === s.currentThemeId);
-                              if (themeExists) {
-                                  themes.setCurrentThemeId(s.currentThemeId);
-                              } else {
-                                  themes.setCurrentThemeId('default');
-                              }
-                          } else {
-                              // Fallback if API fails (rare) or user has no themes
-                              themes.setMarkerThemes(s.markerThemes);
-                              if(s.currentThemeId) themes.setCurrentThemeId(s.currentThemeId);
-                          }
-                      }
+                      if(s.hideWhitespace !== undefined) setHideWhitespace(s.hideWhitespace);
 
-                      // Reset flag after render cycle
-                      setTimeout(() => { isRemoteUpdate.current = false; }, 100);
+                      if(s.lineHeight) setLineHeight(s.lineHeight);
+                      if(s.transparentBg !== undefined) setTransparentBg(s.transparentBg);
+                      if(s.lineHeight) setLineHeight(s.lineHeight);
+                      if(s.transparentBg !== undefined) setTransparentBg(s.transparentBg);
+                      if(s.showLineUnderline !== undefined) setShowLineUnderline(s.showLineUnderline);
+                      if(s.statsConfig) setStatsConfig(s.statsConfig);
+                      
+                      // Always fetch themes from API for logged in users
+                      const realThemes = await fetchUserThemes(currentUser);
+                      if (realThemes && realThemes.length > 0) {
+                          const parsedThemes = realThemes.map(t => {
+                              try {
+                                  return { 
+                                      ...t, 
+                                      configs: typeof t.configs === 'string' ? JSON.parse(t.configs) : t.configs 
+                                  };
+                              } catch (e) {
+                                  console.error("Theme parse error", t.id, e);
+                                  return t;
+                              }
+                          });
+                          themes.setMarkerThemes(parsedThemes);
+                          
+                          // Validate currentThemeId
+                          const targetId = s.currentThemeId || 'default';
+                          const themeExists = realThemes.find(t => t.id === targetId);
+                          if (themeExists) {
+                              themes.setCurrentThemeId(targetId);
+                          } else {
+                              themes.setCurrentThemeId('default');
+                          }
+                      } else if (s.markerThemes) {
+                          // Fallback to settings bundle if API returned nothing (rare)
+                          themes.setMarkerThemes(s.markerThemes);
+                          if(s.currentThemeId) themes.setCurrentThemeId(s.currentThemeId);
+                      }
                   } else {
                       // CLOUD IS EMPTY: Push current local settings to cloud
                       // This ensures initial sync for new users or first-time login
@@ -163,16 +203,22 @@ export function SettingsProvider({ children }) {
                           fontSize,
                           bodyFontSize,
                           dialogueFontSize,
-                          exportMode,
-                          fileLabelMode,
-                          focusEffect,
-                          focusContentMode,
-                          highlightCharacters,
-                          highlightSfx,
-                          enableLocalFiles,
+
+                          hideWhitespace,
+
+                          lineHeight,
+                          transparentBg,
+                          showLineUnderline: showLineUnderline, // Use boolean for API? Or string? saveUserSettings payload usually mirrors state. 
+                          // API payload reconstruction:
+                          // wait, saveUserSettings takes payload.
+                          // lines 191-206 constructs payload.
+                          // I should add showLineUnderline there too.
+
                           currentThemeId: themes.currentThemeId
                       };
                       await saveUserSettings(currentUser, payload);
+                      // Also sync default marker themes if needed? 
+                      // Actually addTheme calls API, so we don't need to do anything here for themes if they are empty.
                   }
               }
       }
@@ -188,13 +234,13 @@ export function SettingsProvider({ children }) {
           fontSize,
           bodyFontSize,
           dialogueFontSize,
-          exportMode,
-          fileLabelMode,
-          focusEffect,
-          focusContentMode,
-          highlightCharacters,
-          highlightSfx,
-          enableLocalFiles,
+
+          hideWhitespace,
+
+          lineHeight,
+          transparentBg,
+          showLineUnderline,
+          statsConfig,
           currentThemeId: themes.currentThemeId
       };
 
@@ -209,13 +255,12 @@ export function SettingsProvider({ children }) {
       fontSize,
       bodyFontSize,
       dialogueFontSize,
-      exportMode,
-      fileLabelMode,
-      focusEffect,
-      focusContentMode,
-      highlightCharacters,
-      highlightSfx,
-      enableLocalFiles,
+
+      hideWhitespace,
+
+      lineHeight,
+      transparentBg,
+      showLineUnderline,
       themes.markerThemes,
       themes.currentThemeId
   ]);
@@ -238,21 +283,26 @@ export function SettingsProvider({ children }) {
     fontSize, setFontSize,
     bodyFontSize, setBodyFontSize,
     dialogueFontSize, setDialogueFontSize,
+    lineHeight, setLineHeight,
     adjustFont,
 
     // Modes
-    exportMode, setExportMode,
-    fileLabelMode, setFileLabelMode,
-    focusEffect, setFocusEffect,
-    focusContentMode, setFocusContentMode,
-    highlightCharacters, setHighlightCharacters,
-    highlightSfx, setHighlightSfx,
-    enableLocalFiles, setEnableLocalFiles,
+    hideWhitespace, setHideWhitespace,
+
+    transparentBg, setTransparentBg,
+    showLineUnderline, setShowLineUnderline,
 
     // Markers (Backwards Compatible + Theme Aware)
     markerConfigs: themes.markerConfigs, 
     setMarkerConfigs: themes.setMarkerConfigs,
-    updateMarkerConfigs: themes.setMarkerConfigs,
+    // Marker visibility
+    hiddenMarkerIds,
+    setHiddenMarkerIds,
+    toggleMarkerVisibility,
+
+    // Stats Config
+    statsConfig,
+    setStatsConfig,
 
     // Themes (New API)
     ...themes

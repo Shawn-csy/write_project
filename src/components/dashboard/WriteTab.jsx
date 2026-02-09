@@ -1,13 +1,18 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { useWriteTab } from "../../hooks/useWriteTab";
 import { ScriptToolbar } from "./write/ScriptToolbar";
 import { ScriptList } from "./write/ScriptList";
 import { CreateScriptDialog } from "./write/CreateScriptDialog";
 import { RenameScriptDialog } from "./write/RenameScriptDialog";
+import { ImportScriptDialog } from "./write/ImportScriptDialog";
+import { createScript, updateScript, getScript } from "../../lib/db";
 
 export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     // Hooks
     const manager = useWriteTab(refreshTrigger);
+    
+    // Import Dialog State
+    const [isImportOpen, setIsImportOpen] = useState(false);
     
     // Breadcrumbs Logic
     const breadcrumbs = useMemo(() => {
@@ -38,6 +43,29 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
          }
     };
 
+    // Handle import script
+    const handleImport = useCallback(async ({ title, content, folder }) => {
+        try {
+            // 1. Create Script Shell
+            const id = await createScript(title, 'script', folder || manager.currentPath);
+            
+            // 2. Update Content
+            await updateScript(id, {
+                content,
+                isPublic: false
+            });
+            
+            // 3. Refresh the script list
+            manager.refresh?.();
+            
+            // 4. Return new script
+            return await getScript(id);
+        } catch (err) {
+            console.error("匯入失敗:", err);
+            throw err;
+        }
+    }, [manager]);
+
     return (
         <div className="flex flex-col h-full overflow-hidden">
             {/* Toolbar */}
@@ -50,6 +78,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                 goUp={manager.goUp}
                 navigateTo={manager.navigateTo}
                 onExport={handleExport}
+                onImport={() => setIsImportOpen(true)}
                 onCreateFolder={() => { manager.setNewType('folder'); manager.setIsCreateOpen(true); }}
                 onCreateScript={() => { manager.setNewType('script'); manager.setIsCreateOpen(true); }}
             />
@@ -104,6 +133,17 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                 handleRename={manager.handleRename}
                 renaming={manager.renaming}
             />
+
+            {/* Import Dialog */}
+            <ImportScriptDialog
+                open={isImportOpen}
+                onOpenChange={setIsImportOpen}
+                onImport={handleImport}
+                currentPath={manager.currentPath}
+                existingMarkerConfigs={[]}
+                cloudConfigs={manager.markerThemes || []}
+            />
         </div>
     );
 }
+

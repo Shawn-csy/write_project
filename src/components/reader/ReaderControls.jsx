@@ -1,13 +1,8 @@
 import React from "react";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "../../components/ui/select"; 
+import { MarkerVisibilitySelect } from "../ui/MarkerVisibilitySelect";
+import SceneSelect from "./SceneSelect";
+import CharacterSelect from "./CharacterSelect";
+import ControlsRow from "./ControlsRow";
 
 
 export function ReaderControls({
@@ -19,68 +14,59 @@ export function ReaderControls({
     setFilterCharacter,
 
     setFocusMode,
-    isFocusMode,
-    markerThemes,
-    currentThemeId,
-    switchTheme
+    markerConfigs,
+    visibleMarkerIds,
+    onToggleMarker
 }) {
     return (
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap sm:gap-3 lg:flex-nowrap w-full sm:w-auto sm:items-center">
+        <ControlsRow>
             {sceneList.length > 0 && (
-                <div className="w-full sm:min-w-[150px] sm:w-auto">
-                    <Select
-                        value={currentSceneId}
-                        onValueChange={onSelectScene}
-                    >
-                        <SelectTrigger className="h-10 px-3 text-sm w-full bg-muted/40 hover:bg-muted/60 border-transparent hover:border-border transition-all font-medium">
-                            <SelectValue placeholder="選擇場景" />
-                        </SelectTrigger>
-                        <SelectContent align="start" className="max-h-[300px]">
-                            <SelectGroup>
-                                <SelectLabel>場景</SelectLabel>
-                                {sceneList.map((scene) => (
-                                    <SelectItem key={scene.id} value={scene.id} className="font-semibold">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-muted-foreground text-xs min-w-[20px]">{scene.index}</span>
-                                            <span className="truncate">{scene.header}</span>
-                                        </div>
-                                    </SelectItem>
-                                ))}
-                            </SelectGroup>
-                        </SelectContent>
-                    </Select>
-                </div>
+              <div className="w-full sm:min-w-[150px] sm:w-auto">
+                <SceneSelect
+                  sceneList={sceneList}
+                  currentSceneId={currentSceneId}
+                  onSelectScene={onSelectScene}
+                  triggerClassName="h-10 px-3 text-sm w-full bg-muted/40 hover:bg-muted/60 border-transparent hover:border-border transition-all font-medium"
+                  contentAlign="start"
+                  label="場景"
+                  placeholder="選擇場景"
+                />
+              </div>
             )}
             {characterList.length > 0 && (
-                <div className="w-full sm:min-w-[150px] sm:w-auto">
-                  <Select
-                    value={filterCharacter}
-                    onValueChange={(val) => {
-                      setFilterCharacter(val);
-                      if (val && val !== "__ALL__") {
-                        setFocusMode(true);
-                      } else {
-                        setFocusMode(false);
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="h-10 px-3 text-sm w-full bg-muted/40 hover:bg-muted/60 border-transparent hover:border-border transition-all font-medium">
-                      <SelectValue placeholder="角色篩選" />
-                    </SelectTrigger>
-                    <SelectContent align="start" className="max-h-[300px]">
-                      <SelectGroup>
-                        <SelectLabel>角色</SelectLabel>
-                        <SelectItem value="__ALL__">全部顯示</SelectItem>
-                        {characterList.map((c) => (
-                          <SelectItem key={c} value={c} className="font-semibold">
-                            {c}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="w-full sm:min-w-[150px] sm:w-auto">
+                <CharacterSelect
+                  characterList={characterList}
+                  filterCharacter={filterCharacter}
+                  onChange={(val) => {
+                    setFilterCharacter(val);
+                    if (val && val !== "__ALL__") {
+                      setFocusMode(true);
+                    } else {
+                      setFocusMode(false);
+                    }
+                  }}
+                  triggerClassName="h-10 px-3 text-sm w-full bg-muted/40 hover:bg-muted/60 border-transparent hover:border-border transition-all font-medium"
+                  contentAlign="start"
+                  label="角色"
+                  placeholder="角色篩選"
+                />
+              </div>
             )}
-        </div>
+            
+            {/* Marker Visibility Toggle */}
+            {markerConfigs && markerConfigs.length > 0 && onToggleMarker && (
+              <div className="w-full sm:min-w-[150px] sm:w-auto">
+                <MarkerVisibilitySelect
+                  markerConfigs={markerConfigs}
+                  visibleMarkerIds={visibleMarkerIds}
+                  onToggleMarker={onToggleMarker}
+                  triggerClassName="h-10 px-3 text-sm w-full bg-muted/40 hover:bg-muted/60 border-transparent hover:border-border transition-all font-medium"
+                  contentAlign="start"
+                  titlePrefix="標記顯示"
+                />
+              </div>
+            )}
+        </ControlsRow>
     );
 }
