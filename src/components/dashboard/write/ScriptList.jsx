@@ -29,6 +29,7 @@ import { updateScript, getScript } from "../../../lib/db"; // Needed for inline 
 
 import { ScriptMetadataDialog } from "../../dashboard/ScriptMetadataDialog"; // Adjust path as needed
 import { extractMetadata } from "../../../lib/metadataParser";
+import { buildFilename, downloadText } from "../../../lib/download";
 import { useState } from "react";
 
 // Helper: assureContent
@@ -313,13 +314,8 @@ export function ScriptList({
                                                         {item.type !== 'folder' && (
                                                             <DropdownMenuItem onClick={async () => {
                                                                 const content = await assureContent(item);
-                                                                const element = document.createElement("a");
-                                                                const file = new Blob([content], { type: "text/plain" });
-                                                                element.href = URL.createObjectURL(file);
-                                                                element.download = `${(item.title || "script").replace(/[^a-z0-9]/gi, '_').toLowerCase()}.fountain`;
-                                                                document.body.appendChild(element);
-                                                                element.click();
-                                                                document.body.removeChild(element);
+                                                                const filename = buildFilename(item.title || "script", "fountain");
+                                                                downloadText(content, filename);
                                                             }}>
                                                                 <Download className="w-4 h-4 mr-2" />
                                                                 <span>下載 .fountain</span>
