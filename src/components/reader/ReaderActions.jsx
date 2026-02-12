@@ -1,12 +1,13 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Share2, Printer, PenBox, BarChart } from "lucide-react";
+import { Share2, PenBox, BarChart } from "lucide-react";
+import { DownloadMenu } from "@/components/common/DownloadMenu";
 
 export function ReaderActions({
     canShare,
     onShareUrl,
     shareCopied,
-    handleExportPdf,
+    downloadOptions = [],
     onEdit,
     extraActions,
     onToggleStats // New prop
@@ -45,14 +46,7 @@ export function ReaderActions({
                 )}
             </div>
             )}
-            <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleExportPdf}
-            title="匯出 PDF"
-            >
-            <Printer className="h-4 w-4" />
-            </Button>
+            <DownloadMenu options={downloadOptions} title="下載" />
             {onEdit && (
             <Button
                 variant="ghost"

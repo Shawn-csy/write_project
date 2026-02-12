@@ -19,6 +19,8 @@ export const PreviewPanel = forwardRef(function PreviewPanel({
   onTitleNote,
   onTitleSummary,
   onTitleName,
+  onRawHtml,
+  onProcessedHtml,
   initialSceneId,
   onScenes,
   onRequestEdit,
@@ -56,6 +58,8 @@ export const PreviewPanel = forwardRef(function PreviewPanel({
         onTitleNote,
         onSummary: onTitleSummary,
         onTitleName,
+        onRawHtml,
+        onProcessedHtml,
         scrollToScene: initialSceneId,
         onScenes,
         ...viewerDefaults

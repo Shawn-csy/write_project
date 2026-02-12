@@ -1,10 +1,17 @@
 import React, { useEffect } from "react";
+import { FileCode2, FileSpreadsheet, FileText, Printer } from "lucide-react";
 import { SimplifiedReaderHeader } from "./SimplifiedReaderHeader";
 import { PublicScriptInfoOverlay } from "./PublicScriptInfoOverlay";
 import { PublicMarkerLegend } from "./PublicMarkerLegend";
 import ScriptSurface from "../editor/ScriptSurface";
 import { extractMetadata } from "../../lib/metadataParser";
 import { useSettings } from "../../contexts/SettingsContext";
+import {
+  exportScriptAsCsv,
+  exportScriptAsDocx,
+  exportScriptAsFountain,
+  exportScriptAsXlsx,
+} from "../../lib/scriptExport";
 
 export function PublicReaderLayout({
   script, // { content, title, ...meta }
@@ -13,6 +20,7 @@ export function PublicReaderLayout({
   onShare,
   viewerProps,      // passed to ScriptSurface
   scriptSurfaceProps, // passed to ScriptSurface (scrollRef, etc)
+  renderedHtml = "",
   // Marker Props
   validMarkerConfigs = [],
   hiddenMarkerIds = [],
@@ -82,9 +90,43 @@ export function PublicReaderLayout({
   const meta = React.useMemo(() => rawScript ? extractMetadata(rawScript) : {}, [rawScript]);
   const headerAuthor = meta.author;
 
-  const handleExport = () => {
-    window.print();
-  };
+  const downloadOptions = [
+    {
+      id: "pdf",
+      label: "匯出 PDF",
+      icon: Printer,
+      onClick: () => window.print(),
+      disabled: !rawScript && !title,
+    },
+    {
+      id: "fountain",
+      label: "下載 .fountain",
+      icon: FileCode2,
+      onClick: () => exportScriptAsFountain(title || "script", rawScript || ""),
+      disabled: !rawScript,
+    },
+    {
+      id: "docx",
+      label: "下載 Word (.doc)",
+      icon: FileText,
+      onClick: () => exportScriptAsDocx(title || "script", { text: rawScript || "", renderedHtml }),
+      disabled: !rawScript,
+    },
+    {
+      id: "xlsx",
+      label: "下載 Excel (.xlsx)",
+      icon: FileSpreadsheet,
+      onClick: () => exportScriptAsXlsx(title || "script", { text: rawScript || "", renderedHtml }),
+      disabled: !rawScript,
+    },
+    {
+      id: "csv",
+      label: "下載 CSV",
+      icon: FileSpreadsheet,
+      onClick: () => exportScriptAsCsv(title || "script", { text: rawScript || "", renderedHtml }),
+      disabled: !rawScript,
+    },
+  ];
 
   const { hideWhitespace } = useSettings();
 
@@ -112,7 +154,7 @@ export function PublicReaderLayout({
         showTitle={false} // Maybe show on scroll? Future enhancement.
         onBack={onBack}
         onShare={onShare}
-        onExport={handleExport}
+        downloadOptions={downloadOptions}
         // Removed generic onSettings, now using integrated components
         
         // TOC Props

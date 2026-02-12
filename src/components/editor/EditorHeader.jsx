@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { Loader2, Save, Eye, Columns, BarChart2, Download, HelpCircle, Globe, Lock } from "lucide-react";
+import { Loader2, Save, Eye, Columns, BarChart2, HelpCircle, Globe, Lock } from "lucide-react";
 import { useEditableTitle } from "../../hooks/useEditableTitle";
 import EditableTitle from "../header/EditableTitle";
 import { MarkerVisibilitySelect } from "../ui/MarkerVisibilitySelect";
 import HeaderTitleBlock from "../header/HeaderTitleBlock";
 import { Badge } from "../ui/badge";
 import { ScriptMetadataDialog } from "../dashboard/ScriptMetadataDialog";
+import { DownloadMenu } from "../common/DownloadMenu";
 
 export function EditorHeader({
   readOnly,
@@ -16,7 +17,7 @@ export function EditorHeader({
   lastSaved,
   showRules,
   onToggleRules,
-  onDownload,
+  downloadOptions = [],
   onToggleStats,
   showPreview,
   onTogglePreview,
@@ -142,13 +143,11 @@ export function EditorHeader({
         >
           <HelpCircle className="w-4 h-4" />
         </button>
-        <button
-          onClick={onDownload}
-          className="p-2 hover:bg-muted rounded-md transition-colors text-muted-foreground hover:text-foreground"
-          title="Download .fountain"
-        >
-          <Download className="w-4 h-4" />
-        </button>
+        <DownloadMenu
+          options={downloadOptions}
+          title="下載"
+          triggerClassName="p-2 hover:bg-muted rounded-md transition-colors text-muted-foreground hover:text-foreground"
+        />
         <button
           onClick={onToggleStats}
           className="p-2 hover:bg-muted rounded-md transition-colors text-muted-foreground hover:text-foreground"

@@ -18,7 +18,7 @@ function ReaderHeader({
   fileMeta = {},
   isSidebarOpen,
   setSidebarOpen,
-  handleExportPdf,
+  downloadOptions = [],
   onShareUrl,
   canShare,
   shareCopied,
@@ -198,7 +198,7 @@ function ReaderHeader({
                 canShare={canShare} 
                 onShareUrl={onShareUrl} 
                 shareCopied={shareCopied} 
-                handleExportPdf={handleExportPdf} 
+                downloadOptions={downloadOptions}
                 onEdit={onEdit} 
                 extraActions={extraActions}
                 onToggleStats={onToggleStats}
