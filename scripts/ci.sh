@@ -37,5 +37,5 @@ echo "\n✅ CI checks passed"
 
 if [ "${AUTO_DEPLOY:-0}" = "1" ]; then
   echo "\n🚀 Auto deploy (docker-compose.prod.yml)"
-  bash "$ROOT_DIR/scripts/deploy.sh"
+  RUN_CI=0 bash "$ROOT_DIR/scripts/deploy.sh"
 fi

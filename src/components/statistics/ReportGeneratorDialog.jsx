@@ -11,9 +11,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, Copy, Printer } from "lucide-react";
+import { Download, Copy, FileText, Sheet } from "lucide-react";
+import { downloadBlob, buildFilename } from "@/lib/download";
 
 export function ReportGeneratorDialog({ open, onOpenChange, markerEntries }) {
   // markerEntries: Array of { id, label, count, items: [{ text, line, type }] }
@@ -88,13 +88,86 @@ export function ReportGeneratorDialog({ open, onOpenChange, markerEntries }) {
       });
       const csvContent = "\uFEFF" + [headers, ...rows].join('\n'); // UTF-8 BOM
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", "script_report.csv");
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      downloadBlob(blob, buildFilename("script_report", "csv"));
+  };
+
+  const handleDownloadXLSX = async () => {
+      const XLSX = await import("xlsx");
+      const sheetData = [
+          ["類別", "內容", "行號"],
+          ...reportData.map((row) => [row.category, row.content, row.line]),
+      ];
+      const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
+      worksheet["!cols"] = [{ wch: 18 }, { wch: 70 }, { wch: 10 }];
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "報表");
+      const xlsxArray = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+
+      const blob = new Blob([xlsxArray], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      downloadBlob(blob, buildFilename("script_report", "xlsx"));
+  };
+
+  const handleDownloadDOCX = async () => {
+      const {
+          Document,
+          Packer,
+          Paragraph,
+          Table: DocxTable,
+          TableRow,
+          TableCell,
+          TextRun,
+          WidthType,
+          HeadingLevel,
+      } = await import("docx");
+
+      const tableRows = [
+          new TableRow({
+              children: ["類別", "內容", "行號"].map((text) =>
+                  new TableCell({
+                      children: [new Paragraph({ children: [new TextRun({ text, bold: true })] })],
+                  })
+              ),
+          }),
+          ...reportData.map(
+              (row) =>
+                  new TableRow({
+                      children: [
+                          new TableCell({ children: [new Paragraph(String(row.category ?? ""))] }),
+                          new TableCell({ children: [new Paragraph(String(row.content ?? ""))] }),
+                          new TableCell({ children: [new Paragraph(String(row.line ?? ""))] }),
+                      ],
+                  })
+          ),
+      ];
+
+      const doc = new Document({
+          sections: [
+              {
+                  children: [
+                      new Paragraph({
+                          text: "劇本標記報表",
+                          heading: HeadingLevel.HEADING_1,
+                      }),
+                      new Paragraph({
+                          text: `匯出筆數：${reportData.length}`,
+                      }),
+                      new DocxTable({
+                          rows: tableRows,
+                          width: {
+                              size: 100,
+                              type: WidthType.PERCENTAGE,
+                          },
+                      }),
+                  ],
+              },
+          ],
+      });
+
+      const blob = await Packer.toBlob(doc);
+      downloadBlob(blob, buildFilename("script_report", "docx"));
   };
 
   return (
@@ -181,9 +254,17 @@ export function ReportGeneratorDialog({ open, onOpenChange, markerEntries }) {
                 <Copy className="w-4 h-4 mr-2" />
                 複製表格
             </Button>
-            <Button onClick={handleDownloadCSV}>
+            <Button onClick={handleDownloadCSV} disabled={reportData.length === 0}>
                 <Download className="w-4 h-4 mr-2" />
                 下載 CSV
+            </Button>
+            <Button variant="outline" onClick={handleDownloadXLSX} disabled={reportData.length === 0}>
+                <Sheet className="w-4 h-4 mr-2" />
+                下載 XLSX
+            </Button>
+            <Button variant="outline" onClick={handleDownloadDOCX} disabled={reportData.length === 0}>
+                <FileText className="w-4 h-4 mr-2" />
+                下載 Word
             </Button>
         </DialogFooter>
       </DialogContent>

@@ -256,6 +256,7 @@ They discover a glowing artifact.
         validMarkerConfigs={scriptManager.effectiveMarkerConfigs}
         hiddenMarkerIds={scriptManager.hiddenMarkerIds}
         onToggleMarker={scriptManager.toggleMarkerVisibility}
+        renderedHtml={scriptManager.processedScriptHtml || scriptManager.rawScriptHtml || ""}
         
         // onExport={() => {}} // Optional
         scriptSurfaceProps={{
