@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { FileCode2, FileSpreadsheet, FileText, Printer } from "lucide-react";
 import { useSettings } from "./contexts/SettingsContext";
 import { useScriptManager } from "./hooks/useScriptManager";
 import { useAppNavigation } from "./hooks/useAppNavigation";
@@ -15,6 +16,12 @@ import { ScriptViewProvider } from "./contexts/ScriptViewContext";
 import { useTextLocator } from "./hooks/useTextLocator";
 import { GlobalListeners } from "./components/common/GlobalListeners";
 import { AppRouter } from "./AppRouter";
+import {
+  exportScriptAsCsv,
+  exportScriptAsDocx,
+  exportScriptAsFountain,
+  exportScriptAsXlsx,
+} from "./lib/scriptExport";
 
 function App() {
   // 1. Contexts
@@ -134,6 +141,47 @@ function App() {
   
   const headerTitle = nav.homeOpen ? "Screenplay Reader" : nav.aboutOpen ? "About" : nav.settingsOpen ? "Settings" : titleName || activeCloudScript?.title || "選擇一個劇本";
   const canShare = !nav.homeOpen && !nav.aboutOpen && !nav.settingsOpen && Boolean(activeCloudScript);
+  const exportTitle = titleName || activeCloudScript?.title || "script";
+  const exportContent = rawScript || "";
+  const renderedExportHtml = scriptManager.processedScriptHtml || scriptManager.rawScriptHtml || "";
+
+  const readerDownloadOptions = [
+    {
+      id: "pdf",
+      label: "匯出 PDF",
+      icon: Printer,
+      onClick: () => handleExportPdf(),
+      disabled: !exportContent && !scriptManager.titleHtml,
+    },
+    {
+      id: "fountain",
+      label: "下載 .fountain",
+      icon: FileCode2,
+      onClick: () => exportScriptAsFountain(exportTitle, exportContent),
+      disabled: !exportContent,
+    },
+    {
+      id: "docx",
+      label: "下載 Word (.doc)",
+      icon: FileText,
+      onClick: () => exportScriptAsDocx(exportTitle, { text: exportContent, renderedHtml: renderedExportHtml }),
+      disabled: !exportContent,
+    },
+    {
+      id: "xlsx",
+      label: "下載 Excel (.xlsx)",
+      icon: FileSpreadsheet,
+      onClick: () => exportScriptAsXlsx(exportTitle, { text: exportContent, renderedHtml: renderedExportHtml }),
+      disabled: !exportContent,
+    },
+    {
+      id: "csv",
+      label: "下載 CSV",
+      icon: FileSpreadsheet,
+      onClick: () => exportScriptAsCsv(exportTitle, { text: exportContent, renderedHtml: renderedExportHtml }),
+      disabled: !exportContent,
+    },
+  ];
   
   const isPublicReader = location.pathname.startsWith("/read/");
   const showReaderHeader = !nav.homeOpen && !nav.aboutOpen && !nav.settingsOpen && (
@@ -174,7 +222,7 @@ function App() {
           isPublicReader={isPublicReader}
           showReaderHeader={showReaderHeader}
           
-          handleExportPdf={handleExportPdf}
+          readerDownloadOptions={readerDownloadOptions}
           handleShareUrl={handleShareUrl}
           shareCopied={shareCopied}
           handleReturnHome={handleReturnHome}

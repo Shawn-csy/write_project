@@ -1,17 +1,18 @@
 import React from "react";
-import { ArrowLeft, Share2, Settings, Download, Sun, Moon } from "lucide-react";
+import { ArrowLeft, Share2, Sun, Moon } from "lucide-react";
 import { Button } from "../ui/button";
 import { ReaderAppearanceMenu } from "./ReaderAppearanceMenu";
 import { ReaderTOC } from "./ReaderTOC";
 import { MarkerVisibilitySelect } from "../ui/MarkerVisibilitySelect";
 import { useSettings } from "../../contexts/SettingsContext";
+import { DownloadMenu } from "../common/DownloadMenu";
 
 export function SimplifiedReaderHeader({
   onBack,
   title,
   showTitle = false,
   onShare,
-  onExport,
+  downloadOptions = [],
   // New props for TOC
   sceneList,
   currentSceneId,
@@ -92,17 +93,11 @@ export function SimplifiedReaderHeader({
           {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </Button>
 
-        {onExport && (
-             <Button
-                variant="ghost"
-                size="icon"
-                onClick={onExport}
-                className="rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md hidden sm:inline-flex"
-                title="Export PDF"
-              >
-                <Download className="w-4 h-4" />
-              </Button>
-        )}
+        <DownloadMenu
+          options={downloadOptions}
+          title="下載"
+          triggerClassName="rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md hidden sm:inline-flex"
+        />
         
         {onShare && (
              <Button

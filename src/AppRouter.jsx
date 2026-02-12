@@ -44,7 +44,7 @@ export function AppRouter({
     showReaderHeader,
     
     // Actions
-    handleExportPdf,
+    readerDownloadOptions,
     handleShareUrl,
     shareCopied,
     handleReturnHome,
@@ -134,7 +134,7 @@ export function AppRouter({
                                             fileMeta={fileMeta}
                                             isSidebarOpen={nav.isDesktopSidebarOpen}
                                             setSidebarOpen={nav.setSidebarOpen}
-                                            handleExportPdf={handleExportPdf}
+                                            downloadOptions={readerDownloadOptions}
                                             onShareUrl={handleShareUrl}
                                             canShare={canShare}
                                             shareCopied={shareCopied}

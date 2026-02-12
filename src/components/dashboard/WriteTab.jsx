@@ -5,7 +5,8 @@ import { ScriptList } from "./write/ScriptList";
 import { CreateScriptDialog } from "./write/CreateScriptDialog";
 import { RenameScriptDialog } from "./write/RenameScriptDialog";
 import { ImportScriptDialog } from "./write/ImportScriptDialog";
-import { createScript, updateScript, getScript } from "../../lib/db";
+import { createScript, updateScript, getScript, exportScripts } from "../../lib/db";
+import { downloadBlob } from "../../lib/download";
 
 export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     // Hooks
@@ -27,16 +28,8 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     const handleExport = async () => {
          if(!manager.currentUser) return;
          try {
-             import("../../lib/db").then(async ({ exportScripts }) => {
-                  const blob = await exportScripts();
-                  const url = window.URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = "scripts_backup.zip";
-                  document.body.appendChild(a);
-                  a.click();
-                  a.remove();
-             });
+             const blob = await exportScripts();
+             downloadBlob(blob, "scripts_backup.zip");
          } catch(e) {
              console.error(e);
              alert("匯出失敗");
@@ -146,4 +139,3 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         </div>
     );
 }
-

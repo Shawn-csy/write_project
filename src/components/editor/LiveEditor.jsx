@@ -3,7 +3,7 @@ import CodeMirror from "@uiw/react-codemirror";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { EditorView } from "@codemirror/view";
 import { updateScript, getScript } from "../../lib/db";
-import { Loader2 } from "lucide-react";
+import { FileCode2, FileSpreadsheet, FileText, Loader2 } from "lucide-react";
 import { fountainLanguage } from "./fountain-mode";
 // import { debounce } from "lodash";
 import { debounce } from "../../lib/utils";
@@ -14,6 +14,12 @@ import { useSettings } from "../../contexts/SettingsContext";
 import { useEditorSync } from "../../hooks/useEditorSync";
 import { usePersistentState } from "../../hooks/usePersistentState";
 import { extractMetadata } from "../../lib/metadataParser";
+import {
+  exportScriptAsCsv,
+  exportScriptAsDocx,
+  exportScriptAsFountain,
+  exportScriptAsXlsx,
+} from "../../lib/scriptExport";
 import { EditorHeader } from "./EditorHeader";
 import { PreviewPanel } from "./PreviewPanel";
 import { MarkerRulesPanel } from "./MarkerRulesPanel";
@@ -48,6 +54,16 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   const [showPreview, setShowPreview] = useState(defaultShowPreview || readOnly);
   const [showStats, setShowStats] = useState(false);
   const [showRules, setShowRules] = useState(false);
+  const [rawRenderedHtml, setRawRenderedHtml] = useState("");
+  const [processedRenderedHtml, setProcessedRenderedHtml] = useState("");
+  const renderedHtmlRef = useRef({ raw: "", processed: "" });
+
+  useEffect(() => {
+    renderedHtmlRef.current = {
+      raw: rawRenderedHtml,
+      processed: processedRenderedHtml,
+    };
+  }, [rawRenderedHtml, processedRenderedHtml]);
 
   // Parse AST for Statistics & Sync
   const { ast } = useMemo(() => {
@@ -258,15 +274,101 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     }
   };
 
-  const handleDownload = () => {
-    const element = document.createElement("a");
-    const file = new Blob([content], { type: "text/plain" });
-    element.href = URL.createObjectURL(file);
-    element.download = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || "script"}.fountain`;
-    document.body.appendChild(element); 
-    element.click();
-    document.body.removeChild(element);
-  };
+  const downloadOptions = useMemo(
+    () => [
+      {
+        id: "__helper__",
+        hidden: true,
+      },
+      {
+        id: "fountain",
+        label: "下載 .fountain",
+        icon: FileCode2,
+        onClick: () => exportScriptAsFountain(title, content),
+      },
+      {
+        id: "docx",
+        label: "下載 Word (.doc)",
+        icon: FileText,
+        onClick: () =>
+          exportScriptAsDocx(title, {
+            text: content,
+            renderedHtml: processedRenderedHtml || rawRenderedHtml,
+          }),
+      },
+      {
+        id: "xlsx",
+        label: "下載 Excel (.xlsx)",
+        icon: FileSpreadsheet,
+        onClick: () =>
+          exportScriptAsXlsx(title, {
+            text: content,
+            renderedHtml: processedRenderedHtml || rawRenderedHtml,
+          }),
+      },
+      {
+        id: "csv",
+        label: "下載 CSV",
+        icon: FileSpreadsheet,
+        onClick: () =>
+          exportScriptAsCsv(title, {
+            text: content,
+            renderedHtml: processedRenderedHtml || rawRenderedHtml,
+          }),
+      },
+    ],
+    [title, content, processedRenderedHtml, rawRenderedHtml]
+  );
+
+  const runRenderedExport = useCallback(
+    (exporter) => {
+      const currentHtml = renderedHtmlRef.current.processed || renderedHtmlRef.current.raw;
+      if (currentHtml) {
+        exporter({ text: content, renderedHtml: currentHtml });
+        return;
+      }
+
+      if (!showPreview && !readOnly) {
+        setShowPreview(true);
+        setTimeout(() => {
+          const nextHtml = renderedHtmlRef.current.processed || renderedHtmlRef.current.raw;
+          exporter({ text: content, renderedHtml: nextHtml });
+        }, 220);
+        return;
+      }
+
+      exporter({ text: content, renderedHtml: "" });
+    },
+    [content, showPreview, readOnly]
+  );
+
+  const normalizedDownloadOptions = useMemo(
+    () =>
+      downloadOptions
+        .filter((item) => !item.hidden)
+        .map((item) => {
+          if (item.id === "docx") {
+            return {
+              ...item,
+              onClick: () => runRenderedExport((payload) => exportScriptAsDocx(title, payload)),
+            };
+          }
+          if (item.id === "xlsx") {
+            return {
+              ...item,
+              onClick: () => runRenderedExport((payload) => exportScriptAsXlsx(title, payload)),
+            };
+          }
+          if (item.id === "csv") {
+            return {
+              ...item,
+              onClick: () => runRenderedExport((payload) => exportScriptAsCsv(title, payload)),
+            };
+          }
+          return item;
+        }),
+    [downloadOptions, runRenderedExport, title]
+  );
 
   const findLineIndex = useCallback((text) => {
     if (!text) return -1;
@@ -385,7 +487,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
         lastSaved={lastSaved}
         showRules={showRules}
         onToggleRules={() => setShowRules(prev => !prev)}
-        onDownload={handleDownload}
+        downloadOptions={normalizedDownloadOptions}
         onToggleStats={() => setShowStats(true)}
         showPreview={showPreview}
         onTogglePreview={() => setShowPreview(!showPreview)}
@@ -451,6 +553,8 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
             onHasTitle={onHasTitle}
             onTitleNote={onTitleNote}
             onTitleSummary={onTitleSummary}
+            onRawHtml={setRawRenderedHtml}
+            onProcessedHtml={setProcessedRenderedHtml}
             initialSceneId={initialSceneId}
             onScenes={setScenes}
             onRequestEdit={readOnly ? onRequestEdit : undefined}
