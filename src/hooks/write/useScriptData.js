@@ -65,7 +65,33 @@ export function useScriptData(refreshTrigger = 0) {
             const params = new URLSearchParams(window.location.search);
             return params.get("folder") || "/";
         };
-        setCurrentPath(getFolderFromUrl());
+        let initialPath = getFolderFromUrl();
+
+        if (typeof window !== "undefined") {
+            try {
+                const raw = window.sessionStorage.getItem("write_tab_return_state_v1");
+                if (raw) {
+                    const state = JSON.parse(raw);
+                    if (state && typeof state.currentPath === "string") {
+                        initialPath = state.currentPath || "/";
+                    }
+                    if (Array.isArray(state?.expandedPaths)) {
+                        setExpandedPaths(new Set(state.expandedPaths));
+                    }
+                    window.sessionStorage.removeItem("write_tab_return_state_v1");
+                }
+            } catch (e) {
+                console.warn("Failed to restore write tab return state", e);
+            }
+        }
+
+        setCurrentPath(initialPath);
+        if (typeof window !== "undefined") {
+            const url = new URL(window.location.href);
+            if (initialPath === "/") url.searchParams.delete("folder");
+            else url.searchParams.set("folder", initialPath);
+            window.history.replaceState({}, "", url);
+        }
 
         const handlePopState = () => {
              setCurrentPath(getFolderFromUrl());

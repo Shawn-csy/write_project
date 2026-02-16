@@ -9,6 +9,7 @@
 
 import { parseInline } from '../parsers/inlineParser.js';
 import { toFullWidth } from '../parsers/parserGenerators.js';
+import { isBlockLike, isInlineLike } from '../markerRules.js';
 
 // ... (skip lines)
 
@@ -43,22 +44,9 @@ export class DirectASTBuilder {
       matchMode: c.matchMode || (c.end ? 'enclosure' : 'prefix')
     }));
     
-    // 分離 block 和 inline markers
-    // range 模式視為 block markers
-    this.blockMarkers = this.configs.filter(c => 
-      c.isBlock || c.matchMode === 'prefix' || c.matchMode === 'range'
-    );
-    this.inlineMarkers = this.configs.filter(c => 
-      !c.isBlock && c.type !== 'prefix' && c.matchMode !== 'range' && c.matchMode !== 'virtual'
-    );
-    
-    // 建立 prefix 快速查找表
-    this.prefixMap = new Map();
-    for (const marker of this.blockMarkers) {
-      if (marker.start && marker.matchMode === 'prefix') {
-        this.prefixMap.set(marker.start, marker);
-      }
-    }
+    // 分離 block 和 inline markers（共用規則）
+    this.blockMarkers = this.configs.filter((c) => isBlockLike(c));
+    this.inlineMarkers = this.configs.filter((c) => isInlineLike(c));
     
     // 建立 range markers 對照表
     // 格式：matchMode='range' + start + end，使用 marker.id 作為 groupId
@@ -180,8 +168,6 @@ export class DirectASTBuilder {
               const rangeNode = stack[openIndex];
               rangeNode.endNode = node; // 使用 pause node 作為視覺上的結束
               
-              const parentList = openIndex > 0 ? stack[openIndex - 1].children : rootChildren;
-
               if (openIndex === stack.length - 1) {
                   stack.pop();
               } else {
@@ -460,7 +446,12 @@ export class DirectASTBuilder {
    */
   _matchBlockMarker(line, lineNumber) {
     const sortedMarkers = [...this.blockMarkers].sort(
-      (a, b) => (b.start?.length || 0) - (a.start?.length || 0)
+      (a, b) => {
+        const pA = Number.isFinite(a?.priority) ? a.priority : 0;
+        const pB = Number.isFinite(b?.priority) ? b.priority : 0;
+        if (pA !== pB) return pB - pA;
+        return (b.start?.length || 0) - (a.start?.length || 0);
+      }
     );
 
     for (const marker of sortedMarkers) {

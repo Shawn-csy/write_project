@@ -22,6 +22,17 @@ export function useScriptActions({
     const [oldRenameTitle, setOldRenameTitle] = useState(""); // Track old name for folder rename
     const [oldRenameFolder, setOldRenameFolder] = useState(""); // Track old folder path
     const [renaming, setRenaming] = useState(false);
+    
+    // Delete State
+    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [deleteItem, setDeleteItem] = useState(null);
+    const [deleting, setDeleting] = useState(false);
+
+    // Move State
+    const [isMoveOpen, setIsMoveOpen] = useState(false);
+    const [moveItem, setMoveItem] = useState(null);
+    const [moveTargetFolder, setMoveTargetFolder] = useState("/");
+    const [moving, setMoving] = useState(false);
 
     const openRenameDialog = (item) => {
         setRenameId(item.id);
@@ -30,6 +41,22 @@ export function useScriptActions({
         setOldRenameFolder(item.folder); // We need this for folder rename logic
         setRenameType(item.type || 'script');
         setIsRenameOpen(true);
+    };
+
+    const getFolderPath = (item) => {
+        const parent = item.folder === "/" ? "" : item.folder;
+        return `${parent}/${item.title}`;
+    };
+
+    const openDeleteDialog = (item) => {
+        setDeleteItem(item);
+        setIsDeleteOpen(true);
+    };
+
+    const openMoveDialog = (item) => {
+        setMoveItem(item);
+        setMoveTargetFolder(item.folder || "/");
+        setIsMoveOpen(true);
     };
 
     const handleCreate = async () => {
@@ -104,14 +131,46 @@ export function useScriptActions({
         }
     };
 
-    const handleDelete = async (e, id) => {
-        e.stopPropagation();
-        if (!window.confirm("確定要刪除嗎？")) return;
+    const handleDeleteConfirm = async () => {
+        if (!deleteItem?.id) return;
+        setDeleting(true);
         try {
-            await deleteScript(id);
-            setScripts(prev => prev.filter(s => s.id !== id));
+            await deleteScript(deleteItem.id);
+            setScripts(prev => {
+                if (deleteItem.type !== "folder") {
+                    return prev.filter(s => s.id !== deleteItem.id);
+                }
+                const prefix = getFolderPath(deleteItem);
+                return prev.filter(s => s.id !== deleteItem.id && s.folder !== prefix && !s.folder.startsWith(prefix + "/"));
+            });
+            setIsDeleteOpen(false);
+            setDeleteItem(null);
         } catch (err) {
             console.error("Delete failed", err);
+            fetchScripts();
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    const handleMoveConfirm = async () => {
+        if (!moveItem?.id || moveItem.type === "folder") return;
+        if ((moveTargetFolder || "/") === (moveItem.folder || "/")) {
+            setIsMoveOpen(false);
+            setMoveItem(null);
+            return;
+        }
+        setMoving(true);
+        try {
+            await updateScript(moveItem.id, { folder: moveTargetFolder || "/" });
+            setScripts(prev => prev.map(s => s.id === moveItem.id ? { ...s, folder: moveTargetFolder || "/" } : s));
+            setIsMoveOpen(false);
+            setMoveItem(null);
+        } catch (err) {
+            console.error("Move failed", err);
+            fetchScripts();
+        } finally {
+            setMoving(false);
         }
     };
 
@@ -153,14 +212,27 @@ export function useScriptActions({
         newType, setNewType,
         creating,
         handleCreate,
-        handleDelete,
         handleTogglePublic,
         // Rename Exports
         isRenameOpen, setIsRenameOpen,
         renameTitle, setRenameTitle,
         renameType,
+        oldRenameTitle,
         openRenameDialog,
         handleRename,
-        renaming
+        renaming,
+        // Delete Exports
+        isDeleteOpen, setIsDeleteOpen,
+        deleteItem,
+        deleting,
+        openDeleteDialog,
+        handleDeleteConfirm,
+        // Move Exports
+        isMoveOpen, setIsMoveOpen,
+        moveItem,
+        moveTargetFolder, setMoveTargetFolder,
+        moving,
+        openMoveDialog,
+        handleMoveConfirm
     };
 }
