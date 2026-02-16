@@ -99,23 +99,46 @@ export function useEditorSync({ readOnly, showPreview }) {
     }
   }, [editorReady]);
 
-  const scrollEditorToLine = useCallback((lineNumber, behavior = "auto") => {
+  const scrollEditorToLine = useCallback((lineNumber, behaviorOrOptions = "auto") => {
     const view = editorViewRef.current;
     if (!view) return;
+    const options =
+      typeof behaviorOrOptions === "string"
+        ? { behavior: behaviorOrOptions, center: true, select: true }
+        : {
+            behavior: behaviorOrOptions?.behavior ?? "auto",
+            center: behaviorOrOptions?.center ?? true,
+            select: behaviorOrOptions?.select ?? true,
+          };
     const safeLine = Math.max(1, Math.min(lineNumber, view.state.doc.lines));
     const line = view.state.doc.line(safeLine);
-    const coords = view.coordsAtPos(line.from);
-    if (!coords) return;
-    const scroller = view.scrollDOM;
-    const scrollerRect = scroller.getBoundingClientRect();
-    const lineHeight = Math.max(1, coords.bottom - coords.top);
-    const targetTop =
-      coords.top -
-      scrollerRect.top +
-      scroller.scrollTop -
-      scrollerRect.height / 2 +
-      lineHeight / 2;
-    scroller.scrollTo({ top: targetTop, behavior });
+    const scrollEffect = EditorView.scrollIntoView(line.from, {
+      y: options.center ? "center" : "nearest",
+      yMargin: 24,
+    });
+    if (options.select) {
+      view.dispatch({
+        selection: { anchor: line.from },
+        effects: scrollEffect,
+      });
+    } else {
+      view.dispatch({ effects: scrollEffect });
+    }
+
+    if (options.behavior === "smooth") {
+      const coords = view.coordsAtPos(line.from);
+      if (!coords) return;
+      const scroller = view.scrollDOM;
+      const scrollerRect = scroller.getBoundingClientRect();
+      const lineHeight = Math.max(1, coords.bottom - coords.top);
+      const targetTop =
+        coords.top -
+        scrollerRect.top +
+        scroller.scrollTop -
+        scrollerRect.height / 2 +
+        lineHeight / 2;
+      scroller.scrollTo({ top: targetTop, behavior: "smooth" });
+    }
   }, []);
 
   const highlightEditorLine = useCallback((lineNumber) => {

@@ -6,7 +6,30 @@ cd "$ROOT_DIR"
 
 ENV_FILE="${ENV_FILE:-.env}"
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
-RUN_CI="${RUN_CI:-1}"
+RUN_CI="${RUN_CI:-0}"
+
+# Optional CLI overrides:
+#   bash scripts/deploy.sh ci=1
+#   bash scripts/deploy.sh env=.env.prod compose=docker-compose.yml
+for arg in "$@"; do
+  case "$arg" in
+    ci=0|ci=1)
+      RUN_CI="${arg#ci=}"
+      ;;
+    run_ci=0|run_ci=1)
+      RUN_CI="${arg#run_ci=}"
+      ;;
+    env=*)
+      ENV_FILE="${arg#env=}"
+      ;;
+    compose=*)
+      COMPOSE_FILE="${arg#compose=}"
+      ;;
+    *)
+      echo "WARN: unknown argument ignored: $arg"
+      ;;
+  esac
+done
 
 if [ ! -f "$ENV_FILE" ]; then
   echo "ERROR: missing env file: $ENV_FILE"

@@ -21,7 +21,7 @@ export function MarkerDetailEditor({ config, idx, updateMarker }) {
         <div className="h-full flex flex-col overflow-hidden">
             {/* Header */}
             <div className="p-3 border-b flex items-center justify-between bg-muted/20">
-                <span className="text-xs font-mono text-muted-foreground">{config.id}</span>
+                <span className="text-xs font-medium text-foreground/80">{config.label || "未命名標記"}</span>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
                     {config.matchMode === 'range' ? 'Range (區間)' : 
                      config.type === 'block' || config.isBlock ? 'Block (段落)' : 'Inline (行內)'}
@@ -46,8 +46,7 @@ export function MarkerDetailEditor({ config, idx, updateMarker }) {
                         <MarkerGeneralSettings 
                             config={config} 
                             idx={idx} 
-                            updateMarker={updateMarker} 
-                            setExpandedId={() => {}} // No-op since we don't need to collapse
+                            updateMarker={updateMarker}
                         />
                     </TabsContent>
                     

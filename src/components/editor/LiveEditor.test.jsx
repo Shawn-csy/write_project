@@ -33,6 +33,10 @@ vi.mock('../../contexts/AuthContext', () => ({
   })
 }));
 
+vi.mock('../../components/ui/toast', () => ({
+  useToast: () => ({ toast: vi.fn() })
+}));
+
 describe('LiveEditor', () => {
     beforeEach(() => {
         useSettings.mockReturnValue({

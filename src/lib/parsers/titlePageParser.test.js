@@ -4,7 +4,7 @@ import { splitTitleAndBody, extractTitleEntries } from './titlePageParser.js';
 describe('TitlePageParser', () => {
     describe('splitTitleAndBody', () => {
         it('should handle empty input', () => {
-            expect(splitTitleAndBody('')).toEqual({ titleLines: [], bodyText: "" });
+            expect(splitTitleAndBody('')).toEqual({ titleLines: [], bodyText: "", bodyStartLine: 1 });
         });
 
         it('should correctly split title and body with a blank line', () => {

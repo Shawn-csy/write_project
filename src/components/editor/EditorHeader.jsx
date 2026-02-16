@@ -7,6 +7,7 @@ import HeaderTitleBlock from "../header/HeaderTitleBlock";
 import { Badge } from "../ui/badge";
 import { ScriptMetadataDialog } from "../dashboard/ScriptMetadataDialog";
 import { DownloadMenu } from "../common/DownloadMenu";
+import { Button } from "../ui/button";
 
 export function EditorHeader({
   readOnly,
@@ -31,6 +32,26 @@ export function EditorHeader({
   onScriptUpdate // Callback when metadata changes
 }) {
   const [showMetadataDialog, setShowMetadataDialog] = useState(false);
+  const saveStatusTitle =
+    saveStatus === "error"
+      ? "雲端儲存失敗，點擊重試"
+      : saveStatus === "local-saved"
+        ? "本機已暫存，等待雲端同步"
+        : saveStatus === "unsaved"
+          ? "尚未儲存到雲端"
+          : "點擊手動儲存";
+  const saveStatusLabel =
+    saveStatus === "saving"
+      ? "同步中..."
+      : saveStatus === "unsaved"
+        ? "未儲存"
+        : saveStatus === "local-saved"
+          ? "本機已暫存"
+          : saveStatus === "error"
+            ? "同步失敗"
+            : lastSaved
+              ? `已同步 ${lastSaved.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+              : "已同步";
   const {
     isEditing,
     editTitle,
@@ -96,24 +117,20 @@ export function EditorHeader({
               <button
                 onClick={onManualSave}
                 className={`p-1 px-2 rounded flex items-center gap-1 text-[10px] sm:text-xs border transition-colors ${
-                    saveStatus === 'error' ? 'bg-red-100 text-red-600 border-red-200 hover:bg-red-200' :
-                    saveStatus === 'local-saved' ? 'bg-yellow-50 text-yellow-600 border-yellow-200 hover:bg-yellow-100' :
-                    saveStatus === 'unsaved' ? 'bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100' :
-                    saveStatus === 'saving' ? 'bg-blue-50 text-blue-600 border-blue-200' :
-                    'bg-green-50 text-green-600 border-green-200 hover:bg-green-100' // saved
+                    saveStatus === "error" ? "bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/20" :
+                    saveStatus === "local-saved" ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 hover:bg-amber-500/20" :
+                    saveStatus === "unsaved" ? "bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/30 hover:bg-orange-500/20" :
+                    saveStatus === "saving" ? "bg-primary/10 text-primary border-primary/30" :
+                    "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20"
                 }`}
-                title={saveStatus === 'error' ? "儲存失敗，點擊重試" : saveStatus === 'local-saved' ? "已儲存至本機，等待上傳" : "點擊手動儲存"}
+                title={saveStatusTitle}
               >
                 {saveStatus === 'saving' ? (
                   <Loader2 className="w-3 h-3 animate-spin" />
                 ) : (
                   <Save className="w-3 h-3" />
                 )}
-                {saveStatus === 'saving' ? "儲存中..." :
-                 saveStatus === 'unsaved' ? "未儲存" :
-                 saveStatus === 'local-saved' ? "已暫存" :
-                 saveStatus === 'error' ? "儲存失敗" :
-                 lastSaved ? `已儲存 ${lastSaved.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : "已儲存"}
+                {saveStatusLabel}
               </button>
             </div>
           </div>
@@ -132,9 +149,11 @@ export function EditorHeader({
           />
          </div>
 
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onToggleRules}
-          className={`p-2 hover:bg-muted rounded-md transition-colors ${
+          className={`h-8 w-8 rounded-md transition-colors ${
             showRules
               ? "text-accent"
               : "text-muted-foreground hover:text-foreground"
@@ -142,27 +161,31 @@ export function EditorHeader({
           title="語法規則 (Cheat Sheet)"
         >
           <HelpCircle className="w-4 h-4" />
-        </button>
+        </Button>
         <DownloadMenu
           options={downloadOptions}
           title="下載"
-          triggerClassName="p-2 hover:bg-muted rounded-md transition-colors text-muted-foreground hover:text-foreground"
+          triggerClassName="h-8 w-8 rounded-md transition-colors text-muted-foreground hover:text-foreground"
         />
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onToggleStats}
-          className="p-2 hover:bg-muted rounded-md transition-colors text-muted-foreground hover:text-foreground"
+          className="h-8 w-8 rounded-md transition-colors text-muted-foreground hover:text-foreground"
           title="Statistics"
         >
           <BarChart2 className="w-4 h-4" />
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={onTogglePreview}
-          className={`p-2 rounded-md transition-colors flex items-center gap-2 text-sm ${
+          className={`h-8 rounded-md transition-colors flex items-center gap-2 text-sm ${
             showPreview
               ? "bg-primary/10 text-primary"
               : "hover:bg-muted text-muted-foreground"
           }`}
-          title="Toggle Live Preview"
+          title={showPreview ? "切換為純編輯" : "切換為編輯 + 預覽"}
         >
           {showPreview ? (
             <Columns className="w-4 h-4" />
@@ -170,9 +193,9 @@ export function EditorHeader({
             <Eye className="w-4 h-4" />
           )}
           <span className="hidden sm:inline">
-            {showPreview ? "編輯+預覽" : "預覽模式"}
+            {showPreview ? "編輯 + 預覽" : "純編輯"}
           </span>
-        </button>
+        </Button>
       </div>
     </div>
   );

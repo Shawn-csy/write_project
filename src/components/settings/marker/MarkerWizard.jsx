@@ -1,5 +1,4 @@
 import React, { useState, useCallback } from 'react';
-import { cn } from '../../../lib/utils';
 import { WizardProgress, WIZARD_STEPS } from './wizard/WizardProgress';
 import { StepTypeSelector } from './wizard/StepTypeSelector';
 import { StepSymbolConfig } from './wizard/StepSymbolConfig';
@@ -67,6 +66,75 @@ export function MarkerWizard({ open, onClose, onComplete, initialConfig = null }
         }
         
         // 跳到步驟 2 或 3
+        setCurrentStep(2);
+    };
+
+    const handleScenarioSelect = (scenario) => {
+        if (!scenario?.presetId) return;
+        const presetMap = {
+            "sound-effect": {
+                markerType: "single",
+                config: {
+                    label: "音效",
+                    matchMode: "prefix",
+                    isBlock: true,
+                    type: "block",
+                    start: "#SE",
+                    end: "",
+                    style: { color: "#eab308", fontWeight: "bold" },
+                },
+            },
+            "dialogue-note": {
+                markerType: "inline",
+                config: {
+                    label: "對白註記",
+                    matchMode: "enclosure",
+                    isBlock: false,
+                    type: "inline",
+                    start: "(",
+                    end: ")",
+                    keywords: ["V.O.", "O.S.", "旁白"],
+                    dimIfNotKeyword: true,
+                    style: { color: "#f97316" },
+                },
+            },
+            "action-note": {
+                markerType: "single",
+                config: {
+                    label: "動作",
+                    matchMode: "prefix",
+                    isBlock: true,
+                    type: "block",
+                    start: "#ACT",
+                    end: "",
+                    style: { fontStyle: "italic", color: "#6b7280" },
+                },
+            },
+            "post-production": {
+                markerType: "inline",
+                config: {
+                    label: "後期",
+                    matchMode: "enclosure",
+                    isBlock: true,
+                    type: "block",
+                    start: "<<",
+                    end: ">>",
+                    style: {
+                        backgroundColor: "rgba(139, 92, 246, 0.1)",
+                        color: "#8b5cf6",
+                    },
+                },
+            },
+        };
+
+        const selected = presetMap[scenario.presetId];
+        if (!selected) return;
+        setMarkerType(selected.markerType);
+        setConfig((prev) => ({
+            ...prev,
+            ...selected.config,
+            id: generateId(selected.config.label || scenario.title),
+        }));
         setCurrentStep(2);
     };
 
@@ -155,7 +223,6 @@ export function MarkerWizard({ open, onClose, onComplete, initialConfig = null }
                     </DialogTitle>
                 </DialogHeader>
 
-                {/* 進度指示器 */}
                 <WizardProgress currentStep={currentStep} steps={WIZARD_STEPS} />
 
                 {/* 步驟內容 */}
@@ -165,6 +232,7 @@ export function MarkerWizard({ open, onClose, onComplete, initialConfig = null }
                             value={markerType}
                             onChange={handleTypeChange}
                             onPresetSelect={handlePresetSelect}
+                            onScenarioSelect={handleScenarioSelect}
                         />
                     )}
                     

@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { PublicReaderLayout } from "../components/reader/PublicReaderLayout";
 import { getPublicScript, getPublicThemes } from "../lib/db";
 import { extractMetadataWithRaw } from "../lib/metadataParser";
+import { deriveCcLicenseTags } from "../lib/licenseRights";
 import ScriptViewer from "../components/renderer/ScriptViewer";
 import { useScriptViewerDefaults } from "../hooks/useScriptViewerDefaults";
 import { defaultMarkerConfigs } from "../constants/defaultMarkers";
@@ -28,6 +29,19 @@ const ensureList = (val) => {
     return [];
 };
 
+const ensureTagList = (val) => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val.map((t) => String(t).trim()).filter(Boolean);
+    if (typeof val === "string") {
+        try {
+            const parsed = JSON.parse(val);
+            if (Array.isArray(parsed)) return parsed.map((t) => String(t).trim()).filter(Boolean);
+        } catch {}
+        return val.split(/,|，/).map((t) => t.trim()).filter(Boolean);
+    }
+    return [];
+};
+
 
 export default function PublicReaderPage({ scriptManager, navProps }) {
   const { id } = useParams();
@@ -38,7 +52,7 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
       isLoading, setIsLoading, setActiveCloudScript, activeCloudScript,
       // Props required for ScriptSurface/Viewer
       rawScript, filterCharacter, focusMode, focusEffect, focusContentMode,
-      highlightCharacters, highlightSfx, setCharacterList, setTitleHtml, setTitleNote, setTitleSummary, setHasTitle, setRawScriptHtml, setProcessedScriptHtml, setSceneList,
+      highlightCharacters, highlightSfx, setCharacterList, setTitleHtml, setTitleNote, setTitleSummary, setHasTitle, setSceneList,
       scrollSceneId, fontSize, bodyFontSize, dialogueFontSize, accentConfig, contentScrollRef, setScrollProgress, setCloudScriptMode
   } = scriptManager;
 
@@ -66,7 +80,6 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
             if (script) {
                 setRawScript(script.content || "");
                 setTitleName(script.title || "Untitled");
-                setTitleName(script.title || "Untitled");
                 // Removed setActiveFile as it caused a crash and might not be needed for public view context
                 /* setActiveFile({ 
                     id: script.id, 
@@ -88,7 +101,7 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                     "draftdate", "date", "contact", "copyright",
                     "notes", "description", "synopsis", "summary",
                     "cover", "coverurl", "marker_legend", "show_legend",
-                    "license", "licenseurl", "licenseterms"
+                    "license", "licenseurl", "licenseterms", "licensetags"
                 ]);
 
                 const customFields = rawEntries
@@ -123,9 +136,15 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                     source: meta.source || "",
                     credit: meta.credit || "",
                     authors: meta.authors || "",
+                    headerAuthor: meta.author || "",
                     license: meta.license || "",
                     licenseUrl: meta.licenseurl || "",
                     licenseTerms: ensureList(meta.licenseterms),
+                    licenseTags: (() => {
+                        const parsed = ensureTagList(meta.licensetags);
+                        if (parsed.length > 0) return parsed;
+                        return deriveCcLicenseTags(meta.license || "");
+                    })(),
 
 
 
@@ -228,12 +247,51 @@ They discover a glowing artifact.
     markerConfigs: scriptManager.effectiveMarkerConfigs, // Pass effective configs
   });
 
-  const fullScriptData = {
+  const fullScriptData = useMemo(() => ({
       ...activeCloudScript,
       content: rawScript,
-      title: scriptManager.titleName, // Use manager's title
+      title: scriptManager.titleName,
       ...mockMeta
-  };
+  }), [activeCloudScript, rawScript, scriptManager.titleName, mockMeta]);
+
+  const surfaceProps = useMemo(() => ({
+      scrollRef: navProps?.contentScrollRef,
+      onScrollProgress: setScrollProgress,
+  }), [navProps?.contentScrollRef, setScrollProgress]);
+
+  const mergedViewerProps = useMemo(() => ({
+      ...viewerDefaults,
+      filterCharacter,
+      focusMode,
+      focusEffect,
+      focusContentMode,
+      highlightCharacters,
+      highlightSfx,
+      onCharacters: setCharacterList,
+      onTitle: setTitleHtml,
+      onTitleNote: setTitleNote,
+      onSummary: setTitleSummary,
+      onHasTitle: setHasTitle,
+      onScenes: setSceneList,
+      scrollToScene: scrollSceneId,
+      hiddenMarkerIds: scriptManager.hiddenMarkerIds,
+  }), [
+      viewerDefaults,
+      filterCharacter,
+      focusMode,
+      focusEffect,
+      focusContentMode,
+      highlightCharacters,
+      highlightSfx,
+      setCharacterList,
+      setTitleHtml,
+      setTitleNote,
+      setTitleSummary,
+      setHasTitle,
+      setSceneList,
+      scrollSceneId,
+      scriptManager.hiddenMarkerIds,
+  ]);
 
   return (
     <PublicReaderLayout
@@ -256,33 +314,11 @@ They discover a glowing artifact.
         validMarkerConfigs={scriptManager.effectiveMarkerConfigs}
         hiddenMarkerIds={scriptManager.hiddenMarkerIds}
         onToggleMarker={scriptManager.toggleMarkerVisibility}
-        renderedHtml={scriptManager.processedScriptHtml || scriptManager.rawScriptHtml || ""}
+        renderedHtml=""
         
         // onExport={() => {}} // Optional
-        scriptSurfaceProps={{
-            scrollRef: navProps?.contentScrollRef,
-            onScrollProgress: setScrollProgress,
-        }}
-        viewerProps={{
-            ...viewerDefaults, // Defaults first
-            filterCharacter,
-            focusMode,
-            focusEffect,
-            focusContentMode,
-            highlightCharacters,
-            highlightSfx,
-            onCharacters: setCharacterList,
-            onTitle: setTitleHtml,
-            // onTitleName: setTitleName, // Read-only, maybe no need
-            onTitleNote: setTitleNote,
-            onSummary: setTitleSummary,
-            onHasTitle: setHasTitle,
-            onRawHtml: setRawScriptHtml,
-            onProcessedHtml: setProcessedScriptHtml,
-            onScenes: setSceneList,
-            scrollToScene: scrollSceneId,
-            hiddenMarkerIds: scriptManager.hiddenMarkerIds, // Override defaults
-        }}
+        scriptSurfaceProps={surfaceProps}
+        viewerProps={mergedViewerProps}
     />
   );
 }

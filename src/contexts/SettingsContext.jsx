@@ -13,6 +13,7 @@ import { apiCall as serviceApiCall, fetchUserSettings, saveUserSettings, fetchUs
 
 import { useMarkerThemes } from "../hooks/useMarkerThemes";
 import { usePersistentState } from "../hooks/usePersistentState";
+import { normalizeThemeConfigs } from "../lib/markerThemeCodec.js";
 
 const SettingsContext = createContext();
 
@@ -141,13 +142,12 @@ export function SettingsProvider({ children }) {
       if (!currentUser) return; // Don't run if no user
 
       async function loadSettings() {
-          const data = await fetchUserSettings(currentUser);
-          if (data) {
+          isRemoteUpdate.current = true;
+          try {
+              const data = await fetchUserSettings(currentUser);
+              if (data) {
                   if (data.settings && Object.keys(data.settings).length > 0) {
-                      if (!isRemoteUpdate.current) {
-                          console.log("Applying cloud settings...");
-                      }
-                      isRemoteUpdate.current = true;
+                      console.log("Applying cloud settings...");
                       const s = data.settings;
                       
                       // Batch Updates
@@ -168,17 +168,10 @@ export function SettingsProvider({ children }) {
                       // Always fetch themes from API for logged in users
                       const realThemes = await fetchUserThemes(currentUser);
                       if (realThemes && realThemes.length > 0) {
-                          const parsedThemes = realThemes.map(t => {
-                              try {
-                                  return { 
-                                      ...t, 
-                                      configs: typeof t.configs === 'string' ? JSON.parse(t.configs) : t.configs 
-                                  };
-                              } catch (e) {
-                                  console.error("Theme parse error", t.id, e);
-                                  return t;
-                              }
-                          });
+                          const parsedThemes = realThemes.map((t) => ({
+                              ...t,
+                              configs: normalizeThemeConfigs(t.configs),
+                          }));
                           themes.setMarkerThemes(parsedThemes);
                           
                           // Validate currentThemeId
@@ -221,6 +214,12 @@ export function SettingsProvider({ children }) {
                       // Actually addTheme calls API, so we don't need to do anything here for themes if they are empty.
                   }
               }
+          } finally {
+              // Re-enable local auto-save after remote hydration completes.
+              setTimeout(() => {
+                  isRemoteUpdate.current = false;
+              }, 0);
+          }
       }
       loadSettings();
   }, [currentUser]);
@@ -261,7 +260,6 @@ export function SettingsProvider({ children }) {
       lineHeight,
       transparentBg,
       showLineUnderline,
-      themes.markerThemes,
       themes.currentThemeId
   ]);
 

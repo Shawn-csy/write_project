@@ -1,9 +1,9 @@
 import React from "react";
 import { Input } from "../../../ui/input";
 
-export function MarkerGeneralSettings({ config, idx, updateMarker, setExpandedId }) {
+export function MarkerGeneralSettings({ config, idx, updateMarker }) {
     return (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 items-end">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 items-end">
             <div className="col-span-1 space-y-1">
                 <label className="text-[10px] uppercase text-muted-foreground font-semibold">標記名稱 <span className="text-red-500">*</span></label>
                 <Input 
@@ -12,24 +12,6 @@ export function MarkerGeneralSettings({ config, idx, updateMarker, setExpandedId
                     className={`h-8 text-xs ${!config.label ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                 />
                 {!config.label && (
-                    <p className="text-[10px] text-red-500 font-medium">必填</p>
-                )}
-            </div>
-            <div className="col-span-1 space-y-1">
-                <label className="text-[10px] uppercase text-muted-foreground font-semibold">代碼 (ID) <span className="text-red-500">*</span></label>
-                <Input 
-                    defaultValue={config.id || ''} 
-                    onBlur={(e) => {
-                         const newId = e.target.value;
-                         if (newId && newId !== config.id) {
-                            updateMarker(idx, 'id', newId);
-                            setExpandedId(newId);
-                         }
-                    }}
-                    className={`h-8 text-xs font-mono ${!config.id ? 'border-red-500 focus-visible:ring-red-500' : ''}`} 
-                    placeholder="unique-id"
-                />
-                {!config.id && (
                     <p className="text-[10px] text-red-500 font-medium">必填</p>
                 )}
             </div>

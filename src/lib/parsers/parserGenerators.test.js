@@ -6,6 +6,7 @@ import {
   createTextParser,
   mergeTextNodes
 } from './parserGenerators.js';
+import { parseInline } from './inlineParser.js';
 
 describe('parserGenerators', () => {
   it('escapeRegExp should escape special characters', () => {
@@ -32,6 +33,24 @@ describe('parserGenerators', () => {
     const full = parsers.mention.parse('＠世界');
     expect(full.status).toBe(true);
     expect(full.value).toEqual({ type: 'highlight', id: 'mention', content: '世界' });
+  });
+
+  it('createDynamicParsers should not generate inline parser for block marker', () => {
+    const parsers = createDynamicParsers([
+      { id: 'scene', start: '<t>', type: 'block', isBlock: true, matchMode: 'prefix' }
+    ]);
+    expect(parsers.scene).toBeUndefined();
+  });
+
+  it('prefix parser should stop before next prefix marker token', () => {
+    const configs = [
+      { id: 'sfx', start: '/sfx', type: 'inline', isBlock: false, matchMode: 'prefix' },
+      { id: 'dir', start: '/d', type: 'inline', isBlock: false, matchMode: 'prefix' }
+    ];
+    const nodes = parseInline('/sfx 爆炸 /d 左後方', configs);
+    const highlights = nodes.filter((n) => n.type === 'highlight');
+    expect(highlights.map((h) => h.id)).toEqual(['sfx', 'dir']);
+    expect(highlights.map((h) => h.content)).toEqual(['爆炸', '左後方']);
   });
 
   it('createDynamicParsers should parse enclosure markers', () => {

@@ -4,7 +4,6 @@ import { SimplifiedReaderHeader } from "./SimplifiedReaderHeader";
 import { PublicScriptInfoOverlay } from "./PublicScriptInfoOverlay";
 import { PublicMarkerLegend } from "./PublicMarkerLegend";
 import ScriptSurface from "../editor/ScriptSurface";
-import { extractMetadata } from "../../lib/metadataParser";
 import { useSettings } from "../../contexts/SettingsContext";
 import {
   exportScriptAsCsv,
@@ -38,6 +37,7 @@ export function PublicReaderLayout({
     source,
     credit,
     authors,
+    headerAuthor,
     customFields,
     coverUrl, 
     content: rawScript,
@@ -86,9 +86,6 @@ export function PublicReaderLayout({
     : {
         background: "linear-gradient(to bottom, hsl(var(--background)), hsl(var(--muted)))",
       };
-
-  const meta = React.useMemo(() => rawScript ? extractMetadata(rawScript) : {}, [rawScript]);
-  const headerAuthor = meta.author;
 
   const downloadOptions = [
     {
@@ -209,6 +206,7 @@ export function PublicReaderLayout({
                        license={script.license}
                        licenseUrl={script.licenseUrl}
                        licenseTerms={script.licenseTerms}
+                       licenseTags={script.licenseTags}
                        copyright={script.copyright}
                    />
                    {script.showMarkerLegend && validMarkerConfigs?.length > 0 && (

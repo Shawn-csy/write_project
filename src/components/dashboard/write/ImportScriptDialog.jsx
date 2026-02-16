@@ -1,10 +1,9 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { Loader2, ClipboardPaste, FileText, Eye, Wand2, CheckCircle2 } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "../../ui/dialog";
 import { ScrollArea } from "../../ui/scroll-area";
-import { parseScreenplay } from "../../../lib/screenplayAST.js";
 import { useSettings } from "../../../contexts/SettingsContext";
 
 // Sub-components
@@ -13,7 +12,7 @@ import { ImportStagePreview } from "./import/ImportStagePreview";
 import { ImportStageConfigure } from "./import/ImportStageConfigure";
 
 // 三階段處理流程 (純 Marker 模式)
-import { preprocess, TextPreprocessor } from "../../../lib/importPipeline/textPreprocessor.js";
+import { preprocess } from "../../../lib/importPipeline/textPreprocessor.js";
 import { discoverMarkers, MarkerDiscoverer } from "../../../lib/importPipeline/markerDiscoverer.js";
 import { buildAST } from "../../../lib/importPipeline/directASTBuilder.js";
 import { extractMetadata } from "../../../lib/importPipeline/metadataExtractor.js";
@@ -57,10 +56,13 @@ export function ImportScriptDialog({
         setStep(STEPS.INPUT);
         setRawInput("");
         setTitle("");
+        setMetadataInput("");
         setPreprocessResult(null);
         setDiscoveryResult(null);
+        setMetadata({});
         setSelectedConfigId('auto');
         setActiveRules([]);
+        setShowSaveAlert(false);
         setAst(null);
     }, []);
     
@@ -162,6 +164,10 @@ export function ImportScriptDialog({
         setSelectedConfigId(configId);
         
         if (configId === 'auto') {
+            if (!discoveryResult?.discoveredMarkers) {
+                setActiveRules(existingMarkerConfigs);
+                return;
+            }
             // 回到自動偵測
              const autoRules = discoveryResult.discoveredMarkers
                 .filter(m => m._discovery.confidence >= 0.6)
@@ -385,7 +391,7 @@ export function ImportScriptDialog({
                     <Button variant="outline" onClick={() => handleOpenChange(false)}>取消</Button>
                     
                     {step === STEPS.INPUT && (
-                        <Button onClick={handlePreprocess} disabled={!rawInput.trim()}>下一步：預處理</Button>
+                        <Button onClick={handlePreprocess} disabled={!rawInput.trim() && !metadataInput.trim()}>下一步：預處理</Button>
                     )}
                     
                     {step === STEPS.PREVIEW && (

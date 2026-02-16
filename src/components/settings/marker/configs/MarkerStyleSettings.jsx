@@ -173,7 +173,7 @@ export function MarkerStyleSettings({ config, idx, updateMarker }) {
                                         <input 
                                             type="color" 
                                             className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" 
-                                            value={config.style?.color && !config.style.color.startsWith('var--') ? config.style.color : '#000000'}
+                                            value={config.style?.color && !config.style.color.startsWith('var(--') ? config.style.color : '#000000'}
                                             onChange={(e) => updateStyle('color', e.target.value)} 
                                         />
                                     </div>

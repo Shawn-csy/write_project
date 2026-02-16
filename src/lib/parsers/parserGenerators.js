@@ -1,4 +1,5 @@
 import Parsimmon from 'parsimmon';
+import { isInlineLike } from '../markerRules.js';
 
 const P = Parsimmon;
 
@@ -16,10 +17,19 @@ export const toFullWidth = (str) => {
 export const createDynamicParsers = (configs = []) => {
     const parsers = {};
     const safeConfigs = Array.isArray(configs) ? configs : [];
+    const prefixStarts = safeConfigs
+        .filter((c) => isInlineLike(c) && (c.matchMode === 'prefix' || (!c.end && c.start)) && c.start)
+        .flatMap((c) => {
+            const full = toFullWidth(c.start);
+            return c.start === full ? [c.start] : [c.start, full];
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.length - a.length)
+        .map((s) => escapeRegExp(s));
+    const nextPrefixPattern = prefixStarts.length ? `(?:${prefixStarts.join('|')})` : null;
 
     safeConfigs.forEach(config => {
-        // [MODIFIED] Relaxed restriction: Allow Block markers to be parsed inline.
-        // if (config.isBlock && config.type !== 'inline') return; 
+        if (!isInlineLike(config)) return;
 
         const type = config.type || 'inline';
         const id = config.id || `custom-${Math.random().toString(36).substr(2, 9)}`;
@@ -50,7 +60,11 @@ export const createDynamicParsers = (configs = []) => {
                 ? P.string(startStr)
                 : P.alt(P.string(startStr), P.string(fullStartStr));
              
-             parser = startParser.then(P.regex(/.*/)).map(content => ({ 
+             const contentRegex = nextPrefixPattern
+                ? new RegExp(`^[\\s\\S]*?(?=${nextPrefixPattern}|$)`)
+                : /^[\s\S]*/;
+
+             parser = startParser.then(P.regex(contentRegex)).map(content => ({ 
                  type: 'highlight', 
                  id, 
                  content: content.trim() 
@@ -109,10 +123,7 @@ export const createTextParser = (configs = []) => {
     const safeConfigs = Array.isArray(configs) ? configs : [];
 
     safeConfigs.forEach(c => {
-        // Only exclude start char if this config generates an INLINE parser.
-        const generatesParser = !(c.isBlock && c.type !== 'inline'); 
-        
-        if (generatesParser && c.start && c.start.length > 0) {
+        if (isInlineLike(c) && c.start && c.start.length > 0) {
             startChars.add(c.start.charAt(0));
             // Also exclude fullwidth char
             const fullStart = toFullWidth(c.start);

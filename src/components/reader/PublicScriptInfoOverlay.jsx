@@ -23,6 +23,7 @@ export function PublicScriptInfoOverlay({
   license,
   licenseUrl,
   licenseTerms = [],
+  licenseTags = [],
   copyright
 }) {
   const navigate = useNavigate();
@@ -142,13 +143,37 @@ export function PublicScriptInfoOverlay({
              </div>
           )}
 
+          {licenseTags && licenseTags.length > 0 && (
+             <div className="w-full mt-2 flex flex-nowrap sm:flex-wrap justify-start sm:justify-center gap-2 overflow-x-auto sm:overflow-visible pb-1 scrollbar-hide animate-in fade-in slide-in-from-bottom-2 duration-500">
+                {licenseTags.map((tag, i) => (
+                  <Badge
+                    key={`${tag}-${i}`}
+                    variant="secondary"
+                    className="shrink-0 sm:shrink max-w-[70vw] sm:max-w-[220px] px-2.5 py-1 text-xs border"
+                    title={tag}
+                    style={{
+                      backgroundColor: "var(--license-overlay-bg)",
+                      borderColor: "var(--license-overlay-border)",
+                      color: "var(--license-overlay-fg)",
+                    }}
+                  >
+                    <span className="truncate">{tag}</span>
+                  </Badge>
+                ))}
+             </div>
+          )}
+
           {/* Additional License Terms */}
           {licenseTerms && licenseTerms.length > 0 && (
-             <div className="w-full text-center mt-2 flex flex-wrap justify-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100">
+             <div className="w-full mt-2 flex flex-nowrap sm:flex-wrap justify-start sm:justify-center gap-2 overflow-x-auto sm:overflow-visible pb-1 scrollbar-hide animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100">
                 {licenseTerms.map((term, i) => (
-                    <span key={i} className="text-xs text-foreground/90 bg-primary/10 border border-primary/20 px-3 py-1 rounded-md backdrop-blur-sm inline-flex items-center">
-                        <Check className="w-3 h-3 mr-1.5 text-primary" />
-                        {term}
+                    <span key={i} className="shrink-0 sm:shrink max-w-[75vw] sm:max-w-[260px] text-xs px-3 py-1 rounded-md backdrop-blur-sm inline-flex items-center border" title={term} style={{
+                        backgroundColor: "var(--license-term-bg)",
+                        borderColor: "var(--license-term-border)",
+                        color: "var(--license-term-fg)",
+                    }}>
+                        <Check className="w-3 h-3 mr-1.5" />
+                        <span className="truncate">{term}</span>
                     </span>
                 ))}
              </div>

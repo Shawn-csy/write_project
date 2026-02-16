@@ -1,5 +1,5 @@
-import React from "react";
-import { Loader2, Plus, Download, Trash2, Folder, ChevronRight, FileText, MoreHorizontal, Settings, Globe, Check } from "lucide-react";
+import React, { useMemo, useCallback, useState } from "react";
+import { Loader2, Download, Trash2, Folder, ChevronRight, FileText, MoreHorizontal, Settings, Globe, FolderInput, ArrowUpDown } from "lucide-react";
 import { Button } from "../../ui/button";
 import { FileRow, SortableFileRow } from "../FileRow";
 import { 
@@ -30,7 +30,6 @@ import { updateScript, getScript } from "../../../lib/db"; // Needed for inline 
 import { ScriptMetadataDialog } from "../../dashboard/ScriptMetadataDialog"; // Adjust path as needed
 import { extractMetadata } from "../../../lib/metadataParser";
 import { buildFilename, downloadText } from "../../../lib/download";
-import { useState } from "react";
 
 // Helper: assureContent
 async function assureContent(item) {
@@ -53,6 +52,9 @@ export function ScriptList({
     loading,
     visibleItems,
     readOnly,
+    sortKey,
+    sortDir,
+    onSortChange,
     currentPath,
     expandedPaths,
     activeDragId,
@@ -60,10 +62,13 @@ export function ScriptList({
     // Actions
     onSelectScript,
     onToggleExpand,
-    onDelete,
+    onRequestDelete,
+    onRequestMove,
     onTogglePublic,
     onRename, // Add this
+    onPreviewItem,
     onGoUp,
+    selectedPreviewId,
     
     // Drag Props
     sensors,
@@ -73,6 +78,34 @@ export function ScriptList({
     // State Setters (for local optimistic updates if needed, logic handled in hook basically)
     setScripts // Passed from hook if needed for inline theme update
 }) {
+    const [editingScriptId, setEditingScriptId] = useState(null);
+
+    const dateFormatter = useMemo(() => new Intl.DateTimeFormat(undefined), []);
+    const formatDate = useCallback((ts) => {
+        if (!ts) return "";
+        return dateFormatter.format(new Date(ts));
+    }, [dateFormatter]);
+
+    const markerThemeNameById = useMemo(() => {
+        const map = {};
+        (markerThemes || []).forEach((t) => {
+            if (t?.id) map[t.id] = t.name || "主題";
+        });
+        return map;
+    }, [markerThemes]);
+
+    const enrichedItems = useMemo(() => {
+        return (visibleItems || []).map((item) => {
+            const metaData = item.content ? extractMetadata(item.content) : {};
+            return {
+                ...item,
+                _displayDate: item.draftDate || metaData.date || metaData.draftdate || formatDate(item.lastModified || item.createdAt),
+                _displayAuthor: item.author || metaData.author || metaData.authors || "User",
+                _themeName: item.markerThemeId ? (markerThemeNameById[item.markerThemeId] || "主題") : "",
+            };
+        });
+    }, [visibleItems, markerThemeNameById, formatDate]);
+
     if (loading) {
         return <div className="flex justify-center p-8"><Loader2 className="w-6 h-6 animate-spin" /></div>;
     }
@@ -84,11 +117,6 @@ export function ScriptList({
             </div>
         );
     }
-
-    const formatDate = (ts) => new Date(ts).toLocaleDateString();
-
-
-    const [editingScriptId, setEditingScriptId] = useState(null);
 
     const handleStatusClick = (e, item) => {
         if (readOnly) return;
@@ -124,9 +152,29 @@ export function ScriptList({
                 <div className="flex flex-col">
                      {/* Header Row */}
                      <div className="flex items-center px-4 py-2 border-b bg-muted/30 text-xs font-medium text-muted-foreground">
-                         <div className="flex-1">名稱</div>
+                         <div className="flex-1">
+                            <button
+                                type="button"
+                                className="inline-flex items-center gap-1 hover:text-foreground"
+                                onClick={() => onSortChange && onSortChange("title")}
+                            >
+                                名稱
+                                <ArrowUpDown className={`w-3 h-3 ${sortKey === "title" ? "text-foreground" : "opacity-50"}`} />
+                                {sortKey === "title" && <span>{sortDir === "asc" ? "↑" : "↓"}</span>}
+                            </button>
+                         </div>
                          <div className="w-24 text-right hidden sm:block">字數 (約)</div>
-                         <div className="w-32 text-right hidden sm:block">修改日期</div>
+                         <div className="w-32 text-right hidden sm:block">
+                            <button
+                                type="button"
+                                className="inline-flex items-center gap-1 hover:text-foreground"
+                                onClick={() => onSortChange && onSortChange("lastModified")}
+                            >
+                                修改日期
+                                <ArrowUpDown className={`w-3 h-3 ${sortKey === "lastModified" ? "text-foreground" : "opacity-50"}`} />
+                                {sortKey === "lastModified" && <span>{sortDir === "asc" ? "↑" : "↓"}</span>}
+                            </button>
+                         </div>
                          <div className="w-28 text-center hidden md:block">標記主題</div>
                          <div className="w-20 text-center hidden sm:block">狀態</div>
                          <div className="w-10"></div>
@@ -146,10 +194,14 @@ export function ScriptList({
                      )}
 
                      {/* Items */}
-                     {visibleItems.map((item) => {
-                        const metaData = item.content ? extractMetadata(item.content) : {};
-                        const displayDate = item.draftDate || metaData.date || metaData.draftdate || new Date(item.lastModified || item.createdAt).toLocaleDateString();
-                        const displayAuthor = item.author || metaData.author || metaData.authors || "User";
+                     {enrichedItems.map((item) => {
+                        const displayDate = item._displayDate;
+                        const displayAuthor = item._displayAuthor;
+                        const isSelected = selectedPreviewId === item.id;
+                        const isChild = (item.depth || 0) > 0;
+                        const rowClassName = isSelected
+                            ? "bg-primary/12 ring-1 ring-inset ring-primary/45 border-l-4 border-l-primary"
+                            : (isChild ? "bg-muted/20 border-l border-l-border/50" : "");
 
                         return (
                         <SortableFileRow 
@@ -176,7 +228,7 @@ export function ScriptList({
                                             <div className="flex items-center gap-1 sm:hidden">
                                                 {item.markerThemeId && markerThemes && (
                                                     <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-600 border border-blue-200">
-                                                        {markerThemes.find(t => t.id === item.markerThemeId)?.name || '主題'}
+                                                        {item._themeName || '主題'}
                                                     </span>
                                                 )}
                                                 <span 
@@ -191,11 +243,19 @@ export function ScriptList({
                                     }
                                     isFolder={item.type === 'folder'}
                                     tags={item.tags} 
+                                    className={rowClassName}
                                     onClick={e => {
                                         if (item.type === 'folder') {
                                             const fullPath = (item.folder === '/' ? '' : item.folder) + '/' + item.title;
                                             onToggleExpand(fullPath, e);
+                                            onPreviewItem && onPreviewItem(item);
                                         } else {
+                                            onPreviewItem && onPreviewItem(item);
+                                        }
+                                    }}
+                                    onDoubleClick={e => {
+                                        if (item.type !== 'folder') {
+                                            e.stopPropagation();
                                             onSelectScript(item);
                                         }
                                     }}
@@ -310,6 +370,18 @@ export function ScriptList({
                                                         )}
 
                                                         <DropdownMenuSeparator />
+
+                                                        {item.type !== 'folder' && (
+                                                            <DropdownMenuItem
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    onRequestMove && onRequestMove(item);
+                                                                }}
+                                                            >
+                                                                <FolderInput className="w-4 h-4 mr-2" />
+                                                                <span>移動到...</span>
+                                                            </DropdownMenuItem>
+                                                        )}
                                                         
                                                         {item.type !== 'folder' && (
                                                             <DropdownMenuItem onClick={async () => {
@@ -336,7 +408,10 @@ export function ScriptList({
                                                         </DropdownMenuItem>
 
                                                         <DropdownMenuItem 
-                                                            onClick={(e) => onDelete(e, item.id)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                onRequestDelete && onRequestDelete(item);
+                                                            }}
                                                             className="text-destructive focus:text-destructive"
                                                         >
                                                             <Trash2 className="w-4 h-4 mr-2" />
