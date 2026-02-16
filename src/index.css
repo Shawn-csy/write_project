@@ -26,6 +26,21 @@
     --paper-shadow: rgba(0, 0, 0, 0.12);
     --note-bg: color-mix(in srgb, hsl(var(--accent)) 16%, hsl(var(--background)) 84%);
     --note-border: color-mix(in srgb, hsl(var(--accent)) 30%, transparent);
+    --license-filter-bg: color-mix(in srgb, hsl(var(--accent)) 16%, hsl(var(--background)) 84%);
+    --license-filter-border: color-mix(in srgb, hsl(var(--accent)) 34%, hsl(var(--border)) 66%);
+    --license-filter-fg: color-mix(in srgb, hsl(var(--accent-strong)) 42%, hsl(var(--foreground)) 58%);
+    --license-selected-bg: color-mix(in srgb, hsl(var(--accent)) 24%, hsl(var(--background)) 76%);
+    --license-selected-border: color-mix(in srgb, hsl(var(--accent)) 44%, hsl(var(--border)) 56%);
+    --license-selected-fg: color-mix(in srgb, hsl(var(--accent-strong)) 58%, hsl(var(--foreground)) 42%);
+    --license-card-bg: color-mix(in srgb, hsl(var(--accent)) 18%, hsl(var(--background)) 82%);
+    --license-card-border: color-mix(in srgb, hsl(var(--accent)) 40%, hsl(var(--border)) 60%);
+    --license-card-fg: color-mix(in srgb, hsl(var(--accent-strong)) 50%, hsl(var(--foreground)) 50%);
+    --license-overlay-bg: color-mix(in srgb, hsl(var(--accent)) 22%, hsl(var(--background)) 78%);
+    --license-overlay-border: color-mix(in srgb, hsl(var(--accent)) 42%, hsl(var(--border)) 58%);
+    --license-overlay-fg: color-mix(in srgb, hsl(var(--accent-strong)) 54%, hsl(var(--foreground)) 46%);
+    --license-term-bg: color-mix(in srgb, hsl(var(--accent)) 20%, hsl(var(--background)) 80%);
+    --license-term-border: color-mix(in srgb, hsl(var(--accent)) 46%, hsl(var(--border)) 54%);
+    --license-term-fg: color-mix(in srgb, hsl(var(--accent-strong)) 56%, hsl(var(--foreground)) 44%);
 
     /* Marker Colors (Light Mode) */
     --marker-color-red: #dc2626;
@@ -90,6 +105,21 @@
     --paper-bg: #0d0d0f;
     --paper-border: #1f1f24;
     --paper-shadow: rgba(0, 0, 0, 0.4);
+    --license-filter-bg: color-mix(in srgb, hsl(var(--accent)) 14%, hsl(var(--background)) 86%);
+    --license-filter-border: color-mix(in srgb, hsl(var(--accent)) 32%, hsl(var(--border)) 68%);
+    --license-filter-fg: hsl(var(--foreground));
+    --license-selected-bg: color-mix(in srgb, hsl(var(--accent)) 20%, hsl(var(--background)) 80%);
+    --license-selected-border: color-mix(in srgb, hsl(var(--accent)) 40%, hsl(var(--border)) 60%);
+    --license-selected-fg: hsl(var(--foreground));
+    --license-card-bg: color-mix(in srgb, hsl(var(--accent)) 16%, hsl(var(--background)) 84%);
+    --license-card-border: color-mix(in srgb, hsl(var(--accent)) 34%, hsl(var(--border)) 66%);
+    --license-card-fg: hsl(var(--foreground));
+    --license-overlay-bg: color-mix(in srgb, hsl(var(--accent)) 18%, hsl(var(--background)) 82%);
+    --license-overlay-border: color-mix(in srgb, hsl(var(--accent)) 36%, hsl(var(--border)) 64%);
+    --license-overlay-fg: hsl(var(--foreground));
+    --license-term-bg: color-mix(in srgb, hsl(var(--accent)) 17%, hsl(var(--background)) 83%);
+    --license-term-border: color-mix(in srgb, hsl(var(--accent)) 38%, hsl(var(--border)) 62%);
+    --license-term-fg: hsl(var(--foreground));
 
     /* Marker Colors (Dark Mode) */
     --marker-color-red: #f87171;
