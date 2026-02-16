@@ -6,12 +6,72 @@ import { Badge } from "../../ui/badge";
 
 export function PublisherWorksTab({ isLoading, scripts, setEditingScript, navigate, formatDate, onContinueEdit }) {
     const [filter, setFilter] = React.useState("all"); // all, public, private
+    const INITIAL_VISIBLE = 12;
+    const PREFETCH_STEP = 24;
+    const [visibleCount, setVisibleCount] = React.useState(INITIAL_VISIBLE);
 
-    const filteredScripts = scripts.filter(script => {
-        if (filter === "public") return script.status === "Public";
-        if (filter === "private") return script.status !== "Public";
-        return true;
-    });
+    const stats = React.useMemo(() => {
+        let publicCount = 0;
+        let privateCount = 0;
+        (scripts || []).forEach((script) => {
+            const isPublic = script.status === "Public" || script.isPublic;
+            if (isPublic) publicCount += 1;
+            else privateCount += 1;
+        });
+        return { total: (scripts || []).length, publicCount, privateCount };
+    }, [scripts]);
+
+    const filteredScripts = React.useMemo(() => {
+        return (scripts || []).filter((script) => {
+            const isPublic = script.status === "Public" || script.isPublic;
+            if (filter === "public") return isPublic;
+            if (filter === "private") return !isPublic;
+            return true;
+        });
+    }, [scripts, filter]);
+
+    React.useEffect(() => {
+        setVisibleCount(INITIAL_VISIBLE);
+    }, [filter, scripts]);
+
+    React.useEffect(() => {
+        if (isLoading) return;
+        if (visibleCount >= filteredScripts.length) return;
+
+        let cancelled = false;
+        let idleId = null;
+        let timerId = null;
+
+        const prefetchNextBatch = () => {
+            if (cancelled) return;
+            setVisibleCount((prev) => Math.min(prev + PREFETCH_STEP, filteredScripts.length));
+        };
+
+        if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+            idleId = window.requestIdleCallback(prefetchNextBatch, { timeout: 300 });
+        } else {
+            timerId = window.setTimeout(prefetchNextBatch, 120);
+        }
+
+        return () => {
+            cancelled = true;
+            if (idleId !== null && typeof window !== "undefined" && "cancelIdleCallback" in window) {
+                window.cancelIdleCallback(idleId);
+            }
+            if (timerId !== null) {
+                window.clearTimeout(timerId);
+            }
+        };
+    }, [filteredScripts.length, isLoading, visibleCount]);
+
+    const visibleScripts = React.useMemo(
+        () => filteredScripts.slice(0, visibleCount),
+        [filteredScripts, visibleCount]
+    );
+    const hasMore = visibleCount < filteredScripts.length;
+    const loadMore = React.useCallback(() => {
+        setVisibleCount((prev) => Math.min(prev + PREFETCH_STEP, filteredScripts.length));
+    }, [filteredScripts.length]);
 
     return (
         <div className="grid gap-4">
@@ -22,7 +82,7 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
                     onClick={() => setFilter("all")}
                     className="h-8 rounded-full text-xs"
                 >
-                    全部 ({scripts.length})
+                    全部 ({stats.total})
                 </Button>
                 <Button 
                     variant={filter === "public" ? "secondary" : "ghost"} 
@@ -30,7 +90,7 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
                     onClick={() => setFilter("public")}
                     className="h-8 rounded-full text-xs"
                 >
-                    已公開 ({scripts.filter(s => s.status === "Public").length})
+                    已公開 ({stats.publicCount})
                 </Button>
                 <Button 
                     variant={filter === "private" ? "secondary" : "ghost"} 
@@ -38,7 +98,7 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
                     onClick={() => setFilter("private")}
                     className="h-8 rounded-full text-xs"
                 >
-                    未公開 ({scripts.filter(s => s.status !== "Public").length})
+                    未公開 ({stats.privateCount})
                 </Button>
             </div>
 
@@ -48,7 +108,9 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
                 <div className="text-center text-muted-foreground py-16 border rounded-lg border-dashed">
                     {filter === "all" ? "尚未有任何作品" : filter === "public" ? "尚未有公開作品" : "尚未有未公開作品"}
                 </div>
-            ) : filteredScripts.map(script => (
+            ) : (
+                <>
+                    {visibleScripts.map(script => (
                 <Card key={script.id} className="flex flex-col sm:flex-row overflow-hidden group">
                     {/* Thumbnail */}
                     <div className="w-full sm:w-32 h-32 bg-muted shrink-0 relative">
@@ -105,7 +167,16 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
                         </div>
                     </div>
                 </Card>
-            ))}
+                    ))}
+                    {hasMore && (
+                        <div className="pt-2 text-center">
+                            <Button variant="outline" size="sm" onClick={loadMore}>
+                                載入更多
+                            </Button>
+                        </div>
+                    )}
+                </>
+            )}
         </div>
     );
 }

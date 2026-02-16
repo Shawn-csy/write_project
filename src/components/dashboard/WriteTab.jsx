@@ -31,7 +31,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     const [isImportOpen, setIsImportOpen] = useState(false);
     const [previewItemId, setPreviewItemId] = useState(null);
     const [pageSize, setPageSize] = useState(50);
-    const [page, setPage] = useState(1);
+    const [loadedCount, setLoadedCount] = useState(50);
     const [sortKey, setSortKey] = useState("custom");
     const [sortDir, setSortDir] = useState("desc");
     const [filterType, setFilterType] = useState("all");
@@ -181,21 +181,27 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     const hasActiveFilters = filterType !== "all" || filterStatus !== "all" || Boolean(filterQuery.trim()) || sortKey !== "custom";
 
     const totalItems = filteredAndSortedItems.length;
-    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
     const pagedItems = useMemo(() => {
-        const start = (page - 1) * pageSize;
-        return filteredAndSortedItems.slice(start, start + pageSize);
-    }, [filteredAndSortedItems, page, pageSize]);
+        return filteredAndSortedItems.slice(0, loadedCount);
+    }, [filteredAndSortedItems, loadedCount]);
+    const hasMoreItems = loadedCount < totalItems;
 
     useEffect(() => {
-        setPage(1);
+        setLoadedCount(pageSize);
     }, [manager.currentPath, pageSize, sortKey, sortDir, filterType, filterStatus, filterQuery]);
 
-    useEffect(() => {
-        if (page > totalPages) {
-            setPage(totalPages);
+    const loadMore = useCallback(() => {
+        setLoadedCount((prev) => Math.min(prev + pageSize, totalItems));
+    }, [pageSize, totalItems]);
+
+    const handleListScroll = useCallback((e) => {
+        const el = e.currentTarget;
+        const threshold = 80;
+        const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - threshold;
+        if (nearBottom && hasMoreItems) {
+            loadMore();
         }
-    }, [page, totalPages]);
+    }, [hasMoreItems, loadMore]);
 
     return (
         <div className="flex flex-col h-full overflow-hidden">
@@ -216,7 +222,10 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
 
             {/* File Explorer */}
             <div className="flex-1 min-h-0 flex gap-3">
-                <div className="border rounded-lg bg-card flex-1 min-h-0 overflow-y-auto">
+                <div
+                    className="border rounded-lg bg-card flex-1 min-h-0 overflow-y-auto"
+                    onScroll={handleListScroll}
+                >
                     <div className="px-4 py-2 border-b bg-muted/20 flex flex-wrap items-center gap-2 text-xs">
                         <div className="flex items-center gap-1" title="搜尋名稱或路徑">
                             <Search className="w-3.5 h-3.5 text-muted-foreground" />
@@ -396,27 +405,19 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                         <option value={50}>50</option>
                         <option value={100}>100</option>
                     </select>
-                    <span>共 {totalItems} 筆</span>
+                    <span>已載入 {pagedItems.length} / {totalItems}</span>
                 </div>
-                <div className="flex items-center gap-2">
+                {hasMoreItems ? (
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={page <= 1}
+                        onClick={loadMore}
                     >
-                        上一頁
+                        載入更多
                     </Button>
-                    <span>{page} / {totalPages}</span>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={page >= totalPages}
-                    >
-                        下一頁
-                    </Button>
-                </div>
+                ) : (
+                    <span>已全部載入</span>
+                )}
             </div>
 
             {/* Create Dialog */}
