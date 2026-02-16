@@ -46,7 +46,7 @@ export class DirectASTBuilder {
     // 分離 block 和 inline markers
     // range 模式視為 block markers
     this.blockMarkers = this.configs.filter(c => 
-      c.isBlock || c.type === 'prefix' || c.matchMode === 'range'
+      c.isBlock || c.matchMode === 'prefix' || c.matchMode === 'range'
     );
     this.inlineMarkers = this.configs.filter(c => 
       !c.isBlock && c.type !== 'prefix' && c.matchMode !== 'range' && c.matchMode !== 'virtual'

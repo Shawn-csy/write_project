@@ -5,7 +5,8 @@ export function useScriptActions({
     scripts, 
     setScripts, 
     currentPath, 
-    fetchScripts 
+    fetchScripts,
+    onScriptCreated
 }) {
     // Create State
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -35,10 +36,20 @@ export function useScriptActions({
         if (!newTitle.trim()) return;
         setCreating(true);
         try {
-            await createScript(newTitle, newType, currentPath);
+            const id = await createScript(newTitle, newType, currentPath);
             setNewTitle("");
             setIsCreateOpen(false);
             fetchScripts();
+            if (newType === "script" && typeof onScriptCreated === "function") {
+                onScriptCreated({
+                    id,
+                    title: newTitle,
+                    type: "script",
+                    folder: currentPath,
+                    content: "",
+                    isPublic: false
+                });
+            }
         } catch (error) {
             console.error(error);
         } finally {

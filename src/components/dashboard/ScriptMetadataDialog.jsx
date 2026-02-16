@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "../ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
 import { Button } from "../ui/button";
@@ -19,13 +19,33 @@ import { MetadataBasicTab } from "./metadata/MetadataBasicTab";
 import { MetadataDetailsTab } from "./metadata/MetadataDetailsTab";
 import { MetadataAdvancedTab } from "./metadata/MetadataAdvancedTab";
 import { MetadataLicenseTab } from "./metadata/MetadataLicenseTab";
+import { useToast } from "../ui/toast";
 
+export function buildPublishChecklist({ title, identity, license, licenseTerms, coverUrl, synopsis, tags }) {
+    const required = [
+        { key: "title", label: "作品標題", ok: Boolean(title?.trim()) },
+        { key: "identity", label: "作者身份", ok: Boolean(identity?.startsWith("persona:")) },
+        { key: "license", label: "授權資訊", ok: Boolean(license?.trim()) || (licenseTerms || []).length > 0 },
+    ];
+    const recommended = [
+        { key: "cover", label: "封面圖片", ok: Boolean(coverUrl?.trim()) },
+        { key: "synopsis", label: "作品摘要", ok: Boolean(synopsis?.trim()) },
+        { key: "tags", label: "作品標籤", ok: Array.isArray(tags) && tags.length > 0 },
+    ];
+    return {
+        required,
+        recommended,
+        missingRequired: required.filter((item) => !item.ok),
+        missingRecommended: recommended.filter((item) => !item.ok),
+    };
+}
 
 
 
 
 
 export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onSave }) {
+    const { toast } = useToast();
     const [title, setTitle] = useState("");
     const [coverUrl, setCoverUrl] = useState("");
     const [status, setStatus] = useState("Private");
@@ -46,6 +66,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     const [jsonMode, setJsonMode] = useState(false);
     const [jsonText, setJsonText] = useState("");
     const [jsonError, setJsonError] = useState("");
+    const [activeTab, setActiveTab] = useState("basic");
+    const [showValidationHints, setShowValidationHints] = useState(false);
     const customIdRef = useRef(0);
     const initializedRef = useRef(false);
     const userEditedRef = useRef(false);
@@ -214,6 +236,51 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     const [markerThemeId, setMarkerThemeId] = useState("default");
     const [showMarkerLegend, setShowMarkerLegend] = useState(false);
     const [disableCopy, setDisableCopy] = useState(false);
+    const publishChecklist = useMemo(
+        () => buildPublishChecklist({ title, identity, license, licenseTerms, coverUrl, synopsis, tags: currentTags }),
+        [title, identity, license, licenseTerms, coverUrl, synopsis, currentTags]
+    );
+    const requiredErrorMap = useMemo(
+        () => ({
+            title: showValidationHints && publishChecklist.missingRequired.some((item) => item.key === "title"),
+            identity: showValidationHints && publishChecklist.missingRequired.some((item) => item.key === "identity"),
+            license: showValidationHints && publishChecklist.missingRequired.some((item) => item.key === "license"),
+        }),
+        [showValidationHints, publishChecklist.missingRequired]
+    );
+    const recommendedErrorMap = useMemo(
+        () => ({
+            cover: showValidationHints && publishChecklist.missingRecommended.some((item) => item.key === "cover"),
+            synopsis: showValidationHints && publishChecklist.missingRecommended.some((item) => item.key === "synopsis"),
+            tags: showValidationHints && publishChecklist.missingRecommended.some((item) => item.key === "tags"),
+        }),
+        [showValidationHints, publishChecklist.missingRecommended]
+    );
+
+    const getKeyTarget = (key) => {
+        if (key === "title") return { tab: "basic", fieldId: "metadata-title" };
+        if (key === "identity") return { tab: "basic", fieldId: "metadata-identity-trigger" };
+        if (key === "license") return { tab: "license", fieldId: "license-name" };
+        if (key === "cover") return { tab: "details", fieldId: "metadata-cover-url" };
+        if (key === "synopsis") return { tab: "basic", fieldId: "metadata-synopsis" };
+        if (key === "tags") return { tab: "details", fieldId: "metadata-new-tag" };
+        return { tab: "basic", fieldId: null };
+    };
+
+    const jumpToChecklistItem = (key) => {
+        const target = getKeyTarget(key);
+        setActiveTab(target.tab);
+        window.setTimeout(() => {
+            if (!target.fieldId) return;
+            const el = document.getElementById(target.fieldId);
+            if (el && typeof el.focus === "function") {
+                el.focus();
+                if (typeof el.scrollIntoView === "function") {
+                    el.scrollIntoView({ block: "center", behavior: "smooth" });
+                }
+            }
+        }, 80);
+    };
 
     useEffect(() => {
         if (open && currentUser) {
@@ -282,6 +349,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
             contactAutoFilledRef.current = false;
             publicLoadedRef.current = null;
             setLocalScript(null);
+            setActiveTab("basic");
+            setShowValidationHints(false);
             return;
         }
         if (initializedRef.current) return;
@@ -656,7 +725,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         if (!candidate) return;
         const tagName = candidate;
         
-        if (currentTags.find(t => t.name === tagName)) {
+        if (currentTags.find(t => t.name.toLowerCase() === tagName.toLowerCase())) {
             setNewTagInput("");
             return;
         }
@@ -667,12 +736,72 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
             if (!tagToAdd) {
                 const newTag = await createTag(tagName, "bg-gray-500");
                 tagToAdd = newTag; 
-                setAvailableTags([...availableTags, newTag]);
+                setAvailableTags((prev) => {
+                    if (prev.some((t) => t.id === newTag.id || t.name.toLowerCase() === newTag.name.toLowerCase())) return prev;
+                    return [...prev, newTag];
+                });
             }
-            setCurrentTags([...currentTags, tagToAdd]);
+            setCurrentTags((prev) => {
+                if (prev.some((t) => t.id === tagToAdd.id || t.name.toLowerCase() === tagToAdd.name.toLowerCase())) return prev;
+                return [...prev, tagToAdd];
+            });
             setNewTagInput("");
         } catch (e) {
             console.error("Error adding tag", e);
+        }
+    };
+
+    const handleAddTagsBatch = async (inputs = []) => {
+        const names = Array.from(
+            new Set(
+                (inputs || [])
+                    .map((item) => String(item || "").trim())
+                    .filter(Boolean)
+                    .map((name) => name.toLowerCase())
+            )
+        );
+        if (names.length === 0) return;
+
+        const nameMap = new Map();
+        names.forEach((lowerName) => {
+            const original = (inputs || []).find((item) => String(item || "").trim().toLowerCase() === lowerName);
+            nameMap.set(lowerName, String(original || "").trim());
+        });
+
+        const resolved = [];
+        for (const lowerName of names) {
+            const displayName = nameMap.get(lowerName);
+            if (!displayName) continue;
+            let existing = availableTags.find((t) => t.name.toLowerCase() === lowerName);
+            if (!existing) {
+                try {
+                    existing = await createTag(displayName, "bg-gray-500");
+                    setAvailableTags((prev) => {
+                        if (prev.some((t) => t.id === existing.id || t.name.toLowerCase() === lowerName)) return prev;
+                        return [...prev, existing];
+                    });
+                } catch (error) {
+                    console.error("Batch add tag failed", error);
+                    continue;
+                }
+            }
+            resolved.push(existing);
+        }
+
+        if (resolved.length > 0) {
+            setCurrentTags((prev) => {
+                const next = [...prev];
+                for (const tag of resolved) {
+                    const exists = next.some((item) => item.id === tag.id || item.name.toLowerCase() === tag.name.toLowerCase());
+                    if (!exists) next.push(tag);
+                }
+                return next;
+            });
+            setNewTagInput("");
+            toast({
+                title: "已加入標籤",
+                description: `共加入 ${resolved.length} 個標籤`,
+            });
         }
     };
 
@@ -681,6 +810,25 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     };
 
     const handleSave = async () => {
+        setShowValidationHints(true);
+        if (!identity || !identity.startsWith("persona:")) {
+            toast({ title: "請先選擇作者身份", variant: "destructive" });
+            setActiveTab("basic");
+            return;
+        }
+        if (status === "Public" && publishChecklist.missingRequired.length > 0) {
+            const firstMissing = publishChecklist.missingRequired[0];
+            if (firstMissing?.key) {
+                jumpToChecklistItem(firstMissing.key);
+            }
+            toast({
+                title: "無法公開作品",
+                description: `請先完成：${publishChecklist.missingRequired.map((item) => item.label).join("、")}`,
+                variant: "destructive",
+            });
+            return;
+        }
+
         setIsSaving(true);
         try {
             // 1. Prepare Content Update
@@ -732,12 +880,6 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
 
             const finalContent = writeMetadata(content, orderedEntries);
 
-            if (!identity || !identity.startsWith("persona:")) {
-                alert("請先選擇作者身份");
-                setIsSaving(false);
-                return;
-            }
-
             let updatePayload = {
                 title,
                 coverUrl,
@@ -777,10 +919,12 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                 tags: currentTags,
                 markerThemeId
             }); 
+            toast({ title: "劇本資訊已儲存" });
+            setShowValidationHints(false);
             onOpenChange(false);
         } catch (error) {
             console.error("Failed to save script metadata", error);
-            alert("儲存失敗");
+            toast({ title: "儲存失敗", description: "請稍後再試。", variant: "destructive" });
         } finally {
             setIsSaving(false);
         }
@@ -795,8 +939,59 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                         設定劇本的元數據 (Metadata)。這些資訊將會寫入劇本檔案的標頭中。
                     </DialogDescription>
                 </DialogHeader>
+
+                <div className={`rounded-md border p-3 ${status === "Public" && publishChecklist.missingRequired.length > 0 ? "border-destructive/40 bg-destructive/5" : "border-border bg-muted/20"}`}>
+                    <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+                        <AlertTriangle className={`h-4 w-4 ${status === "Public" && publishChecklist.missingRequired.length > 0 ? "text-destructive" : "text-muted-foreground"}`} />
+                        發佈檢查清單
+                    </div>
+                    <div className="mb-2 text-xs font-medium text-foreground/90">必填</div>
+                    <div className="grid grid-cols-1 gap-1 text-sm sm:grid-cols-2">
+                        {publishChecklist.required.map((item) => (
+                            <div key={item.key} className={item.ok ? "text-muted-foreground" : "text-destructive"}>
+                                {item.ok ? "✓" : "•"} {item.label}
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-3 mb-2 text-xs font-medium text-muted-foreground">建議填寫（不影響發布）</div>
+                    <div className="grid grid-cols-1 gap-1 text-sm sm:grid-cols-2">
+                        {publishChecklist.recommended.map((item) => (
+                            <div key={item.key} className={item.ok ? "text-muted-foreground" : "text-amber-700 dark:text-amber-300"}>
+                                {item.ok ? "✓" : "•"} {item.label}
+                            </div>
+                        ))}
+                    </div>
+                    {(publishChecklist.missingRequired.length > 0 || publishChecklist.missingRecommended.length > 0) && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                            {publishChecklist.missingRequired.map((item) => (
+                                <Button
+                                    key={`req-${item.key}`}
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 text-xs border-destructive/30 text-destructive hover:bg-destructive/10"
+                                    onClick={() => jumpToChecklistItem(item.key)}
+                                >
+                                    前往補齊：{item.label}
+                                </Button>
+                            ))}
+                            {publishChecklist.missingRecommended.map((item) => (
+                                <Button
+                                    key={`rec-${item.key}`}
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 text-xs text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
+                                    onClick={() => jumpToChecklistItem(item.key)}
+                                >
+                                    稍後補上：{item.label}
+                                </Button>
+                            ))}
+                        </div>
+                    )}
+                </div>
                 
-                <Tabs defaultValue="basic" className="flex-1 overflow-hidden flex flex-col">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
                     <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1 h-auto sm:h-9">
                         <TabsTrigger value="basic">基本資訊</TabsTrigger>
                         <TabsTrigger value="details">詳細設定</TabsTrigger>
@@ -817,6 +1012,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                                 date={date} setDate={setDate}
                                 source={source} setSource={setSource}
                                 synopsis={synopsis} setSynopsis={setSynopsis}
+                                requiredErrors={requiredErrorMap}
+                                recommendedErrors={recommendedErrorMap}
                             />
                         </TabsContent>
 
@@ -829,6 +1026,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
             availableTags={availableTags}
             newTagInput={newTagInput} setNewTagInput={setNewTagInput}
             handleAddTag={handleAddTag}
+            handleAddTagsBatch={handleAddTagsBatch}
             handleRemoveTag={handleRemoveTag}
             contactFields={contactFields} setContactFields={setContactFields}
             onAddContactField={handleAddContactField}
@@ -839,6 +1037,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
             addCustomField={addCustomField}
             addDivider={addDivider}
             handleCustomFieldUpdate={handleCustomFieldUpdate}
+            recommendedErrors={recommendedErrorMap}
         />
                         </TabsContent>
 
@@ -848,6 +1047,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                                 licenseUrl={licenseUrl} setLicenseUrl={setLicenseUrl}
                                 licenseTerms={licenseTerms} setLicenseTerms={setLicenseTerms}
                                 copyright={copyright} setCopyright={setCopyright}
+                                requiredErrors={requiredErrorMap}
                             />
                         </TabsContent>
 

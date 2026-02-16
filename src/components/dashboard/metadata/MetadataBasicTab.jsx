@@ -13,7 +13,9 @@ export function MetadataBasicTab({
     status, setStatus,
     date, setDate,
     source, setSource,
-    synopsis, setSynopsis
+    synopsis, setSynopsis,
+    requiredErrors = {},
+    recommendedErrors = {}
 }) {
     return (
         <div className="space-y-4 h-full">
@@ -21,11 +23,14 @@ export function MetadataBasicTab({
                 <div className="grid gap-2">
                     <label className="text-sm font-medium" htmlFor="metadata-title">標題 (Title)</label>
                     <Input id="metadata-title" name="metadataTitle" value={title} onChange={e => setTitle(e.target.value)} placeholder="劇本標題" />
+                    {requiredErrors.title && (
+                        <p className="text-xs text-destructive">發布公開作品前請填寫標題。</p>
+                    )}
                 </div>
                 <div className="grid gap-2">
                     <label className="text-sm font-medium">發布身分 (Publish As)</label>
                     <Select value={identity} onValueChange={setIdentity}>
-                        <SelectTrigger>
+                        <SelectTrigger id="metadata-identity-trigger">
                             <SelectValue placeholder="選擇身分" />
                         </SelectTrigger>
                         <SelectContent>
@@ -39,6 +44,9 @@ export function MetadataBasicTab({
                             )}
                         </SelectContent>
                     </Select>
+                    {requiredErrors.identity && (
+                        <p className="text-xs text-destructive">發布公開作品前請選擇作者身份。</p>
+                    )}
                 </div>
             </div>
             
@@ -100,6 +108,9 @@ export function MetadataBasicTab({
                     placeholder="劇本的簡介或摘要..."
                     className="h-32"
                 />
+                {recommendedErrors.synopsis && (
+                    <p className="text-xs text-amber-700 dark:text-amber-300">建議補上摘要，讓讀者更快理解作品內容。</p>
+                )}
             </div>
         </div>
     );

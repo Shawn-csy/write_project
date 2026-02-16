@@ -10,7 +10,9 @@ import { downloadBlob } from "../../lib/download";
 
 export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     // Hooks
-    const manager = useWriteTab(refreshTrigger);
+    const manager = useWriteTab(refreshTrigger, {
+        onScriptCreated: onSelectScript
+    });
     
     // Import Dialog State
     const [isImportOpen, setIsImportOpen] = useState(false);
