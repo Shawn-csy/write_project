@@ -30,18 +30,19 @@ export const SortableFileRow = (props) => {
     return (
         <div ref={setNodeRef} style={style} {...attributes}>
             {React.isValidElement(props.children) 
-                ? React.cloneElement(props.children, { dragListeners: listeners })
+                ? React.cloneElement(props.children, { dragListeners: props.disableDrag ? null : listeners })
                 : props.children
             }
         </div>
     );
 };
 
-export const FileRow = ({ icon, title, meta, actions, onClick, isFolder, tags = [], dragListeners, style }) => (
+export const FileRow = ({ icon, title, meta, actions, onClick, onDoubleClick, isFolder, tags = [], dragListeners, style, className = "" }) => (
     <div 
         onClick={onClick}
+        onDoubleClick={onDoubleClick}
         style={style}
-        className="group flex items-center justify-between p-3 hover:bg-muted/50 border-b border-border/40 cursor-pointer transition-colors bg-card"
+        className={`group flex items-center justify-between p-3 hover:bg-muted/50 border-b border-border/40 cursor-pointer transition-colors bg-card ${className}`}
     >
         {/* Drag Handle */}
         {dragListeners && (

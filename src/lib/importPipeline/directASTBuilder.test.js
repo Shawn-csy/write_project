@@ -118,6 +118,18 @@ describe('DirectASTBuilder (Pure Marker Mode)', () => {
       assert.strictEqual(layer.layerType, 'se_cont');
     });
 
+    it('should prefer higher priority over longer start', () => {
+      const input = '<t> 場景';
+      const configs = [
+        { id: 'short-high', start: '<', matchMode: 'prefix', isBlock: true, priority: 1000 },
+        { id: 'long-low', start: '<t>', matchMode: 'prefix', isBlock: true, priority: 10 }
+      ];
+      const ast = buildAST(input, configs);
+
+      const layer = ast.children.find(n => n.type === 'layer');
+      assert.strictEqual(layer.layerType, 'short-high');
+    });
+
     it('should detect enclosure markers', () => {
       const input = '（▼整段指示）';
       const configs = [
@@ -128,6 +140,17 @@ describe('DirectASTBuilder (Pure Marker Mode)', () => {
       const layer = ast.children.find(n => n.type === 'layer');
       assert.ok(layer);
       assert.strictEqual(layer.text, '整段指示');
+    });
+
+    it('should treat type=block as block even when isBlock is missing', () => {
+      const input = '<t> 場景標記';
+      const configs = [
+        { id: 'env-tag', label: '場景', start: '<t>', type: 'block', matchMode: 'prefix' }
+      ];
+      const ast = buildAST(input, configs);
+      const layer = ast.children.find(n => n.type === 'layer');
+      assert.ok(layer, 'Should parse as layer block');
+      assert.strictEqual(layer.layerType, 'env-tag');
     });
   });
 
@@ -143,6 +166,22 @@ describe('DirectASTBuilder (Pure Marker Mode)', () => {
       const action = ast.children.find(n => n.type === 'action');
       assert.ok(action);
       assert.ok(action.inline.length > 0);
+    });
+
+    it('should keep prefix inline markers as inline (not layer)', () => {
+      const input = '/sfx 門外的腳步聲';
+      const configs = [
+        { id: 'sfx', label: '一般音效', start: '/sfx', type: 'inline', matchMode: 'prefix', isBlock: false }
+      ];
+      const ast = buildAST(input, configs);
+
+      const layer = ast.children.find(n => n.type === 'layer');
+      assert.ok(!layer, 'Inline prefix marker should not be parsed as layer');
+
+      const action = ast.children.find(n => n.type === 'action');
+      assert.ok(action, 'Should remain action node');
+      assert.ok(Array.isArray(action.inline), 'Action node should contain inline nodes');
+      assert.ok(action.inline.some(n => n.type === 'highlight' && n.id === 'sfx'));
     });
   });
 

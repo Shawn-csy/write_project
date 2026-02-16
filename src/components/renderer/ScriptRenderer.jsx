@@ -1,9 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { InlineRenderer } from './InlineRenderer';
 import { LayerNode } from './nodes/LayerNode';
 import { DualDialogueNode } from './nodes/DualDialogueNode';
 import { SpeechNode } from './nodes/SpeechNode';
 import { parseInline } from '../../lib/parsers/inlineParser.js';
+import { isInlineLike } from '../../lib/markerRules.js';
 
 const makeCharacterColorGetter = (themePalette, cacheRef) => (name) => {
   if (!name) return "hsl(0 0% 50%)";
@@ -43,7 +44,9 @@ const renderInlineLines = (node, context) => {
 
     return lines.map((line, idx) => {
         const lineNumber = baseLine ? baseLine + idx : null;
-        const inlineNodes = parseInline(line, context.markerConfigs || []);
+        const inlineNodes = context.parseInlineLine
+            ? context.parseInlineLine(line)
+            : parseInline(line, context.inlineMarkerConfigs || []);
         const lineProps = lineNumber
             ? { "data-line-start": lineNumber, "data-line-end": lineNumber }
             : {};
@@ -89,32 +92,52 @@ const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
     const getRangeStyle = () => {
         if (!node.inRange || node.inRange.length === 0) return {};
         
-        // Filter out hidden markers AND Block markers (since LayerNode handles them)
+        // Filter out hidden markers only; range content style is controlled by config.rangeStyle/style
         const activeRanges = node.inRange.filter(id => {
             if (hiddenMarkerIds.includes(id)) return false;
-            
-            // Check if it's a block marker
-            const config = context.markerConfigs?.find(c => c.id === id);
-            if (config?.isBlock) return false;
-            
             return true;
         });
 
         if (activeRanges.length === 0) return {};
-        
-        // Use pre-calculated rangeStyle BUT we must be careful:
-        // node.rangeStyle usually contains styles for ALL ranges covering this node.
-        // If we want to EXCLUDE block styles, we might need to RE-CALCULATE strictly from activeRanges.
-        // Or assume node.rangeStyle is specific to the node's range context.
-        // 'node.rangeStyle' in directASTBuilder is constructed by merging styles.
-        // If we cannot separate them easily, we should reconstruct.
-        
-        // Reconstruct style from active allowed ranges
+
+        const sanitizeRangeContentStyle = (style = {}) => {
+            const {
+                border,
+                borderLeft,
+                borderRight,
+                borderTop,
+                borderBottom,
+                margin,
+                marginLeft,
+                marginRight,
+                marginTop,
+                marginBottom,
+                padding,
+                paddingLeft,
+                paddingRight,
+                paddingTop,
+                paddingBottom,
+                width,
+                minWidth,
+                maxWidth,
+                display,
+                position,
+                left,
+                right,
+                top,
+                bottom,
+                ...contentStyle
+            } = style;
+            return contentStyle;
+        };
+
+        // Reconstruct style from active ranges using dedicated rangeStyle first.
         let mergedStyle = {};
         activeRanges.forEach(id => {
              const config = context.markerConfigs?.find(c => c.id === id);
-             if (config?.style) {
-                 Object.assign(mergedStyle, config.style);
+             const candidate = config?.rangeStyle || config?.style;
+             if (candidate) {
+                 Object.assign(mergedStyle, sanitizeRangeContentStyle(candidate));
              }
         });
         
@@ -270,6 +293,36 @@ export const ScriptRenderer = React.memo(({
         return makeCharacterColorGetter(themePalette, colorCache);
     }, [themePalette, colorCache]);
 
+    const inlineMarkerConfigs = useMemo(() => {
+        const safe = Array.isArray(markerConfigs) ? markerConfigs : [];
+        return safe.filter((c) => isInlineLike(c));
+    }, [markerConfigs]);
+    const inlineParseCacheRef = useRef(new Map());
+    const inlineConfigSignature = useMemo(
+        () => JSON.stringify(
+            inlineMarkerConfigs.map((c) => ({
+                id: c.id,
+                start: c.start,
+                end: c.end,
+                matchMode: c.matchMode,
+                regex: c.regex,
+                priority: c.priority,
+            }))
+        ),
+        [inlineMarkerConfigs]
+    );
+    const parseInlineLine = useMemo(() => {
+        return (line) => {
+            const key = `${inlineConfigSignature}::${line}`;
+            const cache = inlineParseCacheRef.current;
+            if (cache.has(key)) return cache.get(key);
+            const parsed = parseInline(line, inlineMarkerConfigs);
+            cache.set(key, parsed);
+            if (cache.size > 2000) cache.clear();
+            return parsed;
+        };
+    }, [inlineConfigSignature, inlineMarkerConfigs]);
+
     const context = useMemo(() => ({
         fontSize,
         filterCharacter,
@@ -278,9 +331,11 @@ export const ScriptRenderer = React.memo(({
         focusContentMode,
         getCharacterColor,
         markerConfigs: Array.isArray(markerConfigs) ? markerConfigs : [],
+        inlineMarkerConfigs,
+        parseInlineLine,
         hiddenMarkerIds,
         showLineUnderline
-    }), [fontSize, filterCharacter, focusMode, focusEffect, focusContentMode, getCharacterColor, markerConfigs, hiddenMarkerIds, showLineUnderline]);
+    }), [fontSize, filterCharacter, focusMode, focusEffect, focusContentMode, getCharacterColor, markerConfigs, inlineMarkerConfigs, parseInlineLine, hiddenMarkerIds, showLineUnderline]);
 
     return (
         <div className="script-renderer font-serif" style={{ fontSize: `${fontSize}px`, '--body-font-size': `${fontSize}px` }}>
