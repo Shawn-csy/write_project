@@ -94,7 +94,7 @@ export function ReadTab({ onSelectPublicScript }) {
             
             expandRecursive();
         }
-    }, [publicCache]); // Depend on publicCache? No, this effect should run once on mount or when URL changes. 
+    }, []); // Run once on mount; avoid re-triggering expansion for every cache update.
     // Actually, if we depend on publicCache, we might infinite loop if we are not careful.
     // It's better to just run on mount (empty deps) or when location changes if we controlled it via props.
     // Since this component might remount when tab changes, [] is fine if we assume the URL param is present when tab is switched.

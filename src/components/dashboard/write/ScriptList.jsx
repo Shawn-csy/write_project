@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo, useCallback, useState } from "react";
 import { Loader2, Download, Trash2, Folder, ChevronRight, FileText, MoreHorizontal, Settings, Globe, FolderInput, ArrowUpDown } from "lucide-react";
 import { Button } from "../../ui/button";
 import { FileRow, SortableFileRow } from "../FileRow";
@@ -30,7 +30,6 @@ import { updateScript, getScript } from "../../../lib/db"; // Needed for inline 
 import { ScriptMetadataDialog } from "../../dashboard/ScriptMetadataDialog"; // Adjust path as needed
 import { extractMetadata } from "../../../lib/metadataParser";
 import { buildFilename, downloadText } from "../../../lib/download";
-import { useState } from "react";
 
 // Helper: assureContent
 async function assureContent(item) {
@@ -79,6 +78,34 @@ export function ScriptList({
     // State Setters (for local optimistic updates if needed, logic handled in hook basically)
     setScripts // Passed from hook if needed for inline theme update
 }) {
+    const [editingScriptId, setEditingScriptId] = useState(null);
+
+    const dateFormatter = useMemo(() => new Intl.DateTimeFormat(undefined), []);
+    const formatDate = useCallback((ts) => {
+        if (!ts) return "";
+        return dateFormatter.format(new Date(ts));
+    }, [dateFormatter]);
+
+    const markerThemeNameById = useMemo(() => {
+        const map = {};
+        (markerThemes || []).forEach((t) => {
+            if (t?.id) map[t.id] = t.name || "主題";
+        });
+        return map;
+    }, [markerThemes]);
+
+    const enrichedItems = useMemo(() => {
+        return (visibleItems || []).map((item) => {
+            const metaData = item.content ? extractMetadata(item.content) : {};
+            return {
+                ...item,
+                _displayDate: item.draftDate || metaData.date || metaData.draftdate || formatDate(item.lastModified || item.createdAt),
+                _displayAuthor: item.author || metaData.author || metaData.authors || "User",
+                _themeName: item.markerThemeId ? (markerThemeNameById[item.markerThemeId] || "主題") : "",
+            };
+        });
+    }, [visibleItems, markerThemeNameById, formatDate]);
+
     if (loading) {
         return <div className="flex justify-center p-8"><Loader2 className="w-6 h-6 animate-spin" /></div>;
     }
@@ -90,11 +117,6 @@ export function ScriptList({
             </div>
         );
     }
-
-    const formatDate = (ts) => new Date(ts).toLocaleDateString();
-
-
-    const [editingScriptId, setEditingScriptId] = useState(null);
 
     const handleStatusClick = (e, item) => {
         if (readOnly) return;
@@ -172,10 +194,9 @@ export function ScriptList({
                      )}
 
                      {/* Items */}
-                     {visibleItems.map((item) => {
-                        const metaData = item.content ? extractMetadata(item.content) : {};
-                        const displayDate = item.draftDate || metaData.date || metaData.draftdate || new Date(item.lastModified || item.createdAt).toLocaleDateString();
-                        const displayAuthor = item.author || metaData.author || metaData.authors || "User";
+                     {enrichedItems.map((item) => {
+                        const displayDate = item._displayDate;
+                        const displayAuthor = item._displayAuthor;
                         const isSelected = selectedPreviewId === item.id;
                         const isChild = (item.depth || 0) > 0;
                         const rowClassName = isSelected
@@ -207,7 +228,7 @@ export function ScriptList({
                                             <div className="flex items-center gap-1 sm:hidden">
                                                 {item.markerThemeId && markerThemes && (
                                                     <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-600 border border-blue-200">
-                                                        {markerThemes.find(t => t.id === item.markerThemeId)?.name || '主題'}
+                                                        {item._themeName || '主題'}
                                                     </span>
                                                 )}
                                                 <span 

@@ -44,7 +44,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
   const [orgDraft, setOrgDraft] = useState({ id: "", name: "", description: "", website: "", logoUrl: "", bannerUrl: "", tags: [] });
   const [personaTagInput, setPersonaTagInput] = useState("");
   const [orgTagInput, setOrgTagInput] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isWorksLoading, setIsWorksLoading] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingOrg, setIsSavingOrg] = useState(false);
   const [isCreatingPersona, setIsCreatingPersona] = useState(false);
@@ -97,12 +97,29 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
 
   const loadData = async (isBackground = false) => {
     if (!currentUser) return;
-    if (!isBackground) setIsLoading(true);
+    if (!isBackground) setIsWorksLoading(true);
+
     try {
-        const [personaData, orgData, scriptData, tagData] = await Promise.all([
+        const scriptData = await getUserScripts();
+        const sortedScripts = (scriptData || [])
+            .filter(s => s.type !== "folder" && !s.isFolder)
+            .sort((a, b) => {
+                const aPublic = a.status === "Public" || a.isPublic;
+                const bPublic = b.status === "Public" || b.isPublic;
+                if (aPublic !== bPublic) return aPublic ? -1 : 1;
+                return (b.lastModified || 0) - (a.lastModified || 0);
+            });
+        setScripts(sortedScripts);
+    } catch (e) {
+        console.error("Failed to load scripts", e);
+    } finally {
+        if (!isBackground) setIsWorksLoading(false);
+    }
+
+    try {
+        const [personaData, orgData, tagData] = await Promise.all([
             getPersonas(),
             getOrganizations(),
-            getUserScripts(),
             getTags(),
         ]);
         let normalizedPersonas = (personaData || []).map(p => {
@@ -163,15 +180,6 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
             deduped.push(o);
         }
         setOrgsForPersona(deduped);
-        const sortedScripts = (scriptData || [])
-            .filter(s => s.type !== "folder" && !s.isFolder)
-            .sort((a, b) => {
-                const aPublic = a.status === "Public" || a.isPublic;
-                const bPublic = b.status === "Public" || b.isPublic;
-                if (aPublic !== bPublic) return aPublic ? -1 : 1;
-                return (b.lastModified || 0) - (a.lastModified || 0);
-            });
-        setScripts(sortedScripts);
         setAvailableTags(tagData || []);
         const preferredPersonaId = localStorage.getItem("preferredPersonaId");
         const personasForSelection = normalizedPersonas;
@@ -186,8 +194,6 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         }
     } catch (e) {
         console.error("Failed to load studio data", e);
-    } finally {
-        if (!isBackground) setIsLoading(false);
     }
   };
 
@@ -571,7 +577,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         {/* 1. My Works Tab */}
         <TabsContent value="works" className="space-y-4">
              <PublisherWorksTab 
-                isLoading={isLoading} 
+                isLoading={isWorksLoading} 
                 scripts={scripts} 
                 setEditingScript={setEditingScript} 
                 navigate={navigate} 
