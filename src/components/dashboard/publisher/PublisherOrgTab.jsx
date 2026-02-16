@@ -36,12 +36,52 @@ export function PublisherOrgTab({
     const navigate = useNavigate();
     const [viewMode, setViewMode] = React.useState("edit");
     const [tagOpen, setTagOpen] = React.useState(false);
+    const [logoPreviewFailed, setLogoPreviewFailed] = React.useState(false);
+    const [bannerPreviewFailed, setBannerPreviewFailed] = React.useState(false);
     const filteredTagOptions = React.useMemo(() => {
         const needle = orgTagInput.trim().toLowerCase();
         const names = (tagOptions || []).map(t => t.name).filter(Boolean);
         if (!needle) return names;
         return names.filter(n => n.toLowerCase().includes(needle));
     }, [tagOptions, orgTagInput]);
+
+    const orgChecklist = React.useMemo(() => ([
+        { key: "name", label: "設定組織名稱", ok: Boolean(orgDraft.name?.trim()) },
+        { key: "description", label: "補上組織描述", ok: Boolean(orgDraft.description?.trim()) },
+        { key: "logoUrl", label: "上傳 Logo", ok: Boolean(orgDraft.logoUrl?.trim()) },
+        { key: "bannerUrl", label: "設定橫幅", ok: Boolean(orgDraft.bannerUrl?.trim()) },
+        { key: "website", label: "填寫網站", ok: Boolean(orgDraft.website?.trim()) },
+        { key: "tags", label: "加入標籤", ok: (orgDraft.tags || []).length > 0 },
+    ]), [orgDraft]);
+    const orgDone = orgChecklist.filter((item) => item.ok).length;
+    const orgProgress = Math.round((orgDone / orgChecklist.length) * 100);
+    const orgNextSteps = orgChecklist.filter((item) => !item.ok).slice(0, 3);
+
+    const handleImageUpload = (field) => (event) => {
+        const file = event.target.files?.[0];
+        if (!file || !file.type.startsWith("image/")) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = typeof reader.result === "string" ? reader.result : "";
+            if (!result) return;
+            setOrgDraft((prev) => ({ ...prev, [field]: result }));
+            if (field === "logoUrl") setLogoPreviewFailed(false);
+            if (field === "bannerUrl") setBannerPreviewFailed(false);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleTagPaste = (event) => {
+        const text = event.clipboardData?.getData("text") || "";
+        const incoming = parseTags(text);
+        if (incoming.length <= 1) return;
+        event.preventDefault();
+        setOrgDraft({
+            ...orgDraft,
+            tags: addTags(orgDraft.tags || [], incoming),
+        });
+        setOrgTagInput("");
+    };
 
     // Reset draft when selecting a new org
     React.useEffect(() => {
@@ -133,6 +173,20 @@ export function PublisherOrgTab({
                      <div className="max-w-2xl mx-auto space-y-8 pb-20">
                         {(viewMode === "create" || selectedOrgId) ? (
                             <>
+                                <div className="rounded-lg border bg-muted/20 p-4 space-y-3">
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="font-medium">資料完成度</span>
+                                        <span className="text-muted-foreground">{orgDone}/{orgChecklist.length} · {orgProgress}%</span>
+                                    </div>
+                                    <div className="h-2 rounded-full bg-muted">
+                                        <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${orgProgress}%` }} />
+                                    </div>
+                                    {orgNextSteps.length > 0 && (
+                                        <div className="text-xs text-muted-foreground">
+                                            下一步：{orgNextSteps.map((item) => item.label).join("、")}
+                                        </div>
+                                    )}
+                                </div>
                                 {/* Basic Info */}
                                 <div className="space-y-6">
                                     <div className="grid gap-4">
@@ -179,6 +233,25 @@ export function PublisherOrgTab({
                                                     onChange={e => setOrgDraft({ ...orgDraft, logoUrl: e.target.value })}
                                                     placeholder="https://"
                                                 />
+                                                <label className="inline-flex w-fit cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
+                                                    上傳 Logo
+                                                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload("logoUrl")} />
+                                                </label>
+                                                {(orgDraft.logoUrl || "").trim() && (
+                                                    <div className="h-16 w-16 overflow-hidden rounded-md border bg-muted/20">
+                                                        {logoPreviewFailed ? (
+                                                            <div className="flex h-full items-center justify-center text-[10px] text-muted-foreground">預覽失敗</div>
+                                                        ) : (
+                                                            <img
+                                                                src={orgDraft.logoUrl}
+                                                                alt="org logo preview"
+                                                                className="h-full w-full object-cover"
+                                                                onError={() => setLogoPreviewFailed(true)}
+                                                                onLoad={() => setLogoPreviewFailed(false)}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="grid gap-1.5">
                                                 <label className="text-sm font-medium" htmlFor="org-banner-url">橫幅圖片網址</label>
@@ -189,6 +262,25 @@ export function PublisherOrgTab({
                                                     onChange={e => setOrgDraft({ ...orgDraft, bannerUrl: e.target.value })}
                                                     placeholder="https://"
                                                 />
+                                                <label className="inline-flex w-fit cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
+                                                    上傳橫幅
+                                                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload("bannerUrl")} />
+                                                </label>
+                                                {(orgDraft.bannerUrl || "").trim() && (
+                                                    <div className="h-20 overflow-hidden rounded-md border bg-muted/20">
+                                                        {bannerPreviewFailed ? (
+                                                            <div className="flex h-full items-center justify-center text-xs text-muted-foreground">橫幅預覽失敗</div>
+                                                        ) : (
+                                                            <img
+                                                                src={orgDraft.bannerUrl}
+                                                                alt="org banner preview"
+                                                                className="h-full w-full object-cover"
+                                                                onError={() => setBannerPreviewFailed(true)}
+                                                                onLoad={() => setBannerPreviewFailed(false)}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -241,6 +333,7 @@ export function PublisherOrgTab({
                                                             aria-label="新增組織標籤"
                                                             value={orgTagInput}
                                                             onChange={(e) => setOrgTagInput(e.target.value)}
+                                                            onPaste={handleTagPaste}
                                                             onKeyDown={(e) => {
                                                                 if (e.key === "Enter" || e.key === "," || e.key === "，") {
                                                                     e.preventDefault();

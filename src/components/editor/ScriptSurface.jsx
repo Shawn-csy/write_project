@@ -10,6 +10,7 @@ export default function ScriptSurface({
   scrollRef,
   onScrollProgress,
   onDoubleClick,
+  onContentClick,
   isLoading = false,
   loadingMessage,
   emptyMessage,
@@ -18,6 +19,8 @@ export default function ScriptSurface({
   headerNode,
 }) {
   const rafRef = React.useRef(null);
+  const touchStartRef = React.useRef(null);
+  const lastTapRef = React.useRef({ time: 0, x: 0, y: 0 });
 
   const handleScroll = () => {
     if (!scrollRef?.current || !onScrollProgress) return;
@@ -36,6 +39,42 @@ export default function ScriptSurface({
     });
   };
 
+  const handleTouchStart = (event) => {
+    const touch = event.touches?.[0];
+    if (!touch) return;
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      time: Date.now(),
+    };
+  };
+
+  const handleTouchEnd = (event) => {
+    if (!onDoubleClick) return;
+    const touch = event.changedTouches?.[0];
+    if (!touch || !touchStartRef.current) return;
+
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+    const moveDistance = Math.hypot(touch.clientX - start.x, touch.clientY - start.y);
+    if (moveDistance > 24) return;
+
+    const now = Date.now();
+    const delta = now - lastTapRef.current.time;
+    const tapDistance = Math.hypot(
+      touch.clientX - lastTapRef.current.x,
+      touch.clientY - lastTapRef.current.y
+    );
+
+    if (delta >= 0 && delta <= 320 && tapDistance < 32) {
+      onDoubleClick(event);
+      lastTapRef.current = { time: 0, x: 0, y: 0 };
+      return;
+    }
+
+    lastTapRef.current = { time: now, x: touch.clientX, y: touch.clientY };
+  };
+
   React.useEffect(() => {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -51,6 +90,9 @@ export default function ScriptSurface({
         ref={scrollRef}
         onScroll={handleScroll}
         onDoubleClick={onDoubleClick}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onClick={onContentClick}
       >
         <div className={contentClassName}>
           {headerNode}

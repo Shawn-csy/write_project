@@ -33,6 +33,8 @@ export function PublisherProfileTab({
     const [orgSearchResults, setOrgSearchResults] = React.useState([]);
     const [isOrgSearching, setIsOrgSearching] = React.useState(false);
     const [tagOpen, setTagOpen] = React.useState(false);
+    const [avatarPreviewFailed, setAvatarPreviewFailed] = React.useState(false);
+    const [bannerPreviewFailed, setBannerPreviewFailed] = React.useState(false);
     const filteredTagOptions = React.useMemo(() => {
         const needle = personaTagInput.trim().toLowerCase();
         const names = (tagOptions || []).map(t => t.name).filter(Boolean);
@@ -87,6 +89,44 @@ export function PublisherProfileTab({
         }
         return [];
     }, [personaDraft.links, selectedPersona]);
+
+    const profileChecklist = React.useMemo(() => ([
+        { key: "displayName", label: "設定顯示名稱", ok: Boolean(personaDraft.displayName?.trim()) },
+        { key: "bio", label: "補上個人簡介", ok: Boolean(personaDraft.bio?.trim()) },
+        { key: "avatar", label: "上傳頭像", ok: Boolean(personaDraft.avatar?.trim()) },
+        { key: "bannerUrl", label: "設定橫幅", ok: Boolean(personaDraft.bannerUrl?.trim()) },
+        { key: "links", label: "新增至少 1 個連結", ok: safeLinks.some((link) => String(link?.url || "").trim()) },
+        { key: "tags", label: "加入標籤", ok: (personaDraft.tags || []).length > 0 },
+    ]), [personaDraft, safeLinks]);
+    const profileDone = profileChecklist.filter((item) => item.ok).length;
+    const profileProgress = Math.round((profileDone / profileChecklist.length) * 100);
+    const profileNextSteps = profileChecklist.filter((item) => !item.ok).slice(0, 3);
+
+    const handleImageUpload = (field) => (event) => {
+        const file = event.target.files?.[0];
+        if (!file || !file.type.startsWith("image/")) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = typeof reader.result === "string" ? reader.result : "";
+            if (!result) return;
+            setPersonaDraft((prev) => ({ ...prev, [field]: result }));
+            if (field === "avatar") setAvatarPreviewFailed(false);
+            if (field === "bannerUrl") setBannerPreviewFailed(false);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleTagPaste = (event) => {
+        const text = event.clipboardData?.getData("text") || "";
+        const incoming = parseTags(text);
+        if (incoming.length <= 1) return;
+        event.preventDefault();
+        setPersonaDraft({
+            ...personaDraft,
+            tags: addTags(personaDraft.tags || [], incoming),
+        });
+        setPersonaTagInput("");
+    };
 
     const onStartCreate = () => {
         setSelectedPersonaId(null);
@@ -172,12 +212,33 @@ export function PublisherProfileTab({
                     <div className="max-w-2xl mx-auto space-y-8 pb-20">
                         {(viewMode === "create" || selectedPersonaId) ? (
                             <>
+                                <div className="rounded-lg border bg-muted/20 p-4 space-y-3">
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="font-medium">資料完成度</span>
+                                        <span className="text-muted-foreground">{profileDone}/{profileChecklist.length} · {profileProgress}%</span>
+                                    </div>
+                                    <div className="h-2 rounded-full bg-muted">
+                                        <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${profileProgress}%` }} />
+                                    </div>
+                                    {profileNextSteps.length > 0 && (
+                                        <div className="text-xs text-muted-foreground">
+                                            下一步：{profileNextSteps.map((item) => item.label).join("、")}
+                                        </div>
+                                    )}
+                                </div>
                                 <div className="flex flex-col sm:flex-row gap-6 items-start">
                                     <div className="flex flex-col items-center gap-3 min-w-[120px]">
                                         <Avatar className="w-28 h-28 border-4 border-muted/30 shadow-sm">
-                                            <AvatarImage src={personaDraft.avatar || "https://github.com/shadcn.png"} />
+                                            <AvatarImage
+                                                src={personaDraft.avatar || "https://github.com/shadcn.png"}
+                                                onError={() => setAvatarPreviewFailed(true)}
+                                                onLoad={() => setAvatarPreviewFailed(false)}
+                                            />
                                             <AvatarFallback className="text-2xl text-muted-foreground">IMG</AvatarFallback>
                                         </Avatar>
+                                        {avatarPreviewFailed && (
+                                            <div className="text-[11px] text-amber-700 dark:text-amber-300">頭像預覽失敗，請更換圖片。</div>
+                                        )}
                                         <Input
                                             id="persona-avatar-url"
                                             name="personaAvatarUrl"
@@ -186,6 +247,10 @@ export function PublisherProfileTab({
                                             placeholder="頭像網址..."
                                             className="text-xs h-8 text-center bg-muted/20 border-transparent hover:border-border focus:border-primary transition-colors"
                                         />
+                                        <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
+                                            上傳頭像
+                                            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload("avatar")} />
+                                        </label>
                                         <Input
                                             id="persona-banner-url"
                                             name="personaBannerUrl"
@@ -194,9 +259,28 @@ export function PublisherProfileTab({
                                             placeholder="橫幅圖片網址..."
                                             className="text-xs h-8 text-center bg-muted/20 border-transparent hover:border-border focus:border-primary transition-colors"
                                         />
+                                        <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
+                                            上傳橫幅
+                                            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload("bannerUrl")} />
+                                        </label>
                                     </div>
                                     
                                     <div className="flex-1 space-y-4 w-full">
+                                        {(personaDraft.bannerUrl || "").trim() && (
+                                            <div className="h-24 overflow-hidden rounded-md border bg-muted/20">
+                                                {bannerPreviewFailed ? (
+                                                    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">橫幅預覽失敗</div>
+                                                ) : (
+                                                    <img
+                                                        src={personaDraft.bannerUrl}
+                                                        alt="persona banner preview"
+                                                        className="h-full w-full object-cover"
+                                                        onError={() => setBannerPreviewFailed(true)}
+                                                        onLoad={() => setBannerPreviewFailed(false)}
+                                                    />
+                                                )}
+                                            </div>
+                                        )}
                                         <div className="grid gap-1.5">
                                             <label className="text-sm font-medium" htmlFor="persona-display-name">顯示名稱 <span className="text-destructive">*</span></label>
                                             <Input 
@@ -400,6 +484,7 @@ export function PublisherProfileTab({
                                                             name="personaTagInput"
                                                             value={personaTagInput}
                                                             onChange={(e) => setPersonaTagInput(e.target.value)}
+                                                            onPaste={handleTagPaste}
                                                             onKeyDown={(e) => {
                                                                 if (e.key === "Enter" || e.key === "," || e.key === "，") {
                                                                     e.preventDefault();

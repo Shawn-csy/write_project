@@ -1,10 +1,10 @@
 import React from "react";
-import { Loader2, Eye, Edit, Trash2 } from "lucide-react";
+import { Loader2, Eye, Edit, FilePenLine } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Card } from "../../ui/card";
 import { Badge } from "../../ui/badge";
 
-export function PublisherWorksTab({ isLoading, scripts, setEditingScript, navigate, formatDate }) {
+export function PublisherWorksTab({ isLoading, scripts, setEditingScript, navigate, formatDate, onContinueEdit }) {
     const [filter, setFilter] = React.useState("all"); // all, public, private
 
     const filteredScripts = scripts.filter(script => {
@@ -85,6 +85,9 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
 
                         {/* Actions */}
                         <div className="flex items-center gap-2 mt-4 pt-2 border-t border-border/50">
+                            <Button variant="secondary" size="sm" className="h-8" onClick={() => onContinueEdit?.(script)}>
+                                <FilePenLine className="w-3.5 h-3.5 mr-1.5" /> 繼續寫作
+                            </Button>
                             <Button variant="ghost" size="sm" className="h-8" onClick={() => setEditingScript(script)}>
                                 <Edit className="w-3.5 h-3.5 mr-1.5" /> 編輯資訊
                             </Button>
@@ -99,9 +102,6 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
                                     </Button>
                             )}
                             <div className="flex-1"></div>
-                            <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10">
-                                <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
                         </div>
                     </div>
                 </Card>

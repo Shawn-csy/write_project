@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from typing import List, Optional, Any, Dict
+from typing import List, Optional, Any, Dict, Union
 
 # Tag Schemas
 class TagBase(BaseModel):
@@ -117,7 +117,7 @@ class User(UserBase):
 # Marker Theme Schemas
 class MarkerThemeBase(BaseModel):
     name: str
-    configs: str = "[]"
+    configs: Union[List[Dict[str, Any]], Dict[str, Any], str] = []
     isPublic: bool = False
     description: Optional[str] = ""
 
@@ -126,7 +126,7 @@ class MarkerThemeCreate(MarkerThemeBase):
 
 class MarkerThemeUpdate(BaseModel):
     name: Optional[str] = None
-    configs: Optional[str] = None
+    configs: Optional[Union[List[Dict[str, Any]], Dict[str, Any], str]] = None
     isPublic: Optional[bool] = None
     description: Optional[str] = None
 

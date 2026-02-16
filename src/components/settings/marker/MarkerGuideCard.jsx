@@ -6,6 +6,7 @@ import { Button } from "../../ui/button";
 export function MarkerGuideCard({ config, onCopy, minimal = false }) {
     // Helper property compatibility
     const isBlock = config.type === 'block' || config.isBlock;
+    const displayName = config.label || "未命名標記";
 
     let syntaxDisplay = "";
     let exampleText = "";
@@ -47,7 +48,7 @@ export function MarkerGuideCard({ config, onCopy, minimal = false }) {
 
             <div className="flex items-center justify-between mb-1.5 pr-6">
               <span className="font-semibold text-xs text-foreground/90 flex items-center gap-1.5">
-                {config.label || config.id}
+                {displayName}
                  <span className={cn(
                     "text-[9px] px-1 py-0 rounded-sm border leading-tight font-normal",
                     isBlock 
@@ -81,11 +82,11 @@ export function MarkerGuideCard({ config, onCopy, minimal = false }) {
                     {config.renderer?.template
                       ? config.renderer.template.replace(
                           /\{\{content\}\}/g,
-                          config.label || config.id
+                          displayName
                         )
-                      : config.label || config.id}
+                      : displayName}
                   </div>
-                  <div className="opacity-90 leading-tight text-[11px]">{config.label || config.id} 範例段落...</div>
+                  <div className="opacity-90 leading-tight text-[11px]">{displayName} 範例段落...</div>
                 </div>
               ) : (
                 // Inline Preview
@@ -101,9 +102,9 @@ export function MarkerGuideCard({ config, onCopy, minimal = false }) {
                     {config.renderer?.template
                       ? config.renderer.template.replace(
                           /\{\{content\}\}/g,
-                          `${config.label || config.id}範例`
+                          `${displayName}範例`
                         )
-                      : `${config.label || config.id}範例`}
+                      : `${displayName}範例`}
                   </span>
                   的效果。
                 </div>

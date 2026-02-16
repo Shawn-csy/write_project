@@ -56,9 +56,6 @@ export function SortableMarkerItem({ id, config, idx, updateMarker, removeMarker
 
                 <div className="flex-1 min-w-0">
                     <div className="font-semibold truncate text-xs">{config.label || '未命名'}</div>
-                    <div className="text-[10px] text-muted-foreground font-mono truncate opacity-70">
-                        {config.id}
-                    </div>
                 </div>
 
                 {/* Type Badge */}
@@ -81,5 +78,4 @@ export function SortableMarkerItem({ id, config, idx, updateMarker, removeMarker
         </div>
     );
 }
-
 

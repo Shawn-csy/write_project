@@ -3,7 +3,7 @@ import { useScriptData } from "./write/useScriptData";
 import { useScriptActions } from "./write/useScriptActions";
 import { useScriptDragDrop } from "./write/useScriptDragDrop";
 
-export function useWriteTab(refreshTrigger) {
+export function useWriteTab(refreshTrigger, options = {}) {
     const { markerThemes } = useSettings();
     
     // 1. Data & Navigation
@@ -14,7 +14,8 @@ export function useWriteTab(refreshTrigger) {
         scripts: data.scripts, 
         setScripts: data.setScripts, 
         currentPath: data.currentPath, 
-        fetchScripts: data.fetchScripts 
+        fetchScripts: data.fetchScripts,
+        onScriptCreated: options.onScriptCreated
     });
 
     // 3. Drag & Drop

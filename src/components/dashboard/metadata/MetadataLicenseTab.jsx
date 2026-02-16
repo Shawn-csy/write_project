@@ -12,7 +12,8 @@ export function MetadataLicenseTab({
     license, setLicense, 
     licenseUrl, setLicenseUrl,
     licenseTerms = [], setLicenseTerms,
-    copyright, setCopyright 
+    copyright, setCopyright,
+    requiredErrors = {}
 }) {
     // Standard Creative Commons Licenses with metadata
     const licenses = LICENSES;
@@ -70,6 +71,9 @@ export function MetadataLicenseTab({
         }
     }
 
+    const hasLicense = Boolean(license?.trim()) || (licenseTerms || []).length > 0;
+    const hasInvalidLicenseUrl = Boolean(licenseUrl?.trim()) && !/^https?:\/\//i.test(licenseUrl.trim());
+
     return (
         <div className="space-y-8 h-full overflow-y-auto px-1 pb-10">
             
@@ -83,6 +87,9 @@ export function MetadataLicenseTab({
                          </Button>
                      )}
                 </div>
+                {requiredErrors.license && !hasLicense && (
+                    <p className="text-xs text-destructive">發布公開作品前請填寫授權資訊。</p>
+                )}
                 
                 <div className="flex flex-wrap gap-2">
                     {licenses.map((lic) => {
@@ -153,6 +160,9 @@ export function MetadataLicenseTab({
                                         onChange={(e) => setLicenseUrl(e.target.value)}
                                     />
                                 </div>
+                                {hasInvalidLicenseUrl && (
+                                    <p className="text-xs text-amber-700 dark:text-amber-300">建議使用 `http://` 或 `https://` 開頭的完整網址。</p>
+                                )}
                             </div>
                         </div>
                     </div>
