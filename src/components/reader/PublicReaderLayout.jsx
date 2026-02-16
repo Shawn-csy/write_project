@@ -209,6 +209,7 @@ export function PublicReaderLayout({
                        license={script.license}
                        licenseUrl={script.licenseUrl}
                        licenseTerms={script.licenseTerms}
+                       licenseTags={script.licenseTags}
                        copyright={script.copyright}
                    />
                    {script.showMarkerLegend && validMarkerConfigs?.length > 0 && (

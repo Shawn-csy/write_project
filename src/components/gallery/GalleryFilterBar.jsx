@@ -21,6 +21,11 @@ export function GalleryFilterBar({
     viewValue,
     onViewChange,
     showViewToggle = false
+    ,
+    quickFilters = [],
+    quickFilterValue = "all",
+    onQuickFilterChange,
+    quickTagFilters = []
 }) {
   const [tagOpen, setTagOpen] = useState(false);
   const [tagQuery, setTagQuery] = useState("");
@@ -87,6 +92,42 @@ export function GalleryFilterBar({
           )}
         </div>
       </div>
+
+      {quickFilters.length > 0 && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          {quickFilters.map((opt) => (
+            <Button
+              key={opt.value}
+              variant={quickFilterValue === opt.value ? "default" : "outline"}
+              size="sm"
+              className="rounded-full text-xs h-7 shrink-0"
+              onClick={() => onQuickFilterChange?.(opt.value)}
+            >
+              {opt.label}
+            </Button>
+          ))}
+        </div>
+      )}
+
+      {quickTagFilters.length > 0 && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          {quickTagFilters.map((opt) => {
+            const active = selectedTags.includes(opt.value);
+            return (
+              <Button
+                key={opt.value}
+                variant={active ? "default" : "outline"}
+                size="sm"
+                className="rounded-full text-xs h-7 shrink-0"
+                onClick={() => toggleTag(opt.value)}
+                title={opt.value}
+              >
+                {opt.label}
+              </Button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Tag Filters */}
       <div className="w-full flex flex-col gap-2">

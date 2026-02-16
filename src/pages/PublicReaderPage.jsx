@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { PublicReaderLayout } from "../components/reader/PublicReaderLayout";
 import { getPublicScript, getPublicThemes } from "../lib/db";
 import { extractMetadataWithRaw } from "../lib/metadataParser";
+import { deriveCcLicenseTags } from "../lib/licenseRights";
 import ScriptViewer from "../components/renderer/ScriptViewer";
 import { useScriptViewerDefaults } from "../hooks/useScriptViewerDefaults";
 import { defaultMarkerConfigs } from "../constants/defaultMarkers";
@@ -24,6 +25,19 @@ const ensureList = (val) => {
             }
             return item;
         });
+    }
+    return [];
+};
+
+const ensureTagList = (val) => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val.map((t) => String(t).trim()).filter(Boolean);
+    if (typeof val === "string") {
+        try {
+            const parsed = JSON.parse(val);
+            if (Array.isArray(parsed)) return parsed.map((t) => String(t).trim()).filter(Boolean);
+        } catch {}
+        return val.split(/,|，/).map((t) => t.trim()).filter(Boolean);
     }
     return [];
 };
@@ -88,7 +102,7 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                     "draftdate", "date", "contact", "copyright",
                     "notes", "description", "synopsis", "summary",
                     "cover", "coverurl", "marker_legend", "show_legend",
-                    "license", "licenseurl", "licenseterms"
+                    "license", "licenseurl", "licenseterms", "licensetags"
                 ]);
 
                 const customFields = rawEntries
@@ -126,6 +140,11 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                     license: meta.license || "",
                     licenseUrl: meta.licenseurl || "",
                     licenseTerms: ensureList(meta.licenseterms),
+                    licenseTags: (() => {
+                        const parsed = ensureTagList(meta.licensetags);
+                        if (parsed.length > 0) return parsed;
+                        return deriveCcLicenseTags(meta.license || "");
+                    })(),
 
 
 

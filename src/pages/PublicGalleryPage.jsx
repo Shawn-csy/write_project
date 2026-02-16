@@ -9,6 +9,7 @@ import { Button } from "../components/ui/button";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { getPublicBundle } from "../lib/db";
 import { extractMetadataWithRaw } from "../lib/metadataParser";
+import { deriveUsageRights, deriveCcLicenseTags } from "../lib/licenseRights";
 
 export default function PublicGalleryPage() {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ export default function PublicGalleryPage() {
       if (next !== "scripts") params.delete("tag");
       if (next !== "authors") params.delete("authorTag");
       if (next !== "orgs") params.delete("orgTag");
+      if (next !== "scripts") params.delete("usage");
       setSearchParams(params);
   };
   const [scripts, setScripts] = useState([]);
@@ -49,6 +51,7 @@ export default function PublicGalleryPage() {
   const selectedTags = parseTagParam(searchParams.get("tag"));
   const selectedAuthorTags = parseTagParam(searchParams.get("authorTag"));
   const selectedOrgTags = parseTagParam(searchParams.get("orgTag"));
+  const usageFilter = searchParams.get("usage") || "all";
 
   const setSelectedTags = (tags) => {
       const params = new URLSearchParams(searchParams);
@@ -78,6 +81,13 @@ export default function PublicGalleryPage() {
       } else {
         params.delete("orgTag");
       }
+      setSearchParams(params);
+  };
+  const setUsageFilter = (usage) => {
+      const params = new URLSearchParams(searchParams);
+      if (usage === "all") params.delete("usage");
+      else params.set("usage", usage);
+      params.set("view", "scripts");
       setSearchParams(params);
   };
   const handleViewModeChange = (mode) => {
@@ -146,17 +156,40 @@ export default function PublicGalleryPage() {
           }
           const license = meta.license || meta.licenseName || "";
           let terms = meta.licenseterms || meta.licenseTerms || "";
+          let licenseTagsFromMeta = meta.licensetags || meta.licenseTags || [];
           if (typeof terms === "string") {
               try {
                   const parsed = JSON.parse(terms);
                   if (Array.isArray(parsed)) terms = parsed;
               } catch {}
           }
+          if (typeof licenseTagsFromMeta === "string") {
+              try {
+                  const parsed = JSON.parse(licenseTagsFromMeta);
+                  if (Array.isArray(parsed)) licenseTagsFromMeta = parsed;
+              } catch {
+                  licenseTagsFromMeta = String(licenseTagsFromMeta)
+                    .split(/,|，/)
+                    .map((t) => t.trim())
+                    .filter(Boolean);
+              }
+          }
+          if (!Array.isArray(licenseTagsFromMeta)) licenseTagsFromMeta = [];
           const termsText = Array.isArray(terms) ? terms.join(" ") : String(terms || "");
+          const rights = deriveUsageRights(license, termsText);
+          const licenseTags = Array.from(new Set([
+            ...deriveCcLicenseTags(license),
+            ...licenseTagsFromMeta
+          ]));
+          const mergedTags = Array.from(new Set([...(script.tags || []), ...licenseTags]));
           return {
               ...script,
+              tags: mergedTags,
               _licenseText: String(license || ""),
-              _licenseTermsText: termsText
+              _licenseTermsText: termsText,
+              _derivedLicenseTags: licenseTags,
+              _allowCommercial: rights.allowCommercial,
+              _isFreeToUse: rights.isFreeToUse
           };
       });
   }, [scripts]);
@@ -172,7 +205,12 @@ export default function PublicGalleryPage() {
       const matchesTag = selectedTags.length > 0 
         ? (script.tags || []).some(t => selectedTags.includes(t)) 
         : true;
-      return matchesSearch && matchesTag;
+      const matchesUsage =
+          usageFilter === "all" ? true :
+          usageFilter === "commercial" ? script._allowCommercial === true :
+          usageFilter === "free" ? script._isFreeToUse === true :
+          true;
+      return matchesSearch && matchesTag && matchesUsage;
   }).sort((a, b) => {
       if (sortKey === "views") {
           return (b.views || 0) - (a.views || 0);
@@ -181,7 +219,10 @@ export default function PublicGalleryPage() {
       return (b.lastModified || b.updatedAt || 0) - (a.lastModified || a.updatedAt || 0);
   });
 
-  const allTags = Array.from(new Set(scripts.flatMap(s => s.tags || [])));
+  const allTags = Array.from(new Set(scriptsWithMeta.flatMap(s => s.tags || [])));
+  const licenseTagShortcuts = Array.from(
+    new Set(scriptsWithMeta.flatMap((s) => s._derivedLicenseTags || []))
+  );
   const filteredAuthors = authors.filter(a => {
     const matchesSearch = a.displayName?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesTag = selectedAuthorTags.length > 0 
@@ -270,6 +311,17 @@ export default function PublicGalleryPage() {
                 { value: "standard", label: "標準" },
                 { value: "compact", label: "密集" }
             ]}
+            quickFilters={view === "scripts" ? [
+                { value: "all", label: "全部授權" },
+                { value: "commercial", label: "可商用" },
+                { value: "free", label: "可免費使用" },
+            ] : []}
+            quickFilterValue={usageFilter}
+            onQuickFilterChange={setUsageFilter}
+            quickTagFilters={view === "scripts" ? licenseTagShortcuts.map((tag) => ({
+                value: tag,
+                label: tag.replace(/^授權:/, "")
+            })) : []}
         />
 
         {/* Content Grid */}
@@ -297,7 +349,7 @@ export default function PublicGalleryPage() {
         {view === "scripts" && !isLoading && filteredScripts.length === 0 && (
           <div className="py-20 text-center text-muted-foreground">
               <p>找不到符合條件的劇本。</p>
-              <Button variant="link" onClick={() => { setSearchTerm(""); setSelectedTags([]); }}>
+              <Button variant="link" onClick={() => { setSearchTerm(""); setSelectedTags([]); setUsageFilter("all"); }}>
                   清除篩選
               </Button>
           </div>
