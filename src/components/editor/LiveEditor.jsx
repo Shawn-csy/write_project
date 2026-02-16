@@ -12,7 +12,7 @@ import { StatisticsPanel } from "../statistics/StatisticsPanel";
 import { parseScreenplay } from "../../lib/screenplayAST";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useEditorSync } from "../../hooks/useEditorSync";
-import { usePersistentState } from "../../hooks/usePersistentState";
+import { usePreviewLineNavigation } from "../../hooks/usePreviewLineNavigation";
 import { extractMetadata } from "../../lib/metadataParser";
 import {
   exportScriptAsCsv,
@@ -23,6 +23,15 @@ import {
 import { EditorHeader } from "./EditorHeader";
 import { PreviewPanel } from "./PreviewPanel";
 import { MarkerRulesPanel } from "./MarkerRulesPanel";
+
+const EDITOR_PANE_WIDTH_STORAGE_KEY = "live_editor_pane_width_percent";
+const MIN_EDITOR_PANE_WIDTH = 28;
+const MAX_EDITOR_PANE_WIDTH = 72;
+
+const clampEditorPaneWidth = (value) => {
+  if (!Number.isFinite(value)) return 50;
+  return Math.min(MAX_EDITOR_PANE_WIDTH, Math.max(MIN_EDITOR_PANE_WIDTH, value));
+};
 
 // LiveEditor Component
 export default function LiveEditor({ scriptId, initialData, onClose, initialSceneId, defaultShowPreview = false, readOnly = false, onRequestEdit, onOpenMarkerSettings, contentScrollRef, isSidebarOpen, onSetSidebarOpen, onTitleHtml, onHasTitle, onTitleNote, onTitleSummary, onTitleName, showHeader = true }) {
@@ -52,11 +61,42 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   const lastSavedTitle = useRef(initialData?.title || "Untitled");
 
   const [showPreview, setShowPreview] = useState(defaultShowPreview || readOnly);
+  const [editorPaneWidth, setEditorPaneWidth] = useState(() => {
+    if (typeof window === "undefined") return 50;
+    const stored = Number(window.localStorage.getItem(EDITOR_PANE_WIDTH_STORAGE_KEY));
+    return clampEditorPaneWidth(stored);
+  });
+  const [isResizing, setIsResizing] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showRules, setShowRules] = useState(false);
+  const editorPreviewContainerRef = useRef(null);
+  const editorPaneWidthRef = useRef(editorPaneWidth);
+  const resizeFrameRef = useRef(null);
+  const [systemPrefersDark, setSystemPrefersDark] = useState(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return false;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  });
   const [rawRenderedHtml, setRawRenderedHtml] = useState("");
   const [processedRenderedHtml, setProcessedRenderedHtml] = useState("");
   const renderedHtmlRef = useRef({ raw: "", processed: "" });
+  const isDarkMode = theme === "dark" || (theme === "system" && systemPrefersDark);
+  const editorTheme = isDarkMode ? oneDark : "light";
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return undefined;
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = (event) => {
+      setSystemPrefersDark(event.matches);
+    };
+
+    setSystemPrefersDark(media.matches);
+    if (media.addEventListener) {
+      media.addEventListener("change", handleChange);
+      return () => media.removeEventListener("change", handleChange);
+    }
+    media.addListener(handleChange);
+    return () => media.removeListener(handleChange);
+  }, []);
 
   useEffect(() => {
     renderedHtmlRef.current = {
@@ -370,40 +410,14 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     [downloadOptions, runRenderedExport, title]
   );
 
-  const findLineIndex = useCallback((text) => {
-    if (!text) return -1;
-    const lines = (content || "").split("\n");
-    let idx = lines.findIndex((line) => line.includes(text));
-    if (idx !== -1) return idx;
-    const trimmed = text.trim();
-    if (!trimmed) return -1;
-    idx = lines.findIndex((line) => line.trim() === trimmed);
-    return idx;
-  }, [content]);
-
-  const handleLocateText = useCallback((text, lineNumber) => {
-    if (!text && !lineNumber) return;
-    if (readOnly) {
-      const container = previewRef.current;
-      if (!container) return;
-      const lines = (content || "").split("\n");
-      let idx = typeof lineNumber === "number" ? lineNumber - 1 : findLineIndex(text);
-      if (idx < 0) return;
-      const max = container.scrollHeight - container.clientHeight;
-      if (max <= 0) return;
-      const ratio = idx / Math.max(1, lines.length - 1);
-      container.scrollTo({ top: max * ratio, behavior: "smooth" });
-      return;
-    }
-
-    const idx = typeof lineNumber === "number" ? lineNumber : findLineIndex(text) + 1;
-    if (!idx || idx < 1) return;
-    scrollEditorToLine(idx, "smooth");
-    highlightEditorLine(idx);
-    setTimeout(() => {
-      clearHighlightLine();
-    }, 1200);
-  }, [content, findLineIndex, previewRef, readOnly, scrollEditorToLine, highlightEditorLine, clearHighlightLine]);
+  const { handleLocateText, handlePreviewLineClick } = usePreviewLineNavigation({
+    content,
+    readOnly,
+    previewRef,
+    scrollEditorToLine,
+    highlightEditorLine,
+    clearHighlightLine,
+  });
 
   const setPreviewContainerRef = useCallback(
     (node) => {
@@ -417,8 +431,9 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
 
   const handleBack = async () => {
       debouncedSave.cancel();
-      // If unsaved, save immediately before leaving
-      if (saveStatus === 'unsaved' || saveStatus === 'saving') {
+      const hasCloudDiff = content !== lastSavedContent.current || title !== lastSavedTitle.current;
+      // Ensure latest content is synced to cloud before leaving editor view.
+      if (!readOnly && hasCloudDiff) {
           await performSave(scriptId, content, title);
       }
       onClose();
@@ -430,6 +445,90 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
             performSave(scriptId, content, title);
         }
   };
+
+  const persistEditorPaneWidth = useCallback((value) => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(EDITOR_PANE_WIDTH_STORAGE_KEY, String(Math.round(value * 10) / 10));
+    } catch (_error) {
+      // Ignore storage errors (private mode / quota).
+    }
+  }, []);
+
+  const applyEditorPaneWidth = useCallback((nextWidth) => {
+    const clamped = clampEditorPaneWidth(nextWidth);
+    editorPaneWidthRef.current = clamped;
+    const container = editorPreviewContainerRef.current;
+    if (container) {
+      container.style.setProperty("--editor-pane-width", `${clamped}%`);
+    }
+  }, []);
+
+  const updateEditorPaneWidth = useCallback((clientX) => {
+    const container = editorPreviewContainerRef.current;
+    if (!container || !Number.isFinite(clientX)) return;
+    const rect = container.getBoundingClientRect();
+    if (!rect.width) return;
+    const ratio = ((clientX - rect.left) / rect.width) * 100;
+    const clamped = clampEditorPaneWidth(ratio);
+    if (resizeFrameRef.current) return;
+    resizeFrameRef.current = requestAnimationFrame(() => {
+      applyEditorPaneWidth(clamped);
+      resizeFrameRef.current = null;
+    });
+  }, [applyEditorPaneWidth]);
+
+  const handleResizerPointerDown = useCallback((event) => {
+    if (readOnly || !showPreview) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    setIsResizing(true);
+    updateEditorPaneWidth(event.clientX);
+  }, [readOnly, showPreview, updateEditorPaneWidth]);
+
+  const handleResizerPointerMove = useCallback((event) => {
+    if (!isResizing) return;
+    updateEditorPaneWidth(event.clientX);
+  }, [isResizing, updateEditorPaneWidth]);
+
+  const handleResizerPointerUp = useCallback((event) => {
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    const finalWidth = editorPaneWidthRef.current;
+    setEditorPaneWidth(finalWidth);
+    persistEditorPaneWidth(finalWidth);
+    setIsResizing(false);
+  }, [persistEditorPaneWidth]);
+
+  const handleResizerDoubleClick = useCallback(() => {
+    const resetWidth = 50;
+    applyEditorPaneWidth(resetWidth);
+    setEditorPaneWidth(resetWidth);
+    persistEditorPaneWidth(resetWidth);
+  }, [applyEditorPaneWidth, persistEditorPaneWidth]);
+
+  useEffect(() => {
+    if (!isResizing) return undefined;
+    const previousCursor = document.body.style.cursor;
+    const previousUserSelect = document.body.style.userSelect;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    return () => {
+      document.body.style.cursor = previousCursor;
+      document.body.style.userSelect = previousUserSelect;
+    };
+  }, [isResizing]);
+
+  useEffect(() => {
+    applyEditorPaneWidth(editorPaneWidth);
+  }, [editorPaneWidth, applyEditorPaneWidth]);
+
+  useEffect(() => {
+    return () => {
+      if (resizeFrameRef.current) {
+        cancelAnimationFrame(resizeFrameRef.current);
+      }
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -458,6 +557,13 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
                 paddingLeft: "4px",
                 cursor: "default",
                 userSelect: "none"
+            },
+            ".cm-scroller": {
+                scrollbarWidth: "none",
+                msOverflowStyle: "none"
+            },
+            ".cm-scroller::-webkit-scrollbar": {
+                display: "none"
             }
         })
     ];
@@ -511,14 +617,20 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
       )}
 
       {/* Editor Area */}
-      <div className="flex-1 overflow-hidden relative flex flex-col sm:flex-row">
+      <div ref={editorPreviewContainerRef} className="flex-1 overflow-hidden relative flex flex-col sm:flex-row">
         {/* Code Editor Pane */}
         {!readOnly && (
-            <div className={`h-full ${showPreview ? "w-full sm:w-1/2 sm:border-r sm:border-border" : "w-full"} transition-all duration-300 flex flex-col`}>
+            <div
+                className={`h-full ${
+                  showPreview
+                    ? "w-full sm:w-auto sm:shrink-0 sm:basis-[var(--editor-pane-width,50%)] sm:border-r sm:border-border"
+                    : "w-full"
+                } ${isResizing ? "transition-none" : "transition-[flex-basis,width] duration-150"} flex flex-col`}
+            >
                 <CodeMirror
                     value={content}
                     height="100%"
-                    theme={oneDark} 
+                    theme={editorTheme}
                     onCreateEditor={handleEditorCreate}
                     extensions={extensions}
                     onChange={handleChange}
@@ -533,6 +645,21 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
             </div>
         )}
 
+        {!readOnly && showPreview && (
+            <div
+                className="hidden sm:flex w-2 shrink-0 items-center justify-center bg-muted/20 hover:bg-muted/40 cursor-col-resize transition-colors"
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="調整預覽寬度"
+                onPointerDown={handleResizerPointerDown}
+                onPointerMove={handleResizerPointerMove}
+                onPointerUp={handleResizerPointerUp}
+                onPointerCancel={handleResizerPointerUp}
+                onDoubleClick={handleResizerDoubleClick}
+            >
+                <div className={`h-12 w-[2px] rounded-full ${isResizing ? "bg-primary" : "bg-border"}`} />
+            </div>
+        )}
 
         {/* Preview Pane */}
         <PreviewPanel 
@@ -541,7 +668,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
             readOnly={readOnly}
             content={deferredContent}
             type={initialData?.type || "script"}
-            theme={theme === 'dark' ? 'dark' : 'light'}
+            theme={isDarkMode ? "dark" : "light"}
             fontSize={fontSize}
             bodyFontSize={bodyFontSize}
             dialogueFontSize={dialogueFontSize}
@@ -559,6 +686,15 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
             onScenes={setScenes}
             onRequestEdit={readOnly ? onRequestEdit : undefined}
             hiddenMarkerIds={hiddenMarkerIds}
+            onContentClick={handlePreviewLineClick}
+            outerClassName={`${
+              readOnly
+                ? "w-full"
+                : showPreview
+                  ? "w-full sm:w-auto sm:grow sm:min-w-[280px]"
+                  : "hidden"
+            } h-full overflow-hidden bg-background flex flex-col`}
+            scrollClassName="h-full overflow-y-auto overflow-x-hidden scrollbar-hide px-4 py-8"
         />
 
         {/* Stats Side Panel (Non-modal) */}

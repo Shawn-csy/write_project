@@ -17,6 +17,7 @@ export function MetadataDetailsTab({
     availableTags,
     newTagInput, setNewTagInput,
     handleAddTag,
+    handleAddTagsBatch,
     handleRemoveTag,
     contactFields, setContactFields,
     onAddContactField,
@@ -26,8 +27,41 @@ export function MetadataDetailsTab({
     customFields, setCustomFields,
     addCustomField,
     addDivider,
-    handleCustomFieldUpdate
+    handleCustomFieldUpdate,
+    recommendedErrors = {}
 }) {
+    const hasInvalidCoverUrl = Boolean(coverUrl?.trim()) && !/^https?:\/\//i.test(coverUrl.trim());
+    const [coverPreviewFailed, setCoverPreviewFailed] = React.useState(false);
+
+    const handleCoverUpload = (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith("image/")) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = typeof reader.result === "string" ? reader.result : "";
+            if (result) {
+                setCoverUrl(result);
+                setCoverPreviewFailed(false);
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const parsePastedTags = (text) =>
+        String(text || "")
+            .split(/,|，|\n|\t|;/)
+            .map((item) => item.trim())
+            .filter(Boolean);
+
+    const handleTagPaste = (event) => {
+        const text = event.clipboardData?.getData("text") || "";
+        const parsed = parsePastedTags(text);
+        if (parsed.length <= 1) return;
+        event.preventDefault();
+        handleAddTagsBatch?.(parsed);
+    };
+
     return (
         <div className="space-y-6 mt-0">
             {/* Status Alert */}
@@ -55,12 +89,43 @@ export function MetadataDetailsTab({
                 <div className="grid gap-2">
                     <label className="text-sm font-medium" htmlFor="metadata-cover-url">封面圖片 URL (Cover)</label>
                     <Input id="metadata-cover-url" name="metadataCoverUrl" value={coverUrl} onChange={e => setCoverUrl(e.target.value)} placeholder="https://..." />
+                    <div className="flex items-center gap-2">
+                        <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
+                            上傳圖片
+                            <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
+                        </label>
+                        <span className="text-xs text-muted-foreground">可直接上傳，或貼上圖片網址。</span>
+                    </div>
+                    {coverUrl && (
+                        <div className="mt-1 h-28 w-full overflow-hidden rounded-md border bg-muted/20">
+                            {coverPreviewFailed ? (
+                                <div className="flex h-full items-center justify-center text-xs text-muted-foreground">封面預覽失敗，請確認圖片來源或網址。</div>
+                            ) : (
+                                <img
+                                    src={coverUrl}
+                                    alt="cover preview"
+                                    className="h-full w-full object-cover"
+                                    onLoad={() => setCoverPreviewFailed(false)}
+                                    onError={() => setCoverPreviewFailed(true)}
+                                />
+                            )}
+                        </div>
+                    )}
+                    {recommendedErrors.cover && (
+                        <p className="text-xs text-amber-700 dark:text-amber-300">建議補上封面，有助於提升曝光。</p>
+                    )}
+                    {hasInvalidCoverUrl && (
+                        <p className="text-xs text-amber-700 dark:text-amber-300">建議使用 `http://` 或 `https://` 開頭的完整網址。</p>
+                    )}
                 </div>
             </div>
 
              {/* Tags */}
             <div className="grid gap-2">
                 <label className="text-sm font-medium" htmlFor="metadata-new-tag">標籤 (Tags)</label>
+                {recommendedErrors.tags && (
+                    <p className="text-xs text-amber-700 dark:text-amber-300">建議至少加 1 個標籤，讓讀者更容易找到作品。</p>
+                )}
                 <div className="flex flex-wrap gap-2 mb-2">
                     {currentTags.map(tag => (
                         <Badge 
@@ -93,9 +158,11 @@ export function MetadataDetailsTab({
                                 aria-label="新增標籤"
                                 value={newTagInput}
                                 onChange={(e) => setNewTagInput(e.target.value)}
+                                onPaste={handleTagPaste}
                                 placeholder="搜尋或新增標籤..."
                                 onKeyDown={(e) => {
                                     if (e.key === "Enter") {
+                                        e.preventDefault();
                                         handleAddTag();
                                     }
                                 }}

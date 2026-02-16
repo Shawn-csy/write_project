@@ -12,6 +12,16 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
   const normalizedTags = (tags || [])
     .map((tag) => (typeof tag === "string" ? tag : tag?.name))
     .filter(Boolean);
+  const licenseTags = ((script?._derivedLicenseTags || []) || [])
+    .map((tag) => (typeof tag === "string" ? tag : tag?.name))
+    .filter(Boolean);
+  const licenseTagSet = new Set(licenseTags);
+  const prioritizedTags = [
+    ...licenseTags,
+    ...normalizedTags.filter((tag) => !licenseTagSet.has(tag)),
+  ];
+  const primaryTags = prioritizedTags.slice(0, 2);
+  const secondaryTags = prioritizedTags.slice(2, 4);
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(likes);
 
@@ -126,23 +136,59 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
         </div>
 
         {/* Tags */}
-        {normalizedTags.length > 0 && (
+        {prioritizedTags.length > 0 && (
           <div className="flex flex-wrap gap-1 pt-1">
-            {normalizedTags.slice(0, 3).map((tag, i) => (
+            {primaryTags.map((tag, i) => (
               <Badge 
                 key={i} 
                 variant="outline" 
-                className="px-1.5 py-0 h-5 text-[10px] font-normal border-primary/20 text-muted-foreground hover:bg-secondary cursor-pointer"
+                className={`max-w-[130px] px-1.5 py-0 h-5 text-[10px] font-normal hover:bg-secondary cursor-pointer ${
+                  licenseTagSet.has(tag)
+                    ? "border"
+                    : "border-primary/20 text-muted-foreground"
+                }`}
                 onClick={(e) => {
                     e.stopPropagation();
                     navigate(`/?tag=${encodeURIComponent(tag)}`);
                 }}
+                title={tag}
+                style={licenseTagSet.has(tag) ? {
+                  backgroundColor: "var(--license-card-bg)",
+                  borderColor: "var(--license-card-border)",
+                  color: "var(--license-card-fg)",
+                } : undefined}
               >
-                {tag}
+                <span className="truncate">{tag}</span>
               </Badge>
             ))}
-            {normalizedTags.length > 3 && (
-                <span className="text-[10px] text-muted-foreground self-center">+{normalizedTags.length - 3}</span>
+            {secondaryTags.map((tag, i) => (
+              <Badge
+                key={`secondary-${i}`}
+                variant="outline"
+                className={`hidden sm:inline-flex max-w-[130px] px-1.5 py-0 h-5 text-[10px] font-normal hover:bg-secondary cursor-pointer ${
+                  licenseTagSet.has(tag)
+                    ? "border"
+                    : "border-primary/20 text-muted-foreground"
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/?tag=${encodeURIComponent(tag)}`);
+                }}
+                title={tag}
+                style={licenseTagSet.has(tag) ? {
+                  backgroundColor: "var(--license-card-bg)",
+                  borderColor: "var(--license-card-border)",
+                  color: "var(--license-card-fg)",
+                } : undefined}
+              >
+                <span className="truncate">{tag}</span>
+              </Badge>
+            ))}
+            {prioritizedTags.length > 2 && (
+                <span className="sm:hidden text-[10px] text-muted-foreground self-center">+{prioritizedTags.length - 2}</span>
+            )}
+            {prioritizedTags.length > 4 && (
+                <span className="hidden sm:inline text-[10px] text-muted-foreground self-center">+{prioritizedTags.length - 4}</span>
             )}
           </div>
         )}

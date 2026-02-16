@@ -184,8 +184,11 @@ function App() {
   ];
   
   const isPublicReader = location.pathname.startsWith("/read/");
+  const isReaderWorkspaceRoute =
+    location.pathname.startsWith("/dashboard") ||
+    location.pathname.startsWith("/edit/");
   const showReaderHeader = !nav.homeOpen && !nav.aboutOpen && !nav.settingsOpen && (
-    (activeCloudScript && cloudScriptMode === 'read') || isPublicReader
+    (activeCloudScript && cloudScriptMode === 'read' && isReaderWorkspaceRoute) || isPublicReader
   );
 
   return (

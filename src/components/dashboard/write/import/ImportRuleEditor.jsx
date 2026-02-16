@@ -4,17 +4,20 @@ import { Badge } from "../../../ui/badge";
 import { Label } from "../../../ui/label";
 import { Input } from "../../../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../ui/select";
+import { Button } from "../../../ui/button";
+import { Trash2 } from "lucide-react";
 
-export function ImportRuleEditor({ rule, index, onUpdate }) {
+export function ImportRuleEditor({ rule, onChange, onDelete }) {
     const ruleColor = rule.style?.color || rule.color || "#000000";
+    const fieldKey = String(rule.id || rule.label || rule.start || rule.pattern || "rule").replace(/\s+/g, "-");
 
     const updateRule = (field, value) => {
-        onUpdate(index, field, value);
+        onChange({ ...rule, [field]: value });
     };
 
     const updateStyle = (styleField, value) => {
         const newStyle = { ...(rule.style || {}), [styleField]: value };
-        updateRule('style', newStyle);
+        updateRule("style", newStyle);
     };
 
     return (
@@ -46,10 +49,10 @@ export function ImportRuleEditor({ rule, index, onUpdate }) {
                     <div className="grid gap-2 p-3 bg-muted/20 rounded-md">
                         <div className="text-xs font-semibold text-muted-foreground mb-1">顯示樣式</div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
-                            <Label htmlFor={`color-${index}`} className="text-xs">顏色</Label>
+                            <Label htmlFor={`color-${fieldKey}`} className="text-xs">顏色</Label>
                             <div className="col-span-2 flex gap-2">
                                 <Input
-                                    id={`color-${index}`}
+                                    id={`color-${fieldKey}`}
                                     type="color"
                                     value={ruleColor}
                                     className="w-12 h-6 p-0 px-1"
@@ -63,9 +66,9 @@ export function ImportRuleEditor({ rule, index, onUpdate }) {
                             </div>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
-                            <Label htmlFor={`label-${index}`} className="text-xs">顯示標籤</Label>
+                            <Label htmlFor={`label-${fieldKey}`} className="text-xs">顯示標籤</Label>
                             <Input
-                                id={`label-${index}`}
+                                id={`label-${fieldKey}`}
                                 value={rule.label || ""}
                                 className="sm:col-span-2 h-6 text-xs"
                                 onChange={(e) => updateRule('label', e.target.value)}
@@ -84,9 +87,9 @@ export function ImportRuleEditor({ rule, index, onUpdate }) {
                                 value={rule.matchMode || (rule.type === 'prefix' ? 'prefix' : 'enclosure')}
                                 onValueChange={(val) => {
                                     // 當切換模式時，預設一些值
-                                    onUpdate(index, 'matchMode', val);
+                                    updateRule("matchMode", val);
                                     if (val === 'prefix') {
-                                        onUpdate(index, 'end', '');
+                                        updateRule("end", "");
                                     }
                                 }}
                             >
@@ -171,6 +174,19 @@ export function ImportRuleEditor({ rule, index, onUpdate }) {
                             </p>
                         </div>
                     </div>
+                    {onDelete && (
+                        <div className="pt-2 border-t">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full text-destructive hover:text-destructive"
+                                onClick={onDelete}
+                            >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                刪除此規則
+                            </Button>
+                        </div>
+                    )}
                 </div>
             </PopoverContent>
         </Popover>

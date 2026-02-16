@@ -190,7 +190,8 @@ function ScriptViewer({
 
   // Generate RAW HTML (No Filters) for fallback
   const rawHtml = useMemo(() => {
-      // If we don't have onRawHtml, skip calculation to save performance
+      // If we don't need raw html output, skip calculation to save performance.
+      if (!onRawHtml) return '';
       if (!ast) return '';
       // If no filters are active, rawHtml === filteredHtml
       if (!filterCharacter && !focusMode && filterCharacter !== "__ALL__") return filteredHtml;
@@ -210,7 +211,7 @@ function ScriptViewer({
             showLineUnderline={showLineUnderline}
           />
       );
-  }, [ast, themePalette, bodyFontSize, fontSize, colorCache, markerConfigs, filterCharacter, focusMode, filteredHtml, hiddenMarkerIds]);
+  }, [ast, onRawHtml, themePalette, bodyFontSize, fontSize, colorCache, markerConfigs, filterCharacter, focusMode, filteredHtml, hiddenMarkerIds]);
 
 
   useEffect(() => {

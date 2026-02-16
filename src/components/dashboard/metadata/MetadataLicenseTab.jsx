@@ -7,12 +7,14 @@ import { cn } from "../../../lib/utils";
 import { Check, Edit2, Link as LinkIcon, X } from "lucide-react";
 import { Switch } from "../../ui/switch";
 import { LICENSES } from "../../../constants/licenses";
+import { deriveCcLicenseTags } from "../../../lib/licenseRights";
 
 export function MetadataLicenseTab({ 
     license, setLicense, 
     licenseUrl, setLicenseUrl,
     licenseTerms = [], setLicenseTerms,
-    copyright, setCopyright 
+    copyright, setCopyright,
+    requiredErrors = {}
 }) {
     // Standard Creative Commons Licenses with metadata
     const licenses = LICENSES;
@@ -22,6 +24,7 @@ export function MetadataLicenseTab({
 
     // Detect if we are in a custom state or a standard license state
     const selectedLicense = licenses.find(l => l.short === license) || (isCustom ? null : null);
+    const autoCcTags = deriveCcLicenseTags(license);
 
     // Initial check and sync when license props change
     useEffect(() => {
@@ -70,6 +73,9 @@ export function MetadataLicenseTab({
         }
     }
 
+    const hasLicense = Boolean(license?.trim()) || (licenseTerms || []).length > 0;
+    const hasInvalidLicenseUrl = Boolean(licenseUrl?.trim()) && !/^https?:\/\//i.test(licenseUrl.trim());
+
     return (
         <div className="space-y-8 h-full overflow-y-auto px-1 pb-10">
             
@@ -83,6 +89,9 @@ export function MetadataLicenseTab({
                          </Button>
                      )}
                 </div>
+                {requiredErrors.license && !hasLicense && (
+                    <p className="text-xs text-destructive">發布公開作品前請填寫授權資訊。</p>
+                )}
                 
                 <div className="flex flex-wrap gap-2">
                     {licenses.map((lic) => {
@@ -153,6 +162,9 @@ export function MetadataLicenseTab({
                                         onChange={(e) => setLicenseUrl(e.target.value)}
                                     />
                                 </div>
+                                {hasInvalidLicenseUrl && (
+                                    <p className="text-xs text-amber-700 dark:text-amber-300">建議使用 `http://` 或 `https://` 開頭的完整網址。</p>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -171,6 +183,18 @@ export function MetadataLicenseTab({
                              <p className="text-sm text-foreground/80 leading-relaxed px-1">
                                 {selectedLicense.description}
                              </p>
+                             {autoCcTags.length > 0 && (
+                                 <div className="px-1 space-y-1.5">
+                                     <p className="text-xs text-muted-foreground">自動授權標籤（公開頁可直接搜尋）</p>
+                                     <div className="flex flex-wrap gap-1.5">
+                                         {autoCcTags.map((tag) => (
+                                             <Badge key={tag} variant="secondary" className="text-[11px]">
+                                                 {tag}
+                                             </Badge>
+                                         ))}
+                                     </div>
+                                 </div>
+                             )}
                              {selectedLicense.url && (
                                  <div className="text-xs text-muted-foreground flex items-center gap-1 px-1">
                                      <LinkIcon className="w-3 h-3" />

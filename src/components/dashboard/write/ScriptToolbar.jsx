@@ -62,14 +62,26 @@ export function ScriptToolbar({
                  <Button size="icon" variant="ghost" onClick={() => onExport && onExport()} title="全部匯出 (Backup)">
                     <Download className="w-4 h-4" />
                  </Button>
-                 <Button size="icon" variant="ghost" onClick={() => onImport && onImport()} title="匯入台本">
+                 <Button size="sm" variant="outline" onClick={() => onImport && onImport()} title="匯入台本" className="hidden sm:inline-flex">
+                    <Upload className="w-4 h-4 mr-1" />
+                    匯入
+                 </Button>
+                 <Button size="icon" variant="ghost" onClick={() => onImport && onImport()} title="匯入台本" className="sm:hidden">
                     <Upload className="w-4 h-4" />
                  </Button>
                  <div className="w-px h-4 bg-border/60 mx-1" />
-                 <Button size="icon" variant="ghost" onClick={onCreateFolder} title="新增資料夾">
+                 <Button size="sm" variant="outline" onClick={onCreateFolder} title="新增資料夾" className="hidden md:inline-flex">
+                    <FolderPlus className="w-4 h-4 mr-1" />
+                    資料夾
+                 </Button>
+                 <Button size="icon" variant="ghost" onClick={onCreateFolder} title="新增資料夾" className="md:hidden">
                     <FolderPlus className="w-4 h-4" />
                  </Button>
-                 <Button size="icon" variant="ghost" onClick={onCreateScript} title="新增劇本">
+                 <Button size="sm" onClick={onCreateScript} title="新增劇本" className="hidden sm:inline-flex">
+                    <Plus className="w-4 h-4 mr-1" />
+                    新增劇本
+                 </Button>
+                 <Button size="icon" onClick={onCreateScript} title="新增劇本" className="sm:hidden">
                     <Plus className="w-4 h-4" />
                  </Button>
             </div>

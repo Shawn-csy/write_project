@@ -107,4 +107,13 @@ describe('ScreenplayAST (Pure Marker Mode)', () => {
         expect(result.scenes.length).toBe(2);
         expect(result.scenes[0].label).toContain('第一場');
     });
+
+    it('should keep AST line numbers aligned to original text when title page exists', () => {
+        const text = "Title: 測試\nAuthor: A\n\n第一行正文\n第二行正文";
+        const result = parseScreenplay(text);
+
+        const firstAction = result.ast.children.find(n => n.type === 'action');
+        expect(firstAction).toBeDefined();
+        expect(firstAction.lineStart).toBe(4);
+    });
 });

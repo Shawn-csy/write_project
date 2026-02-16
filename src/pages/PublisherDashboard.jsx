@@ -2,21 +2,27 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
 import { Button } from "../components/ui/button";
-import { Plus, PanelLeftOpen } from "lucide-react";
+import { Plus, PanelLeftOpen, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { ScriptMetadataDialog } from "../components/dashboard/ScriptMetadataDialog";
 import { getMorandiTagStyle } from "../lib/tagColors";
-import { getPersonas, createPersona, updatePersona, deletePersona, getOrganizations, createOrganization, updateOrganization, deleteOrganization, getUserScripts, getTags, getOrganizationMembers, getOrganizationInvites, getOrganizationRequests, inviteOrganizationMember, acceptOrganizationRequest, declineOrganizationRequest, getMyOrganizationInvites, acceptOrganizationInvite, declineOrganizationInvite, searchUsers, getUserProfile, getOrganization, getPublicPersona } from "../lib/db";
+import { getPersonas, createPersona, updatePersona, deletePersona, getOrganizations, createOrganization, updateOrganization, deleteOrganization, getUserScripts, getTags, getOrganizationMembers, getOrganizationInvites, getOrganizationRequests, inviteOrganizationMember, acceptOrganizationRequest, declineOrganizationRequest, getMyOrganizationInvites, acceptOrganizationInvite, declineOrganizationInvite, searchUsers, getUserProfile, getOrganization, getPublicPersona, createScript } from "../lib/db";
 import { PublisherWorksTab } from "../components/dashboard/publisher/PublisherWorksTab";
 import { PublisherProfileTab } from "../components/dashboard/publisher/PublisherProfileTab";
 import { PublisherOrgTab } from "../components/dashboard/publisher/PublisherOrgTab";
 import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../components/ui/toast";
 
 
 export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMenu }) {
   const { currentUser, profile: currentProfile } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("works");
   const [editingScript, setEditingScript] = useState(null);
+  const [isCreatingScript, setIsCreatingScript] = useState(false);
+  const [confirmDeletePersonaOpen, setConfirmDeletePersonaOpen] = useState(false);
+  const [confirmDeleteOrgOpen, setConfirmDeleteOrgOpen] = useState(false);
   
   // Data State
   const [personas, setPersonas] = useState([]);
@@ -38,7 +44,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
   const [orgDraft, setOrgDraft] = useState({ id: "", name: "", description: "", website: "", logoUrl: "", bannerUrl: "", tags: [] });
   const [personaTagInput, setPersonaTagInput] = useState("");
   const [orgTagInput, setOrgTagInput] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isWorksLoading, setIsWorksLoading] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingOrg, setIsSavingOrg] = useState(false);
   const [isCreatingPersona, setIsCreatingPersona] = useState(false);
@@ -91,12 +97,29 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
 
   const loadData = async (isBackground = false) => {
     if (!currentUser) return;
-    if (!isBackground) setIsLoading(true);
+    if (!isBackground) setIsWorksLoading(true);
+
     try {
-        const [personaData, orgData, scriptData, tagData] = await Promise.all([
+        const scriptData = await getUserScripts();
+        const sortedScripts = (scriptData || [])
+            .filter(s => s.type !== "folder" && !s.isFolder)
+            .sort((a, b) => {
+                const aPublic = a.status === "Public" || a.isPublic;
+                const bPublic = b.status === "Public" || b.isPublic;
+                if (aPublic !== bPublic) return aPublic ? -1 : 1;
+                return (b.lastModified || 0) - (a.lastModified || 0);
+            });
+        setScripts(sortedScripts);
+    } catch (e) {
+        console.error("Failed to load scripts", e);
+    } finally {
+        if (!isBackground) setIsWorksLoading(false);
+    }
+
+    try {
+        const [personaData, orgData, tagData] = await Promise.all([
             getPersonas(),
             getOrganizations(),
-            getUserScripts(),
             getTags(),
         ]);
         let normalizedPersonas = (personaData || []).map(p => {
@@ -157,15 +180,6 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
             deduped.push(o);
         }
         setOrgsForPersona(deduped);
-        const sortedScripts = (scriptData || [])
-            .filter(s => s.type !== "folder" && !s.isFolder)
-            .sort((a, b) => {
-                const aPublic = a.status === "Public" || a.isPublic;
-                const bPublic = b.status === "Public" || b.isPublic;
-                if (aPublic !== bPublic) return aPublic ? -1 : 1;
-                return (b.lastModified || 0) - (a.lastModified || 0);
-            });
-        setScripts(sortedScripts);
         setAvailableTags(tagData || []);
         const preferredPersonaId = localStorage.getItem("preferredPersonaId");
         const personasForSelection = normalizedPersonas;
@@ -180,8 +194,6 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         }
     } catch (e) {
         console.error("Failed to load studio data", e);
-    } finally {
-        if (!isBackground) setIsLoading(false);
     }
   };
 
@@ -376,10 +388,10 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
       try {
           await updatePersona(selectedPersonaId, personaDraft);
           await loadData(true);
-          alert("Persona updated successfully!");
+          toast({ title: "作者身份已更新" });
       } catch (e) {
           console.error("Failed to update persona", e);
-          alert("Failed to update persona.");
+          toast({ title: "更新作者身份失敗", variant: "destructive" });
       } finally {
           setIsSavingProfile(false);
       }
@@ -398,10 +410,10 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
               tags: orgDraft.tags
           });
           await loadData(true);
-          alert("Organization updated successfully!");
+          toast({ title: "組織已更新" });
       } catch (e) {
           console.error("Failed to update org", e);
-          alert("Failed to update organization.");
+          toast({ title: "更新組織失敗", variant: "destructive" });
       } finally {
           setIsSavingOrg(false);
       }
@@ -414,9 +426,10 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
           const created = await createPersona(personaDraft);
           await loadData(true);
           setSelectedPersonaId(created?.id || null);
+          toast({ title: "已建立作者身份" });
       } catch (e) {
           console.error("Failed to create persona", e);
-          alert("Failed to create persona.");
+          toast({ title: "建立作者身份失敗", variant: "destructive" });
       } finally {
           setIsCreatingPersona(false);
       }
@@ -424,13 +437,14 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
 
   const handleDeletePersona = async () => {
       if (!selectedPersonaId) return;
-      if (!confirm("Delete this persona?")) return;
       try {
           await deletePersona(selectedPersonaId);
           await loadData(true);
+          setConfirmDeletePersonaOpen(false);
+          toast({ title: "作者身份已刪除" });
       } catch (e) {
           console.error("Failed to delete persona", e);
-          alert("Failed to delete persona.");
+          toast({ title: "刪除作者身份失敗", variant: "destructive" });
       }
   };
 
@@ -448,9 +462,10 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
           });
           await loadData(true);
           setSelectedOrgId(created?.id || null);
+          toast({ title: "已建立組織" });
       } catch (e) {
           console.error("Failed to create organization", e);
-          alert("Failed to create organization.");
+          toast({ title: "建立組織失敗", variant: "destructive" });
       } finally {
           setIsCreatingOrg(false);
       }
@@ -458,13 +473,28 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
 
   const handleDeleteOrg = async () => {
       if (!orgDraft?.id) return;
-      if (!confirm("Delete this organization? This will unlink all scripts.")) return;
       try {
           await deleteOrganization(orgDraft.id);
           await loadData(true);
+          setConfirmDeleteOrgOpen(false);
+          toast({ title: "組織已刪除" });
       } catch (e) {
           console.error("Failed to delete organization", e);
-          alert("Failed to delete organization.");
+          toast({ title: "刪除組織失敗", variant: "destructive" });
+      }
+  };
+
+  const handleCreateScript = async () => {
+      if (isCreatingScript) return;
+      setIsCreatingScript(true);
+      try {
+          const id = await createScript("Untitled Script", "script", "/");
+          navigate(`/edit/${id}?mode=edit`);
+      } catch (e) {
+          console.error("Failed to create script", e);
+          toast({ title: "建立劇本失敗", description: "請稍後再試。", variant: "destructive" });
+      } finally {
+          setIsCreatingScript(false);
       }
   };
 
@@ -513,8 +543,8 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
             </div>
         </div>
         <div className="flex items-center gap-3">
-             <Button>
-                <Plus className="w-4 h-4 mr-2" />
+             <Button onClick={handleCreateScript} disabled={isCreatingScript}>
+                {isCreatingScript ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
                 新增劇本
              </Button>
         </div>
@@ -547,11 +577,12 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         {/* 1. My Works Tab */}
         <TabsContent value="works" className="space-y-4">
              <PublisherWorksTab 
-                isLoading={isLoading} 
+                isLoading={isWorksLoading} 
                 scripts={scripts} 
                 setEditingScript={setEditingScript} 
                 navigate={navigate} 
                 formatDate={formatDate} 
+                onContinueEdit={(script) => navigate(`/edit/${script.id}?mode=edit`)}
              />
         </TabsContent>
 
@@ -562,7 +593,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 personas={personas}
                 selectedPersona={personas.find(p => p.id === selectedPersonaId)}
                 handleCreatePersona={handleCreatePersona} isCreatingPersona={isCreatingPersona}
-                handleDeletePersona={handleDeletePersona}
+                handleDeletePersona={() => setConfirmDeletePersonaOpen(true)}
                 personaDraft={personaDraft} setPersonaDraft={setPersonaDraft}
                 orgs={orgsForPersona}
                 personaTagInput={personaTagInput} setPersonaTagInput={setPersonaTagInput}
@@ -588,7 +619,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 orgs={orgs} 
                 selectedOrgId={selectedOrgId} setSelectedOrgId={setSelectedOrgId}
                 handleCreateOrg={handleCreateOrg} isCreatingOrg={isCreatingOrg}
-                handleDeleteOrg={handleDeleteOrg}
+                handleDeleteOrg={() => setConfirmDeleteOrgOpen(true)}
                 orgDraft={orgDraft} setOrgDraft={setOrgDraft}
                 handleSaveOrg={handleSaveOrg} isSavingOrg={isSavingOrg}
                 orgTagInput={orgTagInput} setOrgTagInput={setOrgTagInput}
@@ -609,6 +640,32 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         </TabsContent>
 
       </Tabs>
+
+      <Dialog open={confirmDeletePersonaOpen} onOpenChange={setConfirmDeletePersonaOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>刪除作者身份？</DialogTitle>
+            <DialogDescription>這個操作無法復原，相關公開頁面將失效。</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDeletePersonaOpen(false)}>取消</Button>
+            <Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDeletePersona}>確認刪除</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={confirmDeleteOrgOpen} onOpenChange={setConfirmDeleteOrgOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>刪除組織？</DialogTitle>
+            <DialogDescription>此操作會解除與作品的關聯，且無法復原。</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDeleteOrgOpen(false)}>取消</Button>
+            <Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDeleteOrg}>確認刪除</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
     </div>
   );

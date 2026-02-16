@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, desc, asc, orm, func
 import models, schemas
-from typing import List, Optional
+from typing import List, Optional, Any
 import time
 import uuid
 import json
@@ -406,12 +406,36 @@ def get_user_themes(db: Session, ownerId: str):
 def get_public_themes(db: Session):
     return db.query(models.MarkerTheme).options(orm.joinedload(models.MarkerTheme.owner)).filter(models.MarkerTheme.isPublic == True).order_by(models.MarkerTheme.updatedAt.desc()).limit(100).all()
 
+
+def _parse_theme_configs(raw: Any):
+    if raw is None:
+        return []
+    if isinstance(raw, (list, dict)):
+        return raw
+    if isinstance(raw, str):
+        try:
+            parsed = json.loads(raw)
+            return parsed if isinstance(parsed, (list, dict)) else []
+        except Exception:
+            return []
+    return []
+
+
+def _serialize_theme_configs(configs: Any) -> str:
+    if isinstance(configs, str):
+        # Keep backward compatibility for existing clients sending JSON strings.
+        parsed = _parse_theme_configs(configs)
+        return json.dumps(parsed, ensure_ascii=False)
+    if isinstance(configs, (list, dict)):
+        return json.dumps(configs, ensure_ascii=False)
+    return "[]"
+
 def create_theme(db: Session, theme: schemas.MarkerThemeCreate, ownerId: str):
     db_theme = models.MarkerTheme(
         id=theme.id if theme.id else str(uuid.uuid4()),
         ownerId=ownerId,
         name=theme.name,
-        configs=theme.configs,
+        configs=_serialize_theme_configs(theme.configs),
         isPublic=theme.isPublic,
         description=theme.description
     )
@@ -426,6 +450,8 @@ def update_theme(db: Session, theme_id: str, theme: schemas.MarkerThemeUpdate, o
         return None
     
     update_data = theme.model_dump(exclude_unset=True)
+    if "configs" in update_data:
+        update_data["configs"] = _serialize_theme_configs(update_data["configs"])
     for key, value in update_data.items():
         setattr(db_theme, key, value)
     

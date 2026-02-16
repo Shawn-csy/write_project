@@ -209,7 +209,7 @@ export const writeMetadata = (content, entries) => {
     // 3. Remove duplicated metadata lines from body (only for reserved keys)
     const reservedKeys = new Set([
         "title", "credit", "author", "authors", "source", "draftdate", "date",
-        "contact", "copyright", "license", "licenseurl", "licenseterms",
+        "contact", "copyright", "license", "licenseurl", "licenseterms", "licensetags",
         "cover", "coverurl", "synopsis", "summary", "description", "notes",
         "marker_legend", "show_legend"
     ]);

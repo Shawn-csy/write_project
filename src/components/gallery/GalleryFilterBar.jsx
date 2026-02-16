@@ -21,6 +21,11 @@ export function GalleryFilterBar({
     viewValue,
     onViewChange,
     showViewToggle = false
+    ,
+    quickFilters = [],
+    quickFilterValue = "all",
+    onQuickFilterChange,
+    quickTagFilters = []
 }) {
   const [tagOpen, setTagOpen] = useState(false);
   const [tagQuery, setTagQuery] = useState("");
@@ -40,6 +45,19 @@ export function GalleryFilterBar({
   };
 
   const clearTags = () => onSelectTags && onSelectTags([]);
+  const selectedSet = useMemo(() => new Set(selectedTags), [selectedTags]);
+  const featuredOnly = useMemo(
+    () => featuredTags.filter((tag) => !selectedSet.has(tag)),
+    [featuredTags, selectedSet]
+  );
+  const quickTagOnly = useMemo(
+    () => quickTagFilters.filter((opt) => !selectedSet.has(opt.value)),
+    [quickTagFilters, selectedSet]
+  );
+  const quickTagSet = useMemo(
+    () => new Set(quickTagFilters.map((opt) => opt.value)),
+    [quickTagFilters]
+  );
 
   return (
     <div className="flex flex-col gap-4 py-6 border-b border-border/50 mb-6">
@@ -88,38 +106,90 @@ export function GalleryFilterBar({
         </div>
       </div>
 
+      {quickFilters.length > 0 && (
+        <div className="flex flex-nowrap sm:flex-wrap items-center gap-2 overflow-x-auto sm:overflow-visible pb-1 scrollbar-hide">
+          {quickFilters.map((opt) => (
+            <Button
+              key={opt.value}
+              variant={quickFilterValue === opt.value ? "default" : "outline"}
+              size="sm"
+              className="rounded-full text-xs h-7 shrink-0 sm:shrink sm:max-w-full max-w-[180px]"
+              onClick={() => onQuickFilterChange?.(opt.value)}
+              title={opt.label}
+            >
+              <span className="truncate">{opt.label}</span>
+            </Button>
+          ))}
+        </div>
+      )}
+
       {/* Tag Filters */}
       <div className="w-full flex flex-col gap-2">
-        {featuredTags.length > 0 && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            <span className="text-xs text-muted-foreground shrink-0">熱門</span>
-            {featuredTags.map(tag => (
-              <Button
-                key={`hot-${tag}`}
-                variant={selectedTags.includes(tag) ? "default" : "outline"}
-                size="sm"
-                className="rounded-full text-xs h-7 shrink-0"
-                onClick={() => toggleTag(tag)}
-              >
-                {tag}
-              </Button>
-            ))}
-          </div>
-        )}
-        {selectedTags.length > 0 && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {selectedTags.map(tag => (
-              <Button
-                key={tag}
-                variant="secondary"
-                size="sm"
-                className="rounded-full text-xs h-7 shrink-0"
-                onClick={() => toggleTag(tag)}
-                title="點擊移除"
-              >
-                {tag}
-              </Button>
-            ))}
+        {(selectedTags.length > 0 || quickTagOnly.length > 0 || featuredOnly.length > 0) && (
+          <div className="flex flex-col gap-2">
+            {selectedTags.length > 0 && (
+              <div className="flex flex-nowrap sm:flex-wrap items-center justify-start gap-2 overflow-x-auto sm:overflow-visible pb-1 scrollbar-hide">
+                <span className="text-[11px] text-muted-foreground shrink-0">已選</span>
+                {selectedTags.map(tag => (
+                  <Button
+                    key={`selected-${tag}`}
+                    variant="secondary"
+                    size="sm"
+                    className={`rounded-full text-xs h-7 shrink-0 sm:shrink sm:max-w-none max-w-[220px] ${
+                      quickTagSet.has(tag) ? "border" : ""
+                    }`}
+                    onClick={() => toggleTag(tag)}
+                    title="點擊移除"
+                    style={quickTagSet.has(tag) ? {
+                      backgroundColor: "var(--license-selected-bg)",
+                      borderColor: "var(--license-selected-border)",
+                      color: "var(--license-selected-fg)",
+                    } : undefined}
+                  >
+                    <span className="truncate sm:whitespace-normal">{tag}</span>
+                  </Button>
+                ))}
+              </div>
+            )}
+            {quickTagOnly.length > 0 && (
+              <div className="flex flex-nowrap sm:flex-wrap items-center justify-start gap-2 overflow-x-auto sm:overflow-visible pb-1 scrollbar-hide">
+                <span className="text-[11px] text-muted-foreground shrink-0">授權</span>
+                {quickTagOnly.map((opt) => (
+                  <Button
+                    key={`license-${opt.value}`}
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full text-xs h-7 shrink-0 sm:shrink sm:max-w-none max-w-[200px]"
+                    onClick={() => toggleTag(opt.value)}
+                    title={opt.value}
+                    style={{
+                      backgroundColor: "var(--license-filter-bg)",
+                      borderColor: "var(--license-filter-border)",
+                      color: "var(--license-filter-fg)",
+                    }}
+                  >
+                    <span className="truncate sm:whitespace-normal">{opt.label}</span>
+                  </Button>
+                ))}
+              </div>
+            )}
+            {featuredOnly.length > 0 && (
+              <div className="flex flex-nowrap sm:flex-wrap items-center justify-start gap-2 overflow-x-auto sm:overflow-visible pb-1 scrollbar-hide">
+                <span className="text-[11px] text-muted-foreground shrink-0">熱門</span>
+                {featuredOnly.map(tag => (
+                  <Button
+                    key={`hot-${tag}`}
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full text-xs h-7 shrink-0 sm:shrink sm:max-w-none max-w-[180px]"
+                    onClick={() => toggleTag(tag)}
+                    title={tag}
+                  >
+                    <span className="truncate sm:whitespace-normal">{tag}</span>
+                  </Button>
+                ))}
+              </div>
+            )}
           </div>
         )}
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center">

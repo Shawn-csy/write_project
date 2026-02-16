@@ -1,12 +1,14 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { defaultMarkerConfigs } from "../constants/defaultMarkers.js";
 import { apiCall as serviceApiCall } from "../services/settingsApi.js";
+import { normalizeThemeConfigs } from "../lib/markerThemeCodec.js";
 
 export function useMarkerThemes(currentUser) {
     const DEFAULT_THEME_ID = 'default';
+    const defaultTheme = { id: DEFAULT_THEME_ID, name: '預設主題 (Default)', configs: defaultMarkerConfigs };
   
     const [markerThemes, setMarkerThemesState] = useState([
-        { id: DEFAULT_THEME_ID, name: '預設主題 (Default)', configs: defaultMarkerConfigs }
+        defaultTheme
     ]);
     const [currentThemeId, setCurrentThemeIdState] = useState(DEFAULT_THEME_ID);
 
@@ -16,64 +18,102 @@ export function useMarkerThemes(currentUser) {
     // Derived State: Active Markers
     const markerConfigs = useMemo(() => {
         const activeTheme = markerThemes.find(t => t.id === currentThemeId);
-        return activeTheme?.configs || defaultMarkerConfigs;
+        return normalizeThemeConfigs(activeTheme?.configs).length > 0
+            ? normalizeThemeConfigs(activeTheme?.configs)
+            : defaultMarkerConfigs;
     }, [markerThemes, currentThemeId]);
 
     // Actions
     const setMarkerThemes = (val) => {
-        setMarkerThemesState(val);
+        const normalized = Array.isArray(val)
+            ? val.map((theme) => ({ ...theme, configs: normalizeThemeConfigs(theme.configs) }))
+            : [];
+        if (normalized.length === 0) {
+            setMarkerThemesState([defaultTheme]);
+            setCurrentThemeIdState(DEFAULT_THEME_ID);
+            return;
+        }
+        setMarkerThemesState(normalized);
+        setCurrentThemeIdState((prev) => (normalized.some((t) => t.id === prev) ? prev : normalized[0].id));
     };
 
     const setCurrentThemeId = (id) => {
         setCurrentThemeIdState(id);
     };
 
+    useEffect(() => {
+        if (!markerThemes.length) {
+            setCurrentThemeIdState(DEFAULT_THEME_ID);
+            return;
+        }
+        if (!markerThemes.some((theme) => theme.id === currentThemeId)) {
+            setCurrentThemeIdState(markerThemes[0].id);
+        }
+    }, [markerThemes, currentThemeId]);
+
     // Update CURRENT theme's configs
     const setMarkerConfigs = (newConfigs) => {
         const newThemes = markerThemes.map(t => 
-            t.id === currentThemeId ? { ...t, configs: newConfigs } : t
+            t.id === currentThemeId ? { ...t, configs: normalizeThemeConfigs(newConfigs) } : t
         );
         setMarkerThemes(newThemes);
         
         if (currentUser && currentThemeId !== 'default') {
-            apiCall(`/themes/${currentThemeId}`, 'PUT', { configs: JSON.stringify(newConfigs) });
+            apiCall(`/themes/${currentThemeId}`, 'PUT', { configs: normalizeThemeConfigs(newConfigs) });
         }
     };
 
-    const addTheme = async (name, initialConfigs = null) => {
+    const addTheme = async (name, initialOrOptions = null, legacyOptions = null) => {
+        const initialConfigs = Array.isArray(initialOrOptions)
+            ? initialOrOptions
+            : (initialOrOptions?.initialConfigs || null);
+        const options = Array.isArray(initialOrOptions)
+            ? (legacyOptions || {})
+            : (initialOrOptions || {});
         const newId = crypto.randomUUID();
         const configsToSave = initialConfigs || defaultMarkerConfigs;
         const newTheme = {
             id: newId,
             name: name,
-            configs: JSON.stringify(configsToSave), // Server expects string
-            isPublic: false
+            configs: normalizeThemeConfigs(configsToSave),
+            isPublic: Boolean(options.isPublic),
+            description: options.description || ""
         };
-        // Optimistic
-        const themeForState = { ...newTheme, configs: configsToSave };
-        setMarkerThemesState(prev => [...prev, themeForState]);
-        setCurrentThemeId(newId);
+        setMarkerThemesState(prev => {
+            if (prev.some((t) => t.id === newId)) return prev;
+            return [...prev, newTheme];
+        });
+        setCurrentThemeIdState(newId);
         
         if (currentUser) {
             await apiCall('/themes', 'POST', newTheme);
         }
+        return newTheme;
     };
 
-    const addThemeFromCurrent = async (name, isPublic = false) => {
+    const addThemeFromCurrent = async (name, optionsOrPublic = false) => {
+        const options =
+            typeof optionsOrPublic === "boolean"
+                ? { isPublic: optionsOrPublic }
+                : (optionsOrPublic || {});
         const newId = crypto.randomUUID();
         const newTheme = {
             id: newId,
             name: name,
-            configs: JSON.stringify(markerConfigs),
-            isPublic: isPublic
+            configs: normalizeThemeConfigs(markerConfigs),
+            isPublic: Boolean(options.isPublic),
+            description: options.description || ""
         };
-        const themeForState = { ...newTheme, configs: markerConfigs };
-        setMarkerThemesState(prev => [...prev, themeForState]);
-        setCurrentThemeId(newId);
+        setMarkerThemesState(prev => {
+            if (prev.some((t) => t.id === newId)) return prev;
+            return [...prev, newTheme];
+        });
+        setCurrentThemeIdState(newId);
 
         if (currentUser) {
                 await apiCall('/themes', 'POST', newTheme);
         }
+        return newTheme;
     };
 
     const deleteTheme = async (id) => {
@@ -125,10 +165,9 @@ export function useMarkerThemes(currentUser) {
         if (!currentUser) return;
         const copied = await apiCall(`/themes/${themeId}/copy`, 'POST');
         if (copied) {
-            const parsed = { ...copied, configs: JSON.parse(copied.configs) };
-            setMarkerThemesState(prev => [...prev, parsed]);
-            setCurrentThemeId(parsed.id);
-            alert("已成功複製主題！");
+            const parsed = { ...copied, configs: normalizeThemeConfigs(copied.configs) };
+            setMarkerThemesState(prev => (prev.some((t) => t.id === parsed.id) ? prev : [...prev, parsed]));
+            setCurrentThemeIdState(parsed.id);
         }
     };
 
