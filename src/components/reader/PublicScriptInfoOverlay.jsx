@@ -23,6 +23,7 @@ export function PublicScriptInfoOverlay({
   license,
   licenseUrl,
   licenseTerms = [],
+  licenseTags = [],
   copyright
 }) {
   const navigate = useNavigate();
@@ -139,6 +140,20 @@ export function PublicScriptInfoOverlay({
                     <HelpCircle className="w-3 h-3 opacity-70" />
                     {licenseDescription}
                 </span>
+             </div>
+          )}
+
+          {licenseTags && licenseTags.length > 0 && (
+             <div className="w-full text-center mt-2 flex flex-wrap justify-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                {licenseTags.map((tag, i) => (
+                  <Badge
+                    key={`${tag}-${i}`}
+                    variant="secondary"
+                    className="px-2.5 py-1 text-xs bg-primary/10 border border-primary/20 text-foreground/90"
+                  >
+                    {tag}
+                  </Badge>
+                ))}
              </div>
           )}
 

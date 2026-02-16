@@ -15,6 +15,7 @@ import { SortableContext, verticalListSortingStrategy, arrayMove, useSortable } 
 import { CSS } from "@dnd-kit/utilities";
 import { fetchUserThemes } from "../../services/settingsApi";
 import { defaultMarkerConfigs } from "../../constants/defaultMarkers";
+import { deriveCcLicenseTags } from "../../lib/licenseRights";
 import { MetadataBasicTab } from "./metadata/MetadataBasicTab";
 import { MetadataDetailsTab } from "./metadata/MetadataDetailsTab";
 import { MetadataAdvancedTab } from "./metadata/MetadataAdvancedTab";
@@ -853,6 +854,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
             if (license) orderedEntries.push({ key: "License", value: license });
             if (licenseUrl) orderedEntries.push({ key: "LicenseUrl", value: licenseUrl });
             if (licenseTerms && licenseTerms.length > 0) orderedEntries.push({ key: "LicenseTerms", value: JSON.stringify(licenseTerms) });
+            const ccAutoTags = deriveCcLicenseTags(license);
+            if (ccAutoTags.length > 0) orderedEntries.push({ key: "LicenseTags", value: JSON.stringify(ccAutoTags) });
             if (copyright) orderedEntries.push({ key: "Copyright", value: copyright });
             if (date) orderedEntries.push({ key: "Draft date", value: date });
             if (contact || (contactFields && contactFields.length > 0)) {
