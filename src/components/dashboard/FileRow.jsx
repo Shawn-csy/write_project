@@ -37,7 +37,28 @@ export const SortableFileRow = (props) => {
     );
 };
 
-export const FileRow = ({ icon, title, meta, actions, onClick, onDoubleClick, isFolder, tags = [], dragListeners, style, className = "" }) => (
+export const FileRow = ({ icon, title, meta, actions, onClick, onDoubleClick, isFolder, tags = [], dragListeners, style, className = "" }) => {
+    const normalizedTags = (tags || [])
+        .map((tag, idx) => {
+            if (typeof tag === "string") {
+                return { id: `tag-${idx}-${tag}`, name: tag, color: "" };
+            }
+            return {
+                id: tag?.id ?? `tag-${idx}-${tag?.name || ""}`,
+                name: tag?.name || "",
+                color: tag?.color || "",
+            };
+        })
+        .filter((tag) => Boolean(tag.name));
+    const visibleTags = normalizedTags.slice(0, 3);
+    const hiddenCount = Math.max(0, normalizedTags.length - visibleTags.length);
+    const hiddenTagsLabel = normalizedTags
+        .slice(3)
+        .map((tag) => tag.name)
+        .filter(Boolean)
+        .join("、");
+
+    return (
     <div 
         onClick={onClick}
         onDoubleClick={onDoubleClick}
@@ -61,17 +82,30 @@ export const FileRow = ({ icon, title, meta, actions, onClick, onDoubleClick, is
             </div>
             <div className="min-w-0 flex-1 flex flex-col gap-0.5">
                 <div className="font-medium truncate text-sm">{title}</div>
-                <div className="flex items-center gap-2">
-                    {tags && tags.length > 0 && (
-                        <div className="flex gap-1">
-                            {tags.map(tag => (
-                                <Badge key={tag.id} className={`${tag.color} text-[10px] px-1 py-0 h-4 text-white`}>
+                <div className="flex items-start gap-2 min-w-0">
+                    {visibleTags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 max-w-full min-w-0">
+                            {visibleTags.map((tag) => (
+                                <Badge
+                                    key={tag.id}
+                                    className={`${tag.color} text-[10px] px-1 py-0 h-4 text-white max-w-[110px] truncate`}
+                                    title={tag.name}
+                                >
                                     {tag.name}
                                 </Badge>
                             ))}
+                            {hiddenCount > 0 && (
+                                <Badge
+                                    variant="outline"
+                                    className="text-[10px] px-1 py-0 h-4 text-muted-foreground"
+                                    title={hiddenTagsLabel || `還有 ${hiddenCount} 個標籤`}
+                                >
+                                    +{hiddenCount}
+                                </Badge>
+                            )}
                         </div>
                     )}
-                    {meta && <div className="text-xs text-muted-foreground truncate opacity-70 font-mono">{meta}</div>}
+                    {meta && <div className="text-xs text-muted-foreground truncate opacity-70 font-mono min-w-0">{meta}</div>}
                 </div>
             </div>
         </div>
@@ -79,4 +113,5 @@ export const FileRow = ({ icon, title, meta, actions, onClick, onDoubleClick, is
             {actions}
         </div>
     </div>
-);
+    );
+};
