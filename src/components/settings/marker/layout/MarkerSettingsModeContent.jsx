@@ -21,6 +21,8 @@ export function MarkerSettingsModeContent({
   applyJson,
   isDirty,
   isSaving,
+  isAdvancedMode,
+  setIsAdvancedMode,
 }) {
   if (viewMode === "guide") {
     return (
@@ -57,6 +59,8 @@ export function MarkerSettingsModeContent({
       selectedIndex={selectedIndex}
       existingIds={existingIds}
       onOpenWizard={onOpenWizard}
+      isAdvancedMode={isAdvancedMode}
+      setIsAdvancedMode={setIsAdvancedMode}
     />
   );
 }

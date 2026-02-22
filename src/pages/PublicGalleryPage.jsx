@@ -255,17 +255,22 @@ export default function PublicGalleryPage() {
         activeTab={view}
         onTabChange={setView}
         actions={
-          currentUser ? (
-            <Button variant="default" size="sm" onClick={() => navigate("/dashboard")}>
-              前往工作室
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/about")}>
+              關於本站
             </Button>
-          ) : (
-            <Button variant="outline" size="sm" onClick={async () => {
-              try { await login(); } catch(e) { console.error(e); }
-            }}>
-              登入
-            </Button>
-          )
+            {currentUser ? (
+              <Button variant="default" size="sm" onClick={() => navigate("/dashboard")}>
+                前往工作室
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" onClick={async () => {
+                try { await login(); } catch(e) { console.error(e); }
+              }}>
+                登入
+              </Button>
+            )}
+          </div>
         }
       />
 

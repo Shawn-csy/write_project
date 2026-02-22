@@ -27,7 +27,9 @@ export function PublicScriptInfoOverlay({
   copyright
 }) {
   const navigate = useNavigate();
+  const [coverLoadFailed, setCoverLoadFailed] = React.useState(false);
   const hasTags = tags && tags.length > 0;
+  const hasCover = Boolean(String(coverUrl || "").trim()) && !coverLoadFailed;
   
   const renderAuthorValue = () => {
       if (!headerAuthor) return null;
@@ -67,7 +69,18 @@ export function PublicScriptInfoOverlay({
 
   return (
     <div className="relative w-full max-w-4xl mx-auto px-6 py-12 md:py-20 flex flex-col items-center text-center space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      
+      {/* 1. Cover Image */}
+      {hasCover && (
+        <div className="w-full max-w-2xl rounded-2xl overflow-hidden border border-white/15 bg-background/40 shadow-xl backdrop-blur-sm">
+          <img
+            src={coverUrl}
+            alt={`${title || "Script"} 封面`}
+            className="w-full max-h-[460px] object-cover"
+            loading="eager"
+            onError={() => setCoverLoadFailed(true)}
+          />
+        </div>
+      )}
 
 
       {/* 2. Main Title */}
