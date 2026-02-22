@@ -15,6 +15,8 @@ export function MarkerVisualEditorPane({
   selectedIndex,
   existingIds,
   onOpenWizard,
+  isAdvancedMode,
+  setIsAdvancedMode,
 }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] h-full divide-x divide-border/40">
@@ -45,6 +47,8 @@ export function MarkerVisualEditorPane({
             updateMarker={updateMarker}
             existingIds={existingIds}
             setExpandedId={setExpandedId}
+            isAdvancedMode={isAdvancedMode}
+            setIsAdvancedMode={setIsAdvancedMode}
           />
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-60 space-y-3">

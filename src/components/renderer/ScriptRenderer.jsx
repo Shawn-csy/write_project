@@ -178,12 +178,12 @@ const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
              const cleanName = node.text.replace(/\s*\(.*\)$/, '').toUpperCase();
              const color = getCharacterColor(cleanName);
             return (
-                <div className={`character mt-4 mb-0 font-bold text-left w-full ${isDual ? 'max-w-full' : ''}`}
+                <strong className={`character mt-4 mb-0 font-bold block text-left w-full ${isDual ? 'max-w-full' : ''}`}
                      style={{ color, '--char-color': color }}
                      {...getLineProps(node)}
                  >
                      {node.text}
-                 </div>
+                 </strong>
             );
 
         case 'scene_heading':
@@ -205,13 +205,13 @@ const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
              if (actionStyle.display === 'none') return null;
 
             return (
-                <div 
+                <p 
                     className={`action whitespace-pre-wrap transition-opacity ${node.inRange ? 'in-range' : ''}`} 
                     style={actionStyle}
                     {...getLineProps(node)}
                 >
                      {renderInlineLines(node, context)}
-                </div>
+                </p>
             );
 
         case 'parenthetical':
@@ -225,9 +225,9 @@ const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
         case 'dialogue':
              // usually inside speech
             return (
-                <div className={`dialogue text-left whitespace-pre-wrap ${isDual ? 'max-w-full' : ''}`}>
+                <p className={`dialogue text-left whitespace-pre-wrap ${isDual ? 'max-w-full' : ''}`}>
                      {renderInlineLines(node, context)}
-                </div>
+                </p>
             );
         
         case 'transition':
@@ -235,9 +235,9 @@ const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
              if (transStyle.display === 'none') return null;
 
             return (
-                <div className="transition text-right font-bold uppercase my-4 transition-opacity" style={transStyle}>
+                <p className="transition text-right font-bold uppercase my-4 transition-opacity" style={transStyle}>
                      {renderInlineLines(node, context)}
-                </div>
+                </p>
             );
 
         case 'centered':
@@ -338,8 +338,8 @@ export const ScriptRenderer = React.memo(({
     }), [fontSize, filterCharacter, focusMode, focusEffect, focusContentMode, getCharacterColor, markerConfigs, inlineMarkerConfigs, parseInlineLine, hiddenMarkerIds, showLineUnderline]);
 
     return (
-        <div className="script-renderer font-serif" style={{ fontSize: `${fontSize}px`, '--body-font-size': `${fontSize}px` }}>
+        <article className="script-renderer font-serif" style={{ fontSize: `${fontSize}px`, '--body-font-size': `${fontSize}px` }}>
             <NodeRenderer node={ast} context={context} />
-        </div>
+        </article>
     );
 });

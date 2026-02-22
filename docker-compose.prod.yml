@@ -8,6 +8,7 @@ services:
     environment:
       - DB_PATH=/data/scripts.db
       - PORT=1091
+      - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-https://open-scripts.shawnup.com}
       - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}
       - FIREBASE_CREDENTIALS=/secrets/firebase-service-account.json
       - FIREBASE_CREDENTIALS_JSON=${FIREBASE_CREDENTIALS_JSON}

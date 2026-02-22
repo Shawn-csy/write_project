@@ -3,7 +3,7 @@ import { Settings } from "lucide-react";
 import { Input } from "../../../ui/input";
 import { ModeSelector } from "./ModeSelector";
 
-export function MarkerLogicSettings({ config, idx, updateMarker }) {
+export function MarkerLogicSettings({ config, idx, updateMarker, isAdvancedMode = true }) {
     const isBlock = config.type === 'block' || config.isBlock; 
     const isInline = !isBlock;
 
@@ -19,13 +19,14 @@ export function MarkerLogicSettings({ config, idx, updateMarker }) {
                 <span className="text-[11px] font-bold text-muted-foreground">匹配規則</span>
              </div>
 
-             {/* 模式選擇器 - 視覺化卡片 */}
-             <div className="mb-4">
-                <ModeSelector 
-                    value={config.matchMode || 'enclosure'} 
-                    onChange={(mode) => updateMarker(idx, 'matchMode', mode)}
-                />
-             </div>
+             {isAdvancedMode && (
+                 <div className="mb-4">
+                    <ModeSelector 
+                        value={config.matchMode || 'enclosure'} 
+                        onChange={(mode) => updateMarker(idx, 'matchMode', mode)}
+                    />
+                 </div>
+             )}
 
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 
@@ -40,50 +41,52 @@ export function MarkerLogicSettings({ config, idx, updateMarker }) {
                             {/* 開始/結束符號 */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div className="space-y-1">
-                                    <label className="text-[10px] text-muted-foreground block">開始符號 <span className="text-red-500">*</span></label>
+                                    <label className="text-[10px] text-muted-foreground block">區間開始符號 <span className="text-red-500">*</span></label>
                                     <Input 
                                         value={config.start || ''} 
                                         onChange={(e) => updateMarker(idx, 'start', e.target.value)}
                                         className={`h-8 font-mono text-xs text-center ${!config.start ? 'border-red-500' : ''}`}
-                                        placeholder="<cs>"
+                                        placeholder="例如: >>"
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] text-muted-foreground block">結束符號 <span className="text-red-500">*</span></label>
+                                    <label className="text-[10px] text-muted-foreground block">區間結束符號 <span className="text-red-500">*</span></label>
                                     <Input 
                                         value={config.end || ''} 
                                         onChange={(e) => updateMarker(idx, 'end', e.target.value)}
                                         className={`h-8 font-mono text-xs text-center ${!config.end ? 'border-red-500' : ''}`}
-                                        placeholder="</cs>"
+                                        placeholder="例如: <<"
                                     />
                                 </div>
                             </div>
                             
                             {/* 暫停/切換符號 & 顯示文字 */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div className="space-y-1">
-                                    <label className="text-[10px] text-muted-foreground block">
-                                        暫停/切換符號 (Pause Symbol) <span className="text-[9px] text-muted-foreground/50 font-normal">(選填)</span>
-                                    </label>
-                                    <Input 
-                                        value={config.pause || ''} 
-                                        onChange={(e) => updateMarker(idx, 'pause', e.target.value)}
-                                        className="h-8 font-mono text-xs text-center border-dashed"
-                                        placeholder="><SE"
-                                    />
+                            {isAdvancedMode && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-muted-foreground block">
+                                            暫停/切換符號 (Pause Symbol) <span className="text-[9px] text-muted-foreground/50 font-normal">(選填)</span>
+                                        </label>
+                                        <Input 
+                                            value={config.pause || ''} 
+                                            onChange={(e) => updateMarker(idx, 'pause', e.target.value)}
+                                            className="h-8 font-mono text-xs text-center border-dashed"
+                                            placeholder="><SE"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-muted-foreground block">
+                                            暫停顯示文字 (Pause Label)
+                                        </label>
+                                        <Input 
+                                            value={config.pauseLabel !== undefined ? config.pauseLabel : '暫停'}
+                                            onChange={(e) => updateMarker(idx, 'pauseLabel', e.target.value)}
+                                            className="h-8 text-xs text-center"
+                                            placeholder="默認: 暫停"
+                                        />
+                                    </div>
                                 </div>
-                                <div className="space-y-1">
-                                    <label className="text-[10px] text-muted-foreground block">
-                                        暫停顯示文字 (Pause Label)
-                                    </label>
-                                    <Input 
-                                        value={config.pauseLabel !== undefined ? config.pauseLabel : '暫停'}
-                                        onChange={(e) => updateMarker(idx, 'pauseLabel', e.target.value)}
-                                        className="h-8 text-xs text-center"
-                                        placeholder="默認: 暫停"
-                                    />
-                                </div>
-                            </div>
+                            )}
                             
                             {/* 區間樣式選擇器 */}
                             <div className="space-y-2">
@@ -150,20 +153,20 @@ export function MarkerLogicSettings({ config, idx, updateMarker }) {
                 ) : config.matchMode !== 'range' && (
                     <>
                         <div className="flex flex-col sm:flex-row gap-2">
-                            <div className="flex-1 space-y-1">
-                                <label className="text-[10px] text-muted-foreground block mb-1">開始符號 (Start) <span className="text-red-500">*</span></label>
-                                <Input 
-                                    value={config.start || ''} 
-                                    onChange={(e) => updateMarker(idx, 'start', e.target.value)}
-                                    className={`h-8 font-mono text-xs text-center ${!config.start ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                                />
-                                {!config.start && (
-                                    <p className="text-[10px] text-red-500 font-medium">必填欄位</p>
-                                )}
-                            </div>
+                                <div className="flex-1 space-y-1">
+                                    <label className="text-[10px] text-muted-foreground block mb-1">左側包圍符號 (Start) <span className="text-red-500">*</span></label>
+                                    <Input 
+                                        value={config.start || ''} 
+                                        onChange={(e) => updateMarker(idx, 'start', e.target.value)}
+                                        className={`h-8 font-mono text-xs text-center ${!config.start ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                                    />
+                                    {!config.start && (
+                                        <p className="text-[10px] text-red-500 font-medium">必填欄位</p>
+                                    )}
+                                </div>
                             {(isBlock || config.matchMode !== 'prefix') && (
                                 <div className="flex-1 space-y-1">
-                                    <label className="text-[10px] text-muted-foreground block mb-1">結束符號 (End) <span className="text-red-500">*</span></label>
+                                    <label className="text-[10px] text-muted-foreground block mb-1">右側包圍符號 (End) <span className="text-red-500">*</span></label>
                                     <Input 
                                         value={config.end || ''} 
                                         onChange={(e) => updateMarker(idx, 'end', e.target.value)}
@@ -176,7 +179,7 @@ export function MarkerLogicSettings({ config, idx, updateMarker }) {
                             )}
                         </div>
                         
-                        {isBlock && (
+                        {isBlock && isAdvancedMode && (
                              <div className="col-span-1 sm:col-span-2 mt-2 pt-2 border-t border-dashed border-border/30">
                                 <label className="flex items-center gap-2 cursor-pointer select-none" title="在區塊底部顯示結束標記內容">
                                     <input 
@@ -191,7 +194,7 @@ export function MarkerLogicSettings({ config, idx, updateMarker }) {
                         )}
 
                         
-                        {isBlock && config.matchMode === 'enclosure' && (
+                        {isBlock && config.matchMode === 'enclosure' && isAdvancedMode && (
                              <div className="col-span-1 sm:col-span-2 mt-2">
                                 <label className="flex items-center gap-2 cursor-pointer select-none" title="開始與結束符號相同時，視為區塊切換開關">
                                     <input 
@@ -208,20 +211,22 @@ export function MarkerLogicSettings({ config, idx, updateMarker }) {
                 )}
              </div>
 
-            <div className="space-y-2 pt-2 border-t border-dashed border-border/30">
-                <label className="text-[10px] text-muted-foreground block">顯示樣板</label>
-                <Input 
-                        value={config.renderer?.template || ''}
-                        onChange={(e) => {
-                            const renderer = config.renderer || {};
-                            updateMarker(idx, 'renderer', { ...renderer, template: e.target.value });
-                        }}
-                        className="h-8 text-xs font-mono"
-                        placeholder="[SFX: {{content}}] ← 使用 {{content}} 代表內容"
-                />
-            </div>
+            {isAdvancedMode && (
+                <div className="space-y-2 pt-2 border-t border-dashed border-border/30">
+                    <label className="text-[10px] text-muted-foreground block">顯示樣板</label>
+                    <Input 
+                            value={config.renderer?.template || ''}
+                            onChange={(e) => {
+                                const renderer = config.renderer || {};
+                                updateMarker(idx, 'renderer', { ...renderer, template: e.target.value });
+                            }}
+                            className="h-8 text-xs font-mono"
+                            placeholder="[SFX: {{content}}] ← 使用 {{content}} 代表內容"
+                    />
+                </div>
+            )}
 
-             {isInline && config.matchMode !== 'regex' && (
+             {isInline && config.matchMode !== 'regex' && isAdvancedMode && (
                 <div className="space-y-2 pt-2 border-t border-dashed border-border/30">
                     <label className="text-[10px] text-muted-foreground block">特定關鍵字 (Keywords, 選填)</label>
                     <Input 
@@ -243,7 +248,7 @@ export function MarkerLogicSettings({ config, idx, updateMarker }) {
              )}
              
              {/* Options moved from outer scope if match mode not regex */}
-             {config.matchMode !== 'regex' && (
+             {config.matchMode !== 'regex' && isAdvancedMode && (
                  <div className="flex items-center gap-4 mt-2">
                     <label className="flex items-center gap-2 cursor-pointer select-none">
                         <input 

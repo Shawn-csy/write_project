@@ -1,5 +1,4 @@
 import React, { useMemo } from "react";
-import { Eye } from "lucide-react";
 
 /**
  * 即時預覽 Marker 渲染效果
@@ -55,30 +54,15 @@ export function MarkerPreview({ config }) {
         padding: '0 4px'
     }), [config.style]);
 
-    return (
-        <div className="bg-muted/30 rounded-lg p-3 border border-border/50">
-            <div className="flex items-center gap-2 mb-2">
-                <Eye className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-[10px] font-bold text-muted-foreground uppercase">即時預覽</span>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* 原始文字 */}
-                <div className="space-y-1">
-                    <span className="text-[9px] text-muted-foreground">原始標記</span>
-                    <div className="font-mono text-xs bg-background/50 px-2 py-1.5 rounded border border-border/30 truncate">
-                        {example.raw}
-                    </div>
-                </div>
-                
-                {/* 渲染效果 */}
-                <div className="space-y-1">
-                    <span className="text-[9px] text-muted-foreground">渲染效果</span>
-                    <div className="text-sm bg-background/50 px-2 py-1.5 rounded border border-border/30">
-                        <span style={previewStyle}>{example.rendered}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
+  return (
+    <div className="rounded-lg border border-border/40 bg-background/60 p-3 space-y-2">
+      <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">即時預覽</div>
+      <div className="text-sm rounded border border-border/30 bg-background px-2 py-1.5">
+        <span style={previewStyle}>{example.rendered}</span>
+      </div>
+      <div className="text-[11px] font-mono text-muted-foreground truncate">
+        {example.raw}
+      </div>
+    </div>
+  );
 }

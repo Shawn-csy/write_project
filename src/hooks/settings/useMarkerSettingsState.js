@@ -9,6 +9,7 @@ export function useMarkerSettingsState({
   const [localConfigs, setLocalConfigs] = useState(markerConfigs || []);
   const [expandedId, setExpandedId] = useState(null);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [isAdvancedMode, setIsAdvancedMode] = useState(false);
   const [jsonText, setJsonText] = useState("");
   const [parseError, setParseError] = useState("");
   const [isDirty, setIsDirty] = useState(false);
@@ -76,7 +77,7 @@ export function useMarkerSettingsState({
           setIsDirty(false);
         })
         .finally(() => setIsSaving(false));
-    }, 700);
+    }, 180);
 
     return () => clearTimeout(timer);
   }, [
@@ -148,6 +149,8 @@ export function useMarkerSettingsState({
     setExpandedId,
     wizardOpen,
     setWizardOpen,
+    isAdvancedMode,
+    setIsAdvancedMode,
     jsonText,
     setJsonText,
     parseError,
