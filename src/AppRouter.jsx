@@ -9,6 +9,7 @@ import PublicGalleryPage from "./pages/PublicGalleryPage";
 import AuthorProfilePage from "./pages/AuthorProfilePage";
 import OrganizationPage from "./pages/OrganizationPage";
 import { PublisherDashboard } from "./pages/PublisherDashboard";
+import PublicAboutPage from "./pages/PublicAboutPage";
 
 // import LocalReaderPage from "./pages/LocalReaderPage";
 import SuperAdminPage from "./pages/SuperAdminPage";
@@ -87,7 +88,7 @@ export function AppRouter({
             <Route path="/" element={<PublicGalleryPage />} />
             <Route path="/author/:id" element={<AuthorProfilePage />} />
             <Route path="/org/:id" element={<OrganizationPage />} />
-            <Route path="/org/:id" element={<OrganizationPage />} />
+            <Route path="/about" element={<PublicAboutPage />} />
             {/* <Route path="/file/:name" element={<LocalReaderPage scriptManager={scriptManager} navProps={navProps} />} /> */}
 
             {/* Main Application Routes - Protected */}

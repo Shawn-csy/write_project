@@ -155,6 +155,12 @@ async def get_sitemap_xml(db: database.SessionLocal = Depends(get_db)):
     xml_content.append(f'    <loc>{BASE_URL}/</loc>')
     xml_content.append('    <changefreq>daily</changefreq>')
     xml_content.append('  </url>')
+
+    # Add about (site info)
+    xml_content.append('  <url>')
+    xml_content.append(f'    <loc>{BASE_URL}/about</loc>')
+    xml_content.append('    <changefreq>monthly</changefreq>')
+    xml_content.append('  </url>')
     
     author_ids = set()
     org_ids = set()
@@ -299,149 +305,164 @@ def _ensure_list(value):
 if os.path.exists(DIST_DIR):
     app.mount("/assets", StaticFiles(directory=os.path.join(DIST_DIR, "assets")), name="assets")
     
-    # Catch-all for React Router (Must be last)
-    @app.get("/{full_path:path}")
-    async def serve_spa(full_path: str, request: Request, db: database.SessionLocal = Depends(get_db)):
-        # Check if path starts with /api/ to avoid serving HTML for missing API routes
-        # This helps debugging 404s
-        if full_path.startswith("api/"):
-            return {"error": "API endpoint not found (404)"}
-            
-        # AI Content Negotiation for /read/{id}
-        if full_path.startswith("read/"):
-            script_id = full_path.strip("/").split("/")[-1]
-            accept_header = request.headers.get("accept", "")
-            user_agent = request.headers.get("user-agent", "").lower()
-            
-            is_ai_bot = any(bot in user_agent for bot in ["gptbot", "claudebot", "google-extended", "anthropic", "perplexitybot"])
-            wants_markdown = "text/markdown" in accept_header or "text/plain" in accept_header
-            
-            if is_ai_bot or wants_markdown:
-                import crud # Local import to avoid circular dep if any
-                try:
-                    # Leverage the existing get_public_script logic which checks visibility
-                    # We can't easily reuse the router function directly here without duplicating auth/visibility logic, 
-                    # but since crud.py might not have get_public_script with folder check, we will query DB directly
-                    # simplified for now: just check if it's public.
-                    import models
-                    script = db.query(models.Script).filter(models.Script.id == script_id).first()
-                    if script and script.isPublic == 1:
-                        return Response(content=script.content, media_type="text/markdown")
-                    else:
-                        return Response(content="Script not found or is private.", status_code=404, media_type="text/markdown")
-                except Exception as e:
-                    pass # Fallback to SPA if database query fails
+# Catch-all for React Router (Must be last)
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str, request: Request, db: database.SessionLocal = Depends(get_db)):
+    # Check if path starts with /api/ to avoid serving HTML for missing API routes
+    # This helps debugging 404s
+    if full_path.startswith("api/"):
+        return {"error": "API endpoint not found (404)"}
+        
+    # AI Content Negotiation for /read/{id}
+    if full_path.startswith("read/"):
+        script_id = full_path.strip("/").split("/")[-1]
+        accept_header = request.headers.get("accept", "")
+        user_agent = request.headers.get("user-agent", "").lower()
+        
+        is_ai_bot = any(bot in user_agent for bot in ["gptbot", "claudebot", "google-extended", "anthropic", "perplexitybot"])
+        wants_markdown = "text/markdown" in accept_header or "text/plain" in accept_header
+        
+        if is_ai_bot or wants_markdown:
+            import crud # Local import to avoid circular dep if any
+            try:
+                # Leverage the existing get_public_script logic which checks visibility
+                # We can't easily reuse the router function directly here without duplicating auth/visibility logic, 
+                # but since crud.py might not have get_public_script with folder check, we will query DB directly
+                # simplified for now: just check if it's public.
+                import models
+                script = db.query(models.Script).filter(models.Script.id == script_id).first()
+                if script and script.isPublic == 1:
+                    return Response(content=script.content, media_type="text/markdown")
+                else:
+                    return Response(content="Script not found or is private.", status_code=404, media_type="text/markdown")
+            except Exception as e:
+                pass # Fallback to SPA if database query fails
 
-        if os.path.exists(INDEX_PATH):
-             html_template = open(INDEX_PATH, "r", encoding="utf-8").read()
+    if os.path.exists(INDEX_PATH):
+         html_template = open(INDEX_PATH, "r", encoding="utf-8").read()
 
-             # SEO injection for reader pages
-             if full_path.startswith("read/"):
-                 script_id = full_path.strip("/").split("/")[-1]
-                 script = db.query(models.Script).filter(models.Script.id == script_id).first()
-                 if script and script.isPublic == 1:
-                     canonical_url = f"{_public_base_url()}/read/{script_id}"
-                     title = f"{script.title or 'Untitled'}｜Screenplay Reader"
-                     desc = ((script.content or "").strip().replace("\n", " ")[:200] or "公開劇本閱讀頁")
-                     image_url = script.coverUrl or ""
-                     structured = {
-                         "@context": "https://schema.org",
-                         "@type": "CreativeWork",
-                         "name": script.title or "Untitled",
-                         "headline": script.title or "Untitled",
-                         "url": canonical_url,
-                         "inLanguage": "zh-Hant",
-                         "description": desc,
-                         "isAccessibleForFree": True,
-                     }
-                     if image_url:
-                         structured["image"] = image_url
-                     return HTMLResponse(
-                         content=_inject_seo_html(
-                             html_template,
-                             title=title,
-                             description=desc,
-                             canonical_url=canonical_url,
-                             og_type="article",
-                             image_url=image_url,
-                             structured_data=structured,
-                         )
+         # SEO injection for reader pages
+         if full_path.startswith("read/"):
+             script_id = full_path.strip("/").split("/")[-1]
+             script = db.query(models.Script).filter(models.Script.id == script_id).first()
+             if script and script.isPublic == 1:
+                 canonical_url = f"{_public_base_url()}/read/{script_id}"
+                 title = f"{script.title or 'Untitled'}｜Screenplay Reader"
+                 desc = ((script.content or "").strip().replace("\n", " ")[:200] or "公開劇本閱讀頁")
+                 image_url = script.coverUrl or ""
+                 structured = {
+                     "@context": "https://schema.org",
+                     "@type": "CreativeWork",
+                     "name": script.title or "Untitled",
+                     "headline": script.title or "Untitled",
+                     "url": canonical_url,
+                     "inLanguage": "zh-Hant",
+                     "description": desc,
+                     "isAccessibleForFree": True,
+                 }
+                 if image_url:
+                     structured["image"] = image_url
+                 return HTMLResponse(
+                     content=_inject_seo_html(
+                         html_template,
+                         title=title,
+                         description=desc,
+                         canonical_url=canonical_url,
+                         og_type="article",
+                         image_url=image_url,
+                         structured_data=structured,
                      )
+                 )
 
-             # SEO injection for author pages
-             if full_path.startswith("author/"):
-                 author_id = full_path.strip("/").split("/")[-1]
-                 persona = db.query(models.Persona).filter(models.Persona.id == author_id).first()
-                 user = db.query(models.User).filter(models.User.id == author_id).first() if not persona else None
-                 if persona or user:
-                     display_name = (persona.displayName if persona else user.displayName) or "作者"
-                     bio = (persona.bio if persona else user.bio) or f"{display_name} 的公開作品與個人資訊"
-                     avatar = (persona.avatar if persona else user.avatar) or ""
-                     banner = (persona.bannerUrl if persona else "") or ""
-                     website = (persona.website if persona else user.website) or ""
-                     links = _ensure_list(persona.links) if persona else []
-                     same_as = [website] if website else []
-                     same_as.extend([x.get("url") for x in links if isinstance(x, dict) and x.get("url")])
-                     canonical_url = f"{_public_base_url()}/author/{author_id}"
-                     page_title = f"{display_name}｜Screenplay Reader"
-                     page_desc = str(bio).strip()[:200]
-                     image_url = avatar or banner
-                     structured = {
-                         "@context": "https://schema.org",
-                         "@type": "Person",
-                         "name": display_name,
-                         "url": canonical_url,
-                         "description": page_desc,
-                     }
-                     if image_url:
-                         structured["image"] = image_url
-                     if same_as:
-                         structured["sameAs"] = same_as
-                     return HTMLResponse(
-                         content=_inject_seo_html(
-                             html_template,
-                             title=page_title,
-                             description=page_desc,
-                             canonical_url=canonical_url,
-                             og_type="profile",
-                             image_url=image_url,
-                             structured_data=structured,
-                         )
+         # SEO injection for author pages
+         if full_path.startswith("author/"):
+             author_id = full_path.strip("/").split("/")[-1]
+             persona = db.query(models.Persona).filter(models.Persona.id == author_id).first()
+             user = db.query(models.User).filter(models.User.id == author_id).first() if not persona else None
+             if persona or user:
+                 display_name = (persona.displayName if persona else user.displayName) or "作者"
+                 bio = (persona.bio if persona else user.bio) or f"{display_name} 的公開作品與個人資訊"
+                 avatar = (persona.avatar if persona else user.avatar) or ""
+                 banner = (persona.bannerUrl if persona else "") or ""
+                 website = (persona.website if persona else user.website) or ""
+                 links = _ensure_list(persona.links) if persona else []
+                 same_as = [website] if website else []
+                 same_as.extend([x.get("url") for x in links if isinstance(x, dict) and x.get("url")])
+                 canonical_url = f"{_public_base_url()}/author/{author_id}"
+                 page_title = f"{display_name}｜Screenplay Reader"
+                 page_desc = str(bio).strip()[:200]
+                 image_url = avatar or banner
+                 structured = {
+                     "@context": "https://schema.org",
+                     "@type": "Person",
+                     "name": display_name,
+                     "url": canonical_url,
+                     "description": page_desc,
+                 }
+                 if image_url:
+                     structured["image"] = image_url
+                 if same_as:
+                     structured["sameAs"] = same_as
+                 return HTMLResponse(
+                     content=_inject_seo_html(
+                         html_template,
+                         title=page_title,
+                         description=page_desc,
+                         canonical_url=canonical_url,
+                         og_type="profile",
+                         image_url=image_url,
+                         structured_data=structured,
                      )
+                 )
 
-             # SEO injection for organization pages
-             if full_path.startswith("org/"):
-                 org_id = full_path.strip("/").split("/")[-1]
-                 org = db.query(models.Organization).filter(models.Organization.id == org_id).first()
-                 if org:
-                     canonical_url = f"{_public_base_url()}/org/{org_id}"
-                     page_title = f"{(org.name or '組織')}｜Screenplay Reader"
-                     page_desc = str(org.description or f"{org.name or '組織'} 的公開作品與成員資訊").strip()[:200]
-                     image_url = org.logoUrl or org.bannerUrl or ""
-                     structured = {
-                         "@context": "https://schema.org",
-                         "@type": "Organization",
-                         "name": org.name or "Organization",
-                         "url": canonical_url,
-                         "description": page_desc,
-                     }
-                     if org.logoUrl:
-                         structured["logo"] = org.logoUrl
-                     if image_url:
-                         structured["image"] = image_url
-                     if org.website:
-                         structured["sameAs"] = [org.website]
-                     return HTMLResponse(
-                         content=_inject_seo_html(
-                             html_template,
-                             title=page_title,
-                             description=page_desc,
-                             canonical_url=canonical_url,
-                             og_type="website",
-                             image_url=image_url,
-                             structured_data=structured,
-                         )
+         # SEO injection for organization pages
+         if full_path.startswith("org/"):
+             org_id = full_path.strip("/").split("/")[-1]
+             org = db.query(models.Organization).filter(models.Organization.id == org_id).first()
+             if org:
+                 canonical_url = f"{_public_base_url()}/org/{org_id}"
+                 page_title = f"{(org.name or '組織')}｜Screenplay Reader"
+                 page_desc = str(org.description or f"{org.name or '組織'} 的公開作品與成員資訊").strip()[:200]
+                 image_url = org.logoUrl or org.bannerUrl or ""
+                 structured = {
+                     "@context": "https://schema.org",
+                     "@type": "Organization",
+                     "name": org.name or "Organization",
+                     "url": canonical_url,
+                     "description": page_desc,
+                 }
+                 if org.logoUrl:
+                     structured["logo"] = org.logoUrl
+                 if image_url:
+                     structured["image"] = image_url
+                 if org.website:
+                     structured["sameAs"] = [org.website]
+                 return HTMLResponse(
+                     content=_inject_seo_html(
+                         html_template,
+                         title=page_title,
+                         description=page_desc,
+                         canonical_url=canonical_url,
+                         og_type="website",
+                         image_url=image_url,
+                         structured_data=structured,
                      )
+                 )
 
-             return HTMLResponse(content=html_template)
-        return {"error": "Frontend not built"}
+         # SEO injection for about page
+         if full_path.strip("/") == "about":
+             canonical_url = f"{_public_base_url()}/about"
+             page_title = "關於｜Screenplay Reader"
+             page_desc = "專為華文編劇與劇本愛好者打造的線上閱讀、瀏覽與分享平台。支援業界標準 Fountain 語法，即時排版，跨裝置閱讀。"
+             return HTMLResponse(
+                 content=_inject_seo_html(
+                     html_template,
+                     title=page_title,
+                     description=page_desc,
+                     canonical_url=canonical_url,
+                     og_type="website",
+                 )
+             )
+
+         return HTMLResponse(content=html_template)
+    return {"error": "Frontend not built"}
