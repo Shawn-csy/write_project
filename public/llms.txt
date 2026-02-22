@@ -1,0 +1,22 @@
+# Screenplay Reader - AI Agent Guide
+
+Screenplay Reader provides AI-friendly access to public screenplay content.
+
+## Preferred endpoint for raw content
+- GET /api/public-scripts/{script_id}/raw
+- Returns: text/markdown
+
+## Public reader URL pattern
+- /read/{script_id}
+- /author/{author_id}
+- /org/{org_id}
+
+## Sitemap
+- /sitemap.xml
+
+## Content negotiation support
+- If `Accept: text/markdown` is sent to /read/{script_id}, the server can return markdown directly.
+
+## Notes
+- Private scripts are not exposed and should return 404.
+- Use public routes only: /read/, /author/, /org/

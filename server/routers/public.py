@@ -130,6 +130,42 @@ def read_public_script(script_id: str, db: Session = Depends(get_db)):
     
     return script
 
+@router.get("/public-scripts/{script_id}/raw")
+def read_public_script_raw(script_id: str, db: Session = Depends(get_db)):
+    """
+    Returns the raw markdown/fountain content of a public script.
+    Designed for AI Agents and lightweight text consumption.
+    """
+    from fastapi.responses import Response
+    script = db.query(models.Script).filter(models.Script.id == script_id).first()
+    if not script:
+        raise HTTPException(status_code=404, detail="Script not found")
+    
+    # Simple explicit check for root public script
+    if not script.isPublic:
+        # Check inheritance: Is parent folder public?
+        if script.folder != "/":
+             parts = script.folder.strip("/").split("/")
+             folder_title = parts[-1]
+             folder_parent = "/" + "/".join(parts[:-1])
+             if folder_parent != "/" and not folder_parent.startswith("/"):
+                 folder_parent = "/" + folder_parent
+                 
+             folder_script = db.query(models.Script).filter(
+                 models.Script.ownerId == script.ownerId,
+                 models.Script.title == folder_title,
+                 models.Script.folder == folder_parent,
+                 models.Script.type == 'folder',
+                 models.Script.isPublic == 1
+             ).first()
+             
+             if not folder_script:
+                   raise HTTPException(status_code=404, detail="Script is private")
+        else:
+             raise HTTPException(status_code=404, detail="Script is private")
+
+    return Response(content=script.content, media_type="text/markdown")
+
 @router.get("/public-personas/{persona_id}", response_model=schemas.PersonaPublic)
 def get_public_persona(persona_id: str, db: Session = Depends(get_db)):
     # 1. Try Persona

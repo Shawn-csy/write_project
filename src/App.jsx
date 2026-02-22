@@ -184,6 +184,11 @@ function App() {
   ];
   
   const isPublicReader = location.pathname.startsWith("/read/");
+  const isPublicGallery = location.pathname === "/";
+  const isPublicAuthor = location.pathname.startsWith("/author/");
+  const isPublicOrg = location.pathname.startsWith("/org/");
+  const isIndexableRoute = isPublicGallery || isPublicReader || isPublicAuthor || isPublicOrg;
+  const canonicalPath = isIndexableRoute ? location.pathname : "/";
   const isReaderWorkspaceRoute =
     location.pathname.startsWith("/dashboard") ||
     location.pathname.startsWith("/edit/");
@@ -199,6 +204,9 @@ function App() {
         titleNote={titleNote} 
         activeFile={null} 
         currentSceneId={currentSceneId} 
+        indexable={isIndexableRoute}
+        canonicalPath={canonicalPath}
+        forceArticle={isPublicReader}
     />
     <GlobalListeners 
         nav={nav} 

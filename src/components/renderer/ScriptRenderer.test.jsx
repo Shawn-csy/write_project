@@ -220,7 +220,7 @@ describe('ScriptRenderer Styles', () => {
         // 1. Render Visible
         const { rerender, getByText, container } = renderWithAST(text, configs);
         const element = getByText('Range Content');
-        const styledParent = element.closest('div') || element.parentElement; 
+        const styledParent = element.closest('div, p') || element.parentElement; 
         
         expect(styledParent.style.color).toBe('blue');
 
@@ -238,7 +238,7 @@ describe('ScriptRenderer Styles', () => {
 
         // 3. Verify Style Removed
         const elementHidden = getByText('Range Content');
-        const styledParentHidden = elementHidden.closest('div') || elementHidden.parentElement;
+        const styledParentHidden = elementHidden.closest('div, p') || elementHidden.parentElement;
         expect(styledParentHidden.style.color).not.toBe('blue');
     });
 

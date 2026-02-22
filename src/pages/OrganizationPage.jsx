@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { Globe, Users } from "lucide-react";
-import { Button } from "../components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { ScriptGalleryCard } from "../components/gallery/ScriptGalleryCard";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
@@ -13,7 +13,7 @@ import { useAuth } from "../contexts/AuthContext";
 export default function OrganizationPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { currentUser, login } = useAuth();
+  const { currentUser } = useAuth();
   const [org, setOrg] = useState(null);
   const [scripts, setScripts] = useState([]);
   const [members, setMembers] = useState([]);
@@ -50,8 +50,46 @@ export default function OrganizationPage() {
   if (isLoading) return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Loading Organization...</div>;
   if (!org) return <div className="min-h-screen flex items-center justify-center">Organization not found</div>;
 
+  const canonicalUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/org/${org.id || id}`
+      : `/org/${org.id || id}`;
+  const pageTitle = `${org.name || "組織"}｜Screenplay Reader`;
+  const pageDescription = (org.description || `${org.name || "組織"} 的公開作品與成員資訊`).slice(0, 200);
+  const primaryImage = org.logoUrl || org.bannerUrl || "";
+  const memberNames = (members || []).map((m) => m?.displayName).filter(Boolean);
+  const orgSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: org.name || "Organization",
+    url: canonicalUrl,
+    description: org.description || undefined,
+    logo: org.logoUrl || undefined,
+    image: org.bannerUrl || org.logoUrl || undefined,
+    sameAs: org.website ? [org.website] : undefined,
+    member: memberNames.length > 0 ? memberNames.map((name) => ({ "@type": "Person", name })) : undefined,
+    keywords: Array.isArray(org.tags) && org.tags.length > 0 ? org.tags.join(", ") : undefined,
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+        <link rel="canonical" href={canonicalUrl} />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:site_name" content="Screenplay Reader" />
+        {primaryImage && <meta property="og:image" content={primaryImage} />}
+        <meta name="twitter:card" content={primaryImage ? "summary_large_image" : "summary"} />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        {primaryImage && <meta name="twitter:image" content={primaryImage} />}
+        <script type="application/ld+json">{JSON.stringify(orgSchema)}</script>
+      </Helmet>
       <PublicTopBar
         showBack
         onBack={() => navigate(-1)}
