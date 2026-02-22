@@ -15,6 +15,7 @@ services:
     volumes:
       - ./server/data:/data
       - ./server/secrets:/secrets:ro
+      - ./dist:/app/dist:ro
 
   write_project-frontend-build:
     image: node:20-alpine
