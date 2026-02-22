@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { PublicReaderLayout } from "../components/reader/PublicReaderLayout";
 import { getPublicScript, getPublicThemes } from "../lib/db";
 import { extractMetadataWithRaw } from "../lib/metadataParser";
@@ -254,6 +255,68 @@ They discover a glowing artifact.
       ...mockMeta
   }), [activeCloudScript, rawScript, scriptManager.titleName, mockMeta]);
 
+  const structuredData = useMemo(() => {
+      if (!fullScriptData?.id || !fullScriptData?.title) return null;
+
+      const url =
+          typeof window !== "undefined"
+              ? `${window.location.origin}/read/${fullScriptData.id}`
+              : `/read/${fullScriptData.id}`;
+
+      const authorName = fullScriptData?.author?.displayName || fullScriptData?.headerAuthor || "";
+      const orgName = fullScriptData?.organization?.name || "";
+      const description =
+          fullScriptData?.synopsis ||
+          fullScriptData?.description ||
+          "公開劇本閱讀頁";
+      const dateRaw = fullScriptData?.updatedAt || fullScriptData?.lastModified || fullScriptData?.date || null;
+
+      let dateModified;
+      if (typeof dateRaw === "number" && Number.isFinite(dateRaw)) {
+          try {
+              dateModified = new Date(dateRaw).toISOString();
+          } catch {
+              dateModified = undefined;
+          }
+      } else if (typeof dateRaw === "string" && dateRaw.trim()) {
+          const parsed = Date.parse(dateRaw);
+          if (!Number.isNaN(parsed)) {
+              dateModified = new Date(parsed).toISOString();
+          }
+      }
+
+      const data = {
+          "@context": "https://schema.org",
+          "@type": "CreativeWork",
+          name: fullScriptData.title,
+          headline: fullScriptData.title,
+          url,
+          inLanguage: "zh-Hant",
+          description,
+          genre: Array.isArray(fullScriptData?.tags) ? fullScriptData.tags : undefined,
+          dateModified,
+          isAccessibleForFree: true,
+      };
+
+      if (authorName) {
+          data.author = {
+              "@type": "Person",
+              name: authorName,
+          };
+      }
+      if (orgName) {
+          data.publisher = {
+              "@type": "Organization",
+              name: orgName,
+          };
+      }
+      if (fullScriptData?.coverUrl) {
+          data.image = fullScriptData.coverUrl;
+      }
+
+      return data;
+  }, [fullScriptData]);
+
   const surfaceProps = useMemo(() => ({
       scrollRef: navProps?.contentScrollRef,
       onScrollProgress: setScrollProgress,
@@ -294,6 +357,18 @@ They discover a glowing artifact.
   ]);
 
   return (
+    <>
+    {structuredData && (
+      <Helmet>
+        <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
+        {fullScriptData?.coverUrl && (
+          <>
+            <meta property="og:image" content={fullScriptData.coverUrl} />
+            <meta name="twitter:image" content={fullScriptData.coverUrl} />
+          </>
+        )}
+      </Helmet>
+    )}
     <PublicReaderLayout
         script={fullScriptData}
         isLoading={isLoading}
@@ -320,5 +395,6 @@ They discover a glowing artifact.
         scriptSurfaceProps={surfaceProps}
         viewerProps={mergedViewerProps}
     />
+    </>
   );
 }

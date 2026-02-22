@@ -62,6 +62,8 @@ export function MarkerSettings({ sectionRef }) {
     addMarkerFromWizard,
     removeMarker,
     applyJson,
+    isAdvancedMode,
+    setIsAdvancedMode,
   } = markerState;
 
   const selectedConfig = useMemo(
@@ -119,6 +121,8 @@ export function MarkerSettings({ sectionRef }) {
           applyJson={applyJson}
           isDirty={isDirty}
           isSaving={isSaving}
+          isAdvancedMode={isAdvancedMode}
+          setIsAdvancedMode={setIsAdvancedMode}
         />
       </div>
 

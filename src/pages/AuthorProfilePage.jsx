@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { Link as LinkIcon, Building2, Globe, Twitter, Instagram, Youtube, Github } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { ScriptGalleryCard } from "../components/gallery/ScriptGalleryCard";
@@ -60,8 +61,47 @@ export default function AuthorProfilePage() {
 
   if (!author) return <div className="min-h-screen flex items-center justify-center">Author not found</div>;
 
+  const canonicalUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/author/${author.id || id}`
+      : `/author/${author.id || id}`;
+  const pageTitle = `${author.displayName || "作者"}｜Screenplay Reader`;
+  const pageDescription = (author.bio || `${author.displayName || "作者"} 的公開作品與個人資訊`).slice(0, 200);
+  const primaryImage = author.avatar || author.bannerUrl || "";
+  const sameAs = [
+    ...(author.website ? [author.website] : []),
+    ...((author.links || []).map((l) => l?.url).filter(Boolean)),
+  ];
+  const personSchema = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: author.displayName || "Unknown",
+    url: canonicalUrl,
+    description: author.bio || undefined,
+    image: primaryImage || undefined,
+    sameAs: sameAs.length > 0 ? sameAs : undefined,
+    knowsAbout: Array.isArray(author.tags) && author.tags.length > 0 ? author.tags : undefined,
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+        <link rel="canonical" href={canonicalUrl} />
+        <meta property="og:type" content="profile" />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:site_name" content="Screenplay Reader" />
+        {primaryImage && <meta property="og:image" content={primaryImage} />}
+        <meta name="twitter:card" content={primaryImage ? "summary_large_image" : "summary"} />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        {primaryImage && <meta name="twitter:image" content={primaryImage} />}
+        <script type="application/ld+json">{JSON.stringify(personSchema)}</script>
+      </Helmet>
       <PublicTopBar
         showBack
         onBack={() => navigate(-1)}

@@ -1,0 +1,58 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /edit
+Disallow: /studio
+Disallow: /admin
+Disallow: /api/
+
+# AI-friendly crawl policy
+User-agent: GPTBot
+Allow: /read/
+Allow: /author/
+Allow: /org/
+Allow: /llms.txt
+Allow: /.well-known/llms.txt
+Allow: /api/public-scripts/
+Disallow: /dashboard
+Disallow: /edit
+Disallow: /studio
+Disallow: /admin
+
+User-agent: ClaudeBot
+Allow: /read/
+Allow: /author/
+Allow: /org/
+Allow: /llms.txt
+Allow: /.well-known/llms.txt
+Allow: /api/public-scripts/
+Disallow: /dashboard
+Disallow: /edit
+Disallow: /studio
+Disallow: /admin
+
+User-agent: PerplexityBot
+Allow: /read/
+Allow: /author/
+Allow: /org/
+Allow: /llms.txt
+Allow: /.well-known/llms.txt
+Allow: /api/public-scripts/
+Disallow: /dashboard
+Disallow: /edit
+Disallow: /studio
+Disallow: /admin
+
+User-agent: Google-Extended
+Allow: /read/
+Allow: /author/
+Allow: /org/
+Allow: /llms.txt
+Allow: /.well-known/llms.txt
+Allow: /api/public-scripts/
+Disallow: /dashboard
+Disallow: /edit
+Disallow: /studio
+Disallow: /admin
+
+Sitemap: https://open-scripts.shawnup.com/sitemap.xml
