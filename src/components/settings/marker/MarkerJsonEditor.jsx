@@ -1,5 +1,6 @@
 import React from "react";
 import { Button } from "../../ui/button";
+import { useI18n } from "../../../contexts/I18nContext";
 
 export function MarkerJsonEditor({
   jsonText,
@@ -9,6 +10,7 @@ export function MarkerJsonEditor({
   isSaving = false,
   isDirty = false,
 }) {
+    const { t } = useI18n();
     return (
         <div className="h-full flex flex-col gap-3">
           <textarea
@@ -19,7 +21,7 @@ export function MarkerJsonEditor({
           />
           <div className="flex items-center justify-between">
             <div className={`text-xs ${parseError ? "text-destructive" : "text-muted-foreground"}`}>
-              {parseError ? `JSON 格式錯誤: ${parseError}` : "JSON 格式正確"}
+              {parseError ? t("markerJsonEditor.invalid").replace("{error}", String(parseError)) : t("markerJsonEditor.valid")}
             </div>
             <Button
               type="button"
@@ -29,7 +31,7 @@ export function MarkerJsonEditor({
               disabled={Boolean(parseError) || !isDirty || isSaving}
               className="h-8 text-xs"
             >
-              {isSaving ? "儲存中..." : "套用並儲存"}
+              {isSaving ? t("markerJsonEditor.saving") : t("markerJsonEditor.applyAndSave")}
             </Button>
           </div>
         </div>

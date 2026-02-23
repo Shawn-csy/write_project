@@ -2,6 +2,7 @@ import React from "react";
 import { Input } from "../../ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "../../ui/select";
 import { Textarea } from "../../ui/textarea";
+import { useI18n } from "../../../contexts/I18nContext";
 
 export function MetadataBasicTab({
     title, setTitle,
@@ -17,26 +18,27 @@ export function MetadataBasicTab({
     requiredErrors = {},
     recommendedErrors = {}
 }) {
+    const { t } = useI18n();
     return (
         <div className="space-y-4 h-full">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                    <label className="text-sm font-medium" htmlFor="metadata-title">標題 (Title)</label>
-                    <Input id="metadata-title" name="metadataTitle" value={title} onChange={e => setTitle(e.target.value)} placeholder="劇本標題" />
+                    <label className="text-sm font-medium" htmlFor="metadata-title">{t("metadataBasic.title")}</label>
+                    <Input id="metadata-title" name="metadataTitle" value={title} onChange={e => setTitle(e.target.value)} placeholder={t("metadataBasic.titlePlaceholder")} />
                     {requiredErrors.title && (
-                        <p className="text-xs text-destructive">發布公開作品前請填寫標題。</p>
+                        <p className="text-xs text-destructive">{t("metadataBasic.errTitle")}</p>
                     )}
                 </div>
                 <div className="grid gap-2">
-                    <label className="text-sm font-medium">發布身分 (Publish As)</label>
+                    <label className="text-sm font-medium">{t("metadataBasic.identity")}</label>
                     <Select value={identity} onValueChange={setIdentity}>
                         <SelectTrigger id="metadata-identity-trigger">
-                            <SelectValue placeholder="選擇身分" />
+                            <SelectValue placeholder={t("metadataBasic.identityPlaceholder")} />
                         </SelectTrigger>
                         <SelectContent>
                             {personas.length > 0 && (
                                 <SelectGroup>
-                                    <SelectLabel>作者身分 (Personas)</SelectLabel>
+                                    <SelectLabel>{t("metadataBasic.personaGroup")}</SelectLabel>
                                     {personas.map(p => (
                                         <SelectItem key={p.id} value={`persona:${p.id}`}>{p.displayName}</SelectItem>
                                     ))}
@@ -45,20 +47,20 @@ export function MetadataBasicTab({
                         </SelectContent>
                     </Select>
                     {requiredErrors.identity && (
-                        <p className="text-xs text-destructive">發布公開作品前請選擇作者身份。</p>
+                        <p className="text-xs text-destructive">{t("metadataBasic.errIdentity")}</p>
                     )}
                 </div>
             </div>
             
             {identity.startsWith("persona:") && (
                 <div className="grid gap-2">
-                    <label className="text-sm font-medium">所屬組織 (From Persona)</label>
+                    <label className="text-sm font-medium">{t("metadataBasic.org")}</label>
                     <Select value={selectedOrgId || "none"} onValueChange={(val) => setSelectedOrgId(val === "none" ? "" : val)}>
                         <SelectTrigger>
-                            <SelectValue placeholder="不選擇" />
+                            <SelectValue placeholder={t("common.none")} />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="none">不選擇</SelectItem>
+                            <SelectItem value="none">{t("common.none")}</SelectItem>
                             {(() => {
                                 const personaId = identity.split(":")[1];
                                 const persona = personas.find(p => p.id === personaId);
@@ -76,40 +78,40 @@ export function MetadataBasicTab({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                    <div className="grid gap-2">
-                    <label className="text-sm font-medium">發布狀態</label>
+                    <label className="text-sm font-medium">{t("metadataBasic.status")}</label>
                     <Select value={status} onValueChange={setStatus}>
                         <SelectTrigger>
-                            <SelectValue placeholder="選擇狀態" />
+                            <SelectValue placeholder={t("metadataBasic.statusPlaceholder")} />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="Private">私有 (Private)</SelectItem>
-                            <SelectItem value="Public">公開 (Public)</SelectItem>
+                            <SelectItem value="Private">{t("metadataBasic.private")}</SelectItem>
+                            <SelectItem value="Public">{t("metadataBasic.public")}</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
                  <div className="grid gap-2">
-                    <label className="text-sm font-medium" htmlFor="metadata-date">日期 (Date)</label>
-                    <Input id="metadata-date" name="metadataDate" value={date} onChange={e => setDate(e.target.value)} placeholder="e.g. 2024-01-01 or Draft 1" />
+                    <label className="text-sm font-medium" htmlFor="metadata-date">{t("metadataBasic.date")}</label>
+                    <Input id="metadata-date" name="metadataDate" value={date} onChange={e => setDate(e.target.value)} placeholder={t("metadataBasic.datePlaceholder")} />
                 </div>
             </div>
             
             <div className="grid gap-2">
-                <label className="text-sm font-medium" htmlFor="metadata-source">來源 (Source)</label>
-                <Input id="metadata-source" name="metadataSource" value={source} onChange={e => setSource(e.target.value)} placeholder="改編來源或其他" />
+                <label className="text-sm font-medium" htmlFor="metadata-source">{t("metadataBasic.source")}</label>
+                <Input id="metadata-source" name="metadataSource" value={source} onChange={e => setSource(e.target.value)} placeholder={t("metadataBasic.sourcePlaceholder")} />
             </div>
 
             <div className="grid gap-2">
-                <label className="text-sm font-medium" htmlFor="metadata-synopsis">簡介 (Synopsis)</label>
+                <label className="text-sm font-medium" htmlFor="metadata-synopsis">{t("metadataBasic.synopsis")}</label>
                 <Textarea
                     id="metadata-synopsis"
                     name="metadataSynopsis"
                     value={synopsis}
                     onChange={(e) => setSynopsis(e.target.value)}
-                    placeholder="劇本的簡介或摘要..."
+                    placeholder={t("metadataBasic.synopsisPlaceholder")}
                     className="h-32"
                 />
                 {recommendedErrors.synopsis && (
-                    <p className="text-xs text-amber-700 dark:text-amber-300">建議補上摘要，讓讀者更快理解作品內容。</p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300">{t("metadataBasic.tipSynopsis")}</p>
                 )}
             </div>
         </div>

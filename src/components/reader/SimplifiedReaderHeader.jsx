@@ -6,6 +6,7 @@ import { ReaderTOC } from "./ReaderTOC";
 import { MarkerVisibilitySelect } from "../ui/MarkerVisibilitySelect";
 import { useSettings } from "../../contexts/SettingsContext";
 import { DownloadMenu } from "../common/DownloadMenu";
+import { useI18n } from "../../contexts/I18nContext";
 
 export function SimplifiedReaderHeader({
   onBack,
@@ -24,6 +25,7 @@ export function SimplifiedReaderHeader({
   className = "",
 }) {
   const { isDark, setTheme } = useSettings();
+  const { t } = useI18n();
 
   return (
     <header
@@ -36,8 +38,8 @@ export function SimplifiedReaderHeader({
           size="icon"
           onClick={onBack}
           className="rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md shrink-0"
-          title="Back"
-          aria-label="返回"
+          title={t("common.back")}
+          aria-label={t("common.back")}
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>
@@ -71,7 +73,7 @@ export function SimplifiedReaderHeader({
             onToggleMarker={onToggleMarker}
             triggerClassName="h-8 px-2 text-xs w-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md border-0 transition-all font-medium"
             contentAlign="end"
-            titlePrefix="標記"
+            titlePrefix={t("editorHeader.markerPrefix")}
           />
          </div>
 
@@ -87,15 +89,15 @@ export function SimplifiedReaderHeader({
           size="icon"
           onClick={() => setTheme(isDark ? "light" : "dark")}
           className="rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md"
-          title={isDark ? "切換亮色" : "切換暗色"}
-          aria-label={isDark ? "切換亮色" : "切換暗色"}
+          title={isDark ? t("publicTopbar.switchLight") : t("publicTopbar.switchDark")}
+          aria-label={isDark ? t("publicTopbar.switchLight") : t("publicTopbar.switchDark")}
         >
           {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </Button>
 
         <DownloadMenu
           options={downloadOptions}
-          title="下載"
+          title={t("common.download")}
           triggerClassName="rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md hidden sm:inline-flex"
         />
         
@@ -105,7 +107,7 @@ export function SimplifiedReaderHeader({
                 size="icon"
                 onClick={onShare}
                 className="rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md"
-                title="Share"
+                title={t("readerActions.share")}
               >
                 <Share2 className="w-4 h-4" />
               </Button>

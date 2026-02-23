@@ -4,6 +4,7 @@ import { FileCode2, FileSpreadsheet, FileText, Printer } from "lucide-react";
 import { useSettings } from "./contexts/SettingsContext";
 import { useScriptManager } from "./hooks/useScriptManager";
 import { useAppNavigation } from "./hooks/useAppNavigation";
+import { useI18n } from "./contexts/I18nContext";
 
 import { MetaTags } from "./components/common/MetaTags.jsx";
 import { useScriptActions } from "./hooks/useScriptActions";
@@ -53,6 +54,7 @@ function App() {
   // Pass markerConfigs to manager for AST parsing
   const scriptManager = useScriptManager(initialParamsRef, markerConfigs);
   const nav = useAppNavigation();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -139,7 +141,7 @@ function App() {
       handleLocateText // Ensure this is passed
   }
   
-  const headerTitle = nav.homeOpen ? "Screenplay Reader" : nav.aboutOpen ? "About" : nav.settingsOpen ? "Settings" : titleName || activeCloudScript?.title || "選擇一個劇本";
+  const headerTitle = nav.homeOpen ? t("app.homeTitle") : nav.aboutOpen ? t("app.about") : nav.settingsOpen ? t("app.settings") : titleName || activeCloudScript?.title || t("app.selectScript");
   const canShare = !nav.homeOpen && !nav.aboutOpen && !nav.settingsOpen && Boolean(activeCloudScript);
   const exportTitle = titleName || activeCloudScript?.title || "script";
   const exportContent = rawScript || "";
@@ -148,35 +150,35 @@ function App() {
   const readerDownloadOptions = [
     {
       id: "pdf",
-      label: "匯出 PDF",
+      label: t("publicReader.exportPdf"),
       icon: Printer,
       onClick: () => handleExportPdf(),
       disabled: !exportContent && !scriptManager.titleHtml,
     },
     {
       id: "fountain",
-      label: "下載 .fountain",
+      label: t("publicReader.downloadFountain"),
       icon: FileCode2,
       onClick: () => exportScriptAsFountain(exportTitle, exportContent),
       disabled: !exportContent,
     },
     {
       id: "docx",
-      label: "下載 Word (.doc)",
+      label: t("publicReader.downloadDoc"),
       icon: FileText,
       onClick: () => exportScriptAsDocx(exportTitle, { text: exportContent, renderedHtml: renderedExportHtml }),
       disabled: !exportContent,
     },
     {
       id: "xlsx",
-      label: "下載 Excel (.xlsx)",
+      label: t("publicReader.downloadXlsx"),
       icon: FileSpreadsheet,
       onClick: () => exportScriptAsXlsx(exportTitle, { text: exportContent, renderedHtml: renderedExportHtml }),
       disabled: !exportContent,
     },
     {
       id: "csv",
-      label: "下載 CSV",
+      label: t("publicReader.downloadCsv"),
       icon: FileSpreadsheet,
       onClick: () => exportScriptAsCsv(exportTitle, { text: exportContent, renderedHtml: renderedExportHtml }),
       disabled: !exportContent,

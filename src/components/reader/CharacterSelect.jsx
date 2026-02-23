@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { useI18n } from "../../contexts/I18nContext";
 
 export default function CharacterSelect({
   characterList = [],
@@ -15,22 +16,26 @@ export default function CharacterSelect({
   onChange,
   triggerClassName,
   contentAlign = "start",
-  label = "角色",
-  placeholder = "角色篩選",
+  label = "",
+  placeholder = "",
   allValue = "__ALL__",
-  allLabel = "全部顯示"
+  allLabel = ""
 }) {
+  const { t } = useI18n();
+  const resolvedLabel = label || t("readerControls.character");
+  const resolvedPlaceholder = placeholder || t("readerControls.characterPlaceholder");
+  const resolvedAllLabel = allLabel || t("characterSelect.allShow");
   if (!characterList || characterList.length === 0) return null;
 
   return (
     <Select value={filterCharacter} onValueChange={onChange}>
       <SelectTrigger className={triggerClassName}>
-        <SelectValue placeholder={placeholder} />
+        <SelectValue placeholder={resolvedPlaceholder} />
       </SelectTrigger>
       <SelectContent align={contentAlign} className="max-h-[300px]">
         <SelectGroup>
-          <SelectLabel>{label}</SelectLabel>
-          <SelectItem value={allValue}>{allLabel}</SelectItem>
+          <SelectLabel>{resolvedLabel}</SelectLabel>
+          <SelectItem value={allValue}>{resolvedAllLabel}</SelectItem>
           {characterList.map((c) => (
             <SelectItem key={c} value={c} className="font-semibold">
               {c}

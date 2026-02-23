@@ -2,8 +2,10 @@ import React from "react";
 import { User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "../../lib/utils";
+import { useI18n } from "../../contexts/I18nContext";
 
 export function AuthorBadge({ author, className, showAvatar = true, link }) {
+  const { t } = useI18n();
   const navigate = useNavigate();
 
   const handleClick = (e) => {
@@ -22,7 +24,7 @@ export function AuthorBadge({ author, className, showAvatar = true, link }) {
         className
       )}
       onClick={handleClick}
-      title="前往作者頁面"
+      title={t("authorBadge.goAuthor")}
     >
       {showAvatar && (
         <>
@@ -33,7 +35,7 @@ export function AuthorBadge({ author, className, showAvatar = true, link }) {
             )}
         </>
       )}
-      <span className="font-medium">{author?.displayName || "未知作者"}</span>
+      <span className="font-medium">{author?.displayName || t("authorBadge.unknownAuthor")}</span>
     </div>
   );
 }

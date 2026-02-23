@@ -14,8 +14,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Download, Copy, FileText, Sheet } from "lucide-react";
 import { downloadBlob, buildFilename } from "@/lib/download";
+import { useI18n } from "@/contexts/I18nContext";
 
 export function ReportGeneratorDialog({ open, onOpenChange, markerEntries }) {
+  const { t } = useI18n();
   // markerEntries: Array of { id, label, count, items: [{ text, line, type }] }
   
   // State for selected marker IDs
@@ -71,7 +73,7 @@ export function ReportGeneratorDialog({ open, onOpenChange, markerEntries }) {
 
   // Copy to Clipboard
   const handleCopy = () => {
-      const headers = ["類別", "內容", "行號"];
+      const headers = [t("reportGenerator.columnCategory"), t("reportGenerator.columnContent"), t("reportGenerator.columnLine")];
       const rows = reportData.map(row => `${row.category}\t${row.content}\t${row.line}`);
       const text = [headers.join('\t'), ...rows].join('\n');
       navigator.clipboard.writeText(text);
@@ -80,7 +82,7 @@ export function ReportGeneratorDialog({ open, onOpenChange, markerEntries }) {
 
   // Download CSV
   const handleDownloadCSV = () => {
-      const headers = ["類別,內容,行號"];
+      const headers = [[t("reportGenerator.columnCategory"), t("reportGenerator.columnContent"), t("reportGenerator.columnLine")].join(",")];
       const rows = reportData.map(row => {
           // Escape quotes in content
           const safeContent = `"${row.content.replace(/"/g, '""')}"`;
@@ -94,14 +96,14 @@ export function ReportGeneratorDialog({ open, onOpenChange, markerEntries }) {
   const handleDownloadXLSX = async () => {
       const XLSX = await import("xlsx");
       const sheetData = [
-          ["類別", "內容", "行號"],
+          [t("reportGenerator.columnCategory"), t("reportGenerator.columnContent"), t("reportGenerator.columnLine")],
           ...reportData.map((row) => [row.category, row.content, row.line]),
       ];
       const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
       worksheet["!cols"] = [{ wch: 18 }, { wch: 70 }, { wch: 10 }];
 
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "報表");
+      XLSX.utils.book_append_sheet(workbook, worksheet, t("reportGenerator.sheetName"));
       const xlsxArray = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
 
       const blob = new Blob([xlsxArray], {
@@ -125,7 +127,7 @@ export function ReportGeneratorDialog({ open, onOpenChange, markerEntries }) {
 
       const tableRows = [
           new TableRow({
-              children: ["類別", "內容", "行號"].map((text) =>
+              children: [t("reportGenerator.columnCategory"), t("reportGenerator.columnContent"), t("reportGenerator.columnLine")].map((text) =>
                   new TableCell({
                       children: [new Paragraph({ children: [new TextRun({ text, bold: true })] })],
                   })
@@ -148,11 +150,11 @@ export function ReportGeneratorDialog({ open, onOpenChange, markerEntries }) {
               {
                   children: [
                       new Paragraph({
-                          text: "劇本標記報表",
+                          text: t("reportGenerator.docTitle"),
                           heading: HeadingLevel.HEADING_1,
                       }),
                       new Paragraph({
-                          text: `匯出筆數：${reportData.length}`,
+                          text: t("reportGenerator.exportCount").replace("{count}", String(reportData.length)),
                       }),
                       new DocxTable({
                           rows: tableRows,
@@ -174,9 +176,9 @@ export function ReportGeneratorDialog({ open, onOpenChange, markerEntries }) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-6">
         <DialogHeader>
-          <DialogTitle>報表產生器</DialogTitle>
+          <DialogTitle>{t("reportGenerator.title")}</DialogTitle>
           <DialogDescription>
-            勾選您想要輸出的標記類別，產生專屬報表（如音效表、道具表）。
+            {t("reportGenerator.description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -184,9 +186,9 @@ export function ReportGeneratorDialog({ open, onOpenChange, markerEntries }) {
             {/* Sidebar: Selection */}
             <div className="w-1/3 border-r pr-4 flex flex-col gap-2">
                 <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-semibold">選擇類別</h4>
+                    <h4 className="text-sm font-semibold">{t("reportGenerator.selectCategories")}</h4>
                     <Button variant="ghost" size="xs" onClick={toggleAll} className="h-6 text-xs">
-                        {selectedIds.size === markerEntries.length ? "全不選" : "全選"}
+                        {selectedIds.size === markerEntries.length ? t("reportGenerator.deselectAll") : t("reportGenerator.selectAll")}
                     </Button>
                 </div>
                 <ScrollArea className="flex-1">
@@ -214,23 +216,23 @@ export function ReportGeneratorDialog({ open, onOpenChange, markerEntries }) {
             {/* Main: Preview */}
             <div className="flex-1 flex flex-col min-h-0">
                 <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-semibold">預覽 ({reportData.length} 筆)</h4>
+                    <h4 className="text-sm font-semibold">{t("reportGenerator.previewCount").replace("{count}", String(reportData.length))}</h4>
                 </div>
                 <div className="border rounded-md flex-1 overflow-hidden relative">
                     <ScrollArea className="h-full w-full">
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-[120px]">類別</TableHead>
-                                    <TableHead>內容</TableHead>
-                                    <TableHead className="w-[80px] text-right">行號</TableHead>
+                                    <TableHead className="w-[120px]">{t("reportGenerator.columnCategory")}</TableHead>
+                                    <TableHead>{t("reportGenerator.columnContent")}</TableHead>
+                                    <TableHead className="w-[80px] text-right">{t("reportGenerator.columnLine")}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {reportData.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">
-                                            請選擇左側類別以檢視資料
+                                            {t("reportGenerator.emptyPreview")}
                                         </TableCell>
                                     </TableRow>
                                 ) : (
@@ -252,19 +254,19 @@ export function ReportGeneratorDialog({ open, onOpenChange, markerEntries }) {
         <DialogFooter className="mt-4 gap-2 sm:justify-end">
             <Button variant="outline" onClick={handleCopy}>
                 <Copy className="w-4 h-4 mr-2" />
-                複製表格
+                {t("reportGenerator.copyTable")}
             </Button>
             <Button onClick={handleDownloadCSV} disabled={reportData.length === 0}>
                 <Download className="w-4 h-4 mr-2" />
-                下載 CSV
+                {t("reportGenerator.downloadCsv")}
             </Button>
             <Button variant="outline" onClick={handleDownloadXLSX} disabled={reportData.length === 0}>
                 <Sheet className="w-4 h-4 mr-2" />
-                下載 XLSX
+                {t("reportGenerator.downloadXlsx")}
             </Button>
             <Button variant="outline" onClick={handleDownloadDOCX} disabled={reportData.length === 0}>
                 <FileText className="w-4 h-4 mr-2" />
-                下載 Word
+                {t("reportGenerator.downloadWord")}
             </Button>
         </DialogFooter>
       </DialogContent>

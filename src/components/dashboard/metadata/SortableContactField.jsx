@@ -4,8 +4,10 @@ import { CSS } from "@dnd-kit/utilities";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { X } from "lucide-react";
+import { useI18n } from "../../../contexts/I18nContext";
 
 export const SortableContactField = ({ field, index, onUpdate, onRemove, onFocus, onBlur, dragDisabled }) => {
+    const { t } = useI18n();
     const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } = useSortable({ id: field.id, disabled: dragDisabled });
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -19,32 +21,32 @@ export const SortableContactField = ({ field, index, onUpdate, onRemove, onFocus
                 ref={setActivatorNodeRef}
                 {...listeners}
                 {...attributes}
-                aria-label="拖拉排序"
+                aria-label={t("sortableContactField.dragSortAria")}
             >
                 ≡
             </button>
             <Input
                 id={`contact-key-${field.id}`}
                 name={`contactKey-${field.id}`}
-                aria-label="聯絡方式種類"
+                aria-label={t("sortableContactField.contactTypeAria")}
                 value={field.key}
                 onChange={(e) => onUpdate(index, "key", e.target.value)}
                 onFocus={onFocus}
                 onBlur={onBlur}
                 onPointerDown={(e) => e.stopPropagation()}
-                placeholder="種類"
+                placeholder={t("sortableContactField.typePlaceholder")}
                 className="w-1/3"
             />
             <Input
                 id={`contact-value-${field.id}`}
                 name={`contactValue-${field.id}`}
-                aria-label="聯絡方式內容"
+                aria-label={t("sortableContactField.contactValueAria")}
                 value={field.value}
                 onChange={(e) => onUpdate(index, "value", e.target.value)}
                 onFocus={onFocus}
                 onBlur={onBlur}
                 onPointerDown={(e) => e.stopPropagation()}
-                placeholder="內容"
+                placeholder={t("sortableContactField.valuePlaceholder")}
                 className="w-2/3"
             />
             <Button

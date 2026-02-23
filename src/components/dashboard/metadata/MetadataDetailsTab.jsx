@@ -8,6 +8,8 @@ import { DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { SortableField } from "./SortableField";
 import { SortableContactField } from "./SortableContactField";
+import { validateImageFile, getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
+import { useI18n } from "../../../contexts/I18nContext";
 
 export function MetadataDetailsTab({
     status,
@@ -30,13 +32,25 @@ export function MetadataDetailsTab({
     handleCustomFieldUpdate,
     recommendedErrors = {}
 }) {
+    const { t } = useI18n();
     const hasInvalidCoverUrl = Boolean(coverUrl?.trim()) && !/^https?:\/\//i.test(coverUrl.trim());
     const [coverPreviewFailed, setCoverPreviewFailed] = React.useState(false);
+    const [coverUploadError, setCoverUploadError] = React.useState("");
+    const [coverUploadWarning, setCoverUploadWarning] = React.useState("");
+    const coverGuide = React.useMemo(() => getImageUploadGuide("cover"), []);
 
-    const handleCoverUpload = (event) => {
+    const handleCoverUpload = async (event) => {
         const file = event.target.files?.[0];
         if (!file) return;
-        if (!file.type.startsWith("image/")) return;
+        const validation = await validateImageFile(file, "cover");
+        if (!validation.ok) {
+            setCoverUploadError(validation.error || "圖片格式不正確。");
+            setCoverUploadWarning("");
+            event.target.value = "";
+            return;
+        }
+        setCoverUploadError("");
+        setCoverUploadWarning(validation.warning || "");
         const reader = new FileReader();
         reader.onload = () => {
             const result = typeof reader.result === "string" ? reader.result : "";
@@ -69,37 +83,41 @@ export function MetadataDetailsTab({
                 <div className="flex w-full items-start gap-3 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-900">
                     <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
                     <div className="grid gap-1">
-                        <h5 className="font-medium text-yellow-900 leading-none tracking-tight">建議補充資訊</h5>
+                        <h5 className="font-medium text-yellow-900 leading-none tracking-tight">{t("metadataDetails.suggestionTitle")}</h5>
                         <div className="text-yellow-700 opacity-90 leading-relaxed">
-                            建議補充
-                            {!coverUrl && " 封面"}
-                            {!coverUrl && currentTags.length === 0 && " 與"}
-                            {currentTags.length === 0 && " 標籤"}
-                            以增加曝光。
+                            {t("metadataDetails.suggestionText", "").replace("{cover}", !coverUrl ? ` ${t("metadataDetails.coverWord")}` : "").replace("{and}", !coverUrl && currentTags.length === 0 ? ` ${t("metadataDetails.andWord")}` : "").replace("{tags}", currentTags.length === 0 ? ` ${t("metadataDetails.tagsWord")}` : "")}
                         </div>
                     </div>
                 </div>
             )}
             <div className="grid gap-4 p-4 border rounded-lg bg-muted/20">
                 <div className="grid gap-2">
-                    <label className="text-sm font-medium" htmlFor="metadata-author">作者名稱 (Author Text)</label>
+                    <label className="text-sm font-medium" htmlFor="metadata-author">{t("metadataDetails.author")}</label>
                     <Input id="metadata-author" name="metadataAuthor" value={author} onChange={e => setAuthor(e.target.value)} placeholder="覆蓋顯示的作者名稱..." />
-                    <div className="text-xs text-muted-foreground">若留空則顯示發布身分的名稱。此欄位會寫入劇本標頭。</div>
+                    <div className="text-xs text-muted-foreground">{t("metadataDetails.authorTip")}</div>
                 </div>
                 <div className="grid gap-2">
-                    <label className="text-sm font-medium" htmlFor="metadata-cover-url">封面圖片 URL (Cover)</label>
+                    <label className="text-sm font-medium" htmlFor="metadata-cover-url">{t("metadataDetails.coverUrl")}</label>
                     <Input id="metadata-cover-url" name="metadataCoverUrl" value={coverUrl} onChange={e => setCoverUrl(e.target.value)} placeholder="https://..." />
                     <div className="flex items-center gap-2">
                         <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
-                            上傳圖片
-                            <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
+                            {t("metadataDetails.uploadImage")}
+                            <input type="file" accept={MEDIA_FILE_ACCEPT} className="hidden" onChange={handleCoverUpload} />
                         </label>
-                        <span className="text-xs text-muted-foreground">可直接上傳，或貼上圖片網址。</span>
+                        <span className="text-xs text-muted-foreground">{t("metadataDetails.uploadTip")}</span>
                     </div>
+                    <p className="text-[11px] text-muted-foreground">{coverGuide.supported}</p>
+                    <p className="text-[11px] text-muted-foreground">{coverGuide.recommended}</p>
+                    {coverUploadError && (
+                        <p className="text-xs text-destructive">{coverUploadError}</p>
+                    )}
+                    {coverUploadWarning && (
+                        <p className="text-xs text-amber-700 dark:text-amber-300">{coverUploadWarning}</p>
+                    )}
                     {coverUrl && (
                         <div className="mt-1 h-28 w-full overflow-hidden rounded-md border bg-muted/20">
                             {coverPreviewFailed ? (
-                                <div className="flex h-full items-center justify-center text-xs text-muted-foreground">封面預覽失敗，請確認圖片來源或網址。</div>
+                                <div className="flex h-full items-center justify-center text-xs text-muted-foreground">{t("metadataDetails.coverPreviewFail")}</div>
                             ) : (
                                 <img
                                     src={coverUrl}
@@ -112,19 +130,19 @@ export function MetadataDetailsTab({
                         </div>
                     )}
                     {recommendedErrors.cover && (
-                        <p className="text-xs text-amber-700 dark:text-amber-300">建議補上封面，有助於提升曝光。</p>
+                        <p className="text-xs text-amber-700 dark:text-amber-300">{t("metadataDetails.coverTip")}</p>
                     )}
                     {hasInvalidCoverUrl && (
-                        <p className="text-xs text-amber-700 dark:text-amber-300">建議使用 `http://` 或 `https://` 開頭的完整網址。</p>
+                        <p className="text-xs text-amber-700 dark:text-amber-300">{t("metadataDetails.urlTip")}</p>
                     )}
                 </div>
             </div>
 
              {/* Tags */}
             <div className="grid gap-2">
-                <label className="text-sm font-medium" htmlFor="metadata-new-tag">標籤 (Tags)</label>
+                <label className="text-sm font-medium" htmlFor="metadata-new-tag">{t("metadataDetails.tags")}</label>
                 {recommendedErrors.tags && (
-                    <p className="text-xs text-amber-700 dark:text-amber-300">建議至少加 1 個標籤，讓讀者更容易找到作品。</p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300">{t("metadataDetails.tagsTip")}</p>
                 )}
                 <div className="flex flex-wrap gap-2 mb-2">
                     {currentTags.map(tag => (
@@ -147,7 +165,7 @@ export function MetadataDetailsTab({
                     <PopoverTrigger asChild>
                         <Button type="button" variant="outline" size="sm" className="w-fit">
                             <Plus className="w-4 h-4 mr-2" />
-                            新增標籤
+                            {t("metadataDetails.addTag")}
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[90vw] sm:w-80 p-2" align="start">
@@ -159,7 +177,7 @@ export function MetadataDetailsTab({
                                 value={newTagInput}
                                 onChange={(e) => setNewTagInput(e.target.value)}
                                 onPaste={handleTagPaste}
-                                placeholder="搜尋或新增標籤..."
+                                placeholder={t("metadataDetails.tagInputPlaceholder")}
                                 onKeyDown={(e) => {
                                     if (e.key === "Enter") {
                                         e.preventDefault();
@@ -176,7 +194,7 @@ export function MetadataDetailsTab({
                                     className="w-full flex items-center justify-between px-3 py-2 text-sm rounded hover:bg-accent"
                                     onClick={() => handleAddTag(newTagInput)}
                                 >
-                                    <span className="truncate">新增「{newTagInput.trim()}」</span>
+                                    <span className="truncate">{t("metadataDetails.addQuoted").replace("{value}", newTagInput.trim())}</span>
                                     <Plus className="w-4 h-4 text-primary" />
                                 </button>
                             )}
@@ -209,7 +227,7 @@ export function MetadataDetailsTab({
                                     );
                                 })}
                             {availableTags.length === 0 && (
-                                <div className="px-3 py-2 text-xs text-muted-foreground">尚無可用標籤</div>
+                                <div className="px-3 py-2 text-xs text-muted-foreground">{t("metadataDetails.noTags")}</div>
                             )}
                         </div>
                     </PopoverContent>
@@ -217,7 +235,7 @@ export function MetadataDetailsTab({
             </div>
 
             <div className="grid gap-2">
-                <label className="text-sm font-medium">聯絡方式 (Contact)</label>
+                <label className="text-sm font-medium">{t("metadataDetails.contact")}</label>
                 <div className="flex flex-wrap gap-2">
                     {["Email", "手機", "Discord", "IG"].map((preset) => (
                         <Button
@@ -236,7 +254,7 @@ export function MetadataDetailsTab({
                         size="sm"
                         onClick={() => onAddContactField("")}
                     >
-                        + 新增
+                        + {t("common.add")}
                     </Button>
                 </div>
                 <DndContext
@@ -270,11 +288,11 @@ export function MetadataDetailsTab({
                         </div>
                     </SortableContext>
                 </DndContext>
-                <div className="text-xs text-muted-foreground">可自行新增欄位，例如 Email、手機、Discord。</div>
+                <div className="text-xs text-muted-foreground">{t("metadataDetails.contactTip")}</div>
             </div>
 
              <div className="grid gap-2">
-                <label className="text-sm font-medium">自訂欄位</label>
+                <label className="text-sm font-medium">{t("metadataDetails.custom")}</label>
                 <div className="flex flex-wrap gap-2">
                     {["角色設定", "世界觀", "備註"].map((preset) => (
                         <Button
@@ -296,7 +314,7 @@ export function MetadataDetailsTab({
                         className="text-xs"
                     >
                          <Badge variant="outline" className="mr-2 text-[10px] font-mono px-1 py-0 border-dashed">HR</Badge>
-                         插入分隔線
+                         {t("metadataDetails.insertDivider")}
                     </Button>
 
                     <Button

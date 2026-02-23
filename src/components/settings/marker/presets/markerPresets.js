@@ -145,7 +145,7 @@ export const MARKER_TYPES = [
     name: '行內樣式',
     description: '標記行中的特定片段',
     icon: 'Highlighter',
-    example: '角色名 (V.O.)',
+    example: '角色名 旁白',
     matchModes: ['enclosure']
   }
 ];

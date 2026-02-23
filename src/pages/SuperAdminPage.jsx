@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../co
 import { Input } from "../components/ui/input";
 import { Badge } from "../components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { Users, FileText, ArrowRightLeft, Building2, Plus, Search, UserCircle, Loader2 } from "lucide-react";
+import { FileText, ArrowRightLeft, Building2, Plus, Search, UserCircle, Loader2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useI18n } from "../contexts/I18nContext";
 import { 
     createOrganization, transferOrganizationOwnership, getOrganizations, 
     getUserScripts, transferScriptOwnership, 
@@ -14,6 +15,7 @@ import {
 } from "../lib/db";
 
 export default function SuperAdminPage() {
+    const { t } = useI18n();
     const { currentUser } = useAuth();
     const apiBaseUrl =
         (typeof window !== "undefined" && window.__ENV__ && window.__ENV__.VITE_API_URL) ||
@@ -116,7 +118,7 @@ export default function SuperAdminPage() {
             loadAllData(); // Refresh list
         } catch (error) {
             console.error("Failed to create org:", error);
-            alert("建立組織失敗");
+            alert(t("transferAdmin.alertCreateFailed"));
         }
     };
 
@@ -143,9 +145,9 @@ export default function SuperAdminPage() {
                 res = await transferPersonaOwnership(selectedItem.id, targetUser.id);
             }
             if (res?.newOwnerId && res.newOwnerId !== targetUser.id) {
-                alert("移轉回傳異常：新擁有者不一致，請重新整理確認。");
+                alert(t("transferAdmin.alertMismatch"));
             } else {
-                alert(`移轉成功！`);
+                alert(t("transferAdmin.alertTransferSuccess"));
             }
             setShowTransferModal(false);
             setSelectedItem(null);
@@ -153,42 +155,49 @@ export default function SuperAdminPage() {
             loadAllData(); // Refresh all lists
         } catch (error) {
             console.error("Transfer failed:", error);
-            alert("移轉失敗，請稍後再試");
+            alert(t("transferAdmin.alertTransferFailed"));
         } finally {
             setIsTransferring(false);
         }
     };
 
+    const transferTypeLabel =
+        transferType === "org"
+            ? t("transferAdmin.typeOrg")
+            : transferType === "persona"
+                ? t("transferAdmin.typePersona")
+                : t("transferAdmin.typeScript");
+
     return (
         <div className="container mx-auto p-4 sm:p-8 max-w-6xl h-full overflow-y-auto">
             <header className="mb-8 border-b pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold font-serif mb-2">超級管理員控制台</h1>
-                    <p className="text-muted-foreground">預先建立資產並移轉給新加入的使用者。</p>
+                    <h1 className="text-3xl font-bold font-serif mb-2">{t("transferAdmin.title")}</h1>
+                    <p className="text-muted-foreground">{t("transferAdmin.subtitle")}</p>
                     <p className="text-xs text-muted-foreground mt-2">
                         Debug: API Base = {apiBaseUrl}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                     <Badge variant="outline" className="text-xs">已登入身分：{currentUser?.displayName || "Admin"}</Badge>
+                     <Badge variant="outline" className="text-xs">{t("transferAdmin.loggedInAs")}：{currentUser?.displayName || "Admin"}</Badge>
                 </div>
             </header>
 
             <Card className="mb-8">
                 <CardHeader>
-                    <CardTitle className="text-lg">來源使用者（要被移轉的資產）</CardTitle>
-                    <CardDescription>選擇要檢視或移轉的資產擁有者。</CardDescription>
+                    <CardTitle className="text-lg">{t("transferAdmin.sourceUserTitle")}</CardTitle>
+                    <CardDescription>{t("transferAdmin.sourceUserDesc")}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                     <Input
-                        placeholder="輸入 email / handle / userId 查詢"
+                        placeholder={t("transferAdmin.sourceSearchPlaceholder")}
                         value={sourceQuery}
                         onChange={(e) => setSourceQuery(e.target.value)}
                     />
                     {isSourceSearching && (
                         <div className="text-xs text-muted-foreground flex items-center gap-2">
                             <Loader2 className="w-3 h-3 animate-spin" />
-                            搜尋中...
+                            {t("transferAdmin.searching")}
                         </div>
                     )}
                     {sourceResults.length > 0 && (
@@ -211,7 +220,7 @@ export default function SuperAdminPage() {
                     )}
                     {sourceUser && (
                         <div className="text-sm text-muted-foreground">
-                            目前來源：{sourceUser.displayName || sourceUser.handle || sourceUser.email}（{sourceUser.email || sourceUser.id}）
+                            {t("transferAdmin.currentSource")}：{sourceUser.displayName || sourceUser.handle || sourceUser.email}（{sourceUser.email || sourceUser.id}）
                         </div>
                     )}
                 </CardContent>
@@ -219,9 +228,9 @@ export default function SuperAdminPage() {
 
             <Tabs defaultValue="orgs" className="space-y-6">
                 <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 max-w-md gap-1 h-auto sm:h-9">
-                    <TabsTrigger value="orgs">組織管理</TabsTrigger>
-                    <TabsTrigger value="personas">作者身分 (Personas)</TabsTrigger>
-                    <TabsTrigger value="scripts">劇本管理</TabsTrigger>
+                    <TabsTrigger value="orgs">{t("transferAdmin.orgTab")}</TabsTrigger>
+                    <TabsTrigger value="personas">{t("transferAdmin.personaTab")}</TabsTrigger>
+                    <TabsTrigger value="scripts">{t("transferAdmin.scriptTab")}</TabsTrigger>
                 </TabsList>
 
                 {/* --- Organizations --- */}
@@ -230,21 +239,21 @@ export default function SuperAdminPage() {
                         {/* Create Panel */}
                         <Card className="md:col-span-1 h-fit">
                             <CardHeader>
-                                <CardTitle className="text-lg">建立新組織</CardTitle>
-                                <CardDescription>為新團隊預先配置工作空間。</CardDescription>
+                                <CardTitle className="text-lg">{t("transferAdmin.createOrgTitle")}</CardTitle>
+                                <CardDescription>{t("transferAdmin.createOrgDesc")}</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-semibold uppercase text-muted-foreground">組織名稱</label>
+                                    <label className="text-xs font-semibold uppercase text-muted-foreground">{t("transferAdmin.orgName")}</label>
                                     <Input 
-                                        placeholder="例如：台大話劇社" 
+                                        placeholder={t("transferAdmin.orgNamePlaceholder")} 
                                         value={newOrgName}
                                         onChange={(e) => setNewOrgName(e.target.value)}
                                     />
                                 </div>
                                 <Button className="w-full" onClick={handleCreateOrg} disabled={!newOrgName}>
                                     <Plus className="w-4 h-4 mr-2" />
-                                    建立組織
+                                    {t("transferAdmin.createOrg")}
                                 </Button>
                             </CardContent>
                         </Card>
@@ -252,14 +261,14 @@ export default function SuperAdminPage() {
                         {/* List Panel */}
                         <Card className="md:col-span-2">
                             <CardHeader>
-                                <CardTitle className="text-lg">我的組織</CardTitle>
-                                <CardDescription>您擁有的組織列表 (共 {orgs.length} 個)</CardDescription>
+                                <CardTitle className="text-lg">{t("transferAdmin.myOrgsTitle")}</CardTitle>
+                                <CardDescription>{t("transferAdmin.myOrgsDesc").replace("{count}", String(orgs.length))}</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 {isLoading ? (
                                     <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
                                 ) : orgs.length === 0 ? (
-                                    <div className="text-center text-muted-foreground py-8">無組織</div>
+                                    <div className="text-center text-muted-foreground py-8">{t("transferAdmin.noOrgs")}</div>
                                 ) : (
                                     <div className="space-y-4">
                                         {orgs.map(org => (
@@ -270,7 +279,7 @@ export default function SuperAdminPage() {
                                                     </div>
                                                     <div>
                                                         <h3 className="font-semibold">{org.name}</h3>
-                                                        <p className="text-xs text-muted-foreground">{org.description || "無描述"}</p>
+                                                        <p className="text-xs text-muted-foreground">{org.description || t("transferAdmin.noDescription")}</p>
                                                     </div>
                                                 </div>
                                                 
@@ -279,7 +288,7 @@ export default function SuperAdminPage() {
                                                     onClick={() => handleOpenTransfer('org', org)}
                                                 >
                                                     <ArrowRightLeft className="w-4 h-4 mr-2" />
-                                                    移轉
+                                                    {t("transferAdmin.transfer")}
                                                 </Button>
                                             </div>
                                         ))}
@@ -294,14 +303,14 @@ export default function SuperAdminPage() {
                 <TabsContent value="personas">
                     <Card>
                         <CardHeader>
-                             <CardTitle>作者身分管理</CardTitle>
-                             <CardDescription>您可以移轉 Persona 及其名下所有權限給其他使用者。</CardDescription>
+                             <CardTitle>{t("transferAdmin.personaTitle")}</CardTitle>
+                             <CardDescription>{t("transferAdmin.personaDesc")}</CardDescription>
                         </CardHeader>
                         <CardContent>
                             {isLoading ? (
                                 <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
                             ) : personas.length === 0 ? (
-                                <div className="text-center text-muted-foreground py-8">無 Persona</div>
+                                <div className="text-center text-muted-foreground py-8">{t("transferAdmin.noPersona")}</div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {personas.map(p => (
@@ -312,12 +321,12 @@ export default function SuperAdminPage() {
                                                  </div>
                                                  <div>
                                                      <div className="font-semibold">{p.displayName}</div>
-                                                     <div className="text-xs text-muted-foreground truncate max-w-[150px]">{p.bio || "無簡介"}</div>
+                                                     <div className="text-xs text-muted-foreground truncate max-w-[150px]">{p.bio || t("transferAdmin.noBio")}</div>
                                                  </div>
                                             </div>
                                             <Button variant="outline" size="sm" onClick={() => handleOpenTransfer('persona', p)}>
                                                 <ArrowRightLeft className="w-4 h-4 mr-2" />
-                                                移轉
+                                                {t("transferAdmin.transfer")}
                                             </Button>
                                         </div>
                                     ))}
@@ -331,14 +340,14 @@ export default function SuperAdminPage() {
                 <TabsContent value="scripts">
                      <Card>
                         <CardHeader>
-                             <CardTitle>劇本管理</CardTitle>
-                             <CardDescription>直接移轉單一劇本的所有權。</CardDescription>
+                             <CardTitle>{t("transferAdmin.scriptTitle")}</CardTitle>
+                             <CardDescription>{t("transferAdmin.scriptDesc")}</CardDescription>
                         </CardHeader>
                         <CardContent>
                             {isLoading ? (
                                 <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
                             ) : scripts.length === 0 ? (
-                                <div className="text-center text-muted-foreground py-8">無劇本</div>
+                                <div className="text-center text-muted-foreground py-8">{t("transferAdmin.noScripts")}</div>
                             ) : (
                                 <div className="space-y-2">
                                     {scripts.filter(s => s.type !== 'folder').map(s => (
@@ -346,7 +355,7 @@ export default function SuperAdminPage() {
                                             <div className="flex items-center gap-3">
                                                 <FileText className="w-4 h-4 text-muted-foreground" />
                                                 <span className="font-medium">{s.title}</span>
-                                                {s.status === "Public" && <Badge variant="secondary" className="text-[10px] h-5">公開</Badge>}
+                                                {s.status === "Public" && <Badge variant="secondary" className="text-[10px] h-5">{t("transferAdmin.publicBadge")}</Badge>}
                                             </div>
                                             <Button variant="ghost" size="sm" onClick={() => handleOpenTransfer('script', s)}>
                                                 <ArrowRightLeft className="w-4 h-4" />
@@ -365,24 +374,24 @@ export default function SuperAdminPage() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                     <Card className="w-full max-w-md shadow-2xl animate-in fade-in zoom-in-95 duration-200">
                         <CardHeader>
-                            <CardTitle>移轉擁有權</CardTitle>
+                            <CardTitle>{t("transferAdmin.modalTitle")}</CardTitle>
                             <CardDescription>
-                                您正在轉移 
+                                {t("transferAdmin.transferring")} 
                                 <span className="font-bold text-foreground mx-1">
                                     {selectedItem.name || selectedItem.displayName || selectedItem.title}
                                 </span>
-                                ({transferType === 'org' ? '組織' : transferType === 'persona' ? '作者身分' : '劇本'})
+                                ({transferTypeLabel})
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {/* Search Input */}
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">搜尋並選擇新擁有者</label>
+                                <label className="text-sm font-medium">{t("transferAdmin.searchTargetLabel")}</label>
                                 <div className="relative">
                                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                                     <Input 
                                         className="pl-9"
-                                        placeholder="輸入 Email 或 ID 或 暱稱..." 
+                                        placeholder={t("transferAdmin.targetSearchPlaceholder")} 
                                         value={searchQuery} 
                                         onChange={(e) => setSearchQuery(e.target.value)} 
                                         autoFocus
@@ -398,7 +407,7 @@ export default function SuperAdminPage() {
                                 {searchQuery && (
                                     <div className="border rounded-md mt-2 max-h-40 overflow-y-auto bg-popover text-popover-foreground shadow-sm">
                                         {searchResults.length === 0 && !isSearching ? (
-                                            <div className="p-3 text-xs text-muted-foreground text-center">找不到使用者</div>
+                                            <div className="p-3 text-xs text-muted-foreground text-center">{t("transferAdmin.noUsers")}</div>
                                         ) : (
                                             searchResults.map(user => (
                                                 <div 
@@ -415,7 +424,7 @@ export default function SuperAdminPage() {
                                                         {(user.displayName || user.handle || "?")[0].toUpperCase()}
                                                     </div>
                                                     <div className="flex-1 truncate">
-                                                        <span className="font-medium">{user.displayName || "無暱稱"}</span>
+                                                        <span className="font-medium">{user.displayName || t("transferAdmin.noNickname")}</span>
                                                         <span className="text-xs text-muted-foreground ml-2">@{user.handle || user.id.slice(0,6)}</span>
                                                     </div>
                                                 </div>
@@ -433,7 +442,7 @@ export default function SuperAdminPage() {
                                             {(targetUser.displayName || targetUser.handle || "?")[0].toUpperCase()}
                                          </div>
                                          <div>
-                                             <div className="text-sm font-medium">即將移轉給：</div>
+                                             <div className="text-sm font-medium">{t("transferAdmin.willTransferTo")}：</div>
                                              <div className="text-sm">{targetUser.displayName} <span className="text-xs text-muted-foreground">(@{targetUser.handle})</span></div>
                                          </div>
                                     </div>
@@ -443,14 +452,14 @@ export default function SuperAdminPage() {
 
                             <div className="bg-amber-50 dark:bg-amber-950/30 p-3 rounded text-amber-600 dark:text-amber-400 text-xs flex gap-2 items-start">
                                 <span className="mt-0.5">⚠️</span>
-                                <span>這是不可逆的動作。移轉後，您將立即失去此項目的管理權限（除非新擁有者將您加回成員或移轉回來）。</span>
+                                <span>{t("transferAdmin.irreversibleWarning")}</span>
                             </div>
 
                             <div className="flex justify-end gap-2 pt-2">
-                                <Button variant="ghost" onClick={() => setShowTransferModal(false)}>取消</Button>
+                                <Button variant="ghost" onClick={() => setShowTransferModal(false)}>{t("transferAdmin.cancel")}</Button>
                                 <Button onClick={confirmTransfer} disabled={!targetUser || isTransferring}>
                                     {isTransferring && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    確認移轉
+                                    {t("transferAdmin.confirmTransfer")}
                                 </Button>
                             </div>
                         </CardContent>

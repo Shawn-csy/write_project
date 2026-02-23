@@ -6,6 +6,7 @@ import { Label } from "../../../ui/label";
 import { ScriptRenderer } from "../../../renderer/ScriptRenderer";
 import { ImportToolbar } from "./ImportToolbar";
 import { ImportRuleEditor } from "./ImportRuleEditor";
+import { useI18n } from "../../../../contexts/I18nContext";
 
 export function ImportStageConfigure({
     activeRules,
@@ -18,6 +19,7 @@ export function ImportStageConfigure({
     metadata = {},
     setMetadata
 }) {
+    const { t } = useI18n();
     // Helper to update a single rule is not needed if ImportRuleEditor handles it, 
     // but looking at usage below, we are passing inline onChange.
     
@@ -35,7 +37,7 @@ export function ImportStageConfigure({
 
                 <div className="flex-1 min-h-0 flex flex-col gap-2 relative bg-background border rounded-md">
                     <div className="p-3 border-b bg-muted/10 font-medium text-sm">
-                        設定與規則 ({activeRules.length})
+                        {t("importStageConfigure.settingsAndRules").replace("{count}", String(activeRules.length))}
                     </div>
                     
                     <ScrollArea className="flex-1 px-4">
@@ -43,7 +45,7 @@ export function ImportStageConfigure({
                                 {/* Metadata Section */}
                             <div className="space-y-3 pb-4 border-b">
                                 <h3 className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                                    劇本資訊 (Metadata)
+                                    {t("importStageConfigure.scriptInfo")}
                                     {/* TODO: Add 'New Field' button if needed */}
                                 </h3>
                                 <div className="grid gap-3">
@@ -57,7 +59,7 @@ export function ImportStageConfigure({
                                                     className="sm:col-span-2 h-7 text-xs"
                                                     value={val}
                                                     onChange={(e) => setMetadata({...metadata, [key]: e.target.value})}
-                                                    placeholder={`輸入 ${key}...`}
+                                                    placeholder={t("importStageConfigure.inputField").replace("{key}", key)}
                                                 />
                                             </div>
                                         );
@@ -82,7 +84,7 @@ export function ImportStageConfigure({
                             {/* Rules Section */}
                             <div className="space-y-2">
                                 {activeRules.length === 0 ? (
-                                    <div className="text-center text-muted-foreground py-8 text-sm">無任何規則</div>
+                                    <div className="text-center text-muted-foreground py-8 text-sm">{t("importStageConfigure.noRules")}</div>
                                 ) : (
                                     activeRules.map((rule, idx) => (
                                         <ImportRuleEditor
@@ -109,7 +111,7 @@ export function ImportStageConfigure({
             {/* Right: Visual Preview */}
             <div className="lg:col-span-8 flex flex-col min-h-0 border rounded bg-background">
                 <div className="p-3 border-b bg-muted/10 font-medium text-sm flex justify-between items-center">
-                    <span>即時預覽 (渲染結果)</span>
+                    <span>{t("importStageConfigure.livePreview")}</span>
                     <div className="flex gap-2">
                         <Badge variant="secondary" className="text-[10px]">Visual</Badge>
                     </div>
@@ -124,7 +126,7 @@ export function ImportStageConfigure({
                                     fontSize={14}
                                 />
                             ) : (
-                                <div className="text-center text-muted-foreground mt-20">無法預覽</div>
+                                <div className="text-center text-muted-foreground mt-20">{t("importStageConfigure.cannotPreview")}</div>
                             )}
                         </div>
                     </ScrollArea>

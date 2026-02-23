@@ -5,6 +5,7 @@ import { DualDialogueNode } from './nodes/DualDialogueNode';
 import { SpeechNode } from './nodes/SpeechNode';
 import { parseInline } from '../../lib/parsers/inlineParser.js';
 import { isInlineLike } from '../../lib/markerRules.js';
+import { useI18n } from '../../contexts/I18nContext';
 
 const makeCharacterColorGetter = (themePalette, cacheRef) => (name) => {
   if (!name) return "hsl(0 0% 50%)";
@@ -18,13 +19,6 @@ const makeCharacterColorGetter = (themePalette, cacheRef) => (name) => {
   const color = themePalette?.[colorIndex] || "160 84% 39%";
   cacheRef?.current?.set?.(key, color);
   return color;
-};
-
-const whitespaceLabels = {
-  short: "停頓一秒",
-  mid: "停頓三秒",
-  long: "停頓五秒",
-  pure: "",
 };
 
 const getLineProps = (node) => {
@@ -86,9 +80,7 @@ const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
         return { opacity: 0.3, transition: 'opacity 0.3s' };
     };
 
-    // Helper for applying range style (區間樣式)
-    // 只套用未被隱藏的區間樣式
-    // 注意：如果是 range 類型的節點，樣式由 RangeNode 處理，這裡只處理被包在 range 內的普通節點
+    // Apply range-content style for nodes wrapped inside active ranges.
     const getRangeStyle = () => {
         if (!node.inRange || node.inRange.length === 0) return {};
         
@@ -155,7 +147,8 @@ const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
             return <LayerNode node={node} context={context} NodeRenderer={NodeRenderer} />;
         
         case 'whitespace':
-            const label = whitespaceLabels[node.kind] || '';
+            const labels = context.whitespaceLabels || {};
+            const label = labels[node.kind] || '';
             const style = getFocusStyle(); 
             if (style.display === 'none') return null; // Optimization
             
@@ -251,7 +244,7 @@ const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
             );
 
         case 'blank':
-             // 純 Marker 模式的空行，也支援區間樣式
+             // Blank line also supports range-content style.
              // User request: Don't show border on blank lines inside hierarchy
              const { 
                 border, borderLeft, borderRight, borderTop, borderBottom, borderColor,
@@ -288,6 +281,16 @@ export const ScriptRenderer = React.memo(({
     hiddenMarkerIds = [],
     showLineUnderline = false,
 }) => {
+    const { t } = useI18n();
+    const whitespaceLabels = useMemo(
+        () => ({
+            short: t("scriptRenderer.pauseShort"),
+            mid: t("scriptRenderer.pauseMid"),
+            long: t("scriptRenderer.pauseLong"),
+            pure: "",
+        }),
+        [t]
+    );
     
     const getCharacterColor = useMemo(() => {
         return makeCharacterColorGetter(themePalette, colorCache);
@@ -334,8 +337,9 @@ export const ScriptRenderer = React.memo(({
         inlineMarkerConfigs,
         parseInlineLine,
         hiddenMarkerIds,
-        showLineUnderline
-    }), [fontSize, filterCharacter, focusMode, focusEffect, focusContentMode, getCharacterColor, markerConfigs, inlineMarkerConfigs, parseInlineLine, hiddenMarkerIds, showLineUnderline]);
+        showLineUnderline,
+        whitespaceLabels
+    }), [fontSize, filterCharacter, focusMode, focusEffect, focusContentMode, getCharacterColor, markerConfigs, inlineMarkerConfigs, parseInlineLine, hiddenMarkerIds, showLineUnderline, whitespaceLabels]);
 
     return (
         <article className="script-renderer font-serif" style={{ fontSize: `${fontSize}px`, '--body-font-size': `${fontSize}px` }}>

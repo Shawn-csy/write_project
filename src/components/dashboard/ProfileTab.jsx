@@ -9,6 +9,7 @@ import { getPersonas, createPersona, deletePersona, getOrganizations, createOrga
 import { Loader2, Plus, Trash2, User, Building2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Textarea } from "../ui/textarea";
+import { useI18n } from "../../contexts/I18nContext";
 
 export function ProfileTab() {
     return (
@@ -20,6 +21,7 @@ export function ProfileTab() {
 }
 
 function PersonaManager() {
+    const { t } = useI18n();
     const [personas, setPersonas] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isOpen, setIsOpen] = useState(false);
@@ -53,14 +55,14 @@ function PersonaManager() {
             setBio("");
             load();
         } catch (e) {
-            alert("Failed to create persona");
+            alert(t("profileTab.alertCreatePersonaFailed"));
         } finally {
             setIsCreating(false);
         }
     };
 
     const handleDelete = async (id) => {
-        if (!confirm("Delete this persona?")) return;
+        if (!confirm(t("profileTab.confirmDeletePersona"))) return;
         await deletePersona(id);
         load();
     };
@@ -70,11 +72,11 @@ function PersonaManager() {
             <CardHeader>
                 <div className="flex justify-between items-center">
                     <div>
-                        <CardTitle>作者身分 (Personas)</CardTitle>
-                        <CardDescription>管理您的筆名與作者身分。發布劇本時可選擇使用這些身分。</CardDescription>
+                        <CardTitle>{t("profileTab.personaTitle")}</CardTitle>
+                        <CardDescription>{t("profileTab.personaDescription")}</CardDescription>
                     </div>
                     <Button size="sm" onClick={() => setIsOpen(true)}>
-                        <Plus className="w-4 h-4 mr-2" /> 新增身分
+                        <Plus className="w-4 h-4 mr-2" /> {t("profileTab.addPersona")}
                     </Button>
                 </div>
             </CardHeader>
@@ -82,7 +84,7 @@ function PersonaManager() {
                 {isLoading ? (
                     <div className="flex justify-center p-4"><Loader2 className="animate-spin" /></div>
                 ) : personas.length === 0 ? (
-                    <div className="text-center text-muted-foreground py-8">尚未建立任何身分</div>
+                    <div className="text-center text-muted-foreground py-8">{t("profileTab.noPersona")}</div>
                 ) : (
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {personas.map(p => (
@@ -93,7 +95,7 @@ function PersonaManager() {
                                     </div>
                                     <div>
                                         <div className="font-medium">{p.displayName}</div>
-                                        <div className="text-xs text-muted-foreground line-clamp-1">{p.bio || "No bio"}</div>
+                                        <div className="text-xs text-muted-foreground line-clamp-1">{p.bio || t("profileTab.noBio")}</div>
                                     </div>
                                 </div>
                                 <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)} className="text-destructive hover:text-destructive/90">
@@ -108,21 +110,21 @@ function PersonaManager() {
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>新增作者身分</DialogTitle>
+                        <DialogTitle>{t("profileTab.addPersonaTitle")}</DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
-                            <Label>顯示名稱 (Display Name)</Label>
-                            <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. 筆名" />
+                            <Label>{t("profileTab.displayName")}</Label>
+                            <Input value={name} onChange={e => setName(e.target.value)} placeholder={t("profileTab.displayNamePlaceholder")} />
                         </div>
                         <div className="grid gap-2">
-                            <Label>簡介 (Bio)</Label>
-                            <Textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="簡單介紹..." />
+                            <Label>{t("profileTab.bio")}</Label>
+                            <Textarea value={bio} onChange={e => setBio(e.target.value)} placeholder={t("profileTab.bioPlaceholder")} />
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsOpen(false)}>取消</Button>
-                        <Button onClick={handleCreate} disabled={isCreating || !name}>建立</Button>
+                        <Button variant="outline" onClick={() => setIsOpen(false)}>{t("common.cancel")}</Button>
+                        <Button onClick={handleCreate} disabled={isCreating || !name}>{t("profileTab.create")}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -131,6 +133,7 @@ function PersonaManager() {
 }
 
 function OrganizationManager() {
+    const { t } = useI18n();
     const [orgs, setOrgs] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isOpen, setIsOpen] = useState(false);
@@ -163,14 +166,14 @@ function OrganizationManager() {
             setDesc("");
             load();
         } catch (e) {
-            alert("Failed to create organization");
+            alert(t("profileTab.alertCreateOrgFailed"));
         } finally {
             setIsCreating(false);
         }
     };
 
     const handleDelete = async (id) => {
-        if (!confirm("Delete this organization? This will unlink all scripts.")) return;
+        if (!confirm(t("profileTab.confirmDeleteOrg"))) return;
         await deleteOrganization(id);
         load();
     };
@@ -180,11 +183,11 @@ function OrganizationManager() {
             <CardHeader>
                 <div className="flex justify-between items-center">
                     <div>
-                        <CardTitle>組織管理 (Organizations)</CardTitle>
-                        <CardDescription>建立組織以管理團隊成員與協作劇本。</CardDescription>
+                        <CardTitle>{t("profileTab.organizationTitle")}</CardTitle>
+                        <CardDescription>{t("profileTab.organizationDescription")}</CardDescription>
                     </div>
                     <Button size="sm" onClick={() => setIsOpen(true)}>
-                        <Plus className="w-4 h-4 mr-2" /> 建立組織
+                        <Plus className="w-4 h-4 mr-2" /> {t("profileTab.createOrganization")}
                     </Button>
                 </div>
             </CardHeader>
@@ -192,7 +195,7 @@ function OrganizationManager() {
                 {isLoading ? (
                     <div className="flex justify-center p-4"><Loader2 className="animate-spin" /></div>
                 ) : orgs.length === 0 ? (
-                    <div className="text-center text-muted-foreground py-8">尚未建立任何組織</div>
+                    <div className="text-center text-muted-foreground py-8">{t("profileTab.noOrganization")}</div>
                 ) : (
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {orgs.map(org => (
@@ -203,7 +206,7 @@ function OrganizationManager() {
                                     </div>
                                     <div>
                                         <div className="font-medium">{org.name}</div>
-                                        <div className="text-xs text-muted-foreground line-clamp-1">{org.description || "No description"}</div>
+                                        <div className="text-xs text-muted-foreground line-clamp-1">{org.description || t("profileTab.noDescription")}</div>
                                     </div>
                                 </div>
                                 <Button variant="ghost" size="icon" onClick={() => handleDelete(org.id)} className="text-destructive hover:text-destructive/90">
@@ -218,21 +221,21 @@ function OrganizationManager() {
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>建立新組織</DialogTitle>
+                        <DialogTitle>{t("profileTab.createOrganizationTitle")}</DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
-                            <Label>組織名稱</Label>
-                            <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. 某某工作室" />
+                            <Label>{t("profileTab.organizationName")}</Label>
+                            <Input value={name} onChange={e => setName(e.target.value)} placeholder={t("profileTab.organizationNamePlaceholder")} />
                         </div>
                         <div className="grid gap-2">
-                            <Label>描述</Label>
-                            <Textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="關於這個組織..." />
+                            <Label>{t("profileTab.description")}</Label>
+                            <Textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder={t("profileTab.descriptionPlaceholder")} />
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsOpen(false)}>取消</Button>
-                        <Button onClick={handleCreate} disabled={isCreating || !name}>建立</Button>
+                        <Button variant="outline" onClick={() => setIsOpen(false)}>{t("common.cancel")}</Button>
+                        <Button onClick={handleCreate} disabled={isCreating || !name}>{t("profileTab.create")}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

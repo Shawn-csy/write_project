@@ -1,81 +1,118 @@
 import React from "react";
 import { PublicTopBar } from "../components/public/PublicTopBar";
-import { Link, useNavigate } from "react-router-dom";
-import { BookOpen } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { BookOpen, Mail, MessageSquare, Heart, ShieldQuestion } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { useI18n } from "../contexts/I18nContext";
 
 export default function PublicAboutPage() {
+    const { t } = useI18n();
     const navigate = useNavigate();
     return (
         <div className="min-h-screen bg-background flex flex-col">
             <PublicTopBar
-                title="Screenplay Reader"
+                title={t("publicAbout.topbarTitle")}
                 showBack={true}
                 onBack={() => navigate("/")}
             />
             
-            <main className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
-                <article className="prose prose-stone dark:prose-invert lg:prose-lg max-w-none">
-                    <h1 className="flex items-center gap-3 text-4xl mb-8">
-                        <BookOpen className="w-10 h-10 text-primary" />
-                        <span>關於 Screenplay Reader</span>
+            <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
+                <div className="flex flex-col items-center text-center space-y-4 mb-10">
+                    <div className="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-2 shadow-sm border border-primary/20">
+                        <BookOpen className="w-8 h-8" />
+                    </div>
+                    <h1 className="text-3xl font-serif font-bold text-foreground">
+                        {t("publicAbout.title")}
                     </h1>
-                    
-                    <p className="lead text-xl text-muted-foreground">
-                        這是一個專為華文編劇與劇本愛好者打造的線上閱讀、瀏覽與分享平台。我們支援業界標準的 Fountain 語法，讓您能專注於創作，而我們負責將文字化為精美的排版。
+                    <p className="text-lg text-muted-foreground max-w-xl">
+                        {t("publicAbout.subtitle")}
                     </p>
+                </div>
 
-                    <hr className="my-10" />
+                <div className="space-y-6">
+                    {/* Intro Card */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-xl">
+                                <Heart className="w-5 h-5 text-primary" />
+                                {t("publicAbout.visionTitle")}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4 text-muted-foreground leading-relaxed text-sm sm:text-base">
+                            <p>
+                                {t("publicAbout.visionBody")}
+                            </p>
+                            <ul className="list-disc pl-5 space-y-2 mt-4 text-foreground/90">
+                                <li><strong>{t("publicAbout.featureReadTitle")}</strong>：{t("publicAbout.featureReadBody")}</li>
+                                <li><strong>{t("publicAbout.featureProfileTitle")}</strong>：{t("publicAbout.featureProfileBody")}</li>
+                                <li><strong>{t("publicAbout.featureStudioTitle")}</strong>：{t("publicAbout.featureStudioBody")}</li>
+                                <li><strong>{t("publicAbout.featureEditorTitle")}</strong>：{t("publicAbout.featureEditorBody")}</li>
+                            </ul>
+                        </CardContent>
+                    </Card>
 
-                    <h2>平台特色</h2>
-                    <ul>
-                        <li><strong>即時排版與預覽</strong>：匯入或直接撰寫 Fountain 格式文本，系統自動套用標準的劇本格式。</li>
-                        <li><strong>多裝置閱讀</strong>：無論是電腦、平板還是手機，都能獲得最佳的閱讀體驗。</li>
-                        <li><strong>發布與分享</strong>：將作品設定為公開，建立專屬的作者或組織頁面，並透過唯一的短網址與世界分享。</li>
-                        <li><strong>標籤與詮釋資料</strong>：支援完整的 Metadata 解析，包含版權宣告、角色清單與自訂標籤。</li>
-                    </ul>
+                    {/* License Card */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-xl">
+                                <ShieldQuestion className="w-5 h-5 text-primary" />
+                                {t("publicAbout.licenseTitle")}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4 text-muted-foreground leading-relaxed text-sm sm:text-base">
+                            <p>
+                                {t("publicAbout.licenseBody1")}
+                            </p>
+                            <p>
+                                {t("publicAbout.licenseBody2")}
+                            </p>
+                        </CardContent>
+                    </Card>
 
-                    <h2>授權與使用條款 (License)</h2>
-                    <p>
-                        本站上的每一篇公開劇本，其著作權皆歸屬於原作者或標示之組織所有。
-                        在未取得明確授權的情況下，請勿任意進行商業使用或改作。
-                    </p>
-                    <p>
-                        作者在發布時，可以選擇標示特定的創用 CC 授權條款 (Creative Commons)，或是宣告專屬的版權聲明。
-                        當您在閱讀特定劇本時，請留意畫面下方或資訊面板中的「版權資訊」。
-                    </p>
-
-                    <div className="bg-muted/50 p-6 rounded-lg my-12 border border-border">
-                        <h2 className="mt-0 flex items-center gap-2">🤖 For AI Developers & Bots</h2>
-                        <p>
-                            We embrace the open web and AI ecosystem. If you are an AI agent, LLM crawler, or building integrations, you can interact with <strong>publicly available</strong> scripts efficiently without parsing our React DOM.
-                        </p>
-                        <h3>1. AI Instructions (`llms.txt`)</h3>
-                        <p>
-                            Please read our <a href="/llms.txt" target="_blank" rel="noopener noreferrer">/llms.txt</a> file for detailed guidelines on how to consume our data programmatically.
-                        </p>
-                        <h3>2. Raw Fountain/Markdown API</h3>
-                        <p>
-                            You can bypass the UI entirely by appending <code>/raw</code> to the API route to fetch the original Fountain source code:
-                            <br/>
-                            <code>GET https://api.shawnup.com/public-scripts/{"{script_id}"}/raw</code>
-                        </p>
-                        <h3>3. Content Negotiation</h3>
-                        <p>
-                            Our web routes support content negotiation. Sending <code>Accept: text/markdown</code> to <code>/read/{"{script_id}"}</code> will directly return the raw script data instead of the web application.
-                        </p>
-                    </div>
-
-                    <h2>聯繫我們</h2>
-                    <p>
-                        如果您在使用上遇到問題，或者有任何合作建議，歡迎與我們聯繫。
-                    </p>
-                    
-                    <div className="mt-12 text-center">
-                        <Link to="/" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-6 py-2">
-                            回公開牆探索劇本
-                        </Link>
-                    </div>
-                </article>
+                    {/* Contact Card */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-xl">
+                                <MessageSquare className="w-5 h-5 text-primary" />
+                                {t("publicAbout.contactTitle")}
+                            </CardTitle>
+                            <CardDescription className="text-sm">
+                                {t("publicAbout.contactDesc")}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex flex-col sm:flex-row gap-4">
+                                <a href="mailto:silence0603@gmail.com" className="flex-1 flex items-center gap-3 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors group">
+                                    <div className="bg-primary/10 p-2.5 rounded-lg group-hover:scale-110 transition-transform">
+                                        <Mail className="w-5 h-5 text-primary" />
+                                    </div>
+                                    <div>
+                                        <div className="font-semibold text-foreground text-sm">{t("publicAbout.emailLabel")}</div>
+                                        <div className="text-sm text-muted-foreground mt-0.5">silence0603@gmail.com</div>
+                                    </div>
+                                </a>
+                                <a href="https://discordapp.com/users/booostman1" target="_blank" rel="noreferrer" className="flex-1 flex items-center gap-3 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors group">
+                                    <div className="bg-[#5865F2]/10 p-2.5 rounded-lg group-hover:scale-110 transition-transform">
+                                        <svg className="w-5 h-5 text-[#5865F2] fill-current" viewBox="0 0 127.14 96.36">
+                                            <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.11,77.11,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.89,105.89,0,0,0,126.6,80.22c1.24-23.28-3.28-47.54-18.9-72.15ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div className="font-semibold text-foreground text-sm">{t("publicAbout.discordLabel")}</div>
+                                        <div className="text-sm text-muted-foreground mt-0.5">booostman1</div>
+                                    </div>
+                                </a>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+                
+                <div className="mt-12 text-center">
+                    <Button onClick={() => navigate("/")} size="lg" className="rounded-full px-8">
+                        {t("publicAbout.back")}
+                    </Button>
+                </div>
             </main>
         </div>
     );

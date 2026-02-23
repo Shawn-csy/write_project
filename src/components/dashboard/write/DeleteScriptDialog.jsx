@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../ui/dialog";
+import { useI18n } from "../../../contexts/I18nContext";
 
 function buildPath(item) {
     if (!item) return "/";
@@ -17,6 +18,7 @@ export function DeleteScriptDialog({
     deleting,
     onConfirm
 }) {
+    const { t } = useI18n();
     const childCount = useMemo(() => {
         if (!item || item.type !== "folder") return 0;
         const prefix = buildPath(item);
@@ -29,30 +31,30 @@ export function DeleteScriptDialog({
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-destructive">
                         <AlertTriangle className="w-4 h-4" />
-                        刪除{item?.type === "folder" ? "資料夾" : "文件"}
+                        {t("deleteDialog.title").replace("{type}", item?.type === "folder" ? t("writeTab.folder") : t("writeTab.file"))}
                     </DialogTitle>
                 </DialogHeader>
                 <div className="space-y-2 text-sm">
                     <p>
-                        你即將刪除：<span className="font-semibold">{item?.title || "-"}</span>
+                        {t("deleteDialog.deleting").replace("{name}", item?.title || "-")}
                     </p>
-                    <p className="text-muted-foreground">路徑：{item ? buildPath(item) : "/"}</p>
+                    <p className="text-muted-foreground">{t("deleteDialog.path").replace("{path}", item ? buildPath(item) : "/")}</p>
                     {item?.type === "folder" && (
                         <p className="text-destructive">
-                            此操作會一併刪除子項目 {childCount} 筆，且無法復原。
+                            {t("deleteDialog.folderWarning").replace("{count}", String(childCount))}
                         </p>
                     )}
                     {item?.type !== "folder" && (
-                        <p className="text-destructive">此操作無法復原。</p>
+                        <p className="text-destructive">{t("deleteDialog.warning")}</p>
                     )}
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)} disabled={deleting}>
-                        取消
+                        {t("common.cancel")}
                     </Button>
                     <Button variant="destructive" onClick={onConfirm} disabled={deleting || !item}>
                         {deleting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                        確認刪除
+                        {t("deleteDialog.confirm")}
                     </Button>
                 </DialogFooter>
             </DialogContent>

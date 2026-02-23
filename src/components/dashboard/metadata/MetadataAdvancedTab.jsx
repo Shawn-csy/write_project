@@ -2,6 +2,7 @@ import React from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { Button } from "../../ui/button";
 import { Textarea } from "../../ui/textarea";
+import { useI18n } from "../../../contexts/I18nContext";
 
 export function MetadataAdvancedTab({
     markerThemeId, setMarkerThemeId,
@@ -13,13 +14,14 @@ export function MetadataAdvancedTab({
     jsonError,
     applyJson
 }) {
+    const { t } = useI18n();
     return (
         <div className="space-y-4 mt-0">
             <div className="grid gap-2">
-                <label className="text-sm font-medium">標記主題 (Marker Theme)</label>
+                <label className="text-sm font-medium">{t("metadataAdvanced.markerTheme")}</label>
                 <Select value={markerThemeId} onValueChange={setMarkerThemeId}>
                     <SelectTrigger>
-                        <SelectValue placeholder="選擇主題" />
+                        <SelectValue placeholder={t("metadataAdvanced.markerThemePlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
                         {markerThemes.map(t => (
@@ -28,7 +30,7 @@ export function MetadataAdvancedTab({
                     </SelectContent>
                 </Select>
                 <div className="text-xs text-muted-foreground">
-                    公開劇本將使用此主題來顯示自訂標記 (如 {`>>SE`})。
+                    {t("metadataAdvanced.markerThemeTip")}
                 </div>
                 
                 <div className="flex items-center space-x-2 pt-2">
@@ -40,14 +42,14 @@ export function MetadataAdvancedTab({
                         onChange={(e) => setShowMarkerLegend(e.target.checked)}
                     />
                     <label htmlFor="showLegend" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 select-none cursor-pointer">
-                        在公開頁面顯示標記說明表 (Legend)
+                        {t("metadataAdvanced.showLegend")}
                     </label>
                 </div>
             </div>
 
             {/* Content Protection */}
             <div className="pt-4 border-t">
-                <label className="text-sm font-medium">內容保護</label>
+                <label className="text-sm font-medium">{t("metadataAdvanced.contentProtection")}</label>
                 <div className="flex items-center space-x-2 pt-2">
                     <input 
                         type="checkbox" 
@@ -57,19 +59,19 @@ export function MetadataAdvancedTab({
                         onChange={(e) => setDisableCopy(e.target.checked)}
                     />
                     <label htmlFor="disableCopy" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 select-none cursor-pointer">
-                        禁止複製內容
+                        {t("metadataAdvanced.disableCopy")}
                     </label>
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
-                    開啟後，公開閱讀頁面將禁止使用者選取或複製文字內容。
+                    {t("metadataAdvanced.disableCopyTip")}
                 </div>
             </div>
 
             <div className="pt-4 border-t">
                 <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium" htmlFor="metadata-json-text">JSON 模式</label>
+                    <label className="text-sm font-medium" htmlFor="metadata-json-text">{t("metadataAdvanced.jsonMode")}</label>
                     <Button type="button" variant="outline" size="sm" onClick={() => setJsonMode(!jsonMode)}>
-                        {jsonMode ? "關閉 JSON" : "開啟 JSON"}
+                        {jsonMode ? t("metadataAdvanced.jsonClose") : t("metadataAdvanced.jsonOpen")}
                     </Button>
                 </div>
                 {jsonMode && (
@@ -83,7 +85,7 @@ export function MetadataAdvancedTab({
                             className="font-mono text-xs h-64"
                         />
                         {jsonError && <p className="text-xs text-destructive">{jsonError}</p>}
-                        <Button type="button" size="sm" onClick={applyJson}>应用 JSON</Button>
+                        <Button type="button" size="sm" onClick={applyJson}>{t("metadataAdvanced.jsonApply")}</Button>
                     </div>
                 )}
             </div>

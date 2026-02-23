@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { buildAccentPalette } from '../../constants/accent';
 import { parseScreenplay } from '../../lib/screenplayAST';
 import { ScriptRenderer } from './ScriptRenderer';
+import { useI18n } from '../../contexts/I18nContext';
 
 // 1. Add prop
 function ScriptViewer({
@@ -34,6 +35,7 @@ function ScriptViewer({
   lineHeight = 1.4,
   showLineUnderline = false,
 }) {
+  const { t } = useI18n();
   const colorCache = useRef(new Map());
 
   // Mode check
@@ -51,7 +53,7 @@ function ScriptViewer({
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
 
-  // 簡易 inline 樣式處理（粗體/斜體/底線）
+  // Basic inline formatting (bold/italic/underline)
   const formatInline = (str = '') => {
     let html = escapeHtml(str);
     html = html.replace(/\*\*(.+?)\*\*/g, '<span class="bold">$1</span>');
@@ -72,7 +74,7 @@ function ScriptViewer({
     }).join('');
   };
 
-  // 標題頁解析
+  // Title page parsing
   const titlePage = useMemo(() => {
     if (!titleEntries || !titleEntries.length) return { html: '', title: '', has: false };
 
@@ -100,10 +102,10 @@ function ScriptViewer({
       'synopsis',
       'logline',
       'description',
-      '摘要',
-      '簡介',
-      '簡述',
-      '說明',
+      t("scriptViewer.summaryZh1"),
+      t("scriptViewer.summaryZh2"),
+      t("scriptViewer.summaryZh3"),
+      t("scriptViewer.summaryZh4"),
     ];
     const match = titleEntries.find((e) => {
       const key = e.key.toLowerCase();
@@ -113,9 +115,9 @@ function ScriptViewer({
       return match.values.join(' ');
     }
     return '';
-  }, [titleEntries]);
+  }, [titleEntries, t]);
 
-  // 提取角色列表（純 Marker 模式：從 layer 節點的特定類型提取）
+  // Extract characters from speech/character nodes
   useEffect(() => {
     if (!ast) {
       onCharacters?.([]);
@@ -123,7 +125,7 @@ function ScriptViewer({
     }
     const chars = new Set();
     ast.children.forEach(node => {
-        // 支援舊格式 (speech) 和純 Marker 格式 (character layer)
+        // Support legacy speech format and marker-based character layer
         if (node.type === 'speech' && node.character) {
             chars.add(node.character.trim().toUpperCase());
         } else if (node.type === 'layer' && node.layerType === 'character' && node.text) {
@@ -133,7 +135,7 @@ function ScriptViewer({
     onCharacters?.(Array.from(chars).sort());
   }, [ast, onCharacters]);
 
-  // 回傳標題頁 HTML 給父層顯示
+  // Return title page HTML to parent
   useEffect(() => {
     const html = titlePage.has ? titlePage.html : '';
     const hasTitle = titlePage.has;
@@ -162,13 +164,13 @@ function ScriptViewer({
     onScenes(sceneList);
   }, [sceneList, onScenes]);
 
-  // 預先計算好該主題色對應的調色盤
+  // Build accent palette once per theme color
   const themePalette = useMemo(() => {
-    // 預設傳入 accentColor (字串 "H S L")，若無則用 emrald 預設值
+    // Use provided accentColor ("H S L") or fallback to emerald default
     return buildAccentPalette(accentColor || '160 84% 39%');
   }, [accentColor]);
 
-  // 依角色過濾內容 (Used for onProcessedHtml for Print/PDF)
+  // Render filtered HTML for processed output / print
   const filteredHtml = useMemo(() => {
     if (!onProcessedHtml || !ast) return '';
     return renderToStaticMarkup(

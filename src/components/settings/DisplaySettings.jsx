@@ -1,8 +1,9 @@
 import React from "react";
-import { Type, LayoutList, Eye, Highlighter, FileText, Rabbit, Ruler } from "lucide-react";
+import { LayoutList, Ruler } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { useSettings } from "../../contexts/SettingsContext";
 import { cn } from "../../lib/utils";
+import { useI18n } from "../../contexts/I18nContext";
 
 const SettingRow = ({ icon: Icon, title, description, children }) => (
   <div className="flex items-center justify-between gap-4 py-2">
@@ -43,6 +44,7 @@ const ToggleGroup = ({ options, value, onChange }) => (
 );
 
 export function DisplaySettings({ sectionRef }) {
+  const { t } = useI18n();
   const {
     // focusEffect, focusContentMode removed
     // highlightCharacters, highlightSfx removed
@@ -58,8 +60,8 @@ export function DisplaySettings({ sectionRef }) {
                 <LayoutList className="w-4 h-4" />
              </div>
              <div>
-               <CardTitle className="text-base">閱讀體驗</CardTitle>
-               <CardDescription className="text-xs mt-0.5">自訂列表顯示與順讀模式</CardDescription>
+               <CardTitle className="text-base">{t("displaySettings.title")}</CardTitle>
+               <CardDescription className="text-xs mt-0.5">{t("displaySettings.subtitle")}</CardDescription>
              </div>
           </div>
         </CardHeader>
@@ -72,15 +74,15 @@ export function DisplaySettings({ sectionRef }) {
 
           <SettingRow 
              icon={Ruler} 
-             title="行底線" 
-             description="顯示每一行的閱讀輔助底線"
+             title={t("displaySettings.lineUnderlineTitle")}
+             description={t("displaySettings.lineUnderlineDesc")}
           >
              <ToggleGroup 
                 value={showLineUnderline} 
                 onChange={(v) => setShowLineUnderline(v)}
                 options={[
-                  { label: "開啟", value: true },
-                  { label: "關閉", value: false }
+                  { label: t("common.enabled"), value: true },
+                  { label: t("common.disabled"), value: false }
                 ]}
              />
           </SettingRow>

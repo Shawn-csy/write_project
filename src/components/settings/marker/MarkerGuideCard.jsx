@@ -2,24 +2,26 @@ import React from "react";
 import { Copy } from "lucide-react";
 import { cn } from "../../../lib/utils";
 import { Button } from "../../ui/button";
+import { useI18n } from "../../../contexts/I18nContext";
 
 export function MarkerGuideCard({ config, onCopy, minimal = false }) {
+    const { t } = useI18n();
     // Helper property compatibility
     const isBlock = config.type === 'block' || config.isBlock;
-    const displayName = config.label || "未命名標記";
+    const displayName = config.label || t("markerGuideCard.unnamedMarker");
 
     let syntaxDisplay = "";
     let exampleText = "";
 
     if (config.matchMode === "prefix") {
-        syntaxDisplay = `${config.start} 內容`;
-        exampleText = `${config.start} 範例文字`;
+        syntaxDisplay = `${config.start} ${t("markerGuideCard.content")}`;
+        exampleText = `${config.start} ${t("markerGuideCard.exampleText")}`;
     } else if (config.matchMode === "enclosure" || config.matchMode === "range") {
-        syntaxDisplay = `${config.start}內容${config.end}`;
-        exampleText = `${config.start}範例文字${config.end}`;
+        syntaxDisplay = `${config.start}${t("markerGuideCard.content")}${config.end}`;
+        exampleText = `${config.start}${t("markerGuideCard.exampleText")}${config.end}`;
     } else if (config.matchMode === "regex") {
         syntaxDisplay = `Regex: ${config.regex}`;
-        exampleText = "(符合規則的文字)";
+        exampleText = t("markerGuideCard.regexMatchedText");
     }
 
     const handleCopy = (e) => {
@@ -39,7 +41,7 @@ export function MarkerGuideCard({ config, onCopy, minimal = false }) {
                         size="icon" 
                         className="h-5 w-5 text-muted-foreground hover:text-foreground"
                         onClick={handleCopy}
-                        title="複製範例"
+                        title={t("markerGuideCard.copyExample")}
                     >
                         <Copy className="w-3 h-3" />
                     </Button>
@@ -55,7 +57,7 @@ export function MarkerGuideCard({ config, onCopy, minimal = false }) {
                         ? "bg-blue-500/5 text-blue-600 border-blue-200/50" 
                         : "bg-green-500/5 text-green-600 border-green-200/50"
                 )}>
-                    {isBlock ? '段落' : '行內'}
+                    {isBlock ? t("markerGuideCard.blockType") : t("markerGuideCard.inlineType")}
                 </span>
               </span>
               <code className="text-[10px] bg-muted/80 px-1 py-0.5 rounded-sm font-mono text-muted-foreground/80">
@@ -86,12 +88,12 @@ export function MarkerGuideCard({ config, onCopy, minimal = false }) {
                         )
                       : displayName}
                   </div>
-                  <div className="opacity-90 leading-tight text-[11px]">{displayName} 範例段落...</div>
+                  <div className="opacity-90 leading-tight text-[11px]">{displayName} {t("markerGuideCard.exampleParagraph")}</div>
                 </div>
               ) : (
                 // Inline Preview
                 <div className="leading-tight text-[11px]">
-                  這是一個
+                  {t("markerGuideCard.inlinePrefix")}
                   <span
                     style={{
                       ...config.style,
@@ -102,11 +104,11 @@ export function MarkerGuideCard({ config, onCopy, minimal = false }) {
                     {config.renderer?.template
                       ? config.renderer.template.replace(
                           /\{\{content\}\}/g,
-                          `${displayName}範例`
+                          `${displayName}${t("markerGuideCard.exampleSuffix")}`
                         )
-                      : `${displayName}範例`}
+                      : `${displayName}${t("markerGuideCard.exampleSuffix")}`}
                   </span>
-                  的效果。
+                  {t("markerGuideCard.inlineSuffix")}
                 </div>
               )}
             </div>
