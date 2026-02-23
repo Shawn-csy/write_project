@@ -7,8 +7,10 @@ import { ScriptGalleryCard } from "../components/gallery/ScriptGalleryCard";
 import { getPublicPersona, getPublicScripts } from "../lib/db";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { getMorandiTagStyle } from "../lib/tagColors";
+import { useI18n } from "../contexts/I18nContext";
 
 export default function AuthorProfilePage() {
+  const { t } = useI18n();
   const { id } = useParams();
   const navigate = useNavigate();
   const [author, setAuthor] = useState(null);
@@ -56,17 +58,17 @@ export default function AuthorProfilePage() {
   };
 
   if (isLoading) {
-      return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Loading Profile...</div>;
+      return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">{t("authorPage.loading")}</div>;
   }
 
-  if (!author) return <div className="min-h-screen flex items-center justify-center">Author not found</div>;
+  if (!author) return <div className="min-h-screen flex items-center justify-center">{t("authorPage.notFound")}</div>;
 
   const canonicalUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}/author/${author.id || id}`
       : `/author/${author.id || id}`;
-  const pageTitle = `${author.displayName || "作者"}｜Screenplay Reader`;
-  const pageDescription = (author.bio || `${author.displayName || "作者"} 的公開作品與個人資訊`).slice(0, 200);
+  const pageTitle = `${author.displayName || t("authorPage.fallbackAuthor")}｜${t("authorPage.siteName")}`;
+  const pageDescription = (author.bio || t("authorPage.descriptionFallback").replace("{name}", author.displayName || t("authorPage.fallbackAuthor"))).slice(0, 200);
   const primaryImage = author.avatar || author.bannerUrl || "";
   const sameAs = [
     ...(author.website ? [author.website] : []),
@@ -75,7 +77,7 @@ export default function AuthorProfilePage() {
   const personSchema = {
     "@context": "https://schema.org",
     "@type": "Person",
-    name: author.displayName || "Unknown",
+    name: author.displayName || t("authorPage.unknown"),
     url: canonicalUrl,
     description: author.bio || undefined,
     image: primaryImage || undefined,
@@ -94,7 +96,7 @@ export default function AuthorProfilePage() {
         <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={pageDescription} />
         <meta property="og:url" content={canonicalUrl} />
-        <meta property="og:site_name" content="Screenplay Reader" />
+        <meta property="og:site_name" content={t("authorPage.siteName")} />
         {primaryImage && <meta property="og:image" content={primaryImage} />}
         <meta name="twitter:card" content={primaryImage ? "summary_large_image" : "summary"} />
         <meta name="twitter:title" content={pageTitle} />
@@ -106,9 +108,9 @@ export default function AuthorProfilePage() {
         showBack
         onBack={() => navigate(-1)}
         tabs={[
-          { key: "scripts", label: "作品" },
-          { key: "authors", label: "作者" },
-          { key: "orgs", label: "組織" },
+          { key: "scripts", label: t("publicTopbar.scripts") },
+          { key: "authors", label: t("publicTopbar.authors") },
+          { key: "orgs", label: t("publicTopbar.orgs") },
         ]}
         activeTab="authors"
         onTabChange={(key) => {
@@ -176,12 +178,12 @@ export default function AuthorProfilePage() {
                     {author.website && (
                         <a href={author.website} target="_blank" rel="noreferrer" className="flex items-center gap-1 hover:text-primary transition-colors">
                             <LinkIcon className="w-4 h-4" />
-                            Website
+                            {t("authorPage.website")}
                         </a>
                     )}
                     {(author.links || []).filter(l => l && l.url).map((link, idx) => {
                         const Icon = getLinkIcon(link.url || "");
-                        const label = link.label || link.url || "Link";
+                        const label = link.label || link.url || t("authorPage.link");
                         return (
                             <a
                                 key={`author-link-${idx}`}
@@ -201,7 +203,7 @@ export default function AuthorProfilePage() {
 
         {/* Works Section */}
         <div className="space-y-6">
-            <h2 className="text-2xl font-bold border-b pb-2">公開作品</h2>
+            <h2 className="text-2xl font-bold border-b pb-2">{t("authorPage.publicWorks")}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                 {scripts.map(script => (
                     <ScriptGalleryCard 

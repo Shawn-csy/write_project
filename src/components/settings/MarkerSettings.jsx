@@ -7,21 +7,26 @@ import { MarkerThemeHeader } from "./marker/MarkerThemeHeader";
 import { MarkerWizard } from "./marker/MarkerWizard";
 import { MarkerSettingsHeader } from "./marker/layout/MarkerSettingsHeader";
 import { MarkerSettingsModeContent } from "./marker/layout/MarkerSettingsModeContent";
+import { useI18n } from "../../contexts/I18nContext";
 
-function formatSaveStatus({ isSaving, parseError, isDirty, lastSavedAt }) {
-  if (isSaving) return "儲存中...";
-  if (parseError) return "JSON 格式錯誤";
-  if (isDirty) return "尚未儲存";
+function formatSaveStatus({ isSaving, parseError, isDirty, lastSavedAt, t }) {
+  if (isSaving) return t("markerSettings.saving");
+  if (parseError) return t("markerSettings.jsonError");
+  if (isDirty) return t("markerSettings.unsaved");
   if (lastSavedAt) {
-    return `已儲存 ${lastSavedAt.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    })}`;
+    return t("markerSettings.savedAt").replace(
+      "{time}",
+      lastSavedAt.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    );
   }
-  return "已同步";
+  return t("markerSettings.synced");
 }
 
 export function MarkerSettings({ sectionRef }) {
+  const { t } = useI18n();
   const {
     markerConfigs,
     setMarkerConfigs,
@@ -74,7 +79,7 @@ export function MarkerSettings({ sectionRef }) {
     () => localConfigs.findIndex((c) => (c.id || c._tempId) === expandedId),
     [localConfigs, expandedId]
   );
-  const statusText = formatSaveStatus({ isSaving, parseError, isDirty, lastSavedAt });
+  const statusText = formatSaveStatus({ isSaving, parseError, isDirty, lastSavedAt, t });
 
   return (
     <Card

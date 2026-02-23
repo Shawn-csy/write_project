@@ -1,6 +1,7 @@
 import React, { forwardRef } from "react";
 import ScriptSurface from "./ScriptSurface";
 import { useScriptViewerDefaults } from "../../hooks/useScriptViewerDefaults";
+import { useI18n } from "../../contexts/I18nContext";
 
 export const PreviewPanel = forwardRef(function PreviewPanel({
   show,
@@ -29,6 +30,7 @@ export const PreviewPanel = forwardRef(function PreviewPanel({
   outerClassName,
   scrollClassName
 }, ref) {
+  const { t } = useI18n();
   if (!show && !readOnly) return null;
 
   const viewerDefaults = useScriptViewerDefaults({
@@ -57,8 +59,8 @@ export const PreviewPanel = forwardRef(function PreviewPanel({
       text={content}
       emptyMessage={
         readOnly
-          ? "此劇本目前是空白，點兩下內容區即可進入編輯模式（手機支援雙擊觸控）。"
-          : "此劇本目前是空白，直接開始輸入即可。"
+          ? t("previewPanel.emptyReadOnly")
+          : t("previewPanel.emptyEditable")
       }
       viewerProps={{
         type,

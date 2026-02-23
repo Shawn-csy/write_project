@@ -20,8 +20,10 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
+import { useI18n } from "../../contexts/I18nContext";
 
 export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
+    const { t } = useI18n();
     // Hooks
     const manager = useWriteTab(refreshTrigger, {
         onScriptCreated: onSelectScript
@@ -55,7 +57,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
              downloadBlob(blob, "scripts_backup.zip");
          } catch(e) {
              console.error(e);
-             alert("匯出失敗");
+             alert(t("writeTab.exportFailed"));
          }
     };
 
@@ -77,10 +79,10 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
             // 4. Return new script
             return await getScript(id);
         } catch (err) {
-            console.error("匯入失敗:", err);
+            console.error(t("writeTab.importFailedLog"), err);
             throw err;
         }
-    }, [manager]);
+    }, [manager, t]);
 
     const handleOpenScript = useCallback((script) => {
         if (typeof window !== "undefined") {
@@ -227,15 +229,15 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                     onScroll={handleListScroll}
                 >
                     <div className="px-4 py-2 border-b bg-muted/20 flex flex-wrap items-center gap-2 text-xs">
-                        <div className="flex items-center gap-1" title="搜尋名稱或路徑">
+                        <div className="flex items-center gap-1" title={t("writeTab.searchTitle")}>
                             <Search className="w-3.5 h-3.5 text-muted-foreground" />
                             <input
                                 type="text"
                                 className="h-7 w-48 rounded-md border border-input bg-background px-2 text-foreground"
-                                placeholder="名稱或路徑..."
+                                placeholder={t("writeTab.searchPlaceholder")}
                                 value={filterQuery}
                                 onChange={(e) => setFilterQuery(e.target.value)}
-                                aria-label="搜尋名稱或路徑"
+                                aria-label={t("writeTab.searchAria")}
                             />
                         </div>
                         <DropdownMenu>
@@ -244,52 +246,52 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                                     size="sm"
                                     variant="ghost"
                                     className="h-7 px-2"
-                                    title="排序設定"
-                                    aria-label="排序設定"
+                                    title={t("writeTab.sortSettings")}
+                                    aria-label={t("writeTab.sortSettings")}
                                 >
                                     <ArrowUpDown className={`w-3.5 h-3.5 ${sortKey !== "custom" ? "text-foreground" : "text-muted-foreground"}`} />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="w-52">
-                                <DropdownMenuLabel>排序欄位</DropdownMenuLabel>
+                                <DropdownMenuLabel>{t("writeTab.sortField")}</DropdownMenuLabel>
                                 <DropdownMenuRadioGroup value={sortKey} onValueChange={(val) => setSortKey(val)}>
-                                    <DropdownMenuRadioItem value="custom">自訂排序</DropdownMenuRadioItem>
-                                    <DropdownMenuRadioItem value="lastModified">修改時間</DropdownMenuRadioItem>
-                                    <DropdownMenuRadioItem value="title">名稱</DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="custom">{t("writeTab.sortCustom")}</DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="lastModified">{t("writeTab.sortLastModified")}</DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="title">{t("writeTab.sortName")}</DropdownMenuRadioItem>
                                 </DropdownMenuRadioGroup>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuLabel>排序方向</DropdownMenuLabel>
+                                <DropdownMenuLabel>{t("writeTab.sortDirection")}</DropdownMenuLabel>
                                 <DropdownMenuRadioGroup
                                     value={sortDir}
                                     onValueChange={(val) => setSortDir(val)}
                                 >
-                                    <DropdownMenuRadioItem value="desc">由新到舊 / Z-A</DropdownMenuRadioItem>
-                                    <DropdownMenuRadioItem value="asc">由舊到新 / A-Z</DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="desc">{t("writeTab.sortDesc")}</DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="asc">{t("writeTab.sortAsc")}</DropdownMenuRadioItem>
                                 </DropdownMenuRadioGroup>
                             </DropdownMenuContent>
                         </DropdownMenu>
-                        <div className="flex items-center gap-1" title="篩選類型">
+                        <div className="flex items-center gap-1" title={t("writeTab.filterType")}>
                             <FileStack className="w-3.5 h-3.5 text-muted-foreground" />
                             <select
                                 className="h-7 rounded-md border border-input bg-background px-2 text-foreground"
                                 value={filterType}
                                 onChange={(e) => setFilterType(e.target.value)}
-                                aria-label="篩選類型"
+                                aria-label={t("writeTab.filterType")}
                             >
-                                <option value="all">全部</option>
-                                <option value="script">文件</option>
-                                <option value="folder">資料夾</option>
+                                <option value="all">{t("writeTab.all")}</option>
+                                <option value="script">{t("writeTab.file")}</option>
+                                <option value="folder">{t("writeTab.folder")}</option>
                             </select>
                         </div>
-                        <div className="flex items-center gap-1" title="篩選狀態">
+                        <div className="flex items-center gap-1" title={t("writeTab.filterStatus")}>
                             <Globe className="w-3.5 h-3.5 text-muted-foreground" />
                             <select
                                 className="h-7 rounded-md border border-input bg-background px-2 text-foreground"
                                 value={filterStatus}
                                 onChange={(e) => setFilterStatus(e.target.value)}
-                                aria-label="篩選狀態"
+                                aria-label={t("writeTab.filterStatus")}
                             >
-                                <option value="all">全部</option>
+                                <option value="all">{t("writeTab.all")}</option>
                                 <option value="public">Public</option>
                                 <option value="private">Private</option>
                             </select>
@@ -306,8 +308,8 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                                 setSortKey("custom");
                                 setSortDir("desc");
                             }}
-                            title="清除篩選與排序"
-                            aria-label="清除篩選與排序"
+                            title={t("writeTab.clearFiltersAndSorting")}
+                            aria-label={t("writeTab.clearFiltersAndSorting")}
                         >
                             <RotateCcw className="w-3.5 h-3.5" />
                         </Button>
@@ -352,9 +354,9 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                 </div>
 
                 <aside className="hidden xl:flex xl:w-80 border rounded-lg bg-card p-4 flex-col gap-3">
-                    <h3 className="text-sm font-semibold">檢視資訊</h3>
+                    <h3 className="text-sm font-semibold">{t("writeTab.previewInfo")}</h3>
                     {!previewItem ? (
-                        <p className="text-sm text-muted-foreground">單擊列表項目即可查看文件/資料夾詳情；文件可雙擊直接開啟。</p>
+                        <p className="text-sm text-muted-foreground">{t("writeTab.previewHint")}</p>
                     ) : (
                         <>
                             <div className="flex items-center gap-2">
@@ -365,15 +367,15 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                                 )}
                                 <p className="font-medium truncate">{previewItem.title}</p>
                             </div>
-                            <p className="text-xs text-muted-foreground break-all">路徑：{previewPath}</p>
-                            <p className="text-xs text-muted-foreground">類型：{previewItem.type === "folder" ? "資料夾" : "文件"}</p>
+                            <p className="text-xs text-muted-foreground break-all">{t("writeTab.pathLabel").replace("{path}", previewPath)}</p>
+                            <p className="text-xs text-muted-foreground">{t("writeTab.typeLabel").replace("{type}", previewItem.type === "folder" ? t("writeTab.folder") : t("writeTab.file"))}</p>
                             {previewItem.type !== "folder" && (
                                 <>
                                     <p className="text-xs text-muted-foreground">
-                                        狀態：{previewItem.isPublic ? "Public" : "Private"}
+                                        {t("writeTab.statusLabel").replace("{status}", previewItem.isPublic ? "Public" : "Private")}
                                     </p>
                                     <p className="text-xs text-muted-foreground">
-                                        字數（約）：{previewItem.contentLength ? Math.ceil(previewItem.contentLength / 2) : 0}
+                                        {t("writeTab.charCountApprox").replace("{count}", String(previewItem.contentLength ? Math.ceil(previewItem.contentLength / 2) : 0))}
                                     </p>
                                 </>
                             )}
@@ -381,12 +383,12 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                                 <div className="pt-2 flex flex-col gap-2">
                                     {previewItem.type !== "folder" && (
                                         <>
-                                            <Button size="sm" onClick={() => handleOpenScript(previewItem)}>開啟文件</Button>
-                                            <Button size="sm" variant="outline" onClick={() => manager.openMoveDialog(previewItem)}>移動到...</Button>
+                                            <Button size="sm" onClick={() => handleOpenScript(previewItem)}>{t("writeTab.openFile")}</Button>
+                                            <Button size="sm" variant="outline" onClick={() => manager.openMoveDialog(previewItem)}>{t("writeTab.moveTo")}</Button>
                                         </>
                                     )}
-                                    <Button size="sm" variant="outline" onClick={() => manager.openRenameDialog(previewItem)}>重新命名</Button>
-                                    <Button size="sm" variant="destructive" onClick={() => manager.openDeleteDialog(previewItem)}>刪除</Button>
+                                    <Button size="sm" variant="outline" onClick={() => manager.openRenameDialog(previewItem)}>{t("writeTab.rename")}</Button>
+                                    <Button size="sm" variant="destructive" onClick={() => manager.openDeleteDialog(previewItem)}>{t("common.remove")}</Button>
                                 </div>
                             )}
                         </>
@@ -395,7 +397,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
             </div>
             <div className="pt-3 flex items-center justify-between text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
-                    <span>每頁</span>
+                    <span>{t("writeTab.perPage")}</span>
                     <select
                         className="h-8 rounded-md border border-input bg-background px-2 text-foreground"
                         value={pageSize}
@@ -405,7 +407,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                         <option value={50}>50</option>
                         <option value={100}>100</option>
                     </select>
-                    <span>已載入 {pagedItems.length} / {totalItems}</span>
+                    <span>{t("writeTab.loadedCount").replace("{loaded}", String(pagedItems.length)).replace("{total}", String(totalItems))}</span>
                 </div>
                 {hasMoreItems ? (
                     <Button
@@ -413,10 +415,10 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                         size="sm"
                         onClick={loadMore}
                     >
-                        載入更多
+                        {t("writeTab.loadMore")}
                     </Button>
                 ) : (
-                    <span>已全部載入</span>
+                    <span>{t("writeTab.loadedAll")}</span>
                 )}
             </div>
 

@@ -8,6 +8,7 @@ import { deriveCcLicenseTags } from "../lib/licenseRights";
 import ScriptViewer from "../components/renderer/ScriptViewer";
 import { useScriptViewerDefaults } from "../hooks/useScriptViewerDefaults";
 import { defaultMarkerConfigs } from "../constants/defaultMarkers";
+import { useI18n } from "../contexts/I18nContext";
 
 // Helper for robust list parsing (handles double-encoded JSON strings)
 const ensureList = (val) => {
@@ -45,6 +46,7 @@ const ensureTagList = (val) => {
 
 
 export default function PublicReaderPage({ scriptManager, navProps }) {
+  const { t } = useI18n();
   const { id } = useParams();
   const navigate = useNavigate();
   const { 
@@ -268,7 +270,7 @@ They discover a glowing artifact.
       const description =
           fullScriptData?.synopsis ||
           fullScriptData?.description ||
-          "公開劇本閱讀頁";
+          t("publicReaderPage.descriptionFallback");
       const dateRaw = fullScriptData?.updatedAt || fullScriptData?.lastModified || fullScriptData?.date || null;
 
       let dateModified;

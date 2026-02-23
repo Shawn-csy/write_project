@@ -1,12 +1,14 @@
 import React, { useMemo } from "react";
+import { useI18n } from "../../../../contexts/I18nContext";
 
 /**
- * 即時預覽 Marker 渲染效果
+ * Live preview for marker rendering output.
  */
 export function MarkerPreview({ config }) {
-    // 產生範例文字
+    const { t } = useI18n();
+    // Build sample content
     const example = useMemo(() => {
-        const sampleContent = config.label || "範例內容";
+        const sampleContent = config.label || t("markerPreview.sampleContent");
         
         if (config.matchMode === 'range') {
             return {
@@ -40,9 +42,9 @@ export function MarkerPreview({ config }) {
                     ? `${config.start || '('}${sampleContent}${config.end || ')'}`
                     : sampleContent)
         };
-    }, [config]);
+    }, [config, t]);
 
-    // 計算樣式
+    // Compute preview style
     const previewStyle = useMemo(() => ({
         color: config.style?.color || 'inherit',
         fontWeight: config.style?.fontWeight || 'normal',
@@ -56,7 +58,7 @@ export function MarkerPreview({ config }) {
 
   return (
     <div className="rounded-lg border border-border/40 bg-background/60 p-3 space-y-2">
-      <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">即時預覽</div>
+      <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">{t("markerPreview.livePreview")}</div>
       <div className="text-sm rounded border border-border/30 bg-background px-2 py-1.5">
         <span style={previewStyle}>{example.rendered}</span>
       </div>

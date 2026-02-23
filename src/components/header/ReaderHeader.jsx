@@ -9,6 +9,7 @@ import { useSettings } from "../../contexts/SettingsContext";
 import { useEditableTitle } from "../../hooks/useEditableTitle";
 import EditableTitle from "./EditableTitle";
 import HeaderTitleBlock from "./HeaderTitleBlock";
+import { useI18n } from "../../contexts/I18nContext";
 
 function ReaderHeader({
   hasTitle,
@@ -42,6 +43,7 @@ function ReaderHeader({
   hiddenMarkerIds: hiddenMarkerIdsProp,
   onToggleMarker: onToggleMarkerProp
 }) {
+  const { t } = useI18n();
   const { hiddenMarkerIds: ctxHiddenMarkerIds, toggleMarkerVisibility } = useSettings();
   const effectiveHiddenMarkerIds = hiddenMarkerIdsProp ?? ctxHiddenMarkerIds ?? [];
   const effectiveToggleMarker = onToggleMarkerProp ?? toggleMarkerVisibility;
@@ -93,7 +95,7 @@ function ReaderHeader({
               }}
               backButtonClassName="h-9 w-9 inline-flex items-center justify-center -ml-1 text-foreground/80 hover:text-foreground transition-colors shrink-0"
               backIconClassName="h-5 w-5"
-              backAriaLabel="返回"
+              backAriaLabel={t("common.back")}
               onOpenSidebar={() => setSidebarOpen(true)}
               sidebarButtonClassName={`h-9 w-9 inline-flex items-center justify-center text-foreground/80 hover:text-foreground transition-colors shrink-0 ${
                 isSidebarOpen ? "lg:hidden" : ""
@@ -129,14 +131,14 @@ function ReaderHeader({
                         className={`text-left flex-1 min-w-0 ${
                           hasTitle ? "cursor-pointer" : "cursor-default"
                         }`}
-                        title={onTitleChange ? "雙擊重新命名" : ""}
+                        title={onTitleChange ? t("editorHeader.doubleClickRename") : ""}
                       >
                         <h2 className="text-base sm:text-2xl font-semibold truncate flex-1 leading-tight min-w-0">
                           {titleName ||
                             (typeof activeFile === "object"
                               ? activeFile?.name
                               : activeFile) ||
-                            "選擇一個劇本"}
+                            t("app.selectScript")}
                         </h2>
                       </button>
                     )}
@@ -153,7 +155,7 @@ function ReaderHeader({
                   {totalLines > 0 && (
                     <>
                       <span className="opacity-50">·</span>
-                      <span className="whitespace-nowrap">{totalLines} 行</span>
+                      <span className="whitespace-nowrap">{t("readerHeader.linesCount").replace("{count}", String(totalLines))}</span>
                     </>
                   )}
                   <span className="opacity-50">·</span>
@@ -169,7 +171,7 @@ function ReaderHeader({
                   setAutoCollapse(false);
                   setCollapsed((v) => !v);
                 }}
-                aria-label={collapsed ? "顯示工具" : "隱藏工具"}
+                aria-label={collapsed ? t("readerHeader.showTools") : t("readerHeader.hideTools")}
                 className="lg:hidden h-9 w-9 inline-flex items-center justify-center rounded-full border bg-muted/30 hover:bg-muted/50 text-foreground/80 transition-colors shrink-0 justify-self-end ml-1"
               >
                 <SlidersHorizontal className="h-4 w-4" />

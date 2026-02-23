@@ -43,8 +43,13 @@ export function useAppNavigation() {
     setSettingsOpen(false);
   };
 
-  const openSettings = () => {
-    setSettingsOpen((prev) => !prev);
+  const openSettings = (tabKey) => {
+    if (tabKey) {
+      setSettingsTab(tabKey);
+      setSettingsOpen(true);
+    } else {
+      setSettingsOpen((prev) => !prev);
+    }
     setHomeOpen(false);
     setAboutOpen(false);
   };

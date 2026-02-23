@@ -11,6 +11,7 @@ import {
   exportScriptAsFountain,
   exportScriptAsXlsx,
 } from "../../lib/scriptExport";
+import { useI18n } from "../../contexts/I18nContext";
 
 export function PublicReaderLayout({
   script, // { content, title, ...meta }
@@ -25,6 +26,7 @@ export function PublicReaderLayout({
   hiddenMarkerIds = [],
   onToggleMarker
 }) {
+  const { t } = useI18n();
   const { 
     title, 
     author, 
@@ -90,35 +92,35 @@ export function PublicReaderLayout({
   const downloadOptions = [
     {
       id: "pdf",
-      label: "匯出 PDF",
+      label: t("publicReader.exportPdf"),
       icon: Printer,
       onClick: () => window.print(),
       disabled: !rawScript && !title,
     },
     {
       id: "fountain",
-      label: "下載 .fountain",
+      label: t("publicReader.downloadFountain"),
       icon: FileCode2,
       onClick: () => exportScriptAsFountain(title || "script", rawScript || ""),
       disabled: !rawScript,
     },
     {
       id: "docx",
-      label: "下載 Word (.doc)",
+      label: t("publicReader.downloadDoc"),
       icon: FileText,
       onClick: () => exportScriptAsDocx(title || "script", { text: rawScript || "", renderedHtml }),
       disabled: !rawScript,
     },
     {
       id: "xlsx",
-      label: "下載 Excel (.xlsx)",
+      label: t("publicReader.downloadXlsx"),
       icon: FileSpreadsheet,
       onClick: () => exportScriptAsXlsx(title || "script", { text: rawScript || "", renderedHtml }),
       disabled: !rawScript,
     },
     {
       id: "csv",
-      label: "下載 CSV",
+      label: t("publicReader.downloadCsv"),
       icon: FileSpreadsheet,
       onClick: () => exportScriptAsCsv(title || "script", { text: rawScript || "", renderedHtml }),
       disabled: !rawScript,
@@ -213,7 +215,7 @@ export function PublicReaderLayout({
                        <div className="w-full max-w-4xl mx-auto px-6 pb-12 flex flex-col items-center space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-100">
                             <div className="w-full max-w-2xl">
                                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3 opacity-80 pl-1 text-center">
-                                    標記說明 (Legend)
+                                    {t("publicReader.markerLegend")}
                                 </h4>
                                 <PublicMarkerLegend 
                                     markerConfigs={validMarkerConfigs} 

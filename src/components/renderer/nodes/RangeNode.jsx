@@ -51,7 +51,7 @@ export const RangeNode = ({ node, context, NodeRenderer }) => {
                 marginLeft: '4px'
             }}
         >
-            {/* 開始標記 (Header) */}
+            {/* 開始標記 */}
             {node.startNode && (() => {
                 // 如果是 pause 節點且 label 為空，不顯示
                 const isPauseStart = node.startNode.rangeRole === 'pause';
@@ -70,14 +70,14 @@ export const RangeNode = ({ node, context, NodeRenderer }) => {
                 );
             })()}
 
-            {/* 內容 (Body) */}
+            {/* 內容 */}
             <div className="range-content">
                 {node.children.map((child, i) => (
                     <NodeRenderer key={i} node={child} context={context} />
                 ))}
             </div>
 
-            {/* 結束標記 (Footer) */}
+            {/* 結束標記 */}
             {node.endNode && (() => {
                 // 如果是 pause 節點且 label 為空，不顯示
                 const isPauseEnd = node.endNode.rangeRole === 'pause';

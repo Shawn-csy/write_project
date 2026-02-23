@@ -5,8 +5,10 @@ import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Textarea } from "../../ui/textarea";
 import { X } from "lucide-react";
+import { useI18n } from "../../../contexts/I18nContext";
 
 export const SortableField = ({ field, index, onUpdate, onRemove, onFocus, onBlur, dragDisabled }) => {
+    const { t } = useI18n();
     const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } = useSortable({ id: field.id, disabled: dragDisabled });
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -30,13 +32,13 @@ export const SortableField = ({ field, index, onUpdate, onRemove, onFocus, onBlu
                      <input
                         id={`custom-divider-${field.id}`}
                         name={`customDivider-${field.id}`}
-                        aria-label="分隔線標題"
+                        aria-label={t("sortableField.dividerAria")}
                         className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest bg-transparent border-none text-center focus:outline-none focus:text-foreground w-20 hover:text-foreground transition-colors"
                         value={field.value}
                         onChange={(e) => onUpdate(index, "value", e.target.value)}
                         onPointerDown={(e) => e.stopPropagation()} 
                         onMouseDown={(e) => e.stopPropagation()} // Fix for DnD focus
-                        placeholder="SECTION" 
+                        placeholder={t("sortableField.sectionPlaceholder")}
                      />
                     <div className="h-px bg-border flex-1"></div>
                 </div>
@@ -61,7 +63,7 @@ export const SortableField = ({ field, index, onUpdate, onRemove, onFocus, onBlu
                 ref={setActivatorNodeRef}
                 {...listeners}
                 {...attributes}
-                aria-label="拖拉排序"
+                aria-label={t("sortableField.dragSortAria")}
             >
                 ≡
             </button>
@@ -69,26 +71,26 @@ export const SortableField = ({ field, index, onUpdate, onRemove, onFocus, onBlu
                 <Input
                     id={`custom-field-key-${field.id}`}
                     name={`customFieldKey-${field.id}`}
-                    aria-label="自訂欄位名稱"
+                    aria-label={t("sortableField.customFieldNameAria")}
                     value={field.key}
                     onChange={(e) => onUpdate(index, "key", e.target.value)}
                     onFocus={onFocus}
                     onBlur={onBlur}
                     onPointerDown={(e) => e.stopPropagation()}
-                    placeholder="鍵"
+                    placeholder={t("sortableField.keyPlaceholder")}
                 />
             </div>
             <div className="w-2/3">
                 <Textarea
                     id={`custom-field-value-${field.id}`}
                     name={`customFieldValue-${field.id}`}
-                    aria-label="自訂欄位內容"
+                    aria-label={t("sortableField.customFieldValueAria")}
                     value={field.value}
                     onChange={(e) => onUpdate(index, "value", e.target.value)}
                     onFocus={onFocus}
                     onBlur={onBlur}
                     onPointerDown={(e) => e.stopPropagation()}
-                    placeholder="值"
+                    placeholder={t("sortableField.valuePlaceholder")}
                 />
             </div>
             <Button

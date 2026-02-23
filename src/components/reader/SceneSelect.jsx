@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { useI18n } from "../../contexts/I18nContext";
 
 export default function SceneSelect({
   sceneList = [],
@@ -15,19 +16,22 @@ export default function SceneSelect({
   onSelectScene,
   triggerClassName,
   contentAlign = "start",
-  label = "場景",
-  placeholder = "選擇場景"
+  label = "",
+  placeholder = ""
 }) {
+  const { t } = useI18n();
+  const resolvedLabel = label || t("readerControls.scene");
+  const resolvedPlaceholder = placeholder || t("readerControls.scenePlaceholder");
   if (!sceneList || sceneList.length === 0) return null;
 
   return (
     <Select value={currentSceneId} onValueChange={onSelectScene}>
       <SelectTrigger className={triggerClassName}>
-        <SelectValue placeholder={placeholder} />
+        <SelectValue placeholder={resolvedPlaceholder} />
       </SelectTrigger>
       <SelectContent align={contentAlign} className="max-h-[300px]">
         <SelectGroup>
-          <SelectLabel>{label}</SelectLabel>
+          <SelectLabel>{resolvedLabel}</SelectLabel>
           {sceneList.map((scene) => (
             <SelectItem key={scene.id} value={scene.id} className="font-semibold">
               <div className="flex items-center gap-2">

@@ -11,9 +11,11 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { parseInline } from '@/lib/parsers/inlineParser';
 import { ReportGeneratorDialog } from './ReportGeneratorDialog';
 import { StatisticsSettingsDialog } from './StatisticsSettingsDialog';
+import { useI18n } from "@/contexts/I18nContext";
 
 export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }) {
   const { markerConfigs, statsConfig, setStatsConfig } = useSettings();
+  const { t } = useI18n();
   const stats = useScriptStats({ 
       scriptId, 
       rawScript, 
@@ -71,7 +73,9 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
       const totalMinutes = readingMinutes + (customSeconds / 60);
       const mins = Math.floor(totalMinutes);
       const secs = Math.round((totalMinutes - mins) * 60);
-      return `${mins} 分 ${secs} 秒`;
+      return t("statisticsPanel.timeMinutesSeconds")
+        .replace("{mins}", String(mins))
+        .replace("{secs}", String(secs));
     }
 
     let safeMinutes = Number(durationMinutes);
@@ -87,8 +91,10 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
     if (!Number.isFinite(safeMinutes)) return "--";
     const mins = Math.floor(safeMinutes);
     const secs = Math.round((safeMinutes - mins) * 60);
-    return `${mins} 分 ${secs} 秒`;
-  }, [counts?.dialogueChars, counts?.actionChars, stats?.customDurationSeconds, statsConfig?.wordCountDivisor, durationMinutes, stats?.estimates?.pure, stats?.estimates?.all]);
+    return t("statisticsPanel.timeMinutesSeconds")
+      .replace("{mins}", String(mins))
+      .replace("{secs}", String(secs));
+  }, [counts?.dialogueChars, counts?.actionChars, stats?.customDurationSeconds, statsConfig?.wordCountDivisor, durationMinutes, stats?.estimates?.pure, stats?.estimates?.all, t]);
 
   const markerEntries = useMemo(() => {
     // Transform customLayers (Object: { ID: [items...] }) to Array of structs
@@ -160,7 +166,7 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
     return (
       <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center h-full">
         <span className="loading loading-dots loading-lg"></span>
-        <span className="mt-2 text-xs">統計資料計算中...</span>
+        <span className="mt-2 text-xs">{t("statisticsPanel.calculating")}</span>
       </div>
     );
   }
@@ -171,7 +177,7 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <Card className="shadow-none border bg-muted/20">
                 <CardHeader className="p-3 pb-1">
-                    <CardTitle className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">預估時長</CardTitle>
+                    <CardTitle className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{t("statisticsPanel.estimatedDuration")}</CardTitle>
                 </CardHeader>
                 <CardContent className="p-3 pt-0">
                     <div className="text-2xl font-bold font-sans">{formattedDuration}</div>
@@ -179,7 +185,7 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
             </Card>
              <Card className="shadow-none border bg-muted/20">
                 <CardHeader className="p-3 pb-1">
-                    <CardTitle className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">總字數</CardTitle>
+                    <CardTitle className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{t("statisticsPanel.totalChars")}</CardTitle>
                 </CardHeader>
                 <CardContent className="p-3 pt-0">
                     <div className="text-2xl font-bold font-sans">
@@ -191,17 +197,17 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
         
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
              <div className="bg-muted/10 rounded-md p-2 text-center border">
-                <div className="text-[10px] text-muted-foreground uppercase">台詞行數</div>
+                <div className="text-[10px] text-muted-foreground uppercase">{t("statisticsPanel.dialogueLines")}</div>
                 <div className="text-lg font-semibold">{counts.dialogueLines}</div>
              </div>
              <div className="bg-muted/10 rounded-md p-2 text-center border">
-                <div className="text-[10px] text-muted-foreground uppercase">指令數</div>
+                <div className="text-[10px] text-muted-foreground uppercase">{t("statisticsPanel.cuesCount")}</div>
                 <div className="text-lg font-semibold">{counts.cues}</div>
              </div>
              {showPauses && (
                 <div className="bg-muted/10 rounded-md p-2 text-center border">
-                    <div className="text-[10px] text-muted-foreground uppercase">停頓秒數</div>
-                    <div className="text-lg font-semibold">{pauseSeconds}s</div>
+                    <div className="text-[10px] text-muted-foreground uppercase">{t("statisticsPanel.pauseSeconds")}</div>
+                    <div className="text-lg font-semibold">{`${pauseSeconds}${t("statisticsPanel.secondsSuffix")}`}</div>
                 </div>
              )}
         </div>
@@ -213,19 +219,19 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
                      onClick={() => setViewMode('dialogue')}
                      className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${viewMode === 'dialogue' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:bg-muted/40'}`}
                  >
-                     內容檢視
+                     {t("statisticsPanel.viewDialogue")}
                  </button>
                  <button 
                      onClick={() => setViewMode('characters')}
                      className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${viewMode === 'characters' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:bg-muted/40'}`}
                  >
-                     角色統計
+                     {t("statisticsPanel.viewCharacters")}
                  </button>
                  <button 
                      onClick={() => setViewMode('cues')}
                      className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${viewMode === 'cues' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:bg-muted/40'}`}
                  >
-                     指令分析
+                     {t("statisticsPanel.viewCues")}
                  </button>
             </div>
             <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground" onClick={() => setShowSettingsDialog(true)}>
@@ -239,12 +245,12 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
              {viewMode === 'dialogue' && (
                  <Card className="h-full border-0 shadow-none flex flex-col absolute inset-0">
                     <CardHeader className="px-0 py-2 shrink-0">
-                        <CardDescription>內容淨稿 (移除指令與標記)</CardDescription>
+                        <CardDescription>{t("statisticsPanel.dialogueDescription")}</CardDescription>
                     </CardHeader>
                     <CardContent className="px-0 flex-1 min-h-0 overflow-hidden relative">
                          <ScrollArea className="h-full w-full rounded-md border p-4">
                             {dialogueLines.length === 0 ? (
-                                <div className="text-muted-foreground text-sm text-center py-4">無台詞資料</div>
+                                <div className="text-muted-foreground text-sm text-center py-4">{t("statisticsPanel.noDialogueData")}</div>
                             ) : (
                                 <ul className="space-y-4 font-serif text-base leading-relaxed">
                                 {dialogueLines.map((line, i) => {
@@ -275,12 +281,12 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
              {viewMode === 'characters' && (
                  <Card className="h-full border-0 shadow-none flex flex-col absolute inset-0">
                      <CardHeader className="px-0 py-2 shrink-0">
-                         <CardDescription>角色台詞分佈</CardDescription>
+                         <CardDescription>{t("statisticsPanel.characterDistribution")}</CardDescription>
                      </CardHeader>
                      <CardContent className="px-0 flex-1 min-h-0 overflow-hidden relative">
                          <ScrollArea className="h-full w-full rounded-md border p-0">
                             {characterStats.length === 0 ? (
-                                <div className="p-4 text-center text-muted-foreground text-sm">無角色資料</div>
+                                <div className="p-4 text-center text-muted-foreground text-sm">{t("statisticsPanel.noCharacterData")}</div>
                             ) : (
                                 <div className="divide-y">
                                 {characterStats.map((char, i) => (
@@ -288,13 +294,13 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
                                         <div className="flex flex-col gap-1">
                                             <span className="font-bold text-sm">{char.name}</span>
                                             <span className="text-[10px] text-muted-foreground">
-                                                {char.speakingScenesCount} 場戲
+                                                {t("statisticsPanel.scenesCount").replace("{count}", String(char.speakingScenesCount))}
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-3">
                                             <div className="text-right">
-                                                <div className="text-sm font-semibold">{char.lineCount} 行</div>
-                                                <div className="text-[10px] text-muted-foreground">{char.wordCount} 字</div>
+                                                <div className="text-sm font-semibold">{t("statisticsPanel.linesCount").replace("{count}", String(char.lineCount))}</div>
+                                                <div className="text-[10px] text-muted-foreground">{t("statisticsPanel.charsCount").replace("{count}", String(char.wordCount))}</div>
                                             </div>
                                             <div className="w-16 h-1 bg-muted rounded-full overflow-hidden">
                                                 <div 
@@ -316,7 +322,7 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
              {viewMode === 'cues' && (
                  <Card className="h-full border-0 shadow-none flex flex-col absolute inset-0">
                     <CardHeader className="px-0 py-2 shrink-0 flex flex-row items-center justify-between">
-                        <CardDescription>指令與標記列表</CardDescription>
+                        <CardDescription>{t("statisticsPanel.cuesDescription")}</CardDescription>
                         <Button 
                             variant="outline" 
                             size="sm" 
@@ -324,14 +330,14 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
                             onClick={() => setShowReportDialog(true)}
                         >
                             <FileText className="w-3 h-3" />
-                            產生報表
+                            {t("statisticsPanel.generateReport")}
                         </Button>
                     </CardHeader>
                     <CardContent className="px-0 flex-1 min-h-0 overflow-hidden relative">
                          <ScrollArea className="h-full w-full rounded-md border p-4">
                              {markerEntries.length === 0 ? (
                                  <div className="text-center text-muted-foreground py-8">
-                                     無指令/標記資料
+                                     {t("statisticsPanel.noCueData")}
                                  </div>
                              ) : (
                                  <div className="space-y-6">
@@ -346,7 +352,7 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
                                            <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
                                              <Badge variant="outline" className="group-hover:bg-muted">{entry.label}</Badge>
                                              <span className="text-[10px] text-muted-foreground font-mono opacity-50">{entry.id}</span>
-                                             <span className="ml-auto text-xs text-muted-foreground">{entry.count} 筆</span>
+                                             <span className="ml-auto text-xs text-muted-foreground">{t("statisticsPanel.recordsCount").replace("{count}", String(entry.count))}</span>
                                            </h3>
                                          </button>
                                          {!collapsedMarkerIds.has(entry.id) && (
@@ -359,7 +365,7 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
                                                  className="w-full text-left text-sm border-l-2 border-primary/20 pl-2 whitespace-pre-wrap hover:text-foreground hover:border-primary transition-colors py-1"
                                                >
                                                  <span className="mr-2 text-[10px] text-muted-foreground opacity-50 select-none">
-                                                    {item.type === 'block-range' ? '區間' : (item.type === 'block' ? '區塊' : '行內')}
+                                                    {item.type === 'block-range' ? t("statisticsPanel.itemTypeRange") : (item.type === 'block' ? t("statisticsPanel.itemTypeBlock") : t("statisticsPanel.itemTypeInline"))}
                                                  </span>
                                                  {typeof item === "string" ? item : item.text}
                                                </button>
@@ -378,7 +384,9 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
       
       {showPauses && (
         <div className="mt-2 text-[10px] text-muted-foreground text-center">
-            偵測到 {pauseItems.length} 個停頓點，共 {pauseSeconds} 秒
+            {t("statisticsPanel.pauseSummary")
+              .replace("{count}", String(pauseItems.length))
+              .replace("{seconds}", String(pauseSeconds))}
         </div>
       )}
       

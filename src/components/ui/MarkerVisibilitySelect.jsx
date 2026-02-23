@@ -7,6 +7,7 @@ import {
   SelectLabel,
   SelectTrigger,
 } from "./select";
+import { useI18n } from "../../contexts/I18nContext";
 
 export function MarkerVisibilitySelect({
   markerConfigs = [],
@@ -15,9 +16,12 @@ export function MarkerVisibilitySelect({
   onToggleMarker,
   triggerClassName,
   contentAlign = "end",
-  label = "顯示標記",
-  titlePrefix = "標記"
+  label,
+  titlePrefix
 }) {
+  const { t } = useI18n();
+  const resolvedLabel = label ?? t("markerVisibility.label");
+  const resolvedTitlePrefix = titlePrefix ?? t("markerVisibility.titlePrefix");
   const computedVisibleIds = useMemo(() => {
     if (Array.isArray(visibleMarkerIds)) return visibleMarkerIds;
     if (!Array.isArray(markerConfigs) || markerConfigs.length === 0) return [];
@@ -31,12 +35,12 @@ export function MarkerVisibilitySelect({
     <Select value="markers" onValueChange={() => {}}>
       <SelectTrigger className={triggerClassName}>
         <span className="truncate">
-          {titlePrefix} ({computedVisibleIds.length}/{markerConfigs.length})
+          {resolvedTitlePrefix} ({computedVisibleIds.length}/{markerConfigs.length})
         </span>
       </SelectTrigger>
       <SelectContent align={contentAlign}>
         <SelectGroup>
-          <SelectLabel>{label}</SelectLabel>
+          <SelectLabel>{resolvedLabel}</SelectLabel>
           {markerConfigs.map((config) => {
             const isVisible = computedVisibleIds.includes(config.id);
             return (

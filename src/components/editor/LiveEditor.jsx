@@ -23,6 +23,7 @@ import {
 import { EditorHeader } from "./EditorHeader";
 import { PreviewPanel } from "./PreviewPanel";
 import { MarkerRulesPanel } from "./MarkerRulesPanel";
+import { useI18n } from "../../contexts/I18nContext";
 
 const EDITOR_PANE_WIDTH_STORAGE_KEY = "live_editor_pane_width_percent";
 const MIN_EDITOR_PANE_WIDTH = 28;
@@ -35,6 +36,7 @@ const clampEditorPaneWidth = (value) => {
 
 // LiveEditor Component
 export default function LiveEditor({ scriptId, initialData, onClose, initialSceneId, defaultShowPreview = false, readOnly = false, onRequestEdit, onOpenMarkerSettings, contentScrollRef, isSidebarOpen, onSetSidebarOpen, onTitleHtml, onHasTitle, onTitleNote, onTitleSummary, onTitleName, showHeader = true }) {
+  const { t } = useI18n();
   const {
     theme = "system",
     fontSize,
@@ -50,7 +52,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   const [content, setContent] = useState(initialData?.content || "");
   const deferredContent = useDeferredValue(content);
 
-  const [title, setTitle] = useState(initialData?.title || "Untitled");
+  const [title, setTitle] = useState(initialData?.title || t("liveEditor.untitled"));
   const [loading, setLoading] = useState(!initialData);
   // Save State Machine: 'saved' | 'saving' | 'unsaved' | 'error'
   const [saveStatus, setSaveStatus] = useState("saved");
@@ -138,7 +140,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
       const draftKey = getDraftKey(scriptId);
       const draftJson = localStorage.getItem(draftKey);
       let loadedContent = initialData.content;
-      let loadedTitle = initialData.title || "Untitled";
+      let loadedTitle = initialData.title || t("liveEditor.untitled");
       let isRestored = false;
 
       if (draftJson) {
@@ -171,7 +173,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
         const data = await getScript(scriptId);
         
         let loadedContent = data.content || "";
-        let loadedTitle = data.title || "Untitled";
+        let loadedTitle = data.title || t("liveEditor.untitled");
         
         // Draft Check Logic duplicated (cleaner to extract but inline is fine)
         const draftKey = getDraftKey(scriptId);
@@ -261,7 +263,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
                  // For now, let's KEEP warning but maybe change text?
                  // Or just keep standard warning. Safest.
                  e.preventDefault();
-                 e.returnValue = "尚未上傳至雲端，若現在離開，變更將只保留在此瀏覽器中。";
+                 e.returnValue = t("liveEditor.leaveWarning");
                  return e.returnValue;
              }
           }
@@ -322,13 +324,13 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
       },
       {
         id: "fountain",
-        label: "下載 .fountain",
+        label: t("publicReader.downloadFountain"),
         icon: FileCode2,
         onClick: () => exportScriptAsFountain(title, content),
       },
       {
         id: "docx",
-        label: "下載 Word (.doc)",
+        label: t("publicReader.downloadDoc"),
         icon: FileText,
         onClick: () =>
           exportScriptAsDocx(title, {
@@ -338,7 +340,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
       },
       {
         id: "xlsx",
-        label: "下載 Excel (.xlsx)",
+        label: t("publicReader.downloadXlsx"),
         icon: FileSpreadsheet,
         onClick: () =>
           exportScriptAsXlsx(title, {
@@ -348,7 +350,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
       },
       {
         id: "csv",
-        label: "下載 CSV",
+        label: t("publicReader.downloadCsv"),
         icon: FileSpreadsheet,
         onClick: () =>
           exportScriptAsCsv(title, {
@@ -357,7 +359,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
           }),
       },
     ],
-    [title, content, processedRenderedHtml, rawRenderedHtml]
+    [title, content, processedRenderedHtml, rawRenderedHtml, t]
   );
 
   const runRenderedExport = useCallback(
@@ -650,7 +652,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
                 className="hidden sm:flex w-2 shrink-0 items-center justify-center bg-muted/20 hover:bg-muted/40 cursor-col-resize transition-colors"
                 role="separator"
                 aria-orientation="vertical"
-                aria-label="調整預覽寬度"
+                aria-label={t("liveEditor.resizePreview")}
                 onPointerDown={handleResizerPointerDown}
                 onPointerMove={handleResizerPointerMove}
                 onPointerUp={handleResizerPointerUp}
@@ -707,7 +709,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
                     >
                         ✕
                     </button>
-                    <h3 className="font-semibold text-sm">統計分析面板</h3>
+                    <h3 className="font-semibold text-sm">{t("liveEditor.statsPanel")}</h3>
                 </div>
                 <div className="flex-1 min-h-0 overflow-hidden">
                     <StatisticsPanel 

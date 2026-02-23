@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { LogOut, User, ChevronDown } from "lucide-react";
+import { useI18n } from "../../contexts/I18nContext";
 
 export default function UserMenu() {
+  const { t } = useI18n();
   const { currentUser, login, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
@@ -73,7 +75,7 @@ export default function UserMenu() {
                 className="relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-xs outline-none text-destructive hover:bg-destructive/10 gap-2 font-medium"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span>登出 (Log out)</span>
+                <span>{t("userMenu.logout")}</span>
               </button>
             </div>
           </div>
@@ -90,7 +92,7 @@ export default function UserMenu() {
             className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-primary text-primary-foreground text-xs font-semibold rounded-md shadow hover:bg-primary/90 transition-colors"
             >
             <User className="w-3.5 h-3.5" />
-            登入 / 註冊
+            {t("userMenu.loginOrRegister")}
             </button>
         </div>
     </div>

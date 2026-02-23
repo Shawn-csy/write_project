@@ -7,7 +7,9 @@ import HeaderTitleBlock from "../header/HeaderTitleBlock";
 import { Badge } from "../ui/badge";
 import { ScriptMetadataDialog } from "../dashboard/ScriptMetadataDialog";
 import { DownloadMenu } from "../common/DownloadMenu";
+import { LanguageSwitcher } from "../common/LanguageSwitcher";
 import { Button } from "../ui/button";
+import { useI18n } from "../../contexts/I18nContext";
 
 export function EditorHeader({
   readOnly,
@@ -31,27 +33,28 @@ export function EditorHeader({
   script, // Full script object for metadata
   onScriptUpdate // Callback when metadata changes
 }) {
+  const { t } = useI18n();
   const [showMetadataDialog, setShowMetadataDialog] = useState(false);
   const saveStatusTitle =
     saveStatus === "error"
-      ? "雲端儲存失敗，點擊重試"
+      ? t("editorHeader.saveTitleError")
       : saveStatus === "local-saved"
-        ? "本機已暫存，等待雲端同步"
+        ? t("editorHeader.saveTitleLocalSaved")
         : saveStatus === "unsaved"
-          ? "尚未儲存到雲端"
-          : "點擊手動儲存";
+          ? t("editorHeader.saveTitleUnsaved")
+          : t("editorHeader.saveTitleManual");
   const saveStatusLabel =
     saveStatus === "saving"
-      ? "同步中..."
+      ? t("editorHeader.saveLabelSaving")
       : saveStatus === "unsaved"
-        ? "未儲存"
+        ? t("editorHeader.saveLabelUnsaved")
         : saveStatus === "local-saved"
-          ? "本機已暫存"
+          ? t("editorHeader.saveLabelLocalSaved")
           : saveStatus === "error"
-            ? "同步失敗"
+            ? t("editorHeader.saveLabelError")
             : lastSaved
-              ? `已同步 ${lastSaved.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-              : "已同步";
+              ? `${t("editorHeader.saveLabelSyncedAt")} ${lastSaved.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+              : t("editorHeader.saveLabelSynced");
   const {
     isEditing,
     editTitle,
@@ -68,8 +71,8 @@ export function EditorHeader({
         onBack={onBack}
         backButtonClassName="p-2 hover:bg-muted rounded-full transition-colors"
         backIconClassName="w-5 h-5 text-muted-foreground"
-        backTitle="Back to Dashboard"
-        backAriaLabel="Back to Dashboard"
+        backTitle={t("editorHeader.backToDashboard")}
+        backAriaLabel={t("editorHeader.backToDashboard")}
         onOpenSidebar={() => onSetSidebarOpen?.(true)}
         sidebarButtonClassName={`p-2 hover:bg-muted rounded-full transition-colors ${isSidebarOpen ? "lg:hidden" : ""}`}
         sidebarIconClassName="w-5 h-5 text-muted-foreground"
@@ -89,7 +92,7 @@ export function EditorHeader({
                     <h2
                         className="font-semibold text-sm sm:text-base cursor-text hover:bg-muted/50 rounded px-1 -ml-1 transition-colors"
                         onDoubleClick={startEditing}
-                        title="雙擊即可重新命名"
+                        title={t("editorHeader.doubleClickRename")}
                     >
                         {title}
                     </h2>
@@ -100,7 +103,7 @@ export function EditorHeader({
                         onClick={() => setShowMetadataDialog(true)}
                     >
                         {script?.status === 'Public' ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
-                        {script?.status === 'Public' ? "Public" : "Private"}
+                        {script?.status === 'Public' ? t("editorHeader.public") : t("editorHeader.private")}
                     </Badge>
                   </div>
                 )}
@@ -137,6 +140,7 @@ export function EditorHeader({
         }
       />
       <div className="flex items-center gap-2 flex-wrap">
+        <LanguageSwitcher />
          {/* Marker Visibility Toggle */}
          <div className="hidden sm:block w-[140px]">
           <MarkerVisibilitySelect
@@ -145,7 +149,7 @@ export function EditorHeader({
             onToggleMarker={onToggleMarker}
             triggerClassName="h-8 px-2 text-xs w-full bg-background border hover:bg-muted/50 transition-all"
             contentAlign="end"
-            titlePrefix="標記"
+            titlePrefix={t("editorHeader.markerPrefix")}
           />
          </div>
 
@@ -158,13 +162,13 @@ export function EditorHeader({
               ? "text-accent"
               : "text-muted-foreground hover:text-foreground"
           }`}
-          title="語法規則 (Cheat Sheet)"
+          title={t("editorHeader.syntaxRules")}
         >
           <HelpCircle className="w-4 h-4" />
         </Button>
         <DownloadMenu
           options={downloadOptions}
-          title="下載"
+          title={t("editorHeader.download")}
           triggerClassName="h-8 w-8 rounded-md transition-colors text-muted-foreground hover:text-foreground"
         />
         <Button
@@ -172,7 +176,7 @@ export function EditorHeader({
           size="icon"
           onClick={onToggleStats}
           className="h-8 w-8 rounded-md transition-colors text-muted-foreground hover:text-foreground"
-          title="Statistics"
+          title={t("editorHeader.stats")}
         >
           <BarChart2 className="w-4 h-4" />
         </Button>
@@ -185,7 +189,7 @@ export function EditorHeader({
               ? "bg-primary/10 text-primary"
               : "hover:bg-muted text-muted-foreground"
           }`}
-          title={showPreview ? "切換為純編輯" : "切換為編輯 + 預覽"}
+          title={showPreview ? t("editorHeader.switchToEditOnly") : t("editorHeader.switchToSplit")}
         >
           {showPreview ? (
             <Columns className="w-4 h-4" />
@@ -193,7 +197,7 @@ export function EditorHeader({
             <Eye className="w-4 h-4" />
           )}
           <span className="hidden sm:inline">
-            {showPreview ? "編輯 + 預覽" : "純編輯"}
+            {showPreview ? t("editorHeader.editAndPreview") : t("editorHeader.editOnly")}
           </span>
         </Button>
       </div>

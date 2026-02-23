@@ -3,6 +3,7 @@ import { MarkerVisibilitySelect } from "../ui/MarkerVisibilitySelect";
 import SceneSelect from "./SceneSelect";
 import CharacterSelect from "./CharacterSelect";
 import ControlsRow from "./ControlsRow";
+import { useI18n } from "../../contexts/I18nContext";
 
 
 export function ReaderControls({
@@ -18,6 +19,7 @@ export function ReaderControls({
     visibleMarkerIds,
     onToggleMarker
 }) {
+    const { t } = useI18n();
     return (
         <ControlsRow>
             {sceneList.length > 0 && (
@@ -28,8 +30,8 @@ export function ReaderControls({
                   onSelectScene={onSelectScene}
                   triggerClassName="h-10 px-3 text-sm w-full bg-muted/40 hover:bg-muted/60 border-transparent hover:border-border transition-all font-medium"
                   contentAlign="start"
-                  label="場景"
-                  placeholder="選擇場景"
+                  label={t("readerControls.scene")}
+                  placeholder={t("readerControls.scenePlaceholder")}
                 />
               </div>
             )}
@@ -48,8 +50,8 @@ export function ReaderControls({
                   }}
                   triggerClassName="h-10 px-3 text-sm w-full bg-muted/40 hover:bg-muted/60 border-transparent hover:border-border transition-all font-medium"
                   contentAlign="start"
-                  label="角色"
-                  placeholder="角色篩選"
+                  label={t("readerControls.character")}
+                  placeholder={t("readerControls.characterPlaceholder")}
                 />
               </div>
             )}
@@ -63,7 +65,7 @@ export function ReaderControls({
                   onToggleMarker={onToggleMarker}
                   triggerClassName="h-10 px-3 text-sm w-full bg-muted/40 hover:bg-muted/60 border-transparent hover:border-border transition-all font-medium"
                   contentAlign="start"
-                  titlePrefix="標記顯示"
+                  titlePrefix={t("readerControls.markerVisibility")}
                 />
               </div>
             )}

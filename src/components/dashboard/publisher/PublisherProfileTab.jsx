@@ -13,6 +13,8 @@ import { SortableTag } from "./SortableTag";
 import { MetadataLicenseTab } from "../metadata/MetadataLicenseTab";
 import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
 import { searchOrganizations, requestToJoinOrganization } from "../../../lib/db";
+import { validateImageFile, getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
+import { useI18n } from "../../../contexts/I18nContext";
 
 export function PublisherProfileTab({
     selectedPersonaId, setSelectedPersonaId,
@@ -27,6 +29,7 @@ export function PublisherProfileTab({
     parseTags, addTags, getSuggestions, getTagStyle,
     tagOptions = []
 }) {
+    const { t } = useI18n();
     const navigate = useNavigate();
     const [viewMode, setViewMode] = React.useState("edit"); // edit or create
     const [orgSearchQuery, setOrgSearchQuery] = React.useState("");
@@ -35,6 +38,12 @@ export function PublisherProfileTab({
     const [tagOpen, setTagOpen] = React.useState(false);
     const [avatarPreviewFailed, setAvatarPreviewFailed] = React.useState(false);
     const [bannerPreviewFailed, setBannerPreviewFailed] = React.useState(false);
+    const [avatarUploadError, setAvatarUploadError] = React.useState("");
+    const [bannerUploadError, setBannerUploadError] = React.useState("");
+    const [avatarUploadWarning, setAvatarUploadWarning] = React.useState("");
+    const [bannerUploadWarning, setBannerUploadWarning] = React.useState("");
+    const avatarGuide = React.useMemo(() => getImageUploadGuide("avatar"), []);
+    const bannerGuide = React.useMemo(() => getImageUploadGuide("banner"), []);
     const filteredTagOptions = React.useMemo(() => {
         const needle = personaTagInput.trim().toLowerCase();
         const names = (tagOptions || []).map(t => t.name).filter(Boolean);
@@ -91,20 +100,42 @@ export function PublisherProfileTab({
     }, [personaDraft.links, selectedPersona]);
 
     const profileChecklist = React.useMemo(() => ([
-        { key: "displayName", label: "設定顯示名稱", ok: Boolean(personaDraft.displayName?.trim()) },
-        { key: "bio", label: "補上個人簡介", ok: Boolean(personaDraft.bio?.trim()) },
-        { key: "avatar", label: "上傳頭像", ok: Boolean(personaDraft.avatar?.trim()) },
-        { key: "bannerUrl", label: "設定橫幅", ok: Boolean(personaDraft.bannerUrl?.trim()) },
-        { key: "links", label: "新增至少 1 個連結", ok: safeLinks.some((link) => String(link?.url || "").trim()) },
-        { key: "tags", label: "加入標籤", ok: (personaDraft.tags || []).length > 0 },
-    ]), [personaDraft, safeLinks]);
+        { key: "displayName", label: t("publisherProfileTab.checkDisplayName"), ok: Boolean(personaDraft.displayName?.trim()) },
+        { key: "bio", label: t("publisherProfileTab.checkBio"), ok: Boolean(personaDraft.bio?.trim()) },
+        { key: "avatar", label: t("publisherProfileTab.checkAvatar"), ok: Boolean(personaDraft.avatar?.trim()) },
+        { key: "bannerUrl", label: t("publisherProfileTab.checkBanner"), ok: Boolean(personaDraft.bannerUrl?.trim()) },
+        { key: "links", label: t("publisherProfileTab.checkLinks"), ok: safeLinks.some((link) => String(link?.url || "").trim()) },
+        { key: "tags", label: t("publisherProfileTab.checkTags"), ok: (personaDraft.tags || []).length > 0 },
+    ]), [personaDraft, safeLinks, t]);
     const profileDone = profileChecklist.filter((item) => item.ok).length;
     const profileProgress = Math.round((profileDone / profileChecklist.length) * 100);
     const profileNextSteps = profileChecklist.filter((item) => !item.ok).slice(0, 3);
 
-    const handleImageUpload = (field) => (event) => {
+    const handleImageUpload = (field) => async (event) => {
         const file = event.target.files?.[0];
-        if (!file || !file.type.startsWith("image/")) return;
+        if (!file) return;
+        const ruleKey = field === "avatar" ? "avatar" : "banner";
+        const validation = await validateImageFile(file, ruleKey);
+        if (!validation.ok) {
+            if (field === "avatar") {
+                setAvatarUploadError(validation.error || t("publisherProfileTab.invalidImage"));
+                setAvatarUploadWarning("");
+            }
+            if (field === "bannerUrl") {
+                setBannerUploadError(validation.error || t("publisherProfileTab.invalidImage"));
+                setBannerUploadWarning("");
+            }
+            event.target.value = "";
+            return;
+        }
+        if (field === "avatar") {
+            setAvatarUploadError("");
+            setAvatarUploadWarning(validation.warning || "");
+        }
+        if (field === "bannerUrl") {
+            setBannerUploadError("");
+            setBannerUploadWarning(validation.warning || "");
+        }
         const reader = new FileReader();
         reader.onload = () => {
             const result = typeof reader.result === "string" ? reader.result : "";
@@ -151,7 +182,7 @@ export function PublisherProfileTab({
             {/* Left Sidebar: List */}
             <div className="w-full md:w-[280px] border-b md:border-b-0 md:border-r flex flex-col bg-muted/10">
                 <div className="p-4 border-b flex items-center justify-between bg-background/50 backdrop-blur-sm sticky top-0 z-10">
-                    <h3 className="font-semibold text-sm">作者列表</h3>
+                    <h3 className="font-semibold text-sm">{t("publisherProfileTab.authorList")}</h3>
                     <Button size="icon" variant="ghost" className="h-8 w-8 ml-auto" onClick={onStartCreate}>
                         <Plus className="w-4 h-4" />
                     </Button>
@@ -174,8 +205,8 @@ export function PublisherProfileTab({
                     
                     {personas.length === 0 && (
                         <div className="text-center text-muted-foreground p-8 text-sm">
-                            尚無作者身分
-                            <Button variant="link" size="sm" onClick={onStartCreate} className="mt-2 text-xs">立即建立</Button>
+                            {t("publisherProfileTab.noPersona")}
+                            <Button variant="link" size="sm" onClick={onStartCreate} className="mt-2 text-xs">{t("publisherProfileTab.createNow")}</Button>
                         </div>
                     )}
                 </div>
@@ -185,7 +216,7 @@ export function PublisherProfileTab({
             <div className="flex-1 flex flex-col overflow-hidden bg-card">
                 <div className="p-4 border-b flex justify-between items-center bg-background/50 backdrop-blur-sm h-[57px]">
                     <div>
-                        <h2 className="text-lg font-semibold tracking-tight">{viewMode === "create" ? "建立新身份" : "編輯身份"}</h2>
+                        <h2 className="text-lg font-semibold tracking-tight">{viewMode === "create" ? t("publisherProfileTab.createIdentity") : t("publisherProfileTab.editIdentity")}</h2>
                     </div>
                     {viewMode === "edit" && selectedPersonaId && (
                         <Button
@@ -193,7 +224,7 @@ export function PublisherProfileTab({
                             size="sm"
                             onClick={() => navigate(`/author/${selectedPersonaId}`)}
                         >
-                            查看作者頁
+                            {t("publisherProfileTab.viewAuthorPage")}
                         </Button>
                     )}
                     {viewMode === "edit" && selectedPersonaId && (
@@ -203,7 +234,7 @@ export function PublisherProfileTab({
                             className="text-destructive hover:bg-destructive/10 h-8 text-xs"
                             onClick={handleDeletePersona}
                         >
-                            <Trash2 className="w-3.5 h-3.5 mr-1.5" /> 刪除身分
+                            <Trash2 className="w-3.5 h-3.5 mr-1.5" /> {t("publisherProfileTab.deleteIdentity")}
                         </Button>
                     )}
                 </div>
@@ -214,7 +245,7 @@ export function PublisherProfileTab({
                             <>
                                 <div className="rounded-lg border bg-muted/20 p-4 space-y-3">
                                     <div className="flex items-center justify-between text-sm">
-                                        <span className="font-medium">資料完成度</span>
+                                        <span className="font-medium">{t("publisherProfileTab.progress")}</span>
                                         <span className="text-muted-foreground">{profileDone}/{profileChecklist.length} · {profileProgress}%</span>
                                     </div>
                                     <div className="h-2 rounded-full bg-muted">
@@ -222,7 +253,7 @@ export function PublisherProfileTab({
                                     </div>
                                     {profileNextSteps.length > 0 && (
                                         <div className="text-xs text-muted-foreground">
-                                            下一步：{profileNextSteps.map((item) => item.label).join("、")}
+                                            {t("publisherProfileTab.nextSteps").replace("{items}", profileNextSteps.map((item) => item.label).join("、"))}
                                         </div>
                                     )}
                                 </div>
@@ -237,39 +268,59 @@ export function PublisherProfileTab({
                                             <AvatarFallback className="text-2xl text-muted-foreground">IMG</AvatarFallback>
                                         </Avatar>
                                         {avatarPreviewFailed && (
-                                            <div className="text-[11px] text-amber-700 dark:text-amber-300">頭像預覽失敗，請更換圖片。</div>
+                                            <div className="text-[11px] text-amber-700 dark:text-amber-300">{t("publisherProfileTab.avatarPreviewFailed")}</div>
                                         )}
                                         <Input
                                             id="persona-avatar-url"
                                             name="personaAvatarUrl"
                                             value={personaDraft.avatar}
                                             onChange={e => setPersonaDraft({ ...personaDraft, avatar: e.target.value })}
-                                            placeholder="頭像網址..."
+                                            placeholder={t("publisherProfileTab.avatarUrlPlaceholder")}
                                             className="text-xs h-8 text-center bg-muted/20 border-transparent hover:border-border focus:border-primary transition-colors"
                                         />
                                         <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
-                                            上傳頭像
-                                            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload("avatar")} />
+                                            {t("publisherProfileTab.uploadAvatar")}
+                                            <input type="file" accept={MEDIA_FILE_ACCEPT} className="hidden" onChange={handleImageUpload("avatar")} />
                                         </label>
+                                        <div className="space-y-0.5 text-[11px] text-muted-foreground text-center">
+                                            <p>{avatarGuide.supported}</p>
+                                            <p>{avatarGuide.recommended}</p>
+                                        </div>
+                                        {avatarUploadError && (
+                                            <p className="text-[11px] text-destructive text-center">{avatarUploadError}</p>
+                                        )}
+                                        {avatarUploadWarning && (
+                                            <p className="text-[11px] text-amber-700 dark:text-amber-300 text-center">{avatarUploadWarning}</p>
+                                        )}
                                         <Input
                                             id="persona-banner-url"
                                             name="personaBannerUrl"
                                             value={personaDraft.bannerUrl || ""}
                                             onChange={e => setPersonaDraft({ ...personaDraft, bannerUrl: e.target.value })}
-                                            placeholder="橫幅圖片網址..."
+                                            placeholder={t("publisherProfileTab.bannerUrlPlaceholder")}
                                             className="text-xs h-8 text-center bg-muted/20 border-transparent hover:border-border focus:border-primary transition-colors"
                                         />
                                         <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
-                                            上傳橫幅
-                                            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload("bannerUrl")} />
+                                            {t("publisherProfileTab.uploadBanner")}
+                                            <input type="file" accept={MEDIA_FILE_ACCEPT} className="hidden" onChange={handleImageUpload("bannerUrl")} />
                                         </label>
+                                        <div className="space-y-0.5 text-[11px] text-muted-foreground text-center">
+                                            <p>{bannerGuide.supported}</p>
+                                            <p>{bannerGuide.recommended}</p>
+                                        </div>
+                                        {bannerUploadError && (
+                                            <p className="text-[11px] text-destructive text-center">{bannerUploadError}</p>
+                                        )}
+                                        {bannerUploadWarning && (
+                                            <p className="text-[11px] text-amber-700 dark:text-amber-300 text-center">{bannerUploadWarning}</p>
+                                        )}
                                     </div>
                                     
                                     <div className="flex-1 space-y-4 w-full">
                                         {(personaDraft.bannerUrl || "").trim() && (
                                             <div className="h-24 overflow-hidden rounded-md border bg-muted/20">
                                                 {bannerPreviewFailed ? (
-                                                    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">橫幅預覽失敗</div>
+                                                    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">{t("publisherProfileTab.bannerPreviewFailed")}</div>
                                                 ) : (
                                                     <img
                                                         src={personaDraft.bannerUrl}
@@ -282,31 +333,31 @@ export function PublisherProfileTab({
                                             </div>
                                         )}
                                         <div className="grid gap-1.5">
-                                            <label className="text-sm font-medium" htmlFor="persona-display-name">顯示名稱 <span className="text-destructive">*</span></label>
+                                            <label className="text-sm font-medium" htmlFor="persona-display-name">{t("publisherProfileTab.displayName")} <span className="text-destructive">*</span></label>
                                             <Input 
                                                 id="persona-display-name"
                                                 name="personaDisplayName"
                                                 value={personaDraft.displayName} 
                                                 onChange={e => setPersonaDraft({ ...personaDraft, displayName: e.target.value })}
-                                                placeholder="e.g. 筆名"
+                                                placeholder={t("publisherProfileTab.displayNamePlaceholder")}
                                                 className="font-medium"
                                             />
                                         </div>
                                         
                                         <div className="grid gap-1.5">
-                                            <label className="text-sm font-medium" htmlFor="persona-bio">個人簡介</label>
+                                            <label className="text-sm font-medium" htmlFor="persona-bio">{t("publisherProfileTab.bio")}</label>
                                             <Textarea 
                                                 id="persona-bio"
                                                 name="personaBio"
                                                 value={personaDraft.bio}
                                                 onChange={e => setPersonaDraft({ ...personaDraft, bio: e.target.value })}
-                                                placeholder="簡單介紹..."
+                                                placeholder={t("publisherProfileTab.bioPlaceholder")}
                                                 className="min-h-[80px] resize-none"
                                             />
                                         </div>
 
                                 <div className="grid gap-1.5">
-                                    <label className="text-sm font-medium" htmlFor="persona-website">個人網站</label>
+                                    <label className="text-sm font-medium" htmlFor="persona-website">{t("publisherProfileTab.website")}</label>
                                     <Input 
                                         id="persona-website"
                                         name="personaWebsite"
@@ -320,18 +371,18 @@ export function PublisherProfileTab({
 
                         <div className="space-y-4 pt-6 border-t">
                                         <div className="grid gap-2">
-                                            <label className="text-sm font-medium">自訂連結</label>
+                                            <label className="text-sm font-medium">{t("publisherProfileTab.customLinks")}</label>
                                             <div className="border rounded-md p-4 bg-muted/10 space-y-3">
                                                 {safeLinks.length === 0 && (
-                                                    <div className="text-sm text-muted-foreground">尚未新增連結</div>
+                                                    <div className="text-sm text-muted-foreground">{t("publisherProfileTab.noLinks")}</div>
                                                 )}
                                     {safeLinks.map((link, idx) => (
                                         <div key={`link-${idx}`} className="grid grid-cols-1 md:grid-cols-[1fr_2fr_auto] gap-2 items-center">
                                             <Input
                                                 id={`persona-link-label-${idx}`}
                                                 name={`persona-link-label-${idx}`}
-                                                aria-label="連結名稱"
-                                                placeholder="顯示名稱"
+                                                aria-label={t("publisherProfileTab.linkNameAria")}
+                                                placeholder={t("publisherProfileTab.linkNamePlaceholder")}
                                                 value={link.label || ""}
                                                 onChange={(e) => {
                                                     const next = [...safeLinks];
@@ -342,7 +393,7 @@ export function PublisherProfileTab({
                                             <Input
                                                 id={`persona-link-url-${idx}`}
                                                 name={`persona-link-url-${idx}`}
-                                                aria-label="連結網址"
+                                                aria-label={t("publisherProfileTab.linkUrlAria")}
                                                 placeholder="https://"
                                                 value={link.url || ""}
                                                 onChange={(e) => {
@@ -359,7 +410,7 @@ export function PublisherProfileTab({
                                                     setPersonaDraft({ ...personaDraft, links: next });
                                                 }}
                                             >
-                                                移除
+                                                {t("common.remove")}
                                             </Button>
                                         </div>
                                     ))}
@@ -371,16 +422,16 @@ export function PublisherProfileTab({
                                             setPersonaDraft({ ...personaDraft, links: next });
                                         }}
                                     >
-                                        新增連結
+                                        {t("publisherProfileTab.addLink")}
                                     </Button>
                                 </div>
                             </div>
 
                             <div className="grid gap-2">
-                                <label className="text-sm font-medium">所屬組織（需申請通過後才會出現）</label>
+                                <label className="text-sm font-medium">{t("publisherProfileTab.orgMembership")}</label>
                                 <div className="flex flex-wrap gap-2">
                                             {orgs.length === 0 ? (
-                                                <div className="text-sm text-muted-foreground italic px-2">尚未建立任何組織。</div>
+                                                <div className="text-sm text-muted-foreground italic px-2">{t("publisherProfileTab.noOrgYet")}</div>
                                             ) : (
                                                 orgs.map(org => {
                                                     const checked = (personaDraft.organizationIds || []).includes(org.id);
@@ -409,17 +460,17 @@ export function PublisherProfileTab({
                                             )}
                                         </div>
                                         <div className="mt-2 border rounded-md p-3 bg-muted/10 space-y-2">
-                                            <div className="text-xs text-muted-foreground">搜尋其他組織並送出申請</div>
+                                            <div className="text-xs text-muted-foreground">{t("publisherProfileTab.searchOrgAndApply")}</div>
                                             <Input
                                                 id="org-search-query"
                                                 name="orgSearchQuery"
-                                                placeholder="輸入組織名稱搜尋"
-                                                aria-label="搜尋組織名稱"
+                                                placeholder={t("publisherProfileTab.searchOrgPlaceholder")}
+                                                aria-label={t("publisherProfileTab.searchOrgAria")}
                                                 value={orgSearchQuery}
                                                 onChange={(e) => setOrgSearchQuery(e.target.value)}
                                             />
                                             {isOrgSearching && (
-                                                <div className="text-xs text-muted-foreground">搜尋中...</div>
+                                                <div className="text-xs text-muted-foreground">{t("publisherProfileTab.searching")}</div>
                                             )}
                                             {orgSearchResults.length > 0 && (
                                                 <div className="space-y-2">
@@ -427,7 +478,7 @@ export function PublisherProfileTab({
                                                         <div key={org.id} className="flex items-center justify-between text-sm">
                                                             <span>{org.name}</span>
                                                             <Button size="sm" variant="outline" onClick={() => handleRequestJoinOrg(org.id)}>
-                                                                送出申請
+                                                                {t("publisherProfileTab.sendRequest")}
                                                             </Button>
                                                         </div>
                                                     ))}
@@ -437,7 +488,7 @@ export function PublisherProfileTab({
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <label className="text-sm font-medium">標籤 (Tags)</label>
+                                        <label className="text-sm font-medium">{t("publisherProfileTab.tags")}</label>
                                         <div className="border rounded-md p-4 bg-muted/10 space-y-3">
                                             <DndContext
                                                 collisionDetection={closestCenter}
@@ -465,7 +516,7 @@ export function PublisherProfileTab({
                                                             />
                                                         ))}
                                                         {(personaDraft.tags || []).length === 0 && (
-                                                            <span className="text-sm text-muted-foreground">輸入下方欄位新增標籤...</span>
+                                                            <span className="text-sm text-muted-foreground">{t("publisherProfileTab.inputTagHint")}</span>
                                                         )}
                                                     </div>
                                                 </SortableContext>
@@ -474,7 +525,7 @@ export function PublisherProfileTab({
                                             <Popover open={tagOpen} onOpenChange={setTagOpen}>
                                                 <PopoverTrigger asChild>
                                                     <Button type="button" variant="outline" size="sm" className="w-fit">
-                                                        新增標籤
+                                                        {t("publisherProfileTab.addTag")}
                                                     </Button>
                                                 </PopoverTrigger>
                                                 <PopoverContent className="w-[90vw] sm:w-80 p-2" align="start">
@@ -498,7 +549,7 @@ export function PublisherProfileTab({
                                                                     setTagOpen(false);
                                                                 }
                                                             }}
-                                                            placeholder="搜尋或新增標籤..."
+                                                            placeholder={t("publisherProfileTab.searchOrAddTag")}
                                                             className="h-8"
                                                         />
                                                     </div>
@@ -518,7 +569,7 @@ export function PublisherProfileTab({
                                                                     setTagOpen(false);
                                                                 }}
                                                             >
-                                                                新增「{personaTagInput.trim()}」
+                                                                {t("publisherProfileTab.addQuoted").replace("{value}", personaTagInput.trim())}
                                                             </button>
                                                         )}
                                                         {filteredTagOptions.map(name => {
@@ -554,7 +605,7 @@ export function PublisherProfileTab({
                                                             );
                                                         })}
                                                         {personaTagInput.trim() && filteredTagOptions.length === 0 && (
-                                                            <div className="px-3 py-2 text-xs text-muted-foreground">沒有符合的標籤</div>
+                                                            <div className="px-3 py-2 text-xs text-muted-foreground">{t("publisherProfileTab.noMatchedTag")}</div>
                                                         )}
                                                     </div>
                                                 </PopoverContent>
@@ -565,7 +616,7 @@ export function PublisherProfileTab({
 
                                 {/* Default License Configuration */}
                                 <div className="border-t pt-6">
-                                    <h3 className="text-sm font-medium mb-4">預設授權設定</h3>
+                                    <h3 className="text-sm font-medium mb-4">{t("publisherProfileTab.defaultLicense")}</h3>
                                     <div className="rounded-lg border bg-muted/10 p-4">
                                         <MetadataLicenseTab 
                                             license={personaDraft.defaultLicense}
@@ -579,7 +630,7 @@ export function PublisherProfileTab({
                                         />
                                         <p className="text-xs text-muted-foreground mt-4 flex items-center gap-1.5">
                                             <span className="inline-block w-1 h-1 rounded-full bg-primary/50"></span>
-                                            日後以此身分新建劇本時，將自動套用此設定。
+                                            {t("publisherProfileTab.defaultLicenseTip")}
                                         </p>
                                     </div>
                                 </div>
@@ -589,8 +640,8 @@ export function PublisherProfileTab({
                                 <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
                                     <Plus className="w-8 h-8 text-muted-foreground/30" />
                                 </div>
-                                <p className="mb-2">請選擇一個身分進行編輯</p>
-                                <Button variant="outline" onClick={onStartCreate}>或 建立新身分</Button>
+                                <p className="mb-2">{t("publisherProfileTab.selectIdentityToEdit")}</p>
+                                <Button variant="outline" onClick={onStartCreate}>{t("publisherProfileTab.orCreateNewIdentity")}</Button>
                             </div>
                         )}
                     </div>
@@ -604,7 +655,7 @@ export function PublisherProfileTab({
                         className="min-w-[100px]"
                     >
                         {(viewMode === "create" ? isCreatingPersona : isSavingProfile) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {viewMode === "create" ? "建立身分" : "儲存變更"}
+                        {viewMode === "create" ? t("publisherProfileTab.createIdentityShort") : t("publisherProfileTab.saveChanges")}
                     </Button>
                 </div>
             </div>

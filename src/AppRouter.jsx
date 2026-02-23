@@ -19,6 +19,7 @@ import { Card, CardContent } from "./components/ui/card";
 import { Button } from "./components/ui/button";
 import { Globe, SlidersHorizontal } from "lucide-react";
 import ReaderHeader from "./components/header/ReaderHeader";
+import { LanguageSwitcher } from "./components/common/LanguageSwitcher";
 import { MainLayout } from "./components/layout/MainLayout";
 import { StatisticsPanel } from "./components/statistics/StatisticsPanel";
 import { RequireAuth } from "./components/auth/RequireAuth";
@@ -157,6 +158,7 @@ export function AppRouter({
                                             onToggleStats={() => setShowStats(!showStats)}
                                             extraActions={
                                                 <div className="flex items-center gap-1">
+                                                    <LanguageSwitcher />
                                                     <Button variant="ghost" size="icon" onClick={() => nav.setAboutOpen(true)} title="關於">
                                                         <Globe className="w-5 h-5" />
                                                     </Button>
