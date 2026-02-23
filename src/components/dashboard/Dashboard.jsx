@@ -2,8 +2,10 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { getUserScripts, createScript } from "../../lib/db";
 import { Plus, FileText, Loader2, Clock } from "lucide-react";
+import { useI18n } from "../../contexts/I18nContext";
 
 export default function Dashboard({ onSelectScript }) {
+  const { t } = useI18n();
   const { currentUser } = useAuth();
   const [scripts, setScripts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,9 +29,10 @@ export default function Dashboard({ onSelectScript }) {
   const handleCreate = async () => {
     setCreating(true);
     try {
-      const id = await createScript("New Screenplay");
+      const defaultTitle = t("dashboard.newScreenplay");
+      const id = await createScript(defaultTitle);
       // Ideally redirect or select the new script
-      onSelectScript({ id, title: "New Screenplay", content: "" }); // Pass full object to avoid fetch
+      onSelectScript({ id, title: defaultTitle, content: "" }); // Pass full object to avoid fetch
     } catch (error) {
       console.error("Error creating script:", error);
     } finally {
@@ -58,9 +61,9 @@ export default function Dashboard({ onSelectScript }) {
       <div className="max-w-5xl mx-auto space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">我的劇本</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{t("dashboard.title")}</h1>
             <p className="text-muted-foreground mt-1">
-              歡迎回來，{currentUser?.displayName}
+              {t("dashboard.welcomeBack").replace("{name}", String(currentUser?.displayName || ""))}
             </p>
           </div>
           <button
@@ -69,7 +72,7 @@ export default function Dashboard({ onSelectScript }) {
             className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md shadow hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
             {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-            新增劇本
+            {t("dashboard.addScript")}
           </button>
         </div>
 
@@ -78,16 +81,16 @@ export default function Dashboard({ onSelectScript }) {
             <div className="p-4 rounded-full bg-muted mb-4">
               <FileText className="w-8 h-8 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold">還沒有劇本</h3>
+            <h3 className="text-lg font-semibold">{t("dashboard.emptyTitle")}</h3>
             <p className="text-muted-foreground mb-4 max-w-sm mt-1">
-              開始創作您的第一個故事吧！所有劇本都會自動儲存在雲端。
+              {t("dashboard.emptyDescription")}
             </p>
             <button
               onClick={handleCreate}
               disabled={creating}
               className="text-primary hover:underline font-medium"
             >
-              立即建立
+              {t("dashboard.createNow")}
             </button>
           </div>
         ) : (
@@ -105,7 +108,7 @@ export default function Dashboard({ onSelectScript }) {
                   {/* Future: More actions dropdown */}
                 </div>
                 <h3 className="font-semibold text-lg line-clamp-1 w-full group-hover:text-primary transition-colors">
-                  {script.title || "Untitled Script"}
+                  {script.title || t("dashboard.untitledScript")}
                 </h3>
                 <div className="mt-4 flex items-center text-xs text-muted-foreground w-full gap-2">
                   <Clock className="w-3 h-3" />

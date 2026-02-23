@@ -6,13 +6,15 @@ import { MarkerStyleSettings } from "./configs/MarkerStyleSettings";
 import { MarkerAnalysisSettings } from "./configs/MarkerAnalysisSettings";
 import { MarkerPreview } from "./configs/MarkerPreview";
 import { AlertCircle } from "lucide-react";
+import { useI18n } from "../../../contexts/I18nContext";
 
 export function MarkerDetailEditor({ config, idx, updateMarker, isAdvancedMode, setIsAdvancedMode }) {
+    const { t } = useI18n();
     if (!config) {
         return (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground bg-muted/20 rounded-lg border border-dashed border-border/50 p-8">
                 <AlertCircle className="w-10 h-10 mb-2 opacity-20" />
-                <p className="text-sm">請從左側列表選擇一個標記規則以進行編輯</p>
+                <p className="text-sm">{t("markerDetailEditor.selectRuleHint")}</p>
             </div>
         );
     }
@@ -22,16 +24,19 @@ export function MarkerDetailEditor({ config, idx, updateMarker, isAdvancedMode, 
             {/* Header */}
             <div className="p-3 border-b flex items-center justify-between bg-muted/20">
                 <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-foreground/80">{config.label || "未命名標記"}</span>
+                    <span className="text-xs font-medium text-foreground/80">{config.label || t("markerDetailEditor.unnamedMarker")}</span>
                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                        {config.matchMode === 'range' ? '區間' : 
-                         config.type === 'block' || config.isBlock ? '整段套用' : '文字內標示'}
+                        {config.matchMode === "range"
+                            ? t("markerDetailEditor.badgeRange")
+                            : config.type === "block" || config.isBlock
+                                ? t("markerDetailEditor.badgeBlock")
+                                : t("markerDetailEditor.badgeInline")}
                     </span>
                 </div>
                 
                 {/* Mode Toggle */}
                 <div className="flex items-center gap-2">
-                    <span className={`text-[10px] uppercase font-bold tracking-wider ${!isAdvancedMode ? 'text-primary' : 'text-muted-foreground'}`}>簡易</span>
+                    <span className={`text-[10px] uppercase font-bold tracking-wider ${!isAdvancedMode ? "text-primary" : "text-muted-foreground"}`}>{t("markerDetailEditor.simpleMode")}</span>
                     <label className="relative inline-flex items-center cursor-pointer">
                         <input 
                             type="checkbox" 
@@ -41,11 +46,11 @@ export function MarkerDetailEditor({ config, idx, updateMarker, isAdvancedMode, 
                         />
                         <div className="w-7 h-4 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary"></div>
                     </label>
-                    <span className={`text-[10px] uppercase font-bold tracking-wider ${isAdvancedMode ? 'text-primary' : 'text-muted-foreground'}`}>進階</span>
+                    <span className={`text-[10px] uppercase font-bold tracking-wider ${isAdvancedMode ? "text-primary" : "text-muted-foreground"}`}>{t("markerDetailEditor.advancedMode")}</span>
                 </div>
             </div>
             
-            {/* 即時預覽 */}
+            {/* Live preview */}
             <div className="p-3 border-b bg-muted/10">
                 <MarkerPreview config={config} />
             </div>
@@ -54,7 +59,7 @@ export function MarkerDetailEditor({ config, idx, updateMarker, isAdvancedMode, 
                 {!isAdvancedMode ? (
                     <div className="space-y-6">
                         <div className="space-y-2">
-                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">基本設定</h3>
+                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t("markerDetailEditor.basicSettings")}</h3>
                             <MarkerGeneralSettings 
                                 config={config} 
                                 idx={idx} 
@@ -63,7 +68,7 @@ export function MarkerDetailEditor({ config, idx, updateMarker, isAdvancedMode, 
                             />
                         </div>
                         <div className="space-y-2 pt-4 border-t border-border/50">
-                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">匹配邏輯</h3>
+                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t("markerDetailEditor.matchLogic")}</h3>
                             <MarkerLogicSettings 
                                 config={config} 
                                 idx={idx} 
@@ -72,7 +77,7 @@ export function MarkerDetailEditor({ config, idx, updateMarker, isAdvancedMode, 
                             />
                         </div>
                         <div className="space-y-2 pt-4 border-t border-border/50">
-                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">顯示樣式</h3>
+                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t("markerDetailEditor.displayStyle")}</h3>
                             <MarkerStyleSettings 
                                 config={config} 
                                 idx={idx} 
@@ -83,10 +88,10 @@ export function MarkerDetailEditor({ config, idx, updateMarker, isAdvancedMode, 
                 ) : (
                     <Tabs defaultValue="general" className="w-full">
                         <TabsList className="w-full grid grid-cols-2 sm:grid-cols-4 mb-4 gap-1 h-auto sm:h-9">
-                            <TabsTrigger value="general">一般</TabsTrigger>
-                            <TabsTrigger value="logic">邏輯</TabsTrigger>
-                            <TabsTrigger value="style">樣式</TabsTrigger>
-                            <TabsTrigger value="analysis">分析</TabsTrigger>
+                            <TabsTrigger value="general">{t("markerDetailEditor.tabGeneral")}</TabsTrigger>
+                            <TabsTrigger value="logic">{t("markerDetailEditor.tabLogic")}</TabsTrigger>
+                            <TabsTrigger value="style">{t("markerDetailEditor.tabStyle")}</TabsTrigger>
+                            <TabsTrigger value="analysis">{t("markerDetailEditor.tabAnalysis")}</TabsTrigger>
                         </TabsList>
                         
                         <TabsContent value="general" className="mt-0 space-y-4">

@@ -1,26 +1,26 @@
 import React, { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { 
-  Settings, 
-  Info, 
+import {
+  Settings,
+  Info,
   PanelLeftClose,
   Library,
   PencilLine,
   LayoutTemplate,
-  AlignLeft,
-  ChevronLeft
+  Images
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { ScrollArea } from "../ui/scroll-area";
 import { Separator } from "../ui/separator";
 import UserMenu from "../auth/UserMenu";
+import { useI18n } from "../../contexts/I18nContext";
 
 function MobileMenu({
   // Scene Props
   sceneList = [],
   currentSceneId,
   onSelectScene,
-  
+
   // Navigation
   // activeFile, // Removed
   openAbout,
@@ -31,6 +31,7 @@ function MobileMenu({
 }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useI18n();
   const handleHome = () => {
      if (openHome) openHome();
      navigate("/dashboard");
@@ -43,8 +44,8 @@ function MobileMenu({
       onClick={onClick}
       className={`
         w-full justify-start gap-3 h-12 text-base font-normal
-        ${isActive 
-          ? "bg-primary/10 text-primary font-medium" 
+        ${isActive
+          ? "bg-primary/10 text-primary font-medium"
           : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
         }
         ${className}
@@ -77,53 +78,58 @@ function MobileMenu({
          <ScrollArea className="flex-1">
              <div className="p-4 space-y-6">
                  <div className="space-y-1">
-                     <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">快速導航</div>
-                     
-                     <NavItem 
-                         icon={PencilLine} 
-                         label="閱讀與寫作 (Workspace)" 
+                     <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">{t("mobileMenu.quickNav")}</div>
+
+                     <NavItem
+                         icon={PencilLine}
+                         label={t("nav.workspace")}
                          onClick={handleHome}
                          isActive={location.pathname.includes("/dashboard")}
                      />
 
-                     <NavItem 
-                         icon={Library} 
-                         label="公開台本 (Gallery)" 
+                     <NavItem
+                         icon={Library}
+                         label={t("nav.gallery")}
                          onClick={() => { navigate("/"); onClose(); }}
                          isActive={location.pathname === "/"}
                      />
-                     
-                     <NavItem 
-                         icon={LayoutTemplate} 
-                         label="工作室 (Studio)" 
+
+                     <NavItem
+                         icon={LayoutTemplate}
+                         label={t("nav.studio")}
                          onClick={() => { navigate("/studio"); onClose(); }}
                          isActive={location.pathname === "/studio"}
+                     />
+                     <NavItem
+                         icon={Images}
+                         label={t("nav.mediaLibrary")}
+                         onClick={() => { openSettings("media"); onClose(); }}
                      />
                  </div>
 
                  <Separator />
 
                  <div className="space-y-1">
-                     <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">應用程式</div>
-                     <NavItem 
-                         icon={Info} 
-                         label="關於 (About)" 
-                         onClick={() => { openAbout(); onClose(); }} 
+                     <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">{t("mobileMenu.appSection")}</div>
+                     <NavItem
+                         icon={Info}
+                         label={t("app.about")}
+                         onClick={() => { openAbout(); onClose(); }}
                      />
-                     <NavItem 
-                         icon={Settings} 
-                         label="設定 (Settings)" 
-                         onClick={() => { openSettings(); onClose(); }} 
+                     <NavItem
+                         icon={Settings}
+                         label={t("app.settings")}
+                         onClick={() => { openSettings(); onClose(); }}
                      />
                  </div>
              </div>
          </ScrollArea>
       </div>
-      
+
       {/* Footer: User Login/Profile */}
       <div className="p-3 border-t border-border/60 bg-background/80 backdrop-blur-sm shrink-0">
-          <UserMenu 
-              openSettings={() => { openSettings(); onClose(); }} 
+          <UserMenu
+              openSettings={() => { openSettings(); onClose(); }}
               openAbout={() => { openAbout(); onClose(); }}
           />
       </div>

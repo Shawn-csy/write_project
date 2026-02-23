@@ -6,8 +6,10 @@ import { Input } from "../../../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../ui/select";
 import { Button } from "../../../ui/button";
 import { Trash2 } from "lucide-react";
+import { useI18n } from "../../../../contexts/I18nContext";
 
 export function ImportRuleEditor({ rule, onChange, onDelete }) {
+    const { t } = useI18n();
     const ruleColor = rule.style?.color || rule.color || "#000000";
     const fieldKey = String(rule.id || rule.label || rule.start || rule.pattern || "rule").replace(/\s+/g, "-");
 
@@ -39,17 +41,17 @@ export function ImportRuleEditor({ rule, onChange, onDelete }) {
             <PopoverContent className="w-[90vw] sm:w-96" side="bottom" align="start">
                 <div className="grid gap-4 max-h-[500px] overflow-y-auto">
                     <div className="space-y-2">
-                        <h4 className="font-medium leading-none">編輯標記規則</h4>
+                        <h4 className="font-medium leading-none">{t("importRuleEditor.title")}</h4>
                         <p className="text-sm text-muted-foreground">
-                            調整此規則的識別方式與顯示樣式。
+                            {t("importRuleEditor.desc")}
                         </p>
                     </div>
                     
-                    {/* 樣式設定 (Style) */}
+                    {/* Style settings */}
                     <div className="grid gap-2 p-3 bg-muted/20 rounded-md">
-                        <div className="text-xs font-semibold text-muted-foreground mb-1">顯示樣式</div>
+                        <div className="text-xs font-semibold text-muted-foreground mb-1">{t("importRuleEditor.styleSection")}</div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
-                            <Label htmlFor={`color-${fieldKey}`} className="text-xs">顏色</Label>
+                            <Label htmlFor={`color-${fieldKey}`} className="text-xs">{t("importRuleEditor.color")}</Label>
                             <div className="col-span-2 flex gap-2">
                                 <Input
                                     id={`color-${fieldKey}`}
@@ -66,7 +68,7 @@ export function ImportRuleEditor({ rule, onChange, onDelete }) {
                             </div>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
-                            <Label htmlFor={`label-${fieldKey}`} className="text-xs">顯示標籤</Label>
+                            <Label htmlFor={`label-${fieldKey}`} className="text-xs">{t("importRuleEditor.displayLabel")}</Label>
                             <Input
                                 id={`label-${fieldKey}`}
                                 value={rule.label || ""}
@@ -76,17 +78,17 @@ export function ImportRuleEditor({ rule, onChange, onDelete }) {
                         </div>
                     </div>
 
-                    {/* 邏輯設定 (Logic) */}
+                    {/* Logic settings */}
                     <div className="grid gap-2 p-3 bg-blue-50/50 dark:bg-blue-950/20 rounded-md border border-blue-100 dark:border-blue-900">
-                        <div className="text-xs font-semibold text-muted-foreground mb-1">識別邏輯</div>
+                        <div className="text-xs font-semibold text-muted-foreground mb-1">{t("importRuleEditor.logicSection")}</div>
                         
-                        {/* 模式選擇 */}
+                        {/* Mode selector */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
-                            <Label className="text-xs">模式</Label>
+                            <Label className="text-xs">{t("importRuleEditor.mode")}</Label>
                             <Select 
                                 value={rule.matchMode || (rule.type === 'prefix' ? 'prefix' : 'enclosure')}
                                 onValueChange={(val) => {
-                                    // 當切換模式時，預設一些值
+                                    // Reset end symbol when switched to prefix mode.
                                     updateRule("matchMode", val);
                                     if (val === 'prefix') {
                                         updateRule("end", "");
@@ -97,16 +99,16 @@ export function ImportRuleEditor({ rule, onChange, onDelete }) {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="prefix">行首前綴 (Prefix)</SelectItem>
-                                    <SelectItem value="enclosure">包圍符號 (Start...End)</SelectItem>
-                                    <SelectItem value="regex">正規表達式 (Regex)</SelectItem>
+                                    <SelectItem value="prefix">{t("importRuleEditor.modePrefix")}</SelectItem>
+                                    <SelectItem value="enclosure">{t("importRuleEditor.modeEnclosure")}</SelectItem>
+                                    <SelectItem value="regex">{t("importRuleEditor.modeRegex")}</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
 
-                        {/* 區塊/行內切換 */}
+                        {/* Block/inline toggle */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
-                            <Label className="text-xs">層級</Label>
+                            <Label className="text-xs">{t("importRuleEditor.level")}</Label>
                             <div className="col-span-2 flex items-center gap-2">
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input 
@@ -115,15 +117,15 @@ export function ImportRuleEditor({ rule, onChange, onDelete }) {
                                         onChange={(e) => updateRule('isBlock', e.target.checked)}
                                         className="rounded border-gray-300 text-xs"
                                     />
-                                    <span className="text-xs text-muted-foreground">視為區塊 (Block)</span>
+                                    <span className="text-xs text-muted-foreground">{t("importRuleEditor.treatAsBlock")}</span>
                                 </label>
                             </div>
                         </div>
 
-                        {/* 符號設定 */}
+                        {/* Symbol settings */}
                         {rule.matchMode === 'regex' ? (
                                 <div className="space-y-1">
-                                <Label className="text-xs">Regex Pattern</Label>
+                                <Label className="text-xs">{t("importRuleEditor.regexPattern")}</Label>
                                 <Input
                                     value={rule.regex || ""}
                                     className="h-7 text-xs font-mono"
@@ -133,7 +135,7 @@ export function ImportRuleEditor({ rule, onChange, onDelete }) {
                         ) : (
                             <>
                                 <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
-                                    <Label className="text-xs">開始符號</Label>
+                                    <Label className="text-xs">{t("importRuleEditor.startSymbol")}</Label>
                                     <Input
                                         value={rule.start || ""}
                                         className="sm:col-span-2 h-7 text-xs font-mono"
@@ -143,7 +145,7 @@ export function ImportRuleEditor({ rule, onChange, onDelete }) {
                                 
                                 {(rule.matchMode === 'enclosure' || (!rule.matchMode && rule.end)) && (
                                     <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
-                                        <Label className="text-xs">結束符號</Label>
+                                        <Label className="text-xs">{t("importRuleEditor.endSymbol")}</Label>
                                         <Input
                                             value={rule.end || ""}
                                             className="sm:col-span-2 h-7 text-xs font-mono"
@@ -155,11 +157,11 @@ export function ImportRuleEditor({ rule, onChange, onDelete }) {
                         )}
                     </div>
 
-                    {/* 顯示樣板 (Template) */}
+                    {/* Display template */}
                     <div className="grid gap-2 p-3 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-md border border-indigo-100 dark:border-indigo-900">
-                        <div className="text-xs font-semibold text-muted-foreground mb-1">顯示樣板 (Replace With)</div>
+                        <div className="text-xs font-semibold text-muted-foreground mb-1">{t("importRuleEditor.templateSection")}</div>
                         <div className="space-y-2">
-                            <Label className="text-xs">樣板內容</Label>
+                            <Label className="text-xs">{t("importRuleEditor.templateContent")}</Label>
                             <Input 
                                 value={rule.renderer?.template || ""}
                                 onChange={(e) => {
@@ -167,10 +169,10 @@ export function ImportRuleEditor({ rule, onChange, onDelete }) {
                                     updateRule('renderer', { ...renderer, template: e.target.value });
                                 }}
                                 className="h-7 text-xs font-mono"
-                                placeholder="例如: [SFX: {{content}}]"
+                                placeholder={t("importRuleEditor.templatePlaceholder")}
                             />
                             <p className="text-[10px] text-muted-foreground">
-                                使用 <code>{'{{content}}'}</code> 代表原始內容。
+                                {t("importRuleEditor.templateHelpPrefix")} <code>{'{{content}}'}</code> {t("importRuleEditor.templateHelpSuffix")}
                             </p>
                         </div>
                     </div>
@@ -183,7 +185,7 @@ export function ImportRuleEditor({ rule, onChange, onDelete }) {
                                 onClick={onDelete}
                             >
                                 <Trash2 className="w-4 h-4 mr-2" />
-                                刪除此規則
+                                {t("importRuleEditor.deleteRule")}
                             </Button>
                         </div>
                     )}

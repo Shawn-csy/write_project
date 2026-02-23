@@ -9,9 +9,11 @@ import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
 import { Slider } from "../ui/slider";
 import { useSettings } from "../../contexts/SettingsContext";
+import { useI18n } from "../../contexts/I18nContext";
 import { cn } from "../../lib/utils";
 
 export function AppearanceSettings({ sectionRef }) {
+  const { t } = useI18n();
   const {
       // Theme
       isDark, setTheme, accent, accentOptions, setAccent, accentThemes,
@@ -35,9 +37,9 @@ export function AppearanceSettings({ sectionRef }) {
   ];
 
   const lineHeightOptions = [
-    { label: "Compact", value: 1.2 },
-    { label: "Standard", value: 1.5 },
-    { label: "Relaxed", value: 1.8 },
+    { label: t("appearance.compact"), value: 1.2 },
+    { label: t("appearance.standard"), value: 1.5 },
+    { label: t("appearance.relaxed"), value: 1.8 },
   ];
 
   return (
@@ -48,8 +50,8 @@ export function AppearanceSettings({ sectionRef }) {
               <Palette className="w-4 h-4" />
            </div>
            <div>
-             <CardTitle className="text-base">外觀與閱讀 (Appearance)</CardTitle>
-             <CardDescription className="text-xs mt-0.5">自訂介面主題、字體大小與排版樣式</CardDescription>
+             <CardTitle className="text-base">{t("appearance.title")}</CardTitle>
+             <CardDescription className="text-xs mt-0.5">{t("appearance.subtitle")}</CardDescription>
            </div>
         </div>
       </CardHeader>
@@ -60,7 +62,7 @@ export function AppearanceSettings({ sectionRef }) {
         <div className="space-y-3">
             <label className="text-sm font-medium text-foreground/90 flex items-center gap-2">
                 <Monitor className="w-3.5 h-3.5 text-muted-foreground" />
-                主題配色
+                {t("appearance.theme")}
             </label>
             <div className="flex flex-wrap items-center gap-4">
                 {/* Dark Mode Toggle */}
@@ -72,7 +74,7 @@ export function AppearanceSettings({ sectionRef }) {
                             !isDark ? "bg-background text-foreground shadow-sm ring-1 ring-border/50" : "text-muted-foreground hover:text-foreground"
                         )}
                     >
-                        <Sun className="w-3.5 h-3.5" /> 亮色
+                        <Sun className="w-3.5 h-3.5" /> {t("appearance.light")}
                     </button>
                     <button
                          onClick={() => setTheme("dark")}
@@ -81,7 +83,7 @@ export function AppearanceSettings({ sectionRef }) {
                             isDark ? "bg-background text-foreground shadow-sm ring-1 ring-border/50" : "text-muted-foreground hover:text-foreground"
                         )}
                     >
-                        <Moon className="w-3.5 h-3.5" /> 暗色
+                        <Moon className="w-3.5 h-3.5" /> {t("appearance.dark")}
                     </button>
                 </div>
 
@@ -118,14 +120,14 @@ export function AppearanceSettings({ sectionRef }) {
              <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-foreground/90 flex items-center gap-2">
                     <Type className="w-3.5 h-3.5 text-muted-foreground" />
-                    字體排版
+                    {t("appearance.typography")}
                 </label>
                 <div className="flex gap-2">
                    <button 
                       onClick={() => setShowAdvancedFont(!showAdvancedFont)}
                       className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground hover:text-foreground transition-colors"
                    >
-                     {showAdvancedFont ? "簡易模式" : "進階設定"}
+                     {showAdvancedFont ? t("appearance.simple") : t("appearance.advanced")}
                    </button>
                 </div>
              </div>
@@ -133,7 +135,7 @@ export function AppearanceSettings({ sectionRef }) {
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  {/* Font Size Group */}
                  <div className="space-y-1.5">
-                     <span className="text-xs text-muted-foreground ml-1">字級大小 (Size)</span>
+                     <span className="text-xs text-muted-foreground ml-1">{t("appearance.fontSize")}</span>
                      <div className="flex items-center gap-1 bg-muted/30 p-1 rounded-lg border border-border/40">
                          {fontPresets.map((opt) => {
                              const isActive = bodyFontSize === opt.value;
@@ -159,7 +161,7 @@ export function AppearanceSettings({ sectionRef }) {
 
                  {/* Line Height Group */}
                  <div className="space-y-1.5">
-                     <span className="text-xs text-muted-foreground ml-1">行距寬度 (Spacing)</span>
+                     <span className="text-xs text-muted-foreground ml-1">{t("appearance.lineHeight")}</span>
                      <div className="flex items-center gap-1 bg-muted/30 p-1 rounded-lg border border-border/40">
                          {lineHeightOptions.map((opt) => {
                              const isActive = Math.abs(lineHeight - opt.value) < 0.1;
@@ -185,7 +187,7 @@ export function AppearanceSettings({ sectionRef }) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 animate-in fade-in slide-in-from-top-1">
                    <div className="space-y-1.5">
                        <div className="flex justify-between px-1">
-                          <span className="text-[10px] text-muted-foreground">正文: {bodyFontSize}px</span>
+                          <span className="text-[10px] text-muted-foreground">{t("appearance.body")}: {bodyFontSize}px</span>
                        </div>
                        <Slider 
                           value={[bodyFontSize]} 
@@ -196,7 +198,7 @@ export function AppearanceSettings({ sectionRef }) {
                    </div>
                    <div className="space-y-1.5">
                        <div className="flex justify-between px-1">
-                          <span className="text-[10px] text-muted-foreground">對白: {dialogueFontSize}px</span>
+                          <span className="text-[10px] text-muted-foreground">{t("appearance.dialogue")}: {dialogueFontSize}px</span>
                        </div>
                        <Slider 
                           value={[dialogueFontSize]} 
@@ -215,7 +217,7 @@ export function AppearanceSettings({ sectionRef }) {
         <div className="space-y-3">
             <label className="text-sm font-medium text-foreground/90 flex items-center gap-2">
                 <LayoutTemplate className="w-3.5 h-3.5 text-muted-foreground" />
-                介面顯示
+                {t("appearance.display")}
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
@@ -229,7 +231,7 @@ export function AppearanceSettings({ sectionRef }) {
                 >
                     <span className="flex items-center gap-2">
                         <AlignJustify className="w-4 h-4 opacity-70" />
-                        行底線輔助 (Line Guide)
+                        {t("appearance.lineGuide")}
                     </span>
                     <div className={cn(
                         "w-8 h-4 rounded-full relative transition-colors",

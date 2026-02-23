@@ -1,6 +1,7 @@
 import React from "react";
 import ScriptSurface from "../editor/ScriptSurface";
 import { useScriptViewerDefaults } from "../../hooks/useScriptViewerDefaults";
+import { useI18n } from "../../contexts/I18nContext";
 
 function ScriptPanel({
   isLoading,
@@ -32,6 +33,7 @@ function ScriptPanel({
   onDoubleClick,
   hiddenMarkerIds: propHiddenMarkerIds, // Optional override
 }) {
+  const { t } = useI18n();
   const viewerDefaults = useScriptViewerDefaults({
     theme,
     fontSize,
@@ -51,8 +53,8 @@ function ScriptPanel({
       onScrollProgress={onScrollProgress}
       onDoubleClick={onDoubleClick}
       isLoading={isLoading}
-      loadingMessage="載入中..."
-      emptyMessage="乖乖過期了嗎。"
+      loadingMessage={t("scriptPanel.loading")}
+      emptyMessage={t("scriptPanel.empty")}
       text={rawScript}
       viewerProps={{
         filterCharacter,

@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { useAuth } from "../../contexts/AuthContext";
+import { useI18n } from "../../contexts/I18nContext";
 import { Lock, Home, PanelLeftOpen } from "lucide-react";
 import { Button } from "../ui/button";
+import { LanguageSwitcher } from "../common/LanguageSwitcher";
 
 import WelcomeLanding from "./WelcomeLanding";
 import { ReadTab } from "./ReadTab";
@@ -17,6 +19,7 @@ export default function HybridDashboard({
     openMobileMenu
 }) {
   const { currentUser, login } = useAuth();
+  const { t } = useI18n();
   
   const getInitialTab = () => {
         if (typeof window !== "undefined") {
@@ -93,22 +96,26 @@ export default function HybridDashboard({
                             variant="ghost" 
                             size="icon" 
                             onClick={() => setSidebarOpen && setSidebarOpen(true)}
-                            title="展開側邊欄"
+                            title={t("common.openList")}
                          >
                             <PanelLeftOpen className="w-5 h-5 text-muted-foreground" />
                         </Button>
                     </div>
 
                     <TabsList className="flex-1 sm:flex-none">
-                        <TabsTrigger value="read" className="flex-1 sm:w-auto px-4 sm:px-6">閱讀 (Read)</TabsTrigger>
-                        <TabsTrigger value="write" className="flex-1 sm:w-auto px-4 sm:px-6">創作 (Write)</TabsTrigger>
+                        <TabsTrigger value="read" className="flex-1 sm:w-auto px-4 sm:px-6">{t("tabs.read")}</TabsTrigger>
+                        <TabsTrigger value="write" className="flex-1 sm:w-auto px-4 sm:px-6">{t("tabs.write")}</TabsTrigger>
                     </TabsList>
+
+                    <div className="ml-auto sm:ml-0">
+                        <LanguageSwitcher selectClassName="h-8" />
+                    </div>
                     
                     {!currentUser && (
-                        <div className="ml-auto">
+                        <div>
                             <Button variant="ghost" size="sm" onClick={() => setShowLanding(true)}>
                                 <Home className="w-4 h-4 mr-2" />
-                                <span className="hidden sm:inline">回首頁</span>
+                                <span className="hidden sm:inline">{t("hybridDashboard.backHome")}</span>
                             </Button>
                         </div>
                     )}
@@ -148,7 +155,7 @@ export default function HybridDashboard({
                             
                             const id = await createScript(title, "script", folder);
                             await updateScript(id, { content });
-                            alert("匯入成功！");
+                            alert(t("hybridDashboard.importSuccess"));
                             setRefreshKey(prev => prev + 1);
                             setActiveTab("write");
                         }) : null}
@@ -195,12 +202,12 @@ export default function HybridDashboard({
                                       await updateScript(id, { content });
                                  }
 
-                                 alert(`成功匯入 ${files.length} 個檔案！`);
+                                 alert(t("hybridDashboard.importManySuccess").replace("{count}", String(files.length)));
                                  setRefreshKey(prev => prev + 1);
                                  setActiveTab("write");
                              } catch(e) {
                                  console.error(e);
-                                 alert("匯入過程中發生錯誤");
+                                 alert(t("hybridDashboard.importError"));
                              }
                         }) : null}
                     />
@@ -212,11 +219,11 @@ export default function HybridDashboard({
                     ) : (
                         <div className="flex flex-col items-center justify-center h-full text-center border-2 border-dashed rounded-xl m-4">
                             <Lock className="w-10 h-10 text-muted-foreground mb-4" />
-                            <h3 className="text-lg font-semibold mb-2">請先登入</h3>
+                            <h3 className="text-lg font-semibold mb-2">{t("hybridDashboard.loginRequiredTitle")}</h3>
                             <p className="text-muted-foreground mb-6 max-w-sm">
-                                登入後即可開始創作、建立資料夾並管理您的雲端劇本。
+                                {t("hybridDashboard.loginRequiredDesc")}
                             </p>
-                            <Button onClick={login}>登入 / 註冊</Button>
+                            <Button onClick={login}>{t("userMenu.loginOrRegister")}</Button>
                         </div>
                     )}
                 </TabsContent>

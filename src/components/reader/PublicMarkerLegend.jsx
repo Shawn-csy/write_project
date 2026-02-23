@@ -1,8 +1,10 @@
 import React from "react";
 import { ArrowRight } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { useI18n } from "../../contexts/I18nContext";
 
 export function PublicMarkerLegend({ markerConfigs, className }) {
+  const { t } = useI18n();
   if (!markerConfigs || markerConfigs.length === 0) return null;
 
   return (
@@ -10,7 +12,7 @@ export function PublicMarkerLegend({ markerConfigs, className }) {
       {markerConfigs.map((config) => {
         // Determine preview text based on type
         const isBlock = config.type === 'block' || config.isBlock;
-        const previewText = "預覽效果"; // Simple text for the legend
+        const previewText = t("publicMarkerLegend.previewText");
 
         // Style for the preview side
         // forced inline-block for better alignment in the legend
@@ -45,14 +47,14 @@ export function PublicMarkerLegend({ markerConfigs, className }) {
                             margin: 0
                         }}
                      >
-                        {previewText.replace("預覽效果", `${config.label || config.id}`)}
+                        {previewText.replace("{label}", `${config.label || config.id}`)}
                      </div>
                  ) : (
                     <span 
                         className="px-1.5 py-0.5 rounded-sm truncate inline-block align-middle"
                         style={previewStyle}
                     >
-                        {previewText.replace("預覽效果", `${config.label || config.id}`)}
+                        {previewText.replace("{label}", `${config.label || config.id}`)}
                     </span>
                  )}
             </div>

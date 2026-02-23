@@ -1,12 +1,20 @@
 import React from 'react';
 import { Check } from 'lucide-react';
 import { cn } from '../../../../lib/utils';
+import { useI18n } from '../../../../contexts/I18nContext';
 
 /**
  * Wizard 進度指示器
  * 顯示當前步驟與整體進度
  */
 export function WizardProgress({ currentStep, steps }) {
+    const { t } = useI18n();
+    const labelMap = {
+        type: t("markerWizardProgress.type"),
+        symbol: t("markerWizardProgress.symbol"),
+        style: t("markerWizardProgress.style"),
+    };
+
     return (
         <div className="flex items-center justify-center gap-2 py-4">
             {steps.map((step, index) => {
@@ -36,7 +44,7 @@ export function WizardProgress({ currentStep, steps }) {
                                 "text-[10px] font-medium",
                                 isActive ? "text-primary" : "text-muted-foreground"
                             )}>
-                                {step.label}
+                                {labelMap[step.id] || step.label}
                             </span>
                         </div>
                         
@@ -57,7 +65,7 @@ export function WizardProgress({ currentStep, steps }) {
 }
 
 export const WIZARD_STEPS = [
-    { id: 'type', label: '選擇類型' },
-    { id: 'symbol', label: '設定符號' },
-    { id: 'style', label: '選擇樣式' }
+    { id: 'type', label: 'type' },
+    { id: 'symbol', label: 'symbol' },
+    { id: 'style', label: 'style' }
 ];

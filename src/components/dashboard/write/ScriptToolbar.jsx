@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "../../ui/button";
 import SearchBar from "../SearchBar";
+import { useI18n } from "../../../contexts/I18nContext";
 
 export function ScriptToolbar({
     currentPath,
@@ -24,11 +25,12 @@ export function ScriptToolbar({
     onCreateFolder,
     onCreateScript
 }) {
+    const { t } = useI18n();
     return (
         <div className="flex items-center justify-between mb-4 shrink-0 gap-2">
              <div className="flex-1 max-w-sm flex items-center gap-2">
                  {currentPath !== "/" && (
-                     <Button variant="ghost" size="icon" onClick={goUp} title="回上一層" className="shrink-0">
+                     <Button variant="ghost" size="icon" onClick={goUp} title={t("scriptToolbar.back")} className="shrink-0">
                          <ArrowLeft className="w-4 h-4" />
                      </Button>
                  )}
@@ -59,29 +61,29 @@ export function ScriptToolbar({
 
             {!readOnly && (
             <div className="flex items-center gap-1">
-                 <Button size="icon" variant="ghost" onClick={() => onExport && onExport()} title="全部匯出 (Backup)">
+                 <Button size="icon" variant="ghost" onClick={() => onExport && onExport()} title={t("scriptToolbar.exportAll")}>
                     <Download className="w-4 h-4" />
                  </Button>
-                 <Button size="sm" variant="outline" onClick={() => onImport && onImport()} title="匯入台本" className="hidden sm:inline-flex">
+                 <Button size="sm" variant="outline" onClick={() => onImport && onImport()} title={t("scriptToolbar.importScript")} className="hidden sm:inline-flex">
                     <Upload className="w-4 h-4 mr-1" />
-                    匯入
+                    {t("scriptToolbar.import")}
                  </Button>
-                 <Button size="icon" variant="ghost" onClick={() => onImport && onImport()} title="匯入台本" className="sm:hidden">
+                 <Button size="icon" variant="ghost" onClick={() => onImport && onImport()} title={t("scriptToolbar.importScript")} className="sm:hidden">
                     <Upload className="w-4 h-4" />
                  </Button>
                  <div className="w-px h-4 bg-border/60 mx-1" />
-                 <Button size="sm" variant="outline" onClick={onCreateFolder} title="新增資料夾" className="hidden md:inline-flex">
+                 <Button size="sm" variant="outline" onClick={onCreateFolder} title={t("scriptToolbar.newFolder")} className="hidden md:inline-flex">
                     <FolderPlus className="w-4 h-4 mr-1" />
-                    資料夾
+                    {t("scriptToolbar.folder")}
                  </Button>
-                 <Button size="icon" variant="ghost" onClick={onCreateFolder} title="新增資料夾" className="md:hidden">
+                 <Button size="icon" variant="ghost" onClick={onCreateFolder} title={t("scriptToolbar.newFolder")} className="md:hidden">
                     <FolderPlus className="w-4 h-4" />
                  </Button>
-                 <Button size="sm" onClick={onCreateScript} title="新增劇本" className="hidden sm:inline-flex">
+                 <Button size="sm" onClick={onCreateScript} title={t("scriptToolbar.newScript")} className="hidden sm:inline-flex">
                     <Plus className="w-4 h-4 mr-1" />
-                    新增劇本
+                    {t("scriptToolbar.newScriptLabel")}
                  </Button>
-                 <Button size="icon" onClick={onCreateScript} title="新增劇本" className="sm:hidden">
+                 <Button size="icon" onClick={onCreateScript} title={t("scriptToolbar.newScript")} className="sm:hidden">
                     <Plus className="w-4 h-4" />
                  </Button>
             </div>

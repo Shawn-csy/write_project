@@ -1,5 +1,6 @@
 import React from "react";
 import { Settings } from "lucide-react";
+import { useI18n } from "../../contexts/I18nContext";
 
 export function MarkerRulesPanel({
   show,
@@ -8,18 +9,19 @@ export function MarkerRulesPanel({
   readOnly,
   onOpenMarkerSettings
 }) {
+  const { t } = useI18n();
   if (!show) return null;
 
   return (
     <div className="absolute top-12 right-4 w-80 max-h-[80%] overflow-y-auto bg-popover border border-border rounded-lg shadow-xl z-50 p-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-sm flex items-center gap-2">
-          標記規則速查
+          {t("markerRules.title")}
           {!readOnly && onOpenMarkerSettings && (
             <button
               onClick={onOpenMarkerSettings}
               className="p-1 hover:bg-muted rounded-full text-muted-foreground hover:text-primary transition-colors"
-              title="前往自訂標記設定"
+              title={t("markerRules.goSettings")}
             >
               <Settings className="w-3.5 h-3.5" />
             </button>
@@ -49,7 +51,7 @@ export function MarkerRulesPanel({
 
             {/* Live Preview Render */}
             <div className="mt-2 text-xs text-muted-foreground mb-1">
-              預覽效果：
+              {t("markerRules.preview")}
             </div>
             <div className="p-3 rounded bg-background border border-dashed border-muted-foreground/20 font-serif">
               {config.isBlock ? (
@@ -70,12 +72,12 @@ export function MarkerRulesPanel({
                         )
                       : config.label || config.id}
                   </div>
-                  <div className="opacity-90">範例段落內容...</div>
+                  <div className="opacity-90">{t("markerRules.sampleParagraph")}</div>
                 </div>
               ) : (
                 // Inline Preview
                 <div>
-                  這是一個
+                  {t("markerRules.inlinePrefix")}
                   <span
                     style={{
                       ...config.style,
@@ -86,11 +88,11 @@ export function MarkerRulesPanel({
                     {config.renderer?.template
                       ? config.renderer.template.replace(
                           /\{\{content\}\}/g,
-                          "範例標記"
+                          t("markerRules.sampleTag")
                         )
-                      : "範例標記"}
+                      : t("markerRules.sampleTag")}
                   </span>
-                  的效果。
+                  {t("markerRules.inlineSuffix")}
                 </div>
               )}
             </div>

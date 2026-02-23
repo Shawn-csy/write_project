@@ -7,14 +7,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useI18n } from "../../contexts/I18nContext";
 
 export function DownloadMenu({
   options = [],
   align = "end",
   triggerClassName = "",
-  title = "下載",
+  title,
   iconOnly = true,
 }) {
+  const { t } = useI18n();
+  const resolvedTitle = title || t("common.download");
   const enabledOptions = options.filter((opt) => !opt?.hidden);
   if (enabledOptions.length === 0) return null;
 
@@ -25,11 +28,11 @@ export function DownloadMenu({
           variant="ghost"
           size="icon"
           className={triggerClassName}
-          title={title}
-          aria-label={title}
+          title={resolvedTitle}
+          aria-label={resolvedTitle}
         >
           <Download className="w-4 h-4" />
-          {!iconOnly && <span className="ml-2 text-xs">{title}</span>}
+          {!iconOnly && <span className="ml-2 text-xs">{resolvedTitle}</span>}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align={align} className="w-44">

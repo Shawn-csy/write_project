@@ -1,13 +1,18 @@
 import React from "react";
 import { PanelLeftOpen } from "lucide-react";
+import { useI18n } from "../../contexts/I18nContext";
 
 export default function SidebarToggleButton({
   onOpen,
   className,
   iconClassName,
-  title = "展開列表",
-  ariaLabel = "展開列表"
+  title,
+  ariaLabel
 }) {
+  const { t } = useI18n();
+  const resolvedTitle = title || t("common.openList");
+  const resolvedAriaLabel = ariaLabel || t("common.openList");
+
   return (
     <button
       type="button"
@@ -16,8 +21,8 @@ export default function SidebarToggleButton({
         e.currentTarget.blur();
         onOpen?.();
       }}
-      aria-label={ariaLabel}
-      title={title}
+      aria-label={resolvedAriaLabel}
+      title={resolvedTitle}
       className={className}
     >
       <PanelLeftOpen className={iconClassName} />

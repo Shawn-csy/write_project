@@ -6,12 +6,14 @@ import { StepStylePicker } from './wizard/StepStylePicker';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../ui/dialog';
 import { Button } from '../../ui/button';
 import { ChevronLeft, ChevronRight, Check, Sparkles } from 'lucide-react';
+import { useI18n } from '../../../contexts/I18nContext';
 
 /**
  * 標記設定 Wizard
  * 引導用戶透過三步驟建立新的標記規則
  */
 export function MarkerWizard({ open, onClose, onComplete, initialConfig = null }) {
+    const { t } = useI18n();
     const [currentStep, setCurrentStep] = useState(1);
     const [markerType, setMarkerType] = useState(null); // 'single' | 'range' | 'inline'
     const [config, setConfig] = useState(initialConfig || {
@@ -75,7 +77,7 @@ export function MarkerWizard({ open, onClose, onComplete, initialConfig = null }
             "sound-effect": {
                 markerType: "single",
                 config: {
-                    label: "音效",
+                    label: t("markerWizard.presetSound"),
                     matchMode: "prefix",
                     isBlock: true,
                     type: "block",
@@ -87,13 +89,13 @@ export function MarkerWizard({ open, onClose, onComplete, initialConfig = null }
             "dialogue-note": {
                 markerType: "inline",
                 config: {
-                    label: "對白註記",
+                    label: t("markerWizard.presetDialogueNote"),
                     matchMode: "enclosure",
                     isBlock: false,
                     type: "inline",
                     start: "(",
                     end: ")",
-                    keywords: ["V.O.", "O.S.", "旁白"],
+                    keywords: ["V.O.", "O.S.", t("markerWizard.presetNarrationKeyword")],
                     dimIfNotKeyword: true,
                     style: { color: "#f97316" },
                 },
@@ -101,7 +103,7 @@ export function MarkerWizard({ open, onClose, onComplete, initialConfig = null }
             "action-note": {
                 markerType: "single",
                 config: {
-                    label: "動作",
+                    label: t("markerWizard.presetAction"),
                     matchMode: "prefix",
                     isBlock: true,
                     type: "block",
@@ -113,7 +115,7 @@ export function MarkerWizard({ open, onClose, onComplete, initialConfig = null }
             "post-production": {
                 markerType: "inline",
                 config: {
-                    label: "後期",
+                    label: t("markerWizard.presetPostProduction"),
                     matchMode: "enclosure",
                     isBlock: true,
                     type: "block",
@@ -219,7 +221,7 @@ export function MarkerWizard({ open, onClose, onComplete, initialConfig = null }
                 <DialogHeader className="pb-2">
                     <DialogTitle className="flex items-center gap-2">
                         <Sparkles className="w-5 h-5 text-primary" />
-                        新增標記規則
+                        {t("markerWizard.title")}
                     </DialogTitle>
                 </DialogHeader>
 
@@ -263,7 +265,7 @@ export function MarkerWizard({ open, onClose, onComplete, initialConfig = null }
                                 className="gap-1"
                             >
                                 <ChevronLeft className="w-4 h-4" />
-                                上一步
+                                {t("markerWizard.back")}
                             </Button>
                         )}
                     </div>
@@ -273,7 +275,7 @@ export function MarkerWizard({ open, onClose, onComplete, initialConfig = null }
                             variant="outline"
                             onClick={handleClose}
                         >
-                            取消
+                            {t("common.cancel")}
                         </Button>
                         {currentStep < 3 ? (
                             <Button
@@ -282,7 +284,7 @@ export function MarkerWizard({ open, onClose, onComplete, initialConfig = null }
                                 disabled={!canProceed}
                                 className="gap-1"
                             >
-                                下一步
+                                {t("markerWizard.next")}
                                 <ChevronRight className="w-4 h-4" />
                             </Button>
                         ) : (
@@ -293,7 +295,7 @@ export function MarkerWizard({ open, onClose, onComplete, initialConfig = null }
                                 className="gap-1"
                             >
                                 <Check className="w-4 h-4" />
-                                完成
+                                {t("markerWizard.complete")}
                             </Button>
                         )}
                     </div>

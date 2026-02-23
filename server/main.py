@@ -453,7 +453,7 @@ async def serve_spa(full_path: str, request: Request, db: database.SessionLocal 
          if full_path.strip("/") == "about":
              canonical_url = f"{_public_base_url()}/about"
              page_title = "關於｜Screenplay Reader"
-             page_desc = "專為華文編劇與劇本愛好者打造的線上閱讀、瀏覽與分享平台。支援業界標準 Fountain 語法，即時排版，跨裝置閱讀。"
+             page_desc = "這是一個面向公開閱讀與創作工作室的台本平台。使用者可以輕鬆瀏覽公開作品、建立專屬頁面並線上編輯劇本。"
              return HTMLResponse(
                  content=_inject_seo_html(
                      html_template,

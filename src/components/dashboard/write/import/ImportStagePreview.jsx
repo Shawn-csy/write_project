@@ -1,15 +1,17 @@
 import React from "react";
 import { Badge } from "../../../ui/badge";
 import { Textarea } from "../../../ui/textarea";
+import { useI18n } from "../../../../contexts/I18nContext";
 
 export function ImportStagePreview({ previewText, setPreviewText }) {
+    const { t } = useI18n();
     return (
         <div className="flex flex-col gap-4 h-full">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                    <h4 className="text-sm font-medium leading-none">確認前置處理結果</h4>
+                    <h4 className="text-sm font-medium leading-none">{t("importStagePreview.title")}</h4>
                     <p className="text-xs text-muted-foreground">
-                        系統已自動清理多餘空白與格式，您可以手動微調內容。
+                        {t("importStagePreview.desc")}
                     </p>
                 </div>
                 <Badge variant="secondary">Cleaned</Badge>
@@ -24,7 +26,7 @@ export function ImportStagePreview({ previewText, setPreviewText }) {
             </div>
             
             <div className="text-xs text-muted-foreground text-center">
-                確認無誤後，請點擊「下一步」設定標記規則
+                {t("importStagePreview.footerHint")}
             </div>
         </div>
     );

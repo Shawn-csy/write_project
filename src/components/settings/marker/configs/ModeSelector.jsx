@@ -1,44 +1,22 @@
 import React from "react";
 import { Brackets, Hash, ArrowLeftRight, Regex } from "lucide-react";
-
-const MODES = [
-    { 
-        id: 'enclosure', 
-        label: '包圍', 
-        icon: Brackets, 
-        example: '[...]',
-        desc: '開始與結束符號'
-    },
-    { 
-        id: 'prefix', 
-        label: '前綴', 
-        icon: Hash, 
-        example: '#...',
-        desc: '只有開始符號'
-    },
-    { 
-        id: 'range', 
-        label: '區間', 
-        icon: ArrowLeftRight, 
-        example: '>>...<<',
-        desc: '跨行範圍'
-    },
-    { 
-        id: 'regex', 
-        label: '正規式', 
-        icon: Regex, 
-        example: '/^.+$/',
-        desc: '進階匹配'
-    }
-];
+import { useI18n } from "../../../../contexts/I18nContext";
 
 /**
- * 模式視覺化選擇器
+ * Visual selector for marker matching modes.
  */
 export function ModeSelector({ value, onChange }) {
+    const { t } = useI18n();
+    const modes = [
+        { id: "enclosure", label: t("modeSelector.enclosure"), icon: Brackets, example: "[...]" },
+        { id: "prefix", label: t("modeSelector.prefix"), icon: Hash, example: "#..." },
+        { id: "range", label: t("modeSelector.range"), icon: ArrowLeftRight, example: ">>...<<" },
+        { id: "regex", label: t("modeSelector.regex"), icon: Regex, example: "/^.+$/" },
+    ];
+
     return (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {MODES.map(mode => {
+            {modes.map(mode => {
                 const Icon = mode.icon;
                 const isActive = value === mode.id;
                 
