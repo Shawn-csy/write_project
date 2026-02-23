@@ -7,6 +7,7 @@ import HeaderTitleBlock from "../header/HeaderTitleBlock";
 import { Badge } from "../ui/badge";
 import { ScriptMetadataDialog } from "../dashboard/ScriptMetadataDialog";
 import { DownloadMenu } from "../common/DownloadMenu";
+import { LanguageSwitcher } from "../common/LanguageSwitcher";
 import { Button } from "../ui/button";
 import { useI18n } from "../../contexts/I18nContext";
 
@@ -139,6 +140,7 @@ export function EditorHeader({
         }
       />
       <div className="flex items-center gap-2 flex-wrap">
+        <LanguageSwitcher />
          {/* Marker Visibility Toggle */}
          <div className="hidden sm:block w-[140px]">
           <MarkerVisibilitySelect

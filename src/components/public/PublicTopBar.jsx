@@ -5,6 +5,7 @@ import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useI18n } from "../../contexts/I18nContext";
+import { LanguageSwitcher } from "../common/LanguageSwitcher";
 
 export function PublicTopBar({
   title,
@@ -58,6 +59,10 @@ export function PublicTopBar({
         )}
 
         <div className="flex items-center gap-2">
+          <LanguageSwitcher
+            selectClassName="bg-background/70 backdrop-blur"
+            ariaLabel={t("settings.language")}
+          />
           <Button
             variant="ghost"
             size="icon"
