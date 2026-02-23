@@ -84,12 +84,12 @@ def read_public_script(script_id: str, db: Session = Depends(get_db)):
     if not script:
         raise HTTPException(status_code=404, detail="Script not found")
     
-    # Root scripts must be explicitly public.
-    if script.folder == "/" and not script.isPublic:
-        raise HTTPException(status_code=404, detail="Script is private")
-    # Nested scripts inherit visibility from parent folder.
-    if script.folder != "/" and not _has_public_parent_folder(db, script):
-        raise HTTPException(status_code=404, detail="Script is private")
+    # If a script is not explicitly public, it must inherit public visibility from its parent folder.
+    if not script.isPublic:
+        if script.folder == "/":
+            raise HTTPException(status_code=404, detail="Script is private")
+        if script.folder != "/" and not _has_public_parent_folder(db, script):
+            raise HTTPException(status_code=404, detail="Script is private")
          
 
     # Normalize nested JSON fields because this route reads ORM objects directly.
@@ -149,10 +149,11 @@ def read_public_script_raw(script_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Script not found")
     
     # Keep the same visibility rule as /public-scripts/{id}.
-    if script.folder == "/" and not script.isPublic:
-        raise HTTPException(status_code=404, detail="Script is private")
-    if script.folder != "/" and not _has_public_parent_folder(db, script):
-        raise HTTPException(status_code=404, detail="Script is private")
+    if not script.isPublic:
+        if script.folder == "/":
+            raise HTTPException(status_code=404, detail="Script is private")
+        if script.folder != "/" and not _has_public_parent_folder(db, script):
+            raise HTTPException(status_code=404, detail="Script is private")
 
     return Response(content=script.content, media_type="text/markdown")
 
