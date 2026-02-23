@@ -6,6 +6,7 @@ import { MediaLibrarySettings } from "../settings/MediaLibrarySettings";
 import SuperAdminPage from "../../pages/SuperAdminPage";
 import { cn } from "../../lib/utils";
 import { useI18n } from "../../contexts/I18nContext";
+import { LanguageSwitcher } from "../common/LanguageSwitcher";
 
 import { X } from "lucide-react";
 
@@ -13,7 +14,7 @@ import { useAuth } from "../../contexts/AuthContext";
 
 function SettingsPanel({ onClose, activeTab, onTabChange }) {
   const { currentUser } = useAuth();
-  const { t, lang, setLang } = useI18n();
+  const { t } = useI18n();
   const scrollContainerRef = useRef(null);
   const [internalTab, setInternalTab] = useState("display");
   
@@ -43,16 +44,7 @@ function SettingsPanel({ onClose, activeTab, onTabChange }) {
                 <X className="w-5 h-5" />
             </button>
             <h2 className="text-xl font-bold tracking-tight flex-1">{t("settings.title")}</h2>
-            <select
-              value={lang}
-              onChange={(e) => setLang(e.target.value)}
-              className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground"
-              aria-label={t("settings.language")}
-            >
-              <option value="zh-TW">{t("settings.languageZh")}</option>
-              <option value="en">{t("settings.languageEn")}</option>
-              <option value="ja">{t("settings.languageJa")}</option>
-            </select>
+            <LanguageSwitcher />
         </div>
 
         <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[220px_1fr]">

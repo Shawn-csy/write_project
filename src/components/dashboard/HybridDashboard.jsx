@@ -4,6 +4,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useI18n } from "../../contexts/I18nContext";
 import { Lock, Home, PanelLeftOpen } from "lucide-react";
 import { Button } from "../ui/button";
+import { LanguageSwitcher } from "../common/LanguageSwitcher";
 
 import WelcomeLanding from "./WelcomeLanding";
 import { ReadTab } from "./ReadTab";
@@ -105,9 +106,13 @@ export default function HybridDashboard({
                         <TabsTrigger value="read" className="flex-1 sm:w-auto px-4 sm:px-6">{t("tabs.read")}</TabsTrigger>
                         <TabsTrigger value="write" className="flex-1 sm:w-auto px-4 sm:px-6">{t("tabs.write")}</TabsTrigger>
                     </TabsList>
+
+                    <div className="ml-auto sm:ml-0">
+                        <LanguageSwitcher selectClassName="h-8" />
+                    </div>
                     
                     {!currentUser && (
-                        <div className="ml-auto">
+                        <div>
                             <Button variant="ghost" size="sm" onClick={() => setShowLanding(true)}>
                                 <Home className="w-4 h-4 mr-2" />
                                 <span className="hidden sm:inline">{t("hybridDashboard.backHome")}</span>

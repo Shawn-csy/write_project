@@ -6,6 +6,7 @@ import { ReaderTOC } from "./ReaderTOC";
 import { MarkerVisibilitySelect } from "../ui/MarkerVisibilitySelect";
 import { useSettings } from "../../contexts/SettingsContext";
 import { DownloadMenu } from "../common/DownloadMenu";
+import { LanguageSwitcher } from "../common/LanguageSwitcher";
 import { useI18n } from "../../contexts/I18nContext";
 
 export function SimplifiedReaderHeader({
@@ -64,6 +65,9 @@ export function SimplifiedReaderHeader({
 
       {/* Right: Actions */}
       <div className="flex items-center gap-2 shrink-0">
+        <LanguageSwitcher
+          selectClassName="bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md border-0"
+        />
         
         {/* Marker Visibility Select (Desktop) */}
          <div className="hidden sm:block w-[140px]">
