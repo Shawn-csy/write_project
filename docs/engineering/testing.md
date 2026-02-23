@@ -49,6 +49,9 @@ npx playwright test --ui
 npx playwright show-report
 ```
 
+> 預設會自動啟動前端 `http://127.0.0.1:1090`（由 `playwright.config.js` 的 `webServer` 啟動 `vite dev`）。  
+> 若自行指定 `PLAYWRIGHT_BASE_URL`，請指向可提供前端頁面的服務（例如 `1090`），不要指向僅後端 API 的位址（例如 `1091`），否則會看到 `Frontend not built`。
+
 ### 測試場景 (Scenarios)
 
 1. **Main Flow (`main-flow.spec.js`)**: 

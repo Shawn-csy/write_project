@@ -30,6 +30,10 @@ export default defineConfig(({ mode }) => {
              return path;
           }
         },
+        "/media": {
+          target: apiUrl,
+          changeOrigin: true,
+        },
       },
     },
   preview: {

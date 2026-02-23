@@ -57,7 +57,7 @@ test.describe('Reader Flow', () => {
         // Actually PublicGalleryPage uses ScriptGalleryCard. Let's look for a link or text.
         
         // Wait for loading to finish
-        await expect(page.locator('.animate-pulse')).not.toBeVisible({ timeout: 10000 });
+        await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15000 });
         
         const count = await page.getByRole('link', { name: /./ }).count(); // ScriptGalleryCard wraps in link? No, onClick navigate.
         // ScriptGalleryCard: onClick={() => navigate(`/read/${script.id}`)}
@@ -87,7 +87,7 @@ test.describe('Reader Flow', () => {
     test('should handle back navigation', async ({ page }) => {
         // Start from public gallery
         await page.goto('/');
-        await page.waitForTimeout(1000);
+        await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15000 });
 
         // Open first script card to reader
         await page.locator('.grid > div').first().click();
