@@ -8,19 +8,22 @@ import { ThemeProvider } from './components/theme-provider';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './components/ui/toast';
+import { I18nProvider } from './contexts/I18nContext';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <HelmetProvider>
         <ThemeProvider defaultTheme="system" storageKey="screenplay-reader-theme">
-          <AuthProvider>
-            <SettingsProvider>
-              <ToastProvider>
-                <App />
-              </ToastProvider>
-            </SettingsProvider>
-          </AuthProvider>
+          <I18nProvider>
+            <AuthProvider>
+              <SettingsProvider>
+                <ToastProvider>
+                  <App />
+                </ToastProvider>
+              </SettingsProvider>
+            </AuthProvider>
+          </I18nProvider>
         </ThemeProvider>
       </HelmetProvider>
     </BrowserRouter>

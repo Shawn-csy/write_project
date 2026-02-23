@@ -1,18 +1,19 @@
 import React, { useState } from "react";
-import { Copy, Hash, Grid, List } from "lucide-react";
+import { Hash, Grid, List } from "lucide-react";
 import { cn } from "../../../lib/utils";
-import { Button } from "../../ui/button";
 import { MarkerGuideCard } from "./MarkerGuideCard";
 import { PublicMarkerLegend } from "../../reader/PublicMarkerLegend";
+import { useI18n } from "../../../contexts/I18nContext";
 
 export function MarkerUsageGuide({ markerConfigs }) {
+  const { t } = useI18n();
   const [view, setView] = useState("visual"); // visual | list
 
   if (!markerConfigs || markerConfigs.length === 0) return null;
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
-    alert("已複製: " + text);
+    alert(`${t("markerUsageGuide.copiedPrefix")}${text}`);
   };
 
   return (
@@ -24,8 +25,8 @@ export function MarkerUsageGuide({ markerConfigs }) {
                 <Hash className="w-4 h-4" />
             </div>
             <div>
-                 <h3 className="text-sm font-semibold text-foreground">使用指南</h3>
-                 <p className="text-[10px] text-muted-foreground">自動生成的標記說明</p>
+                 <h3 className="text-sm font-semibold text-foreground">{t("markerUsageGuide.title")}</h3>
+                 <p className="text-[10px] text-muted-foreground">{t("markerUsageGuide.subtitle")}</p>
             </div>
          </div>
 
@@ -38,7 +39,7 @@ export function MarkerUsageGuide({ markerConfigs }) {
                 )}
              >
                  <Grid className="w-3.5 h-3.5" />
-                 卡片
+                 {t("markerUsageGuide.viewCard")}
              </button>
              <button
                 onClick={() => setView("list")}
@@ -48,7 +49,7 @@ export function MarkerUsageGuide({ markerConfigs }) {
                 )}
              >
                  <List className="w-3.5 h-3.5" />
-                 列表
+                 {t("markerUsageGuide.viewList")}
              </button>
          </div>
       </div>
@@ -71,7 +72,7 @@ export function MarkerUsageGuide({ markerConfigs }) {
               <div className="h-full overflow-y-auto custom-scrollbar pr-2 pb-2">
                   <div className="p-4 rounded-lg bg-muted/20 border border-border/40">
                     <p className="text-xs text-muted-foreground mb-4">
-                        此樣式將顯示於公開閱讀頁面，作為讀者的標記對照表。
+                        {t("markerUsageGuide.listDescription")}
                     </p>
                     <PublicMarkerLegend markerConfigs={markerConfigs} />
                   </div>

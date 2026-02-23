@@ -59,6 +59,6 @@ describe('ReaderHeader', () => {
         );
         expect(screen.getByText("Test Script")).toBeDefined();
         // Check for back button (via HeaderTitleBlock rendering) - it uses ARIA label
-        expect(screen.getByLabelText("返回")).toBeDefined();
+        expect(screen.getByLabelText("返回上一頁")).toBeDefined();
     });
 });

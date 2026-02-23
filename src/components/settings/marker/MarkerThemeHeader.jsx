@@ -5,6 +5,7 @@ import { Input } from "../../ui/input";
 import { cn } from "../../../lib/utils";
 import { PublicThemeDialog } from "./PublicThemeDialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../ui/dialog";
+import { useI18n } from "../../../contexts/I18nContext";
 
 export function MarkerThemeHeader({
     markerThemes, 
@@ -18,6 +19,7 @@ export function MarkerThemeHeader({
     updateThemePublicity,
     currentUser
 }) {
+    const { t } = useI18n();
     const currentTheme = markerThemes.find(t => t.id === currentThemeId);
     const [newThemeName, setNewThemeName] = useState("");
     const [newThemeDescription, setNewThemeDescription] = useState("");
@@ -33,12 +35,12 @@ export function MarkerThemeHeader({
     const publicityPrompt = useMemo(() => {
         if (!currentTheme) return "";
         if (currentTheme.id === "default") {
-            return "這會複製目前預設設定並建立一個新的公開主題，未來修改會同步到該主題。";
+            return t("markerThemeHeader.publicityPromptDefault");
         }
         return currentTheme.isPublic
-            ? "確定要將此主題設為私人嗎？其他人將無法再搜尋到它。"
-            : "確定要公開此主題嗎？所有人都可以搜尋並使用它。";
-    }, [currentTheme]);
+            ? t("markerThemeHeader.publicityPromptPrivate")
+            : t("markerThemeHeader.publicityPromptPublic");
+    }, [currentTheme, t]);
 
     const handleAddTheme = async () => {
         if (!newThemeName.trim()) return;
@@ -84,7 +86,7 @@ export function MarkerThemeHeader({
     const handleTogglePublicity = async () => {
         if (!currentTheme) return;
         if (currentTheme.id === "default") {
-            await addThemeFromCurrent("我的標記主題", true);
+            await addThemeFromCurrent(t("markerThemeHeader.myThemeDefaultName"), true);
         } else {
             await updateThemePublicity(currentTheme.id, !currentTheme.isPublic);
         }
@@ -92,8 +94,8 @@ export function MarkerThemeHeader({
     };
 
     const handleDuplicateTheme = async () => {
-        const baseName = currentTheme?.name || "主題";
-        await addThemeFromCurrent(`${baseName} 副本`, false);
+        const baseName = currentTheme?.name || t("markerThemeHeader.theme");
+        await addThemeFromCurrent(`${baseName} ${t("markerThemeHeader.copySuffix")}`, false);
     };
 
     return (
@@ -102,7 +104,7 @@ export function MarkerThemeHeader({
             <div className="flex flex-col gap-3">
                 <div className="flex flex-col lg:flex-row gap-3 items-start lg:items-center justify-between">
                     <div className="flex items-center gap-2 flex-1 w-full">
-                        <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">目前主題</span>
+                        <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">{t("markerThemeHeader.currentTheme")}</span>
                         <select
                             className="h-8 flex-1 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm"
                             value={currentThemeId}
@@ -117,11 +119,11 @@ export function MarkerThemeHeader({
                     <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
                         <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)} className="h-8 gap-1.5">
                             <Plus className="w-3.5 h-3.5" />
-                            <span className="text-xs">新建主題</span>
+                            <span className="text-xs">{t("markerThemeHeader.newTheme")}</span>
                         </Button>
                         <Button variant="outline" size="sm" onClick={handleDuplicateTheme} className="h-8 gap-1.5">
                             <Copy className="w-3.5 h-3.5" />
-                            <span className="text-xs">複製目前主題</span>
+                            <span className="text-xs">{t("markerThemeHeader.duplicateCurrent")}</span>
                         </Button>
                         <PublicThemeDialog />
                         {currentUser && currentTheme && (
@@ -130,10 +132,10 @@ export function MarkerThemeHeader({
                                 size="sm"
                                 className={cn("h-8 px-2 gap-1.5", currentTheme.isPublic ? "text-sky-600 bg-sky-100 dark:bg-sky-900/30 dark:text-sky-300" : "text-muted-foreground")}
                                 onClick={() => setPublicityOpen(true)}
-                                title={currentTheme.isPublic ? "已公開，點擊改為私人" : "點擊公開目前主題"}
+                                title={currentTheme.isPublic ? t("markerThemeHeader.publicTitleOn") : t("markerThemeHeader.publicTitleOff")}
                             >
                                 <Share2 className="w-3.5 h-3.5" />
-                                <span className="text-xs">{currentTheme.isPublic ? "已公開" : "設為公開"}</span>
+                                <span className="text-xs">{currentTheme.isPublic ? t("markerThemeHeader.publicOn") : t("markerThemeHeader.publicOff")}</span>
                             </Button>
                         )}
                         {currentTheme && (
@@ -144,7 +146,7 @@ export function MarkerThemeHeader({
                                 onClick={() => setMoreOpen(true)}
                             >
                                 <Settings2 className="w-3.5 h-3.5" />
-                                <span className="text-xs">更多設定</span>
+                                <span className="text-xs">{t("markerThemeHeader.moreSettings")}</span>
                             </Button>
                         )}
                     </div>
@@ -155,16 +157,16 @@ export function MarkerThemeHeader({
         <Dialog open={moreOpen} onOpenChange={setMoreOpen}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>主題更多設定</DialogTitle>
-                    <DialogDescription>編輯描述或進行主題管理操作。</DialogDescription>
+                    <DialogTitle>{t("markerThemeHeader.moreTitle")}</DialogTitle>
+                    <DialogDescription>{t("markerThemeHeader.moreDesc")}</DialogDescription>
                 </DialogHeader>
                 {currentTheme && (
                     <div className="space-y-3">
                         <div className="space-y-1">
-                            <label className="text-xs text-muted-foreground">描述</label>
+                            <label className="text-xs text-muted-foreground">{t("markerThemeHeader.descriptionLabel")}</label>
                             <Input
                                 className="h-8 w-full text-xs bg-background/80"
-                                placeholder="可輸入主題用途，方便自己與他人辨識"
+                                placeholder={t("markerThemeHeader.descriptionPlaceholder")}
                                 value={currentTheme.description || ""}
                                 onChange={(e) => {
                                     updateThemeDescription(currentTheme.id, e.target.value);
@@ -181,7 +183,7 @@ export function MarkerThemeHeader({
                                     setRenameOpen(true);
                                 }}
                             >
-                                改名
+                                {t("markerThemeHeader.rename")}
                             </Button>
                             <Button
                                 variant="ghost"
@@ -194,13 +196,13 @@ export function MarkerThemeHeader({
                                 disabled={!canDelete}
                             >
                                 <Trash2 className="w-3.5 h-3.5 mr-1" />
-                                刪除
+                                {t("markerThemeHeader.delete")}
                             </Button>
                         </div>
                     </div>
                 )}
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => setMoreOpen(false)}>完成</Button>
+                    <Button variant="outline" onClick={() => setMoreOpen(false)}>{t("markerThemeHeader.done")}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -208,30 +210,30 @@ export function MarkerThemeHeader({
        <Dialog open={createOpen} onOpenChange={handleCreateOpenChange}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>新增主題</DialogTitle>
-                    <DialogDescription>建立一個新的 Marker 主題，並設定初始來源。</DialogDescription>
+                    <DialogTitle>{t("markerThemeHeader.createTitle")}</DialogTitle>
+                    <DialogDescription>{t("markerThemeHeader.createDesc")}</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-3">
                     <Input
                         value={newThemeName}
                         onChange={(e) => setNewThemeName(e.target.value)}
-                        placeholder="主題名稱"
+                        placeholder={t("markerThemeHeader.namePlaceholder")}
                         autoFocus
                     />
                     <Input
                         value={newThemeDescription}
                         onChange={(e) => setNewThemeDescription(e.target.value)}
-                        placeholder="主題描述（可選）"
+                        placeholder={t("markerThemeHeader.descOptionalPlaceholder")}
                     />
                     <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">建立來源</label>
+                        <label className="text-xs text-muted-foreground">{t("markerThemeHeader.sourceLabel")}</label>
                         <select
                             className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs"
                             value={newThemeSource}
                             onChange={(e) => setNewThemeSource(e.target.value)}
                         >
-                            <option value="current">從目前主題複製</option>
-                            <option value="default">從預設主題建立</option>
+                            <option value="current">{t("markerThemeHeader.sourceCurrent")}</option>
+                            <option value="default">{t("markerThemeHeader.sourceDefault")}</option>
                         </select>
                     </div>
                     {currentUser && (
@@ -242,13 +244,13 @@ export function MarkerThemeHeader({
                                 onChange={(e) => setNewThemeIsPublic(e.target.checked)}
                                 className="h-4 w-4 rounded border-input"
                             />
-                            建立後立即設為公開主題
+                            {t("markerThemeHeader.publicAfterCreate")}
                         </label>
                     )}
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => setCreateOpen(false)}>取消</Button>
-                    <Button onClick={handleAddTheme} disabled={!newThemeName.trim()}>建立</Button>
+                    <Button variant="outline" onClick={() => setCreateOpen(false)}>{t("common.cancel")}</Button>
+                    <Button onClick={handleAddTheme} disabled={!newThemeName.trim()}>{t("markerThemeHeader.create")}</Button>
                 </DialogFooter>
             </DialogContent>
        </Dialog>
@@ -256,18 +258,18 @@ export function MarkerThemeHeader({
        <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>重新命名主題</DialogTitle>
-                    <DialogDescription>更新目前主題的名稱。</DialogDescription>
+                    <DialogTitle>{t("markerThemeHeader.renameTitle")}</DialogTitle>
+                    <DialogDescription>{t("markerThemeHeader.renameDesc")}</DialogDescription>
                 </DialogHeader>
                 <Input
                     value={renameName}
                     onChange={(e) => setRenameName(e.target.value)}
-                    placeholder="主題名稱"
+                    placeholder={t("markerThemeHeader.namePlaceholder")}
                     autoFocus
                 />
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => setRenameOpen(false)}>取消</Button>
-                    <Button onClick={handleRenameTheme} disabled={!renameName.trim()}>儲存</Button>
+                    <Button variant="outline" onClick={() => setRenameOpen(false)}>{t("common.cancel")}</Button>
+                    <Button onClick={handleRenameTheme} disabled={!renameName.trim()}>{t("markerThemeHeader.save")}</Button>
                 </DialogFooter>
             </DialogContent>
        </Dialog>
@@ -275,14 +277,16 @@ export function MarkerThemeHeader({
        <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>刪除主題</DialogTitle>
+                    <DialogTitle>{t("markerThemeHeader.deleteTitle")}</DialogTitle>
                     <DialogDescription>
-                        {currentTheme ? `確定要刪除主題「${currentTheme.name}」嗎？此動作無法復原。` : "確定刪除主題？"}
+                        {currentTheme
+                          ? t("markerThemeHeader.deleteConfirmWithName").replace("{name}", currentTheme.name)
+                          : t("markerThemeHeader.deleteConfirm")}
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => setDeleteOpen(false)}>取消</Button>
-                    <Button variant="secondary" className="text-destructive" onClick={handleDeleteTheme} disabled={!canDelete}>刪除</Button>
+                    <Button variant="outline" onClick={() => setDeleteOpen(false)}>{t("common.cancel")}</Button>
+                    <Button variant="secondary" className="text-destructive" onClick={handleDeleteTheme} disabled={!canDelete}>{t("markerThemeHeader.delete")}</Button>
                 </DialogFooter>
             </DialogContent>
        </Dialog>
@@ -290,12 +294,12 @@ export function MarkerThemeHeader({
        <Dialog open={publicityOpen} onOpenChange={setPublicityOpen}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>{currentTheme?.isPublic ? "設為私人主題" : "設為公開主題"}</DialogTitle>
+                    <DialogTitle>{currentTheme?.isPublic ? t("markerThemeHeader.setPrivateTitle") : t("markerThemeHeader.setPublicTitle")}</DialogTitle>
                     <DialogDescription>{publicityPrompt}</DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => setPublicityOpen(false)}>取消</Button>
-                    <Button onClick={handleTogglePublicity}>確認</Button>
+                    <Button variant="outline" onClick={() => setPublicityOpen(false)}>{t("common.cancel")}</Button>
+                    <Button onClick={handleTogglePublicity}>{t("markerThemeHeader.confirm")}</Button>
                 </DialogFooter>
             </DialogContent>
        </Dialog>

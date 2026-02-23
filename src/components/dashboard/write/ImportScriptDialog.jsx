@@ -5,6 +5,8 @@ import { Input } from "../../ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "../../ui/dialog";
 import { ScrollArea } from "../../ui/scroll-area";
 import { useSettings } from "../../../contexts/SettingsContext";
+import { useToast } from "../../ui/toast";
+import { useI18n } from "../../../contexts/I18nContext";
 
 // Sub-components
 import { ImportStageInput } from "./import/ImportStageInput";
@@ -20,9 +22,12 @@ import { extractMetadata } from "../../../lib/importPipeline/metadataExtractor.j
 const STEPS = {
     INPUT: 'input',       // 貼入文本
     PREVIEW: 'preview',   // 預處理預覽
-    CONFIGURE: 'configure', // 設定選擇 (New)
+    CONFIGURE: 'configure', // 設定選擇
     RESULT: 'result'      // 結果確認
 };
+
+const MAX_IMPORT_FILE_BYTES = 5 * 1024 * 1024;
+const MAX_IMPORT_FILE_MB = Math.round(MAX_IMPORT_FILE_BYTES / (1024 * 1024));
 
 export function ImportScriptDialog({
     open,
@@ -32,11 +37,15 @@ export function ImportScriptDialog({
     existingMarkerConfigs = [],
     cloudConfigs = []
 }) {
+    const { t } = useI18n();
     const [step, setStep] = useState(STEPS.INPUT);
     const [rawInput, setRawInput] = useState("");
     const [title, setTitle] = useState("");
     const [metadataInput, setMetadataInput] = useState(""); // Metadata 貼上區
     const [importing, setImporting] = useState(false);
+    const [isReadingFile, setIsReadingFile] = useState(false);
+    const [fileUploadError, setFileUploadError] = useState("");
+    const { toast } = useToast();
     
     // 處理結果
     const [preprocessResult, setPreprocessResult] = useState(null);
@@ -57,6 +66,8 @@ export function ImportScriptDialog({
         setRawInput("");
         setTitle("");
         setMetadataInput("");
+        setIsReadingFile(false);
+        setFileUploadError("");
         setPreprocessResult(null);
         setDiscoveryResult(null);
         setMetadata({});
@@ -80,23 +91,52 @@ export function ImportScriptDialog({
             const text = await navigator.clipboard.readText();
             setRawInput(text);
         } catch (err) {
-            console.error("無法讀取剪貼簿:", err);
+            console.error(t("importDialog.clipboardReadFailed"), err);
         }
-    }, []);
+    }, [t]);
 
     // 處理檔案上傳
     const handleFileUpload = useCallback((e) => {
         const file = e.target.files?.[0];
         if (!file) return;
+        setFileUploadError("");
+
+        if (Number(file.size || 0) > MAX_IMPORT_FILE_BYTES) {
+            const message = t("importDialog.fileTooLarge").replace("{maxMb}", String(MAX_IMPORT_FILE_MB));
+            setFileUploadError(message);
+            toast({
+                title: t("importDialog.uploadFailed"),
+                description: message,
+                variant: "destructive",
+            });
+            if (e.target) e.target.value = "";
+            return;
+        }
 
         // 簡單處理文字檔
         const reader = new FileReader();
-        reader.onload = (e) => {
-            const content = e.target.result;
+        setIsReadingFile(true);
+        reader.onload = (event) => {
+            const content = typeof event.target?.result === "string" ? event.target.result : "";
             setRawInput(content);
+            setIsReadingFile(false);
+        };
+        reader.onerror = () => {
+            setIsReadingFile(false);
+            const message = t("importDialog.readFailed");
+            setFileUploadError(message);
+            toast({
+                title: t("importDialog.uploadFailed"),
+                description: message,
+                variant: "destructive",
+            });
+            if (e.target) e.target.value = "";
+        };
+        reader.onabort = () => {
+            setIsReadingFile(false);
         };
         reader.readAsText(file);
-    }, []);
+    }, [t, toast]);
     
     // Stage 1: 預處理
     const handlePreprocess = useCallback(() => {
@@ -186,7 +226,7 @@ export function ImportScriptDialog({
     // Context & Save Logic
     const { addTheme } = useSettings();
 
-    // 儲存設定 (Passed down to child)
+    // 儲存設定（傳入子元件）
     // const [newConfigName, setNewConfigName] = useState("");
     // const [savePopoverOpen, setSavePopoverOpen] = useState(false);
     // ... replaced by direct arrow function props or moved logic
@@ -259,11 +299,20 @@ export function ImportScriptDialog({
             });
             handleOpenChange(false);
         } catch (err) {
-            console.error("匯入失敗:", err);
+            console.error(t("importDialog.importFailedLog"), err);
+            const message = String(err?.message || "");
+            const payloadTooLarge = /payload too large|413/i.test(message);
+            toast({
+                title: t("importDialog.importFailed"),
+                description: payloadTooLarge
+                    ? t("importDialog.payloadTooLarge").replace("{maxMb}", String(MAX_IMPORT_FILE_MB))
+                    : t("importDialog.importTrySmaller"),
+                variant: "destructive",
+            });
         } finally {
             setImporting(false);
         }
-    }, [preprocessResult, title, currentPath, onImport, handleOpenChange, metadata, generateMetadataHeader]);
+    }, [preprocessResult, title, currentPath, onImport, handleOpenChange, metadata, generateMetadataHeader, toast, t]);
 
     // ... (return JSX)
 
@@ -274,20 +323,20 @@ export function ImportScriptDialog({
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <FileText className="w-5 h-5" />
-                        匯入台本
+                        {t("importDialog.title")}
                     </DialogTitle>
                     <DialogDescription>
-                         {step === STEPS.CONFIGURE ? "選擇解析設定並預覽結果" : "貼入台本文字，系統將自動偵測格式並轉換"}
+                         {step === STEPS.CONFIGURE ? t("importDialog.descConfigure") : t("importDialog.descDefault")}
                     </DialogDescription>
                 </DialogHeader>
                 
                 {/* 步驟指示器 */}
                 <div className="flex items-center gap-2 text-sm border-b pb-4">
                      {[
-                        { key: STEPS.INPUT, label: '貼入', icon: ClipboardPaste },
-                        { key: STEPS.PREVIEW, label: '預處理', icon: Eye },
-                        { key: STEPS.CONFIGURE, label: '設定與預覽', icon: Wand2 },
-                        { key: STEPS.RESULT, label: '確認', icon: CheckCircle2 }
+                        { key: STEPS.INPUT, label: t("importDialog.stepInput"), icon: ClipboardPaste },
+                        { key: STEPS.PREVIEW, label: t("importDialog.stepPreprocess"), icon: Eye },
+                        { key: STEPS.CONFIGURE, label: t("importDialog.stepConfigure"), icon: Wand2 },
+                        { key: STEPS.RESULT, label: t("importDialog.stepConfirm"), icon: CheckCircle2 }
                     ].map((s, i) => (
                         <React.Fragment key={s.key}>
                             {i > 0 && <div className="w-8 h-px bg-border" />}
@@ -307,14 +356,14 @@ export function ImportScriptDialog({
                         <div className="flex flex-col gap-4 h-full">
                             <div className="flex items-center gap-2">
                                 <Input 
-                                    placeholder="劇本標題"
+                                    placeholder={t("importDialog.scriptTitle")}
                                     value={title}
                                     onChange={e => setTitle(e.target.value)}
                                     className="flex-1"
                                 />
                                 <Button variant="outline" size="sm" onClick={handlePaste}>
                                     <ClipboardPaste className="w-4 h-4 mr-1" />
-                                    貼上
+                                    {t("importDialog.paste")}
                                 </Button>
                             </div>
                             <ImportStageInput 
@@ -323,7 +372,9 @@ export function ImportScriptDialog({
                                     metadataText={metadataInput}
                                     setMetadataText={setMetadataInput}
                                     onFileUpload={handleFileUpload}
-                                    isUploading={importing}
+                                    isUploading={isReadingFile}
+                                    fileSizeLimitText={t("importDialog.fileLimit").replace("{maxMb}", String(MAX_IMPORT_FILE_MB))}
+                                    uploadError={fileUploadError}
                                 /> 
                         </div>
                     )}
@@ -336,7 +387,7 @@ export function ImportScriptDialog({
                         />
                     )}
 
-                     {/* Step 3: 設定與預覽 (New UI) */}
+                     {/* 第三步：設定與預覽 */}
                      {step === STEPS.CONFIGURE && (
                         <ImportStageConfigure 
                             activeRules={activeRules}
@@ -356,10 +407,10 @@ export function ImportScriptDialog({
                         <div className="flex flex-col gap-4 h-full">
                             <div className="text-sm text-green-600 font-medium flex items-center gap-2">
                                 <CheckCircle2 className="w-4 h-4" />
-                                準備完成！請確認標題與最終內容。
+                                {t("importDialog.ready")}
                             </div>
                              <Input 
-                                placeholder="劇本標題"
+                                placeholder={t("importDialog.scriptTitle")}
                                 value={title}
                                 onChange={e => setTitle(e.target.value)}
                             />
@@ -384,28 +435,28 @@ export function ImportScriptDialog({
                                 if (currentIndex > 0) setStep(steps[currentIndex - 1]);
                             }}
                         >
-                            上一步
+                            {t("importDialog.prevStep")}
                         </Button>
                     )}
                     
-                    <Button variant="outline" onClick={() => handleOpenChange(false)}>取消</Button>
+                    <Button variant="outline" onClick={() => handleOpenChange(false)}>{t("common.cancel")}</Button>
                     
                     {step === STEPS.INPUT && (
-                        <Button onClick={handlePreprocess} disabled={!rawInput.trim() && !metadataInput.trim()}>下一步：預處理</Button>
+                        <Button onClick={handlePreprocess} disabled={!rawInput.trim() && !metadataInput.trim()}>{t("importDialog.nextPreprocess")}</Button>
                     )}
                     
                     {step === STEPS.PREVIEW && (
-                        <Button onClick={handleDiscoverMarkers}>下一步：設定與預覽</Button>
+                        <Button onClick={handleDiscoverMarkers}>{t("importDialog.nextConfigure")}</Button>
                     )}
                     
                     {step === STEPS.CONFIGURE && (
-                        <Button onClick={handleConfirmConfig}>下一步：確認</Button>
+                        <Button onClick={handleConfirmConfig}>{t("importDialog.nextConfirm")}</Button>
                     )}
                     
                     {step === STEPS.RESULT && (
                         <Button onClick={handleConfirmImport} disabled={importing || !title.trim()}>
                             {importing && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                            確認匯入
+                            {t("importDialog.confirmImport")}
                         </Button>
                     )}
                 </DialogFooter>
@@ -415,14 +466,14 @@ export function ImportScriptDialog({
         <Dialog open={showSaveAlert} onOpenChange={setShowSaveAlert}>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>建議儲存解析規則</DialogTitle>
+                    <DialogTitle>{t("importDialog.saveRulesTitle")}</DialogTitle>
                     <DialogDescription>
-                        您目前使用的是自動偵測的規則。建立專屬的設定檔可以確保未來匯入類似劇本時的準確性。
+                        {t("importDialog.saveRulesDesc")}
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter className="flex-col gap-2 sm:gap-0">
-                    <Button variant="outline" onClick={() => setShowSaveAlert(false)}>返回儲存</Button>
-                    <Button onClick={handleProceedWithoutSave}>不儲存，直接繼續</Button>
+                    <Button variant="outline" onClick={() => setShowSaveAlert(false)}>{t("importDialog.backToSave")}</Button>
+                    <Button onClick={handleProceedWithoutSave}>{t("importDialog.continueWithoutSave")}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

@@ -12,9 +12,11 @@ import { PublisherProfileTab } from "../components/dashboard/publisher/Publisher
 import { PublisherOrgTab } from "../components/dashboard/publisher/PublisherOrgTab";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../components/ui/toast";
+import { useI18n } from "../contexts/I18nContext";
 
 
 export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMenu }) {
+  const { t } = useI18n();
   const { currentUser, profile: currentProfile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -388,10 +390,10 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
       try {
           await updatePersona(selectedPersonaId, personaDraft);
           await loadData(true);
-          toast({ title: "作者身份已更新" });
+          toast({ title: t("publisher.updatedPersona") });
       } catch (e) {
           console.error("Failed to update persona", e);
-          toast({ title: "更新作者身份失敗", variant: "destructive" });
+          toast({ title: t("publisher.updatePersonaFailed"), variant: "destructive" });
       } finally {
           setIsSavingProfile(false);
       }
@@ -410,10 +412,10 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
               tags: orgDraft.tags
           });
           await loadData(true);
-          toast({ title: "組織已更新" });
+          toast({ title: t("publisher.updatedOrg") });
       } catch (e) {
           console.error("Failed to update org", e);
-          toast({ title: "更新組織失敗", variant: "destructive" });
+          toast({ title: t("publisher.updateOrgFailed"), variant: "destructive" });
       } finally {
           setIsSavingOrg(false);
       }
@@ -426,10 +428,10 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
           const created = await createPersona(personaDraft);
           await loadData(true);
           setSelectedPersonaId(created?.id || null);
-          toast({ title: "已建立作者身份" });
+          toast({ title: t("publisher.createdPersona") });
       } catch (e) {
           console.error("Failed to create persona", e);
-          toast({ title: "建立作者身份失敗", variant: "destructive" });
+          toast({ title: t("publisher.createPersonaFailed"), variant: "destructive" });
       } finally {
           setIsCreatingPersona(false);
       }
@@ -441,10 +443,10 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
           await deletePersona(selectedPersonaId);
           await loadData(true);
           setConfirmDeletePersonaOpen(false);
-          toast({ title: "作者身份已刪除" });
+          toast({ title: t("publisher.deletedPersona") });
       } catch (e) {
           console.error("Failed to delete persona", e);
-          toast({ title: "刪除作者身份失敗", variant: "destructive" });
+          toast({ title: t("publisher.deletePersonaFailed"), variant: "destructive" });
       }
   };
 
@@ -462,10 +464,10 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
           });
           await loadData(true);
           setSelectedOrgId(created?.id || null);
-          toast({ title: "已建立組織" });
+          toast({ title: t("publisher.createdOrg") });
       } catch (e) {
           console.error("Failed to create organization", e);
-          toast({ title: "建立組織失敗", variant: "destructive" });
+          toast({ title: t("publisher.createOrgFailed"), variant: "destructive" });
       } finally {
           setIsCreatingOrg(false);
       }
@@ -477,10 +479,10 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
           await deleteOrganization(orgDraft.id);
           await loadData(true);
           setConfirmDeleteOrgOpen(false);
-          toast({ title: "組織已刪除" });
+          toast({ title: t("publisher.deletedOrg") });
       } catch (e) {
           console.error("Failed to delete organization", e);
-          toast({ title: "刪除組織失敗", variant: "destructive" });
+          toast({ title: t("publisher.deleteOrgFailed"), variant: "destructive" });
       }
   };
 
@@ -488,11 +490,11 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
       if (isCreatingScript) return;
       setIsCreatingScript(true);
       try {
-          const id = await createScript("Untitled Script", "script", "/");
+          const id = await createScript(t("publisher.untitledScript"), "script", "/");
           navigate(`/edit/${id}?mode=edit`);
       } catch (e) {
           console.error("Failed to create script", e);
-          toast({ title: "建立劇本失敗", description: "請稍後再試。", variant: "destructive" });
+          toast({ title: t("publisher.createScriptFailed"), description: t("publisher.tryLater"), variant: "destructive" });
       } finally {
           setIsCreatingScript(false);
       }
@@ -511,7 +513,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                     variant="ghost"
                     size="icon"
                     onClick={() => openMobileMenu?.()}
-                    title="展開選單"
+                    title={t("publisher.expandMenu")}
                     className="-ml-2"
                 >
                     <PanelLeftOpen className="w-5 h-5 text-muted-foreground" />
@@ -523,7 +525,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                     variant="ghost" 
                     size="icon" 
                     onClick={() => setSidebarOpen && setSidebarOpen(true)}
-                    title="展開側邊欄"
+                    title={t("publisher.expandSidebar")}
                     className="-ml-2"
                 >
                     <PanelLeftOpen className="w-5 h-5 text-muted-foreground" />
@@ -538,28 +540,28 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
             */}
 
             <div>
-                <h1 className="text-3xl font-serif font-bold tracking-tight">發佈工作室</h1>
-                <p className="text-muted-foreground mt-1">管理你的作者身份、作品與組織頁面。</p>
+                <h1 className="text-3xl font-serif font-bold tracking-tight">{t("publisher.title")}</h1>
+                <p className="text-muted-foreground mt-1">{t("publisher.subtitle")}</p>
             </div>
         </div>
         <div className="flex items-center gap-3">
              <Button onClick={handleCreateScript} disabled={isCreatingScript}>
                 {isCreatingScript ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-                新增劇本
+                {t("publisher.newScript")}
              </Button>
         </div>
       </div>
 
       {myInvites.length > 0 && (
         <div className="border rounded-lg p-4 bg-muted/20 mb-6">
-          <div className="text-sm font-medium mb-2">我的組織邀請</div>
+          <div className="text-sm font-medium mb-2">{t("publisher.myOrgInvites")}</div>
           <div className="space-y-2">
             {myInvites.map(inv => (
               <div key={inv.id} className="flex items-center justify-between text-sm">
-                <span>邀請加入組織：{inv.orgId}</span>
+                <span>{t("publisher.inviteJoinOrg").replace("{orgId}", inv.orgId)}</span>
                 <div className="flex gap-2">
-                  <Button size="sm" onClick={() => handleAcceptInvite(inv.id)}>接受</Button>
-                  <Button size="sm" variant="ghost" onClick={() => handleDeclineInvite(inv.id)}>拒絕</Button>
+                  <Button size="sm" onClick={() => handleAcceptInvite(inv.id)}>{t("publisher.accept")}</Button>
+                  <Button size="sm" variant="ghost" onClick={() => handleDeclineInvite(inv.id)}>{t("publisher.decline")}</Button>
                 </div>
               </div>
             ))}
@@ -569,9 +571,9 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full md:w-[400px] grid-cols-1 sm:grid-cols-3 gap-1 h-auto sm:h-9">
-            <TabsTrigger value="works">我的作品</TabsTrigger>
-            <TabsTrigger value="profile">作者身份</TabsTrigger>
-            <TabsTrigger value="org">組織</TabsTrigger>
+            <TabsTrigger value="works">{t("publisher.myWorks")}</TabsTrigger>
+            <TabsTrigger value="profile">{t("publisher.authorIdentity")}</TabsTrigger>
+            <TabsTrigger value="org">{t("publisher.organization")}</TabsTrigger>
         </TabsList>
 
         {/* 1. My Works Tab */}
@@ -644,12 +646,12 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
       <Dialog open={confirmDeletePersonaOpen} onOpenChange={setConfirmDeletePersonaOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>刪除作者身份？</DialogTitle>
-            <DialogDescription>這個操作無法復原，相關公開頁面將失效。</DialogDescription>
+            <DialogTitle>{t("publisher.deletePersonaTitle")}</DialogTitle>
+            <DialogDescription>{t("publisher.deletePersonaDesc")}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDeletePersonaOpen(false)}>取消</Button>
-            <Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDeletePersona}>確認刪除</Button>
+            <Button variant="outline" onClick={() => setConfirmDeletePersonaOpen(false)}>{t("publisher.cancel")}</Button>
+            <Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDeletePersona}>{t("publisher.confirmDelete")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -657,12 +659,12 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
       <Dialog open={confirmDeleteOrgOpen} onOpenChange={setConfirmDeleteOrgOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>刪除組織？</DialogTitle>
-            <DialogDescription>此操作會解除與作品的關聯，且無法復原。</DialogDescription>
+            <DialogTitle>{t("publisher.deleteOrgTitle")}</DialogTitle>
+            <DialogDescription>{t("publisher.deleteOrgDesc")}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDeleteOrgOpen(false)}>取消</Button>
-            <Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDeleteOrg}>確認刪除</Button>
+            <Button variant="outline" onClick={() => setConfirmDeleteOrgOpen(false)}>{t("publisher.cancel")}</Button>
+            <Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDeleteOrg}>{t("publisher.confirmDelete")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

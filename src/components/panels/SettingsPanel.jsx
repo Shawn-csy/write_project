@@ -2,7 +2,10 @@ import React, { useRef, useState } from "react";
 import { AppearanceSettings } from "../settings/AppearanceSettings";
 import { ProfileSettings } from "../settings/ProfileSettings";
 import { MarkerSettings } from "../settings/MarkerSettings";
+import { MediaLibrarySettings } from "../settings/MediaLibrarySettings";
+import SuperAdminPage from "../../pages/SuperAdminPage";
 import { cn } from "../../lib/utils";
+import { useI18n } from "../../contexts/I18nContext";
 
 import { X } from "lucide-react";
 
@@ -10,6 +13,7 @@ import { useAuth } from "../../contexts/AuthContext";
 
 function SettingsPanel({ onClose, activeTab, onTabChange }) {
   const { currentUser } = useAuth();
+  const { t, lang, setLang } = useI18n();
   const scrollContainerRef = useRef(null);
   const [internalTab, setInternalTab] = useState("display");
   
@@ -17,9 +21,11 @@ function SettingsPanel({ onClose, activeTab, onTabChange }) {
   const setTab = onTabChange || setInternalTab;
   
   const allTabs = [
-    { key: "display", label: "外觀與閱讀" },
-    { key: "markers", label: "自訂標記", authRequired: true },
-    { key: "profile", label: "身份 / 設定", authRequired: true },
+    { key: "display", label: t("settings.display") },
+    { key: "transfer", label: t("settings.transfer"), authRequired: true },
+    { key: "media", label: t("settings.media"), authRequired: true },
+    { key: "markers", label: t("settings.markers"), authRequired: true },
+    { key: "profile", label: t("settings.profile"), authRequired: true },
   ];
 
   const tabs = allTabs.filter(tab => !tab.authRequired || currentUser);
@@ -32,11 +38,21 @@ function SettingsPanel({ onClose, activeTab, onTabChange }) {
             <button 
                 onClick={onClose}
                 className="p-2 -ml-2 rounded-full hover:bg-muted/80 transition-colors text-muted-foreground hover:text-foreground"
-                title="關閉"
+                title={t("common.close")}
             >
                 <X className="w-5 h-5" />
             </button>
-            <h2 className="text-xl font-bold tracking-tight flex-1">設定 (Settings)</h2>
+            <h2 className="text-xl font-bold tracking-tight flex-1">{t("settings.title")}</h2>
+            <select
+              value={lang}
+              onChange={(e) => setLang(e.target.value)}
+              className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground"
+              aria-label={t("settings.language")}
+            >
+              <option value="zh-TW">{t("settings.languageZh")}</option>
+              <option value="en">{t("settings.languageEn")}</option>
+              <option value="ja">{t("settings.languageJa")}</option>
+            </select>
         </div>
 
         <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[220px_1fr]">
@@ -65,6 +81,17 @@ function SettingsPanel({ onClose, activeTab, onTabChange }) {
             className="flex-1 overflow-y-auto scrollbar-hide p-4 sm:p-6 space-y-6"
             ref={scrollContainerRef}
           >
+            {currentTab === "transfer" && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="flex items-center gap-2 pb-2 border-b border-border/40">
+                  <h3 className="text-lg font-semibold tracking-tight text-foreground/90">{t("settings.transfer")}</h3>
+                </div>
+                <div className="rounded-lg border bg-background/50">
+                  <SuperAdminPage />
+                </div>
+              </div>
+            )}
+
             {currentTab === "display" && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <AppearanceSettings />
@@ -74,9 +101,18 @@ function SettingsPanel({ onClose, activeTab, onTabChange }) {
             {currentTab === "markers" && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div className="flex items-center gap-2 pb-2 border-b border-border/40">
-                  <h3 className="text-lg font-semibold tracking-tight text-foreground/90">自訂標記設定</h3>
+                  <h3 className="text-lg font-semibold tracking-tight text-foreground/90">{t("settings.markers")}</h3>
                 </div>
                 <MarkerSettings />
+              </div>
+            )}
+
+            {currentTab === "media" && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="flex items-center gap-2 pb-2 border-b border-border/40">
+                  <h3 className="text-lg font-semibold tracking-tight text-foreground/90">{t("settings.media")}</h3>
+                </div>
+                <MediaLibrarySettings />
               </div>
             )}
 

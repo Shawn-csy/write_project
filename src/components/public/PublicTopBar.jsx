@@ -4,9 +4,10 @@ import { BookOpen, ArrowLeft, Sun, Moon } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
 import { useSettings } from "../../contexts/SettingsContext";
+import { useI18n } from "../../contexts/I18nContext";
 
 export function PublicTopBar({
-  title = "公開台本",
+  title,
   showBack = false,
   onBack,
   tabs = [],
@@ -16,13 +17,15 @@ export function PublicTopBar({
 }) {
   const navigate = useNavigate();
   const { isDark, setTheme } = useSettings();
+  const { t } = useI18n();
+  const resolvedTitle = title || t("publicTopbar.title");
 
   return (
     <header className="border-b sticky top-0 bg-background/80 backdrop-blur z-20">
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
           {showBack && (
-            <Button variant="ghost" size="icon" onClick={onBack || (() => navigate(-1))} aria-label="返回">
+            <Button variant="ghost" size="icon" onClick={onBack || (() => navigate(-1))} aria-label={t("publicTopbar.back")}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
           )}
@@ -31,7 +34,7 @@ export function PublicTopBar({
             onClick={() => navigate("/")}
           >
             <BookOpen className="w-6 h-6" />
-            <span className="truncate">{title}</span>
+            <span className="truncate">{resolvedTitle}</span>
           </div>
         </div>
 
@@ -59,8 +62,8 @@ export function PublicTopBar({
             variant="ghost"
             size="icon"
             onClick={() => setTheme(isDark ? "light" : "dark")}
-            title={isDark ? "切換亮色" : "切換暗色"}
-            aria-label={isDark ? "切換亮色" : "切換暗色"}
+            title={isDark ? t("publicTopbar.switchLight") : t("publicTopbar.switchDark")}
+            aria-label={isDark ? t("publicTopbar.switchLight") : t("publicTopbar.switchDark")}
           >
             {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </Button>

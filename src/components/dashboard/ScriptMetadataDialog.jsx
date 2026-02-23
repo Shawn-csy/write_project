@@ -21,17 +21,18 @@ import { MetadataDetailsTab } from "./metadata/MetadataDetailsTab";
 import { MetadataAdvancedTab } from "./metadata/MetadataAdvancedTab";
 import { MetadataLicenseTab } from "./metadata/MetadataLicenseTab";
 import { useToast } from "../ui/toast";
+import { useI18n } from "../../contexts/I18nContext";
 
-export function buildPublishChecklist({ title, identity, license, licenseTerms, coverUrl, synopsis, tags }) {
+export function buildPublishChecklist({ title, identity, license, licenseTerms, coverUrl, synopsis, tags, t }) {
     const required = [
-        { key: "title", label: "作品標題", ok: Boolean(title?.trim()) },
-        { key: "identity", label: "作者身份", ok: Boolean(identity?.startsWith("persona:")) },
-        { key: "license", label: "授權資訊", ok: Boolean(license?.trim()) || (licenseTerms || []).length > 0 },
+        { key: "title", label: t ? t("scriptMetadataDialog.checkTitle") : "Title", ok: Boolean(title?.trim()) },
+        { key: "identity", label: t ? t("scriptMetadataDialog.checkIdentity") : "Author identity", ok: Boolean(identity?.startsWith("persona:")) },
+        { key: "license", label: t ? t("scriptMetadataDialog.checkLicense") : "License", ok: Boolean(license?.trim()) || (licenseTerms || []).length > 0 },
     ];
     const recommended = [
-        { key: "cover", label: "封面圖片", ok: Boolean(coverUrl?.trim()) },
-        { key: "synopsis", label: "作品摘要", ok: Boolean(synopsis?.trim()) },
-        { key: "tags", label: "作品標籤", ok: Array.isArray(tags) && tags.length > 0 },
+        { key: "cover", label: t ? t("scriptMetadataDialog.checkCover") : "Cover", ok: Boolean(coverUrl?.trim()) },
+        { key: "synopsis", label: t ? t("scriptMetadataDialog.checkSynopsis") : "Synopsis", ok: Boolean(synopsis?.trim()) },
+        { key: "tags", label: t ? t("scriptMetadataDialog.checkTags") : "Tags", ok: Array.isArray(tags) && tags.length > 0 },
     ];
     return {
         required,
@@ -46,6 +47,7 @@ export function buildPublishChecklist({ title, identity, license, licenseTerms, 
 
 
 export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onSave }) {
+    const { t } = useI18n();
     const { toast } = useToast();
     const [title, setTitle] = useState("");
     const [coverUrl, setCoverUrl] = useState("");
@@ -214,7 +216,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                 setCurrentTags(resolved);
             }
         } catch (e) {
-            setJsonError("JSON 格式錯誤，請檢查。");
+            setJsonError(t("scriptMetadataDialog.jsonError"));
         }
     };
     
@@ -238,8 +240,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     const [showMarkerLegend, setShowMarkerLegend] = useState(false);
     const [disableCopy, setDisableCopy] = useState(false);
     const publishChecklist = useMemo(
-        () => buildPublishChecklist({ title, identity, license, licenseTerms, coverUrl, synopsis, tags: currentTags }),
-        [title, identity, license, licenseTerms, coverUrl, synopsis, currentTags]
+        () => buildPublishChecklist({ title, identity, license, licenseTerms, coverUrl, synopsis, tags: currentTags, t }),
+        [title, identity, license, licenseTerms, coverUrl, synopsis, currentTags, t]
     );
     const requiredErrorMap = useMemo(
         () => ({
@@ -334,7 +336,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                 const userThemes = tData || [];
                 // Ensure default is always there as option if API doesn't return it (it usually doesn't return built-ins)
                 const allThemes = [
-                    { id: 'default', name: '預設主題 (Default)' },
+                    { id: 'default', name: t("scriptMetadataDialog.defaultTheme") },
                     ...userThemes
                 ];
                 setMarkerThemes(allThemes);
@@ -800,8 +802,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
             });
             setNewTagInput("");
             toast({
-                title: "已加入標籤",
-                description: `共加入 ${resolved.length} 個標籤`,
+                title: t("scriptMetadataDialog.tagsAdded"),
+                description: t("scriptMetadataDialog.tagsAddedCount").replace("{count}", String(resolved.length)),
             });
         }
     };
@@ -813,7 +815,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     const handleSave = async () => {
         setShowValidationHints(true);
         if (!identity || !identity.startsWith("persona:")) {
-            toast({ title: "請先選擇作者身份", variant: "destructive" });
+            toast({ title: t("scriptMetadataDialog.selectIdentityFirst"), variant: "destructive" });
             setActiveTab("basic");
             return;
         }
@@ -823,8 +825,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                 jumpToChecklistItem(firstMissing.key);
             }
             toast({
-                title: "無法公開作品",
-                description: `請先完成：${publishChecklist.missingRequired.map((item) => item.label).join("、")}`,
+                title: t("scriptMetadataDialog.cannotPublish"),
+                description: t("scriptMetadataDialog.cannotPublishDesc").replace("{items}", publishChecklist.missingRequired.map((item) => item.label).join("、")),
                 variant: "destructive",
             });
             return;
@@ -922,12 +924,12 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                 tags: currentTags,
                 markerThemeId
             }); 
-            toast({ title: "劇本資訊已儲存" });
+            toast({ title: t("scriptMetadataDialog.saved") });
             setShowValidationHints(false);
             onOpenChange(false);
         } catch (error) {
             console.error("Failed to save script metadata", error);
-            toast({ title: "儲存失敗", description: "請稍後再試。", variant: "destructive" });
+            toast({ title: t("scriptMetadataDialog.saveFailed"), description: t("scriptMetadataDialog.tryLater"), variant: "destructive" });
         } finally {
             setIsSaving(false);
         }
@@ -937,18 +939,18 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>編輯劇本資訊</DialogTitle>
+                    <DialogTitle>{t("scriptMetadataDialog.title")}</DialogTitle>
                     <DialogDescription>
-                        設定劇本的元數據 (Metadata)。這些資訊將會寫入劇本檔案的標頭中。
+                        {t("scriptMetadataDialog.description")}
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className={`rounded-md border p-3 ${status === "Public" && publishChecklist.missingRequired.length > 0 ? "border-destructive/40 bg-destructive/5" : "border-border bg-muted/20"}`}>
                     <div className="mb-2 flex items-center gap-2 text-sm font-medium">
                         <AlertTriangle className={`h-4 w-4 ${status === "Public" && publishChecklist.missingRequired.length > 0 ? "text-destructive" : "text-muted-foreground"}`} />
-                        發佈檢查清單
+                        {t("scriptMetadataDialog.publishChecklist")}
                     </div>
-                    <div className="mb-2 text-xs font-medium text-foreground/90">必填</div>
+                    <div className="mb-2 text-xs font-medium text-foreground/90">{t("scriptMetadataDialog.required")}</div>
                     <div className="grid grid-cols-1 gap-1 text-sm sm:grid-cols-2">
                         {publishChecklist.required.map((item) => (
                             <div key={item.key} className={item.ok ? "text-muted-foreground" : "text-destructive"}>
@@ -956,7 +958,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                             </div>
                         ))}
                     </div>
-                    <div className="mt-3 mb-2 text-xs font-medium text-muted-foreground">建議填寫（不影響發布）</div>
+                    <div className="mt-3 mb-2 text-xs font-medium text-muted-foreground">{t("scriptMetadataDialog.recommended")}</div>
                     <div className="grid grid-cols-1 gap-1 text-sm sm:grid-cols-2">
                         {publishChecklist.recommended.map((item) => (
                             <div key={item.key} className={item.ok ? "text-muted-foreground" : "text-amber-700 dark:text-amber-300"}>
@@ -975,7 +977,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                                     className="h-7 text-xs border-destructive/30 text-destructive hover:bg-destructive/10"
                                     onClick={() => jumpToChecklistItem(item.key)}
                                 >
-                                    前往補齊：{item.label}
+                                    {t("scriptMetadataDialog.goFix").replace("{label}", item.label)}
                                 </Button>
                             ))}
                             {publishChecklist.missingRecommended.map((item) => (
@@ -987,7 +989,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                                     className="h-7 text-xs text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
                                     onClick={() => jumpToChecklistItem(item.key)}
                                 >
-                                    稍後補上：{item.label}
+                                    {t("scriptMetadataDialog.fixLater").replace("{label}", item.label)}
                                 </Button>
                             ))}
                         </div>
@@ -996,10 +998,10 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
                     <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1 h-auto sm:h-9">
-                        <TabsTrigger value="basic">基本資訊</TabsTrigger>
-                        <TabsTrigger value="details">詳細設定</TabsTrigger>
-                        <TabsTrigger value="license">授權</TabsTrigger>
-                        <TabsTrigger value="advanced">進階</TabsTrigger>
+                        <TabsTrigger value="basic">{t("scriptMetadataDialog.tabBasic")}</TabsTrigger>
+                        <TabsTrigger value="details">{t("scriptMetadataDialog.tabDetails")}</TabsTrigger>
+                        <TabsTrigger value="license">{t("scriptMetadataDialog.tabLicense")}</TabsTrigger>
+                        <TabsTrigger value="advanced">{t("scriptMetadataDialog.tabAdvanced")}</TabsTrigger>
                     </TabsList>
                     
                     <div className="flex-1 overflow-y-auto py-4 px-1">
@@ -1070,10 +1072,10 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                 </Tabs>
 
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
                     <Button onClick={handleSave} disabled={isSaving}>
                         {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        確認儲存
+                        {t("scriptMetadataDialog.confirmSave")}
                     </Button>
                 </DialogFooter>
             </DialogContent>

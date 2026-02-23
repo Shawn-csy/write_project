@@ -3,8 +3,10 @@ import { Loader2, Eye, Edit, FilePenLine } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Card } from "../../ui/card";
 import { Badge } from "../../ui/badge";
+import { useI18n } from "../../../contexts/I18nContext";
 
 export function PublisherWorksTab({ isLoading, scripts, setEditingScript, navigate, formatDate, onContinueEdit }) {
+    const { t } = useI18n();
     const [filter, setFilter] = React.useState("all"); // all, public, private
     const INITIAL_VISIBLE = 12;
     const PREFETCH_STEP = 24;
@@ -82,7 +84,7 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
                     onClick={() => setFilter("all")}
                     className="h-8 rounded-full text-xs"
                 >
-                    全部 ({stats.total})
+                    {t("publisherWorksTab.filterAll")} ({stats.total})
                 </Button>
                 <Button 
                     variant={filter === "public" ? "secondary" : "ghost"} 
@@ -90,7 +92,7 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
                     onClick={() => setFilter("public")}
                     className="h-8 rounded-full text-xs"
                 >
-                    已公開 ({stats.publicCount})
+                    {t("publisherWorksTab.filterPublic")} ({stats.publicCount})
                 </Button>
                 <Button 
                     variant={filter === "private" ? "secondary" : "ghost"} 
@@ -98,7 +100,7 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
                     onClick={() => setFilter("private")}
                     className="h-8 rounded-full text-xs"
                 >
-                    未公開 ({stats.privateCount})
+                    {t("publisherWorksTab.filterPrivate")} ({stats.privateCount})
                 </Button>
             </div>
 
@@ -106,7 +108,11 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
                 <div className="flex justify-center p-6"><Loader2 className="animate-spin" /></div>
             ) : filteredScripts.length === 0 ? (
                 <div className="text-center text-muted-foreground py-16 border rounded-lg border-dashed">
-                    {filter === "all" ? "尚未有任何作品" : filter === "public" ? "尚未有公開作品" : "尚未有未公開作品"}
+                    {filter === "all"
+                        ? t("publisherWorksTab.emptyAll")
+                        : filter === "public"
+                            ? t("publisherWorksTab.emptyPublic")
+                            : t("publisherWorksTab.emptyPrivate")}
                 </div>
             ) : (
                 <>
@@ -118,7 +124,7 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
                             <img src={script.coverUrl} alt={script.title} className="w-full h-full object-cover" loading="lazy" />
                             ) : (
                             <div className="flex items-center justify-center h-full text-muted-foreground bg-secondary/30">
-                                <span className="text-xs italic">No Cover</span>
+                                <span className="text-xs italic">{t("publisherWorksTab.noCover")}</span>
                             </div>
                             )}
                     </div>
@@ -129,10 +135,10 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
                             <div>
                                 <h3 className="font-semibold text-lg font-serif">{script.title}</h3>
                                 <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                                    <span>更新：{formatDate(script.lastModified)}</span>
+                                    <span>{t("publisherWorksTab.updatedAt")}：{formatDate(script.lastModified)}</span>
                                     <span>•</span>
                                     <Badge variant={script.status === "Public" ? "default" : "secondary"} className="h-5 text-[10px]">
-                                        {script.status === "Public" ? "公開" : "私人"}
+                                        {script.status === "Public" ? t("publisherWorksTab.statusPublic") : t("publisherWorksTab.statusPrivate")}
                                     </Badge>
                                 </div>
                             </div>
@@ -148,10 +154,10 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
                         {/* Actions */}
                         <div className="flex items-center gap-2 mt-4 pt-2 border-t border-border/50">
                             <Button variant="secondary" size="sm" className="h-8" onClick={() => onContinueEdit?.(script)}>
-                                <FilePenLine className="w-3.5 h-3.5 mr-1.5" /> 繼續寫作
+                                <FilePenLine className="w-3.5 h-3.5 mr-1.5" /> {t("publisherWorksTab.continueWriting")}
                             </Button>
                             <Button variant="ghost" size="sm" className="h-8" onClick={() => setEditingScript(script)}>
-                                <Edit className="w-3.5 h-3.5 mr-1.5" /> 編輯資訊
+                                <Edit className="w-3.5 h-3.5 mr-1.5" /> {t("publisherWorksTab.editInfo")}
                             </Button>
                             {script.status === "Public" && (
                                     <Button
@@ -160,7 +166,7 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
                                     className="h-8 text-muted-foreground hover:text-foreground"
                                     onClick={() => navigate(`/read/${script.id}`)}
                                     >
-                                    <Eye className="w-3.5 h-3.5 mr-1.5" /> 查看公開頁
+                                    <Eye className="w-3.5 h-3.5 mr-1.5" /> {t("publisherWorksTab.viewPublicPage")}
                                     </Button>
                             )}
                             <div className="flex-1"></div>
@@ -171,7 +177,7 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
                     {hasMore && (
                         <div className="pt-2 text-center">
                             <Button variant="outline" size="sm" onClick={loadMore}>
-                                載入更多
+                                {t("publisherWorksTab.loadMore")}
                             </Button>
                         </div>
                     )}

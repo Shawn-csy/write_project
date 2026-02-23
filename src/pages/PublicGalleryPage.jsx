@@ -10,8 +10,10 @@ import { PublicTopBar } from "../components/public/PublicTopBar";
 import { getPublicBundle } from "../lib/db";
 import { extractMetadataWithRaw } from "../lib/metadataParser";
 import { deriveUsageRights, deriveCcLicenseTags } from "../lib/licenseRights";
+import { useI18n } from "../contexts/I18nContext";
 
 export default function PublicGalleryPage() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { currentUser, login } = useAuth();
@@ -122,7 +124,7 @@ export default function PublicGalleryPage() {
 
           const normalizeEntity = (entity) => ({
               ...entity,
-              displayName: entity.displayName || entity.name || "Unknown",
+              displayName: entity.displayName || entity.name || t("publicGallery.unknown"),
               avatar: entity.avatar || entity.avatarUrl || entity.logoUrl || null,
               tags: (entity.tags || []).map(t => typeof t === "string" ? t : t?.name).filter(Boolean)
           });
@@ -238,10 +240,10 @@ export default function PublicGalleryPage() {
     return matchesSearch && matchesTag;
   });
   const tabs = useMemo(() => ([
-    { key: "scripts", label: "作品" },
-    { key: "authors", label: "作者" },
-    { key: "orgs", label: "組織" },
-  ]), []);
+    { key: "scripts", label: t("publicTopbar.scripts") },
+    { key: "authors", label: t("publicTopbar.authors") },
+    { key: "orgs", label: t("publicTopbar.orgs") },
+  ]), [t]);
   const allAuthorTags = Array.from(new Set(authors.flatMap(a => a.tags || [])));
   const allOrgTags = Array.from(new Set(orgs.flatMap(o => o.tags || [])));
   const authorTags = allAuthorTags;
@@ -257,17 +259,17 @@ export default function PublicGalleryPage() {
         actions={
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => navigate("/about")}>
-              關於本站
+              {t("publicGallery.about")}
             </Button>
             {currentUser ? (
               <Button variant="default" size="sm" onClick={() => navigate("/dashboard")}>
-                前往工作室
+                {t("publicGallery.goStudio")}
               </Button>
             ) : (
               <Button variant="outline" size="sm" onClick={async () => {
                 try { await login(); } catch(e) { console.error(e); }
               }}>
-                登入
+                {t("publicGallery.login")}
               </Button>
             )}
           </div>
@@ -298,34 +300,34 @@ export default function PublicGalleryPage() {
                 orgTags
             }
             placeholder={
-                view === "scripts" ? "搜尋劇本..." :
-                view === "authors" ? "搜尋作者..." :
-                "搜尋組織..."
+                view === "scripts" ? t("publicGallery.searchScripts") :
+                view === "authors" ? t("publicGallery.searchAuthors") :
+                t("publicGallery.searchOrgs")
             }
             showSort={view === "scripts"}
             sortValue={sortKey}
             onSortChange={setSortKey}
             sortOptions={[
-                { value: "recent", label: "最新更新" },
-                { value: "views", label: "點閱數" }
+                { value: "recent", label: t("publicGallery.sortRecent") },
+                { value: "views", label: t("publicGallery.sortViews") }
             ]}
             showViewToggle={view === "scripts"}
             viewValue={viewMode}
             onViewChange={handleViewModeChange}
             viewOptions={[
-                { value: "standard", label: "標準" },
-                { value: "compact", label: "密集" }
+                { value: "standard", label: t("publicGallery.viewStandard") },
+                { value: "compact", label: t("publicGallery.viewCompact") }
             ]}
             quickFilters={view === "scripts" ? [
-                { value: "all", label: "全部授權" },
-                { value: "commercial", label: "可商用" },
-                { value: "free", label: "可免費使用" },
+                { value: "all", label: t("publicGallery.usageAll") },
+                { value: "commercial", label: t("publicGallery.usageCommercial") },
+                { value: "free", label: t("publicGallery.usageFree") },
             ] : []}
             quickFilterValue={usageFilter}
             onQuickFilterChange={setUsageFilter}
             quickTagFilters={view === "scripts" ? licenseTagShortcuts.map((tag) => ({
                 value: tag,
-                label: tag.replace(/^授權:/, "")
+                label: tag.replace(/^授權:/, "").replace(/^License:/, "")
             })) : []}
         />
 
@@ -353,9 +355,9 @@ export default function PublicGalleryPage() {
 
         {view === "scripts" && !isLoading && filteredScripts.length === 0 && (
           <div className="py-20 text-center text-muted-foreground">
-              <p>找不到符合條件的劇本。</p>
+              <p>{t("publicGallery.emptyScripts")}</p>
               <Button variant="link" onClick={() => { setSearchTerm(""); setSelectedTags([]); setUsageFilter("all"); }}>
-                  清除篩選
+                  {t("publicGallery.clearFilters")}
               </Button>
           </div>
         )}
@@ -383,7 +385,7 @@ export default function PublicGalleryPage() {
         
         {view === "authors" && !isLoadingPeople && filteredAuthors.length === 0 && (
             <div className="col-span-full text-center text-muted-foreground py-10">
-                <p>找不到符合條件的作者。</p>
+                <p>{t("publicGallery.emptyAuthors")}</p>
             </div>
         )}
 
@@ -410,7 +412,7 @@ export default function PublicGalleryPage() {
 
         {view === "orgs" && !isLoadingPeople && filteredOrgs.length === 0 && (
             <div className="col-span-full text-center text-muted-foreground py-10">
-                <p>找不到符合條件的組織。</p>
+                <p>{t("publicGallery.emptyOrgs")}</p>
             </div>
         )}
       </main>

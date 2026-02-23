@@ -3,14 +3,16 @@ import { BookOpen, FileCode2, FileText } from "lucide-react";
 import { CardDescription, CardHeader, CardTitle } from "../../../ui/card";
 import { Button } from "../../../ui/button";
 import { cn } from "../../../../lib/utils";
-
-const VIEW_MODES = [
-  { id: "ui", label: "可視化編輯", icon: FileText },
-  { id: "json", label: "JSON", icon: FileCode2 },
-  { id: "guide", label: "使用說明", icon: BookOpen },
-];
+import { useI18n } from "../../../../contexts/I18nContext";
 
 export function MarkerSettingsHeader({ viewMode, setViewMode, statusText }) {
+  const { t } = useI18n();
+  const VIEW_MODES = [
+    { id: "ui", label: t("markerSettingsHeader.viewUi"), icon: FileText },
+    { id: "json", label: "JSON", icon: FileCode2 },
+    { id: "guide", label: t("markerSettingsHeader.viewGuide"), icon: BookOpen },
+  ];
+
   return (
     <CardHeader className="pb-3 px-5 py-4 border-b bg-muted/20 shrink-0">
       <div className="flex flex-col gap-3">
@@ -20,9 +22,9 @@ export function MarkerSettingsHeader({ viewMode, setViewMode, statusText }) {
               <FileText className="w-4 h-4" />
             </div>
             <div>
-              <CardTitle className="text-base">自訂標記規則 (Custom Markers)</CardTitle>
+              <CardTitle className="text-base">{t("markerSettingsHeader.title")}</CardTitle>
               <CardDescription className="text-xs mt-0.5">
-                統一管理標記規則、樣式與統計行為
+                {t("markerSettingsHeader.subtitle")}
               </CardDescription>
             </div>
           </div>

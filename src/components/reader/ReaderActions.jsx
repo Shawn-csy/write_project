@@ -2,6 +2,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Share2, PenBox, BarChart } from "lucide-react";
 import { DownloadMenu } from "@/components/common/DownloadMenu";
+import { useI18n } from "../../contexts/I18nContext";
 
 export function ReaderActions({
     canShare,
@@ -12,6 +13,7 @@ export function ReaderActions({
     extraActions,
     onToggleStats // New prop
 }) {
+    const { t } = useI18n();
     return (
         <div className="flex items-center gap-2 print:hidden">
              
@@ -19,7 +21,7 @@ export function ReaderActions({
             <Button 
                 variant="ghost" 
                 size="icon" 
-                title="統計資訊"
+                title={t("readerActions.stats")}
                 onClick={onToggleStats}
             >
                 <BarChart className="w-4 h-4" />
@@ -35,24 +37,24 @@ export function ReaderActions({
                     e.stopPropagation();
                     onShareUrl?.(e);
                 }}
-                title="分享連結"
+                title={t("readerActions.share")}
                 >
                 <Share2 className="h-4 w-4" />
                 </Button>
                 {shareCopied && (
                 <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                    已複製
+                    {t("readerActions.copied")}
                 </span>
                 )}
             </div>
             )}
-            <DownloadMenu options={downloadOptions} title="下載" />
+            <DownloadMenu options={downloadOptions} title={t("common.download")} />
             {onEdit && (
             <Button
                 variant="ghost"
                 size="icon"
                 onClick={onEdit}
-                title="編輯劇本"
+                title={t("readerActions.editScript")}
             >
                 <PenBox className="h-4 w-4" />
             </Button>

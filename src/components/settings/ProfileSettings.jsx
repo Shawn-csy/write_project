@@ -1,16 +1,18 @@
 import React from 'react';
 import { User, Mail } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useI18n } from '../../contexts/I18nContext';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 
 export function ProfileSettings() {
     const { currentUser } = useAuth();
+    const { t } = useI18n();
 
     if (!currentUser) {
         return (
             <div className="p-4 text-center text-muted-foreground">
-                請先登入以查看個人資料。
+                {t("profile.loginRequired")}
             </div>
         );
     }
@@ -19,7 +21,7 @@ export function ProfileSettings() {
         <div className="space-y-6">
             <div className="flex items-center gap-2 pb-2 border-b border-border/40">
                 <User className="w-5 h-5 text-primary" />
-                <h3 className="text-lg font-semibold tracking-tight text-foreground/90">個人身份 (Google Account)</h3>
+                <h3 className="text-lg font-semibold tracking-tight text-foreground/90">{t("profile.title")}</h3>
             </div>
 
             <div className="space-y-6">
@@ -36,7 +38,7 @@ export function ProfileSettings() {
                         </div>
                     )}
                     <div>
-                        <h4 className="font-semibold text-lg">{currentUser.displayName || "使用者"}</h4>
+                        <h4 className="font-semibold text-lg">{currentUser.displayName || t("profile.defaultUser")}</h4>
                         <p className="text-sm text-muted-foreground flex items-center gap-1">
                             <Mail className="w-3 h-3" />
                             {currentUser.email}
@@ -46,18 +48,18 @@ export function ProfileSettings() {
 
                 <div className="grid gap-4 opacity-80 pointer-events-none">
                      <div className="grid gap-2">
-                        <Label>顯示名稱 (Display Name)</Label>
+                        <Label>{t("profile.displayName")}</Label>
                         <Input value={currentUser.displayName || ""} readOnly disabled />
-                        <p className="text-xs text-muted-foreground">目前直接使用您的 Google 帳戶設定。</p>
+                        <p className="text-xs text-muted-foreground">{t("profile.accountSource")}</p>
                     </div>
                     
                     <div className="grid gap-2">
-                        <Label>電子郵件 (Email)</Label>
+                        <Label>{t("profile.email")}</Label>
                         <Input value={currentUser.email || ""} readOnly disabled />
                     </div>
 
                     <div className="grid gap-2">
-                        <Label>使用者 ID (UID)</Label>
+                        <Label>{t("profile.userId")}</Label>
                         <Input value={currentUser.uid} readOnly disabled className="font-mono text-xs" />
                     </div>
                 </div>

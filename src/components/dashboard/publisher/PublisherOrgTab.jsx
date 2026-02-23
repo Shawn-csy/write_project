@@ -10,6 +10,8 @@ import { DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, horizontalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { SortableTag } from "./SortableTag";
 import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
+import { validateImageFile, getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
+import { useI18n } from "../../../contexts/I18nContext";
 
 export function PublisherOrgTab({
     orgs,
@@ -33,11 +35,18 @@ export function PublisherOrgTab({
     handleAcceptRequest,
     handleDeclineRequest
 }) {
+    const { t } = useI18n();
     const navigate = useNavigate();
     const [viewMode, setViewMode] = React.useState("edit");
     const [tagOpen, setTagOpen] = React.useState(false);
     const [logoPreviewFailed, setLogoPreviewFailed] = React.useState(false);
     const [bannerPreviewFailed, setBannerPreviewFailed] = React.useState(false);
+    const [logoUploadError, setLogoUploadError] = React.useState("");
+    const [bannerUploadError, setBannerUploadError] = React.useState("");
+    const [logoUploadWarning, setLogoUploadWarning] = React.useState("");
+    const [bannerUploadWarning, setBannerUploadWarning] = React.useState("");
+    const logoGuide = React.useMemo(() => getImageUploadGuide("logo"), []);
+    const bannerGuide = React.useMemo(() => getImageUploadGuide("banner"), []);
     const filteredTagOptions = React.useMemo(() => {
         const needle = orgTagInput.trim().toLowerCase();
         const names = (tagOptions || []).map(t => t.name).filter(Boolean);
@@ -46,20 +55,42 @@ export function PublisherOrgTab({
     }, [tagOptions, orgTagInput]);
 
     const orgChecklist = React.useMemo(() => ([
-        { key: "name", label: "設定組織名稱", ok: Boolean(orgDraft.name?.trim()) },
-        { key: "description", label: "補上組織描述", ok: Boolean(orgDraft.description?.trim()) },
-        { key: "logoUrl", label: "上傳 Logo", ok: Boolean(orgDraft.logoUrl?.trim()) },
-        { key: "bannerUrl", label: "設定橫幅", ok: Boolean(orgDraft.bannerUrl?.trim()) },
-        { key: "website", label: "填寫網站", ok: Boolean(orgDraft.website?.trim()) },
-        { key: "tags", label: "加入標籤", ok: (orgDraft.tags || []).length > 0 },
-    ]), [orgDraft]);
+        { key: "name", label: t("publisherOrgTab.checkName"), ok: Boolean(orgDraft.name?.trim()) },
+        { key: "description", label: t("publisherOrgTab.checkDescription"), ok: Boolean(orgDraft.description?.trim()) },
+        { key: "logoUrl", label: t("publisherOrgTab.checkLogo"), ok: Boolean(orgDraft.logoUrl?.trim()) },
+        { key: "bannerUrl", label: t("publisherOrgTab.checkBanner"), ok: Boolean(orgDraft.bannerUrl?.trim()) },
+        { key: "website", label: t("publisherOrgTab.checkWebsite"), ok: Boolean(orgDraft.website?.trim()) },
+        { key: "tags", label: t("publisherOrgTab.checkTags"), ok: (orgDraft.tags || []).length > 0 },
+    ]), [orgDraft, t]);
     const orgDone = orgChecklist.filter((item) => item.ok).length;
     const orgProgress = Math.round((orgDone / orgChecklist.length) * 100);
     const orgNextSteps = orgChecklist.filter((item) => !item.ok).slice(0, 3);
 
-    const handleImageUpload = (field) => (event) => {
+    const handleImageUpload = (field) => async (event) => {
         const file = event.target.files?.[0];
-        if (!file || !file.type.startsWith("image/")) return;
+        if (!file) return;
+        const ruleKey = field === "logoUrl" ? "logo" : "banner";
+        const validation = await validateImageFile(file, ruleKey);
+        if (!validation.ok) {
+            if (field === "logoUrl") {
+                setLogoUploadError(validation.error || t("publisherOrgTab.invalidImage"));
+                setLogoUploadWarning("");
+            }
+            if (field === "bannerUrl") {
+                setBannerUploadError(validation.error || t("publisherOrgTab.invalidImage"));
+                setBannerUploadWarning("");
+            }
+            event.target.value = "";
+            return;
+        }
+        if (field === "logoUrl") {
+            setLogoUploadError("");
+            setLogoUploadWarning(validation.warning || "");
+        }
+        if (field === "bannerUrl") {
+            setBannerUploadError("");
+            setBannerUploadWarning(validation.warning || "");
+        }
         const reader = new FileReader();
         reader.onload = () => {
             const result = typeof reader.result === "string" ? reader.result : "";
@@ -94,6 +125,7 @@ export function PublisherOrgTab({
                     description: org.description || "",
                     website: org.website || "",
                     logoUrl: org.logoUrl || "",
+                    bannerUrl: org.bannerUrl || "",
                     tags: org.tags || []
                 });
                 setViewMode("edit");
@@ -112,7 +144,7 @@ export function PublisherOrgTab({
             {/* Left Sidebar: List */}
             <div className="w-full md:w-[280px] border-b md:border-b-0 md:border-r flex flex-col bg-muted/10">
                 <div className="p-4 border-b flex items-center justify-between bg-background/50 backdrop-blur-sm sticky top-0 z-10">
-                    <h3 className="font-semibold text-sm">組織列表</h3>
+                    <h3 className="font-semibold text-sm">{t("publisherOrgTab.orgList")}</h3>
                     <Button size="icon" variant="ghost" className="h-8 w-8 ml-auto" onClick={onStartCreate}>
                         <Plus className="w-4 h-4" />
                     </Button>
@@ -134,8 +166,8 @@ export function PublisherOrgTab({
                     
                     {orgs.length === 0 && (
                         <div className="text-center text-muted-foreground p-8 text-sm">
-                            尚無組織
-                            <Button variant="link" size="sm" onClick={onStartCreate} className="mt-2 text-xs">立即建立</Button>
+                            {t("publisherOrgTab.noOrg")}
+                            <Button variant="link" size="sm" onClick={onStartCreate} className="mt-2 text-xs">{t("publisherOrgTab.createNow")}</Button>
                         </div>
                     )}
                 </div>
@@ -145,7 +177,7 @@ export function PublisherOrgTab({
             <div className="flex-1 flex flex-col overflow-hidden bg-card">
                  <div className="p-4 border-b flex justify-between items-center bg-background/50 backdrop-blur-sm h-[57px]">
                     <div>
-                        <h2 className="text-lg font-semibold tracking-tight">{viewMode === "create" ? "建立組織" : "編輯組織"}</h2>
+                        <h2 className="text-lg font-semibold tracking-tight">{viewMode === "create" ? t("publisherOrgTab.createOrg") : t("publisherOrgTab.editOrg")}</h2>
                     </div>
                     {viewMode === "edit" && selectedOrgId && (
                         <Button
@@ -154,7 +186,7 @@ export function PublisherOrgTab({
                             className="h-8 text-xs"
                             onClick={() => navigate(`/org/${selectedOrgId}`)}
                         >
-                            查看組織頁
+                            {t("publisherOrgTab.viewOrgPage")}
                         </Button>
                     )}
                     {viewMode === "edit" && selectedOrgId && (
@@ -164,7 +196,7 @@ export function PublisherOrgTab({
                             className="text-destructive hover:bg-destructive/10 h-8 text-xs"
                             onClick={handleDeleteOrg}
                         >
-                            <Trash2 className="w-3.5 h-3.5 mr-1.5" /> 刪除組織
+                            <Trash2 className="w-3.5 h-3.5 mr-1.5" /> {t("publisherOrgTab.deleteOrg")}
                         </Button>
                     )}
                 </div>
@@ -175,7 +207,7 @@ export function PublisherOrgTab({
                             <>
                                 <div className="rounded-lg border bg-muted/20 p-4 space-y-3">
                                     <div className="flex items-center justify-between text-sm">
-                                        <span className="font-medium">資料完成度</span>
+                                        <span className="font-medium">{t("publisherOrgTab.progress")}</span>
                                         <span className="text-muted-foreground">{orgDone}/{orgChecklist.length} · {orgProgress}%</span>
                                     </div>
                                     <div className="h-2 rounded-full bg-muted">
@@ -183,7 +215,7 @@ export function PublisherOrgTab({
                                     </div>
                                     {orgNextSteps.length > 0 && (
                                         <div className="text-xs text-muted-foreground">
-                                            下一步：{orgNextSteps.map((item) => item.label).join("、")}
+                                            {t("publisherOrgTab.nextSteps").replace("{items}", orgNextSteps.map((item) => item.label).join("、"))}
                                         </div>
                                     )}
                                 </div>
@@ -191,31 +223,31 @@ export function PublisherOrgTab({
                                 <div className="space-y-6">
                                     <div className="grid gap-4">
                                         <div className="grid gap-1.5">
-                                            <label className="text-sm font-medium" htmlFor="org-name">組織名稱 <span className="text-destructive">*</span></label>
+                                            <label className="text-sm font-medium" htmlFor="org-name">{t("publisherOrgTab.orgName")} <span className="text-destructive">*</span></label>
                                             <Input 
                                                 id="org-name"
                                                 name="orgName"
                                                 value={orgDraft.name} 
                                                 onChange={e => setOrgDraft({ ...orgDraft, name: e.target.value })}
-                                                placeholder="e.g. 某某工作室"
+                                                placeholder={t("publisherOrgTab.orgNamePlaceholder")}
                                                 className="font-medium"
                                             />
                                         </div>
 
                                         <div className="grid gap-1.5">
-                                            <label className="text-sm font-medium" htmlFor="org-description">描述</label>
+                                            <label className="text-sm font-medium" htmlFor="org-description">{t("publisherOrgTab.description")}</label>
                                             <Input 
                                                 id="org-description"
                                                 name="orgDescription"
                                                 value={orgDraft.description} 
                                                 onChange={e => setOrgDraft({ ...orgDraft, description: e.target.value })}
-                                                placeholder="關於這個組織..."
+                                                placeholder={t("publisherOrgTab.descriptionPlaceholder")}
                                             />
                                         </div>
                                         
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div className="grid gap-1.5">
-                                                <label className="text-sm font-medium" htmlFor="org-website">網站</label>
+                                                <label className="text-sm font-medium" htmlFor="org-website">{t("publisherOrgTab.website")}</label>
                                                 <Input 
                                                     id="org-website"
                                                     name="orgWebsite"
@@ -225,7 +257,7 @@ export function PublisherOrgTab({
                                                 />
                                             </div>
                                             <div className="grid gap-1.5">
-                                                <label className="text-sm font-medium" htmlFor="org-logo-url">Logo 圖片網址</label>
+                                                <label className="text-sm font-medium" htmlFor="org-logo-url">{t("publisherOrgTab.logoUrl")}</label>
                                                 <Input 
                                                     id="org-logo-url"
                                                     name="orgLogoUrl"
@@ -234,13 +266,23 @@ export function PublisherOrgTab({
                                                     placeholder="https://"
                                                 />
                                                 <label className="inline-flex w-fit cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
-                                                    上傳 Logo
-                                                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload("logoUrl")} />
+                                                    {t("publisherOrgTab.uploadLogo")}
+                                                    <input type="file" accept={MEDIA_FILE_ACCEPT} className="hidden" onChange={handleImageUpload("logoUrl")} />
                                                 </label>
+                                                <div className="space-y-0.5 text-[11px] text-muted-foreground">
+                                                    <p>{logoGuide.supported}</p>
+                                                    <p>{logoGuide.recommended}</p>
+                                                </div>
+                                                {logoUploadError && (
+                                                    <p className="text-[11px] text-destructive">{logoUploadError}</p>
+                                                )}
+                                                {logoUploadWarning && (
+                                                    <p className="text-[11px] text-amber-700 dark:text-amber-300">{logoUploadWarning}</p>
+                                                )}
                                                 {(orgDraft.logoUrl || "").trim() && (
                                                     <div className="h-16 w-16 overflow-hidden rounded-md border bg-muted/20">
                                                         {logoPreviewFailed ? (
-                                                            <div className="flex h-full items-center justify-center text-[10px] text-muted-foreground">預覽失敗</div>
+                                                            <div className="flex h-full items-center justify-center text-[10px] text-muted-foreground">{t("publisherOrgTab.previewFailed")}</div>
                                                         ) : (
                                                             <img
                                                                 src={orgDraft.logoUrl}
@@ -254,7 +296,7 @@ export function PublisherOrgTab({
                                                 )}
                                             </div>
                                             <div className="grid gap-1.5">
-                                                <label className="text-sm font-medium" htmlFor="org-banner-url">橫幅圖片網址</label>
+                                                <label className="text-sm font-medium" htmlFor="org-banner-url">{t("publisherOrgTab.bannerUrl")}</label>
                                                 <Input 
                                                     id="org-banner-url"
                                                     name="orgBannerUrl"
@@ -263,13 +305,23 @@ export function PublisherOrgTab({
                                                     placeholder="https://"
                                                 />
                                                 <label className="inline-flex w-fit cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
-                                                    上傳橫幅
-                                                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload("bannerUrl")} />
+                                                    {t("publisherOrgTab.uploadBanner")}
+                                                    <input type="file" accept={MEDIA_FILE_ACCEPT} className="hidden" onChange={handleImageUpload("bannerUrl")} />
                                                 </label>
+                                                <div className="space-y-0.5 text-[11px] text-muted-foreground">
+                                                    <p>{bannerGuide.supported}</p>
+                                                    <p>{bannerGuide.recommended}</p>
+                                                </div>
+                                                {bannerUploadError && (
+                                                    <p className="text-[11px] text-destructive">{bannerUploadError}</p>
+                                                )}
+                                                {bannerUploadWarning && (
+                                                    <p className="text-[11px] text-amber-700 dark:text-amber-300">{bannerUploadWarning}</p>
+                                                )}
                                                 {(orgDraft.bannerUrl || "").trim() && (
                                                     <div className="h-20 overflow-hidden rounded-md border bg-muted/20">
                                                         {bannerPreviewFailed ? (
-                                                            <div className="flex h-full items-center justify-center text-xs text-muted-foreground">橫幅預覽失敗</div>
+                                                            <div className="flex h-full items-center justify-center text-xs text-muted-foreground">{t("publisherOrgTab.bannerPreviewFailed")}</div>
                                                         ) : (
                                                             <img
                                                                 src={orgDraft.bannerUrl}
@@ -286,7 +338,7 @@ export function PublisherOrgTab({
                                     </div>
                                     
                                         <div className="grid gap-2">
-                                            <label className="text-sm font-medium" htmlFor="org-tag-input">組織標籤</label>
+                                            <label className="text-sm font-medium" htmlFor="org-tag-input">{t("publisherOrgTab.orgTags")}</label>
                                             <div className="border rounded-md p-4 bg-muted/10 space-y-3">
                                             <DndContext
                                                 collisionDetection={closestCenter}
@@ -314,7 +366,7 @@ export function PublisherOrgTab({
                                                             />
                                                         ))}
                                                         {(orgDraft.tags || []).length === 0 && (
-                                                            <span className="text-sm text-muted-foreground">輸入下方欄位新增標籤...</span>
+                                                            <span className="text-sm text-muted-foreground">{t("publisherOrgTab.inputTagHint")}</span>
                                                         )}
                                                     </div>
                                                 </SortableContext>
@@ -322,7 +374,7 @@ export function PublisherOrgTab({
                                             <Popover open={tagOpen} onOpenChange={setTagOpen}>
                                                 <PopoverTrigger asChild>
                                                     <Button type="button" variant="outline" size="sm" className="w-fit">
-                                                        新增標籤
+                                                        {t("publisherOrgTab.addTag")}
                                                     </Button>
                                                 </PopoverTrigger>
                                                 <PopoverContent className="w-[90vw] sm:w-80 p-2" align="start">
@@ -330,7 +382,7 @@ export function PublisherOrgTab({
                                                         <Input
                                                             id="org-tag-input"
                                                             name="orgTagInput"
-                                                            aria-label="新增組織標籤"
+                                                            aria-label={t("publisherOrgTab.addOrgTagAria")}
                                                             value={orgTagInput}
                                                             onChange={(e) => setOrgTagInput(e.target.value)}
                                                             onPaste={handleTagPaste}
@@ -347,7 +399,7 @@ export function PublisherOrgTab({
                                                                     setTagOpen(false);
                                                                 }
                                                             }}
-                                                            placeholder="搜尋或新增標籤..."
+                                                            placeholder={t("publisherOrgTab.searchOrAddTag")}
                                                             className="h-8"
                                                         />
                                                     </div>
@@ -367,7 +419,7 @@ export function PublisherOrgTab({
                                                                     setTagOpen(false);
                                                                 }}
                                                             >
-                                                                新增「{orgTagInput.trim()}」
+                                                                {t("publisherOrgTab.addQuoted").replace("{value}", orgTagInput.trim())}
                                                             </button>
                                                         )}
                                                         {filteredTagOptions.map(name => {
@@ -403,7 +455,7 @@ export function PublisherOrgTab({
                                                             );
                                                         })}
                                                         {orgTagInput.trim() && filteredTagOptions.length === 0 && (
-                                                            <div className="px-3 py-2 text-xs text-muted-foreground">沒有符合的標籤</div>
+                                                            <div className="px-3 py-2 text-xs text-muted-foreground">{t("publisherOrgTab.noMatchedTag")}</div>
                                                         )}
                                                     </div>
                                                 </PopoverContent>
@@ -411,13 +463,15 @@ export function PublisherOrgTab({
                                         </div>
 
                                         <div className="grid gap-2">
-                                            <label className="text-sm font-medium">成員</label>
+                                            <label className="text-sm font-medium">{t("publisherOrgTab.members")}</label>
                                             <div className="border rounded-md p-4 bg-muted/10 space-y-4">
                                                 <div className="text-xs text-muted-foreground">
-                                                    使用者 {orgMembers?.users?.length || 0} 人 · 作者 {orgMembers?.personas?.length || 0} 人
+                                                    {t("publisherOrgTab.memberCount")
+                                                      .replace("{users}", String(orgMembers?.users?.length || 0))
+                                                      .replace("{personas}", String(orgMembers?.personas?.length || 0))}
                                                 </div>
                                                 {(orgMembers?.users?.length || 0) === 0 && (orgMembers?.personas?.length || 0) === 0 ? (
-                                                    <div className="text-sm text-muted-foreground">尚無成員</div>
+                                                    <div className="text-sm text-muted-foreground">{t("publisherOrgTab.noMember")}</div>
                                                 ) : (
                                                     <div className="space-y-2">
                                                         {(orgMembers?.users || []).map(u => (
@@ -426,9 +480,9 @@ export function PublisherOrgTab({
                                                                     <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold">
                                                                         {(u.displayName || u.handle || "?")[0]?.toUpperCase?.() || "?"}
                                                                     </div>
-                                                                    <span>{u.displayName || u.handle || u.email || "User"}</span>
+                                                                    <span>{u.displayName || u.handle || u.email || t("publisherOrgTab.defaultUser")}</span>
                                                                 </div>
-                                                                <Badge variant="outline">使用者</Badge>
+                                                                <Badge variant="outline">{t("publisherOrgTab.user")}</Badge>
                                                             </div>
                                                         ))}
                                                         {(orgMembers?.personas || []).map(p => (
@@ -437,9 +491,9 @@ export function PublisherOrgTab({
                                                                     <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold">
                                                                         {(p.displayName || "?")[0]?.toUpperCase?.() || "?"}
                                                                     </div>
-                                                                    <span>{p.displayName || "Persona"}</span>
+                                                                    <span>{p.displayName || t("publisherOrgTab.persona")}</span>
                                                                 </div>
-                                                                <Badge variant="secondary">作者</Badge>
+                                                                <Badge variant="secondary">{t("publisherOrgTab.author")}</Badge>
                                                             </div>
                                                         ))}
                                                     </div>
@@ -450,25 +504,25 @@ export function PublisherOrgTab({
                                         {isOrgOwner && (
                                             <>
                                                 <div className="grid gap-2">
-                                                    <label className="text-sm font-medium" htmlFor="org-invite-search">邀請成員</label>
+                                                    <label className="text-sm font-medium" htmlFor="org-invite-search">{t("publisherOrgTab.inviteMember")}</label>
                                                     <div className="border rounded-md p-4 bg-muted/10 space-y-3">
                                                         <Input
                                                             id="org-invite-search"
                                                             name="orgInviteSearch"
-                                                            aria-label="邀請成員搜尋"
-                                                            placeholder="輸入 Email / 暱稱 / ID 搜尋"
+                                                            aria-label={t("publisherOrgTab.inviteSearchAria")}
+                                                            placeholder={t("publisherOrgTab.inviteSearchPlaceholder")}
                                                             value={inviteSearchQuery}
                                                             onChange={(e) => setInviteSearchQuery(e.target.value)}
                                                         />
                                                         {isInviteSearching && (
-                                                            <div className="text-xs text-muted-foreground">搜尋中...</div>
+                                                            <div className="text-xs text-muted-foreground">{t("publisherOrgTab.searching")}</div>
                                                         )}
                                                         {inviteSearchResults?.length > 0 && (
                                                             <div className="space-y-2">
                                                                 {inviteSearchResults.map(u => (
                                                                     <div key={u.id} className="flex items-center justify-between text-sm">
                                                                         <span>{u.displayName || u.handle || u.email || u.id}</span>
-                                                                        <Button size="sm" onClick={() => handleInviteMember(u.id)}>邀請</Button>
+                                                                        <Button size="sm" onClick={() => handleInviteMember(u.id)}>{t("publisherOrgTab.invite")}</Button>
                                                                     </div>
                                                                 ))}
                                                             </div>
@@ -477,17 +531,17 @@ export function PublisherOrgTab({
                                                 </div>
 
                                                 <div className="grid gap-2">
-                                                    <label className="text-sm font-medium">待處理申請</label>
+                                                    <label className="text-sm font-medium">{t("publisherOrgTab.pendingRequests")}</label>
                                                     <div className="border rounded-md p-4 bg-muted/10 space-y-2">
                                                         {(orgRequests || []).length === 0 ? (
-                                                            <div className="text-sm text-muted-foreground">目前沒有申請</div>
+                                                            <div className="text-sm text-muted-foreground">{t("publisherOrgTab.noRequests")}</div>
                                                         ) : (
                                                     (orgRequests || []).map(req => (
                                                         <div key={req.id} className="flex items-center justify-between text-sm">
-                                                            <span>申請者：{req.requester?.email || req.requester?.displayName || req.requesterUserId}</span>
+                                                            <span>{t("publisherOrgTab.requester").replace("{value}", req.requester?.email || req.requester?.displayName || req.requesterUserId)}</span>
                                                             <div className="flex gap-2">
-                                                                <Button size="sm" onClick={() => handleAcceptRequest(req.id)}>同意</Button>
-                                                                <Button size="sm" variant="ghost" onClick={() => handleDeclineRequest(req.id)}>拒絕</Button>
+                                                                <Button size="sm" onClick={() => handleAcceptRequest(req.id)}>{t("publisherOrgTab.accept")}</Button>
+                                                                <Button size="sm" variant="ghost" onClick={() => handleDeclineRequest(req.id)}>{t("publisherOrgTab.decline")}</Button>
                                                             </div>
                                                         </div>
                                                     ))
@@ -496,14 +550,14 @@ export function PublisherOrgTab({
                                                 </div>
 
                                                 <div className="grid gap-2">
-                                                    <label className="text-sm font-medium">已發出邀請</label>
+                                                    <label className="text-sm font-medium">{t("publisherOrgTab.sentInvites")}</label>
                                                     <div className="border rounded-md p-4 bg-muted/10 space-y-2">
                                                         {(orgInvites || []).length === 0 ? (
-                                                            <div className="text-sm text-muted-foreground">目前沒有邀請</div>
+                                                            <div className="text-sm text-muted-foreground">{t("publisherOrgTab.noInvites")}</div>
                                                         ) : (
                                                     (orgInvites || []).map(inv => (
                                                         <div key={inv.id} className="flex items-center justify-between text-sm">
-                                                            <span>邀請：{inv.invitedUser?.email || inv.invitedUser?.displayName || inv.invitedUserId}</span>
+                                                            <span>{t("publisherOrgTab.inviteLabel").replace("{value}", inv.invitedUser?.email || inv.invitedUser?.displayName || inv.invitedUserId)}</span>
                                                             <Badge variant="outline">{inv.status}</Badge>
                                                         </div>
                                                     ))
@@ -518,16 +572,16 @@ export function PublisherOrgTab({
                                 {/* Members */}
                                 <div className="space-y-4 pt-6 border-t">
                                     <div className="flex justify-between items-center">
-                                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">成員管理</h3>
+                                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t("publisherOrgTab.memberManagement")}</h3>
                                         <Button variant="outline" size="sm" disabled className="h-8">
-                                            <Plus className="w-3 h-3 mr-1.5" /> 邀請成員
+                                            <Plus className="w-3 h-3 mr-1.5" /> {t("publisherOrgTab.inviteMember")}
                                         </Button>
                                     </div>
                                     <div className="p-12 text-center text-muted-foreground bg-muted/10 rounded-lg border border-dashed">
                                         <div className="w-12 h-12 rounded-full bg-muted/30 mx-auto mb-3 flex items-center justify-center">
                                             <Building2 className="w-6 h-6 opacity-30" />
                                         </div>
-                                        <p className="text-sm">多人協作功能即將推出</p>
+                                        <p className="text-sm">{t("publisherOrgTab.multiCollabSoon")}</p>
                                     </div>
                                 </div>
 
@@ -539,7 +593,7 @@ export function PublisherOrgTab({
                                         className="min-w-[100px]"
                                     >
                                         {(viewMode === "create" ? isCreatingOrg : isSavingOrg) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        {viewMode === "create" ? "建立組織" : "儲存變更"}
+                                        {viewMode === "create" ? t("publisherOrgTab.createOrg") : t("publisherOrgTab.saveChanges")}
                                     </Button>
                                 </div>
                             </>
@@ -548,8 +602,8 @@ export function PublisherOrgTab({
                                 <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
                                     <Plus className="w-8 h-8 text-muted-foreground/30" />
                                 </div>
-                                <p className="mb-2">請選擇一個組織進行編輯</p>
-                                <Button variant="outline" onClick={onStartCreate}>或 建立新組織</Button>
+                                <p className="mb-2">{t("publisherOrgTab.selectOrgToEdit")}</p>
+                                <Button variant="outline" onClick={onStartCreate}>{t("publisherOrgTab.orCreateNewOrg")}</Button>
                             </div>
                         )}
                     </div>

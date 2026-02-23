@@ -11,12 +11,7 @@ vi.mock("lucide-react", async (importOriginal) => {
     ...actual,
     PanelLeftClose: () => <div data-testid="icon-close" />,
     Settings: () => <div data-testid="icon-settings" />,
-    AlignLeft: () => <div data-testid="icon-align-left" />,
-    Home: () => <div data-testid="icon-home" />,
     Info: () => <div data-testid="icon-info" />,
-    LayoutTemplate: () => <div data-testid="icon-layout" />,
-    ChevronLeft: () => <div data-testid="icon-chevron-left" />,
-    Library: () => <div data-testid="icon-library" />,
   };
 });
 
@@ -54,18 +49,19 @@ describe('Sidebar Component', () => {
     className: ''
   };
 
-  it('renders Navigation Menu when no active file', () => {
+  it('renders menu with 媒體庫 at the same level as 工作室, and hides 移轉管理 from sidebar', () => {
     render(
       <MemoryRouter initialEntries={['/']}>
         <Sidebar {...mockProps} />
       </MemoryRouter>
     );
 
-    // Should see primary nav items
-    expect(screen.getByText('公開台本 (Gallery)')).toBeDefined();
-    expect(screen.getByText('工作室 (Studio)')).toBeDefined();
-    expect(screen.getByText('閱讀與寫作 (Workspace)')).toBeDefined();
-    expect(screen.getByText('超級管理員')).toBeDefined();
+    expect(screen.getByText('設定')).toBeDefined();
+    expect(screen.getByText('關於')).toBeDefined();
+    expect(screen.getByText('閱讀與寫作')).toBeDefined();
+    expect(screen.getByText('工作室')).toBeDefined();
+    expect(screen.getByText('媒體庫')).toBeDefined();
+    expect(screen.queryByText('移轉管理')).toBeNull();
   });
 
   it('clicking Settings in footer calls openSettings', () => {
@@ -75,8 +71,20 @@ describe('Sidebar Component', () => {
       </MemoryRouter>
     );
 
-    const settingsBtn = screen.getByText('設定 (Settings)');
+    const settingsBtn = screen.getByText('設定');
     fireEvent.click(settingsBtn);
     expect(mockProps.openSettings).toHaveBeenCalled();
+  });
+
+  it('clicking About in footer calls openAbout', () => {
+    render(
+      <MemoryRouter>
+        <Sidebar {...mockProps} />
+      </MemoryRouter>
+    );
+
+    const aboutBtn = screen.getByText('關於');
+    fireEvent.click(aboutBtn);
+    expect(mockProps.openAbout).toHaveBeenCalled();
   });
 });

@@ -4,6 +4,7 @@ import { Search, ChevronDown, Check } from "lucide-react";
 import { Input } from "../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { useI18n } from "../../contexts/I18nContext";
 
 export function GalleryFilterBar({ 
     selectedTags = [], 
@@ -12,7 +13,7 @@ export function GalleryFilterBar({
     onSearchChange,
     featuredTags = [],
     tags = [], 
-    placeholder = "搜尋...",
+    placeholder = "",
     sortOptions = [],
     sortValue,
     onSortChange,
@@ -27,8 +28,10 @@ export function GalleryFilterBar({
     onQuickFilterChange,
     quickTagFilters = []
 }) {
+  const { t } = useI18n();
   const [tagOpen, setTagOpen] = useState(false);
   const [tagQuery, setTagQuery] = useState("");
+  const searchPlaceholder = placeholder || t("galleryFilterBar.search");
   const filteredTags = useMemo(() => {
       const needle = tagQuery.trim().toLowerCase();
       if (!needle) return tags;
@@ -69,16 +72,16 @@ export function GalleryFilterBar({
           <Input 
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder={placeholder} 
+              placeholder={searchPlaceholder}
               className="pl-9 bg-muted/30 border-transparent focus:bg-background transition-all"
           />
         </div>
         <div className="flex w-full sm:w-auto gap-2 items-center">
           {showSort && sortOptions.length > 0 && (
             <div className="w-full sm:w-[200px]">
-              <Select value={sortValue} onValueChange={onSortChange}>
+                <Select value={sortValue} onValueChange={onSortChange}>
                 <SelectTrigger>
-                  <SelectValue placeholder="排序" />
+                  <SelectValue placeholder={t("galleryFilterBar.sort")} />
                 </SelectTrigger>
                 <SelectContent>
                   {sortOptions.map(opt => (
@@ -129,7 +132,7 @@ export function GalleryFilterBar({
           <div className="flex flex-col gap-2">
             {selectedTags.length > 0 && (
               <div className="flex flex-nowrap sm:flex-wrap items-center justify-start gap-2 overflow-x-auto sm:overflow-visible pb-1 scrollbar-hide">
-                <span className="text-[11px] text-muted-foreground shrink-0">已選</span>
+                <span className="text-[11px] text-muted-foreground shrink-0">{t("galleryFilterBar.selected")}</span>
                 {selectedTags.map(tag => (
                   <Button
                     key={`selected-${tag}`}
@@ -139,7 +142,7 @@ export function GalleryFilterBar({
                       quickTagSet.has(tag) ? "border" : ""
                     }`}
                     onClick={() => toggleTag(tag)}
-                    title="點擊移除"
+                    title={t("galleryFilterBar.clickToRemove")}
                     style={quickTagSet.has(tag) ? {
                       backgroundColor: "var(--license-selected-bg)",
                       borderColor: "var(--license-selected-border)",
@@ -153,7 +156,7 @@ export function GalleryFilterBar({
             )}
             {quickTagOnly.length > 0 && (
               <div className="flex flex-nowrap sm:flex-wrap items-center justify-start gap-2 overflow-x-auto sm:overflow-visible pb-1 scrollbar-hide">
-                <span className="text-[11px] text-muted-foreground shrink-0">授權</span>
+                <span className="text-[11px] text-muted-foreground shrink-0">{t("galleryFilterBar.license")}</span>
                 {quickTagOnly.map((opt) => (
                   <Button
                     key={`license-${opt.value}`}
@@ -175,7 +178,7 @@ export function GalleryFilterBar({
             )}
             {featuredOnly.length > 0 && (
               <div className="flex flex-nowrap sm:flex-wrap items-center justify-start gap-2 overflow-x-auto sm:overflow-visible pb-1 scrollbar-hide">
-                <span className="text-[11px] text-muted-foreground shrink-0">熱門</span>
+                <span className="text-[11px] text-muted-foreground shrink-0">{t("galleryFilterBar.hot")}</span>
                 {featuredOnly.map(tag => (
                   <Button
                     key={`hot-${tag}`}
@@ -197,7 +200,9 @@ export function GalleryFilterBar({
           <PopoverTrigger asChild>
             <Button variant="outline" className="w-full sm:w-auto justify-between">
               <span className="truncate">
-                {selectedTags.length > 0 ? `標籤：已選 ${selectedTags.length}` : "標籤：全部"}
+                {selectedTags.length > 0
+                  ? t("galleryFilterBar.tagsSelected").replace("{count}", String(selectedTags.length))
+                  : t("galleryFilterBar.tagsAll")}
               </span>
               <ChevronDown className="w-4 h-4 opacity-60 ml-2" />
             </Button>
@@ -207,7 +212,7 @@ export function GalleryFilterBar({
               <Input
                 value={tagQuery}
                 onChange={(e) => setTagQuery(e.target.value)}
-                placeholder="搜尋標籤..."
+                placeholder={t("galleryFilterBar.searchTags")}
                 className="h-8"
               />
             </div>
@@ -220,7 +225,7 @@ export function GalleryFilterBar({
                 }}
                 className="w-full flex items-center justify-between px-3 py-2 text-sm rounded hover:bg-accent"
               >
-                全部
+                {t("galleryFilterBar.all")}
                 {selectedTags.length === 0 && <Check className="w-4 h-4 text-primary" />}
               </button>
               {filteredTags.map(tag => (
@@ -237,14 +242,14 @@ export function GalleryFilterBar({
                 </button>
               ))}
               {filteredTags.length === 0 && (
-                <div className="px-3 py-2 text-xs text-muted-foreground">沒有符合的標籤</div>
+                <div className="px-3 py-2 text-xs text-muted-foreground">{t("galleryFilterBar.noTagsMatched")}</div>
               )}
             </div>
           </PopoverContent>
         </Popover>
         {selectedTags.length > 0 && (
           <Button variant="ghost" size="sm" onClick={clearTags}>
-            清除標籤
+            {t("galleryFilterBar.clearTags")}
           </Button>
         )}
         </div>

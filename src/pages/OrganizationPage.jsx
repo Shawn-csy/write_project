@@ -9,8 +9,10 @@ import { getPublicOrganization, getPublicScripts } from "../lib/db";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { getMorandiTagStyle } from "../lib/tagColors";
 import { useAuth } from "../contexts/AuthContext";
+import { useI18n } from "../contexts/I18nContext";
 
 export default function OrganizationPage() {
+  const { t } = useI18n();
   const { id } = useParams();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
@@ -47,15 +49,15 @@ export default function OrganizationPage() {
 
   const tagStyle = (tag) => getMorandiTagStyle(tag, org?.tags || []);
 
-  if (isLoading) return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Loading Organization...</div>;
-  if (!org) return <div className="min-h-screen flex items-center justify-center">Organization not found</div>;
+  if (isLoading) return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">{t("orgPage.loading")}</div>;
+  if (!org) return <div className="min-h-screen flex items-center justify-center">{t("orgPage.notFound")}</div>;
 
   const canonicalUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}/org/${org.id || id}`
       : `/org/${org.id || id}`;
-  const pageTitle = `${org.name || "組織"}｜Screenplay Reader`;
-  const pageDescription = (org.description || `${org.name || "組織"} 的公開作品與成員資訊`).slice(0, 200);
+  const pageTitle = `${org.name || t("orgPage.fallbackOrg")}｜${t("orgPage.siteName")}`;
+  const pageDescription = (org.description || t("orgPage.descriptionFallback").replace("{name}", org.name || t("orgPage.fallbackOrg"))).slice(0, 200);
   const primaryImage = org.logoUrl || org.bannerUrl || "";
   const memberNames = (members || []).map((m) => m?.displayName).filter(Boolean);
   const orgSchema = {
@@ -82,7 +84,7 @@ export default function OrganizationPage() {
         <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={pageDescription} />
         <meta property="og:url" content={canonicalUrl} />
-        <meta property="og:site_name" content="Screenplay Reader" />
+        <meta property="og:site_name" content={t("orgPage.siteName")} />
         {primaryImage && <meta property="og:image" content={primaryImage} />}
         <meta name="twitter:card" content={primaryImage ? "summary_large_image" : "summary"} />
         <meta name="twitter:title" content={pageTitle} />
@@ -94,9 +96,9 @@ export default function OrganizationPage() {
         showBack
         onBack={() => navigate(-1)}
         tabs={[
-          { key: "scripts", label: "作品" },
-          { key: "authors", label: "作者" },
-          { key: "orgs", label: "組織" },
+          { key: "scripts", label: t("publicTopbar.scripts") },
+          { key: "authors", label: t("publicTopbar.authors") },
+          { key: "orgs", label: t("publicTopbar.orgs") },
         ]}
         activeTab="orgs"
         onTabChange={(key) => {
@@ -144,12 +146,12 @@ export default function OrganizationPage() {
                      {org.website && (
                          <a href={org.website} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
                              <Globe className="w-4 h-4" />
-                             Official Website
+                             {t("orgPage.officialWebsite")}
                          </a>
                      )}
                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                          <Users className="w-4 h-4" />
-                         {members.length} Members
+                         {t("orgPage.membersCount").replace("{count}", String(members.length))}
                      </div>
                  </div>
              </div>
@@ -160,8 +162,8 @@ export default function OrganizationPage() {
          {/* Content Tabs */}
          <Tabs defaultValue="works" className="w-full">
             <TabsList className="mb-6">
-                <TabsTrigger value="works">公開作品</TabsTrigger>
-                <TabsTrigger value="members">成員</TabsTrigger>
+                <TabsTrigger value="works">{t("orgPage.publicWorks")}</TabsTrigger>
+                <TabsTrigger value="members">{t("orgPage.membersTab")}</TabsTrigger>
             </TabsList>
             
             <TabsContent value="works">
@@ -190,7 +192,7 @@ export default function OrganizationPage() {
                             </Avatar>
                             <div>
                                 <div className="font-medium">{member.displayName}</div>
-                                <div className="text-xs text-muted-foreground">Member</div>
+                                <div className="text-xs text-muted-foreground">{t("orgPage.member")}</div>
                             </div>
                         </div>
                     ))}

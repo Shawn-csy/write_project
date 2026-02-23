@@ -7,12 +7,14 @@ import { Switch } from "../../components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { useSettings } from "../../contexts/SettingsContext";
 import { MarkerVisibilitySelect } from "../ui/MarkerVisibilitySelect";
+import { useI18n } from "../../contexts/I18nContext";
 
 export function ReaderAppearanceMenu({
     markerConfigs = [],
     hiddenMarkerIds = [],
     onToggleMarker
 }) {
+  const { t } = useI18n();
   const { 
       fontSize, setFontSize, 
       isDark, setTheme,
@@ -22,24 +24,24 @@ export function ReaderAppearanceMenu({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" aria-label="Appearance Settings">
+        <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" aria-label={t("readerAppearance.title")}>
           <Type className="h-5 w-5" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-4" align="end">
         <div className="grid gap-4">
           <div className="space-y-2">
-            <h4 className="font-medium leading-none text-sm text-muted-foreground mb-3">Appearance</h4>
+            <h4 className="font-medium leading-none text-sm text-muted-foreground mb-3">{t("readerAppearance.title")}</h4>
             
             {/* Theme Toggle */}
             <div className="grid gap-2">
                 <Tabs value={isDark ? "dark" : "light"} onValueChange={(v) => setTheme(v)} className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="light">
-                            <Sun className="w-4 h-4 mr-2" /> Light
+                            <Sun className="w-4 h-4 mr-2" /> {t("readerAppearance.light")}
                         </TabsTrigger>
                         <TabsTrigger value="dark">
-                            <Moon className="w-4 h-4 mr-2" /> Dark
+                            <Moon className="w-4 h-4 mr-2" /> {t("readerAppearance.dark")}
                         </TabsTrigger>
                     </TabsList>
                 </Tabs>
@@ -47,7 +49,7 @@ export function ReaderAppearanceMenu({
             {/* Markers Toggle (Mobile Only) */}
             {markerConfigs.length > 0 && onToggleMarker && (
                 <div className="grid gap-2 pt-2 border-t mt-2 block sm:hidden">
-                     <span className="text-sm font-medium">Markers</span>
+                     <span className="text-sm font-medium">{t("readerAppearance.markers")}</span>
                      <MarkerVisibilitySelect
                         markerConfigs={markerConfigs}
                         visibleMarkerIds={null} // Let component compute
@@ -55,8 +57,8 @@ export function ReaderAppearanceMenu({
                         onToggleMarker={onToggleMarker}
                         triggerClassName="w-full h-8"
                         contentAlign="end"
-                        label="顯示標記"
-                        titlePrefix="標記"
+                        label={t("readerAppearance.showMarkers")}
+                        titlePrefix={t("readerAppearance.markerPrefix")}
                      />
                 </div>
             )}
@@ -64,7 +66,7 @@ export function ReaderAppearanceMenu({
 
           <div className="space-y-2 pt-2 border-t">
             <div className="flex justify-between items-center mb-1">
-                 <span className="text-sm font-medium">Font Size</span>
+                 <span className="text-sm font-medium">{t("readerAppearance.fontSize")}</span>
                  <span className="text-xs text-muted-foreground">{fontSize}px</span>
             </div>
             
@@ -86,13 +88,13 @@ export function ReaderAppearanceMenu({
 
           <div className="space-y-2 pt-2 border-t">
              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Hide Blank Lines</span>
+                <span className="text-sm font-medium">{t("readerAppearance.hideBlankLines")}</span>
                 <Switch 
                     checked={hideWhitespace}
                     onCheckedChange={setHideWhitespace}
                 />
              </div>
-             <p className="text-xs text-muted-foreground">Collapse empty lines for compact view & print.</p>
+             <p className="text-xs text-muted-foreground">{t("readerAppearance.hideBlankLinesTip")}</p>
           </div>
         </div>
       </PopoverContent>

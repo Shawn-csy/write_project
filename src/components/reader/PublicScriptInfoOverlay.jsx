@@ -4,6 +4,7 @@ import { Badge } from "../ui/badge";
 import { AuthorBadge } from "../ui/AuthorBadge";
 import { LICENSES } from "../../constants/licenses";
 import { HelpCircle, Check } from "lucide-react";
+import { useI18n } from "../../contexts/I18nContext";
 
 export function PublicScriptInfoOverlay({
   title,
@@ -26,6 +27,7 @@ export function PublicScriptInfoOverlay({
   licenseTags = [],
   copyright
 }) {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [coverLoadFailed, setCoverLoadFailed] = React.useState(false);
   const hasTags = tags && tags.length > 0;
@@ -41,7 +43,7 @@ export function PublicScriptInfoOverlay({
                       e.stopPropagation();
                       navigate(`/author/${author.id}`);
                   }}
-                  title="前往作者頁面"
+                  title={t("publicScriptInfo.goAuthor")}
               >
                   {headerAuthor}
               </span>
@@ -51,13 +53,13 @@ export function PublicScriptInfoOverlay({
   };
 
   const metaItems = [
-    { label: "作者", value: renderAuthorValue() },
-    { label: "日期", value: date },
-    { label: "聯絡", value: contact },
-    { label: "來源", value: source, isLink: true },
+    { label: t("publicScriptInfo.author"), value: renderAuthorValue() },
+    { label: t("publicScriptInfo.date"), value: date },
+    { label: t("publicScriptInfo.contact"), value: contact },
+    { label: t("publicScriptInfo.source"), value: source, isLink: typeof source === 'string' && source.startsWith('http') },
     { label: "Credit", value: credit },
     { label: "Authors", value: authors },
-    { label: "版權", value: copyright },
+    { label: t("publicScriptInfo.copyright"), value: copyright },
   ].filter((item) => item.value);
   const hasSynopsis = !!synopsis;
   const hasCustom = customFields && customFields.length > 0;
@@ -74,7 +76,7 @@ export function PublicScriptInfoOverlay({
         <div className="w-full max-w-2xl rounded-2xl overflow-hidden border border-white/15 bg-background/40 shadow-xl backdrop-blur-sm">
           <img
             src={coverUrl}
-            alt={`${title || "Script"} 封面`}
+            alt={`${title || t("publicScriptInfo.script")} ${t("publicScriptInfo.cover")}`}
             className="w-full max-h-[460px] object-cover"
             loading="eager"
             onError={() => setCoverLoadFailed(true)}
@@ -204,7 +206,7 @@ export function PublicScriptInfoOverlay({
               {metaItems.map((item) => (
                 <div key={item.label} className="rounded-xl border border-white/10 bg-background/60 backdrop-blur-md px-4 py-3 text-left shadow-sm">
                   <div className="text-[11px] text-muted-foreground">{item.label}</div>
-                  {item.label === "聯絡" && typeof item.value === "object" ? (
+                  {item.label === t("publicScriptInfo.contact") && typeof item.value === "object" ? (
                     <div className="text-sm text-foreground/90 space-y-1">
                       {Object.entries(item.value).map(([k, v]) => (
                         <div key={k} className="flex items-start gap-2">
@@ -220,7 +222,7 @@ export function PublicScriptInfoOverlay({
                       rel="noreferrer"
                       className="text-sm text-primary hover:underline break-all"
                     >
-                      原始來源
+                      {item.value.replace(/^https?:\/\//, '').replace(/\/$/, '')}
                     </a>
                   ) : (
                     <div className="text-sm text-foreground/90 break-words">{item.value}</div>
@@ -238,7 +240,7 @@ export function PublicScriptInfoOverlay({
                           <div key={idx} className="flex items-center gap-2 py-1 opacity-50">
                               <div className="h-px bg-foreground/20 flex-1"></div>
                               <span className="text-[10px] uppercase tracking-widest text-foreground/50 font-mono">
-                                  {field.value === '---' ? 'SECTION' : field.value}
+                                  {field.value === '---' ? t("publicScriptInfo.section") : field.value}
                               </span>
                               <div className="h-px bg-foreground/20 flex-1"></div>
                           </div>
@@ -249,7 +251,7 @@ export function PublicScriptInfoOverlay({
                       <div className="font-medium text-foreground">{field.key}</div>
                         {field.customRender ? (
                             field.customRender
-                        ) : field.isLink || (field.key === '來源' || field.key === 'Source') ? (
+                        ) : field.isLink || (field.key === t("publicScriptInfo.source") || field.key === 'Source') ? (
                            <a href={field.linkUrl || field.value} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all block">
                                {field.value}
                            </a>

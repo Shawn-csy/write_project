@@ -30,6 +30,7 @@ import { updateScript, getScript } from "../../../lib/db"; // Needed for inline 
 import { ScriptMetadataDialog } from "../../dashboard/ScriptMetadataDialog"; // Adjust path as needed
 import { extractMetadata } from "../../../lib/metadataParser";
 import { buildFilename, downloadText } from "../../../lib/download";
+import { useI18n } from "../../../contexts/I18nContext";
 
 // Helper: assureContent
 async function assureContent(item) {
@@ -78,6 +79,7 @@ export function ScriptList({
     // State Setters (for local optimistic updates if needed, logic handled in hook basically)
     setScripts // Passed from hook if needed for inline theme update
 }) {
+    const { t } = useI18n();
     const [editingScriptId, setEditingScriptId] = useState(null);
 
     const dateFormatter = useMemo(() => new Intl.DateTimeFormat(undefined), []);
@@ -88,11 +90,11 @@ export function ScriptList({
 
     const markerThemeNameById = useMemo(() => {
         const map = {};
-        (markerThemes || []).forEach((t) => {
-            if (t?.id) map[t.id] = t.name || "主題";
+        (markerThemes || []).forEach((theme) => {
+            if (theme?.id) map[theme.id] = theme.name || t("scriptList.theme");
         });
         return map;
-    }, [markerThemes]);
+    }, [markerThemes, t]);
 
     const enrichedItems = useMemo(() => {
         return (visibleItems || []).map((item) => {
@@ -100,11 +102,11 @@ export function ScriptList({
             return {
                 ...item,
                 _displayDate: item.draftDate || metaData.date || metaData.draftdate || formatDate(item.lastModified || item.createdAt),
-                _displayAuthor: item.author || metaData.author || metaData.authors || "User",
-                _themeName: item.markerThemeId ? (markerThemeNameById[item.markerThemeId] || "主題") : "",
+                _displayAuthor: item.author || metaData.author || metaData.authors || t("scriptList.defaultUser"),
+                _themeName: item.markerThemeId ? (markerThemeNameById[item.markerThemeId] || t("scriptList.theme")) : "",
             };
         });
-    }, [visibleItems, markerThemeNameById, formatDate]);
+    }, [visibleItems, markerThemeNameById, formatDate, t]);
 
     if (loading) {
         return <div className="flex justify-center p-8"><Loader2 className="w-6 h-6 animate-spin" /></div>;
@@ -113,7 +115,7 @@ export function ScriptList({
     if (visibleItems.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-4">
-                <p>此資料夾為空</p>
+                <p>{t("scriptList.emptyFolder")}</p>
             </div>
         );
     }
@@ -158,25 +160,25 @@ export function ScriptList({
                                 className="inline-flex items-center gap-1 hover:text-foreground"
                                 onClick={() => onSortChange && onSortChange("title")}
                             >
-                                名稱
+                                {t("scriptList.name")}
                                 <ArrowUpDown className={`w-3 h-3 ${sortKey === "title" ? "text-foreground" : "opacity-50"}`} />
                                 {sortKey === "title" && <span>{sortDir === "asc" ? "↑" : "↓"}</span>}
                             </button>
                          </div>
-                         <div className="w-24 text-right hidden sm:block">字數 (約)</div>
+                         <div className="w-24 text-right hidden sm:block">{t("scriptList.charCountApproxHeader")}</div>
                          <div className="w-32 text-right hidden sm:block">
                             <button
                                 type="button"
                                 className="inline-flex items-center gap-1 hover:text-foreground"
                                 onClick={() => onSortChange && onSortChange("lastModified")}
                             >
-                                修改日期
+                                {t("scriptList.modifiedDate")}
                                 <ArrowUpDown className={`w-3 h-3 ${sortKey === "lastModified" ? "text-foreground" : "opacity-50"}`} />
                                 {sortKey === "lastModified" && <span>{sortDir === "asc" ? "↑" : "↓"}</span>}
                             </button>
                          </div>
-                         <div className="w-28 text-center hidden md:block">標記主題</div>
-                         <div className="w-20 text-center hidden sm:block">狀態</div>
+                         <div className="w-28 text-center hidden md:block">{t("scriptList.markerTheme")}</div>
+                         <div className="w-20 text-center hidden sm:block">{t("scriptList.status")}</div>
                          <div className="w-10"></div>
                      </div>
 
@@ -189,7 +191,7 @@ export function ScriptList({
                             <div className="mr-3 p-1">
                                 <ChevronRight className="w-4 h-4 rotate-180" />
                             </div>
-                            <span className="text-sm font-medium">.. (上一層)</span>
+                            <span className="text-sm font-medium">{t("scriptList.goParent")}</span>
                         </div>
                      )}
 
@@ -216,7 +218,7 @@ export function ScriptList({
                                         ? <Folder className={`w-4 h-4 ${expandedPaths.has((item.folder === '/' ? '' : item.folder) + '/' + item.title) ? "fill-blue-500/20" : ""}`} /> 
                                         : <FileText className="w-4 h-4 text-blue-500" />
                                     }
-                                    title={item.title || "Untitled"}
+                                    title={item.title || t("scriptList.untitled")}
                                     meta={
                                         item.type === 'folder' ? null : (
                                         <div className="flex items-center gap-2 text-xs text-muted-foreground w-full flex-wrap">
@@ -228,7 +230,7 @@ export function ScriptList({
                                             <div className="flex items-center gap-1 sm:hidden">
                                                 {item.markerThemeId && markerThemes && (
                                                     <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-600 border border-blue-200">
-                                                        {item._themeName || '主題'}
+                                                        {item._themeName || t("scriptList.theme")}
                                                     </span>
                                                 )}
                                                 <span 
@@ -265,7 +267,7 @@ export function ScriptList({
                                      {item.type !== 'folder' && (
                                          <>
                                             <div className="w-24 text-right text-xs text-muted-foreground hidden sm:block">
-                                                {item.contentLength ? Math.ceil(item.contentLength / 2) : (item.content ? Math.ceil(item.content.length / 2) : 0)} 字
+                                                {t("scriptList.charCountValue").replace("{count}", String(item.contentLength ? Math.ceil(item.contentLength / 2) : (item.content ? Math.ceil(item.content.length / 2) : 0)))}
                                             </div>
                                             <div className="w-32 text-right text-xs text-muted-foreground hidden sm:block">{formatDate(item.lastModified)}</div>
                                          </>
@@ -283,7 +285,7 @@ export function ScriptList({
                                                 <select 
                                                     id={`script-theme-${item.id}`}
                                                     name={`scriptTheme-${item.id}`}
-                                                    aria-label="劇本標記主題"
+                                                    aria-label={t("scriptList.scriptMarkerTheme")}
                                                     className="w-full h-6 text-[10px] rounded border border-input bg-background px-1"
                                                     value={item.markerThemeId || ""}
                                                     onChange={async (e) => {
@@ -292,11 +294,11 @@ export function ScriptList({
                                                             setScripts(prev => prev.map(s => s.id === item.id ? { ...s, markerThemeId: newVal } : s));
                                                             await updateScript(item.id, { markerThemeId: newVal });
                                                         } catch(err) {
-                                                            console.error("Theme update failed", err);
+                                                            console.error(t("scriptList.themeUpdateFailed"), err);
                                                         }
                                                     }}
                                                 >
-                                                    <option value="">(預設)</option>
+                                                    <option value="">{t("scriptList.defaultShort")}</option>
                                                     {markerThemes.map(t => (
                                                         <option key={t.id} value={t.id}>{t.name}</option>
                                                     ))}
@@ -310,7 +312,7 @@ export function ScriptList({
                                                 <div 
                                                     onClick={(e) => handleStatusClick(e, item)}
                                                     className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider border ${!readOnly ? "cursor-pointer hover:opacity-80 active:scale-95 transition-all" : ""} ${item.isPublic ? 'bg-green-500/10 text-green-600 border-green-200' : 'bg-muted text-muted-foreground border-border'}`}
-                                                    title={readOnly ? "" : "點擊管理發布設定"}
+                                                    title={readOnly ? "" : t("scriptList.clickToManagePublish")}
                                                 >
                                                     {item.isPublic ? "Public" : "Private"}
                                                 </div>
@@ -327,13 +329,13 @@ export function ScriptList({
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end" className="w-48">
-                                                        <DropdownMenuLabel>操作選項</DropdownMenuLabel>
+                                                        <DropdownMenuLabel>{t("scriptList.actions")}</DropdownMenuLabel>
                                                         <DropdownMenuSeparator />
                                                         
                                                         {item.type !== 'folder' && (
                                                             <DropdownMenuItem onClick={(e) => handleStatusClick(e, item) }>
                                                                 <Globe className="w-4 h-4 mr-2" />
-                                                                <span>發布設定...</span>
+                                                                <span>{t("scriptList.publishSettings")}</span>
                                                             </DropdownMenuItem>
                                                         )}
 
@@ -341,7 +343,7 @@ export function ScriptList({
                                                             <DropdownMenuSub>
                                                                 <DropdownMenuSubTrigger>
                                                                     <Settings className="w-4 h-4 mr-2" />
-                                                                    <span>標記主題</span>
+                                                                    <span>{t("scriptList.markerTheme")}</span>
                                                                 </DropdownMenuSubTrigger>
                                                                 <DropdownMenuSubContent>
                                                                     <DropdownMenuRadioGroup 
@@ -352,12 +354,12 @@ export function ScriptList({
                                                                                 setScripts(prev => prev.map(s => s.id === item.id ? { ...s, markerThemeId: newVal } : s));
                                                                                 await updateScript(item.id, { markerThemeId: newVal });
                                                                             } catch(err) {
-                                                                                console.error("Theme update failed", err);
+                                                                                console.error(t("scriptList.themeUpdateFailed"), err);
                                                                             }
                                                                         }}
                                                                     >
                                                                         <DropdownMenuRadioItem value="__default__">
-                                                                            (預設主題)
+                                                                            {t("scriptList.defaultTheme")}
                                                                         </DropdownMenuRadioItem>
                                                                         {markerThemes.map(t => (
                                                                             <DropdownMenuRadioItem key={t.id} value={t.id}>
@@ -379,18 +381,18 @@ export function ScriptList({
                                                                 }}
                                                             >
                                                                 <FolderInput className="w-4 h-4 mr-2" />
-                                                                <span>移動到...</span>
+                                                                <span>{t("scriptList.moveTo")}</span>
                                                             </DropdownMenuItem>
                                                         )}
                                                         
                                                         {item.type !== 'folder' && (
                                                             <DropdownMenuItem onClick={async () => {
                                                                 const content = await assureContent(item);
-                                                                const filename = buildFilename(item.title || "script", "fountain");
+                                                                const filename = buildFilename(item.title || t("scriptList.script"), "fountain");
                                                                 downloadText(content, filename);
                                                             }}>
                                                                 <Download className="w-4 h-4 mr-2" />
-                                                                <span>下載 .fountain</span>
+                                                                <span>{t("scriptList.downloadFountain")}</span>
                                                             </DropdownMenuItem>
                                                         )}
                                                         
@@ -401,9 +403,9 @@ export function ScriptList({
                                                                 onRename && onRename(item); 
                                                             }}
                                                         >
-                                                            <div className="flex items-center">
-                                                                <FileText className="w-4 h-4 mr-2" /> 
-                                                                <span>重新命名</span>
+                                                                <div className="flex items-center">
+                                                                    <FileText className="w-4 h-4 mr-2" /> 
+                                                                <span>{t("scriptList.rename")}</span>
                                                             </div>
                                                         </DropdownMenuItem>
 
@@ -415,7 +417,7 @@ export function ScriptList({
                                                             className="text-destructive focus:text-destructive"
                                                         >
                                                             <Trash2 className="w-4 h-4 mr-2" />
-                                                            <span>刪除</span>
+                                                            <span>{t("common.remove")}</span>
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
@@ -432,7 +434,7 @@ export function ScriptList({
             <DragOverlay>
                  {activeDragId ? (
                     <div className="bg-background border rounded-md shadow-lg p-3 opacity-80">
-                        Dragging...
+                        {t("scriptList.dragging")}
                     </div>
                  ) : null}
             </DragOverlay>

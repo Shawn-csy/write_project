@@ -8,6 +8,7 @@ import { Check, Edit2, Link as LinkIcon, X } from "lucide-react";
 import { Switch } from "../../ui/switch";
 import { LICENSES } from "../../../constants/licenses";
 import { deriveCcLicenseTags } from "../../../lib/licenseRights";
+import { useI18n } from "../../../contexts/I18nContext";
 
 export function MetadataLicenseTab({ 
     license, setLicense, 
@@ -16,6 +17,7 @@ export function MetadataLicenseTab({
     copyright, setCopyright,
     requiredErrors = {}
 }) {
+    const { t } = useI18n();
     // Standard Creative Commons Licenses with metadata
     const licenses = LICENSES;
 
@@ -82,15 +84,15 @@ export function MetadataLicenseTab({
             {/* 1. License Selection */}
             <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                     <Label className="text-base font-semibold block">基礎授權 (Base License)</Label>
+                     <Label className="text-base font-semibold block">{t("metadataLicense.base")}</Label>
                      {license && (
                          <Button variant="ghost" size="sm" onClick={handleClearLicense} className="h-6 text-xs text-muted-foreground hover:text-destructive">
-                             清除選擇 (Clear)
+                             {t("metadataLicense.clear")}
                          </Button>
                      )}
                 </div>
                 {requiredErrors.license && !hasLicense && (
-                    <p className="text-xs text-destructive">發布公開作品前請填寫授權資訊。</p>
+                    <p className="text-xs text-destructive">{t("metadataLicense.required")}</p>
                 )}
                 
                 <div className="flex flex-wrap gap-2">
@@ -125,7 +127,7 @@ export function MetadataLicenseTab({
                         }}
                     >
                         <Edit2 className="w-3 h-3 mr-1" />
-                        自訂 (Custom)
+                        {t("metadataLicense.custom")}
                     </Badge>
                 </div>
             </div>
@@ -136,21 +138,21 @@ export function MetadataLicenseTab({
                     <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                         <div className="flex items-center gap-2 mb-2">
                              <Edit2 className="w-4 h-4 text-primary" />
-                             <h4 className="font-semibold text-sm">自訂授權內容</h4>
+                             <h4 className="font-semibold text-sm">{t("metadataLicense.customTitle")}</h4>
                         </div>
                         <div className="grid gap-3">
                             <div className="space-y-1">
-                                <Label className="text-xs text-muted-foreground" htmlFor="license-name">授權名稱 (License Name)</Label>
+                                <Label className="text-xs text-muted-foreground" htmlFor="license-name">{t("metadataLicense.licenseName")}</Label>
                                 <Input 
                                     id="license-name"
                                     name="licenseName"
-                                    placeholder="e.g. MIT License / My Custom Terms" 
+                                    placeholder={t("metadataLicense.licenseNamePlaceholder")}
                                     value={license}
                                     onChange={(e) => setLicense(e.target.value)}
                                 />
                             </div>
                             <div className="space-y-1">
-                                <Label className="text-xs text-muted-foreground" htmlFor="license-url">授權連結 (License URL)</Label>
+                                <Label className="text-xs text-muted-foreground" htmlFor="license-url">{t("metadataLicense.licenseUrl")}</Label>
                                 <div className="relative">
                                     <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                     <Input 
@@ -185,7 +187,7 @@ export function MetadataLicenseTab({
                              </p>
                              {autoCcTags.length > 0 && (
                                  <div className="px-1 space-y-1.5">
-                                     <p className="text-xs text-muted-foreground">自動授權標籤（公開頁可直接搜尋）</p>
+                                     <p className="text-xs text-muted-foreground">{t("metadataLicense.autoTags")}</p>
                                      <div className="flex flex-wrap gap-1.5">
                                          {autoCcTags.map((tag) => (
                                              <Badge key={tag} variant="secondary" className="text-[11px]">
@@ -199,14 +201,14 @@ export function MetadataLicenseTab({
                                  <div className="text-xs text-muted-foreground flex items-center gap-1 px-1">
                                      <LinkIcon className="w-3 h-3" />
                                      <a href={selectedLicense.url} target="_blank" rel="noopener noreferrer" className="hover:underline text-primary">
-                                         閱讀授權條款 (License Deed)
+                                         {t("metadataLicense.readTerms")}
                                      </a>
                                  </div>
                              )}
                         </div>
                     ) : (
                          <div className="flex items-center justify-center h-full text-muted-foreground/60 text-sm">
-                             (未選擇特定授權，您可以自由填寫下方的版權宣告或新增額外條款)
+                             {t("metadataLicense.notSelectedTip")}
                          </div>
                     )
                 )}
@@ -214,17 +216,17 @@ export function MetadataLicenseTab({
 
             {/* 3. Additional Terms */}
             <div className="space-y-3 pt-2">
-                <Label className="text-base font-semibold block" htmlFor="license-new-term">補充/額外條款 (Additional Terms)</Label>
+                <Label className="text-base font-semibold block" htmlFor="license-new-term">{t("metadataLicense.extraTerms")}</Label>
                 <div className="flex gap-2">
                     <Input 
                         id="license-new-term"
                         name="licenseNewTerm"
-                        placeholder="輸入條款後按 Enter 新增 (e.g. 禁止用於 AI 訓練)" 
+                        placeholder={t("metadataLicense.extraPlaceholder")}
                         value={newTerm}
                         onChange={(e) => setNewTerm(e.target.value)}
                         onKeyDown={handleKeyDown}
                     />
-                    <Button variant="secondary" onClick={handleAddTerm}>新增</Button>
+                    <Button variant="secondary" onClick={handleAddTerm}>{t("common.add")}</Button>
                 </div>
                 
                 {/* Terms List */}
@@ -243,22 +245,22 @@ export function MetadataLicenseTab({
                         </div>
                     ))}
                     {licenseTerms.length === 0 && (
-                        <p className="text-xs text-muted-foreground text-center py-2">尚未新增額外條款</p>
+                        <p className="text-xs text-muted-foreground text-center py-2">{t("metadataLicense.noExtraTerms")}</p>
                     )}
                 </div>
             </div>
 
             {/* 4. Copyright Input */}
             <div className="pt-4 border-t">
-                <Label className="text-base font-semibold mb-2 block" htmlFor="license-copyright">版權宣告 (Copyright)</Label>
+                <Label className="text-base font-semibold mb-2 block" htmlFor="license-copyright">{t("metadataLicense.copyright")}</Label>
                 <div className="grid gap-2">
                     <p className="text-sm text-muted-foreground">
-                        (選填) 顯示版權歸屬，例如年份與擁有者。
+                        {t("metadataLicense.copyrightTip")}
                     </p>
                     <Input 
                         id="license-copyright"
                         name="licenseCopyright"
-                        placeholder="e.g. © 2026 Your Name" 
+                        placeholder={t("metadataLicense.copyrightPlaceholder")}
                         value={copyright}
                         onChange={(e) => setCopyright(e.target.value)}
                     />

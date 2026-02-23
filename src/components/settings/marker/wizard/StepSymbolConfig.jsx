@@ -4,11 +4,22 @@ import { Input } from '../../../ui/input';
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 import { getPublicThemes } from "../../../../lib/db";
 import { normalizeThemeConfigs } from "../../../../lib/markerThemeCodec";
+import { useI18n } from "../../../../contexts/I18nContext";
 
-export function evaluateMarkerSampleMatch({ markerType, config, sampleText }) {
+export function evaluateMarkerSampleMatch({ markerType, config, sampleText, i18n = {} }) {
+    const msg = {
+        enterTestText: i18n.enterTestText || "Please enter test text first",
+        setStartSymbol: i18n.setStartSymbol || "Please set a start symbol first",
+        prefixMatched: i18n.prefixMatched || "Prefix match detected",
+        prefixNotFound: i18n.prefixNotFound || "No line starts with \"{start}\"",
+        needsEndSymbol: i18n.needsEndSymbol || "This mode requires an end symbol",
+        pairMatched: i18n.pairMatched || "Paired symbols match detected",
+        pairNotFound: i18n.pairNotFound || "No complete pair \"{start} ... {end}\" found",
+        unsupportedMode: i18n.unsupportedMode || "This matching mode is not supported yet",
+    };
     const text = String(sampleText || "");
     if (!text.trim()) {
-        return { matched: false, reason: "請先輸入測試文字" };
+        return { matched: false, reason: msg.enterTestText };
     }
 
     const start = String(config?.start || "").trim();
@@ -16,26 +27,34 @@ export function evaluateMarkerSampleMatch({ markerType, config, sampleText }) {
     const mode = config?.matchMode || (markerType === "range" ? "range" : markerType === "inline" ? "enclosure" : "prefix");
 
     if (!start) {
-        return { matched: false, reason: "請先設定開始符號" };
+        return { matched: false, reason: msg.setStartSymbol };
     }
 
     if (mode === "prefix") {
         const lines = text.split("\n");
         const matched = lines.some((line) => line.trimStart().startsWith(start));
-        return { matched, reason: matched ? "已偵測到前綴匹配" : `沒有找到以「${start}」開頭的行` };
+        return {
+            matched,
+            reason: matched ? msg.prefixMatched : msg.prefixNotFound.replace("{start}", start),
+        };
     }
 
     if (mode === "range" || mode === "enclosure") {
         if (!end) {
-            return { matched: false, reason: "此模式需要結束符號" };
+            return { matched: false, reason: msg.needsEndSymbol };
         }
         const startIndex = text.indexOf(start);
         const endIndex = text.indexOf(end, startIndex + start.length);
         const matched = startIndex >= 0 && endIndex > startIndex;
-        return { matched, reason: matched ? "已偵測到成對符號匹配" : `沒有找到完整的「${start} ... ${end}」` };
+        return {
+            matched,
+            reason: matched
+                ? msg.pairMatched
+                : msg.pairNotFound.replace("{start}", start).replace("{end}", end),
+        };
     }
 
-    return { matched: false, reason: "尚未支援此匹配模式" };
+    return { matched: false, reason: msg.unsupportedMode };
 }
 
 /**
@@ -43,6 +62,7 @@ export function evaluateMarkerSampleMatch({ markerType, config, sampleText }) {
  * 根據選擇的類型顯示對應的符號輸入欄位
  */
 export function StepSymbolConfig({ markerType, config, onChange }) {
+    const { t } = useI18n();
     const [sampleText, setSampleText] = React.useState("");
     const [showPublicImport, setShowPublicImport] = React.useState(false);
     const [publicThemes, setPublicThemes] = React.useState([]);
@@ -64,7 +84,21 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
     const hasStartSymbol = config.start && config.start.trim() !== '';
     const hasEndSymbol = config.end && config.end.trim() !== '';
     const hasLabel = config.label && config.label.trim() !== '';
-    const sampleResult = evaluateMarkerSampleMatch({ markerType, config, sampleText });
+    const sampleResult = evaluateMarkerSampleMatch({
+        markerType,
+        config,
+        sampleText,
+        i18n: {
+            enterTestText: t("stepSymbolConfig.reasonEnterTestText"),
+            setStartSymbol: t("stepSymbolConfig.reasonSetStartSymbol"),
+            prefixMatched: t("stepSymbolConfig.reasonPrefixMatched"),
+            prefixNotFound: t("stepSymbolConfig.reasonPrefixNotFound"),
+            needsEndSymbol: t("stepSymbolConfig.reasonNeedsEndSymbol"),
+            pairMatched: t("stepSymbolConfig.reasonPairMatched"),
+            pairNotFound: t("stepSymbolConfig.reasonPairNotFound"),
+            unsupportedMode: t("stepSymbolConfig.reasonUnsupportedMode"),
+        },
+    });
     const filteredPublicThemes = React.useMemo(() => {
         const q = publicQuery.trim().toLowerCase();
         if (!q) return publicThemes;
@@ -93,10 +127,12 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
         if (!marker) return "";
         const start = marker.start || "#MARK";
         const end = marker.end || "";
-        const label = marker.label || marker.id || "標記內容";
+        const label = marker.label || marker.id || t("stepSymbolConfig.sampleMarkerContent");
         const mode = marker.matchMode || "prefix";
-        if (mode === "prefix") return `${start} ${label} 範例`;
-        if (mode === "range") return `${start} ${label} 開始\n這是一段範例內容\n${end || start} ${label} 結束`;
+        if (mode === "prefix") return `${start} ${label} ${t("stepSymbolConfig.sampleWord")}`;
+        if (mode === "range") {
+            return `${start} ${label} ${t("stepSymbolConfig.sampleStart")}\n${t("stepSymbolConfig.sampleRangeBody")}\n${end || start} ${label} ${t("stepSymbolConfig.sampleEnd")}`;
+        }
         return `${start}${label}${end || ""}`;
     };
 
@@ -118,7 +154,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
             setSelectedPublicMarkerId(firstMarker ? (firstMarker.id || firstMarker.label) : "");
         } catch (error) {
             console.error("Failed to load public themes", error);
-            setPublicError("載入公開 marker 主題失敗，請稍後再試。");
+            setPublicError(t("stepSymbolConfig.loadPublicThemeFailed"));
         } finally {
             setPublicLoading(false);
         }
@@ -169,32 +205,32 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
         <div className="space-y-6">
             {/* 視覺化預覽 */}
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                <p className="text-[10px] text-muted-foreground mb-2">預覽效果</p>
+                <p className="text-[10px] text-muted-foreground mb-2">{t("stepSymbolConfig.previewTitle")}</p>
                 <div className="font-mono text-sm bg-background/50 p-3 rounded border border-border/30">
                     {isRange ? (
                         <div className="space-y-1">
-                            <div className="text-primary">{config.start || '>>SE'} {config.label || '區間開始'}</div>
-                            <div className="pl-4 border-l-2 border-primary/50 text-muted-foreground">內容在這裡...</div>
+                            <div className="text-primary">{config.start || '>>SE'} {config.label || t("stepSymbolConfig.rangeStart")}</div>
+                            <div className="pl-4 border-l-2 border-primary/50 text-muted-foreground">{t("stepSymbolConfig.contentHere")}</div>
                             {config.pause && (
                                 <>
-                                    <div className="text-orange-500">{config.pause} {config.pauseLabel || '暫停'}</div>
-                                    <div className="text-muted-foreground">（中斷的內容）</div>
-                                    <div className="text-orange-500">{config.pause} 繼續</div>
-                                    <div className="pl-4 border-l-2 border-primary/50 text-muted-foreground">更多內容...</div>
+                                    <div className="text-orange-500">{config.pause} {config.pauseLabel || t("stepSymbolConfig.pause")}</div>
+                                    <div className="text-muted-foreground">{t("stepSymbolConfig.interruptedContent")}</div>
+                                    <div className="text-orange-500">{config.pause} {t("stepSymbolConfig.resume")}</div>
+                                    <div className="pl-4 border-l-2 border-primary/50 text-muted-foreground">{t("stepSymbolConfig.moreContent")}</div>
                                 </>
                             )}
-                            <div className="text-primary">{config.end || '<<SE'} 區間結束</div>
+                            <div className="text-primary">{config.end || '<<SE'} {t("stepSymbolConfig.rangeEnd")}</div>
                         </div>
                     ) : isInline ? (
                         <div>
-                            <span className="text-muted-foreground">角色名 </span>
+                            <span className="text-muted-foreground">{t("stepSymbolConfig.characterName")} </span>
                             <span className="text-primary">
                                 {config.start || '('}{config.label || 'V.O.'}{config.end || ')'}
                             </span>
                         </div>
                     ) : (
                         <div className="text-primary">
-                            {config.start || '#SE'} {config.label || '音效說明'}
+                            {config.start || '#SE'} {config.label || t("stepSymbolConfig.sfxDescription")}
                             {config.end && <span> {config.end}</span>}
                         </div>
                     )}
@@ -204,17 +240,17 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
             {/* 基本資訊 */}
             <div className="space-y-3">
                 <h4 className="text-sm font-medium flex items-center gap-2">
-                    基本資訊
+                    {t("stepSymbolConfig.basicInfo")}
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="col-span-2 space-y-1">
                         <label className="text-xs text-muted-foreground">
-                            標記名稱 <span className="text-red-500">*</span>
+                            {t("stepSymbolConfig.markerName")} <span className="text-red-500">*</span>
                         </label>
                         <Input
                             value={config.label || ''}
                             onChange={(e) => updateField('label', e.target.value)}
-                            placeholder="例如：音效、持續音效"
+                            placeholder={t("stepSymbolConfig.markerNamePlaceholder")}
                             className={cn(
                                 "h-9",
                                 !hasLabel && "border-red-500/50 focus-visible:ring-red-500"
@@ -227,9 +263,9 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
             {/* 符號設定 */}
             <div className="space-y-3">
                 <h4 className="text-sm font-medium flex items-center gap-2">
-                    符號設定
+                    {t("stepSymbolConfig.symbolConfig")}
                     <span className="text-[10px] text-muted-foreground font-normal">
-                        (支援全形字元)
+                        {t("stepSymbolConfig.fullWidthSupported")}
                     </span>
                 </h4>
 
@@ -237,7 +273,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                     {/* 開始符號 */}
                     <div className="space-y-1">
                         <label className="text-xs text-muted-foreground">
-                            {isRange ? '開始符號' : isInline ? '左括號' : '前綴符號'} 
+                            {isRange ? t("stepSymbolConfig.startSymbol") : isInline ? t("stepSymbolConfig.leftBracket") : t("stepSymbolConfig.prefixSymbol")}
                             <span className="text-red-500">*</span>
                         </label>
                         <Input
@@ -255,8 +291,8 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                     {(isRange || isInline || (isSingle && config.matchMode === 'enclosure')) && (
                         <div className="space-y-1">
                             <label className="text-xs text-muted-foreground">
-                                {isRange ? '結束符號' : '右括號'} 
-                                <span className="text-red-500">*</span>
+                            {isRange ? t("stepSymbolConfig.endSymbol") : t("stepSymbolConfig.rightBracket")}
+                            <span className="text-red-500">*</span>
                             </label>
                             <Input
                                 value={config.end || ''}
@@ -274,7 +310,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                     {isSingle && config.matchMode !== 'enclosure' && (
                         <div className="space-y-1">
                             <label className="text-xs text-muted-foreground">
-                                結束符號 <span className="text-muted-foreground/50">(可選)</span>
+                                {t("stepSymbolConfig.endSymbol")} <span className="text-muted-foreground/50">{t("stepSymbolConfig.optional")}</span>
                             </label>
                             <Input
                                 value={config.end || ''}
@@ -287,7 +323,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                                         updateField('matchMode', 'prefix');
                                     }
                                 }}
-                                placeholder="留空為純前綴"
+                                placeholder={t("stepSymbolConfig.emptyAsPrefix")}
                                 className="h-9 font-mono text-center border-dashed"
                             />
                         </div>
@@ -300,14 +336,14 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                 <div className="space-y-3 p-3 rounded-lg bg-orange-500/5 border border-orange-500/20">
                     <h4 className="text-sm font-medium flex items-center gap-2 text-orange-600">
                         <Info className="w-3.5 h-3.5" />
-                        暫停功能 (進階)
+                        {t("stepSymbolConfig.pauseFeature")}
                     </h4>
                     <p className="text-[10px] text-muted-foreground">
-                        設定暫停符號可讓區間在中途中斷並繼續
+                        {t("stepSymbolConfig.pauseFeatureTip")}
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="space-y-1">
-                            <label className="text-xs text-muted-foreground">暫停符號</label>
+                            <label className="text-xs text-muted-foreground">{t("stepSymbolConfig.pauseSymbol")}</label>
                             <Input
                                 value={config.pause || ''}
                                 onChange={(e) => updateField('pause', e.target.value)}
@@ -316,11 +352,11 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                             />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-xs text-muted-foreground">顯示文字</label>
+                            <label className="text-xs text-muted-foreground">{t("stepSymbolConfig.displayText")}</label>
                             <Input
                                 value={config.pauseLabel !== undefined ? config.pauseLabel : ''}
                                 onChange={(e) => updateField('pauseLabel', e.target.value)}
-                                placeholder="留空則隱藏"
+                                placeholder={t("stepSymbolConfig.leaveEmptyToHide")}
                                 className="h-9 text-center border-dashed"
                             />
                         </div>
@@ -333,21 +369,21 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                 <div className="space-y-3 p-3 rounded-lg bg-purple-500/5 border border-purple-500/20">
                     <h4 className="text-sm font-medium flex items-center gap-2 text-purple-600">
                         <Info className="w-3.5 h-3.5" />
-                        關鍵字過濾 (進階)
+                        {t("stepSymbolConfig.keywordFilter")}
                     </h4>
                     <p className="text-[10px] text-muted-foreground">
-                        設定關鍵字可讓只有特定內容才套用樣式
+                        {t("stepSymbolConfig.keywordFilterTip")}
                     </p>
                     <div className="space-y-2">
                         <div className="space-y-1">
-                            <label className="text-xs text-muted-foreground">關鍵字列表 (逗號分隔)</label>
+                            <label className="text-xs text-muted-foreground">{t("stepSymbolConfig.keywordList")}</label>
                             <Input
                                 value={config.keywords?.join(', ') || ''}
                                 onChange={(e) => {
                                     const keywords = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
                                     updateField('keywords', keywords);
                                 }}
-                                placeholder="V.O., O.S., 畫外音"
+                                placeholder={t("stepSymbolConfig.keywordPlaceholder")}
                                 className="h-9 text-xs"
                             />
                         </div>
@@ -358,7 +394,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                                 onChange={(e) => updateField('dimIfNotKeyword', e.target.checked)}
                                 className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
                             />
-                            <span className="text-xs text-muted-foreground">非關鍵字時淡化顯示</span>
+                            <span className="text-xs text-muted-foreground">{t("stepSymbolConfig.dimIfNotKeyword")}</span>
                         </label>
                     </div>
                 </div>
@@ -368,25 +404,25 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
             {(!hasLabel || !hasStartSymbol || (isRange && !hasEndSymbol)) && (
                 <div className="flex items-center gap-2 p-2 rounded bg-red-500/10 text-red-600 text-xs">
                     <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>請填寫所有必填欄位後繼續</span>
+                    <span>{t("stepSymbolConfig.fillRequiredFields")}</span>
                 </div>
             )}
 
             <div className="space-y-2 rounded-lg border border-border/50 bg-muted/20 p-3">
                 <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium">即時匹配測試</h4>
+                    <h4 className="text-sm font-medium">{t("stepSymbolConfig.liveMatchTest")}</h4>
                     <span className={cn(
                         "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px]",
                         sampleResult.matched ? "bg-emerald-500/10 text-emerald-600" : "bg-muted text-muted-foreground"
                     )}>
                         {sampleResult.matched ? <CheckCircle2 className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
-                        {sampleResult.matched ? "已匹配" : "未匹配"}
+                        {sampleResult.matched ? t("stepSymbolConfig.matched") : t("stepSymbolConfig.notMatched")}
                     </span>
                 </div>
                 <textarea
                     value={sampleText}
                     onChange={(e) => setSampleText(e.target.value)}
-                    placeholder={isRange ? "例如：>>SE 風聲\n持續音效內容...\n<<SE 結束" : isInline ? "例如：角色名 (V.O.) 說台詞" : "例如：#SE 門鈴響"}
+                    placeholder={isRange ? t("stepSymbolConfig.samplePlaceholderRange") : isInline ? t("stepSymbolConfig.samplePlaceholderInline") : t("stepSymbolConfig.samplePlaceholderSingle")}
                     className="min-h-[90px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-ring"
                 />
                 <p className={cn("text-xs", sampleResult.matched ? "text-emerald-600" : "text-muted-foreground")}>
@@ -397,15 +433,15 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
             <div className="space-y-2 rounded-lg border border-border/50 bg-muted/10 p-3">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h4 className="text-sm font-medium">進階：從公開 marker 清單帶入</h4>
-                        <p className="text-[11px] text-muted-foreground">基本欄位先完成，再用公開範例加速微調。</p>
+                        <h4 className="text-sm font-medium">{t("stepSymbolConfig.importFromPublicTitle")}</h4>
+                        <p className="text-[11px] text-muted-foreground">{t("stepSymbolConfig.importFromPublicTip")}</p>
                     </div>
                     <button
                         type="button"
                         className="rounded border border-input bg-background px-2 py-1 text-xs hover:bg-muted"
                         onClick={() => setShowPublicImport((prev) => !prev)}
                     >
-                        {showPublicImport ? "收合進階" : "展開進階"}
+                        {showPublicImport ? t("stepSymbolConfig.collapseAdvanced") : t("stepSymbolConfig.expandAdvanced")}
                     </button>
                 </div>
 
@@ -418,7 +454,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                                 onClick={loadPublicMarkerThemes}
                                 disabled={publicLoading}
                             >
-                                {publicLoading ? "載入中..." : "載入公開主題"}
+                                {publicLoading ? t("stepSymbolConfig.loading") : t("stepSymbolConfig.loadPublicThemes")}
                             </button>
                         </div>
 
@@ -427,16 +463,16 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                         {publicThemes.length > 0 && (
                             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                                 <div className="space-y-1 sm:col-span-2">
-                                    <label className="text-xs text-muted-foreground">搜尋公開主題 / marker</label>
+                                    <label className="text-xs text-muted-foreground">{t("stepSymbolConfig.searchPublicThemeOrMarker")}</label>
                                     <Input
                                         value={publicQuery}
                                         onChange={(e) => setPublicQuery(e.target.value)}
-                                        placeholder="輸入關鍵字，例如 音效、V.O.、#SE"
+                                        placeholder={t("stepSymbolConfig.searchPlaceholder")}
                                         className="h-9"
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-xs text-muted-foreground">公開主題</label>
+                                    <label className="text-xs text-muted-foreground">{t("stepSymbolConfig.publicTheme")}</label>
                                     <select
                                         className="h-9 w-full rounded-md border border-input bg-background px-2 text-xs"
                                         value={selectedThemeId}
@@ -450,7 +486,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                                     </select>
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-xs text-muted-foreground">主題內 marker</label>
+                                    <label className="text-xs text-muted-foreground">{t("stepSymbolConfig.markerInTheme")}</label>
                                     <select
                                         className="h-9 w-full rounded-md border border-input bg-background px-2 text-xs"
                                         value={selectedPublicMarkerId}
@@ -460,7 +496,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                                             const itemValue = marker.id || marker.label || `marker-${index}`;
                                             return (
                                                 <option key={itemValue} value={itemValue}>
-                                                    {marker.label || marker.id || `Marker ${index + 1}`}
+                                                    {marker.label || marker.id || t("stepSymbolConfig.markerWithIndex").replace("{index}", String(index + 1))}
                                                 </option>
                                             );
                                         })}
@@ -476,14 +512,14 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                                     className="rounded border border-primary/30 bg-primary/10 px-2 py-1 text-xs text-primary hover:bg-primary/15"
                                     onClick={() => setSampleText(buildSampleFromPublicMarker(selectedPublicMarker))}
                                 >
-                                    套用到測試文字
+                                    {t("stepSymbolConfig.applyToSample")}
                                 </button>
                                 <button
                                     type="button"
                                     className="rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-xs text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-300"
                                     onClick={applyPublicMarkerToDraft}
                                 >
-                                    套用到草稿
+                                    {t("stepSymbolConfig.applyToDraft")}
                                 </button>
                                 <div className="inline-flex rounded-md border border-input overflow-hidden">
                                     <button
@@ -494,7 +530,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                                         )}
                                         onClick={() => setCopyMode("all")}
                                     >
-                                        完整
+                                        {t("stepSymbolConfig.copyModeAll")}
                                     </button>
                                     <button
                                         type="button"
@@ -504,7 +540,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                                         )}
                                         onClick={() => setCopyMode("logic")}
                                     >
-                                        只邏輯
+                                        {t("stepSymbolConfig.copyModeLogic")}
                                     </button>
                                     <button
                                         type="button"
@@ -514,7 +550,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                                         )}
                                         onClick={() => setCopyMode("style")}
                                     >
-                                        只樣式
+                                        {t("stepSymbolConfig.copyModeStyle")}
                                     </button>
                                 </div>
                             </div>
@@ -523,7 +559,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                 )}
                 {!showPublicImport && (
                     <p className="text-xs text-muted-foreground">
-                        需要參考別人的公開 marker 時，再展開這一區即可。
+                        {t("stepSymbolConfig.publicImportCollapsedTip")}
                     </p>
                 )}
             </div>

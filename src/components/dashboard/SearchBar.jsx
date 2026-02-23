@@ -3,8 +3,10 @@ import { Search, Loader2, FileText } from 'lucide-react';
 import { Input } from '../ui/input';
 import { searchScripts } from '../../lib/db';
 import { useDebounce } from '../../hooks/useDebounce'; // Assuming useDebounce exists or I'll implement inline debounce
+import { useI18n } from '../../contexts/I18nContext';
 
 export default function SearchBar({ onSelectResult }) {
+    const { t } = useI18n();
     const [query, setQuery] = useState("");
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -40,8 +42,8 @@ export default function SearchBar({ onSelectResult }) {
                 <Input
                     id="dashboard-search"
                     name="dashboardSearch"
-                    aria-label="搜尋劇本"
-                    placeholder="搜尋劇本..."
+                    aria-label={t("searchBar.aria")}
+                    placeholder={t("searchBar.placeholder")}
                     value={query}
                     onChange={e => setQuery(e.target.value)}
                     className="pl-8"

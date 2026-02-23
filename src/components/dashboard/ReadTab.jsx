@@ -1,27 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { 
     Loader2, 
-    FileText, 
     Globe, 
-    FolderOpen, 
-    CloudUpload, 
     Folder
 } from "lucide-react";
-import { Button } from "../ui/button";
 import { getPublicScripts } from "../../lib/db";
 import { FileRow } from "./FileRow";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../ui/dialog";
-
-import { useFileTree } from "../../hooks/useFileTree";
+import { useI18n } from "../../contexts/I18nContext";
 
 export function ReadTab({ onSelectPublicScript }) {
+    const { t } = useI18n();
     const [publicScripts, setPublicScripts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [expandedPublic, setExpandedPublic] = useState(new Set()); 
@@ -141,8 +129,8 @@ export function ReadTab({ onSelectPublicScript }) {
                         style={{ paddingLeft: `${16 + (level * 20)}px` }}
                         isFolder={isFolder}
                         icon={isFolder ? <Folder className={`w-4 h-4 ${isExpanded ? "fill-blue-500/20" : ""}`} /> : <Globe className="w-4 h-4" />}
-                        title={script.title || "Untitled"}
-                        meta={isFolder ? null : `Updated: ${formatDate(script.lastModified)}`}
+                        title={script.title || t("readTab.untitled")}
+                        meta={isFolder ? null : `${t("readTab.updated")}: ${formatDate(script.lastModified)}`}
                         onClick={(e) => {
                              if (isFolder) {
                                  togglePublicExpand(e, script);
@@ -152,12 +140,12 @@ export function ReadTab({ onSelectPublicScript }) {
                         }}
                         actions={
                             <div className="flex items-center gap-2">
-                                <span className="text-xs text-muted-foreground px-2 py-1 bg-muted rounded-full">Public</span>
+                                <span className="text-xs text-muted-foreground px-2 py-1 bg-muted rounded-full">{t("readTab.publicBadge")}</span>
                             </div>
                         }
                     />
                     {isFolder && isExpanded && (
-                        publicCache[key] ? renderPublicItems(publicCache[key], level + 1) : <div className="pl-8 py-2 text-xs text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin"/> Loading...</div>
+                        publicCache[key] ? renderPublicItems(publicCache[key], level + 1) : <div className="pl-8 py-2 text-xs text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin"/> {t("readTab.loading")}</div>
                     )}
                  </React.Fragment>
              );
@@ -173,7 +161,7 @@ export function ReadTab({ onSelectPublicScript }) {
             <div className="flex-1 flex flex-col min-h-0">
                  <div className="flex items-center justify-between mb-2 shrink-0">
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                        <Globe className="w-4 h-4" /> 公開劇本 (Community)
+                        <Globe className="w-4 h-4" /> {t("readTab.publicScripts")}
                     </h3>
                  </div>
                  
@@ -181,7 +169,7 @@ export function ReadTab({ onSelectPublicScript }) {
                     {loading ? (
                         <div className="flex justify-center p-4"><Loader2 className="w-4 h-4 animate-spin" /></div>
                     ) : publicScripts.length === 0 ? (
-                        <p className="text-sm text-muted-foreground p-4">目前沒有公開內容</p>
+                        <p className="text-sm text-muted-foreground p-4">{t("readTab.empty")}</p>
                     ) : (
                         renderPublicItems(publicScripts)
                     )}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '../../../../lib/utils';
 import { MARKER_TYPES, MARKER_PRESETS } from '../presets/markerPresets';
+import { useI18n } from '../../../../contexts/I18nContext';
 import { 
     Volume2, Music, MessageSquare, Clapperboard, Film, Edit3, 
     FileText, Package, Highlighter 
@@ -14,26 +15,18 @@ const IconMap = {
 const CREATOR_SCENARIOS = [
     {
         id: "audio",
-        title: "我要標記音效",
-        description: "適合 SFX、環境音、持續音效",
         presetId: "sound-effect",
     },
     {
         id: "dialogue",
-        title: "我要標記對白註記",
-        description: "適合 V.O.、O.S.、旁白或語氣標註",
         presetId: "dialogue-note",
     },
     {
         id: "action",
-        title: "我要標記動作或段落註解",
-        description: "適合動作描述、導演備註",
         presetId: "action-note",
     },
     {
         id: "post",
-        title: "我要標記後期處理",
-        description: "適合剪接、配樂、調色等後製註記",
         presetId: "post-production",
     },
 ];
@@ -43,7 +36,26 @@ const CREATOR_SCENARIOS = [
  * 讓用戶選擇要建立的標記類型
  */
 export function StepTypeSelector({ value, onChange, onPresetSelect, onScenarioSelect }) {
+    const { t } = useI18n();
     const [entryMode, setEntryMode] = React.useState("scenario"); // scenario | manual
+    const scenarioText = {
+        audio: {
+            title: t("stepTypeSelector.scenario.audio.title"),
+            description: t("stepTypeSelector.scenario.audio.description"),
+        },
+        dialogue: {
+            title: t("stepTypeSelector.scenario.dialogue.title"),
+            description: t("stepTypeSelector.scenario.dialogue.description"),
+        },
+        action: {
+            title: t("stepTypeSelector.scenario.action.title"),
+            description: t("stepTypeSelector.scenario.action.description"),
+        },
+        post: {
+            title: t("stepTypeSelector.scenario.post.title"),
+            description: t("stepTypeSelector.scenario.post.description"),
+        },
+    };
 
     const renderIcon = (iconName) => {
         const Icon = IconMap[iconName];
@@ -53,41 +65,46 @@ export function StepTypeSelector({ value, onChange, onPresetSelect, onScenarioSe
     return (
         <div className="space-y-6">
             <div className="space-y-2">
-                <h3 className="text-sm font-medium text-foreground">先選一種建立方式</h3>
+                <h3 className="text-sm font-medium text-foreground">{t("stepTypeSelector.chooseMode")}</h3>
                 <div className="inline-flex rounded-md border border-border/60 overflow-hidden w-fit">
                     <button
                         type="button"
                         className={cn("h-8 px-3 text-xs", entryMode === "scenario" ? "bg-background font-medium" : "bg-muted/30 text-muted-foreground")}
                         onClick={() => setEntryMode("scenario")}
                     >
-                        情境推薦
+                        {t("stepTypeSelector.scenarioMode")}
                     </button>
                     <button
                         type="button"
                         className={cn("h-8 px-3 text-xs border-l border-border/60", entryMode === "manual" ? "bg-background font-medium" : "bg-muted/30 text-muted-foreground")}
                         onClick={() => setEntryMode("manual")}
                     >
-                        手動設定
+                        {t("stepTypeSelector.manualMode")}
                     </button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                    先用情境推薦最快；需要精準控制時再切到手動設定。
+                    {t("stepTypeSelector.modeTip")}
                 </p>
             </div>
 
             {entryMode === "scenario" && (
                 <div className="space-y-3">
-                    <h3 className="text-sm font-medium text-foreground">從創作情境開始</h3>
+                    <h3 className="text-sm font-medium text-foreground">{t("stepTypeSelector.startFromScenario")}</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {CREATOR_SCENARIOS.map((scenario) => (
                             <button
                                 key={scenario.id}
                                 type="button"
-                                onClick={() => onScenarioSelect?.(scenario)}
+                                onClick={() =>
+                                  onScenarioSelect?.({
+                                    ...scenario,
+                                    title: scenarioText[scenario.id]?.title || scenario.id,
+                                  })
+                                }
                                 className="rounded-lg border border-border/60 bg-card/60 p-3 text-left transition-all hover:border-primary/40 hover:bg-primary/5"
                             >
-                                <div className="text-sm font-medium text-foreground">{scenario.title}</div>
-                                <div className="mt-1 text-xs text-muted-foreground">{scenario.description}</div>
+                                <div className="text-sm font-medium text-foreground">{scenarioText[scenario.id]?.title || scenario.id}</div>
+                                <div className="mt-1 text-xs text-muted-foreground">{scenarioText[scenario.id]?.description || ""}</div>
                             </button>
                         ))}
                     </div>
@@ -96,9 +113,9 @@ export function StepTypeSelector({ value, onChange, onPresetSelect, onScenarioSe
 
             {entryMode === "manual" && (
                 <div className="space-y-3">
-                    <h3 className="text-sm font-medium text-foreground">手動設定</h3>
+                    <h3 className="text-sm font-medium text-foreground">{t("stepTypeSelector.manualMode")}</h3>
                     <div className="space-y-2">
-                        <p className="text-xs text-muted-foreground">可先選官方範本，再微調符號與樣式。</p>
+                        <p className="text-xs text-muted-foreground">{t("stepTypeSelector.manualTip")}</p>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                             {MARKER_PRESETS.filter((p) => p.id !== 'custom-blank').map((preset) => (
                                 <button
@@ -121,7 +138,7 @@ export function StepTypeSelector({ value, onChange, onPresetSelect, onScenarioSe
                         </div>
                     </div>
                     <div className="h-px bg-border/40" />
-                    <h4 className="text-xs font-medium text-muted-foreground">或從空白類型開始</h4>
+                    <h4 className="text-xs font-medium text-muted-foreground">{t("stepTypeSelector.startFromBlank")}</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         {MARKER_TYPES.map((type) => {
                             const isSelected = value === type.id;
@@ -174,9 +191,9 @@ export function StepTypeSelector({ value, onChange, onPresetSelect, onScenarioSe
             {value && (
                 <div className="p-3 rounded-lg bg-muted/30 border border-border/30">
                     <p className="text-xs text-muted-foreground">
-                        {value === 'single' && '單行標記適合用於標記獨立的一行內容，例如音效說明、場景註記等。'}
-                        {value === 'range' && '區間標記適合用於標記多行的連續內容，例如持續音效、角色心聲等。'}
-                        {value === 'inline' && '行內樣式適合用於標記行中的特定片段，例如對白中的 (V.O.) 或方位說明。'}
+                        {value === 'single' && t("stepTypeSelector.hint.single")}
+                        {value === 'range' && t("stepTypeSelector.hint.range")}
+                        {value === 'inline' && t("stepTypeSelector.hint.inline")}
                     </p>
                 </div>
             )}

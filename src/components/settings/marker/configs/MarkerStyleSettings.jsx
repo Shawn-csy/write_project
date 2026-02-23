@@ -4,8 +4,10 @@ import { Button } from "../../../ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../../ui/tabs";
 import { MARKER_COLORS } from "../../../../constants/markerColors";
 import { cn } from "../../../../lib/utils";
+import { useI18n } from "../../../../contexts/I18nContext";
 
 export function MarkerStyleSettings({ config, idx, updateMarker }) {
+    const { t } = useI18n();
     
     // Helper to update specific style fields
     const updateStyle = (styleField, value) => {
@@ -47,7 +49,7 @@ export function MarkerStyleSettings({ config, idx, updateMarker }) {
 
     return (
         <div className="space-y-2">
-            <span className="text-[10px] uppercase text-muted-foreground font-semibold">外觀樣式 (Appearance)</span>
+            <span className="text-[10px] uppercase text-muted-foreground font-semibold">{t("markerStyle.title")}</span>
             <div className="flex flex-col gap-3 p-3 bg-muted/30 rounded-md border border-border/50">
                 
                 {/* Top Row: Font Controls & Alignment */}
@@ -64,8 +66,8 @@ export function MarkerStyleSettings({ config, idx, updateMarker }) {
 
                     {/* Alignment */}
                     <div className="border-r border-border/50 pr-2">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={toggleTextAlign} title="對齊 (Align)">
-                            {!config.style?.textAlign && <span className="opacity-30">無</span>}
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={toggleTextAlign} title={t("markerStyle.align")}>
+                            {!config.style?.textAlign && <span className="opacity-30">{t("markerStyle.noAlign")}</span>}
                             {config.style?.textAlign === 'left' && <AlignLeft className="w-3.5 h-3.5" />}
                             {config.style?.textAlign === 'center' && <AlignCenter className="w-3.5 h-3.5" />}
                             {config.style?.textAlign === 'right' && <AlignRight className="w-3.5 h-3.5" />}
@@ -78,12 +80,12 @@ export function MarkerStyleSettings({ config, idx, updateMarker }) {
                         value={config.style?.fontFamily || ''} 
                         onChange={(e) => updateStyle('fontFamily', e.target.value)}
                     >
-                        <option value="">字體 (預設)</option>
-                        <option value="'Courier New', 'Songti TC', 'SimSun', serif">劇本標準 (Courier/宋體)</option>
-                        <option value="serif">明體 (Serif)</option>
-                        <option value="sans-serif">黑體 (Sans)</option>
-                        <option value="monospace">等寬 (Mono)</option>
-                        <option value="cursive">手寫 (Cursive)</option>
+                        <option value="">{t("markerStyle.fontDefault")}</option>
+                        <option value="'Courier New', 'Songti TC', 'SimSun', serif">{t("markerStyle.scriptFont")}</option>
+                        <option value="serif">{t("markerStyle.serif")}</option>
+                        <option value="sans-serif">{t("markerStyle.sans")}</option>
+                        <option value="monospace">{t("markerStyle.mono")}</option>
+                        <option value="cursive">{t("markerStyle.cursive")}</option>
                     </select>
 
                     <select 
@@ -91,7 +93,7 @@ export function MarkerStyleSettings({ config, idx, updateMarker }) {
                         value={config.style?.fontSize || ''} 
                         onChange={(e) => updateStyle('fontSize', e.target.value)}
                     >
-                        <option value="">大小</option>
+                        <option value="">{t("markerStyle.size")}</option>
                         <option value="0.8em">0.8x</option>
                         <option value="0.9em">0.9x</option>
                         <option value="1em">1.0x</option>
@@ -104,7 +106,7 @@ export function MarkerStyleSettings({ config, idx, updateMarker }) {
                         value={config.style?.lineHeight || ''} 
                         onChange={(e) => updateStyle('lineHeight', e.target.value)}
                     >
-                        <option value="">行高</option>
+                        <option value="">{t("markerStyle.lineHeight")}</option>
                         <option value="1">1.0</option>
                         <option value="1.2">1.2</option>
                         <option value="1.5">1.5</option>
@@ -117,10 +119,10 @@ export function MarkerStyleSettings({ config, idx, updateMarker }) {
                 <div className="pt-2 border-t border-border/40">
                     <Tabs value={activeColorTab} onValueChange={setActiveColorTab} className="w-full">
                         <div className="flex items-center justify-between mb-2">
-                             <span className="text-[10px] font-medium text-muted-foreground">顏色選擇 (Color)</span>
+                             <span className="text-[10px] font-medium text-muted-foreground">{t("markerStyle.color")}</span>
                              <TabsList className="h-6 p-0 bg-muted/40">
-                                <TabsTrigger value="preset" className="h-full px-3 text-[10px] data-[state=active]:bg-background data-[state=active]:shadow-sm">預設 (Presets)</TabsTrigger>
-                                <TabsTrigger value="custom" className="h-full px-3 text-[10px] data-[state=active]:bg-background data-[state=active]:shadow-sm">自訂 (Custom)</TabsTrigger>
+                                <TabsTrigger value="preset" className="h-full px-3 text-[10px] data-[state=active]:bg-background data-[state=active]:shadow-sm">{t("markerStyle.preset")}</TabsTrigger>
+                                <TabsTrigger value="custom" className="h-full px-3 text-[10px] data-[state=active]:bg-background data-[state=active]:shadow-sm">{t("markerStyle.custom")}</TabsTrigger>
                             </TabsList>
                         </div>
                         
@@ -178,7 +180,7 @@ export function MarkerStyleSettings({ config, idx, updateMarker }) {
                                         />
                                     </div>
                                     <div className="text-xs font-mono text-muted-foreground">
-                                        文字顏色
+                                            {t("markerStyle.textColor")}
                                     </div>
                                 </div>
 
@@ -199,15 +201,15 @@ export function MarkerStyleSettings({ config, idx, updateMarker }) {
                                     </div>
                                     <div className="flex flex-col">
                                         <div className="text-xs font-mono text-muted-foreground">
-                                            背景顏色
+                                            {t("markerStyle.bgColor")}
                                         </div>
                                         <button 
                                             type="button"
                                             className="text-[10px] text-muted-foreground/60 hover:text-destructive text-left underline decoration-dotted transition-colors"
                                             onClick={() => updateStyle('backgroundColor', 'transparent')}
-                                            title="移除背景色 (Remove Background)"
+                                            title={t("markerStyle.removeBg")}
                                         >
-                                            設為透明
+                                            {t("markerStyle.transparent")}
                                         </button>
                                     </div>
                                 </div>
