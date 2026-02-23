@@ -1,5 +1,8 @@
 const MEDIA_LIBRARY_KEY = "media_library_items_v1";
 const DEFAULT_MAX_BYTES = 25 * 1024 * 1024; // 25MB
+const DEFAULT_WEBP_QUALITY = 0.82;
+const MIN_WEBP_QUALITY = 0.45;
+const WEBP_QUALITY_STEP = 0.08;
 export const ALLOWED_MEDIA_MIME_TYPES = new Set([
   "image/png",
   "image/jpeg",
@@ -56,6 +59,47 @@ function safeParse(jsonText, fallback) {
 
 function nowTs() {
   return Date.now();
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
+    reader.onerror = () => reject(new Error("讀取圖片失敗。"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImage(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("無法載入圖片。"));
+    image.src = dataUrl;
+  });
+}
+
+function canvasToBlob(canvas, quality) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error("圖片轉檔失敗。"));
+          return;
+        }
+        resolve(blob);
+      },
+      "image/webp",
+      quality
+    );
+  });
+}
+
+function getTargetSize(ruleKey) {
+  if (ruleKey === "avatar" || ruleKey === "logo") return { maxWidth: 1024, maxHeight: 1024, targetBytes: 450 * 1024 };
+  if (ruleKey === "banner") return { maxWidth: 1920, maxHeight: 640, targetBytes: 900 * 1024 };
+  if (ruleKey === "cover") return { maxWidth: 1920, maxHeight: 1080, targetBytes: 900 * 1024 };
+  return { maxWidth: 1920, maxHeight: 1080, targetBytes: 1200 * 1024 };
 }
 
 export function isSupportedMediaFile(file) {
@@ -126,6 +170,52 @@ export async function validateImageFile(file, ruleKey) {
   } catch (error) {
     return { ok: false, error: error?.message || "無法讀取圖片資訊。" };
   }
+}
+
+export async function optimizeImageForUpload(file, ruleKey) {
+  const validation = await validateImageFile(file, ruleKey);
+  if (!validation.ok) return validation;
+
+  const sourceDataUrl = await readFileAsDataUrl(file);
+  if (!sourceDataUrl) {
+    return { ok: false, error: "讀取圖片失敗。" };
+  }
+
+  const image = await loadImage(sourceDataUrl);
+  const target = getTargetSize(ruleKey);
+  const widthRatio = target.maxWidth / Math.max(1, image.naturalWidth || 1);
+  const heightRatio = target.maxHeight / Math.max(1, image.naturalHeight || 1);
+  const ratio = Math.min(1, widthRatio, heightRatio);
+  const outputWidth = Math.max(1, Math.round((image.naturalWidth || 1) * ratio));
+  const outputHeight = Math.max(1, Math.round((image.naturalHeight || 1) * ratio));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = outputWidth;
+  canvas.height = outputHeight;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return { ok: false, error: "無法處理圖片。" };
+  }
+  ctx.drawImage(image, 0, 0, outputWidth, outputHeight);
+
+  let quality = DEFAULT_WEBP_QUALITY;
+  let blob = await canvasToBlob(canvas, quality);
+  while (blob.size > target.targetBytes && quality > MIN_WEBP_QUALITY) {
+    quality = Math.max(MIN_WEBP_QUALITY, quality - WEBP_QUALITY_STEP);
+    blob = await canvasToBlob(canvas, quality);
+  }
+
+  const fileBaseName = String(file.name || "image").replace(/\.[^/.]+$/, "");
+  const optimizedFile = new File([blob], `${fileBaseName}.webp`, { type: "image/webp" });
+
+  return {
+    ok: true,
+    file: optimizedFile,
+    dataUrl: canvas.toDataURL("image/webp", quality),
+    width: outputWidth,
+    height: outputHeight,
+    warning: validation.warning || "",
+  };
 }
 
 export function estimateDataUrlBytes(dataUrl = "") {
@@ -210,23 +300,19 @@ export function addMediaFile(file, options = {}) {
       reject(new Error("僅支援 PNG/JPG/WEBP/GIF 圖片檔案。"));
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const dataUrl = typeof reader.result === "string" ? reader.result : "";
-        if (!dataUrl) throw new Error("讀取圖片失敗。");
-        const item = addMediaDataUrl(dataUrl, {
+    optimizeImageForUpload(file)
+      .then((optimized) => {
+        if (!optimized?.ok || !optimized.dataUrl) {
+          throw new Error(optimized?.error || "讀取圖片失敗。");
+        }
+        return addMediaDataUrl(optimized.dataUrl, {
           ...options,
-          name: options.name || file.name,
+          name: options.name || optimized.file?.name || file.name,
           source: options.source || "upload",
         });
-        resolve(item);
-      } catch (e) {
-        reject(e);
-      }
-    };
-    reader.onerror = () => reject(new Error("讀取圖片失敗。"));
-    reader.readAsDataURL(file);
+      })
+      .then(resolve)
+      .catch(reject);
   });
 }
 

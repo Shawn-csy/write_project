@@ -9,7 +9,7 @@ import html
 import database
 import models
 import migration
-from routers import analysis, scripts, users, orgs, personas, tags, themes, admin, public, seo
+from routers import analysis, scripts, users, orgs, personas, tags, themes, admin, public, seo, media
 from routers import public_bundle
 from dependencies import get_current_user_id, get_db
 from rate_limit import limiter, RATE_LIMIT_ENABLED
@@ -84,6 +84,7 @@ app.include_router(admin.router)
 app.include_router(public.router)
 app.include_router(public_bundle.router)
 app.include_router(seo.router)
+app.include_router(media.router)
 
 # Simple auth check endpoint for debugging
 @app.get("/api/health/auth")
@@ -203,7 +204,15 @@ async def get_sitemap_xml(db: database.SessionLocal = Depends(get_db)):
 
 # Static File Serving (SPA Fallback)
 DIST_DIR = os.path.join(os.path.dirname(__file__), "..", "dist")
+if not os.path.exists(DIST_DIR):
+    DIST_DIR = os.path.join(os.path.dirname(__file__), "dist")
 INDEX_PATH = os.path.join(DIST_DIR, "index.html")
+MEDIA_DIR = os.getenv("MEDIA_STORAGE_ROOT", "/data/media")
+try:
+    os.makedirs(MEDIA_DIR, exist_ok=True)
+except PermissionError:
+    MEDIA_DIR = os.path.join(os.path.dirname(__file__), "data", "media")
+    os.makedirs(MEDIA_DIR, exist_ok=True)
 
 def _public_base_url() -> str:
     return os.getenv("PUBLIC_BASE_URL", "https://open-scripts.shawnup.com").rstrip("/")
@@ -304,6 +313,7 @@ def _ensure_list(value):
 
 if os.path.exists(DIST_DIR):
     app.mount("/assets", StaticFiles(directory=os.path.join(DIST_DIR, "assets")), name="assets")
+app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
     
 # Catch-all for React Router (Must be last)
 @app.get("/{full_path:path}")
@@ -312,6 +322,8 @@ async def serve_spa(full_path: str, request: Request, db: database.SessionLocal 
     # This helps debugging 404s
     if full_path.startswith("api/"):
         return {"error": "API endpoint not found (404)"}
+        
+    import models
         
     # AI Content Negotiation for /read/{id}
     if full_path.startswith("read/"):
@@ -323,12 +335,10 @@ async def serve_spa(full_path: str, request: Request, db: database.SessionLocal 
         wants_markdown = "text/markdown" in accept_header or "text/plain" in accept_header
         
         if is_ai_bot or wants_markdown:
-            import crud # Local import to avoid circular dep if any
             try:
                 # Leverage the existing get_public_script logic which checks visibility
-                # We can't easily reuse the router function directly here without duplicating auth/visibility logic, 
-                # but since crud.py might not have get_public_script with folder check, we will query DB directly
-                # simplified for now: just check if it's public.
+                # We can't easily reuse the router function directly here without duplicating auth/visibility logic,
+                # so we perform a direct visibility check in this fallback path.
                 import models
                 script = db.query(models.Script).filter(models.Script.id == script_id).first()
                 if script and script.isPublic == 1:

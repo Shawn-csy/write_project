@@ -1,6 +1,6 @@
 import json
 import uuid
-import crud
+import crud_ops as crud
 import models
 import schemas
 import pytest

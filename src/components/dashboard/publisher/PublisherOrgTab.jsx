@@ -10,7 +10,8 @@ import { DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, horizontalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { SortableTag } from "./SortableTag";
 import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
-import { validateImageFile, getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
+import { optimizeImageForUpload, getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
+import { uploadMediaObject } from "../../../lib/db";
 import { useI18n } from "../../../contexts/I18nContext";
 
 export function PublisherOrgTab({
@@ -70,36 +71,48 @@ export function PublisherOrgTab({
         const file = event.target.files?.[0];
         if (!file) return;
         const ruleKey = field === "logoUrl" ? "logo" : "banner";
-        const validation = await validateImageFile(file, ruleKey);
-        if (!validation.ok) {
+        const optimized = await optimizeImageForUpload(file, ruleKey);
+        if (!optimized.ok) {
             if (field === "logoUrl") {
-                setLogoUploadError(validation.error || t("publisherOrgTab.invalidImage"));
+                setLogoUploadError(optimized.error || t("publisherOrgTab.invalidImage"));
                 setLogoUploadWarning("");
             }
             if (field === "bannerUrl") {
-                setBannerUploadError(validation.error || t("publisherOrgTab.invalidImage"));
+                setBannerUploadError(optimized.error || t("publisherOrgTab.invalidImage"));
                 setBannerUploadWarning("");
             }
             event.target.value = "";
             return;
         }
-        if (field === "logoUrl") {
-            setLogoUploadError("");
-            setLogoUploadWarning(validation.warning || "");
+        try {
+            const purpose = field === "logoUrl" ? "logo" : "banner";
+            const uploaded = await uploadMediaObject(optimized.file, purpose);
+            const nextUrl = String(uploaded?.url || "").trim();
+            if (!nextUrl) throw new Error(t("mediaLibrary.uploadFailed"));
+            setOrgDraft((prev) => ({ ...prev, [field]: nextUrl }));
+            if (field === "logoUrl") {
+                setLogoUploadError("");
+                setLogoUploadWarning(optimized.warning || "");
+                setLogoPreviewFailed(false);
+            }
+            if (field === "bannerUrl") {
+                setBannerUploadError("");
+                setBannerUploadWarning(optimized.warning || "");
+                setBannerPreviewFailed(false);
+            }
+        } catch (error) {
+            const errorMessage = error?.message || t("mediaLibrary.uploadFailed");
+            if (field === "logoUrl") {
+                setLogoUploadError(errorMessage);
+                setLogoUploadWarning("");
+            }
+            if (field === "bannerUrl") {
+                setBannerUploadError(errorMessage);
+                setBannerUploadWarning("");
+            }
+        } finally {
+            event.target.value = "";
         }
-        if (field === "bannerUrl") {
-            setBannerUploadError("");
-            setBannerUploadWarning(validation.warning || "");
-        }
-        const reader = new FileReader();
-        reader.onload = () => {
-            const result = typeof reader.result === "string" ? reader.result : "";
-            if (!result) return;
-            setOrgDraft((prev) => ({ ...prev, [field]: result }));
-            if (field === "logoUrl") setLogoPreviewFailed(false);
-            if (field === "bannerUrl") setBannerPreviewFailed(false);
-        };
-        reader.readAsDataURL(file);
     };
 
     const handleTagPaste = (event) => {
