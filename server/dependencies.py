@@ -4,12 +4,13 @@ import json
 import os
 from database import SessionLocal
 
-ALLOW_X_USER_ID = os.getenv("ALLOW_X_USER_ID", "").lower() in {"1", "true", "yes"}
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID")
 FIREBASE_CREDENTIALS = os.getenv("FIREBASE_CREDENTIALS")  # path to service account json
 FIREBASE_CREDENTIALS_JSON = os.getenv("FIREBASE_CREDENTIALS_JSON")  # raw json
 
 _firebase_auth = None
+ALLOW_X_USER_ID = None
+ADMIN_USER_IDS = None
 
 def _init_firebase_auth():
     global _firebase_auth
@@ -33,11 +34,20 @@ def _init_firebase_auth():
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Auth backend not configured: {exc}")
 
-ADMIN_USER_IDS = {
-    uid.strip()
-    for uid in os.getenv("ADMIN_USER_IDS", "").split(",")
-    if uid.strip()
-}
+def _allow_x_user_id() -> bool:
+    if ALLOW_X_USER_ID is not None:
+        return bool(ALLOW_X_USER_ID)
+    return os.getenv("ALLOW_X_USER_ID", "").lower() in {"1", "true", "yes"}
+
+
+def _admin_user_ids() -> set[str]:
+    if ADMIN_USER_IDS is not None:
+        return set(ADMIN_USER_IDS)
+    return {
+        uid.strip()
+        for uid in os.getenv("ADMIN_USER_IDS", "").split(",")
+        if uid.strip()
+    }
 
 def get_db():
     db = SessionLocal()
@@ -63,10 +73,10 @@ async def get_current_user_id(
             raise HTTPException(status_code=401, detail="Invalid token payload")
         return uid
 
-    if ALLOW_X_USER_ID and x_user_id:
+    if _allow_x_user_id() and x_user_id:
         return x_user_id
 
     raise HTTPException(status_code=401, detail="Missing Authorization token")
 
 def is_admin_user_id(user_id: str) -> bool:
-    return user_id in ADMIN_USER_IDS
+    return user_id in _admin_user_ids()

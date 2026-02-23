@@ -9,7 +9,7 @@ sys.path.append(os.path.join(os.getcwd(), 'server'))
 try:
     from database import SessionLocal, engine
     import models
-    import crud
+    import crud_ops as crud
     from sqlalchemy import text
     
     db = SessionLocal()

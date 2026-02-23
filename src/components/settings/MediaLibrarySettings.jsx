@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "../ui/button";
-import { MEDIA_FILE_ACCEPT, addMediaFile, clearMediaLibrary, formatBytes, getMediaLibraryStats, readMediaLibrary, removeMediaItem } from "../../lib/mediaLibrary";
+import { MEDIA_FILE_ACCEPT, formatBytes, optimizeImageForUpload } from "../../lib/mediaLibrary";
+import { deleteMediaObject, getMediaObjects, uploadMediaObject } from "../../lib/db";
 import { useI18n } from "../../contexts/I18nContext";
 
 export function MediaLibrarySettings() {
@@ -9,17 +10,34 @@ export function MediaLibrarySettings() {
   const [stats, setStats] = React.useState({ count: 0, usedBytes: 0, maxBytes: 0, ratio: 0 });
   const [error, setError] = React.useState("");
   const [isUploading, setIsUploading] = React.useState(false);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+
+  const MAX_BYTES = 25 * 1024 * 1024;
 
   const refresh = React.useCallback(() => {
-    setItems(readMediaLibrary());
-    setStats(getMediaLibraryStats());
-  }, []);
+    setIsRefreshing(true);
+    getMediaObjects()
+      .then((res) => {
+        const nextItems = Array.isArray(res?.items) ? res.items : [];
+        const usedBytes = nextItems.reduce((sum, it) => sum + Number(it?.sizeBytes || 0), 0);
+        setItems(nextItems);
+        setStats({
+          count: nextItems.length,
+          usedBytes,
+          maxBytes: MAX_BYTES,
+          ratio: MAX_BYTES > 0 ? Math.min(1, usedBytes / MAX_BYTES) : 0,
+        });
+      })
+      .catch((e) => {
+        setError(String(e?.message || t("mediaLibrary.uploadFailed")));
+      })
+      .finally(() => {
+        setIsRefreshing(false);
+      });
+  }, [t]);
 
   React.useEffect(() => {
     refresh();
-    const onUpdated = () => refresh();
-    window.addEventListener("media-library-updated", onUpdated);
-    return () => window.removeEventListener("media-library-updated", onUpdated);
   }, [refresh]);
 
   const handleUpload = async (event) => {
@@ -29,7 +47,11 @@ export function MediaLibrarySettings() {
     setIsUploading(true);
     try {
       for (const file of files) {
-        await addMediaFile(file);
+        const optimized = await optimizeImageForUpload(file);
+        if (!optimized.ok) {
+          throw new Error(optimized.error || t("mediaLibrary.uploadFailed"));
+        }
+        await uploadMediaObject(optimized.file, "library");
       }
       refresh();
     } catch (e) {
@@ -41,8 +63,9 @@ export function MediaLibrarySettings() {
   };
 
   const handleClear = () => {
-    clearMediaLibrary();
-    refresh();
+    Promise.all(items.map((item) => deleteMediaObject(item.url)))
+      .then(() => refresh())
+      .catch((e) => setError(String(e?.message || t("mediaLibrary.uploadFailed"))));
   };
 
   return (
@@ -61,9 +84,9 @@ export function MediaLibrarySettings() {
       <div className="flex flex-wrap items-center gap-2">
         <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
           {isUploading ? t("mediaLibrary.uploading") : t("mediaLibrary.addToLibrary")}
-          <input type="file" accept={MEDIA_FILE_ACCEPT} multiple className="hidden" onChange={handleUpload} disabled={isUploading} />
+          <input type="file" accept={MEDIA_FILE_ACCEPT} multiple className="hidden" onChange={handleUpload} disabled={isUploading || isRefreshing} />
         </label>
-        <Button type="button" variant="outline" size="sm" onClick={handleClear} disabled={!items.length}>
+        <Button type="button" variant="outline" size="sm" onClick={handleClear} disabled={!items.length || isRefreshing}>
           {t("mediaLibrary.clearLibrary")}
         </Button>
       </div>
@@ -79,12 +102,25 @@ export function MediaLibrarySettings() {
           {items.map((item) => (
             <div key={item.id} className="overflow-hidden rounded-md border bg-background">
               <div className="aspect-square bg-muted/30">
-                <img src={item.dataUrl} alt={item.name || "media"} className="h-full w-full object-cover" />
+                <img src={item.url} alt={item.name || "media"} className="h-full w-full object-cover" />
               </div>
               <div className="space-y-1 p-2">
                 <p className="truncate text-xs font-medium">{item.name || t("mediaLibrary.unnamed")}</p>
                 <p className="text-[11px] text-muted-foreground">{formatBytes(item.sizeBytes || 0)}</p>
-                <Button type="button" size="sm" variant="ghost" className="h-7 w-full text-xs text-destructive hover:text-destructive" onClick={() => { removeMediaItem(item.id); refresh(); }}>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-full text-xs text-destructive hover:text-destructive"
+                  onClick={async () => {
+                    try {
+                      await deleteMediaObject(item.url);
+                      refresh();
+                    } catch (e) {
+                      setError(String(e?.message || t("mediaLibrary.uploadFailed")));
+                    }
+                  }}
+                >
                   {t("common.remove")}
                 </Button>
               </div>

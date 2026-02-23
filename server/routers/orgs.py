@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import List, Optional
 from sqlalchemy.orm import Session
-import crud
+import crud_ops as crud
 import schemas
 import models
 import json

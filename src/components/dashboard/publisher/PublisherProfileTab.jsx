@@ -12,8 +12,8 @@ import { SortableContext, horizontalListSortingStrategy, arrayMove } from "@dnd-
 import { SortableTag } from "./SortableTag";
 import { MetadataLicenseTab } from "../metadata/MetadataLicenseTab";
 import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
-import { searchOrganizations, requestToJoinOrganization } from "../../../lib/db";
-import { validateImageFile, getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
+import { searchOrganizations, requestToJoinOrganization, uploadMediaObject } from "../../../lib/db";
+import { optimizeImageForUpload, getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
 import { useI18n } from "../../../contexts/I18nContext";
 
 export function PublisherProfileTab({
@@ -115,36 +115,48 @@ export function PublisherProfileTab({
         const file = event.target.files?.[0];
         if (!file) return;
         const ruleKey = field === "avatar" ? "avatar" : "banner";
-        const validation = await validateImageFile(file, ruleKey);
-        if (!validation.ok) {
+        const optimized = await optimizeImageForUpload(file, ruleKey);
+        if (!optimized.ok) {
             if (field === "avatar") {
-                setAvatarUploadError(validation.error || t("publisherProfileTab.invalidImage"));
+                setAvatarUploadError(optimized.error || t("publisherProfileTab.invalidImage"));
                 setAvatarUploadWarning("");
             }
             if (field === "bannerUrl") {
-                setBannerUploadError(validation.error || t("publisherProfileTab.invalidImage"));
+                setBannerUploadError(optimized.error || t("publisherProfileTab.invalidImage"));
                 setBannerUploadWarning("");
             }
             event.target.value = "";
             return;
         }
-        if (field === "avatar") {
-            setAvatarUploadError("");
-            setAvatarUploadWarning(validation.warning || "");
+        try {
+            const purpose = field === "avatar" ? "avatar" : "banner";
+            const uploaded = await uploadMediaObject(optimized.file, purpose);
+            const nextUrl = String(uploaded?.url || "").trim();
+            if (!nextUrl) throw new Error(t("mediaLibrary.uploadFailed"));
+            setPersonaDraft((prev) => ({ ...prev, [field]: nextUrl }));
+            if (field === "avatar") {
+                setAvatarUploadError("");
+                setAvatarUploadWarning(optimized.warning || "");
+                setAvatarPreviewFailed(false);
+            }
+            if (field === "bannerUrl") {
+                setBannerUploadError("");
+                setBannerUploadWarning(optimized.warning || "");
+                setBannerPreviewFailed(false);
+            }
+        } catch (error) {
+            const errorMessage = error?.message || t("mediaLibrary.uploadFailed");
+            if (field === "avatar") {
+                setAvatarUploadError(errorMessage);
+                setAvatarUploadWarning("");
+            }
+            if (field === "bannerUrl") {
+                setBannerUploadError(errorMessage);
+                setBannerUploadWarning("");
+            }
+        } finally {
+            event.target.value = "";
         }
-        if (field === "bannerUrl") {
-            setBannerUploadError("");
-            setBannerUploadWarning(validation.warning || "");
-        }
-        const reader = new FileReader();
-        reader.onload = () => {
-            const result = typeof reader.result === "string" ? reader.result : "";
-            if (!result) return;
-            setPersonaDraft((prev) => ({ ...prev, [field]: result }));
-            if (field === "avatar") setAvatarPreviewFailed(false);
-            if (field === "bannerUrl") setBannerPreviewFailed(false);
-        };
-        reader.readAsDataURL(file);
     };
 
     const handleTagPaste = (event) => {

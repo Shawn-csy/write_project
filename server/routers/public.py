@@ -3,12 +3,31 @@ from typing import List, Optional
 from sqlalchemy import orm
 from sqlalchemy.orm import Session
 import json
-import crud
+import crud_ops as crud
 import schemas
 import models
 from dependencies import get_db
 
 router = APIRouter(prefix="/api", tags=["public"])
+
+
+def _has_public_parent_folder(db: Session, script: models.Script) -> bool:
+    if script.folder == "/":
+        return True
+    parts = script.folder.strip("/").split("/")
+    folder_title = parts[-1]
+    folder_parent = "/" + "/".join(parts[:-1])
+    if folder_parent != "/" and not folder_parent.startswith("/"):
+        folder_parent = "/" + folder_parent
+    folder_script = db.query(models.Script).filter(
+        models.Script.ownerId == script.ownerId,
+        models.Script.title == folder_title,
+        models.Script.folder == folder_parent,
+        models.Script.type == "folder",
+        models.Script.isPublic == 1,
+    ).first()
+    return folder_script is not None
+
 
 # Helper to convert User to PersonaPublic
 def user_to_persona_public(user: models.User, db: Session) -> schemas.PersonaPublic:
@@ -65,34 +84,16 @@ def read_public_script(script_id: str, db: Session = Depends(get_db)):
     if not script:
         raise HTTPException(status_code=404, detail="Script not found")
     
-    if not script.isPublic:
-        # Check inheritance: Is parent folder public?
-        if script.folder != "/":
-             parts = script.folder.strip("/").split("/")
-             folder_title = parts[-1]
-             folder_parent = "/" + "/".join(parts[:-1])
-             if folder_parent != "/" and not folder_parent.startswith("/"):
-                 folder_parent = "/" + folder_parent
-                 
-             folder_script = db.query(models.Script).filter(
-                 models.Script.ownerId == script.ownerId,
-                 models.Script.title == folder_title,
-                 models.Script.folder == folder_parent,
-                 models.Script.type == 'folder',
-                 models.Script.isPublic == 1
-             ).first()
-             
-             if not folder_script:
-                   raise HTTPException(status_code=404, detail="Script is private")
-        else:
-             raise HTTPException(status_code=404, detail="Script is private")
+    # Root scripts must be explicitly public.
+    if script.folder == "/" and not script.isPublic:
+        raise HTTPException(status_code=404, detail="Script is private")
+    # Nested scripts inherit visibility from parent folder.
+    if script.folder != "/" and not _has_public_parent_folder(db, script):
+        raise HTTPException(status_code=404, detail="Script is private")
          
 
-    # Ensure nested JSON fields are parsed (imported from crud, or manually handled if crud not exposed)
-    # Since we are in routers, we can't easily import private _ensure_list from crud if not exported.
-    # But we can assume crud.py/schemas.py handles it? No, raw model access.
-    # Let's duplicate the simple parsing logic or move it to a util.
-    # For now, inline simple check.
+    # Normalize nested JSON fields because this route reads ORM objects directly.
+    # Keep parsing inline here to avoid coupling this router to private helper functions.
     
     if script.persona:
         if isinstance(script.persona.tags, str):
@@ -105,6 +106,12 @@ def read_public_script(script_id: str, db: Session = Depends(get_db)):
              try: script.persona.tags = json.loads(script.persona.tags)
              except: pass
              
+        if isinstance(script.persona.links, str):
+            try:
+                script.persona.links = json.loads(script.persona.links)
+            except:
+                script.persona.links = []
+
         if isinstance(script.persona.organizationIds, str):
             try:
                 script.persona.organizationIds = json.loads(script.persona.organizationIds)
@@ -141,28 +148,11 @@ def read_public_script_raw(script_id: str, db: Session = Depends(get_db)):
     if not script:
         raise HTTPException(status_code=404, detail="Script not found")
     
-    # Simple explicit check for root public script
-    if not script.isPublic:
-        # Check inheritance: Is parent folder public?
-        if script.folder != "/":
-             parts = script.folder.strip("/").split("/")
-             folder_title = parts[-1]
-             folder_parent = "/" + "/".join(parts[:-1])
-             if folder_parent != "/" and not folder_parent.startswith("/"):
-                 folder_parent = "/" + folder_parent
-                 
-             folder_script = db.query(models.Script).filter(
-                 models.Script.ownerId == script.ownerId,
-                 models.Script.title == folder_title,
-                 models.Script.folder == folder_parent,
-                 models.Script.type == 'folder',
-                 models.Script.isPublic == 1
-             ).first()
-             
-             if not folder_script:
-                   raise HTTPException(status_code=404, detail="Script is private")
-        else:
-             raise HTTPException(status_code=404, detail="Script is private")
+    # Keep the same visibility rule as /public-scripts/{id}.
+    if script.folder == "/" and not script.isPublic:
+        raise HTTPException(status_code=404, detail="Script is private")
+    if script.folder != "/" and not _has_public_parent_folder(db, script):
+        raise HTTPException(status_code=404, detail="Script is private")
 
     return Response(content=script.content, media_type="text/markdown")
 
@@ -171,21 +161,10 @@ def get_public_persona(persona_id: str, db: Session = Depends(get_db)):
     # 1. Try Persona
     persona = db.query(models.Persona).filter(models.Persona.id == persona_id).first()
     if persona:
-        if isinstance(persona.organizationIds, str):
-            try:
-                persona.organizationIds = json.loads(persona.organizationIds)
-            except Exception:
-                persona.organizationIds = []
-        if isinstance(persona.tags, str):
-            try:
-                persona.tags = json.loads(persona.tags)
-            except Exception:
-                persona.tags = []
-        if isinstance(persona.links, str):
-            try:
-                persona.links = json.loads(persona.links)
-            except Exception:
-                persona.links = []
+        persona.organizationIds = crud._ensure_list(persona.organizationIds)
+        persona.tags = crud._ensure_list(persona.tags)
+        persona.links = crud._ensure_list(persona.links)
+        persona.defaultLicenseTerms = crud._ensure_list(persona.defaultLicenseTerms)
         orgs = []
         if persona.organizationIds:
             orgs = db.query(models.Organization).filter(models.Organization.id.in_(persona.organizationIds)).all()
@@ -227,23 +206,11 @@ def list_public_personas(db: Session = Depends(get_db)):
     all_org_ids = set()
     persona_org_map = {}
     for p in personas:
-        org_ids = p.organizationIds
-        if isinstance(org_ids, str):
-            try:
-                org_ids = json.loads(org_ids)
-            except Exception:
-                org_ids = []
-        if isinstance(p.tags, str):
-            try:
-                p.tags = json.loads(p.tags)
-            except Exception:
-                p.tags = []
-        if isinstance(p.links, str):
-            try:
-                p.links = json.loads(p.links)
-            except Exception:
-                p.links = []
-        org_ids = org_ids or []
+        p.organizationIds = crud._ensure_list(p.organizationIds)
+        p.tags = crud._ensure_list(p.tags)
+        p.links = crud._ensure_list(p.links)
+        p.defaultLicenseTerms = crud._ensure_list(p.defaultLicenseTerms)
+        org_ids = p.organizationIds or []
         persona_org_map[p.id] = org_ids
         all_org_ids.update(org_ids)
 
@@ -288,6 +255,21 @@ def get_public_organization(org_id: str, db: Session = Depends(get_db)):
                 p.tags = json.loads(p.tags)
             except Exception:
                 p.tags = []
+        if isinstance(p.organizationIds, str):
+            try:
+                p.organizationIds = json.loads(p.organizationIds)
+            except Exception:
+                p.organizationIds = []
+        if isinstance(p.links, str):
+            try:
+                p.links = json.loads(p.links)
+            except Exception:
+                p.links = []
+        if isinstance(p.defaultLicenseTerms, str):
+            try:
+                p.defaultLicenseTerms = json.loads(p.defaultLicenseTerms)
+            except Exception:
+                p.defaultLicenseTerms = []
         if org_ids and org_id in org_ids:
             members.append(p)
     # Avoid validating org.members (User objects) against Persona schema
