@@ -1,6 +1,7 @@
 import pytest
 from analysis.analyzer import ScriptAnalyzer
-import crud, models, schemas
+import crud_ops as crud
+import models, schemas
 
 def test_analyzer_with_various_markers():
     # Test regex markers
@@ -71,5 +72,5 @@ def test_crud_delete_folder_cascade(db_session):
 
 def test_reorder_scripts_failure(db_session):
     # Reorder invalid scripts might not fail but let's try to trigger catch block if possible
-    # Actually crud.py reorder just returns False on exception
+    # Reorder path returns False on exception.
     pass

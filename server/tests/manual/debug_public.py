@@ -13,7 +13,7 @@ os.environ["DB_PATH"] = os.path.abspath("server/data/scripts.db")
 try:
     from database import SQLALCHEMY_DATABASE_URL
     import models
-    import crud
+    import crud_ops as crud
     from sqlalchemy import orm
 
     # Setup connection

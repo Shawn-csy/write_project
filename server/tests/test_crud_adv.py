@@ -1,7 +1,8 @@
 import pytest
 from sqlalchemy.orm import Session
 from sqlalchemy import exc
-import models, schemas, crud
+import models, schemas
+import crud_ops as crud
 import uuid
 import time
 import json

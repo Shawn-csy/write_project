@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from database import get_db
-import crud
+import crud_ops as crud
 from analysis import ScriptAnalyzer
 from dependencies import get_current_user_id
 import logging

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 import json
-import crud
+import crud_ops as crud
 import schemas
 from sqlalchemy.orm import Session
 from dependencies import get_db, get_current_user_id

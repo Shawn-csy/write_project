@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-import crud
+import crud_ops as crud
 from dependencies import get_db
 from routers import public as public_router
 

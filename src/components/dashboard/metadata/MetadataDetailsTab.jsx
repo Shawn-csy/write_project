@@ -8,7 +8,8 @@ import { DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { SortableField } from "./SortableField";
 import { SortableContactField } from "./SortableContactField";
-import { validateImageFile, getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
+import { optimizeImageForUpload, getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
+import { uploadMediaObject } from "../../../lib/db";
 import { useI18n } from "../../../contexts/I18nContext";
 
 export function MetadataDetailsTab({
@@ -33,7 +34,7 @@ export function MetadataDetailsTab({
     recommendedErrors = {}
 }) {
     const { t } = useI18n();
-    const hasInvalidCoverUrl = Boolean(coverUrl?.trim()) && !/^https?:\/\//i.test(coverUrl.trim());
+    const hasInvalidCoverUrl = Boolean(coverUrl?.trim()) && !/^(https?:\/\/|\/)/i.test(coverUrl.trim());
     const [coverPreviewFailed, setCoverPreviewFailed] = React.useState(false);
     const [coverUploadError, setCoverUploadError] = React.useState("");
     const [coverUploadWarning, setCoverUploadWarning] = React.useState("");
@@ -42,24 +43,27 @@ export function MetadataDetailsTab({
     const handleCoverUpload = async (event) => {
         const file = event.target.files?.[0];
         if (!file) return;
-        const validation = await validateImageFile(file, "cover");
-        if (!validation.ok) {
-            setCoverUploadError(validation.error || "圖片格式不正確。");
+        const optimized = await optimizeImageForUpload(file, "cover");
+        if (!optimized.ok) {
+            setCoverUploadError(optimized.error || "圖片格式不正確。");
             setCoverUploadWarning("");
             event.target.value = "";
             return;
         }
-        setCoverUploadError("");
-        setCoverUploadWarning(validation.warning || "");
-        const reader = new FileReader();
-        reader.onload = () => {
-            const result = typeof reader.result === "string" ? reader.result : "";
-            if (result) {
-                setCoverUrl(result);
-                setCoverPreviewFailed(false);
-            }
-        };
-        reader.readAsDataURL(file);
+        try {
+            const uploaded = await uploadMediaObject(optimized.file, "cover");
+            const nextUrl = String(uploaded?.url || "").trim();
+            if (!nextUrl) throw new Error("上傳失敗。");
+            setCoverUploadError("");
+            setCoverUploadWarning(optimized.warning || "");
+            setCoverUrl(nextUrl);
+            setCoverPreviewFailed(false);
+        } catch (error) {
+            setCoverUploadError(error?.message || "上傳失敗。");
+            setCoverUploadWarning("");
+        } finally {
+            event.target.value = "";
+        }
     };
 
     const parsePastedTags = (text) =>
