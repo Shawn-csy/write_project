@@ -35,10 +35,11 @@ def setup_data(db_session):
     
     script_folder_private = Script(id="folder-private", title="priv-folder", ownerId="user-no-persona", folder="/", isPublic=0, type="folder", createdAt=now, lastModified=now)
     script_in_priv_folder = Script(id="script-in-priv", title="in-priv", ownerId="user-no-persona", folder="/priv-folder", isPublic=1, type="script", createdAt=now, lastModified=now) # The script itself is public, but parent is private
+    script_in_priv_explicit_false = Script(id="script-in-priv-explicit-false", title="in-priv-false", ownerId="user-no-persona", folder="/priv-folder", isPublic=0, type="script", createdAt=now, lastModified=now) # Script is private, parent is private
 
     db_session.add_all([org, user1, user2, persona, persona_broken, 
                 script_root_private, script_folder_public, script_in_pub_folder, 
-                script_folder_private, script_in_priv_folder])
+                script_folder_private, script_in_priv_folder, script_in_priv_explicit_false])
     db_session.commit()
 
 def test_get_public_persona_user_fallback(client, db_session):
@@ -94,7 +95,12 @@ def test_public_script_folder_inheritance(client, db_session):
     assert response.status_code == 200
     
     # 3. Private folder script (script marked public but folder is private)
+    # This SHOULD return 200 because the script is explicitly public.
     response = client.get("/api/public-scripts/script-in-priv")
+    assert response.status_code == 200
+    
+    # 4. Private folder script, explicitly private
+    response = client.get("/api/public-scripts/script-in-priv-explicit-false")
     assert response.status_code == 404
 
 def test_public_script_raw_folder_inheritance(client, db_session):
@@ -107,6 +113,9 @@ def test_public_script_raw_folder_inheritance(client, db_session):
     assert response.status_code == 200
     
     response = client.get("/api/public-scripts/script-in-priv/raw")
+    assert response.status_code == 200
+    
+    response = client.get("/api/public-scripts/script-in-priv-explicit-false/raw")
     assert response.status_code == 404
 
 def test_get_public_script_json_parsing(client, db_session):
