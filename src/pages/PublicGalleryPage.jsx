@@ -9,12 +9,14 @@ import { OrgGalleryCard } from "../components/gallery/OrgGalleryCard";
 import { Button } from "../components/ui/button";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { PublicHeroMarquee } from "../components/public/PublicHeroMarquee";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../components/ui/sheet";
 import { getPublicBundle } from "../lib/db";
 import { extractMetadataWithRaw } from "../lib/metadataParser";
 import { deriveUsageRights, deriveCcLicenseTags } from "../lib/licenseRights";
 import { normalizeSeriesName, parseSeriesOrder } from "../lib/series";
 import { useI18n } from "../contexts/I18nContext";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../components/ui/alert-dialog";
+import { SlidersHorizontal } from "lucide-react";
 
 const SEGMENT_KEYS = {
   all: "all",
@@ -133,6 +135,7 @@ export default function PublicGalleryPage() {
   };
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingPeople, setIsLoadingPeople] = useState(true);
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   // Data Fetching
   useEffect(() => {
@@ -332,6 +335,10 @@ export default function PublicGalleryPage() {
       : true;
     return matchesSearch && matchesTag;
   });
+  const mobileResultCount =
+    view === "scripts" ? filteredScripts.length :
+    view === "authors" ? filteredAuthors.length :
+    filteredOrgs.length;
   const tabs = useMemo(() => ([
     { key: "scripts", label: t("publicTopbar.scripts") },
     { key: "authors", label: t("publicTopbar.authors") },
@@ -386,7 +393,7 @@ export default function PublicGalleryPage() {
         onTabChange={setView}
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/about")}>
+            <Button className="hidden sm:inline-flex" variant="ghost" size="sm" onClick={() => navigate("/about")}>
               {t("publicGallery.about")}
             </Button>
             {currentUser ? (
@@ -406,9 +413,9 @@ export default function PublicGalleryPage() {
       <PublicHeroMarquee />
 
       {/* Main Content */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 pb-20">
         {view === "scripts" && (
-          <div className="mb-6 overflow-x-auto border-b border-border/70">
+          <div className="mb-4 sm:mb-6 overflow-x-auto border-b border-border/70">
             <div className="flex min-w-max items-end gap-1">
               {scriptSegmentTabs.map((segment) => (
                 <button
@@ -427,9 +434,24 @@ export default function PublicGalleryPage() {
             </div>
           </div>
         )}
+        <div className="mb-3 flex items-center justify-between lg:hidden">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 rounded-full px-3 text-xs"
+            onClick={() => setIsMobileFilterOpen(true)}
+          >
+            <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />
+            {t("publicGallery.mobileFilter", "篩選與搜尋")}
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            {mobileResultCount} {view === "scripts" ? t("publicReader.worksUnit", "部") : t("publicGallery.results", "筆")}
+          </span>
+        </div>
         <div className="flex flex-col lg:flex-row gap-8">
             {/* Sidebar Filters */}
-            <aside className="w-full lg:w-[280px] shrink-0">
+            <aside className="hidden lg:block w-full lg:w-[280px] shrink-0">
                 <div className="lg:sticky lg:top-24 space-y-6">
                     <GalleryFilterBar 
             searchTerm={searchTerm}
@@ -475,7 +497,7 @@ export default function PublicGalleryPage() {
 
         <div className="flex-1 min-w-0 flex flex-col">
             {view === "scripts" && (
-              <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
+              <div className="mb-4 hidden lg:flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
                 <span className="text-xs font-medium text-foreground">
                   {t("galleryFilterBar.usageRights", "使用權限")}
                 </span>
@@ -614,7 +636,7 @@ export default function PublicGalleryPage() {
                     gridTemplateColumns:
                       viewMode === "compact"
                         ? "repeat(auto-fill, minmax(280px, 1fr))"
-                        : "repeat(auto-fill, minmax(150px, 1fr))",
+                        : "repeat(auto-fill, minmax(165px, 1fr))",
                   }}
                 >
                     {filteredScripts.map(script => (
@@ -696,29 +718,141 @@ export default function PublicGalleryPage() {
         </div>
       </main>
 
+      <Sheet open={isMobileFilterOpen} onOpenChange={setIsMobileFilterOpen}>
+        <SheetContent side="left" className="w-[92vw] max-w-none p-0 sm:max-w-sm">
+          <SheetHeader className="px-4 pt-4 pb-2 border-b border-border/50">
+            <SheetTitle>{t("publicGallery.mobileFilterTitle", "篩選與搜尋")}</SheetTitle>
+            <SheetDescription>{t("publicGallery.mobileFilterDesc", "調整搜尋關鍵字與標籤條件。")}</SheetDescription>
+          </SheetHeader>
+          <div className="h-[calc(100vh-96px)] overflow-y-auto px-4 pb-6">
+            {view === "scripts" && (
+              <div className="mt-4 space-y-4 rounded-lg border border-border/60 bg-muted/20 p-3">
+                <div>
+                  <p className="mb-2 text-xs font-medium text-foreground">{t("galleryFilterBar.usageRights", "使用權限")}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {usageOptions.map((opt) => (
+                      <Button
+                        key={`mobile-usage-${opt.value}`}
+                        type="button"
+                        size="sm"
+                        variant={usageFilter === opt.value ? "default" : "outline"}
+                        className="h-7 rounded-full px-3 text-xs"
+                        onClick={() => setUsageFilter(opt.value)}
+                      >
+                        {opt.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-2 text-xs font-medium text-foreground">{t("publicGallery.viewMode", "顯示模式")}</p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={viewMode === "standard" ? "default" : "outline"}
+                      className="h-7 rounded-full px-3 text-xs"
+                      onClick={() => handleViewModeChange("standard")}
+                    >
+                      {t("publicGallery.viewStandard", "圖文排版")}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={viewMode === "compact" ? "default" : "outline"}
+                      className="h-7 rounded-full px-3 text-xs"
+                      onClick={() => handleViewModeChange("compact")}
+                    >
+                      {t("publicGallery.viewCompact", "緊湊排版")}
+                    </Button>
+                  </div>
+                </div>
+                {(usageFilter !== "all" || selectedTags.length > 0 || searchTerm.trim()) && (
+                  <div className="pt-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => {
+                        setUsageFilter("all");
+                        setSelectedTags([]);
+                        setSearchTerm("");
+                      }}
+                    >
+                      {t("publicGallery.clearFilters")}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+            <GalleryFilterBar
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              selectedTags={
+                view === "scripts" ? selectedTags :
+                view === "authors" ? selectedAuthorTags :
+                selectedOrgTags
+              }
+              onSelectTags={
+                view === "scripts" ? setSelectedTags :
+                view === "authors" ? setAuthorTags :
+                setOrgTags
+              }
+              featuredTags={view === "scripts" ? topTags : []}
+              tags={
+                view === "scripts" ? allTags :
+                view === "authors" ? authorTags :
+                orgTags
+              }
+              placeholder={
+                view === "scripts" ? t("publicGallery.searchScripts", "搜尋劇本...") :
+                view === "authors" ? t("publicGallery.searchAuthors", "搜尋作者...") :
+                t("publicGallery.searchOrgs", "搜尋組織...")
+              }
+              showViewToggle={false}
+              viewValue={viewMode}
+              onViewChange={handleViewModeChange}
+              viewOptions={[
+                { value: "standard", label: t("publicGallery.viewStandard", "圖文排版") },
+                { value: "compact", label: t("publicGallery.viewCompact", "緊湊排版") }
+              ]}
+              quickFilters={[]}
+              quickTagFilters={view === "scripts" ? [
+                ...licenseTagShortcuts.map((tag) => ({
+                    value: tag,
+                    label: tag.replace(/^授權:/, "").replace(/^License:/, "")
+                }))
+              ] : []}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+
       {/* R-18 Consent Dialog */}
       <AlertDialog open={!!pendingR18Route} onOpenChange={(open) => !open && setPendingR18Route(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[92vw] max-w-[92vw] sm:max-w-md rounded-xl p-4 sm:p-6 gap-3">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-red-500 font-bold flex items-center gap-2">
-              <span className="text-2xl">🔞</span> 內容分級警告 (Adult Content Warning)
+            <AlertDialogTitle className="text-red-500 font-bold flex items-center gap-2 text-base sm:text-lg leading-snug">
+              <span className="text-xl sm:text-2xl">🔞</span>
+              <span>內容分級警告 (Adult Content Warning)</span>
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              <p className="text-sm text-foreground/80 leading-relaxed max-w-sm mx-auto">
+            <AlertDialogDescription className="space-y-2 text-left">
+              <p className="text-[13px] sm:text-sm text-foreground/80 leading-relaxed">
                 您即將進入受限制的內容頁面。此作品含有 <strong>成人向(R-18)</strong> 的標籤，可能包含不適合未成年人觀看的成人題材、暴力或過度裸露內容。
               </p>
-              <p className="font-medium text-destructive">
+              <p className="text-sm sm:text-[15px] font-medium text-destructive">
                 請問您是否已滿 18 歲，並願意觀看此內容？
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="mt-6">
-            <AlertDialogCancel onClick={() => setPendingR18Route(null)}>
+          <AlertDialogFooter className="mt-2 sm:mt-4 gap-2 sm:gap-0">
+            <AlertDialogCancel className="w-full sm:w-auto h-10" onClick={() => setPendingR18Route(null)}>
               返回 (Go Back)
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={confirmR18Consent}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="w-full sm:w-auto h-10 bg-red-600 hover:bg-red-700 text-white"
             >
               已滿 18 歲，進入觀看 (I am 18+, Enter)
             </AlertDialogAction>
