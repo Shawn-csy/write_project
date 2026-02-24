@@ -35,6 +35,16 @@ export function SettingsProvider({ children }) {
   
   // Line Height (1.2 ~ 2.0, default 1.4)
   const [lineHeight, setLineHeight] = usePersistentState(STORAGE_KEYS.LINE_HEIGHT, 1.4, 'number');
+  const [desktopUiScaleRaw, setDesktopUiScaleRaw] = usePersistentState(STORAGE_KEYS.DESKTOP_UI_SCALE, 1, 'number');
+  const desktopUiScale = Number.isFinite(Number(desktopUiScaleRaw))
+    ? Math.min(1.2, Math.max(1, Number(desktopUiScaleRaw)))
+    : 1;
+  const setDesktopUiScale = (next) => {
+    const numeric = Number(next);
+    if (!Number.isFinite(numeric)) return;
+    const clamped = Math.min(1.2, Math.max(1, numeric));
+    setDesktopUiScaleRaw(Number(clamped.toFixed(2)));
+  };
 
   const [transparentBgStr, setTransparentBgStr] = usePersistentState(STORAGE_KEYS.TRANSPARENT_BG, "off");
   const transparentBg = transparentBgStr === "on";
@@ -136,6 +146,10 @@ export function SettingsProvider({ children }) {
     }
   }, [transparentBg]);
 
+  useEffect(() => {
+    document.documentElement.style.setProperty("--desktop-ui-scale", String(desktopUiScale));
+  }, [desktopUiScale]);
+
   // --- Cloud Sync ---
   // 1. Load from Cloud on Login
   useEffect(() => {
@@ -159,6 +173,7 @@ export function SettingsProvider({ children }) {
                       if(s.hideWhitespace !== undefined) setHideWhitespace(s.hideWhitespace);
 
                       if(s.lineHeight) setLineHeight(s.lineHeight);
+                      if (s.desktopUiScale !== undefined && s.desktopUiScale !== null) setDesktopUiScale(s.desktopUiScale);
                       if(s.transparentBg !== undefined) setTransparentBg(s.transparentBg);
                       if(s.lineHeight) setLineHeight(s.lineHeight);
                       if(s.transparentBg !== undefined) setTransparentBg(s.transparentBg);
@@ -200,6 +215,7 @@ export function SettingsProvider({ children }) {
                           hideWhitespace,
 
                           lineHeight,
+                          desktopUiScale,
                           transparentBg,
                           showLineUnderline: showLineUnderline, // Use boolean for API? Or string? saveUserSettings payload usually mirrors state. 
                           // API payload reconstruction:
@@ -237,6 +253,7 @@ export function SettingsProvider({ children }) {
           hideWhitespace,
 
           lineHeight,
+          desktopUiScale,
           transparentBg,
           showLineUnderline,
           statsConfig,
@@ -258,8 +275,10 @@ export function SettingsProvider({ children }) {
       hideWhitespace,
 
       lineHeight,
+      desktopUiScale,
       transparentBg,
       showLineUnderline,
+      statsConfig,
       themes.currentThemeId
   ]);
 
@@ -282,6 +301,7 @@ export function SettingsProvider({ children }) {
     bodyFontSize, setBodyFontSize,
     dialogueFontSize, setDialogueFontSize,
     lineHeight, setLineHeight,
+    desktopUiScale, setDesktopUiScale,
     adjustFont,
 
     // Modes

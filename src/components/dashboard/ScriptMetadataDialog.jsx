@@ -7,7 +7,7 @@ import { Badge } from "../ui/badge";
 import { AlertTriangle, X, Plus, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "../ui/select";
 import { Textarea } from "../ui/textarea"; 
-import { updateScript, addTagToScript, removeTagFromScript, getTags, createTag, getScript, getPersonas, getOrganizations, getUserProfile, getOrganization, getPublicScript } from "../../lib/db";
+import { updateScript, addTagToScript, removeTagFromScript, getTags, createTag, getScript, getPersonas, getOrganizations, getUserProfile, getOrganization, getPublicScript, createSeries } from "../../lib/db";
 import { useAuth } from "../../contexts/AuthContext";
 import { extractMetadataWithRaw, rewriteMetadata, writeMetadata } from "../../lib/metadataParser";
 import { DndContext, closestCenter, MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
@@ -23,10 +23,12 @@ import { MetadataLicenseTab } from "./metadata/MetadataLicenseTab";
 import { useToast } from "../ui/toast";
 import { useI18n } from "../../contexts/I18nContext";
 
-export function buildPublishChecklist({ title, identity, license, licenseTerms, coverUrl, synopsis, tags, t }) {
+export function buildPublishChecklist({ title, identity, license, licenseTerms, coverUrl, synopsis, tags, targetAudience, contentRating, t }) {
     const required = [
         { key: "title", label: t ? t("scriptMetadataDialog.checkTitle") : "Title", ok: Boolean(title?.trim()) },
         { key: "identity", label: t ? t("scriptMetadataDialog.checkIdentity") : "Author identity", ok: Boolean(identity?.startsWith("persona:")) },
+        { key: "audience", label: t ? t("scriptMetadataDialog.checkAudience", "觀眾取向 Target Audience") : "Target Audience", ok: Boolean(targetAudience?.trim()) },
+        { key: "rating", label: t ? t("scriptMetadataDialog.checkRating", "內容分級 Content Rating") : "Content Rating", ok: Boolean(contentRating?.trim()) },
         { key: "license", label: t ? t("scriptMetadataDialog.checkLicense") : "License", ok: Boolean(license?.trim()) || (licenseTerms || []).length > 0 },
     ];
     const recommended = [
@@ -46,7 +48,7 @@ export function buildPublishChecklist({ title, identity, license, licenseTerms, 
 
 
 
-export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onSave }) {
+export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onSave, seriesOptions = [], onSeriesCreated }) {
     const { t } = useI18n();
     const { toast } = useToast();
     const [title, setTitle] = useState("");
@@ -64,6 +66,11 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     const [copyright, setCopyright] = useState("");
     const [source, setSource] = useState("");
     const [synopsis, setSynopsis] = useState("");
+    const [seriesName, setSeriesName] = useState("");
+    const [seriesId, setSeriesId] = useState("");
+    const [seriesOrder, setSeriesOrder] = useState("");
+    const [quickSeriesName, setQuickSeriesName] = useState("");
+    const [isCreatingSeries, setIsCreatingSeries] = useState(false);
     // const [description, setDescription] = useState(""); // Merged into synopsis
     const [customFields, setCustomFields] = useState([]);
     const [jsonMode, setJsonMode] = useState(false);
@@ -183,6 +190,10 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
             }
             if (parsed.copyright !== undefined) setCopyright(parsed.copyright);
             if (parsed.source !== undefined) setSource(parsed.source);
+            if (parsed.series !== undefined) setSeriesName(String(parsed.series || ""));
+            if (parsed.seriesName !== undefined && parsed.series === undefined) setSeriesName(String(parsed.seriesName || ""));
+            if (parsed.seriesId !== undefined) setSeriesId(String(parsed.seriesId || ""));
+            if (parsed.seriesOrder !== undefined) setSeriesOrder(String(parsed.seriesOrder ?? ""));
             if (parsed.cover !== undefined) setCoverUrl(parsed.cover);
             if (parsed.status !== undefined) setStatus(parsed.status);
             if (parsed.publishAs !== undefined && String(parsed.publishAs).startsWith("persona:")) {
@@ -226,6 +237,10 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     const [availableTags, setAvailableTags] = useState([]);
     const [newTagInput, setNewTagInput] = useState("");
     const [isSaving, setIsSaving] = useState(false);
+    
+    // Explicit Content Ratings
+    const [targetAudience, setTargetAudience] = useState("");
+    const [contentRating, setContentRating] = useState("");
 
     // Identity Selection
     const { currentUser, profile: currentProfile } = useAuth();
@@ -240,13 +255,15 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     const [showMarkerLegend, setShowMarkerLegend] = useState(false);
     const [disableCopy, setDisableCopy] = useState(false);
     const publishChecklist = useMemo(
-        () => buildPublishChecklist({ title, identity, license, licenseTerms, coverUrl, synopsis, tags: currentTags, t }),
-        [title, identity, license, licenseTerms, coverUrl, synopsis, currentTags, t]
+        () => buildPublishChecklist({ title, identity, license, licenseTerms, coverUrl, synopsis, tags: currentTags, targetAudience, contentRating, t }),
+        [title, identity, license, licenseTerms, coverUrl, synopsis, currentTags, targetAudience, contentRating, t]
     );
     const requiredErrorMap = useMemo(
         () => ({
             title: showValidationHints && publishChecklist.missingRequired.some((item) => item.key === "title"),
             identity: showValidationHints && publishChecklist.missingRequired.some((item) => item.key === "identity"),
+            audience: showValidationHints && publishChecklist.missingRequired.some((item) => item.key === "audience"),
+            rating: showValidationHints && publishChecklist.missingRequired.some((item) => item.key === "rating"),
             license: showValidationHints && publishChecklist.missingRequired.some((item) => item.key === "license"),
         }),
         [showValidationHints, publishChecklist.missingRequired]
@@ -263,6 +280,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     const getKeyTarget = (key) => {
         if (key === "title") return { tab: "basic", fieldId: "metadata-title" };
         if (key === "identity") return { tab: "basic", fieldId: "metadata-identity-trigger" };
+        if (key === "audience" || key === "rating") return { tab: "details", fieldId: null };
         if (key === "license") return { tab: "license", fieldId: "license-name" };
         if (key === "cover") return { tab: "details", fieldId: "metadata-cover-url" };
         if (key === "synopsis") return { tab: "basic", fieldId: "metadata-synopsis" };
@@ -375,6 +393,18 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
             setCoverUrl(script.coverUrl || "");
             setStatus(script.status || (script.isPublic ? "Public" : "Private"));
             setCurrentTags(script.tags || []);
+            
+            // Initialize Audience and Rating state based on current tags
+            if (script.tags) {
+                const tagNames = script.tags.map(t => String(t.name || "").toLowerCase());
+                if (tagNames.includes("男性向")) setTargetAudience("男性向");
+                else if (tagNames.includes("女性向")) setTargetAudience("女性向");
+                else if (tagNames.includes("一般向")) setTargetAudience("一般向");
+
+                if (tagNames.includes("r-18") || tagNames.includes("r18") || tagNames.includes("18+") || tagNames.includes("成人向")) setContentRating("成人向");
+                else if (tagNames.includes("一般") || tagNames.includes("一般內容") || tagNames.includes("全年齡向")) setContentRating("全年齡向");
+            }
+
             setMarkerThemeId(script.markerThemeId || "default");
             setShowMarkerLegend(false);
             setDisableCopy(script.disableCopy || false);
@@ -418,6 +448,9 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                     setContact(meta.contact || "");
                     setSource(meta.source || "");
                     setSynopsis(meta.synopsis || meta.summary || meta.description || meta.notes || "");
+                    setSeriesName(String(meta.series || meta.seriesname || script?.series?.name || ""));
+                    setSeriesId(script?.seriesId || "");
+                    setSeriesOrder(String(meta.seriesorder ?? script?.seriesOrder ?? ""));
                     // setDescription(meta.description || meta.notes || "");
                     
                     if (meta.marker_legend !== undefined) setShowMarkerLegend(String(meta.marker_legend) === 'true');
@@ -439,7 +472,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                         "notes", "description", "synopsis", "summary",
                         "notes", "description", "synopsis", "summary",
                         "cover", "coverurl", "marker_legend", "show_legend",
-                        "license", "licenseurl", "licenseterms", "copyright"
+                        "license", "licenseurl", "licenseterms", "copyright",
+                        "series", "seriesname", "seriesorder"
                     ]);
                     if (!userEditedRef.current && (customFields || []).length === 0) {
                         const custom = rawEntries
@@ -509,6 +543,9 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                 setContact(meta.contact || "");
                 setSource(meta.source || "");
                 setSynopsis(meta.synopsis || meta.summary || meta.description || meta.notes || "");
+                setSeriesName(String(meta.series || meta.seriesname || localScript?.series?.name || ""));
+                setSeriesId(localScript?.seriesId || "");
+                setSeriesOrder(String(meta.seriesorder ?? localScript?.seriesOrder ?? ""));
                 // setDescription(meta.description || meta.notes || "");
                 
                 if (meta.marker_legend !== undefined) setShowMarkerLegend(String(meta.marker_legend) === 'true');
@@ -528,7 +565,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                     "title", "credit", "author", "authors", "source",
                     "draftdate", "date", "contact", "copyright",
                     "notes", "description", "synopsis", "summary",
-                    "cover", "coverurl"
+                    "cover", "coverurl", "series", "seriesname", "seriesorder"
                 ]);
                 if (!userEditedRef.current && (customFields || []).length === 0) {
                     const custom = rawEntries
@@ -612,6 +649,9 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
             // description,
             contact,
             source,
+            series: seriesName,
+            seriesId,
+            seriesOrder,
             cover: coverUrl,
             status,
             license,
@@ -628,6 +668,9 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     }, [
         date,
         synopsis,
+        seriesName,
+        seriesId,
+        seriesOrder,
         // description,
         contact,
         source,
@@ -713,6 +756,43 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         }
     }, [identity, personas, selectedOrgId]);
 
+    useEffect(() => {
+        if (!seriesId) return;
+        const selected = (seriesOptions || []).find((item) => item.id === seriesId);
+        if (selected?.name) {
+            setSeriesName(selected.name);
+        }
+    }, [seriesId, seriesOptions]);
+
+    const handleQuickCreateSeries = async () => {
+        const name = quickSeriesName.trim();
+        if (!name || isCreatingSeries) return;
+        const existing = (seriesOptions || []).find(
+            (item) => String(item?.name || "").trim().toLowerCase() === name.toLowerCase()
+        );
+        if (existing) {
+            setSeriesId(existing.id);
+            setSeriesName(existing.name || name);
+            setQuickSeriesName("");
+            toast({ title: "已選取既有系列" });
+            return;
+        }
+        setIsCreatingSeries(true);
+        try {
+            const created = await createSeries({ name, summary: "", coverUrl: "" });
+            setSeriesId(created.id);
+            setSeriesName(created.name || name);
+            setQuickSeriesName("");
+            if (onSeriesCreated) onSeriesCreated(created);
+            toast({ title: "已建立系列" });
+        } catch (error) {
+            console.error("Failed to create series from metadata dialog", error);
+            toast({ title: "建立系列失敗", variant: "destructive" });
+        } finally {
+            setIsCreatingSeries(false);
+        }
+    };
+
     const loadTags = async () => {
         try {
             const tags = await getTags();
@@ -728,8 +808,10 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         if (!candidate) return;
         const tagName = candidate;
         
+        const isFromInput = !inputOverride || inputOverride === newTagInput || inputOverride === newTagInput.trim();
+
         if (currentTags.find(t => t.name.toLowerCase() === tagName.toLowerCase())) {
-            setNewTagInput("");
+            if (isFromInput) setNewTagInput("");
             return;
         }
 
@@ -748,7 +830,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                 if (prev.some((t) => t.id === tagToAdd.id || t.name.toLowerCase() === tagToAdd.name.toLowerCase())) return prev;
                 return [...prev, tagToAdd];
             });
-            setNewTagInput("");
+            if (isFromInput) setNewTagInput("");
         } catch (e) {
             console.error("Error adding tag", e);
         }
@@ -812,6 +894,10 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setCurrentTags(currentTags.filter(t => t.id !== tagId));
     };
 
+    const handleClearTags = () => {
+        setCurrentTags([]);
+    };
+
     const handleSave = async () => {
         setShowValidationHints(true);
         if (!identity || !identity.startsWith("persona:")) {
@@ -834,6 +920,31 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
 
         setIsSaving(true);
         try {
+            // Synchronize Audience and Rating settings into tags
+            let tagsToSave = [...currentTags];
+            const ensureTag = async (name) => {
+                if (!tagsToSave.some(t => String(t.name).toLowerCase() === name.toLowerCase())) {
+                    let existing = availableTags.find(t => String(t.name).toLowerCase() === name.toLowerCase());
+                    if (!existing) existing = await createTag(name, name === "成人向" ? "bg-red-500" : "bg-gray-500");
+                    tagsToSave.push(existing);
+                }
+            };
+            const removeTags = (names) => {
+                const dropSet = new Set(names.map(n => n.toLowerCase()));
+                tagsToSave = tagsToSave.filter(t => !dropSet.has(String(t.name).toLowerCase()));
+            };
+
+            // Process Audience
+            if (targetAudience) {
+                removeTags(["男性向", "女性向", "一般向"].filter(a => a !== targetAudience));
+                await ensureTag(targetAudience);
+            }
+            // Process Rating
+            if (contentRating) {
+                removeTags(["一般", "R-18", "r18", "一般內容", "全年齡向", "成人向"].filter(r => r !== contentRating));
+                await ensureTag(contentRating);
+            }
+            
             // 1. Prepare Content Update
             // Fetch latest content first to ensure we don't overwrite concurrent edits if possible?
             // For now assuming script.content is mostly fresh or we fetch it.
@@ -868,6 +979,13 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
             }
             if (coverUrl) orderedEntries.push({ key: "Cover", value: coverUrl });
             if (synopsis) orderedEntries.push({ key: "Synopsis", value: synopsis });
+            const selectedSeries = seriesOptions.find((item) => item.id === seriesId);
+            const selectedSeriesName = selectedSeries?.name || seriesName;
+            if (selectedSeriesName?.trim()) orderedEntries.push({ key: "Series", value: selectedSeriesName.trim() });
+            const parsedSeriesOrder = Number(seriesOrder);
+            if (Number.isFinite(parsedSeriesOrder) && parsedSeriesOrder >= 0) {
+                orderedEntries.push({ key: "SeriesOrder", value: String(Math.floor(parsedSeriesOrder)) });
+            }
 
             // Custom Fields (In Order)
             (customFields || []).forEach(({ key, value, type }) => {
@@ -902,14 +1020,16 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
 
             updatePayload.personaId = identity.split(":")[1];
             updatePayload.organizationId = selectedOrgId || null;
+            updatePayload.seriesId = seriesId || null;
+            updatePayload.seriesOrder = Number.isFinite(Number(seriesOrder)) && Number(seriesOrder) >= 0 ? Math.floor(Number(seriesOrder)) : null;
 
             await updateScript(workingScript.id, updatePayload);
 
             // 3. Handle Tags Diff
             const originalTagIds = new Set(((workingScript && workingScript.tags) || []).map(t => t.id));
-            const currentTagIds = new Set(currentTags.map(t => t.id));
-            const addedTags = currentTags.filter(t => !originalTagIds.has(t.id));
-            const removedTags = ((workingScript && workingScript.tags) || []).filter(t => !currentTagIds.has(t.id));
+            const finalTagIds = new Set(tagsToSave.map(t => t.id));
+            const addedTags = tagsToSave.filter(t => !originalTagIds.has(t.id));
+            const removedTags = ((workingScript && workingScript.tags) || []).filter(t => !finalTagIds.has(t.id));
 
             await Promise.all([
                 ...addedTags.map(t => addTagToScript(workingScript.id, t.id)),
@@ -921,9 +1041,12 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                 title, coverUrl, status, 
                 content: finalContent, 
                 author, draftDate: date,
-                tags: currentTags,
-                markerThemeId
+                tags: tagsToSave,
+                markerThemeId,
+                seriesId: updatePayload.seriesId,
+                seriesOrder: updatePayload.seriesOrder
             }); 
+            setCurrentTags(tagsToSave); 
             toast({ title: t("scriptMetadataDialog.saved") });
             setShowValidationHints(false);
             onOpenChange(false);
@@ -935,9 +1058,47 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         }
     };
 
+    const handleSetTargetAudience = async (newAudience) => {
+        setTargetAudience(newAudience);
+        const audienceGroup = ["男性向", "女性向", "一般向"];
+        
+        let tagsCopy = currentTags.filter(t => !audienceGroup.includes(String(t.name).toLowerCase()) || String(t.name).toLowerCase() === newAudience.toLowerCase());
+        
+        if (!tagsCopy.some(t => String(t.name).toLowerCase() === newAudience.toLowerCase())) {
+            let existing = availableTags.find(t => String(t.name).toLowerCase() === newAudience.toLowerCase());
+            if (!existing) {
+                try {
+                    existing = await createTag(newAudience, "bg-gray-500");
+                    setAvailableTags(prev => [...prev, existing]);
+                } catch(e) { console.error(e); }
+            }
+            if (existing) tagsCopy.push(existing);
+        }
+        setCurrentTags([...tagsCopy]);
+    };
+
+    const handleSetContentRating = async (newRating) => {
+        setContentRating(newRating);
+        const ratingGroup = ["一般", "r-18", "r18", "一般內容", "全年齡向", "成人向"];
+        
+        let tagsCopy = currentTags.filter(t => !ratingGroup.includes(String(t.name).toLowerCase()) || String(t.name).toLowerCase() === newRating.toLowerCase());
+        
+        if (!tagsCopy.some(t => String(t.name).toLowerCase() === newRating.toLowerCase())) {
+            let existing = availableTags.find(t => String(t.name).toLowerCase() === newRating.toLowerCase());
+            if (!existing) {
+                try {
+                    existing = await createTag(newRating, newRating === "成人向" ? "bg-red-500" : "bg-gray-500");
+                    setAvailableTags(prev => [...prev, existing]);
+                } catch(e) { console.error(e); }
+            }
+            if (existing) tagsCopy.push(existing);
+        }
+        setCurrentTags([...tagsCopy]);
+    };
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="w-[95vw] sm:max-w-[760px] lg:max-w-[980px] xl:max-w-[1120px] max-h-[92vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{t("scriptMetadataDialog.title")}</DialogTitle>
                     <DialogDescription>
@@ -1030,9 +1191,26 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
             author={author} setAuthor={setAuthor}
             availableTags={availableTags}
             newTagInput={newTagInput} setNewTagInput={setNewTagInput}
+            targetAudience={targetAudience}
+            setTargetAudience={handleSetTargetAudience}
+            contentRating={contentRating}
+            setContentRating={handleSetContentRating}
+            seriesName={seriesName}
+            setSeriesName={setSeriesName}
+            seriesId={seriesId}
+            setSeriesId={setSeriesId}
+            seriesOptions={seriesOptions}
+            quickSeriesName={quickSeriesName}
+            setQuickSeriesName={setQuickSeriesName}
+            onQuickCreateSeries={handleQuickCreateSeries}
+            isCreatingSeries={isCreatingSeries}
+            seriesOrder={seriesOrder}
+            setSeriesOrder={setSeriesOrder}
+            requiredErrors={requiredErrorMap}
             handleAddTag={handleAddTag}
             handleAddTagsBatch={handleAddTagsBatch}
             handleRemoveTag={handleRemoveTag}
+            handleClearTags={handleClearTags}
             contactFields={contactFields} setContactFields={setContactFields}
             onAddContactField={handleAddContactField}
             handleContactFieldUpdate={handleContactFieldUpdate}

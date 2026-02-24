@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
 import { optimizeImageForUpload, getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
 import { uploadMediaObject } from "../../../lib/db";
 import { useI18n } from "../../../contexts/I18nContext";
+import { MediaPicker } from "../../ui/MediaPicker";
 
 export function PublisherOrgTab({
     orgs,
@@ -46,6 +47,8 @@ export function PublisherOrgTab({
     const [bannerUploadError, setBannerUploadError] = React.useState("");
     const [logoUploadWarning, setLogoUploadWarning] = React.useState("");
     const [bannerUploadWarning, setBannerUploadWarning] = React.useState("");
+    const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState(false);
+    const [mediaPickerTarget, setMediaPickerTarget] = React.useState(null); // 'logo' or 'banner'
     const logoGuide = React.useMemo(() => getImageUploadGuide("logo"), []);
     const bannerGuide = React.useMemo(() => getImageUploadGuide("banner"), []);
     const filteredTagOptions = React.useMemo(() => {
@@ -278,10 +281,24 @@ export function PublisherOrgTab({
                                                     onChange={e => setOrgDraft({ ...orgDraft, logoUrl: e.target.value })}
                                                     placeholder="https://"
                                                 />
-                                                <label className="inline-flex w-fit cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
-                                                    {t("publisherOrgTab.uploadLogo")}
-                                                    <input type="file" accept={MEDIA_FILE_ACCEPT} className="hidden" onChange={handleImageUpload("logoUrl")} />
-                                                </label>
+                                                <div className="flex flex-wrap gap-2">
+                                                    <label className="inline-flex w-fit cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
+                                                        {t("publisherOrgTab.uploadLogo")}
+                                                        <input type="file" accept={MEDIA_FILE_ACCEPT} className="hidden" onChange={handleImageUpload("logoUrl")} />
+                                                    </label>
+                                                    <Button 
+                                                        type="button" 
+                                                        variant="secondary" 
+                                                        size="sm" 
+                                                        className="h-8 text-[11px] border bg-primary/5 hover:bg-primary/10 text-primary border-primary/20"
+                                                        onClick={() => {
+                                                            setMediaPickerTarget('logo');
+                                                            setIsMediaPickerOpen(true);
+                                                        }}
+                                                    >
+                                                        {t("mediaLibrary.selectFromLibrary", "從媒體庫選擇")}
+                                                    </Button>
+                                                </div>
                                                 <div className="space-y-0.5 text-[11px] text-muted-foreground">
                                                     <p>{logoGuide.supported}</p>
                                                     <p>{logoGuide.recommended}</p>
@@ -317,10 +334,24 @@ export function PublisherOrgTab({
                                                     onChange={e => setOrgDraft({ ...orgDraft, bannerUrl: e.target.value })}
                                                     placeholder="https://"
                                                 />
-                                                <label className="inline-flex w-fit cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
-                                                    {t("publisherOrgTab.uploadBanner")}
-                                                    <input type="file" accept={MEDIA_FILE_ACCEPT} className="hidden" onChange={handleImageUpload("bannerUrl")} />
-                                                </label>
+                                                <div className="flex flex-wrap gap-2">
+                                                    <label className="inline-flex w-fit cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
+                                                        {t("publisherOrgTab.uploadBanner")}
+                                                        <input type="file" accept={MEDIA_FILE_ACCEPT} className="hidden" onChange={handleImageUpload("bannerUrl")} />
+                                                    </label>
+                                                    <Button 
+                                                        type="button" 
+                                                        variant="secondary" 
+                                                        size="sm" 
+                                                        className="h-8 text-[11px] border bg-primary/5 hover:bg-primary/10 text-primary border-primary/20"
+                                                        onClick={() => {
+                                                            setMediaPickerTarget('banner');
+                                                            setIsMediaPickerOpen(true);
+                                                        }}
+                                                    >
+                                                        {t("mediaLibrary.selectFromLibrary", "從媒體庫選擇")}
+                                                    </Button>
+                                                </div>
                                                 <div className="space-y-0.5 text-[11px] text-muted-foreground">
                                                     <p>{bannerGuide.supported}</p>
                                                     <p>{bannerGuide.recommended}</p>
@@ -622,6 +653,24 @@ export function PublisherOrgTab({
                     </div>
                 </div>
             </div>
+            
+            <MediaPicker
+                open={isMediaPickerOpen}
+                onOpenChange={setIsMediaPickerOpen}
+                onSelect={(url) => {
+                    if (mediaPickerTarget === 'logo') {
+                        setOrgDraft(prev => ({ ...prev, logoUrl: url }));
+                        setLogoPreviewFailed(false);
+                        setLogoUploadError("");
+                        setLogoUploadWarning("");
+                    } else if (mediaPickerTarget === 'banner') {
+                        setOrgDraft(prev => ({ ...prev, bannerUrl: url }));
+                        setBannerPreviewFailed(false);
+                        setBannerUploadError("");
+                        setBannerUploadWarning("");
+                    }
+                }}
+            />
         </Card>
     );
 }

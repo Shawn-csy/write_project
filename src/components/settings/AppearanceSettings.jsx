@@ -1,11 +1,10 @@
 import React, { useState } from "react";
-import { 
-  Sun, Moon, Palette, Type, 
+import {
+  Sun, Moon, Palette, Type,
   LayoutTemplate, Check, Monitor,
-  AlignJustify, AlignLeft, Minus, Plus 
+  AlignJustify
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
-import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
 import { Slider } from "../ui/slider";
 import { useSettings } from "../../contexts/SettingsContext";
@@ -22,6 +21,7 @@ export function AppearanceSettings({ sectionRef }) {
       bodyFontSize, setBodyFontSize,
       dialogueFontSize, setDialogueFontSize,
       lineHeight, setLineHeight,
+      desktopUiScale, setDesktopUiScale,
       // Display
       showLineUnderline, setShowLineUnderline
   } = useSettings();
@@ -40,6 +40,11 @@ export function AppearanceSettings({ sectionRef }) {
     { label: t("appearance.compact"), value: 1.2 },
     { label: t("appearance.standard"), value: 1.5 },
     { label: t("appearance.relaxed"), value: 1.8 },
+  ];
+  const desktopScaleOptions = [
+    { label: "100%", value: 1 },
+    { label: "110%", value: 1.1 },
+    { label: "120%", value: 1.2 },
   ];
 
   return (
@@ -219,6 +224,30 @@ export function AppearanceSettings({ sectionRef }) {
                 <LayoutTemplate className="w-3.5 h-3.5 text-muted-foreground" />
                 {t("appearance.display")}
             </label>
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+                <div className="mb-2 text-xs font-medium text-foreground/90">{t("appearance.desktopScale")}</div>
+                <div className="mb-2 text-[11px] text-muted-foreground">{t("appearance.desktopScaleDesc")}</div>
+                <div className="flex items-center gap-1 rounded-lg border border-border/40 bg-background/70 p-1">
+                    {desktopScaleOptions.map((opt) => {
+                        const active = Math.abs(Number(desktopUiScale || 1) - opt.value) < 0.01;
+                        return (
+                            <button
+                                key={opt.label}
+                                type="button"
+                                onClick={() => setDesktopUiScale(opt.value)}
+                                className={cn(
+                                    "flex-1 rounded-md py-1.5 text-xs font-medium transition-all",
+                                    active
+                                        ? "bg-background text-primary shadow-sm ring-1 ring-border/60"
+                                        : "text-muted-foreground hover:bg-background/70 hover:text-foreground"
+                                )}
+                            >
+                                {opt.label}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                     onClick={() => setShowLineUnderline(!showLineUnderline)}

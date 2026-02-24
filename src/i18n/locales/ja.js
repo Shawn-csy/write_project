@@ -1239,6 +1239,8 @@ const messages = {
     "standard": "標準",
     "relaxed": "広い",
     "display": "表示",
+    "desktopScale": "デスクトップ文字倍率",
+    "desktopScaleDesc": "デスクトップ版のみ適用。UI全体の文字を拡大します。",
     "lineGuide": "行ガイド",
     "body": "本文",
     "dialogue": "台詞"

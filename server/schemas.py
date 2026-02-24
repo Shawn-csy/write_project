@@ -181,6 +181,29 @@ class MarkerTheme(MarkerThemeBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+class SeriesBase(BaseModel):
+    name: str
+    summary: Optional[str] = ""
+    coverUrl: Optional[str] = ""
+
+class SeriesCreate(SeriesBase):
+    pass
+
+class SeriesUpdate(BaseModel):
+    name: Optional[str] = None
+    summary: Optional[str] = None
+    coverUrl: Optional[str] = None
+
+class Series(SeriesBase):
+    id: str
+    ownerId: str
+    slug: str
+    createdAt: int
+    updatedAt: int
+    scriptCount: Optional[int] = 0
+
+    model_config = ConfigDict(from_attributes=True)
+
 
 # Script Schemas
 class ScriptBase(BaseModel):
@@ -198,6 +221,8 @@ class ScriptCreate(ScriptBase):
     draftDate: Optional[str] = None
     markerThemeId: Optional[str] = None
     coverUrl: Optional[str] = None # Added
+    seriesId: Optional[str] = None
+    seriesOrder: Optional[int] = None
     
 class ScriptUpdate(BaseModel):
     title: Optional[str] = None
@@ -213,6 +238,8 @@ class ScriptUpdate(BaseModel):
     organizationId: Optional[str] = None
     personaId: Optional[str] = None
     disableCopy: Optional[bool] = None
+    seriesId: Optional[str] = None
+    seriesOrder: Optional[int] = None
 
 class ScriptReorderItem(BaseModel):
     id: str
@@ -247,6 +274,9 @@ class Script(BaseModel):
     persona: Optional[Persona] = None
     owner: Optional[UserPublic] = None
     disableCopy: bool = False
+    seriesId: Optional[str] = None
+    seriesOrder: Optional[int] = None
+    series: Optional[Series] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -271,5 +301,8 @@ class ScriptSummary(BaseModel):
     markerThemeId: Optional[str] = None
     tags: List[Tag] = []
     disableCopy: bool = False
+    seriesId: Optional[str] = None
+    seriesOrder: Optional[int] = None
+    series: Optional[Series] = None
 
     model_config = ConfigDict(from_attributes=True)

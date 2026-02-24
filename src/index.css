@@ -83,6 +83,13 @@
     --marker-color-antique-gold: #70552D;
     --marker-color-deep-iris: #4E4057;
     --marker-color-charcoal: #333333;
+    --desktop-ui-scale: 1;
+  }
+
+  @media (min-width: 1024px) {
+    html {
+      font-size: calc(16px * var(--desktop-ui-scale, 1));
+    }
   }
 
   .dark {

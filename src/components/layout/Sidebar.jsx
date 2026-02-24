@@ -6,8 +6,7 @@ import {
   Info,
   LayoutTemplate,
   Library,
-  PencilLine,
-  Images
+  PencilLine
 } from "lucide-react";
 import { Button } from "../ui/button";
 import UserMenu from "../auth/UserMenu";
@@ -137,11 +136,7 @@ function Sidebar({
                       onClick={() => { navigate("/studio"); closeSidebarIfMobile(); }}
                       isActive={location.pathname === "/studio"}
                   />
-                  <NavItem
-                      icon={Images}
-                      label={t("nav.mediaLibrary")}
-                      onClick={() => { openSettings("media"); closeSidebarIfMobile(); }}
-                  />
+
               </div>
           </div>
       </div>

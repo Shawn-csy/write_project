@@ -2,9 +2,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { PublicReaderLayout } from "../components/reader/PublicReaderLayout";
-import { getPublicScript, getPublicThemes } from "../lib/db";
+import { getPublicBundle, getPublicScript, getPublicThemes } from "../lib/db";
 import { extractMetadataWithRaw } from "../lib/metadataParser";
 import { deriveCcLicenseTags } from "../lib/licenseRights";
+import { normalizeSeriesName, parseSeriesOrder } from "../lib/series";
 import ScriptViewer from "../components/renderer/ScriptViewer";
 import { useScriptViewerDefaults } from "../hooks/useScriptViewerDefaults";
 import { defaultMarkerConfigs } from "../constants/defaultMarkers";
@@ -44,7 +45,6 @@ const ensureTagList = (val) => {
     return [];
 };
 
-
 export default function PublicReaderPage({ scriptManager, navProps }) {
   const { t } = useI18n();
   const { id } = useParams();
@@ -60,6 +60,7 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
   } = scriptManager;
 
   const [mockMeta, setMockMeta] = useState(null);
+  const [relatedSeriesScripts, setRelatedSeriesScripts] = useState([]);
 
   useEffect(() => {
     // Reset override on mount/unmount or id change
@@ -104,8 +105,11 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                     "draftdate", "date", "contact", "copyright",
                     "notes", "description", "synopsis", "summary",
                     "cover", "coverurl", "marker_legend", "show_legend",
-                    "license", "licenseurl", "licenseterms", "licensetags"
+                    "license", "licenseurl", "licenseterms", "licensetags",
+                    "series", "seriesname", "seriesorder"
                 ]);
+                const seriesName = normalizeSeriesName(script.series?.name || meta.series || meta.seriesname);
+                const seriesOrder = parseSeriesOrder(script.seriesOrder ?? meta.seriesorder);
 
                 const customFields = rawEntries
                     .map(({ key, value }) => ({ key, value }))
@@ -148,12 +152,48 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                         if (parsed.length > 0) return parsed;
                         return deriveCcLicenseTags(meta.license || "");
                     })(),
-
-
-
+                    seriesName,
+                    seriesOrder,
                     customFields,
                     showMarkerLegend: String(meta.marker_legend) === 'true' || String(meta.show_legend) === 'true'
                 });
+
+                if (seriesName) {
+                    try {
+                        const bundle = await getPublicBundle();
+                        const sameSeries = (bundle?.scripts || [])
+                            .filter((item) => item?.id && item.id !== script.id)
+                            .map((item) => {
+                                let parsed = { meta: {} };
+                                try {
+                                    parsed = extractMetadataWithRaw(item.content || "");
+                                } catch {
+                                    parsed = { meta: {} };
+                                }
+                                const itemSeriesName = normalizeSeriesName(parsed.meta?.series || parsed.meta?.seriesname);
+                                if (itemSeriesName.toLowerCase() !== seriesName.toLowerCase()) return null;
+                                return {
+                                    id: item.id,
+                                    title: item.title || t("publicGallery.unknown"),
+                                    coverUrl: item.coverUrl || null,
+                                    seriesOrder: parseSeriesOrder(parsed?.meta?.seriesorder),
+                                };
+                            })
+                            .filter(Boolean)
+                            .sort((a, b) => {
+                                const aOrder = a.seriesOrder ?? Number.MAX_SAFE_INTEGER;
+                                const bOrder = b.seriesOrder ?? Number.MAX_SAFE_INTEGER;
+                                if (aOrder !== bOrder) return aOrder - bOrder;
+                                return String(a.title || "").localeCompare(String(b.title || ""));
+                            });
+                        setRelatedSeriesScripts(sameSeries);
+                    } catch (error) {
+                        console.warn("Failed to load same-series scripts", error);
+                        setRelatedSeriesScripts([]);
+                    }
+                } else {
+                    setRelatedSeriesScripts([]);
+                }
                 
                 // Fetch & Apply Public Theme if exists
                 if (script.markerTheme) {
@@ -225,13 +265,14 @@ They discover a glowing artifact.
                      markerThemeId: "default" 
                  });
                  setCloudScriptMode("read");
-                 setMockMeta({
+	                 setMockMeta({
                     coverUrl: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop",
                     author: { id: "user-1", displayName: "Alex Chen", avatarUrl: "https://github.com/shadcn.png" },
                     tags: ["Sci-Fi", "Thriller"],
-                    synopsis: "Two astronauts on a distant moon discover a time-bending anomaly."
-                });
-            }
+	                    synopsis: "Two astronauts on a distant moon discover a time-bending anomaly."
+	                });
+                    setRelatedSeriesScripts([]);
+	            }
         } finally {
             setIsLoading(false);
         }
@@ -374,6 +415,9 @@ They discover a glowing artifact.
     <PublicReaderLayout
         script={fullScriptData}
         isLoading={isLoading}
+        relatedSeriesScripts={relatedSeriesScripts}
+        onOpenRelatedScript={(scriptId) => navigate(`/read/${scriptId}`)}
+        onOpenSeries={(name) => navigate(`/series/${encodeURIComponent(name)}`)}
         onBack={() => navigate("/")} // Return to library/home
         onShare={() => {
             if (navigator.share) {
