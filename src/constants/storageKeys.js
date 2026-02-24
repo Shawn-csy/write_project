@@ -8,6 +8,7 @@ export const STORAGE_KEYS = {
   FONT_SIZE: "screenplay-reader-font-size",
   BODY_FONT: "screenplay-reader-body-font",
   DIALOGUE_FONT: "screenplay-reader-dialogue-font",
+  DESKTOP_UI_SCALE: "screenplay-reader-desktop-ui-scale",
   EXPORT_MODE: "screenplay-reader-export-mode",
   LINE_HEIGHT: "screenplay-reader-line-height",
   TRANSPARENT_BG: "screenplay-reader-transparent-bg",

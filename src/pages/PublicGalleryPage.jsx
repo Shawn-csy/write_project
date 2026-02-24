@@ -8,6 +8,7 @@ import { AuthorGalleryCard } from "../components/gallery/AuthorGalleryCard";
 import { OrgGalleryCard } from "../components/gallery/OrgGalleryCard";
 import { Button } from "../components/ui/button";
 import { PublicTopBar } from "../components/public/PublicTopBar";
+import { PublicHeroMarquee } from "../components/public/PublicHeroMarquee";
 import { getPublicBundle } from "../lib/db";
 import { extractMetadataWithRaw } from "../lib/metadataParser";
 import { deriveUsageRights, deriveCcLicenseTags } from "../lib/licenseRights";
@@ -296,6 +297,10 @@ export default function PublicGalleryPage() {
           totalViews: bucket.totalViews,
           count: bucket.scripts.length,
           lead: sorted[0] || null,
+          coverUrl:
+            sorted.find((item) => String(item?.series?.coverUrl || "").trim())?.series?.coverUrl ||
+            sorted.find((item) => String(item?.coverUrl || "").trim())?.coverUrl ||
+            "",
         };
       })
       .filter((series) => series.lead)
@@ -398,6 +403,7 @@ export default function PublicGalleryPage() {
           </div>
         }
       />
+      <PublicHeroMarquee />
 
       {/* Main Content */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20">
@@ -573,9 +579,9 @@ export default function PublicGalleryPage() {
                                 onClick={() => navigate(`/series/${encodeURIComponent(series.name)}`)}
                               >
                                 <div className="aspect-[2/3] overflow-hidden rounded-lg border border-border/60 bg-muted/25">
-                                  {series.lead?.coverUrl ? (
+                                  {series.coverUrl ? (
                                     <img
-                                      src={series.lead.coverUrl}
+                                      src={series.coverUrl}
                                       alt={series.name}
                                       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                                       loading="lazy"

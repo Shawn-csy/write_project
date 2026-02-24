@@ -1236,6 +1236,8 @@ const messages = {
     "standard": "Standard",
     "relaxed": "Relaxed",
     "display": "Display",
+    "desktopScale": "Desktop UI Scale",
+    "desktopScaleDesc": "Desktop-only. Increase overall interface text size.",
     "lineGuide": "Line Guide",
     "body": "Body",
     "dialogue": "Dialogue"

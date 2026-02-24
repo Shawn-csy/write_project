@@ -3,6 +3,7 @@ import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Textarea } from "../../ui/textarea";
 import { Badge } from "../../ui/badge";
+import { MediaPicker } from "../../ui/MediaPicker";
 
 export function PublisherSeriesTab({
   seriesList = [],
@@ -18,6 +19,7 @@ export function PublisherSeriesTab({
   isSaving = false,
 }) {
   const selected = seriesList.find((s) => s.id === selectedSeriesId) || null;
+  const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState(false);
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
@@ -93,6 +95,17 @@ export function PublisherSeriesTab({
             onChange={(e) => setSeriesDraft((prev) => ({ ...prev, coverUrl: e.target.value }))}
             placeholder="https://..."
           />
+          <div>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => setIsMediaPickerOpen(true)}
+            >
+              從媒體庫選擇
+            </Button>
+          </div>
         </div>
         {seriesDraft.coverUrl && (
           <div className="h-36 w-24 overflow-hidden rounded-md border bg-muted/20">
@@ -168,6 +181,15 @@ export function PublisherSeriesTab({
           </div>
         )}
       </div>
+
+      <MediaPicker
+        open={isMediaPickerOpen}
+        onOpenChange={setIsMediaPickerOpen}
+        onSelect={(url) => {
+          if (!url) return;
+          setSeriesDraft((prev) => ({ ...prev, coverUrl: url }));
+        }}
+      />
     </div>
   );
 }
