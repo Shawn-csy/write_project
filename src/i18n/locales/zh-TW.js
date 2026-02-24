@@ -1236,6 +1236,8 @@ const messages = {
     "standard": "標準",
     "relaxed": "寬鬆",
     "display": "介面顯示",
+    "desktopScale": "桌面字體倍率",
+    "desktopScaleDesc": "僅在桌面版生效，用於放大整體介面文字。",
     "lineGuide": "行底線輔助",
     "body": "正文",
     "dialogue": "對白"
