@@ -37,6 +37,7 @@ from .scripts import (
     toggle_script_like,
     update_script,
 )
+from .series import create_series, delete_series, get_series, get_series_by_id, update_series
 from .tags import add_tag_to_script, create_tag, delete_tag, get_tags, remove_tag_from_script
 from .themes import (
     _parse_theme_configs,
@@ -94,6 +95,11 @@ __all__ = [
     "search_scripts",
     "toggle_script_like",
     "update_script",
+    "create_series",
+    "delete_series",
+    "get_series",
+    "get_series_by_id",
+    "update_series",
     "add_tag_to_script",
     "create_tag",
     "delete_tag",

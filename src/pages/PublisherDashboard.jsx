@@ -6,10 +6,11 @@ import { Plus, PanelLeftOpen, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { ScriptMetadataDialog } from "../components/dashboard/ScriptMetadataDialog";
 import { getMorandiTagStyle } from "../lib/tagColors";
-import { getPersonas, createPersona, updatePersona, deletePersona, getOrganizations, createOrganization, updateOrganization, deleteOrganization, getUserScripts, getTags, getOrganizationMembers, getOrganizationInvites, getOrganizationRequests, inviteOrganizationMember, acceptOrganizationRequest, declineOrganizationRequest, getMyOrganizationInvites, acceptOrganizationInvite, declineOrganizationInvite, searchUsers, getUserProfile, getOrganization, getPublicPersona, createScript } from "../lib/db";
+import { getPersonas, createPersona, updatePersona, deletePersona, getOrganizations, createOrganization, updateOrganization, deleteOrganization, getUserScripts, getTags, getOrganizationMembers, getOrganizationInvites, getOrganizationRequests, inviteOrganizationMember, acceptOrganizationRequest, declineOrganizationRequest, getMyOrganizationInvites, acceptOrganizationInvite, declineOrganizationInvite, searchUsers, getUserProfile, getOrganization, getPublicPersona, createScript, getSeries, createSeries, updateSeries, deleteSeries, updateScript } from "../lib/db";
 import { PublisherWorksTab } from "../components/dashboard/publisher/PublisherWorksTab";
 import { PublisherProfileTab } from "../components/dashboard/publisher/PublisherProfileTab";
 import { PublisherOrgTab } from "../components/dashboard/publisher/PublisherOrgTab";
+import { PublisherSeriesTab } from "../components/dashboard/publisher/PublisherSeriesTab";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../components/ui/toast";
 import { useI18n } from "../contexts/I18nContext";
@@ -51,6 +52,10 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
   const [isSavingOrg, setIsSavingOrg] = useState(false);
   const [isCreatingPersona, setIsCreatingPersona] = useState(false);
   const [isCreatingOrg, setIsCreatingOrg] = useState(false);
+  const [seriesList, setSeriesList] = useState([]);
+  const [selectedSeriesId, setSelectedSeriesId] = useState("");
+  const [seriesDraft, setSeriesDraft] = useState({ name: "", summary: "", coverUrl: "" });
+  const [isSavingSeries, setIsSavingSeries] = useState(false);
 
   const formatDate = (ts) => {
       if (!ts) return "-";
@@ -119,10 +124,11 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
     }
 
     try {
-        const [personaData, orgData, tagData] = await Promise.all([
+        const [personaData, orgData, tagData, seriesData] = await Promise.all([
             getPersonas(),
             getOrganizations(),
             getTags(),
+            getSeries(),
         ]);
         let normalizedPersonas = (personaData || []).map(p => {
             let links = p?.links;
@@ -183,6 +189,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         }
         setOrgsForPersona(deduped);
         setAvailableTags(tagData || []);
+        setSeriesList(seriesData || []);
         const preferredPersonaId = localStorage.getItem("preferredPersonaId");
         const personasForSelection = normalizedPersonas;
         const nextPersona =
@@ -197,6 +204,88 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
     } catch (e) {
         console.error("Failed to load studio data", e);
     }
+  };
+
+  const handleCreateSeries = async () => {
+      if (!seriesDraft.name.trim()) return;
+      setIsSavingSeries(true);
+      try {
+          const created = await createSeries({
+              name: seriesDraft.name.trim(),
+              summary: seriesDraft.summary || "",
+              coverUrl: seriesDraft.coverUrl || "",
+          });
+          setSeriesList((prev) => [created, ...prev]);
+          setSelectedSeriesId(created.id);
+          toast({ title: "已建立系列" });
+      } catch (error) {
+          console.error("Failed to create series", error);
+          toast({ title: "建立系列失敗", variant: "destructive" });
+      } finally {
+          setIsSavingSeries(false);
+      }
+  };
+
+  const handleUpdateSeries = async () => {
+      if (!selectedSeriesId || !seriesDraft.name.trim()) return;
+      setIsSavingSeries(true);
+      try {
+          const updated = await updateSeries(selectedSeriesId, {
+              name: seriesDraft.name.trim(),
+              summary: seriesDraft.summary || "",
+              coverUrl: seriesDraft.coverUrl || "",
+          });
+          setSeriesList((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+          toast({ title: "已更新系列" });
+      } catch (error) {
+          console.error("Failed to update series", error);
+          toast({ title: "更新系列失敗", variant: "destructive" });
+      } finally {
+          setIsSavingSeries(false);
+      }
+  };
+
+  const handleDeleteSeries = async () => {
+      if (!selectedSeriesId) return;
+      setIsSavingSeries(true);
+      try {
+          await deleteSeries(selectedSeriesId);
+          setSeriesList((prev) => prev.filter((s) => s.id !== selectedSeriesId));
+          setSelectedSeriesId("");
+          setSeriesDraft({ name: "", summary: "", coverUrl: "" });
+          setScripts((prev) => prev.map((s) => (s.seriesId === selectedSeriesId ? { ...s, seriesId: null, seriesOrder: null, series: null } : s)));
+          toast({ title: "已刪除系列" });
+      } catch (error) {
+          console.error("Failed to delete series", error);
+          toast({ title: "刪除系列失敗", variant: "destructive" });
+      } finally {
+          setIsSavingSeries(false);
+      }
+  };
+
+  const handleDetachScriptFromSeries = async (scriptId, seriesId) => {
+      if (!scriptId || !seriesId) return;
+      try {
+          await updateScript(scriptId, { seriesId: null, seriesOrder: null });
+          setScripts((prev) =>
+              prev.map((script) =>
+                  script.id === scriptId
+                      ? { ...script, seriesId: null, seriesOrder: null, series: null }
+                      : script
+              )
+          );
+          setSeriesList((prev) =>
+              prev.map((series) =>
+                  series.id === seriesId
+                      ? { ...series, scriptCount: Math.max(0, Number(series.scriptCount || 0) - 1) }
+                      : series
+              )
+          );
+          toast({ title: "已從系列移除作品" });
+      } catch (error) {
+          console.error("Failed to detach script from series", error);
+          toast({ title: "移除失敗", variant: "destructive" });
+      }
   };
 
   const refreshOrgChoices = async () => {
@@ -570,10 +659,11 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full md:w-[400px] grid-cols-1 sm:grid-cols-3 gap-1 h-auto sm:h-9">
+        <TabsList className="grid w-full md:w-[520px] grid-cols-1 sm:grid-cols-4 gap-1 h-auto sm:h-9">
             <TabsTrigger value="works">{t("publisher.myWorks")}</TabsTrigger>
             <TabsTrigger value="profile">{t("publisher.authorIdentity")}</TabsTrigger>
             <TabsTrigger value="org">{t("publisher.organization")}</TabsTrigger>
+            <TabsTrigger value="series">系列管理</TabsTrigger>
         </TabsList>
 
         {/* 1. My Works Tab */}
@@ -609,6 +699,15 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
             open={!!editingScript} 
             onOpenChange={(open) => !open && setEditingScript(null)} 
             script={editingScript}
+            seriesOptions={seriesList}
+            onSeriesCreated={(createdSeries) => {
+                if (!createdSeries?.id) return;
+                setSeriesList((prev) => {
+                    const exists = prev.some((item) => item.id === createdSeries.id);
+                    return exists ? prev : [createdSeries, ...prev];
+                });
+                setSelectedSeriesId(createdSeries.id);
+            }}
             onSave={(updatedScript) => {
                 setEditingScript(null);
                 setScripts(prev => prev.map(s => s.id === updatedScript.id ? { ...s, ...updatedScript } : s));
@@ -639,6 +738,29 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 handleAcceptRequest={handleAcceptRequest}
                 handleDeclineRequest={handleDeclineRequest}
                 />
+        </TabsContent>
+
+        <TabsContent value="series">
+            <PublisherSeriesTab
+              seriesList={seriesList}
+              selectedSeriesId={selectedSeriesId}
+              setSelectedSeriesId={setSelectedSeriesId}
+              seriesDraft={seriesDraft}
+              setSeriesDraft={setSeriesDraft}
+              seriesScripts={(scripts || [])
+                  .filter((script) => script.seriesId === selectedSeriesId)
+                  .sort((a, b) => {
+                      const aOrder = Number.isFinite(Number(a.seriesOrder)) ? Number(a.seriesOrder) : Number.MAX_SAFE_INTEGER;
+                      const bOrder = Number.isFinite(Number(b.seriesOrder)) ? Number(b.seriesOrder) : Number.MAX_SAFE_INTEGER;
+                      if (aOrder !== bOrder) return aOrder - bOrder;
+                      return (b.lastModified || 0) - (a.lastModified || 0);
+                  })}
+              onDetachScript={handleDetachScriptFromSeries}
+              onCreateSeries={handleCreateSeries}
+              onUpdateSeries={handleUpdateSeries}
+              onDeleteSeries={handleDeleteSeries}
+              isSaving={isSavingSeries}
+            />
         </TabsContent>
 
       </Tabs>

@@ -11,6 +11,12 @@ from .scripts_query import get_script
 
 
 def create_script(db: Session, script: schemas.ScriptCreate, ownerId: str):
+    if script.seriesId:
+        series = db.query(models.Series).filter(models.Series.id == script.seriesId, models.Series.ownerId == ownerId).first()
+        if not series:
+            script.seriesId = None
+            script.seriesOrder = None
+
     if script.type == "folder":
         folder_path = script.folder or "/"
         existing = (
@@ -37,6 +43,8 @@ def create_script(db: Session, script: schemas.ScriptCreate, ownerId: str):
         draftDate=script.draftDate or "",
         isPublic=1 if script.isPublic else 0,
         markerThemeId=script.markerThemeId,
+        seriesId=script.seriesId,
+        seriesOrder=script.seriesOrder,
     )
     max_order = (
         db.query(models.Script)
@@ -74,6 +82,15 @@ def update_script(db: Session, script_id: str, script: schemas.ScriptUpdate, own
             child.folder = new_path_prefix + child.folder[len(old_path_prefix):]
 
     update_data = script.model_dump(exclude_unset=True)
+    if "seriesId" in update_data:
+        new_series_id = update_data.get("seriesId")
+        if new_series_id:
+            series = db.query(models.Series).filter(models.Series.id == new_series_id, models.Series.ownerId == ownerId).first()
+            if not series:
+                update_data["seriesId"] = None
+                update_data["seriesOrder"] = None
+        else:
+            update_data["seriesOrder"] = None
     for key, value in update_data.items():
         if key == "isPublic":
             setattr(db_script, key, 1 if value else 0)
@@ -151,4 +168,3 @@ __all__ = [
     "increment_script_view",
     "toggle_script_like",
 ]
-

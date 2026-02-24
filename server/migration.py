@@ -55,6 +55,14 @@ def run_migrations():
             if 'disableCopy' not in columns:
                 print("Migrating: Adding 'disableCopy' column")
                 conn.execute(text("ALTER TABLE scripts ADD COLUMN disableCopy BOOLEAN DEFAULT 0"))
+
+            if 'seriesId' not in columns:
+                print("Migrating: Adding 'seriesId' column")
+                conn.execute(text("ALTER TABLE scripts ADD COLUMN seriesId TEXT DEFAULT NULL"))
+
+            if 'seriesOrder' not in columns:
+                print("Migrating: Adding 'seriesOrder' column")
+                conn.execute(text("ALTER TABLE scripts ADD COLUMN seriesOrder INTEGER DEFAULT NULL"))
             
             # Check users columns
             result_users = conn.execute(text("PRAGMA table_info(users)"))
@@ -125,6 +133,26 @@ def run_migrations():
             if 'bannerUrl' not in org_columns:
                 print("Migrating: Adding 'bannerUrl' column to organizations")
                 conn.execute(text("ALTER TABLE organizations ADD COLUMN bannerUrl TEXT DEFAULT ''"))
+
+            # Series table
+            result_tables = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='series'"))
+            has_series_table = result_tables.fetchone() is not None
+            if not has_series_table:
+                print("Migrating: Creating 'series' table")
+                conn.execute(text("""
+                    CREATE TABLE series (
+                        id TEXT PRIMARY KEY,
+                        ownerId TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        slug TEXT NOT NULL,
+                        summary TEXT DEFAULT '',
+                        coverUrl TEXT DEFAULT '',
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL
+                    )
+                """))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_series_ownerId ON series(ownerId)"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_series_slug ON series(slug)"))
             
             conn.commit()
     except Exception as e:

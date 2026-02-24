@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Link as LinkIcon, Building2, Globe, Twitter, Instagram, Youtube, Github } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { ScriptGalleryCard } from "../components/gallery/ScriptGalleryCard";
 import { getPublicPersona, getPublicScripts } from "../lib/db";
+import { getSeriesInfoFromContent } from "../lib/series";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { getMorandiTagStyle } from "../lib/tagColors";
 import { useI18n } from "../contexts/I18nContext";
@@ -30,6 +31,7 @@ export default function AuthorProfilePage() {
         const normalizedScripts = (publicScripts || [])
           .filter(s => s.type !== "folder" && !s.isFolder)
           .map((s) => ({
+          ...getSeriesInfoFromContent(s.content || ""),
           ...s,
           author: s.persona || s.owner || s.author,
         }));
@@ -47,6 +49,21 @@ export default function AuthorProfilePage() {
   }, [id]);
 
   const tagStyle = (tag) => getMorandiTagStyle(tag, author?.tags || []);
+  const authorSeries = useMemo(() => {
+    const map = new Map();
+    for (const script of scripts || []) {
+      if (!script.seriesName) continue;
+      const key = script.seriesName.toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, { name: script.seriesName, count: 0, coverUrl: script.coverUrl || null, latestAt: 0 });
+      }
+      const bucket = map.get(key);
+      bucket.count += 1;
+      bucket.latestAt = Math.max(bucket.latestAt, script.lastModified || script.updatedAt || 0);
+      if (!bucket.coverUrl && script.coverUrl) bucket.coverUrl = script.coverUrl;
+    }
+    return Array.from(map.values()).sort((a, b) => b.latestAt - a.latestAt);
+  }, [scripts]);
 
   const getLinkIcon = (url = "") => {
       const u = url.toLowerCase();
@@ -201,9 +218,34 @@ export default function AuthorProfilePage() {
             </div>
         </div>
 
-        {/* Works Section */}
-        <div className="space-y-6">
-            <h2 className="text-2xl font-bold border-b pb-2">{t("authorPage.publicWorks")}</h2>
+	        {/* Works Section */}
+	        <div className="space-y-6">
+              {authorSeries.length > 0 && (
+                <div className="space-y-3">
+                  <h2 className="text-2xl font-bold border-b pb-2">{t("authorPage.seriesWorks", "系列作品")}</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {authorSeries.map((series) => (
+                      <button
+                        key={series.name}
+                        type="button"
+                        className="group flex items-center gap-3 rounded-lg border border-border/60 bg-muted/20 p-3 text-left hover:border-primary/50 hover:bg-muted/30 transition-colors"
+                        onClick={() => navigate(`/series/${encodeURIComponent(series.name)}`)}
+                      >
+                        <div className="h-14 w-10 shrink-0 overflow-hidden rounded border border-border/50 bg-muted">
+                          {series.coverUrl ? (
+                            <img src={series.coverUrl} alt={series.name} className="h-full w-full object-cover" loading="lazy" />
+                          ) : null}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="line-clamp-1 text-sm font-semibold text-foreground group-hover:text-primary">{series.name}</p>
+                          <p className="text-xs text-muted-foreground">{series.count} {t("publicReader.worksUnit", "部")}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+	            <h2 className="text-2xl font-bold border-b pb-2">{t("authorPage.publicWorks")}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                 {scripts.map(script => (
                     <ScriptGalleryCard 
