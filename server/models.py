@@ -19,11 +19,14 @@ class Script(Base):
     folder = Column(String, default="/", index=True)
     sortOrder = Column(Float, default=0.0)
     markerThemeId = Column(String, ForeignKey("marker_themes.id"), nullable=True)
+    seriesId = Column(String, ForeignKey("series.id"), nullable=True, index=True)
+    seriesOrder = Column(Integer, nullable=True)
     
     # Relationships
     tags = relationship("Tag", secondary="script_tags", back_populates="scripts")
     markerTheme = relationship("MarkerTheme", lazy="joined")
     owner = relationship("User", backref="scripts", foreign_keys=[ownerId])
+    series = relationship("Series", foreign_keys=[seriesId], lazy="joined")
 
 class User(Base):
     __tablename__ = "users"
@@ -113,6 +116,20 @@ class ScriptLike(Base):
     userId = Column(String, ForeignKey("users.id"), primary_key=True)
     scriptId = Column(String, ForeignKey("scripts.id"), primary_key=True)
     createdAt = Column(Integer, default=lambda: int(time.time() * 1000))
+
+class Series(Base):
+    __tablename__ = "series"
+
+    id = Column(String, primary_key=True, index=True)
+    ownerId = Column(String, ForeignKey("users.id"), index=True, nullable=False)
+    name = Column(String, nullable=False)
+    slug = Column(String, index=True, nullable=False)
+    summary = Column(Text, default="")
+    coverUrl = Column(String, default="")
+    createdAt = Column(Integer, default=lambda: int(time.time() * 1000))
+    updatedAt = Column(Integer, default=lambda: int(time.time() * 1000))
+
+    owner = relationship("User", foreign_keys=[ownerId], backref="series")
 
 # Extend Script
 Script.status = Column(String, default="Private") # Private, Public, Unlisted

@@ -1,6 +1,6 @@
 const messages = {
   "app": {
-    "homeTitle": "台本閱讀",
+    "homeTitle": "回到首頁",
     "selectScript": "選擇一個劇本",
     "settings": "設定",
     "about": "關於"
@@ -146,7 +146,7 @@ const messages = {
     "editOnly": "純編輯"
   },
   "publicAbout": {
-    "topbarTitle": "台本閱讀",
+    "topbarTitle": "回到首頁",
     "title": "關於本站",
     "subtitle": "提供給委託者、聲演、創作者一個台本的集散地。",
     "visionTitle": "平台理念",
@@ -1158,7 +1158,7 @@ const messages = {
     "loading": "載入作者資料中...",
     "notFound": "找不到作者",
     "fallbackAuthor": "作者",
-    "siteName": "台本閱讀",
+    "siteName": "回到首頁",
     "descriptionFallback": "{name} 的公開作品與個人資訊",
     "unknown": "未知",
     "website": "網站",
@@ -1169,7 +1169,7 @@ const messages = {
     "loading": "載入組織資料中...",
     "notFound": "找不到組織",
     "fallbackOrg": "組織",
-    "siteName": "台本閱讀",
+    "siteName": "回到首頁",
     "descriptionFallback": "{name} 的公開作品與成員資訊",
     "officialWebsite": "官方網站",
     "membersCount": "{count} 位成員",
@@ -1236,6 +1236,8 @@ const messages = {
     "standard": "標準",
     "relaxed": "寬鬆",
     "display": "介面顯示",
+    "desktopScale": "桌面字體倍率",
+    "desktopScaleDesc": "僅在桌面版生效，用於放大整體介面文字。",
     "lineGuide": "行底線輔助",
     "body": "正文",
     "dialogue": "對白"

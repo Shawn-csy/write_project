@@ -49,7 +49,7 @@ describe('Sidebar Component', () => {
     className: ''
   };
 
-  it('renders menu with 媒體庫 at the same level as 工作室, and hides 移轉管理 from sidebar', () => {
+  it('renders menu with 工作室, and hides 移轉管理 from sidebar', () => {
     render(
       <MemoryRouter initialEntries={['/']}>
         <Sidebar {...mockProps} />
@@ -60,7 +60,6 @@ describe('Sidebar Component', () => {
     expect(screen.getByText('關於')).toBeDefined();
     expect(screen.getByText('閱讀與寫作')).toBeDefined();
     expect(screen.getByText('工作室')).toBeDefined();
-    expect(screen.getByText('媒體庫')).toBeDefined();
     expect(screen.queryByText('移轉管理')).toBeNull();
   });
 

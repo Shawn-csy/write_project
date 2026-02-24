@@ -206,6 +206,31 @@ export const removeTagFromScript = async (scriptId, tagId) => {
     });
 };
 
+// --- Series API ---
+export const getSeries = async () => {
+    return fetchApi("/series", { cache: "no-store" });
+};
+
+export const createSeries = async (payload) => {
+    return fetchApi("/series", {
+        method: "POST",
+        body: JSON.stringify(payload),
+    });
+};
+
+export const updateSeries = async (seriesId, payload) => {
+    return fetchApi(`/series/${seriesId}`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+    });
+};
+
+export const deleteSeries = async (seriesId) => {
+    return fetchApi(`/series/${seriesId}`, {
+        method: "DELETE",
+    });
+};
+
 // --- User/Settings API ---
 export const getUserProfile = async () => {
     return fetchApi("/me", { cacheTtlMs: 10000 });

@@ -15,6 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
 import { searchOrganizations, requestToJoinOrganization, uploadMediaObject } from "../../../lib/db";
 import { optimizeImageForUpload, getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
 import { useI18n } from "../../../contexts/I18nContext";
+import { MediaPicker } from "../../ui/MediaPicker";
 
 export function PublisherProfileTab({
     selectedPersonaId, setSelectedPersonaId,
@@ -42,6 +43,8 @@ export function PublisherProfileTab({
     const [bannerUploadError, setBannerUploadError] = React.useState("");
     const [avatarUploadWarning, setAvatarUploadWarning] = React.useState("");
     const [bannerUploadWarning, setBannerUploadWarning] = React.useState("");
+    const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState(false);
+    const [mediaPickerTarget, setMediaPickerTarget] = React.useState(null); // 'avatar' or 'banner'
     const avatarGuide = React.useMemo(() => getImageUploadGuide("avatar"), []);
     const bannerGuide = React.useMemo(() => getImageUploadGuide("banner"), []);
     const filteredTagOptions = React.useMemo(() => {
@@ -290,10 +293,24 @@ export function PublisherProfileTab({
                                             placeholder={t("publisherProfileTab.avatarUrlPlaceholder")}
                                             className="text-xs h-8 text-center bg-muted/20 border-transparent hover:border-border focus:border-primary transition-colors"
                                         />
-                                        <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
-                                            {t("publisherProfileTab.uploadAvatar")}
-                                            <input type="file" accept={MEDIA_FILE_ACCEPT} className="hidden" onChange={handleImageUpload("avatar")} />
-                                        </label>
+                                        <div className="flex flex-col gap-2 w-full">
+                                            <label className="inline-flex cursor-pointer items-center justify-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted w-full">
+                                                {t("publisherProfileTab.uploadAvatar")}
+                                                <input type="file" accept={MEDIA_FILE_ACCEPT} className="hidden" onChange={handleImageUpload("avatar")} />
+                                            </label>
+                                            <Button 
+                                                type="button" 
+                                                variant="secondary" 
+                                                size="sm" 
+                                                className="h-8 text-[11px] border bg-primary/5 hover:bg-primary/10 text-primary border-primary/20 w-full"
+                                                onClick={() => {
+                                                    setMediaPickerTarget('avatar');
+                                                    setIsMediaPickerOpen(true);
+                                                }}
+                                            >
+                                                {t("mediaLibrary.selectFromLibrary", "從媒體庫選擇")}
+                                            </Button>
+                                        </div>
                                         <div className="space-y-0.5 text-[11px] text-muted-foreground text-center">
                                             <p>{avatarGuide.supported}</p>
                                             <p>{avatarGuide.recommended}</p>
@@ -304,18 +321,33 @@ export function PublisherProfileTab({
                                         {avatarUploadWarning && (
                                             <p className="text-[11px] text-amber-700 dark:text-amber-300 text-center">{avatarUploadWarning}</p>
                                         )}
+                                        
                                         <Input
                                             id="persona-banner-url"
                                             name="personaBannerUrl"
                                             value={personaDraft.bannerUrl || ""}
                                             onChange={e => setPersonaDraft({ ...personaDraft, bannerUrl: e.target.value })}
                                             placeholder={t("publisherProfileTab.bannerUrlPlaceholder")}
-                                            className="text-xs h-8 text-center bg-muted/20 border-transparent hover:border-border focus:border-primary transition-colors"
+                                            className="text-xs h-8 text-center bg-muted/20 border-transparent hover:border-border focus:border-primary transition-colors mt-2"
                                         />
-                                        <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
-                                            {t("publisherProfileTab.uploadBanner")}
-                                            <input type="file" accept={MEDIA_FILE_ACCEPT} className="hidden" onChange={handleImageUpload("bannerUrl")} />
-                                        </label>
+                                        <div className="flex flex-col gap-2 w-full">
+                                            <label className="inline-flex cursor-pointer items-center justify-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted w-full">
+                                                {t("publisherProfileTab.uploadBanner")}
+                                                <input type="file" accept={MEDIA_FILE_ACCEPT} className="hidden" onChange={handleImageUpload("bannerUrl")} />
+                                            </label>
+                                            <Button 
+                                                type="button" 
+                                                variant="secondary" 
+                                                size="sm" 
+                                                className="h-8 text-[11px] border bg-primary/5 hover:bg-primary/10 text-primary border-primary/20 w-full"
+                                                onClick={() => {
+                                                    setMediaPickerTarget('banner');
+                                                    setIsMediaPickerOpen(true);
+                                                }}
+                                            >
+                                                {t("mediaLibrary.selectFromLibrary", "從媒體庫選擇")}
+                                            </Button>
+                                        </div>
                                         <div className="space-y-0.5 text-[11px] text-muted-foreground text-center">
                                             <p>{bannerGuide.supported}</p>
                                             <p>{bannerGuide.recommended}</p>
@@ -671,6 +703,24 @@ export function PublisherProfileTab({
                     </Button>
                 </div>
             </div>
+            
+            <MediaPicker
+                open={isMediaPickerOpen}
+                onOpenChange={setIsMediaPickerOpen}
+                onSelect={(url) => {
+                    if (mediaPickerTarget === 'avatar') {
+                        setPersonaDraft(prev => ({ ...prev, avatar: url }));
+                        setAvatarPreviewFailed(false);
+                        setAvatarUploadError("");
+                        setAvatarUploadWarning("");
+                    } else if (mediaPickerTarget === 'banner') {
+                        setPersonaDraft(prev => ({ ...prev, bannerUrl: url }));
+                        setBannerPreviewFailed(false);
+                        setBannerUploadError("");
+                        setBannerUploadWarning("");
+                    }
+                }}
+            />
         </Card>
     );
 }

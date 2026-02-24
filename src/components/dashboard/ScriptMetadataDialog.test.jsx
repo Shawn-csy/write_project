@@ -11,9 +11,11 @@ describe("buildPublishChecklist", () => {
       coverUrl: "",
       synopsis: "",
       tags: [],
+      targetAudience: "",
+      contentRating: ""
     });
 
-    expect(checklist.missingRequired.map((item) => item.key)).toEqual(["license"]);
+    expect(checklist.missingRequired.map((item) => item.key)).toEqual(["audience", "rating", "license"]);
     expect(checklist.missingRecommended.map((item) => item.key)).toEqual(["cover", "synopsis", "tags"]);
   });
 
@@ -26,6 +28,8 @@ describe("buildPublishChecklist", () => {
       coverUrl: "",
       synopsis: "",
       tags: [],
+      targetAudience: "一般向",
+      contentRating: "一般"
     });
 
     expect(checklist.missingRequired).toHaveLength(0);

@@ -8,6 +8,7 @@ import PublicReaderPage from "./pages/PublicReaderPage";
 import PublicGalleryPage from "./pages/PublicGalleryPage";
 import AuthorProfilePage from "./pages/AuthorProfilePage";
 import OrganizationPage from "./pages/OrganizationPage";
+import PublicSeriesPage from "./pages/PublicSeriesPage";
 import { PublisherDashboard } from "./pages/PublisherDashboard";
 import PublicAboutPage from "./pages/PublicAboutPage";
 
@@ -87,6 +88,7 @@ export function AppRouter({
             {/* Standalone Public Routes */}
             <Route path="/read/:id" element={<PublicReaderPage scriptManager={scriptManager} navProps={navProps} />} />
             <Route path="/" element={<PublicGalleryPage />} />
+            <Route path="/series/:seriesName" element={<PublicSeriesPage />} />
             <Route path="/author/:id" element={<AuthorProfilePage />} />
             <Route path="/org/:id" element={<OrganizationPage />} />
             <Route path="/about" element={<PublicAboutPage />} />
