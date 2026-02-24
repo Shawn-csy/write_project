@@ -9,7 +9,7 @@ import html
 import database
 import models
 import migration
-from routers import analysis, scripts, users, orgs, personas, tags, themes, admin, public, seo, media
+from routers import analysis, scripts, users, orgs, personas, tags, themes, admin, public, seo, media, series
 from routers import public_bundle
 from dependencies import get_current_user_id, get_db
 from rate_limit import limiter, RATE_LIMIT_ENABLED
@@ -85,6 +85,7 @@ app.include_router(public.router)
 app.include_router(public_bundle.router)
 app.include_router(seo.router)
 app.include_router(media.router)
+app.include_router(series.router)
 
 # Simple auth check endpoint for debugging
 @app.get("/api/health/auth")

@@ -9,6 +9,12 @@ import { AuthorBadge } from "../ui/AuthorBadge";
 export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
   const navigate = useNavigate();
   const { id, title, author, coverUrl, tags = [], views = 0, likes = 0 } = script;
+  const seriesName = String(script?.seriesName || script?._seriesName || "").trim();
+  const seriesOrderRaw = script?.seriesOrder ?? script?._seriesOrder;
+  const parsedSeriesOrder = Number(seriesOrderRaw);
+  const hasSeriesOrder = Number.isFinite(parsedSeriesOrder) && parsedSeriesOrder >= 0;
+  const seriesOrderText =
+    !hasSeriesOrder ? "" : Math.floor(parsedSeriesOrder) === 0 ? " · 設定/背景" : ` · 第 ${Math.floor(parsedSeriesOrder)} 作`;
   const normalizedTags = (tags || [])
     .map((tag) => (typeof tag === "string" ? tag : tag?.name))
     .filter(Boolean);
@@ -16,12 +22,9 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
     .map((tag) => (typeof tag === "string" ? tag : tag?.name))
     .filter(Boolean);
   const licenseTagSet = new Set(licenseTags);
-  const prioritizedTags = [
-    ...licenseTags,
-    ...normalizedTags.filter((tag) => !licenseTagSet.has(tag)),
-  ];
-  const primaryTags = prioritizedTags.slice(0, 2);
-  const secondaryTags = prioritizedTags.slice(2, 4);
+  const displayTags = normalizedTags.filter((tag) => !licenseTagSet.has(tag));
+  const primaryTags = displayTags.slice(0, 2);
+  const secondaryTags = displayTags.slice(2, 4);
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(likes);
 
@@ -63,7 +66,7 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
     return (
       <Card
         onClick={handleCardClick}
-        className="group relative overflow-hidden border border-border/40 bg-background/40 hover:bg-background/70 hover:cursor-pointer transition-all duration-200"
+        className="group relative overflow-hidden border border-border/40 bg-background/40 hover:-translate-y-0.5 hover:bg-background/75 hover:border-primary/60 hover:shadow-md hover:cursor-pointer transition-all duration-200"
       >
         <div className="flex gap-3 p-3">
           <div className="w-16 shrink-0">
@@ -87,6 +90,18 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
             <div className="mt-1">
               <AuthorBadge author={author} />
             </div>
+            {seriesName && (
+              <button
+                type="button"
+                className="mt-1 text-[11px] text-muted-foreground line-clamp-1 hover:text-primary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/series/${encodeURIComponent(seriesName)}`);
+                }}
+              >
+                {seriesName}{seriesOrderText}
+              </button>
+            )}
             <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
               <div className="flex items-center gap-1" title="Views">
                 <Eye className="w-3.5 h-3.5" />
@@ -102,7 +117,7 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
   return (
     <Card 
       onClick={handleCardClick}
-      className="group relative overflow-hidden border-0 bg-transparent shadow-none hover:cursor-pointer transition-all duration-300"
+      className="group relative overflow-hidden rounded-xl border border-transparent bg-transparent px-2 pb-2 pt-1 shadow-none hover:-translate-y-0.5 hover:cursor-pointer hover:border-primary/60 hover:bg-muted/25 hover:shadow-md transition-all duration-200"
     >
       {/* Cover Image Container */}
       <div className="aspect-[2/3] w-full overflow-hidden rounded-lg bg-muted shadow-sm group-hover:shadow-md transition-shadow">
@@ -120,13 +135,13 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
         )}
         
         {/* Overlay */}
-        <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/5" />
+        <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-primary/10" />
       </div>
 
       {/* Info Section */}
-      <div className="pt-3 space-y-1.5">
+      <div className="pt-2.5 space-y-1">
         {/* Title */}
-        <h3 className="font-serif text-base md:text-lg font-semibold leading-tight text-foreground group-hover:text-primary transition-colors line-clamp-2">
+        <h3 className="font-serif text-sm md:text-base font-semibold leading-snug text-foreground group-hover:text-primary transition-colors line-clamp-2">
           {title}
         </h3>
 
@@ -134,29 +149,32 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
         <div className="pt-1">
             <AuthorBadge author={author} />
         </div>
+        {seriesName && (
+          <button
+            type="button"
+            className="text-[11px] text-muted-foreground line-clamp-1 hover:text-primary"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/series/${encodeURIComponent(seriesName)}`);
+            }}
+          >
+            {seriesName}{seriesOrderText}
+          </button>
+        )}
 
         {/* Tags */}
-        {prioritizedTags.length > 0 && (
+        {displayTags.length > 0 && (
           <div className="flex flex-wrap gap-1 pt-1">
             {primaryTags.map((tag, i) => (
               <Badge 
                 key={i} 
                 variant="outline" 
-                className={`max-w-[130px] px-1.5 py-0 h-5 text-[10px] font-normal hover:bg-secondary cursor-pointer ${
-                  licenseTagSet.has(tag)
-                    ? "border"
-                    : "border-primary/20 text-muted-foreground"
-                }`}
+                className="max-w-[110px] px-1.5 py-0 h-5 text-[10px] font-normal hover:bg-secondary cursor-pointer border-primary/20 text-muted-foreground"
                 onClick={(e) => {
                     e.stopPropagation();
                     navigate(`/?tag=${encodeURIComponent(tag)}`);
                 }}
                 title={tag}
-                style={licenseTagSet.has(tag) ? {
-                  backgroundColor: "var(--license-card-bg)",
-                  borderColor: "var(--license-card-border)",
-                  color: "var(--license-card-fg)",
-                } : undefined}
               >
                 <span className="truncate">{tag}</span>
               </Badge>
@@ -165,30 +183,21 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
               <Badge
                 key={`secondary-${i}`}
                 variant="outline"
-                className={`hidden sm:inline-flex max-w-[130px] px-1.5 py-0 h-5 text-[10px] font-normal hover:bg-secondary cursor-pointer ${
-                  licenseTagSet.has(tag)
-                    ? "border"
-                    : "border-primary/20 text-muted-foreground"
-                }`}
+                className="hidden sm:inline-flex max-w-[110px] px-1.5 py-0 h-5 text-[10px] font-normal hover:bg-secondary cursor-pointer border-primary/20 text-muted-foreground"
                 onClick={(e) => {
                   e.stopPropagation();
                   navigate(`/?tag=${encodeURIComponent(tag)}`);
                 }}
                 title={tag}
-                style={licenseTagSet.has(tag) ? {
-                  backgroundColor: "var(--license-card-bg)",
-                  borderColor: "var(--license-card-border)",
-                  color: "var(--license-card-fg)",
-                } : undefined}
               >
                 <span className="truncate">{tag}</span>
               </Badge>
             ))}
-            {prioritizedTags.length > 2 && (
-                <span className="sm:hidden text-[10px] text-muted-foreground self-center">+{prioritizedTags.length - 2}</span>
+            {displayTags.length > 2 && (
+                <span className="sm:hidden text-[10px] text-muted-foreground self-center">+{displayTags.length - 2}</span>
             )}
-            {prioritizedTags.length > 4 && (
-                <span className="hidden sm:inline text-[10px] text-muted-foreground self-center">+{prioritizedTags.length - 4}</span>
+            {displayTags.length > 4 && (
+                <span className="hidden sm:inline text-[10px] text-muted-foreground self-center">+{displayTags.length - 4}</span>
             )}
           </div>
         )}

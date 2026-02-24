@@ -43,6 +43,7 @@ def get_public_scripts(
         orm.joinedload(models.Script.tags),
         orm.joinedload(models.Script.organization),
         orm.joinedload(models.Script.persona),
+        orm.joinedload(models.Script.series),
     ).filter(models.Script.isPublic == 1)
 
     if personaId:
@@ -81,6 +82,7 @@ def get_public_scripts(
                 orm.joinedload(models.Script.tags),
                 orm.joinedload(models.Script.organization),
                 orm.joinedload(models.Script.persona),
+                orm.joinedload(models.Script.series),
             ).filter(models.Script.ownerId == ownerId, models.Script.folder == folder)
             if personaId:
                 inherited_q = inherited_q.filter(models.Script.personaId == personaId)
@@ -159,4 +161,3 @@ __all__ = [
     "get_public_scripts",
     "search_scripts",
 ]
-
