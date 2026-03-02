@@ -1,71 +1,35 @@
-import React, { useEffect } from "react";
-import { Badge } from "../../ui/badge";
+import React from "react";
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { Button } from "../../ui/button";
-import { cn } from "../../../lib/utils";
-import { Check, Edit2, Link as LinkIcon, X } from "lucide-react";
-import { Switch } from "../../ui/switch";
-import { LICENSES } from "../../../constants/licenses";
-import { deriveCcLicenseTags } from "../../../lib/licenseRights";
+import { X } from "lucide-react";
 import { useI18n } from "../../../contexts/I18nContext";
 
-export function MetadataLicenseTab({ 
-    license, setLicense, 
-    licenseUrl, setLicenseUrl,
-    licenseTerms = [], setLicenseTerms,
+export function MetadataLicenseTab({
+    licenseCommercial, setLicenseCommercial,
+    licenseDerivative, setLicenseDerivative,
+    licenseNotify, setLicenseNotify,
+    licenseSpecialTerms = [], setLicenseSpecialTerms,
     copyright, setCopyright,
-    requiredErrors = {}
+    requiredErrors = {},
+    licenseTerms = [],
+    setLicenseTerms
 }) {
     const { t } = useI18n();
-    // Standard Creative Commons Licenses with metadata
-    const licenses = LICENSES;
-
-    const [isCustom, setIsCustom] = React.useState(false);
     const [newTerm, setNewTerm] = React.useState("");
-
-    // Detect if we are in a custom state or a standard license state
-    const selectedLicense = licenses.find(l => l.short === license) || (isCustom ? null : null);
-    const autoCcTags = deriveCcLicenseTags(license);
-
-    // Initial check and sync when license props change
-    useEffect(() => {
-        // Only auto-detect custom state if we have a license value
-        if (!license) {
-            setIsCustom(false);
-            return;
-        }
-
-        const match = licenses.find(l => l.short === license);
-        if (!match) {
-            setIsCustom(true);
-        } else {
-            setIsCustom(false);
-        }
-    }, [license]);
-
-    const handleSelect = (lic) => {
-        setLicense(lic.short);
-        setLicenseUrl(lic.url);
-        setIsCustom(false);
-    };
-
-    const handleClearLicense = () => {
-        setLicense("");
-        setLicenseUrl("");
-        setIsCustom(false);
-    }
+    const effectiveTerms = licenseSpecialTerms.length > 0 ? licenseSpecialTerms : licenseTerms;
+    const setEffectiveTerms = setLicenseSpecialTerms || setLicenseTerms || (() => {});
 
     const handleAddTerm = () => {
         if (!newTerm.trim()) return;
-        setLicenseTerms([...licenseTerms, newTerm.trim()]);
+        setEffectiveTerms([...(effectiveTerms || []), newTerm.trim()]);
         setNewTerm("");
     };
 
     const handleRemoveTerm = (index) => {
-        const next = [...licenseTerms];
+        const next = [...(effectiveTerms || [])];
         next.splice(index, 1);
-        setLicenseTerms(next);
+        setEffectiveTerms(next);
     };
 
     const handleKeyDown = (e) => {
@@ -75,148 +39,63 @@ export function MetadataLicenseTab({
         }
     }
 
-    const hasLicense = Boolean(license?.trim()) || (licenseTerms || []).length > 0;
-    const hasInvalidLicenseUrl = Boolean(licenseUrl?.trim()) && !/^https?:\/\//i.test(licenseUrl.trim());
+    const hasBasic =
+        Boolean(licenseCommercial?.trim()) &&
+        Boolean(licenseDerivative?.trim()) &&
+        Boolean(licenseNotify?.trim());
+    const optionClass = (active) =>
+        `h-auto min-h-8 w-full px-2 py-2 text-xs leading-tight transition ${
+            active
+                ? "border-primary bg-primary text-primary-foreground ring-2 ring-primary/40"
+                : "border-border bg-background text-muted-foreground hover:bg-muted"
+        }`;
+    const optionPanelClass = "space-y-1 rounded-lg border border-border/70 bg-muted/10 p-2";
 
     return (
-        <div className="space-y-8 h-full overflow-y-auto px-1 pb-10">
-            
-            {/* 1. License Selection */}
+        <div className="space-y-5 px-1">
+
+            {/* 1. Base License */}
             <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                     <Label className="text-base font-semibold block">{t("metadataLicense.base")}</Label>
-                     {license && (
-                         <Button variant="ghost" size="sm" onClick={handleClearLicense} className="h-6 text-xs text-muted-foreground hover:text-destructive">
-                             {t("metadataLicense.clear")}
-                         </Button>
-                     )}
-                </div>
-                {requiredErrors.license && !hasLicense && (
+                <Label className="text-base font-semibold block">{t("metadataLicense.base")}</Label>
+                {requiredErrors.license && !hasBasic && (
                     <p className="text-xs text-destructive">{t("metadataLicense.required")}</p>
                 )}
-                
-                <div className="flex flex-wrap gap-2">
-                    {licenses.map((lic) => {
-                        const isSelected = license === lic.short;
-                        return (
-                            <Badge
-                                key={lic.id}
-                                variant={isSelected ? "default" : "outline"}
-                                className={cn(
-                                    "cursor-pointer px-3 py-1.5 transition-all text-sm",
-                                    isSelected 
-                                        ? "ring-2 ring-primary ring-offset-2 ring-offset-background" 
-                                        : "hover:bg-muted opacity-80 hover:opacity-100"
-                                )}
-                                onClick={() => handleSelect(lic)}
-                            >
-                                {lic.short}
-                            </Badge>
-                        );
-                    })}
-                    <Badge
-                        variant={isCustom ? "default" : "outline"}
-                        className={cn(
-                            "cursor-pointer px-3 py-1.5 transition-all text-sm border-dashed",
-                            isCustom 
-                                ? "ring-2 ring-primary ring-offset-2 ring-offset-background" 
-                                : "hover:bg-muted opacity-80 hover:opacity-100"
-                        )}
-                        onClick={() => {
-                            setIsCustom(true);
-                        }}
-                    >
-                        <Edit2 className="w-3 h-3 mr-1" />
-                        {t("metadataLicense.custom")}
-                    </Badge>
+                <div className="grid gap-3 lg:grid-cols-3">
+                    <div className={optionPanelClass}>
+                        <Label className="text-xs text-muted-foreground" htmlFor="license-commercial">
+                            {t("metadataLicense.commercial")}
+                        </Label>
+                        <div id="license-commercial" className="grid grid-cols-2 gap-1">
+                            <Button type="button" variant="outline" className={optionClass(licenseCommercial === "allow")} onClick={() => setLicenseCommercial("allow")}>Y</Button>
+                            <Button type="button" variant="outline" className={optionClass(licenseCommercial === "disallow")} onClick={() => setLicenseCommercial("disallow")}>N</Button>
+                        </div>
+                    </div>
+                    <div className={optionPanelClass}>
+                        <Label className="text-xs text-muted-foreground" htmlFor="license-derivative">
+                            {t("metadataLicense.derivative")}
+                        </Label>
+                        <div id="license-derivative" className="grid grid-cols-1 gap-1 sm:grid-cols-3">
+                            <Button type="button" variant="outline" className={optionClass(licenseDerivative === "allow")} onClick={() => setLicenseDerivative("allow")}>Y</Button>
+                            <Button type="button" variant="outline" className={optionClass(licenseDerivative === "disallow")} onClick={() => setLicenseDerivative("disallow")}>N</Button>
+                            <Button type="button" variant="outline" className={optionClass(licenseDerivative === "limited")} onClick={() => setLicenseDerivative("limited")}>L</Button>
+                        </div>
+                    </div>
+                    <div className={optionPanelClass}>
+                        <Label className="text-xs text-muted-foreground" htmlFor="license-notify">
+                            {t("metadataLicense.notify")}
+                        </Label>
+                        <div id="license-notify" className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                            <Button type="button" variant="outline" className={optionClass(licenseNotify === "required")} onClick={() => setLicenseNotify("required")}>Y</Button>
+                            <Button type="button" variant="outline" className={optionClass(licenseNotify === "not_required")} onClick={() => setLicenseNotify("not_required")}>N</Button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* 2. License Details (Conditional) */}
-            <div className="rounded-xl border bg-muted/30 p-4 min-h-[100px]">
-                {isCustom ? (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                        <div className="flex items-center gap-2 mb-2">
-                             <Edit2 className="w-4 h-4 text-primary" />
-                             <h4 className="font-semibold text-sm">{t("metadataLicense.customTitle")}</h4>
-                        </div>
-                        <div className="grid gap-3">
-                            <div className="space-y-1">
-                                <Label className="text-xs text-muted-foreground" htmlFor="license-name">{t("metadataLicense.licenseName")}</Label>
-                                <Input 
-                                    id="license-name"
-                                    name="licenseName"
-                                    placeholder={t("metadataLicense.licenseNamePlaceholder")}
-                                    value={license}
-                                    onChange={(e) => setLicense(e.target.value)}
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <Label className="text-xs text-muted-foreground" htmlFor="license-url">{t("metadataLicense.licenseUrl")}</Label>
-                                <div className="relative">
-                                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                    <Input 
-                                        id="license-url"
-                                        name="licenseUrl"
-                                        className="pl-9"
-                                        placeholder="https://..." 
-                                        value={licenseUrl}
-                                        onChange={(e) => setLicenseUrl(e.target.value)}
-                                    />
-                                </div>
-                                {hasInvalidLicenseUrl && (
-                                    <p className="text-xs text-amber-700 dark:text-amber-300">建議使用 `http://` 或 `https://` 開頭的完整網址。</p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                ) : (
-                    selectedLicense ? (
-                        <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                             <div className="flex items-center gap-3">
-                                <div className={cn("p-2 rounded-full", selectedLicense.color, "text-white")}>
-                                    <selectedLicense.icon className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <h4 className="font-semibold text-base">{selectedLicense.name}</h4>
-                                    <span className="text-xs font-mono text-muted-foreground">{selectedLicense.short}</span>
-                                </div>
-                             </div>
-                             <p className="text-sm text-foreground/80 leading-relaxed px-1">
-                                {selectedLicense.description}
-                             </p>
-                             {autoCcTags.length > 0 && (
-                                 <div className="px-1 space-y-1.5">
-                                     <p className="text-xs text-muted-foreground">{t("metadataLicense.autoTags")}</p>
-                                     <div className="flex flex-wrap gap-1.5">
-                                         {autoCcTags.map((tag) => (
-                                             <Badge key={tag} variant="secondary" className="text-[11px]">
-                                                 {tag}
-                                             </Badge>
-                                         ))}
-                                     </div>
-                                 </div>
-                             )}
-                             {selectedLicense.url && (
-                                 <div className="text-xs text-muted-foreground flex items-center gap-1 px-1">
-                                     <LinkIcon className="w-3 h-3" />
-                                     <a href={selectedLicense.url} target="_blank" rel="noopener noreferrer" className="hover:underline text-primary">
-                                         {t("metadataLicense.readTerms")}
-                                     </a>
-                                 </div>
-                             )}
-                        </div>
-                    ) : (
-                         <div className="flex items-center justify-center h-full text-muted-foreground/60 text-sm">
-                             {t("metadataLicense.notSelectedTip")}
-                         </div>
-                    )
-                )}
-            </div>
-
-            {/* 3. Additional Terms */}
+            {/* 2. Advanced */}
             <div className="space-y-3 pt-2">
-                <Label className="text-base font-semibold block" htmlFor="license-new-term">{t("metadataLicense.extraTerms")}</Label>
+                <Label className="text-base font-semibold block" htmlFor="license-new-term">{t("metadataLicense.advanced")}</Label>
+                <p className="text-sm text-muted-foreground">{t("metadataLicense.specialTerms")}</p>
                 <div className="flex gap-2">
                     <Input 
                         id="license-new-term"
@@ -231,7 +110,7 @@ export function MetadataLicenseTab({
                 
                 {/* Terms List */}
                 <div className="space-y-2 mt-2">
-                    {licenseTerms.map((term, idx) => (
+                    {(effectiveTerms || []).map((term, idx) => (
                         <div key={idx} className="flex items-center justify-between p-2 rounded-md border bg-background group hover:border-primary/50 transition-colors">
                             <span className="text-sm pl-1">{term}</span>
                             <Button 
@@ -244,13 +123,13 @@ export function MetadataLicenseTab({
                             </Button>
                         </div>
                     ))}
-                    {licenseTerms.length === 0 && (
+                    {(effectiveTerms || []).length === 0 && (
                         <p className="text-xs text-muted-foreground text-center py-2">{t("metadataLicense.noExtraTerms")}</p>
                     )}
                 </div>
             </div>
 
-            {/* 4. Copyright Input */}
+            {/* 3. Copyright Input */}
             <div className="pt-4 border-t">
                 <Label className="text-base font-semibold mb-2 block" htmlFor="license-copyright">{t("metadataLicense.copyright")}</Label>
                 <div className="grid gap-2">

@@ -84,9 +84,10 @@ class PersonaBase(BaseModel):
     links: List[Dict[str, Any]] = []
     organizationIds: List[str] = []
     tags: List[str] = []
-    defaultLicense: Optional[str] = ""
-    defaultLicenseUrl: Optional[str] = ""
-    defaultLicenseTerms: List[str] = []
+    defaultLicenseCommercial: Optional[str] = ""
+    defaultLicenseDerivative: Optional[str] = ""
+    defaultLicenseNotify: Optional[str] = ""
+    defaultLicenseSpecialTerms: List[str] = []
 
 class PersonaCreate(PersonaBase):
     pass

@@ -102,7 +102,8 @@ const messages = {
   "scriptRenderer": {
     "pauseShort": "停頓一秒",
     "pauseMid": "停頓三秒",
-    "pauseLong": "停頓五秒"
+    "pauseLong": "停頓五秒",
+    "markerTooltipPrefix": "標記"
   },
   "scriptViewer": {
     "summaryZh1": "摘要",
@@ -143,7 +144,8 @@ const messages = {
     "switchToEditOnly": "切換為純編輯",
     "switchToSplit": "切換為編輯 + 預覽",
     "editAndPreview": "編輯 + 預覽",
-    "editOnly": "純編輯"
+    "editOnly": "純編輯",
+    "moreActions": "更多操作"
   },
   "publicAbout": {
     "topbarTitle": "回到首頁",
@@ -410,7 +412,8 @@ const messages = {
     "stats": "統計資訊",
     "share": "分享連結",
     "copied": "已複製",
-    "editScript": "編輯劇本"
+    "editScript": "編輯劇本",
+    "more": "更多操作"
   },
   "liveEditor": {
     "untitled": "未命名",
@@ -921,6 +924,11 @@ const messages = {
     "nextConfigure": "下一步：設定與預覽",
     "nextConfirm": "下一步：確認",
     "confirmImport": "確認匯入",
+    "resultTextLabel": "文本結果",
+    "resultRenderLabel": "渲染預覽",
+    "characterAutoLabel": "整行角色名",
+    "characterAutoDesc": "啟用後，若一整行完全等於角色名，會自動轉為 #C 角色名。",
+    "characterListPlaceholder": "每行一個角色名，例如：\n小雨\n阿哲",
     "saveRulesTitle": "建議儲存解析規則",
     "saveRulesDesc": "您目前使用的是自動偵測的規則。建立專屬的設定檔可以確保未來匯入類似劇本時的準確性。",
     "backToSave": "返回儲存",
@@ -993,7 +1001,7 @@ const messages = {
   "importStagePreview": {
     "title": "確認前置處理結果",
     "desc": "系統已自動清理多餘空白與格式，您可以手動微調內容。",
-    "footerHint": "確認無誤後，請點擊「下一步」設定標記規則"
+    "footerHint": "確認無誤後，請點擊「下一步」進入匯入確認"
   },
   "scriptToolbar": {
     "back": "回上一層",
@@ -1262,7 +1270,21 @@ const messages = {
     "synopsisPlaceholder": "劇本的簡介或摘要...",
     "errTitle": "發布公開作品前請填寫標題。",
     "errIdentity": "發布公開作品前請選擇作者身份。",
-    "tipSynopsis": "建議補上摘要，讓讀者更快理解作品內容。"
+    "tipSynopsis": "建議補上摘要，讓讀者更快理解作品內容。",
+    "outline": "大綱",
+    "outlinePlaceholder": "作品核心內容大綱",
+    "roleSetting": "角色設定",
+    "roleSettingPlaceholder": "角色關係、定位與演出重點",
+    "backgroundInfo": "背景資訊",
+    "backgroundInfoPlaceholder": "時代、前情提要、世界觀背景",
+    "performanceInstruction": "演繹指示",
+    "performanceInstructionPlaceholder": "節奏、口氣、情緒與鏡位指示",
+    "openingIntro": "作品的開頭引言",
+    "openingIntroPlaceholder": "給讀者的開場引言",
+    "environmentInfo": "環境",
+    "environmentInfoPlaceholder": "場景空間、氣候、聲音、光線",
+    "situationInfo": "狀況",
+    "situationInfoPlaceholder": "開場時角色所處的當前狀況"
   },
   "metadataDetails": {
     "suggestionTitle": "建議補充資訊",
@@ -1291,17 +1313,19 @@ const messages = {
   },
   "metadataLicense": {
     "base": "基礎授權",
-    "clear": "清除選擇",
-    "required": "發布公開作品前請填寫授權資訊。",
-    "custom": "自訂",
-    "customTitle": "自訂授權內容",
-    "licenseName": "授權名稱",
-    "licenseNamePlaceholder": "例如：MIT License / 自訂條款",
-    "licenseUrl": "授權連結",
-    "autoTags": "自動授權標籤（公開頁可直接搜尋）",
-    "readTerms": "閱讀授權條款",
-    "notSelectedTip": "未選擇特定授權，您可以自由填寫下方的版權宣告或新增額外條款。",
-    "extraTerms": "補充/額外條款",
+    "required": "發布公開作品前請完成基本授權設定。",
+    "commercial": "是否商用",
+    "derivative": "是否可改作",
+    "notify": "使用修改是否需告知原作者",
+    "select": "請選擇",
+    "allow": "允許",
+    "disallow": "不允許",
+    "limited": "限定範圍",
+    "requiredNotify": "需要告知",
+    "notRequiredNotify": "不需要告知",
+    "advanced": "進階授權",
+    "specialTerms": "特殊條款",
+    "extraTerms": "特殊條款",
     "extraPlaceholder": "輸入條款後按 Enter 新增（例如：禁止用於 AI 訓練）",
     "noExtraTerms": "尚未新增額外條款",
     "copyright": "版權宣告",

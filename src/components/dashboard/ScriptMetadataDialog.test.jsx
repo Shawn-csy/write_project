@@ -6,8 +6,9 @@ describe("buildPublishChecklist", () => {
     const checklist = buildPublishChecklist({
       title: "My Script",
       identity: "persona:p1",
-      license: "",
-      licenseTerms: [],
+      licenseCommercial: "",
+      licenseDerivative: "",
+      licenseNotify: "",
       coverUrl: "",
       synopsis: "",
       tags: [],
@@ -23,8 +24,9 @@ describe("buildPublishChecklist", () => {
     const checklist = buildPublishChecklist({
       title: "My Script",
       identity: "persona:p1",
-      license: "CC BY 4.0",
-      licenseTerms: [],
+      licenseCommercial: "allow",
+      licenseDerivative: "allow",
+      licenseNotify: "required",
       coverUrl: "",
       synopsis: "",
       tags: [],

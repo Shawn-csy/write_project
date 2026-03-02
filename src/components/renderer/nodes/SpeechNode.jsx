@@ -2,30 +2,11 @@ import React from 'react';
 import { InlineRenderer } from '../InlineRenderer'; // Need to import this or just rely on child renderer filtering
 
 export const SpeechNode = ({ node, context, isDual, NodeRenderer }) => {
-    const { filterCharacter, focusMode, focusEffect, focusContentMode } = context;
-
-    let opacity = 1;
-    let display = 'block';
-    
-    // Check if this block belongs to the focused character
-    let isTarget = false;
-    if (focusMode && filterCharacter && filterCharacter !== '__ALL__') {
-        const cleanName = node.character.replace(/\s*\(.*\)$/, '').toUpperCase();
-        isTarget = cleanName === filterCharacter;
-
-        if (!isTarget) {
-            if (focusEffect === 'hide') display = 'none';
-            else opacity = 0.3; // Dim non-target
-        }
-    }
-
-    if (display === 'none') return null;
-    
-    // If focused and content mode is 'dialogue', filtering applies to children
-    const hideMeta = isTarget && focusContentMode === 'dialogue';
+    // Non-marker visual controls are disabled.
+    const hideMeta = false;
 
     return (
-        <div className="speech-block" style={{ opacity }}>
+        <div className="speech-block">
              {/* Character Name */}
              {!hideMeta && (
                  <NodeRenderer 
@@ -49,4 +30,3 @@ export const SpeechNode = ({ node, context, isDual, NodeRenderer }) => {
         </div>
     );
 };
-

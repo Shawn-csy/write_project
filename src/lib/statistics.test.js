@@ -1,13 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { calculateScriptStats } from './statistics.js';
 import { parseScreenplay } from './screenplayAST.js';
+import { defaultMarkerConfigs } from '../constants/defaultMarkerRules.js';
 
 describe('Statistics', () => {
-    const sampleScript = "Title: Test\n\nINT. ROOM - DAY\n\nBOB\nHello world.";
+    const sampleScript = "Title: Test\n\nINT. ROOM - DAY\n\n#C BOB\nHello world.";
 
     describe('calculateScriptStats', () => {
         it('should calculate basic stats from AST', () => {
-            const { ast } = parseScreenplay(sampleScript);
+            const { ast } = parseScreenplay(sampleScript, defaultMarkerConfigs);
             const stats = calculateScriptStats(ast);
             
             expect(stats.counts.scenes).toBe(1);
@@ -19,7 +20,7 @@ describe('Statistics', () => {
 
         it('should calculate timeframe distribution', () => {
             const script = "INT. OFFICE - DAY\n\nEXT. STREET - NIGHT";
-            const { ast } = parseScreenplay(script);
+            const { ast } = parseScreenplay(script, defaultMarkerConfigs);
             const stats = calculateScriptStats(ast);
             
             expect(stats.timeframeDistribution.INT).toBe(1);
@@ -29,4 +30,3 @@ describe('Statistics', () => {
 
 
 });
-

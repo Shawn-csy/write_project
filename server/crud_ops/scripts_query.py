@@ -99,7 +99,7 @@ def get_public_scripts(
             if s.persona:
                 s.persona.tags = _ensure_list(s.persona.tags)
                 s.persona.organizationIds = _ensure_list(s.persona.organizationIds)
-                s.persona.defaultLicenseTerms = _ensure_list(s.persona.defaultLicenseTerms)
+                s.persona.defaultLicenseSpecialTerms = _ensure_list(s.persona.defaultLicenseSpecialTerms)
             if s.organization:
                 s.organization.tags = _ensure_list(s.organization.tags)
         return results
@@ -110,7 +110,7 @@ def get_public_scripts(
             if s.persona:
                 s.persona.tags = _ensure_list(s.persona.tags)
                 s.persona.organizationIds = _ensure_list(s.persona.organizationIds)
-                s.persona.defaultLicenseTerms = _ensure_list(s.persona.defaultLicenseTerms)
+                s.persona.defaultLicenseSpecialTerms = _ensure_list(s.persona.defaultLicenseSpecialTerms)
             if s.organization:
                 s.organization.tags = _ensure_list(s.organization.tags)
         return results
@@ -131,7 +131,7 @@ def get_public_scripts(
         if s.persona:
             s.persona.tags = _ensure_list(s.persona.tags)
             s.persona.organizationIds = _ensure_list(s.persona.organizationIds)
-            s.persona.defaultLicenseTerms = _ensure_list(s.persona.defaultLicenseTerms)
+            s.persona.defaultLicenseSpecialTerms = _ensure_list(s.persona.defaultLicenseSpecialTerms)
         if s.organization:
             s.organization.tags = _ensure_list(s.organization.tags)
 

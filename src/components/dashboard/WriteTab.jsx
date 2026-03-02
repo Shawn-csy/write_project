@@ -72,12 +72,27 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                 content,
                 isPublic: false
             });
-            
-            // 3. Refresh the script list
-            manager.refresh?.();
-            
-            // 4. Return new script
-            return await getScript(id);
+
+            // 3. Load newly created script and optimistically inject into list
+            const importedScript = await getScript(id);
+            if (importedScript?.id) {
+                manager.setScripts((prev) => {
+                    const list = Array.isArray(prev) ? prev : [];
+                    const idx = list.findIndex((item) => item.id === importedScript.id);
+                    if (idx >= 0) {
+                        const next = [...list];
+                        next[idx] = { ...next[idx], ...importedScript };
+                        return next;
+                    }
+                    return [...list, importedScript];
+                });
+            }
+
+            // 4. Ensure remote state is synchronized
+            await manager.fetchScripts?.();
+
+            // 5. Return new script
+            return importedScript;
         } catch (err) {
             console.error(t("writeTab.importFailedLog"), err);
             throw err;
@@ -452,8 +467,6 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                 onOpenChange={setIsImportOpen}
                 onImport={handleImport}
                 currentPath={manager.currentPath}
-                existingMarkerConfigs={[]}
-                cloudConfigs={manager.markerThemes || []}
             />
 
             <DeleteScriptDialog

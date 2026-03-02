@@ -37,12 +37,19 @@ const renderHighlight = (node, key, context) => {
         style.display = 'block';
         style.width = '100%'; 
     }
+    const markerName = String(config.label || node.id || "").trim();
+    const tooltip = markerName
+        ? `${context.markerTooltipPrefix || "標記"}: ${markerName}`
+        : undefined;
 
     return (
        <span 
            key={key} 
            style={style}
            className={extraClasses}
+           title={tooltip}
+           data-marker-id={node.id || ""}
+           data-marker-label={markerName}
        >
            {displayText}
        </span>

@@ -142,6 +142,27 @@ describe('DirectASTBuilder (Pure Marker Mode)', () => {
       assert.strictEqual(layer.text, '整段指示');
     });
 
+    it('should parse #C character marker as character node', () => {
+      const input = `#C 小雨
+你今天有點安靜。
+#C 阿哲：
+我在聽你說。`;
+      const configs = [
+        { id: 'character', label: '角色', start: '#C', matchMode: 'prefix', isBlock: true, parseAs: 'character' }
+      ];
+      const ast = buildAST(input, configs);
+
+      const charNodes = ast.children.filter(n => n.type === 'character');
+      const dialogueNodes = ast.children.filter(n => n.type === 'dialogue');
+
+      assert.strictEqual(charNodes.length, 2, 'Should have two character nodes');
+      assert.strictEqual(charNodes[0].text, '小雨');
+      assert.strictEqual(charNodes[1].text, '阿哲');
+      assert.strictEqual(dialogueNodes.length, 2, 'Should parse following lines as dialogue');
+      assert.strictEqual(dialogueNodes[0].text, '你今天有點安靜。');
+      assert.strictEqual(dialogueNodes[1].text, '我在聽你說。');
+    });
+
     it('should treat type=block as block even when isBlock is missing', () => {
       const input = '<t> 場景標記';
       const configs = [

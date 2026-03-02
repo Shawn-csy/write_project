@@ -16,7 +16,7 @@ def setup_data(db_session):
                       tags='["author"]', 
                       links='[{"title":"site","url":"test"}]',
                       organizationIds='["org-public-1"]',
-                      defaultLicenseTerms='["term1"]',
+                      defaultLicenseSpecialTerms='["term1"]',
                       createdAt=now, updatedAt=now)
                       
     persona_broken = Persona(id="persona-broken-1", ownerId="user-has-persona", 
@@ -24,7 +24,7 @@ def setup_data(db_session):
                              tags='invalid-json', 
                              links='invalid-json',
                              organizationIds='invalid-json',
-                             defaultLicenseTerms='invalid-json',
+                             defaultLicenseSpecialTerms='invalid-json',
                              createdAt=now, updatedAt=now)
                              
     # Parent/Folder inheritance scripts
@@ -129,7 +129,7 @@ def test_get_public_script_json_parsing(client, db_session):
     assert response.status_code == 200
     data = response.json()
     assert data["persona"]["tags"] == ["author"]
-    assert data["persona"]["defaultLicenseTerms"] == ["term1"]
+    assert data["persona"]["defaultLicenseSpecialTerms"] == ["term1"]
     assert data["organization"]["tags"] == ["studio"]
 
 def test_list_public_org_empty_members_parsing(client, db_session):

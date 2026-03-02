@@ -100,17 +100,21 @@ def run_migrations():
                 print("Migrating: Adding 'tags' column to personas")
                 conn.execute(text("ALTER TABLE personas ADD COLUMN tags TEXT DEFAULT '[]'"))
 
-            if 'defaultLicense' not in persona_columns:
-                print("Migrating: Adding 'defaultLicense' column to personas")
-                conn.execute(text("ALTER TABLE personas ADD COLUMN defaultLicense TEXT DEFAULT ''"))
+            if 'defaultLicenseCommercial' not in persona_columns:
+                print("Migrating: Adding 'defaultLicenseCommercial' column to personas")
+                conn.execute(text("ALTER TABLE personas ADD COLUMN defaultLicenseCommercial TEXT DEFAULT ''"))
 
-            if 'defaultLicenseUrl' not in persona_columns:
-                print("Migrating: Adding 'defaultLicenseUrl' column to personas")
-                conn.execute(text("ALTER TABLE personas ADD COLUMN defaultLicenseUrl TEXT DEFAULT ''"))
+            if 'defaultLicenseDerivative' not in persona_columns:
+                print("Migrating: Adding 'defaultLicenseDerivative' column to personas")
+                conn.execute(text("ALTER TABLE personas ADD COLUMN defaultLicenseDerivative TEXT DEFAULT ''"))
 
-            if 'defaultLicenseTerms' not in persona_columns:
-                print("Migrating: Adding 'defaultLicenseTerms' column to personas")
-                conn.execute(text("ALTER TABLE personas ADD COLUMN defaultLicenseTerms TEXT DEFAULT '[]'"))
+            if 'defaultLicenseNotify' not in persona_columns:
+                print("Migrating: Adding 'defaultLicenseNotify' column to personas")
+                conn.execute(text("ALTER TABLE personas ADD COLUMN defaultLicenseNotify TEXT DEFAULT ''"))
+
+            if 'defaultLicenseSpecialTerms' not in persona_columns:
+                print("Migrating: Adding 'defaultLicenseSpecialTerms' column to personas")
+                conn.execute(text("ALTER TABLE personas ADD COLUMN defaultLicenseSpecialTerms TEXT DEFAULT '[]'"))
             if 'bannerUrl' not in persona_columns:
                 print("Migrating: Adding 'bannerUrl' column to personas")
                 conn.execute(text("ALTER TABLE personas ADD COLUMN bannerUrl TEXT DEFAULT ''"))

@@ -26,7 +26,7 @@ def get_organization_members(db: Session, org_id: str):
         if org_id in org_ids:
             p.tags = _ensure_list(p.tags)
             p.organizationIds = org_ids
-            p.defaultLicenseTerms = _ensure_list(p.defaultLicenseTerms)
+            p.defaultLicenseSpecialTerms = _ensure_list(p.defaultLicenseSpecialTerms)
             personas.append(p)
     return users, personas
 

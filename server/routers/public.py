@@ -118,14 +118,14 @@ def read_public_script(script_id: str, db: Session = Depends(get_db)):
             except:
                 script.persona.organizationIds = []
 
-        if isinstance(script.persona.defaultLicenseTerms, str):
+        if isinstance(script.persona.defaultLicenseSpecialTerms, str):
              try:
-                 script.persona.defaultLicenseTerms = json.loads(script.persona.defaultLicenseTerms)
+                 script.persona.defaultLicenseSpecialTerms = json.loads(script.persona.defaultLicenseSpecialTerms)
              except:
-                 script.persona.defaultLicenseTerms = []
+                 script.persona.defaultLicenseSpecialTerms = []
              # Double check
-             if isinstance(script.persona.defaultLicenseTerms, str):
-                  try: script.persona.defaultLicenseTerms = json.loads(script.persona.defaultLicenseTerms)
+             if isinstance(script.persona.defaultLicenseSpecialTerms, str):
+                  try: script.persona.defaultLicenseSpecialTerms = json.loads(script.persona.defaultLicenseSpecialTerms)
                   except: pass
              
     if script.organization:
@@ -165,7 +165,7 @@ def get_public_persona(persona_id: str, db: Session = Depends(get_db)):
         persona.organizationIds = crud._ensure_list(persona.organizationIds)
         persona.tags = crud._ensure_list(persona.tags)
         persona.links = crud._ensure_list(persona.links)
-        persona.defaultLicenseTerms = crud._ensure_list(persona.defaultLicenseTerms)
+        persona.defaultLicenseSpecialTerms = crud._ensure_list(persona.defaultLicenseSpecialTerms)
         orgs = []
         if persona.organizationIds:
             orgs = db.query(models.Organization).filter(models.Organization.id.in_(persona.organizationIds)).all()
@@ -210,7 +210,7 @@ def list_public_personas(db: Session = Depends(get_db)):
         p.organizationIds = crud._ensure_list(p.organizationIds)
         p.tags = crud._ensure_list(p.tags)
         p.links = crud._ensure_list(p.links)
-        p.defaultLicenseTerms = crud._ensure_list(p.defaultLicenseTerms)
+        p.defaultLicenseSpecialTerms = crud._ensure_list(p.defaultLicenseSpecialTerms)
         org_ids = p.organizationIds or []
         persona_org_map[p.id] = org_ids
         all_org_ids.update(org_ids)
@@ -266,11 +266,11 @@ def get_public_organization(org_id: str, db: Session = Depends(get_db)):
                 p.links = json.loads(p.links)
             except Exception:
                 p.links = []
-        if isinstance(p.defaultLicenseTerms, str):
+        if isinstance(p.defaultLicenseSpecialTerms, str):
             try:
-                p.defaultLicenseTerms = json.loads(p.defaultLicenseTerms)
+                p.defaultLicenseSpecialTerms = json.loads(p.defaultLicenseSpecialTerms)
             except Exception:
-                p.defaultLicenseTerms = []
+                p.defaultLicenseSpecialTerms = []
         if org_ids and org_id in org_ids:
             members.append(p)
     # Avoid validating org.members (User objects) against Persona schema

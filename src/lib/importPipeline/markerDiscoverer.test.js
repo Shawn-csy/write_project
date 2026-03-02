@@ -5,7 +5,7 @@
 import { describe, it } from 'vitest';
 import assert from 'node:assert';
 import { MarkerDiscoverer, discoverMarkers } from './markerDiscoverer.js';
-import { defaultMarkerConfigs } from '../../constants/defaultMarkers.js';
+import { defaultMarkerConfigs } from '../../constants/defaultMarkerRules';
 
 describe('MarkerDiscoverer', () => {
   

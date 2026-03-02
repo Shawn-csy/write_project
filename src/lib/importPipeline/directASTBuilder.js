@@ -328,68 +328,35 @@ export class DirectASTBuilder {
         raw: line
       };
     }
-    
+
     // 2. 匹配 block markers (prefix 模式)
     const markerNode = this._matchBlockMarker(trimmed, lineNumber);
     if (markerNode) {
       return markerNode;
     }
-    
-    // 3. 嘗試匹配角色 (Character)
-    // 簡單規則：全大寫英文 或 匹配 CHARACTER_PATTERNS
-    // 且下一行不是空行 (表示有對話)
-    const isNextLineDialogue = nextLine && !isBlankLine(nextLine);
-    
-    if (isNextLineDialogue || context.currentCharacter) {
-        // 如果當前行是全大寫 (簡單判斷) 或 符合角色名規則
-        // Fountain Spec: Character name must be uppercase. 
-        // We relax this for Chinese names defined in constants.
-        
-        // 檢查是否為角色行
-        const isUpper = /^[A-Z0-9\s\(\)\.]+$/.test(trimmed) && /[A-Z]/.test(trimmed);
-        // const isDefinedPattern = CHARACTER_PATTERNS.some(p => p.test(trimmed)); // Need to import CHARACTER_PATTERNS
-        // For now, let's just use a simple heuristic matching the test case 'BOB'
-        
-        if (!context.inDialogueBlock && (isUpper)) { // Removed isDefinedPattern for now to keep diff small, purely fixing 'BOB' case first
-             return {
-                 type: 'character',
-                 text: trimmed,
-                 lineStart: lineNumber + 1,
-                 lineEnd: lineNumber + 1,
-                 raw: line
-             };
+
+    // 3. Marker-only dialogue mode:
+    // Only when currentCharacter has been explicitly set (e.g. #C marker),
+    // parse following lines as dialogue/parenthetical.
+    if (context.currentCharacter) {
+        if (/^\(.*\)$/.test(trimmed)) {
+            return {
+                type: 'parenthetical',
+                text: trimmed,
+                lineStart: lineNumber + 1,
+                lineEnd: lineNumber + 1,
+                raw: line
+            };
         }
-        
-        // 如果前一行是角色 或 對話，且這行不是空行 -> 視為對話 (Dialogue)
-        // 但 DirectASTBuilder 逐行解析，我們需要 Context 知道上一行是什麼
-        // 不過我們這裡只有 currentCharacter 狀態...
-        // 讓我們簡化：
-        // 如果 context.currentCharacterSet (本輪設定) -> 下一行是 Dialogue?
-        // 不，解析器是單向的。
-        
-        // Let's rely on _updateContext to set currentCharacter.
-        if (context.currentCharacter) {
-             // 這是對話
-             // 檢查是否為 parenthetical
-             if (/^\(.*\)$/.test(trimmed)) {
-                 return {
-                     type: 'parenthetical',
-                     text: trimmed,
-                     lineStart: lineNumber + 1,
-                     lineEnd: lineNumber + 1,
-                     raw: line
-                 };
-             }
-             
-             return {
-                  type: 'dialogue',
-                  text: trimmed,
-                  inline: this._parseInlineContent(trimmed),
-                  lineStart: lineNumber + 1,
-                  lineEnd: lineNumber + 1,
-                  raw: line
-             };
-        }
+
+        return {
+            type: 'dialogue',
+            text: trimmed,
+            inline: this._parseInlineContent(trimmed),
+            lineStart: lineNumber + 1,
+            lineEnd: lineNumber + 1,
+            raw: line
+        };
     }
 
     // 4. 預設：所有未匹配的內容都是 action（動作/描述）
@@ -545,6 +512,22 @@ export class DirectASTBuilder {
       // prefix 模式
       if (marker.matchMode === 'prefix' && matchedStart) {
         const content = line.slice(matchedStart.length).trim();
+
+        // 角色標記（例如 #C 小雨）：直接產生 character 節點，
+        // 讓後續行進入 dialogue 流程而不是一般 layer。
+        if (marker.parseAs === 'character') {
+          const characterName = content.replace(/[：:]\s*$/, '').trim();
+          return {
+            type: 'character',
+            text: characterName || content,
+            markerType: marker.type,
+            markerId: marker.id,
+            lineStart: lineNumber + 1,
+            lineEnd: lineNumber + 1,
+            raw: line
+          };
+        }
+
         return {
           type: 'layer',
           layerType: marker.id,

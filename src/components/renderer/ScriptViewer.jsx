@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { buildAccentPalette } from '../../constants/accent';
 import { parseScreenplay } from '../../lib/screenplayAST';
 import { ScriptRenderer } from './ScriptRenderer';
 import { useI18n } from '../../contexts/I18nContext';
@@ -128,6 +127,8 @@ function ScriptViewer({
         // Support legacy speech format and marker-based character layer
         if (node.type === 'speech' && node.character) {
             chars.add(node.character.trim().toUpperCase());
+        } else if (node.type === 'character' && node.text) {
+            chars.add(node.text.trim().toUpperCase());
         } else if (node.type === 'layer' && node.layerType === 'character' && node.text) {
             chars.add(node.text.trim().toUpperCase());
         }
@@ -164,12 +165,6 @@ function ScriptViewer({
     onScenes(sceneList);
   }, [sceneList, onScenes]);
 
-  // Build accent palette once per theme color
-  const themePalette = useMemo(() => {
-    // Use provided accentColor ("H S L") or fallback to emerald default
-    return buildAccentPalette(accentColor || '160 84% 39%');
-  }, [accentColor]);
-
   // Render filtered HTML for processed output / print
   const filteredHtml = useMemo(() => {
     if (!onProcessedHtml || !ast) return '';
@@ -181,14 +176,14 @@ function ScriptViewer({
          focusMode={focusMode}
          focusEffect={focusEffect}
          focusContentMode={focusContentMode}
-         themePalette={themePalette}
+         theme={theme}
          colorCache={colorCache}
          markerConfigs={markerConfigs}
          hiddenMarkerIds={hiddenMarkerIds} // Pass to renderer for print
          showLineUnderline={showLineUnderline}
        />
      );
-  }, [ast, filterCharacter, focusMode, focusEffect, themePalette, bodyFontSize, fontSize, colorCache, markerConfigs, onProcessedHtml, hiddenMarkerIds]);
+  }, [ast, filterCharacter, focusMode, focusEffect, bodyFontSize, fontSize, theme, colorCache, markerConfigs, onProcessedHtml, hiddenMarkerIds]);
 
   // Generate RAW HTML (No Filters) for fallback
   const rawHtml = useMemo(() => {
@@ -206,14 +201,14 @@ function ScriptViewer({
             focusMode={false}
             focusEffect={focusEffect}
             focusContentMode={focusContentMode}
-            themePalette={themePalette}
+            theme={theme}
             colorCache={colorCache}
             markerConfigs={markerConfigs}
             hiddenMarkerIds={hiddenMarkerIds} // Pass to renderer
             showLineUnderline={showLineUnderline}
           />
       );
-  }, [ast, onRawHtml, themePalette, bodyFontSize, fontSize, colorCache, markerConfigs, filterCharacter, focusMode, filteredHtml, hiddenMarkerIds]);
+  }, [ast, onRawHtml, bodyFontSize, fontSize, theme, colorCache, markerConfigs, filterCharacter, focusMode, filteredHtml, hiddenMarkerIds]);
 
 
   useEffect(() => {
@@ -225,20 +220,10 @@ function ScriptViewer({
   }, [rawHtml, onRawHtml]);
 
   useEffect(() => {
-    // Reset Color Cache when text substantially changes? 
-    // Usually only needed if user reloads script completely.
-    // If text changes slightly, retaining colors is better.
-    // Let's keep it safe: reset if new text is unrelated?
-    // Using `text` dep might be too aggressive if typing.
-    // But `bodyText` change logic was used before.
-    // Let's rely on simple mount or text change.
-    // Actually, preserving colors while typing is GOOD.
-    // Removing the reset effect is safer for UX unless it leaks memory (Map grows).
-    // 50 chars limit?
-    // Let's keep it but maybe debounced? 
-    // Old code reset on `bodyText`.
-    // I will remove the reset effect to persist colors during edit.
-  }, []);
+    // Rebuild character-color mapping when source text / theme changes,
+    // so newly imported character lists won't inherit stale same-color cache.
+    colorCache.current.clear();
+  }, [text, accentColor]);
 
   useEffect(() => {
     if (!scrollToScene) return;
@@ -252,12 +237,7 @@ function ScriptViewer({
   if (!isScript) {
       return (
         <article
-            className={`screenplay ${theme === 'dark' ? 'screenplay-dark' : 'screenplay-light'} p-8 max-w-3xl mx-auto`}
-            style={{
-                '--body-font-size': `${bodyFontSize}px`,
-                fontSize: `${bodyFontSize}px`,
-                lineHeight: lineHeight,
-            }}
+            className="script-view-root p-8 max-w-3xl mx-auto"
         >
             <div className="whitespace-pre-wrap font-serif text-foreground/90">
                 {text}
@@ -268,14 +248,7 @@ function ScriptViewer({
 
   return (
     <article
-      className={`screenplay ${theme === 'dark' ? 'screenplay-dark' : 'screenplay-light'}`}
-      style={{
-        '--body-font-size': `${bodyFontSize}px`,
-        '--dialogue-font-size': `${dialogueFontSize}px`,
-        '--script-font-size': `${fontSize}px`,
-        '--line-height': lineHeight,
-        lineHeight: lineHeight,
-      }}
+      className="script-view-root"
     >
       <ScriptRenderer 
         ast={ast}
@@ -284,7 +257,7 @@ function ScriptViewer({
         focusMode={focusMode}
         focusEffect={focusEffect}
         focusContentMode={focusContentMode} // Pass this
-        themePalette={themePalette}
+        theme={theme}
         colorCache={colorCache}
         markerConfigs={markerConfigs}
         hiddenMarkerIds={hiddenMarkerIds} // Pass here too
