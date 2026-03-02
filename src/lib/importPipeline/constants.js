@@ -128,20 +128,3 @@ export const CHARACTER_PATTERNS = [
  * 空行判斷
  */
 export const isBlankLine = (line) => line.trim() === '';
-
-/**
- * 判斷是否為章節標題
- */
-export const CHAPTER_PATTERNS = [
-  /^\d{1,2}\.\s*.+$/,  // 01. 章節名
-  /^第[一二三四五六七八九十百]+[章節幕場]\s*.*/,  // 第X章/節/幕/場
-  /^Chapter\s+\d+/i,  // Chapter X
-  /^ACT\s+\d+/i,  // ACT X
-  /^SCENE\s+\d+/i,  // SCENE X
-  // Standard Fountain Scene Headings
-  /^(INT|EXT|EST|I\/E|INT\/EXT)[\.\s]/i, 
-  /^(INT\.|EXT\.|EST\.|I\/E|INT\/EXT\.)/i, // Explicit dot support if needed, though covered above
-  /^[\w\s]+ TO:$/ // Transitions sometimes used as headings, but usually Transitions are right aligned.
-  // Actually Fountain Spec: "Scene Heading" must start with INT, EXT, EST, INT./EXT, I/E.
-
-];

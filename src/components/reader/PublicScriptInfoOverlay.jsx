@@ -63,8 +63,11 @@ export function PublicScriptInfoOverlay({
         <div className="text-xs font-semibold text-muted-foreground">角色設定</div>
         <div className="mt-1 grid gap-2">
           {characterTemplateItems.map((entry, idx) => (
-            <div key={`char-${idx}`} className="rounded-md border border-border/70 bg-background/70 px-3 py-2">
-              <div className="text-xs font-semibold text-foreground/80">{entry.name}</div>
+            <div key={`char-${idx}`} className="rounded-md border border-primary/25 bg-background/75 px-3 py-2.5 shadow-sm">
+              <div className="mb-1 inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-primary">
+                角色 {idx + 1}
+              </div>
+              <div className="text-base font-bold leading-tight text-foreground md:text-lg">{entry.name}</div>
               <div className="mt-1 text-xs font-medium text-muted-foreground">設定</div>
               <div className="text-sm leading-6 text-foreground/90 whitespace-pre-wrap">{entry.roleText}</div>
               <div className="mt-2 text-xs font-medium text-muted-foreground">演繹</div>

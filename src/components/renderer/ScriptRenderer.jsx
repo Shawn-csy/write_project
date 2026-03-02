@@ -207,12 +207,20 @@ const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
             );
 
         case 'scene_heading':
-            const sceneStyle = getFocusStyle();
+            const allMarkerConfigsForScene = Array.isArray(context.markerConfigs) ? context.markerConfigs : [];
+            const sceneCfg = allMarkerConfigsForScene.find((cfg) => cfg?.id === node.markerId)
+                || allMarkerConfigsForScene.find((cfg) => cfg?.parseAs === 'scene_heading');
+            const sceneStyle = {
+                ...getFocusStyle(),
+                ...(sceneCfg?.style || {}),
+            };
             if (sceneStyle.display === 'none') return null;
 
             return (
                 <h3 id={node.id || node.scene_number || node.text} 
                     className="script-scene-heading"
+                    data-marker-id={sceneCfg?.id || undefined}
+                    data-marker-label={sceneCfg?.label || sceneCfg?.id || undefined}
                     style={sceneStyle}
                     {...getLineProps(node)}
                 >

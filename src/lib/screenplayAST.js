@@ -6,6 +6,8 @@
 
 import { splitTitleAndBody, extractTitleEntries } from './parsers/titlePageParser.js';
 import { DirectASTBuilder } from './importPipeline/directASTBuilder.js';
+import { defaultMarkerConfigs } from '../constants/defaultMarkerRules.js';
+import { normalizeMarkerConfigsSchema } from './markerThemeCodec.js';
 
 /**
  * 解析劇本文本
@@ -13,11 +15,15 @@ import { DirectASTBuilder } from './importPipeline/directASTBuilder.js';
  * @param {Array} markerConfigs - marker 設定
  * @returns {{ titleLines: string, titleEntries: Array, ast: Object, scenes: Array }}
  */
-export const parseScreenplay = (text = "", markerConfigs = []) => {
+export const parseScreenplay = (text = "", markerConfigs) => {
   const { titleLines, bodyText, bodyStartLine = 1 } = splitTitleAndBody(text);
+  const hasExplicitConfigs = markerConfigs !== undefined && markerConfigs !== null;
+  const effectiveConfigs = hasExplicitConfigs
+    ? normalizeMarkerConfigsSchema(markerConfigs)
+    : normalizeMarkerConfigsSchema(defaultMarkerConfigs);
   
   // 使用 DirectASTBuilder 解析（純 Marker 模式）
-  const builder = new DirectASTBuilder(markerConfigs);
+  const builder = new DirectASTBuilder(effectiveConfigs);
   const ast = builder.parse(bodyText || '');
   const lineOffset = Math.max(0, bodyStartLine - 1);
   if (lineOffset > 0) {

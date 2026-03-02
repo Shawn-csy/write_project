@@ -347,9 +347,9 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     );
     const rowLabelBaseClass = "p-4 text-sm font-medium text-foreground";
     const rowLabelToneClass = {
-        required: "border-l-4 border-sky-500/50 bg-sky-50/40 dark:bg-sky-950/20",
-        recommended: "border-l-4 border-amber-500/50 bg-amber-50/40 dark:bg-amber-950/20",
-        advanced: "border-l-4 border-fuchsia-500/50 bg-fuchsia-50/40 dark:bg-fuchsia-950/20",
+        required: "border-l-[5px] border-sky-600 bg-sky-100/80 text-sky-950 dark:border-sky-500 dark:bg-sky-950/25 dark:text-foreground",
+        recommended: "border-l-[5px] border-amber-600 bg-amber-100/80 text-amber-950 dark:border-amber-500 dark:bg-amber-950/25 dark:text-foreground",
+        advanced: "border-l-[5px] border-fuchsia-600 bg-fuchsia-100/80 text-fuchsia-950 dark:border-fuchsia-500 dark:bg-fuchsia-950/25 dark:text-foreground",
     };
     const getRowLabelClass = (tone = "recommended") =>
         `${rowLabelBaseClass} ${rowLabelToneClass[tone] || rowLabelToneClass.recommended}`;
@@ -1455,12 +1455,20 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                                     <button
                                         key={item.key}
                                         type="button"
-                                        className={`flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs sm:text-sm ${
-                                            activeTab === item.key ? "bg-muted shadow-sm" : "hover:bg-muted/60"
+                                        className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-left text-xs sm:text-sm transition ${
+                                            activeTab === item.key
+                                                ? "border-primary bg-primary/15 text-primary shadow-sm ring-2 ring-primary/35"
+                                                : "border-transparent text-muted-foreground hover:border-border/70 hover:bg-muted/60 hover:text-foreground"
                                         }`}
                                         onClick={() => focusSection(item.key)}
                                     >
-                                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-border/70 bg-background text-[10px]">{idx + 1}</span>
+                                        <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px] ${
+                                            activeTab === item.key
+                                                ? "border-primary bg-primary text-primary-foreground"
+                                                : "border-border/70 bg-background text-muted-foreground"
+                                        }`}>
+                                            {idx + 1}
+                                        </span>
                                         {item.label}
                                     </button>
                                 ))}
@@ -1469,7 +1477,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                     </div>
                 </DialogHeader>
 
-                <div ref={contentScrollRef} className="min-h-0 flex-1 overflow-y-auto bg-muted/10 px-4 py-4 sm:px-6 sm:py-5">
+                <div ref={contentScrollRef} className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide bg-muted/10 px-4 py-4 sm:px-6 sm:py-5">
                     <div className="rounded-xl border border-border/70 bg-background p-4 shadow-sm sm:p-5">
                         {isInitializing ? (
                             <div className="flex min-h-[320px] items-center justify-center">
