@@ -12,6 +12,7 @@ import {
   exportScriptAsXlsx,
 } from "../../lib/scriptExport";
 import { useI18n } from "../../contexts/I18nContext";
+import { CoverPlaceholder } from "../ui/CoverPlaceholder";
 
 export function PublicReaderLayout({
   script, // { content, title, ...meta }
@@ -35,6 +36,9 @@ export function PublicReaderLayout({
     author, 
     organization,
     synopsis, 
+    commercialUse,
+    derivativeUse,
+    notifyOnModify,
     contact,
     seriesName,
     prefaceItems,
@@ -211,6 +215,9 @@ export function PublicReaderLayout({
                        coverUrl={coverUrl}
                        author={author}
                        organization={organization}
+                       commercialUse={commercialUse}
+                       derivativeUse={derivativeUse}
+                       notifyOnModify={notifyOnModify}
                        prefaceItems={prefaceItems}
                    />
                    {Array.isArray(relatedSeriesScripts) && relatedSeriesScripts.length > 0 && (
@@ -251,9 +258,7 @@ export function PublicReaderLayout({
                                                    loading="lazy"
                                                />
                                            ) : (
-                                               <div className="flex h-full items-center justify-center px-2 text-center text-[11px] text-muted-foreground">
-                                                   {item.title}
-                                               </div>
+                                               <CoverPlaceholder title={item.title} compact />
                                            )}
                                        </div>
                                        <div className="mt-1 space-y-0.5">
