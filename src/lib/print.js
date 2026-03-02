@@ -29,7 +29,7 @@ export function buildPrintHtml({
         print-color-adjust: exact;
       }
       /* Ensure container spans full width without scrollbars */
-      .screenplay {
+      .script-renderer {
         max-width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
@@ -51,7 +51,7 @@ export function buildPrintHtml({
 </head>
 <body>
   ${titleHtml || ""}
-  <article class="screenplay">${finalScriptHtml}</article>
+  <article class="script-renderer">${finalScriptHtml}</article>
 </body>
 </html>
 `.trim();

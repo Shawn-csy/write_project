@@ -20,6 +20,18 @@ export function MarkerThemeHeader({
     currentUser
 }) {
     const { t } = useI18n();
+    const DEFAULT_THEME_ALIASES = new Set(["預設", "預設主題", "預設主題 (Default)", "default"]);
+    const formatThemeName = (theme) => {
+        if (!theme) return "";
+        if (theme.id === "default") return "系統預設";
+        const raw = String(theme.name || "").trim();
+        const normalized = raw.toLowerCase();
+        if (DEFAULT_THEME_ALIASES.has(raw) || DEFAULT_THEME_ALIASES.has(normalized)) {
+            return `${raw}（自訂）`;
+        }
+        return raw || t("markerThemeHeader.theme");
+    };
+
     const currentTheme = markerThemes.find(t => t.id === currentThemeId);
     const [newThemeName, setNewThemeName] = useState("");
     const [newThemeDescription, setNewThemeDescription] = useState("");
@@ -111,7 +123,7 @@ export function MarkerThemeHeader({
                             onChange={(e) => switchTheme(e.target.value)}
                         >
                             {markerThemes.map((theme) => (
-                                <option key={theme.id} value={theme.id}>{theme.name}</option>
+                                <option key={theme.id} value={theme.id}>{formatThemeName(theme)}</option>
                             ))}
                         </select>
                     </div>

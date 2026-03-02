@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { InlineRenderer } from './InlineRenderer';
 import { LayerNode } from './nodes/LayerNode';
 import { DualDialogueNode } from './nodes/DualDialogueNode';
@@ -7,18 +7,32 @@ import { parseInline } from '../../lib/parsers/inlineParser.js';
 import { isInlineLike } from '../../lib/markerRules.js';
 import { useI18n } from '../../contexts/I18nContext';
 
-const makeCharacterColorGetter = (themePalette, cacheRef) => (name) => {
-  if (!name) return "hsl(0 0% 50%)";
-  const key = name.toUpperCase();
-  if (cacheRef?.current?.has(key)) return cacheRef.current.get(key);
-  let hash = 0;
-  for (let i = 0; i < key.length; i++) {
-    hash = key.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const colorIndex = Math.abs(hash) % (themePalette?.length || 1);
-  const color = themePalette?.[colorIndex] || "160 84% 39%";
-  cacheRef?.current?.set?.(key, color);
-  return color;
+const CHARACTER_COLOR_SEQUENCE = [
+    'var(--marker-color-russet)',      // 1st: red
+    'var(--marker-color-slate-blue)',  // 2nd: blue
+    'var(--marker-color-pastel-rose)',
+    'var(--marker-color-steel)',
+    'var(--marker-color-sage)',
+    'var(--marker-color-olive)',
+    'var(--marker-color-verdigris)',
+    'var(--marker-color-cadet)',
+    'var(--marker-color-periwinkle)',
+    'var(--marker-color-orchid)',
+    'var(--marker-color-warm-gray)',
+    'var(--marker-color-charcoal)',
+];
+
+const normalizeCharacterKey = (name = "") => String(name).trim().toLowerCase();
+
+const resolveCharacterColor = (characterName, context) => {
+    const key = normalizeCharacterKey(characterName);
+    if (!key) return null;
+    const cache = context?.colorCache?.current;
+    if (!(cache instanceof Map)) return null;
+    if (cache.has(key)) return cache.get(key);
+    const color = CHARACTER_COLOR_SEQUENCE[cache.size % CHARACTER_COLOR_SEQUENCE.length];
+    cache.set(key, color);
+    return color;
 };
 
 const getLineProps = (node) => {
@@ -34,7 +48,6 @@ const getLineProps = (node) => {
 const renderInlineLines = (node, context) => {
     const lines = (node?.text || "").split("\n");
     const baseLine = Number.isFinite(node?.lineStart) ? node.lineStart : null;
-    const { showLineUnderline } = context;
 
     return lines.map((line, idx) => {
         const lineNumber = baseLine ? baseLine + idx : null;
@@ -52,8 +65,7 @@ const renderInlineLines = (node, context) => {
                 style={{ 
                     display: "block", 
                     whiteSpace: "pre-wrap", 
-                    minHeight: "1em",
-                    borderBottom: showLineUnderline ? "1px solid hsl(var(--border))" : undefined 
+                    minHeight: "1em"
                 }}
                 {...lineProps}
             >
@@ -71,16 +83,16 @@ import { RangeNode } from './nodes/RangeNode';
 
 // --- Node Renderer ---
 const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
-    const { getCharacterColor, focusMode, focusEffect, hiddenMarkerIds = [] } = context;
+    const { hiddenMarkerIds = [] } = context;
 
-    // Helper for applying focus effect to non-dialogue nodes
+    // Non-marker styling controls are disabled. Marker configs are the only style source.
     const getFocusStyle = () => {
-        if (!focusMode) return {};
-        if (focusEffect === 'hide') return { display: 'none' };
-        return { opacity: 0.3, transition: 'opacity 0.3s' };
+        return {};
     };
 
-    // Apply range-content style for nodes wrapped inside active ranges.
+    // Apply optional range-content style for nodes wrapped inside active ranges.
+    // Important: marker `style` is for marker lines themselves; content remains normal
+    // unless `rangeStyle` is explicitly provided.
     const getRangeStyle = () => {
         if (!node.inRange || node.inRange.length === 0) return {};
         
@@ -123,11 +135,11 @@ const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
             return contentStyle;
         };
 
-        // Reconstruct style from active ranges using dedicated rangeStyle first.
+        // Reconstruct style from active ranges using dedicated rangeStyle only.
         let mergedStyle = {};
         activeRanges.forEach(id => {
              const config = context.markerConfigs?.find(c => c.id === id);
-             const candidate = config?.rangeStyle || config?.style;
+             const candidate = config?.rangeStyle;
              if (candidate) {
                  Object.assign(mergedStyle, sanitizeRangeContentStyle(candidate));
              }
@@ -167,12 +179,27 @@ const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
             return <SpeechNode node={node} context={context} isDual={isDual} NodeRenderer={NodeRenderer} />;
 
         case 'character':
-             // Should not happen directly usually, but if so:
-             const cleanName = node.text.replace(/\s*\(.*\)$/, '').toUpperCase();
-             const color = getCharacterColor(cleanName);
+             // Character style should be controlled by marker config only.
+             const allMarkerConfigs = Array.isArray(context.markerConfigs) ? context.markerConfigs : [];
+             const characterCfg = allMarkerConfigs.find((cfg) => cfg?.id === node.markerId)
+                 || allMarkerConfigs.find((cfg) => cfg?.id === 'character');
+             const characterStyle = { ...(characterCfg?.style || {}) };
+             const roleColor = resolveCharacterColor(node.text, context);
+             if (roleColor) {
+                characterStyle.color = roleColor;
+             }
+             const markerId = characterCfg?.id || '';
+             const markerLabel = characterCfg?.label || markerId;
             return (
-                <strong className={`character mt-4 mb-0 font-bold block text-left w-full ${isDual ? 'max-w-full' : ''}`}
-                     style={{ color, '--char-color': color }}
+                <strong className={`script-character ${isDual ? 'max-w-full' : ''}`}
+                     style={{
+                        display: "block",
+                        whiteSpace: "pre-wrap",
+                        marginBottom: "0.1em",
+                        ...characterStyle
+                     }}
+                     data-marker-id={markerId || undefined}
+                     data-marker-label={markerLabel || undefined}
                      {...getLineProps(node)}
                  >
                      {node.text}
@@ -185,7 +212,7 @@ const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
 
             return (
                 <h3 id={node.id || node.scene_number || node.text} 
-                    className="scene-heading font-bold mt-6 mb-2 text-lg uppercase pl-4 border-l-4 border-primary/50 transition-opacity"
+                    className="script-scene-heading"
                     style={sceneStyle}
                     {...getLineProps(node)}
                 >
@@ -199,8 +226,8 @@ const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
 
             return (
                 <p 
-                    className={`action whitespace-pre-wrap transition-opacity ${node.inRange ? 'in-range' : ''}`} 
-                    style={actionStyle}
+                    className={`script-action ${node.inRange ? 'in-range' : ''}`} 
+                    style={{ whiteSpace: 'pre-wrap', ...actionStyle }}
                     {...getLineProps(node)}
                 >
                      {renderInlineLines(node, context)}
@@ -210,7 +237,7 @@ const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
         case 'parenthetical':
              // usually inside speech, handled by SpeechNode. If loose, apply style.
             return (
-                <div className={`parenthetical text-left w-full text-sm opacity-80 ${isDual ? 'max-w-full' : ''}`}>
+                <div className={`script-parenthetical ${isDual ? 'max-w-full' : ''}`} style={{ whiteSpace: 'pre-wrap' }}>
                      {renderInlineLines(node, context)}
                 </div>
             );
@@ -218,7 +245,7 @@ const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
         case 'dialogue':
              // usually inside speech
             return (
-                <p className={`dialogue text-left whitespace-pre-wrap ${isDual ? 'max-w-full' : ''}`}>
+                <p className={`script-dialogue ${isDual ? 'max-w-full' : ''}`} style={{ whiteSpace: 'pre-wrap' }}>
                      {renderInlineLines(node, context)}
                 </p>
             );
@@ -228,7 +255,7 @@ const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
              if (transStyle.display === 'none') return null;
 
             return (
-                <p className="transition text-right font-bold uppercase my-4 transition-opacity" style={transStyle}>
+                <p className="script-transition" style={{ whiteSpace: 'pre-wrap', ...transStyle }}>
                      {renderInlineLines(node, context)}
                 </p>
             );
@@ -238,7 +265,7 @@ const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
              if (centerStyle.display === 'none') return null;
 
             return (
-                <div className="centered text-center my-4 uppercase transition-opacity" style={centerStyle}>
+                <div className="script-centered" style={{ whiteSpace: 'pre-wrap', ...centerStyle }}>
                     {renderInlineLines(node, context)}
                 </div>
             );
@@ -270,18 +297,20 @@ const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
 
 export const ScriptRenderer = React.memo(({ 
     ast, 
-    fontSize = 16, 
+    fontSize = 16,
     filterCharacter, 
     focusMode, 
     focusEffect, 
     focusContentMode,
     themePalette, 
     colorCache,
+    theme = "light",
     markerConfigs = [],
     hiddenMarkerIds = [],
     showLineUnderline = false,
 }) => {
     const { t } = useI18n();
+    const [markerTooltip, setMarkerTooltip] = useState(null);
     const whitespaceLabels = useMemo(
         () => ({
             short: t("scriptRenderer.pauseShort"),
@@ -292,10 +321,6 @@ export const ScriptRenderer = React.memo(({
         [t]
     );
     
-    const getCharacterColor = useMemo(() => {
-        return makeCharacterColorGetter(themePalette, colorCache);
-    }, [themePalette, colorCache]);
-
     const inlineMarkerConfigs = useMemo(() => {
         const safe = Array.isArray(markerConfigs) ? markerConfigs : [];
         return safe.filter((c) => isInlineLike(c));
@@ -332,18 +357,76 @@ export const ScriptRenderer = React.memo(({
         focusMode,
         focusEffect,
         focusContentMode,
-        getCharacterColor,
+        colorCache,
         markerConfigs: Array.isArray(markerConfigs) ? markerConfigs : [],
         inlineMarkerConfigs,
         parseInlineLine,
         hiddenMarkerIds,
-        showLineUnderline,
-        whitespaceLabels
-    }), [fontSize, filterCharacter, focusMode, focusEffect, focusContentMode, getCharacterColor, markerConfigs, inlineMarkerConfigs, parseInlineLine, hiddenMarkerIds, showLineUnderline, whitespaceLabels]);
+        whitespaceLabels,
+        markerTooltipPrefix: t("scriptRenderer.markerTooltipPrefix", "標記"),
+    }), [fontSize, filterCharacter, focusMode, focusEffect, focusContentMode, colorCache, markerConfigs, inlineMarkerConfigs, parseInlineLine, hiddenMarkerIds, whitespaceLabels, t]);
+
+    const markerLabelById = useMemo(() => {
+        const map = new Map();
+        (Array.isArray(markerConfigs) ? markerConfigs : []).forEach((cfg) => {
+            const id = String(cfg?.id || "").trim();
+            if (!id) return;
+            const label = String(cfg?.label || cfg?.name || cfg?.displayName || id).trim();
+            if (!map.has(id)) map.set(id, label);
+        });
+        return map;
+    }, [markerConfigs]);
+
+    const resolveMarkerTooltip = (target) => {
+        if (!target || typeof target.closest !== "function") return null;
+        const markerEl = target.closest("[data-marker-id]");
+        if (!markerEl) return null;
+        const markerId = String(markerEl.getAttribute("data-marker-id") || "").trim();
+        if (!markerId) return null;
+        const markerLabel = String(markerEl.getAttribute("data-marker-label") || "").trim() || markerLabelById.get(markerId) || markerId;
+        return {
+            markerId,
+            markerLabel,
+        };
+    };
+
+    const handlePointerMove = (event) => {
+        const resolved = resolveMarkerTooltip(event.target);
+        if (!resolved) {
+            if (markerTooltip) setMarkerTooltip(null);
+            return;
+        }
+        const text = `${t("scriptRenderer.markerTooltipPrefix", "標記")}: ${resolved.markerLabel}`;
+        setMarkerTooltip({
+            text,
+            x: event.clientX,
+            y: event.clientY,
+        });
+    };
+
+    const handlePointerLeave = () => {
+        if (markerTooltip) setMarkerTooltip(null);
+    };
 
     return (
-        <article className="script-renderer font-serif" style={{ fontSize: `${fontSize}px`, '--body-font-size': `${fontSize}px` }}>
+        <article
+            className="script-renderer relative"
+            onPointerMove={handlePointerMove}
+            onPointerLeave={handlePointerLeave}
+        >
             <NodeRenderer node={ast} context={context} />
+            {markerTooltip && (
+                <div
+                    className="fixed z-[80] pointer-events-none rounded-md border border-border/60 bg-popover/95 px-2 py-1 text-xs text-popover-foreground shadow-lg backdrop-blur-sm"
+                    style={{
+                        left: `${markerTooltip.x + 14}px`,
+                        top: `${markerTooltip.y + 14}px`,
+                        maxWidth: "280px",
+                    }}
+                >
+                    {markerTooltip.text}
+                </div>
+            )}
         </article>
     );
 });

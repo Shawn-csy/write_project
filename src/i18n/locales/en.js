@@ -102,7 +102,8 @@ const messages = {
   "scriptRenderer": {
     "pauseShort": "Pause 1 second",
     "pauseMid": "Pause 3 seconds",
-    "pauseLong": "Pause 5 seconds"
+    "pauseLong": "Pause 5 seconds",
+    "markerTooltipPrefix": "Marker"
   },
   "scriptViewer": {
     "summaryZh1": "summary",
@@ -143,7 +144,8 @@ const messages = {
     "switchToEditOnly": "Switch to edit only",
     "switchToSplit": "Switch to edit + preview",
     "editAndPreview": "Edit + Preview",
-    "editOnly": "Edit Only"
+    "editOnly": "Edit Only",
+    "moreActions": "More Actions"
   },
   "publicAbout": {
     "topbarTitle": "Screenplay Reader",
@@ -410,7 +412,8 @@ const messages = {
     "stats": "Statistics",
     "share": "Share link",
     "copied": "Copied",
-    "editScript": "Edit script"
+    "editScript": "Edit script",
+    "more": "More"
   },
   "liveEditor": {
     "untitled": "Untitled",
@@ -921,6 +924,11 @@ const messages = {
     "nextConfigure": "Next: Configure",
     "nextConfirm": "Next: Confirm",
     "confirmImport": "Confirm Import",
+    "resultTextLabel": "Text Result",
+    "resultRenderLabel": "Rendered Preview",
+    "characterAutoLabel": "Whole-line Character Name",
+    "characterAutoDesc": "When enabled, a line that exactly matches a character name is converted to #C {name}.",
+    "characterListPlaceholder": "One name per line, e.g.\nXiaoyu\nAzhe",
     "saveRulesTitle": "Save parsing rules recommended",
     "saveRulesDesc": "You are using auto-detected rules. Saving a dedicated profile improves future import accuracy.",
     "backToSave": "Back to save",
@@ -993,7 +1001,7 @@ const messages = {
   "importStagePreview": {
     "title": "Confirm Preprocess Result",
     "desc": "The system cleaned extra spaces and format automatically. You can still fine-tune manually.",
-    "footerHint": "If everything looks good, click Next to configure marker rules."
+    "footerHint": "If everything looks good, click Next to proceed to import confirmation."
   },
   "scriptToolbar": {
     "back": "Go up",
@@ -1262,7 +1270,21 @@ const messages = {
     "synopsisPlaceholder": "Synopsis...",
     "errTitle": "Title is required before publishing.",
     "errIdentity": "Author identity is required before publishing.",
-    "tipSynopsis": "A synopsis helps readers understand your script faster."
+    "tipSynopsis": "A synopsis helps readers understand your script faster.",
+    "outline": "Outline",
+    "outlinePlaceholder": "Core outline of the work",
+    "roleSetting": "Character setup",
+    "roleSettingPlaceholder": "Character relations, roles, and acting focus",
+    "backgroundInfo": "Background info",
+    "backgroundInfoPlaceholder": "Era, prior events, and world context",
+    "performanceInstruction": "Performance instruction",
+    "performanceInstructionPlaceholder": "Pacing, tone, emotion, and framing notes",
+    "openingIntro": "Opening introduction",
+    "openingIntroPlaceholder": "Intro text shown before the script",
+    "environmentInfo": "Environment",
+    "environmentInfoPlaceholder": "Space, weather, soundscape, and lighting",
+    "situationInfo": "Situation",
+    "situationInfoPlaceholder": "Current state of characters at opening"
   },
   "metadataDetails": {
     "suggestionTitle": "Recommended Info",
@@ -1291,17 +1313,19 @@ const messages = {
   },
   "metadataLicense": {
     "base": "Base License",
-    "clear": "Clear",
-    "required": "License info is required before publishing.",
-    "custom": "Custom",
-    "customTitle": "Custom License Content",
-    "licenseName": "License Name",
-    "licenseNamePlaceholder": "e.g. MIT License / Custom Terms",
-    "licenseUrl": "License URL",
-    "autoTags": "Auto license tags (searchable on public pages)",
-    "readTerms": "Read License Terms",
-    "notSelectedTip": "No predefined license selected. You can fill copyright and additional terms below.",
-    "extraTerms": "Additional Terms",
+    "required": "Complete the base license settings before publishing.",
+    "commercial": "Commercial use",
+    "derivative": "Derivative works",
+    "notify": "Notify original author on modifications",
+    "select": "Select",
+    "allow": "Allow",
+    "disallow": "Disallow",
+    "limited": "Limited scope",
+    "requiredNotify": "Notification required",
+    "notRequiredNotify": "No notification needed",
+    "advanced": "Advanced License",
+    "specialTerms": "Special terms",
+    "extraTerms": "Special terms",
     "extraPlaceholder": "Press Enter to add a term (e.g. No AI training)",
     "noExtraTerms": "No additional terms yet",
     "copyright": "Copyright",

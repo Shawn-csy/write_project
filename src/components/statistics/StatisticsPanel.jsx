@@ -5,13 +5,28 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useScriptStats } from '@/hooks/useScriptStats';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button"; // Added Button
-import { FileText, Settings } from "lucide-react"; // Icon for Report
+import { FileText, Settings, ChevronRight, ChevronDown } from "lucide-react"; // Icon for Report
 import { useSettings } from "@/contexts/SettingsContext";
 
 import { parseInline } from '@/lib/parsers/inlineParser';
 import { ReportGeneratorDialog } from './ReportGeneratorDialog';
 import { StatisticsSettingsDialog } from './StatisticsSettingsDialog';
 import { useI18n } from "@/contexts/I18nContext";
+
+const CHARACTER_COLOR_SEQUENCE = [
+  'var(--marker-color-russet)',
+  'var(--marker-color-slate-blue)',
+  'var(--marker-color-pastel-rose)',
+  'var(--marker-color-steel)',
+  'var(--marker-color-sage)',
+  'var(--marker-color-olive)',
+  'var(--marker-color-verdigris)',
+  'var(--marker-color-cadet)',
+  'var(--marker-color-periwinkle)',
+  'var(--marker-color-orchid)',
+  'var(--marker-color-warm-gray)',
+  'var(--marker-color-charcoal)',
+];
 
 export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }) {
   const { markerConfigs, statsConfig, setStatsConfig } = useSettings();
@@ -29,6 +44,7 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
   const statsAvailable = Boolean(stats);
   const [collapsedMarkerIds, setCollapsedMarkerIds] = useState(new Set());
   const [viewMode, setViewMode] = useState("dialogue"); // 'dialogue' | 'characters' | 'cues'
+  const [expandedCharacters, setExpandedCharacters] = useState(new Set());
   const [showReportDialog, setShowReportDialog] = useState(false); // Dialog State
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
 
@@ -45,6 +61,9 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
     dialogueRatio = 0,
     actionRatio = 0
   } = stats || {};
+  const dialogueByCharacter = (sentences && typeof sentences.dialogue === "object" && !Array.isArray(sentences.dialogue))
+      ? sentences.dialogue
+      : {};
   
   // Backward compatibility mappings
   const rawDialogue = sentences.dialogue || [];
@@ -116,6 +135,25 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
     return formatedEntries.sort((a, b) => b.count - a.count);
   }, [customLayers]);
 
+  const characterColorByName = useMemo(() => {
+    const map = new Map();
+    (characterStats || []).forEach((char) => {
+      const key = String(char?.name || "").trim().toLowerCase();
+      if (!key || map.has(key)) return;
+      map.set(key, CHARACTER_COLOR_SEQUENCE[map.size % CHARACTER_COLOR_SEQUENCE.length]);
+    });
+    return map;
+  }, [characterStats]);
+  const dialogueByCharacterNormalized = useMemo(() => {
+    const map = new Map();
+    Object.entries(dialogueByCharacter || {}).forEach(([name, lines]) => {
+      const key = String(name || "").trim().toLowerCase();
+      if (!key) return;
+      map.set(key, Array.isArray(lines) ? lines : []);
+    });
+    return map;
+  }, [dialogueByCharacter]);
+
   useEffect(() => {
     setCollapsedMarkerIds(new Set(markerEntries.map((entry) => entry.id)));
   }, [markerEntries]);
@@ -141,6 +179,16 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
       } else {
         next.add(id);
       }
+      return next;
+    });
+  };
+  const toggleCharacterExpand = (name) => {
+    const key = String(name || "").trim().toLowerCase();
+    if (!key) return;
+    setExpandedCharacters((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   };
@@ -290,25 +338,69 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
                             ) : (
                                 <div className="divide-y">
                                 {characterStats.map((char, i) => (
-                                    <div key={i} className="p-3 flex items-center justify-between hover:bg-muted/30 transition-colors">
+                                    <div key={i} className="p-3 hover:bg-muted/30 transition-colors">
+                                        {(() => {
+                                            const toFinite = (v, fallback = 0) => {
+                                                const n = Number(v);
+                                                return Number.isFinite(n) ? n : fallback;
+                                            };
+                                            const lineCount = toFinite(char?.lineCount ?? char?.count, 0);
+                                            const wordCount = toFinite(char?.wordCount, 0);
+                                            const speakingScenesCount = toFinite(char?.speakingScenesCount, 0);
+                                            const charKey = String(char?.name || "").trim().toLowerCase();
+                                            const charColor = characterColorByName.get(charKey);
+                                            const lines = dialogueByCharacterNormalized.get(charKey) || [];
+                                            const isExpanded = expandedCharacters.has(charKey);
+                                            return (
+                                              <>
+                                        <div className="flex items-center justify-between">
                                         <div className="flex flex-col gap-1">
-                                            <span className="font-bold text-sm">{char.name}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleCharacterExpand(char.name)}
+                                                className="inline-flex items-center gap-1 text-left"
+                                            >
+                                                {isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+                                                <span className="font-bold text-sm" style={charColor ? { color: charColor } : undefined}>{char.name}</span>
+                                            </button>
                                             <span className="text-[10px] text-muted-foreground">
-                                                {t("statisticsPanel.scenesCount").replace("{count}", String(char.speakingScenesCount))}
+                                                {t("statisticsPanel.scenesCount").replace("{count}", String(speakingScenesCount))}
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-3">
                                             <div className="text-right">
-                                                <div className="text-sm font-semibold">{t("statisticsPanel.linesCount").replace("{count}", String(char.lineCount))}</div>
-                                                <div className="text-[10px] text-muted-foreground">{t("statisticsPanel.charsCount").replace("{count}", String(char.wordCount))}</div>
+                                                <div className="text-sm font-semibold">{t("statisticsPanel.linesCount").replace("{count}", String(lineCount))}</div>
+                                                <div className="text-[10px] text-muted-foreground">{t("statisticsPanel.charsCount").replace("{count}", String(wordCount))}</div>
                                             </div>
                                             <div className="w-16 h-1 bg-muted rounded-full overflow-hidden">
                                                 <div 
                                                     className="h-full bg-primary/70" 
-                                                    style={{ width: `${Math.min(100, (char.lineCount / counts.dialogueLines) * 100)}%` }}
+                                                    style={{ width: `${Math.min(100, counts.dialogueLines > 0 ? (lineCount / counts.dialogueLines) * 100 : 0)}%` }}
                                                 />
                                             </div>
                                         </div>
+                                        </div>
+                                        {isExpanded && (
+                                          <div className="mt-2 ml-5 border-l border-border/60 pl-3 space-y-1">
+                                            {lines.length === 0 ? (
+                                              <div className="text-xs text-muted-foreground">-</div>
+                                            ) : (
+                                              lines.map((line, idx) => (
+                                                <button
+                                                  key={`${charKey}-${idx}`}
+                                                  type="button"
+                                                  onClick={() => handleLocate({ text: line })}
+                                                  className="block w-full text-left text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded px-2 py-1"
+                                                >
+                                                  {line}
+                                                </button>
+                                              ))
+                                            )}
+                                          </div>
+                                        )}
+                                              </>
+                                            );
+                                        })()}
                                     </div>
                                 ))}
                                 </div>

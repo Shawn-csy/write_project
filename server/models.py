@@ -158,9 +158,10 @@ class Persona(Base):
     links = Column(JSON, default=list)
     organizationIds = Column(JSON, default=list)
     tags = Column(JSON, default=list)
-    defaultLicense = Column(String, default="")
-    defaultLicenseUrl = Column(String, default="")
-    defaultLicenseTerms = Column(JSON, default=list)
+    defaultLicenseCommercial = Column(String, default="")
+    defaultLicenseDerivative = Column(String, default="")
+    defaultLicenseNotify = Column(String, default="")
+    defaultLicenseSpecialTerms = Column(JSON, default=list)
     createdAt = Column(Integer, default=lambda: int(time.time() * 1000))
     updatedAt = Column(Integer, default=lambda: int(time.time() * 1000))
     

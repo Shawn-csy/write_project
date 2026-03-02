@@ -10,6 +10,10 @@ export const LayerNode = ({ node, context, NodeRenderer, styleOverride }) => {
     const borderColor = style.color || undefined;
     const bgColor = style.backgroundColor || undefined;
     const template = config?.renderer?.template;
+    const markerName = String(config?.label || node.layerType || "").trim();
+    const tooltip = markerName
+        ? `${context.markerTooltipPrefix || "標記"}: ${markerName}`
+        : undefined;
 
     const lineProps = (lineValue) => {
         if (!lineValue) return {};
@@ -19,9 +23,13 @@ export const LayerNode = ({ node, context, NodeRenderer, styleOverride }) => {
         };
     };
     
+    const isRangeControlLine = Boolean(node.rangeRole);
+
     // If template exists, we need to inject the inline nodes into the template
-    const renderLabelContent = (inlineNodes, rawLabel) => {
-        if (!inlineNodes || inlineNodes.length === 0) return rawLabel;
+    const renderLabelContent = (inlineNodes, rawLabel, fallbackText = "") => {
+        if (!inlineNodes || inlineNodes.length === 0) {
+            return fallbackText || rawLabel;
+        }
         
         // If no template, just render nodes
         if (!template) {
@@ -41,7 +49,7 @@ export const LayerNode = ({ node, context, NodeRenderer, styleOverride }) => {
         );
     };
 
-    const showEndLabel = !styleOverride?.hideFooter && config?.showEndLabel !== false; 
+    const showEndLabel = !styleOverride?.hideFooter && !isRangeControlLine && config?.showEndLabel !== false; 
     const isSingleLineBlock = (!node.children || node.children.length === 0) && !node.rangeRole;
     const labelClass = isSingleLineBlock
         ? `${node.layerType}-single-block-content layer-label mb-1`
@@ -55,10 +63,17 @@ export const LayerNode = ({ node, context, NodeRenderer, styleOverride }) => {
                 borderColor: borderColor ? borderColor : 'var(--muted)',
                 backgroundColor: bgColor,
             }}
+            title={tooltip}
+            data-marker-id={node.layerType || ""}
+            data-marker-label={markerName}
         >
              <div className={labelClass}>
                 <span {...lineProps(node.lineStart)}>
-                    {renderLabelContent(node.inlineLabel, node.label)}
+                    {renderLabelContent(
+                        node.inlineLabel,
+                        node.label,
+                        isRangeControlLine ? (node.text || "") : ""
+                    )}
                 </span>
              </div>
              <div className="layer-content">

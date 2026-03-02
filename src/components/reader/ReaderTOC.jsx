@@ -9,16 +9,20 @@ import {
   SheetTrigger,
 } from "../../components/ui/sheet";
 import { ScrollArea } from "../../components/ui/scroll-area";
+import { useI18n } from "../../contexts/I18nContext";
 
-export function ReaderTOC({ sceneList = [], currentSceneId, onSelectScene }) {
+export function ReaderTOC({ sceneList = [], currentSceneId, onSelectScene, metaItems = [] }) {
   const [open, setOpen] = React.useState(false);
+  const { t } = useI18n();
+  const hasScenes = Array.isArray(sceneList) && sceneList.length > 0;
+  const hasMeta = Array.isArray(metaItems) && metaItems.length > 0;
 
   const handleSelect = (id) => {
       onSelectScene(id);
       setOpen(false);
   };
 
-  if (!sceneList || sceneList.length === 0) return null;
+  if (!hasScenes && !hasMeta) return null;
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -34,8 +38,12 @@ export function ReaderTOC({ sceneList = [], currentSceneId, onSelectScene }) {
         
         <ScrollArea className="flex-1">
             <div className="flex flex-col py-2">
-                {sceneList && sceneList.length > 0 ? (
-                    sceneList.map((scene, i) => (
+                {hasScenes ? (
+                    <>
+                    <div className="px-6 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {t("publicReader.sceneNav", "場景導覽")}
+                    </div>
+                    {sceneList.map((scene, i) => (
                         <button
                             key={scene.id}
                             onClick={() => handleSelect(scene.id)}
@@ -53,11 +61,25 @@ export function ReaderTOC({ sceneList = [], currentSceneId, onSelectScene }) {
                             </div>
                             {currentSceneId === scene.id && <ChevronRight className="w-4 h-4 shrink-0 opacity-50" />}
                         </button>
-                    ))
-                ) : (
-                    <div className="p-8 text-center text-muted-foreground text-sm">
-                        No scenes found in this script.
+                    ))}
+                    </>
+                ) : null}
+                {hasMeta && (
+                  <div className="mt-2 border-t border-border/60 px-6 py-4">
+                    <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {t("publicReader.metaInfo", "作品資訊")}
                     </div>
+                    <div className="space-y-2">
+                      {metaItems.map((item, idx) => (
+                        <div key={`${item.label}-${idx}`} className="rounded-md border border-border/50 bg-background/70 px-3 py-2">
+                          <div className="text-[11px] text-muted-foreground">{item.label}</div>
+                          <div className="mt-1 break-words text-sm text-foreground">
+                            {item.render ? item.render : item.value}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
             </div>
         </ScrollArea>

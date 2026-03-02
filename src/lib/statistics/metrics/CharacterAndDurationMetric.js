@@ -13,9 +13,27 @@ export class CharacterAndDurationMetric extends Metric {
 
   reset() {
     this.dialogueByChar = {}; // { Name: [lines...] }
+    this.sceneSetByChar = {}; // { Name: Set(sceneId) }
+    this.currentCharacterName = null;
+    this.currentSceneId = null;
   }
 
   onNode(node, context) {
+    if (node.type === 'scene_heading') {
+      this.currentSceneId = (node.id || node.text || `scene-${node.lineStart || ""}`).toString();
+      return;
+    }
+
+    const touchCharacterScene = (charName) => {
+      if (!charName) return;
+      if (!this.sceneSetByChar[charName]) {
+        this.sceneSetByChar[charName] = new Set();
+      }
+      if (this.currentSceneId) {
+        this.sceneSetByChar[charName].add(this.currentSceneId);
+      }
+    };
+
     if (node.type === 'speech') {
       const charName = (node.character || "UNKNOWN").trim();
       
@@ -33,6 +51,7 @@ export class CharacterAndDurationMetric extends Metric {
           this.dialogueByChar[charName] = [];
         }
         this.dialogueByChar[charName].push(speechText);
+        touchCharacterScene(charName);
       }
     } else if (node.type === 'character') {
         this.currentCharacterName = (node.text || "UNKNOWN").trim();
@@ -44,6 +63,7 @@ export class CharacterAndDurationMetric extends Metric {
                   this.dialogueByChar[this.currentCharacterName] = [];
                 }
                 this.dialogueByChar[this.currentCharacterName].push(speechText);
+                touchCharacterScene(this.currentCharacterName);
              }
          }
     }
@@ -51,15 +71,23 @@ export class CharacterAndDurationMetric extends Metric {
 
   getResult() {
     // 1. Process Character Stats
-    const characterStats = Object.entries(this.dialogueByChar).map(([name, lines]) => ({
-      name,
-      count: lines.length,
-      percentage: 0 
-    })).sort((a, b) => b.count - a.count);
+    const characterStats = Object.entries(this.dialogueByChar).map(([name, lines]) => {
+      const lineCount = lines.length;
+      const wordCount = lines.join('').length;
+      const speakingScenesCount = this.sceneSetByChar[name]?.size || 0;
+      return {
+        name,
+        count: lineCount, // backward compatibility
+        lineCount,
+        wordCount,
+        speakingScenesCount,
+        percentage: 0
+      };
+    }).sort((a, b) => b.lineCount - a.lineCount);
 
-    const totalLines = characterStats.reduce((sum, c) => sum + c.count, 0);
+    const totalLines = characterStats.reduce((sum, c) => sum + c.lineCount, 0);
     if (totalLines > 0) {
-      characterStats.forEach(c => c.percentage = Math.round((c.count / totalLines) * 100));
+      characterStats.forEach(c => c.percentage = Math.round((c.lineCount / totalLines) * 100));
     }
 
     // 2. Duration is usually dependent on BasicStats (counts). 
@@ -75,9 +103,7 @@ export class CharacterAndDurationMetric extends Metric {
     
     return {
       characterStats,
-      sentences: {
-          dialogue: this.dialogueByChar
-      }
+      dialogueByCharacter: this.dialogueByChar
     };
   }
 }

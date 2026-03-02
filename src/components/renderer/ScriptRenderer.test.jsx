@@ -211,8 +211,8 @@ describe('ScriptRenderer Styles', () => {
         expect(queryByText('Range Content Here')).not.toBeNull();
     });
 
-    it('should remove styling from Range Markers when hidden', () => {
-        const text = ">>R\nRange Content\n<<R";
+    it('should apply style on range marker lines only, and remove them when hidden', () => {
+        const text = ">>R Start Label\nRange Content\n<<R End Label";
         const configs = [
             { id: 'rangeKey', start: '>>R', end: '<<R', matchMode: 'range', style: { color: 'blue' } }
         ];
@@ -220,9 +220,14 @@ describe('ScriptRenderer Styles', () => {
         // 1. Render Visible
         const { rerender, getByText, container } = renderWithAST(text, configs);
         const element = getByText('Range Content');
-        const styledParent = element.closest('div, p') || element.parentElement; 
-        
-        expect(styledParent.style.color).toBe('blue');
+        const styledParent = element.closest('div, p') || element.parentElement;
+        expect(styledParent.style.color).not.toBe('blue');
+
+        const markerLayers = container.querySelectorAll('.layer-node[data-marker-id="rangeKey"]');
+        expect(markerLayers.length).toBeGreaterThan(0);
+        markerLayers.forEach((layer) => {
+            expect(layer.style.color).toBe('blue');
+        });
 
         // 2. Hide Range Marker
         const { ast } = parseScreenplay(text, configs);
@@ -236,10 +241,11 @@ describe('ScriptRenderer Styles', () => {
             />
         );
 
-        // 3. Verify Style Removed
+        // 3. Verify marker lines removed while content remains
         const elementHidden = getByText('Range Content');
         const styledParentHidden = elementHidden.closest('div, p') || elementHidden.parentElement;
         expect(styledParentHidden.style.color).not.toBe('blue');
+        expect(container.querySelectorAll('.layer-node[data-marker-id="rangeKey"]').length).toBe(0);
     });
 
     it('should handle multiple hidden markers simultaneously', () => {
@@ -268,5 +274,50 @@ describe('ScriptRenderer Styles', () => {
 
         expect(container.querySelector('.layer-node')).toBeNull(); 
         expect(queryByText('Inline')).toBeNull(); 
+    });
+
+    it('should show range control line text, not marker label, for standalone range end nodes', () => {
+        const text = ">>SE 撫摸頭髮聲\n內容\n><SE\n間隔內容\n<<SE 撫摸頭髮聲結束";
+        const configs = [
+            { id: 'se', label: '持續音效 (SE)', start: '>>SE', end: '<<SE', pause: '><SE', matchMode: 'range', style: { color: 'blue' } }
+        ];
+
+        const { getByText, queryByText } = renderWithAST(text, configs);
+        expect(getByText('撫摸頭髮聲結束')).toBeDefined();
+        expect(queryByText('持續音效 (SE)')).toBeNull();
+    });
+
+    it('should hide pause control line when pause text is empty', () => {
+        const text = ">>SE 開始\n內容1\n><SE\n間隔\n><SE 恢復\n內容2\n<<SE 結束";
+        const configs = [
+            { id: 'se', label: '持續音效 (SE)', start: '>>SE', end: '<<SE', pause: '><SE', matchMode: 'range', style: { color: 'blue' } }
+        ];
+
+        const { queryByText, getByText } = renderWithAST(text, configs);
+        expect(queryByText('暫停')).toBeNull();
+        expect(getByText('恢復')).toBeDefined();
+    });
+
+    it('should auto-assign character colors in fixed sequence (red then blue)', () => {
+        const ast = {
+            type: "root",
+            children: [
+                { type: "character", text: "小雨", lineStart: 1, lineEnd: 1, raw: "小雨" },
+                { type: "character", text: "阿哲", lineStart: 2, lineEnd: 2, raw: "阿哲" },
+            ],
+        };
+
+        render(
+            <ScriptRenderer
+                ast={ast}
+                markerConfigs={[]}
+                colorCache={{ current: new Map() }}
+            />
+        );
+
+        const a = screen.getByText("小雨");
+        const b = screen.getByText("阿哲");
+        expect(a.getAttribute('style') || '').toContain('color: var(--marker-color-russet)');
+        expect(b.getAttribute('style') || '').toContain('color: var(--marker-color-slate-blue)');
     });
 });

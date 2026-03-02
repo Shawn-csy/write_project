@@ -185,9 +185,10 @@ export function PublisherProfileTab({
             bannerUrl: "",
             organizationIds: [], 
             tags: [], 
-            defaultLicense: "", 
-            defaultLicenseUrl: "", 
-            defaultLicenseTerms: [] 
+            defaultLicenseCommercial: "",
+            defaultLicenseDerivative: "",
+            defaultLicenseNotify: "",
+            defaultLicenseSpecialTerms: []
         });
         setViewMode("create");
     };
@@ -663,12 +664,14 @@ export function PublisherProfileTab({
                                     <h3 className="text-sm font-medium mb-4">{t("publisherProfileTab.defaultLicense")}</h3>
                                     <div className="rounded-lg border bg-muted/10 p-4">
                                         <MetadataLicenseTab 
-                                            license={personaDraft.defaultLicense}
-                                            setLicense={(v) => setPersonaDraft(prev => ({ ...prev, defaultLicense: v }))}
-                                            licenseUrl={personaDraft.defaultLicenseUrl}
-                                            setLicenseUrl={(v) => setPersonaDraft(prev => ({ ...prev, defaultLicenseUrl: v }))}
-                                            licenseTerms={personaDraft.defaultLicenseTerms}
-                                            setLicenseTerms={(v) => setPersonaDraft(prev => ({ ...prev, defaultLicenseTerms: v }))}
+                                            licenseCommercial={personaDraft.defaultLicenseCommercial || ""}
+                                            setLicenseCommercial={(v) => setPersonaDraft(prev => ({ ...prev, defaultLicenseCommercial: v }))}
+                                            licenseDerivative={personaDraft.defaultLicenseDerivative || ""}
+                                            setLicenseDerivative={(v) => setPersonaDraft(prev => ({ ...prev, defaultLicenseDerivative: v }))}
+                                            licenseNotify={personaDraft.defaultLicenseNotify || ""}
+                                            setLicenseNotify={(v) => setPersonaDraft(prev => ({ ...prev, defaultLicenseNotify: v }))}
+                                            licenseSpecialTerms={personaDraft.defaultLicenseSpecialTerms}
+                                            setLicenseSpecialTerms={(v) => setPersonaDraft(prev => ({ ...prev, defaultLicenseSpecialTerms: v }))}
                                             copyright={""} 
                                             setCopyright={() => {}} 
                                         />

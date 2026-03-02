@@ -82,6 +82,7 @@ export function AppRouter({
     } = scriptManager;
 
     const navigate = useNavigate();
+    const isCloudReadMode = Boolean(activeCloudScript) && cloudScriptMode === "read";
 
     return (
         <Routes>
@@ -159,15 +160,19 @@ export function AppRouter({
                                             onBack={handleReturnHome}
                                             onToggleStats={() => setShowStats(!showStats)}
                                             extraActions={
-                                                <div className="flex items-center gap-1">
-                                                    <LanguageSwitcher />
-                                                    <Button variant="ghost" size="icon" onClick={() => nav.setAboutOpen(true)} title="關於">
-                                                        <Globe className="w-5 h-5" />
-                                                    </Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => nav.setSettingsOpen(true)} title="設定">
-                                                        <SlidersHorizontal className="w-5 h-5" />
-                                                    </Button>
-                                                </div>
+                                                isCloudReadMode
+                                                    ? null
+                                                    : (
+                                                        <div className="flex items-center gap-1">
+                                                            <LanguageSwitcher />
+                                                            <Button variant="ghost" size="icon" onClick={() => nav.setAboutOpen(true)} title="關於">
+                                                                <Globe className="w-5 h-5" />
+                                                            </Button>
+                                                            <Button variant="ghost" size="icon" onClick={() => nav.setSettingsOpen(true)} title="設定">
+                                                                <SlidersHorizontal className="w-5 h-5" />
+                                                            </Button>
+                                                        </div>
+                                                    )
                                             }
                                             setFocusMode={setFocusMode}
                                             onTitleChange={activeCloudScript && !isPublicReader ? handleCloudTitleUpdate : undefined}

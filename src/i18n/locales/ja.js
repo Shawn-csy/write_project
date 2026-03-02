@@ -102,7 +102,8 @@ const messages = {
   "scriptRenderer": {
     "pauseShort": "1秒停止",
     "pauseMid": "3秒停止",
-    "pauseLong": "5秒停止"
+    "pauseLong": "5秒停止",
+    "markerTooltipPrefix": "マーカー"
   },
   "scriptViewer": {
     "summaryZh1": "要約",
@@ -143,7 +144,8 @@ const messages = {
     "switchToEditOnly": "編集のみへ切替",
     "switchToSplit": "編集 + プレビューへ切替",
     "editAndPreview": "編集 + プレビュー",
-    "editOnly": "編集のみ"
+    "editOnly": "編集のみ",
+    "moreActions": "その他の操作"
   },
   "publicAbout": {
     "topbarTitle": "台本リーダー",
@@ -410,7 +412,8 @@ const messages = {
     "stats": "統計",
     "share": "共有リンク",
     "copied": "コピー済み",
-    "editScript": "台本を編集"
+    "editScript": "台本を編集",
+    "more": "その他"
   },
   "liveEditor": {
     "untitled": "無題",
@@ -924,6 +927,11 @@ const messages = {
     "nextConfigure": "次へ: 設定とプレビュー",
     "nextConfirm": "次へ: 確認",
     "confirmImport": "インポートを確定",
+    "resultTextLabel": "テキスト結果",
+    "resultRenderLabel": "レンダリングプレビュー",
+    "characterAutoLabel": "行全体が役名",
+    "characterAutoDesc": "有効時、1行が役名と完全一致した場合に #C 役名 へ自動変換します。",
+    "characterListPlaceholder": "1行に1名ずつ入力（例）\n小雨\n阿哲",
     "saveRulesTitle": "解析ルールの保存を推奨",
     "saveRulesDesc": "現在は自動検出ルールを使用しています。専用プロファイルを保存すると次回以降の精度が向上します。",
     "backToSave": "保存へ戻る",
@@ -996,7 +1004,7 @@ const messages = {
   "importStagePreview": {
     "title": "前処理結果を確認",
     "desc": "余分な空白や形式は自動で整形されました。必要に応じて手動調整できます。",
-    "footerHint": "問題なければ「次へ」を押してマーカールールを設定してください。"
+    "footerHint": "問題なければ「次へ」を押してインポート確認へ進んでください。"
   },
   "scriptToolbar": {
     "back": "上の階層へ",
@@ -1265,7 +1273,21 @@ const messages = {
     "synopsisPlaceholder": "台本のあらすじや要約...",
     "errTitle": "公開前にタイトルを入力してください。",
     "errIdentity": "公開前に作者名義を選択してください。",
-    "tipSynopsis": "要約を入れると読者に内容が伝わりやすくなります。"
+    "tipSynopsis": "要約を入れると読者に内容が伝わりやすくなります。",
+    "outline": "概要",
+    "outlinePlaceholder": "作品の核心を示す概要",
+    "roleSetting": "役柄設定",
+    "roleSettingPlaceholder": "関係性・立ち位置・演技の要点",
+    "backgroundInfo": "背景情報",
+    "backgroundInfoPlaceholder": "時代・前提事件・世界観の背景",
+    "performanceInstruction": "演技指示",
+    "performanceInstructionPlaceholder": "テンポ・口調・感情・画づくり指示",
+    "openingIntro": "作品冒頭の導入文",
+    "openingIntroPlaceholder": "本文前に表示する導入文",
+    "environmentInfo": "環境",
+    "environmentInfoPlaceholder": "空間・気候・音・光の情報",
+    "situationInfo": "状況",
+    "situationInfoPlaceholder": "冒頭時点のキャラクター状況"
   },
   "metadataDetails": {
     "suggestionTitle": "補足情報の提案",
@@ -1294,17 +1316,19 @@ const messages = {
   },
   "metadataLicense": {
     "base": "基本ライセンス",
-    "clear": "選択をクリア",
-    "required": "公開前にライセンス情報の入力が必要です。",
-    "custom": "カスタム",
-    "customTitle": "カスタムライセンス内容",
-    "licenseName": "ライセンス名",
-    "licenseNamePlaceholder": "例: MIT License / 独自規約",
-    "licenseUrl": "ライセンスURL",
-    "autoTags": "自動ライセンスタグ（公開ページで検索可能）",
-    "readTerms": "ライセンス条項を読む",
-    "notSelectedTip": "既定ライセンスを選択しない場合は、下の著作権宣言や追加条項を自由入力できます。",
-    "extraTerms": "追加条項",
+    "required": "公開前に基本ライセンス設定を完了してください。",
+    "commercial": "商用利用",
+    "derivative": "改変利用",
+    "notify": "改変時の原作者通知",
+    "select": "選択してください",
+    "allow": "許可",
+    "disallow": "不許可",
+    "limited": "範囲を限定",
+    "requiredNotify": "通知が必要",
+    "notRequiredNotify": "通知は不要",
+    "advanced": "詳細ライセンス",
+    "specialTerms": "特別条項",
+    "extraTerms": "特別条項",
     "extraPlaceholder": "Enter で条項を追加（例: AI学習への使用禁止）",
     "noExtraTerms": "追加条項はまだありません",
     "copyright": "著作権",

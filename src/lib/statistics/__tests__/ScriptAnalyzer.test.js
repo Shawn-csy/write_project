@@ -35,6 +35,22 @@ describe('ScriptAnalyzer', () => {
         expect(stats.characterStats[1].count).toBe(1);
     });
 
+    it('should preserve dialogue-by-character when marker metric also returns sentences', () => {
+        const mockAST = [
+            { type: 'speech', character: 'ALICE', text: 'First line.' },
+            { type: 'sfx', text: 'Door knock.' },
+            { type: 'speech', character: 'ALICE', text: 'Second line.' }
+        ];
+
+        const stats = calculateScriptStats(mockAST);
+
+        expect(stats.characterStats).toHaveLength(1);
+        expect(stats.sentences.dialogue).toEqual({
+            ALICE: ['First line.', 'Second line.']
+        });
+        expect(stats.sentences.sfx).toContain('Door knock.');
+    });
+
     it('should handle custom markers', () => {
         const markerConfigs = [{ id: 'blue_mark', name: 'Blue Mark' }];
         const mockAST = [

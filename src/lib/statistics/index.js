@@ -32,7 +32,7 @@ export function calculateScriptStats(nodes, markerConfigs = [], options = {}) {
 
   // 3. Post-Process / Merge for backward compatibility
   const sentences = {
-      dialogue: results.sentences?.dialogue || [],
+      dialogue: results.dialogueByCharacter || results.sentences?.dialogue || [],
       action: results.actionLines || [], // Collect Action lines
       sceneHeadings: results.locations || [],
       sfx: results.sentences?.sfx || []
@@ -46,6 +46,23 @@ export function calculateScriptStats(nodes, markerConfigs = [], options = {}) {
       });
   }
 
+  const normalizedCharacterStats = (results.characterStats || []).map((item) => {
+      const toFiniteNumber = (value, fallback = 0) => {
+          const n = Number(value);
+          return Number.isFinite(n) ? n : fallback;
+      };
+      const lineCount = toFiniteNumber(item?.lineCount ?? item?.count, 0);
+      const wordCount = toFiniteNumber(item?.wordCount, 0);
+      const speakingScenesCount = toFiniteNumber(item?.speakingScenesCount, 0);
+      return {
+          ...item,
+          lineCount,
+          wordCount,
+          speakingScenesCount,
+          count: lineCount,
+      };
+  });
+
   const finalDefaults = {
       durationMinutes: 0,
       locations: results.locations || [],
@@ -58,7 +75,7 @@ export function calculateScriptStats(nodes, markerConfigs = [], options = {}) {
               ? results.counts.dialogueLines 
               : (sentences.action?.length || 0) 
       },
-      characterStats: results.characterStats || [],
+      characterStats: normalizedCharacterStats,
       timeframeDistribution: results.timeframeDistribution || {},
       customLayers: results.customLayers || {},
       dialogueRatio: results.dialogueRatio || 0,

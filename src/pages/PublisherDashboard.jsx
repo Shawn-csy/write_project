@@ -42,7 +42,20 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
   const [isInviteSearching, setIsInviteSearching] = useState(false);
   const [selectedPersonaId, setSelectedPersonaId] = useState(null);
   const [selectedOrgId, setSelectedOrgId] = useState(null);
-  const [personaDraft, setPersonaDraft] = useState({ displayName: "", bio: "", website: "", links: [], avatar: "", bannerUrl: "", organizationIds: [], tags: [], defaultLicense: "", defaultLicenseUrl: "", defaultLicenseTerms: [] });
+  const [personaDraft, setPersonaDraft] = useState({
+    displayName: "",
+    bio: "",
+    website: "",
+    links: [],
+    avatar: "",
+    bannerUrl: "",
+    organizationIds: [],
+    tags: [],
+    defaultLicenseCommercial: "",
+    defaultLicenseDerivative: "",
+    defaultLicenseNotify: "",
+    defaultLicenseSpecialTerms: [],
+  });
   const [personasLoadedAt, setPersonasLoadedAt] = useState(0);
   const [orgDraft, setOrgDraft] = useState({ id: "", name: "", description: "", website: "", logoUrl: "", bannerUrl: "", tags: [] });
   const [personaTagInput, setPersonaTagInput] = useState("");
@@ -338,9 +351,10 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
               bannerUrl: persona.bannerUrl || "",
               organizationIds: persona.organizationIds || [],
               tags: persona.tags || [],
-              defaultLicense: persona.defaultLicense || "",
-              defaultLicenseUrl: persona.defaultLicenseUrl || "",
-              defaultLicenseTerms: persona.defaultLicenseTerms || []
+              defaultLicenseCommercial: persona.defaultLicenseCommercial || "",
+              defaultLicenseDerivative: persona.defaultLicenseDerivative || "",
+              defaultLicenseNotify: persona.defaultLicenseNotify || "",
+              defaultLicenseSpecialTerms: persona.defaultLicenseSpecialTerms || []
           });
           if ((persona.organizationIds || []).length > 0) {
               setSelectedOrgId(persona.organizationIds[0]);
