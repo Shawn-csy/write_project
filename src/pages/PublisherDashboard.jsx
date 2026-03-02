@@ -78,7 +78,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
   };
 
   const parseTags = (value) => value
-      .split(/,|，/)
+      .split(/,|，|、|#|\n|\t|;/)
       .map(t => t.trim())
       .filter(Boolean);
 

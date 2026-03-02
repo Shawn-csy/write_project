@@ -90,7 +90,7 @@ export function MetadataDetailsTab({
 
     const parsePastedTags = (text) =>
         String(text || "")
-            .split(/,|，|\n|\t|;/)
+            .split(/,|，|、|#|\n|\t|;/)
             .map((item) => item.trim())
             .filter(Boolean);
 

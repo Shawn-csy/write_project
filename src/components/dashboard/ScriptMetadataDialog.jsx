@@ -240,7 +240,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                 : Object.entries(custom).map(([k, v], idx) => ({ id: `cf-${idx + 1}`, key: k, value: String(v ?? "") }));
             setCustomFields(next);
             if (parsed.tags) {
-                const raw = Array.isArray(parsed.tags) ? parsed.tags : String(parsed.tags).split(/,|，/).map(t => t.trim()).filter(Boolean);
+                const raw = Array.isArray(parsed.tags) ? parsed.tags : String(parsed.tags).split(/[,，、#\n\t;]+/).map(t => t.trim()).filter(Boolean);
                 const entries = raw.map((t) => (typeof t === "string" ? { name: t } : t));
                 const byName = new Map((availableTags || []).map(t => [t.name.toLowerCase(), t]));
                 const resolved = [];
@@ -1046,6 +1046,15 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     const handleAddTag = async (inputOverride) => {
         const candidate = (inputOverride ?? newTagInput).trim();
         if (!candidate) return;
+
+        const splitCandidates = candidate
+            .split(/[,，、#\n\t;]+/)
+            .map((item) => item.trim())
+            .filter(Boolean);
+        if (splitCandidates.length > 1) {
+            await handleAddTagsBatch(splitCandidates);
+            return;
+        }
         const tagName = candidate;
         
         const isFromInput = !inputOverride || inputOverride === newTagInput || inputOverride === newTagInput.trim();

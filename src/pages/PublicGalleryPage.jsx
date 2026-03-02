@@ -17,6 +17,7 @@ import { normalizeSeriesName, parseSeriesOrder } from "../lib/series";
 import { useI18n } from "../contexts/I18nContext";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../components/ui/alert-dialog";
 import { SlidersHorizontal } from "lucide-react";
+import { CoverPlaceholder } from "../components/ui/CoverPlaceholder";
 
 const SEGMENT_KEYS = {
   all: "all",
@@ -606,9 +607,7 @@ export default function PublicGalleryPage() {
                                       loading="lazy"
                                     />
                                   ) : (
-                                    <div className="flex h-full w-full items-center justify-center px-3 text-center text-sm text-muted-foreground">
-                                      {series.name}
-                                    </div>
+                                    <CoverPlaceholder title={series.name} compact />
                                   )}
                                 </div>
                                 <div className="pt-2">
