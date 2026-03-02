@@ -74,9 +74,19 @@ describe('ScreenplayAST (Pure Marker Mode)', () => {
         expect(highlighted.content).toBe('world');
     });
 
-    it('should detect Chinese chapter formats as scene_heading', () => {
+    it('should detect Chinese chapter formats as scene_heading when custom marker is provided', () => {
         const text = "第一章 開場\n\n這是內容";
-        const result = parseScreenplay(text);
+        const markerConfigs = [
+            {
+                id: 'zh-chapter',
+                matchMode: 'regex',
+                regex: '^\\s*第([一二三四五六七八九十百]+)[章節幕場]\\s*(.*)$',
+                parseAs: 'scene_heading',
+                isBlock: true,
+                mapFields: { text: '$0', number: '$1', title: '$2' },
+            }
+        ];
+        const result = parseScreenplay(text, markerConfigs);
         
         const scene = result.ast.children.find(n => n.type === 'scene_heading');
         expect(scene).toBeDefined();

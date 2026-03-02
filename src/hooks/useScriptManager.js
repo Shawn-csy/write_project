@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import generatedFileMeta from "../constants/fileMeta.generated.json";
+import { resolveEffectiveMarkerConfigs } from "../lib/markerConfigResolver.js";
 
 // Import scripts directly here
 // const scriptModules = import.meta.glob("../scripts_file/**/*.fountain", {
@@ -20,8 +21,8 @@ export function useScriptManager(initialParamsRef, initialMarkerConfigs = []) {
   const [fileTitleMap, setFileTitleMap] = useState({});
   const [fileTagsMap, setFileTagsMap] = useState({});
 
-  // Allow dynamic override (e.g. for Public Scripts using Author's settings)
-  const [overrideMarkerConfigs, setOverrideMarkerConfigs] = useState(null);
+  // Scoped configs for route-specific parsing (e.g. public reader script theme)
+  const [scopedMarkerConfigs, setScopedMarkerConfigs] = useState(null);
   const [hiddenMarkerIds, setHiddenMarkerIds] = useState([]);
 
   const toggleMarkerVisibility = (id) => {
@@ -31,12 +32,12 @@ export function useScriptManager(initialParamsRef, initialMarkerConfigs = []) {
   };
   
   // Effective Configs
-  const rawConfigs = overrideMarkerConfigs || initialMarkerConfigs;
-  const effectiveMarkerConfigs = useMemo(() => {
-      if (Array.isArray(rawConfigs)) return rawConfigs;
-      if (rawConfigs && typeof rawConfigs === 'object') return Object.values(rawConfigs);
-      return [];
-  }, [rawConfigs]);
+  const { configs: effectiveMarkerConfigs } = useMemo(() => {
+    return resolveEffectiveMarkerConfigs({
+      baseConfigs: initialMarkerConfigs,
+      scopedConfigs: scopedMarkerConfigs,
+    });
+  }, [initialMarkerConfigs, scopedMarkerConfigs]);
   
   // AST Parsing (Centralized)
   const { ast } = useMemo(() => {
@@ -181,7 +182,8 @@ export function useScriptManager(initialParamsRef, initialMarkerConfigs = []) {
     activePublicScriptId, setActivePublicScriptId,
     ast, // Expose AST,
     // Config Override
-    setOverrideMarkerConfigs,
+    setOverrideMarkerConfigs: setScopedMarkerConfigs, // backward compatibility
+    setScopedMarkerConfigs,
     effectiveMarkerConfigs,
     
     // Visibility

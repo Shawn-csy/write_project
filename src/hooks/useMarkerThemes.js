@@ -1,21 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { defaultMarkerConfigs } from "../constants/defaultMarkerRules";
 import { apiCall as serviceApiCall } from "../services/settingsApi.js";
-import { normalizeThemeConfigs } from "../lib/markerThemeCodec.js";
-
-const REQUIRED_MARKERS = normalizeThemeConfigs(defaultMarkerConfigs)
-    .filter((marker) => marker?.parseAs === "character")
-    .map((marker) => ({ ...marker }));
-
-const ensureRequiredMarkers = (configs) => {
-    const base = normalizeThemeConfigs(configs);
-    const hasRequiredCharacter = base.some((c) => c?.parseAs === "character");
-    if (hasRequiredCharacter || REQUIRED_MARKERS.length === 0) return base;
-    const ids = new Set(base.map((c) => c?.id).filter(Boolean));
-    const missing = REQUIRED_MARKERS.filter((m) => !ids.has(m.id));
-    if (missing.length === 0) return base;
-    return [...base, ...missing.map((m) => ({ ...m }))];
-};
+import { normalizeMarkerConfigsSchema } from "../lib/markerThemeCodec.js";
 
 export function useMarkerThemes(currentUser) {
     const DEFAULT_THEME_ID = 'default';
@@ -28,7 +14,7 @@ export function useMarkerThemes(currentUser) {
             .replace(/[\s_()（）\-[\]{}]/g, "");
         return normalized.includes("default") || normalized.includes("預設");
     };
-    const defaultTheme = { id: DEFAULT_THEME_ID, name: '預設主題 (Default)', configs: defaultMarkerConfigs };
+    const defaultTheme = { id: DEFAULT_THEME_ID, name: '預設主題 (Default)', configs: normalizeMarkerConfigsSchema(defaultMarkerConfigs) };
     const withDefaultTheme = (themes = []) => {
         const normalizedThemes = Array.isArray(themes) ? themes : [];
         const withoutDefault = normalizedThemes.filter(
@@ -46,7 +32,7 @@ export function useMarkerThemes(currentUser) {
     const normalizeThemeList = (themes) => withDefaultTheme(
         (Array.isArray(themes) ? themes : []).map((theme) => ({
             ...theme,
-            configs: normalizeThemeConfigs(theme?.configs),
+            configs: normalizeMarkerConfigsSchema(theme?.configs),
         }))
     );
   
@@ -59,12 +45,12 @@ export function useMarkerThemes(currentUser) {
     // Derived State: Active Markers
     const markerConfigs = useMemo(() => {
         if (currentThemeId === DEFAULT_THEME_ID) {
-            return ensureRequiredMarkers(defaultMarkerConfigs);
+            return normalizeMarkerConfigsSchema(defaultMarkerConfigs);
         }
         const activeTheme = markerThemes.find(t => t.id === currentThemeId);
-        return normalizeThemeConfigs(activeTheme?.configs).length > 0
-            ? ensureRequiredMarkers(activeTheme?.configs)
-            : ensureRequiredMarkers(defaultMarkerConfigs);
+        return normalizeMarkerConfigsSchema(activeTheme?.configs).length > 0
+            ? normalizeMarkerConfigsSchema(activeTheme?.configs)
+            : normalizeMarkerConfigsSchema(defaultMarkerConfigs);
     }, [markerThemes, currentThemeId]);
 
     // Actions
@@ -92,12 +78,12 @@ export function useMarkerThemes(currentUser) {
     const setMarkerConfigs = (newConfigs) => {
         if (currentThemeId === DEFAULT_THEME_ID) return;
         const newThemes = markerThemes.map(t => 
-            t.id === currentThemeId ? { ...t, configs: normalizeThemeConfigs(newConfigs) } : t
+            t.id === currentThemeId ? { ...t, configs: normalizeMarkerConfigsSchema(newConfigs) } : t
         );
         setMarkerThemes(newThemes);
         
         if (currentUser && currentThemeId !== 'default') {
-            apiCall(`/themes/${currentThemeId}`, 'PUT', { configs: normalizeThemeConfigs(newConfigs) });
+            apiCall(`/themes/${currentThemeId}`, 'PUT', { configs: normalizeMarkerConfigsSchema(newConfigs) });
         }
     };
 
@@ -113,7 +99,7 @@ export function useMarkerThemes(currentUser) {
         const newTheme = {
             id: newId,
             name: name,
-            configs: normalizeThemeConfigs(configsToSave),
+            configs: normalizeMarkerConfigsSchema(configsToSave),
             isPublic: Boolean(options.isPublic),
             description: options.description || ""
         };
@@ -137,7 +123,7 @@ export function useMarkerThemes(currentUser) {
         const newTheme = {
             id: newId,
             name: name,
-            configs: normalizeThemeConfigs(markerConfigs),
+            configs: normalizeMarkerConfigsSchema(markerConfigs),
             isPublic: Boolean(options.isPublic),
             description: options.description || ""
         };
@@ -201,7 +187,7 @@ export function useMarkerThemes(currentUser) {
         if (!currentUser) return;
         const copied = await apiCall(`/themes/${themeId}/copy`, 'POST');
         if (copied) {
-            const parsed = { ...copied, configs: normalizeThemeConfigs(copied.configs) };
+            const parsed = { ...copied, configs: normalizeMarkerConfigsSchema(copied.configs) };
             setMarkerThemesState((prev) => normalizeThemeList(
                 prev.some((t) => t.id === parsed.id) ? prev : [...prev, parsed]
             ));

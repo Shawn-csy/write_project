@@ -204,9 +204,12 @@ async def get_sitemap_xml(db: database.SessionLocal = Depends(get_db)):
     return Response(content="\n".join(xml_content), media_type="application/xml")
 
 # Static File Serving (SPA Fallback)
-DIST_DIR = os.path.join(os.path.dirname(__file__), "..", "dist")
-if not os.path.exists(DIST_DIR):
-    DIST_DIR = os.path.join(os.path.dirname(__file__), "dist")
+SERVER_DIR = os.path.dirname(__file__)
+DIST_CANDIDATES = [
+    os.path.join(SERVER_DIR, "dist"),      # /app/dist in container
+    os.path.join(SERVER_DIR, "..", "dist") # local repo root/dist
+]
+DIST_DIR = next((p for p in DIST_CANDIDATES if os.path.exists(p)), DIST_CANDIDATES[0])
 INDEX_PATH = os.path.join(DIST_DIR, "index.html")
 MEDIA_DIR = os.getenv("MEDIA_STORAGE_ROOT", "/data/media")
 try:

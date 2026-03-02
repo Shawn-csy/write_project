@@ -48,13 +48,62 @@ describe('DirectASTBuilder (Pure Marker Mode)', () => {
       assert.ok(scene.id, 'Should have id');
     });
 
-    it('should detect Chinese chapter format', () => {
+    it('should detect Chinese chapter format when custom marker is provided', () => {
       const input = '第一章 開場';
-      const ast = buildAST(input);
+      const ast = buildAST(input, [
+        {
+          id: 'zh-chapter',
+          matchMode: 'regex',
+          regex: '^\\s*第([一二三四五六七八九十百]+)[章節幕場]\\s*(.*)$',
+          parseAs: 'scene_heading',
+          isBlock: true,
+          mapFields: { text: '$0', number: '$1', title: '$2' }
+        }
+      ]);
       
       const scene = ast.children.find(n => n.type === 'scene_heading');
       assert.ok(scene);
       assert.strictEqual(scene.number, '一');
+    });
+
+    it('should detect numbered chapter with regex literal syntax', () => {
+      const input = '01. test';
+      const configs = [
+        {
+          id: 'chapter-literal',
+          label: '章節',
+          isBlock: true,
+          parseAs: 'scene_heading',
+          matchMode: 'regex',
+          regex: '/^\\s*(\\d{1,3})[\\.．、]\\s*(.+)$/',
+          mapFields: { text: '$0', number: '$1', title: '$2' },
+          mapCasts: { number: 'int' }
+        }
+      ];
+      const ast = buildAST(input, configs);
+      const scene = ast.children.find(n => n.type === 'scene_heading');
+      assert.ok(scene, 'Should detect scene heading');
+      assert.strictEqual(scene.number, 1);
+      assert.strictEqual(scene.title, 'test');
+    });
+
+    it('should parse regex scene heading even without explicit isBlock when parseAs exists', () => {
+      const input = '01. test\n02. test\n03. tttest';
+      const configs = [
+        {
+          id: 'chapter-loose',
+          label: '章節',
+          matchMode: 'regex',
+          regex: '^\\s*(\\d{1,3})[\\.．、]\\s*(.+)$',
+          parseAs: 'scene_heading',
+          mapFields: { text: '$0', number: '$1', title: '$2' },
+          mapCasts: { number: 'int' }
+        }
+      ];
+      const ast = buildAST(input, configs);
+      const scenes = ast.children.filter((n) => n.type === 'scene_heading');
+      assert.strictEqual(scenes.length, 3);
+      assert.deepStrictEqual(scenes.map((s) => s.number), [1, 2, 3]);
     });
   });
 
@@ -148,19 +197,28 @@ describe('DirectASTBuilder (Pure Marker Mode)', () => {
 #C 阿哲：
 我在聽你說。`;
       const configs = [
-        { id: 'character', label: '角色', start: '#C', matchMode: 'prefix', isBlock: true, parseAs: 'character' }
+        {
+          id: 'character',
+          label: '角色',
+          start: '#C',
+          matchMode: 'prefix',
+          isBlock: true,
+          parseAs: 'character',
+          mapFields: { text: '$text' },
+          mapCasts: { text: 'trim_colon_suffix' }
+        }
       ];
       const ast = buildAST(input, configs);
 
       const charNodes = ast.children.filter(n => n.type === 'character');
-      const dialogueNodes = ast.children.filter(n => n.type === 'dialogue');
+      const actionNodes = ast.children.filter(n => n.type === 'action');
 
       assert.strictEqual(charNodes.length, 2, 'Should have two character nodes');
       assert.strictEqual(charNodes[0].text, '小雨');
       assert.strictEqual(charNodes[1].text, '阿哲');
-      assert.strictEqual(dialogueNodes.length, 2, 'Should parse following lines as dialogue');
-      assert.strictEqual(dialogueNodes[0].text, '你今天有點安靜。');
-      assert.strictEqual(dialogueNodes[1].text, '我在聽你說。');
+      assert.strictEqual(actionNodes.length, 2, 'Unmarked content should remain action');
+      assert.strictEqual(actionNodes[0].text, '你今天有點安靜。');
+      assert.strictEqual(actionNodes[1].text, '我在聽你說。');
     });
 
     it('should treat type=block as block even when isBlock is missing', () => {
@@ -229,6 +287,16 @@ describe('DirectASTBuilder (Pure Marker Mode)', () => {
 啊、你今天比較早回來啊`;
 
       const configs = [
+        {
+          id: 'chapter',
+          label: '章節',
+          isBlock: true,
+          parseAs: 'scene_heading',
+          matchMode: 'regex',
+          regex: '^(\\d+)\\.\\s*(.+)$',
+          mapFields: { text: '$0', number: '$1', title: '$2' },
+          mapCasts: { number: 'int' }
+        },
         { id: 'se', label: '效果音', start: '#SE', matchMode: 'prefix', isBlock: true },
         { id: 'pos', label: '位置', start: '@', matchMode: 'prefix', isBlock: true }
       ];
@@ -278,6 +346,60 @@ describe('DirectASTBuilder (Pure Marker Mode)', () => {
 
       assert.ok('layerType' in layer, 'layer should have layerType');
       assert.ok('children' in layer, 'layer should have children array');
+    });
+
+    it('should apply generic mapCasts: trim/float/bool/split', () => {
+      const input = '#META   hello world   | 12.5 | 是 | apple, banana，carrot';
+      const configs = [
+        {
+          id: 'meta',
+          label: 'Meta',
+          isBlock: true,
+          parseAs: 'meta',
+          matchMode: 'regex',
+          regex: '^#META\\s*(.*?)\\s*\\|\\s*(.*?)\\s*\\|\\s*(.*?)\\s*\\|\\s*(.*)$',
+          mapFields: {
+            text: '$1',
+            score: '$2',
+            enabled: '$3',
+            tags: '$4'
+          },
+          mapCasts: {
+            text: 'trim',
+            score: 'float',
+            enabled: 'bool',
+            tags: 'split'
+          }
+        }
+      ];
+      const ast = buildAST(input, configs);
+      const node = ast.children[0];
+
+      assert.strictEqual(node.type, 'meta');
+      assert.strictEqual(node.text, 'hello world');
+      assert.strictEqual(node.score, 12.5);
+      assert.strictEqual(node.enabled, true);
+      assert.deepStrictEqual(node.tags, ['apple', 'banana', 'carrot']);
+    });
+
+    it('should support split cast custom separator shorthand', () => {
+      const input = '#K A|B|C';
+      const configs = [
+        {
+          id: 'k',
+          label: 'K',
+          isBlock: true,
+          parseAs: 'meta',
+          matchMode: 'regex',
+          regex: '^#K\\s*(.*)$',
+          mapFields: { text: '$1', items: '$1' },
+          mapCasts: { items: 'split:|' }
+        }
+      ];
+      const ast = buildAST(input, configs);
+      const node = ast.children[0];
+
+      assert.deepStrictEqual(node.items, ['A', 'B', 'C']);
     });
   });
 

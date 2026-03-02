@@ -34,9 +34,9 @@ export function MetadataBasicTab({
     const panelClass = "grid gap-3 rounded-xl border border-border/70 bg-background p-4 shadow-sm";
     const rowLabelBaseClass = "p-4 text-sm font-medium text-foreground";
     const rowLabelToneClass = {
-        required: "border-l-4 border-sky-500/50 bg-sky-50/40 dark:bg-sky-950/20",
-        recommended: "border-l-4 border-amber-500/50 bg-amber-50/40 dark:bg-amber-950/20",
-        advanced: "border-l-4 border-fuchsia-500/50 bg-fuchsia-50/40 dark:bg-fuchsia-950/20",
+        required: "border-l-[5px] border-sky-600 bg-sky-100/80 text-sky-950 dark:border-sky-500 dark:bg-sky-950/25 dark:text-foreground",
+        recommended: "border-l-[5px] border-amber-600 bg-amber-100/80 text-amber-950 dark:border-amber-500 dark:bg-amber-950/25 dark:text-foreground",
+        advanced: "border-l-[5px] border-fuchsia-600 bg-fuchsia-100/80 text-fuchsia-950 dark:border-fuchsia-500 dark:bg-fuchsia-950/25 dark:text-foreground",
     };
     const getRowLabelClass = (tone = "recommended", missing = false) =>
         `${rowLabelBaseClass} ${rowLabelToneClass[tone] || rowLabelToneClass.recommended} ${
@@ -56,10 +56,6 @@ export function MetadataBasicTab({
     );
     const today = React.useMemo(() => new Date().toISOString().slice(0, 10), []);
     const [showExtendedFields, setShowExtendedFields] = React.useState(false);
-    const [heroEntries, setHeroEntries] = React.useState([
-        { id: "hero-1", name: "", role: "", performance: "" }
-    ]);
-    const internalSyncRef = React.useRef(false);
 
     const parseMulti = React.useCallback((raw) => {
         try {
@@ -75,14 +71,10 @@ export function MetadataBasicTab({
         }
     }, []);
 
-    React.useEffect(() => {
-        if (internalSyncRef.current) {
-            internalSyncRef.current = false;
-            return;
-        }
+    const heroEntries = React.useMemo(() => {
         const roleItems = parseMulti(roleSetting);
         const performanceItems = parseMulti(performanceInstruction);
-        const next = roleItems || performanceItems
+        return roleItems || performanceItems
             ? Array.from({ length: Math.max(1, roleItems?.length || 0, performanceItems?.length || 0) }).map((_, idx) => ({
                 id: `hero-${idx + 1}`,
                 name: roleItems?.[idx]?.name || performanceItems?.[idx]?.name || "",
@@ -95,14 +87,11 @@ export function MetadataBasicTab({
                 role: String(roleSetting || ""),
                 performance: String(performanceInstruction || ""),
             }];
-        const prevKey = JSON.stringify(heroEntries.map(({ name, role, performance }) => ({ name, role, performance })));
-        const nextKey = JSON.stringify(next.map(({ name, role, performance }) => ({ name, role, performance })));
-        if (prevKey !== nextKey) setHeroEntries(next);
-    }, [roleSetting, performanceInstruction, parseMulti, heroEntries]);
+    }, [roleSetting, performanceInstruction, parseMulti]);
 
-    React.useEffect(() => {
-        const compact = heroEntries.filter((item) => item.name.trim() || item.role.trim() || item.performance.trim());
-        const normalized = compact.length > 0 ? compact : heroEntries;
+    const commitHeroEntries = React.useCallback((nextEntries) => {
+        const compact = nextEntries.filter((item) => item.name.trim() || item.role.trim() || item.performance.trim());
+        const normalized = compact.length > 0 ? compact : nextEntries;
         if (normalized.length <= 1 && !String(normalized[0]?.name || "").trim()) {
             const nextRole = String(normalized[0]?.role || "");
             const nextPerformance = String(normalized[0]?.performance || "");
@@ -120,29 +109,24 @@ export function MetadataBasicTab({
         }));
         const nextRole = JSON.stringify({ mode: "multi", items: roleItemsPayload });
         const nextPerformance = JSON.stringify({ mode: "multi", items: perfItemsPayload });
-        if (nextRole !== String(roleSetting || "")) {
-            internalSyncRef.current = true;
-            setRoleSetting?.(nextRole);
-        }
-        if (nextPerformance !== String(performanceInstruction || "")) {
-            internalSyncRef.current = true;
-            setPerformanceInstruction?.(nextPerformance);
-        }
-    }, [heroEntries, setRoleSetting, setPerformanceInstruction, roleSetting, performanceInstruction]);
+        if (nextRole !== String(roleSetting || "")) setRoleSetting?.(nextRole);
+        if (nextPerformance !== String(performanceInstruction || "")) setPerformanceInstruction?.(nextPerformance);
+    }, [setRoleSetting, setPerformanceInstruction, roleSetting, performanceInstruction]);
 
     const addHeroEntry = () => {
-        setHeroEntries((prev) => [
-            ...prev,
-            { id: `hero-${Date.now()}-${prev.length + 1}`, name: "", role: "", performance: "" }
+        commitHeroEntries([
+            ...heroEntries,
+            { id: `hero-${Date.now()}-${heroEntries.length + 1}`, name: "", role: "", performance: "" }
         ]);
     };
 
     const updateHeroEntry = (idx, field, value) => {
-        setHeroEntries((prev) => prev.map((item, i) => (i === idx ? { ...item, [field]: value } : item)));
+        commitHeroEntries(heroEntries.map((item, i) => (i === idx ? { ...item, [field]: value } : item)));
     };
 
     const removeHeroEntry = (idx) => {
-        setHeroEntries((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== idx)));
+        if (heroEntries.length <= 1) return;
+        commitHeroEntries(heroEntries.filter((_, i) => i !== idx));
     };
 
     return (

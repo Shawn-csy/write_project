@@ -1,7 +1,30 @@
 export const DEFAULT_MARKER_RULES_NAME = "談聲聆格式";
 
 export const DEFAULT_MARKER_RULES = [
-
+  {
+    id: "rule-numbered-chapter-title",
+    label: "章節標題 (01. ...)",
+    type: "block",
+    isBlock: true,
+    parseAs: "scene_heading",
+    matchMode: "regex",
+    regex: "^\\s*(\\d{1,3})[\\.．、]\\s*(.+)$",
+    mapFields: {
+      text: "$0",
+      number: "$1",
+      title: "$2",
+    },
+    mapCasts: {
+      number: "int",
+    },
+    priority: 995,
+    style: {
+      color: "#1E3A8A",
+      backgroundColor: "#DBEAFE",
+      fontWeight: "bold",
+      letterSpacing: "0.02em",
+    },
+  },
   {
     id: "rule-se-performer",
     label: "聲優效果音 (*...)",
@@ -113,6 +136,12 @@ export const DEFAULT_MARKER_RULES = [
     matchMode: "prefix",
     type: "block",
     parseAs: "character",
+    mapFields: {
+      text: "$text",
+    },
+    mapCasts: {
+      text: "trim_colon_suffix",
+    },
     style: {
       color: "#D32F2F",
       fontWeight: "bold",
