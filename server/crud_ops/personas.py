@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 import models
 import schemas
 from .common import _ensure_list
+from .organizations_query import sync_persona_org_memberships
 
 
 def create_persona(db: Session, persona: schemas.PersonaCreate, ownerId: str):
@@ -26,6 +27,8 @@ def create_persona(db: Session, persona: schemas.PersonaCreate, ownerId: str):
         defaultLicenseSpecialTerms=persona.defaultLicenseSpecialTerms or [],
     )
     db.add(db_persona)
+    db.flush()
+    sync_persona_org_memberships(db, db_persona)
     db.commit()
     db.refresh(db_persona)
     return db_persona
@@ -45,6 +48,7 @@ def update_persona(db: Session, persona_id: str, persona: schemas.PersonaCreate,
 
     for key, value in update_data.items():
         setattr(db_persona, key, value)
+    sync_persona_org_memberships(db, db_persona)
     db_persona.updatedAt = int(time.time() * 1000)
     db.commit()
     db.refresh(db_persona)
@@ -70,6 +74,9 @@ def get_user_personas(db: Session, ownerId: str):
 def delete_persona(db: Session, persona_id: str):
     persona = db.query(models.Persona).filter(models.Persona.id == persona_id).first()
     if persona:
+        db.query(models.PersonaOrganizationMembership).filter(
+            models.PersonaOrganizationMembership.personaId == persona_id
+        ).delete()
         db.query(models.Script).filter(models.Script.personaId == persona_id).update({models.Script.personaId: None})
         db.delete(persona)
         db.commit()

@@ -52,28 +52,39 @@ export function AuthProvider({ children }) {
     if (!user) return;
     const desired = {
       email: user.email || undefined,
-      displayName: user.displayName || undefined,
       avatar: user.photoURL || undefined,
       handle: user.email ? user.email.split("@")[0] : undefined,
     };
+    const providerDisplayName = user.displayName || undefined;
 
     try {
       const profile = await getUserProfile();
       setProfile(profile || null);
+      const desiredWithName = {
+        ...desired,
+        // Keep custom displayName if user already edited it in app.
+        displayName: profile?.displayName ? undefined : providerDisplayName,
+      };
       const needsUpdate =
         !profile ||
-        (desired.email && profile.email !== desired.email) ||
-        (desired.displayName && profile.displayName !== desired.displayName) ||
-        (desired.avatar && profile.avatar !== desired.avatar) ||
-        (desired.handle && profile.handle !== desired.handle);
+        (desiredWithName.email && profile.email !== desiredWithName.email) ||
+        (desiredWithName.displayName && profile.displayName !== desiredWithName.displayName) ||
+        (desiredWithName.avatar && profile.avatar !== desiredWithName.avatar) ||
+        (desiredWithName.handle && profile.handle !== desiredWithName.handle);
 
       if (needsUpdate) {
-        const updated = await updateUserProfile(desired);
-        setProfile(updated || desired || profile || null);
+        const updated = await updateUserProfile(desiredWithName);
+        setProfile(updated || desiredWithName || profile || null);
       }
     } catch (e) {
       console.error("Failed to sync user profile", e);
     }
+  };
+
+  const saveProfile = async (updates) => {
+    const updated = await updateUserProfile(updates || {});
+    setProfile((prev) => ({ ...(prev || {}), ...(updated || updates || {}) }));
+    return updated;
   };
 
   useEffect(() => {
@@ -100,6 +111,7 @@ export function AuthProvider({ children }) {
     profile,
     login,
     logout,
+    saveProfile,
   };
 
   return (

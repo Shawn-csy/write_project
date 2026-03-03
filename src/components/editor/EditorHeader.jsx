@@ -24,8 +24,11 @@ export function EditorHeader({
   onToggleStats,
   showPreview,
   onTogglePreview,
+  onOpenGuide,
   isSidebarOpen,
   onSetSidebarOpen,
+  guideButtonRef,
+  moreActionsRef,
   onTitleChange,
   markerConfigs = [],
   hiddenMarkerIds = [],
@@ -161,9 +164,23 @@ export function EditorHeader({
             {showPreview ? t("editorHeader.editAndPreview") : t("editorHeader.editOnly")}
           </span>
         </Button>
+        {onOpenGuide && (
+          <Button
+            ref={guideButtonRef}
+            variant="ghost"
+            size="sm"
+            onClick={onOpenGuide}
+            className="h-8 rounded-md transition-colors flex items-center gap-2 text-sm hover:bg-muted text-muted-foreground"
+            title={t("editorHeader.guide")}
+          >
+            <HelpCircle className="w-4 h-4" />
+            <span className="hidden sm:inline">{t("editorHeader.guide")}</span>
+          </Button>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
+              ref={moreActionsRef}
               variant="ghost"
               size="icon"
               className="h-8 w-8 rounded-md text-muted-foreground hover:text-foreground"

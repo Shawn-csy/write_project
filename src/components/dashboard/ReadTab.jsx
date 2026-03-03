@@ -2,11 +2,14 @@ import React, { useEffect, useState } from "react";
 import { 
     Loader2, 
     Globe, 
-    Folder
+    Folder,
+    Search,
+    RotateCcw
 } from "lucide-react";
 import { getPublicScripts } from "../../lib/db";
 import { FileRow } from "./FileRow";
 import { useI18n } from "../../contexts/I18nContext";
+import { Button } from "../ui/button";
 
 export function ReadTab({ onSelectPublicScript }) {
     const { t } = useI18n();
@@ -14,6 +17,7 @@ export function ReadTab({ onSelectPublicScript }) {
     const [loading, setLoading] = useState(true);
     const [expandedPublic, setExpandedPublic] = useState(new Set()); 
     const [publicCache, setPublicCache] = useState({}); 
+    const [filterQuery, setFilterQuery] = useState("");
 
 
 
@@ -112,15 +116,33 @@ export function ReadTab({ onSelectPublicScript }) {
         }
     };
 
+    const filterTree = (items, queryLower) => {
+        if (!queryLower) return items;
+        const next = [];
+        for (const item of items || []) {
+            const fullPath = (item.folder === "/" ? "" : item.folder) + "/" + item.title;
+            const key = `${item.ownerId}:${fullPath}`;
+            const children = publicCache[key] || [];
+            const filteredChildren = item.type === "folder" ? filterTree(children, queryLower) : [];
+            const matchesSelf = String(item.title || "").toLowerCase().includes(queryLower);
+            if (matchesSelf || filteredChildren.length > 0) {
+                next.push({ ...item, _filteredChildren: filteredChildren });
+            }
+        }
+        return next;
+    };
 
+    const query = filterQuery.trim().toLowerCase();
+    const visiblePublicScripts = query ? filterTree(publicScripts, query) : publicScripts;
 
     const renderPublicItems = (items, level = 0) => {
         if (!items) return null;
         return items.map(script => {
              const fullPath = (script.folder === '/' ? '' : script.folder) + '/' + script.title;
              const key = `${script.ownerId}:${fullPath}`;
-             const isExpanded = expandedPublic.has(key);
+             const isExpanded = query ? true : expandedPublic.has(key);
              const isFolder = script.type === 'folder';
+             const childrenForRender = query ? (script._filteredChildren || []) : (publicCache[key] || null);
 
              return (
                  <React.Fragment key={script.id}>
@@ -145,7 +167,7 @@ export function ReadTab({ onSelectPublicScript }) {
                         }
                     />
                     {isFolder && isExpanded && (
-                        publicCache[key] ? renderPublicItems(publicCache[key], level + 1) : <div className="pl-8 py-2 text-xs text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin"/> {t("readTab.loading")}</div>
+                        childrenForRender ? renderPublicItems(childrenForRender, level + 1) : <div className="pl-8 py-2 text-xs text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin"/> {t("readTab.loading")}</div>
                     )}
                  </React.Fragment>
              );
@@ -164,14 +186,39 @@ export function ReadTab({ onSelectPublicScript }) {
                         <Globe className="w-4 h-4" /> {t("readTab.publicScripts")}
                     </h3>
                  </div>
+                <div className="mb-2 flex flex-wrap items-center gap-2 rounded-lg border bg-card px-3 py-2 text-xs">
+                    <div className="flex min-w-[220px] flex-1 items-center gap-1">
+                        <Search className="w-3.5 h-3.5 text-muted-foreground" />
+                        <input
+                            type="text"
+                            className="h-8 w-full rounded-md border border-input bg-background px-2 text-foreground"
+                            placeholder="搜尋公開台本 / 資料夾"
+                            value={filterQuery}
+                            onChange={(e) => setFilterQuery(e.target.value)}
+                        />
+                    </div>
+                    <span className="rounded-full border bg-background px-2 py-1 text-[11px] text-muted-foreground">
+                        結果 {visiblePublicScripts.length}
+                    </span>
+                    {filterQuery.trim() && (
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 px-2"
+                            onClick={() => setFilterQuery("")}
+                        >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                        </Button>
+                    )}
+                </div>
                  
                 <div className="border rounded-lg bg-card overflow-y-auto min-h-0 flex-1">
                     {loading ? (
                         <div className="flex justify-center p-4"><Loader2 className="w-4 h-4 animate-spin" /></div>
-                    ) : publicScripts.length === 0 ? (
+                    ) : visiblePublicScripts.length === 0 ? (
                         <p className="text-sm text-muted-foreground p-4">{t("readTab.empty")}</p>
                     ) : (
-                        renderPublicItems(publicScripts)
+                        renderPublicItems(visiblePublicScripts)
                     )}
                 </div>
             </div>

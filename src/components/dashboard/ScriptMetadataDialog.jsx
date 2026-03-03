@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, CircleHelp } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "../ui/select";
 import { Textarea } from "../ui/textarea"; 
 import { updateScript, addTagToScript, removeTagFromScript, getTags, createTag, getScript, getPersonas, getOrganizations, getUserProfile, getOrganization, getPublicScript, createSeries, uploadMediaObject } from "../../lib/db";
 import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { extractMetadataWithRaw, rewriteMetadata, writeMetadata } from "../../lib/metadataParser";
 import { DndContext, closestCenter, MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, arrayMove, useSortable } from "@dnd-kit/sortable";
@@ -19,8 +21,11 @@ import { optimizeImageForUpload, MEDIA_FILE_ACCEPT } from "../../lib/mediaLibrar
 import { MetadataBasicTab } from "./metadata/MetadataBasicTab";
 import { MetadataDetailsTab } from "./metadata/MetadataDetailsTab";
 import { MediaPicker } from "../ui/MediaPicker";
+import { CoverPlaceholder } from "../ui/CoverPlaceholder";
 import { useToast } from "../ui/toast";
 import { useI18n } from "../../contexts/I18nContext";
+
+const SCRIPT_METADATA_GUIDE_STORAGE_KEY = "script-metadata-guide-seen-v1";
 
 export function buildPublishChecklist({ title, identity, licenseCommercial, licenseDerivative, licenseNotify, coverUrl, synopsis, tags, targetAudience, contentRating, t }) {
     const required = [
@@ -54,6 +59,7 @@ export function buildPublishChecklist({ title, identity, licenseCommercial, lice
 export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onSave, seriesOptions = [], onSeriesCreated }) {
     const { t } = useI18n();
     const { toast } = useToast();
+    const navigate = useNavigate();
     const [title, setTitle] = useState("");
     const [coverUrl, setCoverUrl] = useState("");
     const [status, setStatus] = useState("Private");
@@ -97,6 +103,10 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     const [coverUploadWarning, setCoverUploadWarning] = useState("");
     const [showAllChecklistChips, setShowAllChecklistChips] = useState(false);
     const [showValidationHints, setShowValidationHints] = useState(false);
+    const [showPersonaSetupDialog, setShowPersonaSetupDialog] = useState(false);
+    const [showGuide, setShowGuide] = useState(false);
+    const [guideIndex, setGuideIndex] = useState(0);
+    const [guideSpotlightRect, setGuideSpotlightRect] = useState(null);
     const customIdRef = useRef(0);
     const contentScrollRef = useRef(null);
     const autoScrollLockUntilRef = useRef(0);
@@ -319,6 +329,26 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         }),
         [showValidationHints, publishChecklist.missingRecommended]
     );
+
+    const normalizeOrgIds = (value) => {
+        if (Array.isArray(value)) return value.filter(Boolean);
+        if (!value) return [];
+        if (typeof value === "string") {
+            try {
+                const parsed = JSON.parse(value);
+                return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+            } catch {
+                return [];
+            }
+        }
+        return [];
+    };
+
+    const resolveProfileOrgIds = (profile) => {
+        const fromIds = normalizeOrgIds(profile?.organizationIds);
+        const fromSingle = profile?.organizationId ? [profile.organizationId] : [];
+        return Array.from(new Set([...fromIds, ...fromSingle].filter(Boolean)));
+    };
     const requiredTotal = publishChecklist.required.length;
     const recommendedTotal = publishChecklist.recommended.length;
     const completedRequired = requiredTotal - publishChecklist.missingRequired.length;
@@ -341,6 +371,33 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     const visibleChecklistChipItems = showAllChecklistChips
         ? checklistChipItems
         : checklistChipItems.slice(0, maxVisibleChecklistChips);
+    const guideSteps = useMemo(() => ([
+        {
+            title: t("scriptMetadataDialog.guideChecklistTitle"),
+            description: t("scriptMetadataDialog.guideChecklistDesc"),
+            targetId: "metadata-guide-checklist",
+            section: "basic",
+        },
+        {
+            title: t("scriptMetadataDialog.guideBasicTitle"),
+            description: t("scriptMetadataDialog.guideBasicDesc"),
+            targetId: "metadata-section-basic",
+            section: "basic",
+        },
+        {
+            title: t("scriptMetadataDialog.guidePublishTitle"),
+            description: t("scriptMetadataDialog.guidePublishDesc"),
+            targetId: "metadata-section-publish",
+            section: "publish",
+        },
+        {
+            title: t("scriptMetadataDialog.guideExposureTitle"),
+            description: t("scriptMetadataDialog.guideExposureDesc"),
+            targetId: "metadata-section-exposure",
+            section: "exposure",
+        },
+    ]), [t]);
+    const currentGuide = showGuide ? guideSteps[guideIndex] : null;
     const missingRequiredMap = useMemo(
         () => Object.fromEntries(publishChecklist.missingRequired.map((item) => [item.key, true])),
         [publishChecklist.missingRequired]
@@ -370,6 +427,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
             {hint ? <div className="mt-1 text-xs text-muted-foreground">{hint}</div> : null}
         </div>
     );
+    const needsPersonaBeforePublish = status === "Public" && (!identity || !identity.startsWith("persona:"));
+    const hasAnyPersona = personas.length > 0;
 
     const getKeyTarget = (key) => {
         if (key === "title") return { section: "basic", fieldId: "metadata-title" };
@@ -395,6 +454,64 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setActiveTab(section);
         scrollToSection(section);
     };
+
+    const refreshGuideSpotlight = useCallback(() => {
+        if (!showGuide) {
+            setGuideSpotlightRect(null);
+            return;
+        }
+        const target = currentGuide?.targetId
+            ? document.getElementById(currentGuide.targetId)
+            : null;
+        if (!target) return;
+        const rect = target.getBoundingClientRect();
+        const pad = 10;
+        setGuideSpotlightRect({
+            top: Math.max(8, rect.top - pad),
+            left: Math.max(8, rect.left - pad),
+            width: Math.max(64, rect.width + pad * 2),
+            height: Math.max(48, rect.height + pad * 2),
+        });
+    }, [currentGuide, showGuide]);
+
+    const jumpGuide = useCallback((index) => {
+        const next = guideSteps[index];
+        if (!next) return;
+        if (next.section) {
+            focusSection(next.section);
+        }
+        setGuideIndex(index);
+        setShowGuide(true);
+    }, [guideSteps]);
+
+    const finishGuide = useCallback(() => {
+        setShowGuide(false);
+        setGuideIndex(0);
+        setGuideSpotlightRect(null);
+        focusSection("basic");
+        try {
+            localStorage.setItem(SCRIPT_METADATA_GUIDE_STORAGE_KEY, "1");
+        } catch (err) {
+            console.error("Failed to persist script metadata guide state", err);
+        }
+    }, []);
+
+    const startGuide = useCallback(() => {
+        jumpGuide(0);
+    }, [jumpGuide]);
+
+    const handleGuideNext = useCallback(() => {
+        if (guideIndex >= guideSteps.length - 1) {
+            finishGuide();
+            return;
+        }
+        jumpGuide(guideIndex + 1);
+    }, [finishGuide, guideIndex, guideSteps.length, jumpGuide]);
+
+    const handleGuidePrev = useCallback(() => {
+        if (guideIndex <= 0) return;
+        jumpGuide(guideIndex - 1);
+    }, [guideIndex, jumpGuide]);
 
     const jumpToChecklistItem = (key) => {
         const target = getKeyTarget(key);
@@ -472,13 +589,42 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     }, [open, isInitializing]);
 
     useEffect(() => {
+        if (!open) return;
+        try {
+            const seen = localStorage.getItem(SCRIPT_METADATA_GUIDE_STORAGE_KEY) === "1";
+            if (!seen) {
+                jumpGuide(0);
+                localStorage.setItem(SCRIPT_METADATA_GUIDE_STORAGE_KEY, "1");
+            }
+        } catch (err) {
+            console.error("Failed to read script metadata guide state", err);
+        }
+    }, [open, jumpGuide]);
+
+    useEffect(() => {
+        if (!showGuide || !open) return;
+        const raf = window.requestAnimationFrame(refreshGuideSpotlight);
+        window.addEventListener("resize", refreshGuideSpotlight);
+        window.addEventListener("scroll", refreshGuideSpotlight, true);
+        return () => {
+            window.cancelAnimationFrame(raf);
+            window.removeEventListener("resize", refreshGuideSpotlight);
+            window.removeEventListener("scroll", refreshGuideSpotlight, true);
+        };
+    }, [showGuide, guideIndex, activeTab, open, refreshGuideSpotlight]);
+
+    useEffect(() => {
         if (open && currentUser) {
             Promise.all([
                 getPersonas(),
                 getOrganizations(),
                 fetchUserThemes(currentUser),
             ]).then(async ([pData, oData, tData]) => {
-                setPersonas(pData || []);
+                const normalizedPersonas = (pData || []).map((p) => ({
+                    ...p,
+                    organizationIds: normalizeOrgIds(p?.organizationIds),
+                }));
+                setPersonas(normalizedPersonas);
                 let mergedOrgs = oData || [];
                 let profile = currentProfile;
                 if (!profile) {
@@ -488,12 +634,14 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                         profile = null;
                     }
                 }
-                const memberOrgId = profile?.organizationId;
+                const memberOrgIds = resolveProfileOrgIds(profile);
                 const extraOrgIds = new Set();
-                if (memberOrgId && !(oData || []).some(o => o.id === memberOrgId)) {
-                    extraOrgIds.add(memberOrgId);
-                }
-                (pData || []).forEach(p => {
+                memberOrgIds.forEach((oid) => {
+                    if (!(oData || []).some((o) => o.id === oid)) {
+                        extraOrgIds.add(oid);
+                    }
+                });
+                normalizedPersonas.forEach((p) => {
                     (p.organizationIds || []).forEach(oid => {
                         if (!(oData || []).some(o => o.id === oid)) {
                             extraOrgIds.add(oid);
@@ -518,6 +666,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                     deduped.push(o);
                 }
                 setOrgs(deduped);
+                setShowPersonaSetupDialog(Array.isArray(normalizedPersonas) && normalizedPersonas.length === 0);
                 
                 const userThemes = tData || [];
                 const normalizeThemeName = (name = "") =>
@@ -553,6 +702,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
             setSeriesExpanded(false);
             setShowSeriesQuickCreate(false);
             setShowValidationHints(false);
+            setShowPersonaSetupDialog(false);
             return;
         }
         if (initializedRef.current) return;
@@ -1149,9 +1299,32 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
 
     const handleSave = async () => {
         setShowValidationHints(true);
-        if (!identity || !identity.startsWith("persona:")) {
-            toast({ title: t("scriptMetadataDialog.selectIdentityFirst"), variant: "destructive" });
+        if (needsPersonaBeforePublish) {
+            toast({
+                title: t("scriptMetadataDialog.selectIdentityFirst", "請先選擇作者"),
+                description: t("scriptMetadataDialog.selectIdentityToPublish", "公開前需要作者身份，可直接在下方快速建立。"),
+                variant: "destructive",
+            });
             setActiveTab("basic");
+            if (!hasAnyPersona) {
+                setShowPersonaSetupDialog(true);
+            }
+            return;
+        }
+        if (!identity || !identity.startsWith("persona:")) {
+            toast({
+                title: !hasAnyPersona
+                    ? t("scriptMetadataDialog.noPersonaYet", "尚未建立作者身份")
+                    : t("scriptMetadataDialog.selectIdentityFirst"),
+                description: !hasAnyPersona
+                    ? t("scriptMetadataDialog.noPersonaYetDesc", "先建立一個作者身份，之後即可在這裡選擇並套用到劇本。")
+                    : undefined,
+                variant: "destructive",
+            });
+            setActiveTab("basic");
+            if (!hasAnyPersona) {
+                setShowPersonaSetupDialog(true);
+            }
             return;
         }
         if (status === "Public" && publishChecklist.missingRequired.length > 0) {
@@ -1320,6 +1493,12 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         }
     };
 
+    const handleGoToAuthorProfile = () => {
+        setShowPersonaSetupDialog(false);
+        onOpenChange(false);
+        navigate("/studio?tab=profile");
+    };
+
     const handleSetTargetAudience = async (newAudience) => {
         setTargetAudience(newAudience);
         const audienceGroup = ["男性向", "女性向", "一般向"];
@@ -1381,26 +1560,41 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     };
 
     return (
+        <>
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="flex max-h-[92vh] w-[95vw] flex-col overflow-hidden gap-0 bg-background p-0 sm:max-w-[760px] lg:max-w-[980px] xl:max-w-[1120px]">
+            <DialogContent
+                className="flex max-h-[92vh] w-[95vw] flex-col overflow-hidden gap-0 bg-background p-0 sm:max-w-[760px] lg:max-w-[980px] xl:max-w-[1120px]"
+                onInteractOutside={(e) => {
+                    if (showGuide) e.preventDefault();
+                }}
+                onEscapeKeyDown={(e) => {
+                    if (showGuide) e.preventDefault();
+                }}
+            >
                 <DialogHeader className="border-b bg-background px-4 py-3 sm:px-5 sm:py-4">
                     <div className="flex flex-col gap-2.5">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
                                 <DialogTitle className="text-xl font-semibold tracking-tight">{t("scriptMetadataDialog.title")}</DialogTitle>
                             </div>
-                            <Badge
-                                variant="outline"
-                                className={`text-xs font-medium ${
-                                    status === "Public"
-                                        ? "border-emerald-300 text-emerald-700 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300"
-                                        : "border-border text-muted-foreground bg-muted/40"
-                                }`}
-                            >
-                                {status === "Public" ? t("metadataBasic.public", "公開") : t("metadataBasic.private", "私人")}
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                                <Button type="button" variant="outline" size="sm" className="h-8" onClick={startGuide}>
+                                    <CircleHelp className="mr-1.5 h-4 w-4" />
+                                    {t("scriptMetadataDialog.guide")}
+                                </Button>
+                                <Badge
+                                    variant="outline"
+                                    className={`text-xs font-medium ${
+                                        status === "Public"
+                                            ? "border-emerald-300 text-emerald-700 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300"
+                                            : "border-border text-muted-foreground bg-muted/40"
+                                    }`}
+                                >
+                                    {status === "Public" ? t("metadataBasic.public", "公開") : t("metadataBasic.private", "私人")}
+                                </Badge>
+                            </div>
                         </div>
-                        <div className="rounded-lg border border-border/70 bg-background p-2.5 shadow-sm">
+                        <div id="metadata-guide-checklist" className="rounded-lg border border-border/70 bg-background p-2.5 shadow-sm">
                             <div className="mb-1.5 flex items-center justify-between gap-2">
                                 <div className="text-[11px] font-medium text-muted-foreground">{t("scriptMetadataDialog.publishChecklist")}</div>
                                 <div className="text-xs font-semibold text-foreground">
@@ -1698,20 +1892,21 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                                                 </div>
                                                 {coverUploadError && <p className="text-xs text-destructive">{coverUploadError}</p>}
                                                 {coverUploadWarning && <p className="text-xs text-amber-700 dark:text-amber-300">{coverUploadWarning}</p>}
-                                                {coverUrl && (
-                                                    <div className="mt-1 h-28 w-full overflow-hidden rounded-md border bg-muted/20">
-                                                        {coverPreviewFailed ? (
-                                                            <div className="flex h-full items-center justify-center text-xs text-muted-foreground">{t("metadataDetails.coverPreviewFail")}</div>
-                                                        ) : (
-                                                            <img
-                                                                src={coverUrl}
-                                                                alt="cover preview"
-                                                                className="h-full w-full object-cover"
-                                                                onLoad={() => setCoverPreviewFailed(false)}
-                                                                onError={() => setCoverPreviewFailed(true)}
-                                                            />
-                                                        )}
-                                                    </div>
+                                                <div className="mt-1 h-28 w-full overflow-hidden rounded-md border bg-muted/20">
+                                                    {coverUrl && !coverPreviewFailed ? (
+                                                        <img
+                                                            src={coverUrl}
+                                                            alt="cover preview"
+                                                            className="h-full w-full object-cover"
+                                                            onLoad={() => setCoverPreviewFailed(false)}
+                                                            onError={() => setCoverPreviewFailed(true)}
+                                                        />
+                                                    ) : (
+                                                        <CoverPlaceholder title={title || "Untitled"} compact />
+                                                    )}
+                                                </div>
+                                                {coverUrl && coverPreviewFailed && (
+                                                    <p className="text-xs text-muted-foreground">{t("metadataDetails.coverPreviewFail")}</p>
                                                 )}
                                                 {recommendedErrorMap.cover && <p className="text-xs text-amber-700 dark:text-amber-300">{t("metadataDetails.coverTip")}</p>}
                                             </div>
@@ -2029,5 +2224,73 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+        {showGuide && currentGuide && typeof document !== "undefined" && createPortal(
+            <div className="fixed inset-0 z-[240] pointer-events-none">
+                {guideSpotlightRect ? (
+                    <>
+                        <div className="absolute left-0 top-0 bg-black/75 pointer-events-auto" style={{ width: "100%", height: guideSpotlightRect.top }} />
+                        <div className="absolute left-0 bg-black/75 pointer-events-auto" style={{ top: guideSpotlightRect.top, width: guideSpotlightRect.left, height: guideSpotlightRect.height }} />
+                        <div
+                            className="absolute right-0 bg-black/75 pointer-events-auto"
+                            style={{
+                                top: guideSpotlightRect.top,
+                                left: guideSpotlightRect.left + guideSpotlightRect.width,
+                                height: guideSpotlightRect.height,
+                            }}
+                        />
+                        <div className="absolute left-0 bg-black/75 pointer-events-auto" style={{ top: guideSpotlightRect.top + guideSpotlightRect.height, width: "100%", bottom: 0 }} />
+                        <div
+                            className="absolute rounded-xl border-2 border-primary shadow-[0_0_40px_rgba(255,255,255,0.12)] pointer-events-none"
+                            style={{
+                                top: guideSpotlightRect.top,
+                                left: guideSpotlightRect.left,
+                                width: guideSpotlightRect.width,
+                                height: guideSpotlightRect.height,
+                            }}
+                        />
+                    </>
+                ) : (
+                    <div className="absolute inset-0 bg-black/75 pointer-events-auto" />
+                )}
+                <div className="absolute right-6 bottom-6 w-[380px] max-w-[calc(100vw-3rem)] rounded-xl border bg-background p-4 shadow-2xl pointer-events-auto">
+                    <div className="text-xs text-muted-foreground">{guideIndex + 1}/{guideSteps.length}</div>
+                    <div className="text-base font-semibold mt-1">{currentGuide.title}</div>
+                    <p className="text-sm text-muted-foreground mt-1">{currentGuide.description}</p>
+                    <div className="mt-4 flex items-center justify-between gap-2">
+                        <Button type="button" size="sm" variant="ghost" onClick={finishGuide}>
+                            {t("scriptMetadataDialog.guideSkip")}
+                        </Button>
+                        <div className="flex items-center gap-2">
+                            <Button type="button" size="sm" variant="outline" onClick={handleGuidePrev} disabled={guideIndex === 0}>
+                                {t("scriptMetadataDialog.guidePrev")}
+                            </Button>
+                            <Button type="button" size="sm" onClick={handleGuideNext}>
+                                {guideIndex === guideSteps.length - 1 ? t("scriptMetadataDialog.guideDone") : t("scriptMetadataDialog.guideNext")}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </div>,
+            document.body
+        )}
+        <Dialog open={showPersonaSetupDialog} onOpenChange={setShowPersonaSetupDialog}>
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <DialogTitle>{t("scriptMetadataDialog.noPersonaYet", "尚未建立作者身份")}</DialogTitle>
+                </DialogHeader>
+                <p className="text-sm text-muted-foreground">
+                    {t("scriptMetadataDialog.goCreatePersonaDesc", "請先前往作者身份頁建立至少一位作者，再回來編輯與發布劇本。")}
+                </p>
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setShowPersonaSetupDialog(false)}>
+                        {t("common.cancel", "取消")}
+                    </Button>
+                    <Button type="button" onClick={handleGoToAuthorProfile}>
+                        {t("scriptMetadataDialog.goCreatePersona", "前往建立作者")}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        </>
     );
 }

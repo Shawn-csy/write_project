@@ -83,6 +83,39 @@
     --marker-color-antique-gold: #70552D;
     --marker-color-deep-iris: #4E4057;
     --marker-color-charcoal: #333333;
+
+    /* Morandi Panel Tokens (Light Mode) */
+    --morandi-tone-works-trigger-bg: #CCD3D9;
+    --morandi-tone-works-trigger-fg: #4F5C66;
+    --morandi-tone-works-helper-border: #8A9AA6;
+    --morandi-tone-works-helper-bg: #E6EBEF;
+    --morandi-tone-works-helper-fg: #4E5B65;
+    --morandi-tone-works-panel-border: #C7D1D8;
+    --morandi-tone-works-panel-bg: #F1F4F6;
+
+    --morandi-tone-profile-trigger-bg: #DCCFC6;
+    --morandi-tone-profile-trigger-fg: #6B5850;
+    --morandi-tone-profile-helper-border: #B79F93;
+    --morandi-tone-profile-helper-bg: #EFE6E1;
+    --morandi-tone-profile-helper-fg: #6B5850;
+    --morandi-tone-profile-panel-border: #D8C9C1;
+    --morandi-tone-profile-panel-bg: #F6F1EE;
+
+    --morandi-tone-org-trigger-bg: #CBD4C8;
+    --morandi-tone-org-trigger-fg: #556257;
+    --morandi-tone-org-helper-border: #8EA28F;
+    --morandi-tone-org-helper-bg: #E6ECE3;
+    --morandi-tone-org-helper-fg: #556257;
+    --morandi-tone-org-panel-border: #C7D4C6;
+    --morandi-tone-org-panel-bg: #F0F5EE;
+
+    --morandi-tone-series-trigger-bg: #D2C8CF;
+    --morandi-tone-series-trigger-fg: #60525E;
+    --morandi-tone-series-helper-border: #A894A2;
+    --morandi-tone-series-helper-bg: #EAE3E8;
+    --morandi-tone-series-helper-fg: #60525E;
+    --morandi-tone-series-panel-border: #D2C7D0;
+    --morandi-tone-series-panel-bg: #F4F0F3;
     --desktop-ui-scale: 1;
   }
 
@@ -169,12 +202,45 @@
     --marker-color-antique-gold: #BC9E6A;
     --marker-color-deep-iris: #91809C;
     --marker-color-charcoal: #808080;
+
+    /* Morandi Panel Tokens (Dark Mode) */
+    --morandi-tone-works-trigger-bg: #3C4750;
+    --morandi-tone-works-trigger-fg: #D8DEE3;
+    --morandi-tone-works-helper-border: #6F7E88;
+    --morandi-tone-works-helper-bg: #2F3940;
+    --morandi-tone-works-helper-fg: #CFD8DE;
+    --morandi-tone-works-panel-border: #4B5963;
+    --morandi-tone-works-panel-bg: #252D33;
+
+    --morandi-tone-profile-trigger-bg: #4E403A;
+    --morandi-tone-profile-trigger-fg: #E7DCD6;
+    --morandi-tone-profile-helper-border: #8C776E;
+    --morandi-tone-profile-helper-bg: #3F342F;
+    --morandi-tone-profile-helper-fg: #E8DDD8;
+    --morandi-tone-profile-panel-border: #5A4C45;
+    --morandi-tone-profile-panel-bg: #2F2825;
+
+    --morandi-tone-org-trigger-bg: #3D4940;
+    --morandi-tone-org-trigger-fg: #D4DDD2;
+    --morandi-tone-org-helper-border: #6F8571;
+    --morandi-tone-org-helper-bg: #2F3A32;
+    --morandi-tone-org-helper-fg: #D4DDD2;
+    --morandi-tone-org-panel-border: #4A5C4C;
+    --morandi-tone-org-panel-bg: #242E26;
+
+    --morandi-tone-series-trigger-bg: #483F47;
+    --morandi-tone-series-trigger-fg: #DED5DB;
+    --morandi-tone-series-helper-border: #7F6E7A;
+    --morandi-tone-series-helper-bg: #372F36;
+    --morandi-tone-series-helper-fg: #DDD3DA;
+    --morandi-tone-series-panel-border: #564A55;
+    --morandi-tone-series-panel-bg: #272327;
   }
 
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--app-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif);
   }
 
   /* accent helpers driven by CSS variables */

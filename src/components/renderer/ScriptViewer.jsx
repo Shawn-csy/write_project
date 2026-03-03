@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { parseScreenplay } from '../../lib/screenplayAST';
 import { ScriptRenderer } from './ScriptRenderer';
 import { useI18n } from '../../contexts/I18nContext';
+import { resolveReadingFontStack } from '../../constants/readingFonts';
 
 // 1. Add prop
 function ScriptViewer({
@@ -25,6 +26,7 @@ function ScriptViewer({
   fontSize = 14,
   bodyFontSize = 14,
   dialogueFontSize = 14,
+  readingFontFamily = "serif",
   focusContentMode = "all",
 
   accentColor,
@@ -35,6 +37,7 @@ function ScriptViewer({
   showLineUnderline = false,
 }) {
   const { t } = useI18n();
+  const readingFontStack = resolveReadingFontStack(readingFontFamily);
   const colorCache = useRef(new Map());
 
   // Mode check
@@ -172,6 +175,7 @@ function ScriptViewer({
        <ScriptRenderer 
          ast={ast} 
          fontSize={fontSize || bodyFontSize}
+         readingFontFamily={readingFontFamily}
          filterCharacter={filterCharacter}
          focusMode={focusMode}
          focusEffect={focusEffect}
@@ -183,7 +187,7 @@ function ScriptViewer({
          showLineUnderline={showLineUnderline}
        />
      );
-  }, [ast, filterCharacter, focusMode, focusEffect, bodyFontSize, fontSize, theme, colorCache, markerConfigs, onProcessedHtml, hiddenMarkerIds]);
+  }, [ast, filterCharacter, focusMode, focusEffect, bodyFontSize, fontSize, readingFontFamily, theme, colorCache, markerConfigs, onProcessedHtml, hiddenMarkerIds]);
 
   // Generate RAW HTML (No Filters) for fallback
   const rawHtml = useMemo(() => {
@@ -197,6 +201,7 @@ function ScriptViewer({
           <ScriptRenderer 
             ast={ast} 
             fontSize={fontSize || bodyFontSize}
+            readingFontFamily={readingFontFamily}
             filterCharacter={null}
             focusMode={false}
             focusEffect={focusEffect}
@@ -208,7 +213,7 @@ function ScriptViewer({
             showLineUnderline={showLineUnderline}
           />
       );
-  }, [ast, onRawHtml, bodyFontSize, fontSize, theme, colorCache, markerConfigs, filterCharacter, focusMode, filteredHtml, hiddenMarkerIds]);
+  }, [ast, onRawHtml, bodyFontSize, fontSize, readingFontFamily, theme, colorCache, markerConfigs, filterCharacter, focusMode, filteredHtml, hiddenMarkerIds]);
 
 
   useEffect(() => {
@@ -238,8 +243,9 @@ function ScriptViewer({
       return (
         <article
             className="script-view-root p-8 max-w-3xl mx-auto"
+            style={{ fontFamily: readingFontStack }}
         >
-            <div className="whitespace-pre-wrap font-serif text-foreground/90">
+            <div className="whitespace-pre-wrap text-foreground/90">
                 {text}
             </div>
         </article>
@@ -253,6 +259,7 @@ function ScriptViewer({
       <ScriptRenderer 
         ast={ast}
         fontSize={fontSize || bodyFontSize}
+        readingFontFamily={readingFontFamily}
         filterCharacter={filterCharacter}
         focusMode={focusMode}
         focusEffect={focusEffect}

@@ -1,5 +1,6 @@
-import React, { Suspense } from "react";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { createPortal } from "react-dom";
 
 // Pages
 import DashboardPage from "./pages/DashboardPage";
@@ -25,10 +26,33 @@ import { MainLayout } from "./components/layout/MainLayout";
 import { StatisticsPanel } from "./components/statistics/StatisticsPanel";
 import { RequireAuth } from "./components/auth/RequireAuth";
 import { renderSafeHtml } from "./lib/safeHtml";
+import { useI18n } from "./contexts/I18nContext";
 
 // Lazy Components
-const SettingsPanel = React.lazy(() => import("./components/panels/SettingsPanel"));
-const AboutPanelLazy = React.lazy(() => import("./components/panels/AboutPanel"));
+const lazyWithRefreshRetry = (importer, key) =>
+    React.lazy(async () => {
+        const retryKey = `lazy-retry:${key}`;
+        try {
+            const loaded = await importer();
+            sessionStorage.removeItem(retryKey);
+            return loaded;
+        } catch (error) {
+            const message = String(error?.message || "");
+            const isChunkLoadError =
+                /Failed to fetch dynamically imported module|Importing a module script failed|Loading chunk/i.test(message);
+            const alreadyRetried = sessionStorage.getItem(retryKey) === "1";
+            if (isChunkLoadError && !alreadyRetried) {
+                sessionStorage.setItem(retryKey, "1");
+                window.location.reload();
+                return new Promise(() => {});
+            }
+            sessionStorage.removeItem(retryKey);
+            throw error;
+        }
+    });
+
+const SettingsPanel = lazyWithRefreshRetry(() => import("./components/panels/SettingsPanel"), "settings-panel");
+const AboutPanelLazy = lazyWithRefreshRetry(() => import("./components/panels/AboutPanel"), "about-panel");
 
 export function AppRouter({
     scriptManager,
@@ -65,6 +89,9 @@ export function AppRouter({
     fileTitleMap,
     fileTagsMap
 }) {
+    const { t } = useI18n();
+    const [readGuideSpotlightRect, setReadGuideSpotlightRect] = useState(null);
+
     // Destructure scriptManager for usage in render
     const {
         titleHtml,
@@ -82,7 +109,107 @@ export function AppRouter({
     } = scriptManager;
 
     const navigate = useNavigate();
+    const location = useLocation();
     const isCloudReadMode = Boolean(activeCloudScript) && cloudScriptMode === "read";
+    const guideParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+    const isCrossModeGuideActive = guideParams.get("guide") === "1";
+    const guideStep = guideParams.get("guideStep") || "";
+
+    const navigateGuide = (mode, step = "") => {
+        if (!activeCloudScript?.id) return;
+        const params = new URLSearchParams();
+        params.set("mode", mode);
+        if (step) {
+            params.set("guide", "1");
+            params.set("guideStep", step);
+        }
+        navigate(`/edit/${activeCloudScript.id}?${params.toString()}`);
+    };
+    const exitGuideToRead = () => navigateGuide("read");
+    const startCrossModeGuide = () => navigateGuide("read", "readIntro");
+    const nextReadGuideStep = () => {
+        if (guideStep === "readIntro") {
+            navigateGuide("read", "readTools");
+            return;
+        }
+        if (guideStep === "readTools") {
+            navigateGuide("read", "readToEdit");
+            return;
+        }
+        if (guideStep === "readToEdit") {
+            navigateGuide("edit", "editIntro");
+            return;
+        }
+        if (guideStep === "readFinish") {
+            exitGuideToRead();
+        }
+    };
+    const readGuideDialogOpen = isCloudReadMode && isCrossModeGuideActive && (
+        guideStep === "readIntro" ||
+        guideStep === "readTools" ||
+        guideStep === "readToEdit" ||
+        guideStep === "readFinish"
+    );
+    const readGuideTitle = (() => {
+        if (guideStep === "readTools") return t("readerActions.crossGuideReadToolsTitle");
+        if (guideStep === "readToEdit") return t("readerActions.crossGuideReadToEditTitle");
+        if (guideStep === "readFinish") return t("readerActions.crossGuideFinishTitle");
+        return t("readerActions.crossGuideReadIntroTitle");
+    })();
+    const readGuideDesc = (() => {
+        if (guideStep === "readTools") return t("readerActions.crossGuideReadToolsDesc");
+        if (guideStep === "readToEdit") return t("readerActions.crossGuideReadToEditDesc");
+        if (guideStep === "readFinish") return t("readerActions.crossGuideFinishDesc");
+        return t("readerActions.crossGuideReadIntroDesc");
+    })();
+    const getReadGuideTargetId = useCallback(() => {
+        if (guideStep === "readIntro") return "reader-guide-header";
+        if (guideStep === "readTools") return "reader-guide-tools";
+        if (guideStep === "readToEdit") return "reader-guide-edit-button";
+        return "";
+    }, [guideStep]);
+    const refreshReadGuideSpotlight = useCallback(() => {
+        if (!readGuideDialogOpen) {
+            setReadGuideSpotlightRect(null);
+            return;
+        }
+        const targetId = getReadGuideTargetId();
+        if (!targetId) {
+            setReadGuideSpotlightRect(null);
+            return;
+        }
+        const target = document.getElementById(targetId);
+        if (!target) {
+            setReadGuideSpotlightRect(null);
+            return;
+        }
+        const rect = target.getBoundingClientRect();
+        const pad = 10;
+        setReadGuideSpotlightRect({
+            top: Math.max(8, rect.top - pad),
+            left: Math.max(8, rect.left - pad),
+            width: Math.max(64, rect.width + pad * 2),
+            height: Math.max(48, rect.height + pad * 2),
+        });
+    }, [getReadGuideTargetId, readGuideDialogOpen]);
+    useEffect(() => {
+        if (!readGuideDialogOpen) {
+            setReadGuideSpotlightRect(null);
+            return undefined;
+        }
+        refreshReadGuideSpotlight();
+        const handleLayoutChange = () => refreshReadGuideSpotlight();
+        window.addEventListener("resize", handleLayoutChange);
+        window.addEventListener("scroll", handleLayoutChange, true);
+        return () => {
+            window.removeEventListener("resize", handleLayoutChange);
+            window.removeEventListener("scroll", handleLayoutChange, true);
+        };
+    }, [readGuideDialogOpen, guideStep, refreshReadGuideSpotlight]);
+    const handleReaderEdit = () => {
+        if (!activeCloudScript || isPublicReader) return;
+        navigateGuide("edit");
+    };
 
     return (
         <Routes>
@@ -154,9 +281,11 @@ export function AppRouter({
                                             totalLines={0}
                                             onEdit={
                                                 activeCloudScript && !isPublicReader
-                                                    ? () => setCloudScriptMode("edit")
+                                                    ? handleReaderEdit
                                                     : null
                                             }
+                                            onOpenGuide={isCloudReadMode ? startCrossModeGuide : undefined}
+                                            showReadModeHint={isCloudReadMode}
                                             onBack={handleReturnHome}
                                             onToggleStats={() => setShowStats(!showStats)}
                                             extraActions={
@@ -242,6 +371,49 @@ export function AppRouter({
                                 </div>
                             )}
                         </main>
+                        {readGuideDialogOpen && typeof document !== "undefined" && createPortal(
+                            <div className="fixed inset-0 z-[260] pointer-events-none">
+                                {readGuideSpotlightRect ? (
+                                    <>
+                                        <div className="absolute left-0 top-0 bg-black/75 pointer-events-auto" style={{ width: "100%", height: readGuideSpotlightRect.top }} />
+                                        <div className="absolute left-0 bg-black/75 pointer-events-auto" style={{ top: readGuideSpotlightRect.top, width: readGuideSpotlightRect.left, height: readGuideSpotlightRect.height }} />
+                                        <div
+                                            className="absolute right-0 bg-black/75 pointer-events-auto"
+                                            style={{
+                                                top: readGuideSpotlightRect.top,
+                                                left: readGuideSpotlightRect.left + readGuideSpotlightRect.width,
+                                                height: readGuideSpotlightRect.height,
+                                            }}
+                                        />
+                                        <div className="absolute left-0 bg-black/75 pointer-events-auto" style={{ top: readGuideSpotlightRect.top + readGuideSpotlightRect.height, width: "100%", bottom: 0 }} />
+                                        <div
+                                            className="absolute rounded-xl border-2 border-primary shadow-[0_0_40px_rgba(255,255,255,0.12)] pointer-events-none"
+                                            style={{
+                                                top: readGuideSpotlightRect.top,
+                                                left: readGuideSpotlightRect.left,
+                                                width: readGuideSpotlightRect.width,
+                                                height: readGuideSpotlightRect.height,
+                                            }}
+                                        />
+                                    </>
+                                ) : (
+                                    <div className="absolute inset-0 bg-black/75 pointer-events-auto" />
+                                )}
+                                <div className="absolute right-6 bottom-6 w-[380px] max-w-[calc(100vw-3rem)] rounded-xl border bg-background p-4 shadow-2xl pointer-events-auto">
+                                    <div className="text-base font-semibold">{readGuideTitle}</div>
+                                    <p className="mt-1 text-sm text-muted-foreground">{readGuideDesc}</p>
+                                    <div className="mt-4 flex items-center justify-between gap-2">
+                                        <Button type="button" variant="outline" size="sm" onClick={exitGuideToRead}>
+                                            {t("readerActions.crossGuideExit")}
+                                        </Button>
+                                        <Button type="button" size="sm" onClick={nextReadGuideStep}>
+                                            {guideStep === "readFinish" ? t("readerActions.crossGuideDone") : t("readerActions.crossGuideNext")}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>,
+                            document.body
+                        )}
                     </MainLayout>
                 </RequireAuth>
             } />

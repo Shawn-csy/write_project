@@ -1,15 +1,16 @@
 import React, { useState } from "react";
 import {
-  Sun, Moon, Palette, Type,
-  LayoutTemplate, Check, Monitor,
-  AlignJustify
+  Sun, Moon, Palette, Check, AlignJustify
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { Separator } from "../ui/separator";
 import { Slider } from "../ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useI18n } from "../../contexts/I18nContext";
 import { cn } from "../../lib/utils";
+import { PublisherFormRow } from "../dashboard/publisher/PublisherFormRow";
+import { READING_FONT_OPTIONS, UI_FONT_OPTIONS, resolveReadingFontStack } from "../../constants/readingFonts";
 
 export function AppearanceSettings({ sectionRef }) {
   const { t } = useI18n();
@@ -22,6 +23,8 @@ export function AppearanceSettings({ sectionRef }) {
       dialogueFontSize, setDialogueFontSize,
       lineHeight, setLineHeight,
       desktopUiScale, setDesktopUiScale,
+      readingFontFamily, setReadingFontFamily,
+      uiFontFamily, setUiFontFamily,
       // Display
       showLineUnderline, setShowLineUnderline
   } = useSettings();
@@ -46,6 +49,7 @@ export function AppearanceSettings({ sectionRef }) {
     { label: "110%", value: 1.1 },
     { label: "120%", value: 1.2 },
   ];
+  const readingFontStack = resolveReadingFontStack(readingFontFamily);
 
   return (
     <Card className="border border-border/60 bg-card/50 shadow-sm" ref={sectionRef}>
@@ -64,11 +68,11 @@ export function AppearanceSettings({ sectionRef }) {
       <CardContent className="px-5 pb-5 space-y-6">
         
         {/* 1. Theme & Accent - Compact Row */}
-        <div className="space-y-3">
-            <label className="text-sm font-medium text-foreground/90 flex items-center gap-2">
-                <Monitor className="w-3.5 h-3.5 text-muted-foreground" />
-                {t("appearance.theme")}
-            </label>
+        <PublisherFormRow
+            label={t("appearance.theme")}
+            hint={t("appearance.subtitle")}
+            className="md:grid-cols-[180px_minmax(0,1fr)]"
+        >
             <div className="flex flex-wrap items-center gap-4">
                 {/* Dark Mode Toggle */}
                 <div className="flex items-center bg-muted/40 p-1 rounded-lg border border-border/40 shrink-0">
@@ -116,17 +120,17 @@ export function AppearanceSettings({ sectionRef }) {
                     })}
                 </div>
             </div>
-        </div>
+        </PublisherFormRow>
 
         <Separator className="bg-border/40" />
 
         {/* 2. Typography - Compact Grid */}
-        <div className="space-y-3">
-             <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-foreground/90 flex items-center gap-2">
-                    <Type className="w-3.5 h-3.5 text-muted-foreground" />
-                    {t("appearance.typography")}
-                </label>
+        <PublisherFormRow
+            label={t("appearance.typography")}
+            className="md:grid-cols-[180px_minmax(0,1fr)]"
+        >
+             <div className="space-y-3">
+               <div className="flex items-center justify-between">
                 <div className="flex gap-2">
                    <button 
                       onClick={() => setShowAdvancedFont(!showAdvancedFont)}
@@ -135,9 +139,24 @@ export function AppearanceSettings({ sectionRef }) {
                      {showAdvancedFont ? t("appearance.simple") : t("appearance.advanced")}
                    </button>
                 </div>
-             </div>
+               </div>
              
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                 <div className="space-y-1.5 sm:col-span-2">
+                     <span className="text-xs text-muted-foreground ml-1">{t("appearance.fontFamily")}</span>
+                     <Select value={readingFontFamily} onValueChange={setReadingFontFamily}>
+                        <SelectTrigger className="h-9 bg-background/70">
+                          <SelectValue placeholder={t("appearance.fontFamily")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {READING_FONT_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                     </Select>
+                 </div>
                  {/* Font Size Group */}
                  <div className="space-y-1.5">
                      <span className="text-xs text-muted-foreground ml-1">{t("appearance.fontSize")}</span>
@@ -214,16 +233,51 @@ export function AppearanceSettings({ sectionRef }) {
                    </div>
                 </div>
              )}
-        </div>
+             </div>
+        </PublisherFormRow>
+
+        <Separator className="bg-border/40" />
+
+        <PublisherFormRow
+            label={t("appearance.previewTitle")}
+            className="md:grid-cols-[180px_minmax(0,1fr)]"
+        >
+            <div className="rounded-lg border border-border/60 bg-background/70 p-3">
+                <div className="rounded-md border border-border/60 bg-background p-3" style={{ fontFamily: readingFontStack, lineHeight }}>
+                    <div className="text-xs font-semibold text-muted-foreground mb-1">{t("appearance.previewReading")}</div>
+                    <p className="text-[13px]" style={{ fontSize: `${bodyFontSize}px` }}>
+                        {t("appearance.previewBody")}
+                    </p>
+                    <p className="mt-2 font-semibold" style={{ fontSize: `${dialogueFontSize}px` }}>
+                        {t("appearance.previewDialogue")}
+                    </p>
+                </div>
+            </div>
+        </PublisherFormRow>
 
         <Separator className="bg-border/40" />
 
         {/* 3. Display Options */}
-        <div className="space-y-3">
-            <label className="text-sm font-medium text-foreground/90 flex items-center gap-2">
-                <LayoutTemplate className="w-3.5 h-3.5 text-muted-foreground" />
-                {t("appearance.display")}
-            </label>
+        <PublisherFormRow
+            label={t("appearance.display")}
+            className="md:grid-cols-[180px_minmax(0,1fr)]"
+        >
+            <div className="space-y-3">
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+                <div className="mb-2 text-xs font-medium text-foreground/90">{t("appearance.uiFont")}</div>
+                <Select value={uiFontFamily} onValueChange={setUiFontFamily}>
+                    <SelectTrigger className="h-9 bg-background/70">
+                      <SelectValue placeholder={t("appearance.uiFont")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {UI_FONT_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                </Select>
+            </div>
             <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
                 <div className="mb-2 text-xs font-medium text-foreground/90">{t("appearance.desktopScale")}</div>
                 <div className="mb-2 text-[11px] text-muted-foreground">{t("appearance.desktopScaleDesc")}</div>
@@ -273,7 +327,8 @@ export function AppearanceSettings({ sectionRef }) {
                     </div>
                 </button>
             </div>
-        </div>
+            </div>
+        </PublisherFormRow>
 
       </CardContent>
     </Card>

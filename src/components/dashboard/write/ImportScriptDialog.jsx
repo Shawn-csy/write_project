@@ -1,5 +1,6 @@
-import React, { useState, useCallback } from "react";
-import { Loader2, ClipboardPaste, FileText, Eye, CheckCircle2 } from "lucide-react";
+import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
+import { Loader2, ClipboardPaste, FileText, Eye, CheckCircle2, CircleHelp } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Textarea } from "../../ui/textarea";
@@ -26,9 +27,9 @@ const STEPS = {
     PREVIEW: 'preview',   // 預處理預覽
     RESULT: 'result'      // 結果確認
 };
+const GUIDE_STORAGE_KEY = "import-guide-seen-v1";
 
-const MAX_IMPORT_FILE_BYTES = 5 * 1024 * 1024;
-const MAX_IMPORT_FILE_MB = Math.round(MAX_IMPORT_FILE_BYTES / (1024 * 1024));
+const MAX_IMPORT_FILE_MB = 5;
 const SCRIPT_INFO_FIELDS = ["Title", "Author", "Description", "Tags", "Rating", "Duration", "Source"];
 
 const pickDefaultScriptInfo = (input = {}) => {
@@ -75,6 +76,15 @@ const applyWholeLineCharacterTagging = (text = "", characterNames = []) => {
         .join("\n");
 };
 
+const autoRemoveWhitespace = (text = "") => {
+    return String(text || "")
+        .split("\n")
+        .map((line) => line.replace(/\s+$/g, ""))
+        .filter((line) => line.trim().length > 0)
+        .join("\n")
+        .trim();
+};
+
 export function ImportScriptDialog({
     open,
     onOpenChange,
@@ -88,9 +98,14 @@ export function ImportScriptDialog({
     const [autoCharacterWholeLine, setAutoCharacterWholeLine] = useState(false);
     const [characterNamesInput, setCharacterNamesInput] = useState("");
     const [importing, setImporting] = useState(false);
-    const [isReadingFile, setIsReadingFile] = useState(false);
-    const [fileUploadError, setFileUploadError] = useState("");
+    const [showGuide, setShowGuide] = useState(false);
+    const [guideIndex, setGuideIndex] = useState(0);
+    const [spotlightRect, setSpotlightRect] = useState(null);
     const { toast } = useToast();
+    const guidePasteRef = useRef(null);
+    const guideCharacterRef = useRef(null);
+    const guidePreviewRef = useRef(null);
+    const guideResultRef = useRef(null);
     
     // 處理結果
     const [preprocessResult, setPreprocessResult] = useState(null);
@@ -99,6 +114,41 @@ export function ImportScriptDialog({
     const previewAst = preprocessResult?.cleanedText
         ? parseScreenplay(preprocessResult.cleanedText, previewMarkerConfigs).ast
         : null;
+    const guideSteps = [
+        {
+            title: t("importDialog.guideStepPasteTitle"),
+            description: t("importDialog.guideStepPasteDesc"),
+            step: STEPS.INPUT,
+            focus: "paste",
+        },
+        {
+            title: t("importDialog.guideStepCharacterTitle"),
+            description: t("importDialog.guideStepCharacterDesc"),
+            step: STEPS.INPUT,
+            focus: "character",
+        },
+        {
+            title: t("importDialog.guideStepPreviewTitle"),
+            description: t("importDialog.guideStepPreviewDesc"),
+            step: STEPS.PREVIEW,
+            focus: "preview",
+        },
+        {
+            title: t("importDialog.guideStepConfirmTitle"),
+            description: t("importDialog.guideStepConfirmDesc"),
+            step: STEPS.RESULT,
+            focus: "result",
+        },
+    ];
+    const currentGuide = showGuide ? guideSteps[guideIndex] : null;
+    const currentGuideTargetRef = useMemo(() => {
+        if (!currentGuide) return null;
+        if (currentGuide.focus === "paste") return guidePasteRef;
+        if (currentGuide.focus === "character") return guideCharacterRef;
+        if (currentGuide.focus === "preview") return guidePreviewRef;
+        if (currentGuide.focus === "result") return guideResultRef;
+        return null;
+    }, [currentGuide]);
     
     // 重置狀態
     const resetState = useCallback(() => {
@@ -107,10 +157,11 @@ export function ImportScriptDialog({
         setTitle("");
         setAutoCharacterWholeLine(false);
         setCharacterNamesInput("");
-        setIsReadingFile(false);
-        setFileUploadError("");
         setPreprocessResult(null);
         setMetadata({});
+        setShowGuide(false);
+        setGuideIndex(0);
+        setSpotlightRect(null);
     }, []);
     
     // 處理對話框關閉
@@ -131,56 +182,20 @@ export function ImportScriptDialog({
         }
     }, [t]);
 
-    // 處理檔案上傳
-    const handleFileUpload = useCallback((e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        setFileUploadError("");
-
-        if (Number(file.size || 0) > MAX_IMPORT_FILE_BYTES) {
-            const message = t("importDialog.fileTooLarge").replace("{maxMb}", String(MAX_IMPORT_FILE_MB));
-            setFileUploadError(message);
-            toast({
-                title: t("importDialog.uploadFailed"),
-                description: message,
-                variant: "destructive",
-            });
-            if (e.target) e.target.value = "";
-            return;
+    const runPreprocess = useCallback((sourceInput, { allowSample = false } = {}) => {
+        const hasInput = Boolean(sourceInput?.trim());
+        const fallbackSample = t("importDialog.guideSampleScript");
+        const inputText = hasInput
+            ? sourceInput
+            : (allowSample ? fallbackSample : "");
+        if (!inputText.trim()) return false;
+        if (!hasInput && allowSample) {
+            setRawInput(inputText);
         }
-
-        // 簡單處理文字檔
-        const reader = new FileReader();
-        setIsReadingFile(true);
-        reader.onload = (event) => {
-            const content = typeof event.target?.result === "string" ? event.target.result : "";
-            setRawInput(content);
-            setIsReadingFile(false);
-        };
-        reader.onerror = () => {
-            setIsReadingFile(false);
-            const message = t("importDialog.readFailed");
-            setFileUploadError(message);
-            toast({
-                title: t("importDialog.uploadFailed"),
-                description: message,
-                variant: "destructive",
-            });
-            if (e.target) e.target.value = "";
-        };
-        reader.onabort = () => {
-            setIsReadingFile(false);
-        };
-        reader.readAsText(file);
-    }, [t, toast]);
-    
-    // Stage 1: 預處理
-    const handlePreprocess = useCallback(() => {
-        if (!rawInput.trim()) return;
         const characterNames = parseCharacterNames(characterNamesInput);
         const sourceText = autoCharacterWholeLine
-            ? applyWholeLineCharacterTagging(rawInput, characterNames)
-            : rawInput;
+            ? applyWholeLineCharacterTagging(inputText, characterNames)
+            : inputText;
 
         // 1. 基本清理
         const result = preprocess(sourceText);
@@ -209,13 +224,108 @@ export function ImportScriptDialog({
         }
         
         setStep(STEPS.PREVIEW);
-    }, [rawInput, title, autoCharacterWholeLine, characterNamesInput]);
+        return true;
+    }, [title, autoCharacterWholeLine, characterNamesInput, t]);
+
+    // Stage 1: 預處理
+    const handlePreprocess = useCallback(() => {
+        runPreprocess(rawInput);
+    }, [rawInput, runPreprocess]);
 
     // Stage 2: 預覽後直接進入確認
     const handleToResult = useCallback(() => {
         if (!preprocessResult) return;
         setStep(STEPS.RESULT);
     }, [preprocessResult]);
+
+    const finishGuide = useCallback(() => {
+        resetState();
+        try {
+            localStorage.setItem(GUIDE_STORAGE_KEY, "1");
+        } catch (err) {
+            console.error("Failed to save guide state", err);
+        }
+    }, [resetState]);
+
+    const jumpGuide = useCallback((index) => {
+        const next = guideSteps[index];
+        if (!next) return;
+        if (next.step === STEPS.INPUT) {
+            setStep(STEPS.INPUT);
+        } else if (next.step === STEPS.PREVIEW) {
+            const ok = runPreprocess(rawInput, { allowSample: true });
+            if (!ok) return;
+        } else if (next.step === STEPS.RESULT) {
+            const ok = preprocessResult?.cleanedText
+                ? true
+                : runPreprocess(rawInput, { allowSample: true });
+            if (!ok) return;
+            setStep(STEPS.RESULT);
+        }
+        setGuideIndex(index);
+        setShowGuide(true);
+    }, [guideSteps, preprocessResult, rawInput, runPreprocess]);
+
+    const handleGuideNext = useCallback(() => {
+        if (guideIndex >= guideSteps.length - 1) {
+            finishGuide();
+            return;
+        }
+        jumpGuide(guideIndex + 1);
+    }, [finishGuide, guideIndex, guideSteps.length, jumpGuide]);
+
+    const handleGuidePrev = useCallback(() => {
+        if (guideIndex <= 0) return;
+        jumpGuide(guideIndex - 1);
+    }, [guideIndex, jumpGuide]);
+
+    const handleGuideStart = useCallback(() => {
+        jumpGuide(0);
+    }, [jumpGuide]);
+
+    const refreshSpotlight = useCallback(() => {
+        if (!showGuide) {
+            setSpotlightRect(null);
+            return;
+        }
+        const target = currentGuideTargetRef?.current;
+        if (!target) {
+            return;
+        }
+        const rect = target.getBoundingClientRect();
+        const pad = 8;
+        setSpotlightRect({
+            top: Math.max(8, rect.top - pad),
+            left: Math.max(8, rect.left - pad),
+            width: Math.max(48, rect.width + pad * 2),
+            height: Math.max(48, rect.height + pad * 2),
+        });
+    }, [currentGuideTargetRef, showGuide]);
+
+    useEffect(() => {
+        if (!showGuide) return;
+        const raf = window.requestAnimationFrame(refreshSpotlight);
+        window.addEventListener("resize", refreshSpotlight);
+        window.addEventListener("scroll", refreshSpotlight, true);
+        return () => {
+            window.cancelAnimationFrame(raf);
+            window.removeEventListener("resize", refreshSpotlight);
+            window.removeEventListener("scroll", refreshSpotlight, true);
+        };
+    }, [showGuide, step, guideIndex, refreshSpotlight]);
+
+    useEffect(() => {
+        if (!open) return;
+        try {
+            const seen = localStorage.getItem(GUIDE_STORAGE_KEY) === "1";
+            if (!seen) {
+                jumpGuide(0);
+                localStorage.setItem(GUIDE_STORAGE_KEY, "1");
+            }
+        } catch (err) {
+            console.error("Failed to read guide state", err);
+        }
+    }, [open, jumpGuide]);
 
     // 生成 Fountain Metadata Header
     const generateMetadataHeader = useCallback((meta) => {
@@ -230,20 +340,21 @@ export function ImportScriptDialog({
 
     // 確認匯入（純 Marker 模式：儲存原始 cleanedText）
     const handleConfirmImport = useCallback(async () => {
-        if (!preprocessResult?.cleanedText || !title.trim()) return;
+        if (!preprocessResult?.cleanedText) return;
         
         setImporting(true);
         try {
+            const resolvedTitle = title.trim() || metadata?.Title?.trim() || "未命名劇本";
             const normalizedMetadata = pickDefaultScriptInfo({
                 ...metadata,
-                Title: title.trim() || metadata?.Title || "",
+                Title: resolvedTitle,
             });
             // 將 Metadata 加入到內容開頭
             const metadataHeader = generateMetadataHeader(normalizedMetadata);
             const contentWithMeta = metadataHeader + preprocessResult.cleanedText;
             
             await onImport({
-                title: title.trim(),
+                title: resolvedTitle,
                 content: contentWithMeta,
                 folder: currentPath,
                 metadata: normalizedMetadata
@@ -270,12 +381,26 @@ export function ImportScriptDialog({
     return (
         <>
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent className="max-w-5xl h-[85vh] flex flex-col">
+            <DialogContent
+                className="max-w-5xl h-[85vh] flex flex-col"
+                onInteractOutside={(e) => {
+                    if (showGuide) e.preventDefault();
+                }}
+                onEscapeKeyDown={(e) => {
+                    if (showGuide) e.preventDefault();
+                }}
+            >
                 <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <FileText className="w-5 h-5" />
-                        {t("importDialog.title")}
-                    </DialogTitle>
+                    <div className="flex items-center justify-between gap-2">
+                        <DialogTitle className="flex items-center gap-2">
+                            <FileText className="w-5 h-5" />
+                            {t("importDialog.title")}
+                        </DialogTitle>
+                        <Button type="button" variant="outline" size="sm" onClick={handleGuideStart}>
+                            <CircleHelp className="w-4 h-4 mr-1" />
+                            {t("importDialog.help")}
+                        </Button>
+                    </div>
                     <DialogDescription>
                          {t("importDialog.descDefault")}
                     </DialogDescription>
@@ -299,11 +424,11 @@ export function ImportScriptDialog({
                         </React.Fragment>
                     ))}
                 </div>
-
                 <div className="flex-1 overflow-hidden min-h-0 pt-4">
                     {/* Step 1: 輸入內容 */}
                     {step === STEPS.INPUT && (
                         <div className="flex flex-col gap-4 h-full">
+                            <div ref={guidePasteRef} className="flex flex-col gap-4">
                             <div className="flex items-center gap-2">
                                 <Input 
                                     placeholder={t("importDialog.scriptTitle")}
@@ -319,12 +444,9 @@ export function ImportScriptDialog({
                             <ImportStageInput 
                                     text={rawInput}
                                     setText={setRawInput}
-                                    onFileUpload={handleFileUpload}
-                                    isUploading={isReadingFile}
-                                    fileSizeLimitText={t("importDialog.fileLimit").replace("{maxMb}", String(MAX_IMPORT_FILE_MB))}
-                                    uploadError={fileUploadError}
-                                /> 
-                            <div className="border rounded-md p-3 space-y-2 bg-muted/20">
+                                />
+                            </div>
+                            <div ref={guideCharacterRef} className="border rounded-md p-3 space-y-2 bg-muted/20">
                                 <div className="flex items-center justify-between gap-3">
                                     <div className="space-y-0.5">
                                         <Label htmlFor="auto-character-whole-line">{t("importDialog.characterAutoLabel")}</Label>
@@ -350,15 +472,23 @@ export function ImportScriptDialog({
 
                     {/* Step 2: 預覽與清理 */}
                     {step === STEPS.PREVIEW && preprocessResult && (
-                        <ImportStagePreview 
-                            previewText={preprocessResult.cleanedText}
-                            setPreviewText={(val) => setPreprocessResult(prev => ({...prev, cleanedText: val}))}
-                        />
+                        <div ref={guidePreviewRef} className="h-full">
+                            <ImportStagePreview 
+                                previewText={preprocessResult.cleanedText}
+                                setPreviewText={(val) => setPreprocessResult(prev => ({...prev, cleanedText: val}))}
+                                onAutoRemoveWhitespace={() =>
+                                    setPreprocessResult((prev) => ({
+                                        ...prev,
+                                        cleanedText: autoRemoveWhitespace(prev?.cleanedText || ""),
+                                    }))
+                                }
+                            />
+                        </div>
                     )}
 
                      {/* Step 3: Final Confirmation */}
                      {step === STEPS.RESULT && preprocessResult?.cleanedText && (
-                        <div className="flex flex-col gap-4 h-full">
+                        <div ref={guideResultRef} className="flex flex-col gap-4 h-full">
                             <div className="text-sm text-green-600 font-medium flex items-center gap-2">
                                 <CheckCircle2 className="w-4 h-4" />
                                 {t("importDialog.ready")}
@@ -426,7 +556,7 @@ export function ImportScriptDialog({
                     )}
                     
                     {step === STEPS.RESULT && (
-                        <Button onClick={handleConfirmImport} disabled={importing || !title.trim()}>
+                        <Button onClick={handleConfirmImport} disabled={importing}>
                             {importing && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                             {t("importDialog.confirmImport")}
                         </Button>
@@ -434,6 +564,72 @@ export function ImportScriptDialog({
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+        {showGuide && currentGuide && typeof document !== "undefined" && createPortal(
+            <div className="fixed inset-0 z-[200] pointer-events-none">
+                {spotlightRect ? (
+                    <>
+                        <div
+                            className="absolute left-0 top-0 bg-black/75 pointer-events-auto"
+                            style={{ width: "100%", height: spotlightRect.top }}
+                        />
+                        <div
+                            className="absolute left-0 bg-black/75 pointer-events-auto"
+                            style={{ top: spotlightRect.top, width: spotlightRect.left, height: spotlightRect.height }}
+                        />
+                        <div
+                            className="absolute right-0 bg-black/75 pointer-events-auto"
+                            style={{
+                                top: spotlightRect.top,
+                                left: spotlightRect.left + spotlightRect.width,
+                                height: spotlightRect.height,
+                            }}
+                        />
+                        <div
+                            className="absolute left-0 bg-black/75 pointer-events-auto"
+                            style={{ top: spotlightRect.top + spotlightRect.height, width: "100%", bottom: 0 }}
+                        />
+                        <div
+                            className="absolute rounded-xl border-2 border-primary shadow-[0_0_40px_rgba(255,255,255,0.12)] pointer-events-none"
+                            style={{
+                                top: spotlightRect.top,
+                                left: spotlightRect.left,
+                                width: spotlightRect.width,
+                                height: spotlightRect.height,
+                            }}
+                        />
+                    </>
+                ) : (
+                    <div className="absolute inset-0 bg-black/75 pointer-events-auto" />
+                )}
+                <div className="absolute right-6 bottom-6 w-[360px] max-w-[calc(100vw-3rem)] rounded-xl border bg-background p-4 shadow-2xl pointer-events-auto">
+                    <div className="text-xs text-muted-foreground">{guideIndex + 1}/{guideSteps.length}</div>
+                    <div className="text-base font-semibold mt-1">{currentGuide.title}</div>
+                    <p className="text-sm text-muted-foreground mt-1">{currentGuide.description}</p>
+                    <div className="mt-4 flex items-center justify-between gap-2">
+                        <Button type="button" size="sm" variant="ghost" onClick={finishGuide}>
+                            {t("importDialog.guideSkip")}
+                        </Button>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={handleGuidePrev}
+                                disabled={guideIndex === 0}
+                            >
+                                {t("importDialog.guidePrev")}
+                            </Button>
+                            <Button type="button" size="sm" onClick={handleGuideNext}>
+                                {guideIndex === guideSteps.length - 1
+                                    ? t("importDialog.guideDone")
+                                    : t("importDialog.guideNext")}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </div>,
+            document.body
+        )}
         
         </>
     );

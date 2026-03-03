@@ -411,6 +411,25 @@ export const getOrganizationMembers = async (orgId) => {
     return fetchApi(`/organizations/${orgId}/members`);
 };
 
+export const removeOrganizationMember = async (orgId, userId) => {
+    return fetchApi(`/organizations/${orgId}/members/${userId}`, {
+        method: "DELETE",
+    });
+};
+
+export const removeOrganizationPersona = async (orgId, personaId) => {
+    return fetchApi(`/organizations/${orgId}/personas/${personaId}`, {
+        method: "DELETE",
+    });
+};
+
+export const updateOrganizationMemberRole = async (orgId, userId, role) => {
+    return fetchApi(`/organizations/${orgId}/members/${userId}/role`, {
+        method: "PATCH",
+        body: JSON.stringify({ role }),
+    });
+};
+
 export const searchOrganizations = async (query) => {
     return fetchApi(`/organizations/search?q=${encodeURIComponent(query)}`);
 };
