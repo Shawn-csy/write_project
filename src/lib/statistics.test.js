@@ -1,14 +1,44 @@
 import { describe, it, expect } from 'vitest';
 import { calculateScriptStats } from './statistics.js';
 import { parseScreenplay } from './screenplayAST.js';
-import { defaultMarkerConfigs } from '../constants/defaultMarkerRules.js';
+
+const testMarkerConfigs = [
+    {
+        id: 'scene',
+        start: '#S',
+        matchMode: 'prefix',
+        isBlock: true,
+        type: 'block',
+        parseAs: 'scene_heading',
+        mapFields: { text: '$text' },
+    },
+    {
+        id: 'character',
+        start: '#C',
+        matchMode: 'prefix',
+        isBlock: true,
+        type: 'block',
+        parseAs: 'character',
+        mapFields: { text: '$text' },
+        mapCasts: { text: 'trim_colon_suffix' },
+    },
+    {
+        id: 'dialogue',
+        start: '#D',
+        matchMode: 'prefix',
+        isBlock: true,
+        type: 'block',
+        parseAs: 'dialogue',
+        mapFields: { text: '$text' },
+    },
+];
 
 describe('Statistics', () => {
-    const sampleScript = "Title: Test\n\nINT. ROOM - DAY\n\n#C BOB\nHello world.";
+    const sampleScript = "Title: Test\n\n#S INT. ROOM - DAY\n#C BOB\n#D Hello world.";
 
     describe('calculateScriptStats', () => {
         it('should calculate basic stats from AST', () => {
-            const { ast } = parseScreenplay(sampleScript, defaultMarkerConfigs);
+            const { ast } = parseScreenplay(sampleScript, testMarkerConfigs);
             const stats = calculateScriptStats(ast);
             
             expect(stats.counts.scenes).toBe(1);
@@ -19,8 +49,8 @@ describe('Statistics', () => {
         });
 
         it('should calculate timeframe distribution', () => {
-            const script = "INT. OFFICE - DAY\n\nEXT. STREET - NIGHT";
-            const { ast } = parseScreenplay(script, defaultMarkerConfigs);
+            const script = "#S INT. OFFICE - DAY\n#S EXT. STREET - NIGHT";
+            const { ast } = parseScreenplay(script, testMarkerConfigs);
             const stats = calculateScriptStats(ast);
             
             expect(stats.timeframeDistribution.INT).toBe(1);

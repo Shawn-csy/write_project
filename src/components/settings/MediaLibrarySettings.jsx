@@ -3,6 +3,7 @@ import { Button } from "../ui/button";
 import { MEDIA_FILE_ACCEPT, formatBytes, optimizeImageForUpload } from "../../lib/mediaLibrary";
 import { deleteMediaObject, getMediaObjects, uploadMediaObject } from "../../lib/db";
 import { useI18n } from "../../contexts/I18nContext";
+import { PublisherFormRow } from "../dashboard/publisher/PublisherFormRow";
 
 export function MediaLibrarySettings() {
   const { t } = useI18n();
@@ -70,26 +71,36 @@ export function MediaLibrarySettings() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border bg-muted/20 p-4 space-y-2">
-        <div className="flex items-center justify-between text-sm">
-          <span className="font-medium">{t("mediaLibrary.usage")}</span>
-          <span className="text-muted-foreground">{formatBytes(stats.usedBytes)} / {formatBytes(stats.maxBytes)}</span>
+      <PublisherFormRow
+        label={t("mediaLibrary.usage")}
+        className="rounded-lg border bg-muted/20 p-4 md:grid-cols-[180px_minmax(0,1fr)]"
+      >
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium">{t("mediaLibrary.usage")}</span>
+            <span className="text-muted-foreground">{formatBytes(stats.usedBytes)} / {formatBytes(stats.maxBytes)}</span>
+          </div>
+          <div className="h-2 rounded-full bg-muted">
+            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${Math.round((stats.ratio || 0) * 100)}%` }} />
+          </div>
+          <p className="text-xs text-muted-foreground">{t("mediaLibrary.itemCountDesc").replace("{count}", String(stats.count))}</p>
         </div>
-        <div className="h-2 rounded-full bg-muted">
-          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${Math.round((stats.ratio || 0) * 100)}%` }} />
-        </div>
-        <p className="text-xs text-muted-foreground">{t("mediaLibrary.itemCountDesc").replace("{count}", String(stats.count))}</p>
-      </div>
+      </PublisherFormRow>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
-          {isUploading ? t("mediaLibrary.uploading") : t("mediaLibrary.addToLibrary")}
-          <input type="file" accept={MEDIA_FILE_ACCEPT} multiple className="hidden" onChange={handleUpload} disabled={isUploading || isRefreshing} />
-        </label>
-        <Button type="button" variant="outline" size="sm" onClick={handleClear} disabled={!items.length || isRefreshing}>
-          {t("mediaLibrary.clearLibrary")}
-        </Button>
-      </div>
+      <PublisherFormRow
+        label={t("common.actions")}
+        className="rounded-lg border bg-background/50 p-4 md:grid-cols-[180px_minmax(0,1fr)]"
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
+            {isUploading ? t("mediaLibrary.uploading") : t("mediaLibrary.addToLibrary")}
+            <input type="file" accept={MEDIA_FILE_ACCEPT} multiple className="hidden" onChange={handleUpload} disabled={isUploading || isRefreshing} />
+          </label>
+          <Button type="button" variant="outline" size="sm" onClick={handleClear} disabled={!items.length || isRefreshing}>
+            {t("mediaLibrary.clearLibrary")}
+          </Button>
+        </div>
+      </PublisherFormRow>
 
       {error && <p className="text-xs text-destructive">{error}</p>}
 

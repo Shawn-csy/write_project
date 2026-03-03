@@ -19,11 +19,14 @@ import {
     DropdownMenuRadioItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
+    DropdownMenuItem,
 } from "../ui/dropdown-menu";
 import { useI18n } from "../../contexts/I18nContext";
+import { useToast } from "../ui/toast";
 
 export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     const { t } = useI18n();
+    const { toast } = useToast();
     // Hooks
     const manager = useWriteTab(refreshTrigger, {
         onScriptCreated: onSelectScript
@@ -57,7 +60,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
              downloadBlob(blob, "scripts_backup.zip");
          } catch(e) {
              console.error(e);
-             alert(t("writeTab.exportFailed"));
+             toast({ title: t("writeTab.exportFailed"), variant: "destructive" });
          }
     };
 
@@ -243,91 +246,98 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                     className="border rounded-lg bg-card flex-1 min-h-0 overflow-y-auto"
                     onScroll={handleListScroll}
                 >
-                    <div className="px-4 py-2 border-b bg-muted/20 flex flex-wrap items-center gap-2 text-xs">
-                        <div className="flex items-center gap-1" title={t("writeTab.searchTitle")}>
-                            <Search className="w-3.5 h-3.5 text-muted-foreground" />
-                            <input
-                                type="text"
-                                className="h-7 w-48 rounded-md border border-input bg-background px-2 text-foreground"
-                                placeholder={t("writeTab.searchPlaceholder")}
-                                value={filterQuery}
-                                onChange={(e) => setFilterQuery(e.target.value)}
-                                aria-label={t("writeTab.searchAria")}
-                            />
-                        </div>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-7 px-2"
-                                    title={t("writeTab.sortSettings")}
-                                    aria-label={t("writeTab.sortSettings")}
+                    <div className="px-4 py-2 border-b bg-muted/20 text-xs">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex min-w-[220px] flex-1 items-center gap-1" title={t("writeTab.searchTitle")}>
+                                <Search className="w-3.5 h-3.5 text-muted-foreground" />
+                                <input
+                                    type="text"
+                                    className="h-8 w-full rounded-md border border-input bg-background px-2 text-foreground"
+                                    placeholder={t("writeTab.searchPlaceholder")}
+                                    value={filterQuery}
+                                    onChange={(e) => setFilterQuery(e.target.value)}
+                                    aria-label={t("writeTab.searchAria")}
+                                />
+                            </div>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-8 px-2"
+                                        title={t("writeTab.sortSettings")}
+                                        aria-label={t("writeTab.sortSettings")}
+                                    >
+                                        <ArrowUpDown className={`w-3.5 h-3.5 ${sortKey !== "custom" ? "text-foreground" : "text-muted-foreground"}`} />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start" className="w-52">
+                                    <DropdownMenuLabel>{t("writeTab.sortField")}</DropdownMenuLabel>
+                                    <DropdownMenuRadioGroup value={sortKey} onValueChange={(val) => setSortKey(val)}>
+                                        <DropdownMenuRadioItem value="custom">{t("writeTab.sortCustom")}</DropdownMenuRadioItem>
+                                        <DropdownMenuRadioItem value="lastModified">{t("writeTab.sortLastModified")}</DropdownMenuRadioItem>
+                                        <DropdownMenuRadioItem value="title">{t("writeTab.sortName")}</DropdownMenuRadioItem>
+                                    </DropdownMenuRadioGroup>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuLabel>{t("writeTab.sortDirection")}</DropdownMenuLabel>
+                                    <DropdownMenuRadioGroup
+                                        value={sortDir}
+                                        onValueChange={(val) => setSortDir(val)}
+                                    >
+                                        <DropdownMenuRadioItem value="desc">{t("writeTab.sortDesc")}</DropdownMenuRadioItem>
+                                        <DropdownMenuRadioItem value="asc">{t("writeTab.sortAsc")}</DropdownMenuRadioItem>
+                                    </DropdownMenuRadioGroup>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                            <div className="flex items-center gap-1" title={t("writeTab.filterType")}>
+                                <FileStack className="w-3.5 h-3.5 text-muted-foreground" />
+                                <select
+                                    className="h-8 rounded-md border border-input bg-background px-2 text-foreground"
+                                    value={filterType}
+                                    onChange={(e) => setFilterType(e.target.value)}
+                                    aria-label={t("writeTab.filterType")}
                                 >
-                                    <ArrowUpDown className={`w-3.5 h-3.5 ${sortKey !== "custom" ? "text-foreground" : "text-muted-foreground"}`} />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="w-52">
-                                <DropdownMenuLabel>{t("writeTab.sortField")}</DropdownMenuLabel>
-                                <DropdownMenuRadioGroup value={sortKey} onValueChange={(val) => setSortKey(val)}>
-                                    <DropdownMenuRadioItem value="custom">{t("writeTab.sortCustom")}</DropdownMenuRadioItem>
-                                    <DropdownMenuRadioItem value="lastModified">{t("writeTab.sortLastModified")}</DropdownMenuRadioItem>
-                                    <DropdownMenuRadioItem value="title">{t("writeTab.sortName")}</DropdownMenuRadioItem>
-                                </DropdownMenuRadioGroup>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuLabel>{t("writeTab.sortDirection")}</DropdownMenuLabel>
-                                <DropdownMenuRadioGroup
-                                    value={sortDir}
-                                    onValueChange={(val) => setSortDir(val)}
+                                    <option value="all">{t("writeTab.all")}</option>
+                                    <option value="script">{t("writeTab.file")}</option>
+                                    <option value="folder">{t("writeTab.folder")}</option>
+                                </select>
+                            </div>
+                            <div className="flex items-center gap-1" title={t("writeTab.filterStatus")}>
+                                <Globe className="w-3.5 h-3.5 text-muted-foreground" />
+                                <select
+                                    className="h-8 rounded-md border border-input bg-background px-2 text-foreground"
+                                    value={filterStatus}
+                                    onChange={(e) => setFilterStatus(e.target.value)}
+                                    aria-label={t("writeTab.filterStatus")}
                                 >
-                                    <DropdownMenuRadioItem value="desc">{t("writeTab.sortDesc")}</DropdownMenuRadioItem>
-                                    <DropdownMenuRadioItem value="asc">{t("writeTab.sortAsc")}</DropdownMenuRadioItem>
-                                </DropdownMenuRadioGroup>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                        <div className="flex items-center gap-1" title={t("writeTab.filterType")}>
-                            <FileStack className="w-3.5 h-3.5 text-muted-foreground" />
-                            <select
-                                className="h-7 rounded-md border border-input bg-background px-2 text-foreground"
-                                value={filterType}
-                                onChange={(e) => setFilterType(e.target.value)}
-                                aria-label={t("writeTab.filterType")}
+                                    <option value="all">{t("writeTab.all")}</option>
+                                    <option value="public">Public</option>
+                                    <option value="private">Private</option>
+                                </select>
+                            </div>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 px-2"
+                                disabled={!hasActiveFilters}
+                                onClick={() => {
+                                    setFilterQuery("");
+                                    setFilterType("all");
+                                    setFilterStatus("all");
+                                    setSortKey("custom");
+                                    setSortDir("desc");
+                                }}
+                                title={t("writeTab.clearFiltersAndSorting")}
+                                aria-label={t("writeTab.clearFiltersAndSorting")}
                             >
-                                <option value="all">{t("writeTab.all")}</option>
-                                <option value="script">{t("writeTab.file")}</option>
-                                <option value="folder">{t("writeTab.folder")}</option>
-                            </select>
+                                <RotateCcw className="w-3.5 h-3.5" />
+                            </Button>
+                            <span className={`max-w-[42vw] truncate rounded-full border px-2 py-1 text-[11px] ${
+                                hasActiveFilters ? "border-primary/40 bg-primary/5 text-primary" : "text-muted-foreground"
+                            }`}>
+                                {hasActiveFilters ? "已套用篩選" : "未套用篩選"}
+                            </span>
                         </div>
-                        <div className="flex items-center gap-1" title={t("writeTab.filterStatus")}>
-                            <Globe className="w-3.5 h-3.5 text-muted-foreground" />
-                            <select
-                                className="h-7 rounded-md border border-input bg-background px-2 text-foreground"
-                                value={filterStatus}
-                                onChange={(e) => setFilterStatus(e.target.value)}
-                                aria-label={t("writeTab.filterStatus")}
-                            >
-                                <option value="all">{t("writeTab.all")}</option>
-                                <option value="public">Public</option>
-                                <option value="private">Private</option>
-                            </select>
-                        </div>
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 px-2"
-                            disabled={!hasActiveFilters}
-                            onClick={() => {
-                                setFilterQuery("");
-                                setFilterType("all");
-                                setFilterStatus("all");
-                                setSortKey("custom");
-                                setSortDir("desc");
-                            }}
-                            title={t("writeTab.clearFiltersAndSorting")}
-                            aria-label={t("writeTab.clearFiltersAndSorting")}
-                        >
-                            <RotateCcw className="w-3.5 h-3.5" />
-                        </Button>
                     </div>
                     <ScriptList 
                         loading={manager.loading}

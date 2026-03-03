@@ -13,6 +13,7 @@ import { optimizeImageForUpload, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLib
 import { uploadMediaObject } from "../../../lib/db";
 import { useI18n } from "../../../contexts/I18nContext";
 import { MediaPicker } from "../../ui/MediaPicker";
+import { CoverPlaceholder } from "../../ui/CoverPlaceholder";
 
 export function MetadataDetailsTab({
     status,
@@ -160,20 +161,21 @@ export function MetadataDetailsTab({
                     {coverUploadWarning && (
                         <p className="text-xs text-amber-700 dark:text-amber-300">{coverUploadWarning}</p>
                     )}
-                    {coverUrl && (
-                        <div className="mt-1 h-28 w-full overflow-hidden rounded-md border bg-muted/20">
-                            {coverPreviewFailed ? (
-                                <div className="flex h-full items-center justify-center text-xs text-muted-foreground">{t("metadataDetails.coverPreviewFail")}</div>
-                            ) : (
-                                <img
-                                    src={coverUrl}
-                                    alt="cover preview"
-                                    className="h-full w-full object-cover"
-                                    onLoad={() => setCoverPreviewFailed(false)}
-                                    onError={() => setCoverPreviewFailed(true)}
-                                />
-                            )}
-                        </div>
+                    <div className="mt-1 h-28 w-full overflow-hidden rounded-md border bg-muted/20">
+                        {coverUrl && !coverPreviewFailed ? (
+                            <img
+                                src={coverUrl}
+                                alt="cover preview"
+                                className="h-full w-full object-cover"
+                                onLoad={() => setCoverPreviewFailed(false)}
+                                onError={() => setCoverPreviewFailed(true)}
+                            />
+                        ) : (
+                            <CoverPlaceholder title={author || "Untitled"} compact />
+                        )}
+                    </div>
+                    {coverUrl && coverPreviewFailed && (
+                        <p className="text-xs text-muted-foreground">{t("metadataDetails.coverPreviewFail")}</p>
                     )}
                     {recommendedErrors.cover && (
                         <p className="text-xs text-amber-700 dark:text-amber-300">{t("metadataDetails.coverTip")}</p>

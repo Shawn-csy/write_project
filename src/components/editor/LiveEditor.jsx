@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef, useDeferredValue } from "react";
+import { createPortal } from "react-dom";
 import CodeMirror from "@uiw/react-codemirror";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { EditorView } from "@codemirror/view";
@@ -24,6 +25,7 @@ import { EditorHeader } from "./EditorHeader";
 import { PreviewPanel } from "./PreviewPanel";
 import { MarkerRulesPanel } from "./MarkerRulesPanel";
 import { useI18n } from "../../contexts/I18nContext";
+import { Button } from "../ui/button";
 
 const EDITOR_PANE_WIDTH_STORAGE_KEY = "live_editor_pane_width_percent";
 const MIN_EDITOR_PANE_WIDTH = 28;
@@ -35,7 +37,7 @@ const clampEditorPaneWidth = (value) => {
 };
 
 // LiveEditor Component
-export default function LiveEditor({ scriptId, initialData, onClose, initialSceneId, defaultShowPreview = false, readOnly = false, onRequestEdit, onOpenMarkerSettings, contentScrollRef, isSidebarOpen, onSetSidebarOpen, onTitleHtml, onHasTitle, onTitleNote, onTitleSummary, onTitleName, showHeader = true }) {
+export default function LiveEditor({ scriptId, initialData, onClose, initialSceneId, defaultShowPreview = false, readOnly = false, onRequestEdit, onOpenMarkerSettings, contentScrollRef, isSidebarOpen, onSetSidebarOpen, onTitleHtml, onHasTitle, onTitleNote, onTitleSummary, onTitleName, showHeader = true, crossModeGuideActive = false, crossModeGuideStep = "", onCrossGuideNext, onCrossGuidePrev, onCrossGuideExit }) {
   const { t } = useI18n();
   const {
     theme = "system",
@@ -71,7 +73,14 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   const [isResizing, setIsResizing] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showRules, setShowRules] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
+  const [guideIndex, setGuideIndex] = useState(0);
+  const [guideSpotlightRect, setGuideSpotlightRect] = useState(null);
+  const [crossGuideSpotlightRect, setCrossGuideSpotlightRect] = useState(null);
   const editorPreviewContainerRef = useRef(null);
+  const headerRef = useRef(null);
+  const editorPaneRef = useRef(null);
+  const moreActionsButtonRef = useRef(null);
   const editorPaneWidthRef = useRef(editorPaneWidth);
   const resizeFrameRef = useRef(null);
   const [systemPrefersDark, setSystemPrefersDark] = useState(() => {
@@ -431,6 +440,164 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     [previewRef, contentScrollRef]
   );
 
+  const guideSteps = useMemo(() => ([
+    {
+      title: t("liveEditor.guideEditScriptTitle"),
+      description: t("liveEditor.guideEditScriptDesc"),
+      target: "header",
+    },
+    {
+      title: t("liveEditor.guideEditorTitle"),
+      description: t("liveEditor.guideEditorDesc"),
+      target: "editor",
+    },
+    {
+      title: t("liveEditor.guidePreviewTitle"),
+      description: t("liveEditor.guidePreviewDesc"),
+      target: "preview",
+    },
+    {
+      title: t("liveEditor.guideActionsTitle"),
+      description: t("liveEditor.guideActionsDesc"),
+      target: "actions",
+    },
+  ]), [t]);
+
+  const currentGuide = showGuide ? guideSteps[guideIndex] : null;
+  const showCrossModeEditGuide = !readOnly && crossModeGuideActive && (
+    crossModeGuideStep === "editIntro" ||
+    crossModeGuideStep === "editPreview" ||
+    crossModeGuideStep === "editActions"
+  );
+  const crossGuideTitle = (() => {
+    if (crossModeGuideStep === "editPreview") return t("liveEditor.crossGuideEditPreviewTitle");
+    if (crossModeGuideStep === "editActions") return t("liveEditor.crossGuideEditActionsTitle");
+    return t("liveEditor.crossGuideEditIntroTitle");
+  })();
+  const crossGuideDesc = (() => {
+    if (crossModeGuideStep === "editPreview") return t("liveEditor.crossGuideEditPreviewDesc");
+    if (crossModeGuideStep === "editActions") return t("liveEditor.crossGuideEditActionsDesc");
+    return t("liveEditor.crossGuideEditIntroDesc");
+  })();
+  const crossGuideTarget = (() => {
+    if (crossModeGuideStep === "editPreview") return "preview";
+    if (crossModeGuideStep === "editActions") return "actions";
+    return "editor";
+  })();
+
+  const getGuideTargetElement = useCallback((target) => {
+    switch (target) {
+      case "header":
+        return headerRef.current;
+      case "editor":
+        return editorPaneRef.current;
+      case "preview":
+        return previewRef.current;
+      case "actions":
+        return moreActionsButtonRef.current;
+      default:
+        return null;
+    }
+  }, [previewRef]);
+
+  const updateGuideSpotlight = useCallback(() => {
+    if (!showGuide) {
+      setGuideSpotlightRect(null);
+      return;
+    }
+    const step = guideSteps[guideIndex];
+    const element = step ? getGuideTargetElement(step.target) : null;
+    if (!element) {
+      setGuideSpotlightRect(null);
+      return;
+    }
+    const rect = element.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+      setGuideSpotlightRect(null);
+      return;
+    }
+    const padding = 8;
+    setGuideSpotlightRect({
+      top: Math.max(0, rect.top - padding),
+      left: Math.max(0, rect.left - padding),
+      width: rect.width + padding * 2,
+      height: rect.height + padding * 2,
+    });
+  }, [showGuide, guideSteps, guideIndex, getGuideTargetElement]);
+
+  useEffect(() => {
+    if (!showGuide) return undefined;
+    updateGuideSpotlight();
+    const onLayoutChange = () => updateGuideSpotlight();
+    window.addEventListener("resize", onLayoutChange);
+    window.addEventListener("scroll", onLayoutChange, true);
+    return () => {
+      window.removeEventListener("resize", onLayoutChange);
+      window.removeEventListener("scroll", onLayoutChange, true);
+    };
+  }, [showGuide, guideIndex, updateGuideSpotlight]);
+
+  const updateCrossGuideSpotlight = useCallback(() => {
+    if (!showCrossModeEditGuide) {
+      setCrossGuideSpotlightRect(null);
+      return;
+    }
+    const element = getGuideTargetElement(crossGuideTarget);
+    if (!element) {
+      setCrossGuideSpotlightRect(null);
+      return;
+    }
+    const rect = element.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+      setCrossGuideSpotlightRect(null);
+      return;
+    }
+    const padding = 8;
+    setCrossGuideSpotlightRect({
+      top: Math.max(0, rect.top - padding),
+      left: Math.max(0, rect.left - padding),
+      width: rect.width + padding * 2,
+      height: rect.height + padding * 2,
+    });
+  }, [crossGuideTarget, getGuideTargetElement, showCrossModeEditGuide]);
+
+  useEffect(() => {
+    if (!showCrossModeEditGuide) {
+      setCrossGuideSpotlightRect(null);
+      return undefined;
+    }
+    updateCrossGuideSpotlight();
+    const onLayoutChange = () => updateCrossGuideSpotlight();
+    window.addEventListener("resize", onLayoutChange);
+    window.addEventListener("scroll", onLayoutChange, true);
+    return () => {
+      window.removeEventListener("resize", onLayoutChange);
+      window.removeEventListener("scroll", onLayoutChange, true);
+    };
+  }, [showCrossModeEditGuide, crossModeGuideStep, updateCrossGuideSpotlight]);
+
+  const startGuide = useCallback(() => {
+    setGuideIndex(0);
+    setShowGuide(true);
+  }, []);
+
+  const finishGuide = useCallback(() => {
+    setShowGuide(false);
+    setGuideSpotlightRect(null);
+  }, []);
+
+  const handleGuidePrev = useCallback(() => {
+    setGuideIndex((prev) => Math.max(0, prev - 1));
+  }, []);
+
+  const handleGuideNext = useCallback(() => {
+    if (guideIndex >= guideSteps.length - 1) {
+      finishGuide();
+      return;
+    }
+    setGuideIndex((prev) => Math.min(guideSteps.length - 1, prev + 1));
+  }, [finishGuide, guideIndex, guideSteps.length]);
+
   const handleBack = async () => {
       debouncedSave.cancel();
       const hasCloudDiff = content !== lastSavedContent.current || title !== lastSavedTitle.current;
@@ -586,36 +753,40 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   return (
     <div className="flex flex-col h-full bg-background relative z-0">
       {showHeader && (
-      <EditorHeader 
-        readOnly={readOnly}
-        title={title}
-        onBack={handleBack}
-        onManualSave={handleManualSave}
-        saveStatus={saveStatus}
-        lastSaved={lastSaved}
-        showRules={showRules}
-        onToggleRules={() => setShowRules(prev => !prev)}
-        downloadOptions={normalizedDownloadOptions}
-        onToggleStats={() => setShowStats(true)}
-        showPreview={showPreview}
-        onTogglePreview={() => setShowPreview(!showPreview)}
-        isSidebarOpen={isSidebarOpen}
-        onSetSidebarOpen={onSetSidebarOpen}
-        onTitleChange={handleTitleUpdate}
-        markerConfigs={markerConfigs}
-        hiddenMarkerIds={hiddenMarkerIds}
-        onToggleMarker={toggleMarkerVisibility}
-        script={initialData} // Or manage a local script state if needing deeper updates
-        onScriptUpdate={(updated) => {
-            // Update local state if needed, or just let the dialog handle the API call + prop refresh
-            // For now, we rely on the Dialog's API call and maybe a refresh to parent?
-            // Since initialData comes from parent, we might need a way to bubble up.
-            // But simple display update:
-            if (updated.title && updated.title !== title) setTitle(updated.title);
-            // Ideally we update the full object in parent scriptManager
-            // But for now, relying on next load or context update is okay.
-        }}
-      />
+        <div ref={headerRef}>
+          <EditorHeader 
+            readOnly={readOnly}
+            title={title}
+            onBack={handleBack}
+            onManualSave={handleManualSave}
+            saveStatus={saveStatus}
+            lastSaved={lastSaved}
+            showRules={showRules}
+            onToggleRules={() => setShowRules(prev => !prev)}
+            downloadOptions={normalizedDownloadOptions}
+            onToggleStats={() => setShowStats(true)}
+            showPreview={showPreview}
+            onTogglePreview={() => setShowPreview(!showPreview)}
+            onOpenGuide={startGuide}
+            moreActionsRef={moreActionsButtonRef}
+            isSidebarOpen={isSidebarOpen}
+            onSetSidebarOpen={onSetSidebarOpen}
+            onTitleChange={handleTitleUpdate}
+            markerConfigs={markerConfigs}
+            hiddenMarkerIds={hiddenMarkerIds}
+            onToggleMarker={toggleMarkerVisibility}
+            script={initialData} // Or manage a local script state if needing deeper updates
+            onScriptUpdate={(updated) => {
+                // Update local state if needed, or just let the dialog handle the API call + prop refresh
+                // For now, we rely on the Dialog's API call and maybe a refresh to parent?
+                // Since initialData comes from parent, we might need a way to bubble up.
+                // But simple display update:
+                if (updated.title && updated.title !== title) setTitle(updated.title);
+                // Ideally we update the full object in parent scriptManager
+                // But for now, relying on next load or context update is okay.
+            }}
+          />
+        </div>
       )}
 
       {/* Editor Area */}
@@ -623,6 +794,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
         {/* Code Editor Pane */}
         {!readOnly && (
             <div
+                ref={editorPaneRef}
                 className={`h-full ${
                   showPreview
                     ? "w-full sm:w-auto sm:shrink-0 sm:basis-[var(--editor-pane-width,50%)] sm:border-r sm:border-border"
@@ -731,6 +903,108 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
         />
 
       </div>
+      {showGuide && currentGuide && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[250] pointer-events-none">
+          {guideSpotlightRect ? (
+            <>
+              <div className="absolute left-0 top-0 bg-black/75 pointer-events-auto" style={{ width: "100%", height: guideSpotlightRect.top }} />
+              <div className="absolute left-0 bg-black/75 pointer-events-auto" style={{ top: guideSpotlightRect.top, width: guideSpotlightRect.left, height: guideSpotlightRect.height }} />
+              <div
+                className="absolute right-0 bg-black/75 pointer-events-auto"
+                style={{
+                  top: guideSpotlightRect.top,
+                  left: guideSpotlightRect.left + guideSpotlightRect.width,
+                  height: guideSpotlightRect.height,
+                }}
+              />
+              <div className="absolute left-0 bg-black/75 pointer-events-auto" style={{ top: guideSpotlightRect.top + guideSpotlightRect.height, width: "100%", bottom: 0 }} />
+              <div
+                className="absolute rounded-xl border-2 border-primary shadow-[0_0_40px_rgba(255,255,255,0.12)] pointer-events-none"
+                style={{
+                  top: guideSpotlightRect.top,
+                  left: guideSpotlightRect.left,
+                  width: guideSpotlightRect.width,
+                  height: guideSpotlightRect.height,
+                }}
+              />
+            </>
+          ) : (
+            <div className="absolute inset-0 bg-black/75 pointer-events-auto" />
+          )}
+          <div className="absolute right-6 bottom-6 w-[380px] max-w-[calc(100vw-3rem)] rounded-xl border bg-background p-4 shadow-2xl pointer-events-auto">
+            <div className="text-xs text-muted-foreground">{guideIndex + 1}/{guideSteps.length}</div>
+            <div className="text-base font-semibold mt-1">{currentGuide.title}</div>
+            <p className="text-sm text-muted-foreground mt-1">{currentGuide.description}</p>
+            <div className="mt-4 flex items-center justify-between gap-2">
+              <Button type="button" size="sm" variant="ghost" onClick={finishGuide}>
+                {t("liveEditor.guideSkip")}
+              </Button>
+              <div className="flex items-center gap-2">
+                <Button type="button" size="sm" variant="outline" onClick={handleGuidePrev} disabled={guideIndex === 0}>
+                  {t("liveEditor.guidePrev")}
+                </Button>
+                <Button type="button" size="sm" onClick={handleGuideNext}>
+                  {guideIndex === guideSteps.length - 1 ? t("liveEditor.guideDone") : t("liveEditor.guideNext")}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+      {showCrossModeEditGuide && (
+        <div className="fixed inset-0 z-[255] pointer-events-none">
+          {crossGuideSpotlightRect ? (
+            <>
+              <div className="absolute left-0 top-0 bg-black/75 pointer-events-auto" style={{ width: "100%", height: crossGuideSpotlightRect.top }} />
+              <div className="absolute left-0 bg-black/75 pointer-events-auto" style={{ top: crossGuideSpotlightRect.top, width: crossGuideSpotlightRect.left, height: crossGuideSpotlightRect.height }} />
+              <div
+                className="absolute right-0 bg-black/75 pointer-events-auto"
+                style={{
+                  top: crossGuideSpotlightRect.top,
+                  left: crossGuideSpotlightRect.left + crossGuideSpotlightRect.width,
+                  height: crossGuideSpotlightRect.height,
+                }}
+              />
+              <div className="absolute left-0 bg-black/75 pointer-events-auto" style={{ top: crossGuideSpotlightRect.top + crossGuideSpotlightRect.height, width: "100%", bottom: 0 }} />
+              <div
+                className="absolute rounded-xl border-2 border-primary shadow-[0_0_40px_rgba(255,255,255,0.12)] pointer-events-none"
+                style={{
+                  top: crossGuideSpotlightRect.top,
+                  left: crossGuideSpotlightRect.left,
+                  width: crossGuideSpotlightRect.width,
+                  height: crossGuideSpotlightRect.height,
+                }}
+              />
+            </>
+          ) : (
+            <div className="absolute inset-0 bg-black/75 pointer-events-auto" />
+          )}
+          <div className="absolute right-6 bottom-6 w-[380px] max-w-[calc(100vw-3rem)] rounded-xl border bg-background p-4 shadow-2xl pointer-events-auto">
+            <div className="text-base font-semibold">{crossGuideTitle}</div>
+            <p className="mt-1 text-sm text-muted-foreground">{crossGuideDesc}</p>
+            <div className="mt-4 flex items-center justify-between gap-2">
+              <Button type="button" variant="ghost" size="sm" onClick={() => onCrossGuideExit?.()}>
+                {t("liveEditor.crossGuideExit")}
+              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onCrossGuidePrev?.()}
+                  disabled={crossModeGuideStep === "editIntro"}
+                >
+                  {t("liveEditor.crossGuidePrev")}
+                </Button>
+                <Button type="button" size="sm" onClick={() => onCrossGuideNext?.()}>
+                  {crossModeGuideStep === "editActions" ? t("liveEditor.crossGuideBackToRead") : t("liveEditor.crossGuideNext")}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

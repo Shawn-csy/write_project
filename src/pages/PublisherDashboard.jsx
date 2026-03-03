@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
 import { Button } from "../components/ui/button";
-import { Plus, PanelLeftOpen, Loader2 } from "lucide-react";
+import { PanelLeftOpen, FileText, UserRound, Building2, Layers3, CircleHelp } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { ScriptMetadataDialog } from "../components/dashboard/ScriptMetadataDialog";
 import { getMorandiTagStyle } from "../lib/tagColors";
-import { getPersonas, createPersona, updatePersona, deletePersona, getOrganizations, createOrganization, updateOrganization, deleteOrganization, getUserScripts, getTags, getOrganizationMembers, getOrganizationInvites, getOrganizationRequests, inviteOrganizationMember, acceptOrganizationRequest, declineOrganizationRequest, getMyOrganizationInvites, acceptOrganizationInvite, declineOrganizationInvite, searchUsers, getUserProfile, getOrganization, getPublicPersona, createScript, getSeries, createSeries, updateSeries, deleteSeries, updateScript } from "../lib/db";
+import { MORANDI_STUDIO_TONE_VARS } from "../constants/morandiPanelTones";
+import { getPersonas, createPersona, updatePersona, deletePersona, getOrganizations, createOrganization, updateOrganization, deleteOrganization, getUserScripts, getTags, getOrganizationMembers, getOrganizationInvites, getOrganizationRequests, inviteOrganizationMember, acceptOrganizationRequest, declineOrganizationRequest, getMyOrganizationInvites, acceptOrganizationInvite, declineOrganizationInvite, searchUsers, getUserProfile, getOrganization, getPublicPersona, getSeries, createSeries, updateSeries, deleteSeries, updateScript, removeOrganizationMember, removeOrganizationPersona, updateOrganizationMemberRole } from "../lib/db";
 import { PublisherWorksTab } from "../components/dashboard/publisher/PublisherWorksTab";
 import { PublisherProfileTab } from "../components/dashboard/publisher/PublisherProfileTab";
 import { PublisherOrgTab } from "../components/dashboard/publisher/PublisherOrgTab";
@@ -15,15 +17,21 @@ import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../components/ui/toast";
 import { useI18n } from "../contexts/I18nContext";
 
+const STUDIO_GUIDE_STORAGE_KEY = "studio-guide-seen-v1";
+
 
 export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMenu }) {
   const { t } = useI18n();
   const { currentUser, profile: currentProfile } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("works");
+  const resolveTabFromSearch = React.useCallback((search) => {
+      const raw = new URLSearchParams(search || "").get("tab");
+      return ["works", "profile", "org", "series"].includes(raw) ? raw : "works";
+  }, []);
+  const [activeTab, setActiveTab] = useState(() => resolveTabFromSearch(location.search));
   const [editingScript, setEditingScript] = useState(null);
-  const [isCreatingScript, setIsCreatingScript] = useState(false);
   const [confirmDeletePersonaOpen, setConfirmDeletePersonaOpen] = useState(false);
   const [confirmDeleteOrgOpen, setConfirmDeleteOrgOpen] = useState(false);
   
@@ -61,6 +69,8 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
   const [personaTagInput, setPersonaTagInput] = useState("");
   const [orgTagInput, setOrgTagInput] = useState("");
   const [isWorksLoading, setIsWorksLoading] = useState(true);
+  const [isMetaLoading, setIsMetaLoading] = useState(true);
+  const [isOrgMembersLoading, setIsOrgMembersLoading] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingOrg, setIsSavingOrg] = useState(false);
   const [isCreatingPersona, setIsCreatingPersona] = useState(false);
@@ -69,6 +79,13 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
   const [selectedSeriesId, setSelectedSeriesId] = useState("");
   const [seriesDraft, setSeriesDraft] = useState({ name: "", summary: "", coverUrl: "" });
   const [isSavingSeries, setIsSavingSeries] = useState(false);
+  const [showStudioGuide, setShowStudioGuide] = useState(false);
+  const [studioGuideIndex, setStudioGuideIndex] = useState(0);
+  const [studioSpotlightRect, setStudioSpotlightRect] = useState(null);
+  const tabsGuideRef = useRef(null);
+  const worksTabGuideRef = useRef(null);
+  const profileTabGuideRef = useRef(null);
+  const orgTabGuideRef = useRef(null);
 
   const formatDate = (ts) => {
       if (!ts) return "-";
@@ -98,6 +115,115 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
           .slice(0, 6);
   };
 
+  const normalizeOrgIds = (value) => {
+      if (Array.isArray(value)) return value.filter(Boolean);
+      if (!value) return [];
+      if (typeof value === "string") {
+          try {
+              const parsed = JSON.parse(value);
+              return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+          } catch {
+              return [];
+          }
+      }
+      return [];
+  };
+
+  const resolveProfileOrgIds = (profile) => {
+      const fromIds = normalizeOrgIds(profile?.organizationIds);
+      const fromSingle = profile?.organizationId ? [profile.organizationId] : [];
+      return Array.from(new Set([...fromIds, ...fromSingle].filter(Boolean)));
+  };
+
+  const currentUserId = currentUser?.uid || currentProfile?.id || null;
+  const currentOrgRole = React.useMemo(() => {
+      if (!currentUserId || !selectedOrgId) return null;
+      const me = (orgMembers?.users || []).find((u) => u.id === currentUserId);
+      return me?.organizationRole || null;
+  }, [currentUserId, selectedOrgId, orgMembers]);
+  const canManageOrgMembers = currentOrgRole === "owner" || currentOrgRole === "admin";
+  const tabCounts = React.useMemo(() => ({
+      works: scripts.length,
+      profile: personas.length,
+      org: orgsForPersona.length,
+      series: seriesList.length,
+  }), [scripts.length, personas.length, orgsForPersona.length, seriesList.length]);
+  const tabDescriptions = React.useMemo(() => ({
+      works: "管理作品公開狀態、封面與授權資訊",
+      profile: "管理作者身份、作者頁顯示內容與組織展示",
+      org: "管理組織資訊、成員與角色權限",
+      series: "管理系列封面、摘要與收錄作品",
+  }), []);
+  const tabTone = MORANDI_STUDIO_TONE_VARS;
+  const renderTabCount = (count) => (
+      count ? <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">{count}</span> : null
+  );
+  const studioGuideSteps = useMemo(() => ([
+      {
+          title: t("publisher.guideTabsTitle"),
+          description: t("publisher.guideTabsDesc"),
+          target: "tabs",
+          tab: "works",
+      },
+      {
+          title: t("publisher.guideWorksTitle"),
+          description: t("publisher.guideWorksDesc"),
+          target: "works",
+          tab: "works",
+      },
+      {
+          title: t("publisher.guideProfileTitle"),
+          description: t("publisher.guideProfileDesc"),
+          target: "profile",
+          tab: "profile",
+      },
+      {
+          title: t("publisher.guideOrgTitle"),
+          description: t("publisher.guideOrgDesc"),
+          target: "org",
+          tab: "org",
+      },
+  ]), [t]);
+  const currentStudioGuide = showStudioGuide ? studioGuideSteps[studioGuideIndex] : null;
+
+  const buildAffiliatedOrgs = async (ownedOrgs, profile, personaList) => {
+      const baseOrgs = ownedOrgs || [];
+      const memberOrgIds = resolveProfileOrgIds(profile);
+      let mergedOrgs = baseOrgs;
+      const extraOrgIds = new Set();
+
+      memberOrgIds.forEach((oid) => {
+          if (!baseOrgs.some((o) => o.id === oid)) extraOrgIds.add(oid);
+      });
+
+      (personaList || []).forEach((p) => {
+          (p.organizationIds || []).forEach((oid) => {
+              if (!baseOrgs.some((o) => o.id === oid)) extraOrgIds.add(oid);
+          });
+      });
+
+      if (extraOrgIds.size > 0) {
+          const fetched = [];
+          for (const oid of extraOrgIds) {
+              try {
+                  const org = await getOrganization(oid);
+                  if (org) fetched.push(org);
+              } catch {
+                  // ignore not found/forbidden
+              }
+          }
+          mergedOrgs = [...mergedOrgs, ...fetched].filter(Boolean);
+      }
+
+      const deduped = [];
+      const seen = new Set();
+      for (const o of mergedOrgs) {
+          if (!o || !o.id || seen.has(o.id)) continue;
+          seen.add(o.id);
+          deduped.push(o);
+      }
+      return deduped;
+  };
 
 
   const allTagNames = Array.from(new Set([
@@ -112,6 +238,110 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
     if (!currentUser) return;
     loadData();
   }, [currentUser]);
+
+  useEffect(() => {
+      const nextTab = resolveTabFromSearch(location.search);
+      setActiveTab((prev) => (prev === nextTab ? prev : nextTab));
+  }, [location.search, resolveTabFromSearch]);
+
+  const handleTabChange = useCallback((nextTab) => {
+      setActiveTab(nextTab);
+      const params = new URLSearchParams(location.search || "");
+      if (!nextTab || nextTab === "works") params.delete("tab");
+      else params.set("tab", nextTab);
+      const query = params.toString();
+      navigate(`/studio${query ? `?${query}` : ""}`, { replace: true });
+  }, [location.search, navigate]);
+
+  const resolveStudioGuideTarget = useCallback(() => {
+      if (!currentStudioGuide) return null;
+      if (currentStudioGuide.target === "tabs") return tabsGuideRef.current;
+      if (currentStudioGuide.target === "works") return document.querySelector('[data-guide-id="studio-works-panel"]');
+      if (currentStudioGuide.target === "profile") return document.querySelector('[data-guide-id="studio-profile-panel"]');
+      if (currentStudioGuide.target === "org") return document.querySelector('[data-guide-id="studio-org-panel"]');
+      return null;
+  }, [currentStudioGuide]);
+
+  const refreshStudioSpotlight = useCallback(() => {
+      if (!showStudioGuide) {
+          setStudioSpotlightRect(null);
+          return;
+      }
+      const target = resolveStudioGuideTarget();
+      if (!target) return;
+      const rect = target.getBoundingClientRect();
+      const pad = 10;
+      setStudioSpotlightRect({
+          top: Math.max(8, rect.top - pad),
+          left: Math.max(8, rect.left - pad),
+          width: Math.max(64, rect.width + pad * 2),
+          height: Math.max(48, rect.height + pad * 2),
+      });
+  }, [resolveStudioGuideTarget, showStudioGuide]);
+
+  const jumpStudioGuide = useCallback((index) => {
+      const next = studioGuideSteps[index];
+      if (!next) return;
+      if (next.tab && activeTab !== next.tab) {
+          handleTabChange(next.tab);
+      }
+      setStudioGuideIndex(index);
+      setShowStudioGuide(true);
+  }, [activeTab, handleTabChange, studioGuideSteps]);
+
+  const finishStudioGuide = useCallback(() => {
+      setShowStudioGuide(false);
+      setStudioGuideIndex(0);
+      setStudioSpotlightRect(null);
+      handleTabChange("works");
+      try {
+          localStorage.setItem(STUDIO_GUIDE_STORAGE_KEY, "1");
+      } catch (err) {
+          console.error("Failed to persist studio guide state", err);
+      }
+  }, [handleTabChange]);
+
+  const handleStudioGuideNext = useCallback(() => {
+      if (studioGuideIndex >= studioGuideSteps.length - 1) {
+          finishStudioGuide();
+          return;
+      }
+      jumpStudioGuide(studioGuideIndex + 1);
+  }, [finishStudioGuide, jumpStudioGuide, studioGuideIndex, studioGuideSteps.length]);
+
+  const handleStudioGuidePrev = useCallback(() => {
+      if (studioGuideIndex <= 0) return;
+      jumpStudioGuide(studioGuideIndex - 1);
+  }, [jumpStudioGuide, studioGuideIndex]);
+
+  const handleStartStudioGuide = useCallback(() => {
+      jumpStudioGuide(0);
+  }, [jumpStudioGuide]);
+
+  useEffect(() => {
+      if (!currentUser) return;
+      try {
+          const seen = localStorage.getItem(STUDIO_GUIDE_STORAGE_KEY) === "1";
+          if (!seen) {
+              jumpStudioGuide(0);
+              localStorage.setItem(STUDIO_GUIDE_STORAGE_KEY, "1");
+          }
+      } catch (err) {
+          console.error("Failed to read studio guide state", err);
+      }
+  }, [currentUser, jumpStudioGuide]);
+
+  useEffect(() => {
+      if (!showStudioGuide) return;
+      const raf = window.requestAnimationFrame(refreshStudioSpotlight);
+      window.addEventListener("resize", refreshStudioSpotlight);
+      window.addEventListener("scroll", refreshStudioSpotlight, true);
+      return () => {
+          window.cancelAnimationFrame(raf);
+          window.removeEventListener("resize", refreshStudioSpotlight);
+          window.removeEventListener("scroll", refreshStudioSpotlight, true);
+      };
+  }, [showStudioGuide, studioGuideIndex, activeTab, refreshStudioSpotlight]);
 
   // personaDraft is fully driven by selectedPersonaId effect above
 
@@ -137,6 +367,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
     }
 
     try {
+        setIsMetaLoading(true);
         const [personaData, orgData, tagData, seriesData] = await Promise.all([
             getPersonas(),
             getOrganizations(),
@@ -149,7 +380,8 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 try { links = JSON.parse(links); } catch { links = []; }
             }
             if (!Array.isArray(links)) links = [];
-            return { ...p, links };
+            const organizationIds = normalizeOrgIds(p?.organizationIds);
+            return { ...p, links, organizationIds };
         });
         // Enrich missing links from public persona as fallback
         const needsEnrich = normalizedPersonas.filter(p => (p.links || []).length === 0);
@@ -169,37 +401,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         setPersonas(normalizedPersonas);
         setPersonasLoadedAt(Date.now());
         setOrgs(orgData || []);
-        const memberOrgId = currentProfile?.organizationId;
-        let mergedOrgs = orgData || [];
-        const extraOrgIds = new Set();
-        if (memberOrgId && !(orgData || []).some(o => o.id === memberOrgId)) {
-            extraOrgIds.add(memberOrgId);
-        }
-        (personaData || []).forEach(p => {
-            (p.organizationIds || []).forEach(oid => {
-                if (!(orgData || []).some(o => o.id === oid)) {
-                    extraOrgIds.add(oid);
-                }
-            });
-        });
-        if (extraOrgIds.size > 0) {
-            const fetched = [];
-            for (const oid of extraOrgIds) {
-                try {
-                    const org = await getOrganization(oid);
-                    if (org) fetched.push(org);
-                } catch {}
-            }
-            mergedOrgs = [...mergedOrgs, ...fetched].filter(Boolean);
-        }
-        // de-dupe by id
-        const deduped = [];
-        const seen = new Set();
-        for (const o of mergedOrgs) {
-            if (!o || !o.id || seen.has(o.id)) continue;
-            seen.add(o.id);
-            deduped.push(o);
-        }
+        const deduped = await buildAffiliatedOrgs(orgData || [], currentProfile, normalizedPersonas);
         setOrgsForPersona(deduped);
         setAvailableTags(tagData || []);
         setSeriesList(seriesData || []);
@@ -211,11 +413,13 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         if (nextPersona) {
             setSelectedPersonaId(nextPersona.id);
         }
-        if ((orgData || []).length > 0) {
-            setSelectedOrgId(orgData[0].id);
+        if (deduped.length > 0) {
+            setSelectedOrgId((prev) => (prev && deduped.some((o) => o.id === prev) ? prev : deduped[0].id));
         }
     } catch (e) {
         console.error("Failed to load studio data", e);
+    } finally {
+        setIsMetaLoading(false);
     }
   };
 
@@ -305,16 +509,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
       if (!currentUser) return;
       try {
           const profile = currentProfile || await getUserProfile();
-          const memberOrgId = profile?.organizationId;
-          let mergedOrgs = orgs || [];
-          if (memberOrgId && !(orgs || []).some(o => o.id === memberOrgId)) {
-              try {
-                  const memberOrg = await getOrganization(memberOrgId);
-                  mergedOrgs = [...(orgs || []), memberOrg].filter(Boolean);
-              } catch {
-                  mergedOrgs = orgs || [];
-              }
-          }
+          const mergedOrgs = await buildAffiliatedOrgs(orgs || [], profile, personas || []);
           setOrgsForPersona(mergedOrgs);
       } catch {
           // ignore
@@ -367,12 +562,16 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
   useEffect(() => {
       const loadMembers = async () => {
           if (!selectedOrgId || !currentUser) return;
+          setIsOrgMembersLoading(true);
+          setOrgMembers({ users: [], personas: [] });
           try {
               const data = await getOrganizationMembers(selectedOrgId);
               setOrgMembers(data || { users: [], personas: [] });
           } catch (e) {
               console.error("Failed to load organization members", e);
               setOrgMembers({ users: [], personas: [] });
+          } finally {
+              setIsOrgMembersLoading(false);
           }
       };
       loadMembers();
@@ -381,12 +580,11 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
   useEffect(() => {
       const loadOrgQueues = async () => {
           if (!selectedOrgId || !currentUser) return;
-          const isOwner = orgs.some(o => o.id === selectedOrgId);
-          if (!isOwner) {
-              setOrgInvites([]);
-              setOrgRequests([]);
-              return;
-          }
+          setOrgInvites([]);
+          setOrgRequests([]);
+          setInviteSearchQuery("");
+          setInviteSearchResults([]);
+          setIsInviteSearching(false);
           try {
               const [inv, req] = await Promise.all([
                   getOrganizationInvites(selectedOrgId),
@@ -395,13 +593,13 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
               setOrgInvites(inv?.invites || []);
               setOrgRequests(req?.requests || []);
           } catch (e) {
-              // likely 403 if not owner
+              // likely 403 if current role cannot manage org queue
               setOrgInvites([]);
               setOrgRequests([]);
           }
       };
       loadOrgQueues();
-  }, [selectedOrgId, currentUser, orgs]);
+  }, [selectedOrgId, currentUser]);
 
   useEffect(() => {
       const loadMyInvites = async () => {
@@ -458,7 +656,37 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
       setOrgRequests(req?.requests || []);
   };
 
+  const handleRemoveMember = async (userId) => {
+      if (!selectedOrgId || !userId) return;
+      await removeOrganizationMember(selectedOrgId, userId);
+      const members = await getOrganizationMembers(selectedOrgId);
+      setOrgMembers(members || { users: [], personas: [] });
+  };
+
+  const handleRemovePersonaMember = async (personaId) => {
+      if (!selectedOrgId || !personaId) return;
+      await removeOrganizationPersona(selectedOrgId, personaId);
+      const members = await getOrganizationMembers(selectedOrgId);
+      setOrgMembers(members || { users: [], personas: [] });
+  };
+
+  const handleChangeMemberRole = async (userId, role) => {
+      if (!selectedOrgId || !userId || !role) return;
+      await updateOrganizationMemberRole(selectedOrgId, userId, role);
+      const members = await getOrganizationMembers(selectedOrgId);
+      setOrgMembers(members || { users: [], personas: [] });
+  };
+
   const handleAcceptInvite = async (inviteId) => {
+      if (!personas.length) {
+          toast({
+              title: t("publisher.noPersonaBeforeJoinOrg", "請先建立作者身份"),
+              description: t("publisher.noPersonaBeforeJoinOrgDesc", "加入組織前請先建立至少一個作者身份。"),
+              variant: "destructive",
+          });
+          handleTabChange("profile");
+          return;
+      }
       await acceptOrganizationInvite(inviteId);
       const mine = await getMyOrganizationInvites();
       setMyInvites(mine?.invites || []);
@@ -589,22 +817,8 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
       }
   };
 
-  const handleCreateScript = async () => {
-      if (isCreatingScript) return;
-      setIsCreatingScript(true);
-      try {
-          const id = await createScript(t("publisher.untitledScript"), "script", "/");
-          navigate(`/edit/${id}?mode=edit`);
-      } catch (e) {
-          console.error("Failed to create script", e);
-          toast({ title: t("publisher.createScriptFailed"), description: t("publisher.tryLater"), variant: "destructive" });
-      } finally {
-          setIsCreatingScript(false);
-      }
-  };
-
   return (
-    <div className="h-full overflow-y-auto bg-background">
+    <div className="h-full overflow-y-auto overflow-x-hidden bg-background">
     <div className="container mx-auto p-6 max-w-6xl space-y-8 animate-in fade-in duration-500">
       
       {/* Header */}
@@ -648,10 +862,10 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
             </div>
         </div>
         <div className="flex items-center gap-3">
-             <Button onClick={handleCreateScript} disabled={isCreatingScript}>
-                {isCreatingScript ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-                {t("publisher.newScript")}
-             </Button>
+            <Button type="button" variant="outline" size="sm" onClick={handleStartStudioGuide}>
+                <CircleHelp className="w-4 h-4 mr-1.5" />
+                {t("publisher.guide")}
+            </Button>
         </div>
       </div>
 
@@ -672,16 +886,72 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         </div>
       )}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full md:w-[520px] grid-cols-1 sm:grid-cols-4 gap-1 h-auto sm:h-9">
-            <TabsTrigger value="works">{t("publisher.myWorks")}</TabsTrigger>
-            <TabsTrigger value="profile">{t("publisher.authorIdentity")}</TabsTrigger>
-            <TabsTrigger value="org">{t("publisher.organization")}</TabsTrigger>
-            <TabsTrigger value="series">系列管理</TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+        <div className="sticky top-0 z-20 rounded-lg border bg-background/95 p-2 backdrop-blur">
+            <TabsList ref={tabsGuideRef} className="grid w-full grid-cols-2 md:grid-cols-4 gap-1 h-auto bg-transparent p-0">
+                <TabsTrigger
+                  ref={worksTabGuideRef}
+                  value="works"
+                  style={tabTone.works}
+                  className="h-11 justify-start px-3 border border-transparent transition-colors data-[state=active]:border-[var(--morandi-tone-panel-border)] data-[state=active]:bg-[var(--morandi-tone-trigger-bg)] data-[state=active]:text-[var(--morandi-tone-trigger-fg)]"
+                >
+                    <span className="flex items-center gap-2 text-xs sm:text-sm">
+                        <FileText className="h-4 w-4" />
+                        <span>{t("publisher.myWorks")}</span>
+                        {renderTabCount(tabCounts.works)}
+                    </span>
+                </TabsTrigger>
+                <TabsTrigger
+                  ref={profileTabGuideRef}
+                  value="profile"
+                  style={tabTone.profile}
+                  className="h-11 justify-start px-3 border border-transparent transition-colors data-[state=active]:border-[var(--morandi-tone-panel-border)] data-[state=active]:bg-[var(--morandi-tone-trigger-bg)] data-[state=active]:text-[var(--morandi-tone-trigger-fg)]"
+                >
+                    <span className="flex items-center gap-2 text-xs sm:text-sm">
+                        <UserRound className="h-4 w-4" />
+                        <span>{t("publisher.authorIdentity")}</span>
+                        {renderTabCount(tabCounts.profile)}
+                    </span>
+                </TabsTrigger>
+                <TabsTrigger
+                  ref={orgTabGuideRef}
+                  value="org"
+                  style={tabTone.org}
+                  className="h-11 justify-start px-3 border border-transparent transition-colors data-[state=active]:border-[var(--morandi-tone-panel-border)] data-[state=active]:bg-[var(--morandi-tone-trigger-bg)] data-[state=active]:text-[var(--morandi-tone-trigger-fg)]"
+                >
+                    <span className="flex items-center gap-2 text-xs sm:text-sm">
+                        <Building2 className="h-4 w-4" />
+                        <span>{t("publisher.organization")}</span>
+                        {renderTabCount(tabCounts.org)}
+                    </span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="series"
+                  style={tabTone.series}
+                  className="h-11 justify-start px-3 border border-transparent transition-colors data-[state=active]:border-[var(--morandi-tone-panel-border)] data-[state=active]:bg-[var(--morandi-tone-trigger-bg)] data-[state=active]:text-[var(--morandi-tone-trigger-fg)]"
+                >
+                    <span className="flex items-center gap-2 text-xs sm:text-sm">
+                        <Layers3 className="h-4 w-4" />
+                        <span>系列管理</span>
+                        {renderTabCount(tabCounts.series)}
+                    </span>
+                </TabsTrigger>
+            </TabsList>
+            <div
+              style={tabTone[activeTab] || tabTone.works}
+              className="mt-2 rounded-md border-l-4 border-[var(--morandi-tone-helper-border)] bg-[var(--morandi-tone-helper-bg)] px-2 py-1.5 text-xs text-[var(--morandi-tone-helper-fg)]"
+            >
+                {tabDescriptions[activeTab] || tabDescriptions.works}
+            </div>
+        </div>
 
         {/* 1. My Works Tab */}
-        <TabsContent value="works" className="space-y-4">
+        <TabsContent
+          value="works"
+          style={tabTone.works}
+          className="space-y-4 rounded-xl border border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-panel-bg)] p-3"
+          data-guide-id="studio-works-panel"
+        >
              <PublisherWorksTab 
                 isLoading={isWorksLoading} 
                 scripts={scripts} 
@@ -693,7 +963,12 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         </TabsContent>
 
         {/* 2. Profile Tab (Inline Editor) */}
-        <TabsContent value="profile">
+        <TabsContent
+          value="profile"
+          style={tabTone.profile}
+          className="rounded-xl border border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-panel-bg)] p-3"
+          data-guide-id="studio-profile-panel"
+        >
             <PublisherProfileTab
                 selectedPersonaId={selectedPersonaId} setSelectedPersonaId={setSelectedPersonaId}
                 personas={personas}
@@ -702,6 +977,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 handleDeletePersona={() => setConfirmDeletePersonaOpen(true)}
                 personaDraft={personaDraft} setPersonaDraft={setPersonaDraft}
                 orgs={orgsForPersona}
+                isLoading={isMetaLoading}
                 personaTagInput={personaTagInput} setPersonaTagInput={setPersonaTagInput}
                 handleSaveProfile={handleSaveProfile} isSavingProfile={isSavingProfile}
                 parseTags={parseTags} addTags={addTags} getSuggestions={getSuggestions} getTagStyle={getTagStyle}
@@ -729,9 +1005,14 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         />
 
         {/* 3. Organization Tab */}
-        <TabsContent value="org">
+        <TabsContent
+          value="org"
+          style={tabTone.org}
+          className="rounded-xl border border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-panel-bg)] p-3"
+          data-guide-id="studio-org-panel"
+        >
                 <PublisherOrgTab 
-                orgs={orgs} 
+                orgs={orgsForPersona} 
                 selectedOrgId={selectedOrgId} setSelectedOrgId={setSelectedOrgId}
                 handleCreateOrg={handleCreateOrg} isCreatingOrg={isCreatingOrg}
                 handleDeleteOrg={() => setConfirmDeleteOrgOpen(true)}
@@ -740,10 +1021,14 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 orgTagInput={orgTagInput} setOrgTagInput={setOrgTagInput}
                 parseTags={parseTags} addTags={addTags} getSuggestions={getSuggestions} getTagStyle={getTagStyle}
                 tagOptions={availableTags}
+                isLoading={isMetaLoading || isOrgMembersLoading}
                 orgMembers={orgMembers}
                 orgInvites={orgInvites}
                 orgRequests={orgRequests}
-                isOrgOwner={orgs.some(o => o.id === selectedOrgId)}
+                canEditSelectedOrg={canManageOrgMembers}
+                currentUserId={currentUserId}
+                currentOrgRole={currentOrgRole}
+                canManageOrgMembers={canManageOrgMembers}
                 inviteSearchQuery={inviteSearchQuery}
                 setInviteSearchQuery={setInviteSearchQuery}
                 inviteSearchResults={inviteSearchResults}
@@ -751,10 +1036,17 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 handleInviteMember={handleInviteMember}
                 handleAcceptRequest={handleAcceptRequest}
                 handleDeclineRequest={handleDeclineRequest}
+                handleRemoveMember={handleRemoveMember}
+                handleRemovePersonaMember={handleRemovePersonaMember}
+                handleChangeMemberRole={handleChangeMemberRole}
                 />
         </TabsContent>
 
-        <TabsContent value="series">
+        <TabsContent
+          value="series"
+          style={tabTone.series}
+          className="rounded-xl border border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-panel-bg)] p-3"
+        >
             <PublisherSeriesTab
               seriesList={seriesList}
               selectedSeriesId={selectedSeriesId}
@@ -804,6 +1096,55 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {showStudioGuide && currentStudioGuide && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[220] pointer-events-none">
+          {studioSpotlightRect ? (
+            <>
+              <div className="absolute left-0 top-0 bg-black/75 pointer-events-auto" style={{ width: "100%", height: studioSpotlightRect.top }} />
+              <div className="absolute left-0 bg-black/75 pointer-events-auto" style={{ top: studioSpotlightRect.top, width: studioSpotlightRect.left, height: studioSpotlightRect.height }} />
+              <div
+                className="absolute right-0 bg-black/75 pointer-events-auto"
+                style={{
+                    top: studioSpotlightRect.top,
+                    left: studioSpotlightRect.left + studioSpotlightRect.width,
+                    height: studioSpotlightRect.height,
+                }}
+              />
+              <div className="absolute left-0 bg-black/75 pointer-events-auto" style={{ top: studioSpotlightRect.top + studioSpotlightRect.height, width: "100%", bottom: 0 }} />
+              <div
+                className="absolute rounded-xl border-2 border-primary shadow-[0_0_40px_rgba(255,255,255,0.12)] pointer-events-none"
+                style={{
+                    top: studioSpotlightRect.top,
+                    left: studioSpotlightRect.left,
+                    width: studioSpotlightRect.width,
+                    height: studioSpotlightRect.height,
+                }}
+              />
+            </>
+          ) : (
+            <div className="absolute inset-0 bg-black/75 pointer-events-auto" />
+          )}
+          <div className="absolute right-6 bottom-6 w-[380px] max-w-[calc(100vw-3rem)] rounded-xl border bg-background p-4 shadow-2xl pointer-events-auto">
+              <div className="text-xs text-muted-foreground">{studioGuideIndex + 1}/{studioGuideSteps.length}</div>
+              <div className="text-base font-semibold mt-1">{currentStudioGuide.title}</div>
+              <p className="text-sm text-muted-foreground mt-1">{currentStudioGuide.description}</p>
+              <div className="mt-4 flex items-center justify-between gap-2">
+                <Button type="button" size="sm" variant="ghost" onClick={finishStudioGuide}>
+                  {t("publisher.guideSkip")}
+                </Button>
+                <div className="flex items-center gap-2">
+                  <Button type="button" size="sm" variant="outline" onClick={handleStudioGuidePrev} disabled={studioGuideIndex === 0}>
+                    {t("publisher.guidePrev")}
+                  </Button>
+                  <Button type="button" size="sm" onClick={handleStudioGuideNext}>
+                    {studioGuideIndex === studioGuideSteps.length - 1 ? t("publisher.guideDone") : t("publisher.guideNext")}
+                  </Button>
+                </div>
+              </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
     </div>
   );

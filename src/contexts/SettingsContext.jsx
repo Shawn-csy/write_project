@@ -10,6 +10,7 @@ import {
 import { STORAGE_KEYS } from "../constants/storageKeys";
 import { writeValue } from "../lib/storage";
 import { apiCall as serviceApiCall, fetchUserSettings, saveUserSettings, fetchUserThemes } from "../services/settingsApi.js";
+import { DEFAULT_READING_FONT, DEFAULT_UI_FONT, normalizeReadingFont, normalizeUiFont, resolveUiFontStack } from "../constants/readingFonts";
 
 import { useMarkerThemes } from "../hooks/useMarkerThemes";
 import { usePersistentState } from "../hooks/usePersistentState";
@@ -32,6 +33,12 @@ export function SettingsProvider({ children }) {
   const [fontSize, setFontSize] = usePersistentState(STORAGE_KEYS.FONT_SIZE, 14, 'number');
   const [bodyFontSize, setBodyFontSize] = usePersistentState(STORAGE_KEYS.BODY_FONT, 14, 'number');
   const [dialogueFontSize, setDialogueFontSize] = usePersistentState(STORAGE_KEYS.DIALOGUE_FONT, 14, 'number');
+  const [readingFontFamilyRaw, setReadingFontFamilyRaw] = usePersistentState(STORAGE_KEYS.READING_FONT, DEFAULT_READING_FONT);
+  const readingFontFamily = normalizeReadingFont(readingFontFamilyRaw);
+  const setReadingFontFamily = (next) => setReadingFontFamilyRaw(normalizeReadingFont(next));
+  const [uiFontFamilyRaw, setUiFontFamilyRaw] = usePersistentState(STORAGE_KEYS.UI_FONT, DEFAULT_UI_FONT);
+  const uiFontFamily = normalizeUiFont(uiFontFamilyRaw);
+  const setUiFontFamily = (next) => setUiFontFamilyRaw(normalizeUiFont(next));
   
   // Line Height (1.2 ~ 2.0, default 1.4)
   const [lineHeight, setLineHeight] = usePersistentState(STORAGE_KEYS.LINE_HEIGHT, 1.4, 'number');
@@ -150,6 +157,10 @@ export function SettingsProvider({ children }) {
     document.documentElement.style.setProperty("--desktop-ui-scale", String(desktopUiScale));
   }, [desktopUiScale]);
 
+  useEffect(() => {
+    document.documentElement.style.setProperty("--app-font-family", resolveUiFontStack(uiFontFamily));
+  }, [uiFontFamily]);
+
   // --- Cloud Sync ---
   // 1. Load from Cloud on Login
   useEffect(() => {
@@ -170,6 +181,8 @@ export function SettingsProvider({ children }) {
                       if(s.editorFontSize) setBodyFontSize(s.editorFontSize); 
                       if(s.bodyFontSize) setBodyFontSize(s.bodyFontSize);
                       if(s.dialogueFontSize) setDialogueFontSize(s.dialogueFontSize);
+                      if(s.readingFontFamily) setReadingFontFamily(s.readingFontFamily);
+                      if(s.uiFontFamily) setUiFontFamily(s.uiFontFamily);
                       if(s.hideWhitespace !== undefined) setHideWhitespace(s.hideWhitespace);
 
                       if(s.lineHeight) setLineHeight(s.lineHeight);
@@ -211,6 +224,8 @@ export function SettingsProvider({ children }) {
                           fontSize,
                           bodyFontSize,
                           dialogueFontSize,
+                          readingFontFamily,
+                          uiFontFamily,
 
                           hideWhitespace,
 
@@ -249,6 +264,8 @@ export function SettingsProvider({ children }) {
           fontSize,
           bodyFontSize,
           dialogueFontSize,
+          readingFontFamily,
+          uiFontFamily,
 
           hideWhitespace,
 
@@ -271,6 +288,8 @@ export function SettingsProvider({ children }) {
       fontSize,
       bodyFontSize,
       dialogueFontSize,
+      readingFontFamily,
+      uiFontFamily,
 
       hideWhitespace,
 
@@ -300,6 +319,8 @@ export function SettingsProvider({ children }) {
     fontSize, setFontSize,
     bodyFontSize, setBodyFontSize,
     dialogueFontSize, setDialogueFontSize,
+    readingFontFamily, setReadingFontFamily,
+    uiFontFamily, setUiFontFamily,
     lineHeight, setLineHeight,
     desktopUiScale, setDesktopUiScale,
     adjustFont,

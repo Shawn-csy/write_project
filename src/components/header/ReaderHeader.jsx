@@ -33,6 +33,8 @@ function ReaderHeader({
   scrollProgress = 0,
   totalLines = 0,
   onEdit, 
+  onOpenGuide,
+  showReadModeHint = false,
   extraActions,
   onBack,
   onToggleStats, // New prop
@@ -79,7 +81,7 @@ function ReaderHeader({
   const showTools = isLg || !collapsed;
 
   return (
-    <Card className="border border-border bg-card/80 backdrop-blur rounded-none sm:rounded-xl border-x-0 sm:border-x">
+    <Card id="reader-guide-header" className="border border-border bg-card/80 backdrop-blur rounded-none sm:rounded-xl border-x-0 sm:border-x">
       {/* ... (unchanged header content) */}
       <CardContent
         className={`flex flex-col ${
@@ -146,20 +148,27 @@ function ReaderHeader({
                 </div>
               }
               metaNode={
-                <div className="flex items-center gap-2 text-[10px] text-muted-foreground min-w-0">
-                  <span className="truncate max-w-[120px]">
-                    {typeof activeFile === "string" && fileMeta[activeFile]
-                      ? fileMeta[activeFile].toLocaleDateString()
-                      : ""}
-                  </span>
-                  {totalLines > 0 && (
-                    <>
-                      <span className="opacity-50">·</span>
-                      <span className="whitespace-nowrap">{t("readerHeader.linesCount").replace("{count}", String(totalLines))}</span>
-                    </>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground min-w-0">
+                    <span className="truncate max-w-[120px]">
+                      {typeof activeFile === "string" && fileMeta[activeFile]
+                        ? fileMeta[activeFile].toLocaleDateString()
+                        : ""}
+                    </span>
+                    {totalLines > 0 && (
+                      <>
+                        <span className="opacity-50">·</span>
+                        <span className="whitespace-nowrap">{t("readerHeader.linesCount").replace("{count}", String(totalLines))}</span>
+                      </>
+                    )}
+                    <span className="opacity-50">·</span>
+                    <span className="whitespace-nowrap">{progressLabel}</span>
+                  </div>
+                  {showReadModeHint && onEdit && (
+                    <div className="mt-0.5 text-[11px] text-amber-700 dark:text-amber-300 truncate">
+                      {t("readerHeader.readModeHint")}
+                    </div>
                   )}
-                  <span className="opacity-50">·</span>
-                  <span className="whitespace-nowrap">{progressLabel}</span>
                 </div>
               }
             />
@@ -180,7 +189,7 @@ function ReaderHeader({
           </div>
         </div>
         {showTools && (
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 lg:justify-end lg:ml-auto lg:w-auto w-full mt-2 sm:mt-0">
+          <div id="reader-guide-tools" className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 lg:justify-end lg:ml-auto lg:w-auto w-full mt-2 sm:mt-0">
             <ReaderControls 
                 sceneList={sceneList} 
                 currentSceneId={currentSceneId} 
@@ -202,6 +211,7 @@ function ReaderHeader({
                 shareCopied={shareCopied} 
                 downloadOptions={downloadOptions}
                 onEdit={onEdit} 
+                onOpenGuide={onOpenGuide}
                 extraActions={extraActions}
                 onToggleStats={onToggleStats}
             />

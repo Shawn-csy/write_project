@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Float, Boolean, ForeignKey, JSON
+from sqlalchemy import Column, Integer, String, Text, Float, Boolean, ForeignKey, JSON, UniqueConstraint
 from sqlalchemy.orm import relationship
 from database import Base
 import time
@@ -100,6 +100,34 @@ class OrganizationInvite(Base):
     inviterUserId = Column(String, ForeignKey("users.id"), index=True)
     status = Column(String, default="pending")  # pending, accepted, declined, revoked
     createdAt = Column(Integer, default=lambda: int(time.time() * 1000))
+
+
+class OrganizationMembership(Base):
+    __tablename__ = "organization_memberships"
+    __table_args__ = (
+        UniqueConstraint("orgId", "userId", name="uq_org_memberships_org_user"),
+    )
+
+    id = Column(String, primary_key=True, index=True)
+    orgId = Column(String, ForeignKey("organizations.id"), index=True, nullable=False)
+    userId = Column(String, ForeignKey("users.id"), index=True, nullable=False)
+    role = Column(String, default="member")
+    createdAt = Column(Integer, default=lambda: int(time.time() * 1000))
+    updatedAt = Column(Integer, default=lambda: int(time.time() * 1000))
+
+
+class PersonaOrganizationMembership(Base):
+    __tablename__ = "persona_organization_memberships"
+    __table_args__ = (
+        UniqueConstraint("orgId", "personaId", name="uq_persona_org_memberships_org_persona"),
+    )
+
+    id = Column(String, primary_key=True, index=True)
+    orgId = Column(String, ForeignKey("organizations.id"), index=True, nullable=False)
+    personaId = Column(String, ForeignKey("personas.id"), index=True, nullable=False)
+    role = Column(String, default="member")
+    createdAt = Column(Integer, default=lambda: int(time.time() * 1000))
+    updatedAt = Column(Integer, default=lambda: int(time.time() * 1000))
 
 class OrganizationRequest(Base):
     __tablename__ = "organization_requests"

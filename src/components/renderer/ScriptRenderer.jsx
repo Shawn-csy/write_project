@@ -6,6 +6,7 @@ import { SpeechNode } from './nodes/SpeechNode';
 import { parseInline } from '../../lib/parsers/inlineParser.js';
 import { isInlineLike } from '../../lib/markerRules.js';
 import { useI18n } from '../../contexts/I18nContext';
+import { resolveReadingFontStack } from '../../constants/readingFonts';
 
 const CHARACTER_COLOR_SEQUENCE = [
     'var(--marker-color-russet)',      // 1st: red
@@ -306,6 +307,7 @@ const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
 export const ScriptRenderer = React.memo(({ 
     ast, 
     fontSize = 16,
+    readingFontFamily = "serif",
     filterCharacter, 
     focusMode, 
     focusEffect, 
@@ -318,6 +320,7 @@ export const ScriptRenderer = React.memo(({
     showLineUnderline = false,
 }) => {
     const { t } = useI18n();
+    const readingFontStack = resolveReadingFontStack(readingFontFamily);
     const [markerTooltip, setMarkerTooltip] = useState(null);
     const whitespaceLabels = useMemo(
         () => ({
@@ -419,6 +422,7 @@ export const ScriptRenderer = React.memo(({
     return (
         <article
             className="script-renderer relative"
+            style={{ fontFamily: readingFontStack }}
             onPointerMove={handlePointerMove}
             onPointerLeave={handlePointerLeave}
         >

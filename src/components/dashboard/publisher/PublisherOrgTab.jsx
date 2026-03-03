@@ -1,6 +1,7 @@
 import React from 'react';
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Plus, Trash2, Building2 } from "lucide-react";
+import { Loader2, Plus, Trash2, Building2, CircleHelp } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "../../ui/card";
 import { Input } from "../../ui/input";
@@ -14,9 +15,14 @@ import { optimizeImageForUpload, getImageUploadGuide, MEDIA_FILE_ACCEPT } from "
 import { uploadMediaObject } from "../../../lib/db";
 import { useI18n } from "../../../contexts/I18nContext";
 import { MediaPicker } from "../../ui/MediaPicker";
+import { PublisherFormRow } from "./PublisherFormRow";
+import { PublisherTabHeader } from "./PublisherTabHeader";
+
+const ORG_TAB_GUIDE_STORAGE_KEY = "publisher-org-guide-seen-v1";
 
 export function PublisherOrgTab({
     orgs,
+    isLoading = false,
     selectedOrgId, setSelectedOrgId,
     handleCreateOrg, isCreatingOrg,
     handleDeleteOrg,
@@ -28,14 +34,20 @@ export function PublisherOrgTab({
     orgMembers,
     orgInvites,
     orgRequests,
-    isOrgOwner,
+    canEditSelectedOrg = false,
+    currentUserId,
+    currentOrgRole,
+    canManageOrgMembers = false,
     inviteSearchQuery,
     setInviteSearchQuery,
     inviteSearchResults,
     isInviteSearching,
     handleInviteMember,
     handleAcceptRequest,
-    handleDeclineRequest
+    handleDeclineRequest,
+    handleRemoveMember,
+    handleRemovePersonaMember,
+    handleChangeMemberRole
 }) {
     const { t } = useI18n();
     const navigate = useNavigate();
@@ -49,6 +61,9 @@ export function PublisherOrgTab({
     const [bannerUploadWarning, setBannerUploadWarning] = React.useState("");
     const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState(false);
     const [mediaPickerTarget, setMediaPickerTarget] = React.useState(null); // 'logo' or 'banner'
+    const [showGuide, setShowGuide] = React.useState(false);
+    const [guideIndex, setGuideIndex] = React.useState(0);
+    const [guideSpotlightRect, setGuideSpotlightRect] = React.useState(null);
     const logoGuide = React.useMemo(() => getImageUploadGuide("logo"), []);
     const bannerGuide = React.useMemo(() => getImageUploadGuide("banner"), []);
     const filteredTagOptions = React.useMemo(() => {
@@ -57,6 +72,43 @@ export function PublisherOrgTab({
         if (!needle) return names;
         return names.filter(n => n.toLowerCase().includes(needle));
     }, [tagOptions, orgTagInput]);
+
+    const roleBadgeClass = (role) => {
+        if (role === "owner") return "border-amber-300 bg-amber-50 text-amber-800";
+        if (role === "admin") return "border-blue-300 bg-blue-50 text-blue-800";
+        return "border-muted-foreground/30 bg-muted text-muted-foreground";
+    };
+
+    const roleLabel = (role) => {
+        if (role === "owner") return "擁有者";
+        if (role === "admin") return "管理員";
+        return "一般成員";
+    };
+    const guideSteps = React.useMemo(() => ([
+        {
+            title: t("publisherOrgTab.guideListTitle"),
+            description: t("publisherOrgTab.guideListDesc"),
+            targetId: "org-guide-list",
+        },
+        {
+            title: t("publisherOrgTab.guideBasicTitle"),
+            description: t("publisherOrgTab.guideBasicDesc"),
+            targetId: "org-guide-basic",
+        },
+        {
+            title: t("publisherOrgTab.guideMembersTitle"),
+            description: t("publisherOrgTab.guideMembersDesc"),
+            targetId: "org-guide-members",
+        },
+        {
+            title: t("publisherOrgTab.guideInviteTitle"),
+            description: t("publisherOrgTab.guideInviteDesc"),
+            targetId: "org-guide-invite",
+            fallbackId: "org-guide-save",
+        },
+    ]), [t]);
+    const currentGuide = showGuide ? guideSteps[guideIndex] : null;
+    const isReadOnlyExistingOrg = viewMode === "edit" && Boolean(selectedOrgId) && !canEditSelectedOrg;
 
     const orgChecklist = React.useMemo(() => ([
         { key: "name", label: t("publisherOrgTab.checkName"), ok: Boolean(orgDraft.name?.trim()) },
@@ -145,6 +197,13 @@ export function PublisherOrgTab({
                     tags: org.tags || []
                 });
                 setViewMode("edit");
+                setTagOpen(false);
+                setLogoPreviewFailed(false);
+                setBannerPreviewFailed(false);
+                setLogoUploadError("");
+                setBannerUploadError("");
+                setLogoUploadWarning("");
+                setBannerUploadWarning("");
             }
         }
     }, [selectedOrgId, orgs]);
@@ -155,10 +214,87 @@ export function PublisherOrgTab({
         setViewMode("create");
     };
 
+    const refreshGuideSpotlight = React.useCallback(() => {
+        if (!showGuide) {
+            setGuideSpotlightRect(null);
+            return;
+        }
+        const target = currentGuide?.targetId ? document.getElementById(currentGuide.targetId) : null;
+        const fallback = currentGuide?.fallbackId ? document.getElementById(currentGuide.fallbackId) : null;
+        const node = target || fallback;
+        if (!node) return;
+        const rect = node.getBoundingClientRect();
+        const pad = 10;
+        setGuideSpotlightRect({
+            top: Math.max(8, rect.top - pad),
+            left: Math.max(8, rect.left - pad),
+            width: Math.max(64, rect.width + pad * 2),
+            height: Math.max(48, rect.height + pad * 2),
+        });
+    }, [currentGuide, showGuide]);
+
+    const jumpGuide = React.useCallback((index) => {
+        if (index < 0 || index >= guideSteps.length) return;
+        setGuideIndex(index);
+        setShowGuide(true);
+    }, [guideSteps.length]);
+
+    const finishGuide = React.useCallback(() => {
+        setShowGuide(false);
+        setGuideIndex(0);
+        setGuideSpotlightRect(null);
+        try {
+            localStorage.setItem(ORG_TAB_GUIDE_STORAGE_KEY, "1");
+        } catch (err) {
+            console.error("Failed to persist org guide state", err);
+        }
+    }, []);
+
+    const startGuide = React.useCallback(() => {
+        jumpGuide(0);
+    }, [jumpGuide]);
+
+    const handleGuideNext = React.useCallback(() => {
+        if (guideIndex >= guideSteps.length - 1) {
+            finishGuide();
+            return;
+        }
+        jumpGuide(guideIndex + 1);
+    }, [finishGuide, guideIndex, guideSteps.length, jumpGuide]);
+
+    const handleGuidePrev = React.useCallback(() => {
+        if (guideIndex <= 0) return;
+        jumpGuide(guideIndex - 1);
+    }, [guideIndex, jumpGuide]);
+
+    React.useEffect(() => {
+        try {
+            const seen = localStorage.getItem(ORG_TAB_GUIDE_STORAGE_KEY) === "1";
+            if (!seen) {
+                jumpGuide(0);
+                localStorage.setItem(ORG_TAB_GUIDE_STORAGE_KEY, "1");
+            }
+        } catch (err) {
+            console.error("Failed to read org guide state", err);
+        }
+    }, [jumpGuide]);
+
+    React.useEffect(() => {
+        if (!showGuide) return;
+        const raf = window.requestAnimationFrame(refreshGuideSpotlight);
+        window.addEventListener("resize", refreshGuideSpotlight);
+        window.addEventListener("scroll", refreshGuideSpotlight, true);
+        return () => {
+            window.cancelAnimationFrame(raf);
+            window.removeEventListener("resize", refreshGuideSpotlight);
+            window.removeEventListener("scroll", refreshGuideSpotlight, true);
+        };
+    }, [showGuide, guideIndex, viewMode, selectedOrgId, canManageOrgMembers, refreshGuideSpotlight]);
+
     return (
-        <Card className="flex flex-col md:flex-row h-auto md:h-[calc(100dvh-220px)] min-h-0 md:min-h-[500px] overflow-hidden border">
+        <Card className="flex flex-col md:flex-row h-auto min-h-0 md:min-h-[500px] overflow-hidden border">
             {/* Left Sidebar: List */}
-            <div className="w-full md:w-[280px] border-b md:border-b-0 md:border-r flex flex-col bg-muted/10">
+            <div id="org-guide-list" className="w-full md:w-[280px] border-b md:border-b-0 md:border-r flex flex-col bg-muted/10">
                 <div className="p-4 border-b flex items-center justify-between bg-background/50 backdrop-blur-sm sticky top-0 z-10">
                     <h3 className="font-semibold text-sm">{t("publisherOrgTab.orgList")}</h3>
                     <Button size="icon" variant="ghost" className="h-8 w-8 ml-auto" onClick={onStartCreate}>
@@ -167,6 +303,12 @@ export function PublisherOrgTab({
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                    {isLoading && (
+                        <div className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <span>載入組織資料中...</span>
+                        </div>
+                    )}
                     {orgs.map(o => (
                         <div 
                             key={o.id} 
@@ -191,79 +333,93 @@ export function PublisherOrgTab({
 
             {/* Right Main: Editor */}
             <div className="flex-1 flex flex-col overflow-hidden bg-card">
-                 <div className="p-4 border-b flex justify-between items-center bg-background/50 backdrop-blur-sm h-[57px]">
-                    <div>
-                        <h2 className="text-lg font-semibold tracking-tight">{viewMode === "create" ? t("publisherOrgTab.createOrg") : t("publisherOrgTab.editOrg")}</h2>
-                    </div>
-                    {viewMode === "edit" && selectedOrgId && (
+                 <div className="p-4 border-b bg-background/50 backdrop-blur-sm">
+                    <PublisherTabHeader
+                        title={viewMode === "create" ? t("publisherOrgTab.createOrg") : t("publisherOrgTab.editOrg")}
+                        description="管理組織資料、成員權限與邀請審核。"
+                        actions={<div className="flex items-center justify-end gap-2 min-w-[260px]">
                         <Button
+                            type="button"
                             variant="outline"
                             size="sm"
                             className="h-8 text-xs"
-                            onClick={() => navigate(`/org/${selectedOrgId}`)}
+                            onClick={startGuide}
+                        >
+                            <CircleHelp className="w-3.5 h-3.5 mr-1.5" />
+                            {t("publisherOrgTab.guide")}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className={`h-8 text-xs ${viewMode === "edit" && selectedOrgId ? "" : "invisible pointer-events-none"}`}
+                            onClick={() => selectedOrgId && navigate(`/org/${selectedOrgId}`)}
                         >
                             {t("publisherOrgTab.viewOrgPage")}
                         </Button>
-                    )}
-                    {viewMode === "edit" && selectedOrgId && (
                         <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="text-destructive hover:bg-destructive/10 h-8 text-xs"
+                            className={`text-destructive hover:bg-destructive/10 h-8 text-xs ${viewMode === "edit" && selectedOrgId ? "" : "invisible pointer-events-none"}`}
+                            disabled={isReadOnlyExistingOrg}
                             onClick={handleDeleteOrg}
                         >
                             <Trash2 className="w-3.5 h-3.5 mr-1.5" /> {t("publisherOrgTab.deleteOrg")}
                         </Button>
-                    )}
+                    </div>}
+                    />
                 </div>
                 
-                <div className="flex-1 overflow-y-auto p-6 md:p-8">
-                     <div className="max-w-2xl mx-auto space-y-8 pb-20">
+                <div className="flex-1 overflow-y-auto p-4 md:p-5">
+                     <div className="max-w-4xl mx-auto space-y-6 pb-16">
                         {(viewMode === "create" || selectedOrgId) ? (
                             <>
-                                <div className="rounded-lg border bg-muted/20 p-4 space-y-3">
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span className="font-medium">{t("publisherOrgTab.progress")}</span>
-                                        <span className="text-muted-foreground">{orgDone}/{orgChecklist.length} · {orgProgress}%</span>
+                                {isReadOnlyExistingOrg && (
+                                    <div className="rounded-lg border border-amber-300/60 bg-amber-50/60 px-3 py-2 text-xs text-amber-800">
+                                        目前為唯讀檢視，你不是此組織的管理者或擁有者，無法修改設定。
                                     </div>
-                                    <div className="h-2 rounded-full bg-muted">
-                                        <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${orgProgress}%` }} />
-                                    </div>
-                                    {orgNextSteps.length > 0 && (
-                                        <div className="text-xs text-muted-foreground">
-                                            {t("publisherOrgTab.nextSteps").replace("{items}", orgNextSteps.map((item) => item.label).join("、"))}
+                                )}
+                                <div className={isReadOnlyExistingOrg ? "space-y-0 opacity-90 pointer-events-none select-none" : "space-y-0"}>
+                                {orgProgress < 100 && (
+                                    <div className="rounded-lg border bg-muted/20 p-3 space-y-2">
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="font-medium">{t("publisherOrgTab.progress")}</span>
+                                            <span className="text-muted-foreground">{orgDone}/{orgChecklist.length} · {orgProgress}%</span>
                                         </div>
-                                    )}
-                                </div>
+                                        <div className="h-1.5 rounded-full bg-muted">
+                                            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${orgProgress}%` }} />
+                                        </div>
+                                        {orgNextSteps.length > 0 && (
+                                            <div className="text-xs text-muted-foreground">
+                                                {t("publisherOrgTab.nextSteps").replace("{items}", orgNextSteps.map((item) => item.label).join("、"))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                                 {/* Basic Info */}
-                                <div className="space-y-6">
-                                    <div className="grid gap-4">
-                                        <div className="grid gap-1.5">
-                                            <label className="text-sm font-medium" htmlFor="org-name">{t("publisherOrgTab.orgName")} <span className="text-destructive">*</span></label>
-                                            <Input 
-                                                id="org-name"
-                                                name="orgName"
-                                                value={orgDraft.name} 
-                                                onChange={e => setOrgDraft({ ...orgDraft, name: e.target.value })}
-                                                placeholder={t("publisherOrgTab.orgNamePlaceholder")}
-                                                className="font-medium"
-                                            />
-                                        </div>
+                                <div className="space-y-4">
+                                        <div id="org-guide-basic" className="grid gap-4">
+                                            <PublisherFormRow label={t("publisherOrgTab.orgName")} required>
+                                                <Input 
+                                                    id="org-name"
+                                                    name="orgName"
+                                                    value={orgDraft.name} 
+                                                    onChange={e => setOrgDraft({ ...orgDraft, name: e.target.value })}
+                                                    placeholder={t("publisherOrgTab.orgNamePlaceholder")}
+                                                    className="font-medium"
+                                                />
+                                            </PublisherFormRow>
 
-                                        <div className="grid gap-1.5">
-                                            <label className="text-sm font-medium" htmlFor="org-description">{t("publisherOrgTab.description")}</label>
-                                            <Input 
-                                                id="org-description"
-                                                name="orgDescription"
-                                                value={orgDraft.description} 
-                                                onChange={e => setOrgDraft({ ...orgDraft, description: e.target.value })}
-                                                placeholder={t("publisherOrgTab.descriptionPlaceholder")}
-                                            />
-                                        </div>
+                                            <PublisherFormRow label={t("publisherOrgTab.description")}>
+                                                <Input 
+                                                    id="org-description"
+                                                    name="orgDescription"
+                                                    value={orgDraft.description} 
+                                                    onChange={e => setOrgDraft({ ...orgDraft, description: e.target.value })}
+                                                    placeholder={t("publisherOrgTab.descriptionPlaceholder")}
+                                                />
+                                            </PublisherFormRow>
                                         
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            <div className="grid gap-1.5">
-                                                <label className="text-sm font-medium" htmlFor="org-website">{t("publisherOrgTab.website")}</label>
+                                            <PublisherFormRow label={t("publisherOrgTab.website")}>
                                                 <Input 
                                                     id="org-website"
                                                     name="orgWebsite"
@@ -271,9 +427,8 @@ export function PublisherOrgTab({
                                                     onChange={e => setOrgDraft({ ...orgDraft, website: e.target.value })}
                                                     placeholder="https://"
                                                 />
-                                            </div>
-                                            <div className="grid gap-1.5">
-                                                <label className="text-sm font-medium" htmlFor="org-logo-url">{t("publisherOrgTab.logoUrl")}</label>
+                                            </PublisherFormRow>
+                                            <PublisherFormRow label={t("publisherOrgTab.logoUrl")}>
                                                 <Input 
                                                     id="org-logo-url"
                                                     name="orgLogoUrl"
@@ -303,30 +458,32 @@ export function PublisherOrgTab({
                                                     <p>{logoGuide.supported}</p>
                                                     <p>{logoGuide.recommended}</p>
                                                 </div>
-                                                {logoUploadError && (
-                                                    <p className="text-[11px] text-destructive">{logoUploadError}</p>
-                                                )}
-                                                {logoUploadWarning && (
-                                                    <p className="text-[11px] text-amber-700 dark:text-amber-300">{logoUploadWarning}</p>
-                                                )}
-                                                {(orgDraft.logoUrl || "").trim() && (
-                                                    <div className="h-16 w-16 overflow-hidden rounded-md border bg-muted/20">
-                                                        {logoPreviewFailed ? (
-                                                            <div className="flex h-full items-center justify-center text-[10px] text-muted-foreground">{t("publisherOrgTab.previewFailed")}</div>
-                                                        ) : (
-                                                            <img
-                                                                src={orgDraft.logoUrl}
-                                                                alt="org logo preview"
-                                                                className="h-full w-full object-cover"
-                                                                onError={() => setLogoPreviewFailed(true)}
-                                                                onLoad={() => setLogoPreviewFailed(false)}
-                                                            />
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="grid gap-1.5">
-                                                <label className="text-sm font-medium" htmlFor="org-banner-url">{t("publisherOrgTab.bannerUrl")}</label>
+                                                <div className="h-16 w-16 overflow-hidden rounded-md border bg-muted/20">
+                                                    {orgDraft.logoUrl && !logoPreviewFailed ? (
+                                                        <img
+                                                            src={orgDraft.logoUrl}
+                                                            alt="org logo preview"
+                                                            className="h-full w-full object-cover"
+                                                            onError={() => setLogoPreviewFailed(true)}
+                                                            onLoad={() => setLogoPreviewFailed(false)}
+                                                        />
+                                                    ) : (
+                                                        <div className="flex h-full items-center justify-center text-[10px] text-muted-foreground">Logo</div>
+                                                    )}
+                                                </div>
+                                                <div className="min-h-[16px] text-[11px]">
+                                                    {logoUploadError ? (
+                                                        <p className="text-destructive">{logoUploadError}</p>
+                                                    ) : logoUploadWarning ? (
+                                                        <p className="text-amber-700 dark:text-amber-300">{logoUploadWarning}</p>
+                                                    ) : logoPreviewFailed ? (
+                                                        <p className="text-amber-700 dark:text-amber-300">{t("publisherOrgTab.previewFailed")}</p>
+                                                    ) : (
+                                                        <p className="opacity-0">placeholder</p>
+                                                    )}
+                                                </div>
+                                            </PublisherFormRow>
+                                            <PublisherFormRow label={t("publisherOrgTab.bannerUrl")}>
                                                 <Input 
                                                     id="org-banner-url"
                                                     name="orgBannerUrl"
@@ -356,34 +513,35 @@ export function PublisherOrgTab({
                                                     <p>{bannerGuide.supported}</p>
                                                     <p>{bannerGuide.recommended}</p>
                                                 </div>
-                                                {bannerUploadError && (
-                                                    <p className="text-[11px] text-destructive">{bannerUploadError}</p>
-                                                )}
-                                                {bannerUploadWarning && (
-                                                    <p className="text-[11px] text-amber-700 dark:text-amber-300">{bannerUploadWarning}</p>
-                                                )}
-                                                {(orgDraft.bannerUrl || "").trim() && (
-                                                    <div className="h-20 overflow-hidden rounded-md border bg-muted/20">
-                                                        {bannerPreviewFailed ? (
-                                                            <div className="flex h-full items-center justify-center text-xs text-muted-foreground">{t("publisherOrgTab.bannerPreviewFailed")}</div>
-                                                        ) : (
-                                                            <img
-                                                                src={orgDraft.bannerUrl}
-                                                                alt="org banner preview"
-                                                                className="h-full w-full object-cover"
-                                                                onError={() => setBannerPreviewFailed(true)}
-                                                                onLoad={() => setBannerPreviewFailed(false)}
-                                                            />
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
+                                                <div className="h-20 overflow-hidden rounded-md border bg-muted/20">
+                                                    {orgDraft.bannerUrl && !bannerPreviewFailed ? (
+                                                        <img
+                                                            src={orgDraft.bannerUrl}
+                                                            alt="org banner preview"
+                                                            className="h-full w-full object-cover"
+                                                            onError={() => setBannerPreviewFailed(true)}
+                                                            onLoad={() => setBannerPreviewFailed(false)}
+                                                        />
+                                                    ) : (
+                                                        <div className="flex h-full items-center justify-center text-xs text-muted-foreground">Banner</div>
+                                                    )}
+                                                </div>
+                                                <div className="min-h-[16px] text-[11px]">
+                                                    {bannerUploadError ? (
+                                                        <p className="text-destructive">{bannerUploadError}</p>
+                                                    ) : bannerUploadWarning ? (
+                                                        <p className="text-amber-700 dark:text-amber-300">{bannerUploadWarning}</p>
+                                                    ) : bannerPreviewFailed ? (
+                                                        <p className="text-amber-700 dark:text-amber-300">{t("publisherOrgTab.bannerPreviewFailed")}</p>
+                                                    ) : (
+                                                        <p className="opacity-0">placeholder</p>
+                                                    )}
+                                                </div>
+                                            </PublisherFormRow>
                                     </div>
                                     
-                                        <div className="grid gap-2">
-                                            <label className="text-sm font-medium" htmlFor="org-tag-input">{t("publisherOrgTab.orgTags")}</label>
-                                            <div className="border rounded-md p-4 bg-muted/10 space-y-3">
+                                        <PublisherFormRow label={t("publisherOrgTab.orgTags")}>
+                                        <div className="border rounded-md p-3 bg-muted/10 space-y-2">
                                             <DndContext
                                                 collisionDetection={closestCenter}
                                                 onDragEnd={({ active, over }) => {
@@ -505,10 +663,17 @@ export function PublisherOrgTab({
                                                 </PopoverContent>
                                             </Popover>
                                         </div>
+                                        </PublisherFormRow>
 
-                                        <div className="grid gap-2">
-                                            <label className="text-sm font-medium">{t("publisherOrgTab.members")}</label>
-                                            <div className="border rounded-md p-4 bg-muted/10 space-y-4">
+                                        <div id="org-guide-members">
+                                        <PublisherFormRow label={t("publisherOrgTab.members")}>
+                                            <div className="border rounded-md p-3 bg-muted/10 space-y-3">
+                                                {isLoading && (
+                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                        <span>正在同步成員資料...</span>
+                                                    </div>
+                                                )}
                                                 <div className="text-xs text-muted-foreground">
                                                     {t("publisherOrgTab.memberCount")
                                                       .replace("{users}", String(orgMembers?.users?.length || 0))
@@ -517,39 +682,99 @@ export function PublisherOrgTab({
                                                 {(orgMembers?.users?.length || 0) === 0 && (orgMembers?.personas?.length || 0) === 0 ? (
                                                     <div className="text-sm text-muted-foreground">{t("publisherOrgTab.noMember")}</div>
                                                 ) : (
-                                                    <div className="space-y-2">
-                                                        {(orgMembers?.users || []).map(u => (
-                                                            <div key={`u-${u.id}`} className="flex items-center justify-between text-sm">
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold">
-                                                                        {(u.displayName || u.handle || "?")[0]?.toUpperCase?.() || "?"}
-                                                                    </div>
-                                                                    <span>{u.displayName || u.handle || u.email || t("publisherOrgTab.defaultUser")}</span>
-                                                                </div>
-                                                                <Badge variant="outline">{t("publisherOrgTab.user")}</Badge>
+                                                    <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
+                                                        <div className="rounded-md border bg-background/80 p-2.5 space-y-2">
+                                                            <div className="text-xs font-medium text-muted-foreground">
+                                                                帳號成員（{orgMembers?.users?.length || 0}）
                                                             </div>
-                                                        ))}
-                                                        {(orgMembers?.personas || []).map(p => (
-                                                            <div key={`p-${p.id}`} className="flex items-center justify-between text-sm">
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold">
-                                                                        {(p.displayName || "?")[0]?.toUpperCase?.() || "?"}
+                                                            {(orgMembers?.users || []).length === 0 ? (
+                                                                <div className="text-xs text-muted-foreground">目前沒有帳號成員</div>
+                                                            ) : (
+                                                                (orgMembers?.users || []).map(u => (
+                                                                    <div key={`u-${u.id}`} className="flex items-center justify-between text-sm">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold">
+                                                                                {(u.displayName || u.handle || "?")[0]?.toUpperCase?.() || "?"}
+                                                                            </div>
+                                                                            <span>{u.displayName || u.handle || u.email || t("publisherOrgTab.defaultUser")}</span>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-1.5">
+                                                                            <Badge variant="outline">{t("publisherOrgTab.user")}</Badge>
+                                                                            <Badge className={roleBadgeClass(u.organizationRole)}>{roleLabel(u.organizationRole)}</Badge>
+                                                                            {canManageOrgMembers && u.organizationRole !== "owner" && u.id !== currentUserId && (
+                                                                                <>
+                                                                                    <Select
+                                                                                        value={u.organizationRole === "admin" ? "admin" : "member"}
+                                                                                        onValueChange={(value) => handleChangeMemberRole?.(u.id, value)}
+                                                                                    >
+                                                                                        <SelectTrigger className="h-7 w-[104px] text-xs">
+                                                                                            <SelectValue />
+                                                                                        </SelectTrigger>
+                                                                                        <SelectContent>
+                                                                                            <SelectItem value="member">一般成員</SelectItem>
+                                                                                            <SelectItem value="admin">管理員</SelectItem>
+                                                                                        </SelectContent>
+                                                                                    </Select>
+                                                                                    <Button
+                                                                                        size="sm"
+                                                                                        variant="ghost"
+                                                                                        className="h-7 px-2 text-destructive hover:bg-destructive/10"
+                                                                                        onClick={() => handleRemoveMember?.(u.id)}
+                                                                                    >
+                                                                                        移除
+                                                                                    </Button>
+                                                                                </>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
-                                                                    <span>{p.displayName || t("publisherOrgTab.persona")}</span>
-                                                                </div>
-                                                                <Badge variant="secondary">{t("publisherOrgTab.author")}</Badge>
+                                                                ))
+                                                            )}
+                                                        </div>
+
+                                                        <div className="rounded-md border bg-background/80 p-2.5 space-y-2">
+                                                            <div className="text-xs font-medium text-muted-foreground">
+                                                                作者身份（{orgMembers?.personas?.length || 0}）
                                                             </div>
-                                                        ))}
+                                                            {(orgMembers?.personas || []).length === 0 ? (
+                                                                <div className="text-xs text-muted-foreground">目前沒有作者身份</div>
+                                                            ) : (
+                                                                (orgMembers?.personas || []).map(p => (
+                                                                    <div key={`p-${p.id}`} className="flex items-center justify-between text-sm">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold">
+                                                                                {(p.displayName || "?")[0]?.toUpperCase?.() || "?"}
+                                                                            </div>
+                                                                            <span>{p.displayName || t("publisherOrgTab.persona")}</span>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-1.5">
+                                                                            <Badge variant="secondary">{t("publisherOrgTab.author")}</Badge>
+                                                                            <Badge className={roleBadgeClass(p.organizationRole)}>{roleLabel(p.organizationRole)}</Badge>
+                                                                            {canManageOrgMembers && (
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    variant="ghost"
+                                                                                    className="h-7 px-2 text-destructive hover:bg-destructive/10"
+                                                                                    onClick={() => handleRemovePersonaMember?.(p.id)}
+                                                                                >
+                                                                                    移除
+                                                                                </Button>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                ))
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>
+                                        </PublisherFormRow>
                                         </div>
 
-                                        {isOrgOwner && (
+                                        {canManageOrgMembers && (
                                             <>
-                                                <div className="grid gap-2">
-                                                    <label className="text-sm font-medium" htmlFor="org-invite-search">{t("publisherOrgTab.inviteMember")}</label>
-                                                    <div className="border rounded-md p-4 bg-muted/10 space-y-3">
+                                                <div id="org-guide-invite">
+                                                <PublisherFormRow label={t("publisherOrgTab.inviteMember")}>
+                                                    <div className="border rounded-md p-3 bg-muted/10 space-y-2">
                                                         <Input
                                                             id="org-invite-search"
                                                             name="orgInviteSearch"
@@ -562,7 +787,7 @@ export function PublisherOrgTab({
                                                             <div className="text-xs text-muted-foreground">{t("publisherOrgTab.searching")}</div>
                                                         )}
                                                         {inviteSearchResults?.length > 0 && (
-                                                            <div className="space-y-2">
+                                                            <div className="max-h-44 space-y-2 overflow-y-auto pr-1">
                                                                 {inviteSearchResults.map(u => (
                                                                     <div key={u.id} className="flex items-center justify-between text-sm">
                                                                         <span>{u.displayName || u.handle || u.email || u.id}</span>
@@ -572,65 +797,68 @@ export function PublisherOrgTab({
                                                             </div>
                                                         )}
                                                     </div>
+                                                </PublisherFormRow>
                                                 </div>
 
-                                                <div className="grid gap-2">
-                                                    <label className="text-sm font-medium">{t("publisherOrgTab.pendingRequests")}</label>
-                                                    <div className="border rounded-md p-4 bg-muted/10 space-y-2">
+                                                <PublisherFormRow label={t("publisherOrgTab.pendingRequests")}>
+                                                    <div className="border rounded-md p-3 bg-muted/10 space-y-2">
                                                         {(orgRequests || []).length === 0 ? (
                                                             <div className="text-sm text-muted-foreground">{t("publisherOrgTab.noRequests")}</div>
                                                         ) : (
-                                                    (orgRequests || []).map(req => (
-                                                        <div key={req.id} className="flex items-center justify-between text-sm">
-                                                            <span>{t("publisherOrgTab.requester").replace("{value}", req.requester?.email || req.requester?.displayName || req.requesterUserId)}</span>
-                                                            <div className="flex gap-2">
-                                                                <Button size="sm" onClick={() => handleAcceptRequest(req.id)}>{t("publisherOrgTab.accept")}</Button>
-                                                                <Button size="sm" variant="ghost" onClick={() => handleDeclineRequest(req.id)}>{t("publisherOrgTab.decline")}</Button>
+                                                            <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
+                                                                {(orgRequests || []).map(req => (
+                                                                    <div key={req.id} className="flex items-center justify-between text-sm">
+                                                                        <span>{t("publisherOrgTab.requester").replace("{value}", req.requester?.email || req.requester?.displayName || req.requesterUserId)}</span>
+                                                                        <div className="flex gap-2">
+                                                                            <Button size="sm" onClick={() => handleAcceptRequest(req.id)}>{t("publisherOrgTab.accept")}</Button>
+                                                                            <Button size="sm" variant="ghost" onClick={() => handleDeclineRequest(req.id)}>{t("publisherOrgTab.decline")}</Button>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
                                                             </div>
-                                                        </div>
-                                                    ))
                                                         )}
                                                     </div>
-                                                </div>
+                                                </PublisherFormRow>
 
-                                                <div className="grid gap-2">
-                                                    <label className="text-sm font-medium">{t("publisherOrgTab.sentInvites")}</label>
-                                                    <div className="border rounded-md p-4 bg-muted/10 space-y-2">
+                                                <PublisherFormRow label={t("publisherOrgTab.sentInvites")}>
+                                                    <div className="border rounded-md p-3 bg-muted/10 space-y-2">
                                                         {(orgInvites || []).length === 0 ? (
                                                             <div className="text-sm text-muted-foreground">{t("publisherOrgTab.noInvites")}</div>
                                                         ) : (
-                                                    (orgInvites || []).map(inv => (
-                                                        <div key={inv.id} className="flex items-center justify-between text-sm">
-                                                            <span>{t("publisherOrgTab.inviteLabel").replace("{value}", inv.invitedUser?.email || inv.invitedUser?.displayName || inv.invitedUserId)}</span>
-                                                            <Badge variant="outline">{inv.status}</Badge>
-                                                        </div>
-                                                    ))
+                                                            <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
+                                                                {(orgInvites || []).map(inv => (
+                                                                    <div key={inv.id} className="flex items-center justify-between text-sm">
+                                                                        <span>{t("publisherOrgTab.inviteLabel").replace("{value}", inv.invitedUser?.email || inv.invitedUser?.displayName || inv.invitedUserId)}</span>
+                                                                        <Badge variant="outline">{inv.status}</Badge>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
                                                         )}
                                                     </div>
-                                                </div>
+                                                </PublisherFormRow>
                                             </>
                                         )}
                                     </div>
-                                </div>
                                 
                                 {/* Members */}
-                                <div className="space-y-4 pt-6 border-t">
-                                    <div className="flex justify-between items-center">
-                                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t("publisherOrgTab.memberManagement")}</h3>
-                                        <Button variant="outline" size="sm" disabled className="h-8">
-                                            <Plus className="w-3 h-3 mr-1.5" /> {t("publisherOrgTab.inviteMember")}
-                                        </Button>
-                                    </div>
-                                    <div className="p-12 text-center text-muted-foreground bg-muted/10 rounded-lg border border-dashed">
-                                        <div className="w-12 h-12 rounded-full bg-muted/30 mx-auto mb-3 flex items-center justify-center">
-                                            <Building2 className="w-6 h-6 opacity-30" />
+                                <div className="pt-4 border-t">
+                                    <PublisherFormRow
+                                        label={t("publisherOrgTab.memberManagement")}
+                                        hint={t("publisherOrgTab.multiCollabSoon")}
+                                    >
+                                        <div className="p-6 text-center text-muted-foreground bg-muted/10 rounded-lg border border-dashed">
+                                            <div className="w-10 h-10 rounded-full bg-muted/30 mx-auto mb-2 flex items-center justify-center">
+                                                <Building2 className="w-5 h-5 opacity-30" />
+                                            </div>
+                                            <Button variant="outline" size="sm" disabled className="h-8 text-xs">
+                                                <Plus className="w-3 h-3 mr-1.5" /> {t("publisherOrgTab.inviteMember")}
+                                            </Button>
                                         </div>
-                                        <p className="text-sm">{t("publisherOrgTab.multiCollabSoon")}</p>
-                                    </div>
+                                    </PublisherFormRow>
                                 </div>
 
                                 {/* Footer Actions */}
-                                <div className="p-4 border-t bg-background/50 backdrop-blur-sm flex justify-end sticky bottom-0 -mx-6 -mb-6 md:-mx-8 md:-mb-8 mt-4">
+                                <div id="org-guide-save" className="p-3 border-t bg-background/50 backdrop-blur-sm flex justify-end mt-3">
                                     <Button 
                                         onClick={viewMode === "create" ? handleCreateOrg : handleSaveOrg} 
                                         disabled={(viewMode === "create" ? isCreatingOrg : isSavingOrg) || !orgDraft.name.trim()}
@@ -639,6 +867,7 @@ export function PublisherOrgTab({
                                         {(viewMode === "create" ? isCreatingOrg : isSavingOrg) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                         {viewMode === "create" ? t("publisherOrgTab.createOrg") : t("publisherOrgTab.saveChanges")}
                                     </Button>
+                                </div>
                                 </div>
                             </>
                         ) : (
@@ -654,6 +883,55 @@ export function PublisherOrgTab({
                 </div>
             </div>
             
+            {showGuide && currentGuide && typeof document !== "undefined" && createPortal(
+                <div className="fixed inset-0 z-[230] pointer-events-none">
+                    {guideSpotlightRect ? (
+                        <>
+                            <div className="absolute left-0 top-0 bg-black/75 pointer-events-auto" style={{ width: "100%", height: guideSpotlightRect.top }} />
+                            <div className="absolute left-0 bg-black/75 pointer-events-auto" style={{ top: guideSpotlightRect.top, width: guideSpotlightRect.left, height: guideSpotlightRect.height }} />
+                            <div
+                                className="absolute right-0 bg-black/75 pointer-events-auto"
+                                style={{
+                                    top: guideSpotlightRect.top,
+                                    left: guideSpotlightRect.left + guideSpotlightRect.width,
+                                    height: guideSpotlightRect.height,
+                                }}
+                            />
+                            <div className="absolute left-0 bg-black/75 pointer-events-auto" style={{ top: guideSpotlightRect.top + guideSpotlightRect.height, width: "100%", bottom: 0 }} />
+                            <div
+                                className="absolute rounded-xl border-2 border-primary shadow-[0_0_40px_rgba(255,255,255,0.12)] pointer-events-none"
+                                style={{
+                                    top: guideSpotlightRect.top,
+                                    left: guideSpotlightRect.left,
+                                    width: guideSpotlightRect.width,
+                                    height: guideSpotlightRect.height,
+                                }}
+                            />
+                        </>
+                    ) : (
+                        <div className="absolute inset-0 bg-black/75 pointer-events-auto" />
+                    )}
+                    <div className="absolute right-6 bottom-6 w-[380px] max-w-[calc(100vw-3rem)] rounded-xl border bg-background p-4 shadow-2xl pointer-events-auto">
+                        <div className="text-xs text-muted-foreground">{guideIndex + 1}/{guideSteps.length}</div>
+                        <div className="text-base font-semibold mt-1">{currentGuide.title}</div>
+                        <p className="text-sm text-muted-foreground mt-1">{currentGuide.description}</p>
+                        <div className="mt-4 flex items-center justify-between gap-2">
+                            <Button type="button" size="sm" variant="ghost" onClick={finishGuide}>
+                                {t("publisherOrgTab.guideSkip")}
+                            </Button>
+                            <div className="flex items-center gap-2">
+                                <Button type="button" size="sm" variant="outline" onClick={handleGuidePrev} disabled={guideIndex === 0}>
+                                    {t("publisherOrgTab.guidePrev")}
+                                </Button>
+                                <Button type="button" size="sm" onClick={handleGuideNext}>
+                                    {guideIndex === guideSteps.length - 1 ? t("publisherOrgTab.guideDone") : t("publisherOrgTab.guideNext")}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
             <MediaPicker
                 open={isMediaPickerOpen}
                 onOpenChange={setIsMediaPickerOpen}

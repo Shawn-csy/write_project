@@ -1,9 +1,10 @@
 import React from "react";
 import { Badge } from "../../../ui/badge";
 import { Textarea } from "../../../ui/textarea";
+import { Button } from "../../../ui/button";
 import { useI18n } from "../../../../contexts/I18nContext";
 
-export function ImportStagePreview({ previewText, setPreviewText }) {
+export function ImportStagePreview({ previewText, setPreviewText, onAutoRemoveWhitespace }) {
     const { t } = useI18n();
     return (
         <div className="flex flex-col gap-4 h-full">
@@ -14,7 +15,17 @@ export function ImportStagePreview({ previewText, setPreviewText }) {
                         {t("importStagePreview.desc")}
                     </p>
                 </div>
-                <Badge variant="secondary">Cleaned</Badge>
+                <div className="flex items-center gap-2">
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={onAutoRemoveWhitespace}
+                    >
+                        自動移除空白
+                    </Button>
+                    <Badge variant="secondary">Cleaned</Badge>
+                </div>
             </div>
             
             <div className="flex-1 min-h-0 border rounded-md">

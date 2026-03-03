@@ -1,13 +1,24 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import List, Optional
 from sqlalchemy.orm import Session
+import json
 import crud_ops as crud
 import schemas
 import models
-import json
 from dependencies import get_db, get_current_user_id, is_admin_user_id
 
 router = APIRouter(prefix="/api/organizations", tags=["organizations"])
+
+
+def _has_org_access(db: Session, user_id: str, org_id: str) -> bool:
+    if crud.is_user_org_member(db, user_id, org_id):
+        return True
+    personas = db.query(models.Persona).filter(models.Persona.ownerId == user_id).all()
+    for p in personas:
+        if org_id in crud.get_persona_org_ids(db, p):
+            return True
+    return False
+
 
 @router.post("", response_model=schemas.Organization)
 def create_organization(org: schemas.OrganizationCreate, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
@@ -32,23 +43,8 @@ def read_organization(org_id: str, db: Session = Depends(get_db), ownerId: str =
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
     if not (org.ownerId == ownerId or is_admin_user_id(ownerId)):
-        user = db.query(models.User).filter(models.User.id == ownerId).first()
-        if not user or user.organizationId != org_id:
-            # Also allow if any persona owned by this user belongs to the org
-            personas = db.query(models.Persona).filter(models.Persona.ownerId == ownerId).all()
-            allowed = False
-            for p in personas:
-                org_ids = p.organizationIds
-                if isinstance(org_ids, str):
-                    try:
-                        org_ids = json.loads(org_ids)
-                    except Exception:
-                        org_ids = []
-                if org_ids and org_id in org_ids:
-                    allowed = True
-                    break
-            if not allowed:
-                raise HTTPException(status_code=403, detail="Not authorized")
+        if not _has_org_access(db, ownerId, org_id):
+            raise HTTPException(status_code=403, detail="Not authorized")
     if isinstance(org.tags, str):
         try:
             org.tags = json.loads(org.tags)
@@ -76,23 +72,8 @@ def get_organization_members(org_id: str, db: Session = Depends(get_db), ownerId
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
     if not (org.ownerId == ownerId or is_admin_user_id(ownerId)):
-        # Allow if current user is a member (user org) or has a persona in this org
-        user = db.query(models.User).filter(models.User.id == ownerId).first()
-        if not user or user.organizationId != org_id:
-            personas = db.query(models.Persona).filter(models.Persona.ownerId == ownerId).all()
-            allowed = False
-            for p in personas:
-                org_ids = p.organizationIds
-                if isinstance(org_ids, str):
-                    try:
-                        org_ids = json.loads(org_ids)
-                    except Exception:
-                        org_ids = []
-                if org_ids and org_id in org_ids:
-                    allowed = True
-                    break
-            if not allowed:
-                raise HTTPException(status_code=403, detail="Not authorized")
+        if not _has_org_access(db, ownerId, org_id):
+            raise HTTPException(status_code=403, detail="Not authorized")
     users, personas = crud.get_organization_members(db, org_id)
     return {"users": users, "personas": personas}
 
@@ -120,6 +101,28 @@ def remove_member(org_id: str, user_id: str, db: Session = Depends(get_db), owne
          raise HTTPException(status_code=400, detail="Failed to remove member")
     return {"success": True}
 
+
+@router.patch("/{org_id}/members/{user_id}/role")
+def update_member_role(
+    org_id: str,
+    user_id: str,
+    payload: schemas.OrganizationMemberRoleUpdate,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    success = crud.update_organization_member_role(db, org_id, user_id, payload.role, ownerId)
+    if not success:
+        raise HTTPException(status_code=400, detail="Failed to update member role")
+    return {"success": True}
+
+
+@router.delete("/{org_id}/personas/{persona_id}")
+def remove_persona_member(org_id: str, persona_id: str, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    success = crud.remove_organization_persona(db, org_id, persona_id, ownerId)
+    if not success:
+        raise HTTPException(status_code=400, detail="Failed to remove persona from organization")
+    return {"success": True}
+
 @router.post("/{org_id}/invite", response_model=schemas.OrganizationInvite)
 def invite_member(org_id: str, payload: schemas.OrganizationInviteRequest, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
     target_user_id = payload.userId
@@ -134,12 +137,11 @@ def invite_member(org_id: str, payload: schemas.OrganizationInviteRequest, db: S
     org = db.query(models.Organization).filter(models.Organization.id == org_id).first()
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
-    if org.ownerId != ownerId and not is_admin_user_id(ownerId):
+    if not (crud.is_user_org_manager(db, ownerId, org_id) or is_admin_user_id(ownerId)):
         raise HTTPException(status_code=403, detail="Not authorized")
     if target_user_id == ownerId:
         raise HTTPException(status_code=400, detail="Cannot invite yourself")
-    existing_member = db.query(models.User).filter(models.User.id == target_user_id, models.User.organizationId == org_id).first()
-    if existing_member:
+    if crud.is_user_org_member(db, target_user_id, org_id):
         raise HTTPException(status_code=400, detail="User already a member")
 
     invite = crud.create_organization_invite(db, org_id, ownerId, target_user_id)
@@ -166,8 +168,7 @@ def my_requests(db: Session = Depends(get_db), ownerId: str = Depends(get_curren
 
 @router.get("/{org_id}/invites", response_model=schemas.OrganizationInvitesResponse)
 def list_org_invites(org_id: str, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
-    org = db.query(models.Organization).filter(models.Organization.id == org_id, models.Organization.ownerId == ownerId).first()
-    if not org and not is_admin_user_id(ownerId):
+    if not (crud.is_user_org_manager(db, ownerId, org_id) or is_admin_user_id(ownerId)):
         raise HTTPException(status_code=403, detail="Not authorized")
     invites = crud.list_org_invites(db, org_id)
     enriched = []
@@ -181,8 +182,7 @@ def list_org_invites(org_id: str, db: Session = Depends(get_db), ownerId: str = 
 
 @router.get("/{org_id}/requests", response_model=schemas.OrganizationRequestsResponse)
 def list_org_requests(org_id: str, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
-    org = db.query(models.Organization).filter(models.Organization.id == org_id, models.Organization.ownerId == ownerId).first()
-    if not org and not is_admin_user_id(ownerId):
+    if not (crud.is_user_org_manager(db, ownerId, org_id) or is_admin_user_id(ownerId)):
         raise HTTPException(status_code=403, detail="Not authorized")
     reqs = crud.list_org_requests(db, org_id)
     enriched = []
