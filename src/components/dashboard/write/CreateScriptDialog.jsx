@@ -1,9 +1,6 @@
 import React from "react";
-import { Loader2 } from "lucide-react";
-import { Button } from "../../ui/button";
-import { Input } from "../../ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../ui/dialog";
 import { useI18n } from "../../../contexts/I18nContext";
+import { ScriptNameDialog } from "./ScriptNameDialog";
 
 export function CreateScriptDialog({
     open,
@@ -17,31 +14,19 @@ export function CreateScriptDialog({
 }) {
     const { t } = useI18n();
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>{newType === 'folder' ? t("createDialog.newFolder") : t("createDialog.newScript")}</DialogTitle>
-                </DialogHeader>
-                <div className="py-4">
-                    <Input 
-                        placeholder={newType === 'folder' ? t("createDialog.folderName") : t("createDialog.scriptTitle")}
-                        value={newTitle}
-                        onChange={e => setNewTitle(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && handleCreate()}
-                        autoFocus
-                    />
-                     <p className="text-xs text-muted-foreground mt-2">
-                        {t("createDialog.location").replace("{path}", currentPath)}
-                    </p>
-                </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
-                    <Button onClick={handleCreate} disabled={creating || !newTitle.trim()}>
-                        {creating && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                        {t("createDialog.create")}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+        <ScriptNameDialog
+            open={open}
+            onOpenChange={onOpenChange}
+            title={newType === "folder" ? t("createDialog.newFolder") : t("createDialog.newScript")}
+            placeholder={newType === "folder" ? t("createDialog.folderName") : t("createDialog.scriptTitle")}
+            value={newTitle}
+            setValue={setNewTitle}
+            onConfirm={handleCreate}
+            cancelText={t("common.cancel")}
+            confirmText={t("createDialog.create")}
+            confirmDisabled={creating || !newTitle.trim()}
+            loading={creating}
+            helperText={t("createDialog.location").replace("{path}", currentPath)}
+        />
     );
 }
