@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
 import { Button } from "../components/ui/button";
@@ -8,7 +7,16 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { ScriptMetadataDialog } from "../components/dashboard/ScriptMetadataDialog";
 import { getMorandiTagStyle } from "../lib/tagColors";
 import { MORANDI_STUDIO_TONE_VARS } from "../constants/morandiPanelTones";
-import { getPersonas, createPersona, updatePersona, deletePersona, getOrganizations, createOrganization, updateOrganization, deleteOrganization, getUserScripts, getTags, getOrganizationMembers, getOrganizationInvites, getOrganizationRequests, inviteOrganizationMember, acceptOrganizationRequest, declineOrganizationRequest, getMyOrganizationInvites, acceptOrganizationInvite, declineOrganizationInvite, searchUsers, getUserProfile, getOrganization, getPublicPersona, getSeries, createSeries, updateSeries, deleteSeries, updateScript, removeOrganizationMember, removeOrganizationPersona, updateOrganizationMemberRole } from "../lib/db";
+import { getUserScripts } from "../lib/api/scripts";
+import { getTags } from "../lib/api/tags";
+import { getSeries } from "../lib/api/series";
+import {
+  getOrganizations,
+  getOrganization,
+} from "../lib/api/organizations";
+import { getPersonas } from "../lib/api/personas";
+import { getUserProfile } from "../lib/api/user";
+import { getPublicPersona } from "../lib/api/public";
 import { PublisherWorksTab } from "../components/dashboard/publisher/PublisherWorksTab";
 import { PublisherProfileTab } from "../components/dashboard/publisher/PublisherProfileTab";
 import { PublisherOrgTab } from "../components/dashboard/publisher/PublisherOrgTab";
@@ -16,8 +24,14 @@ import { PublisherSeriesTab } from "../components/dashboard/publisher/PublisherS
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../components/ui/toast";
 import { useI18n } from "../contexts/I18nContext";
-
-const STUDIO_GUIDE_STORAGE_KEY = "studio-guide-seen-v1";
+import { normalizeOrgIds } from "../hooks/dashboard/scriptMetadataUtils";
+import { useStudioGuide } from "../hooks/publisher/useStudioGuide";
+import { usePublisherSeriesActions } from "../hooks/publisher/usePublisherSeriesActions";
+import { usePublisherOrgMemberActions } from "../hooks/publisher/usePublisherOrgMemberActions";
+import { usePublisherOrgQueues } from "../hooks/publisher/usePublisherOrgQueues";
+import { usePublisherCrudActions } from "../hooks/publisher/usePublisherCrudActions";
+import { buildAffiliatedOrganizations } from "../lib/orgAffiliation";
+import { SpotlightGuideOverlay } from "../components/common/SpotlightGuideOverlay";
 
 
 export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMenu }) {
@@ -41,13 +55,6 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
   const [orgsForPersona, setOrgsForPersona] = useState([]);
   const [scripts, setScripts] = useState([]);
   const [availableTags, setAvailableTags] = useState([]);
-  const [orgMembers, setOrgMembers] = useState({ users: [], personas: [] });
-  const [orgInvites, setOrgInvites] = useState([]);
-  const [orgRequests, setOrgRequests] = useState([]);
-  const [myInvites, setMyInvites] = useState([]);
-  const [inviteSearchQuery, setInviteSearchQuery] = useState("");
-  const [inviteSearchResults, setInviteSearchResults] = useState([]);
-  const [isInviteSearching, setIsInviteSearching] = useState(false);
   const [selectedPersonaId, setSelectedPersonaId] = useState(null);
   const [selectedOrgId, setSelectedOrgId] = useState(null);
   const [personaDraft, setPersonaDraft] = useState({
@@ -70,22 +77,31 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
   const [orgTagInput, setOrgTagInput] = useState("");
   const [isWorksLoading, setIsWorksLoading] = useState(true);
   const [isMetaLoading, setIsMetaLoading] = useState(true);
-  const [isOrgMembersLoading, setIsOrgMembersLoading] = useState(false);
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [isSavingOrg, setIsSavingOrg] = useState(false);
-  const [isCreatingPersona, setIsCreatingPersona] = useState(false);
-  const [isCreatingOrg, setIsCreatingOrg] = useState(false);
   const [seriesList, setSeriesList] = useState([]);
   const [selectedSeriesId, setSelectedSeriesId] = useState("");
   const [seriesDraft, setSeriesDraft] = useState({ name: "", summary: "", coverUrl: "" });
   const [isSavingSeries, setIsSavingSeries] = useState(false);
-  const [showStudioGuide, setShowStudioGuide] = useState(false);
-  const [studioGuideIndex, setStudioGuideIndex] = useState(0);
-  const [studioSpotlightRect, setStudioSpotlightRect] = useState(null);
   const tabsGuideRef = useRef(null);
-  const worksTabGuideRef = useRef(null);
-  const profileTabGuideRef = useRef(null);
-  const orgTabGuideRef = useRef(null);
+
+  const {
+      orgMembers,
+      setOrgMembers,
+      isOrgMembersLoading,
+      orgInvites,
+      setOrgInvites,
+      orgRequests,
+      setOrgRequests,
+      myInvites,
+      setMyInvites,
+      inviteSearchQuery,
+      setInviteSearchQuery,
+      inviteSearchResults,
+      setInviteSearchResults,
+      isInviteSearching,
+  } = usePublisherOrgQueues({
+      selectedOrgId,
+      currentUser,
+  });
 
   const formatDate = (ts) => {
       if (!ts) return "-";
@@ -115,25 +131,6 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
           .slice(0, 6);
   };
 
-  const normalizeOrgIds = (value) => {
-      if (Array.isArray(value)) return value.filter(Boolean);
-      if (!value) return [];
-      if (typeof value === "string") {
-          try {
-              const parsed = JSON.parse(value);
-              return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
-          } catch {
-              return [];
-          }
-      }
-      return [];
-  };
-
-  const resolveProfileOrgIds = (profile) => {
-      const fromIds = normalizeOrgIds(profile?.organizationIds);
-      const fromSingle = profile?.organizationId ? [profile.organizationId] : [];
-      return Array.from(new Set([...fromIds, ...fromSingle].filter(Boolean)));
-  };
 
   const currentUserId = currentUser?.uid || currentProfile?.id || null;
   const currentOrgRole = React.useMemo(() => {
@@ -158,73 +155,6 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
   const renderTabCount = (count) => (
       count ? <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">{count}</span> : null
   );
-  const studioGuideSteps = useMemo(() => ([
-      {
-          title: t("publisher.guideTabsTitle"),
-          description: t("publisher.guideTabsDesc"),
-          target: "tabs",
-          tab: "works",
-      },
-      {
-          title: t("publisher.guideWorksTitle"),
-          description: t("publisher.guideWorksDesc"),
-          target: "works",
-          tab: "works",
-      },
-      {
-          title: t("publisher.guideProfileTitle"),
-          description: t("publisher.guideProfileDesc"),
-          target: "profile",
-          tab: "profile",
-      },
-      {
-          title: t("publisher.guideOrgTitle"),
-          description: t("publisher.guideOrgDesc"),
-          target: "org",
-          tab: "org",
-      },
-  ]), [t]);
-  const currentStudioGuide = showStudioGuide ? studioGuideSteps[studioGuideIndex] : null;
-
-  const buildAffiliatedOrgs = async (ownedOrgs, profile, personaList) => {
-      const baseOrgs = ownedOrgs || [];
-      const memberOrgIds = resolveProfileOrgIds(profile);
-      let mergedOrgs = baseOrgs;
-      const extraOrgIds = new Set();
-
-      memberOrgIds.forEach((oid) => {
-          if (!baseOrgs.some((o) => o.id === oid)) extraOrgIds.add(oid);
-      });
-
-      (personaList || []).forEach((p) => {
-          (p.organizationIds || []).forEach((oid) => {
-              if (!baseOrgs.some((o) => o.id === oid)) extraOrgIds.add(oid);
-          });
-      });
-
-      if (extraOrgIds.size > 0) {
-          const fetched = [];
-          for (const oid of extraOrgIds) {
-              try {
-                  const org = await getOrganization(oid);
-                  if (org) fetched.push(org);
-              } catch {
-                  // ignore not found/forbidden
-              }
-          }
-          mergedOrgs = [...mergedOrgs, ...fetched].filter(Boolean);
-      }
-
-      const deduped = [];
-      const seen = new Set();
-      for (const o of mergedOrgs) {
-          if (!o || !o.id || seen.has(o.id)) continue;
-          seen.add(o.id);
-          deduped.push(o);
-      }
-      return deduped;
-  };
-
 
   const allTagNames = Array.from(new Set([
       ...(availableTags || []).map(t => t.name),
@@ -253,95 +183,23 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
       navigate(`/studio${query ? `?${query}` : ""}`, { replace: true });
   }, [location.search, navigate]);
 
-  const resolveStudioGuideTarget = useCallback(() => {
-      if (!currentStudioGuide) return null;
-      if (currentStudioGuide.target === "tabs") return tabsGuideRef.current;
-      if (currentStudioGuide.target === "works") return document.querySelector('[data-guide-id="studio-works-panel"]');
-      if (currentStudioGuide.target === "profile") return document.querySelector('[data-guide-id="studio-profile-panel"]');
-      if (currentStudioGuide.target === "org") return document.querySelector('[data-guide-id="studio-org-panel"]');
-      return null;
-  }, [currentStudioGuide]);
-
-  const refreshStudioSpotlight = useCallback(() => {
-      if (!showStudioGuide) {
-          setStudioSpotlightRect(null);
-          return;
-      }
-      const target = resolveStudioGuideTarget();
-      if (!target) return;
-      const rect = target.getBoundingClientRect();
-      const pad = 10;
-      setStudioSpotlightRect({
-          top: Math.max(8, rect.top - pad),
-          left: Math.max(8, rect.left - pad),
-          width: Math.max(64, rect.width + pad * 2),
-          height: Math.max(48, rect.height + pad * 2),
-      });
-  }, [resolveStudioGuideTarget, showStudioGuide]);
-
-  const jumpStudioGuide = useCallback((index) => {
-      const next = studioGuideSteps[index];
-      if (!next) return;
-      if (next.tab && activeTab !== next.tab) {
-          handleTabChange(next.tab);
-      }
-      setStudioGuideIndex(index);
-      setShowStudioGuide(true);
-  }, [activeTab, handleTabChange, studioGuideSteps]);
-
-  const finishStudioGuide = useCallback(() => {
-      setShowStudioGuide(false);
-      setStudioGuideIndex(0);
-      setStudioSpotlightRect(null);
-      handleTabChange("works");
-      try {
-          localStorage.setItem(STUDIO_GUIDE_STORAGE_KEY, "1");
-      } catch (err) {
-          console.error("Failed to persist studio guide state", err);
-      }
-  }, [handleTabChange]);
-
-  const handleStudioGuideNext = useCallback(() => {
-      if (studioGuideIndex >= studioGuideSteps.length - 1) {
-          finishStudioGuide();
-          return;
-      }
-      jumpStudioGuide(studioGuideIndex + 1);
-  }, [finishStudioGuide, jumpStudioGuide, studioGuideIndex, studioGuideSteps.length]);
-
-  const handleStudioGuidePrev = useCallback(() => {
-      if (studioGuideIndex <= 0) return;
-      jumpStudioGuide(studioGuideIndex - 1);
-  }, [jumpStudioGuide, studioGuideIndex]);
-
-  const handleStartStudioGuide = useCallback(() => {
-      jumpStudioGuide(0);
-  }, [jumpStudioGuide]);
-
-  useEffect(() => {
-      if (!currentUser) return;
-      try {
-          const seen = localStorage.getItem(STUDIO_GUIDE_STORAGE_KEY) === "1";
-          if (!seen) {
-              jumpStudioGuide(0);
-              localStorage.setItem(STUDIO_GUIDE_STORAGE_KEY, "1");
-          }
-      } catch (err) {
-          console.error("Failed to read studio guide state", err);
-      }
-  }, [currentUser, jumpStudioGuide]);
-
-  useEffect(() => {
-      if (!showStudioGuide) return;
-      const raf = window.requestAnimationFrame(refreshStudioSpotlight);
-      window.addEventListener("resize", refreshStudioSpotlight);
-      window.addEventListener("scroll", refreshStudioSpotlight, true);
-      return () => {
-          window.cancelAnimationFrame(raf);
-          window.removeEventListener("resize", refreshStudioSpotlight);
-          window.removeEventListener("scroll", refreshStudioSpotlight, true);
-      };
-  }, [showStudioGuide, studioGuideIndex, activeTab, refreshStudioSpotlight]);
+  const {
+      showStudioGuide,
+      studioGuideIndex,
+      studioGuideSteps,
+      currentStudioGuide,
+      studioSpotlightRect,
+      finishStudioGuide,
+      handleStudioGuideNext,
+      handleStudioGuidePrev,
+      handleStartStudioGuide,
+  } = useStudioGuide({
+      t,
+      currentUser,
+      activeTab,
+      handleTabChange,
+      tabsGuideRef,
+  });
 
   // personaDraft is fully driven by selectedPersonaId effect above
 
@@ -401,7 +259,12 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         setPersonas(normalizedPersonas);
         setPersonasLoadedAt(Date.now());
         setOrgs(orgData || []);
-        const deduped = await buildAffiliatedOrgs(orgData || [], currentProfile, normalizedPersonas);
+        const deduped = await buildAffiliatedOrganizations({
+          ownedOrgs: orgData || [],
+          profile: currentProfile,
+          personas: normalizedPersonas,
+          fetchOrganizationById: getOrganization,
+        });
         setOrgsForPersona(deduped);
         setAvailableTags(tagData || []);
         setSeriesList(seriesData || []);
@@ -423,93 +286,32 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
     }
   };
 
-  const handleCreateSeries = async () => {
-      if (!seriesDraft.name.trim()) return;
-      setIsSavingSeries(true);
-      try {
-          const created = await createSeries({
-              name: seriesDraft.name.trim(),
-              summary: seriesDraft.summary || "",
-              coverUrl: seriesDraft.coverUrl || "",
-          });
-          setSeriesList((prev) => [created, ...prev]);
-          setSelectedSeriesId(created.id);
-          toast({ title: "已建立系列" });
-      } catch (error) {
-          console.error("Failed to create series", error);
-          toast({ title: "建立系列失敗", variant: "destructive" });
-      } finally {
-          setIsSavingSeries(false);
-      }
-  };
-
-  const handleUpdateSeries = async () => {
-      if (!selectedSeriesId || !seriesDraft.name.trim()) return;
-      setIsSavingSeries(true);
-      try {
-          const updated = await updateSeries(selectedSeriesId, {
-              name: seriesDraft.name.trim(),
-              summary: seriesDraft.summary || "",
-              coverUrl: seriesDraft.coverUrl || "",
-          });
-          setSeriesList((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
-          toast({ title: "已更新系列" });
-      } catch (error) {
-          console.error("Failed to update series", error);
-          toast({ title: "更新系列失敗", variant: "destructive" });
-      } finally {
-          setIsSavingSeries(false);
-      }
-  };
-
-  const handleDeleteSeries = async () => {
-      if (!selectedSeriesId) return;
-      setIsSavingSeries(true);
-      try {
-          await deleteSeries(selectedSeriesId);
-          setSeriesList((prev) => prev.filter((s) => s.id !== selectedSeriesId));
-          setSelectedSeriesId("");
-          setSeriesDraft({ name: "", summary: "", coverUrl: "" });
-          setScripts((prev) => prev.map((s) => (s.seriesId === selectedSeriesId ? { ...s, seriesId: null, seriesOrder: null, series: null } : s)));
-          toast({ title: "已刪除系列" });
-      } catch (error) {
-          console.error("Failed to delete series", error);
-          toast({ title: "刪除系列失敗", variant: "destructive" });
-      } finally {
-          setIsSavingSeries(false);
-      }
-  };
-
-  const handleDetachScriptFromSeries = async (scriptId, seriesId) => {
-      if (!scriptId || !seriesId) return;
-      try {
-          await updateScript(scriptId, { seriesId: null, seriesOrder: null });
-          setScripts((prev) =>
-              prev.map((script) =>
-                  script.id === scriptId
-                      ? { ...script, seriesId: null, seriesOrder: null, series: null }
-                      : script
-              )
-          );
-          setSeriesList((prev) =>
-              prev.map((series) =>
-                  series.id === seriesId
-                      ? { ...series, scriptCount: Math.max(0, Number(series.scriptCount || 0) - 1) }
-                      : series
-              )
-          );
-          toast({ title: "已從系列移除作品" });
-      } catch (error) {
-          console.error("Failed to detach script from series", error);
-          toast({ title: "移除失敗", variant: "destructive" });
-      }
-  };
+  const {
+      handleCreateSeries,
+      handleUpdateSeries,
+      handleDeleteSeries,
+      handleDetachScriptFromSeries,
+  } = usePublisherSeriesActions({
+      selectedSeriesId,
+      seriesDraft,
+      setIsSavingSeries,
+      setSeriesList,
+      setSelectedSeriesId,
+      setSeriesDraft,
+      setScripts,
+      toast,
+  });
 
   const refreshOrgChoices = async () => {
       if (!currentUser) return;
       try {
           const profile = currentProfile || await getUserProfile();
-          const mergedOrgs = await buildAffiliatedOrgs(orgs || [], profile, personas || []);
+          const mergedOrgs = await buildAffiliatedOrganizations({
+            ownedOrgs: orgs || [],
+            profile,
+            personas: personas || [],
+            fetchOrganizationById: getOrganization,
+          });
           setOrgsForPersona(mergedOrgs);
       } catch {
           // ignore
@@ -559,145 +361,29 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
       return () => { ignore = true; };
   }, [selectedPersonaId, personasLoadedAt, personas]);
 
-  useEffect(() => {
-      const loadMembers = async () => {
-          if (!selectedOrgId || !currentUser) return;
-          setIsOrgMembersLoading(true);
-          setOrgMembers({ users: [], personas: [] });
-          try {
-              const data = await getOrganizationMembers(selectedOrgId);
-              setOrgMembers(data || { users: [], personas: [] });
-          } catch (e) {
-              console.error("Failed to load organization members", e);
-              setOrgMembers({ users: [], personas: [] });
-          } finally {
-              setIsOrgMembersLoading(false);
-          }
-      };
-      loadMembers();
-  }, [selectedOrgId, currentUser]);
-
-  useEffect(() => {
-      const loadOrgQueues = async () => {
-          if (!selectedOrgId || !currentUser) return;
-          setOrgInvites([]);
-          setOrgRequests([]);
-          setInviteSearchQuery("");
-          setInviteSearchResults([]);
-          setIsInviteSearching(false);
-          try {
-              const [inv, req] = await Promise.all([
-                  getOrganizationInvites(selectedOrgId),
-                  getOrganizationRequests(selectedOrgId)
-              ]);
-              setOrgInvites(inv?.invites || []);
-              setOrgRequests(req?.requests || []);
-          } catch (e) {
-              // likely 403 if current role cannot manage org queue
-              setOrgInvites([]);
-              setOrgRequests([]);
-          }
-      };
-      loadOrgQueues();
-  }, [selectedOrgId, currentUser]);
-
-  useEffect(() => {
-      const loadMyInvites = async () => {
-          if (!currentUser) return;
-          try {
-              const data = await getMyOrganizationInvites();
-              setMyInvites(data?.invites || []);
-          } catch (e) {
-              setMyInvites([]);
-          }
-      };
-      loadMyInvites();
-  }, [currentUser]);
-
-  useEffect(() => {
-      if (!inviteSearchQuery) {
-          setInviteSearchResults([]);
-          return;
-      }
-      const delay = setTimeout(async () => {
-          setIsInviteSearching(true);
-          try {
-              const results = await searchUsers(inviteSearchQuery);
-              setInviteSearchResults(results || []);
-          } catch (e) {
-              setInviteSearchResults([]);
-          } finally {
-              setIsInviteSearching(false);
-          }
-      }, 400);
-      return () => clearTimeout(delay);
-  }, [inviteSearchQuery]);
-
-  const handleInviteMember = async (userId) => {
-      if (!selectedOrgId) return;
-      await inviteOrganizationMember(selectedOrgId, userId);
-      setInviteSearchQuery("");
-      setInviteSearchResults([]);
-      const inv = await getOrganizationInvites(selectedOrgId);
-      setOrgInvites(inv?.invites || []);
-  };
-
-  const handleAcceptRequest = async (requestId) => {
-      await acceptOrganizationRequest(requestId);
-      const req = await getOrganizationRequests(selectedOrgId);
-      setOrgRequests(req?.requests || []);
-      const members = await getOrganizationMembers(selectedOrgId);
-      setOrgMembers(members || { users: [], personas: [] });
-  };
-
-  const handleDeclineRequest = async (requestId) => {
-      await declineOrganizationRequest(requestId);
-      const req = await getOrganizationRequests(selectedOrgId);
-      setOrgRequests(req?.requests || []);
-  };
-
-  const handleRemoveMember = async (userId) => {
-      if (!selectedOrgId || !userId) return;
-      await removeOrganizationMember(selectedOrgId, userId);
-      const members = await getOrganizationMembers(selectedOrgId);
-      setOrgMembers(members || { users: [], personas: [] });
-  };
-
-  const handleRemovePersonaMember = async (personaId) => {
-      if (!selectedOrgId || !personaId) return;
-      await removeOrganizationPersona(selectedOrgId, personaId);
-      const members = await getOrganizationMembers(selectedOrgId);
-      setOrgMembers(members || { users: [], personas: [] });
-  };
-
-  const handleChangeMemberRole = async (userId, role) => {
-      if (!selectedOrgId || !userId || !role) return;
-      await updateOrganizationMemberRole(selectedOrgId, userId, role);
-      const members = await getOrganizationMembers(selectedOrgId);
-      setOrgMembers(members || { users: [], personas: [] });
-  };
-
-  const handleAcceptInvite = async (inviteId) => {
-      if (!personas.length) {
-          toast({
-              title: t("publisher.noPersonaBeforeJoinOrg", "請先建立作者身份"),
-              description: t("publisher.noPersonaBeforeJoinOrgDesc", "加入組織前請先建立至少一個作者身份。"),
-              variant: "destructive",
-          });
-          handleTabChange("profile");
-          return;
-      }
-      await acceptOrganizationInvite(inviteId);
-      const mine = await getMyOrganizationInvites();
-      setMyInvites(mine?.invites || []);
-      await refreshOrgChoices();
-  };
-
-  const handleDeclineInvite = async (inviteId) => {
-      await declineOrganizationInvite(inviteId);
-      const mine = await getMyOrganizationInvites();
-      setMyInvites(mine?.invites || []);
-  };
+  const {
+      handleInviteMember,
+      handleAcceptRequest,
+      handleDeclineRequest,
+      handleRemoveMember,
+      handleRemovePersonaMember,
+      handleChangeMemberRole,
+      handleAcceptInvite,
+      handleDeclineInvite,
+  } = usePublisherOrgMemberActions({
+      selectedOrgId,
+      personas,
+      t,
+      toast,
+      handleTabChange,
+      refreshOrgChoices,
+      setInviteSearchQuery,
+      setInviteSearchResults,
+      setOrgInvites,
+      setOrgRequests,
+      setOrgMembers,
+      setMyInvites,
+  });
 
   useEffect(() => {
       if (!selectedOrgId) return;
@@ -714,108 +400,29 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
           });
       }
   }, [selectedOrgId, orgs]);
-
-  const handleSaveProfile = async () => {
-      if (!selectedPersonaId) return;
-      setIsSavingProfile(true);
-      try {
-          await updatePersona(selectedPersonaId, personaDraft);
-          await loadData(true);
-          toast({ title: t("publisher.updatedPersona") });
-      } catch (e) {
-          console.error("Failed to update persona", e);
-          toast({ title: t("publisher.updatePersonaFailed"), variant: "destructive" });
-      } finally {
-          setIsSavingProfile(false);
-      }
-  };
-
-  const handleSaveOrg = async () => {
-      if (!orgDraft?.id) return;
-      setIsSavingOrg(true);
-      try {
-          await updateOrganization(orgDraft.id, {
-              name: orgDraft.name,
-              description: orgDraft.description,
-              website: orgDraft.website,
-              logoUrl: orgDraft.logoUrl,
-              bannerUrl: orgDraft.bannerUrl,
-              tags: orgDraft.tags
-          });
-          await loadData(true);
-          toast({ title: t("publisher.updatedOrg") });
-      } catch (e) {
-          console.error("Failed to update org", e);
-          toast({ title: t("publisher.updateOrgFailed"), variant: "destructive" });
-      } finally {
-          setIsSavingOrg(false);
-      }
-  };
-
-  const handleCreatePersona = async () => {
-      if (!personaDraft.displayName.trim()) return;
-      setIsCreatingPersona(true);
-      try {
-          const created = await createPersona(personaDraft);
-          await loadData(true);
-          setSelectedPersonaId(created?.id || null);
-          toast({ title: t("publisher.createdPersona") });
-      } catch (e) {
-          console.error("Failed to create persona", e);
-          toast({ title: t("publisher.createPersonaFailed"), variant: "destructive" });
-      } finally {
-          setIsCreatingPersona(false);
-      }
-  };
-
-  const handleDeletePersona = async () => {
-      if (!selectedPersonaId) return;
-      try {
-          await deletePersona(selectedPersonaId);
-          await loadData(true);
-          setConfirmDeletePersonaOpen(false);
-          toast({ title: t("publisher.deletedPersona") });
-      } catch (e) {
-          console.error("Failed to delete persona", e);
-          toast({ title: t("publisher.deletePersonaFailed"), variant: "destructive" });
-      }
-  };
-
-  const handleCreateOrg = async () => {
-      if (!orgDraft.name.trim()) return;
-      setIsCreatingOrg(true);
-      try {
-          const created = await createOrganization({
-              name: orgDraft.name,
-              description: orgDraft.description,
-              website: orgDraft.website,
-              logoUrl: orgDraft.logoUrl,
-              bannerUrl: orgDraft.bannerUrl,
-              tags: orgDraft.tags
-          });
-          await loadData(true);
-          setSelectedOrgId(created?.id || null);
-          toast({ title: t("publisher.createdOrg") });
-      } catch (e) {
-          console.error("Failed to create organization", e);
-          toast({ title: t("publisher.createOrgFailed"), variant: "destructive" });
-      } finally {
-          setIsCreatingOrg(false);
-      }
-  };
-
-  const handleDeleteOrg = async () => {
-      if (!orgDraft?.id) return;
-      try {
-          await deleteOrganization(orgDraft.id);
-          await loadData(true);
-          setConfirmDeleteOrgOpen(false);
-          toast({ title: t("publisher.deletedOrg") });
-      } catch (e) {
-          console.error("Failed to delete organization", e);
-          toast({ title: t("publisher.deleteOrgFailed"), variant: "destructive" });
-      }
-  };
+  const {
+      isSavingProfile,
+      isSavingOrg,
+      isCreatingPersona,
+      isCreatingOrg,
+      handleSaveProfile,
+      handleSaveOrg,
+      handleCreatePersona,
+      handleDeletePersona,
+      handleCreateOrg,
+      handleDeleteOrg,
+  } = usePublisherCrudActions({
+      selectedPersonaId,
+      personaDraft,
+      setSelectedPersonaId,
+      setConfirmDeletePersonaOpen,
+      orgDraft,
+      setSelectedOrgId,
+      setConfirmDeleteOrgOpen,
+      loadData,
+      t,
+      toast,
+  });
 
   return (
     <div className="h-full overflow-y-auto overflow-x-hidden bg-background">
@@ -890,7 +497,6 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         <div className="sticky top-0 z-20 rounded-lg border bg-background/95 p-2 backdrop-blur">
             <TabsList ref={tabsGuideRef} className="grid w-full grid-cols-2 md:grid-cols-4 gap-1 h-auto bg-transparent p-0">
                 <TabsTrigger
-                  ref={worksTabGuideRef}
                   value="works"
                   style={tabTone.works}
                   className="h-11 justify-start px-3 border border-transparent transition-colors data-[state=active]:border-[var(--morandi-tone-panel-border)] data-[state=active]:bg-[var(--morandi-tone-trigger-bg)] data-[state=active]:text-[var(--morandi-tone-trigger-fg)]"
@@ -902,7 +508,6 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                     </span>
                 </TabsTrigger>
                 <TabsTrigger
-                  ref={profileTabGuideRef}
                   value="profile"
                   style={tabTone.profile}
                   className="h-11 justify-start px-3 border border-transparent transition-colors data-[state=active]:border-[var(--morandi-tone-panel-border)] data-[state=active]:bg-[var(--morandi-tone-trigger-bg)] data-[state=active]:text-[var(--morandi-tone-trigger-fg)]"
@@ -914,7 +519,6 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                     </span>
                 </TabsTrigger>
                 <TabsTrigger
-                  ref={orgTabGuideRef}
                   value="org"
                   style={tabTone.org}
                   className="h-11 justify-start px-3 border border-transparent transition-colors data-[state=active]:border-[var(--morandi-tone-panel-border)] data-[state=active]:bg-[var(--morandi-tone-trigger-bg)] data-[state=active]:text-[var(--morandi-tone-trigger-fg)]"
@@ -1096,55 +700,22 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {showStudioGuide && currentStudioGuide && typeof document !== "undefined" && createPortal(
-        <div className="fixed inset-0 z-[220] pointer-events-none">
-          {studioSpotlightRect ? (
-            <>
-              <div className="absolute left-0 top-0 bg-black/75 pointer-events-auto" style={{ width: "100%", height: studioSpotlightRect.top }} />
-              <div className="absolute left-0 bg-black/75 pointer-events-auto" style={{ top: studioSpotlightRect.top, width: studioSpotlightRect.left, height: studioSpotlightRect.height }} />
-              <div
-                className="absolute right-0 bg-black/75 pointer-events-auto"
-                style={{
-                    top: studioSpotlightRect.top,
-                    left: studioSpotlightRect.left + studioSpotlightRect.width,
-                    height: studioSpotlightRect.height,
-                }}
-              />
-              <div className="absolute left-0 bg-black/75 pointer-events-auto" style={{ top: studioSpotlightRect.top + studioSpotlightRect.height, width: "100%", bottom: 0 }} />
-              <div
-                className="absolute rounded-xl border-2 border-primary shadow-[0_0_40px_rgba(255,255,255,0.12)] pointer-events-none"
-                style={{
-                    top: studioSpotlightRect.top,
-                    left: studioSpotlightRect.left,
-                    width: studioSpotlightRect.width,
-                    height: studioSpotlightRect.height,
-                }}
-              />
-            </>
-          ) : (
-            <div className="absolute inset-0 bg-black/75 pointer-events-auto" />
-          )}
-          <div className="absolute right-6 bottom-6 w-[380px] max-w-[calc(100vw-3rem)] rounded-xl border bg-background p-4 shadow-2xl pointer-events-auto">
-              <div className="text-xs text-muted-foreground">{studioGuideIndex + 1}/{studioGuideSteps.length}</div>
-              <div className="text-base font-semibold mt-1">{currentStudioGuide.title}</div>
-              <p className="text-sm text-muted-foreground mt-1">{currentStudioGuide.description}</p>
-              <div className="mt-4 flex items-center justify-between gap-2">
-                <Button type="button" size="sm" variant="ghost" onClick={finishStudioGuide}>
-                  {t("publisher.guideSkip")}
-                </Button>
-                <div className="flex items-center gap-2">
-                  <Button type="button" size="sm" variant="outline" onClick={handleStudioGuidePrev} disabled={studioGuideIndex === 0}>
-                    {t("publisher.guidePrev")}
-                  </Button>
-                  <Button type="button" size="sm" onClick={handleStudioGuideNext}>
-                    {studioGuideIndex === studioGuideSteps.length - 1 ? t("publisher.guideDone") : t("publisher.guideNext")}
-                  </Button>
-                </div>
-              </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      <SpotlightGuideOverlay
+        open={showStudioGuide && Boolean(currentStudioGuide)}
+        zIndex={220}
+        spotlightRect={studioSpotlightRect}
+        currentStep={studioGuideIndex + 1}
+        totalSteps={studioGuideSteps.length}
+        title={currentStudioGuide?.title}
+        description={currentStudioGuide?.description}
+        onSkip={finishStudioGuide}
+        skipLabel={t("publisher.guideSkip")}
+        onPrev={handleStudioGuidePrev}
+        prevLabel={t("publisher.guidePrev")}
+        prevDisabled={studioGuideIndex === 0}
+        onNext={handleStudioGuideNext}
+        nextLabel={studioGuideIndex === studioGuideSteps.length - 1 ? t("publisher.guideDone") : t("publisher.guideNext")}
+      />
     </div>
     </div>
   );

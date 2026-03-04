@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { updateScript } from "../../lib/db";
+import { updateScript, reorderScripts } from "../../lib/api/scripts";
 import { useAuth } from "../../contexts/AuthContext";
 import { 
     useSensor, 
@@ -108,9 +108,7 @@ export function useScriptDragDrop({
                      }
                  }
                  
-                 import("../../lib/db").then(({ reorderScripts }) => {
-                     reorderScripts(updates.map(({id, sortOrder}) => ({id, sortOrder})));
-                 }).catch(console.error);
+                 reorderScripts(updates.map(({id, sortOrder}) => ({id, sortOrder}))).catch(console.error);
 
                  return items.map(s => {
                      let newS = s;

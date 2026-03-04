@@ -13,7 +13,7 @@ vi.mock('../../contexts/SettingsContext', () => ({
   useSettings: vi.fn()
 }));
 
-vi.mock('../../lib/db', () => ({
+vi.mock('../../lib/api/scripts', () => ({
   getScript: vi.fn(),
   updateScript: vi.fn()
 }));
@@ -49,7 +49,7 @@ describe('LiveEditor', () => {
     });
 
     it('should show loading state initially', async () => {
-        const { getScript } = await import('../../lib/db');
+        const { getScript } = await import('../../lib/api/scripts');
         getScript.mockImplementationOnce(() => new Promise(() => {}));
         const { container } = render(
             <MemoryRouter>

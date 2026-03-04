@@ -1,83 +1,30 @@
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./dialog";
 import { Button } from "./button";
-import { MEDIA_FILE_ACCEPT, formatBytes, optimizeImageForUpload } from "../../lib/mediaLibrary";
-import { deleteMediaObject, getMediaObjects, uploadMediaObject } from "../../lib/db";
+import { MEDIA_FILE_ACCEPT, formatBytes } from "../../lib/mediaLibrary";
 import { useI18n } from "../../contexts/I18nContext";
 import { Loader2, Image as ImageIcon } from "lucide-react";
-
-const MEDIA_LIBRARY_MAX_BYTES = 25 * 1024 * 1024;
+import { useMediaLibrary } from "../../hooks/useMediaLibrary";
 
 export function MediaPicker({ open, onOpenChange, onSelect }) {
     const { t } = useI18n();
-    const [items, setItems] = React.useState([]);
-    const [stats, setStats] = React.useState({ count: 0, usedBytes: 0, maxBytes: 0, ratio: 0 });
-    const [isLoading, setIsLoading] = React.useState(false);
-    const [isUploading, setIsUploading] = React.useState(false);
-    const [deletingUrl, setDeletingUrl] = React.useState("");
-    const [error, setError] = React.useState("");
-    const loadMedia = React.useCallback(async () => {
-        setIsLoading(true);
-        setError("");
-        try {
-            const res = await getMediaObjects();
-            const nextItems = Array.isArray(res?.items) ? res.items : [];
-            const usedBytes = nextItems.reduce((sum, it) => sum + Number(it?.sizeBytes || 0), 0);
-            setItems(nextItems);
-            setStats({
-                count: nextItems.length,
-                usedBytes,
-                maxBytes: MEDIA_LIBRARY_MAX_BYTES,
-                ratio: MEDIA_LIBRARY_MAX_BYTES > 0 ? Math.min(1, usedBytes / MEDIA_LIBRARY_MAX_BYTES) : 0,
-            });
-        } catch (e) {
-            setError(e?.message || t("mediaLibrary.uploadFailed", "載入失敗"));
-        } finally {
-            setIsLoading(false);
-        }
-    }, [t]);
+    const {
+        items,
+        stats,
+        error,
+        isLoading,
+        isUploading,
+        deletingUrl,
+        refresh,
+        uploadFromInput,
+        deleteByUrl,
+    } = useMediaLibrary({ t });
 
     React.useEffect(() => {
         if (open) {
-            loadMedia();
+            refresh();
         }
-    }, [open, loadMedia]);
-
-    const handleUpload = async (event) => {
-        const files = Array.from(event.target.files || []);
-        if (!files.length) return;
-        setError("");
-        setIsUploading(true);
-        try {
-            for (const file of files) {
-                const optimized = await optimizeImageForUpload(file);
-                if (!optimized.ok) {
-                    throw new Error(optimized.error || t("mediaLibrary.uploadFailed", "上傳失敗"));
-                }
-                await uploadMediaObject(optimized.file, "library");
-            }
-            await loadMedia();
-        } catch (e) {
-            setError(String(e?.message || t("mediaLibrary.uploadFailed", "上傳失敗")));
-        } finally {
-            setIsUploading(false);
-            event.target.value = "";
-        }
-    };
-
-    const handleDelete = async (url) => {
-        if (!url) return;
-        setError("");
-        setDeletingUrl(url);
-        try {
-            await deleteMediaObject(url);
-            await loadMedia();
-        } catch (e) {
-            setError(String(e?.message || t("mediaLibrary.uploadFailed", "刪除失敗")));
-        } finally {
-            setDeletingUrl("");
-        }
-    };
+    }, [open, refresh]);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -113,7 +60,7 @@ export function MediaPicker({ open, onOpenChange, onSelect }) {
                             accept={MEDIA_FILE_ACCEPT}
                             multiple
                             className="hidden"
-                            onChange={handleUpload}
+                            onChange={uploadFromInput}
                             disabled={isUploading || isLoading || !!deletingUrl}
                         />
                     </label>
@@ -167,7 +114,7 @@ export function MediaPicker({ open, onOpenChange, onSelect }) {
                                             className="h-7 w-full text-xs text-destructive hover:text-destructive"
                                             disabled={isUploading || isLoading || !!deletingUrl}
                                             onClick={() => {
-                                                handleDelete(item.url);
+                                                deleteByUrl(item.url);
                                             }}
                                         >
                                             {deletingUrl === item.url ? t("common.loading", "載入中...") : t("common.remove", "刪除")}

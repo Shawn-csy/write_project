@@ -67,18 +67,6 @@ export const SYMBOL_NORMALIZATION = {
 };
 
 /**
- * 強制保留全形的符號
- * 這些符號即使有半形對應也不應該被轉換
- */
-export const PRESERVE_FULLWIDTH = [
-  '（', '）',  // 括號：用於語氣、距離標記
-  '【', '】',  // 方括號：用於後製效果
-  '《', '》',  // 書名號
-  '「', '」',  // 引號
-  '『', '』',  // 雙引號
-];
-
-/**
  * 預設的 Prefix 模式標記
  * 用於 MarkerDiscoverer 的預掃描
  */

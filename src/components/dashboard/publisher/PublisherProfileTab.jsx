@@ -2,23 +2,20 @@ import React from 'react';
 import { useNavigate } from "react-router-dom";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "../../ui/button";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "../../ui/card";
+import { Card } from "../../ui/card";
 import { Input } from "../../ui/input";
 import { Textarea } from "../../ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { Avatar, AvatarImage, AvatarFallback } from "../../ui/avatar";
-import { DndContext, closestCenter } from "@dnd-kit/core";
-import { SortableContext, horizontalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
-import { SortableTag } from "./SortableTag";
 import { MetadataLicenseTab } from "../metadata/MetadataLicenseTab";
-import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
-import { searchOrganizations, requestToJoinOrganization, uploadMediaObject } from "../../../lib/db";
+import { searchOrganizations, requestToJoinOrganization } from "../../../lib/api/organizations";
+import { uploadMediaObject } from "../../../lib/api/media";
 import { optimizeImageForUpload, getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
 import { useI18n } from "../../../contexts/I18nContext";
 import { MediaPicker } from "../../ui/MediaPicker";
 import { PublisherFormRow } from "./PublisherFormRow";
 import { PublisherTabHeader } from "./PublisherTabHeader";
 import { useToast } from "../../ui/toast";
+import { PublisherTagEditor } from "./PublisherTagEditor";
 
 export function PublisherProfileTab({
     selectedPersonaId, setSelectedPersonaId,
@@ -41,7 +38,6 @@ export function PublisherProfileTab({
     const [orgSearchQuery, setOrgSearchQuery] = React.useState("");
     const [orgSearchResults, setOrgSearchResults] = React.useState([]);
     const [isOrgSearching, setIsOrgSearching] = React.useState(false);
-    const [tagOpen, setTagOpen] = React.useState(false);
     const [avatarPreviewFailed, setAvatarPreviewFailed] = React.useState(false);
     const [bannerPreviewFailed, setBannerPreviewFailed] = React.useState(false);
     const [avatarUploadError, setAvatarUploadError] = React.useState("");
@@ -175,18 +171,6 @@ export function PublisherProfileTab({
         } finally {
             event.target.value = "";
         }
-    };
-
-    const handleTagPaste = (event) => {
-        const text = event.clipboardData?.getData("text") || "";
-        const incoming = parseTags(text);
-        if (incoming.length <= 1) return;
-        event.preventDefault();
-        setPersonaDraft({
-            ...personaDraft,
-            tags: addTags(personaDraft.tags || [], incoming),
-        });
-        setPersonaTagInput("");
     };
 
     const onStartCreate = () => {
@@ -597,128 +581,24 @@ export function PublisherProfileTab({
                                     </PublisherFormRow>
 
                                     <PublisherFormRow label={t("publisherProfileTab.tags")}>
-                                        <div className="border rounded-md p-3 bg-muted/10 space-y-2">
-                                            <DndContext
-                                                collisionDetection={closestCenter}
-                                                onDragEnd={({ active, over }) => {
-                                                    if (!over || active.id === over.id) return;
-                                                    const items = personaDraft.tags || [];
-                                                    const oldIndex = items.indexOf(active.id);
-                                                    const newIndex = items.indexOf(over.id);
-                                                    setPersonaDraft({ ...personaDraft, tags: arrayMove(items, oldIndex, newIndex) });
-                                                }}
-                                            >
-                                                <SortableContext items={personaDraft.tags || []} strategy={horizontalListSortingStrategy}>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {(personaDraft.tags || []).map(tag => (
-                                                            <SortableTag
-                                                                key={tag}
-                                                                id={tag}
-                                                                style={getTagStyle(tag)}
-                                                                onRemove={() => {
-                                                                    setPersonaDraft({
-                                                                        ...personaDraft,
-                                                                        tags: (personaDraft.tags || []).filter(t => t !== tag),
-                                                                    });
-                                                                }}
-                                                            />
-                                                        ))}
-                                                        {(personaDraft.tags || []).length === 0 && (
-                                                            <span className="text-sm text-muted-foreground">{t("publisherProfileTab.inputTagHint")}</span>
-                                                        )}
-                                                    </div>
-                                                </SortableContext>
-                                            </DndContext>
-                                            
-                                            <Popover open={tagOpen} onOpenChange={setTagOpen}>
-                                                <PopoverTrigger asChild>
-                                                    <Button type="button" variant="outline" size="sm" className="w-fit">
-                                                        {t("publisherProfileTab.addTag")}
-                                                    </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-[90vw] sm:w-80 p-2" align="start">
-                                                    <div className="p-2">
-                                                        <Input
-                                                            id="persona-tag-input"
-                                                            name="personaTagInput"
-                                                            value={personaTagInput}
-                                                            onChange={(e) => setPersonaTagInput(e.target.value)}
-                                                            onPaste={handleTagPaste}
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === "Enter" || e.key === "," || e.key === "，") {
-                                                                    e.preventDefault();
-                                                                    const incoming = parseTags(personaTagInput);
-                                                                    if (incoming.length === 0) return;
-                                                                    setPersonaDraft({
-                                                                        ...personaDraft,
-                                                                        tags: addTags(personaDraft.tags || [], incoming),
-                                                                    });
-                                                                    setPersonaTagInput("");
-                                                                    setTagOpen(false);
-                                                                }
-                                                            }}
-                                                            placeholder={t("publisherProfileTab.searchOrAddTag")}
-                                                            className="h-8"
-                                                        />
-                                                    </div>
-                                                    <div className="max-h-56 overflow-y-auto px-1 pb-1">
-                                                        {personaTagInput.trim() && (
-                                                            <button
-                                                                type="button"
-                                                                className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent"
-                                                                onClick={() => {
-                                                                    const incoming = parseTags(personaTagInput);
-                                                                    if (incoming.length === 0) return;
-                                                                    setPersonaDraft({
-                                                                        ...personaDraft,
-                                                                        tags: addTags(personaDraft.tags || [], incoming),
-                                                                    });
-                                                                    setPersonaTagInput("");
-                                                                    setTagOpen(false);
-                                                                }}
-                                                            >
-                                                                {t("publisherProfileTab.addQuoted").replace("{value}", personaTagInput.trim())}
-                                                            </button>
-                                                        )}
-                                                        {filteredTagOptions.map(name => {
-                                                            const selected = (personaDraft.tags || []).includes(name);
-                                                            return (
-                                                            <button
-                                                                key={name}
-                                                                type="button"
-                                                                className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded hover:bg-accent ${
-                                                                    selected ? "bg-accent/50" : ""
-                                                                }`}
-                                                                onClick={() => {
-                                                                    if (selected) {
-                                                                        setPersonaDraft({
-                                                                            ...personaDraft,
-                                                                            tags: (personaDraft.tags || []).filter(t => t !== name),
-                                                                        });
-                                                                    } else {
-                                                                        setPersonaDraft({
-                                                                            ...personaDraft,
-                                                                            tags: addTags(personaDraft.tags || [], [name]),
-                                                                        });
-                                                                    }
-                                                                    setPersonaTagInput("");
-                                                                }}
-                                                            >
-                                                                <span className="truncate">{name}</span>
-                                                                <span
-                                                                    className="inline-block h-2 w-2 rounded-full"
-                                                                    style={{ backgroundColor: getTagStyle(name)?.backgroundColor || "#CBD5E1" }}
-                                                                />
-                                                            </button>
-                                                            );
-                                                        })}
-                                                        {personaTagInput.trim() && filteredTagOptions.length === 0 && (
-                                                            <div className="px-3 py-2 text-xs text-muted-foreground">{t("publisherProfileTab.noMatchedTag")}</div>
-                                                        )}
-                                                    </div>
-                                                </PopoverContent>
-                                            </Popover>
-                                        </div>
+                                        <PublisherTagEditor
+                                            tags={personaDraft.tags || []}
+                                            setTags={(nextTags) => setPersonaDraft({ ...personaDraft, tags: nextTags })}
+                                            tagInput={personaTagInput}
+                                            setTagInput={setPersonaTagInput}
+                                            parseTags={parseTags}
+                                            addTags={addTags}
+                                            getTagStyle={getTagStyle}
+                                            filteredOptions={filteredTagOptions}
+                                            inputId="persona-tag-input"
+                                            inputName="personaTagInput"
+                                            inputAriaLabel={t("publisherProfileTab.addTag")}
+                                            addTagLabel={t("publisherProfileTab.addTag")}
+                                            inputPlaceholder={t("publisherProfileTab.searchOrAddTag")}
+                                            addQuotedTemplate={t("publisherProfileTab.addQuoted")}
+                                            noMatchedTagLabel={t("publisherProfileTab.noMatchedTag")}
+                                            emptyHintLabel={t("publisherProfileTab.inputTagHint")}
+                                        />
                                     </PublisherFormRow>
                                 </div>
 

@@ -8,7 +8,7 @@
 flowchart TB
   subgraph Client["Frontend (Vite/React)"]
     UI[src/pages + components]
-    API[src/lib/db.js\nAPI Client]
+    API[src/lib/api/*.js\nAPI 模組層]
     AUTH[src/lib/firebase.js\nFirebase Auth]
     UI --> API
     UI --> AUTH
@@ -39,7 +39,7 @@ flowchart LR
   subgraph Frontend["Frontend (Vite/React)"]
     FE_PAGES[src/pages/*]
     FE_COMP[src/components/*]
-    FE_API[src/lib/db.js\nAPI Client]
+    FE_API[src/lib/api/*.js\nAPI 模組層]
     FE_AUTH[src/lib/firebase.js\nFirebase Auth]
     FE_META[src/lib/metadataParser.js]
     FE_STATS[src/lib/statistics/*]
@@ -87,7 +87,7 @@ flowchart LR
 ┌──────────────────────────────┐
 │ Frontend (Vite/React)         │
 │ - src/pages + components      │
-│ - src/lib/db.js (API Client)  │
+│ - src/lib/api/*.js (API modules) │
 │ - src/lib/firebase.js (Auth)  │
 └───────────────┬──────────────┘
                 │ HTTP (Authorization: Bearer)
@@ -113,7 +113,7 @@ flowchart LR
   subgraph Public
     PG[src/pages/PublicGalleryPage.jsx]
     PR[src/pages/PublicReaderPage.jsx]
-    PG -->|getPublicScripts| API[src/lib/db.js]
+    PG -->|getPublicBundle/getPublicScripts| API[src/lib/api/public.js]
     PR -->|getPublicScript| API
     API -->|/api/public-*| PUB[server/routers/public.py]
   end
@@ -133,20 +133,20 @@ flowchart LR
 ```
 Public:
   PublicGalleryPage.jsx
-      └─ db.js:getPublicScripts/getPublicPersonas/getPublicOrganizations
+      └─ api/public.js:getPublicBundle (or getPublicScripts/getPublicPersonas/getPublicOrganizations)
           └─ public.py (/api/public-*)
 
   PublicReaderPage.jsx
-      └─ db.js:getPublicScript
+      └─ api/public.js:getPublicScript
           └─ public.py (/api/public-scripts/{id})
 
 Studio:
   PublisherDashboard.jsx
-      └─ db.js:getPersonas/getOrganizations/getUserScripts
+      └─ api/personas.js + organizations.js + scripts.js
           └─ personas.py / orgs.py / scripts.py
 
   ScriptMetadataDialog.jsx
-      └─ db.js:getScript/updateScript
+      └─ api/scripts.js:getScript/updateScript
           └─ scripts.py
 ```
 

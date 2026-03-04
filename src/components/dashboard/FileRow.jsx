@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Badge } from "../ui/badge";
 import { GripVertical } from "lucide-react";
 import { useSortable } from '@dnd-kit/sortable';

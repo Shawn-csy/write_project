@@ -2,10 +2,9 @@ import React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "../../ui/button";
-import { Input } from "../../ui/input";
-import { Textarea } from "../../ui/textarea";
 import { X } from "lucide-react";
 import { useI18n } from "../../../contexts/I18nContext";
+import { SortableKeyValueRow } from "./SortableKeyValueRow";
 
 export const SortableField = ({ field, index, onUpdate, onRemove, onFocus, onBlur, dragDisabled }) => {
     const { t } = useI18n();
@@ -56,51 +55,25 @@ export const SortableField = ({ field, index, onUpdate, onRemove, onFocus, onBlu
     }
 
     return (
-        <div ref={setNodeRef} style={style} className="flex gap-2 items-start">
-            <button
-                type="button"
-                className="mt-2 h-8 w-8 rounded-md border bg-muted/30 text-muted-foreground cursor-grab flex items-center justify-center touch-none"
-                ref={setActivatorNodeRef}
-                {...listeners}
-                {...attributes}
-                aria-label={t("sortableField.dragSortAria")}
-            >
-                ≡
-            </button>
-            <div className="w-1/3">
-                <Input
-                    id={`custom-field-key-${field.id}`}
-                    name={`customFieldKey-${field.id}`}
-                    aria-label={t("sortableField.customFieldNameAria")}
-                    value={field.key}
-                    onChange={(e) => onUpdate(index, "key", e.target.value)}
-                    onFocus={onFocus}
-                    onBlur={onBlur}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    placeholder={t("sortableField.keyPlaceholder")}
-                />
-            </div>
-            <div className="w-2/3">
-                <Textarea
-                    id={`custom-field-value-${field.id}`}
-                    name={`customFieldValue-${field.id}`}
-                    aria-label={t("sortableField.customFieldValueAria")}
-                    value={field.value}
-                    onChange={(e) => onUpdate(index, "value", e.target.value)}
-                    onFocus={onFocus}
-                    onBlur={onBlur}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    placeholder={t("sortableField.valuePlaceholder")}
-                />
-            </div>
-            <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => onRemove(index)}
-            >
-                <X className="w-4 h-4" />
-            </Button>
-        </div>
+        <SortableKeyValueRow
+            field={field}
+            index={index}
+            onUpdate={onUpdate}
+            onRemove={onRemove}
+            onFocus={onFocus}
+            onBlur={onBlur}
+            dragDisabled={dragDisabled}
+            dragSortAriaLabel={t("sortableField.dragSortAria")}
+            keyAriaLabel={t("sortableField.customFieldNameAria")}
+            keyPlaceholder={t("sortableField.keyPlaceholder")}
+            valueAriaLabel={t("sortableField.customFieldValueAria")}
+            valuePlaceholder={t("sortableField.valuePlaceholder")}
+            valueAs="textarea"
+            dragButtonClassName="mt-2 h-8 w-8 rounded-md border bg-muted/30 text-muted-foreground cursor-grab flex items-center justify-center touch-none"
+            keyContainerClassName="w-1/3"
+            valueContainerClassName="w-2/3"
+            keyClassName=""
+            valueClassName=""
+        />
     );
 };

@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { createScript, updateScript, deleteScript } from "../../lib/db";
+import { createScript, updateScript, deleteScript } from "../../lib/api/scripts";
 
-export function useScriptActions({ 
+export function useWriteScriptActions({ 
     scripts, 
     setScripts, 
     currentPath, 
@@ -236,3 +236,5 @@ export function useScriptActions({
         handleMoveConfirm
     };
 }
+
+export { useWriteScriptActions as useScriptActions };

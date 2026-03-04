@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import generatedFileMeta from "../constants/fileMeta.generated.json";
 import { resolveEffectiveMarkerConfigs } from "../lib/markerConfigResolver.js";
 

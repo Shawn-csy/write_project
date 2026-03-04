@@ -2,23 +2,15 @@ import { useState, useMemo, useEffect } from 'react';
 import { defaultMarkerConfigs } from "../constants/defaultMarkerRules";
 import { apiCall as serviceApiCall } from "../services/settingsApi.js";
 import { normalizeMarkerConfigsSchema } from "../lib/markerThemeCodec.js";
+import { isDefaultLikeTheme } from "../lib/themeNameUtils";
 
 export function useMarkerThemes(currentUser) {
     const DEFAULT_THEME_ID = 'default';
-    const isLegacyDefaultNamedTheme = (theme) => {
-        if (!theme || theme.id === DEFAULT_THEME_ID) return false;
-        const name = String(theme.name || "").trim();
-        if (!name) return false;
-        const normalized = name
-            .toLowerCase()
-            .replace(/[\s_()（）\-[\]{}]/g, "");
-        return normalized.includes("default") || normalized.includes("預設");
-    };
     const defaultTheme = { id: DEFAULT_THEME_ID, name: '預設主題 (Default)', configs: normalizeMarkerConfigsSchema(defaultMarkerConfigs) };
     const withDefaultTheme = (themes = []) => {
         const normalizedThemes = Array.isArray(themes) ? themes : [];
         const withoutDefault = normalizedThemes.filter(
-            (t) => t?.id !== DEFAULT_THEME_ID && !isLegacyDefaultNamedTheme(t)
+            (t) => t?.id !== DEFAULT_THEME_ID && !isDefaultLikeTheme(t, { includeDefaultId: false })
         );
         const dedupById = [];
         const seen = new Set([DEFAULT_THEME_ID]);

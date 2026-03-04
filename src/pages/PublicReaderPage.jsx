@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { PublicReaderLayout } from "../components/reader/PublicReaderLayout";
-import { getPublicBundle, getPublicScript, getPublicThemes } from "../lib/db";
+import { getPublicBundle, getPublicScript, getPublicThemes } from "../lib/api/public";
 import { extractMetadataWithRaw } from "../lib/metadataParser";
 import { deriveSimpleLicenseTags, parseBasicLicenseFromMeta } from "../lib/licenseRights";
 import { normalizeSeriesName, parseSeriesOrder } from "../lib/series";

@@ -1,9 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Button } from "../ui/button";
-import { Search, ChevronDown, Check } from "lucide-react";
+import { Search } from "lucide-react";
 import { Input } from "../ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { useI18n } from "../../contexts/I18nContext";
 
 export function GalleryFilterBar({ 

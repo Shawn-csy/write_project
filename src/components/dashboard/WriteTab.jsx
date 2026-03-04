@@ -7,7 +7,8 @@ import { RenameScriptDialog } from "./write/RenameScriptDialog";
 import { ImportScriptDialog } from "./write/ImportScriptDialog";
 import { DeleteScriptDialog } from "./write/DeleteScriptDialog";
 import { MoveScriptDialog } from "./write/MoveScriptDialog";
-import { createScript, updateScript, getScript, exportScripts } from "../../lib/db";
+import { createScript, updateScript, getScript } from "../../lib/api/scripts";
+import { exportScripts } from "../../lib/api/user";
 import { downloadBlob } from "../../lib/download";
 import { Button } from "../ui/button";
 import { FileText, Folder, Search, ArrowUpDown, FileStack, Globe, RotateCcw } from "lucide-react";
@@ -19,7 +20,6 @@ import {
     DropdownMenuRadioItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-    DropdownMenuItem,
 } from "../ui/dropdown-menu";
 import { useI18n } from "../../contexts/I18nContext";
 import { useToast } from "../ui/toast";
