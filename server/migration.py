@@ -1,3 +1,6 @@
+import json
+import time
+import uuid
 from sqlalchemy import text
 from database import engine
 
@@ -100,17 +103,21 @@ def run_migrations():
                 print("Migrating: Adding 'tags' column to personas")
                 conn.execute(text("ALTER TABLE personas ADD COLUMN tags TEXT DEFAULT '[]'"))
 
-            if 'defaultLicense' not in persona_columns:
-                print("Migrating: Adding 'defaultLicense' column to personas")
-                conn.execute(text("ALTER TABLE personas ADD COLUMN defaultLicense TEXT DEFAULT ''"))
+            if 'defaultLicenseCommercial' not in persona_columns:
+                print("Migrating: Adding 'defaultLicenseCommercial' column to personas")
+                conn.execute(text("ALTER TABLE personas ADD COLUMN defaultLicenseCommercial TEXT DEFAULT ''"))
 
-            if 'defaultLicenseUrl' not in persona_columns:
-                print("Migrating: Adding 'defaultLicenseUrl' column to personas")
-                conn.execute(text("ALTER TABLE personas ADD COLUMN defaultLicenseUrl TEXT DEFAULT ''"))
+            if 'defaultLicenseDerivative' not in persona_columns:
+                print("Migrating: Adding 'defaultLicenseDerivative' column to personas")
+                conn.execute(text("ALTER TABLE personas ADD COLUMN defaultLicenseDerivative TEXT DEFAULT ''"))
 
-            if 'defaultLicenseTerms' not in persona_columns:
-                print("Migrating: Adding 'defaultLicenseTerms' column to personas")
-                conn.execute(text("ALTER TABLE personas ADD COLUMN defaultLicenseTerms TEXT DEFAULT '[]'"))
+            if 'defaultLicenseNotify' not in persona_columns:
+                print("Migrating: Adding 'defaultLicenseNotify' column to personas")
+                conn.execute(text("ALTER TABLE personas ADD COLUMN defaultLicenseNotify TEXT DEFAULT ''"))
+
+            if 'defaultLicenseSpecialTerms' not in persona_columns:
+                print("Migrating: Adding 'defaultLicenseSpecialTerms' column to personas")
+                conn.execute(text("ALTER TABLE personas ADD COLUMN defaultLicenseSpecialTerms TEXT DEFAULT '[]'"))
             if 'bannerUrl' not in persona_columns:
                 print("Migrating: Adding 'bannerUrl' column to personas")
                 conn.execute(text("ALTER TABLE personas ADD COLUMN bannerUrl TEXT DEFAULT ''"))
@@ -153,6 +160,105 @@ def run_migrations():
                 """))
                 conn.execute(text("CREATE INDEX IF NOT EXISTS ix_series_ownerId ON series(ownerId)"))
                 conn.execute(text("CREATE INDEX IF NOT EXISTS ix_series_slug ON series(slug)"))
+
+            # Organization memberships table (user <-> org many-to-many)
+            result_tables = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='organization_memberships'"))
+            has_org_memberships_table = result_tables.fetchone() is not None
+            if not has_org_memberships_table:
+                print("Migrating: Creating 'organization_memberships' table")
+                conn.execute(text("""
+                    CREATE TABLE organization_memberships (
+                        id TEXT PRIMARY KEY,
+                        orgId TEXT NOT NULL,
+                        userId TEXT NOT NULL,
+                        role TEXT DEFAULT 'member',
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        FOREIGN KEY(orgId) REFERENCES organizations(id),
+                        FOREIGN KEY(userId) REFERENCES users(id),
+                        UNIQUE(orgId, userId)
+                    )
+                """))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_organization_memberships_orgId ON organization_memberships(orgId)"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_organization_memberships_userId ON organization_memberships(userId)"))
+
+            # Persona organization memberships table (persona <-> org many-to-many)
+            result_tables = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='persona_organization_memberships'"))
+            has_persona_org_memberships_table = result_tables.fetchone() is not None
+            if not has_persona_org_memberships_table:
+                print("Migrating: Creating 'persona_organization_memberships' table")
+                conn.execute(text("""
+                    CREATE TABLE persona_organization_memberships (
+                        id TEXT PRIMARY KEY,
+                        orgId TEXT NOT NULL,
+                        personaId TEXT NOT NULL,
+                        role TEXT DEFAULT 'member',
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        FOREIGN KEY(orgId) REFERENCES organizations(id),
+                        FOREIGN KEY(personaId) REFERENCES personas(id),
+                        UNIQUE(orgId, personaId)
+                    )
+                """))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_persona_organization_memberships_orgId ON persona_organization_memberships(orgId)"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_persona_organization_memberships_personaId ON persona_organization_memberships(personaId)"))
+
+            # Backfill user -> org memberships from legacy users.organizationId
+            now_ms = int(time.time() * 1000)
+            user_rows = conn.execute(text("SELECT id, organizationId FROM users WHERE organizationId IS NOT NULL AND organizationId != ''")).fetchall()
+            for row in user_rows:
+                exists = conn.execute(
+                    text("SELECT 1 FROM organization_memberships WHERE orgId = :orgId AND userId = :userId LIMIT 1"),
+                    {"orgId": row.organizationId, "userId": row.id},
+                ).fetchone()
+                if exists:
+                    continue
+                conn.execute(
+                    text("""
+                        INSERT INTO organization_memberships (id, orgId, userId, role, createdAt, updatedAt)
+                        VALUES (:id, :orgId, :userId, 'member', :createdAt, :updatedAt)
+                    """),
+                    {
+                        "id": str(uuid.uuid4()),
+                        "orgId": row.organizationId,
+                        "userId": row.id,
+                        "createdAt": now_ms,
+                        "updatedAt": now_ms,
+                    },
+                )
+
+            # Backfill persona -> org memberships from legacy personas.organizationIds JSON text
+            persona_rows = conn.execute(text("SELECT id, organizationIds FROM personas")).fetchall()
+            for row in persona_rows:
+                raw_ids = row.organizationIds
+                try:
+                    org_ids = json.loads(raw_ids) if isinstance(raw_ids, str) else (raw_ids or [])
+                except Exception:
+                    org_ids = []
+                if not isinstance(org_ids, list):
+                    org_ids = []
+                for org_id in org_ids:
+                    if not org_id:
+                        continue
+                    exists = conn.execute(
+                        text("SELECT 1 FROM persona_organization_memberships WHERE orgId = :orgId AND personaId = :personaId LIMIT 1"),
+                        {"orgId": org_id, "personaId": row.id},
+                    ).fetchone()
+                    if exists:
+                        continue
+                    conn.execute(
+                        text("""
+                            INSERT INTO persona_organization_memberships (id, orgId, personaId, role, createdAt, updatedAt)
+                            VALUES (:id, :orgId, :personaId, 'member', :createdAt, :updatedAt)
+                        """),
+                        {
+                            "id": str(uuid.uuid4()),
+                            "orgId": org_id,
+                            "personaId": row.id,
+                            "createdAt": now_ms,
+                            "updatedAt": now_ms,
+                        },
+                    )
             
             conn.commit()
     except Exception as e:

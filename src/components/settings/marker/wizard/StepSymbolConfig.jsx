@@ -2,9 +2,8 @@ import React from 'react';
 import { cn } from '../../../../lib/utils';
 import { Input } from '../../../ui/input';
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
-import { getPublicThemes } from "../../../../lib/db";
-import { normalizeThemeConfigs } from "../../../../lib/markerThemeCodec";
 import { useI18n } from "../../../../contexts/I18nContext";
+import { usePublicThemes } from "../../../../hooks/usePublicThemes";
 
 export function evaluateMarkerSampleMatch({ markerType, config, sampleText, i18n = {} }) {
     const msg = {
@@ -65,13 +64,16 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
     const { t } = useI18n();
     const [sampleText, setSampleText] = React.useState("");
     const [showPublicImport, setShowPublicImport] = React.useState(false);
-    const [publicThemes, setPublicThemes] = React.useState([]);
-    const [publicLoading, setPublicLoading] = React.useState(false);
-    const [publicError, setPublicError] = React.useState("");
     const [publicQuery, setPublicQuery] = React.useState("");
     const [selectedThemeId, setSelectedThemeId] = React.useState("");
     const [selectedPublicMarkerId, setSelectedPublicMarkerId] = React.useState("");
     const [copyMode, setCopyMode] = React.useState("all"); // all | logic | style
+    const {
+        themes: publicThemes,
+        loading: publicLoading,
+        error: publicError,
+        refresh: refreshPublicThemes
+    } = usePublicThemes({ t, errorKey: "stepSymbolConfig.loadPublicThemeFailed" });
     const updateField = (field, value) => {
         onChange({ ...config, [field]: value });
     };
@@ -137,27 +139,11 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
     };
 
     const loadPublicMarkerThemes = async () => {
-        setPublicLoading(true);
-        setPublicError("");
-        try {
-            const data = await getPublicThemes();
-            const normalized = Array.isArray(data)
-                ? data.map((theme) => ({
-                    ...theme,
-                    configs: normalizeThemeConfigs(theme.configs),
-                }))
-                : [];
-            setPublicThemes(normalized);
-            const firstThemeId = normalized[0]?.id || "";
-            setSelectedThemeId(firstThemeId);
-            const firstMarker = normalized[0]?.configs?.[0];
-            setSelectedPublicMarkerId(firstMarker ? (firstMarker.id || firstMarker.label) : "");
-        } catch (error) {
-            console.error("Failed to load public themes", error);
-            setPublicError(t("stepSymbolConfig.loadPublicThemeFailed"));
-        } finally {
-            setPublicLoading(false);
-        }
+        const normalized = await refreshPublicThemes();
+        const firstThemeId = normalized[0]?.id || "";
+        setSelectedThemeId(firstThemeId);
+        const firstMarker = normalized[0]?.configs?.[0];
+        setSelectedPublicMarkerId(firstMarker ? (firstMarker.id || firstMarker.label) : "");
     };
 
     React.useEffect(() => {

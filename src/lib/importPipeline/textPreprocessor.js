@@ -10,7 +10,6 @@
 import { 
   JOIN_RULES, 
   SYMBOL_NORMALIZATION, 
-  PRESERVE_FULLWIDTH,
   isBlankLine 
 } from './constants.js';
 

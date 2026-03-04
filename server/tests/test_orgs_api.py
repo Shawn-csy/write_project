@@ -161,3 +161,59 @@ def test_organization_transfer(client: TestClient, db_session):
     
     resp = client.get(f"/api/organizations/{org_id}", headers={"X-User-Id": "u2"})
     assert resp.status_code == 200
+
+
+def test_organization_member_role_and_remove_permissions(client: TestClient, db_session):
+    import models
+    import time
+    import uuid
+
+    now = int(time.time() * 1000)
+    db_session.add(models.User(id="u2", email="u2@example.com"))
+    db_session.add(models.User(id="u3", email="u3@example.com"))
+    db_session.add(models.Persona(id="persona-u3", ownerId="u3", displayName="P3", createdAt=now, updatedAt=now))
+    db_session.commit()
+
+    resp = client.post("/api/organizations", json={"name": "Org Perm"}, headers={"X-User-Id": "u1"})
+    org_id = resp.json()["id"]
+
+    # Owner adds u2 and u3 as members.
+    assert client.post(f"/api/organizations/{org_id}/members", json={"userId": "u2"}, headers={"X-User-Id": "u1"}).status_code == 200
+    assert client.post(f"/api/organizations/{org_id}/members", json={"userId": "u3"}, headers={"X-User-Id": "u1"}).status_code == 200
+
+    # Bind a persona to this org.
+    db_session.add(
+        models.PersonaOrganizationMembership(
+            id=str(uuid.uuid4()),
+            orgId=org_id,
+            personaId="persona-u3",
+            role="member",
+            createdAt=now,
+            updatedAt=now,
+        )
+    )
+    db_session.commit()
+
+    # Owner promotes u2 to admin.
+    resp = client.patch(
+        f"/api/organizations/{org_id}/members/u2/role",
+        json={"role": "admin"},
+        headers={"X-User-Id": "u1"},
+    )
+    assert resp.status_code == 200
+
+    # Admin removes member u3.
+    resp = client.delete(f"/api/organizations/{org_id}/members/u3", headers={"X-User-Id": "u2"})
+    assert resp.status_code == 200
+
+    # Admin removes persona membership.
+    resp = client.delete(f"/api/organizations/{org_id}/personas/persona-u3", headers={"X-User-Id": "u2"})
+    assert resp.status_code == 200
+
+    # Non-manager cannot change role.
+    resp = client.patch(
+        f"/api/organizations/{org_id}/members/u2/role",
+        json={"role": "member"},
+        headers={"X-User-Id": "u3"},
+    )
+    assert resp.status_code == 400

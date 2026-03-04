@@ -31,16 +31,11 @@ export default function DashboardPage({ scriptManager, navProps }) {
       navigate(`/edit/${script.id}?mode=read`);
   };
 
-  const handleSelectPublic = (script) => {
-      navigate(`/read/${script.id}`);
-  };
-
   return (
       <HybridDashboard 
         localFiles={[]}
         onSelectLocalFile={() => {}}
         onSelectCloudScript={handleSelectCloud}
-        onSelectPublicScript={handleSelectPublic}
         enableLocalFiles={false}
         openSettings={nav.openSettings}
         openAbout={nav.openAbout}

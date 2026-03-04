@@ -2,14 +2,16 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { PublicReaderLayout } from "../components/reader/PublicReaderLayout";
-import { getPublicBundle, getPublicScript, getPublicThemes } from "../lib/db";
+import { getPublicBundle, getPublicScript, getPublicThemes } from "../lib/api/public";
 import { extractMetadataWithRaw } from "../lib/metadataParser";
-import { deriveCcLicenseTags } from "../lib/licenseRights";
+import { deriveSimpleLicenseTags, parseBasicLicenseFromMeta } from "../lib/licenseRights";
 import { normalizeSeriesName, parseSeriesOrder } from "../lib/series";
 import ScriptViewer from "../components/renderer/ScriptViewer";
 import { useScriptViewerDefaults } from "../hooks/useScriptViewerDefaults";
-import { defaultMarkerConfigs } from "../constants/defaultMarkers";
 import { useI18n } from "../contexts/I18nContext";
+import { normalizeMarkerConfigsSchema } from "../lib/markerThemeCodec.js";
+import { defaultMarkerConfigs } from "../constants/defaultMarkerRules.js";
+import { parseScreenplay } from "../lib/screenplayAST.js";
 
 // Helper for robust list parsing (handles double-encoded JSON strings)
 const ensureList = (val) => {
@@ -32,17 +34,47 @@ const ensureList = (val) => {
     return [];
 };
 
-const ensureTagList = (val) => {
-    if (!val) return [];
-    if (Array.isArray(val)) return val.map((t) => String(t).trim()).filter(Boolean);
-    if (typeof val === "string") {
-        try {
-            const parsed = JSON.parse(val);
-            if (Array.isArray(parsed)) return parsed.map((t) => String(t).trim()).filter(Boolean);
-        } catch {}
-        return val.split(/,|，/).map((t) => t.trim()).filter(Boolean);
-    }
-    return [];
+const normalizePrefaceKey = (key = "") =>
+    String(key || "").trim().toLowerCase().replace(/\s+/g, "");
+
+const PREFACE_RULES = [
+    { id: "outline", title: "大綱", keys: ["outline", "大綱"] },
+    { id: "rolesetting", title: "角色設定", keys: ["rolesetting", "角色設定"] },
+    { id: "backgroundinfo", title: "背景資訊", keys: ["backgroundinfo", "背景資訊"] },
+    { id: "performanceinstruction", title: "演繹指示", keys: ["performanceinstruction", "演繹指示"] },
+    { id: "openingintro", title: "作品的開頭引言", keys: ["openingintro", "作品的開頭引言"] },
+    { id: "environmentinfo", title: "環境", keys: ["environmentinfo", "環境"] },
+    { id: "situationinfo", title: "狀況", keys: ["situationinfo", "狀況"] },
+].map((rule) => ({
+    ...rule,
+    keys: rule.keys.map(normalizePrefaceKey),
+}));
+
+const buildPrefaceItems = (meta = {}) => {
+    const valueByKey = new Map();
+    Object.entries(meta || {}).forEach(([key, value]) => {
+        const normalizedKey = normalizePrefaceKey(key);
+        const normalizedValue = String(value || "").trim();
+        if (!normalizedKey || !normalizedValue || valueByKey.has(normalizedKey)) return;
+        valueByKey.set(normalizedKey, normalizedValue);
+    });
+
+    const items = [];
+    const seen = new Set();
+    PREFACE_RULES.forEach((rule) => {
+        const key = rule.keys.find((k) => valueByKey.has(k));
+        if (!key) return;
+        const value = valueByKey.get(key);
+        const signature = `${rule.id}::${value}`;
+        if (!value || seen.has(signature)) return;
+        seen.add(signature);
+        items.push({
+            id: rule.id,
+            title: rule.title,
+            value,
+        });
+    });
+    return items;
 };
 
 export default function PublicReaderPage({ scriptManager, navProps }) {
@@ -61,10 +93,16 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
 
   const [mockMeta, setMockMeta] = useState(null);
   const [relatedSeriesScripts, setRelatedSeriesScripts] = useState([]);
+  const [publicMarkerConfigs, setPublicMarkerConfigs] = useState(
+    normalizeMarkerConfigsSchema(defaultMarkerConfigs)
+  );
 
   useEffect(() => {
     // Reset override on mount/unmount or id change
-    if(scriptManager.setOverrideMarkerConfigs) {
+    setPublicMarkerConfigs(normalizeMarkerConfigsSchema(defaultMarkerConfigs));
+    if (scriptManager.setScopedMarkerConfigs) {
+        scriptManager.setScopedMarkerConfigs(null);
+    } else if (scriptManager.setOverrideMarkerConfigs) {
         scriptManager.setOverrideMarkerConfigs(null);
     }
   }, [id]);
@@ -82,7 +120,6 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
 
             const script = await getPublicScript(id);
             if (script) {
-                setRawScript(script.content || "");
                 setTitleName(script.title || "Untitled");
                 // Removed setActiveFile as it caused a crash and might not be needed for public view context
                 /* setActiveFile({ 
@@ -100,12 +137,17 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                 const person = script.persona || script.owner;
                 
                 const { meta, rawEntries } = extractMetadataWithRaw(script.content || "");
+                setRawScript(script.content || "");
                 const reserved = new Set([
                     "title", "credit", "author", "authors", "source",
                     "draftdate", "date", "contact", "copyright",
                     "notes", "description", "synopsis", "summary",
+                    "outline",
+                    "rolesetting", "backgroundinfo", "performanceinstruction", "openingintro", "environmentinfo", "situationinfo",
+                    "setting", "settingintro", "background", "backgroundintro",
                     "cover", "coverurl", "marker_legend", "show_legend",
                     "license", "licenseurl", "licenseterms", "licensetags",
+                    "licensespecialterms", "licensecommercial", "licensederivative", "licensenotify",
                     "series", "seriesname", "seriesorder"
                 ]);
                 const seriesName = normalizeSeriesName(script.series?.name || meta.series || meta.seriesname);
@@ -145,15 +187,12 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                     authors: meta.authors || "",
                     headerAuthor: meta.author || "",
                     license: meta.license || "",
-                    licenseUrl: meta.licenseurl || "",
-                    licenseTerms: ensureList(meta.licenseterms),
-                    licenseTags: (() => {
-                        const parsed = ensureTagList(meta.licensetags);
-                        if (parsed.length > 0) return parsed;
-                        return deriveCcLicenseTags(meta.license || "");
-                    })(),
+                    ...parseBasicLicenseFromMeta(meta),
+                    licenseSpecialTerms: ensureList(meta.licensespecialterms || meta.licenseSpecialTerms),
+                    licenseTags: deriveSimpleLicenseTags(parseBasicLicenseFromMeta(meta)),
                     seriesName,
                     seriesOrder,
+                    prefaceItems: buildPrefaceItems(meta),
                     customFields,
                     showMarkerLegend: String(meta.marker_legend) === 'true' || String(meta.show_legend) === 'true'
                 });
@@ -195,31 +234,35 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                     setRelatedSeriesScripts([]);
                 }
                 
-                // Fetch & Apply Public Theme if exists
-                if (script.markerTheme) {
-                     try {
-                         const matched = script.markerTheme;
-                         if (matched && matched.configs) {
-                             const parsed = typeof matched.configs === 'string' ? JSON.parse(matched.configs) : matched.configs;
-                             const normalized = Array.isArray(parsed) ? parsed : (parsed ? Object.values(parsed) : []);
-                             if (scriptManager.setOverrideMarkerConfigs) {
-                                 scriptManager.setOverrideMarkerConfigs(normalized);
-                             }
-                         }
-                    } catch (e) { console.error("Failed to apply embedded theme", e); }
-                } else if (script.markerThemeId) {
+                // Resolve marker configs for public reader:
+                // always scope to script theme; fallback to default rules.
+                let resolvedPublicConfigs = normalizeMarkerConfigsSchema(defaultMarkerConfigs);
+                if (script.markerTheme?.configs) {
+                    try {
+                        const embedded = normalizeMarkerConfigsSchema(script.markerTheme.configs);
+                        if (embedded.length > 0) resolvedPublicConfigs = embedded;
+                    } catch (e) {
+                        console.error("Failed to apply embedded theme", e);
+                    }
+                } else if (script.markerThemeId && script.markerThemeId !== "default") {
                     try {
                         const themes = await getPublicThemes();
-                        const matched = themes.find(t => t.id === script.markerThemeId);
-                        if (matched && matched.configs) {
-                             const parsed = typeof matched.configs === 'string' ? JSON.parse(matched.configs) : matched.configs;
-                             const normalized = Array.isArray(parsed) ? parsed : (parsed ? Object.values(parsed) : []);
-                             if (scriptManager.setOverrideMarkerConfigs) {
-                                 scriptManager.setOverrideMarkerConfigs(normalized);
-                             }
+                        const matched = themes.find((t) => t.id === script.markerThemeId);
+                        if (matched?.configs) {
+                            const normalized = normalizeMarkerConfigsSchema(matched.configs);
+                            if (normalized.length > 0) resolvedPublicConfigs = normalized;
                         }
-                    } catch (e) { console.error("Failed to load theme", e); }
+                    } catch (e) {
+                        console.error("Failed to load theme", e);
+                    }
                 }
+
+                if (scriptManager.setScopedMarkerConfigs) {
+                    scriptManager.setScopedMarkerConfigs(resolvedPublicConfigs);
+                } else if (scriptManager.setOverrideMarkerConfigs) {
+                    scriptManager.setOverrideMarkerConfigs(resolvedPublicConfigs);
+                }
+                setPublicMarkerConfigs(resolvedPublicConfigs);
             } else {
                 console.error("Script not found");
             }
@@ -288,7 +331,7 @@ They discover a glowing artifact.
     bodyFontSize,
     dialogueFontSize,
     accentColor: accentConfig?.accent || "#3b82f6",
-    markerConfigs: scriptManager.effectiveMarkerConfigs, // Pass effective configs
+    markerConfigs: publicMarkerConfigs, // Public reader uses resolved script-scoped configs directly
   });
 
   const fullScriptData = useMemo(() => ({
@@ -399,6 +442,32 @@ They discover a glowing artifact.
       scriptManager.hiddenMarkerIds,
   ]);
 
+  useEffect(() => {
+    const sceneRules = (Array.isArray(publicMarkerConfigs) ? publicMarkerConfigs : []).filter((cfg) =>
+      cfg?.parseAs === "scene_heading" || String(cfg?.id || "").toLowerCase().includes("chapter")
+    );
+    const parsed = (() => {
+      try {
+        return parseScreenplay(rawScript || "", publicMarkerConfigs || [])?.scenes || [];
+      } catch (error) {
+        console.error("[MarkerDebug] parseScreenplay failed", error);
+        return [];
+      }
+    })();
+
+    console.log("[MarkerDebug] effective public marker configs", {
+      totalConfigs: Array.isArray(publicMarkerConfigs) ? publicMarkerConfigs.length : 0,
+      sceneRules: sceneRules.map((cfg) => ({
+        id: cfg?.id,
+        matchMode: cfg?.matchMode,
+        parseAs: cfg?.parseAs,
+        regex: cfg?.regex || null,
+      })),
+      parsedScenes: parsed.map((s) => ({ id: s.id, label: s.label })),
+      rawScriptHead: (rawScript || "").split("\n").slice(0, 28),
+    });
+  }, [publicMarkerConfigs, rawScript]);
+
   return (
     <>
     {structuredData && (
@@ -431,8 +500,8 @@ They discover a glowing artifact.
                 alert("Link copied!");
             }
         }}
-        // Marker Props for Header
-        validMarkerConfigs={scriptManager.effectiveMarkerConfigs}
+        // Marker Props for Header (same source as ScriptViewer)
+        validMarkerConfigs={publicMarkerConfigs}
         hiddenMarkerIds={scriptManager.hiddenMarkerIds}
         onToggleMarker={scriptManager.toggleMarkerVisibility}
         renderedHtml=""

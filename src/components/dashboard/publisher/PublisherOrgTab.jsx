@@ -1,22 +1,23 @@
 import React from 'react';
 import { useNavigate } from "react-router-dom";
-import { Loader2, Plus, Trash2, Building2 } from "lucide-react";
+import { Loader2, Plus, Trash2, Building2, CircleHelp } from "lucide-react";
 import { Button } from "../../ui/button";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "../../ui/card";
+import { Card } from "../../ui/card";
 import { Input } from "../../ui/input";
-import { Badge } from "../../ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
-import { DndContext, closestCenter } from "@dnd-kit/core";
-import { SortableContext, horizontalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
-import { SortableTag } from "./SortableTag";
-import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
 import { optimizeImageForUpload, getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
-import { uploadMediaObject } from "../../../lib/db";
+import { uploadMediaObject } from "../../../lib/api/media";
 import { useI18n } from "../../../contexts/I18nContext";
 import { MediaPicker } from "../../ui/MediaPicker";
+import { PublisherFormRow } from "./PublisherFormRow";
+import { PublisherTabHeader } from "./PublisherTabHeader";
+import { usePublisherOrgGuide } from "../../../hooks/publisher/usePublisherOrgGuide";
+import { PublisherOrgMembershipPanel } from "./PublisherOrgMembershipPanel";
+import { PublisherTagEditor } from "./PublisherTagEditor";
+import { SpotlightGuideOverlay } from "../../common/SpotlightGuideOverlay";
 
 export function PublisherOrgTab({
     orgs,
+    isLoading = false,
     selectedOrgId, setSelectedOrgId,
     handleCreateOrg, isCreatingOrg,
     handleDeleteOrg,
@@ -28,19 +29,24 @@ export function PublisherOrgTab({
     orgMembers,
     orgInvites,
     orgRequests,
-    isOrgOwner,
+    canEditSelectedOrg = false,
+    currentUserId,
+    currentOrgRole,
+    canManageOrgMembers = false,
     inviteSearchQuery,
     setInviteSearchQuery,
     inviteSearchResults,
     isInviteSearching,
     handleInviteMember,
     handleAcceptRequest,
-    handleDeclineRequest
+    handleDeclineRequest,
+    handleRemoveMember,
+    handleRemovePersonaMember,
+    handleChangeMemberRole
 }) {
     const { t } = useI18n();
     const navigate = useNavigate();
     const [viewMode, setViewMode] = React.useState("edit");
-    const [tagOpen, setTagOpen] = React.useState(false);
     const [logoPreviewFailed, setLogoPreviewFailed] = React.useState(false);
     const [bannerPreviewFailed, setBannerPreviewFailed] = React.useState(false);
     const [logoUploadError, setLogoUploadError] = React.useState("");
@@ -57,6 +63,24 @@ export function PublisherOrgTab({
         if (!needle) return names;
         return names.filter(n => n.toLowerCase().includes(needle));
     }, [tagOptions, orgTagInput]);
+
+    const {
+        showGuide,
+        guideIndex,
+        guideSteps,
+        currentGuide,
+        guideSpotlightRect,
+        startGuide,
+        finishGuide,
+        handleGuidePrev,
+        handleGuideNext,
+    } = usePublisherOrgGuide({
+        t,
+        viewMode,
+        selectedOrgId,
+        canManageOrgMembers,
+    });
+    const isReadOnlyExistingOrg = viewMode === "edit" && Boolean(selectedOrgId) && !canEditSelectedOrg;
 
     const orgChecklist = React.useMemo(() => ([
         { key: "name", label: t("publisherOrgTab.checkName"), ok: Boolean(orgDraft.name?.trim()) },
@@ -118,18 +142,6 @@ export function PublisherOrgTab({
         }
     };
 
-    const handleTagPaste = (event) => {
-        const text = event.clipboardData?.getData("text") || "";
-        const incoming = parseTags(text);
-        if (incoming.length <= 1) return;
-        event.preventDefault();
-        setOrgDraft({
-            ...orgDraft,
-            tags: addTags(orgDraft.tags || [], incoming),
-        });
-        setOrgTagInput("");
-    };
-
     // Reset draft when selecting a new org
     React.useEffect(() => {
         if (selectedOrgId) {
@@ -145,6 +157,12 @@ export function PublisherOrgTab({
                     tags: org.tags || []
                 });
                 setViewMode("edit");
+                setLogoPreviewFailed(false);
+                setBannerPreviewFailed(false);
+                setLogoUploadError("");
+                setBannerUploadError("");
+                setLogoUploadWarning("");
+                setBannerUploadWarning("");
             }
         }
     }, [selectedOrgId, orgs]);
@@ -156,9 +174,9 @@ export function PublisherOrgTab({
     };
 
     return (
-        <Card className="flex flex-col md:flex-row h-auto md:h-[calc(100dvh-220px)] min-h-0 md:min-h-[500px] overflow-hidden border">
+        <Card className="flex flex-col md:flex-row h-auto min-h-0 md:min-h-[500px] overflow-hidden border">
             {/* Left Sidebar: List */}
-            <div className="w-full md:w-[280px] border-b md:border-b-0 md:border-r flex flex-col bg-muted/10">
+            <div id="org-guide-list" className="w-full md:w-[280px] border-b md:border-b-0 md:border-r flex flex-col bg-muted/10">
                 <div className="p-4 border-b flex items-center justify-between bg-background/50 backdrop-blur-sm sticky top-0 z-10">
                     <h3 className="font-semibold text-sm">{t("publisherOrgTab.orgList")}</h3>
                     <Button size="icon" variant="ghost" className="h-8 w-8 ml-auto" onClick={onStartCreate}>
@@ -167,6 +185,12 @@ export function PublisherOrgTab({
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                    {isLoading && (
+                        <div className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <span>載入組織資料中...</span>
+                        </div>
+                    )}
                     {orgs.map(o => (
                         <div 
                             key={o.id} 
@@ -191,79 +215,93 @@ export function PublisherOrgTab({
 
             {/* Right Main: Editor */}
             <div className="flex-1 flex flex-col overflow-hidden bg-card">
-                 <div className="p-4 border-b flex justify-between items-center bg-background/50 backdrop-blur-sm h-[57px]">
-                    <div>
-                        <h2 className="text-lg font-semibold tracking-tight">{viewMode === "create" ? t("publisherOrgTab.createOrg") : t("publisherOrgTab.editOrg")}</h2>
-                    </div>
-                    {viewMode === "edit" && selectedOrgId && (
+                 <div className="p-4 border-b bg-background/50 backdrop-blur-sm">
+                    <PublisherTabHeader
+                        title={viewMode === "create" ? t("publisherOrgTab.createOrg") : t("publisherOrgTab.editOrg")}
+                        description="管理組織資料、成員權限與邀請審核。"
+                        actions={<div className="flex items-center justify-end gap-2 min-w-[260px]">
                         <Button
+                            type="button"
                             variant="outline"
                             size="sm"
                             className="h-8 text-xs"
-                            onClick={() => navigate(`/org/${selectedOrgId}`)}
+                            onClick={startGuide}
+                        >
+                            <CircleHelp className="w-3.5 h-3.5 mr-1.5" />
+                            {t("publisherOrgTab.guide")}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className={`h-8 text-xs ${viewMode === "edit" && selectedOrgId ? "" : "invisible pointer-events-none"}`}
+                            onClick={() => selectedOrgId && navigate(`/org/${selectedOrgId}`)}
                         >
                             {t("publisherOrgTab.viewOrgPage")}
                         </Button>
-                    )}
-                    {viewMode === "edit" && selectedOrgId && (
                         <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="text-destructive hover:bg-destructive/10 h-8 text-xs"
+                            className={`text-destructive hover:bg-destructive/10 h-8 text-xs ${viewMode === "edit" && selectedOrgId ? "" : "invisible pointer-events-none"}`}
+                            disabled={isReadOnlyExistingOrg}
                             onClick={handleDeleteOrg}
                         >
                             <Trash2 className="w-3.5 h-3.5 mr-1.5" /> {t("publisherOrgTab.deleteOrg")}
                         </Button>
-                    )}
+                    </div>}
+                    />
                 </div>
                 
-                <div className="flex-1 overflow-y-auto p-6 md:p-8">
-                     <div className="max-w-2xl mx-auto space-y-8 pb-20">
+                <div className="flex-1 overflow-y-auto p-4 md:p-5">
+                     <div className="max-w-4xl mx-auto space-y-6 pb-16">
                         {(viewMode === "create" || selectedOrgId) ? (
                             <>
-                                <div className="rounded-lg border bg-muted/20 p-4 space-y-3">
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span className="font-medium">{t("publisherOrgTab.progress")}</span>
-                                        <span className="text-muted-foreground">{orgDone}/{orgChecklist.length} · {orgProgress}%</span>
+                                {isReadOnlyExistingOrg && (
+                                    <div className="rounded-lg border border-amber-300/60 bg-amber-50/60 px-3 py-2 text-xs text-amber-800">
+                                        目前為唯讀檢視，你不是此組織的管理者或擁有者，無法修改設定。
                                     </div>
-                                    <div className="h-2 rounded-full bg-muted">
-                                        <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${orgProgress}%` }} />
-                                    </div>
-                                    {orgNextSteps.length > 0 && (
-                                        <div className="text-xs text-muted-foreground">
-                                            {t("publisherOrgTab.nextSteps").replace("{items}", orgNextSteps.map((item) => item.label).join("、"))}
+                                )}
+                                <div className={isReadOnlyExistingOrg ? "space-y-0 opacity-90 pointer-events-none select-none" : "space-y-0"}>
+                                {orgProgress < 100 && (
+                                    <div className="rounded-lg border bg-muted/20 p-3 space-y-2">
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="font-medium">{t("publisherOrgTab.progress")}</span>
+                                            <span className="text-muted-foreground">{orgDone}/{orgChecklist.length} · {orgProgress}%</span>
                                         </div>
-                                    )}
-                                </div>
+                                        <div className="h-1.5 rounded-full bg-muted">
+                                            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${orgProgress}%` }} />
+                                        </div>
+                                        {orgNextSteps.length > 0 && (
+                                            <div className="text-xs text-muted-foreground">
+                                                {t("publisherOrgTab.nextSteps").replace("{items}", orgNextSteps.map((item) => item.label).join("、"))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                                 {/* Basic Info */}
-                                <div className="space-y-6">
-                                    <div className="grid gap-4">
-                                        <div className="grid gap-1.5">
-                                            <label className="text-sm font-medium" htmlFor="org-name">{t("publisherOrgTab.orgName")} <span className="text-destructive">*</span></label>
-                                            <Input 
-                                                id="org-name"
-                                                name="orgName"
-                                                value={orgDraft.name} 
-                                                onChange={e => setOrgDraft({ ...orgDraft, name: e.target.value })}
-                                                placeholder={t("publisherOrgTab.orgNamePlaceholder")}
-                                                className="font-medium"
-                                            />
-                                        </div>
+                                <div className="space-y-4">
+                                        <div id="org-guide-basic" className="grid gap-4">
+                                            <PublisherFormRow label={t("publisherOrgTab.orgName")} required>
+                                                <Input 
+                                                    id="org-name"
+                                                    name="orgName"
+                                                    value={orgDraft.name} 
+                                                    onChange={e => setOrgDraft({ ...orgDraft, name: e.target.value })}
+                                                    placeholder={t("publisherOrgTab.orgNamePlaceholder")}
+                                                    className="font-medium"
+                                                />
+                                            </PublisherFormRow>
 
-                                        <div className="grid gap-1.5">
-                                            <label className="text-sm font-medium" htmlFor="org-description">{t("publisherOrgTab.description")}</label>
-                                            <Input 
-                                                id="org-description"
-                                                name="orgDescription"
-                                                value={orgDraft.description} 
-                                                onChange={e => setOrgDraft({ ...orgDraft, description: e.target.value })}
-                                                placeholder={t("publisherOrgTab.descriptionPlaceholder")}
-                                            />
-                                        </div>
+                                            <PublisherFormRow label={t("publisherOrgTab.description")}>
+                                                <Input 
+                                                    id="org-description"
+                                                    name="orgDescription"
+                                                    value={orgDraft.description} 
+                                                    onChange={e => setOrgDraft({ ...orgDraft, description: e.target.value })}
+                                                    placeholder={t("publisherOrgTab.descriptionPlaceholder")}
+                                                />
+                                            </PublisherFormRow>
                                         
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            <div className="grid gap-1.5">
-                                                <label className="text-sm font-medium" htmlFor="org-website">{t("publisherOrgTab.website")}</label>
+                                            <PublisherFormRow label={t("publisherOrgTab.website")}>
                                                 <Input 
                                                     id="org-website"
                                                     name="orgWebsite"
@@ -271,9 +309,8 @@ export function PublisherOrgTab({
                                                     onChange={e => setOrgDraft({ ...orgDraft, website: e.target.value })}
                                                     placeholder="https://"
                                                 />
-                                            </div>
-                                            <div className="grid gap-1.5">
-                                                <label className="text-sm font-medium" htmlFor="org-logo-url">{t("publisherOrgTab.logoUrl")}</label>
+                                            </PublisherFormRow>
+                                            <PublisherFormRow label={t("publisherOrgTab.logoUrl")}>
                                                 <Input 
                                                     id="org-logo-url"
                                                     name="orgLogoUrl"
@@ -303,30 +340,32 @@ export function PublisherOrgTab({
                                                     <p>{logoGuide.supported}</p>
                                                     <p>{logoGuide.recommended}</p>
                                                 </div>
-                                                {logoUploadError && (
-                                                    <p className="text-[11px] text-destructive">{logoUploadError}</p>
-                                                )}
-                                                {logoUploadWarning && (
-                                                    <p className="text-[11px] text-amber-700 dark:text-amber-300">{logoUploadWarning}</p>
-                                                )}
-                                                {(orgDraft.logoUrl || "").trim() && (
-                                                    <div className="h-16 w-16 overflow-hidden rounded-md border bg-muted/20">
-                                                        {logoPreviewFailed ? (
-                                                            <div className="flex h-full items-center justify-center text-[10px] text-muted-foreground">{t("publisherOrgTab.previewFailed")}</div>
-                                                        ) : (
-                                                            <img
-                                                                src={orgDraft.logoUrl}
-                                                                alt="org logo preview"
-                                                                className="h-full w-full object-cover"
-                                                                onError={() => setLogoPreviewFailed(true)}
-                                                                onLoad={() => setLogoPreviewFailed(false)}
-                                                            />
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="grid gap-1.5">
-                                                <label className="text-sm font-medium" htmlFor="org-banner-url">{t("publisherOrgTab.bannerUrl")}</label>
+                                                <div className="h-16 w-16 overflow-hidden rounded-md border bg-muted/20">
+                                                    {orgDraft.logoUrl && !logoPreviewFailed ? (
+                                                        <img
+                                                            src={orgDraft.logoUrl}
+                                                            alt="org logo preview"
+                                                            className="h-full w-full object-cover"
+                                                            onError={() => setLogoPreviewFailed(true)}
+                                                            onLoad={() => setLogoPreviewFailed(false)}
+                                                        />
+                                                    ) : (
+                                                        <div className="flex h-full items-center justify-center text-[10px] text-muted-foreground">Logo</div>
+                                                    )}
+                                                </div>
+                                                <div className="min-h-[16px] text-[11px]">
+                                                    {logoUploadError ? (
+                                                        <p className="text-destructive">{logoUploadError}</p>
+                                                    ) : logoUploadWarning ? (
+                                                        <p className="text-amber-700 dark:text-amber-300">{logoUploadWarning}</p>
+                                                    ) : logoPreviewFailed ? (
+                                                        <p className="text-amber-700 dark:text-amber-300">{t("publisherOrgTab.previewFailed")}</p>
+                                                    ) : (
+                                                        <p className="opacity-0">placeholder</p>
+                                                    )}
+                                                </div>
+                                            </PublisherFormRow>
+                                            <PublisherFormRow label={t("publisherOrgTab.bannerUrl")}>
                                                 <Input 
                                                     id="org-banner-url"
                                                     name="orgBannerUrl"
@@ -356,281 +395,77 @@ export function PublisherOrgTab({
                                                     <p>{bannerGuide.supported}</p>
                                                     <p>{bannerGuide.recommended}</p>
                                                 </div>
-                                                {bannerUploadError && (
-                                                    <p className="text-[11px] text-destructive">{bannerUploadError}</p>
-                                                )}
-                                                {bannerUploadWarning && (
-                                                    <p className="text-[11px] text-amber-700 dark:text-amber-300">{bannerUploadWarning}</p>
-                                                )}
-                                                {(orgDraft.bannerUrl || "").trim() && (
-                                                    <div className="h-20 overflow-hidden rounded-md border bg-muted/20">
-                                                        {bannerPreviewFailed ? (
-                                                            <div className="flex h-full items-center justify-center text-xs text-muted-foreground">{t("publisherOrgTab.bannerPreviewFailed")}</div>
-                                                        ) : (
-                                                            <img
-                                                                src={orgDraft.bannerUrl}
-                                                                alt="org banner preview"
-                                                                className="h-full w-full object-cover"
-                                                                onError={() => setBannerPreviewFailed(true)}
-                                                                onLoad={() => setBannerPreviewFailed(false)}
-                                                            />
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
+                                                <div className="h-20 overflow-hidden rounded-md border bg-muted/20">
+                                                    {orgDraft.bannerUrl && !bannerPreviewFailed ? (
+                                                        <img
+                                                            src={orgDraft.bannerUrl}
+                                                            alt="org banner preview"
+                                                            className="h-full w-full object-cover"
+                                                            onError={() => setBannerPreviewFailed(true)}
+                                                            onLoad={() => setBannerPreviewFailed(false)}
+                                                        />
+                                                    ) : (
+                                                        <div className="flex h-full items-center justify-center text-xs text-muted-foreground">Banner</div>
+                                                    )}
+                                                </div>
+                                                <div className="min-h-[16px] text-[11px]">
+                                                    {bannerUploadError ? (
+                                                        <p className="text-destructive">{bannerUploadError}</p>
+                                                    ) : bannerUploadWarning ? (
+                                                        <p className="text-amber-700 dark:text-amber-300">{bannerUploadWarning}</p>
+                                                    ) : bannerPreviewFailed ? (
+                                                        <p className="text-amber-700 dark:text-amber-300">{t("publisherOrgTab.bannerPreviewFailed")}</p>
+                                                    ) : (
+                                                        <p className="opacity-0">placeholder</p>
+                                                    )}
+                                                </div>
+                                            </PublisherFormRow>
                                     </div>
                                     
-                                        <div className="grid gap-2">
-                                            <label className="text-sm font-medium" htmlFor="org-tag-input">{t("publisherOrgTab.orgTags")}</label>
-                                            <div className="border rounded-md p-4 bg-muted/10 space-y-3">
-                                            <DndContext
-                                                collisionDetection={closestCenter}
-                                                onDragEnd={({ active, over }) => {
-                                                    if (!over || active.id === over.id) return;
-                                                    const items = orgDraft.tags || [];
-                                                    const oldIndex = items.indexOf(active.id);
-                                                    const newIndex = items.indexOf(over.id);
-                                                    setOrgDraft({ ...orgDraft, tags: arrayMove(items, oldIndex, newIndex) });
-                                                }}
-                                            >
-                                                <SortableContext items={orgDraft.tags || []} strategy={horizontalListSortingStrategy}>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {(orgDraft.tags || []).map(tag => (
-                                                            <SortableTag
-                                                                key={tag}
-                                                                id={tag}
-                                                                style={getTagStyle(tag)}
-                                                                onRemove={() => {
-                                                                    setOrgDraft({
-                                                                        ...orgDraft,
-                                                                        tags: (orgDraft.tags || []).filter(t => t !== tag),
-                                                                    });
-                                                                }}
-                                                            />
-                                                        ))}
-                                                        {(orgDraft.tags || []).length === 0 && (
-                                                            <span className="text-sm text-muted-foreground">{t("publisherOrgTab.inputTagHint")}</span>
-                                                        )}
-                                                    </div>
-                                                </SortableContext>
-                                            </DndContext>
-                                            <Popover open={tagOpen} onOpenChange={setTagOpen}>
-                                                <PopoverTrigger asChild>
-                                                    <Button type="button" variant="outline" size="sm" className="w-fit">
-                                                        {t("publisherOrgTab.addTag")}
-                                                    </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-[90vw] sm:w-80 p-2" align="start">
-                                                    <div className="p-2">
-                                                        <Input
-                                                            id="org-tag-input"
-                                                            name="orgTagInput"
-                                                            aria-label={t("publisherOrgTab.addOrgTagAria")}
-                                                            value={orgTagInput}
-                                                            onChange={(e) => setOrgTagInput(e.target.value)}
-                                                            onPaste={handleTagPaste}
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === "Enter" || e.key === "," || e.key === "，") {
-                                                                    e.preventDefault();
-                                                                    const incoming = parseTags(orgTagInput);
-                                                                    if (incoming.length === 0) return;
-                                                                    setOrgDraft({
-                                                                        ...orgDraft,
-                                                                        tags: addTags(orgDraft.tags || [], incoming),
-                                                                    });
-                                                                    setOrgTagInput("");
-                                                                    setTagOpen(false);
-                                                                }
-                                                            }}
-                                                            placeholder={t("publisherOrgTab.searchOrAddTag")}
-                                                            className="h-8"
-                                                        />
-                                                    </div>
-                                                    <div className="max-h-56 overflow-y-auto px-1 pb-1">
-                                                        {orgTagInput.trim() && (
-                                                            <button
-                                                                type="button"
-                                                                className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent"
-                                                                onClick={() => {
-                                                                    const incoming = parseTags(orgTagInput);
-                                                                    if (incoming.length === 0) return;
-                                                                    setOrgDraft({
-                                                                        ...orgDraft,
-                                                                        tags: addTags(orgDraft.tags || [], incoming),
-                                                                    });
-                                                                    setOrgTagInput("");
-                                                                    setTagOpen(false);
-                                                                }}
-                                                            >
-                                                                {t("publisherOrgTab.addQuoted").replace("{value}", orgTagInput.trim())}
-                                                            </button>
-                                                        )}
-                                                        {filteredTagOptions.map(name => {
-                                                            const selected = (orgDraft.tags || []).includes(name);
-                                                            return (
-                                                            <button
-                                                                key={name}
-                                                                type="button"
-                                                                className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded hover:bg-accent ${
-                                                                    selected ? "bg-accent/50" : ""
-                                                                }`}
-                                                                onClick={() => {
-                                                                    if (selected) {
-                                                                        setOrgDraft({
-                                                                            ...orgDraft,
-                                                                            tags: (orgDraft.tags || []).filter(t => t !== name),
-                                                                        });
-                                                                    } else {
-                                                                        setOrgDraft({
-                                                                            ...orgDraft,
-                                                                            tags: addTags(orgDraft.tags || [], [name]),
-                                                                        });
-                                                                    }
-                                                                    setOrgTagInput("");
-                                                                }}
-                                                            >
-                                                                <span className="truncate">{name}</span>
-                                                                <span
-                                                                    className="inline-block h-2 w-2 rounded-full"
-                                                                    style={{ backgroundColor: getTagStyle(name)?.backgroundColor || "#CBD5E1" }}
-                                                                />
-                                                            </button>
-                                                            );
-                                                        })}
-                                                        {orgTagInput.trim() && filteredTagOptions.length === 0 && (
-                                                            <div className="px-3 py-2 text-xs text-muted-foreground">{t("publisherOrgTab.noMatchedTag")}</div>
-                                                        )}
-                                                    </div>
-                                                </PopoverContent>
-                                            </Popover>
-                                        </div>
+                                        <PublisherFormRow label={t("publisherOrgTab.orgTags")}>
+                                            <PublisherTagEditor
+                                                tags={orgDraft.tags || []}
+                                                setTags={(nextTags) => setOrgDraft({ ...orgDraft, tags: nextTags })}
+                                                tagInput={orgTagInput}
+                                                setTagInput={setOrgTagInput}
+                                                parseTags={parseTags}
+                                                addTags={addTags}
+                                                getTagStyle={getTagStyle}
+                                                filteredOptions={filteredTagOptions}
+                                                inputId="org-tag-input"
+                                                inputName="orgTagInput"
+                                                inputAriaLabel={t("publisherOrgTab.addOrgTagAria")}
+                                                addTagLabel={t("publisherOrgTab.addTag")}
+                                                inputPlaceholder={t("publisherOrgTab.searchOrAddTag")}
+                                                addQuotedTemplate={t("publisherOrgTab.addQuoted")}
+                                                noMatchedTagLabel={t("publisherOrgTab.noMatchedTag")}
+                                                emptyHintLabel={t("publisherOrgTab.inputTagHint")}
+                                            />
+                                        </PublisherFormRow>
 
-                                        <div className="grid gap-2">
-                                            <label className="text-sm font-medium">{t("publisherOrgTab.members")}</label>
-                                            <div className="border rounded-md p-4 bg-muted/10 space-y-4">
-                                                <div className="text-xs text-muted-foreground">
-                                                    {t("publisherOrgTab.memberCount")
-                                                      .replace("{users}", String(orgMembers?.users?.length || 0))
-                                                      .replace("{personas}", String(orgMembers?.personas?.length || 0))}
-                                                </div>
-                                                {(orgMembers?.users?.length || 0) === 0 && (orgMembers?.personas?.length || 0) === 0 ? (
-                                                    <div className="text-sm text-muted-foreground">{t("publisherOrgTab.noMember")}</div>
-                                                ) : (
-                                                    <div className="space-y-2">
-                                                        {(orgMembers?.users || []).map(u => (
-                                                            <div key={`u-${u.id}`} className="flex items-center justify-between text-sm">
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold">
-                                                                        {(u.displayName || u.handle || "?")[0]?.toUpperCase?.() || "?"}
-                                                                    </div>
-                                                                    <span>{u.displayName || u.handle || u.email || t("publisherOrgTab.defaultUser")}</span>
-                                                                </div>
-                                                                <Badge variant="outline">{t("publisherOrgTab.user")}</Badge>
-                                                            </div>
-                                                        ))}
-                                                        {(orgMembers?.personas || []).map(p => (
-                                                            <div key={`p-${p.id}`} className="flex items-center justify-between text-sm">
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold">
-                                                                        {(p.displayName || "?")[0]?.toUpperCase?.() || "?"}
-                                                                    </div>
-                                                                    <span>{p.displayName || t("publisherOrgTab.persona")}</span>
-                                                                </div>
-                                                                <Badge variant="secondary">{t("publisherOrgTab.author")}</Badge>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {isOrgOwner && (
-                                            <>
-                                                <div className="grid gap-2">
-                                                    <label className="text-sm font-medium" htmlFor="org-invite-search">{t("publisherOrgTab.inviteMember")}</label>
-                                                    <div className="border rounded-md p-4 bg-muted/10 space-y-3">
-                                                        <Input
-                                                            id="org-invite-search"
-                                                            name="orgInviteSearch"
-                                                            aria-label={t("publisherOrgTab.inviteSearchAria")}
-                                                            placeholder={t("publisherOrgTab.inviteSearchPlaceholder")}
-                                                            value={inviteSearchQuery}
-                                                            onChange={(e) => setInviteSearchQuery(e.target.value)}
-                                                        />
-                                                        {isInviteSearching && (
-                                                            <div className="text-xs text-muted-foreground">{t("publisherOrgTab.searching")}</div>
-                                                        )}
-                                                        {inviteSearchResults?.length > 0 && (
-                                                            <div className="space-y-2">
-                                                                {inviteSearchResults.map(u => (
-                                                                    <div key={u.id} className="flex items-center justify-between text-sm">
-                                                                        <span>{u.displayName || u.handle || u.email || u.id}</span>
-                                                                        <Button size="sm" onClick={() => handleInviteMember(u.id)}>{t("publisherOrgTab.invite")}</Button>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                <div className="grid gap-2">
-                                                    <label className="text-sm font-medium">{t("publisherOrgTab.pendingRequests")}</label>
-                                                    <div className="border rounded-md p-4 bg-muted/10 space-y-2">
-                                                        {(orgRequests || []).length === 0 ? (
-                                                            <div className="text-sm text-muted-foreground">{t("publisherOrgTab.noRequests")}</div>
-                                                        ) : (
-                                                    (orgRequests || []).map(req => (
-                                                        <div key={req.id} className="flex items-center justify-between text-sm">
-                                                            <span>{t("publisherOrgTab.requester").replace("{value}", req.requester?.email || req.requester?.displayName || req.requesterUserId)}</span>
-                                                            <div className="flex gap-2">
-                                                                <Button size="sm" onClick={() => handleAcceptRequest(req.id)}>{t("publisherOrgTab.accept")}</Button>
-                                                                <Button size="sm" variant="ghost" onClick={() => handleDeclineRequest(req.id)}>{t("publisherOrgTab.decline")}</Button>
-                                                            </div>
-                                                        </div>
-                                                    ))
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                <div className="grid gap-2">
-                                                    <label className="text-sm font-medium">{t("publisherOrgTab.sentInvites")}</label>
-                                                    <div className="border rounded-md p-4 bg-muted/10 space-y-2">
-                                                        {(orgInvites || []).length === 0 ? (
-                                                            <div className="text-sm text-muted-foreground">{t("publisherOrgTab.noInvites")}</div>
-                                                        ) : (
-                                                    (orgInvites || []).map(inv => (
-                                                        <div key={inv.id} className="flex items-center justify-between text-sm">
-                                                            <span>{t("publisherOrgTab.inviteLabel").replace("{value}", inv.invitedUser?.email || inv.invitedUser?.displayName || inv.invitedUserId)}</span>
-                                                            <Badge variant="outline">{inv.status}</Badge>
-                                                        </div>
-                                                    ))
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </>
-                                        )}
+                                        <PublisherOrgMembershipPanel
+                                            t={t}
+                                            isLoading={isLoading}
+                                            orgMembers={orgMembers}
+                                            canManageOrgMembers={canManageOrgMembers}
+                                            currentUserId={currentUserId}
+                                            handleChangeMemberRole={handleChangeMemberRole}
+                                            handleRemoveMember={handleRemoveMember}
+                                            handleRemovePersonaMember={handleRemovePersonaMember}
+                                            inviteSearchQuery={inviteSearchQuery}
+                                            setInviteSearchQuery={setInviteSearchQuery}
+                                            inviteSearchResults={inviteSearchResults}
+                                            isInviteSearching={isInviteSearching}
+                                            handleInviteMember={handleInviteMember}
+                                            orgRequests={orgRequests}
+                                            handleAcceptRequest={handleAcceptRequest}
+                                            handleDeclineRequest={handleDeclineRequest}
+                                            orgInvites={orgInvites}
+                                        />
                                     </div>
-                                </div>
                                 
-                                {/* Members */}
-                                <div className="space-y-4 pt-6 border-t">
-                                    <div className="flex justify-between items-center">
-                                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t("publisherOrgTab.memberManagement")}</h3>
-                                        <Button variant="outline" size="sm" disabled className="h-8">
-                                            <Plus className="w-3 h-3 mr-1.5" /> {t("publisherOrgTab.inviteMember")}
-                                        </Button>
-                                    </div>
-                                    <div className="p-12 text-center text-muted-foreground bg-muted/10 rounded-lg border border-dashed">
-                                        <div className="w-12 h-12 rounded-full bg-muted/30 mx-auto mb-3 flex items-center justify-center">
-                                            <Building2 className="w-6 h-6 opacity-30" />
-                                        </div>
-                                        <p className="text-sm">{t("publisherOrgTab.multiCollabSoon")}</p>
-                                    </div>
-                                </div>
-
                                 {/* Footer Actions */}
-                                <div className="p-4 border-t bg-background/50 backdrop-blur-sm flex justify-end sticky bottom-0 -mx-6 -mb-6 md:-mx-8 md:-mb-8 mt-4">
+                                <div id="org-guide-save" className="p-3 border-t bg-background/50 backdrop-blur-sm flex justify-end mt-3">
                                     <Button 
                                         onClick={viewMode === "create" ? handleCreateOrg : handleSaveOrg} 
                                         disabled={(viewMode === "create" ? isCreatingOrg : isSavingOrg) || !orgDraft.name.trim()}
@@ -639,6 +474,7 @@ export function PublisherOrgTab({
                                         {(viewMode === "create" ? isCreatingOrg : isSavingOrg) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                         {viewMode === "create" ? t("publisherOrgTab.createOrg") : t("publisherOrgTab.saveChanges")}
                                     </Button>
+                                </div>
                                 </div>
                             </>
                         ) : (
@@ -654,6 +490,22 @@ export function PublisherOrgTab({
                 </div>
             </div>
             
+            <SpotlightGuideOverlay
+                open={showGuide && Boolean(currentGuide)}
+                zIndex={230}
+                spotlightRect={guideSpotlightRect}
+                currentStep={guideIndex + 1}
+                totalSteps={guideSteps.length}
+                title={currentGuide?.title}
+                description={currentGuide?.description}
+                onSkip={finishGuide}
+                skipLabel={t("publisherOrgTab.guideSkip")}
+                onPrev={handleGuidePrev}
+                prevLabel={t("publisherOrgTab.guidePrev")}
+                prevDisabled={guideIndex === 0}
+                onNext={handleGuideNext}
+                nextLabel={guideIndex === guideSteps.length - 1 ? t("publisherOrgTab.guideDone") : t("publisherOrgTab.guideNext")}
+            />
             <MediaPicker
                 open={isMediaPickerOpen}
                 onOpenChange={setIsMediaPickerOpen}

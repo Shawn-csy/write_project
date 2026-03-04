@@ -12,7 +12,7 @@ def inspect_raw():
     print(f"Inspecting DB: {db_path}")
     
     # Get latest updated persona
-    cursor.execute("SELECT displayName, defaultLicenseTerms, tags FROM personas ORDER BY updatedAt DESC LIMIT 1")
+    cursor.execute("SELECT displayName, defaultLicenseSpecialTerms, tags FROM personas ORDER BY updatedAt DESC LIMIT 1")
     row = cursor.fetchone()
     
     if row:

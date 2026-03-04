@@ -7,6 +7,7 @@ import SuperAdminPage from "../../pages/SuperAdminPage";
 import { cn } from "../../lib/utils";
 import { useI18n } from "../../contexts/I18nContext";
 import { LanguageSwitcher } from "../common/LanguageSwitcher";
+import { MORANDI_STUDIO_TONE_VARS, SETTINGS_TAB_MORANDI_TONE } from "../../constants/morandiPanelTones";
 
 import { X } from "lucide-react";
 
@@ -30,6 +31,9 @@ function SettingsPanel({ onClose, activeTab, onTabChange }) {
   ];
 
   const tabs = allTabs.filter(tab => !tab.authRequired || currentUser);
+  const activeToneKey = SETTINGS_TAB_MORANDI_TONE[currentTab] || "works";
+  const activeToneVars = MORANDI_STUDIO_TONE_VARS[activeToneKey] || MORANDI_STUDIO_TONE_VARS.works;
+  const activeTabLabel = tabs.find((item) => item.key === currentTab)?.label || tabs[0]?.label || "";
 
   return (
     <div className="flex-1 min-h-0 overflow-hidden border border-border/40 bg-background/60 backdrop-blur-xl rounded-2xl shadow-sm data-[state=open]:animate-in data-[state=closed]:animate-out fade-in-0 zoom-in-95 flex flex-col">
@@ -47,30 +51,42 @@ function SettingsPanel({ onClose, activeTab, onTabChange }) {
             <LanguageSwitcher />
         </div>
 
-        <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[220px_1fr]">
-          <aside className="border-b md:border-b-0 md:border-r border-border/50 bg-background/40">
-            <div className="px-4 py-3 overflow-x-auto md:overflow-visible scrollbar-hide">
+        <div className="flex-1 min-h-0 p-3 sm:p-4">
+        <div className="h-full grid grid-cols-1 md:grid-cols-[240px_1fr] gap-3 sm:gap-4">
+          <aside
+            style={activeToneVars}
+            className="rounded-xl border border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-helper-bg)]/45 backdrop-blur-sm"
+          >
+            <div className="px-3 py-3 overflow-x-auto md:overflow-visible scrollbar-hide">
               <div className="flex md:flex-col items-center md:items-stretch gap-1 p-1 bg-muted/50 rounded-lg w-fit md:w-full whitespace-nowrap">
                 {tabs.map((item) => (
                   <button
                     key={item.key}
                     onClick={() => setTab(item.key)}
+                    style={MORANDI_STUDIO_TONE_VARS[SETTINGS_TAB_MORANDI_TONE[item.key] || "works"]}
                     className={cn(
-                      "px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 text-left",
+                      "px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 text-left border",
                       currentTab === item.key
-                        ? "bg-background text-foreground shadow-sm ring-1 ring-border/50"
-                        : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                        ? "border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-trigger-bg)] text-[var(--morandi-tone-trigger-fg)] shadow-sm"
+                        : "border-transparent text-muted-foreground hover:border-[var(--morandi-tone-panel-border)] hover:bg-[var(--morandi-tone-helper-bg)] hover:text-[var(--morandi-tone-helper-fg)]"
                     )}
                   >
                     {item.label}
                   </button>
                 ))}
               </div>
+              <p
+                style={activeToneVars}
+                className="mt-2 rounded-md border-l-4 border-[var(--morandi-tone-helper-border)] bg-[var(--morandi-tone-helper-bg)] px-2 py-1.5 text-xs text-[var(--morandi-tone-helper-fg)]"
+              >
+                {activeTabLabel}
+              </p>
             </div>
           </aside>
 
           <div
-            className="flex-1 overflow-y-auto scrollbar-hide p-4 sm:p-6 space-y-6"
+            style={activeToneVars}
+            className="flex-1 min-h-0 overflow-y-auto scrollbar-hide rounded-xl border border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-panel-bg)] p-4 sm:p-6 space-y-6"
             ref={scrollContainerRef}
           >
             {currentTab === "transfer" && (
@@ -114,6 +130,7 @@ function SettingsPanel({ onClose, activeTab, onTabChange }) {
               </div>
             )}
           </div>
+        </div>
         </div>
     </div>
   );

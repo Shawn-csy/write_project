@@ -1,6 +1,4 @@
 import React from "react";
-import { PanelLeftOpen } from "lucide-react";
-import { Button } from "../ui/button";
 import {
   Drawer,
   DrawerContent,

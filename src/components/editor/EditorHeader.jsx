@@ -1,14 +1,14 @@
 import React, { useState } from "react";
-import { Loader2, Save, Eye, Columns, BarChart2, HelpCircle, Globe, Lock } from "lucide-react";
+import { Loader2, Save, Eye, Columns, BarChart2, HelpCircle, Globe, Lock, MoreHorizontal } from "lucide-react";
 import { useEditableTitle } from "../../hooks/useEditableTitle";
 import EditableTitle from "../header/EditableTitle";
 import { MarkerVisibilitySelect } from "../ui/MarkerVisibilitySelect";
 import HeaderTitleBlock from "../header/HeaderTitleBlock";
 import { Badge } from "../ui/badge";
 import { ScriptMetadataDialog } from "../dashboard/ScriptMetadataDialog";
-import { DownloadMenu } from "../common/DownloadMenu";
 import { LanguageSwitcher } from "../common/LanguageSwitcher";
 import { Button } from "../ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { useI18n } from "../../contexts/I18nContext";
 
 export function EditorHeader({
@@ -24,8 +24,11 @@ export function EditorHeader({
   onToggleStats,
   showPreview,
   onTogglePreview,
+  onOpenGuide,
   isSidebarOpen,
   onSetSidebarOpen,
+  guideButtonRef,
+  moreActionsRef,
   onTitleChange,
   markerConfigs = [],
   hiddenMarkerIds = [],
@@ -64,6 +67,7 @@ export function EditorHeader({
   } = useEditableTitle(title, onTitleChange);
 
   if (readOnly) return null;
+  const enabledDownloadOptions = (downloadOptions || []).filter((opt) => !opt?.hidden);
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-2 border-b border-border bg-card shrink-0">
@@ -140,46 +144,6 @@ export function EditorHeader({
         }
       />
       <div className="flex items-center gap-2 flex-wrap">
-        <LanguageSwitcher />
-         {/* Marker Visibility Toggle */}
-         <div className="hidden sm:block w-[140px]">
-          <MarkerVisibilitySelect
-            markerConfigs={markerConfigs}
-            hiddenMarkerIds={hiddenMarkerIds}
-            onToggleMarker={onToggleMarker}
-            triggerClassName="h-8 px-2 text-xs w-full bg-background border hover:bg-muted/50 transition-all"
-            contentAlign="end"
-            titlePrefix={t("editorHeader.markerPrefix")}
-          />
-         </div>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onToggleRules}
-          className={`h-8 w-8 rounded-md transition-colors ${
-            showRules
-              ? "text-accent"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-          title={t("editorHeader.syntaxRules")}
-        >
-          <HelpCircle className="w-4 h-4" />
-        </Button>
-        <DownloadMenu
-          options={downloadOptions}
-          title={t("editorHeader.download")}
-          triggerClassName="h-8 w-8 rounded-md transition-colors text-muted-foreground hover:text-foreground"
-        />
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onToggleStats}
-          className="h-8 w-8 rounded-md transition-colors text-muted-foreground hover:text-foreground"
-          title={t("editorHeader.stats")}
-        >
-          <BarChart2 className="w-4 h-4" />
-        </Button>
         <Button
           variant="ghost"
           size="sm"
@@ -200,6 +164,79 @@ export function EditorHeader({
             {showPreview ? t("editorHeader.editAndPreview") : t("editorHeader.editOnly")}
           </span>
         </Button>
+        {onOpenGuide && (
+          <Button
+            ref={guideButtonRef}
+            variant="ghost"
+            size="sm"
+            onClick={onOpenGuide}
+            className="h-8 rounded-md transition-colors flex items-center gap-2 text-sm hover:bg-muted text-muted-foreground"
+            title={t("editorHeader.guide")}
+          >
+            <HelpCircle className="w-4 h-4" />
+            <span className="hidden sm:inline">{t("editorHeader.guide")}</span>
+          </Button>
+        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              ref={moreActionsRef}
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-md text-muted-foreground hover:text-foreground"
+              title={t("editorHeader.moreActions")}
+              aria-label={t("editorHeader.moreActions")}
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuLabel>{t("editorHeader.moreActions")}</DropdownMenuLabel>
+            <div className="px-2 py-1.5">
+              <div className="text-[11px] text-muted-foreground mb-1">{t("settings.language")}</div>
+              <LanguageSwitcher className="w-full" selectClassName="w-full" />
+            </div>
+            <div className="px-2 py-1.5">
+              <div className="text-[11px] text-muted-foreground mb-1">{t("editorHeader.markerPrefix")}</div>
+              <MarkerVisibilitySelect
+                markerConfigs={markerConfigs}
+                hiddenMarkerIds={hiddenMarkerIds}
+                onToggleMarker={onToggleMarker}
+                triggerClassName="h-8 px-2 text-xs w-full bg-background border hover:bg-muted/50 transition-all"
+                contentAlign="end"
+                titlePrefix={t("editorHeader.markerPrefix")}
+              />
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onToggleRules}>
+              <HelpCircle className="w-4 h-4 mr-2" />
+              {t("editorHeader.syntaxRules")}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onToggleStats}>
+              <BarChart2 className="w-4 h-4 mr-2" />
+              {t("editorHeader.stats")}
+            </DropdownMenuItem>
+            {enabledDownloadOptions.length > 0 && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>{t("editorHeader.download")}</DropdownMenuLabel>
+                {enabledDownloadOptions.map((opt) => (
+                  <DropdownMenuItem
+                    key={opt.id}
+                    disabled={Boolean(opt.disabled)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      opt.onClick?.(e);
+                    }}
+                  >
+                    {opt.icon ? <opt.icon className="w-4 h-4 mr-2" /> : null}
+                    {opt.label}
+                  </DropdownMenuItem>
+                ))}
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );

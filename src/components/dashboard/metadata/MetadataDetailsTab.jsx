@@ -2,17 +2,17 @@ import React from "react";
 import { Input } from "../../ui/input";
 import { Button } from "../../ui/button";
 import { Badge } from "../../ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
-import { AlertTriangle, X, Plus, Check } from "lucide-react";
+import { AlertTriangle, X, Plus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { SortableField } from "./SortableField";
 import { SortableContactField } from "./SortableContactField";
-import { optimizeImageForUpload, getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
-import { uploadMediaObject } from "../../../lib/db";
+import { optimizeImageForUpload, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
+import { uploadMediaObject } from "../../../lib/api/media";
 import { useI18n } from "../../../contexts/I18nContext";
 import { MediaPicker } from "../../ui/MediaPicker";
+import { CoverPlaceholder } from "../../ui/CoverPlaceholder";
 
 export function MetadataDetailsTab({
     status,
@@ -45,7 +45,15 @@ export function MetadataDetailsTab({
     setQuickSeriesName,
     onQuickCreateSeries,
     isCreatingSeries = false,
-    seriesOrder, setSeriesOrder
+    seriesOrder, setSeriesOrder,
+    showStatusAlert = true,
+    showAuthorCover = true,
+    showAudienceRating = true,
+    showSeries = true,
+    showTags = true,
+    showContact = true,
+    showCustom = true,
+    layout = "stack"
 }) {
     const { t } = useI18n();
     const hasInvalidCoverUrl = Boolean(coverUrl?.trim()) && !/^(https?:\/\/|\/)/i.test(coverUrl.trim());
@@ -53,7 +61,6 @@ export function MetadataDetailsTab({
     const [coverUploadError, setCoverUploadError] = React.useState("");
     const [coverUploadWarning, setCoverUploadWarning] = React.useState("");
     const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState(false);
-    const coverGuide = React.useMemo(() => getImageUploadGuide("cover"), []);
 
     const handleCoverUpload = async (event) => {
         const file = event.target.files?.[0];
@@ -83,7 +90,7 @@ export function MetadataDetailsTab({
 
     const parsePastedTags = (text) =>
         String(text || "")
-            .split(/,|，|\n|\t|;/)
+            .split(/,|，|、|#|\n|\t|;/)
             .map((item) => item.trim())
             .filter(Boolean);
 
@@ -95,21 +102,35 @@ export function MetadataDetailsTab({
         handleAddTagsBatch?.(parsed);
     };
 
+    const containerClass = layout === "grid-3"
+        ? "mt-0 grid gap-4 md:grid-cols-2 xl:grid-cols-3"
+        : layout === "grid-2"
+            ? "mt-0 grid gap-4 md:grid-cols-2"
+            : "space-y-6 mt-0";
+    const cardClass = "grid gap-4 rounded-xl border border-border/70 bg-background p-4 shadow-sm h-fit";
+    const authorCoverSpan = layout === "grid-3" ? "md:col-span-2 xl:col-span-2" : "";
+    const audienceSpan = layout === "grid-3" ? "md:col-span-2 xl:col-span-1" : "";
+    const seriesSpan = layout === "grid-3" ? "md:col-span-1 xl:col-span-1" : "";
+    const tagsSpan = layout === "grid-3" ? "md:col-span-2 xl:col-span-3" : "";
+    const contactSpan = layout === "grid-2" ? "md:col-span-1" : "";
+    const customSpan = layout === "grid-2" ? "md:col-span-1" : "";
+
     return (
-        <div className="space-y-6 mt-0">
+        <div className={containerClass}>
             {/* Status Alert */}
-            {status === "Public" && (!coverUrl || currentTags.length === 0) && (
-                <div className="flex w-full items-start gap-3 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-900">
-                    <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+            {showStatusAlert && status === "Public" && (!coverUrl || currentTags.length === 0) && (
+                <div className="flex w-full items-start gap-3 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-900 dark:border-yellow-900 dark:bg-yellow-950/30 dark:text-yellow-200">
+                    <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 dark:text-yellow-300" />
                     <div className="grid gap-1">
-                        <h5 className="font-medium text-yellow-900 leading-none tracking-tight">{t("metadataDetails.suggestionTitle")}</h5>
-                        <div className="text-yellow-700 opacity-90 leading-relaxed">
+                        <h5 className="font-medium text-yellow-900 leading-none tracking-tight dark:text-yellow-200">{t("metadataDetails.suggestionTitle")}</h5>
+                        <div className="text-yellow-700 opacity-90 leading-relaxed dark:text-yellow-300">
                             {t("metadataDetails.suggestionText", "").replace("{cover}", !coverUrl ? ` ${t("metadataDetails.coverWord")}` : "").replace("{and}", !coverUrl && currentTags.length === 0 ? ` ${t("metadataDetails.andWord")}` : "").replace("{tags}", currentTags.length === 0 ? ` ${t("metadataDetails.tagsWord")}` : "")}
                         </div>
                     </div>
                 </div>
             )}
-            <div className="grid gap-4 p-4 border rounded-lg bg-muted/20">
+            {showAuthorCover && (
+            <div className={`${cardClass} ${authorCoverSpan}`}>
                 <div className="grid gap-2">
                     <label className="text-sm font-medium" htmlFor="metadata-author">{t("metadataDetails.author")}</label>
                     <Input id="metadata-author" name="metadataAuthor" value={author} onChange={e => setAuthor(e.target.value)} placeholder="覆蓋顯示的作者名稱..." />
@@ -132,30 +153,28 @@ export function MetadataDetailsTab({
                         >
                             {t("mediaLibrary.selectFromLibrary", "從媒體庫選擇")}
                         </Button>
-                        <span className="text-xs text-muted-foreground w-full sm:w-auto">{t("metadataDetails.uploadTip")}</span>
                     </div>
-                    <p className="text-[11px] text-muted-foreground">{coverGuide.supported}</p>
-                    <p className="text-[11px] text-muted-foreground">{coverGuide.recommended}</p>
                     {coverUploadError && (
                         <p className="text-xs text-destructive">{coverUploadError}</p>
                     )}
                     {coverUploadWarning && (
                         <p className="text-xs text-amber-700 dark:text-amber-300">{coverUploadWarning}</p>
                     )}
-                    {coverUrl && (
-                        <div className="mt-1 h-28 w-full overflow-hidden rounded-md border bg-muted/20">
-                            {coverPreviewFailed ? (
-                                <div className="flex h-full items-center justify-center text-xs text-muted-foreground">{t("metadataDetails.coverPreviewFail")}</div>
-                            ) : (
-                                <img
-                                    src={coverUrl}
-                                    alt="cover preview"
-                                    className="h-full w-full object-cover"
-                                    onLoad={() => setCoverPreviewFailed(false)}
-                                    onError={() => setCoverPreviewFailed(true)}
-                                />
-                            )}
-                        </div>
+                    <div className="mt-1 h-28 w-full overflow-hidden rounded-md border bg-muted/20">
+                        {coverUrl && !coverPreviewFailed ? (
+                            <img
+                                src={coverUrl}
+                                alt="cover preview"
+                                className="h-full w-full object-cover"
+                                onLoad={() => setCoverPreviewFailed(false)}
+                                onError={() => setCoverPreviewFailed(true)}
+                            />
+                        ) : (
+                            <CoverPlaceholder title={author || "Untitled"} compact />
+                        )}
+                    </div>
+                    {coverUrl && coverPreviewFailed && (
+                        <p className="text-xs text-muted-foreground">{t("metadataDetails.coverPreviewFail")}</p>
                     )}
                     {recommendedErrors.cover && (
                         <p className="text-xs text-amber-700 dark:text-amber-300">{t("metadataDetails.coverTip")}</p>
@@ -165,62 +184,73 @@ export function MetadataDetailsTab({
                     )}
                 </div>
             </div>
+            )}
 
             {/* Target Audience & Content Rating Settings */}
-            <div className="grid gap-6 border p-4 rounded-lg bg-muted/10">
-                {/* Target Audience */}
-                <div className="grid gap-3">
-                    <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium">觀眾取向 (Target Audience)</label>
-                        <span className="text-[10px] text-destructive tracking-wider bg-destructive/10 px-1.5 py-0.5 rounded uppercase font-semibold">必填</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        {["男性向", "女性向", "一般向"].map(opt => (
-                            <Button
-                                key={`aud-${opt}`}
-                                type="button"
-                                variant={targetAudience === opt ? "default" : "outline"}
-                                className={`h-9 px-5 text-sm font-medium transition-all duration-200 ${targetAudience === opt ? 'bg-primary text-primary-foreground shadow-md ring-2 ring-primary ring-offset-2 ring-offset-background' : 'text-muted-foreground border-border hover:border-primary/50 hover:bg-primary/10 hover:text-foreground'}`}
-                                onClick={() => setTargetAudience(opt)}
-                            >
-                                {opt}
-                            </Button>
-                        ))}
-                    </div>
-                    {requiredErrors.audience && (
-                        <p className="text-xs text-destructive">{t("metadataDetails.requiredTip", "發佈前必須選擇觀眾取向")}</p>
-                    )}
-                    <p className="text-xs text-muted-foreground">此設定將幫助讀者在畫廊中更快找到感興趣的作品。</p>
+            {showAudienceRating && (
+            <div className={`grid gap-3 rounded-xl border border-border/70 bg-background p-4 shadow-sm h-fit ${audienceSpan}`}>
+                <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">觀眾與分級</label>
+                    <span className="text-[10px] text-destructive tracking-wider bg-destructive/10 px-1.5 py-0.5 rounded uppercase font-semibold">必填</span>
                 </div>
-
-                {/* Content Rating */}
-                <div className="grid gap-3">
-                    <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium">內容分級 (Content Rating)</label>
-                        <span className="text-[10px] text-destructive tracking-wider bg-destructive/10 px-1.5 py-0.5 rounded uppercase font-semibold">必填</span>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div className="space-y-1">
+                        <div className="text-xs text-muted-foreground">觀眾取向</div>
+                        <div className="inline-flex flex-wrap gap-1.5 rounded-md border bg-background p-1">
+                            {["男性向", "女性向", "一般向"].map(opt => (
+                                <Button
+                                    key={`aud-${opt}`}
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className={`h-8 px-3 text-xs font-medium transition ${
+                                        targetAudience === opt
+                                            ? "border-primary bg-primary text-primary-foreground ring-2 ring-primary/40"
+                                            : "border-border bg-background text-muted-foreground hover:bg-muted"
+                                    }`}
+                                    onClick={() => setTargetAudience(opt)}
+                                >
+                                    {opt}
+                                </Button>
+                            ))}
+                        </div>
+                        {requiredErrors.audience && (
+                            <p className="text-xs text-destructive">{t("metadataDetails.requiredTip", "發佈前必須選擇觀眾取向")}</p>
+                        )}
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                        {["全年齡向", "成人向"].map(opt => (
-                            <Button
-                                key={`rating-${opt}`}
-                                type="button"
-                                variant={contentRating === opt ? (opt === "成人向" ? "destructive" : "default") : "outline"}
-                                className={`h-9 px-5 text-sm font-medium transition-all duration-200 ${contentRating === opt ? (opt === "成人向" ? 'bg-red-600 text-white shadow-md ring-2 ring-red-600 ring-offset-2 ring-offset-background hover:bg-red-700' : 'bg-primary text-primary-foreground shadow-md ring-2 ring-primary ring-offset-2 ring-offset-background') : 'text-muted-foreground border-border hover:border-primary/50 hover:bg-primary/10 hover:text-foreground'}`}
-                                onClick={() => setContentRating(opt)}
-                            >
-                                {opt === "全年齡向" ? "全年齡向 (All Ages)" : "成人向 (R-18)"}
-                            </Button>
-                        ))}
+                    <div className="space-y-1">
+                        <div className="text-xs text-muted-foreground">內容分級</div>
+                        <div className="inline-flex flex-wrap gap-1.5 rounded-md border bg-background p-1">
+                            {["全年齡向", "成人向"].map(opt => (
+                                <Button
+                                    key={`rating-${opt}`}
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className={`h-8 px-3 text-xs font-medium transition ${
+                                        contentRating === opt
+                                            ? (opt === "成人向"
+                                                ? "border-red-600 bg-red-600 text-white ring-2 ring-red-500/40"
+                                                : "border-primary bg-primary text-primary-foreground ring-2 ring-primary/40")
+                                            : "border-border bg-background text-muted-foreground hover:bg-muted"
+                                    }`}
+                                    onClick={() => setContentRating(opt)}
+                                >
+                                    {opt}
+                                </Button>
+                            ))}
+                        </div>
+                        {requiredErrors.rating && (
+                            <p className="text-xs text-destructive">{t("metadataDetails.requiredTipRating", "發佈前必須選擇內容分級")}</p>
+                        )}
                     </div>
-                    {requiredErrors.rating && (
-                        <p className="text-xs text-destructive">{t("metadataDetails.requiredTipRating", "發佈前必須選擇內容分級")}</p>
-                    )}
-                    <p className="text-xs text-muted-foreground">包含強烈暴力、成人題材、或不適合未成年人觀看的內容，請務必標記為 成人向。</p>
                 </div>
             </div>
+            )}
 
             {/* Series Settings */}
-            <div className="grid gap-4 border p-4 rounded-lg bg-muted/10">
+            {showSeries && (
+            <div className={`${cardClass} ${seriesSpan}`}>
                 <div className="grid gap-2">
                     <label className="text-sm font-medium" htmlFor="metadata-series-name">
                         {t("metadataDetails.seriesName", "系列名稱 (Series)")}
@@ -300,9 +330,11 @@ export function MetadataDetailsTab({
                     </p>
                 </div>
             </div>
+            )}
 
              {/* Tags */}
-            <div className="grid gap-2 border p-4 rounded-lg bg-muted/20">
+            {showTags && (
+            <div className={`grid gap-2 rounded-xl border border-border/70 bg-background p-4 shadow-sm h-fit ${tagsSpan}`}>
                 <div className="flex items-center justify-between">
                     <label className="text-sm font-medium" htmlFor="metadata-new-tag">{t("metadataDetails.tags", "標籤")}</label>
                     {currentTags.length > 0 && (
@@ -403,8 +435,10 @@ export function MetadataDetailsTab({
                     </div>
                 )}
             </div>
+            )}
 
-            <div className="grid gap-2">
+            {showContact && (
+            <div className={`grid gap-2 rounded-xl border border-border/70 bg-background p-4 shadow-sm h-fit ${contactSpan}`}>
                 <label className="text-sm font-medium">{t("metadataDetails.contact")}</label>
                 <div className="flex flex-wrap gap-2">
                     {["Email", "手機", "Discord", "IG"].map((preset) => (
@@ -460,8 +494,10 @@ export function MetadataDetailsTab({
                 </DndContext>
                 <div className="text-xs text-muted-foreground">{t("metadataDetails.contactTip")}</div>
             </div>
+            )}
 
-             <div className="grid gap-2">
+            {showCustom && (
+             <div className={`grid gap-2 rounded-xl border border-border/70 bg-background p-4 shadow-sm h-fit ${customSpan}`}>
                 <label className="text-sm font-medium">{t("metadataDetails.custom")}</label>
                 <div className="flex flex-wrap gap-2">
                     {["角色設定", "世界觀", "備註"].map((preset) => (
@@ -531,6 +567,7 @@ export function MetadataDetailsTab({
                     這些欄位會寫入劇本標頭，可自由新增。
                 </div>
             </div>
+            )}
 
             <MediaPicker
                 open={isMediaPickerOpen}

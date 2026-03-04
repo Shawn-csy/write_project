@@ -1,0 +1,102 @@
+import { useEffect } from "react";
+
+export function useScriptMetadataPersonaSync({
+  open,
+  identity,
+  personas,
+  contact,
+  contactFields,
+  contactAutoFilledRef,
+  selectedOrgId,
+  licenseCommercial,
+  licenseDerivative,
+  licenseNotify,
+  licenseSpecialTerms,
+  ensureList,
+  setContactFields,
+  setLicenseCommercial,
+  setLicenseDerivative,
+  setLicenseNotify,
+  setLicenseSpecialTerms,
+  setIdentity,
+  setSelectedOrgId,
+}) {
+  useEffect(() => {
+    if (!open) return;
+    if (contactAutoFilledRef.current) return;
+    if (!identity || !identity.startsWith("persona:")) return;
+    if (contact || (contactFields && contactFields.length > 0)) return;
+    const personaId = identity.split(":")[1];
+    const persona = personas.find((item) => item.id === personaId);
+    if (!persona) return;
+
+    const next = [];
+    if (persona.website) {
+      next.push({ id: `ct-${Date.now()}-web`, key: "Website", value: persona.website });
+    }
+    (persona.links || []).forEach((link, index) => {
+      if (!link?.url) return;
+      next.push({
+        id: `ct-${Date.now()}-${index}`,
+        key: link.label || "Link",
+        value: link.url,
+      });
+    });
+    if (next.length > 0) {
+      setContactFields(next);
+      contactAutoFilledRef.current = true;
+    }
+  }, [open, identity, personas, contact, contactFields, contactAutoFilledRef, setContactFields]);
+
+  useEffect(() => {
+    const hasLicenseSet =
+      Boolean(licenseCommercial) ||
+      Boolean(licenseDerivative) ||
+      Boolean(licenseNotify) ||
+      (licenseSpecialTerms || []).length > 0;
+    if (hasLicenseSet) return;
+    if (!identity.startsWith("persona:")) return;
+    const personaId = identity.split(":")[1];
+    const persona = personas.find((item) => item.id === personaId);
+    if (!persona) return;
+    if (persona.defaultLicenseCommercial) setLicenseCommercial(persona.defaultLicenseCommercial);
+    if (persona.defaultLicenseDerivative) setLicenseDerivative(persona.defaultLicenseDerivative);
+    if (persona.defaultLicenseNotify) setLicenseNotify(persona.defaultLicenseNotify);
+    if (Array.isArray(persona.defaultLicenseSpecialTerms) && persona.defaultLicenseSpecialTerms.length > 0) {
+      setLicenseSpecialTerms(ensureList(persona.defaultLicenseSpecialTerms));
+    }
+  }, [
+    identity,
+    personas,
+    licenseCommercial,
+    licenseDerivative,
+    licenseNotify,
+    licenseSpecialTerms,
+    ensureList,
+    setLicenseCommercial,
+    setLicenseDerivative,
+    setLicenseNotify,
+    setLicenseSpecialTerms,
+  ]);
+
+  useEffect(() => {
+    if (!identity.startsWith("persona:")) return;
+    if (personas.length === 0) return;
+
+    const personaId = identity.split(":")[1];
+    const persona = personas.find((item) => item.id === personaId);
+    if (!persona) {
+      setIdentity("");
+      setSelectedOrgId("");
+      return;
+    }
+    const orgIds = persona?.organizationIds || [];
+    if (orgIds.length === 0) {
+      setSelectedOrgId("");
+      return;
+    }
+    if (!orgIds.includes(selectedOrgId)) {
+      setSelectedOrgId(orgIds[0]);
+    }
+  }, [identity, personas, selectedOrgId, setIdentity, setSelectedOrgId]);
+}

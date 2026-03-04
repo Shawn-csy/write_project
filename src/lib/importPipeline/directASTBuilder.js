@@ -10,18 +10,17 @@
 import { parseInline } from '../parsers/inlineParser.js';
 import { toFullWidth } from '../parsers/parserGenerators.js';
 import { isBlockLike, isInlineLike } from '../markerRules.js';
+import { defaultMarkerConfigs } from '../../constants/defaultMarkerRules.js';
+import { normalizeMarkerConfigsSchema } from '../markerThemeCodec.js';
 
 // ... (skip lines)
 
 
-import { 
-  CHAPTER_PATTERNS, 
-  isBlankLine 
-} from './constants.js';
+import { isBlankLine } from './constants.js';
 
 /**
  * AST 節點類型 (純 Marker 模式)
- * @typedef {'root'|'scene_heading'|'action'|'layer'|'blank'} NodeType
+ * @typedef {'root'|'scene_heading'|'action'|'layer'|'blank'|'character'|'dialogue'|'parenthetical'|'range'} NodeType
  */
 
 /**
@@ -37,12 +36,7 @@ import {
 
 export class DirectASTBuilder {
   constructor(markerConfigs = []) {
-    // 正規化配置：自動推斷 matchMode
-    this.configs = markerConfigs.map(c => ({
-      ...c,
-      // 如果沒有 matchMode，根據是否有 end 來推斷
-      matchMode: c.matchMode || (c.end ? 'enclosure' : 'prefix')
-    }));
+    this.configs = markerConfigs.map((c) => ({ ...c }));
     
     // 分離 block 和 inline markers（共用規則）
     this.blockMarkers = this.configs.filter((c) => isBlockLike(c));
@@ -75,12 +69,6 @@ export class DirectASTBuilder {
       children: []
     };
     
-    const context = {
-      currentChapter: null,
-      currentCharacter: null,
-      inDialogueBlock: false
-    };
-    
     // Range 區間狀態追蹤
     // 使用 Map<groupId, depth> 支援巢狀區間
     const rangeDepth = new Map();
@@ -94,8 +82,7 @@ export class DirectASTBuilder {
     
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      const nextLine = lines[i + 1]; // 傳遞下一行供角色偵測
-      const node = this._parseLine(line, i, context, nextLine);
+      const node = this._parseLine(line, i);
       
       if (node) {
         // 檢查是否為 range 開始/結束標記
@@ -133,7 +120,6 @@ export class DirectASTBuilder {
           }
         }
         
-        this._updateContext(node, context);
         ast.children.push(node);
       }
     }
@@ -301,7 +287,7 @@ export class DirectASTBuilder {
    * 解析單行
    * @private
    */
-  _parseLine(line, lineNumber, context, nextLine) {
+  _parseLine(line, lineNumber) {
     const trimmed = line.trim();
     
     // 空行處理
@@ -314,85 +300,13 @@ export class DirectASTBuilder {
       };
     }
     
-    // 1. 優先匹配章節標題
-    const chapterMatch = this._matchChapter(trimmed);
-    if (chapterMatch) {
-      return {
-        type: 'scene_heading',
-        text: chapterMatch.content,
-        title: chapterMatch.title,
-        number: chapterMatch.number,
-        id: this._slugify(chapterMatch.content),
-        lineStart: lineNumber + 1,
-        lineEnd: lineNumber + 1,
-        raw: line
-      };
-    }
-    
-    // 2. 匹配 block markers (prefix 模式)
+    // 1. 匹配 block markers（包含 prefix / range / regex）
     const markerNode = this._matchBlockMarker(trimmed, lineNumber);
     if (markerNode) {
       return markerNode;
     }
     
-    // 3. 嘗試匹配角色 (Character)
-    // 簡單規則：全大寫英文 或 匹配 CHARACTER_PATTERNS
-    // 且下一行不是空行 (表示有對話)
-    const isNextLineDialogue = nextLine && !isBlankLine(nextLine);
-    
-    if (isNextLineDialogue || context.currentCharacter) {
-        // 如果當前行是全大寫 (簡單判斷) 或 符合角色名規則
-        // Fountain Spec: Character name must be uppercase. 
-        // We relax this for Chinese names defined in constants.
-        
-        // 檢查是否為角色行
-        const isUpper = /^[A-Z0-9\s\(\)\.]+$/.test(trimmed) && /[A-Z]/.test(trimmed);
-        // const isDefinedPattern = CHARACTER_PATTERNS.some(p => p.test(trimmed)); // Need to import CHARACTER_PATTERNS
-        // For now, let's just use a simple heuristic matching the test case 'BOB'
-        
-        if (!context.inDialogueBlock && (isUpper)) { // Removed isDefinedPattern for now to keep diff small, purely fixing 'BOB' case first
-             return {
-                 type: 'character',
-                 text: trimmed,
-                 lineStart: lineNumber + 1,
-                 lineEnd: lineNumber + 1,
-                 raw: line
-             };
-        }
-        
-        // 如果前一行是角色 或 對話，且這行不是空行 -> 視為對話 (Dialogue)
-        // 但 DirectASTBuilder 逐行解析，我們需要 Context 知道上一行是什麼
-        // 不過我們這裡只有 currentCharacter 狀態...
-        // 讓我們簡化：
-        // 如果 context.currentCharacterSet (本輪設定) -> 下一行是 Dialogue?
-        // 不，解析器是單向的。
-        
-        // Let's rely on _updateContext to set currentCharacter.
-        if (context.currentCharacter) {
-             // 這是對話
-             // 檢查是否為 parenthetical
-             if (/^\(.*\)$/.test(trimmed)) {
-                 return {
-                     type: 'parenthetical',
-                     text: trimmed,
-                     lineStart: lineNumber + 1,
-                     lineEnd: lineNumber + 1,
-                     raw: line
-                 };
-             }
-             
-             return {
-                  type: 'dialogue',
-                  text: trimmed,
-                  inline: this._parseInlineContent(trimmed),
-                  lineStart: lineNumber + 1,
-                  lineEnd: lineNumber + 1,
-                  raw: line
-             };
-        }
-    }
-
-    // 4. 預設：所有未匹配的內容都是 action（動作/描述）
+    // 2. 預設：所有未匹配的內容都是 action（動作/描述）
     return {
       type: 'action',
       text: trimmed,
@@ -401,43 +315,6 @@ export class DirectASTBuilder {
       lineEnd: lineNumber + 1,
       raw: line
     };
-  }
-
-  /**
-   * 匹配章節標題
-   * @private
-   */
-  _matchChapter(line) {
-    for (const pattern of CHAPTER_PATTERNS) {
-      const match = line.match(pattern);
-      if (match) {
-        // 嘗試提取章節編號和標題
-        const numMatch = line.match(/^(\d+)\.\s*(.+)$/);
-        if (numMatch) {
-          return {
-            content: line,
-            number: parseInt(numMatch[1], 10),
-            title: numMatch[2]
-          };
-        }
-        
-        const zhMatch = line.match(/^第([一二三四五六七八九十百]+)[章節幕場]\s*(.*)$/);
-        if (zhMatch) {
-          return {
-            content: line,
-            number: zhMatch[1],
-            title: zhMatch[2] || ''
-          };
-        }
-        
-        return {
-          content: line,
-          number: null,
-          title: line
-        };
-      }
-    }
-    return null;
   }
 
   /**
@@ -455,14 +332,15 @@ export class DirectASTBuilder {
     );
 
     for (const marker of sortedMarkers) {
-      if (!marker.start) continue;
+      if (marker.matchMode !== 'regex' && !marker.start) continue;
 
-      const fullStart = toFullWidth(marker.start);
+      const startToken = marker.start || '';
+      const fullStart = startToken ? toFullWidth(startToken) : '';
       const fullEnd = marker.end ? toFullWidth(marker.end) : null;
       
-      const startsWithNormal = line.startsWith(marker.start);
-      const startsWithFull = line.startsWith(fullStart);
-      const matchedStart = startsWithNormal ? marker.start : (startsWithFull ? fullStart : null);
+      const startsWithNormal = startToken ? line.startsWith(startToken) : false;
+      const startsWithFull = fullStart ? line.startsWith(fullStart) : false;
+      const matchedStart = startsWithNormal ? startToken : (startsWithFull ? fullStart : null);
 
       if (marker.matchMode === 'range') {
          // 先檢查結束符號 (End Check)
@@ -541,24 +419,25 @@ export class DirectASTBuilder {
          }
          continue;
       }
+
+      // regex 模式（Block）
+      if (marker.matchMode === 'regex' && marker.regex) {
+        const regex = this._toRegex(marker.regex);
+        const match = regex ? line.match(regex) : null;
+        if (!match) continue;
+
+        const full = String(match[0] || line).trim();
+        const parsed = this._buildParsedNode(marker, full, line, lineNumber, match);
+        if (parsed) return parsed;
+        return this._buildLayerNode(marker, full, line, lineNumber);
+      }
       
       // prefix 模式
       if (marker.matchMode === 'prefix' && matchedStart) {
         const content = line.slice(matchedStart.length).trim();
-        return {
-          type: 'layer',
-          layerType: marker.id,
-          markerType: marker.type,
-          text: content,
-          label: marker.label,
-          inline: this._parseInlineContent(content),
-          inlineLabel: this._parseInlineContent(content),
-          lineStart: lineNumber + 1,
-          lineEnd: lineNumber + 1,
-          raw: line,
-          style: marker.style,
-          children: []
-        };
+        const parsed = this._buildParsedNode(marker, content, line, lineNumber, null);
+        if (parsed) return parsed;
+        return this._buildLayerNode(marker, content, line, lineNumber);
       }
 
       // enclosure 模式 (Block Enclosure - 單行)
@@ -574,27 +453,156 @@ export class DirectASTBuilder {
                   content = content.slice(0, -matchedEnd.length);
               }
               content = content.trim();
-              
-              return {
-                  type: 'layer',
-                  layerType: marker.id,
-                  // ...
-                  markerType: marker.type,
-                  text: content,
-                  label: marker.label,
-                  inline: this._parseInlineContent(content),
-                  inlineLabel: this._parseInlineContent(content),
-                  lineStart: lineNumber + 1,
-                  lineEnd: lineNumber + 1,
-                  raw: line,
-                  style: marker.style,
-                  children: []
-              };
+
+              const parsed = this._buildParsedNode(marker, content, line, lineNumber, null);
+              if (parsed) return parsed;
+              return this._buildLayerNode(marker, content, line, lineNumber);
           }
       }
     }
     
     return null;
+  }
+
+  _toRegex(pattern) {
+    if (!pattern) return null;
+    if (pattern instanceof RegExp) return pattern;
+    const raw = String(pattern).trim();
+    if (!raw) return null;
+    // Support literal forms like `/^\\d+\\.\\s+(.+)$/i` from user-entered configs.
+    const literal = raw.match(/^\/([\s\S]*)\/([a-z]*)$/i);
+    if (literal) {
+      try {
+        return new RegExp(literal[1], literal[2]);
+      } catch {
+        return null;
+      }
+    }
+    try {
+      return new RegExp(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  _resolveMapField(template, content, match, fallback = '') {
+    if (template === undefined || template === null || template === '') return fallback;
+    const raw = String(template);
+    if (raw === '$text') return content;
+    const idxMatch = raw.match(/^\$(\d+)$/);
+    if (idxMatch) {
+      const idx = Number.parseInt(idxMatch[1], 10);
+      const captured = match?.[idx];
+      return captured === undefined || captured === null ? fallback : String(captured).trim();
+    }
+    return raw;
+  }
+
+  _applyMappedCast(value, castType) {
+    if (!castType) return value;
+    if (Array.isArray(castType)) {
+      return castType.reduce((acc, item) => this._applyMappedCast(acc, item), value);
+    }
+
+    let castSpec = castType;
+    if (typeof castType === 'string') {
+      if (castType.startsWith('split:')) {
+        castSpec = { type: 'split', separator: castType.slice('split:'.length) };
+      } else {
+        castSpec = { type: castType };
+      }
+    }
+    if (!castSpec || typeof castSpec !== 'object') return value;
+
+    const cast = String(castSpec.type || '').trim().toLowerCase();
+    if (!cast) return value;
+
+    if (cast === 'int') {
+      const parsed = Number.parseInt(String(value), 10);
+      return Number.isNaN(parsed) ? value : parsed;
+    }
+    if (cast === 'float') {
+      const parsed = Number.parseFloat(String(value));
+      return Number.isNaN(parsed) ? value : parsed;
+    }
+    if (cast === 'trim') {
+      return String(value).trim();
+    }
+    if (cast === 'trim_colon_suffix') {
+      return String(value).replace(/[：:]\s*$/, '').trim();
+    }
+    if (cast === 'bool') {
+      if (typeof value === 'boolean') return value;
+      const norm = String(value).trim().toLowerCase();
+      if (['true', '1', 'yes', 'y', 'on', '是', '好', '可', '需要'].includes(norm)) return true;
+      if (['false', '0', 'no', 'n', 'off', '否', '不', '不可', '不需要'].includes(norm)) return false;
+      return value;
+    }
+    if (cast === 'split') {
+      if (Array.isArray(value)) return value;
+      const text = value === null || value === undefined ? '' : String(value);
+      const separator = castSpec.separator ?? castSpec.sep ?? null;
+      const trimItems = castSpec.trim !== false;
+      const filterEmpty = castSpec.filterEmpty !== false;
+      let items;
+      if (typeof separator === 'string' && separator.length > 0) {
+        items = text.split(separator);
+      } else {
+        items = text.split(/[,\n，]/);
+      }
+      if (trimItems) items = items.map((item) => String(item).trim());
+      if (filterEmpty) items = items.filter(Boolean);
+      return items;
+    }
+
+    return value;
+  }
+
+  _buildParsedNode(marker, content, rawLine, lineNumber, match) {
+    if (!marker?.parseAs) return null;
+    const node = {
+      type: marker.parseAs,
+      markerType: marker.type,
+      markerId: marker.id,
+      lineStart: lineNumber + 1,
+      lineEnd: lineNumber + 1,
+      raw: rawLine,
+    };
+
+    const mapFields = marker.mapFields || {};
+    const mapCasts = marker.mapCasts || {};
+    const mappedText = this._resolveMapField(mapFields.text, content, match, content);
+    node.text = this._applyMappedCast(mappedText, mapCasts.text);
+
+    Object.entries(mapFields).forEach(([key, tpl]) => {
+      if (key === 'text') return;
+      const rawValue = this._resolveMapField(tpl, content, match, '');
+      node[key] = this._applyMappedCast(rawValue, mapCasts[key]);
+    });
+
+    // Scene heading nodes need a stable id for TOC navigation.
+    if (node.type === 'scene_heading') {
+      const idSource = node.text || content || rawLine;
+      node.id = this._slugify(String(idSource));
+    }
+    return node;
+  }
+
+  _buildLayerNode(marker, content, rawLine, lineNumber) {
+    return {
+      type: 'layer',
+      layerType: marker.id,
+      markerType: marker.type,
+      text: content,
+      label: marker.label,
+      inline: this._parseInlineContent(content),
+      inlineLabel: this._parseInlineContent(content),
+      lineStart: lineNumber + 1,
+      lineEnd: lineNumber + 1,
+      raw: rawLine,
+      style: marker.style,
+      children: []
+    };
   }
 
 
@@ -605,23 +613,6 @@ export class DirectASTBuilder {
   _parseInlineContent(text) {
     if (!text) return [];
     return parseInline(text, this.inlineMarkers);
-  }
-
-  /**
-   * 更新上下文（純 Marker 模式簡化版）
-   * @private
-   */
-  _updateContext(node, context) {
-    if (node.type === 'scene_heading') {
-      context.currentChapter = node;
-      context.currentCharacter = null; // 重置角色
-    } else if (node.type === 'character') {
-      context.currentCharacter = node; // 設定當前角色
-    } else if (node.type === 'blank' || node.type === 'action') { // 空行或動作重置角色
-       // 注意：Action 應該打破對話區塊嗎？Fountain 說 yes.
-      context.currentCharacter = null; 
-    }
-    // Dialogue/Parenthetical 保持 currentCharacter 不變
   }
 
   /**
@@ -644,7 +635,11 @@ export class DirectASTBuilder {
  * @param {Array} markerConfigs - marker 設定
  * @returns {ASTNode} AST 根節點
  */
-export const buildAST = (text, markerConfigs = []) => {
-  const builder = new DirectASTBuilder(markerConfigs);
+export const buildAST = (text, markerConfigs) => {
+  const hasExplicitConfigs = markerConfigs !== undefined && markerConfigs !== null;
+  const effectiveConfigs = hasExplicitConfigs
+    ? normalizeMarkerConfigsSchema(markerConfigs)
+    : normalizeMarkerConfigsSchema(defaultMarkerConfigs);
+  const builder = new DirectASTBuilder(effectiveConfigs);
   return builder.parse(text);
 };

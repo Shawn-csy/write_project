@@ -4,17 +4,28 @@ from sqlalchemy.orm import Session
 import os
 import traceback
 import html
+from urllib.parse import urlparse
 import models
 from dependencies import get_db
 
 router = APIRouter()
 
-# Note: We need a way to reference DIST_DIR/INDEX_PATH which are relative to main.py usually.
-# We will check relative to this file.
-# server/routers/seo.py -> server/routers/ -> server/ -> dist/
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) # server directory
-DIST_DIR = os.path.join(os.path.dirname(BASE_DIR), "dist")
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # /app in container
+
+def _resolve_dist_dir() -> str:
+    # Prefer /app/dist (docker compose mount), fallback to ../dist (local repo root)
+    candidates = [
+        os.path.join(BASE_DIR, "dist"),
+        os.path.join(os.path.dirname(BASE_DIR), "dist"),
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+    return candidates[0]
+
+DIST_DIR = _resolve_dist_dir()
 INDEX_PATH = os.path.join(DIST_DIR, "index.html")
+FRONTEND_DEV_URL = os.getenv("FRONTEND_DEV_URL", "http://localhost:1090").rstrip("/")
 
 @router.get("/read/{script_id}")
 def read_script_seo(script_id: str, request: Request, db: Session = Depends(get_db)):
@@ -63,7 +74,37 @@ def read_script_seo(script_id: str, request: Request, db: Session = Depends(get_
         if not os.path.exists(INDEX_PATH):
             if is_googlebot and script and script.isPublic == 1:
                 return HTMLResponse(content=ssr_html, status_code=200)
-            return HTMLResponse(content="<h1>Development Mode: Build frontend to see SEO tags.</h1><script>window.location.reload()</script>", status_code=200)
+            dev_read_url = f"{FRONTEND_DEV_URL}/read/{script_id}"
+            current_url = str(request.url)
+            current = urlparse(current_url)
+            target = urlparse(dev_read_url)
+            same_origin = (current.scheme, current.netloc) == (target.scheme, target.netloc)
+            same_path = current.path.rstrip("/") == target.path.rstrip("/")
+            # Avoid redirect loops when target is effectively the same route.
+            if dev_read_url.rstrip("/") == current_url.rstrip("/") or (same_origin and same_path):
+                return HTMLResponse(
+                    content=(
+                        "<!doctype html><html><head><meta charset=\"utf-8\"></head><body>"
+                        "<p>Development mode: frontend bundle not found on backend.</p>"
+                        "<p>Current /read route is handled by backend SEO fallback.</p>"
+                        f"<p>Try opening frontend directly: <a href=\"{FRONTEND_DEV_URL}\">{FRONTEND_DEV_URL}</a></p>"
+                        "</body></html>"
+                    ),
+                    status_code=200,
+                )
+
+            return HTMLResponse(
+                content=(
+                    "<!doctype html><html><head><meta charset=\"utf-8\">"
+                    f"<meta http-equiv=\"refresh\" content=\"0;url={dev_read_url}\">"
+                    f"<script>window.location.replace({dev_read_url!r});</script>"
+                    "</head><body>"
+                    "<p>Development mode: redirecting to frontend dev server...</p>"
+                    f"<p><a href=\"{dev_read_url}\">{dev_read_url}</a></p>"
+                    "</body></html>"
+                ),
+                status_code=200,
+            )
             
         with open(INDEX_PATH, "r", encoding="utf-8") as f:
             html_content = f.read()

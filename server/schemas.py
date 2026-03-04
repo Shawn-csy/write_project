@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional, Any, Dict, Union
+from typing_extensions import Literal
 
 # Tag Schemas
 class TagBase(BaseModel):
@@ -67,6 +68,10 @@ class OrganizationInviteRequest(BaseModel):
     userId: Optional[str] = None
     email: Optional[str] = None
 
+
+class OrganizationMemberRoleUpdate(BaseModel):
+    role: Literal["admin", "member"]
+
 class OrganizationRequestCreate(BaseModel):
     orgId: str
 
@@ -84,9 +89,10 @@ class PersonaBase(BaseModel):
     links: List[Dict[str, Any]] = []
     organizationIds: List[str] = []
     tags: List[str] = []
-    defaultLicense: Optional[str] = ""
-    defaultLicenseUrl: Optional[str] = ""
-    defaultLicenseTerms: List[str] = []
+    defaultLicenseCommercial: Optional[str] = ""
+    defaultLicenseDerivative: Optional[str] = ""
+    defaultLicenseNotify: Optional[str] = ""
+    defaultLicenseSpecialTerms: List[str] = []
 
 class PersonaCreate(PersonaBase):
     pass
@@ -96,6 +102,7 @@ class Persona(PersonaBase):
     ownerId: str
     createdAt: int
     updatedAt: int
+    organizationRole: Optional[str] = None
     
     model_config = ConfigDict(from_attributes=True)
 
@@ -109,6 +116,7 @@ class User(UserBase):
     id: str
     settings: Any # JSON parsed
     organizationId: Optional[str] = None
+    organizationIds: List[str] = []
     organization: Optional[Organization] = None
     personas: List[Persona] = []
     
@@ -137,6 +145,7 @@ class UserPublic(BaseModel):
     displayName: Optional[str] = "Anonymous"
     avatar: Optional[str] = None
     website: Optional[str] = None
+    organizationRole: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

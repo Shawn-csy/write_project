@@ -8,11 +8,15 @@ import { FileText, ArrowRightLeft, Building2, Plus, Search, UserCircle, Loader2 
 import { useAuth } from "../contexts/AuthContext";
 import { useI18n } from "../contexts/I18nContext";
 import { 
-    createOrganization, transferOrganizationOwnership, getOrganizations, 
-    getUserScripts, transferScriptOwnership, 
-    getPersonas, transferPersonaOwnership, 
-    searchUsers 
-} from "../lib/db";
+    createOrganization, transferOrganizationOwnership, getOrganizations
+} from "../lib/api/organizations";
+import {
+    getUserScripts, transferScriptOwnership
+} from "../lib/api/scripts";
+import {
+    getPersonas, transferPersonaOwnership
+} from "../lib/api/personas";
+import { searchUsers } from "../lib/api/admin";
 
 export default function SuperAdminPage() {
     const { t } = useI18n();

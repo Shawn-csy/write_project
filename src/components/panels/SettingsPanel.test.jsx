@@ -45,7 +45,7 @@ describe("SettingsPanel", () => {
     useAuth.mockReturnValue({ currentUser: null });
     renderWithRouter(<SettingsPanel onClose={() => {}} />);
 
-    expect(screen.getByText("外觀與閱讀")).toBeDefined();
+    expect(screen.getByRole("button", { name: "外觀與閱讀" })).toBeDefined();
     expect(screen.queryByText("自訂標記")).toBeNull();
     expect(screen.queryByText("身份設定")).toBeNull();
     expect(screen.getByTestId("appearance-settings")).toBeDefined();
@@ -55,11 +55,11 @@ describe("SettingsPanel", () => {
     useAuth.mockReturnValue({ currentUser: { id: "u1" } });
     renderWithRouter(<SettingsPanel onClose={() => {}} />);
 
-    expect(screen.getByText("移轉管理")).toBeDefined();
-    expect(screen.getByText("外觀與閱讀")).toBeDefined();
-    expect(screen.getByText("媒體庫")).toBeDefined();
-    expect(screen.getByText("自訂標記")).toBeDefined();
-    expect(screen.getByText("身份設定")).toBeDefined();
+    expect(screen.getByRole("button", { name: "移轉管理" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "外觀與閱讀" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "媒體庫" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "自訂標記" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "身份設定" })).toBeDefined();
   });
 
   it("uses activeTab and onTabChange callback when controlled", () => {
@@ -75,7 +75,7 @@ describe("SettingsPanel", () => {
 
     expect(screen.getByTestId("marker-settings")).toBeDefined();
 
-    fireEvent.click(screen.getByText("身份設定"));
+    fireEvent.click(screen.getByRole("button", { name: "身份設定" }));
     expect(onTabChange).toHaveBeenCalledWith("profile");
   });
 

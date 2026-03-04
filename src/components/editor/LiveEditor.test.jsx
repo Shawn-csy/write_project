@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import LiveEditor from './LiveEditor';
 import { useSettings } from '../../contexts/SettingsContext';
 
@@ -12,7 +13,7 @@ vi.mock('../../contexts/SettingsContext', () => ({
   useSettings: vi.fn()
 }));
 
-vi.mock('../../lib/db', () => ({
+vi.mock('../../lib/api/scripts', () => ({
   getScript: vi.fn(),
   updateScript: vi.fn()
 }));
@@ -48,16 +49,24 @@ describe('LiveEditor', () => {
     });
 
     it('should show loading state initially', async () => {
-        const { getScript } = await import('../../lib/db');
+        const { getScript } = await import('../../lib/api/scripts');
         getScript.mockImplementationOnce(() => new Promise(() => {}));
-        const { container } = render(<LiveEditor scriptId="123" />);
+        const { container } = render(
+            <MemoryRouter>
+                <LiveEditor scriptId="123" />
+            </MemoryRouter>
+        );
         // Look for the animate-spin class which is on the Loader2 icon
         expect(container.querySelector('.animate-spin')).toBeInTheDocument();
     });
 
     it('should render the editor and header when data is loaded', () => {
         const initialData = { id: '123', title: 'Test Script', content: 'INT. ROOM - DAY' };
-        render(<LiveEditor scriptId="123" initialData={initialData} />);
+        render(
+            <MemoryRouter>
+                <LiveEditor scriptId="123" initialData={initialData} />
+            </MemoryRouter>
+        );
         
         expect(screen.getByText('Test Script')).toBeInTheDocument();
         expect(screen.getByTestId('codemirror')).toBeInTheDocument();

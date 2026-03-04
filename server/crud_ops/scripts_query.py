@@ -5,6 +5,15 @@ from sqlalchemy.orm import Session
 
 import models
 from .common import _ensure_list
+from .organizations_query import get_persona_org_ids
+
+
+def _normalize_persona_for_public(db: Session, persona):
+    if not persona:
+        return
+    persona.tags = _ensure_list(persona.tags)
+    persona.organizationIds = get_persona_org_ids(db, persona)
+    persona.defaultLicenseSpecialTerms = _ensure_list(persona.defaultLicenseSpecialTerms)
 
 
 def get_scripts(db: Session, ownerId: str):
@@ -97,9 +106,7 @@ def get_public_scripts(
 
         for s in results:
             if s.persona:
-                s.persona.tags = _ensure_list(s.persona.tags)
-                s.persona.organizationIds = _ensure_list(s.persona.organizationIds)
-                s.persona.defaultLicenseTerms = _ensure_list(s.persona.defaultLicenseTerms)
+                _normalize_persona_for_public(db, s.persona)
             if s.organization:
                 s.organization.tags = _ensure_list(s.organization.tags)
         return results
@@ -108,9 +115,7 @@ def get_public_scripts(
         results = base_q.filter(models.Script.ownerId == ownerId).order_by(models.Script.lastModified.desc()).all()
         for s in results:
             if s.persona:
-                s.persona.tags = _ensure_list(s.persona.tags)
-                s.persona.organizationIds = _ensure_list(s.persona.organizationIds)
-                s.persona.defaultLicenseTerms = _ensure_list(s.persona.defaultLicenseTerms)
+                _normalize_persona_for_public(db, s.persona)
             if s.organization:
                 s.organization.tags = _ensure_list(s.organization.tags)
         return results
@@ -129,9 +134,7 @@ def get_public_scripts(
             continue
 
         if s.persona:
-            s.persona.tags = _ensure_list(s.persona.tags)
-            s.persona.organizationIds = _ensure_list(s.persona.organizationIds)
-            s.persona.defaultLicenseTerms = _ensure_list(s.persona.defaultLicenseTerms)
+            _normalize_persona_for_public(db, s.persona)
         if s.organization:
             s.organization.tags = _ensure_list(s.organization.tags)
 

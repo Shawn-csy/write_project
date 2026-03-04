@@ -7,9 +7,9 @@ import { useAppNavigation } from "./hooks/useAppNavigation";
 import { useI18n } from "./contexts/I18nContext";
 
 import { MetaTags } from "./components/common/MetaTags.jsx";
-import { useScriptActions } from "./hooks/useScriptActions";
+import { useReaderScriptActions } from "./hooks/useScriptActions";
 import { useInitialScroll } from "./hooks/useInitialScroll";
-import { updateScript } from "./lib/db";
+import { updateScript } from "./lib/api/scripts";
 
 import { ScriptViewProvider } from "./contexts/ScriptViewContext";
 
@@ -17,12 +17,7 @@ import { ScriptViewProvider } from "./contexts/ScriptViewContext";
 import { useTextLocator } from "./hooks/useTextLocator";
 import { GlobalListeners } from "./components/common/GlobalListeners";
 import { AppRouter } from "./AppRouter";
-import {
-  exportScriptAsCsv,
-  exportScriptAsDocx,
-  exportScriptAsFountain,
-  exportScriptAsXlsx,
-} from "./lib/scriptExport";
+import { loadBasicScriptExport, loadXlsxScriptExport } from "./lib/scriptExportLoader";
 
 function App() {
   // 1. Contexts
@@ -77,7 +72,7 @@ function App() {
   const { contentScrollRef, handleLocateText } = useTextLocator(rawScript);
   
   useInitialScroll(sceneList, initialParamsRef, setCurrentSceneId, setScrollSceneId);
-  const { handleExportPdf, handleShareUrl, shareCopied } = useScriptActions({
+  const { handleExportPdf, handleShareUrl, shareCopied } = useReaderScriptActions({
       exportMode, accentConfig, 
       processedScriptHtml: scriptManager.processedScriptHtml, 
       rawScriptHtml: scriptManager.rawScriptHtml, 
@@ -159,28 +154,40 @@ function App() {
       id: "fountain",
       label: t("publicReader.downloadFountain"),
       icon: FileCode2,
-      onClick: () => exportScriptAsFountain(exportTitle, exportContent),
+      onClick: async () => {
+        const { exportScriptAsFountain } = await loadBasicScriptExport();
+        exportScriptAsFountain(exportTitle, exportContent);
+      },
       disabled: !exportContent,
     },
     {
       id: "docx",
       label: t("publicReader.downloadDoc"),
       icon: FileText,
-      onClick: () => exportScriptAsDocx(exportTitle, { text: exportContent, renderedHtml: renderedExportHtml }),
+      onClick: async () => {
+        const { exportScriptAsDocx } = await loadBasicScriptExport();
+        await exportScriptAsDocx(exportTitle, { text: exportContent, renderedHtml: renderedExportHtml });
+      },
       disabled: !exportContent,
     },
     {
       id: "xlsx",
       label: t("publicReader.downloadXlsx"),
       icon: FileSpreadsheet,
-      onClick: () => exportScriptAsXlsx(exportTitle, { text: exportContent, renderedHtml: renderedExportHtml }),
+      onClick: async () => {
+        const { exportScriptAsXlsx } = await loadXlsxScriptExport();
+        await exportScriptAsXlsx(exportTitle, { text: exportContent, renderedHtml: renderedExportHtml });
+      },
       disabled: !exportContent,
     },
     {
       id: "csv",
       label: t("publicReader.downloadCsv"),
       icon: FileSpreadsheet,
-      onClick: () => exportScriptAsCsv(exportTitle, { text: exportContent, renderedHtml: renderedExportHtml }),
+      onClick: async () => {
+        const { exportScriptAsCsv } = await loadBasicScriptExport();
+        exportScriptAsCsv(exportTitle, { text: exportContent, renderedHtml: renderedExportHtml });
+      },
       disabled: !exportContent,
     },
   ];
@@ -247,8 +254,6 @@ function App() {
           
           activeFile={null}
           activeCloudScript={activeCloudScript}
-          files={scriptManager.files}
-          fileTitleMap={scriptManager.fileTitleMap}
           fileTagsMap={scriptManager.fileTagsMap}
        />
     </ScriptViewProvider>

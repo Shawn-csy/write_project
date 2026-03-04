@@ -6,9 +6,10 @@ export function ScriptViewProvider({ scriptManager, children }) {
   const value = useMemo(() => {
     return {
       markerConfigs: scriptManager?.effectiveMarkerConfigs || [],
-      setOverrideMarkerConfigs: scriptManager?.setOverrideMarkerConfigs
+      setOverrideMarkerConfigs: scriptManager?.setOverrideMarkerConfigs,
+      setScopedMarkerConfigs: scriptManager?.setScopedMarkerConfigs
     };
-  }, [scriptManager?.effectiveMarkerConfigs, scriptManager?.setOverrideMarkerConfigs]);
+  }, [scriptManager?.effectiveMarkerConfigs, scriptManager?.setOverrideMarkerConfigs, scriptManager?.setScopedMarkerConfigs]);
 
   return (
     <ScriptViewContext.Provider value={value}>

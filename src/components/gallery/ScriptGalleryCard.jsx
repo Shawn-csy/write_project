@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Badge } from "../ui/badge";
 import { Card } from "../ui/card";
 import { Eye, Heart } from "lucide-react";
-import { toggleScriptLike, incrementScriptView } from "../../lib/db";
+import { toggleScriptLike, incrementScriptView } from "../../lib/api/scripts";
 import { AuthorBadge } from "../ui/AuthorBadge";
+import { CoverPlaceholder } from "../ui/CoverPlaceholder";
 
 export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
   const navigate = useNavigate();
@@ -79,9 +80,7 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
                   loading="lazy"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center bg-secondary/30 text-muted-foreground text-xs px-2 text-center">
-                  {title}
-                </div>
+                <CoverPlaceholder title={title} compact />
               )}
             </div>
           </div>
@@ -129,9 +128,7 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
             loading="lazy"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-secondary/30 text-muted-foreground p-4 text-center">
-            <span className="text-lg font-serif italic opacity-50">{title}</span>
-          </div>
+          <CoverPlaceholder title={title} compact />
         )}
         
         {/* Overlay */}

@@ -4,11 +4,12 @@ import { Helmet } from "react-helmet-async";
 import { Link as LinkIcon, Building2, Globe, Twitter, Instagram, Youtube, Github } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { ScriptGalleryCard } from "../components/gallery/ScriptGalleryCard";
-import { getPublicPersona, getPublicScripts } from "../lib/db";
+import { getPublicPersona, getPublicScripts } from "../lib/api/public";
 import { getSeriesInfoFromContent } from "../lib/series";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { getMorandiTagStyle } from "../lib/tagColors";
 import { useI18n } from "../contexts/I18nContext";
+import { CoverPlaceholder } from "../components/ui/CoverPlaceholder";
 
 export default function AuthorProfilePage() {
   const { t } = useI18n();
@@ -234,7 +235,9 @@ export default function AuthorProfilePage() {
                         <div className="h-14 w-10 shrink-0 overflow-hidden rounded border border-border/50 bg-muted">
                           {series.coverUrl ? (
                             <img src={series.coverUrl} alt={series.name} className="h-full w-full object-cover" loading="lazy" />
-                          ) : null}
+                          ) : (
+                            <CoverPlaceholder title={series.name} compact />
+                          )}
                         </div>
                         <div className="min-w-0">
                           <p className="line-clamp-1 text-sm font-semibold text-foreground group-hover:text-primary">{series.name}</p>

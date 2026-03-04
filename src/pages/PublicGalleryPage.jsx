@@ -10,13 +10,14 @@ import { Button } from "../components/ui/button";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { PublicHeroMarquee } from "../components/public/PublicHeroMarquee";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../components/ui/sheet";
-import { getPublicBundle } from "../lib/db";
+import { getPublicBundle } from "../lib/api/public";
 import { extractMetadataWithRaw } from "../lib/metadataParser";
-import { deriveUsageRights, deriveCcLicenseTags } from "../lib/licenseRights";
+import { deriveSimpleLicenseTags, parseBasicLicenseFromMeta } from "../lib/licenseRights";
 import { normalizeSeriesName, parseSeriesOrder } from "../lib/series";
 import { useI18n } from "../contexts/I18nContext";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../components/ui/alert-dialog";
 import { SlidersHorizontal } from "lucide-react";
+import { CoverPlaceholder } from "../components/ui/CoverPlaceholder";
 
 const SEGMENT_KEYS = {
   all: "all",
@@ -192,10 +193,11 @@ export default function PublicGalleryPage() {
           } catch {
               meta = {};
           }
+          const basicLicense = parseBasicLicenseFromMeta(meta);
           const license = meta.license || meta.licenseName || "";
           const seriesName = normalizeSeriesName(script.series?.name || meta.series || meta.seriesname);
           const seriesOrder = parseSeriesOrder(script.seriesOrder ?? meta.seriesorder ?? meta.episode);
-          let terms = meta.licenseterms || meta.licenseTerms || "";
+          let terms = meta.licensespecialterms || meta.licenseSpecialTerms || "";
           let licenseTagsFromMeta = meta.licensetags || meta.licenseTags || [];
           if (typeof terms === "string") {
               try {
@@ -216,20 +218,18 @@ export default function PublicGalleryPage() {
           }
           if (!Array.isArray(licenseTagsFromMeta)) licenseTagsFromMeta = [];
           const termsText = Array.isArray(terms) ? terms.join(" ") : String(terms || "");
-          const rights = deriveUsageRights(license, termsText);
           const licenseTags = Array.from(new Set([
-            ...deriveCcLicenseTags(license),
+            ...deriveSimpleLicenseTags(basicLicense),
             ...licenseTagsFromMeta
           ]));
           const mergedTags = Array.from(new Set([...(script.tags || []), ...licenseTags]));
           return {
               ...script,
               tags: mergedTags,
-              _licenseText: String(license || ""),
+              _licenseText: [license, ...licenseTags].filter(Boolean).join(" "),
               _licenseTermsText: termsText,
               _derivedLicenseTags: licenseTags,
-              _allowCommercial: rights.allowCommercial,
-              _isFreeToUse: rights.isFreeToUse,
+              _allowCommercial: basicLicense.commercialUse === "allow",
               _seriesName: seriesName,
               _seriesOrder: seriesOrder,
               seriesName,
@@ -256,7 +256,6 @@ export default function PublicGalleryPage() {
       const matchesUsage =
           usageFilter === "all" ? true :
           usageFilter === "commercial" ? script._allowCommercial === true :
-          usageFilter === "free" ? script._isFreeToUse === true :
           true;
       return matchesSearch && matchesTag && matchesSegment && matchesUsage;
   }).sort((a, b) => {
@@ -354,7 +353,6 @@ export default function PublicGalleryPage() {
   const usageOptions = useMemo(() => ([
     { value: "all", label: t("publicGallery.usageAll") },
     { value: "commercial", label: t("publicGallery.usageCommercial") },
-    { value: "free", label: t("publicGallery.usageFree") },
   ]), [t]);
   const allAuthorTags = Array.from(new Set(authors.flatMap(a => a.tags || [])));
   const allOrgTags = Array.from(new Set(orgs.flatMap(o => o.tags || [])));
@@ -609,9 +607,7 @@ export default function PublicGalleryPage() {
                                       loading="lazy"
                                     />
                                   ) : (
-                                    <div className="flex h-full w-full items-center justify-center px-3 text-center text-sm text-muted-foreground">
-                                      {series.name}
-                                    </div>
+                                    <CoverPlaceholder title={series.name} compact />
                                   )}
                                 </div>
                                 <div className="pt-2">

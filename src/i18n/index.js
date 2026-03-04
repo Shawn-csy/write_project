@@ -4,7 +4,7 @@ export const DEFAULT_LANG = "zh-TW";
 export const SUPPORTED_LANGS = ["zh-TW", "en", "ja"];
 
 const localeLoaders = {
-  "zh-TW": () => import("./locales/zh-TW.js"),
+  "zh-TW": async () => ({ default: zhTW }),
   en: () => import("./locales/en.js"),
   ja: () => import("./locales/ja.js"),
 };

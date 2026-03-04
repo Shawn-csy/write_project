@@ -24,23 +24,17 @@ import {
     SortableContext, 
     verticalListSortingStrategy
 } from '@dnd-kit/sortable';
-import { updateScript, getScript } from "../../../lib/db"; // Needed for inline theme update? or pass handler? 
-// Passed handler is better but for now keep consistent with original logic mix
-
-import { ScriptMetadataDialog } from "../../dashboard/ScriptMetadataDialog"; // Adjust path as needed
+import { updateScript, getScript } from "../../../lib/api/scripts";
+import { ScriptMetadataDialog } from "../../dashboard/ScriptMetadataDialog";
 import { extractMetadata } from "../../../lib/metadataParser";
 import { buildFilename, downloadText } from "../../../lib/download";
+import { isDefaultLikeTheme } from "../../../lib/themeNameUtils";
 import { useI18n } from "../../../contexts/I18nContext";
 
 // Helper: assureContent
 async function assureContent(item) {
     if (item.content !== undefined && item.content !== null) return item.content;
     try {
-        // We need getScript but it's not imported. 
-        // Ideally this logic should be in hook or passed down.
-        // For refactoring speed, we will assume content is loaded or handle in parent.
-        // Actually the original component imported getScript. 
-        // Let's import it here for the download button.
         const full = await getScript(item.id);
         return full.content || "";
     } catch (e) {
@@ -94,6 +88,17 @@ export function ScriptList({
             if (theme?.id) map[theme.id] = theme.name || t("scriptList.theme");
         });
         return map;
+    }, [markerThemes, t]);
+    const selectableMarkerThemes = useMemo(() => {
+        const unique = [];
+        const seen = new Set();
+        (markerThemes || []).forEach((theme) => {
+            if (!theme?.id || seen.has(theme.id)) return;
+            seen.add(theme.id);
+            unique.push(theme);
+        });
+        const custom = unique.filter((theme) => !isDefaultLikeTheme(theme));
+        return [{ id: "default", name: t("scriptList.defaultTheme") }, ...custom];
     }, [markerThemes, t]);
 
     const enrichedItems = useMemo(() => {
@@ -287,9 +292,9 @@ export function ScriptList({
                                                     name={`scriptTheme-${item.id}`}
                                                     aria-label={t("scriptList.scriptMarkerTheme")}
                                                     className="w-full h-6 text-[10px] rounded border border-input bg-background px-1"
-                                                    value={item.markerThemeId || ""}
+                                                    value={item.markerThemeId || "default"}
                                                     onChange={async (e) => {
-                                                        const newVal = e.target.value;
+                                                        const newVal = e.target.value || "default";
                                                         try {
                                                             setScripts(prev => prev.map(s => s.id === item.id ? { ...s, markerThemeId: newVal } : s));
                                                             await updateScript(item.id, { markerThemeId: newVal });
@@ -298,8 +303,7 @@ export function ScriptList({
                                                         }
                                                     }}
                                                 >
-                                                    <option value="">{t("scriptList.defaultShort")}</option>
-                                                    {markerThemes.map(t => (
+                                                    {selectableMarkerThemes.map(t => (
                                                         <option key={t.id} value={t.id}>{t.name}</option>
                                                     ))}
                                                 </select>
@@ -347,10 +351,10 @@ export function ScriptList({
                                                                 </DropdownMenuSubTrigger>
                                                                 <DropdownMenuSubContent>
                                                                     <DropdownMenuRadioGroup 
-                                                                        value={item.markerThemeId || ""} 
+                                                                        value={item.markerThemeId || "default"} 
                                                                         onValueChange={async (val) => {
                                                                              try {
-                                                                                const newVal = val === "__default__" ? "" : val;
+                                                                                const newVal = val === "__default__" ? "default" : val;
                                                                                 setScripts(prev => prev.map(s => s.id === item.id ? { ...s, markerThemeId: newVal } : s));
                                                                                 await updateScript(item.id, { markerThemeId: newVal });
                                                                             } catch(err) {
@@ -358,10 +362,7 @@ export function ScriptList({
                                                                             }
                                                                         }}
                                                                     >
-                                                                        <DropdownMenuRadioItem value="__default__">
-                                                                            {t("scriptList.defaultTheme")}
-                                                                        </DropdownMenuRadioItem>
-                                                                        {markerThemes.map(t => (
+                                                                        {selectableMarkerThemes.map(t => (
                                                                             <DropdownMenuRadioItem key={t.id} value={t.id}>
                                                                                 {t.name}
                                                                             </DropdownMenuRadioItem>
