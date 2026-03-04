@@ -14,11 +14,11 @@ export const RangeNode = ({ node, context, NodeRenderer }) => {
     }
 
     const style = node.style || {};
-    
+
     // 分離文字樣式與容器樣式，避免內容繼承 Header 的文字屬性（如顏色、字重）
     const { 
         color, fontWeight, fontStyle, textDecoration, fontSize, lineHeight,
-        ...containerOnlyStyle 
+        ...containerOnlyStyle
     } = style;
 
     // 連接線樣式：優先使用 borderLeft，若無則使用 color 當作邊框色
@@ -38,16 +38,12 @@ export const RangeNode = ({ node, context, NodeRenderer }) => {
     };
 
     return (
-        <div 
+        <div
             className={`range-node ${node.rangeGroupId}-range my-2 relative`}
             style={{
-                ...containerOnlyStyle,
-                // 如果 config 有指定 borderLeft，直接用它的；否則如果只有 color，我們手動加上 borderLeft
+                // 只保留結構用樣式，避免整段內容被 marker 容器樣式覆蓋。
                 borderLeft: containerOnlyStyle.borderLeft || `2px solid ${borderColor}`,
                 paddingLeft: containerOnlyStyle.paddingLeft || '8px',
-                // 背景色應用在整個區間
-                backgroundColor: containerOnlyStyle.backgroundColor,
-                // 減少外距，讓巢狀更緊湊
                 marginLeft: '4px'
             }}
         >
@@ -55,8 +51,8 @@ export const RangeNode = ({ node, context, NodeRenderer }) => {
             {node.startNode && (() => {
                 // 如果是 pause 節點且 label 為空，不顯示
                 const isPauseStart = node.startNode.rangeRole === 'pause';
-                const hasLabel = node.startNode.label && node.startNode.label.trim() !== '';
-                if (isPauseStart && !hasLabel) return null;
+                const hasPauseText = node.startNode.text && node.startNode.text.trim() !== '';
+                if (isPauseStart && !hasPauseText) return null;
                 
                 return (
                     <div className="range-header">
@@ -81,8 +77,8 @@ export const RangeNode = ({ node, context, NodeRenderer }) => {
             {node.endNode && (() => {
                 // 如果是 pause 節點且 label 為空，不顯示
                 const isPauseEnd = node.endNode.rangeRole === 'pause';
-                const hasLabel = node.endNode.label && node.endNode.label.trim() !== '';
-                if (isPauseEnd && !hasLabel) return null;
+                const hasPauseText = node.endNode.text && node.endNode.text.trim() !== '';
+                if (isPauseEnd && !hasPauseText) return null;
                 
                 return (
                     <div className="range-footer">

@@ -1,6 +1,6 @@
 import { useSettings } from "../contexts/SettingsContext";
 import { useScriptData } from "./write/useScriptData";
-import { useScriptActions } from "./write/useScriptActions";
+import { useWriteScriptActions } from "./write/useScriptActions";
 import { useScriptDragDrop } from "./write/useScriptDragDrop";
 
 export function useWriteTab(refreshTrigger, options = {}) {
@@ -10,7 +10,7 @@ export function useWriteTab(refreshTrigger, options = {}) {
     const data = useScriptData(refreshTrigger);
     
     // 2. Actions
-    const actions = useScriptActions({ 
+    const actions = useWriteScriptActions({ 
         scripts: data.scripts, 
         setScripts: data.setScripts, 
         currentPath: data.currentPath, 

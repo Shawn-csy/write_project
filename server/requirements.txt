@@ -7,4 +7,3 @@ firebase-admin>=6.5.0
 slowapi>=0.1.9
 pytest
 httpx
-httpx

@@ -13,9 +13,8 @@ import {
 } from "../../ui/dialog";
 import { ScrollArea } from "../../ui/scroll-area";
 import { useSettings } from "../../../contexts/SettingsContext";
-import { getPublicThemes } from "../../../lib/db";
-import { normalizeThemeConfigs } from "../../../lib/markerThemeCodec";
 import { useI18n } from "../../../contexts/I18nContext";
+import { usePublicThemes } from "../../../hooks/usePublicThemes";
 
 function formatDate(ts, unknownText) {
   if (!ts) return unknownText;
@@ -28,35 +27,26 @@ export function PublicThemeDialog() {
   const { t } = useI18n();
   const { copyPublicTheme, deleteTheme, currentUser } = useSettings();
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
-  const [themes, setThemes] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [feedback, setFeedback] = useState("");
   const [copiedThemeIds, setCopiedThemeIds] = useState([]);
+  const { themes, loading, error: loadError, refresh, removeThemeById } = usePublicThemes({ t });
 
   useEffect(() => {
     if (!open) return;
-    setLoading(true);
     setFeedback("");
-    getPublicThemes()
-      .then((data) => {
-        const normalized = Array.isArray(data)
-          ? data.map((theme) => ({
-              ...theme,
-              configs: normalizeThemeConfigs(theme.configs),
-            }))
-          : [];
-        setThemes(normalized);
-        setActiveId(normalized[0]?.id || null);
-      })
-      .catch(() => {
-        setThemes([]);
-        setFeedback(t("publicThemeDialog.loadFailed"));
-      })
-      .finally(() => setLoading(false));
-  }, [open, t]);
+    refresh().then((normalized) => {
+      setActiveId(normalized[0]?.id || null);
+    });
+  }, [open, refresh]);
+
+  useEffect(() => {
+    if (loadError) {
+      setFeedback(t("publicThemeDialog.loadFailed"));
+    }
+  }, [loadError, t]);
 
   const filtered = useMemo(() => {
     const kw = query.trim().toLowerCase();
@@ -105,7 +95,7 @@ export function PublicThemeDialog() {
     if (!deleteTarget) return;
     try {
       await deleteTheme(deleteTarget.id);
-      setThemes((prev) => prev.filter((t) => t.id !== deleteTarget.id));
+      removeThemeById(deleteTarget.id);
       setFeedback(t("publicThemeDialog.deleteSuccess"));
     } catch {
       setFeedback(t("publicThemeDialog.deleteFailed"));

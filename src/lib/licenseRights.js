@@ -55,9 +55,35 @@ function hasAffirmativeFree(text) {
   ]);
 }
 
-export function deriveUsageRights(licenseRaw, termsRaw) {
+function normalizeCommercialChoice(value) {
+  const raw = String(value || "").toLowerCase().trim();
+  if (!raw) return "";
+  if (["allow", "yes", "true", "可商用", "允許", "commercial"].includes(raw)) return "allow";
+  if (["disallow", "no", "false", "不可商用", "禁止", "non-commercial", "noncommercial"].includes(raw)) return "disallow";
+  return "";
+}
+
+function normalizeDerivativeChoice(value) {
+  const raw = String(value || "").toLowerCase().trim();
+  if (!raw) return "";
+  if (["allow", "yes", "true", "可改作", "允許", "derivative"].includes(raw)) return "allow";
+  if (["disallow", "no", "false", "不可改作", "禁止", "nd", "no-derivatives"].includes(raw)) return "disallow";
+  if (["limited", "limited-allow", "限定改作", "限縮改作", "有條件改作"].includes(raw)) return "limited";
+  return "";
+}
+
+function normalizeNotifyChoice(value) {
+  const raw = String(value || "").toLowerCase().trim();
+  if (!raw) return "";
+  if (["true", "yes", "required", "需要", "需告知", "must-notify"].includes(raw)) return "required";
+  if (["false", "no", "optional", "不需要", "無需告知", "no-notify"].includes(raw)) return "not_required";
+  return "";
+}
+
+export function deriveUsageRights(licenseRaw, termsRaw, commercialRaw = "") {
   const { isCc, cc0, hasNc, normalized: license } = parseCcFlags(licenseRaw);
   const terms = String(termsRaw || "").toLowerCase();
+  const normalizedCommercial = normalizeCommercialChoice(commercialRaw);
 
   const termDenyCommercial = hasAny(terms, [
     "禁止商用",
@@ -85,6 +111,9 @@ export function deriveUsageRights(licenseRaw, termsRaw) {
 
   let allowCommercial = null;
   let isFreeToUse = null;
+
+  if (normalizedCommercial === "allow") allowCommercial = true;
+  else if (normalizedCommercial === "disallow") allowCommercial = false;
 
   // Custom terms override
   if (termAllowCommercial && !termDenyCommercial) allowCommercial = true;
@@ -122,4 +151,30 @@ export function deriveCcLicenseTags(licenseRaw) {
       : "授權:可改作";
 
   return [attributionTag, commercialTag, derivativeTag];
+}
+
+export function deriveSimpleLicenseTags({
+  commercialUse = "",
+  derivativeUse = "",
+  notifyOnModify = "",
+} = {}) {
+  const commercial = normalizeCommercialChoice(commercialUse);
+  const derivative = normalizeDerivativeChoice(derivativeUse);
+  const notify = normalizeNotifyChoice(notifyOnModify);
+  const tags = [];
+  if (commercial === "allow") tags.push("授權:可商用");
+  if (commercial === "disallow") tags.push("授權:不可商用");
+  if (derivative === "allow") tags.push("授權:可改作");
+  if (derivative === "disallow") tags.push("授權:不可改作");
+  if (derivative === "limited") tags.push("授權:限定改作");
+  if (notify === "required") tags.push("授權:修改需告知");
+  if (notify === "not_required") tags.push("授權:修改免告知");
+  return tags;
+}
+
+export function parseBasicLicenseFromMeta(meta = {}) {
+  const commercialUse = normalizeCommercialChoice(meta.licensecommercial || meta.licenseCommercial);
+  const derivativeUse = normalizeDerivativeChoice(meta.licensederivative || meta.licenseDerivative);
+  const notifyOnModify = normalizeNotifyChoice(meta.licensenotify || meta.licenseNotify);
+  return { commercialUse, derivativeUse, notifyOnModify };
 }

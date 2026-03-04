@@ -1,80 +1,167 @@
-import React, { useState, useMemo, useCallback } from "react";
-import { Loader2, ClipboardPaste, FileText, Eye, Wand2, CheckCircle2 } from "lucide-react";
+import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { Loader2, ClipboardPaste, FileText, Eye, CheckCircle2, CircleHelp } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
+import { Textarea } from "../../ui/textarea";
+import { Label } from "../../ui/label";
+import { Switch } from "../../ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "../../ui/dialog";
 import { ScrollArea } from "../../ui/scroll-area";
-import { useSettings } from "../../../contexts/SettingsContext";
 import { useToast } from "../../ui/toast";
 import { useI18n } from "../../../contexts/I18nContext";
+import { ScriptRenderer } from "../../renderer/ScriptRenderer";
+import { SpotlightGuideOverlay } from "../../common/SpotlightGuideOverlay";
 
 // Sub-components
 import { ImportStageInput } from "./import/ImportStageInput";
 import { ImportStagePreview } from "./import/ImportStagePreview";
-import { ImportStageConfigure } from "./import/ImportStageConfigure";
 
 // 三階段處理流程 (純 Marker 模式)
 import { preprocess } from "../../../lib/importPipeline/textPreprocessor.js";
-import { discoverMarkers, MarkerDiscoverer } from "../../../lib/importPipeline/markerDiscoverer.js";
-import { buildAST } from "../../../lib/importPipeline/directASTBuilder.js";
 import { extractMetadata } from "../../../lib/importPipeline/metadataExtractor.js";
+import { parseScreenplay } from "../../../lib/screenplayAST";
+import { getDefaultMarkerRules } from "../../../constants/defaultMarkerRules";
 
 const STEPS = {
     INPUT: 'input',       // 貼入文本
     PREVIEW: 'preview',   // 預處理預覽
-    CONFIGURE: 'configure', // 設定選擇
     RESULT: 'result'      // 結果確認
 };
+const GUIDE_STORAGE_KEY = "import-guide-seen-v1";
 
-const MAX_IMPORT_FILE_BYTES = 5 * 1024 * 1024;
-const MAX_IMPORT_FILE_MB = Math.round(MAX_IMPORT_FILE_BYTES / (1024 * 1024));
+const MAX_IMPORT_FILE_MB = 5;
+const SCRIPT_INFO_FIELDS = ["Title", "Author", "Description", "Tags", "Rating", "Duration", "Source"];
+
+const pickDefaultScriptInfo = (input = {}) => {
+    const next = {};
+    for (const key of SCRIPT_INFO_FIELDS) {
+        const value = input?.[key];
+        if (typeof value === "string" && value.trim()) {
+            next[key] = value.trim();
+        }
+    }
+    return next;
+};
+
+const normalizeNameKey = (name = "") => name.trim().toLowerCase();
+
+const parseCharacterNames = (raw = "") => {
+    return String(raw)
+        .split(/\r?\n|,|，|、/)
+        .map((v) => v.trim())
+        .filter(Boolean);
+};
+
+const applyWholeLineCharacterTagging = (text = "", characterNames = []) => {
+    if (!text) return text;
+    if (!Array.isArray(characterNames) || characterNames.length === 0) return text;
+
+    const nameMap = new Map();
+    characterNames.forEach((name) => {
+        const key = normalizeNameKey(name);
+        if (key && !nameMap.has(key)) nameMap.set(key, name);
+    });
+    if (nameMap.size === 0) return text;
+
+    return String(text)
+        .split("\n")
+        .map((line) => {
+            const trimmed = line.trim();
+            if (!trimmed) return line;
+            if (/^#C\b/i.test(trimmed)) return line;
+            const hit = nameMap.get(normalizeNameKey(trimmed));
+            if (!hit) return line;
+            return `#C ${hit}`;
+        })
+        .join("\n");
+};
+
+const autoRemoveWhitespace = (text = "") => {
+    return String(text || "")
+        .split("\n")
+        .map((line) => line.replace(/\s+$/g, ""))
+        .filter((line) => line.trim().length > 0)
+        .join("\n")
+        .trim();
+};
 
 export function ImportScriptDialog({
     open,
     onOpenChange,
     onImport,
-    currentPath,
-    existingMarkerConfigs = [],
-    cloudConfigs = []
+    currentPath
 }) {
     const { t } = useI18n();
     const [step, setStep] = useState(STEPS.INPUT);
     const [rawInput, setRawInput] = useState("");
     const [title, setTitle] = useState("");
-    const [metadataInput, setMetadataInput] = useState(""); // Metadata 貼上區
+    const [autoCharacterWholeLine, setAutoCharacterWholeLine] = useState(false);
+    const [characterNamesInput, setCharacterNamesInput] = useState("");
     const [importing, setImporting] = useState(false);
-    const [isReadingFile, setIsReadingFile] = useState(false);
-    const [fileUploadError, setFileUploadError] = useState("");
+    const [showGuide, setShowGuide] = useState(false);
+    const [guideIndex, setGuideIndex] = useState(0);
+    const [spotlightRect, setSpotlightRect] = useState(null);
     const { toast } = useToast();
+    const guidePasteRef = useRef(null);
+    const guideCharacterRef = useRef(null);
+    const guidePreviewRef = useRef(null);
+    const guideResultRef = useRef(null);
     
     // 處理結果
     const [preprocessResult, setPreprocessResult] = useState(null);
-    const [discoveryResult, setDiscoveryResult] = useState(null);
-    const [metadata, setMetadata] = useState({}); // New State
-    
-    // Config State
-    const [selectedConfigId, setSelectedConfigId] = useState('auto');
-    const [activeRules, setActiveRules] = useState([]);
-    const [showSaveAlert, setShowSaveAlert] = useState(false); // Save Prompt
-    
-    // Result State
-    const [ast, setAst] = useState(null);
+    const [metadata, setMetadata] = useState({});
+    const previewMarkerConfigs = getDefaultMarkerRules();
+    const previewAst = preprocessResult?.cleanedText
+        ? parseScreenplay(preprocessResult.cleanedText, previewMarkerConfigs).ast
+        : null;
+    const guideSteps = [
+        {
+            title: t("importDialog.guideStepPasteTitle"),
+            description: t("importDialog.guideStepPasteDesc"),
+            step: STEPS.INPUT,
+            focus: "paste",
+        },
+        {
+            title: t("importDialog.guideStepCharacterTitle"),
+            description: t("importDialog.guideStepCharacterDesc"),
+            step: STEPS.INPUT,
+            focus: "character",
+        },
+        {
+            title: t("importDialog.guideStepPreviewTitle"),
+            description: t("importDialog.guideStepPreviewDesc"),
+            step: STEPS.PREVIEW,
+            focus: "preview",
+        },
+        {
+            title: t("importDialog.guideStepConfirmTitle"),
+            description: t("importDialog.guideStepConfirmDesc"),
+            step: STEPS.RESULT,
+            focus: "result",
+        },
+    ];
+    const currentGuide = showGuide ? guideSteps[guideIndex] : null;
+    const currentGuideTargetRef = useMemo(() => {
+        if (!currentGuide) return null;
+        if (currentGuide.focus === "paste") return guidePasteRef;
+        if (currentGuide.focus === "character") return guideCharacterRef;
+        if (currentGuide.focus === "preview") return guidePreviewRef;
+        if (currentGuide.focus === "result") return guideResultRef;
+        return null;
+    }, [currentGuide]);
     
     // 重置狀態
     const resetState = useCallback(() => {
         setStep(STEPS.INPUT);
         setRawInput("");
         setTitle("");
-        setMetadataInput("");
-        setIsReadingFile(false);
-        setFileUploadError("");
+        setAutoCharacterWholeLine(false);
+        setCharacterNamesInput("");
         setPreprocessResult(null);
-        setDiscoveryResult(null);
         setMetadata({});
-        setSelectedConfigId('auto');
-        setActiveRules([]);
-        setShowSaveAlert(false);
-        setAst(null);
+        setShowGuide(false);
+        setGuideIndex(0);
+        setSpotlightRect(null);
     }, []);
     
     // 處理對話框關閉
@@ -95,68 +182,34 @@ export function ImportScriptDialog({
         }
     }, [t]);
 
-    // 處理檔案上傳
-    const handleFileUpload = useCallback((e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        setFileUploadError("");
-
-        if (Number(file.size || 0) > MAX_IMPORT_FILE_BYTES) {
-            const message = t("importDialog.fileTooLarge").replace("{maxMb}", String(MAX_IMPORT_FILE_MB));
-            setFileUploadError(message);
-            toast({
-                title: t("importDialog.uploadFailed"),
-                description: message,
-                variant: "destructive",
-            });
-            if (e.target) e.target.value = "";
-            return;
+    const runPreprocess = useCallback((sourceInput, { allowSample = false } = {}) => {
+        const hasInput = Boolean(sourceInput?.trim());
+        const fallbackSample = t("importDialog.guideSampleScript");
+        const inputText = hasInput
+            ? sourceInput
+            : (allowSample ? fallbackSample : "");
+        if (!inputText.trim()) return false;
+        if (!hasInput && allowSample) {
+            setRawInput(inputText);
         }
-
-        // 簡單處理文字檔
-        const reader = new FileReader();
-        setIsReadingFile(true);
-        reader.onload = (event) => {
-            const content = typeof event.target?.result === "string" ? event.target.result : "";
-            setRawInput(content);
-            setIsReadingFile(false);
-        };
-        reader.onerror = () => {
-            setIsReadingFile(false);
-            const message = t("importDialog.readFailed");
-            setFileUploadError(message);
-            toast({
-                title: t("importDialog.uploadFailed"),
-                description: message,
-                variant: "destructive",
-            });
-            if (e.target) e.target.value = "";
-        };
-        reader.onabort = () => {
-            setIsReadingFile(false);
-        };
-        reader.readAsText(file);
-    }, [t, toast]);
-    
-    // Stage 1: 預處理
-    const handlePreprocess = useCallback(() => {
-        if (!rawInput.trim() && !metadataInput.trim()) return;
-        
-        // 合併 Metadata 與 本文
-        const fullText = (metadataInput.trim() ? metadataInput.trim() + '\n\n' : '') + rawInput;
+        const characterNames = parseCharacterNames(characterNamesInput);
+        const sourceText = autoCharacterWholeLine
+            ? applyWholeLineCharacterTagging(inputText, characterNames)
+            : inputText;
 
         // 1. 基本清理
-        const result = preprocess(fullText);
+        const result = preprocess(sourceText);
         setPreprocessResult(result);
         
         // 2. Metadata 提取
         const { metadata: extractedMeta } = extractMetadata(result.cleanedText);
-        setMetadata(extractedMeta);
+        const parsedInfo = pickDefaultScriptInfo(extractedMeta);
+        setMetadata(parsedInfo);
         
         // 自動偵測標題 (優先使用 Metadata Title, 否則嘗試 Regex)
         if (!title) {
-            if (extractedMeta && extractedMeta.Title) {
-                setTitle(extractedMeta.Title);
+            if (parsedInfo?.Title) {
+                setTitle(parsedInfo.Title);
             } else {
                 // Fallback logic
                 const lines = result.cleanedText.split('\n');
@@ -171,111 +224,115 @@ export function ImportScriptDialog({
         }
         
         setStep(STEPS.PREVIEW);
-    }, [rawInput, title, metadataInput]);
+        return true;
+    }, [title, autoCharacterWholeLine, characterNamesInput, t]);
 
-    // Stage 2: 標記發現 & 進入設定階段
-    const handleDiscoverMarkers = useCallback(() => {
+    // Stage 1: 預處理
+    const handlePreprocess = useCallback(() => {
+        runPreprocess(rawInput);
+    }, [rawInput, runPreprocess]);
+
+    // Stage 2: 預覽後直接進入確認
+    const handleToResult = useCallback(() => {
         if (!preprocessResult) return;
-        
-        // 1. 執行自動偵測
-        const result = discoverMarkers(preprocessResult.cleanedText, existingMarkerConfigs);
-        setDiscoveryResult(result);
-        
-        // 2. 決定預設 Config
-        // 如果有雲端設定，預設使用第一個；否則使用自動偵測
-        if (cloudConfigs && cloudConfigs.length > 0) {
-            setSelectedConfigId(cloudConfigs[0].id);
-            // 修正：使用 configs 屬性，並增加容錯
-            setActiveRules(cloudConfigs[0].configs || cloudConfigs[0].markers || []);
-        } else {
-            setSelectedConfigId('auto');
-            // 自動偵測預設選取高信心度的
-            const autoRules = result.discoveredMarkers
-                .filter(m => m._discovery.confidence >= 0.6)
-                .map(m => MarkerDiscoverer.toMarkerConfig(m));
-            setActiveRules([...existingMarkerConfigs, ...autoRules]);
-        }
-        
-        setStep(STEPS.CONFIGURE);
-    }, [preprocessResult, existingMarkerConfigs, cloudConfigs]);
-    
-    // 切換 Config
-    const handleConfigChange = useCallback((configId) => {
-        setSelectedConfigId(configId);
-        
-        if (configId === 'auto') {
-            if (!discoveryResult?.discoveredMarkers) {
-                setActiveRules(existingMarkerConfigs);
-                return;
-            }
-            // 回到自動偵測
-             const autoRules = discoveryResult.discoveredMarkers
-                .filter(m => m._discovery.confidence >= 0.6)
-                .map(m => MarkerDiscoverer.toMarkerConfig(m));
-            setActiveRules([...existingMarkerConfigs, ...autoRules]);
-        } else {
-            // 使用選定的雲端設定
-            const config = cloudConfigs.find(c => c.id === configId);
-            if (config) {
-                 // 修正：使用 configs 屬性
-                 setActiveRules(config.configs || config.markers || []);
-            }
-        }
-    }, [cloudConfigs, discoveryResult, existingMarkerConfigs]);
+        setStep(STEPS.RESULT);
+    }, [preprocessResult]);
 
-    // Context & Save Logic
-    const { addTheme } = useSettings();
-
-    // 儲存設定（傳入子元件）
-    // const [newConfigName, setNewConfigName] = useState("");
-    // const [savePopoverOpen, setSavePopoverOpen] = useState(false);
-    // ... replaced by direct arrow function props or moved logic
-
-    // 純 Marker 模式：直接使用 buildAST 產生的 AST
-    const renderAst = useMemo(() => {
-        if (!preprocessResult || !activeRules) return null;
+    const finishGuide = useCallback(() => {
+        resetState();
         try {
-            // 直接使用 DirectASTBuilder 產生 AST，不再經過 fountain-js
-            return buildAST(preprocessResult.cleanedText, activeRules);
-        } catch (e) {
-            console.error("AST Building Failed:", e);
-            return null;
+            localStorage.setItem(GUIDE_STORAGE_KEY, "1");
+        } catch (err) {
+            console.error("Failed to save guide state", err);
         }
-    }, [preprocessResult, activeRules]);
+    }, [resetState]);
 
-    // Stage 3: 確認設定並進入最終結果
-    const handleConfirmConfig = useCallback(() => {
-        // 如果是自動偵測，且尚未儲存，提示儲存
-        if (selectedConfigId === 'auto') {
-            setShowSaveAlert(true);
+    const jumpGuide = useCallback((index) => {
+        const next = guideSteps[index];
+        if (!next) return;
+        if (next.step === STEPS.INPUT) {
+            setStep(STEPS.INPUT);
+        } else if (next.step === STEPS.PREVIEW) {
+            const ok = runPreprocess(rawInput, { allowSample: true });
+            if (!ok) return;
+        } else if (next.step === STEPS.RESULT) {
+            const ok = preprocessResult?.cleanedText
+                ? true
+                : runPreprocess(rawInput, { allowSample: true });
+            if (!ok) return;
+            setStep(STEPS.RESULT);
+        }
+        setGuideIndex(index);
+        setShowGuide(true);
+    }, [guideSteps, preprocessResult, rawInput, runPreprocess]);
+
+    const handleGuideNext = useCallback(() => {
+        if (guideIndex >= guideSteps.length - 1) {
+            finishGuide();
             return;
         }
-        
-        setAst(renderAst); 
-        setStep(STEPS.RESULT);
-    }, [renderAst, selectedConfigId]);
+        jumpGuide(guideIndex + 1);
+    }, [finishGuide, guideIndex, guideSteps.length, jumpGuide]);
 
-    const handleProceedWithoutSave = useCallback(() => {
-        setShowSaveAlert(false);
-        setAst(renderAst);
-        setStep(STEPS.RESULT);
-    }, [renderAst]);
+    const handleGuidePrev = useCallback(() => {
+        if (guideIndex <= 0) return;
+        jumpGuide(guideIndex - 1);
+    }, [guideIndex, jumpGuide]);
 
+    const handleGuideStart = useCallback(() => {
+        jumpGuide(0);
+    }, [jumpGuide]);
 
+    const refreshSpotlight = useCallback(() => {
+        if (!showGuide) {
+            setSpotlightRect(null);
+            return;
+        }
+        const target = currentGuideTargetRef?.current;
+        if (!target) {
+            return;
+        }
+        const rect = target.getBoundingClientRect();
+        const pad = 8;
+        setSpotlightRect({
+            top: Math.max(8, rect.top - pad),
+            left: Math.max(8, rect.left - pad),
+            width: Math.max(48, rect.width + pad * 2),
+            height: Math.max(48, rect.height + pad * 2),
+        });
+    }, [currentGuideTargetRef, showGuide]);
+
+    useEffect(() => {
+        if (!showGuide) return;
+        const raf = window.requestAnimationFrame(refreshSpotlight);
+        window.addEventListener("resize", refreshSpotlight);
+        window.addEventListener("scroll", refreshSpotlight, true);
+        return () => {
+            window.cancelAnimationFrame(raf);
+            window.removeEventListener("resize", refreshSpotlight);
+            window.removeEventListener("scroll", refreshSpotlight, true);
+        };
+    }, [showGuide, step, guideIndex, refreshSpotlight]);
+
+    useEffect(() => {
+        if (!open) return;
+        try {
+            const seen = localStorage.getItem(GUIDE_STORAGE_KEY) === "1";
+            if (!seen) {
+                jumpGuide(0);
+                localStorage.setItem(GUIDE_STORAGE_KEY, "1");
+            }
+        } catch (err) {
+            console.error("Failed to read guide state", err);
+        }
+    }, [open, jumpGuide]);
 
     // 生成 Fountain Metadata Header
     const generateMetadataHeader = useCallback((meta) => {
         const lines = [];
-        const order = ['Title', 'Author', 'Source', 'Description', 'Rating', 'Duration', 'Tags'];
-        for (const key of order) {
+        for (const key of SCRIPT_INFO_FIELDS) {
             if (meta[key]) {
                 lines.push(`${key}: ${meta[key]}`);
-            }
-        }
-        // 其他自訂欄位
-        for (const [key, value] of Object.entries(meta)) {
-            if (!order.includes(key) && value) {
-                lines.push(`${key}: ${value}`);
             }
         }
         return lines.length > 0 ? lines.join('\n') + '\n\n' : '';
@@ -283,19 +340,24 @@ export function ImportScriptDialog({
 
     // 確認匯入（純 Marker 模式：儲存原始 cleanedText）
     const handleConfirmImport = useCallback(async () => {
-        if (!preprocessResult?.cleanedText || !title.trim()) return;
+        if (!preprocessResult?.cleanedText) return;
         
         setImporting(true);
         try {
+            const resolvedTitle = title.trim() || metadata?.Title?.trim() || "未命名劇本";
+            const normalizedMetadata = pickDefaultScriptInfo({
+                ...metadata,
+                Title: resolvedTitle,
+            });
             // 將 Metadata 加入到內容開頭
-            const metadataHeader = generateMetadataHeader(metadata);
+            const metadataHeader = generateMetadataHeader(normalizedMetadata);
             const contentWithMeta = metadataHeader + preprocessResult.cleanedText;
             
             await onImport({
-                title: title.trim(),
+                title: resolvedTitle,
                 content: contentWithMeta,
                 folder: currentPath,
-                metadata: metadata
+                metadata: normalizedMetadata
             });
             handleOpenChange(false);
         } catch (err) {
@@ -319,14 +381,28 @@ export function ImportScriptDialog({
     return (
         <>
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent className="max-w-5xl h-[85vh] flex flex-col">
+            <DialogContent
+                className="max-w-5xl h-[85vh] flex flex-col"
+                onInteractOutside={(e) => {
+                    if (showGuide) e.preventDefault();
+                }}
+                onEscapeKeyDown={(e) => {
+                    if (showGuide) e.preventDefault();
+                }}
+            >
                 <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <FileText className="w-5 h-5" />
-                        {t("importDialog.title")}
-                    </DialogTitle>
+                    <div className="flex items-center justify-between gap-2">
+                        <DialogTitle className="flex items-center gap-2">
+                            <FileText className="w-5 h-5" />
+                            {t("importDialog.title")}
+                        </DialogTitle>
+                        <Button type="button" variant="outline" size="sm" onClick={handleGuideStart}>
+                            <CircleHelp className="w-4 h-4 mr-1" />
+                            {t("importDialog.help")}
+                        </Button>
+                    </div>
                     <DialogDescription>
-                         {step === STEPS.CONFIGURE ? t("importDialog.descConfigure") : t("importDialog.descDefault")}
+                         {t("importDialog.descDefault")}
                     </DialogDescription>
                 </DialogHeader>
                 
@@ -335,7 +411,6 @@ export function ImportScriptDialog({
                      {[
                         { key: STEPS.INPUT, label: t("importDialog.stepInput"), icon: ClipboardPaste },
                         { key: STEPS.PREVIEW, label: t("importDialog.stepPreprocess"), icon: Eye },
-                        { key: STEPS.CONFIGURE, label: t("importDialog.stepConfigure"), icon: Wand2 },
                         { key: STEPS.RESULT, label: t("importDialog.stepConfirm"), icon: CheckCircle2 }
                     ].map((s, i) => (
                         <React.Fragment key={s.key}>
@@ -349,11 +424,11 @@ export function ImportScriptDialog({
                         </React.Fragment>
                     ))}
                 </div>
-
                 <div className="flex-1 overflow-hidden min-h-0 pt-4">
                     {/* Step 1: 輸入內容 */}
                     {step === STEPS.INPUT && (
                         <div className="flex flex-col gap-4 h-full">
+                            <div ref={guidePasteRef} className="flex flex-col gap-4">
                             <div className="flex items-center gap-2">
                                 <Input 
                                     placeholder={t("importDialog.scriptTitle")}
@@ -369,42 +444,51 @@ export function ImportScriptDialog({
                             <ImportStageInput 
                                     text={rawInput}
                                     setText={setRawInput}
-                                    metadataText={metadataInput}
-                                    setMetadataText={setMetadataInput}
-                                    onFileUpload={handleFileUpload}
-                                    isUploading={isReadingFile}
-                                    fileSizeLimitText={t("importDialog.fileLimit").replace("{maxMb}", String(MAX_IMPORT_FILE_MB))}
-                                    uploadError={fileUploadError}
-                                /> 
+                                />
+                            </div>
+                            <div ref={guideCharacterRef} className="border rounded-md p-3 space-y-2 bg-muted/20">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="space-y-0.5">
+                                        <Label htmlFor="auto-character-whole-line">{t("importDialog.characterAutoLabel")}</Label>
+                                        <p className="text-xs text-muted-foreground">{t("importDialog.characterAutoDesc")}</p>
+                                    </div>
+                                    <Switch
+                                        id="auto-character-whole-line"
+                                        checked={autoCharacterWholeLine}
+                                        onCheckedChange={(checked) => setAutoCharacterWholeLine(Boolean(checked))}
+                                    />
+                                </div>
+                                {autoCharacterWholeLine && (
+                                    <Textarea
+                                        className="min-h-[88px] font-mono text-xs"
+                                        placeholder={t("importDialog.characterListPlaceholder")}
+                                        value={characterNamesInput}
+                                        onChange={(e) => setCharacterNamesInput(e.target.value)}
+                                    />
+                                )}
+                            </div>
                         </div>
                     )}
 
                     {/* Step 2: 預覽與清理 */}
                     {step === STEPS.PREVIEW && preprocessResult && (
-                        <ImportStagePreview 
-                            previewText={preprocessResult.cleanedText}
-                            setPreviewText={(val) => setPreprocessResult(prev => ({...prev, cleanedText: val}))}
-                        />
+                        <div ref={guidePreviewRef} className="h-full">
+                            <ImportStagePreview 
+                                previewText={preprocessResult.cleanedText}
+                                setPreviewText={(val) => setPreprocessResult(prev => ({...prev, cleanedText: val}))}
+                                onAutoRemoveWhitespace={() =>
+                                    setPreprocessResult((prev) => ({
+                                        ...prev,
+                                        cleanedText: autoRemoveWhitespace(prev?.cleanedText || ""),
+                                    }))
+                                }
+                            />
+                        </div>
                     )}
 
-                     {/* 第三步：設定與預覽 */}
-                     {step === STEPS.CONFIGURE && (
-                        <ImportStageConfigure 
-                            activeRules={activeRules}
-                            setActiveRules={setActiveRules}
-                            cloudConfigs={cloudConfigs}
-                            selectedConfigId={selectedConfigId}
-                            onConfigChange={handleConfigChange}
-                            onSaveConfig={(name) => addTheme(name, activeRules)}
-                            renderAst={renderAst}
-                            metadata={metadata}
-                            setMetadata={setMetadata}
-                        />
-                     )}
-
-                     {/* Step 4: Final Confirmation */}
+                     {/* Step 3: Final Confirmation */}
                      {step === STEPS.RESULT && preprocessResult?.cleanedText && (
-                        <div className="flex flex-col gap-4 h-full">
+                        <div ref={guideResultRef} className="flex flex-col gap-4 h-full">
                             <div className="text-sm text-green-600 font-medium flex items-center gap-2">
                                 <CheckCircle2 className="w-4 h-4" />
                                 {t("importDialog.ready")}
@@ -414,12 +498,34 @@ export function ImportScriptDialog({
                                 value={title}
                                 onChange={e => setTitle(e.target.value)}
                             />
-                            <div className="flex-1 min-h-0 border rounded relative">
-                                <ScrollArea className="h-full absolute inset-0">
-                                    <div className="p-4">
-                                        <pre className="text-xs font-mono whitespace-pre-wrap">{preprocessResult.cleanedText}</pre>
+                            <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-3">
+                                <div className="min-h-0 border rounded relative">
+                                    <div className="px-3 py-2 border-b text-xs font-medium text-muted-foreground">
+                                        {t("importDialog.resultTextLabel")}
                                     </div>
-                                </ScrollArea>
+                                    <ScrollArea className="h-[calc(100%-33px)] absolute inset-x-0 bottom-0 top-[33px]">
+                                        <div className="p-4">
+                                            <pre className="text-xs font-mono whitespace-pre-wrap">{preprocessResult.cleanedText}</pre>
+                                        </div>
+                                    </ScrollArea>
+                                </div>
+                                <div className="min-h-0 border rounded relative bg-background">
+                                    <div className="px-3 py-2 border-b text-xs font-medium text-muted-foreground">
+                                        {t("importDialog.resultRenderLabel")}
+                                    </div>
+                                    <ScrollArea className="h-[calc(100%-33px)] absolute inset-x-0 bottom-0 top-[33px]">
+                                        <div className="p-4">
+                                            {previewAst ? (
+                                                <ScriptRenderer
+                                                    ast={previewAst}
+                                                    markerConfigs={previewMarkerConfigs}
+                                                    colorCache={{ current: new Map() }}
+                                                    fontSize={14}
+                                                />
+                                            ) : null}
+                                        </div>
+                                    </ScrollArea>
+                                </div>
                             </div>
                         </div>
                      )}
@@ -430,7 +536,7 @@ export function ImportScriptDialog({
                         <Button 
                             variant="outline" 
                             onClick={() => {
-                                const steps = [STEPS.INPUT, STEPS.PREVIEW, STEPS.CONFIGURE, STEPS.RESULT];
+                                const steps = [STEPS.INPUT, STEPS.PREVIEW, STEPS.RESULT];
                                 const currentIndex = steps.indexOf(step);
                                 if (currentIndex > 0) setStep(steps[currentIndex - 1]);
                             }}
@@ -442,19 +548,15 @@ export function ImportScriptDialog({
                     <Button variant="outline" onClick={() => handleOpenChange(false)}>{t("common.cancel")}</Button>
                     
                     {step === STEPS.INPUT && (
-                        <Button onClick={handlePreprocess} disabled={!rawInput.trim() && !metadataInput.trim()}>{t("importDialog.nextPreprocess")}</Button>
+                        <Button onClick={handlePreprocess} disabled={!rawInput.trim()}>{t("importDialog.nextPreprocess")}</Button>
                     )}
                     
                     {step === STEPS.PREVIEW && (
-                        <Button onClick={handleDiscoverMarkers}>{t("importDialog.nextConfigure")}</Button>
-                    )}
-                    
-                    {step === STEPS.CONFIGURE && (
-                        <Button onClick={handleConfirmConfig}>{t("importDialog.nextConfirm")}</Button>
+                        <Button onClick={handleToResult}>{t("importDialog.nextConfirm")}</Button>
                     )}
                     
                     {step === STEPS.RESULT && (
-                        <Button onClick={handleConfirmImport} disabled={importing || !title.trim()}>
+                        <Button onClick={handleConfirmImport} disabled={importing}>
                             {importing && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                             {t("importDialog.confirmImport")}
                         </Button>
@@ -462,21 +564,23 @@ export function ImportScriptDialog({
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+        <SpotlightGuideOverlay
+            open={showGuide && Boolean(currentGuide)}
+            zIndex={200}
+            spotlightRect={spotlightRect}
+            currentStep={guideIndex + 1}
+            totalSteps={guideSteps.length}
+            title={currentGuide?.title}
+            description={currentGuide?.description}
+            onSkip={finishGuide}
+            skipLabel={t("importDialog.guideSkip")}
+            onPrev={handleGuidePrev}
+            prevLabel={t("importDialog.guidePrev")}
+            prevDisabled={guideIndex === 0}
+            onNext={handleGuideNext}
+            nextLabel={guideIndex === guideSteps.length - 1 ? t("importDialog.guideDone") : t("importDialog.guideNext")}
+        />
         
-        <Dialog open={showSaveAlert} onOpenChange={setShowSaveAlert}>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>{t("importDialog.saveRulesTitle")}</DialogTitle>
-                    <DialogDescription>
-                        {t("importDialog.saveRulesDesc")}
-                    </DialogDescription>
-                </DialogHeader>
-                <DialogFooter className="flex-col gap-2 sm:gap-0">
-                    <Button variant="outline" onClick={() => setShowSaveAlert(false)}>{t("importDialog.backToSave")}</Button>
-                    <Button onClick={handleProceedWithoutSave}>{t("importDialog.continueWithoutSave")}</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
         </>
     );
 }

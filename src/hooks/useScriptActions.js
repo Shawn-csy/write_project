@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { buildPrintHtml } from "../lib/print";
 
-export function useScriptActions({ 
+export function useReaderScriptActions({ 
     accentConfig, processedScriptHtml, rawScriptHtml, 
     titleHtml, titleName, activeFile, titleSummary, titleNote 
 }) {
@@ -99,3 +99,5 @@ export function useScriptActions({
         shareCopied
     };
 }
+
+export { useReaderScriptActions as useScriptActions };

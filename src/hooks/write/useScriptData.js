@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../contexts/AuthContext";
-import { getUserScripts } from "../../lib/db";
+import { getUserScripts } from "../../lib/api/scripts";
 
 export function useScriptData(refreshTrigger = 0) {
     const { currentUser } = useAuth();

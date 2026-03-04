@@ -5,7 +5,7 @@ import { Globe, Users } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { ScriptGalleryCard } from "../components/gallery/ScriptGalleryCard";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
-import { getPublicOrganization, getPublicScripts } from "../lib/db";
+import { getPublicOrganization, getPublicScripts } from "../lib/api/public";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { getMorandiTagStyle } from "../lib/tagColors";
 import { useAuth } from "../contexts/AuthContext";

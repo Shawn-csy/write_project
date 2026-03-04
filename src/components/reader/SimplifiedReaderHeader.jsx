@@ -19,6 +19,7 @@ export function SimplifiedReaderHeader({
   sceneList,
   currentSceneId,
   onSelectScene,
+  metaItems = [],
   // Marker Props
   markerConfigs = [],
   hiddenMarkerIds = [],
@@ -49,7 +50,8 @@ export function SimplifiedReaderHeader({
         <ReaderTOC 
             sceneList={sceneList} 
             currentSceneId={currentSceneId} 
-            onSelectScene={onSelectScene} 
+            onSelectScene={onSelectScene}
+            metaItems={metaItems}
         />
 
         <div className={`h-6 w-px bg-white/20 mx-1 transition-opacity duration-300 ${showTitle ? "opacity-100" : "opacity-0"}`} />

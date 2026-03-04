@@ -1,13 +1,15 @@
 import React from "react";
-import { Settings2, Type, Sun, Moon, BookOpen } from "lucide-react";
+import { Type, Sun, Moon } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
 import { Slider } from "../../components/ui/slider";
 import { Switch } from "../../components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { useSettings } from "../../contexts/SettingsContext";
 import { MarkerVisibilitySelect } from "../ui/MarkerVisibilitySelect";
 import { useI18n } from "../../contexts/I18nContext";
+import { READING_FONT_OPTIONS } from "../../constants/readingFonts";
 
 export function ReaderAppearanceMenu({
     markerConfigs = [],
@@ -17,6 +19,7 @@ export function ReaderAppearanceMenu({
   const { t } = useI18n();
   const { 
       fontSize, setFontSize, 
+      readingFontFamily, setReadingFontFamily,
       isDark, setTheme,
       hideWhitespace, setHideWhitespace 
   } = useSettings();
@@ -65,6 +68,21 @@ export function ReaderAppearanceMenu({
           </div>
 
           <div className="space-y-2 pt-2 border-t">
+            <div className="space-y-1">
+              <span className="text-sm font-medium">{t("readerAppearance.fontFamily")}</span>
+              <Select value={readingFontFamily} onValueChange={setReadingFontFamily}>
+                <SelectTrigger className="h-8">
+                  <SelectValue placeholder={t("readerAppearance.fontFamily")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {READING_FONT_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex justify-between items-center mb-1">
                  <span className="text-sm font-medium">{t("readerAppearance.fontSize")}</span>
                  <span className="text-xs text-muted-foreground">{fontSize}px</span>

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 import models
 import schemas
 from .common import _ensure_list
+from .organizations_query import sync_persona_org_memberships
 
 
 def create_persona(db: Session, persona: schemas.PersonaCreate, ownerId: str):
@@ -20,11 +21,14 @@ def create_persona(db: Session, persona: schemas.PersonaCreate, ownerId: str):
         links=persona.links or [],
         organizationIds=persona.organizationIds or [],
         tags=persona.tags or [],
-        defaultLicense=persona.defaultLicense or "",
-        defaultLicenseUrl=persona.defaultLicenseUrl or "",
-        defaultLicenseTerms=persona.defaultLicenseTerms or [],
+        defaultLicenseCommercial=persona.defaultLicenseCommercial or "",
+        defaultLicenseDerivative=persona.defaultLicenseDerivative or "",
+        defaultLicenseNotify=persona.defaultLicenseNotify or "",
+        defaultLicenseSpecialTerms=persona.defaultLicenseSpecialTerms or [],
     )
     db.add(db_persona)
+    db.flush()
+    sync_persona_org_memberships(db, db_persona)
     db.commit()
     db.refresh(db_persona)
     return db_persona
@@ -37,20 +41,21 @@ def update_persona(db: Session, persona_id: str, persona: schemas.PersonaCreate,
     update_data = persona.model_dump(exclude_unset=True)
     if "tags" in update_data and update_data["tags"] is None:
         update_data["tags"] = []
-    if "defaultLicenseTerms" in update_data and update_data["defaultLicenseTerms"] is None:
-        update_data["defaultLicenseTerms"] = []
+    if "defaultLicenseSpecialTerms" in update_data and update_data["defaultLicenseSpecialTerms"] is None:
+        update_data["defaultLicenseSpecialTerms"] = []
     if "links" in update_data and update_data["links"] is None:
         update_data["links"] = []
 
     for key, value in update_data.items():
         setattr(db_persona, key, value)
+    sync_persona_org_memberships(db, db_persona)
     db_persona.updatedAt = int(time.time() * 1000)
     db.commit()
     db.refresh(db_persona)
 
     db_persona.tags = _ensure_list(db_persona.tags)
     db_persona.organizationIds = _ensure_list(db_persona.organizationIds)
-    db_persona.defaultLicenseTerms = _ensure_list(db_persona.defaultLicenseTerms)
+    db_persona.defaultLicenseSpecialTerms = _ensure_list(db_persona.defaultLicenseSpecialTerms)
     db_persona.links = _ensure_list(db_persona.links)
 
     return db_persona
@@ -61,7 +66,7 @@ def get_user_personas(db: Session, ownerId: str):
     for p in personas:
         p.organizationIds = _ensure_list(p.organizationIds)
         p.tags = _ensure_list(p.tags)
-        p.defaultLicenseTerms = _ensure_list(p.defaultLicenseTerms)
+        p.defaultLicenseSpecialTerms = _ensure_list(p.defaultLicenseSpecialTerms)
         p.links = _ensure_list(p.links)
     return personas
 
@@ -69,6 +74,9 @@ def get_user_personas(db: Session, ownerId: str):
 def delete_persona(db: Session, persona_id: str):
     persona = db.query(models.Persona).filter(models.Persona.id == persona_id).first()
     if persona:
+        db.query(models.PersonaOrganizationMembership).filter(
+            models.PersonaOrganizationMembership.personaId == persona_id
+        ).delete()
         db.query(models.Script).filter(models.Script.personaId == persona_id).update({models.Script.personaId: None})
         db.delete(persona)
         db.commit()

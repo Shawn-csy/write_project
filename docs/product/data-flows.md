@@ -8,7 +8,7 @@
 ### 核心資料流（前端 → 後端 → DB）
 ```mermaid
 flowchart LR
-  A[src/lib/db.js\nAPI 客戶端] --> B[server/routers/*.py\nAPI 路由]
+  A[src/lib/api/*.js\nAPI 模組層] --> B[server/routers/*.py\nAPI 路由]
   B --> C[server/crud.py\n業務邏輯/DB 操作]
   C --> D[server/models.py\n資料表/模型]
   B --> E[server/schemas.py\nResponse Schema]
@@ -16,7 +16,7 @@ flowchart LR
 
 ```
 核心資料流（ASCII）
-db.js (API Client)
+api/* (API modules)
    └─> routers/*.py (API routes)
          └─> crud.py (DB logic)
                └─> models.py (DB models)
@@ -26,7 +26,7 @@ db.js (API Client)
 ### 公開作品列表（Public Gallery）
 ```mermaid
 flowchart LR
-  A[src/pages/PublicGalleryPage.jsx\n搜尋/排序/篩選] --> B[src/lib/db.js:getPublicBundle]
+  A[src/pages/PublicGalleryPage.jsx\n搜尋/排序/篩選] --> B[src/lib/api/public.js:getPublicBundle]
   B --> C[server/routers/public_bundle.py\nGET /api/public-bundle]
   C --> D[server/crud.py\nget_public_*]
   D --> E[server/models.py\nScript/Persona/Organization]
@@ -35,13 +35,13 @@ flowchart LR
 ```
 Public Gallery（ASCII）
 PublicGalleryPage.jsx
-  └─> db.js:getPublicBundle → public_bundle.py:/public-bundle → crud.py:get_public_* → Script/Persona/Organization
+  └─> api/public.js:getPublicBundle → public_bundle.py:/public-bundle → crud.py:get_public_* → Script/Persona/Organization
 ```
 
 ### 公開作品閱讀頁（Public Reader）
 ```mermaid
 flowchart LR
-  A[src/pages/PublicReaderPage.jsx] --> B[src/lib/db.js:getPublicScript]
+  A[src/pages/PublicReaderPage.jsx] --> B[src/lib/api/public.js:getPublicScript]
   B --> C[server/routers/public.py\nGET /api/public-scripts/{id}]
   C --> D[server/models.py:Script\ncontent,tags,persona,org]
   A --> E[src/lib/metadataParser.js\nextractMetadataWithRaw]
@@ -52,7 +52,7 @@ flowchart LR
 ```
 Public Reader（ASCII）
 PublicReaderPage.jsx
-  ├─> db.js:getPublicScript → public.py:/public-scripts/{id}
+  ├─> api/public.js:getPublicScript → public.py:/public-scripts/{id}
   ├─> metadataParser.extractMetadataWithRaw
   └─> PublicReaderLayout → PublicScriptInfoOverlay
 ```
@@ -60,7 +60,7 @@ PublicReaderPage.jsx
 ### 工作室（Dashboard / Studio）
 ```mermaid
 flowchart LR
-  A[src/pages/PublisherDashboard.jsx] --> B[src/lib/db.js\ngetPersonas/getOrganizations/getUserScripts]
+  A[src/pages/PublisherDashboard.jsx] --> B[src/lib/api/personas.js + organizations.js + scripts.js]
   B --> C[server/routers/personas.py]
   B --> D[server/routers/orgs.py]
   B --> E[server/routers/scripts.py]
@@ -73,19 +73,19 @@ flowchart LR
 ```
 Studio（ASCII）
 PublisherDashboard.jsx
-  ├─> db.js:getPersonas → personas.py → crud.py → Persona
-  ├─> db.js:getOrganizations → orgs.py → crud.py → Organization
-  └─> db.js:getUserScripts → scripts.py → crud.py → Script
+  ├─> api/personas.js:getPersonas → personas.py → crud.py → Persona
+  ├─> api/organizations.js:getOrganizations → orgs.py → crud.py → Organization
+  └─> api/scripts.js:getUserScripts → scripts.py → crud.py → Script
 ```
 
 ### 編輯劇本資訊（Metadata）
 ```mermaid
 flowchart LR
-  A[src/components/dashboard/ScriptMetadataDialog.jsx] --> B[src/lib/db.js:getScript]
+  A[src/components/dashboard/ScriptMetadataDialog.jsx] --> B[src/lib/api/scripts.js:getScript]
   B --> C[server/routers/scripts.py\nGET /api/scripts/{id}]
   A --> D[src/lib/metadataParser.js\nextractMetadataWithRaw]
   A --> E[src/lib/metadataParser.js\nwriteMetadata]
-  A --> F[src/lib/db.js:updateScript]
+  A --> F[src/lib/api/scripts.js:updateScript]
   F --> G[server/routers/scripts.py\nPUT /api/scripts/{id}]
   G --> H[server/crud.py:update_script]
 ```
@@ -93,10 +93,10 @@ flowchart LR
 ```
 Metadata（ASCII）
 ScriptMetadataDialog.jsx
-  ├─> db.js:getScript → scripts.py:GET /api/scripts/{id}
+  ├─> api/scripts.js:getScript → scripts.py:GET /api/scripts/{id}
   ├─> metadataParser.extractMetadataWithRaw
   ├─> metadataParser.writeMetadata
-  └─> db.js:updateScript → scripts.py:PUT /api/scripts/{id} → crud.py:update_script
+  └─> api/scripts.js:updateScript → scripts.py:PUT /api/scripts/{id} → crud.py:update_script
 ```
 
 ### 統計分析（Stats）
@@ -119,7 +119,7 @@ StatisticsPanel.jsx
 ### 組織邀請 / 申請
 ```mermaid
 flowchart LR
-  A[src/components/dashboard/publisher/PublisherOrgTab.jsx] --> B[src/lib/db.js\ninviteOrganizationMember/requestToJoinOrganization]
+  A[src/components/dashboard/publisher/PublisherOrgTab.jsx] --> B[src/lib/api/organizations.js\ninviteOrganizationMember/requestToJoinOrganization]
   B --> C[server/routers/orgs.py\nPOST /organizations/{id}/invite\nPOST /organizations/{id}/request]
   C --> D[server/crud.py\ncreate_organization_invite/request]
   D --> E[server/models.py\nOrganizationInvite/OrganizationRequest]
@@ -128,14 +128,14 @@ flowchart LR
 ```
 Org Invites/Requests（ASCII）
 PublisherOrgTab.jsx
-  ├─> db.js:inviteOrganizationMember → orgs.py:/invite → crud.py:create_organization_invite
-  └─> db.js:requestToJoinOrganization → orgs.py:/request → crud.py:create_organization_request
+  ├─> api/organizations.js:inviteOrganizationMember → orgs.py:/invite → crud.py:create_organization_invite
+  └─> api/organizations.js:requestToJoinOrganization → orgs.py:/request → crud.py:create_organization_request
 ```
 
 ### 作品移轉 / 作者移轉 / 組織移轉
 ```mermaid
 flowchart LR
-  A[src/lib/db.js\ntransferScriptOwnership/transferPersonaOwnership/transferOrganizationOwnership]
+  A[src/lib/api/scripts.js + personas.js + organizations.js\ntransferScriptOwnership/transferPersonaOwnership/transferOrganizationOwnership]
   A --> B[server/routers/scripts.py|personas.py|orgs.py]
   B --> C[server/crud.py:transfer_*]
   C --> D[server/models.py\nScript/Persona/Organization]
@@ -143,14 +143,14 @@ flowchart LR
 
 ```
 Transfers（ASCII）
-db.js:transfer* → scripts.py/personas.py/orgs.py → crud.py:transfer_* → models.py
+api/*:transfer* → scripts.py/personas.py/orgs.py → crud.py:transfer_* → models.py
 ```
 
 ### 公開作者 / 組織頁
 ```mermaid
 flowchart LR
-  A[src/pages/AuthorProfilePage.jsx] --> B[src/lib/db.js:getPublicPersona]
-  A --> C[src/lib/db.js:getPublicScripts]
+  A[src/pages/AuthorProfilePage.jsx] --> B[src/lib/api/public.js:getPublicPersona]
+  A --> C[src/lib/api/public.js:getPublicScripts]
   B --> D[server/routers/public.py\nGET /api/public-personas/{id}]
   C --> E[server/routers/public.py\nGET /api/public-scripts]
   D --> F[server/models.py:Persona]
@@ -159,9 +159,9 @@ flowchart LR
 
 ```
 Public Author/Org（ASCII）
-AuthorProfilePage.jsx → db.js:getPublicPersona → public.py:/public-personas/{id}
-AuthorProfilePage.jsx → db.js:getPublicScripts → public.py:/public-scripts
-OrganizationPage.jsx → db.js:getPublicOrganization → public.py:/public-organizations/{id}
+AuthorProfilePage.jsx → api/public.js:getPublicPersona → public.py:/public-personas/{id}
+AuthorProfilePage.jsx → api/public.js:getPublicScripts → public.py:/public-scripts
+OrganizationPage.jsx → api/public.js:getPublicOrganization → public.py:/public-organizations/{id}
 ```
 
 ### 搜尋流程（Public Gallery + Studio）
@@ -172,7 +172,7 @@ flowchart LR
     B --> C[ScriptGalleryCard.jsx]
   end
   subgraph Studio
-    D[src/components/dashboard/SearchBar.jsx] --> E[src/lib/db.js:searchScripts]
+    D[src/components/dashboard/SearchBar.jsx] --> E[src/lib/api/scripts.js:searchScripts]
     E --> F[server/routers/scripts.py\nGET /api/search?q=]
     F --> G[server/crud.py:search_scripts]
     G --> H[server/models.py:Script\ntitle/content]
@@ -182,7 +182,7 @@ flowchart LR
 ```
 Search（ASCII）
 PublicGalleryPage.jsx → 前端過濾（標題/作者/授權/條款/標籤）
-SearchBar.jsx → db.js:searchScripts → scripts.py:/api/search → crud.py:search_scripts
+SearchBar.jsx → api/scripts.js:searchScripts → scripts.py:/api/search → crud.py:search_scripts
 ```
 
 ### 授權流程（Metadata → Public 顯示）
@@ -190,7 +190,7 @@ SearchBar.jsx → db.js:searchScripts → scripts.py:/api/search → crud.py:sea
 flowchart LR
   A[src/components/dashboard/ScriptMetadataDialog.jsx] --> B[src/lib/metadataParser.js\nwriteMetadata]
   B --> C[script.content\nTitlePage: License/LicenseUrl/LicenseTerms]
-  A --> D[src/lib/db.js:updateScript]
+  A --> D[src/lib/api/scripts.js:updateScript]
   D --> E[server/routers/scripts.py\nPUT /api/scripts/{id}]
   E --> F[server/crud.py:update_script]
   F --> G[server/models.py:Script.content]
@@ -209,7 +209,7 @@ PublicReaderPage.jsx → extractMetadataWithRaw → PublicScriptInfoOverlay
 ```mermaid
 flowchart LR
   A[src/lib/firebase.js\nFirebase Auth] --> B[src/contexts/AuthContext.jsx]
-  B --> C[src/lib/db.js\nfetchApi]
+  B --> C[src/lib/api/client.js\nfetchApi]
   C --> D[HTTP Header: Authorization: Bearer <id_token>]
   D --> E[server/dependencies.py\nget_current_user_id]
   E --> F[server/routers/*.py]
@@ -217,7 +217,7 @@ flowchart LR
 
 ```
 Auth（ASCII）
-firebase.js → AuthContext → db.js:fetchApi → Header: Authorization: Bearer <id_token>
+firebase.js → AuthContext → api/client.js:fetchApi → Header: Authorization: Bearer <id_token>
 （本機可選）Header: X-User-ID
 server/dependencies.py:get_current_user_id → routers
 ```
@@ -225,7 +225,7 @@ server/dependencies.py:get_current_user_id → routers
 ### API 指向 / 同源 / CORS
 ```mermaid
 flowchart LR
-  A[.env\nVITE_API_URL] --> B[src/lib/db.js\nAPI_BASE_URL]
+  A[.env\nVITE_API_URL] --> B[src/lib/api/client.js\nAPI_BASE_URL]
   B --> C[Browser Request]
   C --> D{同源?}
   D -->|是| E[Nginx /api 反代 → Backend]
@@ -234,7 +234,7 @@ flowchart LR
 
 ```
 API Base（ASCII）
-.env (VITE_API_URL) → db.js:API_BASE_URL
+.env (VITE_API_URL) → api/client.js:API_BASE_URL
 同源時：Nginx /api 反代，不需要 CORS
 跨網域時：server/main.py 啟用 CORSMiddleware
 ```
@@ -257,9 +257,9 @@ StatisticsSettingsDialog.jsx → SettingsContext(statsConfig)
 ### 搜尋申請加入組織流程
 ```mermaid
 flowchart LR
-  A[PublisherProfileTab.jsx\n搜尋組織] --> B[src/lib/db.js:searchOrganizations]
+  A[PublisherProfileTab.jsx\n搜尋組織] --> B[src/lib/api/organizations.js:searchOrganizations]
   B --> C[server/routers/orgs.py\nGET /organizations/search]
-  A --> D[src/lib/db.js:requestToJoinOrganization]
+  A --> D[src/lib/api/organizations.js:requestToJoinOrganization]
   D --> E[server/routers/orgs.py\nPOST /organizations/{id}/request]
   E --> F[server/crud.py:create_organization_request]
 ```
@@ -273,7 +273,7 @@ PublisherProfileTab.jsx → requestToJoinOrganization → orgs.py:/organizations
 ## 核心資料流（前端 → 後端 → DB）
 
 1. 前端 API 入口  
-`src/lib/db.js` 統一封裝 API 呼叫，提供給各頁面與元件使用。
+`src/lib/api/*.js` 以領域分模組封裝 API 呼叫，提供給各頁面與元件使用。
 
 2. 後端 API 入口  
 `server/main.py` 設定 FastAPI 與路由。  
@@ -290,7 +290,7 @@ PublisherProfileTab.jsx → requestToJoinOrganization → orgs.py:/organizations
 
 ### 1. 公開作品列表（Public Gallery）
 1. `src/pages/PublicGalleryPage.jsx`  
-呼叫 `src/lib/db.js:getPublicScripts()`、`getPublicPersonas()`、`getPublicOrganizations()`  
+呼叫 `src/lib/api/public.js:getPublicBundle()`（內含 scripts/personas/organizations）  
 做搜尋與排序（前端）後渲染卡片。
 2. `src/components/gallery/GalleryFilterBar.jsx`  
 負責搜尋與排序 UI。
@@ -350,7 +350,7 @@ PublisherProfileTab.jsx → requestToJoinOrganization → orgs.py:/organizations
 
 ### 6. 組織邀請 / 申請
 1. 前端  
-`PublisherOrgTab.jsx` → `db.js:inviteOrganizationMember()` / `requestToJoinOrganization()`  
+`PublisherOrgTab.jsx` → `api/organizations.js:inviteOrganizationMember()` / `requestToJoinOrganization()`  
 `PublisherDashboard.jsx` 管理 invite/request list
 2. 後端  
 `server/routers/orgs.py`  
@@ -361,7 +361,7 @@ PublisherProfileTab.jsx → requestToJoinOrganization → orgs.py:/organizations
 
 ### 7. 作品移轉 / 作者移轉 / 組織移轉
 1. 前端  
-`src/lib/db.js`：`transferScriptOwnership` / `transferPersonaOwnership` / `transferOrganizationOwnership`
+`src/lib/api/scripts.js` / `personas.js` / `organizations.js`：`transferScriptOwnership` / `transferPersonaOwnership` / `transferOrganizationOwnership`
 2. 後端  
 `server/routers/scripts.py` / `personas.py` / `orgs.py`
 3. DB  
@@ -379,7 +379,7 @@ PublisherProfileTab.jsx → requestToJoinOrganization → orgs.py:/organizations
 ## 補充：主要設定與環境
 1. API Base  
 `vite.config.js` 與 `.env` `VITE_API_URL`  
-`src/lib/db.js` 讀取 `VITE_API_URL`
+`src/lib/api/client.js` 讀取 `VITE_API_URL`
 2. CORS  
 `server/main.py` `CORSMiddleware` 設定 allow_origins
 

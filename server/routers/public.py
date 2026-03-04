@@ -33,9 +33,14 @@ def _has_public_parent_folder(db: Session, script: models.Script) -> bool:
 def user_to_persona_public(user: models.User, db: Session) -> schemas.PersonaPublic:
     # Get Organization if any
     orgs = []
-    if user.organizationId:
-        org = db.query(models.Organization).filter(models.Organization.id == user.organizationId).first()
-        if org:
+    org_ids = crud.list_user_org_ids(db, user.id)
+    if org_ids:
+        fetched_orgs = db.query(models.Organization).filter(models.Organization.id.in_(org_ids)).all()
+        org_map = {o.id: o for o in fetched_orgs}
+        for org_id in org_ids:
+            org = org_map.get(org_id)
+            if not org:
+                continue
             if isinstance(org.tags, str):
                 try:
                     org.tags = json.loads(org.tags)
@@ -50,7 +55,7 @@ def user_to_persona_public(user: models.User, db: Session) -> schemas.PersonaPub
         bio=user.bio or "",
         avatar=user.avatar or "",
         website=user.website or "",
-        organizationIds=[user.organizationId] if user.organizationId else [],
+        organizationIds=org_ids,
         tags=[], # Users don't have tags
         createdAt=user.createdAt,
         updatedAt=user.lastLogin, # Use lastLogin as proxy for update
@@ -118,14 +123,14 @@ def read_public_script(script_id: str, db: Session = Depends(get_db)):
             except:
                 script.persona.organizationIds = []
 
-        if isinstance(script.persona.defaultLicenseTerms, str):
+        if isinstance(script.persona.defaultLicenseSpecialTerms, str):
              try:
-                 script.persona.defaultLicenseTerms = json.loads(script.persona.defaultLicenseTerms)
+                 script.persona.defaultLicenseSpecialTerms = json.loads(script.persona.defaultLicenseSpecialTerms)
              except:
-                 script.persona.defaultLicenseTerms = []
+                 script.persona.defaultLicenseSpecialTerms = []
              # Double check
-             if isinstance(script.persona.defaultLicenseTerms, str):
-                  try: script.persona.defaultLicenseTerms = json.loads(script.persona.defaultLicenseTerms)
+             if isinstance(script.persona.defaultLicenseSpecialTerms, str):
+                  try: script.persona.defaultLicenseSpecialTerms = json.loads(script.persona.defaultLicenseSpecialTerms)
                   except: pass
              
     if script.organization:
@@ -162,10 +167,10 @@ def get_public_persona(persona_id: str, db: Session = Depends(get_db)):
     # 1. Try Persona
     persona = db.query(models.Persona).filter(models.Persona.id == persona_id).first()
     if persona:
-        persona.organizationIds = crud._ensure_list(persona.organizationIds)
+        persona.organizationIds = crud.get_persona_org_ids(db, persona)
         persona.tags = crud._ensure_list(persona.tags)
         persona.links = crud._ensure_list(persona.links)
-        persona.defaultLicenseTerms = crud._ensure_list(persona.defaultLicenseTerms)
+        persona.defaultLicenseSpecialTerms = crud._ensure_list(persona.defaultLicenseSpecialTerms)
         orgs = []
         if persona.organizationIds:
             orgs = db.query(models.Organization).filter(models.Organization.id.in_(persona.organizationIds)).all()
@@ -207,10 +212,10 @@ def list_public_personas(db: Session = Depends(get_db)):
     all_org_ids = set()
     persona_org_map = {}
     for p in personas:
-        p.organizationIds = crud._ensure_list(p.organizationIds)
+        p.organizationIds = crud.get_persona_org_ids(db, p)
         p.tags = crud._ensure_list(p.tags)
         p.links = crud._ensure_list(p.links)
-        p.defaultLicenseTerms = crud._ensure_list(p.defaultLicenseTerms)
+        p.defaultLicenseSpecialTerms = crud._ensure_list(p.defaultLicenseSpecialTerms)
         org_ids = p.organizationIds or []
         persona_org_map[p.id] = org_ids
         all_org_ids.update(org_ids)
@@ -243,14 +248,13 @@ def get_public_organization(org_id: str, db: Session = Depends(get_db)):
         except Exception:
             org.tags = []
     all_personas = db.query(models.Persona).all()
+    persona_memberships = db.query(models.PersonaOrganizationMembership).filter(
+        models.PersonaOrganizationMembership.orgId == org_id
+    ).all()
+    persona_ids_via_membership = {row.personaId for row in persona_memberships}
     members = []
     for p in all_personas:
-        org_ids = p.organizationIds
-        if isinstance(org_ids, str):
-            try:
-                org_ids = json.loads(org_ids)
-            except Exception:
-                org_ids = []
+        org_ids = crud.get_persona_org_ids(db, p)
         if isinstance(p.tags, str):
             try:
                 p.tags = json.loads(p.tags)
@@ -266,12 +270,12 @@ def get_public_organization(org_id: str, db: Session = Depends(get_db)):
                 p.links = json.loads(p.links)
             except Exception:
                 p.links = []
-        if isinstance(p.defaultLicenseTerms, str):
+        if isinstance(p.defaultLicenseSpecialTerms, str):
             try:
-                p.defaultLicenseTerms = json.loads(p.defaultLicenseTerms)
+                p.defaultLicenseSpecialTerms = json.loads(p.defaultLicenseSpecialTerms)
             except Exception:
-                p.defaultLicenseTerms = []
-        if org_ids and org_id in org_ids:
+                p.defaultLicenseSpecialTerms = []
+        if p.id in persona_ids_via_membership or (org_ids and org_id in org_ids):
             members.append(p)
     # Avoid validating org.members (User objects) against Persona schema
     try:

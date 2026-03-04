@@ -18,45 +18,49 @@ def test_persona_license_fields_crud(db_session):
     # 1. Create with license fields
     persona_in = schemas.PersonaCreate(
         displayName="License Persona",
-        defaultLicense="CC-BY-4.0",
-        defaultLicenseUrl="https://creativecommons.org/licenses/by/4.0/",
-        defaultLicenseTerms=["Attribution required", "Non-commercial"]
+        defaultLicenseCommercial="allow",
+        defaultLicenseDerivative="limited",
+        defaultLicenseNotify="required",
+        defaultLicenseSpecialTerms=["Attribution required", "Non-commercial"]
     )
     
     persona = crud.create_persona(db_session, persona_in, owner_id)
     
-    assert persona.defaultLicense == "CC-BY-4.0"
-    assert persona.defaultLicenseUrl == "https://creativecommons.org/licenses/by/4.0/"
+    assert persona.defaultLicenseCommercial == "allow"
+    assert persona.defaultLicenseDerivative == "limited"
+    assert persona.defaultLicenseNotify == "required"
     # Check if list is preserved
-    assert len(persona.defaultLicenseTerms) == 2
-    assert "Attribution required" in persona.defaultLicenseTerms
+    assert len(persona.defaultLicenseSpecialTerms) == 2
+    assert "Attribution required" in persona.defaultLicenseSpecialTerms
     
     # 2. Update license fields
     update_in = schemas.PersonaCreate(
         displayName="License Persona Updated",
-        defaultLicense="CC0",
-        defaultLicenseUrl="https://creativecommons.org/publicdomain/zero/1.0/",
-        defaultLicenseTerms=["No rights reserved"]
+        defaultLicenseCommercial="disallow",
+        defaultLicenseDerivative="disallow",
+        defaultLicenseNotify="not_required",
+        defaultLicenseSpecialTerms=["No rights reserved"]
     )
     
     updated = crud.update_persona(db_session, persona.id, update_in, owner_id)
     
-    assert updated.defaultLicense == "CC0"
-    assert updated.defaultLicenseUrl == "https://creativecommons.org/publicdomain/zero/1.0/"
-    assert updated.defaultLicenseTerms == ["No rights reserved"]
+    assert updated.defaultLicenseCommercial == "disallow"
+    assert updated.defaultLicenseDerivative == "disallow"
+    assert updated.defaultLicenseNotify == "not_required"
+    assert updated.defaultLicenseSpecialTerms == ["No rights reserved"]
 
 def test_get_user_personas_json_parsing(db_session):
     owner_id = "lic-owner-2"
     _create_user(db_session, owner_id)
     
-    # Manually insert a persona with JSON string for defaultLicenseTerms
+    # Manually insert a persona with JSON string for defaultLicenseSpecialTerms
     # mimicking what might happen in SQLite or legacy data
     p_id = str(uuid.uuid4())
     db_persona = models.Persona(
         id=p_id,
         ownerId=owner_id,
         displayName="JSON Test",
-        defaultLicenseTerms=json.dumps(["Term A", "Term B"]) # Stored as string
+        defaultLicenseSpecialTerms=json.dumps(["Term A", "Term B"]) # Stored as string
     )
     db_session.add(db_persona)
     db_session.commit()
@@ -66,5 +70,5 @@ def test_get_user_personas_json_parsing(db_session):
     assert len(personas) == 1
     p = personas[0]
     
-    assert isinstance(p.defaultLicenseTerms, list)
-    assert p.defaultLicenseTerms == ["Term A", "Term B"]
+    assert isinstance(p.defaultLicenseSpecialTerms, list)
+    assert p.defaultLicenseSpecialTerms == ["Term A", "Term B"]

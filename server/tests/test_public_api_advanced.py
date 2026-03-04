@@ -1,6 +1,6 @@
 import pytest
 import time
-from models import User, Script, Persona, Organization
+from models import User, Script, Persona, Organization, OrganizationMembership, PersonaOrganizationMembership
 
 def setup_data(db_session):
     now = int(time.time() * 1000)
@@ -16,7 +16,7 @@ def setup_data(db_session):
                       tags='["author"]', 
                       links='[{"title":"site","url":"test"}]',
                       organizationIds='["org-public-1"]',
-                      defaultLicenseTerms='["term1"]',
+                      defaultLicenseSpecialTerms='["term1"]',
                       createdAt=now, updatedAt=now)
                       
     persona_broken = Persona(id="persona-broken-1", ownerId="user-has-persona", 
@@ -24,7 +24,7 @@ def setup_data(db_session):
                              tags='invalid-json', 
                              links='invalid-json',
                              organizationIds='invalid-json',
-                             defaultLicenseTerms='invalid-json',
+                             defaultLicenseSpecialTerms='invalid-json',
                              createdAt=now, updatedAt=now)
                              
     # Parent/Folder inheritance scripts
@@ -129,7 +129,7 @@ def test_get_public_script_json_parsing(client, db_session):
     assert response.status_code == 200
     data = response.json()
     assert data["persona"]["tags"] == ["author"]
-    assert data["persona"]["defaultLicenseTerms"] == ["term1"]
+    assert data["persona"]["defaultLicenseSpecialTerms"] == ["term1"]
     assert data["organization"]["tags"] == ["studio"]
 
 def test_list_public_org_empty_members_parsing(client, db_session):
@@ -145,3 +145,56 @@ def test_list_public_org_empty_members_parsing(client, db_session):
     assert response_list.status_code == 200
     assert len(response_list.json()) == 1
     assert response_list.json()[0]["tags"] == ["studio"]
+
+
+def test_public_persona_uses_persona_org_membership_table(client, db_session):
+    setup_data(db_session)
+    now = int(time.time() * 1000)
+    persona = Persona(
+        id="persona-membership-1",
+        ownerId="user-has-persona",
+        displayName="Membership Persona",
+        organizationIds="[]",
+        createdAt=now,
+        updatedAt=now,
+    )
+    membership = PersonaOrganizationMembership(
+        id="pom-1",
+        orgId="org-public-1",
+        personaId="persona-membership-1",
+        createdAt=now,
+        updatedAt=now,
+    )
+    db_session.add(persona)
+    db_session.add(membership)
+    db_session.commit()
+
+    response = client.get("/api/public-personas/persona-membership-1")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["organizationIds"] == ["org-public-1"]
+    assert len(data["organizations"]) == 1
+    assert data["organizations"][0]["id"] == "org-public-1"
+
+
+def test_user_fallback_uses_user_org_membership_table(client, db_session):
+    setup_data(db_session)
+    now = int(time.time() * 1000)
+    user = User(id="user-membership-fallback", handle="member-fallback", organizationId=None)
+    membership = OrganizationMembership(
+        id="om-1",
+        orgId="org-public-1",
+        userId="user-membership-fallback",
+        createdAt=now,
+        updatedAt=now,
+    )
+    db_session.add(user)
+    db_session.add(membership)
+    db_session.commit()
+
+    response = client.get("/api/public-personas/user-membership-fallback")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["organizationIds"] == ["org-public-1"]
+    assert len(data["organizations"]) == 1
+    assert data["organizations"][0]["id"] == "org-public-1"

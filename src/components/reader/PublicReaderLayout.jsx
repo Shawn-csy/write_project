@@ -5,13 +5,9 @@ import { PublicScriptInfoOverlay } from "./PublicScriptInfoOverlay";
 import { PublicMarkerLegend } from "./PublicMarkerLegend";
 import ScriptSurface from "../editor/ScriptSurface";
 import { useSettings } from "../../contexts/SettingsContext";
-import {
-  exportScriptAsCsv,
-  exportScriptAsDocx,
-  exportScriptAsFountain,
-  exportScriptAsXlsx,
-} from "../../lib/scriptExport";
+import { loadBasicScriptExport, loadXlsxScriptExport } from "../../lib/scriptExportLoader";
 import { useI18n } from "../../contexts/I18nContext";
+import { CoverPlaceholder } from "../ui/CoverPlaceholder";
 
 export function PublicReaderLayout({
   script, // { content, title, ...meta }
@@ -34,24 +30,37 @@ export function PublicReaderLayout({
     title, 
     author, 
     organization,
-    tags, 
     synopsis, 
-    description,
-    date,
+    commercialUse,
+    derivativeUse,
+    notifyOnModify,
     contact,
-    source,
-    credit,
-    authors,
-    headerAuthor,
-    customFields,
     seriesName,
+    prefaceItems,
     coverUrl, 
     content: rawScript,
     disableCopy
   } = script || {};
-  const normalizedTags = (tags || [])
-    .map((tag) => (typeof tag === "string" ? tag : tag?.name))
-    .filter(Boolean);
+
+  const contactValue = typeof contact === "object"
+    ? Object.entries(contact || {})
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(" / ")
+    : (contact || "");
+  const metaItems = [
+    { label: t("publicScriptInfo.contact"), value: contactValue },
+    script?.showMarkerLegend && validMarkerConfigs?.length > 0
+      ? {
+          label: t("publicReader.markerLegend"),
+          render: (
+            <PublicMarkerLegend
+              markerConfigs={validMarkerConfigs}
+              className="grid-cols-1 gap-y-1 md:grid-cols-1"
+            />
+          ),
+        }
+      : null,
+  ].filter((item) => item && (item.render || String(item.value || "").trim()));
 
   // Content Protection: Disable copy when disableCopy is true
   useEffect(() => {
@@ -105,28 +114,40 @@ export function PublicReaderLayout({
       id: "fountain",
       label: t("publicReader.downloadFountain"),
       icon: FileCode2,
-      onClick: () => exportScriptAsFountain(title || "script", rawScript || ""),
+      onClick: async () => {
+        const { exportScriptAsFountain } = await loadBasicScriptExport();
+        exportScriptAsFountain(title || "script", rawScript || "");
+      },
       disabled: !rawScript,
     },
     {
       id: "docx",
       label: t("publicReader.downloadDoc"),
       icon: FileText,
-      onClick: () => exportScriptAsDocx(title || "script", { text: rawScript || "", renderedHtml }),
+      onClick: async () => {
+        const { exportScriptAsDocx } = await loadBasicScriptExport();
+        await exportScriptAsDocx(title || "script", { text: rawScript || "", renderedHtml });
+      },
       disabled: !rawScript,
     },
     {
       id: "xlsx",
       label: t("publicReader.downloadXlsx"),
       icon: FileSpreadsheet,
-      onClick: () => exportScriptAsXlsx(title || "script", { text: rawScript || "", renderedHtml }),
+      onClick: async () => {
+        const { exportScriptAsXlsx } = await loadXlsxScriptExport();
+        await exportScriptAsXlsx(title || "script", { text: rawScript || "", renderedHtml });
+      },
       disabled: !rawScript,
     },
     {
       id: "csv",
       label: t("publicReader.downloadCsv"),
       icon: FileSpreadsheet,
-      onClick: () => exportScriptAsCsv(title || "script", { text: rawScript || "", renderedHtml }),
+      onClick: async () => {
+        const { exportScriptAsCsv } = await loadBasicScriptExport();
+        exportScriptAsCsv(title || "script", { text: rawScript || "", renderedHtml });
+      },
       disabled: !rawScript,
     },
   ];
@@ -164,6 +185,7 @@ export function PublicReaderLayout({
         sceneList={viewerProps?.sceneList || viewerProps?.scenes || []} // Provide fallback
         currentSceneId={viewerProps?.activeSceneId} // We need to ensure we track this
         onSelectScene={viewerProps?.scrollToScene} // The viewer prop usually expects an ID
+        metaItems={metaItems}
         
         // Marker Props
         markerConfigs={validMarkerConfigs}
@@ -196,24 +218,14 @@ export function PublicReaderLayout({
                    <>
                    <PublicScriptInfoOverlay 
                        title={title}
+                       synopsis={synopsis}
+                       coverUrl={coverUrl}
                        author={author}
                        organization={organization}
-                       headerAuthor={headerAuthor}
-                       tags={normalizedTags}
-                       synopsis={synopsis}
-                       description={description}
-                       date={date}
-                       contact={contact}
-                       source={source}
-                       credit={credit}
-                       authors={authors}
-                       customFields={customFields}
-                       coverUrl={coverUrl}
-                       license={script.license}
-                       licenseUrl={script.licenseUrl}
-                       licenseTerms={script.licenseTerms}
-                       licenseTags={script.licenseTags}
-                       copyright={script.copyright}
+                       commercialUse={commercialUse}
+                       derivativeUse={derivativeUse}
+                       notifyOnModify={notifyOnModify}
+                       prefaceItems={prefaceItems}
                    />
                    {Array.isArray(relatedSeriesScripts) && relatedSeriesScripts.length > 0 && (
                        <section className="w-full max-w-4xl mx-auto px-6 pb-8">
@@ -253,9 +265,7 @@ export function PublicReaderLayout({
                                                    loading="lazy"
                                                />
                                            ) : (
-                                               <div className="flex h-full items-center justify-center px-2 text-center text-[11px] text-muted-foreground">
-                                                   {item.title}
-                                               </div>
+                                               <CoverPlaceholder title={item.title} compact />
                                            )}
                                        </div>
                                        <div className="mt-1 space-y-0.5">
@@ -274,19 +284,6 @@ export function PublicReaderLayout({
                                ))}
                            </div>
                        </section>
-                   )}
-                   {script.showMarkerLegend && validMarkerConfigs?.length > 0 && (
-                       <div className="w-full max-w-4xl mx-auto px-6 pb-12 flex flex-col items-center space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-100">
-                            <div className="w-full max-w-2xl">
-                                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3 opacity-80 pl-1 text-center">
-                                    {t("publicReader.markerLegend")}
-                                </h4>
-                                <PublicMarkerLegend 
-                                    markerConfigs={validMarkerConfigs} 
-                                    className="rounded-xl border border-white/10 bg-background/60 backdrop-blur-md px-4 py-3 shadow-sm"
-                                />
-                            </div>
-                        </div>
                    )}
                    </>
                )

@@ -210,6 +210,10 @@ export const writeMetadata = (content, entries) => {
     const reservedKeys = new Set([
         "title", "credit", "author", "authors", "source", "draftdate", "date",
         "contact", "copyright", "license", "licenseurl", "licenseterms", "licensetags",
+        "outline",
+        "rolesetting", "backgroundinfo", "performanceinstruction", "openingintro", "environmentinfo", "situationinfo",
+        "setting", "settingintro", "background", "backgroundintro",
+        "licensespecialterms", "licensecommercial", "licensederivative", "licensenotify",
         "cover", "coverurl", "synopsis", "summary", "description", "notes",
         "marker_legend", "show_legend"
     ]);

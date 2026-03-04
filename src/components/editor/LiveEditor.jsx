@@ -2,28 +2,21 @@ import React, { useEffect, useState, useCallback, useMemo, useRef, useDeferredVa
 import CodeMirror from "@uiw/react-codemirror";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { EditorView } from "@codemirror/view";
-import { updateScript, getScript } from "../../lib/db";
-import { FileCode2, FileSpreadsheet, FileText, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { fountainLanguage } from "./fountain-mode";
-// import { debounce } from "lodash";
-import { debounce } from "../../lib/utils";
 import { StatisticsPanel } from "../statistics/StatisticsPanel";
 
 import { parseScreenplay } from "../../lib/screenplayAST";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useEditorSync } from "../../hooks/useEditorSync";
+import { useLiveEditorPersistence } from "../../hooks/editor/useLiveEditorPersistence";
 import { usePreviewLineNavigation } from "../../hooks/usePreviewLineNavigation";
-import { extractMetadata } from "../../lib/metadataParser";
-import {
-  exportScriptAsCsv,
-  exportScriptAsDocx,
-  exportScriptAsFountain,
-  exportScriptAsXlsx,
-} from "../../lib/scriptExport";
+import { useLiveEditorDownloadOptions } from "../../hooks/editor/useLiveEditorDownloadOptions";
 import { EditorHeader } from "./EditorHeader";
 import { PreviewPanel } from "./PreviewPanel";
 import { MarkerRulesPanel } from "./MarkerRulesPanel";
 import { useI18n } from "../../contexts/I18nContext";
+import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
 
 const EDITOR_PANE_WIDTH_STORAGE_KEY = "live_editor_pane_width_percent";
 const MIN_EDITOR_PANE_WIDTH = 28;
@@ -35,7 +28,7 @@ const clampEditorPaneWidth = (value) => {
 };
 
 // LiveEditor Component
-export default function LiveEditor({ scriptId, initialData, onClose, initialSceneId, defaultShowPreview = false, readOnly = false, onRequestEdit, onOpenMarkerSettings, contentScrollRef, isSidebarOpen, onSetSidebarOpen, onTitleHtml, onHasTitle, onTitleNote, onTitleSummary, onTitleName, showHeader = true }) {
+export default function LiveEditor({ scriptId, initialData, onClose, initialSceneId, defaultShowPreview = false, readOnly = false, onRequestEdit, onOpenMarkerSettings, contentScrollRef, isSidebarOpen, onSetSidebarOpen, onTitleHtml, onHasTitle, onTitleNote, onTitleSummary, onTitleName, showHeader = true, crossModeGuideActive = false, crossModeGuideStep = "", onCrossGuideNext, onCrossGuidePrev, onCrossGuideExit }) {
   const { t } = useI18n();
   const {
     theme = "system",
@@ -71,7 +64,14 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   const [isResizing, setIsResizing] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showRules, setShowRules] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
+  const [guideIndex, setGuideIndex] = useState(0);
+  const [guideSpotlightRect, setGuideSpotlightRect] = useState(null);
+  const [crossGuideSpotlightRect, setCrossGuideSpotlightRect] = useState(null);
   const editorPreviewContainerRef = useRef(null);
+  const headerRef = useRef(null);
+  const editorPaneRef = useRef(null);
+  const moreActionsButtonRef = useRef(null);
   const editorPaneWidthRef = useRef(editorPaneWidth);
   const resizeFrameRef = useRef(null);
   const [systemPrefersDark, setSystemPrefersDark] = useState(() => {
@@ -130,115 +130,28 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
 
   const [scenes, setScenes] = useState([]); 
 
-  // Local Storage Key Helper
-  const getDraftKey = (id) => `draft_script_${id}`;
-
-  // Load initial script w/ Local Draft Check
-  useEffect(() => {
-    if (initialData && initialData.id === scriptId && initialData.content !== undefined) {
-      // Check for local draft
-      const draftKey = getDraftKey(scriptId);
-      const draftJson = localStorage.getItem(draftKey);
-      let loadedContent = initialData.content;
-      let loadedTitle = initialData.title || t("liveEditor.untitled");
-      let isRestored = false;
-
-      if (draftJson) {
-          try {
-              const draft = JSON.parse(draftJson);
-              const serverMtime = new Date(initialData.lastModified || Date.now()).getTime();
-              if (draft.mtime > serverMtime) {
-                  // Draft is newer, use draft
-                  loadedContent = draft.content;
-                  loadedTitle = draft.title;
-                  isRestored = true;
-                  setSaveStatus("local-saved");
-                  console.log("Restored from local draft");
-              }
-          } catch(e) { console.error("Bad draft", e); }
-      }
-
-      setContent(loadedContent);
-      setTitle(loadedTitle);
-      lastSavedContent.current = loadedContent;
-      lastSavedTitle.current = loadedTitle;
-      setLoading(false);
-      return;
-    }
-
-    async function load() {
-      if (!scriptId) return;
-      try {
-        setLoading(true);
-        const data = await getScript(scriptId);
-        
-        let loadedContent = data.content || "";
-        let loadedTitle = data.title || t("liveEditor.untitled");
-        
-        // Draft Check Logic duplicated (cleaner to extract but inline is fine)
-        const draftKey = getDraftKey(scriptId);
-        const draftJson = localStorage.getItem(draftKey);
-        if (draftJson) {
-             try {
-                 const draft = JSON.parse(draftJson);
-                 const serverMtime = new Date(data.lastModified || Date.now()).getTime();
-                 if (draft.mtime > serverMtime) {
-                     loadedContent = draft.content;
-                     loadedTitle = draft.title;
-                     setSaveStatus("local-saved"); 
-                 }
-             } catch(e) {}
-        }
-
-        setContent(loadedContent);
-        setTitle(loadedTitle);
-        lastSavedContent.current = loadedContent;
-        lastSavedTitle.current = loadedTitle;
-        setLastSaved(new Date(data.lastModified || Date.now()));
-      } catch (error) {
-        console.error("Failed to load script", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, [scriptId, initialData]);
-
-  // Persistence Logic
-  const performSave = async (id, newContent, newTitle) => {
-      try {
-        setSaveStatus("saving");
-        const meta = extractMetadata(newContent);
-        await updateScript(id, { 
-            content: newContent, 
-            title: newTitle,
-            author: meta.author || meta.authors || "",
-            draftDate: meta.date || meta.draftdate || ""
-        });
-        setLastSaved(new Date());
-        setSaveStatus("saved");
-        lastSavedContent.current = newContent;
-        lastSavedTitle.current = newTitle;
-        
-        // Clear local draft after successful synced save? 
-        // No, keep it as backup until newer data comes. 
-        // Or update its timestamp? 
-        // Actually, if we saved to server, server mtime is now new.
-        // We can remove draft or update it.
-        // Let's keep writing draft in handleChange.
-      } catch (err) {
-        console.error("Auto-save failed", err);
-        setSaveStatus("error");
-      }
-  };
-
-  // Debounced save
-  const debouncedSave = useCallback(
-    debounce((id, newContent, newTitle) => {
-      performSave(id, newContent, newTitle);
-    }, 60000), // Increased to 60s
-    []
-  );
+  const {
+    handleChange,
+    handleTitleUpdate,
+    handleBack,
+    handleManualSave,
+  } = useLiveEditorPersistence({
+    scriptId,
+    initialData,
+    readOnly,
+    content,
+    title,
+    onClose,
+    onTitleName,
+    t,
+    setContent,
+    setTitle,
+    setLoading,
+    setSaveStatus,
+    setLastSaved,
+    lastSavedContentRef: lastSavedContent,
+    lastSavedTitleRef: lastSavedTitle,
+  });
 
   // BeforeUnload Warning
   useEffect(() => {
@@ -272,145 +185,17 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
       return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [saveStatus, content, title]);
 
-
-  const handleChange = (val) => {
-    setContent(val);
-    if (!readOnly) {
-        // 1. Save to LocalStorage immediately
-        try {
-            const draftKey = getDraftKey(scriptId);
-            localStorage.setItem(draftKey, JSON.stringify({
-                content: val,
-                title: title,
-                mtime: Date.now()
-            }));
-            // Update status only if not currently 'saving' or 'error' (priority)
-            // Actually 'saving' should override 'local-saved' in UI, but logically we are local-saved.
-            // If we are 'saving', we stay 'saving'.
-            setSaveStatus(prev => (prev === 'saving' ? 'saving' : 'local-saved'));
-        } catch(e) { console.error("Local save failed", e); }
-
-        // 2. Queue Cloud Save
-        debouncedSave(scriptId, val, title);
-    }
-  };
-
-  const handleTitleUpdate = (newTitle) => {
-    if (newTitle && newTitle !== title) {
-        setTitle(newTitle);
-        onTitleName?.(newTitle);
-        if (!readOnly) {
-            // Local Save
-            try {
-                const draftKey = getDraftKey(scriptId);
-                localStorage.setItem(draftKey, JSON.stringify({
-                    content: content,
-                    title: newTitle,
-                    mtime: Date.now()
-                }));
-                setSaveStatus(prev => (prev === 'saving' ? 'saving' : 'local-saved'));
-            } catch(e) {}
-
-            debouncedSave(scriptId, content, newTitle);
-        }
-    }
-  };
-
-  const downloadOptions = useMemo(
-    () => [
-      {
-        id: "__helper__",
-        hidden: true,
-      },
-      {
-        id: "fountain",
-        label: t("publicReader.downloadFountain"),
-        icon: FileCode2,
-        onClick: () => exportScriptAsFountain(title, content),
-      },
-      {
-        id: "docx",
-        label: t("publicReader.downloadDoc"),
-        icon: FileText,
-        onClick: () =>
-          exportScriptAsDocx(title, {
-            text: content,
-            renderedHtml: processedRenderedHtml || rawRenderedHtml,
-          }),
-      },
-      {
-        id: "xlsx",
-        label: t("publicReader.downloadXlsx"),
-        icon: FileSpreadsheet,
-        onClick: () =>
-          exportScriptAsXlsx(title, {
-            text: content,
-            renderedHtml: processedRenderedHtml || rawRenderedHtml,
-          }),
-      },
-      {
-        id: "csv",
-        label: t("publicReader.downloadCsv"),
-        icon: FileSpreadsheet,
-        onClick: () =>
-          exportScriptAsCsv(title, {
-            text: content,
-            renderedHtml: processedRenderedHtml || rawRenderedHtml,
-          }),
-      },
-    ],
-    [title, content, processedRenderedHtml, rawRenderedHtml, t]
-  );
-
-  const runRenderedExport = useCallback(
-    (exporter) => {
-      const currentHtml = renderedHtmlRef.current.processed || renderedHtmlRef.current.raw;
-      if (currentHtml) {
-        exporter({ text: content, renderedHtml: currentHtml });
-        return;
-      }
-
-      if (!showPreview && !readOnly) {
-        setShowPreview(true);
-        setTimeout(() => {
-          const nextHtml = renderedHtmlRef.current.processed || renderedHtmlRef.current.raw;
-          exporter({ text: content, renderedHtml: nextHtml });
-        }, 220);
-        return;
-      }
-
-      exporter({ text: content, renderedHtml: "" });
-    },
-    [content, showPreview, readOnly]
-  );
-
-  const normalizedDownloadOptions = useMemo(
-    () =>
-      downloadOptions
-        .filter((item) => !item.hidden)
-        .map((item) => {
-          if (item.id === "docx") {
-            return {
-              ...item,
-              onClick: () => runRenderedExport((payload) => exportScriptAsDocx(title, payload)),
-            };
-          }
-          if (item.id === "xlsx") {
-            return {
-              ...item,
-              onClick: () => runRenderedExport((payload) => exportScriptAsXlsx(title, payload)),
-            };
-          }
-          if (item.id === "csv") {
-            return {
-              ...item,
-              onClick: () => runRenderedExport((payload) => exportScriptAsCsv(title, payload)),
-            };
-          }
-          return item;
-        }),
-    [downloadOptions, runRenderedExport, title]
-  );
+  const normalizedDownloadOptions = useLiveEditorDownloadOptions({
+    t,
+    title,
+    content,
+    processedRenderedHtml,
+    rawRenderedHtml,
+    renderedHtmlRef,
+    showPreview,
+    setShowPreview,
+    readOnly,
+  });
 
   const { handleLocateText, handlePreviewLineClick } = usePreviewLineNavigation({
     content,
@@ -431,22 +216,163 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     [previewRef, contentScrollRef]
   );
 
-  const handleBack = async () => {
-      debouncedSave.cancel();
-      const hasCloudDiff = content !== lastSavedContent.current || title !== lastSavedTitle.current;
-      // Ensure latest content is synced to cloud before leaving editor view.
-      if (!readOnly && hasCloudDiff) {
-          await performSave(scriptId, content, title);
-      }
-      onClose();
-  };
+  const guideSteps = useMemo(() => ([
+    {
+      title: t("liveEditor.guideEditScriptTitle"),
+      description: t("liveEditor.guideEditScriptDesc"),
+      target: "header",
+    },
+    {
+      title: t("liveEditor.guideEditorTitle"),
+      description: t("liveEditor.guideEditorDesc"),
+      target: "editor",
+    },
+    {
+      title: t("liveEditor.guidePreviewTitle"),
+      description: t("liveEditor.guidePreviewDesc"),
+      target: "preview",
+    },
+    {
+      title: t("liveEditor.guideActionsTitle"),
+      description: t("liveEditor.guideActionsDesc"),
+      target: "actions",
+    },
+  ]), [t]);
 
-  const handleManualSave = () => {
-        if (saveStatus !== 'saving') {
-            debouncedSave.cancel();
-            performSave(scriptId, content, title);
-        }
-  };
+  const currentGuide = showGuide ? guideSteps[guideIndex] : null;
+  const showCrossModeEditGuide = !readOnly && crossModeGuideActive && (
+    crossModeGuideStep === "editIntro" ||
+    crossModeGuideStep === "editPreview" ||
+    crossModeGuideStep === "editActions"
+  );
+  const crossGuideTitle = (() => {
+    if (crossModeGuideStep === "editPreview") return t("liveEditor.crossGuideEditPreviewTitle");
+    if (crossModeGuideStep === "editActions") return t("liveEditor.crossGuideEditActionsTitle");
+    return t("liveEditor.crossGuideEditIntroTitle");
+  })();
+  const crossGuideDesc = (() => {
+    if (crossModeGuideStep === "editPreview") return t("liveEditor.crossGuideEditPreviewDesc");
+    if (crossModeGuideStep === "editActions") return t("liveEditor.crossGuideEditActionsDesc");
+    return t("liveEditor.crossGuideEditIntroDesc");
+  })();
+  const crossGuideTarget = (() => {
+    if (crossModeGuideStep === "editPreview") return "preview";
+    if (crossModeGuideStep === "editActions") return "actions";
+    return "editor";
+  })();
+
+  const getGuideTargetElement = useCallback((target) => {
+    switch (target) {
+      case "header":
+        return headerRef.current;
+      case "editor":
+        return editorPaneRef.current;
+      case "preview":
+        return previewRef.current;
+      case "actions":
+        return moreActionsButtonRef.current;
+      default:
+        return null;
+    }
+  }, [previewRef]);
+
+  const updateGuideSpotlight = useCallback(() => {
+    if (!showGuide) {
+      setGuideSpotlightRect(null);
+      return;
+    }
+    const step = guideSteps[guideIndex];
+    const element = step ? getGuideTargetElement(step.target) : null;
+    if (!element) {
+      setGuideSpotlightRect(null);
+      return;
+    }
+    const rect = element.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+      setGuideSpotlightRect(null);
+      return;
+    }
+    const padding = 8;
+    setGuideSpotlightRect({
+      top: Math.max(0, rect.top - padding),
+      left: Math.max(0, rect.left - padding),
+      width: rect.width + padding * 2,
+      height: rect.height + padding * 2,
+    });
+  }, [showGuide, guideSteps, guideIndex, getGuideTargetElement]);
+
+  useEffect(() => {
+    if (!showGuide) return undefined;
+    updateGuideSpotlight();
+    const onLayoutChange = () => updateGuideSpotlight();
+    window.addEventListener("resize", onLayoutChange);
+    window.addEventListener("scroll", onLayoutChange, true);
+    return () => {
+      window.removeEventListener("resize", onLayoutChange);
+      window.removeEventListener("scroll", onLayoutChange, true);
+    };
+  }, [showGuide, guideIndex, updateGuideSpotlight]);
+
+  const updateCrossGuideSpotlight = useCallback(() => {
+    if (!showCrossModeEditGuide) {
+      setCrossGuideSpotlightRect(null);
+      return;
+    }
+    const element = getGuideTargetElement(crossGuideTarget);
+    if (!element) {
+      setCrossGuideSpotlightRect(null);
+      return;
+    }
+    const rect = element.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+      setCrossGuideSpotlightRect(null);
+      return;
+    }
+    const padding = 8;
+    setCrossGuideSpotlightRect({
+      top: Math.max(0, rect.top - padding),
+      left: Math.max(0, rect.left - padding),
+      width: rect.width + padding * 2,
+      height: rect.height + padding * 2,
+    });
+  }, [crossGuideTarget, getGuideTargetElement, showCrossModeEditGuide]);
+
+  useEffect(() => {
+    if (!showCrossModeEditGuide) {
+      setCrossGuideSpotlightRect(null);
+      return undefined;
+    }
+    updateCrossGuideSpotlight();
+    const onLayoutChange = () => updateCrossGuideSpotlight();
+    window.addEventListener("resize", onLayoutChange);
+    window.addEventListener("scroll", onLayoutChange, true);
+    return () => {
+      window.removeEventListener("resize", onLayoutChange);
+      window.removeEventListener("scroll", onLayoutChange, true);
+    };
+  }, [showCrossModeEditGuide, crossModeGuideStep, updateCrossGuideSpotlight]);
+
+  const startGuide = useCallback(() => {
+    setGuideIndex(0);
+    setShowGuide(true);
+  }, []);
+
+  const finishGuide = useCallback(() => {
+    setShowGuide(false);
+    setGuideSpotlightRect(null);
+  }, []);
+
+  const handleGuidePrev = useCallback(() => {
+    setGuideIndex((prev) => Math.max(0, prev - 1));
+  }, []);
+
+  const handleGuideNext = useCallback(() => {
+    if (guideIndex >= guideSteps.length - 1) {
+      finishGuide();
+      return;
+    }
+    setGuideIndex((prev) => Math.min(guideSteps.length - 1, prev + 1));
+  }, [finishGuide, guideIndex, guideSteps.length]);
 
   const persistEditorPaneWidth = useCallback((value) => {
     if (typeof window === "undefined") return;
@@ -586,36 +512,34 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   return (
     <div className="flex flex-col h-full bg-background relative z-0">
       {showHeader && (
-      <EditorHeader 
-        readOnly={readOnly}
-        title={title}
-        onBack={handleBack}
-        onManualSave={handleManualSave}
-        saveStatus={saveStatus}
-        lastSaved={lastSaved}
-        showRules={showRules}
-        onToggleRules={() => setShowRules(prev => !prev)}
-        downloadOptions={normalizedDownloadOptions}
-        onToggleStats={() => setShowStats(true)}
-        showPreview={showPreview}
-        onTogglePreview={() => setShowPreview(!showPreview)}
-        isSidebarOpen={isSidebarOpen}
-        onSetSidebarOpen={onSetSidebarOpen}
-        onTitleChange={handleTitleUpdate}
-        markerConfigs={markerConfigs}
-        hiddenMarkerIds={hiddenMarkerIds}
-        onToggleMarker={toggleMarkerVisibility}
-        script={initialData} // Or manage a local script state if needing deeper updates
-        onScriptUpdate={(updated) => {
-            // Update local state if needed, or just let the dialog handle the API call + prop refresh
-            // For now, we rely on the Dialog's API call and maybe a refresh to parent?
-            // Since initialData comes from parent, we might need a way to bubble up.
-            // But simple display update:
-            if (updated.title && updated.title !== title) setTitle(updated.title);
-            // Ideally we update the full object in parent scriptManager
-            // But for now, relying on next load or context update is okay.
-        }}
-      />
+        <div ref={headerRef}>
+          <EditorHeader 
+            readOnly={readOnly}
+            title={title}
+            onBack={handleBack}
+            onManualSave={handleManualSave}
+            saveStatus={saveStatus}
+            lastSaved={lastSaved}
+            showRules={showRules}
+            onToggleRules={() => setShowRules(prev => !prev)}
+            downloadOptions={normalizedDownloadOptions}
+            onToggleStats={() => setShowStats(true)}
+            showPreview={showPreview}
+            onTogglePreview={() => setShowPreview(!showPreview)}
+            onOpenGuide={startGuide}
+            moreActionsRef={moreActionsButtonRef}
+            isSidebarOpen={isSidebarOpen}
+            onSetSidebarOpen={onSetSidebarOpen}
+            onTitleChange={handleTitleUpdate}
+            markerConfigs={markerConfigs}
+            hiddenMarkerIds={hiddenMarkerIds}
+            onToggleMarker={toggleMarkerVisibility}
+            script={initialData}
+            onScriptUpdate={(updated) => {
+                if (updated.title && updated.title !== title) setTitle(updated.title);
+            }}
+          />
+        </div>
       )}
 
       {/* Editor Area */}
@@ -623,6 +547,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
         {/* Code Editor Pane */}
         {!readOnly && (
             <div
+                ref={editorPaneRef}
                 className={`h-full ${
                   showPreview
                     ? "w-full sm:w-auto sm:shrink-0 sm:basis-[var(--editor-pane-width,50%)] sm:border-r sm:border-border"
@@ -731,6 +656,37 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
         />
 
       </div>
+      <SpotlightGuideOverlay
+        open={showGuide && Boolean(currentGuide)}
+        zIndex={250}
+        spotlightRect={guideSpotlightRect}
+        currentStep={guideIndex + 1}
+        totalSteps={guideSteps.length}
+        title={currentGuide?.title}
+        description={currentGuide?.description}
+        onSkip={finishGuide}
+        skipLabel={t("liveEditor.guideSkip")}
+        onPrev={handleGuidePrev}
+        prevLabel={t("liveEditor.guidePrev")}
+        prevDisabled={guideIndex === 0}
+        onNext={handleGuideNext}
+        nextLabel={guideIndex === guideSteps.length - 1 ? t("liveEditor.guideDone") : t("liveEditor.guideNext")}
+      />
+      <SpotlightGuideOverlay
+        open={showCrossModeEditGuide}
+        zIndex={255}
+        spotlightRect={crossGuideSpotlightRect}
+        title={crossGuideTitle}
+        description={crossGuideDesc}
+        onSkip={() => onCrossGuideExit?.()}
+        skipLabel={t("liveEditor.crossGuideExit")}
+        onPrev={() => onCrossGuidePrev?.()}
+        prevLabel={t("liveEditor.crossGuidePrev")}
+        prevDisabled={crossModeGuideStep === "editIntro"}
+        onNext={() => onCrossGuideNext?.()}
+        nextLabel={crossModeGuideStep === "editActions" ? t("liveEditor.crossGuideBackToRead") : t("liveEditor.crossGuideNext")}
+        showProgress={false}
+      />
     </div>
   );
 }

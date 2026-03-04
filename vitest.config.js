@@ -10,6 +10,12 @@ export default defineConfig({
     globals: true,
     setupFiles: './src/tests/setup.js',
     include: ['src/**/*.{test,spec}.{js,jsx}'],
+    coverage: {
+      provider: 'v8',
+      all: true,
+      include: ['src/**/*.{js,jsx}'],
+      exclude: ['src/**/*.{test,spec}.{js,jsx}', 'src/tests/**', 'src/main.jsx'],
+    },
   },
   resolve: {
     alias: {

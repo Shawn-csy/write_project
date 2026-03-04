@@ -11,12 +11,16 @@ router = APIRouter(prefix="/api/me", tags=["users"])
 def read_users_me(db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
     user = crud.get_user(db, ownerId)
     if not user:
-        return {"id": ownerId, "settings": {}}
+        return {"id": ownerId, "settings": {}, "organizationIds": []}
     # Parse settings JSON
     try:
         user.settings = json.loads(user.settings) if user.settings else {}
     except ValueError:
         user.settings = {}
+    user_org_ids = crud.list_user_org_ids(db, ownerId)
+    setattr(user, "organizationIds", user_org_ids)
+    if not user.organizationId and user_org_ids:
+        user.organizationId = user_org_ids[0]
     return user
 
 @router.put("")

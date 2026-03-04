@@ -88,6 +88,10 @@ test-results/
 playwright-report/
 blob-report/
 coverage/
+.coverage
 .vitest-results.json
+diff.txt
+diff_stat.txt
 service-account.json
 examples
+server/bandit_report.csv
