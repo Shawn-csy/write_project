@@ -1,11 +1,11 @@
 import React from "react";
-import { Routes } from "react-router-dom";
+import { Routes, useNavigate } from "react-router-dom";
 
 import { useI18n } from "./contexts/I18nContext";
 import { useCrossModeReadGuide } from "./hooks/useCrossModeReadGuide";
 import { ReadGuideOverlay } from "./components/reader/ReadGuideOverlay";
-import { PublicRoutes } from "./routes/PublicRoutes";
-import { WorkspaceRoutes } from "./routes/WorkspaceRoutes";
+import { renderPublicRoutes } from "./routes/PublicRoutes";
+import { renderWorkspaceRoutes } from "./routes/WorkspaceRoutes";
 
 export function AppRouter({
   scriptManager,
@@ -33,6 +33,7 @@ export function AppRouter({
   fileTagsMap,
 }) {
   const { t } = useI18n();
+  const navigate = useNavigate();
 
   const { cloudScriptMode } = scriptManager;
   const {
@@ -50,35 +51,36 @@ export function AppRouter({
 
   return (
     <Routes>
-      <PublicRoutes scriptManager={scriptManager} navProps={navProps} />
-      <WorkspaceRoutes
-        scriptManager={scriptManager}
-        nav={nav}
-        navProps={navProps}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        showStats={showStats}
-        setShowStats={setShowStats}
-        scrollProgress={scrollProgress}
-        headerTitle={headerTitle}
-        canShare={canShare}
-        isPublicReader={isPublicReader}
-        showReaderHeader={showReaderHeader}
-        readerDownloadOptions={readerDownloadOptions}
-        handleShareUrl={handleShareUrl}
-        shareCopied={shareCopied}
-        handleReturnHome={handleReturnHome}
-        handleCloudTitleUpdate={handleCloudTitleUpdate}
-        accentStyle={accentStyle}
-        fileLabelMode={fileLabelMode}
-        setFileLabelMode={setFileLabelMode}
-        activeFile={activeFile}
-        activeCloudScript={activeCloudScript}
-        fileTagsMap={fileTagsMap}
-        isCloudReadMode={isCloudReadMode}
-        startCrossModeGuide={startCrossModeGuide}
-        handleReaderEdit={handleReaderEdit}
-        guideOverlay={
+      {renderPublicRoutes({ scriptManager, navProps })}
+      {renderWorkspaceRoutes({
+        scriptManager,
+        nav,
+        navProps,
+        searchTerm,
+        setSearchTerm,
+        showStats,
+        setShowStats,
+        scrollProgress,
+        headerTitle,
+        canShare,
+        isPublicReader,
+        showReaderHeader,
+        readerDownloadOptions,
+        handleShareUrl,
+        shareCopied,
+        handleReturnHome,
+        handleCloudTitleUpdate,
+        accentStyle,
+        fileLabelMode,
+        setFileLabelMode,
+        activeFile,
+        activeCloudScript,
+        fileTagsMap,
+        isCloudReadMode,
+        startCrossModeGuide,
+        handleReaderEdit,
+        navigate,
+        guideOverlay: (
           <ReadGuideOverlay
             open={readGuideDialogOpen}
             spotlightRect={readGuideSpotlightRect}
@@ -89,8 +91,8 @@ export function AppRouter({
             exitLabel={t("readerActions.crossGuideExit")}
             nextLabel={guideStep === "readFinish" ? t("readerActions.crossGuideDone") : t("readerActions.crossGuideNext")}
           />
-        }
-      />
+        ),
+      })}
     </Routes>
   );
 }

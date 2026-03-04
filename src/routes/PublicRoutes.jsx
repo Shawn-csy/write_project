@@ -11,7 +11,7 @@ const PublicAboutPage = lazyWithRefreshRetry(() => import("../pages/PublicAboutP
 
 const routeFallback = <div className="p-8 text-center text-muted-foreground">Loading...</div>;
 
-export function PublicRoutes({ scriptManager, navProps }) {
+export function renderPublicRoutes({ scriptManager, navProps }) {
   return (
     <>
       <Route
