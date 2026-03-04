@@ -626,18 +626,54 @@ export function PublisherProfileTab({
                                 </div>
                             </>
                         ) : (
-                            <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground">
-                                <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
-                                    <Plus className="w-8 h-8 text-muted-foreground/30" />
+                            !hasPersona ? (
+                                <div className="h-[420px] flex items-center justify-center">
+                                    <Card className="w-full max-w-xl border-dashed p-5">
+                                        <div className="mb-4">
+                                            <h4 className="text-base font-semibold">{t("publisherProfileTab.emptyDemoTitle", "這是作者身份示範")}</h4>
+                                            <p className="mt-1 text-sm text-muted-foreground">
+                                                {t("publisherProfileTab.emptyDemoDesc", "建立第一個作者身份後，可在公開頁展示頭像、簡介、連結與標籤。")}
+                                            </p>
+                                        </div>
+                                        <div className="rounded-lg border bg-muted/20 p-4">
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="h-12 w-12 border">
+                                                    <AvatarFallback>D</AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <div className="font-semibold">{t("publisherProfileTab.emptyDemoName", "示範作者名稱")}</div>
+                                                    <div className="text-xs text-muted-foreground">{t("publisherProfileTab.emptyDemoBio", "這裡會顯示作者簡介、風格與合作資訊。")}</div>
+                                                </div>
+                                            </div>
+                                            <div className="mt-3 flex flex-wrap gap-1.5">
+                                                <span className="rounded-full border bg-background px-2 py-0.5 text-xs">Drama</span>
+                                                <span className="rounded-full border bg-background px-2 py-0.5 text-xs">Fantasy</span>
+                                                <span className="rounded-full border bg-background px-2 py-0.5 text-xs">Narration</span>
+                                            </div>
+                                        </div>
+                                        <div className="mt-4">
+                                            <Button onClick={onStartCreate}>
+                                                <Plus className="mr-1.5 h-4 w-4" />
+                                                {t("publisherProfileTab.createNow")}
+                                            </Button>
+                                        </div>
+                                    </Card>
                                 </div>
-                                <p className="mb-2">{t("publisherProfileTab.selectIdentityToEdit")}</p>
-                                <Button variant="outline" onClick={onStartCreate}>{t("publisherProfileTab.orCreateNewIdentity")}</Button>
-                            </div>
+                            ) : (
+                                <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground">
+                                    <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
+                                        <Plus className="w-8 h-8 text-muted-foreground/30" />
+                                    </div>
+                                    <p className="mb-2">{t("publisherProfileTab.selectIdentityToEdit")}</p>
+                                    <Button variant="outline" onClick={onStartCreate}>{t("publisherProfileTab.orCreateNewIdentity")}</Button>
+                                </div>
+                            )
                         )}
                     </div>
                 </div>
 
                 {/* Footer Actions */}
+                {(viewMode === "create" || selectedPersonaId) ? (
                 <div className="p-3 border-t bg-background/50 backdrop-blur-sm flex justify-end">
                      <Button 
                         onClick={viewMode === "create" ? handleCreatePersona : handleSaveProfile} 
@@ -648,6 +684,7 @@ export function PublisherProfileTab({
                         {viewMode === "create" ? t("publisherProfileTab.createIdentityShort") : t("publisherProfileTab.saveChanges")}
                     </Button>
                 </div>
+                ) : null}
             </div>
             
             <MediaPicker

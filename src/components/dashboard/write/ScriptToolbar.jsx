@@ -3,6 +3,7 @@ import {
     Plus,
     Upload,
     FolderPlus,
+    CircleHelp,
     ArrowLeft, 
     Home, 
     ChevronRight
@@ -19,7 +20,8 @@ export function ScriptToolbar({
     onExport,
     onImport,
     onCreateFolder,
-    onCreateScript
+    onCreateScript,
+    onOpenGuide,
 }) {
     const { t } = useI18n();
     return (
@@ -57,17 +59,40 @@ export function ScriptToolbar({
 
             {!readOnly && (
             <div className="flex items-center gap-1">
-                 <Button size="sm" onClick={onCreateScript} title={t("scriptToolbar.newScript")} className="inline-flex">
+                 <Button
+                    size="sm"
+                    onClick={onCreateScript}
+                    title={t("scriptToolbar.newScript")}
+                    className="inline-flex font-semibold ring-2 ring-primary/35 shadow-[0_14px_30px_-12px_hsl(var(--primary)/0.95)] transition hover:ring-primary/55 hover:brightness-110"
+                    data-guide-id="write-create-script-btn"
+                 >
                     <Plus className="w-4 h-4 mr-1" />
                     {t("scriptToolbar.newScriptLabel")}
                  </Button>
-                 <Button size="sm" variant="outline" onClick={() => onImport && onImport()} title={t("scriptToolbar.importScript")} className="inline-flex">
+                 <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onImport && onImport()}
+                    title={t("scriptToolbar.importScript")}
+                    className="inline-flex border-amber-400/70 bg-amber-50/80 text-amber-900 hover:bg-amber-100 dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-amber-200"
+                    data-guide-id="write-import-script-btn"
+                 >
                     <Upload className="w-4 h-4 mr-1" />
                     {t("scriptToolbar.import")}
                  </Button>
                  <Button size="sm" variant="outline" onClick={onCreateFolder} title={t("scriptToolbar.newFolder")} className="inline-flex">
                     <FolderPlus className="w-4 h-4 mr-1" />
                     {t("scriptToolbar.folder")}
+                 </Button>
+                 <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onOpenGuide && onOpenGuide()}
+                    title={t("scriptToolbar.guide")}
+                    className="inline-flex"
+                 >
+                    <CircleHelp className="w-4 h-4 mr-1" />
+                    {t("scriptToolbar.guide")}
                  </Button>
             </div>
             )}

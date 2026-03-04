@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { Loader2, ClipboardPaste, FileText, Eye, CheckCircle2, CircleHelp } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Textarea } from "../../ui/textarea";
@@ -92,6 +93,7 @@ export function ImportScriptDialog({
     currentPath
 }) {
     const { t } = useI18n();
+    const navigate = useNavigate();
     const [step, setStep] = useState(STEPS.INPUT);
     const [rawInput, setRawInput] = useState("");
     const [title, setTitle] = useState("");
@@ -99,6 +101,7 @@ export function ImportScriptDialog({
     const [characterNamesInput, setCharacterNamesInput] = useState("");
     const [importing, setImporting] = useState(false);
     const [showGuide, setShowGuide] = useState(false);
+    const [showFormatQuickInfo, setShowFormatQuickInfo] = useState(false);
     const [guideIndex, setGuideIndex] = useState(0);
     const [spotlightRect, setSpotlightRect] = useState(null);
     const { toast } = useToast();
@@ -149,6 +152,18 @@ export function ImportScriptDialog({
         if (currentGuide.focus === "result") return guideResultRef;
         return null;
     }, [currentGuide]);
+    const markerRows = useMemo(
+        () => ([
+            { marker: "1. 第一章", meaning: t("importFormat.markerChapter") },
+            { marker: "#C 小雨", meaning: t("importFormat.markerCharacter") },
+            { marker: "(低聲)", meaning: t("importFormat.markerTone") },
+            { marker: "【殘響】", meaning: t("importFormat.markerPostFx") },
+            { marker: "#SE 關門聲", meaning: t("importFormat.markerSeSingle") },
+            { marker: "//BG 夜晚街景", meaning: t("importFormat.markerBg") },
+            { marker: "@舞台左側", meaning: t("importFormat.markerPosition") },
+        ]),
+        [t]
+    );
     
     // 重置狀態
     const resetState = useCallback(() => {
@@ -160,6 +175,7 @@ export function ImportScriptDialog({
         setPreprocessResult(null);
         setMetadata({});
         setShowGuide(false);
+        setShowFormatQuickInfo(false);
         setGuideIndex(0);
         setSpotlightRect(null);
     }, []);
@@ -396,10 +412,15 @@ export function ImportScriptDialog({
                             <FileText className="w-5 h-5" />
                             {t("importDialog.title")}
                         </DialogTitle>
-                        <Button type="button" variant="outline" size="sm" onClick={handleGuideStart}>
-                            <CircleHelp className="w-4 h-4 mr-1" />
-                            {t("importDialog.help")}
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            <Button type="button" variant="ghost" size="sm" onClick={() => setShowFormatQuickInfo(true)}>
+                                {t("importDialog.formatGuide")}
+                            </Button>
+                            <Button type="button" variant="outline" size="sm" onClick={handleGuideStart}>
+                                <CircleHelp className="w-4 h-4 mr-1" />
+                                {t("importDialog.help")}
+                            </Button>
+                        </div>
                     </div>
                     <DialogDescription>
                          {t("importDialog.descDefault")}
@@ -580,6 +601,44 @@ export function ImportScriptDialog({
             onNext={handleGuideNext}
             nextLabel={guideIndex === guideSteps.length - 1 ? t("importDialog.guideDone") : t("importDialog.guideNext")}
         />
+        <Dialog open={showFormatQuickInfo} onOpenChange={setShowFormatQuickInfo}>
+            <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>{t("importDialog.formatQuickTitle")}</DialogTitle>
+                    <DialogDescription>{t("importDialog.formatQuickDesc")}</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                    <p>{t("publicHelp.importQuickItem1")}</p>
+                    <p>{t("publicHelp.importQuickItem2")}</p>
+                    <p>{t("publicHelp.importQuickItem3")}</p>
+                </div>
+                <div className="rounded-lg border overflow-hidden">
+                    <div className="grid grid-cols-[145px_1fr] bg-muted/40 text-xs font-medium">
+                        <div className="px-3 py-2 border-r">{t("importFormat.markerCol")}</div>
+                        <div className="px-3 py-2">{t("importFormat.meaningCol")}</div>
+                    </div>
+                    {markerRows.map((row) => (
+                        <div key={row.marker} className="grid grid-cols-[145px_1fr] text-sm border-t">
+                            <div className="px-3 py-2 border-r font-mono">{row.marker}</div>
+                            <div className="px-3 py-2 text-muted-foreground">{row.meaning}</div>
+                        </div>
+                    ))}
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowFormatQuickInfo(false)}>
+                        {t("common.cancel")}
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            setShowFormatQuickInfo(false);
+                            navigate("/help/import-format");
+                        }}
+                    >
+                        {t("importDialog.formatGuideDetail")}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
         
         </>
     );

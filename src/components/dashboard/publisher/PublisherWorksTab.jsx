@@ -51,6 +51,7 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
         });
         return { total: (scripts || []).length, publicCount, privateCount };
     }, [scripts]);
+    const hasAnyScripts = (scripts || []).length > 0;
 
     const filteredScripts = React.useMemo(() => {
         return (scripts || []).filter((script) => {
@@ -134,7 +135,7 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
                 title="作品管理"
                 description="快速檢視公開狀態、封面與授權缺漏，並直接編輯作品資訊。"
             />
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card p-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card p-2" data-guide-id="studio-works-filters">
                 <div className="flex items-center gap-2">
                     <Button
                         variant={filter === "all" ? "secondary" : "ghost"}
@@ -239,6 +240,48 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
 
             {isLoading ? (
                 <div className="flex justify-center p-6"><Loader2 className="animate-spin" /></div>
+            ) : !hasAnyScripts ? (
+                <Card className="border-dashed p-5 md:p-6">
+                    <div className="mb-4">
+                        <h4 className="text-base font-semibold">{t("publisherWorksTab.emptyDemoTitle", "這是作品管理示範")}</h4>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            {t("publisherWorksTab.emptyDemoDesc", "建立第一部作品後，這裡會顯示公開狀態、封面、授權檢查與編輯入口。")}
+                        </p>
+                    </div>
+                    <Card className="flex flex-col overflow-hidden border bg-muted/20 sm:flex-row">
+                        <div className="relative h-32 w-full shrink-0 bg-muted sm:w-32">
+                            <CoverPlaceholder title={t("publisherWorksTab.emptyDemoScriptTitle", "示範劇本標題")} compact />
+                        </div>
+                        <div className="flex flex-1 flex-col justify-between p-4">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <h3 className="font-serif text-lg font-semibold">{t("publisherWorksTab.emptyDemoScriptTitle", "示範劇本標題")}</h3>
+                                    <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                                        <span>{t("publisherWorksTab.updatedAt")}：{formatDate(Date.now())}</span>
+                                        <span>•</span>
+                                        <Badge variant="outline" className="h-5 border-slate-700 bg-slate-600 text-[10px] font-semibold text-white">
+                                            {t("publisherWorksTab.statusPrivate")}
+                                        </Badge>
+                                        <Badge variant="outline" className="h-5 border-amber-500 bg-amber-50 text-[10px] font-semibold text-amber-700">
+                                            {t("publisherWorksTab.missingCoverBadge", "缺封面")}
+                                        </Badge>
+                                        <Badge variant="outline" className="h-5 border-rose-500 bg-rose-50 text-[10px] font-semibold text-rose-700">
+                                            {t("publisherWorksTab.missingLicenseBadge", "缺授權")}
+                                        </Badge>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                <Button size="sm" variant="secondary" disabled>
+                                    <FilePenLine className="mr-1.5 h-3.5 w-3.5" /> {t("publisherWorksTab.continueWriting")}
+                                </Button>
+                                <Button size="sm" variant="ghost" disabled data-guide-id="studio-works-edit-info">
+                                    <Edit className="mr-1.5 h-3.5 w-3.5" /> {t("publisherWorksTab.editInfo")}
+                                </Button>
+                            </div>
+                        </div>
+                    </Card>
+                </Card>
             ) : sortedScripts.length === 0 ? (
                 <div className="text-center text-muted-foreground py-16 border rounded-lg border-dashed">
                     {coverFilter === "with"
@@ -307,7 +350,7 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
                                                 <FilePenLine className="mr-1.5 h-3.5 w-3.5" /> {t("publisherWorksTab.continueWriting")}
                                             </Button>
                                             <div className="flex gap-1.5">
-                                                <Button variant="ghost" size="sm" className="h-8 flex-1 justify-start" onClick={() => setEditingScript(script)}>
+                                                <Button variant="ghost" size="sm" className="h-8 flex-1 justify-start" onClick={() => setEditingScript(script)} data-guide-id="studio-works-edit-info">
                                                     <Edit className="mr-1.5 h-3.5 w-3.5" /> {t("publisherWorksTab.editInfo")}
                                                 </Button>
                                                 {script.status === "Public" && (
@@ -375,7 +418,7 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
                                             <Button variant="secondary" size="sm" className="h-8" onClick={() => onContinueEdit?.(script)}>
                                                 <FilePenLine className="mr-1.5 h-3.5 w-3.5" /> {t("publisherWorksTab.continueWriting")}
                                             </Button>
-                                            <Button variant="ghost" size="sm" className="h-8" onClick={() => setEditingScript(script)}>
+                                            <Button variant="ghost" size="sm" className="h-8" onClick={() => setEditingScript(script)} data-guide-id="studio-works-edit-info">
                                                 <Edit className="mr-1.5 h-3.5 w-3.5" /> {t("publisherWorksTab.editInfo")}
                                             </Button>
                                             {script.status === "Public" && (

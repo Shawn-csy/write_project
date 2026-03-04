@@ -3,7 +3,6 @@ import CodeMirror from "@uiw/react-codemirror";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { EditorView } from "@codemirror/view";
 import { Loader2 } from "lucide-react";
-import { fountainLanguage } from "./fountain-mode";
 import { StatisticsPanel } from "../statistics/StatisticsPanel";
 
 import { parseScreenplay } from "../../lib/screenplayAST";
@@ -496,11 +495,8 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
         })
     ];
 
-    if (initialData?.type === 'script' || !initialData?.type) {
-        return [fountainLanguage, ...baseExtensions];
-    }
     return baseExtensions;
-  }, [scrollSyncExtension, highlightExtension, initialData?.type]);
+  }, [scrollSyncExtension, highlightExtension]);
 
   // Memoized handlers
   const handleEditorCreate = useCallback((view) => {
