@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { Globe, SlidersHorizontal } from "lucide-react";
 import { lazyWithRefreshRetry } from "../lib/lazyWithRefreshRetry";
 
@@ -27,7 +27,7 @@ const SuperAdminPage = lazyWithRefreshRetry(() => import("../pages/SuperAdminPag
 
 const routeFallback = <div className="p-8 text-center text-muted-foreground">Loading...</div>;
 
-export function WorkspaceRoutes({
+export function renderWorkspaceRoutes({
   scriptManager,
   nav,
   navProps,
@@ -55,8 +55,8 @@ export function WorkspaceRoutes({
   startCrossModeGuide,
   handleReaderEdit,
   guideOverlay,
+  navigate,
 }) {
-  const navigate = useNavigate();
   const {
     titleHtml,
     hasTitle,
