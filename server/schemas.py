@@ -57,6 +57,7 @@ class UserBase(BaseModel):
     avatar: Optional[str] = None
     website: Optional[str] = None # Added
     settings: Optional[dict] = {}
+    isAdmin: Optional[bool] = False
 
 class UserCreate(UserBase):
     pass
@@ -313,5 +314,88 @@ class ScriptSummary(BaseModel):
     seriesId: Optional[str] = None
     seriesOrder: Optional[int] = None
     series: Optional[Series] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PublicTermsSection(BaseModel):
+    id: str
+    title: str
+    body: str
+
+
+class PublicTermsRequiredCheck(BaseModel):
+    id: str
+    label: str
+
+
+class PublicTermsConfigResponse(BaseModel):
+    termsKey: str = "public_reader_terms"
+    version: str
+    title: str
+    intro: str = ""
+    sections: List[PublicTermsSection] = []
+    requiredChecks: List[PublicTermsRequiredCheck] = []
+
+
+class PublicTermsAcceptanceCreate(BaseModel):
+    termsVersion: str
+    scriptId: Optional[str] = None
+    visitorId: Optional[str] = None
+    locale: Optional[str] = None
+    timezone: Optional[str] = None
+    timezoneOffsetMinutes: Optional[int] = None
+    userAgent: Optional[str] = None
+    platform: Optional[str] = None
+    screen: Dict[str, Any] = {}
+    viewport: Dict[str, Any] = {}
+    pagePath: Optional[str] = None
+    referrer: Optional[str] = None
+    acceptedChecks: List[str] = []
+
+
+class PublicTermsAcceptanceResponse(BaseModel):
+    success: bool = True
+    acceptanceId: str
+    acceptedAt: int
+
+
+class PublicTermsAcceptanceRecord(BaseModel):
+    id: str
+    termsKey: str
+    termsVersion: str
+    scriptId: Optional[str] = None
+    userId: Optional[str] = None
+    visitorId: Optional[str] = None
+    acceptedAt: int
+    ipAddress: str = ""
+    forwardedFor: str = ""
+    userAgent: str = ""
+    acceptLanguage: str = ""
+    referer: str = ""
+    origin: str = ""
+    host: str = ""
+    clientMeta: Dict[str, Any] = {}
+    headerSnapshot: Dict[str, Any] = {}
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PublicTermsAcceptanceListResponse(BaseModel):
+    total: int
+    items: List[PublicTermsAcceptanceRecord] = []
+
+
+class AdminUserCreate(BaseModel):
+    email: Optional[str] = None
+    userId: Optional[str] = None
+
+
+class AdminUserRecord(BaseModel):
+    id: str
+    userId: Optional[str] = None
+    email: Optional[str] = None
+    createdBy: Optional[str] = None
+    createdAt: int
 
     model_config = ConfigDict(from_attributes=True)

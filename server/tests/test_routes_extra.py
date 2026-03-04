@@ -222,6 +222,16 @@ def test_admin_user_search_and_engagement_routes(client, db_session):
     ids = {u["id"] for u in search_res.json()}
     assert "u-search" in ids
 
+    search_case_res = client.get("/api/admin/users?q=HANDLE123", headers=headers)
+    assert search_case_res.status_code == 200
+    case_ids = {u["id"] for u in search_case_res.json()}
+    assert "u-search" in case_ids
+
+    search_partial_id_res = client.get("/api/admin/users?q=u-sea", headers=headers)
+    assert search_partial_id_res.status_code == 200
+    partial_ids = {u["id"] for u in search_partial_id_res.json()}
+    assert "u-search" in partial_ids
+
     script_res = client.post("/api/scripts", json={"title": "Engage"}, headers=headers)
     assert script_res.status_code == 200
     script_id = script_res.json()["id"]
@@ -240,6 +250,56 @@ def test_admin_user_search_and_engagement_routes(client, db_session):
     script = db_session.query(models.Script).filter(models.Script.id == script_id).first()
     assert script.views == 1
     assert script.likes == 0
+
+
+def test_non_admin_can_search_user_by_exact_email_only(client, db_session):
+    owner_id = "non-admin-owner"
+    _create_user(db_session, owner_id)
+    db_session.add(models.User(id="u-target", email="target@example.com", displayName="Target User"))
+    db_session.commit()
+
+    headers = {"X-User-ID": owner_id}
+
+    exact_email_res = client.get("/api/admin/users?q=target@example.com", headers=headers)
+    assert exact_email_res.status_code == 200
+    exact_items = exact_email_res.json()
+    assert len(exact_items) == 1
+    assert exact_items[0]["id"] == "u-target"
+
+    upper_email_res = client.get("/api/admin/users?q=TARGET@EXAMPLE.COM", headers=headers)
+    assert upper_email_res.status_code == 200
+    upper_items = upper_email_res.json()
+    assert len(upper_items) == 1
+    assert upper_items[0]["id"] == "u-target"
+
+    fuzzy_res = client.get("/api/admin/users?q=target", headers=headers)
+    assert fuzzy_res.status_code == 403
+
+
+def test_admin_can_delete_user_and_owned_resources(client, db_session):
+    owner_id = "admin-owner"
+    target_user_id = "delete-me-user"
+    _create_user(db_session, owner_id)
+    _create_user(db_session, target_user_id)
+
+    target_headers = {"X-User-ID": target_user_id}
+    create_org = client.post("/api/organizations", json={"name": "Delete Org"}, headers=target_headers)
+    assert create_org.status_code == 200
+    create_persona = client.post("/api/personas", json={"displayName": "Delete Persona"}, headers=target_headers)
+    assert create_persona.status_code == 200
+    create_script = client.post("/api/scripts", json={"title": "Delete Script"}, headers=target_headers)
+    assert create_script.status_code == 200
+
+    admin_headers = {"X-User-ID": owner_id}
+    delete_res = client.delete(f"/api/admin/all-users/{target_user_id}", headers=admin_headers)
+    assert delete_res.status_code == 200
+    assert delete_res.json().get("success") is True
+
+    deleted_user = db_session.query(models.User).filter(models.User.id == target_user_id).first()
+    assert deleted_user is None
+    assert db_session.query(models.Organization).filter(models.Organization.ownerId == target_user_id).count() == 0
+    assert db_session.query(models.Persona).filter(models.Persona.ownerId == target_user_id).count() == 0
+    assert db_session.query(models.Script).filter(models.Script.ownerId == target_user_id).count() == 0
 
 
 def test_public_scripts_filters(client, db_session):

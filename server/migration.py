@@ -203,6 +203,56 @@ def run_migrations():
                 conn.execute(text("CREATE INDEX IF NOT EXISTS ix_persona_organization_memberships_orgId ON persona_organization_memberships(orgId)"))
                 conn.execute(text("CREATE INDEX IF NOT EXISTS ix_persona_organization_memberships_personaId ON persona_organization_memberships(personaId)"))
 
+            # Public terms acceptances audit table
+            result_tables = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='public_terms_acceptances'"))
+            has_public_terms_acceptances_table = result_tables.fetchone() is not None
+            if not has_public_terms_acceptances_table:
+                print("Migrating: Creating 'public_terms_acceptances' table")
+                conn.execute(text("""
+                    CREATE TABLE public_terms_acceptances (
+                        id TEXT PRIMARY KEY,
+                        termsKey TEXT NOT NULL DEFAULT 'public_reader_terms',
+                        termsVersion TEXT NOT NULL,
+                        scriptId TEXT DEFAULT NULL,
+                        userId TEXT DEFAULT NULL,
+                        visitorId TEXT DEFAULT NULL,
+                        acceptedAt INTEGER NOT NULL,
+                        ipAddress TEXT DEFAULT '',
+                        forwardedFor TEXT DEFAULT '',
+                        userAgent TEXT DEFAULT '',
+                        acceptLanguage TEXT DEFAULT '',
+                        referer TEXT DEFAULT '',
+                        origin TEXT DEFAULT '',
+                        host TEXT DEFAULT '',
+                        clientMeta TEXT DEFAULT '{}',
+                        headerSnapshot TEXT DEFAULT '{}'
+                    )
+                """))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_public_terms_acceptances_termsKey ON public_terms_acceptances(termsKey)"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_public_terms_acceptances_termsVersion ON public_terms_acceptances(termsVersion)"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_public_terms_acceptances_scriptId ON public_terms_acceptances(scriptId)"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_public_terms_acceptances_userId ON public_terms_acceptances(userId)"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_public_terms_acceptances_visitorId ON public_terms_acceptances(visitorId)"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_public_terms_acceptances_acceptedAt ON public_terms_acceptances(acceptedAt)"))
+
+            # Admin users table (dynamic super-admin management)
+            result_tables = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='admin_users'"))
+            has_admin_users_table = result_tables.fetchone() is not None
+            if not has_admin_users_table:
+                print("Migrating: Creating 'admin_users' table")
+                conn.execute(text("""
+                    CREATE TABLE admin_users (
+                        id TEXT PRIMARY KEY,
+                        userId TEXT DEFAULT NULL,
+                        email TEXT DEFAULT NULL,
+                        createdBy TEXT DEFAULT NULL,
+                        createdAt INTEGER NOT NULL
+                    )
+                """))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_admin_users_userId ON admin_users(userId)"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_admin_users_email ON admin_users(email)"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_admin_users_createdAt ON admin_users(createdAt)"))
+
             # Backfill user -> org memberships from legacy users.organizationId
             now_ms = int(time.time() * 1000)
             user_rows = conn.execute(text("SELECT id, organizationId FROM users WHERE organizationId IS NOT NULL AND organizationId != ''")).fetchall()

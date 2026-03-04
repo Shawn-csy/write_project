@@ -14,7 +14,7 @@ import { X } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
 function SettingsPanel({ onClose, activeTab, onTabChange }) {
-  const { currentUser } = useAuth();
+  const { currentUser, profile } = useAuth();
   const { t } = useI18n();
   const scrollContainerRef = useRef(null);
   const [internalTab, setInternalTab] = useState("display");
@@ -22,18 +22,29 @@ function SettingsPanel({ onClose, activeTab, onTabChange }) {
   const currentTab = activeTab || internalTab;
   const setTab = onTabChange || setInternalTab;
   
+  const isAdmin = Boolean(profile?.isAdmin);
   const allTabs = [
     { key: "display", label: t("settings.display") },
-    { key: "transfer", label: t("settings.transfer"), authRequired: true },
+    { key: "transfer", label: t("settings.transfer"), authRequired: true, adminOnly: true },
     { key: "media", label: t("settings.media"), authRequired: true },
     { key: "markers", label: t("settings.markers"), authRequired: true },
     { key: "profile", label: t("settings.profile"), authRequired: true },
   ];
 
-  const tabs = allTabs.filter(tab => !tab.authRequired || currentUser);
+  const tabs = allTabs.filter(
+    (tab) =>
+      (!tab.authRequired || currentUser) &&
+      (!tab.adminOnly || isAdmin)
+  );
   const activeToneKey = SETTINGS_TAB_MORANDI_TONE[currentTab] || "works";
   const activeToneVars = MORANDI_STUDIO_TONE_VARS[activeToneKey] || MORANDI_STUDIO_TONE_VARS.works;
   const activeTabLabel = tabs.find((item) => item.key === currentTab)?.label || tabs[0]?.label || "";
+
+  React.useEffect(() => {
+    if (!tabs.some((tab) => tab.key === currentTab) && tabs[0]) {
+      setTab(tabs[0].key);
+    }
+  }, [tabs, currentTab, setTab]);
 
   return (
     <div className="flex-1 min-h-0 overflow-hidden border border-border/40 bg-background/60 backdrop-blur-xl rounded-2xl shadow-sm data-[state=open]:animate-in data-[state=closed]:animate-out fade-in-0 zoom-in-95 flex flex-col">

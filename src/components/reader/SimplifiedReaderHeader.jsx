@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, Share2, Sun, Moon } from "lucide-react";
+import { ArrowLeft, Share2, Sun, Moon, HelpCircle } from "lucide-react";
 import { Button } from "../ui/button";
 import { ReaderAppearanceMenu } from "./ReaderAppearanceMenu";
 import { ReaderTOC } from "./ReaderTOC";
@@ -14,11 +14,14 @@ export function SimplifiedReaderHeader({
   title,
   showTitle = false,
   onShare,
+  onOpenGuide,
   downloadOptions = [],
   // New props for TOC
   sceneList,
   currentSceneId,
   onSelectScene,
+  tocOpen,
+  onTocOpenChange,
   metaItems = [],
   // Marker Props
   markerConfigs = [],
@@ -31,11 +34,13 @@ export function SimplifiedReaderHeader({
 
   return (
     <header
+      data-guide-id="public-guide-header"
       className={`fixed top-0 left-0 right-0 h-14 md:h-16 px-4 z-50 flex items-center justify-between transition-all duration-300 ${className}`}
     >
       {/* Left: Back & TOC */}
       <div className="flex items-center gap-2 min-w-0 flex-1">
         <Button
+          data-guide-id="public-guide-back"
           variant="ghost"
           size="icon"
           onClick={onBack}
@@ -52,6 +57,10 @@ export function SimplifiedReaderHeader({
             currentSceneId={currentSceneId} 
             onSelectScene={onSelectScene}
             metaItems={metaItems}
+            open={tocOpen}
+            onOpenChange={onTocOpenChange}
+            triggerGuideId="public-guide-toc-trigger"
+            panelGuideId="public-guide-toc-panel"
         />
 
         <div className={`h-6 w-px bg-white/20 mx-1 transition-opacity duration-300 ${showTitle ? "opacity-100" : "opacity-0"}`} />
@@ -66,7 +75,19 @@ export function SimplifiedReaderHeader({
       </div>
 
       {/* Right: Actions */}
-      <div className="flex items-center gap-2 shrink-0">
+      <div data-guide-id="public-guide-actions" className="flex items-center gap-2 shrink-0">
+        {onOpenGuide ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onOpenGuide}
+            className="rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md"
+            title={t("publicReader.guide")}
+            aria-label={t("publicReader.guide")}
+          >
+            <HelpCircle className="w-4 h-4" />
+          </Button>
+        ) : null}
         <LanguageSwitcher
           selectClassName="bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md border-0"
         />

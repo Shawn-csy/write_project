@@ -11,8 +11,20 @@ import {
 import { ScrollArea } from "../../components/ui/scroll-area";
 import { useI18n } from "../../contexts/I18nContext";
 
-export function ReaderTOC({ sceneList = [], currentSceneId, onSelectScene, metaItems = [] }) {
-  const [open, setOpen] = React.useState(false);
+export function ReaderTOC({
+  sceneList = [],
+  currentSceneId,
+  onSelectScene,
+  metaItems = [],
+  open,
+  onOpenChange,
+  triggerGuideId = "public-guide-toc-trigger",
+  panelGuideId = "public-guide-toc-panel",
+}) {
+  const [internalOpen, setInternalOpen] = React.useState(false);
+  const isControlled = typeof open === "boolean";
+  const resolvedOpen = isControlled ? open : internalOpen;
+  const setOpen = onOpenChange || setInternalOpen;
   const { t } = useI18n();
   const hasScenes = Array.isArray(sceneList) && sceneList.length > 0;
   const hasMeta = Array.isArray(metaItems) && metaItems.length > 0;
@@ -25,13 +37,23 @@ export function ReaderTOC({ sceneList = [], currentSceneId, onSelectScene, metaI
   if (!hasScenes && !hasMeta) return null;
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={resolvedOpen} onOpenChange={setOpen} modal={false}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" aria-label="Table of Contents">
+        <Button
+          data-guide-id={triggerGuideId}
+          variant="ghost"
+          size="icon"
+          className="text-white hover:bg-white/10"
+          aria-label="Table of Contents"
+        >
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[300px] sm:w-[400px] p-0 flex flex-col h-full bg-background/95 backdrop-blur-md">
+      <SheetContent
+        data-guide-id={panelGuideId}
+        side="left"
+        className="w-[300px] sm:w-[400px] p-0 flex flex-col h-full bg-background/95 backdrop-blur-md"
+      >
         <SheetHeader className="px-6 py-4 border-b">
           <SheetTitle className="font-serif">Table of Contents</SheetTitle>
         </SheetHeader>

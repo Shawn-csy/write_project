@@ -1,14 +1,81 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from typing import List, Optional
 from sqlalchemy import orm
 from sqlalchemy.orm import Session
 import json
+import os
+import time
+import uuid
 import crud_ops as crud
 import schemas
 import models
 from dependencies import get_db
 
 router = APIRouter(prefix="/api", tags=["public"])
+
+
+def _load_public_terms_config() -> dict:
+    default_config = {
+    "termsKey": "voice_script_reader_v3",
+    "version": "2026-03-04",
+    "title": "台本閱覽與使用授權聲明",
+    "intro": "進入台本頁面前，請確認您已了解並同意以下針對「音聲創作」的授權與系統規範：",
+    "sections": [
+        {
+            "id": "derivative_work",
+            "title": "演繹性微調與改作限制",
+            "body": "台本文字著作權歸原作者所有。錄音或直播演繹時，允許進行符合情境的「演繹性微調」（如：語助詞、語氣詞、第一人稱稱謂變更、配合語句流暢度之語順調整）。除作者另有標註外，嚴禁對核心劇情、角色設定進行毀滅性改寫或惡意扭曲。",
+        },
+        {
+            "id": "commercial_usage",
+            "title": "錄音商用與直播授權",
+            "body": "本平台作品預設授權「個人非商用」演繹。若台本師標註「可商用」，其範圍包含：直播贊助（SC）、廣告收益、付費平台（如 DLsite）之音聲發布。但「商用授權」僅限於演繹成果，嚴禁將台本文字本身進行轉載、集結出版、轉售獲利或投入 AI 模型訓練。",
+        },
+        {
+            "id": "audit_log",
+            "title": "同意紀錄與系統稽核",
+            "body": "當您點擊同意並進入頁面時，系統將記錄您的存取資訊（包含 IP 地址、時間、裝置與瀏覽器資訊）。此紀錄僅作為版權爭議、違規申報之稽核依據，平台將依法保護您的資訊安全。",
+        }
+    ],
+    "requiredChecks": [
+        {
+            "id": "final_agreement", 
+            "label": "我了解錄音演繹可微調語句，但嚴禁文字轉售或 AI 訓練；並同意系統保存存取紀錄以供稽核。"
+        }
+    ],
+}
+
+    raw = os.getenv("PUBLIC_TERMS_CONFIG_JSON", "").strip()
+    if not raw:
+        return default_config
+    try:
+        parsed = json.loads(raw)
+    except Exception:
+        return default_config
+
+    if not isinstance(parsed, dict):
+        return default_config
+
+    merged = dict(default_config)
+    merged.update(parsed)
+    if not isinstance(merged.get("sections"), list):
+        merged["sections"] = default_config["sections"]
+    if not isinstance(merged.get("requiredChecks"), list):
+        merged["requiredChecks"] = default_config["requiredChecks"]
+    return merged
+
+
+def _extract_client_ip(request: Request) -> tuple[str, str]:
+    forwarded_for = request.headers.get("x-forwarded-for", "").strip()
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip(), forwarded_for
+
+    real_ip = request.headers.get("x-real-ip", "").strip()
+    if real_ip:
+        return real_ip, ""
+
+    request_ip = request.client.host if request.client else ""
+    return (request_ip or ""), ""
 
 
 def _has_public_parent_folder(db: Session, script: models.Script) -> bool:
@@ -60,6 +127,89 @@ def user_to_persona_public(user: models.User, db: Session) -> schemas.PersonaPub
         createdAt=user.createdAt,
         updatedAt=user.lastLogin, # Use lastLogin as proxy for update
         organizations=orgs
+    )
+
+
+@router.get("/public-terms-config", response_model=schemas.PublicTermsConfigResponse)
+def read_public_terms_config():
+    config = _load_public_terms_config()
+    return config
+
+
+@router.post("/public-terms-acceptances", response_model=schemas.PublicTermsAcceptanceResponse)
+def create_public_terms_acceptance(
+    payload: schemas.PublicTermsAcceptanceCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    config = _load_public_terms_config()
+    expected_version = str(config.get("version") or "").strip()
+    if not expected_version:
+        raise HTTPException(status_code=500, detail="Public terms version not configured")
+
+    incoming_version = str(payload.termsVersion or "").strip()
+    if incoming_version != expected_version:
+        raise HTTPException(status_code=400, detail="Terms version mismatch")
+
+    script_id = (payload.scriptId or "").strip() or None
+    if script_id:
+        script = db.query(models.Script).filter(models.Script.id == script_id).first()
+        if not script:
+            raise HTTPException(status_code=404, detail="Script not found")
+
+    required_checks = {
+        str(item.get("id")).strip()
+        for item in (config.get("requiredChecks") or [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+    incoming_checks = {str(x).strip() for x in (payload.acceptedChecks or []) if str(x).strip()}
+    if required_checks and not required_checks.issubset(incoming_checks):
+        raise HTTPException(status_code=400, detail="Required checkboxes are not all accepted")
+
+    ip_address, forwarded_for = _extract_client_ip(request)
+    now_ms = int(time.time() * 1000)
+    acceptance = models.PublicTermsAcceptance(
+        id=str(uuid.uuid4()),
+        termsKey=str(config.get("termsKey") or "public_reader_terms"),
+        termsVersion=expected_version,
+        scriptId=script_id,
+        userId=(request.headers.get("x-user-id") or "").strip() or None,
+        visitorId=(payload.visitorId or "").strip() or None,
+        acceptedAt=now_ms,
+        ipAddress=ip_address,
+        forwardedFor=forwarded_for,
+        userAgent=(request.headers.get("user-agent") or payload.userAgent or "").strip(),
+        acceptLanguage=(request.headers.get("accept-language") or "").strip(),
+        referer=(request.headers.get("referer") or payload.referrer or "").strip(),
+        origin=(request.headers.get("origin") or "").strip(),
+        host=(request.headers.get("host") or "").strip(),
+        clientMeta={
+            "locale": payload.locale or "",
+            "timezone": payload.timezone or "",
+            "timezoneOffsetMinutes": payload.timezoneOffsetMinutes,
+            "platform": payload.platform or "",
+            "screen": payload.screen or {},
+            "viewport": payload.viewport or {},
+            "pagePath": payload.pagePath or "",
+            "acceptedChecks": sorted(list(incoming_checks)),
+        },
+        headerSnapshot={
+            "x-forwarded-for": request.headers.get("x-forwarded-for", ""),
+            "x-real-ip": request.headers.get("x-real-ip", ""),
+            "sec-ch-ua": request.headers.get("sec-ch-ua", ""),
+            "sec-ch-ua-platform": request.headers.get("sec-ch-ua-platform", ""),
+            "sec-ch-ua-mobile": request.headers.get("sec-ch-ua-mobile", ""),
+            "accept": request.headers.get("accept", ""),
+            "accept-encoding": request.headers.get("accept-encoding", ""),
+        },
+    )
+    db.add(acceptance)
+    db.commit()
+
+    return schemas.PublicTermsAcceptanceResponse(
+        success=True,
+        acceptanceId=acceptance.id,
+        acceptedAt=now_ms,
     )
 
 @router.get("/public-scripts")

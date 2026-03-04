@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { GalleryFilterBar } from "../components/gallery/GalleryFilterBar";
@@ -10,12 +10,14 @@ import { Button } from "../components/ui/button";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { PublicHeroMarquee } from "../components/public/PublicHeroMarquee";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../components/ui/sheet";
-import { getPublicBundle } from "../lib/api/public";
+import { getPublicBundle, getPublicTermsConfig, acceptPublicTerms } from "../lib/api/public";
 import { extractMetadataWithRaw } from "../lib/metadataParser";
 import { deriveSimpleLicenseTags, parseBasicLicenseFromMeta } from "../lib/licenseRights";
 import { normalizeSeriesName, parseSeriesOrder } from "../lib/series";
 import { useI18n } from "../contexts/I18nContext";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import { Checkbox } from "../components/ui/checkbox";
 import { SlidersHorizontal } from "lucide-react";
 import { CoverPlaceholder } from "../components/ui/CoverPlaceholder";
 
@@ -37,6 +39,32 @@ const SEGMENT_TAGS = {
 const RESERVED_SEGMENT_TAGS = new Set(
   Object.values(SEGMENT_TAGS).flat().map((tag) => String(tag).toLowerCase())
 );
+
+const TERMS_VISITOR_ID_KEY = "public_terms_visitor_id";
+const TERMS_ACCEPTED_PREFIX = "public_terms_accepted_v";
+
+const getOrCreateTermsVisitorId = () => {
+  try {
+    const existing = localStorage.getItem(TERMS_VISITOR_ID_KEY);
+    if (existing) return existing;
+    const generated =
+      (typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID()) ||
+      `visitor_${Date.now()}_${Math.random().toString(16).slice(2, 10)}`;
+    localStorage.setItem(TERMS_VISITOR_ID_KEY, generated);
+    return generated;
+  } catch {
+    return "";
+  }
+};
+
+const hasAcceptedTermsVersion = (version) => {
+  if (!version) return false;
+  try {
+    return Boolean(localStorage.getItem(`${TERMS_ACCEPTED_PREFIX}${version}`));
+  } catch {
+    return false;
+  }
+};
 
 export default function PublicGalleryPage() {
   const { t } = useI18n();
@@ -63,6 +91,15 @@ export default function PublicGalleryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortKey, setSortKey] = useState("recent");
   const [pendingR18Route, setPendingR18Route] = useState(null);
+  const [pendingScript, setPendingScript] = useState(null);
+  const [termsConfig, setTermsConfig] = useState(null);
+  const [termsDialogOpen, setTermsDialogOpen] = useState(false);
+  const [termsReadToBottom, setTermsReadToBottom] = useState(false);
+  const [termsRequireScroll, setTermsRequireScroll] = useState(false);
+  const [acceptedChecks, setAcceptedChecks] = useState({});
+  const [isSubmittingTerms, setIsSubmittingTerms] = useState(false);
+  const [isTermsConfigLoading, setIsTermsConfigLoading] = useState(true);
+  const termsScrollRef = useRef(null);
   const [viewMode, setViewMode] = useState(() => {
       const fromUrl = searchParams.get("mode");
       if (fromUrl) return fromUrl;
@@ -137,6 +174,21 @@ export default function PublicGalleryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingPeople, setIsLoadingPeople] = useState(true);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  useEffect(() => {
+    const loadTermsConfig = async () => {
+      setIsTermsConfigLoading(true);
+      try {
+        const config = await getPublicTermsConfig();
+        setTermsConfig(config || null);
+      } catch (error) {
+        console.error("Failed to load public terms config", error);
+      } finally {
+        setIsTermsConfigLoading(false);
+      }
+    };
+    loadTermsConfig();
+  }, []);
 
   // Data Fetching
   useEffect(() => {
@@ -359,20 +411,130 @@ export default function PublicGalleryPage() {
   const authorTags = allAuthorTags;
   const orgTags = allOrgTags;
 
-  const handleScriptClick = (script) => {
-    // Check if the script has an R-18 tag
-    const isAdult = script.tags?.some(tag => String(tag).toLowerCase() === "r-18" || String(tag).toLowerCase() === "r18" || String(tag).toLowerCase() === "成人向");
-    
+  const continueToScript = (script) => {
+    if (!script?.id) return;
+    const isAdult = script.tags?.some((tag) => {
+      const normalized = String(tag).toLowerCase();
+      return normalized === "r-18" || normalized === "r18" || normalized === "成人向";
+    });
+
     if (isAdult) {
       const hasConsented = localStorage.getItem("r18_consented") === "true";
       if (!hasConsented) {
         setPendingR18Route(script.id);
-        return; // Intercept navigation
+        return;
       }
     }
-    
-    // Proceed if no tag or already consented
+
     navigate(`/read/${script.id}`);
+  };
+
+  const handleScriptClick = (script) => {
+    if (isTermsConfigLoading) return;
+    const version = termsConfig?.version;
+    if (!version || hasAcceptedTermsVersion(version)) {
+      continueToScript(script);
+      return;
+    }
+
+    const requiredChecks = Array.isArray(termsConfig?.requiredChecks) ? termsConfig.requiredChecks : [];
+    const initialChecks = {};
+    requiredChecks.forEach((item) => {
+      if (item?.id) initialChecks[item.id] = false;
+    });
+    setAcceptedChecks(initialChecks);
+    setTermsReadToBottom(false);
+    setPendingScript(script);
+    setTermsDialogOpen(true);
+  };
+
+  const handleTermsScroll = (event) => {
+    const target = event.currentTarget;
+    if (!target) return;
+    const buffer = 16;
+    const scrollable = target.scrollHeight > target.clientHeight + 1;
+    setTermsRequireScroll(scrollable);
+    if (!scrollable) {
+      setTermsReadToBottom(true);
+      return;
+    }
+    const reachedBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - buffer;
+    if (reachedBottom) setTermsReadToBottom(true);
+  };
+
+  useEffect(() => {
+    if (!termsDialogOpen) return;
+    let cancelled = false;
+    const check = () => {
+      if (cancelled) return;
+      const node = termsScrollRef.current;
+      if (!node) {
+        requestAnimationFrame(check);
+        return;
+      }
+      const scrollable = node.scrollHeight > node.clientHeight + 1;
+      setTermsRequireScroll(scrollable);
+      if (!scrollable) {
+        setTermsReadToBottom(true);
+      }
+    };
+    requestAnimationFrame(check);
+    return () => {
+      cancelled = true;
+    };
+  }, [termsDialogOpen, termsConfig]);
+
+  const toggleRequiredCheck = (checkId, checked) => {
+    setAcceptedChecks((prev) => ({ ...prev, [checkId]: Boolean(checked) }));
+  };
+
+  const canConfirmTerms = (() => {
+    if (termsRequireScroll && !termsReadToBottom) return false;
+    const requiredChecks = Array.isArray(termsConfig?.requiredChecks) ? termsConfig.requiredChecks : [];
+    if (requiredChecks.length === 0) return true;
+    return requiredChecks.every((item) => Boolean(acceptedChecks[item.id]));
+  })();
+
+  const confirmTermsConsent = async () => {
+    if (!pendingScript || !termsConfig?.version || !canConfirmTerms || isSubmittingTerms) return;
+    setIsSubmittingTerms(true);
+    try {
+      const visitorId = getOrCreateTermsVisitorId();
+      const agreedCheckIds = (termsConfig.requiredChecks || [])
+        .filter((item) => item?.id && acceptedChecks[item.id])
+        .map((item) => item.id);
+      await acceptPublicTerms({
+        termsVersion: termsConfig.version,
+        scriptId: pendingScript.id,
+        visitorId,
+        locale: navigator.language || "",
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "",
+        timezoneOffsetMinutes: new Date().getTimezoneOffset(),
+        userAgent: navigator.userAgent || "",
+        platform: navigator.platform || "",
+        screen: {
+          width: window.screen?.width || 0,
+          height: window.screen?.height || 0,
+          colorDepth: window.screen?.colorDepth || 0,
+          pixelRatio: window.devicePixelRatio || 1,
+        },
+        viewport: {
+          width: window.innerWidth || 0,
+          height: window.innerHeight || 0,
+        },
+        pagePath: window.location.pathname + window.location.search,
+        referrer: document.referrer || "",
+        acceptedChecks: agreedCheckIds,
+      });
+      localStorage.setItem(`${TERMS_ACCEPTED_PREFIX}${termsConfig.version}`, String(Date.now()));
+      setTermsDialogOpen(false);
+      continueToScript(pendingScript);
+      setPendingScript(null);
+    } catch (error) {
+      console.error("Failed to submit terms consent", error);
+    } finally {
+      setIsSubmittingTerms(false);
+    }
   };
 
   const confirmR18Consent = () => {
@@ -391,9 +553,14 @@ export default function PublicGalleryPage() {
         onTabChange={setView}
         actions={
           <div className="flex items-center gap-2">
-            <Button className="hidden sm:inline-flex" variant="ghost" size="sm" onClick={() => navigate("/about")}>
-              {t("publicGallery.about")}
-            </Button>
+            <div className="hidden sm:flex items-center gap-1">
+              <Button variant="ghost" size="sm" onClick={() => navigate("/license")}>
+                {t("publicGallery.licenseTerms")}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/help")}>
+                {t("publicGallery.help")}
+              </Button>
+            </div>
             {currentUser ? (
               <Button variant="default" size="sm" onClick={() => navigate("/dashboard")}>
                 {t("publicGallery.goStudio")}
@@ -567,7 +734,7 @@ export default function PublicGalleryPage() {
                                   <ScriptGalleryCard 
                                       script={script}
                                       variant="standard"
-                                      onClick={() => navigate(`/read/${script.id}`)}
+                                      onClick={() => handleScriptClick(script)}
                                   />
                               </div>
                           ))}
@@ -582,7 +749,7 @@ export default function PublicGalleryPage() {
                                   <ScriptGalleryCard 
                                       script={script}
                                       variant="standard"
-                                      onClick={() => navigate(`/read/${script.id}`)}
+                                      onClick={() => handleScriptClick(script)}
                                   />
                               </div>
                           ))}
@@ -714,6 +881,15 @@ export default function PublicGalleryPage() {
         </div>
       </main>
 
+      <footer className="border-t border-border/60 bg-muted/20">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">{t("publicGallery.footerText")}</p>
+          <Button variant="link" size="sm" className="h-auto px-0 text-xs" onClick={() => navigate("/about")}>
+            {t("publicGallery.about")}
+          </Button>
+        </div>
+      </footer>
+
       <Sheet open={isMobileFilterOpen} onOpenChange={setIsMobileFilterOpen}>
         <SheetContent side="left" className="w-[92vw] max-w-none p-0 sm:max-w-sm">
           <SheetHeader className="px-4 pt-4 pb-2 border-b border-border/50">
@@ -824,6 +1000,68 @@ export default function PublicGalleryPage() {
           </div>
         </SheetContent>
       </Sheet>
+
+      <Dialog
+        open={termsDialogOpen}
+        onOpenChange={(open) => {
+          if (!open && !isSubmittingTerms) {
+            setTermsDialogOpen(false);
+            setPendingScript(null);
+          }
+        }}
+      >
+        <DialogContent className="w-[94vw] max-w-2xl p-0 overflow-hidden">
+          <DialogHeader className="px-5 pt-5 pb-2">
+            <DialogTitle className="text-left">{termsConfig?.title || "授權條款與使用聲明"}</DialogTitle>
+            <DialogDescription className="text-left">
+              {termsConfig?.intro || "請先閱讀並同意以下條款，完成後才能進入劇本閱讀頁。"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="px-5 pb-2">
+            <div
+              ref={termsScrollRef}
+              onScroll={handleTermsScroll}
+              className="max-h-[46vh] overflow-y-auto touch-pan-y rounded-md border bg-muted/20 p-4 text-sm leading-6"
+            >
+              {(termsConfig?.sections || []).map((section) => (
+                <section key={section.id || section.title} className="mb-4 last:mb-0">
+                  <h4 className="font-semibold text-foreground">{section.title}</h4>
+                  <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{section.body}</p>
+                </section>
+              ))}
+              {(termsConfig?.sections || []).length === 0 && (
+                <p className="text-muted-foreground">條款內容尚未設定。</p>
+              )}
+            </div>
+            <p className={`mt-2 text-xs ${termsReadToBottom || !termsRequireScroll ? "text-emerald-600" : "text-muted-foreground"}`}>
+              {termsRequireScroll
+                ? (termsReadToBottom ? "已讀到最下方，可進行確認。" : "請先將條款內容滑到最下方。")
+                : "確認已閱條款後，可勾選確認。"}
+            </p>
+          </div>
+          <div className="px-5 pb-2 space-y-2">
+            {(termsConfig?.requiredChecks || []).map((item) => (
+              <label key={item.id} className="flex items-start gap-2 text-sm">
+                <Checkbox
+                  className="mt-0.5"
+                  checked={Boolean(acceptedChecks[item.id])}
+                  onCheckedChange={(checked) => toggleRequiredCheck(item.id, checked)}
+                  disabled={(termsRequireScroll && !termsReadToBottom) || isSubmittingTerms}
+                />
+                <span className="text-foreground/90">{item.label}</span>
+              </label>
+            ))}
+          </div>
+          <DialogFooter className="px-5 pb-5 pt-2">
+            <Button variant="outline" onClick={() => { setTermsDialogOpen(false); setPendingScript(null); }} disabled={isSubmittingTerms}>
+              稍後再看
+            </Button>
+            <Button onClick={confirmTermsConsent} disabled={!canConfirmTerms || isSubmittingTerms}>
+              {isSubmittingTerms ? "送出中..." : "同意並進入"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* R-18 Consent Dialog */}
       <AlertDialog open={!!pendingR18Route} onOpenChange={(open) => !open && setPendingR18Route(null)}>
