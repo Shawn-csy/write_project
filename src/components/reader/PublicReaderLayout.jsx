@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { FileCode2, FileSpreadsheet, FileText, Printer } from "lucide-react";
 import { SimplifiedReaderHeader } from "./SimplifiedReaderHeader";
 import { PublicScriptInfoOverlay } from "./PublicScriptInfoOverlay";
@@ -8,6 +8,9 @@ import { useSettings } from "../../contexts/SettingsContext";
 import { loadBasicScriptExport, loadXlsxScriptExport } from "../../lib/scriptExportLoader";
 import { useI18n } from "../../contexts/I18nContext";
 import { CoverPlaceholder } from "../ui/CoverPlaceholder";
+import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
+
+const PUBLIC_READER_GUIDE_STORAGE_KEY = "public-reader-guide-seen-v1";
 
 export function PublicReaderLayout({
   script, // { content, title, ...meta }
@@ -153,6 +156,138 @@ export function PublicReaderLayout({
   ];
 
   const { hideWhitespace } = useSettings();
+  const [showGuide, setShowGuide] = useState(false);
+  const [guideIndex, setGuideIndex] = useState(0);
+  const [guideSpotlightRect, setGuideSpotlightRect] = useState(null);
+  const [tocOpen, setTocOpen] = useState(false);
+  const guideSteps = useMemo(() => ([
+    {
+      title: t("publicReader.guideTocButtonTitle", "目錄按鈕"),
+      description: t("publicReader.guideTocButtonDesc", "先點這裡打開左側導覽面板。"),
+      targetId: "public-guide-toc-trigger",
+    },
+    {
+      title: t("publicReader.guideTocPanelTitle", "左側導覽面板"),
+      description: t("publicReader.guideTocPanelDesc", "這裡可快速跳場景、查看更多作品資訊。"),
+      targetId: "public-guide-toc-panel",
+    },
+    {
+      title: t("publicReader.guideHeaderTitle"),
+      description: t("publicReader.guideHeaderDesc"),
+      targetId: "public-guide-actions",
+    },
+    {
+      title: t("publicReader.guideInfoTitle"),
+      description: t("publicReader.guideInfoDesc"),
+      targetId: "public-guide-info",
+    },
+    {
+      title: t("publicReader.guideScriptTitle"),
+      description: t("publicReader.guideScriptDesc"),
+      targetId: "public-guide-script",
+    },
+    {
+      title: t("publicReader.guidePublishTitle"),
+      description: t("publicReader.guidePublishDesc"),
+      targetId: null,
+    },
+  ]), [t]);
+  const currentGuide = showGuide ? guideSteps[guideIndex] : null;
+
+  const resolveGuideTarget = useCallback(() => {
+    if (!currentGuide?.targetId) return null;
+    return document.querySelector(`[data-guide-id="${currentGuide.targetId}"]`);
+  }, [currentGuide]);
+
+  const refreshGuideSpotlight = useCallback(() => {
+    if (!showGuide) {
+      setGuideSpotlightRect(null);
+      return;
+    }
+    const node = resolveGuideTarget();
+    if (!node) {
+      setGuideSpotlightRect(null);
+      return;
+    }
+    const rect = node.getBoundingClientRect();
+    const pad = 10;
+    setGuideSpotlightRect({
+      top: Math.max(8, rect.top - pad),
+      left: Math.max(8, rect.left - pad),
+      width: Math.max(80, rect.width + pad * 2),
+      height: Math.max(52, rect.height + pad * 2),
+    });
+  }, [resolveGuideTarget, showGuide]);
+
+  const jumpGuide = useCallback((index) => {
+    if (index < 0 || index >= guideSteps.length) return;
+    setGuideIndex(index);
+    setShowGuide(true);
+  }, [guideSteps.length]);
+
+  const finishGuide = useCallback(() => {
+    setShowGuide(false);
+    setGuideIndex(0);
+    setGuideSpotlightRect(null);
+    setTocOpen(false);
+    try {
+      localStorage.setItem(PUBLIC_READER_GUIDE_STORAGE_KEY, "1");
+    } catch (err) {
+      console.error("Failed to persist public reader guide state", err);
+    }
+  }, []);
+
+  const handleGuideNext = useCallback(() => {
+    if (guideIndex >= guideSteps.length - 1) {
+      finishGuide();
+      return;
+    }
+    jumpGuide(guideIndex + 1);
+  }, [finishGuide, guideIndex, guideSteps.length, jumpGuide]);
+
+  const handleGuidePrev = useCallback(() => {
+    if (guideIndex <= 0) return;
+    jumpGuide(guideIndex - 1);
+  }, [guideIndex, jumpGuide]);
+
+  const handleStartGuide = useCallback(() => {
+    setTocOpen(false);
+    jumpGuide(0);
+  }, [jumpGuide]);
+
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem(PUBLIC_READER_GUIDE_STORAGE_KEY) === "1";
+      if (!seen) {
+        jumpGuide(0);
+        localStorage.setItem(PUBLIC_READER_GUIDE_STORAGE_KEY, "1");
+      }
+    } catch (err) {
+      console.error("Failed to read public reader guide state", err);
+    }
+  }, [jumpGuide]);
+
+  useEffect(() => {
+    if (!showGuide) return;
+    const targetId = currentGuide?.targetId || "";
+    if (targetId === "public-guide-toc-panel") {
+      setTocOpen(true);
+    } else if (targetId && targetId !== "public-guide-toc-trigger") {
+      setTocOpen(false);
+    }
+  }, [showGuide, currentGuide]);
+
+  useEffect(() => {
+    if (!showGuide) return;
+    const raf = window.requestAnimationFrame(refreshGuideSpotlight);
+    window.addEventListener("resize", refreshGuideSpotlight);
+    window.addEventListener("scroll", refreshGuideSpotlight, true);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener("resize", refreshGuideSpotlight);
+      window.removeEventListener("scroll", refreshGuideSpotlight, true);
+    };
+  }, [showGuide, guideIndex, tocOpen, refreshGuideSpotlight]);
 
   // Content protection CSS class
   const protectionClass = disableCopy ? 'select-none' : '';
@@ -178,6 +313,7 @@ export function PublicReaderLayout({
         showTitle={false} // Maybe show on scroll? Future enhancement.
         onBack={onBack}
         onShare={onShare}
+        onOpenGuide={handleStartGuide}
         downloadOptions={downloadOptions}
         // Removed generic onSettings, now using integrated components
         
@@ -185,6 +321,8 @@ export function PublicReaderLayout({
         sceneList={viewerProps?.sceneList || viewerProps?.scenes || []} // Provide fallback
         currentSceneId={viewerProps?.activeSceneId} // We need to ensure we track this
         onSelectScene={viewerProps?.scrollToScene} // The viewer prop usually expects an ID
+        tocOpen={tocOpen}
+        onTocOpenChange={setTocOpen}
         metaItems={metaItems}
         
         // Marker Props
@@ -206,6 +344,7 @@ export function PublicReaderLayout({
           I will modify ScriptSurface to accept `children` or `headerNode`.
           Let's verify ScriptSurface implementation again.
        */}
+        <div data-guide-id="public-guide-script" className="relative z-10 flex-1 min-h-0 h-full">
         <ScriptSurface
            {...scriptSurfaceProps}
            text={rawScript}
@@ -216,17 +355,19 @@ export function PublicReaderLayout({
            headerNode={
                !isLoading && script && (
                    <>
-                   <PublicScriptInfoOverlay 
-                       title={title}
-                       synopsis={synopsis}
-                       coverUrl={coverUrl}
-                       author={author}
-                       organization={organization}
-                       commercialUse={commercialUse}
-                       derivativeUse={derivativeUse}
-                       notifyOnModify={notifyOnModify}
-                       prefaceItems={prefaceItems}
-                   />
+                   <div data-guide-id="public-guide-info">
+                     <PublicScriptInfoOverlay 
+                         title={title}
+                         synopsis={synopsis}
+                         coverUrl={coverUrl}
+                         author={author}
+                         organization={organization}
+                         commercialUse={commercialUse}
+                         derivativeUse={derivativeUse}
+                         notifyOnModify={notifyOnModify}
+                         prefaceItems={prefaceItems}
+                     />
+                   </div>
                    {Array.isArray(relatedSeriesScripts) && relatedSeriesScripts.length > 0 && (
                        <section className="w-full max-w-4xl mx-auto px-6 pb-8">
                            <div className="mb-3 flex items-center justify-between">
@@ -289,10 +430,27 @@ export function PublicReaderLayout({
                )
            }
            // Make the scroll container transparent so background shows through initially
-           outerClassName="flex-1 min-h-0 relative z-10"
-           scrollClassName="h-full overflow-y-auto overflow-x-hidden scrollbar-hide perspective-1000"
+           outerClassName="h-full min-h-0 relative z-10"
+           scrollClassName="h-full min-h-0 overflow-y-auto overflow-x-hidden touch-pan-y overscroll-y-contain scrollbar-hide perspective-1000"
            contentClassName="max-w-4xl mx-auto px-5 sm:px-8 pb-32 pt-16 min-h-[100dvh]" 
         />
+        </div>
+      <SpotlightGuideOverlay
+        open={showGuide}
+        zIndex={260}
+        spotlightRect={guideSpotlightRect}
+        currentStep={guideIndex + 1}
+        totalSteps={guideSteps.length}
+        title={currentGuide?.title || ""}
+        description={currentGuide?.description || ""}
+        onSkip={finishGuide}
+        skipLabel={t("publicReader.guideSkip")}
+        onPrev={handleGuidePrev}
+        prevLabel={t("publicReader.guidePrev")}
+        prevDisabled={guideIndex === 0}
+        onNext={handleGuideNext}
+        nextLabel={guideIndex === guideSteps.length - 1 ? t("publicReader.guideDone") : t("publicReader.guideNext")}
+      />
     </div>
   );
 }

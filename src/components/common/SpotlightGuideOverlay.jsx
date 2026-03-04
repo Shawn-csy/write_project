@@ -27,17 +27,17 @@ export function SpotlightGuideOverlay({
     <div className="fixed inset-0 pointer-events-none" style={{ zIndex }}>
       {spotlightRect ? (
         <>
-          <div className="absolute left-0 top-0 bg-black/75 pointer-events-auto" style={{ width: "100%", height: spotlightRect.top }} />
-          <div className="absolute left-0 bg-black/75 pointer-events-auto" style={{ top: spotlightRect.top, width: spotlightRect.left, height: spotlightRect.height }} />
+          <div className="absolute left-0 top-0 bg-black/75 pointer-events-none" style={{ width: "100%", height: spotlightRect.top }} />
+          <div className="absolute left-0 bg-black/75 pointer-events-none" style={{ top: spotlightRect.top, width: spotlightRect.left, height: spotlightRect.height }} />
           <div
-            className="absolute right-0 bg-black/75 pointer-events-auto"
+            className="absolute right-0 bg-black/75 pointer-events-none"
             style={{
               top: spotlightRect.top,
               left: spotlightRect.left + spotlightRect.width,
               height: spotlightRect.height,
             }}
           />
-          <div className="absolute left-0 bg-black/75 pointer-events-auto" style={{ top: spotlightRect.top + spotlightRect.height, width: "100%", bottom: 0 }} />
+          <div className="absolute left-0 bg-black/75 pointer-events-none" style={{ top: spotlightRect.top + spotlightRect.height, width: "100%", bottom: 0 }} />
           <div
             className="absolute rounded-xl border-2 border-primary shadow-[0_0_40px_rgba(255,255,255,0.12)] pointer-events-none"
             style={{
@@ -49,7 +49,7 @@ export function SpotlightGuideOverlay({
           />
         </>
       ) : (
-        <div className="absolute inset-0 bg-black/75 pointer-events-auto" />
+        <div className="absolute inset-0 bg-black/75 pointer-events-none" />
       )}
       <div className="absolute right-6 bottom-6 w-[380px] max-w-[calc(100vw-3rem)] rounded-xl border bg-background p-4 shadow-2xl pointer-events-auto">
         {showProgress ? (
