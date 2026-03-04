@@ -23,6 +23,7 @@ import {
 } from "../ui/dropdown-menu";
 import { useI18n } from "../../contexts/I18nContext";
 import { useToast } from "../ui/toast";
+import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
 
 export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     const { t } = useI18n();
@@ -42,6 +43,9 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     const [filterType, setFilterType] = useState("all");
     const [filterStatus, setFilterStatus] = useState("all");
     const [filterQuery, setFilterQuery] = useState("");
+    const [showGuide, setShowGuide] = useState(false);
+    const [guideIndex, setGuideIndex] = useState(0);
+    const [guideSpotlightRect, setGuideSpotlightRect] = useState(null);
     
     // Breadcrumbs Logic
     const breadcrumbs = useMemo(() => {
@@ -223,6 +227,93 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         }
     }, [hasMoreItems, loadMore]);
 
+    const guideSteps = useMemo(() => ([
+        {
+            title: t("writeTab.guideCreateTitle"),
+            description: t("writeTab.guideCreateDesc"),
+            target: "write-create-script-btn",
+        },
+        {
+            title: t("writeTab.guideImportTitle"),
+            description: t("writeTab.guideImportDesc"),
+            target: "write-import-script-btn",
+        },
+        {
+            title: t("writeTab.guideListTitle"),
+            description: t("writeTab.guideListDesc"),
+            target: "write-list-panel",
+        },
+        {
+            title: t("writeTab.guidePreviewTitle"),
+            description: t("writeTab.guidePreviewDesc"),
+            target: "write-preview-panel",
+        },
+    ]), [t]);
+
+    const getGuideTargetElement = useCallback((target) => {
+        if (typeof document === "undefined") return null;
+        return document.querySelector(`[data-guide-id="${target}"]`);
+    }, []);
+
+    const updateGuideSpotlight = useCallback(() => {
+        if (!showGuide) {
+            setGuideSpotlightRect(null);
+            return;
+        }
+        const step = guideSteps[guideIndex];
+        const element = step ? getGuideTargetElement(step.target) : null;
+        if (!element) {
+            setGuideSpotlightRect(null);
+            return;
+        }
+        const rect = element.getBoundingClientRect();
+        if (!rect.width || !rect.height) {
+            setGuideSpotlightRect(null);
+            return;
+        }
+        const padding = 8;
+        setGuideSpotlightRect({
+            top: Math.max(0, rect.top - padding),
+            left: Math.max(0, rect.left - padding),
+            width: rect.width + padding * 2,
+            height: rect.height + padding * 2,
+        });
+    }, [getGuideTargetElement, guideIndex, guideSteps, showGuide]);
+
+    useEffect(() => {
+        if (!showGuide) return undefined;
+        updateGuideSpotlight();
+        const onLayoutChange = () => updateGuideSpotlight();
+        window.addEventListener("resize", onLayoutChange);
+        window.addEventListener("scroll", onLayoutChange, true);
+        return () => {
+            window.removeEventListener("resize", onLayoutChange);
+            window.removeEventListener("scroll", onLayoutChange, true);
+        };
+    }, [guideIndex, showGuide, updateGuideSpotlight]);
+
+    const startGuide = useCallback(() => {
+        setGuideIndex(0);
+        setShowGuide(true);
+    }, []);
+
+    const closeGuide = useCallback(() => {
+        setShowGuide(false);
+        setGuideSpotlightRect(null);
+    }, []);
+
+    const prevGuide = useCallback(() => {
+        setGuideIndex((prev) => Math.max(0, prev - 1));
+    }, []);
+
+    const nextGuide = useCallback(() => {
+        if (guideIndex >= guideSteps.length - 1) {
+            closeGuide();
+            return;
+        }
+        setGuideIndex((prev) => Math.min(guideSteps.length - 1, prev + 1));
+    }, [closeGuide, guideIndex, guideSteps.length]);
+
     return (
         <div className="flex flex-col h-full overflow-hidden">
             {/* Toolbar */}
@@ -238,6 +329,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                 onImport={() => setIsImportOpen(true)}
                 onCreateFolder={() => { manager.setNewType('folder'); manager.setIsCreateOpen(true); }}
                 onCreateScript={() => { manager.setNewType('script'); manager.setIsCreateOpen(true); }}
+                onOpenGuide={startGuide}
             />
 
             {/* File Explorer */}
@@ -245,6 +337,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                 <div
                     className="border rounded-lg bg-card flex-1 min-h-0 overflow-y-auto"
                     onScroll={handleListScroll}
+                    data-guide-id="write-list-panel"
                 >
                     <div className="px-4 py-2 border-b bg-muted/20 text-xs">
                         <div className="flex flex-wrap items-center gap-2">
@@ -378,7 +471,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                     />
                 </div>
 
-                <aside className="hidden xl:flex xl:w-80 border rounded-lg bg-card p-4 flex-col gap-3">
+                <aside className="hidden xl:flex xl:w-80 border rounded-lg bg-card p-4 flex-col gap-3" data-guide-id="write-preview-panel">
                     <h3 className="text-sm font-semibold">{t("writeTab.previewInfo")}</h3>
                     {!previewItem ? (
                         <p className="text-sm text-muted-foreground">{t("writeTab.previewHint")}</p>
@@ -497,6 +590,22 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                 setTargetFolder={manager.setMoveTargetFolder}
                 moving={manager.moving}
                 onConfirm={manager.handleMoveConfirm}
+            />
+
+            <SpotlightGuideOverlay
+                open={showGuide}
+                spotlightRect={guideSpotlightRect}
+                currentStep={guideIndex + 1}
+                totalSteps={guideSteps.length}
+                title={guideSteps[guideIndex]?.title || ""}
+                description={guideSteps[guideIndex]?.description || ""}
+                onSkip={closeGuide}
+                skipLabel={t("writeTab.guideSkip")}
+                onPrev={prevGuide}
+                prevLabel={t("writeTab.guidePrev")}
+                prevDisabled={guideIndex === 0}
+                onNext={nextGuide}
+                nextLabel={guideIndex === guideSteps.length - 1 ? t("writeTab.guideDone") : t("writeTab.guideNext")}
             />
         </div>
     );

@@ -121,16 +121,16 @@ export function EditorHeader({
                     setShowMetadataDialog(false);
                 }}
               />
-              <button
-                onClick={onManualSave}
-                className={`p-1 px-2 rounded flex items-center gap-1 text-[10px] sm:text-xs border transition-colors ${
-                    saveStatus === "error" ? "bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/20" :
-                    saveStatus === "local-saved" ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 hover:bg-amber-500/20" :
-                    saveStatus === "unsaved" ? "bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/30 hover:bg-orange-500/20" :
+              <div
+                className={`p-1 px-2 rounded flex items-center gap-1 text-[10px] sm:text-xs border ${
+                    saveStatus === "error" ? "bg-destructive/10 text-destructive border-destructive/30" :
+                    saveStatus === "local-saved" ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30" :
+                    saveStatus === "unsaved" ? "bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/30" :
                     saveStatus === "saving" ? "bg-primary/10 text-primary border-primary/30" :
-                    "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20"
+                    "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
                 }`}
                 title={saveStatusTitle}
+                aria-label={saveStatusTitle}
               >
                 {saveStatus === 'saving' ? (
                   <Loader2 className="w-3 h-3 animate-spin" />
@@ -138,12 +138,27 @@ export function EditorHeader({
                   <Save className="w-3 h-3" />
                 )}
                 {saveStatusLabel}
-              </button>
+              </div>
             </div>
           </div>
         }
       />
       <div className="flex items-center gap-2 flex-wrap">
+        <Button
+          variant="default"
+          size="sm"
+          onClick={onManualSave}
+          disabled={saveStatus === "saving"}
+          className="h-8 rounded-md flex items-center gap-2 text-sm"
+          title={t("editorHeader.manualSave")}
+        >
+          {saveStatus === "saving" ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Save className="w-4 h-4" />
+          )}
+          <span>{t("editorHeader.manualSave")}</span>
+        </Button>
         <Button
           variant="ghost"
           size="sm"

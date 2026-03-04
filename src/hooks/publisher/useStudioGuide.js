@@ -19,6 +19,18 @@ export function useStudioGuide({ t, currentUser, activeTab, handleTabChange, tab
         tab: "works",
       },
       {
+        title: t("publisher.guideWorksFiltersTitle"),
+        description: t("publisher.guideWorksFiltersDesc"),
+        target: "worksFilters",
+        tab: "works",
+      },
+      {
+        title: t("publisher.guideWorksEditInfoTitle"),
+        description: t("publisher.guideWorksEditInfoDesc"),
+        target: "worksEditInfo",
+        tab: "works",
+      },
+      {
         title: t("publisher.guideProfileTitle"),
         description: t("publisher.guideProfileDesc"),
         target: "profile",
@@ -38,6 +50,8 @@ export function useStudioGuide({ t, currentUser, activeTab, handleTabChange, tab
       if (!step) return null;
       if (step.target === "tabs") return tabsGuideRef.current;
       if (step.target === "works") return document.querySelector('[data-guide-id="studio-works-panel"]');
+      if (step.target === "worksFilters") return document.querySelector('[data-guide-id="studio-works-filters"]');
+      if (step.target === "worksEditInfo") return document.querySelector('[data-guide-id="studio-works-edit-info"]');
       if (step.target === "profile") return document.querySelector('[data-guide-id="studio-profile-panel"]');
       if (step.target === "org") return document.querySelector('[data-guide-id="studio-org-panel"]');
       return null;

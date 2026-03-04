@@ -54,11 +54,18 @@ export const createDynamicParsers = (configs = []) => {
              
              const startStr = config.start;
              const fullStartStr = toFullWidth(startStr);
+             const ci = Boolean(config.caseInsensitive);
              
              // Support both Halfwidth and Fullwidth
-             const startParser = startStr === fullStartStr 
-                ? P.string(startStr)
-                : P.alt(P.string(startStr), P.string(fullStartStr));
+             const startNormalParser = ci
+                ? P.regex(new RegExp(escapeRegExp(startStr), "i"))
+                : P.string(startStr);
+             const startFullParser = ci
+                ? P.regex(new RegExp(escapeRegExp(fullStartStr), "i"))
+                : P.string(fullStartStr);
+             const startParser = startStr === fullStartStr
+                ? startNormalParser
+                : P.alt(startNormalParser, startFullParser);
              
              const contentRegex = nextPrefixPattern
                 ? new RegExp(`^[\\s\\S]*?(?=${nextPrefixPattern}|$)`)

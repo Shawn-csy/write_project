@@ -1,9 +1,9 @@
-export const DEFAULT_MARKER_RULES_NAME = "談聲聆格式";
+export const DEFAULT_MARKER_RULES_NAME = "預設格式";
 
 export const DEFAULT_MARKER_RULES = [
   {
     id: "rule-numbered-chapter-title",
-    label: "章節標題 (01. ...)",
+    label: "章節標題",
     type: "block",
     isBlock: true,
     parseAs: "scene_heading",
@@ -27,7 +27,7 @@ export const DEFAULT_MARKER_RULES = [
   },
   {
     id: "rule-se-performer",
-    label: "聲優效果音 (*...)",
+    label: "聲優效果音",
     type: "inline",
     matchMode: "enclosure",
     start: "(*",
@@ -52,7 +52,7 @@ export const DEFAULT_MARKER_RULES = [
   },
   {
     id: "rule-post-effect",
-    label: "後製效果 【...】",
+    label: "後製效果",
     type: "inline",
     matchMode: "enclosure",
     start: "【",
@@ -70,6 +70,7 @@ export const DEFAULT_MARKER_RULES = [
     type: "inline",
     matchMode: "prefix",
     start: "#SE",
+    caseInsensitive: true,
     isBlock: false,
     priority: 960,
     style: {
@@ -95,11 +96,12 @@ export const DEFAULT_MARKER_RULES = [
   },
   {
     id: "se-continuous",
-    label: "持續音效 (SE)",
+    label: "持續音效",
     type: "block",
     matchMode: "range",
     start: ">>SE",
     end: "<<SE",
+    caseInsensitive: true,
     isBlock: true,
     priority: 940,
     style: {
@@ -115,10 +117,11 @@ export const DEFAULT_MARKER_RULES = [
   },
   {
     id: "rule-bg-start",
-    label: "背景音 //BG",
+    label: "背景音",
     type: "block",
     matchMode: "prefix",
     start: "//BG",
+    caseInsensitive: true,
     isBlock: true,
     priority: 930,
     style: {
@@ -149,7 +152,7 @@ export const DEFAULT_MARKER_RULES = [
   },
   {
     id: "action",
-    label: "內文 (Action)",
+    label: "內文",
     start: "",
     end: "",
     isBlock: true,

@@ -514,6 +514,7 @@ Content 2
       const gap = ast.children.find(n => n.text === 'Gap Content');
       assert.ok(gap, 'Gap content should be in root');
       assert.strictEqual(gap.type, 'action'); // or whatever default is
+      assert.ok(!gap.inRange || !gap.inRange.includes('se-pause'), 'Gap content should not be marked inRange');
       
       // 第二個段落
       const r2 = ranges[1];
@@ -522,6 +523,51 @@ Content 2
       assert.strictEqual(r2.endNode.text, 'End');
       assert.strictEqual(r2.children.length, 1);
       assert.strictEqual(r2.children[0].text, 'Content 2');
+    });
+
+    it('should close nearest same-group range on pause in nested same-group ranges', () => {
+      const pauseConfigs = [
+        {
+          id: 'se-pause',
+          start: '>>SE',
+          end: '<<SE',
+          pause: '><SE',
+          isBlock: true,
+          matchMode: 'range',
+        }
+      ];
+      const input = `>>SE Outer
+>>SE Inner
+Inner Content
+><SE Pause inner
+Gap Content
+><SE Resume inner
+Inner Content 2
+<<SE Inner End
+<<SE Outer End`;
+
+      const ast = buildAST(input, pauseConfigs);
+      const rootRanges = ast.children.filter((n) => n.type === 'range');
+      assert.strictEqual(rootRanges.length, 1, 'Should keep a single outer root range');
+
+      const outer = rootRanges[0];
+      assert.strictEqual(outer.startNode.text, 'Outer');
+      assert.strictEqual(outer.endNode.text, 'Outer End');
+
+      const firstInner = outer.children.find((n) => n.type === 'range' && n.startNode?.text === 'Inner');
+      assert.ok(firstInner, 'Should have first inner segment');
+      assert.strictEqual(firstInner.endNode?.text, 'Pause inner', 'Pause should close nearest inner range');
+
+      const secondInner = outer.children.find((n) => n.type === 'range' && n.startNode?.text === 'Resume inner');
+      assert.ok(secondInner, 'Should have resumed inner segment');
+      assert.strictEqual(secondInner.endNode?.text, 'Inner End');
+
+      const gap = outer.children.find((n) => n.type === 'action' && n.text === 'Gap Content');
+      assert.ok(gap, 'Gap content should stay under outer range');
+      assert.ok(gap.inRange && gap.inRange.includes('se-pause'), 'Gap should remain in outer range only');
+
+      const orphanEnds = ast.children.filter((n) => n.type === 'layer' && n.rangeRole === 'end');
+      assert.strictEqual(orphanEnds.length, 0, 'Should not leave orphan end markers at root');
     });
 
     it('should handle multiple different range groups', () => {
