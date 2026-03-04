@@ -5,12 +5,7 @@ import { PublicScriptInfoOverlay } from "./PublicScriptInfoOverlay";
 import { PublicMarkerLegend } from "./PublicMarkerLegend";
 import ScriptSurface from "../editor/ScriptSurface";
 import { useSettings } from "../../contexts/SettingsContext";
-import {
-  exportScriptAsCsv,
-  exportScriptAsDocx,
-  exportScriptAsFountain,
-  exportScriptAsXlsx,
-} from "../../lib/scriptExport";
+import { loadBasicScriptExport, loadXlsxScriptExport } from "../../lib/scriptExportLoader";
 import { useI18n } from "../../contexts/I18nContext";
 import { CoverPlaceholder } from "../ui/CoverPlaceholder";
 
@@ -119,28 +114,40 @@ export function PublicReaderLayout({
       id: "fountain",
       label: t("publicReader.downloadFountain"),
       icon: FileCode2,
-      onClick: () => exportScriptAsFountain(title || "script", rawScript || ""),
+      onClick: async () => {
+        const { exportScriptAsFountain } = await loadBasicScriptExport();
+        exportScriptAsFountain(title || "script", rawScript || "");
+      },
       disabled: !rawScript,
     },
     {
       id: "docx",
       label: t("publicReader.downloadDoc"),
       icon: FileText,
-      onClick: () => exportScriptAsDocx(title || "script", { text: rawScript || "", renderedHtml }),
+      onClick: async () => {
+        const { exportScriptAsDocx } = await loadBasicScriptExport();
+        await exportScriptAsDocx(title || "script", { text: rawScript || "", renderedHtml });
+      },
       disabled: !rawScript,
     },
     {
       id: "xlsx",
       label: t("publicReader.downloadXlsx"),
       icon: FileSpreadsheet,
-      onClick: () => exportScriptAsXlsx(title || "script", { text: rawScript || "", renderedHtml }),
+      onClick: async () => {
+        const { exportScriptAsXlsx } = await loadXlsxScriptExport();
+        await exportScriptAsXlsx(title || "script", { text: rawScript || "", renderedHtml });
+      },
       disabled: !rawScript,
     },
     {
       id: "csv",
       label: t("publicReader.downloadCsv"),
       icon: FileSpreadsheet,
-      onClick: () => exportScriptAsCsv(title || "script", { text: rawScript || "", renderedHtml }),
+      onClick: async () => {
+        const { exportScriptAsCsv } = await loadBasicScriptExport();
+        exportScriptAsCsv(title || "script", { text: rawScript || "", renderedHtml });
+      },
       disabled: !rawScript,
     },
   ];

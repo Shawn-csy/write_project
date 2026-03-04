@@ -4,7 +4,7 @@ import { Helmet } from "react-helmet-async";
 import { Link as LinkIcon, Building2, Globe, Twitter, Instagram, Youtube, Github } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { ScriptGalleryCard } from "../components/gallery/ScriptGalleryCard";
-import { getPublicPersona, getPublicScripts } from "../lib/db";
+import { getPublicPersona, getPublicScripts } from "../lib/api/public";
 import { getSeriesInfoFromContent } from "../lib/series";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { getMorandiTagStyle } from "../lib/tagColors";

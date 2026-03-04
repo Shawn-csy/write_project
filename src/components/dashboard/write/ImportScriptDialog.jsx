@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import { createPortal } from "react-dom";
 import { Loader2, ClipboardPaste, FileText, Eye, CheckCircle2, CircleHelp } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
@@ -11,6 +10,7 @@ import { ScrollArea } from "../../ui/scroll-area";
 import { useToast } from "../../ui/toast";
 import { useI18n } from "../../../contexts/I18nContext";
 import { ScriptRenderer } from "../../renderer/ScriptRenderer";
+import { SpotlightGuideOverlay } from "../../common/SpotlightGuideOverlay";
 
 // Sub-components
 import { ImportStageInput } from "./import/ImportStageInput";
@@ -564,72 +564,22 @@ export function ImportScriptDialog({
                 </DialogFooter>
             </DialogContent>
         </Dialog>
-        {showGuide && currentGuide && typeof document !== "undefined" && createPortal(
-            <div className="fixed inset-0 z-[200] pointer-events-none">
-                {spotlightRect ? (
-                    <>
-                        <div
-                            className="absolute left-0 top-0 bg-black/75 pointer-events-auto"
-                            style={{ width: "100%", height: spotlightRect.top }}
-                        />
-                        <div
-                            className="absolute left-0 bg-black/75 pointer-events-auto"
-                            style={{ top: spotlightRect.top, width: spotlightRect.left, height: spotlightRect.height }}
-                        />
-                        <div
-                            className="absolute right-0 bg-black/75 pointer-events-auto"
-                            style={{
-                                top: spotlightRect.top,
-                                left: spotlightRect.left + spotlightRect.width,
-                                height: spotlightRect.height,
-                            }}
-                        />
-                        <div
-                            className="absolute left-0 bg-black/75 pointer-events-auto"
-                            style={{ top: spotlightRect.top + spotlightRect.height, width: "100%", bottom: 0 }}
-                        />
-                        <div
-                            className="absolute rounded-xl border-2 border-primary shadow-[0_0_40px_rgba(255,255,255,0.12)] pointer-events-none"
-                            style={{
-                                top: spotlightRect.top,
-                                left: spotlightRect.left,
-                                width: spotlightRect.width,
-                                height: spotlightRect.height,
-                            }}
-                        />
-                    </>
-                ) : (
-                    <div className="absolute inset-0 bg-black/75 pointer-events-auto" />
-                )}
-                <div className="absolute right-6 bottom-6 w-[360px] max-w-[calc(100vw-3rem)] rounded-xl border bg-background p-4 shadow-2xl pointer-events-auto">
-                    <div className="text-xs text-muted-foreground">{guideIndex + 1}/{guideSteps.length}</div>
-                    <div className="text-base font-semibold mt-1">{currentGuide.title}</div>
-                    <p className="text-sm text-muted-foreground mt-1">{currentGuide.description}</p>
-                    <div className="mt-4 flex items-center justify-between gap-2">
-                        <Button type="button" size="sm" variant="ghost" onClick={finishGuide}>
-                            {t("importDialog.guideSkip")}
-                        </Button>
-                        <div className="flex items-center gap-2">
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={handleGuidePrev}
-                                disabled={guideIndex === 0}
-                            >
-                                {t("importDialog.guidePrev")}
-                            </Button>
-                            <Button type="button" size="sm" onClick={handleGuideNext}>
-                                {guideIndex === guideSteps.length - 1
-                                    ? t("importDialog.guideDone")
-                                    : t("importDialog.guideNext")}
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            </div>,
-            document.body
-        )}
+        <SpotlightGuideOverlay
+            open={showGuide && Boolean(currentGuide)}
+            zIndex={200}
+            spotlightRect={spotlightRect}
+            currentStep={guideIndex + 1}
+            totalSteps={guideSteps.length}
+            title={currentGuide?.title}
+            description={currentGuide?.description}
+            onSkip={finishGuide}
+            skipLabel={t("importDialog.guideSkip")}
+            onPrev={handleGuidePrev}
+            prevLabel={t("importDialog.guidePrev")}
+            prevDisabled={guideIndex === 0}
+            onNext={handleGuideNext}
+            nextLabel={guideIndex === guideSteps.length - 1 ? t("importDialog.guideDone") : t("importDialog.guideNext")}
+        />
         
         </>
     );

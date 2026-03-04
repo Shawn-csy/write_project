@@ -1,31 +1,22 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef, useDeferredValue } from "react";
-import { createPortal } from "react-dom";
 import CodeMirror from "@uiw/react-codemirror";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { EditorView } from "@codemirror/view";
-import { updateScript, getScript } from "../../lib/db";
-import { FileCode2, FileSpreadsheet, FileText, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { fountainLanguage } from "./fountain-mode";
-// import { debounce } from "lodash";
-import { debounce } from "../../lib/utils";
 import { StatisticsPanel } from "../statistics/StatisticsPanel";
 
 import { parseScreenplay } from "../../lib/screenplayAST";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useEditorSync } from "../../hooks/useEditorSync";
+import { useLiveEditorPersistence } from "../../hooks/editor/useLiveEditorPersistence";
 import { usePreviewLineNavigation } from "../../hooks/usePreviewLineNavigation";
-import { extractMetadata } from "../../lib/metadataParser";
-import {
-  exportScriptAsCsv,
-  exportScriptAsDocx,
-  exportScriptAsFountain,
-  exportScriptAsXlsx,
-} from "../../lib/scriptExport";
+import { useLiveEditorDownloadOptions } from "../../hooks/editor/useLiveEditorDownloadOptions";
 import { EditorHeader } from "./EditorHeader";
 import { PreviewPanel } from "./PreviewPanel";
 import { MarkerRulesPanel } from "./MarkerRulesPanel";
 import { useI18n } from "../../contexts/I18nContext";
-import { Button } from "../ui/button";
+import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
 
 const EDITOR_PANE_WIDTH_STORAGE_KEY = "live_editor_pane_width_percent";
 const MIN_EDITOR_PANE_WIDTH = 28;
@@ -139,115 +130,28 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
 
   const [scenes, setScenes] = useState([]); 
 
-  // Local Storage Key Helper
-  const getDraftKey = (id) => `draft_script_${id}`;
-
-  // Load initial script w/ Local Draft Check
-  useEffect(() => {
-    if (initialData && initialData.id === scriptId && initialData.content !== undefined) {
-      // Check for local draft
-      const draftKey = getDraftKey(scriptId);
-      const draftJson = localStorage.getItem(draftKey);
-      let loadedContent = initialData.content;
-      let loadedTitle = initialData.title || t("liveEditor.untitled");
-      let isRestored = false;
-
-      if (draftJson) {
-          try {
-              const draft = JSON.parse(draftJson);
-              const serverMtime = new Date(initialData.lastModified || Date.now()).getTime();
-              if (draft.mtime > serverMtime) {
-                  // Draft is newer, use draft
-                  loadedContent = draft.content;
-                  loadedTitle = draft.title;
-                  isRestored = true;
-                  setSaveStatus("local-saved");
-                  console.log("Restored from local draft");
-              }
-          } catch(e) { console.error("Bad draft", e); }
-      }
-
-      setContent(loadedContent);
-      setTitle(loadedTitle);
-      lastSavedContent.current = loadedContent;
-      lastSavedTitle.current = loadedTitle;
-      setLoading(false);
-      return;
-    }
-
-    async function load() {
-      if (!scriptId) return;
-      try {
-        setLoading(true);
-        const data = await getScript(scriptId);
-        
-        let loadedContent = data.content || "";
-        let loadedTitle = data.title || t("liveEditor.untitled");
-        
-        // Draft Check Logic duplicated (cleaner to extract but inline is fine)
-        const draftKey = getDraftKey(scriptId);
-        const draftJson = localStorage.getItem(draftKey);
-        if (draftJson) {
-             try {
-                 const draft = JSON.parse(draftJson);
-                 const serverMtime = new Date(data.lastModified || Date.now()).getTime();
-                 if (draft.mtime > serverMtime) {
-                     loadedContent = draft.content;
-                     loadedTitle = draft.title;
-                     setSaveStatus("local-saved"); 
-                 }
-             } catch(e) {}
-        }
-
-        setContent(loadedContent);
-        setTitle(loadedTitle);
-        lastSavedContent.current = loadedContent;
-        lastSavedTitle.current = loadedTitle;
-        setLastSaved(new Date(data.lastModified || Date.now()));
-      } catch (error) {
-        console.error("Failed to load script", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, [scriptId, initialData]);
-
-  // Persistence Logic
-  const performSave = async (id, newContent, newTitle) => {
-      try {
-        setSaveStatus("saving");
-        const meta = extractMetadata(newContent);
-        await updateScript(id, { 
-            content: newContent, 
-            title: newTitle,
-            author: meta.author || meta.authors || "",
-            draftDate: meta.date || meta.draftdate || ""
-        });
-        setLastSaved(new Date());
-        setSaveStatus("saved");
-        lastSavedContent.current = newContent;
-        lastSavedTitle.current = newTitle;
-        
-        // Clear local draft after successful synced save? 
-        // No, keep it as backup until newer data comes. 
-        // Or update its timestamp? 
-        // Actually, if we saved to server, server mtime is now new.
-        // We can remove draft or update it.
-        // Let's keep writing draft in handleChange.
-      } catch (err) {
-        console.error("Auto-save failed", err);
-        setSaveStatus("error");
-      }
-  };
-
-  // Debounced save
-  const debouncedSave = useCallback(
-    debounce((id, newContent, newTitle) => {
-      performSave(id, newContent, newTitle);
-    }, 60000), // Increased to 60s
-    []
-  );
+  const {
+    handleChange,
+    handleTitleUpdate,
+    handleBack,
+    handleManualSave,
+  } = useLiveEditorPersistence({
+    scriptId,
+    initialData,
+    readOnly,
+    content,
+    title,
+    onClose,
+    onTitleName,
+    t,
+    setContent,
+    setTitle,
+    setLoading,
+    setSaveStatus,
+    setLastSaved,
+    lastSavedContentRef: lastSavedContent,
+    lastSavedTitleRef: lastSavedTitle,
+  });
 
   // BeforeUnload Warning
   useEffect(() => {
@@ -281,145 +185,17 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
       return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [saveStatus, content, title]);
 
-
-  const handleChange = (val) => {
-    setContent(val);
-    if (!readOnly) {
-        // 1. Save to LocalStorage immediately
-        try {
-            const draftKey = getDraftKey(scriptId);
-            localStorage.setItem(draftKey, JSON.stringify({
-                content: val,
-                title: title,
-                mtime: Date.now()
-            }));
-            // Update status only if not currently 'saving' or 'error' (priority)
-            // Actually 'saving' should override 'local-saved' in UI, but logically we are local-saved.
-            // If we are 'saving', we stay 'saving'.
-            setSaveStatus(prev => (prev === 'saving' ? 'saving' : 'local-saved'));
-        } catch(e) { console.error("Local save failed", e); }
-
-        // 2. Queue Cloud Save
-        debouncedSave(scriptId, val, title);
-    }
-  };
-
-  const handleTitleUpdate = (newTitle) => {
-    if (newTitle && newTitle !== title) {
-        setTitle(newTitle);
-        onTitleName?.(newTitle);
-        if (!readOnly) {
-            // Local Save
-            try {
-                const draftKey = getDraftKey(scriptId);
-                localStorage.setItem(draftKey, JSON.stringify({
-                    content: content,
-                    title: newTitle,
-                    mtime: Date.now()
-                }));
-                setSaveStatus(prev => (prev === 'saving' ? 'saving' : 'local-saved'));
-            } catch(e) {}
-
-            debouncedSave(scriptId, content, newTitle);
-        }
-    }
-  };
-
-  const downloadOptions = useMemo(
-    () => [
-      {
-        id: "__helper__",
-        hidden: true,
-      },
-      {
-        id: "fountain",
-        label: t("publicReader.downloadFountain"),
-        icon: FileCode2,
-        onClick: () => exportScriptAsFountain(title, content),
-      },
-      {
-        id: "docx",
-        label: t("publicReader.downloadDoc"),
-        icon: FileText,
-        onClick: () =>
-          exportScriptAsDocx(title, {
-            text: content,
-            renderedHtml: processedRenderedHtml || rawRenderedHtml,
-          }),
-      },
-      {
-        id: "xlsx",
-        label: t("publicReader.downloadXlsx"),
-        icon: FileSpreadsheet,
-        onClick: () =>
-          exportScriptAsXlsx(title, {
-            text: content,
-            renderedHtml: processedRenderedHtml || rawRenderedHtml,
-          }),
-      },
-      {
-        id: "csv",
-        label: t("publicReader.downloadCsv"),
-        icon: FileSpreadsheet,
-        onClick: () =>
-          exportScriptAsCsv(title, {
-            text: content,
-            renderedHtml: processedRenderedHtml || rawRenderedHtml,
-          }),
-      },
-    ],
-    [title, content, processedRenderedHtml, rawRenderedHtml, t]
-  );
-
-  const runRenderedExport = useCallback(
-    (exporter) => {
-      const currentHtml = renderedHtmlRef.current.processed || renderedHtmlRef.current.raw;
-      if (currentHtml) {
-        exporter({ text: content, renderedHtml: currentHtml });
-        return;
-      }
-
-      if (!showPreview && !readOnly) {
-        setShowPreview(true);
-        setTimeout(() => {
-          const nextHtml = renderedHtmlRef.current.processed || renderedHtmlRef.current.raw;
-          exporter({ text: content, renderedHtml: nextHtml });
-        }, 220);
-        return;
-      }
-
-      exporter({ text: content, renderedHtml: "" });
-    },
-    [content, showPreview, readOnly]
-  );
-
-  const normalizedDownloadOptions = useMemo(
-    () =>
-      downloadOptions
-        .filter((item) => !item.hidden)
-        .map((item) => {
-          if (item.id === "docx") {
-            return {
-              ...item,
-              onClick: () => runRenderedExport((payload) => exportScriptAsDocx(title, payload)),
-            };
-          }
-          if (item.id === "xlsx") {
-            return {
-              ...item,
-              onClick: () => runRenderedExport((payload) => exportScriptAsXlsx(title, payload)),
-            };
-          }
-          if (item.id === "csv") {
-            return {
-              ...item,
-              onClick: () => runRenderedExport((payload) => exportScriptAsCsv(title, payload)),
-            };
-          }
-          return item;
-        }),
-    [downloadOptions, runRenderedExport, title]
-  );
+  const normalizedDownloadOptions = useLiveEditorDownloadOptions({
+    t,
+    title,
+    content,
+    processedRenderedHtml,
+    rawRenderedHtml,
+    renderedHtmlRef,
+    showPreview,
+    setShowPreview,
+    readOnly,
+  });
 
   const { handleLocateText, handlePreviewLineClick } = usePreviewLineNavigation({
     content,
@@ -598,23 +374,6 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     setGuideIndex((prev) => Math.min(guideSteps.length - 1, prev + 1));
   }, [finishGuide, guideIndex, guideSteps.length]);
 
-  const handleBack = async () => {
-      debouncedSave.cancel();
-      const hasCloudDiff = content !== lastSavedContent.current || title !== lastSavedTitle.current;
-      // Ensure latest content is synced to cloud before leaving editor view.
-      if (!readOnly && hasCloudDiff) {
-          await performSave(scriptId, content, title);
-      }
-      onClose();
-  };
-
-  const handleManualSave = () => {
-        if (saveStatus !== 'saving') {
-            debouncedSave.cancel();
-            performSave(scriptId, content, title);
-        }
-  };
-
   const persistEditorPaneWidth = useCallback((value) => {
     if (typeof window === "undefined") return;
     try {
@@ -775,15 +534,9 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
             markerConfigs={markerConfigs}
             hiddenMarkerIds={hiddenMarkerIds}
             onToggleMarker={toggleMarkerVisibility}
-            script={initialData} // Or manage a local script state if needing deeper updates
+            script={initialData}
             onScriptUpdate={(updated) => {
-                // Update local state if needed, or just let the dialog handle the API call + prop refresh
-                // For now, we rely on the Dialog's API call and maybe a refresh to parent?
-                // Since initialData comes from parent, we might need a way to bubble up.
-                // But simple display update:
                 if (updated.title && updated.title !== title) setTitle(updated.title);
-                // Ideally we update the full object in parent scriptManager
-                // But for now, relying on next load or context update is okay.
             }}
           />
         </div>
@@ -903,108 +656,37 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
         />
 
       </div>
-      {showGuide && currentGuide && typeof document !== "undefined" && createPortal(
-        <div className="fixed inset-0 z-[250] pointer-events-none">
-          {guideSpotlightRect ? (
-            <>
-              <div className="absolute left-0 top-0 bg-black/75 pointer-events-auto" style={{ width: "100%", height: guideSpotlightRect.top }} />
-              <div className="absolute left-0 bg-black/75 pointer-events-auto" style={{ top: guideSpotlightRect.top, width: guideSpotlightRect.left, height: guideSpotlightRect.height }} />
-              <div
-                className="absolute right-0 bg-black/75 pointer-events-auto"
-                style={{
-                  top: guideSpotlightRect.top,
-                  left: guideSpotlightRect.left + guideSpotlightRect.width,
-                  height: guideSpotlightRect.height,
-                }}
-              />
-              <div className="absolute left-0 bg-black/75 pointer-events-auto" style={{ top: guideSpotlightRect.top + guideSpotlightRect.height, width: "100%", bottom: 0 }} />
-              <div
-                className="absolute rounded-xl border-2 border-primary shadow-[0_0_40px_rgba(255,255,255,0.12)] pointer-events-none"
-                style={{
-                  top: guideSpotlightRect.top,
-                  left: guideSpotlightRect.left,
-                  width: guideSpotlightRect.width,
-                  height: guideSpotlightRect.height,
-                }}
-              />
-            </>
-          ) : (
-            <div className="absolute inset-0 bg-black/75 pointer-events-auto" />
-          )}
-          <div className="absolute right-6 bottom-6 w-[380px] max-w-[calc(100vw-3rem)] rounded-xl border bg-background p-4 shadow-2xl pointer-events-auto">
-            <div className="text-xs text-muted-foreground">{guideIndex + 1}/{guideSteps.length}</div>
-            <div className="text-base font-semibold mt-1">{currentGuide.title}</div>
-            <p className="text-sm text-muted-foreground mt-1">{currentGuide.description}</p>
-            <div className="mt-4 flex items-center justify-between gap-2">
-              <Button type="button" size="sm" variant="ghost" onClick={finishGuide}>
-                {t("liveEditor.guideSkip")}
-              </Button>
-              <div className="flex items-center gap-2">
-                <Button type="button" size="sm" variant="outline" onClick={handleGuidePrev} disabled={guideIndex === 0}>
-                  {t("liveEditor.guidePrev")}
-                </Button>
-                <Button type="button" size="sm" onClick={handleGuideNext}>
-                  {guideIndex === guideSteps.length - 1 ? t("liveEditor.guideDone") : t("liveEditor.guideNext")}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
-      {showCrossModeEditGuide && (
-        <div className="fixed inset-0 z-[255] pointer-events-none">
-          {crossGuideSpotlightRect ? (
-            <>
-              <div className="absolute left-0 top-0 bg-black/75 pointer-events-auto" style={{ width: "100%", height: crossGuideSpotlightRect.top }} />
-              <div className="absolute left-0 bg-black/75 pointer-events-auto" style={{ top: crossGuideSpotlightRect.top, width: crossGuideSpotlightRect.left, height: crossGuideSpotlightRect.height }} />
-              <div
-                className="absolute right-0 bg-black/75 pointer-events-auto"
-                style={{
-                  top: crossGuideSpotlightRect.top,
-                  left: crossGuideSpotlightRect.left + crossGuideSpotlightRect.width,
-                  height: crossGuideSpotlightRect.height,
-                }}
-              />
-              <div className="absolute left-0 bg-black/75 pointer-events-auto" style={{ top: crossGuideSpotlightRect.top + crossGuideSpotlightRect.height, width: "100%", bottom: 0 }} />
-              <div
-                className="absolute rounded-xl border-2 border-primary shadow-[0_0_40px_rgba(255,255,255,0.12)] pointer-events-none"
-                style={{
-                  top: crossGuideSpotlightRect.top,
-                  left: crossGuideSpotlightRect.left,
-                  width: crossGuideSpotlightRect.width,
-                  height: crossGuideSpotlightRect.height,
-                }}
-              />
-            </>
-          ) : (
-            <div className="absolute inset-0 bg-black/75 pointer-events-auto" />
-          )}
-          <div className="absolute right-6 bottom-6 w-[380px] max-w-[calc(100vw-3rem)] rounded-xl border bg-background p-4 shadow-2xl pointer-events-auto">
-            <div className="text-base font-semibold">{crossGuideTitle}</div>
-            <p className="mt-1 text-sm text-muted-foreground">{crossGuideDesc}</p>
-            <div className="mt-4 flex items-center justify-between gap-2">
-              <Button type="button" variant="ghost" size="sm" onClick={() => onCrossGuideExit?.()}>
-                {t("liveEditor.crossGuideExit")}
-              </Button>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onCrossGuidePrev?.()}
-                  disabled={crossModeGuideStep === "editIntro"}
-                >
-                  {t("liveEditor.crossGuidePrev")}
-                </Button>
-                <Button type="button" size="sm" onClick={() => onCrossGuideNext?.()}>
-                  {crossModeGuideStep === "editActions" ? t("liveEditor.crossGuideBackToRead") : t("liveEditor.crossGuideNext")}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <SpotlightGuideOverlay
+        open={showGuide && Boolean(currentGuide)}
+        zIndex={250}
+        spotlightRect={guideSpotlightRect}
+        currentStep={guideIndex + 1}
+        totalSteps={guideSteps.length}
+        title={currentGuide?.title}
+        description={currentGuide?.description}
+        onSkip={finishGuide}
+        skipLabel={t("liveEditor.guideSkip")}
+        onPrev={handleGuidePrev}
+        prevLabel={t("liveEditor.guidePrev")}
+        prevDisabled={guideIndex === 0}
+        onNext={handleGuideNext}
+        nextLabel={guideIndex === guideSteps.length - 1 ? t("liveEditor.guideDone") : t("liveEditor.guideNext")}
+      />
+      <SpotlightGuideOverlay
+        open={showCrossModeEditGuide}
+        zIndex={255}
+        spotlightRect={crossGuideSpotlightRect}
+        title={crossGuideTitle}
+        description={crossGuideDesc}
+        onSkip={() => onCrossGuideExit?.()}
+        skipLabel={t("liveEditor.crossGuideExit")}
+        onPrev={() => onCrossGuidePrev?.()}
+        prevLabel={t("liveEditor.crossGuidePrev")}
+        prevDisabled={crossModeGuideStep === "editIntro"}
+        onNext={() => onCrossGuideNext?.()}
+        nextLabel={crossModeGuideStep === "editActions" ? t("liveEditor.crossGuideBackToRead") : t("liveEditor.crossGuideNext")}
+        showProgress={false}
+      />
     </div>
   );
 }

@@ -1,15 +1,13 @@
 import React, { useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { getScript } from "../lib/db";
+import { getScript } from "../lib/api/scripts";
 import LiveEditor from "../components/editor/LiveEditor";
-import { useAppNavigation } from "../hooks/useAppNavigation";
 
 // This page accepts :id
 export default function CloudEditorPage({ scriptManager, navProps }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  // nav removed as it was unused and shadowed navProps.nav
   
   // Script Manager Context
   const { 
@@ -40,8 +38,6 @@ export default function CloudEditorPage({ scriptManager, navProps }) {
           setActiveCloudScript(script);
           setRawScript(script.content || "");
           setTitleName(script.title || "Untitled");
-          // Clear others
-          // scriptManager.setActiveFile(null); // Removed
           scriptManager.setActivePublicScriptId(null);
       }).catch(err => {
           console.error("Failed to load cloud script", err);

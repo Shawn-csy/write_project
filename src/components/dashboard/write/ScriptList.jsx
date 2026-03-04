@@ -24,23 +24,17 @@ import {
     SortableContext, 
     verticalListSortingStrategy
 } from '@dnd-kit/sortable';
-import { updateScript, getScript } from "../../../lib/db"; // Needed for inline theme update? or pass handler? 
-// Passed handler is better but for now keep consistent with original logic mix
-
-import { ScriptMetadataDialog } from "../../dashboard/ScriptMetadataDialog"; // Adjust path as needed
+import { updateScript, getScript } from "../../../lib/api/scripts";
+import { ScriptMetadataDialog } from "../../dashboard/ScriptMetadataDialog";
 import { extractMetadata } from "../../../lib/metadataParser";
 import { buildFilename, downloadText } from "../../../lib/download";
+import { isDefaultLikeTheme } from "../../../lib/themeNameUtils";
 import { useI18n } from "../../../contexts/I18nContext";
 
 // Helper: assureContent
 async function assureContent(item) {
     if (item.content !== undefined && item.content !== null) return item.content;
     try {
-        // We need getScript but it's not imported. 
-        // Ideally this logic should be in hook or passed down.
-        // For refactoring speed, we will assume content is loaded or handle in parent.
-        // Actually the original component imported getScript. 
-        // Let's import it here for the download button.
         const full = await getScript(item.id);
         return full.content || "";
     } catch (e) {
@@ -96,14 +90,6 @@ export function ScriptList({
         return map;
     }, [markerThemes, t]);
     const selectableMarkerThemes = useMemo(() => {
-        const normalize = (name = "") =>
-            String(name).toLowerCase().replace(/[\s_()（）\-[\]{}]/g, "");
-        const isDefaultLike = (theme) => {
-            if (!theme) return false;
-            if (theme.id === "default") return true;
-            const n = normalize(theme.name || "");
-            return n.includes("default") || n.includes("預設");
-        };
         const unique = [];
         const seen = new Set();
         (markerThemes || []).forEach((theme) => {
@@ -111,7 +97,7 @@ export function ScriptList({
             seen.add(theme.id);
             unique.push(theme);
         });
-        const custom = unique.filter((theme) => !isDefaultLike(theme));
+        const custom = unique.filter((theme) => !isDefaultLikeTheme(theme));
         return [{ id: "default", name: t("scriptList.defaultTheme") }, ...custom];
     }, [markerThemes, t]);
 

@@ -4,7 +4,7 @@ import { Helmet } from "react-helmet-async";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { ScriptGalleryCard } from "../components/gallery/ScriptGalleryCard";
 import { Button } from "../components/ui/button";
-import { getPublicBundle } from "../lib/db";
+import { getPublicBundle } from "../lib/api/public";
 import { getSeriesInfoFromContent, normalizeSeriesName } from "../lib/series";
 import { useI18n } from "../contexts/I18nContext";
 

@@ -1,24 +1,19 @@
 import React from 'react';
-import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Plus, Trash2, Building2, CircleHelp } from "lucide-react";
 import { Button } from "../../ui/button";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "../../ui/card";
+import { Card } from "../../ui/card";
 import { Input } from "../../ui/input";
-import { Badge } from "../../ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
-import { DndContext, closestCenter } from "@dnd-kit/core";
-import { SortableContext, horizontalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
-import { SortableTag } from "./SortableTag";
-import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
 import { optimizeImageForUpload, getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
-import { uploadMediaObject } from "../../../lib/db";
+import { uploadMediaObject } from "../../../lib/api/media";
 import { useI18n } from "../../../contexts/I18nContext";
 import { MediaPicker } from "../../ui/MediaPicker";
 import { PublisherFormRow } from "./PublisherFormRow";
 import { PublisherTabHeader } from "./PublisherTabHeader";
-
-const ORG_TAB_GUIDE_STORAGE_KEY = "publisher-org-guide-seen-v1";
+import { usePublisherOrgGuide } from "../../../hooks/publisher/usePublisherOrgGuide";
+import { PublisherOrgMembershipPanel } from "./PublisherOrgMembershipPanel";
+import { PublisherTagEditor } from "./PublisherTagEditor";
+import { SpotlightGuideOverlay } from "../../common/SpotlightGuideOverlay";
 
 export function PublisherOrgTab({
     orgs,
@@ -52,7 +47,6 @@ export function PublisherOrgTab({
     const { t } = useI18n();
     const navigate = useNavigate();
     const [viewMode, setViewMode] = React.useState("edit");
-    const [tagOpen, setTagOpen] = React.useState(false);
     const [logoPreviewFailed, setLogoPreviewFailed] = React.useState(false);
     const [bannerPreviewFailed, setBannerPreviewFailed] = React.useState(false);
     const [logoUploadError, setLogoUploadError] = React.useState("");
@@ -61,9 +55,6 @@ export function PublisherOrgTab({
     const [bannerUploadWarning, setBannerUploadWarning] = React.useState("");
     const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState(false);
     const [mediaPickerTarget, setMediaPickerTarget] = React.useState(null); // 'logo' or 'banner'
-    const [showGuide, setShowGuide] = React.useState(false);
-    const [guideIndex, setGuideIndex] = React.useState(0);
-    const [guideSpotlightRect, setGuideSpotlightRect] = React.useState(null);
     const logoGuide = React.useMemo(() => getImageUploadGuide("logo"), []);
     const bannerGuide = React.useMemo(() => getImageUploadGuide("banner"), []);
     const filteredTagOptions = React.useMemo(() => {
@@ -73,41 +64,22 @@ export function PublisherOrgTab({
         return names.filter(n => n.toLowerCase().includes(needle));
     }, [tagOptions, orgTagInput]);
 
-    const roleBadgeClass = (role) => {
-        if (role === "owner") return "border-amber-300 bg-amber-50 text-amber-800";
-        if (role === "admin") return "border-blue-300 bg-blue-50 text-blue-800";
-        return "border-muted-foreground/30 bg-muted text-muted-foreground";
-    };
-
-    const roleLabel = (role) => {
-        if (role === "owner") return "擁有者";
-        if (role === "admin") return "管理員";
-        return "一般成員";
-    };
-    const guideSteps = React.useMemo(() => ([
-        {
-            title: t("publisherOrgTab.guideListTitle"),
-            description: t("publisherOrgTab.guideListDesc"),
-            targetId: "org-guide-list",
-        },
-        {
-            title: t("publisherOrgTab.guideBasicTitle"),
-            description: t("publisherOrgTab.guideBasicDesc"),
-            targetId: "org-guide-basic",
-        },
-        {
-            title: t("publisherOrgTab.guideMembersTitle"),
-            description: t("publisherOrgTab.guideMembersDesc"),
-            targetId: "org-guide-members",
-        },
-        {
-            title: t("publisherOrgTab.guideInviteTitle"),
-            description: t("publisherOrgTab.guideInviteDesc"),
-            targetId: "org-guide-invite",
-            fallbackId: "org-guide-save",
-        },
-    ]), [t]);
-    const currentGuide = showGuide ? guideSteps[guideIndex] : null;
+    const {
+        showGuide,
+        guideIndex,
+        guideSteps,
+        currentGuide,
+        guideSpotlightRect,
+        startGuide,
+        finishGuide,
+        handleGuidePrev,
+        handleGuideNext,
+    } = usePublisherOrgGuide({
+        t,
+        viewMode,
+        selectedOrgId,
+        canManageOrgMembers,
+    });
     const isReadOnlyExistingOrg = viewMode === "edit" && Boolean(selectedOrgId) && !canEditSelectedOrg;
 
     const orgChecklist = React.useMemo(() => ([
@@ -170,18 +142,6 @@ export function PublisherOrgTab({
         }
     };
 
-    const handleTagPaste = (event) => {
-        const text = event.clipboardData?.getData("text") || "";
-        const incoming = parseTags(text);
-        if (incoming.length <= 1) return;
-        event.preventDefault();
-        setOrgDraft({
-            ...orgDraft,
-            tags: addTags(orgDraft.tags || [], incoming),
-        });
-        setOrgTagInput("");
-    };
-
     // Reset draft when selecting a new org
     React.useEffect(() => {
         if (selectedOrgId) {
@@ -197,7 +157,6 @@ export function PublisherOrgTab({
                     tags: org.tags || []
                 });
                 setViewMode("edit");
-                setTagOpen(false);
                 setLogoPreviewFailed(false);
                 setBannerPreviewFailed(false);
                 setLogoUploadError("");
@@ -213,83 +172,6 @@ export function PublisherOrgTab({
         setOrgDraft({ id: "", name: "", description: "", website: "", logoUrl: "", bannerUrl: "", tags: [] });
         setViewMode("create");
     };
-
-    const refreshGuideSpotlight = React.useCallback(() => {
-        if (!showGuide) {
-            setGuideSpotlightRect(null);
-            return;
-        }
-        const target = currentGuide?.targetId ? document.getElementById(currentGuide.targetId) : null;
-        const fallback = currentGuide?.fallbackId ? document.getElementById(currentGuide.fallbackId) : null;
-        const node = target || fallback;
-        if (!node) return;
-        const rect = node.getBoundingClientRect();
-        const pad = 10;
-        setGuideSpotlightRect({
-            top: Math.max(8, rect.top - pad),
-            left: Math.max(8, rect.left - pad),
-            width: Math.max(64, rect.width + pad * 2),
-            height: Math.max(48, rect.height + pad * 2),
-        });
-    }, [currentGuide, showGuide]);
-
-    const jumpGuide = React.useCallback((index) => {
-        if (index < 0 || index >= guideSteps.length) return;
-        setGuideIndex(index);
-        setShowGuide(true);
-    }, [guideSteps.length]);
-
-    const finishGuide = React.useCallback(() => {
-        setShowGuide(false);
-        setGuideIndex(0);
-        setGuideSpotlightRect(null);
-        try {
-            localStorage.setItem(ORG_TAB_GUIDE_STORAGE_KEY, "1");
-        } catch (err) {
-            console.error("Failed to persist org guide state", err);
-        }
-    }, []);
-
-    const startGuide = React.useCallback(() => {
-        jumpGuide(0);
-    }, [jumpGuide]);
-
-    const handleGuideNext = React.useCallback(() => {
-        if (guideIndex >= guideSteps.length - 1) {
-            finishGuide();
-            return;
-        }
-        jumpGuide(guideIndex + 1);
-    }, [finishGuide, guideIndex, guideSteps.length, jumpGuide]);
-
-    const handleGuidePrev = React.useCallback(() => {
-        if (guideIndex <= 0) return;
-        jumpGuide(guideIndex - 1);
-    }, [guideIndex, jumpGuide]);
-
-    React.useEffect(() => {
-        try {
-            const seen = localStorage.getItem(ORG_TAB_GUIDE_STORAGE_KEY) === "1";
-            if (!seen) {
-                jumpGuide(0);
-                localStorage.setItem(ORG_TAB_GUIDE_STORAGE_KEY, "1");
-            }
-        } catch (err) {
-            console.error("Failed to read org guide state", err);
-        }
-    }, [jumpGuide]);
-
-    React.useEffect(() => {
-        if (!showGuide) return;
-        const raf = window.requestAnimationFrame(refreshGuideSpotlight);
-        window.addEventListener("resize", refreshGuideSpotlight);
-        window.addEventListener("scroll", refreshGuideSpotlight, true);
-        return () => {
-            window.cancelAnimationFrame(raf);
-            window.removeEventListener("resize", refreshGuideSpotlight);
-            window.removeEventListener("scroll", refreshGuideSpotlight, true);
-        };
-    }, [showGuide, guideIndex, viewMode, selectedOrgId, canManageOrgMembers, refreshGuideSpotlight]);
 
     return (
         <Card className="flex flex-col md:flex-row h-auto min-h-0 md:min-h-[500px] overflow-hidden border">
@@ -541,322 +423,47 @@ export function PublisherOrgTab({
                                     </div>
                                     
                                         <PublisherFormRow label={t("publisherOrgTab.orgTags")}>
-                                        <div className="border rounded-md p-3 bg-muted/10 space-y-2">
-                                            <DndContext
-                                                collisionDetection={closestCenter}
-                                                onDragEnd={({ active, over }) => {
-                                                    if (!over || active.id === over.id) return;
-                                                    const items = orgDraft.tags || [];
-                                                    const oldIndex = items.indexOf(active.id);
-                                                    const newIndex = items.indexOf(over.id);
-                                                    setOrgDraft({ ...orgDraft, tags: arrayMove(items, oldIndex, newIndex) });
-                                                }}
-                                            >
-                                                <SortableContext items={orgDraft.tags || []} strategy={horizontalListSortingStrategy}>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {(orgDraft.tags || []).map(tag => (
-                                                            <SortableTag
-                                                                key={tag}
-                                                                id={tag}
-                                                                style={getTagStyle(tag)}
-                                                                onRemove={() => {
-                                                                    setOrgDraft({
-                                                                        ...orgDraft,
-                                                                        tags: (orgDraft.tags || []).filter(t => t !== tag),
-                                                                    });
-                                                                }}
-                                                            />
-                                                        ))}
-                                                        {(orgDraft.tags || []).length === 0 && (
-                                                            <span className="text-sm text-muted-foreground">{t("publisherOrgTab.inputTagHint")}</span>
-                                                        )}
-                                                    </div>
-                                                </SortableContext>
-                                            </DndContext>
-                                            <Popover open={tagOpen} onOpenChange={setTagOpen}>
-                                                <PopoverTrigger asChild>
-                                                    <Button type="button" variant="outline" size="sm" className="w-fit">
-                                                        {t("publisherOrgTab.addTag")}
-                                                    </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-[90vw] sm:w-80 p-2" align="start">
-                                                    <div className="p-2">
-                                                        <Input
-                                                            id="org-tag-input"
-                                                            name="orgTagInput"
-                                                            aria-label={t("publisherOrgTab.addOrgTagAria")}
-                                                            value={orgTagInput}
-                                                            onChange={(e) => setOrgTagInput(e.target.value)}
-                                                            onPaste={handleTagPaste}
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === "Enter" || e.key === "," || e.key === "，") {
-                                                                    e.preventDefault();
-                                                                    const incoming = parseTags(orgTagInput);
-                                                                    if (incoming.length === 0) return;
-                                                                    setOrgDraft({
-                                                                        ...orgDraft,
-                                                                        tags: addTags(orgDraft.tags || [], incoming),
-                                                                    });
-                                                                    setOrgTagInput("");
-                                                                    setTagOpen(false);
-                                                                }
-                                                            }}
-                                                            placeholder={t("publisherOrgTab.searchOrAddTag")}
-                                                            className="h-8"
-                                                        />
-                                                    </div>
-                                                    <div className="max-h-56 overflow-y-auto px-1 pb-1">
-                                                        {orgTagInput.trim() && (
-                                                            <button
-                                                                type="button"
-                                                                className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent"
-                                                                onClick={() => {
-                                                                    const incoming = parseTags(orgTagInput);
-                                                                    if (incoming.length === 0) return;
-                                                                    setOrgDraft({
-                                                                        ...orgDraft,
-                                                                        tags: addTags(orgDraft.tags || [], incoming),
-                                                                    });
-                                                                    setOrgTagInput("");
-                                                                    setTagOpen(false);
-                                                                }}
-                                                            >
-                                                                {t("publisherOrgTab.addQuoted").replace("{value}", orgTagInput.trim())}
-                                                            </button>
-                                                        )}
-                                                        {filteredTagOptions.map(name => {
-                                                            const selected = (orgDraft.tags || []).includes(name);
-                                                            return (
-                                                            <button
-                                                                key={name}
-                                                                type="button"
-                                                                className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded hover:bg-accent ${
-                                                                    selected ? "bg-accent/50" : ""
-                                                                }`}
-                                                                onClick={() => {
-                                                                    if (selected) {
-                                                                        setOrgDraft({
-                                                                            ...orgDraft,
-                                                                            tags: (orgDraft.tags || []).filter(t => t !== name),
-                                                                        });
-                                                                    } else {
-                                                                        setOrgDraft({
-                                                                            ...orgDraft,
-                                                                            tags: addTags(orgDraft.tags || [], [name]),
-                                                                        });
-                                                                    }
-                                                                    setOrgTagInput("");
-                                                                }}
-                                                            >
-                                                                <span className="truncate">{name}</span>
-                                                                <span
-                                                                    className="inline-block h-2 w-2 rounded-full"
-                                                                    style={{ backgroundColor: getTagStyle(name)?.backgroundColor || "#CBD5E1" }}
-                                                                />
-                                                            </button>
-                                                            );
-                                                        })}
-                                                        {orgTagInput.trim() && filteredTagOptions.length === 0 && (
-                                                            <div className="px-3 py-2 text-xs text-muted-foreground">{t("publisherOrgTab.noMatchedTag")}</div>
-                                                        )}
-                                                    </div>
-                                                </PopoverContent>
-                                            </Popover>
-                                        </div>
+                                            <PublisherTagEditor
+                                                tags={orgDraft.tags || []}
+                                                setTags={(nextTags) => setOrgDraft({ ...orgDraft, tags: nextTags })}
+                                                tagInput={orgTagInput}
+                                                setTagInput={setOrgTagInput}
+                                                parseTags={parseTags}
+                                                addTags={addTags}
+                                                getTagStyle={getTagStyle}
+                                                filteredOptions={filteredTagOptions}
+                                                inputId="org-tag-input"
+                                                inputName="orgTagInput"
+                                                inputAriaLabel={t("publisherOrgTab.addOrgTagAria")}
+                                                addTagLabel={t("publisherOrgTab.addTag")}
+                                                inputPlaceholder={t("publisherOrgTab.searchOrAddTag")}
+                                                addQuotedTemplate={t("publisherOrgTab.addQuoted")}
+                                                noMatchedTagLabel={t("publisherOrgTab.noMatchedTag")}
+                                                emptyHintLabel={t("publisherOrgTab.inputTagHint")}
+                                            />
                                         </PublisherFormRow>
 
-                                        <div id="org-guide-members">
-                                        <PublisherFormRow label={t("publisherOrgTab.members")}>
-                                            <div className="border rounded-md p-3 bg-muted/10 space-y-3">
-                                                {isLoading && (
-                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                        <span>正在同步成員資料...</span>
-                                                    </div>
-                                                )}
-                                                <div className="text-xs text-muted-foreground">
-                                                    {t("publisherOrgTab.memberCount")
-                                                      .replace("{users}", String(orgMembers?.users?.length || 0))
-                                                      .replace("{personas}", String(orgMembers?.personas?.length || 0))}
-                                                </div>
-                                                {(orgMembers?.users?.length || 0) === 0 && (orgMembers?.personas?.length || 0) === 0 ? (
-                                                    <div className="text-sm text-muted-foreground">{t("publisherOrgTab.noMember")}</div>
-                                                ) : (
-                                                    <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
-                                                        <div className="rounded-md border bg-background/80 p-2.5 space-y-2">
-                                                            <div className="text-xs font-medium text-muted-foreground">
-                                                                帳號成員（{orgMembers?.users?.length || 0}）
-                                                            </div>
-                                                            {(orgMembers?.users || []).length === 0 ? (
-                                                                <div className="text-xs text-muted-foreground">目前沒有帳號成員</div>
-                                                            ) : (
-                                                                (orgMembers?.users || []).map(u => (
-                                                                    <div key={`u-${u.id}`} className="flex items-center justify-between text-sm">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold">
-                                                                                {(u.displayName || u.handle || "?")[0]?.toUpperCase?.() || "?"}
-                                                                            </div>
-                                                                            <span>{u.displayName || u.handle || u.email || t("publisherOrgTab.defaultUser")}</span>
-                                                                        </div>
-                                                                        <div className="flex items-center gap-1.5">
-                                                                            <Badge variant="outline">{t("publisherOrgTab.user")}</Badge>
-                                                                            <Badge className={roleBadgeClass(u.organizationRole)}>{roleLabel(u.organizationRole)}</Badge>
-                                                                            {canManageOrgMembers && u.organizationRole !== "owner" && u.id !== currentUserId && (
-                                                                                <>
-                                                                                    <Select
-                                                                                        value={u.organizationRole === "admin" ? "admin" : "member"}
-                                                                                        onValueChange={(value) => handleChangeMemberRole?.(u.id, value)}
-                                                                                    >
-                                                                                        <SelectTrigger className="h-7 w-[104px] text-xs">
-                                                                                            <SelectValue />
-                                                                                        </SelectTrigger>
-                                                                                        <SelectContent>
-                                                                                            <SelectItem value="member">一般成員</SelectItem>
-                                                                                            <SelectItem value="admin">管理員</SelectItem>
-                                                                                        </SelectContent>
-                                                                                    </Select>
-                                                                                    <Button
-                                                                                        size="sm"
-                                                                                        variant="ghost"
-                                                                                        className="h-7 px-2 text-destructive hover:bg-destructive/10"
-                                                                                        onClick={() => handleRemoveMember?.(u.id)}
-                                                                                    >
-                                                                                        移除
-                                                                                    </Button>
-                                                                                </>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                ))
-                                                            )}
-                                                        </div>
-
-                                                        <div className="rounded-md border bg-background/80 p-2.5 space-y-2">
-                                                            <div className="text-xs font-medium text-muted-foreground">
-                                                                作者身份（{orgMembers?.personas?.length || 0}）
-                                                            </div>
-                                                            {(orgMembers?.personas || []).length === 0 ? (
-                                                                <div className="text-xs text-muted-foreground">目前沒有作者身份</div>
-                                                            ) : (
-                                                                (orgMembers?.personas || []).map(p => (
-                                                                    <div key={`p-${p.id}`} className="flex items-center justify-between text-sm">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold">
-                                                                                {(p.displayName || "?")[0]?.toUpperCase?.() || "?"}
-                                                                            </div>
-                                                                            <span>{p.displayName || t("publisherOrgTab.persona")}</span>
-                                                                        </div>
-                                                                        <div className="flex items-center gap-1.5">
-                                                                            <Badge variant="secondary">{t("publisherOrgTab.author")}</Badge>
-                                                                            <Badge className={roleBadgeClass(p.organizationRole)}>{roleLabel(p.organizationRole)}</Badge>
-                                                                            {canManageOrgMembers && (
-                                                                                <Button
-                                                                                    size="sm"
-                                                                                    variant="ghost"
-                                                                                    className="h-7 px-2 text-destructive hover:bg-destructive/10"
-                                                                                    onClick={() => handleRemovePersonaMember?.(p.id)}
-                                                                                >
-                                                                                    移除
-                                                                                </Button>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                ))
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </PublisherFormRow>
-                                        </div>
-
-                                        {canManageOrgMembers && (
-                                            <>
-                                                <div id="org-guide-invite">
-                                                <PublisherFormRow label={t("publisherOrgTab.inviteMember")}>
-                                                    <div className="border rounded-md p-3 bg-muted/10 space-y-2">
-                                                        <Input
-                                                            id="org-invite-search"
-                                                            name="orgInviteSearch"
-                                                            aria-label={t("publisherOrgTab.inviteSearchAria")}
-                                                            placeholder={t("publisherOrgTab.inviteSearchPlaceholder")}
-                                                            value={inviteSearchQuery}
-                                                            onChange={(e) => setInviteSearchQuery(e.target.value)}
-                                                        />
-                                                        {isInviteSearching && (
-                                                            <div className="text-xs text-muted-foreground">{t("publisherOrgTab.searching")}</div>
-                                                        )}
-                                                        {inviteSearchResults?.length > 0 && (
-                                                            <div className="max-h-44 space-y-2 overflow-y-auto pr-1">
-                                                                {inviteSearchResults.map(u => (
-                                                                    <div key={u.id} className="flex items-center justify-between text-sm">
-                                                                        <span>{u.displayName || u.handle || u.email || u.id}</span>
-                                                                        <Button size="sm" onClick={() => handleInviteMember(u.id)}>{t("publisherOrgTab.invite")}</Button>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </PublisherFormRow>
-                                                </div>
-
-                                                <PublisherFormRow label={t("publisherOrgTab.pendingRequests")}>
-                                                    <div className="border rounded-md p-3 bg-muted/10 space-y-2">
-                                                        {(orgRequests || []).length === 0 ? (
-                                                            <div className="text-sm text-muted-foreground">{t("publisherOrgTab.noRequests")}</div>
-                                                        ) : (
-                                                            <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
-                                                                {(orgRequests || []).map(req => (
-                                                                    <div key={req.id} className="flex items-center justify-between text-sm">
-                                                                        <span>{t("publisherOrgTab.requester").replace("{value}", req.requester?.email || req.requester?.displayName || req.requesterUserId)}</span>
-                                                                        <div className="flex gap-2">
-                                                                            <Button size="sm" onClick={() => handleAcceptRequest(req.id)}>{t("publisherOrgTab.accept")}</Button>
-                                                                            <Button size="sm" variant="ghost" onClick={() => handleDeclineRequest(req.id)}>{t("publisherOrgTab.decline")}</Button>
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </PublisherFormRow>
-
-                                                <PublisherFormRow label={t("publisherOrgTab.sentInvites")}>
-                                                    <div className="border rounded-md p-3 bg-muted/10 space-y-2">
-                                                        {(orgInvites || []).length === 0 ? (
-                                                            <div className="text-sm text-muted-foreground">{t("publisherOrgTab.noInvites")}</div>
-                                                        ) : (
-                                                            <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
-                                                                {(orgInvites || []).map(inv => (
-                                                                    <div key={inv.id} className="flex items-center justify-between text-sm">
-                                                                        <span>{t("publisherOrgTab.inviteLabel").replace("{value}", inv.invitedUser?.email || inv.invitedUser?.displayName || inv.invitedUserId)}</span>
-                                                                        <Badge variant="outline">{inv.status}</Badge>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </PublisherFormRow>
-                                            </>
-                                        )}
+                                        <PublisherOrgMembershipPanel
+                                            t={t}
+                                            isLoading={isLoading}
+                                            orgMembers={orgMembers}
+                                            canManageOrgMembers={canManageOrgMembers}
+                                            currentUserId={currentUserId}
+                                            handleChangeMemberRole={handleChangeMemberRole}
+                                            handleRemoveMember={handleRemoveMember}
+                                            handleRemovePersonaMember={handleRemovePersonaMember}
+                                            inviteSearchQuery={inviteSearchQuery}
+                                            setInviteSearchQuery={setInviteSearchQuery}
+                                            inviteSearchResults={inviteSearchResults}
+                                            isInviteSearching={isInviteSearching}
+                                            handleInviteMember={handleInviteMember}
+                                            orgRequests={orgRequests}
+                                            handleAcceptRequest={handleAcceptRequest}
+                                            handleDeclineRequest={handleDeclineRequest}
+                                            orgInvites={orgInvites}
+                                        />
                                     </div>
                                 
-                                {/* Members */}
-                                <div className="pt-4 border-t">
-                                    <PublisherFormRow
-                                        label={t("publisherOrgTab.memberManagement")}
-                                        hint={t("publisherOrgTab.multiCollabSoon")}
-                                    >
-                                        <div className="p-6 text-center text-muted-foreground bg-muted/10 rounded-lg border border-dashed">
-                                            <div className="w-10 h-10 rounded-full bg-muted/30 mx-auto mb-2 flex items-center justify-center">
-                                                <Building2 className="w-5 h-5 opacity-30" />
-                                            </div>
-                                            <Button variant="outline" size="sm" disabled className="h-8 text-xs">
-                                                <Plus className="w-3 h-3 mr-1.5" /> {t("publisherOrgTab.inviteMember")}
-                                            </Button>
-                                        </div>
-                                    </PublisherFormRow>
-                                </div>
-
                                 {/* Footer Actions */}
                                 <div id="org-guide-save" className="p-3 border-t bg-background/50 backdrop-blur-sm flex justify-end mt-3">
                                     <Button 
@@ -883,55 +490,22 @@ export function PublisherOrgTab({
                 </div>
             </div>
             
-            {showGuide && currentGuide && typeof document !== "undefined" && createPortal(
-                <div className="fixed inset-0 z-[230] pointer-events-none">
-                    {guideSpotlightRect ? (
-                        <>
-                            <div className="absolute left-0 top-0 bg-black/75 pointer-events-auto" style={{ width: "100%", height: guideSpotlightRect.top }} />
-                            <div className="absolute left-0 bg-black/75 pointer-events-auto" style={{ top: guideSpotlightRect.top, width: guideSpotlightRect.left, height: guideSpotlightRect.height }} />
-                            <div
-                                className="absolute right-0 bg-black/75 pointer-events-auto"
-                                style={{
-                                    top: guideSpotlightRect.top,
-                                    left: guideSpotlightRect.left + guideSpotlightRect.width,
-                                    height: guideSpotlightRect.height,
-                                }}
-                            />
-                            <div className="absolute left-0 bg-black/75 pointer-events-auto" style={{ top: guideSpotlightRect.top + guideSpotlightRect.height, width: "100%", bottom: 0 }} />
-                            <div
-                                className="absolute rounded-xl border-2 border-primary shadow-[0_0_40px_rgba(255,255,255,0.12)] pointer-events-none"
-                                style={{
-                                    top: guideSpotlightRect.top,
-                                    left: guideSpotlightRect.left,
-                                    width: guideSpotlightRect.width,
-                                    height: guideSpotlightRect.height,
-                                }}
-                            />
-                        </>
-                    ) : (
-                        <div className="absolute inset-0 bg-black/75 pointer-events-auto" />
-                    )}
-                    <div className="absolute right-6 bottom-6 w-[380px] max-w-[calc(100vw-3rem)] rounded-xl border bg-background p-4 shadow-2xl pointer-events-auto">
-                        <div className="text-xs text-muted-foreground">{guideIndex + 1}/{guideSteps.length}</div>
-                        <div className="text-base font-semibold mt-1">{currentGuide.title}</div>
-                        <p className="text-sm text-muted-foreground mt-1">{currentGuide.description}</p>
-                        <div className="mt-4 flex items-center justify-between gap-2">
-                            <Button type="button" size="sm" variant="ghost" onClick={finishGuide}>
-                                {t("publisherOrgTab.guideSkip")}
-                            </Button>
-                            <div className="flex items-center gap-2">
-                                <Button type="button" size="sm" variant="outline" onClick={handleGuidePrev} disabled={guideIndex === 0}>
-                                    {t("publisherOrgTab.guidePrev")}
-                                </Button>
-                                <Button type="button" size="sm" onClick={handleGuideNext}>
-                                    {guideIndex === guideSteps.length - 1 ? t("publisherOrgTab.guideDone") : t("publisherOrgTab.guideNext")}
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </div>,
-                document.body
-            )}
+            <SpotlightGuideOverlay
+                open={showGuide && Boolean(currentGuide)}
+                zIndex={230}
+                spotlightRect={guideSpotlightRect}
+                currentStep={guideIndex + 1}
+                totalSteps={guideSteps.length}
+                title={currentGuide?.title}
+                description={currentGuide?.description}
+                onSkip={finishGuide}
+                skipLabel={t("publisherOrgTab.guideSkip")}
+                onPrev={handleGuidePrev}
+                prevLabel={t("publisherOrgTab.guidePrev")}
+                prevDisabled={guideIndex === 0}
+                onNext={handleGuideNext}
+                nextLabel={guideIndex === guideSteps.length - 1 ? t("publisherOrgTab.guideDone") : t("publisherOrgTab.guideNext")}
+            />
             <MediaPicker
                 open={isMediaPickerOpen}
                 onOpenChange={setIsMediaPickerOpen}

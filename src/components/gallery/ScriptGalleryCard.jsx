@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Badge } from "../ui/badge";
 import { Card } from "../ui/card";
 import { Eye, Heart } from "lucide-react";
-import { toggleScriptLike, incrementScriptView } from "../../lib/db";
+import { toggleScriptLike, incrementScriptView } from "../../lib/api/scripts";
 import { AuthorBadge } from "../ui/AuthorBadge";
 import { CoverPlaceholder } from "../ui/CoverPlaceholder";
 
