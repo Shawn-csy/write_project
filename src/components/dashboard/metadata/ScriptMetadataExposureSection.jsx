@@ -5,7 +5,7 @@ import { Button } from "../../ui/button";
 import { CoverPlaceholder } from "../../ui/CoverPlaceholder";
 import { Input } from "../../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
-import { MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
+import { getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
 
 export function ScriptMetadataExposureSection({
   t,
@@ -45,6 +45,7 @@ export function ScriptMetadataExposureSection({
   currentTags,
   handleRemoveTag,
 }) {
+  const coverGuide = React.useMemo(() => getImageUploadGuide("cover"), []);
   return (
     <section id="metadata-section-exposure" className="space-y-3 scroll-mt-24">
       <h3 className="text-base font-semibold">{t("scriptMetadataDialog.tabExposure", "曝光資訊")}</h3>
@@ -70,6 +71,10 @@ export function ScriptMetadataExposureSection({
               <Button type="button" variant="secondary" size="sm" className="h-8 text-xs" onClick={() => setIsMediaPickerOpen(true)}>
                 從媒體庫選擇
               </Button>
+            </div>
+            <div className="space-y-0.5 text-[11px] text-muted-foreground">
+              <p>{coverGuide.supported}</p>
+              <p>{coverGuide.recommended}</p>
             </div>
             {coverUploadError && <p className="text-xs text-destructive">{coverUploadError}</p>}
             {coverUploadWarning && <p className="text-xs text-amber-700 dark:text-amber-300">{coverUploadWarning}</p>}

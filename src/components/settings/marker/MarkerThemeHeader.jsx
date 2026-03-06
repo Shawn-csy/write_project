@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Plus, Trash2, Share2, Copy, Settings2 } from "lucide-react";
+import { Plus, Trash2, Share2, Settings2 } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { cn } from "../../../lib/utils";
@@ -17,7 +17,8 @@ export function MarkerThemeHeader({
     renameTheme, 
     updateThemeDescription, 
     updateThemePublicity,
-    currentUser
+    currentUser,
+    readOnly = false,
 }) {
     const { t } = useI18n();
     const DEFAULT_THEME_ALIASES = new Set(["預設", "預設主題", "預設主題 (Default)", "default"]);
@@ -43,7 +44,7 @@ export function MarkerThemeHeader({
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [publicityOpen, setPublicityOpen] = useState(false);
     const [moreOpen, setMoreOpen] = useState(false);
-    const canDelete = markerThemes.length > 1;
+    const canDelete = markerThemes.length > 1 && currentTheme?.id !== "default";
     const publicityPrompt = useMemo(() => {
         if (!currentTheme) return "";
         if (currentTheme.id === "default") {
@@ -62,6 +63,8 @@ export function MarkerThemeHeader({
         };
         if (newThemeSource === "current") {
             await addThemeFromCurrent(newThemeName.trim(), payload);
+        } else if (newThemeSource === "empty") {
+            await addTheme(newThemeName.trim(), [], payload);
         } else {
             await addTheme(newThemeName.trim(), payload);
         }
@@ -105,11 +108,6 @@ export function MarkerThemeHeader({
         setPublicityOpen(false);
     };
 
-    const handleDuplicateTheme = async () => {
-        const baseName = currentTheme?.name || t("markerThemeHeader.theme");
-        await addThemeFromCurrent(`${baseName} ${t("markerThemeHeader.copySuffix")}`, false);
-    };
-
     return (
         <>
         <div className="p-3 bg-muted/40 rounded-lg border border-border/50">
@@ -129,15 +127,21 @@ export function MarkerThemeHeader({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-                        <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)} className="h-8 gap-1.5">
+                        <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)} className="h-8 gap-1.5" disabled={readOnly}>
                             <Plus className="w-3.5 h-3.5" />
                             <span className="text-xs">{t("markerThemeHeader.newTheme")}</span>
                         </Button>
-                        <Button variant="outline" size="sm" onClick={handleDuplicateTheme} className="h-8 gap-1.5">
-                            <Copy className="w-3.5 h-3.5" />
-                            <span className="text-xs">{t("markerThemeHeader.duplicateCurrent")}</span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setDeleteOpen(true)}
+                            className="h-8 gap-1.5 text-destructive border-destructive/40 hover:text-destructive"
+                            disabled={!canDelete || readOnly}
+                        >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span className="text-xs">{t("markerThemeHeader.delete")}</span>
                         </Button>
-                        <PublicThemeDialog />
+                        {!readOnly && <PublicThemeDialog />}
                         {currentUser && currentTheme && (
                             <Button
                                 variant={currentTheme.isPublic ? "secondary" : "ghost"}
@@ -145,6 +149,7 @@ export function MarkerThemeHeader({
                                 className={cn("h-8 px-2 gap-1.5", currentTheme.isPublic ? "text-sky-600 bg-sky-100 dark:bg-sky-900/30 dark:text-sky-300" : "text-muted-foreground")}
                                 onClick={() => setPublicityOpen(true)}
                                 title={currentTheme.isPublic ? t("markerThemeHeader.publicTitleOn") : t("markerThemeHeader.publicTitleOff")}
+                                disabled={readOnly}
                             >
                                 <Share2 className="w-3.5 h-3.5" />
                                 <span className="text-xs">{currentTheme.isPublic ? t("markerThemeHeader.publicOn") : t("markerThemeHeader.publicOff")}</span>
@@ -156,6 +161,7 @@ export function MarkerThemeHeader({
                                 size="sm"
                                 className="h-8 px-2 gap-1.5 text-muted-foreground"
                                 onClick={() => setMoreOpen(true)}
+                                disabled={readOnly}
                             >
                                 <Settings2 className="w-3.5 h-3.5" />
                                 <span className="text-xs">{t("markerThemeHeader.moreSettings")}</span>
@@ -183,6 +189,7 @@ export function MarkerThemeHeader({
                                 onChange={(e) => {
                                     updateThemeDescription(currentTheme.id, e.target.value);
                                 }}
+                                disabled={readOnly}
                             />
                         </div>
                         <div className="flex items-center gap-2">
@@ -194,6 +201,7 @@ export function MarkerThemeHeader({
                                     setMoreOpen(false);
                                     setRenameOpen(true);
                                 }}
+                                disabled={readOnly}
                             >
                                 {t("markerThemeHeader.rename")}
                             </Button>
@@ -205,7 +213,7 @@ export function MarkerThemeHeader({
                                     setDeleteOpen(true);
                                 }}
                                 className="text-destructive hover:text-destructive"
-                                disabled={!canDelete}
+                                disabled={!canDelete || readOnly}
                             >
                                 <Trash2 className="w-3.5 h-3.5 mr-1" />
                                 {t("markerThemeHeader.delete")}
@@ -231,11 +239,13 @@ export function MarkerThemeHeader({
                         onChange={(e) => setNewThemeName(e.target.value)}
                         placeholder={t("markerThemeHeader.namePlaceholder")}
                         autoFocus
+                        disabled={readOnly}
                     />
                     <Input
                         value={newThemeDescription}
                         onChange={(e) => setNewThemeDescription(e.target.value)}
                         placeholder={t("markerThemeHeader.descOptionalPlaceholder")}
+                        disabled={readOnly}
                     />
                     <div className="space-y-1">
                         <label className="text-xs text-muted-foreground">{t("markerThemeHeader.sourceLabel")}</label>
@@ -243,9 +253,11 @@ export function MarkerThemeHeader({
                             className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs"
                             value={newThemeSource}
                             onChange={(e) => setNewThemeSource(e.target.value)}
+                            disabled={readOnly}
                         >
                             <option value="current">{t("markerThemeHeader.sourceCurrent")}</option>
                             <option value="default">{t("markerThemeHeader.sourceDefault")}</option>
+                            <option value="empty">空白建立</option>
                         </select>
                     </div>
                     {currentUser && (
@@ -255,6 +267,7 @@ export function MarkerThemeHeader({
                                 checked={newThemeIsPublic}
                                 onChange={(e) => setNewThemeIsPublic(e.target.checked)}
                                 className="h-4 w-4 rounded border-input"
+                                disabled={readOnly}
                             />
                             {t("markerThemeHeader.publicAfterCreate")}
                         </label>
@@ -262,7 +275,7 @@ export function MarkerThemeHeader({
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setCreateOpen(false)}>{t("common.cancel")}</Button>
-                    <Button onClick={handleAddTheme} disabled={!newThemeName.trim()}>{t("markerThemeHeader.create")}</Button>
+                    <Button onClick={handleAddTheme} disabled={!newThemeName.trim() || readOnly}>{t("markerThemeHeader.create")}</Button>
                 </DialogFooter>
             </DialogContent>
        </Dialog>
@@ -278,10 +291,11 @@ export function MarkerThemeHeader({
                     onChange={(e) => setRenameName(e.target.value)}
                     placeholder={t("markerThemeHeader.namePlaceholder")}
                     autoFocus
+                    disabled={readOnly}
                 />
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setRenameOpen(false)}>{t("common.cancel")}</Button>
-                    <Button onClick={handleRenameTheme} disabled={!renameName.trim()}>{t("markerThemeHeader.save")}</Button>
+                    <Button onClick={handleRenameTheme} disabled={!renameName.trim() || readOnly}>{t("markerThemeHeader.save")}</Button>
                 </DialogFooter>
             </DialogContent>
        </Dialog>
@@ -298,7 +312,7 @@ export function MarkerThemeHeader({
                 </DialogHeader>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setDeleteOpen(false)}>{t("common.cancel")}</Button>
-                    <Button variant="secondary" className="text-destructive" onClick={handleDeleteTheme} disabled={!canDelete}>{t("markerThemeHeader.delete")}</Button>
+                    <Button variant="secondary" className="text-destructive" onClick={handleDeleteTheme} disabled={!canDelete || readOnly}>{t("markerThemeHeader.delete")}</Button>
                 </DialogFooter>
             </DialogContent>
        </Dialog>
@@ -311,7 +325,7 @@ export function MarkerThemeHeader({
                 </DialogHeader>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setPublicityOpen(false)}>{t("common.cancel")}</Button>
-                    <Button onClick={handleTogglePublicity}>{t("markerThemeHeader.confirm")}</Button>
+                    <Button onClick={handleTogglePublicity} disabled={readOnly}>{t("markerThemeHeader.confirm")}</Button>
                 </DialogFooter>
             </DialogContent>
        </Dialog>

@@ -17,6 +17,11 @@ export function useScriptMetadataJson({
   setOpeningIntro,
   setEnvironmentInfo,
   setSituationInfo,
+  setActivityName,
+  setActivityBannerUrl,
+  setActivityContent,
+  setActivityDemoUrl,
+  setActivityWorkUrl,
   setContact,
   setContactFields,
   setLicenseCommercial,
@@ -52,6 +57,11 @@ export function useScriptMetadataJson({
       if (parsed.openingIntro !== undefined) setOpeningIntro(String(parsed.openingIntro || ""));
       if (parsed.environmentInfo !== undefined) setEnvironmentInfo(String(parsed.environmentInfo || ""));
       if (parsed.situationInfo !== undefined) setSituationInfo(String(parsed.situationInfo || ""));
+      if (parsed.activityName !== undefined) setActivityName(String(parsed.activityName || ""));
+      if (parsed.activityBannerUrl !== undefined) setActivityBannerUrl(String(parsed.activityBannerUrl || ""));
+      if (parsed.activityContent !== undefined) setActivityContent(String(parsed.activityContent || ""));
+      if (parsed.activityDemoUrl !== undefined) setActivityDemoUrl(String(parsed.activityDemoUrl || ""));
+      if (parsed.activityWorkUrl !== undefined) setActivityWorkUrl(String(parsed.activityWorkUrl || ""));
       if (parsed.contact !== undefined) setContact(parsed.contact);
       if (parsed.contactFields !== undefined || parsed.contactInfo !== undefined || parsed.contact !== undefined) {
         const cf = parsed.contactFields || parsed.contactInfo || parsed.contact;
@@ -128,6 +138,11 @@ export function useScriptMetadataJson({
     setCustomFields,
     setDate,
     setEnvironmentInfo,
+    setActivityName,
+    setActivityBannerUrl,
+    setActivityContent,
+    setActivityDemoUrl,
+    setActivityWorkUrl,
     setIdentity,
     setJsonError,
     setLicenseCommercial,

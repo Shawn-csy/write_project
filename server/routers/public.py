@@ -12,6 +12,52 @@ import models
 from dependencies import get_db
 
 router = APIRouter(prefix="/api", tags=["public"])
+HOMEPAGE_BANNER_SETTING_KEY = "homepage_banner"
+
+
+def _normalize_homepage_banner_value(raw_value: str) -> dict:
+    try:
+        parsed = json.loads(str(raw_value or ""))
+    except Exception:
+        parsed = {}
+    if not isinstance(parsed, dict):
+        parsed = {}
+
+    raw_items = parsed.get("items")
+    items = []
+    if isinstance(raw_items, list):
+        for idx, item in enumerate(raw_items):
+            if not isinstance(item, dict):
+                continue
+            normalized = {
+                "id": str(item.get("id") or f"slide-{idx + 1}").strip() or f"slide-{idx + 1}",
+                "title": str(item.get("title") or "").strip(),
+                "content": str(item.get("content") or "").strip(),
+                "link": str(item.get("link") or "").strip(),
+                "imageUrl": str(item.get("imageUrl") or "").strip(),
+            }
+            if normalized["title"] or normalized["content"] or normalized["link"] or normalized["imageUrl"]:
+                items.append(normalized)
+
+    if not items:
+        fallback = {
+            "id": "slide-1",
+            "title": str(parsed.get("title") or "").strip(),
+            "content": str(parsed.get("content") or "").strip(),
+            "link": str(parsed.get("link") or "").strip(),
+            "imageUrl": str(parsed.get("imageUrl") or "").strip(),
+        }
+        if fallback["title"] or fallback["content"] or fallback["link"] or fallback["imageUrl"]:
+            items = [fallback]
+
+    first = items[0] if items else {"title": "", "content": "", "link": "", "imageUrl": ""}
+    return {
+        "title": str(first.get("title") or ""),
+        "content": str(first.get("content") or ""),
+        "link": str(first.get("link") or ""),
+        "imageUrl": str(first.get("imageUrl") or ""),
+        "items": items,
+    }
 
 
 def _load_public_terms_config() -> dict:
@@ -134,6 +180,14 @@ def user_to_persona_public(user: models.User, db: Session) -> schemas.PersonaPub
 def read_public_terms_config():
     config = _load_public_terms_config()
     return config
+
+
+@router.get("/public-homepage-banner", response_model=schemas.HomepageBannerSetting)
+def read_public_homepage_banner(db: Session = Depends(get_db)):
+    row = db.query(models.SiteSetting).filter(models.SiteSetting.key == HOMEPAGE_BANNER_SETTING_KEY).first()
+    if not row or not str(getattr(row, "value", "") or "").strip():
+        return schemas.HomepageBannerSetting(items=[])
+    return schemas.HomepageBannerSetting(**_normalize_homepage_banner_value(row.value))
 
 
 @router.post("/public-terms-acceptances", response_model=schemas.PublicTermsAcceptanceResponse)
@@ -459,3 +513,8 @@ def list_public_organizations(db: Session = Depends(get_db)):
 @router.get("/themes/public", response_model=List[schemas.MarkerTheme])
 def read_public_themes(db: Session = Depends(get_db)):
     return crud.get_public_themes(db)
+
+
+@router.get("/default-marker-configs", response_model=List[dict])
+def read_default_marker_configs(db: Session = Depends(get_db)):
+    return crud.get_system_default_configs(db)

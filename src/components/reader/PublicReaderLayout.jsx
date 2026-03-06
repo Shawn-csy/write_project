@@ -29,7 +29,7 @@ export function PublicReaderLayout({
   onToggleMarker
 }) {
   const { t } = useI18n();
-  const { 
+  const {
     title, 
     author, 
     organization,
@@ -40,6 +40,7 @@ export function PublicReaderLayout({
     contact,
     seriesName,
     prefaceItems,
+    activity,
     coverUrl, 
     content: rawScript,
     disableCopy
@@ -291,6 +292,16 @@ export function PublicReaderLayout({
 
   // Content protection CSS class
   const protectionClass = disableCopy ? 'select-none' : '';
+  const normalizedActivity = useMemo(() => {
+    const base = activity || {};
+    const name = String(base?.name || "").trim();
+    const bannerUrl = String(base?.bannerUrl || "").trim();
+    const content = String(base?.content || "").trim();
+    const demoUrl = String(base?.demoUrl || "").trim();
+    const workUrl = String(base?.workUrl || "").trim();
+    if (!name && !bannerUrl && !content && !demoUrl && !workUrl) return null;
+    return { name, bannerUrl, content, demoUrl, workUrl };
+  }, [activity]);
 
   return (
     <div className={`relative w-full h-[100dvh] overflow-hidden flex flex-col bg-background ${hideWhitespace ? 'hide-whitespace' : ''} ${protectionClass}`}>
@@ -368,6 +379,55 @@ export function PublicReaderLayout({
                          prefaceItems={prefaceItems}
                      />
                    </div>
+                   {normalizedActivity && (
+                     <section className="mx-auto mb-8 w-full max-w-4xl px-6 text-left">
+                       <div className="rounded-xl border border-border/70 bg-background/80 p-4 shadow-sm backdrop-blur-sm">
+                         <div className="text-xs font-semibold text-muted-foreground">活動宣傳</div>
+                         {normalizedActivity.name && (
+                           <h3 className="mt-1 text-lg font-semibold text-foreground">{normalizedActivity.name}</h3>
+                         )}
+                         {normalizedActivity.bannerUrl && (
+                           <div className="mt-3 overflow-hidden rounded-md border border-border/70 bg-muted/20">
+                             <img
+                               src={normalizedActivity.bannerUrl}
+                               alt={normalizedActivity.name || "activity banner"}
+                               className="max-h-64 w-full object-cover"
+                               loading="lazy"
+                             />
+                           </div>
+                         )}
+                         {normalizedActivity.content && (
+                           <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-foreground/90">
+                             {normalizedActivity.content}
+                           </p>
+                         )}
+                         {(normalizedActivity.demoUrl || normalizedActivity.workUrl) && (
+                           <div className="mt-3 flex flex-wrap gap-2">
+                             {normalizedActivity.demoUrl && (
+                               <a
+                                 href={normalizedActivity.demoUrl}
+                                 target="_blank"
+                                 rel="noreferrer"
+                                 className="inline-flex items-center rounded-md border border-border/60 bg-background px-2.5 py-1 text-xs font-medium text-primary hover:bg-muted"
+                               >
+                                 試聽範例
+                               </a>
+                             )}
+                             {normalizedActivity.workUrl && (
+                               <a
+                                 href={normalizedActivity.workUrl}
+                                 target="_blank"
+                                 rel="noreferrer"
+                                 className="inline-flex items-center rounded-md border border-border/60 bg-background px-2.5 py-1 text-xs font-medium text-primary hover:bg-muted"
+                               >
+                                 成品連結
+                               </a>
+                             )}
+                           </div>
+                         )}
+                       </div>
+                     </section>
+                   )}
                    {Array.isArray(relatedSeriesScripts) && relatedSeriesScripts.length > 0 && (
                        <section className="w-full max-w-4xl mx-auto px-6 pb-8">
                            <div className="mb-3 flex items-center justify-between">

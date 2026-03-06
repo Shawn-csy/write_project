@@ -22,6 +22,11 @@ export function useScriptMetadataSupplementalState() {
   const [openingIntro, setOpeningIntro] = useState("");
   const [environmentInfo, setEnvironmentInfo] = useState("");
   const [situationInfo, setSituationInfo] = useState("");
+  const [activityName, setActivityName] = useState("");
+  const [activityBannerUrl, setActivityBannerUrl] = useState("");
+  const [activityContent, setActivityContent] = useState("");
+  const [activityDemoUrl, setActivityDemoUrl] = useState("");
+  const [activityWorkUrl, setActivityWorkUrl] = useState("");
 
   const [seriesName, setSeriesName] = useState("");
   const [seriesId, setSeriesId] = useState("");
@@ -89,6 +94,16 @@ export function useScriptMetadataSupplementalState() {
     setEnvironmentInfo,
     situationInfo,
     setSituationInfo,
+    activityName,
+    setActivityName,
+    activityBannerUrl,
+    setActivityBannerUrl,
+    activityContent,
+    setActivityContent,
+    activityDemoUrl,
+    setActivityDemoUrl,
+    activityWorkUrl,
+    setActivityWorkUrl,
     seriesName,
     setSeriesName,
     seriesId,

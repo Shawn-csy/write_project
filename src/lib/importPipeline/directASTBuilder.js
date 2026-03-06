@@ -57,6 +57,14 @@ export class DirectASTBuilder {
     }
   }
 
+  _normalizeWidthAndCase(value) {
+    // Fold fullwidth ASCII symbols/letters/numbers to halfwidth, then lowercase.
+    return String(value ?? "")
+      .replace(/[\uFF01-\uFF5E]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xFEE0))
+      .replace(/\u3000/g, " ")
+      .toLowerCase();
+  }
+
   /**
    * 從文本建構 AST
    * @param {string} text - 清洗後的文本
@@ -72,8 +80,6 @@ export class DirectASTBuilder {
     // Range 區間狀態追蹤
     // 使用 Map<groupId, depth> 支援巢狀區間
     const rangeDepth = new Map();
-    // 記錄 pause 關閉時的深度，用於辨識下一次 pause 是否為 resume(open)
-    const pauseResumeDepth = new Map();
     
     // 取得當前活躍的區間列表（深度 > 0）
     const getActiveRanges = () => {
@@ -97,36 +103,13 @@ export class DirectASTBuilder {
             // 開始標記：深度 +1
             rangeDepth.set(rangeInfo.groupId, currentDepth + 1);
             node.rangeDepth = currentDepth + 1;
-            pauseResumeDepth.delete(rangeInfo.groupId);
           } else if (rangeInfo.role === 'end') {
             // 結束標記：深度 -1
             rangeDepth.set(rangeInfo.groupId, Math.max(0, currentDepth - 1));
             node.rangeDepth = currentDepth; // 結束時的深度是關閉前的深度
-            pauseResumeDepth.delete(rangeInfo.groupId);
           } else if (rangeInfo.role === 'pause') {
-            const pendingDepth = pauseResumeDepth.get(rangeInfo.groupId);
-            // 若符合「剛剛 pause 關閉一層」的深度關係，則本次視為 resume(open)
-            if (
-              Number.isFinite(pendingDepth) &&
-              currentDepth === Math.max(0, pendingDepth - 1)
-            ) {
-              rangeDepth.set(rangeInfo.groupId, currentDepth + 1);
-              node.rangeDepth = currentDepth + 1;
-              node.pauseOp = 'open';
-              pauseResumeDepth.delete(rangeInfo.groupId);
-            } else if (currentDepth > 0) {
-              // 一般 pause：關閉一層
-              rangeDepth.set(rangeInfo.groupId, currentDepth - 1);
-              node.rangeDepth = currentDepth;
-              node.pauseOp = 'close';
-              pauseResumeDepth.set(rangeInfo.groupId, currentDepth);
-            } else {
-              // 無開啟區間時，pause 視為開始/恢復
-              rangeDepth.set(rangeInfo.groupId, currentDepth + 1);
-              node.rangeDepth = currentDepth + 1;
-              node.pauseOp = 'open';
-              pauseResumeDepth.delete(rangeInfo.groupId);
-            }
+            // Pause 只影響單行，不改變區間深度
+            node.rangeDepth = currentDepth;
           }
         }
         
@@ -172,9 +155,6 @@ export class DirectASTBuilder {
       }
       return -1;
     };
-    const countOpenRangesByGroup = (groupId) => (
-      stack.reduce((acc, item) => (item.rangeGroupId === groupId ? acc + 1 : acc), 0)
-    );
     
     for (const node of nodes) {
       const parent = stack.length > 0 ? stack[stack.length - 1] : null;
@@ -183,49 +163,13 @@ export class DirectASTBuilder {
       if (node.type === 'layer' && node.rangeRole === 'pause') {
           const groupId = node.rangeGroupId;
           const openIndex = findTopmostOpenRangeIndex(groupId);
-          const openCount = countOpenRangesByGroup(groupId);
-          // Use parse-phase depth hint to disambiguate nested same-group pause/resume.
-          // - pause(close): node.rangeDepth equals current open depth before close.
-          // - pause(open): node.rangeDepth equals depth after reopen.
-          const shouldClose = node.pauseOp
-            ? node.pauseOp === 'close'
-            : (Number.isFinite(node.rangeDepth) ? openCount >= node.rangeDepth : openIndex !== -1);
-
-          if (shouldClose && openIndex !== -1) {
-              // Case 1: 當前開啟 -> 暫停 (關閉)
-              const rangeNode = stack[openIndex];
-              rangeNode.endNode = node; // 使用 pause node 作為視覺上的結束
-              
-              if (openIndex === stack.length - 1) {
-                  stack.pop();
-              } else {
-                  stack.splice(openIndex, 1);
-              }
-              // 不立即開啟新區間，讓隨後的內容暴露在父層級 (Gap Content)
+          if (openIndex !== -1) {
+              // Pause 是 range 內單行控制點，不切斷區間
+              stack[openIndex].children.push(node);
+          } else if (parent) {
+              parent.children.push(node);
           } else {
-              // Case 2: 當前關閉 -> 恢復 (開啟)
-              // 尋找父節點 (Resume 應該加入到哪裡?)
-              // 這裡假設 Resume 發生在正確的 nesting context
-              // 簡單起見，加入當前 active parent
-              
-              const newRangeNode = {
-                  type: 'range',
-                  layerType: node.layerType,
-                  rangeGroupId: groupId,
-                  startNode: node, // Resume acts as start
-                  endNode: null,
-                  children: [],
-                  style: node.style,
-                  rangeDepth: stack.length + 1
-              };
-              
-              if (parent) {
-                  parent.children.push(newRangeNode);
-              } else {
-                  rootChildren.push(newRangeNode);
-              }
-              
-              stack.push(newRangeNode);
+              rootChildren.push(node);
           }
           continue;
       }
@@ -497,21 +441,20 @@ export class DirectASTBuilder {
 
   _startsWithToken(text, token, caseInsensitive = false) {
     if (!token) return false;
-    if (!caseInsensitive) return text.startsWith(token);
-    return String(text).slice(0, token.length).toLowerCase() === String(token).toLowerCase();
+    const head = String(text).slice(0, token.length);
+    return this._normalizeWidthAndCase(head) === this._normalizeWidthAndCase(token);
   }
 
   _endsWithToken(text, token, caseInsensitive = false) {
     if (!token) return false;
-    if (!caseInsensitive) return text.endsWith(token);
-    return String(text).slice(-token.length).toLowerCase() === String(token).toLowerCase();
+    const tail = String(text).slice(-token.length);
+    return this._normalizeWidthAndCase(tail) === this._normalizeWidthAndCase(token);
   }
 
   _matchLeadingToken(text, token, caseInsensitive = false) {
     if (!token) return null;
-    if (!caseInsensitive) return text.startsWith(token) ? token : null;
     const head = String(text).slice(0, token.length);
-    return head.toLowerCase() === String(token).toLowerCase() ? head : null;
+    return this._normalizeWidthAndCase(head) === this._normalizeWidthAndCase(token) ? head : null;
   }
 
   _toRegex(pattern) {

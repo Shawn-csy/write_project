@@ -24,4 +24,3 @@ export const resolveEffectiveMarkerConfigs = ({
     source: "fallback",
   };
 };
-

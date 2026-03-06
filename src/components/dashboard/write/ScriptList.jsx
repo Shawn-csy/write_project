@@ -158,11 +158,11 @@ export function ScriptList({
             >
                 <div className="flex flex-col">
                      {/* Header Row */}
-                     <div className="flex items-center px-4 py-2 border-b bg-muted/30 text-xs font-medium text-muted-foreground">
+                     <div className="flex items-center px-4 py-2 border-b bg-gradient-to-r from-muted/60 via-muted/35 to-transparent text-xs font-medium text-muted-foreground">
                          <div className="flex-1">
                             <button
                                 type="button"
-                                className="inline-flex items-center gap-1 hover:text-foreground"
+                                className="inline-flex items-center gap-1 text-foreground font-semibold hover:text-foreground"
                                 onClick={() => onSortChange && onSortChange("title")}
                             >
                                 {t("scriptList.name")}
@@ -170,8 +170,8 @@ export function ScriptList({
                                 {sortKey === "title" && <span>{sortDir === "asc" ? "↑" : "↓"}</span>}
                             </button>
                          </div>
-                         <div className="w-24 text-right hidden sm:block">{t("scriptList.charCountApproxHeader")}</div>
-                         <div className="w-32 text-right hidden sm:block">
+                         <div className="w-24 text-right hidden md:block">{t("scriptList.charCountApproxHeader")}</div>
+                         <div className="w-32 text-right hidden md:block">
                             <button
                                 type="button"
                                 className="inline-flex items-center gap-1 hover:text-foreground"
@@ -183,7 +183,7 @@ export function ScriptList({
                             </button>
                          </div>
                          <div className="w-28 text-center hidden md:block">{t("scriptList.markerTheme")}</div>
-                         <div className="w-20 text-center hidden sm:block">{t("scriptList.status")}</div>
+                         <div className="w-20 text-center hidden md:block">{t("scriptList.status")}</div>
                          <div className="w-10"></div>
                      </div>
 
@@ -227,9 +227,9 @@ export function ScriptList({
                                     meta={
                                         item.type === 'folder' ? null : (
                                         <div className="flex items-center gap-2 text-xs text-muted-foreground w-full flex-wrap">
-                                            <span className="hidden sm:inline">{displayDate}</span>
-                                            <span className="hidden sm:inline">·</span>
-                                            <span className="truncate max-w-[100px] hidden sm:inline">{displayAuthor}</span>
+                                            <span className="hidden md:inline">{displayDate}</span>
+                                            <span className="hidden md:inline">·</span>
+                                            <span className="truncate max-w-[100px] hidden md:inline">{displayAuthor}</span>
                                             
                                             {/* Mobile: Show theme and public status */}
                                             <div className="flex items-center gap-1 sm:hidden">
@@ -271,16 +271,16 @@ export function ScriptList({
 
                                      {item.type !== 'folder' && (
                                          <>
-                                            <div className="w-24 text-right text-xs text-muted-foreground hidden sm:block">
+                                            <div className="w-24 text-right text-xs text-muted-foreground hidden md:block">
                                                 {t("scriptList.charCountValue").replace("{count}", String(item.contentLength ? Math.ceil(item.contentLength / 2) : (item.content ? Math.ceil(item.content.length / 2) : 0)))}
                                             </div>
-                                            <div className="w-32 text-right text-xs text-muted-foreground hidden sm:block">{formatDate(item.lastModified)}</div>
+                                            <div className="w-32 text-right text-xs text-muted-foreground hidden md:block">{formatDate(item.lastModified)}</div>
                                          </>
                                      )}
                                      {item.type === 'folder' && (
                                          <>
-                                            <div className="w-24 hidden sm:block"></div>
-                                            <div className="w-32 hidden sm:block"></div>
+                                            <div className="w-24 hidden md:block"></div>
+                                            <div className="w-32 hidden md:block"></div>
                                             <div className="w-28 hidden md:block"></div>
                                          </>
                                      )}
@@ -311,7 +311,7 @@ export function ScriptList({
                                         )}
                                         
                                         {/* Public Status (Desktop Only or Icon) */}
-                                        <div className="w-20 flex justify-center hidden sm:flex">
+                                        <div className="w-20 flex justify-center hidden md:flex">
                                             {item.type !== 'folder' && (
                                                 <div 
                                                     onClick={(e) => handleStatusClick(e, item)}

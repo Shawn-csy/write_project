@@ -15,16 +15,17 @@ export function MarkerVisualEditorPane({
   selectedConfig,
   selectedIndex,
   existingIds,
-  onOpenWizard,
+  onAddMarker,
   isAdvancedMode,
   setIsAdvancedMode,
+  readOnly = false,
 }) {
   const { t } = useI18n();
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] h-full divide-x divide-border/40">
       <div className="h-full min-h-0 flex flex-col bg-muted/10">
         <div className="p-3 border-b bg-background/30 shrink-0">
-          <Button onClick={onOpenWizard} className="w-full gap-1.5 h-8 text-xs font-medium shadow-sm">
+          <Button onClick={onAddMarker} className="w-full gap-1.5 h-8 text-xs font-medium shadow-sm" disabled={readOnly}>
             <PlusCircle className="w-3.5 h-3.5" />
             {t("markerVisualEditor.addMarker")}
           </Button>
@@ -37,6 +38,7 @@ export function MarkerVisualEditorPane({
             removeMarker={removeMarker}
             selectedId={expandedId}
             onSelect={setExpandedId}
+            readOnly={readOnly}
           />
         </div>
       </div>
@@ -51,6 +53,7 @@ export function MarkerVisualEditorPane({
             setExpandedId={setExpandedId}
             isAdvancedMode={isAdvancedMode}
             setIsAdvancedMode={setIsAdvancedMode}
+            readOnly={readOnly}
           />
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-60 space-y-3">

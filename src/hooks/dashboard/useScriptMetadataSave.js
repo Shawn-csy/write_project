@@ -22,6 +22,11 @@ export function useScriptMetadataSave({
   openingIntro,
   environmentInfo,
   situationInfo,
+  activityName,
+  activityBannerUrl,
+  activityContent,
+  activityDemoUrl,
+  activityWorkUrl,
   licenseCommercial,
   licenseDerivative,
   licenseNotify,
@@ -141,6 +146,11 @@ export function useScriptMetadataSave({
       if (openingIntro) orderedEntries.push({ key: "OpeningIntro", value: openingIntro });
       if (environmentInfo) orderedEntries.push({ key: "EnvironmentInfo", value: environmentInfo });
       if (situationInfo) orderedEntries.push({ key: "SituationInfo", value: situationInfo });
+      if (activityName) orderedEntries.push({ key: "ActivityName", value: activityName });
+      if (activityBannerUrl) orderedEntries.push({ key: "ActivityBanner", value: activityBannerUrl });
+      if (activityContent) orderedEntries.push({ key: "ActivityContent", value: activityContent });
+      if (activityDemoUrl) orderedEntries.push({ key: "ActivityDemoUrl", value: activityDemoUrl });
+      if (activityWorkUrl) orderedEntries.push({ key: "ActivityWorkUrl", value: activityWorkUrl });
       orderedEntries.push({ key: "LicenseCommercial", value: licenseCommercial });
       orderedEntries.push({ key: "LicenseDerivative", value: licenseDerivative });
       orderedEntries.push({ key: "LicenseNotify", value: licenseNotify });
@@ -280,6 +290,11 @@ export function useScriptMetadataSave({
     setShowValidationHints,
     showMarkerLegend,
     situationInfo,
+    activityName,
+    activityBannerUrl,
+    activityContent,
+    activityDemoUrl,
+    activityWorkUrl,
     status,
     synopsis,
     t,

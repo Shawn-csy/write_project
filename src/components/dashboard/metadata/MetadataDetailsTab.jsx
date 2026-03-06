@@ -8,11 +8,12 @@ import { DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { SortableField } from "./SortableField";
 import { SortableContactField } from "./SortableContactField";
-import { optimizeImageForUpload, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
+import { optimizeImageForUpload, getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
 import { uploadMediaObject } from "../../../lib/api/media";
 import { useI18n } from "../../../contexts/I18nContext";
 import { MediaPicker } from "../../ui/MediaPicker";
 import { CoverPlaceholder } from "../../ui/CoverPlaceholder";
+import { ImageCropDialog } from "../../ui/ImageCropDialog";
 
 export function MetadataDetailsTab({
     status,
@@ -61,15 +62,15 @@ export function MetadataDetailsTab({
     const [coverUploadError, setCoverUploadError] = React.useState("");
     const [coverUploadWarning, setCoverUploadWarning] = React.useState("");
     const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState(false);
+    const [cropOpen, setCropOpen] = React.useState(false);
+    const [cropSource, setCropSource] = React.useState(null);
+    const coverGuide = React.useMemo(() => getImageUploadGuide("cover"), []);
 
-    const handleCoverUpload = async (event) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
+    const applyCoverUpload = async (file) => {
         const optimized = await optimizeImageForUpload(file, "cover");
         if (!optimized.ok) {
             setCoverUploadError(optimized.error || "圖片格式不正確。");
             setCoverUploadWarning("");
-            event.target.value = "";
             return;
         }
         try {
@@ -83,9 +84,15 @@ export function MetadataDetailsTab({
         } catch (error) {
             setCoverUploadError(error?.message || "上傳失敗。");
             setCoverUploadWarning("");
-        } finally {
-            event.target.value = "";
         }
+    };
+
+    const handleCoverUpload = async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        setCropSource({ file, name: file.name });
+        setCropOpen(true);
+        event.target.value = "";
     };
 
     const parsePastedTags = (text) =>
@@ -153,6 +160,10 @@ export function MetadataDetailsTab({
                         >
                             {t("mediaLibrary.selectFromLibrary", "從媒體庫選擇")}
                         </Button>
+                    </div>
+                    <div className="space-y-0.5 text-[11px] text-muted-foreground">
+                        <p>{coverGuide.supported}</p>
+                        <p>{coverGuide.recommended}</p>
                     </div>
                     {coverUploadError && (
                         <p className="text-xs text-destructive">{coverUploadError}</p>
@@ -572,12 +583,20 @@ export function MetadataDetailsTab({
             <MediaPicker
                 open={isMediaPickerOpen}
                 onOpenChange={setIsMediaPickerOpen}
+                cropPurpose="cover"
                 onSelect={(url) => {
                     setCoverUrl(url);
                     setCoverPreviewFailed(false);
                     setCoverUploadError("");
                     setCoverUploadWarning("");
                 }}
+            />
+            <ImageCropDialog
+                open={cropOpen}
+                onOpenChange={setCropOpen}
+                source={cropSource}
+                purpose="cover"
+                onConfirm={applyCoverUpload}
             />
         </div>
     );

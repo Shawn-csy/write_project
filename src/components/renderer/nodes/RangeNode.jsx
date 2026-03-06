@@ -37,14 +37,55 @@ export const RangeNode = ({ node, context, NodeRenderer }) => {
         hideFooter: true
     };
 
+    const connectorBorder = containerOnlyStyle.borderLeft || `2px solid ${borderColor}`;
+    const connectorPaddingLeft = containerOnlyStyle.paddingLeft || '8px';
+    const connectorMarginLeft = '4px';
+    const isPauseNode = (candidate) => candidate?.type === 'layer' && candidate?.rangeRole === 'pause';
+    const renderWithPauseMask = (contentNode, isPause = false, key = undefined) => {
+        if (!isPause) return contentNode;
+        return (
+            <div key={key} className="range-pause-mask-row" data-range-pause-mask="true">
+                {contentNode}
+            </div>
+        );
+    };
+    const renderPauseAsAction = (pauseNode, key = undefined) => {
+        const text = String(pauseNode?.text || "").trim();
+        if (!text) return null;
+        const markerConfig = context?.markerConfigs?.find?.((cfg) => cfg?.id === pauseNode?.layerType);
+        const markerName = String(markerConfig?.label || pauseNode?.layerType || "").trim();
+        const tooltipPrefix = context?.markerTooltipPrefix || "標記";
+        const pauseTooltip = markerName
+            ? `${tooltipPrefix}: ${markerName}暫停`
+            : `${tooltipPrefix}: 暫停`;
+        const actionLikeNode = {
+            type: "action",
+            text,
+            lineStart: pauseNode?.lineStart,
+            lineEnd: pauseNode?.lineEnd ?? pauseNode?.lineStart,
+            raw: pauseNode?.raw || text,
+            markerId: pauseNode?.layerType || "",
+            markerLabel: markerName ? `${markerName}暫停` : "暫停",
+        };
+        return (
+            <div
+                key={key}
+                className="range-pause-inline-row"
+                title={pauseTooltip}
+            >
+                <NodeRenderer node={actionLikeNode} context={context} />
+            </div>
+        );
+    };
+
     return (
         <div
             className={`range-node ${node.rangeGroupId}-range my-2 relative`}
             style={{
                 // 只保留結構用樣式，避免整段內容被 marker 容器樣式覆蓋。
-                borderLeft: containerOnlyStyle.borderLeft || `2px solid ${borderColor}`,
-                paddingLeft: containerOnlyStyle.paddingLeft || '8px',
-                marginLeft: '4px'
+                borderLeft: connectorBorder,
+                paddingLeft: connectorPaddingLeft,
+                marginLeft: connectorMarginLeft,
             }}
         >
             {/* 開始標記 */}
@@ -54,23 +95,35 @@ export const RangeNode = ({ node, context, NodeRenderer }) => {
                 const hasPauseText = node.startNode.text && node.startNode.text.trim() !== '';
                 if (isPauseStart && !hasPauseText) return null;
                 
-                return (
-                    <div className="range-header">
-                        <LayerNode 
-                            node={node.startNode} 
-                            context={context} 
-                            NodeRenderer={NodeRenderer}
-                            styleOverride={layerStyleOverride}
-                        />
-                    </div>
+                return renderWithPauseMask(
+                    isPauseStart ? (
+                        <div className="range-header" key="range-header-pause">
+                            {renderPauseAsAction(node.startNode, "pause-start")}
+                        </div>
+                    ) : (
+                        <div className="range-header" key="range-header">
+                            <LayerNode 
+                                node={node.startNode} 
+                                context={context} 
+                                NodeRenderer={NodeRenderer}
+                                styleOverride={layerStyleOverride}
+                            />
+                        </div>
+                    ),
+                    isPauseStart
                 );
             })()}
 
             {/* 內容 */}
             <div className="range-content">
-                {node.children.map((child, i) => (
-                    <NodeRenderer key={i} node={child} context={context} />
-                ))}
+                {node.children.map((child, i) => {
+                    const isPause = isPauseNode(child);
+                    const rowContent = isPause
+                        ? renderPauseAsAction(child, `pause-${i}`)
+                        : <NodeRenderer key={i} node={child} context={context} />;
+                    if (!rowContent) return null;
+                    return renderWithPauseMask(rowContent, isPause, i);
+                })}
             </div>
 
             {/* 結束標記 */}
@@ -80,15 +133,22 @@ export const RangeNode = ({ node, context, NodeRenderer }) => {
                 const hasPauseText = node.endNode.text && node.endNode.text.trim() !== '';
                 if (isPauseEnd && !hasPauseText) return null;
                 
-                return (
-                    <div className="range-footer">
-                        <LayerNode 
-                            node={node.endNode} 
-                            context={context} 
-                            NodeRenderer={NodeRenderer} 
-                            styleOverride={layerStyleOverride}
-                        />
-                    </div>
+                return renderWithPauseMask(
+                    isPauseEnd ? (
+                        <div className="range-footer" key="range-footer-pause">
+                            {renderPauseAsAction(node.endNode, "pause-end")}
+                        </div>
+                    ) : (
+                        <div className="range-footer" key="range-footer">
+                            <LayerNode 
+                                node={node.endNode} 
+                                context={context} 
+                                NodeRenderer={NodeRenderer} 
+                                styleOverride={layerStyleOverride}
+                            />
+                        </div>
+                    ),
+                    isPauseEnd
                 );
             })()}
             

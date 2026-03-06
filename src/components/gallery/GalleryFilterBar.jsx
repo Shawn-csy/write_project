@@ -120,7 +120,7 @@ export function GalleryFilterBar({
           </div>
 
           {selectedTags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 p-2 bg-muted/20 border rounded-md">
+              <div className="flex flex-wrap gap-2 p-2.5 rounded-md border border-[hsl(var(--accent)/0.35)] bg-[hsl(var(--accent)/0.08)] shadow-sm">
                   {selectedTags.map(tag => {
                       const isLicense = quickTagSet.has(tag);
                       const isAdult = String(tag).toLowerCase() === "r-18" || String(tag).toLowerCase() === "r18" || String(tag).toLowerCase() === "成人向";
@@ -130,7 +130,11 @@ export function GalleryFilterBar({
                               key={`selected-${tag}`}
                               variant={isAdult ? "destructive" : "secondary"}
                               size="sm"
-                              className={`rounded-full text-[11px] h-6 px-2 flex items-center gap-1 focus:outline-none ${isAdult ? "bg-red-600/90 text-white hover:bg-red-700" : ""}`}
+                              className={`rounded-full text-xs h-7 px-2.5 font-semibold border flex items-center gap-1.5 focus:outline-none shadow-sm ${
+                                isAdult
+                                  ? "bg-red-600 text-white border-red-700 hover:bg-red-700"
+                                  : "bg-[hsl(var(--accent)/0.22)] text-[hsl(var(--accent-strong))] border-[hsl(var(--accent)/0.45)] hover:bg-[hsl(var(--accent)/0.30)]"
+                              }`}
                               onClick={() => toggleTag(tag)}
                               title={t("galleryFilterBar.clickToRemove", "點擊移除")}
                               style={isLicense && !isAdult ? {
@@ -140,7 +144,7 @@ export function GalleryFilterBar({
                               } : undefined}
                           >
                               <span className="truncate max-w-[150px]">{label}</span>
-                              <span className="text-muted-foreground hover:text-destructive shrink-0">×</span>
+                              <span className={`shrink-0 text-sm leading-none ${isAdult ? "text-white/90" : "text-current/80"}`}>×</span>
                           </Button>
                       );
                   })}
@@ -148,7 +152,7 @@ export function GalleryFilterBar({
                       variant="ghost" 
                       size="sm" 
                       onClick={clearTags}
-                      className="h-6 px-1.5 text-[10px] text-muted-foreground hover:text-destructive ml-auto"
+                      className="h-7 px-2 text-[11px] text-muted-foreground hover:text-destructive ml-auto"
                   >
                       {t("galleryFilterBar.clearTags", "清除全部")}
                   </Button>

@@ -14,6 +14,7 @@ import { usePublisherOrgGuide } from "../../../hooks/publisher/usePublisherOrgGu
 import { PublisherOrgMembershipPanel } from "./PublisherOrgMembershipPanel";
 import { PublisherTagEditor } from "./PublisherTagEditor";
 import { SpotlightGuideOverlay } from "../../common/SpotlightGuideOverlay";
+import { ImageCropDialog } from "../../ui/ImageCropDialog";
 
 export function PublisherOrgTab({
     orgs,
@@ -55,6 +56,10 @@ export function PublisherOrgTab({
     const [bannerUploadWarning, setBannerUploadWarning] = React.useState("");
     const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState(false);
     const [mediaPickerTarget, setMediaPickerTarget] = React.useState(null); // 'logo' or 'banner'
+    const [cropOpen, setCropOpen] = React.useState(false);
+    const [cropPurpose, setCropPurpose] = React.useState("logo");
+    const [cropTargetField, setCropTargetField] = React.useState(null);
+    const [cropSource, setCropSource] = React.useState(null);
     const logoGuide = React.useMemo(() => getImageUploadGuide("logo"), []);
     const bannerGuide = React.useMemo(() => getImageUploadGuide("banner"), []);
     const filteredTagOptions = React.useMemo(() => {
@@ -94,9 +99,7 @@ export function PublisherOrgTab({
     const orgProgress = Math.round((orgDone / orgChecklist.length) * 100);
     const orgNextSteps = orgChecklist.filter((item) => !item.ok).slice(0, 3);
 
-    const handleImageUpload = (field) => async (event) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
+    const applyUploadedImage = React.useCallback(async (file, field) => {
         const ruleKey = field === "logoUrl" ? "logo" : "banner";
         const optimized = await optimizeImageForUpload(file, ruleKey);
         if (!optimized.ok) {
@@ -108,7 +111,6 @@ export function PublisherOrgTab({
                 setBannerUploadError(optimized.error || t("publisherOrgTab.invalidImage"));
                 setBannerUploadWarning("");
             }
-            event.target.value = "";
             return;
         }
         try {
@@ -137,9 +139,17 @@ export function PublisherOrgTab({
                 setBannerUploadError(errorMessage);
                 setBannerUploadWarning("");
             }
-        } finally {
-            event.target.value = "";
         }
+    }, [t, setOrgDraft]);
+
+    const handleImageUpload = (field) => async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        setCropTargetField(field);
+        setCropPurpose(field === "logoUrl" ? "logo" : "banner");
+        setCropSource({ file, name: file.name });
+        setCropOpen(true);
+        event.target.value = "";
     };
 
     // Reset draft when selecting a new org
@@ -509,6 +519,7 @@ export function PublisherOrgTab({
             <MediaPicker
                 open={isMediaPickerOpen}
                 onOpenChange={setIsMediaPickerOpen}
+                cropPurpose={mediaPickerTarget === "logo" ? "logo" : mediaPickerTarget === "banner" ? "banner" : null}
                 onSelect={(url) => {
                     if (mediaPickerTarget === 'logo') {
                         setOrgDraft(prev => ({ ...prev, logoUrl: url }));
@@ -521,6 +532,16 @@ export function PublisherOrgTab({
                         setBannerUploadError("");
                         setBannerUploadWarning("");
                     }
+                }}
+            />
+            <ImageCropDialog
+                open={cropOpen}
+                onOpenChange={setCropOpen}
+                source={cropSource}
+                purpose={cropPurpose}
+                onConfirm={async (croppedFile) => {
+                    if (!cropTargetField) return;
+                    await applyUploadedImage(croppedFile, cropTargetField);
                 }}
             />
         </Card>

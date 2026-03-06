@@ -400,6 +400,15 @@
   box-shadow: inset 0 0 0 1px color-mix(in srgb, hsl(var(--accent)) 28%, transparent);
 }
 
+/* Ensure editor can comfortably scroll to the final lines on all viewports. */
+.live-editor-cm .cm-content {
+  padding-bottom: 112px;
+}
+
+.live-editor-cm .cm-scroller {
+  padding-bottom: 56px;
+}
+
 .title-page h1 {
   font-size: 28px;
   font-weight: 700;
@@ -481,6 +490,30 @@ html.transparent-mode {
   padding-left: 16px;
   padding-right: 16px;
   text-align: left;
+}
+
+/* Range pause line connector mask:
+   Keep a single continuous connector, but cut it only on pause rows. */
+.range-node .range-pause-mask-row {
+  position: relative;
+}
+
+.range-node .range-pause-mask-row::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: -1px;
+  bottom: -1px;
+  width: 12px;
+  background: hsl(var(--background));
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.range-node .range-pause-mask-row > * {
+  position: relative;
+  z-index: 2;
 }
 
 @media (max-width: 640px) {
