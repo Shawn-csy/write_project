@@ -57,54 +57,55 @@ export default function HybridDashboard({
                   </h2>
               </div>
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className="inline-flex items-center overflow-hidden rounded-md border border-primary/70 bg-primary text-primary-foreground ring-2 ring-primary/45 shadow-[0_14px_28px_-14px_hsl(var(--primary)/0.95)]">
+                <div className="inline-flex items-center gap-1.5 sm:gap-2">
+                  <div className="inline-flex items-center overflow-hidden rounded-md border border-primary/70 bg-primary text-primary-foreground shadow-[0_14px_28px_-14px_hsl(var(--primary)/0.95)]">
+                    <Button
+                      size="sm"
+                      onClick={() => dispatchWriteTabAction("create-script")}
+                      title={t("scriptToolbar.newScript")}
+                      className="inline-flex h-9 sm:h-10 rounded-none border-0 bg-transparent px-2.5 sm:px-4 font-bold text-primary-foreground shadow-none hover:bg-white/12"
+                      data-guide-id="write-create-script-btn"
+                    >
+                      <Plus className="w-4 h-4 sm:mr-1" />
+                      <span className="hidden sm:inline">{t("scriptToolbar.newScriptLabel")}</span>
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          size="sm"
+                          className="h-9 sm:h-10 rounded-none border-0 border-l border-white/35 bg-transparent px-2 text-primary-foreground shadow-none hover:bg-white/12"
+                          title={t("scriptToolbar.moreCreateOptions")}
+                        >
+                          <ChevronDown className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="min-w-56 p-1.5">
+                        <DropdownMenuLabel className="px-2 py-1 text-[11px] text-muted-foreground">
+                          {t("scriptToolbar.moreCreateOptions")}
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => dispatchWriteTabAction("create-folder")}>
+                          <div className="flex flex-col items-start gap-0.5">
+                            <div className="flex items-center">
+                              <FolderPlus className="w-4 h-4 mr-2" />
+                              {t("scriptToolbar.folder")}
+                            </div>
+                            <span className="pl-6 text-[11px] text-muted-foreground">{t("scriptToolbar.folderHint")}</span>
+                          </div>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                   <Button
                     size="sm"
-                    onClick={() => dispatchWriteTabAction("create-script")}
-                    title={t("scriptToolbar.newScript")}
-                    className="inline-flex h-9 sm:h-10 rounded-none border-0 bg-transparent px-2.5 sm:px-4 font-bold text-primary-foreground shadow-none hover:bg-white/12"
-                    data-guide-id="write-create-script-btn"
+                    onClick={() => dispatchWriteTabAction("import-script")}
+                    title={t("scriptToolbar.importScript")}
+                    className="inline-flex h-9 sm:h-10 rounded-md border border-primary/70 bg-primary px-2.5 sm:px-4 font-semibold text-primary-foreground shadow-[0_14px_28px_-14px_hsl(var(--primary)/0.9)] hover:bg-primary/90"
+                    data-guide-id="write-import-script-btn"
                   >
-                    <Plus className="w-4 h-4 sm:mr-1" />
-                    <span className="hidden sm:inline">{t("scriptToolbar.newScriptLabel")}</span>
+                    <Upload className="w-4 h-4 sm:mr-1" />
+                    <span className="hidden sm:inline">{t("scriptToolbar.import")}</span>
                   </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant="default"
-                        className="h-9 sm:h-10 rounded-none border-0 border-l border-white/35 bg-transparent px-2 text-primary-foreground shadow-none hover:bg-white/12"
-                        title={t("scriptToolbar.importScript")}
-                        data-guide-id="write-import-script-btn"
-                      >
-                        <ChevronDown className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="min-w-56 p-1.5">
-                      <DropdownMenuLabel className="px-2 py-1 text-[11px] text-muted-foreground">
-                        {t("scriptToolbar.moreCreateOptions")}
-                      </DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => dispatchWriteTabAction("create-folder")}>
-                        <div className="flex flex-col items-start gap-0.5">
-                          <div className="flex items-center">
-                            <FolderPlus className="w-4 h-4 mr-2" />
-                            {t("scriptToolbar.folder")}
-                          </div>
-                          <span className="pl-6 text-[11px] text-muted-foreground">{t("scriptToolbar.folderHint")}</span>
-                        </div>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => dispatchWriteTabAction("import-script")}>
-                        <div className="flex flex-col items-start gap-0.5">
-                          <div className="flex items-center">
-                            <Upload className="w-4 h-4 mr-2" />
-                            {t("scriptToolbar.import")}
-                          </div>
-                          <span className="pl-6 text-[11px] text-muted-foreground">{t("scriptToolbar.importHint")}</span>
-                        </div>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
                 <Button
                   size="icon"

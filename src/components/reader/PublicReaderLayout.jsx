@@ -187,11 +187,6 @@ export function PublicReaderLayout({
       description: t("publicReader.guideScriptDesc"),
       targetId: "public-guide-script",
     },
-    {
-      title: t("publicReader.guidePublishTitle"),
-      description: t("publicReader.guidePublishDesc"),
-      targetId: null,
-    },
   ]), [t]);
   const currentGuide = showGuide ? guideSteps[guideIndex] : null;
 
