@@ -14,7 +14,7 @@ export function MarkerSettingsModeContent({
   selectedConfig,
   selectedIndex,
   existingIds,
-  onOpenWizard,
+  onAddMarker,
   jsonText,
   setJsonText,
   parseError,
@@ -23,6 +23,7 @@ export function MarkerSettingsModeContent({
   isSaving,
   isAdvancedMode,
   setIsAdvancedMode,
+  readOnly = false,
 }) {
   if (viewMode === "guide") {
     return (
@@ -34,7 +35,7 @@ export function MarkerSettingsModeContent({
 
   if (viewMode === "json") {
     return (
-      <div className="h-full p-4">
+      <fieldset disabled={readOnly} className="h-full min-h-0 p-4">
         <MarkerJsonEditor
           jsonText={jsonText}
           setJsonText={setJsonText}
@@ -42,25 +43,29 @@ export function MarkerSettingsModeContent({
           onApplyJson={applyJson}
           isDirty={isDirty}
           isSaving={isSaving}
+          readOnly={readOnly}
         />
-      </div>
+      </fieldset>
     );
   }
 
   return (
-    <MarkerVisualEditorPane
-      localConfigs={localConfigs}
-      setLocalConfigs={setLocalConfigs}
-      updateMarker={updateMarker}
-      removeMarker={removeMarker}
-      expandedId={expandedId}
-      setExpandedId={setExpandedId}
-      selectedConfig={selectedConfig}
-      selectedIndex={selectedIndex}
-      existingIds={existingIds}
-      onOpenWizard={onOpenWizard}
-      isAdvancedMode={isAdvancedMode}
-      setIsAdvancedMode={setIsAdvancedMode}
-    />
+    <fieldset disabled={readOnly} className="h-full min-h-0">
+      <MarkerVisualEditorPane
+        localConfigs={localConfigs}
+        setLocalConfigs={setLocalConfigs}
+        updateMarker={updateMarker}
+        removeMarker={removeMarker}
+        expandedId={expandedId}
+        setExpandedId={setExpandedId}
+        selectedConfig={selectedConfig}
+        selectedIndex={selectedIndex}
+        existingIds={existingIds}
+        onAddMarker={onAddMarker}
+        isAdvancedMode={isAdvancedMode}
+        setIsAdvancedMode={setIsAdvancedMode}
+        readOnly={readOnly}
+      />
+    </fieldset>
   );
 }

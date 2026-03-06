@@ -16,6 +16,7 @@ import { PublisherFormRow } from "./PublisherFormRow";
 import { PublisherTabHeader } from "./PublisherTabHeader";
 import { useToast } from "../../ui/toast";
 import { PublisherTagEditor } from "./PublisherTagEditor";
+import { ImageCropDialog } from "../../ui/ImageCropDialog";
 
 export function PublisherProfileTab({
     selectedPersonaId, setSelectedPersonaId,
@@ -46,6 +47,10 @@ export function PublisherProfileTab({
     const [bannerUploadWarning, setBannerUploadWarning] = React.useState("");
     const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState(false);
     const [mediaPickerTarget, setMediaPickerTarget] = React.useState(null); // 'avatar' or 'banner'
+    const [cropOpen, setCropOpen] = React.useState(false);
+    const [cropPurpose, setCropPurpose] = React.useState("avatar");
+    const [cropTargetField, setCropTargetField] = React.useState(null);
+    const [cropSource, setCropSource] = React.useState(null);
     const avatarGuide = React.useMemo(() => getImageUploadGuide("avatar"), []);
     const bannerGuide = React.useMemo(() => getImageUploadGuide("banner"), []);
     const hasPersona = Array.isArray(personas) && personas.length > 0;
@@ -125,9 +130,7 @@ export function PublisherProfileTab({
     const profileProgress = Math.round((profileDone / profileChecklist.length) * 100);
     const profileNextSteps = profileChecklist.filter((item) => !item.ok).slice(0, 3);
 
-    const handleImageUpload = (field) => async (event) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
+    const applyUploadedImage = React.useCallback(async (file, field) => {
         const ruleKey = field === "avatar" ? "avatar" : "banner";
         const optimized = await optimizeImageForUpload(file, ruleKey);
         if (!optimized.ok) {
@@ -139,7 +142,6 @@ export function PublisherProfileTab({
                 setBannerUploadError(optimized.error || t("publisherProfileTab.invalidImage"));
                 setBannerUploadWarning("");
             }
-            event.target.value = "";
             return;
         }
         try {
@@ -168,9 +170,17 @@ export function PublisherProfileTab({
                 setBannerUploadError(errorMessage);
                 setBannerUploadWarning("");
             }
-        } finally {
-            event.target.value = "";
         }
+    }, [t, setPersonaDraft]);
+
+    const handleImageUpload = (field) => async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        setCropTargetField(field);
+        setCropPurpose(field === "avatar" ? "avatar" : "banner");
+        setCropSource({ file, name: file.name });
+        setCropOpen(true);
+        event.target.value = "";
     };
 
     const onStartCreate = () => {
@@ -690,6 +700,7 @@ export function PublisherProfileTab({
             <MediaPicker
                 open={isMediaPickerOpen}
                 onOpenChange={setIsMediaPickerOpen}
+                cropPurpose={mediaPickerTarget === "avatar" ? "avatar" : mediaPickerTarget === "banner" ? "banner" : null}
                 onSelect={(url) => {
                     if (mediaPickerTarget === 'avatar') {
                         setPersonaDraft(prev => ({ ...prev, avatar: url }));
@@ -702,6 +713,16 @@ export function PublisherProfileTab({
                         setBannerUploadError("");
                         setBannerUploadWarning("");
                     }
+                }}
+            />
+            <ImageCropDialog
+                open={cropOpen}
+                onOpenChange={setCropOpen}
+                source={cropSource}
+                purpose={cropPurpose}
+                onConfirm={async (croppedFile) => {
+                    if (!cropTargetField) return;
+                    await applyUploadedImage(croppedFile, cropTargetField);
                 }}
             />
         </Card>

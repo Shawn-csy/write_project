@@ -32,6 +32,11 @@ export function useScriptMetadataHydration({
   setOpeningIntro,
   setEnvironmentInfo,
   setSituationInfo,
+  setActivityName,
+  setActivityBannerUrl,
+  setActivityContent,
+  setActivityDemoUrl,
+  setActivityWorkUrl,
   setSeriesName,
   setSeriesId,
   setSeriesOrder,
@@ -117,6 +122,11 @@ export function useScriptMetadataHydration({
       setOpeningIntro(meta.openingintro || meta.setting || meta.settingintro || "");
       setEnvironmentInfo(meta.environmentinfo || meta.background || meta.backgroundintro || "");
       setSituationInfo(meta.situationinfo || "");
+      setActivityName(String(meta.activityname || meta.eventname || ""));
+      setActivityBannerUrl(String(meta.activitybanner || meta.eventbanner || ""));
+      setActivityContent(String(meta.activitycontent || meta.eventcontent || ""));
+      setActivityDemoUrl(String(meta.activitydemourl || meta.eventdemolink || ""));
+      setActivityWorkUrl(String(meta.activityworkurl || meta.eventworklink || ""));
       setSeriesName(String(meta.series || meta.seriesname || sourceScript?.series?.name || ""));
       setSeriesId(sourceScript?.seriesId || "");
       setSeriesOrder(String(meta.seriesorder ?? sourceScript?.seriesOrder ?? ""));
@@ -171,6 +181,11 @@ export function useScriptMetadataHydration({
       setSeriesId,
       setSeriesName,
       setSeriesOrder,
+      setActivityName,
+      setActivityBannerUrl,
+      setActivityContent,
+      setActivityDemoUrl,
+      setActivityWorkUrl,
       setShowMarkerLegend,
       setSituationInfo,
       setStatus,

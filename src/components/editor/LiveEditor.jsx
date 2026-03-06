@@ -558,7 +558,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
                     extensions={extensions}
                     onChange={handleChange}
                     onUpdate={handleViewUpdate}
-                    className="h-full text-base font-mono flex-1 overflow-hidden"
+                    className="live-editor-cm h-full text-base font-mono flex-1 overflow-hidden"
                     basicSetup={{
                         lineNumbers: true,
                         foldGutter: false,
@@ -617,7 +617,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
                   ? "w-full sm:w-auto sm:grow sm:min-w-[280px]"
                   : "hidden"
             } h-full overflow-hidden bg-background flex flex-col`}
-            scrollClassName="h-full overflow-y-auto overflow-x-hidden scrollbar-hide px-4 py-8"
+            scrollClassName="h-full overflow-y-auto overflow-x-hidden scrollbar-hide px-4 pt-8 pb-28"
         />
 
         {/* Stats Side Panel (Non-modal) */}

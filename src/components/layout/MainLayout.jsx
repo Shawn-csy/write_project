@@ -6,7 +6,6 @@ import {
   DrawerDescription,
 } from "../ui/drawer";
 import Sidebar from "./Sidebar";
-import MobileMenu from "./MobileMenu";
 
 export function MainLayout({
   children,
@@ -37,48 +36,18 @@ export function MainLayout({
   showSidebar = true
 }) {
   return (
-    <div className="flex h-[100dvh] w-full bg-background text-foreground overflow-hidden">
+    <div className="relative flex h-[100dvh] w-full bg-background text-foreground overflow-hidden">
       {/* Mobile Drawer */}
       <Drawer
         open={isMobileDrawerOpen}
         onOpenChange={setIsMobileDrawerOpen}
         direction="left"
       >
-        <DrawerContent className="h-[85vh] outline-none z-[100]">
+        <DrawerContent side="left" showHandle={false} className="outline-none z-[100] p-0">
           <DrawerTitle className="sr-only">Menu</DrawerTitle>
           <DrawerDescription className="sr-only">Script Navigation</DrawerDescription>
-          <MobileMenu
-            fileTree={fileTree}
-            activeFile={activeFile}
-            onSelectFile={onSelectFile}
-            accentStyle={accentStyle}
-            openAbout={openAbout}
-            closeAbout={closeAbout}
-            openSettings={openSettings}
-            onClose={() => setIsMobileDrawerOpen(false)}
-            fileTitleMap={fileTitleMap}
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            openFolders={openFolders}
-            toggleFolder={toggleFolder}
-            sceneList={sceneList}
-            currentSceneId={currentSceneId}
-            onSelectScene={onSelectScene}
-          />
-        </DrawerContent>
-      </Drawer>
-
-      {/* --- Desktop Sidebar --- */}
-      <div 
-        className={`
-          hidden lg:block h-full border-r border-border bg-muted/30
-          transition-all duration-300 ease-in-out shrink-0
-          ${(isDesktopSidebarOpen && showSidebar) ? "w-64 opacity-100" : "w-0 opacity-0 border-0 overflow-hidden"}
-        `}
-      >
-        <div className="w-64 h-full flex flex-col">
           <Sidebar
-            className="bg-transparent" // Sidebar has its own bg, override or let it blend
+            className="h-full bg-background border-r-0"
             fileTree={fileTree}
             activeFile={activeFile}
             onSelectFile={onSelectFile}
@@ -96,13 +65,50 @@ export function MainLayout({
             fileTagsMap={fileTagsMap}
             fileLabelMode={fileLabelMode}
             setFileLabelMode={setFileLabelMode}
-            setSidebarOpen={setIsDesktopSidebarOpen}
+            setSidebarOpen={setIsMobileDrawerOpen}
             sceneList={sceneList}
             currentSceneId={currentSceneId}
             onSelectScene={onSelectScene}
           />
+        </DrawerContent>
+      </Drawer>
+
+      {/* --- Desktop Sidebar (Docked Mode) --- */}
+      {showSidebar && (
+        <div
+          className={`hidden lg:block shrink-0 border-r border-border bg-muted/30 transition-[width] duration-300 ease-in-out overflow-hidden ${
+            isDesktopSidebarOpen ? "w-64" : "w-0 border-r-0"
+          }`}
+          aria-hidden={!isDesktopSidebarOpen}
+        >
+          <div className="w-64 h-full flex flex-col">
+            <Sidebar
+              className="bg-transparent"
+              fileTree={fileTree}
+              activeFile={activeFile}
+              onSelectFile={onSelectFile}
+              accentStyle={accentStyle}
+              openAbout={openAbout}
+              closeAbout={closeAbout}
+              openSettings={openSettings}
+              files={files}
+              fileTitleMap={fileTitleMap}
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              openFolders={openFolders}
+              toggleFolder={toggleFolder}
+              openHome={openHome}
+              fileTagsMap={fileTagsMap}
+              fileLabelMode={fileLabelMode}
+              setFileLabelMode={setFileLabelMode}
+              setSidebarOpen={setIsDesktopSidebarOpen}
+              sceneList={sceneList}
+              currentSceneId={currentSceneId}
+              onSelectScene={onSelectScene}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* --- Main Content Area --- */}
       <div className="flex-1 flex flex-col min-w-0 h-full relative">

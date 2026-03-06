@@ -84,3 +84,40 @@ export const deleteScriptAdmin = async (scriptId) => {
     method: "DELETE",
   });
 };
+
+export const getDefaultMarkerConfigsAdmin = async () => {
+  return fetchApi("/admin/default-marker-configs");
+};
+
+export const updateDefaultMarkerConfigsAdmin = async (configs = []) => {
+  return fetchApi("/admin/default-marker-configs", {
+    method: "PUT",
+    body: JSON.stringify(Array.isArray(configs) ? configs : []),
+  });
+};
+
+export const getHomepageBannerAdmin = async () => {
+  return fetchApi("/admin/homepage-banner", { cache: "no-store" });
+};
+
+export const updateHomepageBannerAdmin = async (payload = {}) => {
+  const normalizedItems = Array.isArray(payload?.items)
+    ? payload.items.map((item, idx) => ({
+        id: String(item?.id || `slide-${idx + 1}`),
+        title: String(item?.title || ""),
+        content: String(item?.content || ""),
+        link: String(item?.link || ""),
+        imageUrl: String(item?.imageUrl || ""),
+      }))
+    : [];
+  return fetchApi("/admin/homepage-banner", {
+    method: "PUT",
+    body: JSON.stringify({
+      title: String(payload?.title || ""),
+      content: String(payload?.content || ""),
+      link: String(payload?.link || ""),
+      imageUrl: String(payload?.imageUrl || ""),
+      items: normalizedItems,
+    }),
+  });
+};

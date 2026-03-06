@@ -179,19 +179,20 @@ export function EditorHeader({
             {showPreview ? t("editorHeader.editAndPreview") : t("editorHeader.editOnly")}
           </span>
         </Button>
-        {onOpenGuide && (
-          <Button
-            ref={guideButtonRef}
-            variant="ghost"
-            size="sm"
-            onClick={onOpenGuide}
-            className="h-8 rounded-md transition-colors flex items-center gap-2 text-sm hover:bg-muted text-muted-foreground"
-            title={t("editorHeader.guide")}
-          >
-            <HelpCircle className="w-4 h-4" />
-            <span className="hidden sm:inline">{t("editorHeader.guide")}</span>
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onToggleRules}
+          className={`h-8 rounded-md transition-colors flex items-center gap-2 text-sm ${
+            showRules
+              ? "bg-primary/10 text-primary"
+              : "hover:bg-muted text-muted-foreground"
+          }`}
+          title={t("editorHeader.syntaxRules")}
+        >
+          <HelpCircle className="w-4 h-4" />
+          <span className="hidden sm:inline">{t("editorHeader.syntaxRules")}</span>
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -223,10 +224,12 @@ export function EditorHeader({
               />
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onToggleRules}>
-              <HelpCircle className="w-4 h-4 mr-2" />
-              {t("editorHeader.syntaxRules")}
-            </DropdownMenuItem>
+            {onOpenGuide && (
+              <DropdownMenuItem ref={guideButtonRef} onClick={onOpenGuide}>
+                <HelpCircle className="w-4 h-4 mr-2" />
+                {t("editorHeader.guide")}
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={onToggleStats}>
               <BarChart2 className="w-4 h-4 mr-2" />
               {t("editorHeader.stats")}

@@ -253,6 +253,21 @@ def run_migrations():
                 conn.execute(text("CREATE INDEX IF NOT EXISTS ix_admin_users_email ON admin_users(email)"))
                 conn.execute(text("CREATE INDEX IF NOT EXISTS ix_admin_users_createdAt ON admin_users(createdAt)"))
 
+            # Site settings table (global admin-managed config)
+            result_tables = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='site_settings'"))
+            has_site_settings_table = result_tables.fetchone() is not None
+            if not has_site_settings_table:
+                print("Migrating: Creating 'site_settings' table")
+                conn.execute(text("""
+                    CREATE TABLE site_settings (
+                        key TEXT PRIMARY KEY,
+                        value TEXT DEFAULT '',
+                        updatedBy TEXT DEFAULT NULL,
+                        updatedAt INTEGER NOT NULL
+                    )
+                """))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_site_settings_updatedAt ON site_settings(updatedAt)"))
+
             # Backfill user -> org memberships from legacy users.organizationId
             now_ms = int(time.time() * 1000)
             user_rows = conn.execute(text("SELECT id, organizationId FROM users WHERE organizationId IS NOT NULL AND organizationId != ''")).fetchall()

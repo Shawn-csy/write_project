@@ -229,3 +229,12 @@ class AdminUser(Base):
     email = Column(String, nullable=True, index=True)
     createdBy = Column(String, ForeignKey("users.id"), nullable=True)
     createdAt = Column(Integer, default=lambda: int(time.time() * 1000), index=True)
+
+
+class SiteSetting(Base):
+    __tablename__ = "site_settings"
+
+    key = Column(String, primary_key=True, index=True)
+    value = Column(Text, default="")
+    updatedBy = Column(String, ForeignKey("users.id"), nullable=True)
+    updatedAt = Column(Integer, default=lambda: int(time.time() * 1000), index=True)

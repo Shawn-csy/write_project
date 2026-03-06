@@ -17,6 +17,7 @@ export const getPublicScripts = async (ownerId, folder, personaId, organizationI
 export const getPublicScript = async (id) => fetchPublic(`/public-scripts/${id}`);
 export const getPublicThemes = async () => fetchPublic("/themes/public");
 export const getPublicTermsConfig = async () => fetchPublic("/public-terms-config", { cacheTtlMs: 60000 });
+export const getPublicHomepageBanner = async () => fetchPublic("/public-homepage-banner", { cacheTtlMs: 60000 });
 export const acceptPublicTerms = async (payload) =>
   fetchPublic("/public-terms-acceptances", {
     method: "POST",

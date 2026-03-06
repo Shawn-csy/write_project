@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from typing import List, Optional
+from typing import Any, List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 import time
@@ -11,6 +11,76 @@ import schemas
 from dependencies import get_db, get_current_user_id, is_admin_user, _admin_user_emails
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
+HOMEPAGE_BANNER_SETTING_KEY = "homepage_banner"
+
+
+def _normalize_homepage_banner_value(raw_value: str) -> dict:
+    try:
+        parsed = json.loads(str(raw_value or ""))
+    except Exception:
+        parsed = {}
+    if not isinstance(parsed, dict):
+        parsed = {}
+
+    raw_items = parsed.get("items")
+    items = []
+    if isinstance(raw_items, list):
+        for idx, item in enumerate(raw_items):
+            if not isinstance(item, dict):
+                continue
+            normalized = {
+                "id": str(item.get("id") or f"slide-{idx + 1}").strip() or f"slide-{idx + 1}",
+                "title": str(item.get("title") or "").strip(),
+                "content": str(item.get("content") or "").strip(),
+                "link": str(item.get("link") or "").strip(),
+                "imageUrl": str(item.get("imageUrl") or "").strip(),
+            }
+            if normalized["title"] or normalized["content"] or normalized["link"] or normalized["imageUrl"]:
+                items.append(normalized)
+
+    if not items:
+        fallback = {
+            "id": "slide-1",
+            "title": str(parsed.get("title") or "").strip(),
+            "content": str(parsed.get("content") or "").strip(),
+            "link": str(parsed.get("link") or "").strip(),
+            "imageUrl": str(parsed.get("imageUrl") or "").strip(),
+        }
+        if fallback["title"] or fallback["content"] or fallback["link"] or fallback["imageUrl"]:
+            items = [fallback]
+
+    first = items[0] if items else {"title": "", "content": "", "link": "", "imageUrl": ""}
+    return {
+        "title": str(first.get("title") or ""),
+        "content": str(first.get("content") or ""),
+        "link": str(first.get("link") or ""),
+        "imageUrl": str(first.get("imageUrl") or ""),
+        "items": items,
+    }
+
+
+@router.get("/default-marker-configs", response_model=List[dict])
+def get_default_marker_configs(
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    return crud.get_system_default_configs(db)
+
+
+@router.put("/default-marker-configs", response_model=List[dict])
+def update_default_marker_configs(
+    payload: Any,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    configs = payload if isinstance(payload, list) else []
+    row = crud.upsert_system_default_configs(db, configs, ownerId)
+    parsed = crud._parse_theme_configs(getattr(row, "configs", "[]"))
+    return parsed if isinstance(parsed, list) else []
 
 @router.get("/users", response_model=List[schemas.UserPublic])
 def search_users(q: str, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
@@ -162,6 +232,77 @@ def delete_admin_user(
     db.delete(row)
     db.commit()
     return {"success": True}
+
+
+@router.get("/homepage-banner", response_model=schemas.HomepageBannerSetting)
+def get_homepage_banner(
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    row = db.query(models.SiteSetting).filter(models.SiteSetting.key == HOMEPAGE_BANNER_SETTING_KEY).first()
+    if not row or not str(getattr(row, "value", "") or "").strip():
+        return schemas.HomepageBannerSetting(items=[])
+    return schemas.HomepageBannerSetting(**_normalize_homepage_banner_value(row.value))
+
+
+@router.put("/homepage-banner", response_model=schemas.HomepageBannerSetting)
+def update_homepage_banner(
+    payload: schemas.HomepageBannerSetting,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    incoming_items = payload.items if isinstance(payload.items, list) else []
+    normalized_items = []
+    for idx, item in enumerate(incoming_items):
+        normalized = {
+            "id": str(getattr(item, "id", "") or f"slide-{idx + 1}").strip() or f"slide-{idx + 1}",
+            "title": str(getattr(item, "title", "") or "").strip(),
+            "content": str(getattr(item, "content", "") or "").strip(),
+            "link": str(getattr(item, "link", "") or "").strip(),
+            "imageUrl": str(getattr(item, "imageUrl", "") or "").strip(),
+        }
+        if normalized["title"] or normalized["content"] or normalized["link"] or normalized["imageUrl"]:
+            normalized_items.append(normalized)
+
+    if not normalized_items and (payload.title or payload.content or payload.link or payload.imageUrl):
+        normalized_items.append({
+            "id": "slide-1",
+            "title": str(payload.title or "").strip(),
+            "content": str(payload.content or "").strip(),
+            "link": str(payload.link or "").strip(),
+            "imageUrl": str(payload.imageUrl or "").strip(),
+        })
+
+    first = normalized_items[0] if normalized_items else {"title": "", "content": "", "link": "", "imageUrl": ""}
+    clean = {
+        "title": str(first.get("title") or ""),
+        "content": str(first.get("content") or ""),
+        "link": str(first.get("link") or ""),
+        "imageUrl": str(first.get("imageUrl") or ""),
+        "items": normalized_items,
+    }
+    now_ms = int(time.time() * 1000)
+    row = db.query(models.SiteSetting).filter(models.SiteSetting.key == HOMEPAGE_BANNER_SETTING_KEY).first()
+    if not row:
+        row = models.SiteSetting(
+            key=HOMEPAGE_BANNER_SETTING_KEY,
+            value=json.dumps(clean, ensure_ascii=False),
+            updatedBy=ownerId,
+            updatedAt=now_ms,
+        )
+        db.add(row)
+    else:
+        row.value = json.dumps(clean, ensure_ascii=False)
+        row.updatedBy = ownerId
+        row.updatedAt = now_ms
+    db.commit()
+    return schemas.HomepageBannerSetting(**clean)
 
 
 @router.get("/all-users", response_model=List[schemas.UserPublic])

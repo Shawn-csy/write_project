@@ -10,7 +10,7 @@ import { Button } from "../components/ui/button";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { PublicHeroMarquee } from "../components/public/PublicHeroMarquee";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../components/ui/sheet";
-import { getPublicBundle, getPublicTermsConfig, acceptPublicTerms } from "../lib/api/public";
+import { getPublicBundle, getPublicTermsConfig, acceptPublicTerms, getPublicHomepageBanner } from "../lib/api/public";
 import { extractMetadataWithRaw } from "../lib/metadataParser";
 import { deriveSimpleLicenseTags, parseBasicLicenseFromMeta } from "../lib/licenseRights";
 import { normalizeSeriesName, parseSeriesOrder } from "../lib/series";
@@ -18,8 +18,9 @@ import { useI18n } from "../contexts/I18nContext";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Checkbox } from "../components/ui/checkbox";
-import { SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal, Search, X } from "lucide-react";
 import { CoverPlaceholder } from "../components/ui/CoverPlaceholder";
+import { Input } from "../components/ui/input";
 
 const SEGMENT_KEYS = {
   all: "all",
@@ -100,9 +101,12 @@ export default function PublicGalleryPage() {
   const [isSubmittingTerms, setIsSubmittingTerms] = useState(false);
   const [isTermsConfigLoading, setIsTermsConfigLoading] = useState(true);
   const termsScrollRef = useRef(null);
+  const normalizeViewMode = (value) => (value === "compact" ? "compact" : "standard");
+  const normalizeUsageFilter = (value) => (value === "commercial" ? "commercial" : "all");
+
   const [viewMode, setViewMode] = useState(() => {
       const fromUrl = searchParams.get("mode");
-      if (fromUrl) return fromUrl;
+      if (fromUrl) return normalizeViewMode(fromUrl);
       if (typeof window !== "undefined") {
           if (window.matchMedia && window.matchMedia("(max-width: 640px)").matches) {
               return "compact";
@@ -118,7 +122,7 @@ export default function PublicGalleryPage() {
   const selectedTags = parseTagParam(searchParams.get("tag"));
   const selectedAuthorTags = parseTagParam(searchParams.get("authorTag"));
   const selectedOrgTags = parseTagParam(searchParams.get("orgTag"));
-  const usageFilter = searchParams.get("usage") || "all";
+  const usageFilter = normalizeUsageFilter(searchParams.get("usage"));
   const segmentFilter = searchParams.get("segment") || SEGMENT_KEYS.all;
 
   const setSelectedTags = (tags) => {
@@ -165,15 +169,26 @@ export default function PublicGalleryPage() {
       params.set("view", "scripts");
       setSearchParams(params);
   };
-  const handleViewModeChange = (mode) => {
+  const resetScriptFilters = () => {
       const params = new URLSearchParams(searchParams);
-      params.set("mode", mode);
+      params.set("view", "scripts");
+      params.delete("usage");
+      params.delete("segment");
+      params.delete("tag");
       setSearchParams(params);
-      setViewMode(mode);
+      setSearchTerm("");
+  };
+  const handleViewModeChange = (mode) => {
+      const normalized = normalizeViewMode(mode);
+      const params = new URLSearchParams(searchParams);
+      params.set("mode", normalized);
+      setSearchParams(params);
+      setViewMode(normalized);
   };
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingPeople, setIsLoadingPeople] = useState(true);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const [homepageBanner, setHomepageBanner] = useState(null);
 
   useEffect(() => {
     const loadTermsConfig = async () => {
@@ -188,6 +203,19 @@ export default function PublicGalleryPage() {
       }
     };
     loadTermsConfig();
+  }, []);
+
+  useEffect(() => {
+    const loadHomepageBanner = async () => {
+      try {
+        const banner = await getPublicHomepageBanner();
+        setHomepageBanner(banner || null);
+      } catch (error) {
+        console.error("Failed to load homepage banner", error);
+        setHomepageBanner(null);
+      }
+    };
+    loadHomepageBanner();
   }, []);
 
   // Data Fetching
@@ -406,6 +434,15 @@ export default function PublicGalleryPage() {
     { value: "all", label: t("publicGallery.usageAll") },
     { value: "commercial", label: t("publicGallery.usageCommercial") },
   ]), [t]);
+  const hasScriptFilters = searchTerm.trim() !== "" || selectedTags.length > 0 || usageFilter !== "all" || segmentFilter !== SEGMENT_KEYS.all;
+  const activeTagFilterCount =
+    view === "scripts" ? selectedTags.length :
+    view === "authors" ? selectedAuthorTags.length :
+    selectedOrgTags.length;
+  const activeScriptExtraFilterCount =
+    (usageFilter !== "all" ? 1 : 0) + (segmentFilter !== SEGMENT_KEYS.all ? 1 : 0);
+  const activeMobileFilterCount =
+    activeTagFilterCount + (view === "scripts" ? activeScriptExtraFilterCount : 0);
   const allAuthorTags = Array.from(new Set(authors.flatMap(a => a.tags || [])));
   const allOrgTags = Array.from(new Set(orgs.flatMap(o => o.tags || [])));
   const authorTags = allAuthorTags;
@@ -575,7 +612,33 @@ export default function PublicGalleryPage() {
           </div>
         }
       />
-      <PublicHeroMarquee />
+      <PublicHeroMarquee
+        slides={(() => {
+          const items = Array.isArray(homepageBanner?.items) ? homepageBanner.items : [];
+          const valid = items.filter((item) => item && (item.title || item.content || item.link || item.imageUrl));
+          if (valid.length > 0) {
+            return valid.map((item, idx) => ({
+              id: item.id || `admin-homepage-banner-${idx + 1}`,
+              title: item.title || "",
+              content: item.content || "",
+              subtitle: item.content || "",
+              link: item.link || "",
+              imageUrl: item.imageUrl || "",
+            }));
+          }
+          if (homepageBanner && (homepageBanner.title || homepageBanner.content || homepageBanner.link || homepageBanner.imageUrl)) {
+            return [{
+              id: "admin-homepage-banner",
+              title: homepageBanner.title || "",
+              content: homepageBanner.content || "",
+              subtitle: homepageBanner.content || "",
+              link: homepageBanner.link || "",
+              imageUrl: homepageBanner.imageUrl || "",
+            }];
+          }
+          return undefined;
+        })()}
+      />
 
       {/* Main Content */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 pb-20">
@@ -599,20 +662,64 @@ export default function PublicGalleryPage() {
             </div>
           </div>
         )}
-        <div className="mb-3 flex items-center justify-between lg:hidden">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="h-8 rounded-full px-3 text-xs"
-            onClick={() => setIsMobileFilterOpen(true)}
-          >
-            <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />
-            {t("publicGallery.mobileFilter", "篩選與搜尋")}
-          </Button>
-          <span className="text-xs text-muted-foreground">
-            {mobileResultCount} {view === "scripts" ? t("publicReader.worksUnit", "部") : t("publicGallery.results", "筆")}
-          </span>
+        <div className="mb-3 space-y-2 lg:hidden">
+          <div className="flex items-center gap-2">
+            <div className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={
+                  view === "scripts" ? t("publicGallery.searchScripts", "搜尋劇本...") :
+                  view === "authors" ? t("publicGallery.searchAuthors", "搜尋作者...") :
+                  t("publicGallery.searchOrgs", "搜尋組織...")
+                }
+                className="h-9 rounded-full border-border/70 bg-background pl-8 pr-8 text-sm"
+              />
+              {searchTerm ? (
+                <button
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setSearchTerm("")}
+                  aria-label={t("publicGallery.clearSearch", "清除搜尋")}
+                  title={t("publicGallery.clearSearch", "清除搜尋")}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              ) : null}
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="relative h-9 rounded-full px-3 text-xs"
+              onClick={() => setIsMobileFilterOpen(true)}
+            >
+              <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />
+              {t("publicGallery.mobileFilter", "篩選")}
+              {activeMobileFilterCount > 0 ? (
+                <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] text-primary-foreground">
+                  {activeMobileFilterCount}
+                </span>
+              ) : null}
+            </Button>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">
+              {mobileResultCount} {view === "scripts" ? t("publicReader.worksUnit", "部") : t("publicGallery.results", "筆")}
+            </span>
+            {view === "scripts" && hasScriptFilters ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-7 rounded-full px-2 text-xs text-muted-foreground"
+                onClick={resetScriptFilters}
+              >
+                {t("publicGallery.clearFilters")}
+              </Button>
+            ) : null}
+          </div>
         </div>
         <div className="flex flex-col lg:flex-row gap-8">
             {/* Sidebar Filters */}
@@ -662,31 +769,55 @@ export default function PublicGalleryPage() {
 
         <div className="flex-1 min-w-0 flex flex-col">
             {view === "scripts" && (
-              <div className="mb-4 hidden lg:flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
-                <span className="text-xs font-medium text-foreground">
-                  {t("galleryFilterBar.usageRights", "使用權限")}
-                </span>
-                {usageOptions.map((opt) => (
-                  <Button
-                    key={opt.value}
-                    type="button"
-                    size="sm"
-                    variant={usageFilter === opt.value ? "default" : "outline"}
-                    className="h-7 min-w-[92px] rounded-full px-3 text-xs"
-                    onClick={() => setUsageFilter(opt.value)}
-                  >
-                    {opt.label}
-                  </Button>
-                ))}
-                <div className="ml-auto flex items-center gap-2">
-                  <span className="text-xs font-medium text-foreground">
+              <div className="mb-4 hidden lg:flex items-center gap-4 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <span className="shrink-0 text-xs font-medium text-foreground">
+                    {t("galleryFilterBar.usageRights", "使用權限")}
+                  </span>
+                  {usageOptions.map((opt) => (
+                    <Button
+                      key={opt.value}
+                      type="button"
+                      size="sm"
+                      variant={usageFilter === opt.value ? "default" : "outline"}
+                      className={`h-7 min-w-[92px] rounded-full px-3 text-xs transition-colors ${
+                        usageFilter === opt.value
+                          ? "border border-primary bg-primary text-primary-foreground shadow ring-1 ring-primary/35"
+                          : "border-transparent bg-transparent text-muted-foreground shadow-none hover:bg-muted/60 hover:text-foreground"
+                      }`}
+                      onClick={() => setUsageFilter(opt.value)}
+                    >
+                      {opt.label}
+                    </Button>
+                  ))}
+                  {hasScriptFilters && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={resetScriptFilters}
+                    >
+                      {t("publicGallery.clearFilters")}
+                    </Button>
+                  )}
+                </div>
+
+                <div className="h-6 w-px bg-border/70" aria-hidden="true" />
+
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 text-xs font-medium text-foreground">
                     {t("publicGallery.viewMode", "顯示模式")}
                   </span>
                   <Button
                     type="button"
                     size="sm"
                     variant={viewMode === "standard" ? "default" : "outline"}
-                    className="h-7 rounded-full px-3 text-xs"
+                    className={`h-7 rounded-full px-3 text-xs transition-colors ${
+                      viewMode === "standard"
+                        ? "border border-primary bg-primary text-primary-foreground shadow ring-1 ring-primary/35"
+                        : "border-transparent bg-transparent text-muted-foreground shadow-none hover:bg-muted/60 hover:text-foreground"
+                    }`}
                     onClick={() => handleViewModeChange("standard")}
                   >
                     {t("publicGallery.viewStandard", "圖文排版")}
@@ -695,22 +826,15 @@ export default function PublicGalleryPage() {
                     type="button"
                     size="sm"
                     variant={viewMode === "compact" ? "default" : "outline"}
-                    className="h-7 rounded-full px-3 text-xs"
+                    className={`h-7 rounded-full px-3 text-xs transition-colors ${
+                      viewMode === "compact"
+                        ? "border border-primary bg-primary text-primary-foreground shadow ring-1 ring-primary/35"
+                        : "border-transparent bg-transparent text-muted-foreground shadow-none hover:bg-muted/60 hover:text-foreground"
+                    }`}
                     onClick={() => handleViewModeChange("compact")}
                   >
                     {t("publicGallery.viewCompact", "緊湊排版")}
                   </Button>
-                  {usageFilter !== "all" && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                      onClick={() => setUsageFilter("all")}
-                    >
-                      {t("publicGallery.clearFilters")}
-                    </Button>
-                  )}
                 </div>
               </div>
             )}
@@ -724,13 +848,34 @@ export default function PublicGalleryPage() {
                       <div key={i} className="aspect-[2/3] bg-muted/30 animate-pulse rounded-lg" />
                   ))}
               </div>
+          ) : viewMode === "compact" ? (
+              <div className="space-y-4 animate-in fade-in duration-500">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-foreground">
+                        {isDefaultView ? t("publicGallery.scripts", "作品列表") : t("publicGallery.searchResults", "篩選結果")} <span className="text-muted-foreground text-sm font-normal">({filteredScripts.length})</span>
+                    </h2>
+                </div>
+                <div className="space-y-2">
+                    {filteredScripts.map(script => (
+                        <ScriptGalleryCard
+                            key={script.id}
+                            script={script}
+                            variant="compact"
+                            onClick={() => handleScriptClick(script)}
+                        />
+                    ))}
+                </div>
+              </div>
           ) : isDefaultView ? (
               <div className="space-y-12 animate-in fade-in duration-500">
                   {/* Category Lane: Top Viewed */}
                   {topViewedScripts.length > 0 && (
                       <HorizontalScrollLane title={t("publicGallery.categoryTopViewed", "點閱排行")}>
                           {topViewedScripts.map(script => (
-                              <div key={script.id} className="w-[145px] sm:w-[178px] shrink-0 snap-start">
+                              <div
+                                key={script.id}
+                                className="w-[145px] sm:w-[178px] shrink-0 snap-start"
+                              >
                                   <ScriptGalleryCard 
                                       script={script}
                                       variant="standard"
@@ -745,7 +890,10 @@ export default function PublicGalleryPage() {
                   {latestScripts.length > 0 && (
                       <HorizontalScrollLane title={t("publicGallery.categoryLatest", "最新發布")}>
                           {latestScripts.map(script => (
-                              <div key={script.id} className="w-[145px] sm:w-[178px] shrink-0 snap-start">
+                              <div
+                                key={script.id}
+                                className="w-[145px] sm:w-[178px] shrink-0 snap-start"
+                              >
                                   <ScriptGalleryCard 
                                       script={script}
                                       variant="standard"
@@ -796,17 +944,14 @@ export default function PublicGalleryPage() {
                 <div
                   className="grid gap-4 sm:gap-5 animate-in fade-in duration-500"
                   style={{
-                    gridTemplateColumns:
-                      viewMode === "compact"
-                        ? "repeat(auto-fill, minmax(280px, 1fr))"
-                        : "repeat(auto-fill, minmax(165px, 1fr))",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(165px, 1fr))",
                   }}
                 >
                     {filteredScripts.map(script => (
                         <ScriptGalleryCard 
                             key={script.id}
                             script={script}
-                            variant={viewMode === "compact" ? "compact" : "standard"}
+                            variant="standard"
                             onClick={() => handleScriptClick(script)}
                         />
                     ))}
@@ -899,7 +1044,7 @@ export default function PublicGalleryPage() {
           <div className="h-[calc(100vh-96px)] overflow-y-auto px-4 pb-6">
             {view === "scripts" && (
               <div className="mt-4 space-y-4 rounded-lg border border-border/60 bg-muted/20 p-3">
-                <div>
+                <div className="space-y-2">
                   <p className="mb-2 text-xs font-medium text-foreground">{t("galleryFilterBar.usageRights", "使用權限")}</p>
                   <div className="flex flex-wrap gap-2">
                     {usageOptions.map((opt) => (
@@ -908,7 +1053,11 @@ export default function PublicGalleryPage() {
                         type="button"
                         size="sm"
                         variant={usageFilter === opt.value ? "default" : "outline"}
-                        className="h-7 rounded-full px-3 text-xs"
+                        className={`h-7 rounded-full px-3 text-xs transition-colors ${
+                          usageFilter === opt.value
+                            ? "border border-primary bg-primary text-primary-foreground shadow ring-1 ring-primary/35"
+                            : "border-transparent bg-transparent text-muted-foreground shadow-none hover:bg-muted/60 hover:text-foreground"
+                        }`}
                         onClick={() => setUsageFilter(opt.value)}
                       >
                         {opt.label}
@@ -916,14 +1065,21 @@ export default function PublicGalleryPage() {
                     ))}
                   </div>
                 </div>
-                <div>
+
+                <div className="h-px bg-border/70" aria-hidden="true" />
+
+                <div className="space-y-2">
                   <p className="mb-2 text-xs font-medium text-foreground">{t("publicGallery.viewMode", "顯示模式")}</p>
                   <div className="flex items-center gap-2">
                     <Button
                       type="button"
                       size="sm"
                       variant={viewMode === "standard" ? "default" : "outline"}
-                      className="h-7 rounded-full px-3 text-xs"
+                      className={`h-7 rounded-full px-3 text-xs transition-colors ${
+                        viewMode === "standard"
+                          ? "border border-primary bg-primary text-primary-foreground shadow ring-1 ring-primary/35"
+                          : "border-transparent bg-transparent text-muted-foreground shadow-none hover:bg-muted/60 hover:text-foreground"
+                      }`}
                       onClick={() => handleViewModeChange("standard")}
                     >
                       {t("publicGallery.viewStandard", "圖文排版")}
@@ -932,25 +1088,25 @@ export default function PublicGalleryPage() {
                       type="button"
                       size="sm"
                       variant={viewMode === "compact" ? "default" : "outline"}
-                      className="h-7 rounded-full px-3 text-xs"
+                      className={`h-7 rounded-full px-3 text-xs transition-colors ${
+                        viewMode === "compact"
+                          ? "border border-primary bg-primary text-primary-foreground shadow ring-1 ring-primary/35"
+                          : "border-transparent bg-transparent text-muted-foreground shadow-none hover:bg-muted/60 hover:text-foreground"
+                      }`}
                       onClick={() => handleViewModeChange("compact")}
                     >
                       {t("publicGallery.viewCompact", "緊湊排版")}
                     </Button>
                   </div>
                 </div>
-                {(usageFilter !== "all" || selectedTags.length > 0 || searchTerm.trim()) && (
+                {hasScriptFilters && (
                   <div className="pt-1">
                     <Button
                       type="button"
                       size="sm"
                       variant="ghost"
                       className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                      onClick={() => {
-                        setUsageFilter("all");
-                        setSelectedTags([]);
-                        setSearchTerm("");
-                      }}
+                      onClick={resetScriptFilters}
                     >
                       {t("publicGallery.clearFilters")}
                     </Button>

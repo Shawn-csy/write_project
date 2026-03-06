@@ -2,11 +2,14 @@ import React from "react";
 import { Button } from "../ui/button";
 import { MEDIA_FILE_ACCEPT, formatBytes } from "../../lib/mediaLibrary";
 import { useI18n } from "../../contexts/I18nContext";
+import { useAuth } from "../../contexts/AuthContext";
 import { PublisherFormRow } from "../dashboard/publisher/PublisherFormRow";
 import { useMediaLibrary } from "../../hooks/useMediaLibrary";
 
 export function MediaLibrarySettings() {
   const { t } = useI18n();
+  const { profile } = useAuth();
+  const isAdmin = Boolean(profile?.isAdmin);
   const {
     items,
     stats,
@@ -17,7 +20,7 @@ export function MediaLibrarySettings() {
     uploadFromInput,
     clearAll,
     deleteByUrl,
-  } = useMediaLibrary({ t });
+  } = useMediaLibrary({ t, maxBytes: isAdmin ? Number.POSITIVE_INFINITY : undefined });
 
   React.useEffect(() => {
     refresh();
@@ -32,7 +35,7 @@ export function MediaLibrarySettings() {
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className="font-medium">{t("mediaLibrary.usage")}</span>
-            <span className="text-muted-foreground">{formatBytes(stats.usedBytes)} / {formatBytes(stats.maxBytes)}</span>
+            <span className="text-muted-foreground">{formatBytes(stats.usedBytes)} / {Number.isFinite(stats.maxBytes) ? formatBytes(stats.maxBytes) : "無上限"}</span>
           </div>
           <div className="h-2 rounded-full bg-muted">
             <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${Math.round((stats.ratio || 0) * 100)}%` }} />

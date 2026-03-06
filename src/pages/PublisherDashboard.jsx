@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
 import { Button } from "../components/ui/button";
 import { PanelLeftOpen, FileText, UserRound, Building2, Layers3, CircleHelp } from "lucide-react";
+import { LanguageSwitcher } from "../components/common/LanguageSwitcher";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { ScriptMetadataDialog } from "../components/dashboard/ScriptMetadataDialog";
 import { getMorandiTagStyle } from "../lib/tagColors";
@@ -32,6 +33,7 @@ import { usePublisherOrgQueues } from "../hooks/publisher/usePublisherOrgQueues"
 import { usePublisherCrudActions } from "../hooks/publisher/usePublisherCrudActions";
 import { buildAffiliatedOrganizations } from "../lib/orgAffiliation";
 import { SpotlightGuideOverlay } from "../components/common/SpotlightGuideOverlay";
+import { TOPBAR_INNER_CLASS, TOPBAR_OUTER_CLASS } from "../components/layout/topbarLayout";
 
 
 export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMenu }) {
@@ -425,56 +427,52 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
   });
 
   return (
-    <div className="h-full overflow-y-auto overflow-x-hidden bg-background">
-    <div className="container mx-auto p-6 max-w-6xl space-y-8 animate-in fade-in duration-500">
-      
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-6">
-        <div className="flex items-center gap-4">
-            {/* Mobile Menu Toggle */}
-            <div className="lg:hidden">
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => openMobileMenu?.()}
-                    title={t("publisher.expandMenu")}
-                    className="-ml-2"
-                >
-                    <PanelLeftOpen className="w-5 h-5 text-muted-foreground" />
-                </Button>
-            </div>
-            {/* Desktop Sidebar Toggle */}
-            <div className={`hidden lg:block ${isSidebarOpen ? "lg:hidden" : ""}`}>
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => setSidebarOpen && setSidebarOpen(true)}
-                    title={t("publisher.expandSidebar")}
-                    className="-ml-2"
-                >
-                    <PanelLeftOpen className="w-5 h-5 text-muted-foreground" />
-                </Button>
-            </div>
-            
-             {/* Mobile Menu Toggle (Assuming openMobileMenu is passed or handled via Context/MainLayout logic, but here we might need to rely on MainLayout context if not passed) */}
-            {/* Ideally openMobileMenu should be passed. App.jsx didn't pass it yet. Let's rely on setSidebarOpen usually being sufficient or we need openMobileMenu.
-                Actually MainLayout passes setIsMobileDrawerOpen to children? No.
-                App.jsx routes don't easily pass it.
-                Let's stick to Desktop Toggle first which is the complaint.
-            */}
-
-            <div>
-                <h1 className="text-3xl font-serif font-bold tracking-tight">{t("publisher.title")}</h1>
-                <p className="text-muted-foreground mt-1">{t("publisher.subtitle")}</p>
-            </div>
-        </div>
-        <div className="flex items-center gap-3">
-            <Button type="button" variant="outline" size="sm" onClick={handleStartStudioGuide}>
-                <CircleHelp className="w-4 h-4 mr-1.5" />
-                {t("publisher.guide")}
+    <div className="flex h-full flex-col bg-background">
+      <div className={`${TOPBAR_OUTER_CLASS} shrink-0`}>
+        <div className={`${TOPBAR_INNER_CLASS} h-16 flex items-center gap-3`}>
+          <div className="lg:hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => openMobileMenu?.()}
+              title={t("publisher.expandMenu")}
+            >
+              <PanelLeftOpen className="w-5 h-5 text-muted-foreground" />
             </Button>
+          </div>
+          <div className={`hidden lg:block ${isSidebarOpen ? "lg:hidden" : ""}`}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen && setSidebarOpen(true)}
+              title={t("publisher.expandSidebar")}
+            >
+              <PanelLeftOpen className="w-5 h-5 text-muted-foreground" />
+            </Button>
+          </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate font-serif font-semibold text-lg text-primary">{t("publisher.title")}</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher selectClassName="h-8 bg-background/70 backdrop-blur" />
+            <Button type="button" variant="outline" size="sm" className="h-8" onClick={handleStartStudioGuide}>
+              <CircleHelp className="w-4 h-4 mr-1.5" />
+              {t("publisher.guide")}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8"
+              onClick={() => navigate("/")}
+            >
+              {t("nav.gallery", "公開台本")}
+            </Button>
+          </div>
         </div>
       </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6">
+      <div className="mx-auto w-full max-w-6xl space-y-6 animate-in fade-in duration-500">
 
       {myInvites.length > 0 && (
         <div className="border rounded-lg p-4 bg-muted/20 mb-6">
@@ -716,6 +714,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         onNext={handleStudioGuideNext}
         nextLabel={studioGuideIndex === studioGuideSteps.length - 1 ? t("publisher.guideDone") : t("publisher.guideNext")}
       />
+      </div>
     </div>
     </div>
   );

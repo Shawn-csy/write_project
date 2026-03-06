@@ -399,3 +399,19 @@ class AdminUserRecord(BaseModel):
     createdAt: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class HomepageBannerItem(BaseModel):
+    id: str = ""
+    title: str = ""
+    content: str = ""
+    link: str = ""
+    imageUrl: str = ""
+
+
+class HomepageBannerSetting(BaseModel):
+    title: str = ""
+    content: str = ""
+    link: str = ""
+    imageUrl: str = ""
+    items: List[HomepageBannerItem] = []
