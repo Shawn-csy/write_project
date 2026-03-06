@@ -1,6 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { Loader2, ClipboardPaste, FileText, Eye, CheckCircle2, CircleHelp } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Textarea } from "../../ui/textarea";
@@ -93,7 +92,6 @@ export function ImportScriptDialog({
     currentPath
 }) {
     const { t } = useI18n();
-    const navigate = useNavigate();
     const [step, setStep] = useState(STEPS.INPUT);
     const [rawInput, setRawInput] = useState("");
     const [title, setTitle] = useState("");
@@ -102,6 +100,7 @@ export function ImportScriptDialog({
     const [importing, setImporting] = useState(false);
     const [showGuide, setShowGuide] = useState(false);
     const [showFormatQuickInfo, setShowFormatQuickInfo] = useState(false);
+    const [showFormatDetails, setShowFormatDetails] = useState(false);
     const [guideIndex, setGuideIndex] = useState(0);
     const [spotlightRect, setSpotlightRect] = useState(null);
     const { toast } = useToast();
@@ -164,6 +163,18 @@ export function ImportScriptDialog({
         ]),
         [t]
     );
+    const detailRows = useMemo(
+        () => ([
+            { name: t("importFormat.markerChapter"), desc: t("importFormat.usageChapter"), sample: "1. 第一章", render: t("importFormat.markerChapter") },
+            { name: t("importFormat.markerCharacter"), desc: t("importFormat.usageCharacter"), sample: "#C 小雨", render: "小雨：" },
+            { name: t("importFormat.markerTone"), desc: t("importFormat.usageTone"), sample: "(低聲)", render: "語氣/動作樣式" },
+            { name: t("importFormat.markerPostFx"), desc: t("importFormat.usagePostFx"), sample: "【殘響】", render: "後製註記樣式" },
+            { name: t("importFormat.markerSeSingle"), desc: t("importFormat.usageSeSingle"), sample: "#SE 關門聲", render: "單行音效樣式" },
+            { name: t("importFormat.markerBg"), desc: t("importFormat.usageBg"), sample: "//BG 夜晚街景", render: "背景音樣式" },
+            { name: t("importFormat.markerPosition"), desc: t("importFormat.usagePosition"), sample: "@舞台左側", render: "位置指示樣式" },
+        ]),
+        [t]
+    );
     
     // 重置狀態
     const resetState = useCallback(() => {
@@ -176,6 +187,7 @@ export function ImportScriptDialog({
         setMetadata({});
         setShowGuide(false);
         setShowFormatQuickInfo(false);
+        setShowFormatDetails(false);
         setGuideIndex(0);
         setSpotlightRect(null);
     }, []);
@@ -448,8 +460,8 @@ export function ImportScriptDialog({
                 <div className="flex-1 overflow-hidden min-h-0 pt-4">
                     {/* Step 1: 輸入內容 */}
                     {step === STEPS.INPUT && (
-                        <div className="flex flex-col gap-4 h-full">
-                            <div ref={guidePasteRef} className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-4 h-full min-h-0">
+                            <div ref={guidePasteRef} className="flex flex-col gap-4 flex-1 min-h-[280px]">
                             <div className="flex items-center gap-2">
                                 <Input 
                                     placeholder={t("importDialog.scriptTitle")}
@@ -467,7 +479,7 @@ export function ImportScriptDialog({
                                     setText={setRawInput}
                                 />
                             </div>
-                            <div ref={guideCharacterRef} className="border rounded-md p-3 space-y-2 bg-muted/20">
+                            <div ref={guideCharacterRef} className="border rounded-md p-3 space-y-2 bg-muted/20 shrink-0">
                                 <div className="flex items-center justify-between gap-3">
                                     <div className="space-y-0.5">
                                         <Label htmlFor="auto-character-whole-line">{t("importDialog.characterAutoLabel")}</Label>
@@ -624,17 +636,33 @@ export function ImportScriptDialog({
                         </div>
                     ))}
                 </div>
+                {showFormatDetails ? (
+                    <div className="rounded-lg border overflow-hidden max-h-[40vh] overflow-y-auto">
+                        <div className="grid grid-cols-[120px_1fr_140px_120px] bg-muted/40 text-xs font-medium">
+                            <div className="px-3 py-2 border-r">{t("importFormat.nameCol")}</div>
+                            <div className="px-3 py-2 border-r">{t("importFormat.descCol")}</div>
+                            <div className="px-3 py-2 border-r">{t("importFormat.sampleCol")}</div>
+                            <div className="px-3 py-2">{t("importFormat.renderCol")}</div>
+                        </div>
+                        {detailRows.map((row) => (
+                            <div key={row.name} className="grid grid-cols-[120px_1fr_140px_120px] text-xs border-t">
+                                <div className="px-3 py-2 border-r font-medium">{row.name}</div>
+                                <div className="px-3 py-2 border-r text-muted-foreground">{row.desc}</div>
+                                <div className="px-3 py-2 border-r font-mono">{row.sample}</div>
+                                <div className="px-3 py-2 text-muted-foreground">{row.render}</div>
+                            </div>
+                        ))}
+                    </div>
+                ) : null}
                 <DialogFooter>
+                    <Button
+                        variant="secondary"
+                        onClick={() => setShowFormatDetails((prev) => !prev)}
+                    >
+                        {showFormatDetails ? t("common.hide", "收合") : t("importDialog.formatGuideDetail")}
+                    </Button>
                     <Button variant="outline" onClick={() => setShowFormatQuickInfo(false)}>
                         {t("common.cancel")}
-                    </Button>
-                    <Button
-                        onClick={() => {
-                            setShowFormatQuickInfo(false);
-                            navigate("/help/import-format");
-                        }}
-                    >
-                        {t("importDialog.formatGuideDetail")}
                     </Button>
                 </DialogFooter>
             </DialogContent>

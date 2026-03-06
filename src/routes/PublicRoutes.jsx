@@ -9,7 +9,7 @@ const OrganizationPage = lazyWithRefreshRetry(() => import("../pages/Organizatio
 const PublicSeriesPage = lazyWithRefreshRetry(() => import("../pages/PublicSeriesPage"), "page-public-series");
 const PublicAboutPage = lazyWithRefreshRetry(() => import("../pages/PublicAboutPage"), "page-public-about");
 const PublicLicensePage = lazyWithRefreshRetry(() => import("../pages/PublicLicensePage"), "page-public-license");
-const PublicImportFormatPage = lazyWithRefreshRetry(() => import("../pages/PublicImportFormatPage"), "page-public-import-format");
+const PublicHelpPage = lazyWithRefreshRetry(() => import("../pages/PublicHelpPage"), "page-public-help");
 
 const routeFallback = <div className="p-8 text-center text-muted-foreground">Loading...</div>;
 
@@ -76,7 +76,7 @@ export function renderPublicRoutes({ scriptManager, navProps }) {
         path="/help"
         element={
           <Suspense fallback={routeFallback}>
-            <PublicImportFormatPage />
+            <PublicHelpPage />
           </Suspense>
         }
       />
@@ -84,7 +84,7 @@ export function renderPublicRoutes({ scriptManager, navProps }) {
         path="/help/import-format"
         element={
           <Suspense fallback={routeFallback}>
-            <PublicImportFormatPage />
+            <PublicHelpPage />
           </Suspense>
         }
       />
