@@ -67,7 +67,7 @@ export function ScriptMetadataActivitySection({
               <p>{bannerGuide.recommended}</p>
             </div>
             {activityBannerUploadError && <p className="text-xs text-destructive">{activityBannerUploadError}</p>}
-            {activityBannerUploadWarning && <p className="text-xs text-amber-700 dark:text-amber-300">{activityBannerUploadWarning}</p>}
+            {activityBannerUploadWarning && <p className="text-xs text-[color:var(--license-term-fg)]">{activityBannerUploadWarning}</p>}
             <div className="mt-1 h-28 w-full overflow-hidden rounded-md border bg-muted/20">
               {activityBannerUrl && !activityBannerPreviewFailed ? (
                 <img

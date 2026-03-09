@@ -1,5 +1,8 @@
 
 import json
+import time
+
+from models import OrganizationMembership, User
 
 def test_get_settings_empty(client):
     """Test getting settings for a new user"""
@@ -61,3 +64,71 @@ def test_marker_themes(client):
     themes = response.json()
     assert len(themes) == 1
     assert themes[0]["id"] == created_theme["id"]
+
+
+def test_get_settings_invalid_json_falls_back_to_empty_and_sets_primary_org(client, db_session):
+    now = int(time.time() * 1000)
+    db_session.add(
+        User(
+            id="settings_invalid_json_user",
+            handle="settings_invalid_json_user",
+            settings="{not-json",
+            createdAt=now,
+            lastLogin=now,
+        )
+    )
+    db_session.add(
+        OrganizationMembership(
+            id="membership-1",
+            userId="settings_invalid_json_user",
+            orgId="org-primary",
+            role="member",
+            createdAt=now,
+            updatedAt=now,
+        )
+    )
+    db_session.commit()
+
+    response = client.get("/api/me", headers={"X-User-ID": "settings_invalid_json_user"})
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["settings"] == {}
+    assert payload["organizationIds"] == ["org-primary"]
+    assert payload["organizationId"] == "org-primary"
+
+
+def test_get_settings_admin_user_returns_is_admin_true(client):
+    response = client.get("/api/me", headers={"X-User-ID": "admin-owner"})
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["id"] == "admin-owner"
+    assert payload["isAdmin"] is True
+
+
+def test_update_settings_duplicate_handle_returns_409(client, db_session):
+    now = int(time.time() * 1000)
+    db_session.add(
+        User(
+            id="owner_a",
+            handle="taken_handle",
+            createdAt=now,
+            lastLogin=now,
+        )
+    )
+    db_session.add(
+        User(
+            id="owner_b",
+            handle="free_handle",
+            createdAt=now,
+            lastLogin=now,
+        )
+    )
+    db_session.commit()
+
+    response = client.put(
+        "/api/me",
+        json={"handle": "taken_handle"},
+        headers={"X-User-ID": "owner_b"},
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Handle already taken"

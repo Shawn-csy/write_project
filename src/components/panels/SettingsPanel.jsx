@@ -66,7 +66,7 @@ function SettingsPanel({ onClose, activeTab, onTabChange }) {
         <div className="h-full grid grid-cols-1 md:grid-cols-[240px_1fr] gap-3 sm:gap-4">
           <aside
             style={activeToneVars}
-            className="rounded-xl border border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-helper-bg)]/45 backdrop-blur-sm"
+            className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-helper-bg)]/45 backdrop-blur-sm"
           >
             <div className="px-3 py-3 overflow-x-auto md:overflow-visible scrollbar-hide">
               <div className="flex md:flex-col items-center md:items-stretch gap-1 p-1 bg-muted/50 rounded-lg w-fit md:w-full whitespace-nowrap">
@@ -78,8 +78,8 @@ function SettingsPanel({ onClose, activeTab, onTabChange }) {
                     className={cn(
                       "px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 text-left border",
                       currentTab === item.key
-                        ? "border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-trigger-bg)] text-[var(--morandi-tone-trigger-fg)] shadow-sm"
-                        : "border-transparent text-muted-foreground hover:border-[var(--morandi-tone-panel-border)] hover:bg-[var(--morandi-tone-helper-bg)] hover:text-[var(--morandi-tone-helper-fg)]"
+                        ? "border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-trigger-bg)] text-[color:var(--morandi-tone-trigger-fg)] shadow-sm"
+                        : "border-transparent text-muted-foreground hover:border-[color:var(--morandi-tone-panel-border)] hover:bg-[color:var(--morandi-tone-helper-bg)] hover:text-[color:var(--morandi-tone-helper-fg)]"
                     )}
                   >
                     {item.label}
@@ -88,7 +88,7 @@ function SettingsPanel({ onClose, activeTab, onTabChange }) {
               </div>
               <p
                 style={activeToneVars}
-                className="mt-2 rounded-md border-l-4 border-[var(--morandi-tone-helper-border)] bg-[var(--morandi-tone-helper-bg)] px-2 py-1.5 text-xs text-[var(--morandi-tone-helper-fg)]"
+                className="mt-2 rounded-md border-l-4 border-[color:var(--morandi-tone-helper-border)] bg-[color:var(--morandi-tone-helper-bg)] px-2 py-1.5 text-xs text-[color:var(--morandi-tone-helper-fg)]"
               >
                 {activeTabLabel}
               </p>
@@ -97,7 +97,7 @@ function SettingsPanel({ onClose, activeTab, onTabChange }) {
 
           <div
             style={activeToneVars}
-            className="flex-1 min-h-0 overflow-y-auto scrollbar-hide rounded-xl border border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-panel-bg)] p-4 sm:p-6 space-y-6"
+            className="flex-1 min-h-0 overflow-y-auto scrollbar-hide rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-4 sm:p-6 space-y-6"
             ref={scrollContainerRef}
           >
             {currentTab === "transfer" && (

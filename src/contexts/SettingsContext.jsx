@@ -129,6 +129,10 @@ export function SettingsProvider({ children }) {
   // Update CSS variables when accent changes
   const accentConfig = accentThemes[accent] || accentThemes[defaultAccent];
   useEffect(() => {
+    document.documentElement.dataset.accent = accent;
+  }, [accent]);
+
+  useEffect(() => {
     const root = document.documentElement;
     const cfg = accentConfig;
     

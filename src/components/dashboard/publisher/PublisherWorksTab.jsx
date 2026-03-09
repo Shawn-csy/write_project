@@ -37,9 +37,11 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
     const statusBadgeClass = (script) => {
         const isPublic = script?.status === "Public" || script?.isPublic;
         return isPublic
-            ? "border-emerald-900 bg-emerald-700 text-white shadow-sm shadow-emerald-900/30 ring-1 ring-emerald-500/40 hover:bg-emerald-700"
-            : "border-slate-700 bg-slate-600 text-white hover:bg-slate-600";
+            ? "border-primary/50 bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/30 hover:bg-primary/90"
+            : "border-border bg-muted text-foreground hover:bg-muted/80";
     };
+    const warningBadgeClass = "h-5 border-[color:var(--license-term-border)] bg-[color:var(--license-term-bg)] text-[10px] font-semibold text-[color:var(--license-term-fg)]";
+    const errorBadgeClass = "h-5 border-destructive/40 bg-destructive/10 text-[10px] font-semibold text-destructive";
 
     const stats = React.useMemo(() => {
         let publicCount = 0;
@@ -259,13 +261,13 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
                                     <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                                         <span>{t("publisherWorksTab.updatedAt")}：{formatDate(Date.now())}</span>
                                         <span>•</span>
-                                        <Badge variant="outline" className="h-5 border-slate-700 bg-slate-600 text-[10px] font-semibold text-white">
+                                        <Badge variant="outline" className="h-5 border-border bg-muted text-[10px] font-semibold text-foreground">
                                             {t("publisherWorksTab.statusPrivate")}
                                         </Badge>
-                                        <Badge variant="outline" className="h-5 border-amber-500 bg-amber-50 text-[10px] font-semibold text-amber-700">
+                                        <Badge variant="outline" className={warningBadgeClass}>
                                             {t("publisherWorksTab.missingCoverBadge", "缺封面")}
                                         </Badge>
-                                        <Badge variant="outline" className="h-5 border-rose-500 bg-rose-50 text-[10px] font-semibold text-rose-700">
+                                        <Badge variant="outline" className={errorBadgeClass}>
                                             {t("publisherWorksTab.missingLicenseBadge", "缺授權")}
                                         </Badge>
                                     </div>
@@ -324,12 +326,12 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
                                                         {script.status === "Public" ? t("publisherWorksTab.statusPublic") : t("publisherWorksTab.statusPrivate")}
                                                     </Badge>
                                                     {!hasCover(script.coverUrl) && (
-                                                        <Badge variant="outline" className="h-5 border-amber-500 bg-amber-50 text-[10px] font-semibold text-amber-700">
+                                                        <Badge variant="outline" className={warningBadgeClass}>
                                                             缺封面
                                                         </Badge>
                                                     )}
                                                     {!hasCompleteLicense(script) && (
-                                                        <Badge variant="outline" className="h-5 border-rose-500 bg-rose-50 text-[10px] font-semibold text-rose-700">
+                                                        <Badge variant="outline" className={errorBadgeClass}>
                                                             缺授權
                                                         </Badge>
                                                     )}
@@ -397,12 +399,12 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
                                                         {script.status === "Public" ? t("publisherWorksTab.statusPublic") : t("publisherWorksTab.statusPrivate")}
                                                     </Badge>
                                                     {!hasCover(script.coverUrl) && (
-                                                        <Badge variant="outline" className="h-5 border-amber-500 bg-amber-50 text-[10px] font-semibold text-amber-700">
+                                                        <Badge variant="outline" className={warningBadgeClass}>
                                                             缺封面
                                                         </Badge>
                                                     )}
                                                     {!hasCompleteLicense(script) && (
-                                                        <Badge variant="outline" className="h-5 border-rose-500 bg-rose-50 text-[10px] font-semibold text-rose-700">
+                                                        <Badge variant="outline" className={errorBadgeClass}>
                                                             缺授權
                                                         </Badge>
                                                     )}

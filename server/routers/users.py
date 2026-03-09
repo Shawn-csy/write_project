@@ -14,8 +14,11 @@ def read_users_me(db: Session = Depends(get_db), ownerId: str = Depends(get_curr
         return {"id": ownerId, "settings": {}, "organizationIds": [], "isAdmin": is_admin_user(db, ownerId)}
     # Parse settings JSON
     try:
-        user.settings = json.loads(user.settings) if user.settings else {}
-    except ValueError:
+        if isinstance(user.settings, dict):
+            user.settings = user.settings
+        else:
+            user.settings = json.loads(user.settings) if user.settings else {}
+    except (ValueError, TypeError):
         user.settings = {}
     user_org_ids = crud.list_user_org_ids(db, ownerId)
     setattr(user, "organizationIds", user_org_ids)

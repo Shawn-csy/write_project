@@ -120,7 +120,13 @@ export function GalleryFilterBar({
           </div>
 
           {selectedTags.length > 0 && (
-              <div className="flex flex-wrap gap-2 p-2.5 rounded-md border border-[hsl(var(--accent)/0.35)] bg-[hsl(var(--accent)/0.08)] shadow-sm">
+              <div
+                className="flex flex-wrap gap-2 rounded-md border p-2.5 shadow-sm"
+                style={{
+                  borderColor: "var(--license-filter-border)",
+                  backgroundColor: "var(--license-filter-bg)",
+                }}
+              >
                   {selectedTags.map(tag => {
                       const isLicense = quickTagSet.has(tag);
                       const isAdult = String(tag).toLowerCase() === "r-18" || String(tag).toLowerCase() === "r18" || String(tag).toLowerCase() === "成人向";
@@ -132,8 +138,8 @@ export function GalleryFilterBar({
                               size="sm"
                               className={`rounded-full text-xs h-7 px-2.5 font-semibold border flex items-center gap-1.5 focus:outline-none shadow-sm ${
                                 isAdult
-                                  ? "bg-red-600 text-white border-red-700 hover:bg-red-700"
-                                  : "bg-[hsl(var(--accent)/0.22)] text-[hsl(var(--accent-strong))] border-[hsl(var(--accent)/0.45)] hover:bg-[hsl(var(--accent)/0.30)]"
+                                  ? "bg-destructive text-destructive-foreground border-destructive/85 hover:bg-destructive/90"
+                                  : "text-[color:var(--license-selected-fg)]"
                               }`}
                               onClick={() => toggleTag(tag)}
                               title={t("galleryFilterBar.clickToRemove", "點擊移除")}
@@ -141,6 +147,10 @@ export function GalleryFilterBar({
                                   backgroundColor: "var(--license-selected-bg)",
                                   borderColor: "var(--license-selected-border)",
                                   color: "var(--license-selected-fg)",
+                              } : !isAdult ? {
+                                  backgroundColor: "var(--license-filter-bg)",
+                                  borderColor: "var(--license-filter-border)",
+                                  color: "var(--license-filter-fg)",
                               } : undefined}
                           >
                               <span className="truncate max-w-[150px]">{label}</span>
@@ -176,7 +186,7 @@ export function GalleryFilterBar({
                           <button
                               key={`license-${opt.value}`}
                               type="button"
-                              className={`flex items-center w-full min-h-8 px-2 py-1.5 text-xs rounded-md text-left transition-colors ${isAdult ? "text-red-500 font-bold hover:bg-red-500/10" : "hover:bg-muted/50"}`}
+                              className={`flex items-center w-full min-h-8 px-2 py-1.5 text-xs rounded-md text-left transition-colors ${isAdult ? "font-bold text-destructive hover:bg-destructive/10" : "hover:bg-muted/50"}`}
                               onClick={() => toggleTag(opt.value)}
                           >
                               <span className="flex-1 truncate">{opt.label}</span>

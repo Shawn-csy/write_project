@@ -26,6 +26,9 @@ export function ScriptMetadataPublishSection({
   setCopyright,
   renderRowLabel,
 }) {
+  const selectedPositiveClass = "border-primary bg-primary text-primary-foreground ring-2 ring-primary/40 hover:bg-primary/90";
+  const selectedNegativeClass = "border-destructive bg-destructive text-destructive-foreground ring-2 ring-destructive/40 hover:bg-destructive/90";
+  const selectedWarningClass = "border-[color:var(--license-term-border)] bg-[color:var(--license-term-bg)] text-[color:var(--license-term-fg)] ring-2 ring-[color:var(--license-term-border)]/60 hover:bg-[color:var(--license-term-bg)]";
   return (
     <section id="metadata-section-publish" className="space-y-3 scroll-mt-24">
       <h3 className="text-base font-semibold">{t("scriptMetadataDialog.tabPublish", "發布設定")}</h3>
@@ -61,7 +64,7 @@ export function ScriptMetadataPublishSection({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className={`h-8 px-3 text-xs font-medium ${contentRating === opt ? (opt === "成人向" ? "border-red-600 bg-red-600 text-white ring-2 ring-red-500/40" : "border-primary bg-primary text-primary-foreground ring-2 ring-primary/40") : "border-border bg-background text-muted-foreground hover:bg-muted"}`}
+                  className={`h-8 px-3 text-xs font-medium ${contentRating === opt ? (opt === "成人向" ? selectedNegativeClass : selectedPositiveClass) : "border-border bg-background text-muted-foreground hover:bg-muted"}`}
                   onClick={() => handleSetContentRating(opt)}
                 >
                   {opt}
@@ -83,7 +86,7 @@ export function ScriptMetadataPublishSection({
                     type="button"
                     size="sm"
                     variant="outline"
-                    className={licenseCommercial === "allow" ? "border-emerald-600 bg-emerald-600 text-white ring-2 ring-emerald-500/40 hover:bg-emerald-600" : ""}
+                    className={licenseCommercial === "allow" ? selectedPositiveClass : ""}
                     onClick={() => setLicenseCommercial("allow")}
                   >
                     可
@@ -92,7 +95,7 @@ export function ScriptMetadataPublishSection({
                     type="button"
                     size="sm"
                     variant="outline"
-                    className={licenseCommercial === "disallow" ? "border-red-600 bg-red-600 text-white ring-2 ring-red-500/40 hover:bg-red-600" : ""}
+                    className={licenseCommercial === "disallow" ? selectedNegativeClass : ""}
                     onClick={() => setLicenseCommercial("disallow")}
                   >
                     不可
@@ -102,16 +105,16 @@ export function ScriptMetadataPublishSection({
               <div>
                 <div className="mb-1 text-xs text-muted-foreground">改作</div>
                 <div className="grid grid-cols-3 gap-1">
-                  <Button type="button" size="sm" variant="outline" className={licenseDerivative === "allow" ? "border-emerald-600 bg-emerald-600 text-white ring-2 ring-emerald-500/40 hover:bg-emerald-600" : ""} onClick={() => setLicenseDerivative("allow")}>可</Button>
-                  <Button type="button" size="sm" variant="outline" className={licenseDerivative === "disallow" ? "border-red-600 bg-red-600 text-white ring-2 ring-red-500/40 hover:bg-red-600" : ""} onClick={() => setLicenseDerivative("disallow")}>不可</Button>
-                  <Button type="button" size="sm" variant="outline" className={licenseDerivative === "limited" ? "border-amber-600 bg-amber-500 text-black ring-2 ring-amber-500/40 hover:bg-amber-500" : ""} onClick={() => setLicenseDerivative("limited")}>需同意</Button>
+                  <Button type="button" size="sm" variant="outline" className={licenseDerivative === "allow" ? selectedPositiveClass : ""} onClick={() => setLicenseDerivative("allow")}>可</Button>
+                  <Button type="button" size="sm" variant="outline" className={licenseDerivative === "disallow" ? selectedNegativeClass : ""} onClick={() => setLicenseDerivative("disallow")}>不可</Button>
+                  <Button type="button" size="sm" variant="outline" className={licenseDerivative === "limited" ? selectedWarningClass : ""} onClick={() => setLicenseDerivative("limited")}>需同意</Button>
                 </div>
               </div>
               <div>
                 <div className="mb-1 text-xs text-muted-foreground">修改須通知作者</div>
                 <div className="grid grid-cols-2 gap-1">
-                  <Button type="button" size="sm" variant="outline" className={licenseNotify === "required" ? "border-emerald-600 bg-emerald-600 text-white ring-2 ring-emerald-500/40 hover:bg-emerald-600" : ""} onClick={() => setLicenseNotify("required")}>需要</Button>
-                  <Button type="button" size="sm" variant="outline" className={licenseNotify === "not_required" ? "border-red-600 bg-red-600 text-white ring-2 ring-red-500/40 hover:bg-red-600" : ""} onClick={() => setLicenseNotify("not_required")}>不需要</Button>
+                  <Button type="button" size="sm" variant="outline" className={licenseNotify === "required" ? selectedPositiveClass : ""} onClick={() => setLicenseNotify("required")}>需要</Button>
+                  <Button type="button" size="sm" variant="outline" className={licenseNotify === "not_required" ? selectedNegativeClass : ""} onClick={() => setLicenseNotify("not_required")}>不需要</Button>
                 </div>
               </div>
             </div>
@@ -122,7 +125,14 @@ export function ScriptMetadataPublishSection({
         </div>
 
         <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
-          <div className="p-4 text-sm font-medium text-foreground border-l-[5px] border-amber-600 bg-amber-100/80 text-amber-950 dark:border-amber-500 dark:bg-amber-950/25 dark:text-foreground">
+          <div
+            className="p-4 text-sm font-medium text-foreground border-l-[5px]"
+            style={{
+              borderLeftColor: "var(--license-term-border)",
+              backgroundColor: "var(--license-term-bg)",
+              color: "var(--license-term-fg)",
+            }}
+          >
             <div className="text-sm font-medium text-foreground">附加條款與著作權</div>
             <div className="mt-1 text-xs text-muted-foreground">補充限制與版權聲明</div>
           </div>

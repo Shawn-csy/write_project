@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { getPersonas } from "../../lib/api/personas";
 import { getOrganizations, getOrganization } from "../../lib/api/organizations";
 import { getUserProfile } from "../../lib/api/user";
@@ -18,13 +18,20 @@ export function useScriptMetadataBootstrap({
   setMarkerThemes,
   setShowPersonaSetupDialog,
 }) {
+  const initializedForOpenRef = useRef(false);
+
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      initializedForOpenRef.current = false;
+      return;
+    }
     loadTags();
   }, [open, loadTags]);
 
   useEffect(() => {
     if (!open || !currentUser) return;
+    if (initializedForOpenRef.current) return;
+    initializedForOpenRef.current = true;
     let cancelled = false;
 
     const loadBootstrapData = async () => {
@@ -75,14 +82,5 @@ export function useScriptMetadataBootstrap({
     return () => {
       cancelled = true;
     };
-  }, [
-    currentProfile,
-    currentUser,
-    open,
-    setMarkerThemes,
-    setOrgs,
-    setPersonas,
-    setShowPersonaSetupDialog,
-    t,
-  ]);
+  }, [currentProfile, currentUser, open, setMarkerThemes, setOrgs, setPersonas, setShowPersonaSetupDialog, t]);
 }

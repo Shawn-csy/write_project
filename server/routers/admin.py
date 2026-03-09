@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from typing import Any, List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -71,7 +71,7 @@ def get_default_marker_configs(
 
 @router.put("/default-marker-configs", response_model=List[dict])
 def update_default_marker_configs(
-    payload: Any,
+    payload: Any = Body(...),
     db: Session = Depends(get_db),
     ownerId: str = Depends(get_current_user_id),
 ):

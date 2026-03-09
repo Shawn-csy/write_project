@@ -855,7 +855,7 @@ export default function PublicGalleryPage() {
                         {isDefaultView ? t("publicGallery.scripts", "作品列表") : t("publicGallery.searchResults", "篩選結果")} <span className="text-muted-foreground text-sm font-normal">({filteredScripts.length})</span>
                     </h2>
                 </div>
-                <div className="space-y-2">
+                <div className="overflow-hidden rounded-xl border border-border/65 bg-background/55 divide-y divide-border/55">
                     {filteredScripts.map(script => (
                         <ScriptGalleryCard
                             key={script.id}
@@ -1166,7 +1166,14 @@ export default function PublicGalleryPage() {
           }
         }}
       >
-        <DialogContent className="w-[94vw] max-w-2xl p-0 overflow-hidden">
+        <DialogContent
+          className="w-[94vw] max-w-2xl p-0 overflow-hidden border"
+          style={{
+            backgroundColor: "var(--license-overlay-bg)",
+            borderColor: "var(--license-overlay-border)",
+            color: "var(--license-overlay-fg)",
+          }}
+        >
           <DialogHeader className="px-5 pt-5 pb-2">
             <DialogTitle className="text-left">{termsConfig?.title || "授權條款與使用聲明"}</DialogTitle>
             <DialogDescription className="text-left">
@@ -1177,7 +1184,12 @@ export default function PublicGalleryPage() {
             <div
               ref={termsScrollRef}
               onScroll={handleTermsScroll}
-              className="max-h-[46vh] overflow-y-auto touch-pan-y rounded-md border bg-muted/20 p-4 text-sm leading-6"
+              className="max-h-[46vh] overflow-y-auto touch-pan-y rounded-md border p-4 text-sm leading-6"
+              style={{
+                backgroundColor: "var(--license-term-bg)",
+                borderColor: "var(--license-term-border)",
+                color: "var(--license-term-fg)",
+              }}
             >
               {(termsConfig?.sections || []).map((section) => (
                 <section key={section.id || section.title} className="mb-4 last:mb-0">
@@ -1189,7 +1201,15 @@ export default function PublicGalleryPage() {
                 <p className="text-muted-foreground">條款內容尚未設定。</p>
               )}
             </div>
-            <p className={`mt-2 text-xs ${termsReadToBottom || !termsRequireScroll ? "text-emerald-600" : "text-muted-foreground"}`}>
+            <p
+              className="mt-2 text-xs"
+              style={{
+                color:
+                  termsReadToBottom || !termsRequireScroll
+                    ? "var(--license-selected-fg)"
+                    : "hsl(var(--muted-foreground))",
+              }}
+            >
               {termsRequireScroll
                 ? (termsReadToBottom ? "已讀到最下方，可進行確認。" : "請先將條款內容滑到最下方。")
                 : "確認已閱條款後，可勾選確認。"}
@@ -1223,7 +1243,7 @@ export default function PublicGalleryPage() {
       <AlertDialog open={!!pendingR18Route} onOpenChange={(open) => !open && setPendingR18Route(null)}>
         <AlertDialogContent className="w-[92vw] max-w-[92vw] sm:max-w-md rounded-xl p-4 sm:p-6 gap-3">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-red-500 font-bold flex items-center gap-2 text-base sm:text-lg leading-snug">
+            <AlertDialogTitle className="text-destructive font-bold flex items-center gap-2 text-base sm:text-lg leading-snug">
               <span className="text-xl sm:text-2xl">🔞</span>
               <span>內容分級警告 (Adult Content Warning)</span>
             </AlertDialogTitle>
@@ -1242,7 +1262,7 @@ export default function PublicGalleryPage() {
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={confirmR18Consent}
-              className="w-full sm:w-auto h-10 bg-red-600 hover:bg-red-700 text-white"
+              className="w-full sm:w-auto h-10 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
               已滿 18 歲，進入觀看 (I am 18+, Enter)
             </AlertDialogAction>

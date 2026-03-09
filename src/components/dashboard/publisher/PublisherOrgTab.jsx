@@ -266,7 +266,14 @@ export function PublisherOrgTab({
                         {(viewMode === "create" || selectedOrgId) ? (
                             <>
                                 {isReadOnlyExistingOrg && (
-                                    <div className="rounded-lg border border-amber-300/60 bg-amber-50/60 px-3 py-2 text-xs text-amber-800">
+                                    <div
+                                        className="rounded-lg border px-3 py-2 text-xs"
+                                        style={{
+                                            borderColor: "var(--license-term-border)",
+                                            backgroundColor: "var(--license-term-bg)",
+                                            color: "var(--license-term-fg)",
+                                        }}
+                                    >
                                         目前為唯讀檢視，你不是此組織的管理者或擁有者，無法修改設定。
                                     </div>
                                 )}
@@ -367,9 +374,9 @@ export function PublisherOrgTab({
                                                     {logoUploadError ? (
                                                         <p className="text-destructive">{logoUploadError}</p>
                                                     ) : logoUploadWarning ? (
-                                                        <p className="text-amber-700 dark:text-amber-300">{logoUploadWarning}</p>
+                                                        <p className="text-[color:var(--license-term-fg)]">{logoUploadWarning}</p>
                                                     ) : logoPreviewFailed ? (
-                                                        <p className="text-amber-700 dark:text-amber-300">{t("publisherOrgTab.previewFailed")}</p>
+                                                        <p className="text-[color:var(--license-term-fg)]">{t("publisherOrgTab.previewFailed")}</p>
                                                     ) : (
                                                         <p className="opacity-0">placeholder</p>
                                                     )}
@@ -422,9 +429,9 @@ export function PublisherOrgTab({
                                                     {bannerUploadError ? (
                                                         <p className="text-destructive">{bannerUploadError}</p>
                                                     ) : bannerUploadWarning ? (
-                                                        <p className="text-amber-700 dark:text-amber-300">{bannerUploadWarning}</p>
+                                                        <p className="text-[color:var(--license-term-fg)]">{bannerUploadWarning}</p>
                                                     ) : bannerPreviewFailed ? (
-                                                        <p className="text-amber-700 dark:text-amber-300">{t("publisherOrgTab.bannerPreviewFailed")}</p>
+                                                        <p className="text-[color:var(--license-term-fg)]">{t("publisherOrgTab.bannerPreviewFailed")}</p>
                                                     ) : (
                                                         <p className="opacity-0">placeholder</p>
                                                     )}
