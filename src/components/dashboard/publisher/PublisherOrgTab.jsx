@@ -502,12 +502,53 @@ export function PublisherOrgTab({
                                 </div>
                             </>
                         ) : (
-                            <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground">
-                                <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
-                                    <Plus className="w-8 h-8 text-muted-foreground/30" />
+                            <div className="space-y-4">
+                                <div className="rounded-xl border border-dashed bg-muted/20 p-4">
+                                    <div className="flex items-start gap-3">
+                                        <div className="mt-0.5 h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                                            <Building2 className="h-5 w-5" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <h4 className="text-base font-semibold">{t("publisherOrgTab.emptyDemoTitle", "這是組織管理示範")}</h4>
+                                            <p className="text-sm text-muted-foreground">
+                                                {t("publisherOrgTab.emptyDemoDesc", "尚未建立組織時，教學會先用示範資料帶你了解表單、成員與邀請區。")}
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <p className="mb-2">{t("publisherOrgTab.selectOrgToEdit")}</p>
-                                <Button variant="outline" onClick={onStartCreate}>{t("publisherOrgTab.orCreateNewOrg")}</Button>
+
+                                <div id="org-guide-basic" className="rounded-lg border bg-card p-4 space-y-3">
+                                    <div className="text-sm font-semibold">{t("publisherOrgTab.emptyDemoBasicTitle", "示範：組織基本資訊")}</div>
+                                    <div className="grid gap-2 md:grid-cols-2">
+                                        <div className="rounded-md border bg-muted/20 px-3 py-2 text-xs">
+                                            <div className="text-muted-foreground">組織名稱</div>
+                                            <div className="font-medium">示範組織名稱</div>
+                                        </div>
+                                        <div className="rounded-md border bg-muted/20 px-3 py-2 text-xs">
+                                            <div className="text-muted-foreground">網站</div>
+                                            <div className="font-medium">https://example.org</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="org-guide-members" className="rounded-lg border bg-card p-4 space-y-2">
+                                    <div className="text-sm font-semibold">{t("publisherOrgTab.emptyDemoMembersTitle", "示範：成員與角色")}</div>
+                                    <p className="text-xs text-muted-foreground">
+                                        {t("publisherOrgTab.emptyDemoMembersDesc", "這裡會顯示帳號成員、作者身份，以及每位成員的組織角色。")}
+                                    </p>
+                                </div>
+
+                                <div id="org-guide-invite" className="rounded-lg border bg-card p-4 space-y-2">
+                                    <div className="text-sm font-semibold">{t("publisherOrgTab.emptyDemoInviteTitle", "示範：邀請與申請")}</div>
+                                    <p className="text-xs text-muted-foreground">
+                                        {t("publisherOrgTab.emptyDemoInviteDesc", "這裡可搜尋帳號發送邀請，並處理加入申請。")}
+                                    </p>
+                                </div>
+
+                                <div id="org-guide-save" className="flex items-center justify-between rounded-lg border bg-background/60 px-3 py-2">
+                                    <span className="text-xs text-muted-foreground">{t("publisherOrgTab.selectOrgToEdit")}</span>
+                                    <Button variant="outline" onClick={onStartCreate}>{t("publisherOrgTab.orCreateNewOrg")}</Button>
+                                </div>
                             </div>
                         )}
                     </div>
