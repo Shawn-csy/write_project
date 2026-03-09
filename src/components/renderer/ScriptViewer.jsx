@@ -119,6 +119,28 @@ function ScriptViewer({
     return '';
   }, [titleEntries, t]);
 
+  const bodySummary = useMemo(() => {
+    if (!ast?.children?.length) return "";
+    const allowedTypes = new Set(["action", "dialogue", "centered", "parenthetical", "transition"]);
+    const chunks = [];
+
+    const walk = (node) => {
+      if (!node || chunks.join(" ").length >= 320) return;
+      if (allowedTypes.has(node.type) && typeof node.text === "string") {
+        const text = node.text.replace(/\s+/g, " ").trim();
+        if (text) chunks.push(text);
+      }
+      if (Array.isArray(node.children)) {
+        node.children.forEach(walk);
+      }
+      if (Array.isArray(node.left)) node.left.forEach(walk);
+      if (Array.isArray(node.right)) node.right.forEach(walk);
+    };
+
+    ast.children.forEach(walk);
+    return chunks.join(" ").replace(/\s+/g, " ").trim().slice(0, 180);
+  }, [ast]);
+
   // Extract characters from speech/character nodes
   useEffect(() => {
     if (!ast) {
@@ -159,9 +181,9 @@ function ScriptViewer({
   }, [titlePage, onTitle, onTitleName, onHasTitle, onTitleNote]);
 
   useEffect(() => {
-    const summaryText = titleSummary || titlePage.note || '';
+    const summaryText = titleSummary || bodySummary || "";
     onSummary?.(summaryText);
-  }, [titleSummary, titlePage.note, onSummary]);
+  }, [titleSummary, bodySummary, onSummary]);
 
   useEffect(() => {
     if (!onScenes) return;

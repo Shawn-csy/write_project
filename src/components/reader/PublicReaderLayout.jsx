@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { FileCode2, FileSpreadsheet, FileText, Printer } from "lucide-react";
+import { FileSpreadsheet, FileText, Printer } from "lucide-react";
 import { SimplifiedReaderHeader } from "./SimplifiedReaderHeader";
 import { PublicScriptInfoOverlay } from "./PublicScriptInfoOverlay";
 import { PublicMarkerLegend } from "./PublicMarkerLegend";
@@ -30,6 +30,14 @@ export function PublicReaderLayout({
   onToggleMarker
 }) {
   const { t } = useI18n();
+  const escapeHtml = useCallback((value = "") =>
+    String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;")
+  , []);
   const {
     title, 
     author, 
@@ -156,23 +164,93 @@ export function PublicReaderLayout({
         background: "linear-gradient(to bottom, hsl(var(--background)), hsl(var(--muted)))",
       };
 
+  const [exportRenderedHtml, setExportRenderedHtml] = useState("");
+  const [exportRawHtml, setExportRawHtml] = useState("");
+  const externalOnProcessedHtml = viewerProps?.onProcessedHtml;
+  const externalOnRawHtml = viewerProps?.onRawHtml;
+  const mergedViewerProps = useMemo(() => ({
+    ...(viewerProps || {}),
+    onProcessedHtml: (html) => {
+      const next = html || "";
+      setExportRenderedHtml(next);
+      externalOnProcessedHtml?.(next);
+    },
+    onRawHtml: (html) => {
+      const next = html || "";
+      setExportRawHtml(next);
+      externalOnRawHtml?.(next);
+    },
+  }), [viewerProps, externalOnProcessedHtml, externalOnRawHtml]);
+
+  const licenseSummary = useMemo(() => {
+    const normalize = (value) => String(value || "").trim().toLowerCase();
+    const commercial = normalize(commercialUse);
+    const derivative = normalize(derivativeUse);
+    const notify = normalize(notifyOnModify);
+    return [
+      commercial
+        ? `商業使用：${commercial === "allow" ? "可" : "不可"}`
+        : "",
+      derivative
+        ? `改作許可：${derivative === "allow" ? "可" : derivative === "disallow" ? "不可" : "需同意"}`
+        : "",
+      notify
+        ? `修改通知：${notify === "required" ? "需要" : "不需要"}`
+        : "",
+    ].filter(Boolean);
+  }, [commercialUse, derivativeUse, notifyOnModify]);
+
+  const exportBaseName = useMemo(() => {
+    const safeTitle = String(title || "script").trim() || "script";
+    const authorName =
+      String(author?.displayName || author?.name || organization?.name || "unknown").trim() || "unknown";
+    return `${safeTitle}_${authorName}`;
+  }, [title, author?.displayName, author?.name, organization?.name]);
+
+  const pdfHeaderHtml = useMemo(() => {
+    const safeTitle = escapeHtml(title || "Script");
+    const safeSynopsis = escapeHtml(synopsis || "");
+    const safeCoverUrl = String(coverUrl || "").trim();
+    const metaRows = [];
+    if (organization?.name) metaRows.push(`組織：${escapeHtml(organization.name)}`);
+    if (author?.displayName) metaRows.push(`作者：${escapeHtml(author.displayName)}`);
+    contactLines.forEach((line) => {
+      const text = line.key ? `${line.key}: ${line.value}` : line.value;
+      if (String(text || "").trim()) metaRows.push(`聯絡：${escapeHtml(text)}`);
+    });
+    licenseSummary.forEach((item) => metaRows.push(escapeHtml(item)));
+    return `
+      <section style="margin-bottom:20px;">
+        ${safeCoverUrl ? `
+          <div style="margin-bottom:14px;">
+            <img src="${escapeHtml(safeCoverUrl)}" alt="${safeTitle}" style="width:100%;max-height:360px;object-fit:cover;border-radius:10px;border:1px solid #d6d9e0;" />
+          </div>
+        ` : ""}
+        <h1 style="margin:0 0 8px 0;font-size:28px;line-height:1.25;">${safeTitle}</h1>
+        ${safeSynopsis ? `<p style="margin:0 0 12px 0;color:#4b5563;white-space:pre-wrap;">${safeSynopsis}</p>` : ""}
+        ${metaRows.length > 0 ? `
+          <div style="padding:10px 12px;border:1px solid #d6d9e0;border-radius:10px;background:#f8fafc;">
+            ${metaRows.map((row) => `<div style="font-size:12px;line-height:1.6;color:#374151;">${row}</div>`).join("")}
+          </div>
+        ` : ""}
+      </section>
+    `.trim();
+  }, [escapeHtml, title, synopsis, coverUrl, organization?.name, author?.displayName, contactLines, licenseSummary]);
+
   const downloadOptions = [
     {
       id: "pdf",
       label: t("publicReader.exportPdf"),
       icon: Printer,
-      onClick: () => window.print(),
-      disabled: !rawScript && !title,
-    },
-    {
-      id: "fountain",
-      label: t("publicReader.downloadFountain"),
-      icon: FileCode2,
       onClick: async () => {
-        const { exportScriptAsFountain } = await loadBasicScriptExport();
-        exportScriptAsFountain(title || "script", rawScript || "");
+        const { exportScriptAsPdf } = await loadBasicScriptExport();
+        await exportScriptAsPdf(exportBaseName, {
+          text: rawScript || "",
+          renderedHtml: exportRenderedHtml || exportRawHtml || renderedHtml || "",
+          headerHtml: pdfHeaderHtml,
+        });
       },
-      disabled: !rawScript,
+      disabled: !rawScript && !title,
     },
     {
       id: "docx",
@@ -180,7 +258,7 @@ export function PublicReaderLayout({
       icon: FileText,
       onClick: async () => {
         const { exportScriptAsDocx } = await loadBasicScriptExport();
-        await exportScriptAsDocx(title || "script", { text: rawScript || "", renderedHtml });
+        await exportScriptAsDocx(exportBaseName, { text: rawScript || "", renderedHtml });
       },
       disabled: !rawScript,
     },
@@ -190,17 +268,7 @@ export function PublicReaderLayout({
       icon: FileSpreadsheet,
       onClick: async () => {
         const { exportScriptAsXlsx } = await loadXlsxScriptExport();
-        await exportScriptAsXlsx(title || "script", { text: rawScript || "", renderedHtml });
-      },
-      disabled: !rawScript,
-    },
-    {
-      id: "csv",
-      label: t("publicReader.downloadCsv"),
-      icon: FileSpreadsheet,
-      onClick: async () => {
-        const { exportScriptAsCsv } = await loadBasicScriptExport();
-        exportScriptAsCsv(title || "script", { text: rawScript || "", renderedHtml });
+        await exportScriptAsXlsx(exportBaseName, { text: rawScript || "", renderedHtml });
       },
       disabled: !rawScript,
     },
@@ -420,7 +488,7 @@ export function PublicReaderLayout({
            {...scriptSurfaceProps}
            text={rawScript}
            isLoading={isLoading}
-           viewerProps={viewerProps}
+           viewerProps={mergedViewerProps}
            // We need to inject the overlay here. 
            // I'll assume I update ScriptSurface to accept a `headerNode` prop that renders inside the scroll container.
            headerNode={

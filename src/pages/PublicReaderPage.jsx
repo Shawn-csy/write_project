@@ -497,17 +497,19 @@ They discover a glowing artifact.
         onOpenRelatedScript={(scriptId) => navigate(`/read/${scriptId}`)}
         onOpenSeries={(name) => navigate(`/series/${encodeURIComponent(name)}`)}
         onBack={() => navigate("/")} // Return to library/home
-        onShare={() => {
-            if (navigator.share) {
-                navigator.share({
-                    title: fullScriptData.title,
-                    text: fullScriptData.synopsis,
-                    url: window.location.href
-                });
-            } else {
-                navigator.clipboard.writeText(window.location.href);
-                alert("Link copied!");
+        onShare={async () => {
+            const url = window.location.href;
+            try {
+                if (navigator.clipboard?.writeText) {
+                    await navigator.clipboard.writeText(url);
+                    alert("已複製連結");
+                    return;
+                }
+            } catch (error) {
+                console.error("Failed to write share url to clipboard", error);
+                alert("複製連結失敗，請稍後再試");
             }
+            window.prompt("請複製目前網址", url);
         }}
         // Marker Props for Header (same source as ScriptViewer)
         validMarkerConfigs={publicMarkerConfigs}
