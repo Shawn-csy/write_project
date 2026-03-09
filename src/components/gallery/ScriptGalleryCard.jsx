@@ -69,7 +69,7 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
         onClick={handleCardClick}
         className="group relative overflow-hidden rounded-none border-0 bg-transparent shadow-none hover:cursor-pointer"
       >
-        <div className="flex items-stretch gap-2.5 px-3 py-2 transition-colors duration-200 hover:bg-muted/30">
+        <div className="mx-2 my-1 flex items-stretch gap-2.5 rounded-lg border border-transparent px-3 py-2 transition-all duration-200 hover:border-primary/35 hover:bg-muted/35">
           <div className="w-[44px] shrink-0">
             <div className="aspect-[2/3] w-full overflow-hidden rounded-sm border border-border/40 bg-muted/25 shadow-sm">
               {coverUrl ? (

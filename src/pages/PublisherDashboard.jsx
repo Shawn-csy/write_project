@@ -134,12 +134,32 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
   };
 
 
-  const currentUserId = currentUser?.uid || currentProfile?.id || null;
+  const currentUserIds = React.useMemo(() => {
+      return Array.from(new Set([
+          currentUser?.uid,
+          currentProfile?.id,
+          currentProfile?.uid,
+          currentProfile?.userId,
+      ].filter(Boolean)));
+  }, [currentProfile?.id, currentProfile?.uid, currentProfile?.userId, currentUser?.uid]);
+  const currentUserId = currentUserIds[0] || null;
   const currentOrgRole = React.useMemo(() => {
-      if (!currentUserId || !selectedOrgId) return null;
-      const me = (orgMembers?.users || []).find((u) => u.id === currentUserId);
-      return me?.organizationRole || null;
-  }, [currentUserId, selectedOrgId, orgMembers]);
+      if (!selectedOrgId) return null;
+      const me = (orgMembers?.users || []).find((u) => currentUserIds.includes(u.id));
+      const memberRole = me?.organizationRole || null;
+      if (memberRole) return memberRole;
+      const selectedOrg = (orgsForPersona || []).find((o) => o.id === selectedOrgId);
+      const fallbackRole =
+          selectedOrg?.organizationRole ||
+          selectedOrg?.myRole ||
+          selectedOrg?.memberRole ||
+          selectedOrg?.role ||
+          null;
+      if (fallbackRole) return fallbackRole;
+      const ownerId = selectedOrg?.ownerId || selectedOrg?.ownerUid || selectedOrg?.ownerUserId || null;
+      if (ownerId && currentUserIds.includes(ownerId)) return "owner";
+      return null;
+  }, [selectedOrgId, orgMembers, currentUserIds, orgsForPersona]);
   const canManageOrgMembers = currentOrgRole === "owner" || currentOrgRole === "admin";
   const tabCounts = React.useMemo(() => ({
       works: scripts.length,
@@ -147,12 +167,6 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
       org: orgsForPersona.length,
       series: seriesList.length,
   }), [scripts.length, personas.length, orgsForPersona.length, seriesList.length]);
-  const tabDescriptions = React.useMemo(() => ({
-      works: "管理作品公開狀態、封面與授權資訊",
-      profile: "管理作者身份、作者頁顯示內容與組織展示",
-      org: "管理組織資訊、成員與角色權限",
-      series: "管理系列封面、摘要與收錄作品",
-  }), []);
   const tabTone = MORANDI_STUDIO_TONE_VARS;
   const renderTabCount = (count) => (
       count ? <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">{count}</span> : null
@@ -517,7 +531,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 <TabsTrigger
                   value="works"
                   style={tabTone.works}
-                  className="h-11 justify-start px-3 border border-transparent transition-colors data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)]"
+                  className="h-11 justify-start px-3 border border-transparent bg-background/70 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/50 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]"
                 >
                     <span className="flex items-center gap-2 text-xs sm:text-sm">
                         <FileText className="h-4 w-4" />
@@ -528,7 +542,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 <TabsTrigger
                   value="profile"
                   style={tabTone.profile}
-                  className="h-11 justify-start px-3 border border-transparent transition-colors data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)]"
+                  className="h-11 justify-start px-3 border border-transparent bg-background/70 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/50 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]"
                 >
                     <span className="flex items-center gap-2 text-xs sm:text-sm">
                         <UserRound className="h-4 w-4" />
@@ -539,7 +553,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 <TabsTrigger
                   value="org"
                   style={tabTone.org}
-                  className="h-11 justify-start px-3 border border-transparent transition-colors data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)]"
+                  className="h-11 justify-start px-3 border border-transparent bg-background/70 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/50 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]"
                 >
                     <span className="flex items-center gap-2 text-xs sm:text-sm">
                         <Building2 className="h-4 w-4" />
@@ -550,7 +564,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 <TabsTrigger
                   value="series"
                   style={tabTone.series}
-                  className="h-11 justify-start px-3 border border-transparent transition-colors data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)]"
+                  className="h-11 justify-start px-3 border border-transparent bg-background/70 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/50 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]"
                 >
                     <span className="flex items-center gap-2 text-xs sm:text-sm">
                         <Layers3 className="h-4 w-4" />
@@ -559,12 +573,6 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                     </span>
                 </TabsTrigger>
             </TabsList>
-            <div
-              style={tabTone[activeTab] || tabTone.works}
-              className="mt-2 rounded-md border-l-4 border-[color:var(--morandi-tone-helper-border)] bg-[color:var(--morandi-tone-helper-bg)] px-2 py-1.5 text-xs text-[color:var(--morandi-tone-helper-fg)]"
-            >
-                {tabDescriptions[activeTab] || tabDescriptions.works}
-            </div>
         </div>
 
         {/* 1. My Works Tab */}

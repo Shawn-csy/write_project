@@ -11,6 +11,7 @@ import { CoverPlaceholder } from "../ui/CoverPlaceholder";
 import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
 
 const PUBLIC_READER_GUIDE_STORAGE_KEY = "public-reader-guide-seen-v1";
+const PUBLIC_READER_TOC_OPEN_STORAGE_KEY = "public-reader-toc-open-v1";
 
 export function PublicReaderLayout({
   script, // { content, title, ...meta }
@@ -46,13 +47,62 @@ export function PublicReaderLayout({
     disableCopy
   } = script || {};
 
-  const contactValue = typeof contact === "object"
-    ? Object.entries(contact || {})
-        .map(([key, value]) => `${key}: ${value}`)
-        .join(" / ")
-    : (contact || "");
+  const contactLines = useMemo(() => {
+    const toPairsFromObject = (obj) =>
+      Object.entries(obj || {})
+        .map(([key, value]) => ({
+          key: String(key || "").trim(),
+          value: String(value ?? "").trim(),
+        }))
+        .filter((entry) => entry.key && entry.value);
+
+    if (contact && typeof contact === "object" && !Array.isArray(contact)) {
+      return toPairsFromObject(contact);
+    }
+
+    let raw = String(contact || "").trim();
+    if (!raw) return [];
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return toPairsFromObject(parsed);
+      }
+      if (Array.isArray(parsed)) {
+        const list = parsed
+          .map((item) => String(item ?? "").trim())
+          .filter(Boolean);
+        return list.map((value) => ({ key: "", value }));
+      }
+      raw = String(parsed ?? "").trim();
+    } catch {}
+
+    return raw
+      .split(/\r?\n|\/|\||；|;|，|,/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .map((value) => ({ key: "", value }));
+  }, [contact]);
+
+  const contactRender = contactLines.length > 0 ? (
+    <div className="space-y-1.5">
+      {contactLines.map((line, idx) => (
+        <div key={`${line.key || "line"}-${idx}`} className="leading-5">
+          {line.key ? (
+            <>
+              <span className="text-muted-foreground">{line.key}：</span>
+              <span className="ml-1">{line.value}</span>
+            </>
+          ) : (
+            <span>{line.value}</span>
+          )}
+        </div>
+      ))}
+    </div>
+  ) : null;
+
   const metaItems = [
-    { label: t("publicScriptInfo.contact"), value: contactValue },
+    { label: t("publicScriptInfo.contact"), render: contactRender },
     script?.showMarkerLegend && validMarkerConfigs?.length > 0
       ? {
           label: t("publicReader.markerLegend"),
@@ -160,7 +210,14 @@ export function PublicReaderLayout({
   const [showGuide, setShowGuide] = useState(false);
   const [guideIndex, setGuideIndex] = useState(0);
   const [guideSpotlightRect, setGuideSpotlightRect] = useState(null);
-  const [tocOpen, setTocOpen] = useState(false);
+  const [tocOpen, setTocOpen] = useState(() => {
+    try {
+      if (typeof window === "undefined") return false;
+      return localStorage.getItem(PUBLIC_READER_TOC_OPEN_STORAGE_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
   const guideSteps = useMemo(() => ([
     {
       title: t("publicReader.guideTocButtonTitle", "目錄按鈕"),
@@ -284,6 +341,14 @@ export function PublicReaderLayout({
       window.removeEventListener("scroll", refreshGuideSpotlight, true);
     };
   }, [showGuide, guideIndex, tocOpen, refreshGuideSpotlight]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(PUBLIC_READER_TOC_OPEN_STORAGE_KEY, tocOpen ? "1" : "0");
+    } catch (err) {
+      console.error("Failed to persist reader toc state", err);
+    }
+  }, [tocOpen]);
 
   // Content protection CSS class
   const protectionClass = disableCopy ? 'select-none' : '';

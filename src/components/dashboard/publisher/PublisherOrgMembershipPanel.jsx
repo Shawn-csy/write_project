@@ -140,7 +140,7 @@ export function PublisherOrgMembershipPanel({
         </PublisherFormRow>
       </div>
 
-      {canManageOrgMembers && (
+      {canManageOrgMembers ? (
         <>
           <div id="org-guide-invite">
             <PublisherFormRow label={t("publisherOrgTab.inviteMember")}>
@@ -211,6 +211,12 @@ export function PublisherOrgMembershipPanel({
             </div>
           </PublisherFormRow>
         </>
+      ) : (
+        <PublisherFormRow label={t("publisherOrgTab.inviteMember", "邀請成員")}>
+          <div className="border rounded-md p-3 bg-muted/10 text-xs text-muted-foreground">
+            {t("publisherOrgTab.noInvitePermissionHint", "你目前沒有管理員/擁有者權限，因此無法查看與操作邀請、審核清單。")}
+          </div>
+        </PublisherFormRow>
       )}
     </>
   );

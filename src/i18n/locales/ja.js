@@ -122,6 +122,8 @@ const messages = {
     "downloadXlsx": "Excel (.xlsx) をダウンロード",
     "downloadCsv": "CSV をダウンロード",
     "markerLegend": "マーカー凡例",
+    "toc": "詳細情報",
+    "openToc": "詳細情報サイドバーを開く",
     "guide": "ガイド",
     "guideHeaderTitle": "ページ操作エリア",
     "guideHeaderDesc": "言語切替、マーカー表示、外観調整、ダウンロード、共有ができます。",

@@ -91,6 +91,7 @@ export default function PublicGalleryPage() {
   const [topTags, setTopTags] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortKey, setSortKey] = useState("recent");
+  const [featuredLaneMode, setFeaturedLaneMode] = useState(null);
   const [pendingR18Route, setPendingR18Route] = useState(null);
   const [pendingScript, setPendingScript] = useState(null);
   const [termsConfig, setTermsConfig] = useState(null);
@@ -347,12 +348,19 @@ export default function PublicGalleryPage() {
   const isDefaultView = searchTerm.trim() === "" && selectedTags.length === 0 && usageFilter === "all" && segmentFilter === SEGMENT_KEYS.all;
 
   const topViewedScripts = useMemo(() => {
-    return [...filteredScripts].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 15);
+    return [...filteredScripts].sort((a, b) => (b.views || 0) - (a.views || 0));
   }, [filteredScripts]);
 
   const latestScripts = useMemo(() => {
-    return [...filteredScripts].sort((a, b) => (b.lastModified || b.updatedAt || 0) - (a.lastModified || a.updatedAt || 0)).slice(0, 15);
+    return [...filteredScripts].sort((a, b) => (b.lastModified || b.updatedAt || 0) - (a.lastModified || a.updatedAt || 0));
   }, [filteredScripts]);
+  const topViewedScriptsPreview = useMemo(() => topViewedScripts.slice(0, 15), [topViewedScripts]);
+  const latestScriptsPreview = useMemo(() => latestScripts.slice(0, 15), [latestScripts]);
+  const featuredLaneScripts = useMemo(() => {
+    if (featuredLaneMode === "top") return topViewedScripts;
+    if (featuredLaneMode === "latest") return latestScripts;
+    return filteredScripts;
+  }, [featuredLaneMode, topViewedScripts, latestScripts, filteredScripts]);
   const featuredSeries = useMemo(() => {
     const buckets = new Map();
     for (const script of scriptsWithMeta || []) {
@@ -435,6 +443,12 @@ export default function PublicGalleryPage() {
     { value: "commercial", label: t("publicGallery.usageCommercial") },
   ]), [t]);
   const hasScriptFilters = searchTerm.trim() !== "" || selectedTags.length > 0 || usageFilter !== "all" || segmentFilter !== SEGMENT_KEYS.all;
+  useEffect(() => {
+    if (!isDefaultView && featuredLaneMode) setFeaturedLaneMode(null);
+  }, [isDefaultView, featuredLaneMode]);
+  useEffect(() => {
+    if (view !== "scripts" && featuredLaneMode) setFeaturedLaneMode(null);
+  }, [view, featuredLaneMode]);
   const activeTagFilterCount =
     view === "scripts" ? selectedTags.length :
     view === "authors" ? selectedAuthorTags.length :
@@ -866,12 +880,16 @@ export default function PublicGalleryPage() {
                     ))}
                 </div>
               </div>
-          ) : isDefaultView ? (
+          ) : isDefaultView && !featuredLaneMode ? (
               <div className="space-y-12 animate-in fade-in duration-500">
                   {/* Category Lane: Top Viewed */}
-                  {topViewedScripts.length > 0 && (
-                      <HorizontalScrollLane title={t("publicGallery.categoryTopViewed", "點閱排行")}>
-                          {topViewedScripts.map(script => (
+                  {topViewedScriptsPreview.length > 0 && (
+                      <HorizontalScrollLane
+                        title={t("publicGallery.categoryTopViewed", "點閱排行")}
+                        actionLabel={t("publicGallery.viewAll", "查看全部")}
+                        onAction={() => setFeaturedLaneMode("top")}
+                      >
+                          {topViewedScriptsPreview.map(script => (
                               <div
                                 key={script.id}
                                 className="w-[145px] sm:w-[178px] shrink-0 snap-start"
@@ -887,9 +905,13 @@ export default function PublicGalleryPage() {
                   )}
 
                   {/* Category Lane: Latest Uploads */}
-                  {latestScripts.length > 0 && (
-                      <HorizontalScrollLane title={t("publicGallery.categoryLatest", "最新發布")}>
-                          {latestScripts.map(script => (
+                  {latestScriptsPreview.length > 0 && (
+                      <HorizontalScrollLane
+                        title={t("publicGallery.categoryLatest", "最新發布")}
+                        actionLabel={t("publicGallery.viewAll", "查看全部")}
+                        onAction={() => setFeaturedLaneMode("latest")}
+                      >
+                          {latestScriptsPreview.map(script => (
                               <div
                                 key={script.id}
                                 className="w-[145px] sm:w-[178px] shrink-0 snap-start"
@@ -938,8 +960,24 @@ export default function PublicGalleryPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-foreground">
-                        {t("publicGallery.searchResults", "篩選結果")} <span className="text-muted-foreground text-sm font-normal">({filteredScripts.length})</span>
+                        {featuredLaneMode === "top"
+                          ? t("publicGallery.categoryTopViewed", "點閱排行")
+                          : featuredLaneMode === "latest"
+                          ? t("publicGallery.categoryLatest", "最新發布")
+                          : t("publicGallery.searchResults", "篩選結果")}{" "}
+                        <span className="text-muted-foreground text-sm font-normal">({featuredLaneScripts.length})</span>
                     </h2>
+                    {featuredLaneMode ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => setFeaturedLaneMode(null)}
+                      >
+                        {t("publicGallery.backToFeatured", "返回精選")}
+                      </Button>
+                    ) : null}
                 </div>
                 <div
                   className="grid gap-4 sm:gap-5 animate-in fade-in duration-500"
@@ -947,7 +985,7 @@ export default function PublicGalleryPage() {
                     gridTemplateColumns: "repeat(auto-fill, minmax(165px, 1fr))",
                   }}
                 >
-                    {filteredScripts.map(script => (
+                    {featuredLaneScripts.map(script => (
                         <ScriptGalleryCard 
                             key={script.id}
                             script={script}

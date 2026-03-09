@@ -122,6 +122,23 @@ export function PublicScriptInfoOverlay({
   const hasPrefaceItems = compactItems.length > 0 || expandedTopItems.length > 0 || expandedBottomItems.length > 0;
 
   const usageBadges = React.useMemo(() => {
+    const toneStyle = {
+      positive: {
+        borderColor: "color-mix(in srgb, var(--marker-color-green) 42%, transparent)",
+        backgroundColor: "color-mix(in srgb, var(--marker-color-green) 14%, transparent)",
+        color: "var(--marker-color-green)",
+      },
+      negative: {
+        borderColor: "color-mix(in srgb, var(--marker-color-red) 44%, transparent)",
+        backgroundColor: "color-mix(in srgb, var(--marker-color-red) 14%, transparent)",
+        color: "var(--marker-color-red)",
+      },
+      caution: {
+        borderColor: "color-mix(in srgb, var(--marker-color-amber) 46%, transparent)",
+        backgroundColor: "color-mix(in srgb, var(--marker-color-amber) 16%, transparent)",
+        color: "var(--marker-color-amber)",
+      },
+    };
     const normalize = (value) => String(value || "").trim().toLowerCase();
     const commercial = normalize(commercialUse);
     const derivative = normalize(derivativeUse);
@@ -133,9 +150,7 @@ export function PublicScriptInfoOverlay({
         key: "commercial",
         label: "商業使用",
         value: commercial === "allow" ? "可" : "不可",
-        className: commercial === "allow"
-          ? "border-primary/40 bg-primary/10 text-primary"
-          : "border-destructive/40 bg-destructive/10 text-destructive",
+        style: commercial === "allow" ? toneStyle.positive : toneStyle.negative,
       });
     }
     if (derivative) {
@@ -145,11 +160,11 @@ export function PublicScriptInfoOverlay({
         key: "derivative",
         label: "改作許可",
         value: isAllow ? "可" : isDisallow ? "不可" : "需同意",
-        className: isAllow
-          ? "border-primary/40 bg-primary/10 text-primary"
+        style: isAllow
+          ? toneStyle.positive
           : isDisallow
-            ? "border-destructive/40 bg-destructive/10 text-destructive"
-            : "border-[color:var(--license-term-border)] bg-[color:var(--license-term-bg)] text-[color:var(--license-term-fg)]",
+            ? toneStyle.negative
+            : toneStyle.caution,
       });
     }
     if (notify) {
@@ -158,9 +173,7 @@ export function PublicScriptInfoOverlay({
         key: "notify",
         label: "修改須通知作者",
         value: required ? "需要" : "不需要",
-        className: required
-          ? "border-primary/40 bg-primary/10 text-primary"
-          : "border-destructive/40 bg-destructive/10 text-destructive",
+        style: required ? toneStyle.positive : toneStyle.negative,
       });
     }
     return items;
@@ -225,7 +238,7 @@ export function PublicScriptInfoOverlay({
       {usageBadges.length > 0 && (
         <div className="flex max-w-2xl flex-wrap items-center justify-center gap-2">
           {usageBadges.map((item) => (
-            <Badge key={item.key} variant="outline" className={`px-2.5 py-1 text-xs font-semibold ${item.className}`}>
+            <Badge key={item.key} variant="outline" className="px-2.5 py-1 text-xs font-semibold" style={item.style}>
               {item.label}：{item.value}
             </Badge>
           ))}

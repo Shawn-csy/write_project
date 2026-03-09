@@ -460,8 +460,8 @@ export function ImportScriptDialog({
                 <div className="flex-1 overflow-hidden min-h-0 pt-4">
                     {/* Step 1: 輸入內容 */}
                     {step === STEPS.INPUT && (
-                        <div className="flex flex-col gap-4 h-full min-h-0">
-                            <div ref={guidePasteRef} className="flex flex-col gap-4 flex-1 min-h-[280px]">
+                        <div className="flex flex-col gap-4 h-full min-h-0 overflow-y-auto pr-1">
+                            <div ref={guidePasteRef} className="flex flex-col gap-4 flex-1 min-h-[220px]">
                             <div className="flex items-center gap-2">
                                 <Input 
                                     placeholder={t("importDialog.scriptTitle")}
