@@ -4,10 +4,10 @@ import { useSettings } from "../../contexts/SettingsContext";
 import { useMarkerSettingsState } from "../../hooks/settings/useMarkerSettingsState";
 
 import { MarkerThemeHeader } from "./marker/MarkerThemeHeader";
-import { MarkerWizard } from "./marker/MarkerWizard";
 import { MarkerSettingsHeader } from "./marker/layout/MarkerSettingsHeader";
 import { MarkerSettingsModeContent } from "./marker/layout/MarkerSettingsModeContent";
 import { useI18n } from "../../contexts/I18nContext";
+import { useAuth } from "../../contexts/AuthContext";
 
 function formatSaveStatus({ isSaving, parseError, isDirty, lastSavedAt, t }) {
   if (isSaving) return t("markerSettings.saving");
@@ -27,6 +27,8 @@ function formatSaveStatus({ isSaving, parseError, isDirty, lastSavedAt, t }) {
 
 export function MarkerSettings({ sectionRef }) {
   const { t } = useI18n();
+  const { profile } = useAuth();
+  const isAdmin = Boolean(profile?.isAdmin);
   const {
     markerConfigs,
     setMarkerConfigs,
@@ -41,12 +43,14 @@ export function MarkerSettings({ sectionRef }) {
     updateThemeDescription,
     updateThemePublicity,
   } = useSettings();
+  const readOnly = !isAdmin && currentThemeId === "default";
 
   const [viewMode, setViewMode] = useState("ui");
   const markerState = useMarkerSettingsState({
     markerConfigs,
     setMarkerConfigs,
     viewMode,
+    readOnly,
   });
 
   const {
@@ -54,8 +58,6 @@ export function MarkerSettings({ sectionRef }) {
     setLocalConfigs,
     expandedId,
     setExpandedId,
-    wizardOpen,
-    setWizardOpen,
     jsonText,
     setJsonText,
     parseError,
@@ -64,7 +66,7 @@ export function MarkerSettings({ sectionRef }) {
     lastSavedAt,
     existingIds,
     updateMarker,
-    addMarkerFromWizard,
+    addMarker,
     removeMarker,
     applyJson,
     isAdvancedMode,
@@ -80,6 +82,7 @@ export function MarkerSettings({ sectionRef }) {
     [localConfigs, expandedId]
   );
   const statusText = formatSaveStatus({ isSaving, parseError, isDirty, lastSavedAt, t });
+  const readonlyStatusText = readOnly ? "預設主題為唯讀，請先建立或切換到自訂主題再編輯" : statusText;
 
   return (
     <Card
@@ -89,7 +92,7 @@ export function MarkerSettings({ sectionRef }) {
       <MarkerSettingsHeader
         viewMode={viewMode}
         setViewMode={setViewMode}
-        statusText={statusText}
+        statusText={readonlyStatusText}
       />
 
       <div className="px-5 py-2 border-b bg-background/50 shrink-0">
@@ -104,6 +107,7 @@ export function MarkerSettings({ sectionRef }) {
           updateThemeDescription={updateThemeDescription}
           updateThemePublicity={updateThemePublicity}
           currentUser={currentUser}
+          readOnly={false}
         />
       </div>
 
@@ -119,7 +123,7 @@ export function MarkerSettings({ sectionRef }) {
           selectedConfig={selectedConfig}
           selectedIndex={selectedIndex}
           existingIds={existingIds}
-          onOpenWizard={() => setWizardOpen(true)}
+          onAddMarker={addMarker}
           jsonText={jsonText}
           setJsonText={setJsonText}
           parseError={parseError}
@@ -128,14 +132,9 @@ export function MarkerSettings({ sectionRef }) {
           isSaving={isSaving}
           isAdvancedMode={isAdvancedMode}
           setIsAdvancedMode={setIsAdvancedMode}
+          readOnly={readOnly}
         />
       </div>
-
-      <MarkerWizard
-        open={wizardOpen}
-        onClose={() => setWizardOpen(false)}
-        onComplete={addMarkerFromWizard}
-      />
     </Card>
   );
 }

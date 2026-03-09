@@ -9,6 +9,7 @@ export function MarkerJsonEditor({
   onApplyJson,
   isSaving = false,
   isDirty = false,
+  readOnly = false,
 }) {
     const { t } = useI18n();
     return (
@@ -18,6 +19,7 @@ export function MarkerJsonEditor({
             value={jsonText}
             onChange={(e) => setJsonText(e.target.value)}
             spellCheck={false}
+            readOnly={readOnly}
           />
           <div className="flex items-center justify-between">
             <div className={`text-xs ${parseError ? "text-destructive" : "text-muted-foreground"}`}>
@@ -28,7 +30,7 @@ export function MarkerJsonEditor({
               size="sm"
               variant="outline"
               onClick={onApplyJson}
-              disabled={Boolean(parseError) || !isDirty || isSaving}
+              disabled={readOnly || Boolean(parseError) || !isDirty || isSaving}
               className="h-8 text-xs"
             >
               {isSaving ? t("markerJsonEditor.saving") : t("markerJsonEditor.applyAndSave")}

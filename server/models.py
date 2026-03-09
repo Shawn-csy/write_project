@@ -198,3 +198,43 @@ class Persona(Base):
 Script.personaId = Column(String, ForeignKey("personas.id"), nullable=True)
 Script.persona = relationship("Persona", lazy="joined")
 Script.disableCopy = Column(Boolean, default=False)  # Content protection: disable copy on public page
+
+
+class PublicTermsAcceptance(Base):
+    __tablename__ = "public_terms_acceptances"
+
+    id = Column(String, primary_key=True, index=True)
+    termsKey = Column(String, index=True, default="public_reader_terms")
+    termsVersion = Column(String, index=True)
+    scriptId = Column(String, ForeignKey("scripts.id"), nullable=True, index=True)
+    userId = Column(String, ForeignKey("users.id"), nullable=True, index=True)
+    visitorId = Column(String, nullable=True, index=True)
+    acceptedAt = Column(Integer, default=lambda: int(time.time() * 1000), index=True)
+    ipAddress = Column(String, default="")
+    forwardedFor = Column(String, default="")
+    userAgent = Column(Text, default="")
+    acceptLanguage = Column(String, default="")
+    referer = Column(String, default="")
+    origin = Column(String, default="")
+    host = Column(String, default="")
+    clientMeta = Column(JSON, default=dict)
+    headerSnapshot = Column(JSON, default=dict)
+
+
+class AdminUser(Base):
+    __tablename__ = "admin_users"
+
+    id = Column(String, primary_key=True, index=True)
+    userId = Column(String, ForeignKey("users.id"), nullable=True, index=True)
+    email = Column(String, nullable=True, index=True)
+    createdBy = Column(String, ForeignKey("users.id"), nullable=True)
+    createdAt = Column(Integer, default=lambda: int(time.time() * 1000), index=True)
+
+
+class SiteSetting(Base):
+    __tablename__ = "site_settings"
+
+    key = Column(String, primary_key=True, index=True)
+    value = Column(Text, default="")
+    updatedBy = Column(String, ForeignKey("users.id"), nullable=True)
+    updatedAt = Column(Integer, default=lambda: int(time.time() * 1000), index=True)

@@ -23,7 +23,7 @@ export function SettingsProvider({ children }) {
   const { resolvedTheme, setTheme } = useTheme();
 
   const isDark = resolvedTheme === "dark";
-  const { currentUser } = useAuth();
+  const { currentUser, profile } = useAuth();
   const isRemoteUpdate = useRef(false);
 
   // --- Persistent State ---
@@ -121,13 +121,17 @@ export function SettingsProvider({ children }) {
   const [statsConfig, setStatsConfig] = usePersistentState("statsConfig", defaultStatsConfig);
 
   // --- Theme Hook ---
-  const themes = useMarkerThemes(currentUser);
+  const themes = useMarkerThemes(currentUser, Boolean(profile?.isAdmin));
 
   // API Helper
   const apiCall = (url, method, body) => serviceApiCall(currentUser, url, method, body);
   
   // Update CSS variables when accent changes
   const accentConfig = accentThemes[accent] || accentThemes[defaultAccent];
+  useEffect(() => {
+    document.documentElement.dataset.accent = accent;
+  }, [accent]);
+
   useEffect(() => {
     const root = document.documentElement;
     const cfg = accentConfig;

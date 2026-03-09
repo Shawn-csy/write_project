@@ -199,9 +199,9 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                             <div className="pl-4 border-l-2 border-primary/50 text-muted-foreground">{t("stepSymbolConfig.contentHere")}</div>
                             {config.pause && (
                                 <>
-                                    <div className="text-orange-500">{config.pause} {config.pauseLabel || t("stepSymbolConfig.pause")}</div>
+                                    <div className="text-[color:var(--license-term-fg)]">{config.pause} {config.pauseLabel || t("stepSymbolConfig.pause")}</div>
                                     <div className="text-muted-foreground">{t("stepSymbolConfig.interruptedContent")}</div>
-                                    <div className="text-orange-500">{config.pause} {t("stepSymbolConfig.resume")}</div>
+                                    <div className="text-[color:var(--license-term-fg)]">{config.pause} {t("stepSymbolConfig.resume")}</div>
                                     <div className="pl-4 border-l-2 border-primary/50 text-muted-foreground">{t("stepSymbolConfig.moreContent")}</div>
                                 </>
                             )}
@@ -231,7 +231,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="col-span-2 space-y-1">
                         <label className="text-xs text-muted-foreground">
-                            {t("stepSymbolConfig.markerName")} <span className="text-red-500">*</span>
+                            {t("stepSymbolConfig.markerName")} <span className="text-destructive">*</span>
                         </label>
                         <Input
                             value={config.label || ''}
@@ -239,7 +239,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                             placeholder={t("stepSymbolConfig.markerNamePlaceholder")}
                             className={cn(
                                 "h-9",
-                                !hasLabel && "border-red-500/50 focus-visible:ring-red-500"
+                                !hasLabel && "border-destructive/60 focus-visible:ring-destructive"
                             )}
                         />
                     </div>
@@ -260,7 +260,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                     <div className="space-y-1">
                         <label className="text-xs text-muted-foreground">
                             {isRange ? t("stepSymbolConfig.startSymbol") : isInline ? t("stepSymbolConfig.leftBracket") : t("stepSymbolConfig.prefixSymbol")}
-                            <span className="text-red-500">*</span>
+                            <span className="text-destructive">*</span>
                         </label>
                         <Input
                             value={config.start || ''}
@@ -268,7 +268,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                             placeholder={isRange ? '>>SE' : isInline ? '(' : '#SE'}
                             className={cn(
                                 "h-9 font-mono text-center",
-                                !hasStartSymbol && "border-red-500/50 focus-visible:ring-red-500"
+                                !hasStartSymbol && "border-destructive/60 focus-visible:ring-destructive"
                             )}
                         />
                     </div>
@@ -278,7 +278,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                         <div className="space-y-1">
                             <label className="text-xs text-muted-foreground">
                             {isRange ? t("stepSymbolConfig.endSymbol") : t("stepSymbolConfig.rightBracket")}
-                            <span className="text-red-500">*</span>
+                            <span className="text-destructive">*</span>
                             </label>
                             <Input
                                 value={config.end || ''}
@@ -286,7 +286,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                                 placeholder={isRange ? '<<SE' : ')'}
                                 className={cn(
                                     "h-9 font-mono text-center",
-                                    !hasEndSymbol && "border-red-500/50 focus-visible:ring-red-500"
+                                    !hasEndSymbol && "border-destructive/60 focus-visible:ring-destructive"
                                 )}
                             />
                         </div>
@@ -319,8 +319,14 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
 
             {/* 區間模式 - 暫停設定 */}
             {isRange && (
-                <div className="space-y-3 p-3 rounded-lg bg-orange-500/5 border border-orange-500/20">
-                    <h4 className="text-sm font-medium flex items-center gap-2 text-orange-600">
+                <div
+                    className="space-y-3 rounded-lg border p-3"
+                    style={{
+                        borderColor: "var(--license-filter-border)",
+                        backgroundColor: "var(--license-filter-bg)",
+                    }}
+                >
+                    <h4 className="text-sm font-medium flex items-center gap-2 text-[color:var(--license-term-fg)]">
                         <Info className="w-3.5 h-3.5" />
                         {t("stepSymbolConfig.pauseFeature")}
                     </h4>
@@ -352,8 +358,8 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
 
             {/* 行內模式 - 關鍵字設定 */}
             {isInline && (
-                <div className="space-y-3 p-3 rounded-lg bg-purple-500/5 border border-purple-500/20">
-                    <h4 className="text-sm font-medium flex items-center gap-2 text-purple-600">
+                <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                    <h4 className="text-sm font-medium flex items-center gap-2 text-primary">
                         <Info className="w-3.5 h-3.5" />
                         {t("stepSymbolConfig.keywordFilter")}
                     </h4>
@@ -378,7 +384,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                                 type="checkbox"
                                 checked={!!config.dimIfNotKeyword}
                                 onChange={(e) => updateField('dimIfNotKeyword', e.target.checked)}
-                                className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                                className="h-4 w-4 rounded border-input text-primary focus:ring-ring"
                             />
                             <span className="text-xs text-muted-foreground">{t("stepSymbolConfig.dimIfNotKeyword")}</span>
                         </label>
@@ -388,7 +394,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
 
             {/* 驗證提示 */}
             {(!hasLabel || !hasStartSymbol || (isRange && !hasEndSymbol)) && (
-                <div className="flex items-center gap-2 p-2 rounded bg-red-500/10 text-red-600 text-xs">
+                <div className="flex items-center gap-2 rounded bg-destructive/10 p-2 text-xs text-destructive">
                     <AlertCircle className="w-4 h-4 shrink-0" />
                     <span>{t("stepSymbolConfig.fillRequiredFields")}</span>
                 </div>
@@ -399,7 +405,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                     <h4 className="text-sm font-medium">{t("stepSymbolConfig.liveMatchTest")}</h4>
                     <span className={cn(
                         "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px]",
-                        sampleResult.matched ? "bg-emerald-500/10 text-emerald-600" : "bg-muted text-muted-foreground"
+                        sampleResult.matched ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
                     )}>
                         {sampleResult.matched ? <CheckCircle2 className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
                         {sampleResult.matched ? t("stepSymbolConfig.matched") : t("stepSymbolConfig.notMatched")}
@@ -411,7 +417,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                     placeholder={isRange ? t("stepSymbolConfig.samplePlaceholderRange") : isInline ? t("stepSymbolConfig.samplePlaceholderInline") : t("stepSymbolConfig.samplePlaceholderSingle")}
                     className="min-h-[90px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-ring"
                 />
-                <p className={cn("text-xs", sampleResult.matched ? "text-emerald-600" : "text-muted-foreground")}>
+                <p className={cn("text-xs", sampleResult.matched ? "text-primary" : "text-muted-foreground")}>
                     {sampleResult.reason}
                 </p>
             </div>
@@ -502,7 +508,7 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
                                 </button>
                                 <button
                                     type="button"
-                                    className="rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-xs text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-300"
+                                    className="rounded border border-primary/30 bg-primary/10 px-2 py-1 text-xs text-primary hover:bg-primary/15"
                                     onClick={applyPublicMarkerToDraft}
                                 >
                                     {t("stepSymbolConfig.applyToDraft")}

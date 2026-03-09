@@ -1,9 +1,9 @@
-export const DEFAULT_MARKER_RULES_NAME = "談聲聆格式";
+export const DEFAULT_MARKER_RULES_NAME = "預設格式";
 
 export const DEFAULT_MARKER_RULES = [
   {
     id: "rule-numbered-chapter-title",
-    label: "章節標題 (01. ...)",
+    label: "章節標題",
     type: "block",
     isBlock: true,
     parseAs: "scene_heading",
@@ -27,17 +27,18 @@ export const DEFAULT_MARKER_RULES = [
   },
   {
     id: "rule-se-performer",
-    label: "聲優效果音 (*...)",
+    label: "聲優效果音",
     type: "inline",
-    matchMode: "enclosure",
-    start: "(*",
-    end: ")",
+    matchMode: "regex",
+    // 支援 (*) 與 (＊)；同時接受全形括號版本（（*）/（＊））
+    regex: "[\\(（](?:\\*|＊)([^\\)）]*)[\\)）]",
     priority: 990,
     style: {
-      color: "#E91E63",
-      backgroundColor: "#FCE4EC",
-      fontWeight: "bold",
+      color: "inherit",
+      backgroundColor: "transparent",
+      fontWeight: "normal",
     },
+    renderer: { template: "({{content}})" },
   },
   {
     id: "rule-tone-general",
@@ -52,7 +53,7 @@ export const DEFAULT_MARKER_RULES = [
   },
   {
     id: "rule-post-effect",
-    label: "後製效果 【...】",
+    label: "後製效果",
     type: "inline",
     matchMode: "enclosure",
     start: "【",
@@ -70,6 +71,7 @@ export const DEFAULT_MARKER_RULES = [
     type: "inline",
     matchMode: "prefix",
     start: "#SE",
+    caseInsensitive: true,
     isBlock: false,
     priority: 960,
     style: {
@@ -95,11 +97,12 @@ export const DEFAULT_MARKER_RULES = [
   },
   {
     id: "se-continuous",
-    label: "持續音效 (SE)",
+    label: "持續音效",
     type: "block",
     matchMode: "range",
     start: ">>SE",
     end: "<<SE",
+    caseInsensitive: true,
     isBlock: true,
     priority: 940,
     style: {
@@ -115,12 +118,45 @@ export const DEFAULT_MARKER_RULES = [
   },
   {
     id: "rule-bg-start",
-    label: "背景音 //BG",
+    label: "背景音開始",
     type: "block",
     matchMode: "prefix",
     start: "//BG",
+    caseInsensitive: true,
     isBlock: true,
     priority: 930,
+    style: {
+      color: "#333333",
+      backgroundColor: "#e1efd9",
+      fontStyle: "italic",
+    },
+    renderer: { template: "({{content}})" },
+  },
+  {
+    id: "rule-bg-mid",
+    label: "背景音中途指示",
+    type: "block",
+    matchMode: "prefix",
+    start: "/\\BG",
+    caseInsensitive: true,
+    isBlock: true,
+    priority: 929,
+    style: {
+      color: "#333333",
+      backgroundColor: "#e1efd9",
+      fontStyle: "italic",
+    },
+    renderer: { template: "({{content}})" },
+  },
+  {
+    id: "rule-bg-end",
+    label: "背景音結束",
+    type: "block",
+    matchMode: "prefix",
+    start: "\\\\BG",
+    caseInsensitive: true,
+    isBlock: true,
+    priority: 928,
     style: {
       color: "#333333",
       backgroundColor: "#e1efd9",
@@ -149,7 +185,7 @@ export const DEFAULT_MARKER_RULES = [
   },
   {
     id: "action",
-    label: "內文 (Action)",
+    label: "內文",
     start: "",
     end: "",
     isBlock: true,

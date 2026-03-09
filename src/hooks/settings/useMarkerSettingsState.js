@@ -5,10 +5,10 @@ export function useMarkerSettingsState({
   markerConfigs,
   setMarkerConfigs,
   viewMode,
+  readOnly = false,
 }) {
   const [localConfigs, setLocalConfigs] = useState(markerConfigs || []);
   const [expandedId, setExpandedId] = useState(null);
-  const [wizardOpen, setWizardOpen] = useState(false);
   const [isAdvancedMode, setIsAdvancedMode] = useState(false);
   const [jsonText, setJsonText] = useState("");
   const [parseError, setParseError] = useState("");
@@ -59,6 +59,11 @@ export function useMarkerSettingsState({
   }, [jsonText, viewMode]);
 
   useEffect(() => {
+    if (readOnly) {
+      setIsDirty(false);
+      setIsSaving(false);
+      return;
+    }
     if (!isDirty || isSaving) return;
     if (viewMode === "json" && parseError) return;
 
@@ -81,6 +86,7 @@ export function useMarkerSettingsState({
 
     return () => clearTimeout(timer);
   }, [
+    readOnly,
     isDirty,
     isSaving,
     viewMode,
@@ -91,6 +97,7 @@ export function useMarkerSettingsState({
   ]);
 
   const updateMarker = useCallback((index, field, value) => {
+    if (readOnly) return;
     setLocalConfigs((prev) => {
       const next = [...prev];
       if (!next[index]) return prev;
@@ -104,20 +111,40 @@ export function useMarkerSettingsState({
       }
       return next;
     });
-  }, []);
+  }, [readOnly]);
 
-  const addMarkerFromWizard = useCallback((newMarkerConfig) => {
+  const addMarker = useCallback(() => {
+    if (readOnly) return;
+    const nextIndex = localConfigs.length + 1;
+    const id = `custom-marker-${Date.now().toString(36)}`;
+    const newMarkerConfig = {
+      id,
+      label: `新標記 ${nextIndex}`,
+      type: "block",
+      isBlock: true,
+      matchMode: "prefix",
+      start: `#M${nextIndex}`,
+      end: "",
+      priority: 1000,
+      style: {
+        color: "#333333",
+        backgroundColor: "transparent",
+        fontWeight: "normal",
+      },
+      renderer: { template: "({{content}})" },
+    };
     setLocalConfigs((prev) =>
       [newMarkerConfig, ...prev].map((item, index) => ({
         ...item,
         priority: 1000 - index * 10,
       }))
     );
-    setExpandedId(newMarkerConfig.id);
-  }, []);
+    setExpandedId(id);
+  }, [readOnly, localConfigs.length]);
 
   const removeMarker = useCallback(
     (index) => {
+      if (readOnly) return;
       const removed = localConfigs[index];
       setLocalConfigs((prev) => {
         const next = [...prev];
@@ -131,24 +158,23 @@ export function useMarkerSettingsState({
         setExpandedId(null);
       }
     },
-    [localConfigs, expandedId]
+    [localConfigs, expandedId, readOnly]
   );
 
   const applyJson = useCallback(() => {
+    if (readOnly) return;
     if (parseError) return;
     const { value, error } = safeParseThemeConfigsText(jsonText);
     if (error || !value) return;
     setLocalConfigs(value);
     setIsDirty(true);
-  }, [jsonText, parseError]);
+  }, [jsonText, parseError, readOnly]);
 
   return {
     localConfigs,
     setLocalConfigs,
     expandedId,
     setExpandedId,
-    wizardOpen,
-    setWizardOpen,
     isAdvancedMode,
     setIsAdvancedMode,
     jsonText,
@@ -159,7 +185,7 @@ export function useMarkerSettingsState({
     lastSavedAt,
     existingIds,
     updateMarker,
-    addMarkerFromWizard,
+    addMarker,
     removeMarker,
     applyJson,
   };

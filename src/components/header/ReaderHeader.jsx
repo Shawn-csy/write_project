@@ -165,7 +165,7 @@ function ReaderHeader({
                     <span className="whitespace-nowrap">{progressLabel}</span>
                   </div>
                   {showReadModeHint && onEdit && (
-                    <div className="mt-0.5 text-[11px] text-amber-700 dark:text-amber-300 truncate">
+                    <div className="mt-0.5 text-[11px] text-[color:var(--license-term-fg)] truncate">
                       {t("readerHeader.readModeHint")}
                     </div>
                   )}

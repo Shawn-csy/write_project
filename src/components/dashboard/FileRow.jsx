@@ -38,6 +38,14 @@ export const SortableFileRow = (props) => {
 };
 
 export const FileRow = ({ icon, title, meta, actions, onClick, onDoubleClick, isFolder, tags = [], dragListeners, style, className = "" }) => {
+    const resolveTagSwatch = (rawColor) => {
+        const value = String(rawColor || "").trim();
+        if (!value) return { className: "bg-primary/60", style: undefined };
+        if (value.startsWith("#") || value.startsWith("rgb") || value.startsWith("hsl") || value.startsWith("var(")) {
+            return { className: "", style: { backgroundColor: value } };
+        }
+        return { className: value, style: undefined };
+    };
     const normalizedTags = (tags || [])
         .map((tag, idx) => {
             if (typeof tag === "string") {
@@ -63,7 +71,7 @@ export const FileRow = ({ icon, title, meta, actions, onClick, onDoubleClick, is
         onClick={onClick}
         onDoubleClick={onDoubleClick}
         style={style}
-        className={`group flex items-center justify-between p-3 hover:bg-muted/50 border-b border-border/40 cursor-pointer transition-colors bg-card ${className}`}
+        className={`group flex cursor-pointer items-center justify-between border-b border-border/40 bg-[hsl(var(--surface-1))] p-3 transition-colors hover:bg-[hsl(var(--surface-2))] ${className}`}
     >
         {/* Drag Handle */}
         {dragListeners && (
@@ -77,7 +85,7 @@ export const FileRow = ({ icon, title, meta, actions, onClick, onDoubleClick, is
         )}
 
         <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className={`p-2 rounded-md ${isFolder ? 'bg-blue-500/10 text-blue-500' : 'bg-muted text-muted-foreground'} group-hover:bg-primary/10 group-hover:text-primary transition-colors`}>
+            <div className={`p-2 rounded-md ${isFolder ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'} group-hover:bg-primary/10 group-hover:text-primary transition-colors`}>
                 {icon}
             </div>
             <div className="min-w-0 flex-1 flex flex-col gap-0.5">
@@ -88,10 +96,20 @@ export const FileRow = ({ icon, title, meta, actions, onClick, onDoubleClick, is
                             {visibleTags.map((tag) => (
                                 <Badge
                                     key={tag.id}
-                                    className={`${tag.color} text-[10px] px-1 py-0 h-4 text-white max-w-[110px] truncate`}
+                                    variant="outline"
+                                    className="flex h-4 max-w-[120px] items-center gap-1 border-[color:var(--license-filter-border)] bg-[color:var(--license-filter-bg)] px-1 py-0 text-[10px] text-[color:var(--license-filter-fg)]"
                                     title={tag.name}
                                 >
-                                    {tag.name}
+                                    {(() => {
+                                        const swatch = resolveTagSwatch(tag.color);
+                                        return (
+                                            <span
+                                                className={`h-1.5 w-1.5 shrink-0 rounded-full ${swatch.className}`}
+                                                style={swatch.style}
+                                            />
+                                        );
+                                    })()}
+                                    <span className="truncate">{tag.name}</span>
                                 </Badge>
                             ))}
                             {hiddenCount > 0 && (

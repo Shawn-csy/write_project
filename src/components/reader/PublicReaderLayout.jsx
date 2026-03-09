@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { FileCode2, FileSpreadsheet, FileText, Printer } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { FileSpreadsheet, FileText, Printer } from "lucide-react";
 import { SimplifiedReaderHeader } from "./SimplifiedReaderHeader";
 import { PublicScriptInfoOverlay } from "./PublicScriptInfoOverlay";
 import { PublicMarkerLegend } from "./PublicMarkerLegend";
@@ -8,6 +8,10 @@ import { useSettings } from "../../contexts/SettingsContext";
 import { loadBasicScriptExport, loadXlsxScriptExport } from "../../lib/scriptExportLoader";
 import { useI18n } from "../../contexts/I18nContext";
 import { CoverPlaceholder } from "../ui/CoverPlaceholder";
+import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
+
+const PUBLIC_READER_GUIDE_STORAGE_KEY = "public-reader-guide-seen-v1";
+const PUBLIC_READER_TOC_OPEN_STORAGE_KEY = "public-reader-toc-open-v1";
 
 export function PublicReaderLayout({
   script, // { content, title, ...meta }
@@ -26,7 +30,15 @@ export function PublicReaderLayout({
   onToggleMarker
 }) {
   const { t } = useI18n();
-  const { 
+  const escapeHtml = useCallback((value = "") =>
+    String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;")
+  , []);
+  const {
     title, 
     author, 
     organization,
@@ -37,18 +49,68 @@ export function PublicReaderLayout({
     contact,
     seriesName,
     prefaceItems,
+    activity,
     coverUrl, 
     content: rawScript,
     disableCopy
   } = script || {};
 
-  const contactValue = typeof contact === "object"
-    ? Object.entries(contact || {})
-        .map(([key, value]) => `${key}: ${value}`)
-        .join(" / ")
-    : (contact || "");
+  const contactLines = useMemo(() => {
+    const toPairsFromObject = (obj) =>
+      Object.entries(obj || {})
+        .map(([key, value]) => ({
+          key: String(key || "").trim(),
+          value: String(value ?? "").trim(),
+        }))
+        .filter((entry) => entry.key && entry.value);
+
+    if (contact && typeof contact === "object" && !Array.isArray(contact)) {
+      return toPairsFromObject(contact);
+    }
+
+    let raw = String(contact || "").trim();
+    if (!raw) return [];
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return toPairsFromObject(parsed);
+      }
+      if (Array.isArray(parsed)) {
+        const list = parsed
+          .map((item) => String(item ?? "").trim())
+          .filter(Boolean);
+        return list.map((value) => ({ key: "", value }));
+      }
+      raw = String(parsed ?? "").trim();
+    } catch {}
+
+    return raw
+      .split(/\r?\n|\/|\||；|;|，|,/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .map((value) => ({ key: "", value }));
+  }, [contact]);
+
+  const contactRender = contactLines.length > 0 ? (
+    <div className="space-y-1.5">
+      {contactLines.map((line, idx) => (
+        <div key={`${line.key || "line"}-${idx}`} className="leading-5">
+          {line.key ? (
+            <>
+              <span className="text-muted-foreground">{line.key}：</span>
+              <span className="ml-1">{line.value}</span>
+            </>
+          ) : (
+            <span>{line.value}</span>
+          )}
+        </div>
+      ))}
+    </div>
+  ) : null;
+
   const metaItems = [
-    { label: t("publicScriptInfo.contact"), value: contactValue },
+    { label: t("publicScriptInfo.contact"), render: contactRender },
     script?.showMarkerLegend && validMarkerConfigs?.length > 0
       ? {
           label: t("publicReader.markerLegend"),
@@ -102,23 +164,93 @@ export function PublicReaderLayout({
         background: "linear-gradient(to bottom, hsl(var(--background)), hsl(var(--muted)))",
       };
 
+  const [exportRenderedHtml, setExportRenderedHtml] = useState("");
+  const [exportRawHtml, setExportRawHtml] = useState("");
+  const externalOnProcessedHtml = viewerProps?.onProcessedHtml;
+  const externalOnRawHtml = viewerProps?.onRawHtml;
+  const mergedViewerProps = useMemo(() => ({
+    ...(viewerProps || {}),
+    onProcessedHtml: (html) => {
+      const next = html || "";
+      setExportRenderedHtml(next);
+      externalOnProcessedHtml?.(next);
+    },
+    onRawHtml: (html) => {
+      const next = html || "";
+      setExportRawHtml(next);
+      externalOnRawHtml?.(next);
+    },
+  }), [viewerProps, externalOnProcessedHtml, externalOnRawHtml]);
+
+  const licenseSummary = useMemo(() => {
+    const normalize = (value) => String(value || "").trim().toLowerCase();
+    const commercial = normalize(commercialUse);
+    const derivative = normalize(derivativeUse);
+    const notify = normalize(notifyOnModify);
+    return [
+      commercial
+        ? `商業使用：${commercial === "allow" ? "可" : "不可"}`
+        : "",
+      derivative
+        ? `改作許可：${derivative === "allow" ? "可" : derivative === "disallow" ? "不可" : "需同意"}`
+        : "",
+      notify
+        ? `修改通知：${notify === "required" ? "需要" : "不需要"}`
+        : "",
+    ].filter(Boolean);
+  }, [commercialUse, derivativeUse, notifyOnModify]);
+
+  const exportBaseName = useMemo(() => {
+    const safeTitle = String(title || "script").trim() || "script";
+    const authorName =
+      String(author?.displayName || author?.name || organization?.name || "unknown").trim() || "unknown";
+    return `${safeTitle}_${authorName}`;
+  }, [title, author?.displayName, author?.name, organization?.name]);
+
+  const pdfHeaderHtml = useMemo(() => {
+    const safeTitle = escapeHtml(title || "Script");
+    const safeSynopsis = escapeHtml(synopsis || "");
+    const safeCoverUrl = String(coverUrl || "").trim();
+    const metaRows = [];
+    if (organization?.name) metaRows.push(`組織：${escapeHtml(organization.name)}`);
+    if (author?.displayName) metaRows.push(`作者：${escapeHtml(author.displayName)}`);
+    contactLines.forEach((line) => {
+      const text = line.key ? `${line.key}: ${line.value}` : line.value;
+      if (String(text || "").trim()) metaRows.push(`聯絡：${escapeHtml(text)}`);
+    });
+    licenseSummary.forEach((item) => metaRows.push(escapeHtml(item)));
+    return `
+      <section style="margin-bottom:20px;">
+        ${safeCoverUrl ? `
+          <div style="margin-bottom:14px;">
+            <img src="${escapeHtml(safeCoverUrl)}" alt="${safeTitle}" style="width:100%;max-height:360px;object-fit:cover;border-radius:10px;border:1px solid #d6d9e0;" />
+          </div>
+        ` : ""}
+        <h1 style="margin:0 0 8px 0;font-size:28px;line-height:1.25;">${safeTitle}</h1>
+        ${safeSynopsis ? `<p style="margin:0 0 12px 0;color:#4b5563;white-space:pre-wrap;">${safeSynopsis}</p>` : ""}
+        ${metaRows.length > 0 ? `
+          <div style="padding:10px 12px;border:1px solid #d6d9e0;border-radius:10px;background:#f8fafc;">
+            ${metaRows.map((row) => `<div style="font-size:12px;line-height:1.6;color:#374151;">${row}</div>`).join("")}
+          </div>
+        ` : ""}
+      </section>
+    `.trim();
+  }, [escapeHtml, title, synopsis, coverUrl, organization?.name, author?.displayName, contactLines, licenseSummary]);
+
   const downloadOptions = [
     {
       id: "pdf",
       label: t("publicReader.exportPdf"),
       icon: Printer,
-      onClick: () => window.print(),
-      disabled: !rawScript && !title,
-    },
-    {
-      id: "fountain",
-      label: t("publicReader.downloadFountain"),
-      icon: FileCode2,
       onClick: async () => {
-        const { exportScriptAsFountain } = await loadBasicScriptExport();
-        exportScriptAsFountain(title || "script", rawScript || "");
+        const { exportScriptAsPdf } = await loadBasicScriptExport();
+        await exportScriptAsPdf(exportBaseName, {
+          text: rawScript || "",
+          renderedHtml: exportRenderedHtml || exportRawHtml || renderedHtml || "",
+          headerHtml: pdfHeaderHtml,
+        });
       },
-      disabled: !rawScript,
+      disabled: !rawScript && !title,
     },
     {
       id: "docx",
@@ -126,7 +258,7 @@ export function PublicReaderLayout({
       icon: FileText,
       onClick: async () => {
         const { exportScriptAsDocx } = await loadBasicScriptExport();
-        await exportScriptAsDocx(title || "script", { text: rawScript || "", renderedHtml });
+        await exportScriptAsDocx(exportBaseName, { text: rawScript || "", renderedHtml });
       },
       disabled: !rawScript,
     },
@@ -136,26 +268,168 @@ export function PublicReaderLayout({
       icon: FileSpreadsheet,
       onClick: async () => {
         const { exportScriptAsXlsx } = await loadXlsxScriptExport();
-        await exportScriptAsXlsx(title || "script", { text: rawScript || "", renderedHtml });
-      },
-      disabled: !rawScript,
-    },
-    {
-      id: "csv",
-      label: t("publicReader.downloadCsv"),
-      icon: FileSpreadsheet,
-      onClick: async () => {
-        const { exportScriptAsCsv } = await loadBasicScriptExport();
-        exportScriptAsCsv(title || "script", { text: rawScript || "", renderedHtml });
+        await exportScriptAsXlsx(exportBaseName, { text: rawScript || "", renderedHtml });
       },
       disabled: !rawScript,
     },
   ];
 
   const { hideWhitespace } = useSettings();
+  const [showGuide, setShowGuide] = useState(false);
+  const [guideIndex, setGuideIndex] = useState(0);
+  const [guideSpotlightRect, setGuideSpotlightRect] = useState(null);
+  const [tocOpen, setTocOpen] = useState(() => {
+    try {
+      if (typeof window === "undefined") return false;
+      return localStorage.getItem(PUBLIC_READER_TOC_OPEN_STORAGE_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const guideSteps = useMemo(() => ([
+    {
+      title: t("publicReader.guideTocButtonTitle", "目錄按鈕"),
+      description: t("publicReader.guideTocButtonDesc", "先點這裡打開左側導覽面板。"),
+      targetId: "public-guide-toc-trigger",
+    },
+    {
+      title: t("publicReader.guideTocPanelTitle", "左側導覽面板"),
+      description: t("publicReader.guideTocPanelDesc", "這裡可快速跳場景、查看更多作品資訊。"),
+      targetId: "public-guide-toc-panel",
+    },
+    {
+      title: t("publicReader.guideHeaderTitle"),
+      description: t("publicReader.guideHeaderDesc"),
+      targetId: "public-guide-actions",
+    },
+    {
+      title: t("publicReader.guideInfoTitle"),
+      description: t("publicReader.guideInfoDesc"),
+      targetId: "public-guide-info",
+    },
+    {
+      title: t("publicReader.guideScriptTitle"),
+      description: t("publicReader.guideScriptDesc"),
+      targetId: "public-guide-script",
+    },
+  ]), [t]);
+  const currentGuide = showGuide ? guideSteps[guideIndex] : null;
+
+  const resolveGuideTarget = useCallback(() => {
+    if (!currentGuide?.targetId) return null;
+    return document.querySelector(`[data-guide-id="${currentGuide.targetId}"]`);
+  }, [currentGuide]);
+
+  const refreshGuideSpotlight = useCallback(() => {
+    if (!showGuide) {
+      setGuideSpotlightRect(null);
+      return;
+    }
+    const node = resolveGuideTarget();
+    if (!node) {
+      setGuideSpotlightRect(null);
+      return;
+    }
+    const rect = node.getBoundingClientRect();
+    const pad = 10;
+    setGuideSpotlightRect({
+      top: Math.max(8, rect.top - pad),
+      left: Math.max(8, rect.left - pad),
+      width: Math.max(80, rect.width + pad * 2),
+      height: Math.max(52, rect.height + pad * 2),
+    });
+  }, [resolveGuideTarget, showGuide]);
+
+  const jumpGuide = useCallback((index) => {
+    if (index < 0 || index >= guideSteps.length) return;
+    setGuideIndex(index);
+    setShowGuide(true);
+  }, [guideSteps.length]);
+
+  const finishGuide = useCallback(() => {
+    setShowGuide(false);
+    setGuideIndex(0);
+    setGuideSpotlightRect(null);
+    setTocOpen(false);
+    try {
+      localStorage.setItem(PUBLIC_READER_GUIDE_STORAGE_KEY, "1");
+    } catch (err) {
+      console.error("Failed to persist public reader guide state", err);
+    }
+  }, []);
+
+  const handleGuideNext = useCallback(() => {
+    if (guideIndex >= guideSteps.length - 1) {
+      finishGuide();
+      return;
+    }
+    jumpGuide(guideIndex + 1);
+  }, [finishGuide, guideIndex, guideSteps.length, jumpGuide]);
+
+  const handleGuidePrev = useCallback(() => {
+    if (guideIndex <= 0) return;
+    jumpGuide(guideIndex - 1);
+  }, [guideIndex, jumpGuide]);
+
+  const handleStartGuide = useCallback(() => {
+    setTocOpen(false);
+    jumpGuide(0);
+  }, [jumpGuide]);
+
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem(PUBLIC_READER_GUIDE_STORAGE_KEY) === "1";
+      if (!seen) {
+        jumpGuide(0);
+        localStorage.setItem(PUBLIC_READER_GUIDE_STORAGE_KEY, "1");
+      }
+    } catch (err) {
+      console.error("Failed to read public reader guide state", err);
+    }
+  }, [jumpGuide]);
+
+  useEffect(() => {
+    if (!showGuide) return;
+    const targetId = currentGuide?.targetId || "";
+    if (targetId === "public-guide-toc-panel") {
+      setTocOpen(true);
+    } else if (targetId && targetId !== "public-guide-toc-trigger") {
+      setTocOpen(false);
+    }
+  }, [showGuide, currentGuide]);
+
+  useEffect(() => {
+    if (!showGuide) return;
+    const raf = window.requestAnimationFrame(refreshGuideSpotlight);
+    window.addEventListener("resize", refreshGuideSpotlight);
+    window.addEventListener("scroll", refreshGuideSpotlight, true);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener("resize", refreshGuideSpotlight);
+      window.removeEventListener("scroll", refreshGuideSpotlight, true);
+    };
+  }, [showGuide, guideIndex, tocOpen, refreshGuideSpotlight]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(PUBLIC_READER_TOC_OPEN_STORAGE_KEY, tocOpen ? "1" : "0");
+    } catch (err) {
+      console.error("Failed to persist reader toc state", err);
+    }
+  }, [tocOpen]);
 
   // Content protection CSS class
   const protectionClass = disableCopy ? 'select-none' : '';
+  const normalizedActivity = useMemo(() => {
+    const base = activity || {};
+    const name = String(base?.name || "").trim();
+    const bannerUrl = String(base?.bannerUrl || "").trim();
+    const content = String(base?.content || "").trim();
+    const demoUrl = String(base?.demoUrl || "").trim();
+    const workUrl = String(base?.workUrl || "").trim();
+    if (!name && !bannerUrl && !content && !demoUrl && !workUrl) return null;
+    return { name, bannerUrl, content, demoUrl, workUrl };
+  }, [activity]);
 
   return (
     <div className={`relative w-full h-[100dvh] overflow-hidden flex flex-col bg-background ${hideWhitespace ? 'hide-whitespace' : ''} ${protectionClass}`}>
@@ -178,6 +452,7 @@ export function PublicReaderLayout({
         showTitle={false} // Maybe show on scroll? Future enhancement.
         onBack={onBack}
         onShare={onShare}
+        onOpenGuide={handleStartGuide}
         downloadOptions={downloadOptions}
         // Removed generic onSettings, now using integrated components
         
@@ -185,6 +460,8 @@ export function PublicReaderLayout({
         sceneList={viewerProps?.sceneList || viewerProps?.scenes || []} // Provide fallback
         currentSceneId={viewerProps?.activeSceneId} // We need to ensure we track this
         onSelectScene={viewerProps?.scrollToScene} // The viewer prop usually expects an ID
+        tocOpen={tocOpen}
+        onTocOpenChange={setTocOpen}
         metaItems={metaItems}
         
         // Marker Props
@@ -206,27 +483,79 @@ export function PublicReaderLayout({
           I will modify ScriptSurface to accept `children` or `headerNode`.
           Let's verify ScriptSurface implementation again.
        */}
+        <div data-guide-id="public-guide-script" className="relative z-10 flex-1 min-h-0 h-full">
         <ScriptSurface
            {...scriptSurfaceProps}
            text={rawScript}
            isLoading={isLoading}
-           viewerProps={viewerProps}
+           viewerProps={mergedViewerProps}
            // We need to inject the overlay here. 
            // I'll assume I update ScriptSurface to accept a `headerNode` prop that renders inside the scroll container.
            headerNode={
                !isLoading && script && (
                    <>
-                   <PublicScriptInfoOverlay 
-                       title={title}
-                       synopsis={synopsis}
-                       coverUrl={coverUrl}
-                       author={author}
-                       organization={organization}
-                       commercialUse={commercialUse}
-                       derivativeUse={derivativeUse}
-                       notifyOnModify={notifyOnModify}
-                       prefaceItems={prefaceItems}
-                   />
+                   <div data-guide-id="public-guide-info">
+                     <PublicScriptInfoOverlay 
+                         title={title}
+                         synopsis={synopsis}
+                         coverUrl={coverUrl}
+                         author={author}
+                         organization={organization}
+                         commercialUse={commercialUse}
+                         derivativeUse={derivativeUse}
+                         notifyOnModify={notifyOnModify}
+                         prefaceItems={prefaceItems}
+                     />
+                   </div>
+                   {normalizedActivity && (
+                     <section className="mx-auto mb-8 w-full max-w-4xl px-6 text-left">
+                       <div className="rounded-xl border border-border/70 bg-background/80 p-4 shadow-sm backdrop-blur-sm">
+                         <div className="text-xs font-semibold text-muted-foreground">活動宣傳</div>
+                         {normalizedActivity.name && (
+                           <h3 className="mt-1 text-lg font-semibold text-foreground">{normalizedActivity.name}</h3>
+                         )}
+                         {normalizedActivity.bannerUrl && (
+                           <div className="mt-3 overflow-hidden rounded-md border border-border/70 bg-muted/20">
+                             <img
+                               src={normalizedActivity.bannerUrl}
+                               alt={normalizedActivity.name || "activity banner"}
+                               className="max-h-64 w-full object-cover"
+                               loading="lazy"
+                             />
+                           </div>
+                         )}
+                         {normalizedActivity.content && (
+                           <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-foreground/90">
+                             {normalizedActivity.content}
+                           </p>
+                         )}
+                         {(normalizedActivity.demoUrl || normalizedActivity.workUrl) && (
+                           <div className="mt-3 flex flex-wrap gap-2">
+                             {normalizedActivity.demoUrl && (
+                               <a
+                                 href={normalizedActivity.demoUrl}
+                                 target="_blank"
+                                 rel="noreferrer"
+                                 className="inline-flex items-center rounded-md border border-border/60 bg-background px-2.5 py-1 text-xs font-medium text-primary hover:bg-muted"
+                               >
+                                 試聽範例
+                               </a>
+                             )}
+                             {normalizedActivity.workUrl && (
+                               <a
+                                 href={normalizedActivity.workUrl}
+                                 target="_blank"
+                                 rel="noreferrer"
+                                 className="inline-flex items-center rounded-md border border-border/60 bg-background px-2.5 py-1 text-xs font-medium text-primary hover:bg-muted"
+                               >
+                                 成品連結
+                               </a>
+                             )}
+                           </div>
+                         )}
+                       </div>
+                     </section>
+                   )}
                    {Array.isArray(relatedSeriesScripts) && relatedSeriesScripts.length > 0 && (
                        <section className="w-full max-w-4xl mx-auto px-6 pb-8">
                            <div className="mb-3 flex items-center justify-between">
@@ -289,10 +618,27 @@ export function PublicReaderLayout({
                )
            }
            // Make the scroll container transparent so background shows through initially
-           outerClassName="flex-1 min-h-0 relative z-10"
-           scrollClassName="h-full overflow-y-auto overflow-x-hidden scrollbar-hide perspective-1000"
+           outerClassName="h-full min-h-0 relative z-10"
+           scrollClassName="h-full min-h-0 overflow-y-auto overflow-x-hidden touch-pan-y overscroll-y-contain scrollbar-hide perspective-1000"
            contentClassName="max-w-4xl mx-auto px-5 sm:px-8 pb-32 pt-16 min-h-[100dvh]" 
         />
+        </div>
+      <SpotlightGuideOverlay
+        open={showGuide}
+        zIndex={260}
+        spotlightRect={guideSpotlightRect}
+        currentStep={guideIndex + 1}
+        totalSteps={guideSteps.length}
+        title={currentGuide?.title || ""}
+        description={currentGuide?.description || ""}
+        onSkip={finishGuide}
+        skipLabel={t("publicReader.guideSkip")}
+        onPrev={handleGuidePrev}
+        prevLabel={t("publicReader.guidePrev")}
+        prevDisabled={guideIndex === 0}
+        onNext={handleGuideNext}
+        nextLabel={guideIndex === guideSteps.length - 1 ? t("publicReader.guideDone") : t("publicReader.guideNext")}
+      />
     </div>
   );
 }

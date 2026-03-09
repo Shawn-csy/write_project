@@ -237,6 +237,8 @@ const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
                 <p 
                     className={`script-action ${node.inRange ? 'in-range' : ''}`} 
                     style={{ whiteSpace: 'pre-wrap', ...actionStyle }}
+                    data-marker-id={node.markerId || undefined}
+                    data-marker-label={node.markerLabel || undefined}
                     {...getLineProps(node)}
                 >
                      {renderInlineLines(node, context)}

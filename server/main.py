@@ -36,7 +36,7 @@ INDEX_PATH = os.path.join(DIST_DIR, "index.html")
 MEDIA_DIR = os.getenv("MEDIA_STORAGE_ROOT", "/data/media")
 try:
     os.makedirs(MEDIA_DIR, exist_ok=True)
-except PermissionError:
+except (PermissionError, OSError):
     MEDIA_DIR = os.path.join(os.path.dirname(__file__), "data", "media")
     os.makedirs(MEDIA_DIR, exist_ok=True)
 

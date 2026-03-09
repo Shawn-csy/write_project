@@ -209,6 +209,7 @@ export function PublisherSeriesTab({
       <MediaPicker
         open={isMediaPickerOpen}
         onOpenChange={setIsMediaPickerOpen}
+        cropPurpose="cover"
         onSelect={(url) => {
           if (!url) return;
           setSeriesDraft((prev) => ({ ...prev, coverUrl: url }));

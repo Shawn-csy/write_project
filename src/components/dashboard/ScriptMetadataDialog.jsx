@@ -14,6 +14,7 @@ import { ScriptMetadataChecklistHeader } from "./metadata/ScriptMetadataChecklis
 import { PersonaSetupDialog } from "./metadata/PersonaSetupDialog";
 import { ScriptMetadataPublishSection } from "./metadata/ScriptMetadataPublishSection";
 import { ScriptMetadataExposureSection } from "./metadata/ScriptMetadataExposureSection";
+import { ScriptMetadataActivitySection } from "./metadata/ScriptMetadataActivitySection";
 import { ScriptMetadataAdvancedSection } from "./metadata/ScriptMetadataAdvancedSection";
 import { MediaPicker } from "../ui/MediaPicker";
 import { useToast } from "../ui/toast";
@@ -36,6 +37,7 @@ import { useScriptMetadataChecklistUI } from "../../hooks/dashboard/useScriptMet
 import { useScriptMetadataDetailsProps } from "../../hooks/dashboard/useScriptMetadataDetailsProps";
 import { useScriptMetadataSupplementalState } from "../../hooks/dashboard/useScriptMetadataSupplementalState";
 import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
+import { ImageCropDialog } from "../ui/ImageCropDialog";
 
 export { buildPublishChecklist };
 
@@ -49,6 +51,14 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     const navigate = useNavigate();
     const [title, setTitle] = useState("");
     const [status, setStatus] = useState("Private");
+    const [mediaPickerTarget, setMediaPickerTarget] = useState("cover");
+    const [cropOpen, setCropOpen] = useState(false);
+    const [cropPurpose, setCropPurpose] = useState("cover");
+    const [cropTarget, setCropTarget] = useState("cover");
+    const [cropSource, setCropSource] = useState(null);
+    const [activityBannerPreviewFailed, setActivityBannerPreviewFailed] = useState(false);
+    const [activityBannerUploadError, setActivityBannerUploadError] = useState("");
+    const [activityBannerUploadWarning, setActivityBannerUploadWarning] = useState("");
 
     const {
         coverUrl,
@@ -87,6 +97,16 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setEnvironmentInfo,
         situationInfo,
         setSituationInfo,
+        activityName,
+        setActivityName,
+        activityBannerUrl,
+        setActivityBannerUrl,
+        activityContent,
+        setActivityContent,
+        activityDemoUrl,
+        setActivityDemoUrl,
+        activityWorkUrl,
+        setActivityWorkUrl,
         seriesName,
         setSeriesName,
         seriesId,
@@ -269,6 +289,11 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setOpeningIntro,
         setEnvironmentInfo,
         setSituationInfo,
+        setActivityName,
+        setActivityBannerUrl,
+        setActivityContent,
+        setActivityDemoUrl,
+        setActivityWorkUrl,
         setContact,
         setContactFields,
         setLicenseCommercial,
@@ -344,30 +369,63 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         contentScrollRef,
     });
 
-    const handleCoverUpload = async (event) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-        const optimized = await optimizeImageForUpload(file, "cover");
+    const applyCroppedUpload = async (file, target) => {
+        const ruleKey = target === "activityBanner" ? "banner" : "cover";
+        const optimized = await optimizeImageForUpload(file, ruleKey);
         if (!optimized.ok) {
-            setCoverUploadError(optimized.error || "圖片格式不正確。");
-            setCoverUploadWarning("");
-            event.target.value = "";
+            if (target === "activityBanner") {
+                setActivityBannerUploadError(optimized.error || "圖片格式不正確。");
+                setActivityBannerUploadWarning("");
+            } else {
+                setCoverUploadError(optimized.error || "圖片格式不正確。");
+                setCoverUploadWarning("");
+            }
             return;
         }
         try {
-            const uploaded = await uploadMediaObject(optimized.file, "cover");
+            const uploaded = await uploadMediaObject(optimized.file, ruleKey);
             const nextUrl = String(uploaded?.url || "").trim();
             if (!nextUrl) throw new Error("上傳失敗。");
-            setCoverUploadError("");
-            setCoverUploadWarning(optimized.warning || "");
-            setCoverUrl(nextUrl);
-            setCoverPreviewFailed(false);
+            if (target === "activityBanner") {
+                setActivityBannerUploadError("");
+                setActivityBannerUploadWarning(optimized.warning || "");
+                setActivityBannerUrl(nextUrl);
+                setActivityBannerPreviewFailed(false);
+            } else {
+                setCoverUploadError("");
+                setCoverUploadWarning(optimized.warning || "");
+                setCoverUrl(nextUrl);
+                setCoverPreviewFailed(false);
+            }
         } catch (error) {
-            setCoverUploadError(error?.message || "上傳失敗。");
-            setCoverUploadWarning("");
-        } finally {
-            event.target.value = "";
+            if (target === "activityBanner") {
+                setActivityBannerUploadError(error?.message || "上傳失敗。");
+                setActivityBannerUploadWarning("");
+            } else {
+                setCoverUploadError(error?.message || "上傳失敗。");
+                setCoverUploadWarning("");
+            }
         }
+    };
+
+    const handleCoverUpload = async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        setCropSource({ file, name: file.name });
+        setCropTarget("cover");
+        setCropPurpose("cover");
+        setCropOpen(true);
+        event.target.value = "";
+    };
+
+    const handleActivityBannerUpload = async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        setCropSource({ file, name: file.name });
+        setCropTarget("activityBanner");
+        setCropPurpose("banner");
+        setCropOpen(true);
+        event.target.value = "";
     };
 
     const hydrateScriptState = useScriptMetadataHydration({
@@ -398,6 +456,11 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setOpeningIntro,
         setEnvironmentInfo,
         setSituationInfo,
+        setActivityName,
+        setActivityBannerUrl,
+        setActivityContent,
+        setActivityDemoUrl,
+        setActivityWorkUrl,
         setSeriesName,
         setSeriesId,
         setSeriesOrder,
@@ -468,6 +531,11 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         openingIntro,
         environmentInfo,
         situationInfo,
+        activityName,
+        activityBannerUrl,
+        activityContent,
+        activityDemoUrl,
+        activityWorkUrl,
         contact,
         seriesName,
         seriesId,
@@ -526,6 +594,11 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         openingIntro,
         environmentInfo,
         situationInfo,
+        activityName,
+        activityBannerUrl,
+        activityContent,
+        activityDemoUrl,
+        activityWorkUrl,
         licenseCommercial,
         licenseDerivative,
         licenseNotify,
@@ -769,7 +842,10 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                                     coverUrl={coverUrl}
                                     setCoverUrl={setCoverUrl}
                                     handleCoverUpload={handleCoverUpload}
-                                    setIsMediaPickerOpen={setIsMediaPickerOpen}
+                                    setIsMediaPickerOpen={(open) => {
+                                        if (open) setMediaPickerTarget("cover");
+                                        setIsMediaPickerOpen(open);
+                                    }}
                                     coverUploadError={coverUploadError}
                                     coverUploadWarning={coverUploadWarning}
                                     coverPreviewFailed={coverPreviewFailed}
@@ -797,6 +873,30 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                                     handleRemoveTag={handleRemoveTag}
                                 />
 
+                                <ScriptMetadataActivitySection
+                                    t={t}
+                                    getRowLabelClass={getRowLabelClass}
+                                    activityName={activityName}
+                                    setActivityName={setActivityName}
+                                    activityBannerUrl={activityBannerUrl}
+                                    setActivityBannerUrl={setActivityBannerUrl}
+                                    handleActivityBannerUpload={handleActivityBannerUpload}
+                                    onOpenActivityBannerMediaPicker={() => {
+                                        setMediaPickerTarget("activityBanner");
+                                        setIsMediaPickerOpen(true);
+                                    }}
+                                    activityBannerPreviewFailed={activityBannerPreviewFailed}
+                                    setActivityBannerPreviewFailed={setActivityBannerPreviewFailed}
+                                    activityBannerUploadError={activityBannerUploadError}
+                                    activityBannerUploadWarning={activityBannerUploadWarning}
+                                    activityContent={activityContent}
+                                    setActivityContent={setActivityContent}
+                                    activityDemoUrl={activityDemoUrl}
+                                    setActivityDemoUrl={setActivityDemoUrl}
+                                    activityWorkUrl={activityWorkUrl}
+                                    setActivityWorkUrl={setActivityWorkUrl}
+                                />
+
                                 <ScriptMetadataAdvancedSection
                                     t={t}
                                     getRowLabelClass={getRowLabelClass}
@@ -822,11 +922,28 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                 <MediaPicker
                     open={isMediaPickerOpen}
                     onOpenChange={setIsMediaPickerOpen}
+                    cropPurpose={mediaPickerTarget === "activityBanner" ? "banner" : "cover"}
                     onSelect={(url) => {
-                        setCoverUrl(url);
-                        setCoverPreviewFailed(false);
-                        setCoverUploadError("");
-                        setCoverUploadWarning("");
+                        if (mediaPickerTarget === "activityBanner") {
+                            setActivityBannerUrl(url);
+                            setActivityBannerPreviewFailed(false);
+                            setActivityBannerUploadError("");
+                            setActivityBannerUploadWarning("");
+                        } else {
+                            setCoverUrl(url);
+                            setCoverPreviewFailed(false);
+                            setCoverUploadError("");
+                            setCoverUploadWarning("");
+                        }
+                    }}
+                />
+                <ImageCropDialog
+                    open={cropOpen}
+                    onOpenChange={setCropOpen}
+                    source={cropSource}
+                    purpose={cropPurpose}
+                    onConfirm={async (croppedFile) => {
+                        await applyCroppedUpload(croppedFile, cropTarget);
                     }}
                 />
 

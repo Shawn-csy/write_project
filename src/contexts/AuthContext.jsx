@@ -73,8 +73,9 @@ export function AuthProvider({ children }) {
         (desiredWithName.handle && profile.handle !== desiredWithName.handle);
 
       if (needsUpdate) {
-        const updated = await updateUserProfile(desiredWithName);
-        setProfile(updated || desiredWithName || profile || null);
+        await updateUserProfile(desiredWithName);
+        const refreshed = await getUserProfile();
+        setProfile(refreshed || profile || desiredWithName || null);
       }
     } catch (e) {
       console.error("Failed to sync user profile", e);

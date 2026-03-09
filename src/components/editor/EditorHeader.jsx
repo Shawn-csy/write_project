@@ -121,16 +121,16 @@ export function EditorHeader({
                     setShowMetadataDialog(false);
                 }}
               />
-              <button
-                onClick={onManualSave}
-                className={`p-1 px-2 rounded flex items-center gap-1 text-[10px] sm:text-xs border transition-colors ${
-                    saveStatus === "error" ? "bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/20" :
-                    saveStatus === "local-saved" ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 hover:bg-amber-500/20" :
-                    saveStatus === "unsaved" ? "bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/30 hover:bg-orange-500/20" :
+              <div
+                className={`p-1 px-2 rounded flex items-center gap-1 text-[10px] sm:text-xs border ${
+                    saveStatus === "error" ? "bg-destructive/10 text-destructive border-destructive/30" :
+                    saveStatus === "local-saved" ? "bg-[color:var(--license-term-bg)] text-[color:var(--license-term-fg)] border-[color:var(--license-term-border)]" :
+                    saveStatus === "unsaved" ? "bg-muted text-muted-foreground border-border" :
                     saveStatus === "saving" ? "bg-primary/10 text-primary border-primary/30" :
-                    "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20"
+                    "bg-primary/10 text-primary border-primary/30"
                 }`}
                 title={saveStatusTitle}
+                aria-label={saveStatusTitle}
               >
                 {saveStatus === 'saving' ? (
                   <Loader2 className="w-3 h-3 animate-spin" />
@@ -138,12 +138,27 @@ export function EditorHeader({
                   <Save className="w-3 h-3" />
                 )}
                 {saveStatusLabel}
-              </button>
+              </div>
             </div>
           </div>
         }
       />
       <div className="flex items-center gap-2 flex-wrap">
+        <Button
+          variant="default"
+          size="sm"
+          onClick={onManualSave}
+          disabled={saveStatus === "saving"}
+          className="h-8 rounded-md flex items-center gap-2 text-sm"
+          title={t("editorHeader.manualSave")}
+        >
+          {saveStatus === "saving" ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Save className="w-4 h-4" />
+          )}
+          <span>{t("editorHeader.manualSave")}</span>
+        </Button>
         <Button
           variant="ghost"
           size="sm"
@@ -164,19 +179,20 @@ export function EditorHeader({
             {showPreview ? t("editorHeader.editAndPreview") : t("editorHeader.editOnly")}
           </span>
         </Button>
-        {onOpenGuide && (
-          <Button
-            ref={guideButtonRef}
-            variant="ghost"
-            size="sm"
-            onClick={onOpenGuide}
-            className="h-8 rounded-md transition-colors flex items-center gap-2 text-sm hover:bg-muted text-muted-foreground"
-            title={t("editorHeader.guide")}
-          >
-            <HelpCircle className="w-4 h-4" />
-            <span className="hidden sm:inline">{t("editorHeader.guide")}</span>
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onToggleRules}
+          className={`h-8 rounded-md transition-colors flex items-center gap-2 text-sm ${
+            showRules
+              ? "bg-primary/10 text-primary"
+              : "hover:bg-muted text-muted-foreground"
+          }`}
+          title={t("editorHeader.syntaxRules")}
+        >
+          <HelpCircle className="w-4 h-4" />
+          <span className="hidden sm:inline">{t("editorHeader.syntaxRules")}</span>
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -208,10 +224,12 @@ export function EditorHeader({
               />
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onToggleRules}>
-              <HelpCircle className="w-4 h-4 mr-2" />
-              {t("editorHeader.syntaxRules")}
-            </DropdownMenuItem>
+            {onOpenGuide && (
+              <DropdownMenuItem ref={guideButtonRef} onClick={onOpenGuide}>
+                <HelpCircle className="w-4 h-4 mr-2" />
+                {t("editorHeader.guide")}
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={onToggleStats}>
               <BarChart2 className="w-4 h-4 mr-2" />
               {t("editorHeader.stats")}

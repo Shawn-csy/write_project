@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { ScriptRenderer } from './ScriptRenderer';
 import { parseScreenplay } from '../../lib/screenplayAST';
+import { defaultMarkerConfigs } from '../../constants/defaultMarkerRules';
 
 describe('ScriptRenderer Styles', () => {
     const renderWithAST = (text, configs = [], hiddenIds = []) => {
@@ -276,18 +277,20 @@ describe('ScriptRenderer Styles', () => {
         expect(queryByText('Inline')).toBeNull(); 
     });
 
-    it('should show range control line text, not marker label, for standalone range end nodes', () => {
+    it('should render end control line text and keep following content in range after pause line', () => {
         const text = ">>SE 撫摸頭髮聲\n內容\n><SE\n間隔內容\n<<SE 撫摸頭髮聲結束";
         const configs = [
             { id: 'se', label: '持續音效 (SE)', start: '>>SE', end: '<<SE', pause: '><SE', matchMode: 'range', style: { color: 'blue' } }
         ];
 
         const { getByText, queryByText } = renderWithAST(text, configs);
+        expect(getByText('內容')).toBeDefined();
+        expect(getByText('間隔內容')).toBeDefined();
         expect(getByText('撫摸頭髮聲結束')).toBeDefined();
         expect(queryByText('持續音效 (SE)')).toBeNull();
     });
 
-    it('should hide pause control line when pause text is empty', () => {
+    it('should hide pause row when pause text is empty', () => {
         const text = ">>SE 開始\n內容1\n><SE\n間隔\n><SE 恢復\n內容2\n<<SE 結束";
         const configs = [
             { id: 'se', label: '持續音效 (SE)', start: '>>SE', end: '<<SE', pause: '><SE', matchMode: 'range', style: { color: 'blue' } }
@@ -296,6 +299,22 @@ describe('ScriptRenderer Styles', () => {
         const { queryByText, getByText } = renderWithAST(text, configs);
         expect(queryByText('暫停')).toBeNull();
         expect(getByText('恢復')).toBeDefined();
+    });
+
+    it('should break connector line at pause row and reconnect on next row', () => {
+        const text = ">>SE 開始\n內容1\n><SE 暫停點\n內容2\n<<SE 結束";
+        const configs = [
+            { id: 'se', label: '持續音效 (SE)', start: '>>SE', end: '<<SE', pause: '><SE', matchMode: 'range', style: { color: 'blue' } }
+        ];
+
+        const { getByText } = renderWithAST(text, configs);
+        const pauseMaskRow = getByText('暫停點').closest('[data-range-pause-mask]');
+        const afterPauseMaskRow = getByText('內容2').closest('[data-range-pause-mask]');
+        expect(pauseMaskRow?.getAttribute('data-range-pause-mask')).toBe('true');
+        expect(afterPauseMaskRow).toBeNull();
+        const pauseText = getByText('暫停點');
+        fireEvent.pointerMove(pauseText, { clientX: 120, clientY: 80 });
+        expect(screen.getByText('標記: 持續音效 (SE)暫停')).toBeDefined();
     });
 
     it('should auto-assign character colors in fixed sequence (red then blue)', () => {
@@ -319,5 +338,19 @@ describe('ScriptRenderer Styles', () => {
         const b = screen.getByText("阿哲");
         expect(a.getAttribute('style') || '').toContain('color: var(--marker-color-russet)');
         expect(b.getAttribute('style') || '').toContain('color: var(--marker-color-slate-blue)');
+    });
+
+    it('should show tooltip for bg markers on hover', () => {
+        const text = "//BG 夜晚街景\n/\\BG 降低音量\n\\\\BG 淡出";
+        const { getByText } = renderWithAST(text, defaultMarkerConfigs);
+
+        fireEvent.pointerMove(getByText('夜晚街景'), { clientX: 100, clientY: 80 });
+        expect(screen.getByText('標記: 背景音開始')).toBeDefined();
+
+        fireEvent.pointerMove(getByText('降低音量'), { clientX: 110, clientY: 90 });
+        expect(screen.getByText('標記: 背景音中途指示')).toBeDefined();
+
+        fireEvent.pointerMove(getByText('淡出'), { clientX: 120, clientY: 100 });
+        expect(screen.getByText('標記: 背景音結束')).toBeDefined();
     });
 });

@@ -57,6 +57,14 @@ export class DirectASTBuilder {
     }
   }
 
+  _normalizeWidthAndCase(value) {
+    // Fold fullwidth ASCII symbols/letters/numbers to halfwidth, then lowercase.
+    return String(value ?? "")
+      .replace(/[\uFF01-\uFF5E]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xFEE0))
+      .replace(/\u3000/g, " ")
+      .toLowerCase();
+  }
+
   /**
    * 從文本建構 AST
    * @param {string} text - 清洗後的文本
@@ -99,6 +107,9 @@ export class DirectASTBuilder {
             // 結束標記：深度 -1
             rangeDepth.set(rangeInfo.groupId, Math.max(0, currentDepth - 1));
             node.rangeDepth = currentDepth; // 結束時的深度是關閉前的深度
+          } else if (rangeInfo.role === 'pause') {
+            // Pause 只影響單行，不改變區間深度
+            node.rangeDepth = currentDepth;
           }
         }
         
@@ -138,8 +149,12 @@ export class DirectASTBuilder {
     const rootChildren = [];
     // 堆疊：儲存當前開啟的 range 節點
     const stack = [];
-    // 暫停群組集合：儲存當前處於暫停狀態的 rangeGroupId
-    const pausedGroups = new Set();
+    const findTopmostOpenRangeIndex = (groupId) => {
+      for (let idx = stack.length - 1; idx >= 0; idx--) {
+        if (stack[idx].rangeGroupId === groupId) return idx;
+      }
+      return -1;
+    };
     
     for (const node of nodes) {
       const parent = stack.length > 0 ? stack[stack.length - 1] : null;
@@ -147,43 +162,14 @@ export class DirectASTBuilder {
       // 0. 處理 Range 暫停 (Pause) -> Toggle (Close if open, Open if closed)
       if (node.type === 'layer' && node.rangeRole === 'pause') {
           const groupId = node.rangeGroupId;
-          const openIndex = stack.findIndex(r => r.rangeGroupId === groupId);
-          
+          const openIndex = findTopmostOpenRangeIndex(groupId);
           if (openIndex !== -1) {
-              // Case 1: 當前開啟 -> 暫停 (關閉)
-              const rangeNode = stack[openIndex];
-              rangeNode.endNode = node; // 使用 pause node 作為視覺上的結束
-              
-              if (openIndex === stack.length - 1) {
-                  stack.pop();
-              } else {
-                  stack.splice(openIndex, 1);
-              }
-              // 不立即開啟新區間，讓隨後的內容暴露在父層級 (Gap Content)
+              // Pause 是 range 內單行控制點，不切斷區間
+              stack[openIndex].children.push(node);
+          } else if (parent) {
+              parent.children.push(node);
           } else {
-              // Case 2: 當前關閉 -> 恢復 (開啟)
-              // 尋找父節點 (Resume 應該加入到哪裡?)
-              // 這裡假設 Resume 發生在正確的 nesting context
-              // 簡單起見，加入當前 active parent
-              
-              const newRangeNode = {
-                  type: 'range',
-                  layerType: node.layerType,
-                  rangeGroupId: groupId,
-                  startNode: node, // Resume acts as start
-                  endNode: null,
-                  children: [],
-                  style: node.style,
-                  rangeDepth: stack.length + 1
-              };
-              
-              if (parent) {
-                  parent.children.push(newRangeNode);
-              } else {
-                  rootChildren.push(newRangeNode);
-              }
-              
-              stack.push(newRangeNode);
+              rootChildren.push(node);
           }
           continue;
       }
@@ -219,19 +205,6 @@ export class DirectASTBuilder {
           // 匹配當前區間：設定結束節點並彈出堆疊
           parent.endNode = node;
           stack.pop();
-        } else if (pausedGroups.has(node.rangeGroupId)) {
-           pausedGroups.delete(node.rangeGroupId);
-           // 該節點本身作為普通節點顯示，避免被視為新的 Layer Block
-           // 轉換為普通的 action 節點
-           node.type = 'action';
-           delete node.layerType;
-           delete node.rangeRole;
-           delete node.rangeGroupId;
-           delete node.label;
-           delete node.style;
-           
-           if (parent) parent.children.push(node);
-           else rootChildren.push(node);
         } else {
           // 不匹配（可能是交錯或孤立的結束標記），視為普通節點處理
           if (parent) {
@@ -272,11 +245,12 @@ export class DirectASTBuilder {
     const trimmed = line.trim();
     
     for (const [groupId, group] of Object.entries(this.rangeGroups)) {
+      const caseInsensitive = Boolean(group?.marker?.caseInsensitive);
       // 新格式：使用 startSymbol 和 endSymbol
-      if (group.startSymbol && trimmed.startsWith(group.startSymbol)) {
+      if (group.startSymbol && this._startsWithToken(trimmed, group.startSymbol, caseInsensitive)) {
         return { groupId, role: 'start' };
       }
-      if (group.endSymbol && trimmed.startsWith(group.endSymbol)) {
+      if (group.endSymbol && this._startsWithToken(trimmed, group.endSymbol, caseInsensitive)) {
         return { groupId, role: 'end' };
       }
     }
@@ -333,24 +307,25 @@ export class DirectASTBuilder {
 
     for (const marker of sortedMarkers) {
       if (marker.matchMode !== 'regex' && !marker.start) continue;
+      const caseInsensitive = Boolean(marker.caseInsensitive);
 
       const startToken = marker.start || '';
       const fullStart = startToken ? toFullWidth(startToken) : '';
       const fullEnd = marker.end ? toFullWidth(marker.end) : null;
       
-      const startsWithNormal = startToken ? line.startsWith(startToken) : false;
-      const startsWithFull = fullStart ? line.startsWith(fullStart) : false;
-      const matchedStart = startsWithNormal ? startToken : (startsWithFull ? fullStart : null);
+      const matchedStart = startToken ? this._matchLeadingToken(line, startToken, caseInsensitive) : null;
+      const matchedFullStart = fullStart ? this._matchLeadingToken(line, fullStart, caseInsensitive) : null;
+      const matchedStartToken = matchedStart || matchedFullStart;
 
       if (marker.matchMode === 'range') {
          // 先檢查結束符號 (End Check)
          if (marker.end) {
-             const endsWithNormal = line.startsWith(marker.end); // 注意：Range End 是獨佔一行，所以也是 startsWith
-             const endsWithFull = fullEnd ? line.startsWith(fullEnd) : false;
-             const matchedEnd = endsWithNormal ? marker.end : (endsWithFull ? fullEnd : null);
+             const matchedEnd = this._matchLeadingToken(line, marker.end, caseInsensitive); // 注意：Range End 是獨佔一行，所以也是 startsWith
+             const matchedFullEnd = fullEnd ? this._matchLeadingToken(line, fullEnd, caseInsensitive) : null;
+             const matchedEndToken = matchedEnd || matchedFullEnd;
 
-             if (matchedEnd) {
-                 const content = line.slice(matchedEnd.length).trim();
+             if (matchedEndToken) {
+                 const content = line.slice(matchedEndToken.length).trim();
                  return {
                      type: 'layer',
                      rangeGroupId: marker.rangeGroupId || marker.id,
@@ -373,12 +348,12 @@ export class DirectASTBuilder {
           // Pause Check
           if (marker.pause) {
              const fullPause = toFullWidth(marker.pause);
-             const startsWithPause = line.startsWith(marker.pause);
-             const startsWithFullPause = line.startsWith(fullPause);
-             const matchedPause = startsWithPause ? marker.pause : (startsWithFullPause ? fullPause : null);
+             const matchedPause = this._matchLeadingToken(line, marker.pause, caseInsensitive);
+             const matchedFullPause = this._matchLeadingToken(line, fullPause, caseInsensitive);
+             const matchedPauseToken = matchedPause || matchedFullPause;
 
-             if (matchedPause) {
-                 const content = line.slice(matchedPause.length).trim();
+             if (matchedPauseToken) {
+                 const content = line.slice(matchedPauseToken.length).trim();
                  return {
                      type: 'layer',
                      layerType: marker.id,
@@ -398,8 +373,8 @@ export class DirectASTBuilder {
           }
           
           // Start Check (using matchedStart computed above)
-         if (matchedStart) {
-             const content = line.slice(matchedStart.length).trim();
+         if (matchedStartToken) {
+             const content = line.slice(matchedStartToken.length).trim();
              return {
                  type: 'layer',
                  layerType: marker.id,
@@ -433,22 +408,22 @@ export class DirectASTBuilder {
       }
       
       // prefix 模式
-      if (marker.matchMode === 'prefix' && matchedStart) {
-        const content = line.slice(matchedStart.length).trim();
+      if (marker.matchMode === 'prefix' && matchedStartToken) {
+        const content = line.slice(matchedStartToken.length).trim();
         const parsed = this._buildParsedNode(marker, content, line, lineNumber, null);
         if (parsed) return parsed;
         return this._buildLayerNode(marker, content, line, lineNumber);
       }
 
       // enclosure 模式 (Block Enclosure - 單行)
-      if (marker.matchMode === 'enclosure' && matchedStart) {
+      if (marker.matchMode === 'enclosure' && matchedStartToken) {
           // Check End
-          const endsWithNormal = marker.end ? line.endsWith(marker.end) : true;
-          const endsWithFull = (marker.end && fullEnd) ? line.endsWith(fullEnd) : false;
+          const endsWithNormal = marker.end ? this._endsWithToken(line, marker.end, caseInsensitive) : true;
+          const endsWithFull = (marker.end && fullEnd) ? this._endsWithToken(line, fullEnd, caseInsensitive) : false;
           const matchedEnd = endsWithNormal ? marker.end : (endsWithFull ? fullEnd : null);
           
           if (matchedEnd || !marker.end) {
-              let content = line.slice(matchedStart.length);
+              let content = line.slice(matchedStartToken.length);
               if (matchedEnd) {
                   content = content.slice(0, -matchedEnd.length);
               }
@@ -462,6 +437,24 @@ export class DirectASTBuilder {
     }
     
     return null;
+  }
+
+  _startsWithToken(text, token, caseInsensitive = false) {
+    if (!token) return false;
+    const head = String(text).slice(0, token.length);
+    return this._normalizeWidthAndCase(head) === this._normalizeWidthAndCase(token);
+  }
+
+  _endsWithToken(text, token, caseInsensitive = false) {
+    if (!token) return false;
+    const tail = String(text).slice(-token.length);
+    return this._normalizeWidthAndCase(tail) === this._normalizeWidthAndCase(token);
+  }
+
+  _matchLeadingToken(text, token, caseInsensitive = false) {
+    if (!token) return null;
+    const head = String(text).slice(0, token.length);
+    return this._normalizeWidthAndCase(head) === this._normalizeWidthAndCase(token) ? head : null;
   }
 
   _toRegex(pattern) {

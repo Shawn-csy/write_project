@@ -15,7 +15,7 @@ export function MetaTags({
   
   const summary =
     cleanText(titleSummary) ||
-    cleanText(titleNote) ||
+    (!forceArticle ? cleanText(titleNote) : "") ||
     (titleName ? `${titleName} 劇本摘要` : "");
     
   const description =

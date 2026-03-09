@@ -497,31 +497,84 @@ Content 2
 <<SE End`;
 
       const ast = buildAST(input, pauseConfigs);
-      
-      // 應該有兩個 range 節點 (因為被 Pause 切斷了)
+
       const ranges = ast.children.filter(n => n.type === 'range');
-      assert.strictEqual(ranges.length, 2, 'Should have 2 range segments');
-      
-      // 第一個段落
+      assert.strictEqual(ranges.length, 1, 'Pause should not split range');
+
       const r1 = ranges[0];
       assert.strictEqual(r1.startNode.text, 'Start');
-      assert.strictEqual(r1.endNode.text, 'Pause'); // Pause acts as end of segment 1
-      assert.strictEqual(r1.endNode.rangeRole, 'pause');
-      assert.strictEqual(r1.children.length, 1);
-      assert.strictEqual(r1.children[0].text, 'Content 1');
-      
-      // Gap Content 應該在 root
-      const gap = ast.children.find(n => n.text === 'Gap Content');
-      assert.ok(gap, 'Gap content should be in root');
-      assert.strictEqual(gap.type, 'action'); // or whatever default is
-      
-      // 第二個段落
-      const r2 = ranges[1];
-      assert.strictEqual(r2.startNode.text, 'Resume'); // Pause acts as start of segment 2
-      assert.strictEqual(r2.startNode.rangeRole, 'pause');
-      assert.strictEqual(r2.endNode.text, 'End');
-      assert.strictEqual(r2.children.length, 1);
-      assert.strictEqual(r2.children[0].text, 'Content 2');
+      assert.strictEqual(r1.endNode.text, 'End');
+      assert.ok(r1.children.some((n) => n.type === 'action' && n.text === 'Content 1'));
+      assert.ok(r1.children.some((n) => n.type === 'action' && n.text === 'Gap Content'));
+      assert.ok(r1.children.some((n) => n.type === 'action' && n.text === 'Content 2'));
+      const pauseNodes = r1.children.filter((n) => n.type === 'layer' && n.rangeRole === 'pause');
+      assert.strictEqual(pauseNodes.length, 2, 'Pause lines should stay as in-range single-line markers');
+    });
+
+    it('should close nearest same-group range on pause in nested same-group ranges', () => {
+      const pauseConfigs = [
+        {
+          id: 'se-pause',
+          start: '>>SE',
+          end: '<<SE',
+          pause: '><SE',
+          isBlock: true,
+          matchMode: 'range',
+        }
+      ];
+      const input = `>>SE Outer
+>>SE Inner
+Inner Content
+><SE Pause inner
+Gap Content
+><SE Resume inner
+Inner Content 2
+<<SE Inner End
+<<SE Outer End`;
+
+      const ast = buildAST(input, pauseConfigs);
+      const rootRanges = ast.children.filter((n) => n.type === 'range');
+      assert.strictEqual(rootRanges.length, 1, 'Should keep a single outer root range');
+
+      const outer = rootRanges[0];
+      assert.strictEqual(outer.startNode.text, 'Outer');
+      assert.strictEqual(outer.endNode.text, 'Outer End');
+
+      const firstInner = outer.children.find((n) => n.type === 'range' && n.startNode?.text === 'Inner');
+      assert.ok(firstInner, 'Should have inner range');
+      assert.strictEqual(firstInner.endNode?.text, 'Inner End', 'Pause should not close inner range');
+
+      const gap = firstInner.children.find((n) => n.type === 'action' && n.text === 'Gap Content');
+      assert.ok(gap, 'Gap content should stay inside current active range');
+      assert.ok(gap.inRange && gap.inRange.includes('se-pause'), 'Gap should remain in range');
+    });
+
+    it('should keep following content in range after pause line', () => {
+      const pauseConfigs = [
+        {
+          id: 'se-pause',
+          start: '>>SE',
+          end: '<<SE',
+          pause: '><SE',
+          isBlock: true,
+          matchMode: 'range',
+        }
+      ];
+      const input = `>>SE 123
+123
+><SE 456
+789
+<<SE 456`;
+
+      const ast = buildAST(input, pauseConfigs);
+      const ranges = ast.children.filter((n) => n.type === 'range');
+      assert.strictEqual(ranges.length, 1, 'Should keep one range');
+      assert.strictEqual(ranges[0].startNode.text, '123');
+      assert.strictEqual(ranges[0].endNode.text, '456');
+
+      const inRangeLine = ranges[0].children.find((n) => n.type === 'action' && n.text === '789');
+      assert.ok(inRangeLine, 'Content after pause line should still stay in range');
+      assert.ok(inRangeLine.inRange && inRangeLine.inRange.includes('se-pause'));
     });
 
     it('should handle multiple different range groups', () => {

@@ -52,7 +52,7 @@ describe("SettingsPanel", () => {
   });
 
   it("shows all tabs for authenticated users", () => {
-    useAuth.mockReturnValue({ currentUser: { id: "u1" } });
+    useAuth.mockReturnValue({ currentUser: { id: "u1" }, profile: { isAdmin: true } });
     renderWithRouter(<SettingsPanel onClose={() => {}} />);
 
     expect(screen.getByRole("button", { name: "移轉管理" })).toBeDefined();
@@ -63,7 +63,7 @@ describe("SettingsPanel", () => {
   });
 
   it("uses activeTab and onTabChange callback when controlled", () => {
-    useAuth.mockReturnValue({ currentUser: { id: "u1" } });
+    useAuth.mockReturnValue({ currentUser: { id: "u1" }, profile: { isAdmin: true } });
     const onTabChange = vi.fn();
     renderWithRouter(
       <SettingsPanel
@@ -80,7 +80,7 @@ describe("SettingsPanel", () => {
   });
 
   it("calls onClose when close button is clicked", () => {
-    useAuth.mockReturnValue({ currentUser: { id: "u1" } });
+    useAuth.mockReturnValue({ currentUser: { id: "u1" }, profile: { isAdmin: true } });
     const onClose = vi.fn();
     renderWithRouter(<SettingsPanel onClose={onClose} />);
     fireEvent.click(screen.getByTitle("關閉"));

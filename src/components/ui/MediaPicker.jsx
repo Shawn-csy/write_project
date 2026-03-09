@@ -5,8 +5,10 @@ import { MEDIA_FILE_ACCEPT, formatBytes } from "../../lib/mediaLibrary";
 import { useI18n } from "../../contexts/I18nContext";
 import { Loader2, Image as ImageIcon } from "lucide-react";
 import { useMediaLibrary } from "../../hooks/useMediaLibrary";
+import { ImageCropDialog } from "./ImageCropDialog";
+import { uploadMediaObject } from "../../lib/api/media";
 
-export function MediaPicker({ open, onOpenChange, onSelect }) {
+export function MediaPicker({ open, onOpenChange, onSelect, cropPurpose = null }) {
     const { t } = useI18n();
     const {
         items,
@@ -19,6 +21,9 @@ export function MediaPicker({ open, onOpenChange, onSelect }) {
         uploadFromInput,
         deleteByUrl,
     } = useMediaLibrary({ t });
+    const [cropOpen, setCropOpen] = React.useState(false);
+    const [cropSource, setCropSource] = React.useState(null);
+    const [isApplyingCrop, setIsApplyingCrop] = React.useState(false);
 
     React.useEffect(() => {
         if (open) {
@@ -26,7 +31,19 @@ export function MediaPicker({ open, onOpenChange, onSelect }) {
         }
     }, [open, refresh]);
 
+    const handleSelectItem = React.useCallback((item) => {
+        if (!item?.url) return;
+        if (!cropPurpose) {
+            onSelect(item.url);
+            onOpenChange(false);
+            return;
+        }
+        setCropSource({ url: item.url, name: item.name || "media-image" });
+        setCropOpen(true);
+    }, [cropPurpose, onOpenChange, onSelect]);
+
     return (
+        <>
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
                 <DialogHeader className="px-1 shrink-0">
@@ -88,10 +105,7 @@ export function MediaPicker({ open, onOpenChange, onSelect }) {
                                     <button
                                         type="button"
                                         onClick={() => {
-                                            if (item.url) {
-                                                onSelect(item.url);
-                                                onOpenChange(false);
-                                            }
+                                            handleSelectItem(item);
                                         }}
                                         className="block w-full text-left focus:outline-none focus:ring-2 focus:ring-primary"
                                     >
@@ -112,7 +126,7 @@ export function MediaPicker({ open, onOpenChange, onSelect }) {
                                             size="sm"
                                             variant="ghost"
                                             className="h-7 w-full text-xs text-destructive hover:text-destructive"
-                                            disabled={isUploading || isLoading || !!deletingUrl}
+                                            disabled={isUploading || isLoading || !!deletingUrl || isApplyingCrop}
                                             onClick={() => {
                                                 deleteByUrl(item.url);
                                             }}
@@ -133,5 +147,24 @@ export function MediaPicker({ open, onOpenChange, onSelect }) {
                 </div>
             </DialogContent>
         </Dialog>
+        <ImageCropDialog
+            open={cropOpen}
+            onOpenChange={setCropOpen}
+            source={cropSource}
+            purpose={cropPurpose || "generic"}
+            onConfirm={async (croppedFile) => {
+                setIsApplyingCrop(true);
+                try {
+                    const uploaded = await uploadMediaObject(croppedFile, cropPurpose || "library");
+                    const url = String(uploaded?.url || "").trim();
+                    if (!url) throw new Error(t("mediaLibrary.uploadFailed", "上傳失敗"));
+                    onSelect(url);
+                    onOpenChange(false);
+                } finally {
+                    setIsApplyingCrop(false);
+                }
+            }}
+        />
+        </>
     );
 }

@@ -40,8 +40,23 @@ export function usePersistentSpotlightGuide({
       if (onStepEnter) onStepEnter(next, index);
       setGuideIndex(index);
       setShowGuide(true);
+      // Keep guided target visible even when it sits outside current viewport
+      // (e.g. switching tabs or long scrolling panels).
+      let attempts = 0;
+      const maxAttempts = 12;
+      const tryScroll = () => {
+        const target = resolveTarget(next, index);
+        if (target && typeof target.scrollIntoView === "function") {
+          target.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+          return;
+        }
+        attempts += 1;
+        if (attempts >= maxAttempts) return;
+        setTimeout(tryScroll, 80);
+      };
+      tryScroll();
     },
-    [onStepEnter, steps]
+    [onStepEnter, resolveTarget, steps]
   );
 
   const finishGuide = useCallback(() => {

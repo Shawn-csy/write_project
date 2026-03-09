@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from "react-router-dom";
-import { Loader2, Plus, Trash2, Building2, CircleHelp } from "lucide-react";
+import { Loader2, Plus, Trash2, Building2, CircleHelp, ExternalLink, AlertTriangle } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Card } from "../../ui/card";
 import { Input } from "../../ui/input";
@@ -14,6 +14,7 @@ import { usePublisherOrgGuide } from "../../../hooks/publisher/usePublisherOrgGu
 import { PublisherOrgMembershipPanel } from "./PublisherOrgMembershipPanel";
 import { PublisherTagEditor } from "./PublisherTagEditor";
 import { SpotlightGuideOverlay } from "../../common/SpotlightGuideOverlay";
+import { ImageCropDialog } from "../../ui/ImageCropDialog";
 
 export function PublisherOrgTab({
     orgs,
@@ -55,6 +56,10 @@ export function PublisherOrgTab({
     const [bannerUploadWarning, setBannerUploadWarning] = React.useState("");
     const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState(false);
     const [mediaPickerTarget, setMediaPickerTarget] = React.useState(null); // 'logo' or 'banner'
+    const [cropOpen, setCropOpen] = React.useState(false);
+    const [cropPurpose, setCropPurpose] = React.useState("logo");
+    const [cropTargetField, setCropTargetField] = React.useState(null);
+    const [cropSource, setCropSource] = React.useState(null);
     const logoGuide = React.useMemo(() => getImageUploadGuide("logo"), []);
     const bannerGuide = React.useMemo(() => getImageUploadGuide("banner"), []);
     const filteredTagOptions = React.useMemo(() => {
@@ -94,9 +99,7 @@ export function PublisherOrgTab({
     const orgProgress = Math.round((orgDone / orgChecklist.length) * 100);
     const orgNextSteps = orgChecklist.filter((item) => !item.ok).slice(0, 3);
 
-    const handleImageUpload = (field) => async (event) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
+    const applyUploadedImage = React.useCallback(async (file, field) => {
         const ruleKey = field === "logoUrl" ? "logo" : "banner";
         const optimized = await optimizeImageForUpload(file, ruleKey);
         if (!optimized.ok) {
@@ -108,7 +111,6 @@ export function PublisherOrgTab({
                 setBannerUploadError(optimized.error || t("publisherOrgTab.invalidImage"));
                 setBannerUploadWarning("");
             }
-            event.target.value = "";
             return;
         }
         try {
@@ -137,9 +139,17 @@ export function PublisherOrgTab({
                 setBannerUploadError(errorMessage);
                 setBannerUploadWarning("");
             }
-        } finally {
-            event.target.value = "";
         }
+    }, [t, setOrgDraft]);
+
+    const handleImageUpload = (field) => async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        setCropTargetField(field);
+        setCropPurpose(field === "logoUrl" ? "logo" : "banner");
+        setCropSource({ file, name: file.name });
+        setCropOpen(true);
+        event.target.value = "";
     };
 
     // Reset draft when selecting a new org
@@ -185,6 +195,29 @@ export function PublisherOrgTab({
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                    <div className={`flex items-center gap-1 pb-1 ${viewMode === "edit" && selectedOrgId ? "" : "invisible pointer-events-none h-0 overflow-hidden p-0 m-0"}`}>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-xs"
+                            onClick={() => selectedOrgId && navigate(`/org/${selectedOrgId}`)}
+                        >
+                            <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                            {t("publisherOrgTab.viewOrgPage")}
+                        </Button>
+                        <Button 
+                            type="button"
+                            size="sm"
+                            variant="ghost" 
+                            className="h-8 text-xs text-destructive hover:bg-destructive/10"
+                            disabled={isReadOnlyExistingOrg}
+                            onClick={handleDeleteOrg}
+                        >
+                            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                            {t("publisherOrgTab.deleteOrg")}
+                        </Button>
+                    </div>
                     {isLoading && (
                         <div className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground">
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -230,23 +263,6 @@ export function PublisherOrgTab({
                             <CircleHelp className="w-3.5 h-3.5 mr-1.5" />
                             {t("publisherOrgTab.guide")}
                         </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className={`h-8 text-xs ${viewMode === "edit" && selectedOrgId ? "" : "invisible pointer-events-none"}`}
-                            onClick={() => selectedOrgId && navigate(`/org/${selectedOrgId}`)}
-                        >
-                            {t("publisherOrgTab.viewOrgPage")}
-                        </Button>
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className={`text-destructive hover:bg-destructive/10 h-8 text-xs ${viewMode === "edit" && selectedOrgId ? "" : "invisible pointer-events-none"}`}
-                            disabled={isReadOnlyExistingOrg}
-                            onClick={handleDeleteOrg}
-                        >
-                            <Trash2 className="w-3.5 h-3.5 mr-1.5" /> {t("publisherOrgTab.deleteOrg")}
-                        </Button>
                     </div>}
                     />
                 </div>
@@ -256,8 +272,16 @@ export function PublisherOrgTab({
                         {(viewMode === "create" || selectedOrgId) ? (
                             <>
                                 {isReadOnlyExistingOrg && (
-                                    <div className="rounded-lg border border-amber-300/60 bg-amber-50/60 px-3 py-2 text-xs text-amber-800">
-                                        目前為唯讀檢視，你不是此組織的管理者或擁有者，無法修改設定。
+                                    <div
+                                        className="rounded-lg border border-[hsl(var(--destructive)/0.35)] bg-[hsl(var(--destructive)/0.1)] px-3 py-2.5 text-xs text-[hsl(var(--destructive))]"
+                                    >
+                                        <div className="flex items-start gap-2">
+                                            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                                            <div className="space-y-0.5">
+                                                <p className="font-semibold">目前為唯讀模式</p>
+                                                <p>你不是此組織的管理者或擁有者，無法修改設定。</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
                                 <div className={isReadOnlyExistingOrg ? "space-y-0 opacity-90 pointer-events-none select-none" : "space-y-0"}>
@@ -357,9 +381,9 @@ export function PublisherOrgTab({
                                                     {logoUploadError ? (
                                                         <p className="text-destructive">{logoUploadError}</p>
                                                     ) : logoUploadWarning ? (
-                                                        <p className="text-amber-700 dark:text-amber-300">{logoUploadWarning}</p>
+                                                        <p className="text-[color:var(--license-term-fg)]">{logoUploadWarning}</p>
                                                     ) : logoPreviewFailed ? (
-                                                        <p className="text-amber-700 dark:text-amber-300">{t("publisherOrgTab.previewFailed")}</p>
+                                                        <p className="text-[color:var(--license-term-fg)]">{t("publisherOrgTab.previewFailed")}</p>
                                                     ) : (
                                                         <p className="opacity-0">placeholder</p>
                                                     )}
@@ -412,9 +436,9 @@ export function PublisherOrgTab({
                                                     {bannerUploadError ? (
                                                         <p className="text-destructive">{bannerUploadError}</p>
                                                     ) : bannerUploadWarning ? (
-                                                        <p className="text-amber-700 dark:text-amber-300">{bannerUploadWarning}</p>
+                                                        <p className="text-[color:var(--license-term-fg)]">{bannerUploadWarning}</p>
                                                     ) : bannerPreviewFailed ? (
-                                                        <p className="text-amber-700 dark:text-amber-300">{t("publisherOrgTab.bannerPreviewFailed")}</p>
+                                                        <p className="text-[color:var(--license-term-fg)]">{t("publisherOrgTab.bannerPreviewFailed")}</p>
                                                     ) : (
                                                         <p className="opacity-0">placeholder</p>
                                                     )}
@@ -509,6 +533,7 @@ export function PublisherOrgTab({
             <MediaPicker
                 open={isMediaPickerOpen}
                 onOpenChange={setIsMediaPickerOpen}
+                cropPurpose={mediaPickerTarget === "logo" ? "logo" : mediaPickerTarget === "banner" ? "banner" : null}
                 onSelect={(url) => {
                     if (mediaPickerTarget === 'logo') {
                         setOrgDraft(prev => ({ ...prev, logoUrl: url }));
@@ -521,6 +546,16 @@ export function PublisherOrgTab({
                         setBannerUploadError("");
                         setBannerUploadWarning("");
                     }
+                }}
+            />
+            <ImageCropDialog
+                open={cropOpen}
+                onOpenChange={setCropOpen}
+                source={cropSource}
+                purpose={cropPurpose}
+                onConfirm={async (croppedFile) => {
+                    if (!cropTargetField) return;
+                    await applyUploadedImage(croppedFile, cropTargetField);
                 }}
             />
         </Card>

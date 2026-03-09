@@ -49,12 +49,17 @@ from .scripts import (
 from .series import create_series, delete_series, get_series, get_series_by_id, update_series
 from .tags import add_tag_to_script, create_tag, delete_tag, get_tags, remove_tag_from_script
 from .themes import (
+    SYSTEM_DEFAULT_THEME_ID,
+    SYSTEM_DEFAULT_THEME_NAME,
     _parse_theme_configs,
     _serialize_theme_configs,
     create_theme,
     delete_theme,
     get_public_themes,
+    get_system_default_configs,
+    get_system_default_theme,
     get_user_themes,
+    upsert_system_default_configs,
     update_theme,
 )
 from .transfers import (
@@ -123,12 +128,17 @@ __all__ = [
     "delete_tag",
     "get_tags",
     "remove_tag_from_script",
+    "SYSTEM_DEFAULT_THEME_ID",
+    "SYSTEM_DEFAULT_THEME_NAME",
     "_parse_theme_configs",
     "_serialize_theme_configs",
     "create_theme",
     "delete_theme",
     "get_public_themes",
+    "get_system_default_configs",
+    "get_system_default_theme",
     "get_user_themes",
+    "upsert_system_default_configs",
     "update_theme",
     "transfer_organization",
     "transfer_organization_admin",

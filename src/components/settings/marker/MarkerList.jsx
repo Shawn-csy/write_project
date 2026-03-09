@@ -21,7 +21,8 @@ export function MarkerList({
     updateMarker,
     removeMarker,
     selectedId,
-    onSelect
+    onSelect,
+    readOnly = false,
 }) {
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -31,8 +32,9 @@ export function MarkerList({
     );
 
     const handleDragEnd = (event) => {
+        if (readOnly) return;
         const { active, over } = event;
-        
+        if (!over) return;
         if (active.id !== over.id) {
             setLocalConfigs((items) => {
                 const oldIndex = items.findIndex((item) => (item.id || item._tempId) === active.id);
@@ -51,7 +53,7 @@ export function MarkerList({
 
     return (
         <DndContext 
-            sensors={sensors}
+            sensors={readOnly ? undefined : sensors}
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
         >
@@ -70,6 +72,7 @@ export function MarkerList({
                             removeMarker={removeMarker}
                             selectedId={selectedId}
                             onSelect={onSelect}
+                            readOnly={readOnly}
                         />
                     ))}
                 </div>

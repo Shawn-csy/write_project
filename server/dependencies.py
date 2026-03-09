@@ -49,6 +49,14 @@ def _admin_user_ids() -> set[str]:
         if uid.strip()
     }
 
+
+def _admin_user_emails() -> set[str]:
+    return {
+        email.strip().lower()
+        for email in os.getenv("ADMIN_USER_EMAILS", "").split(",")
+        if email.strip()
+    }
+
 def get_db():
     db = SessionLocal()
     try:
@@ -80,3 +88,33 @@ async def get_current_user_id(
 
 def is_admin_user_id(user_id: str) -> bool:
     return user_id in _admin_user_ids()
+
+
+def is_admin_user(db, user_id: str) -> bool:
+    if not user_id:
+        return False
+    if user_id in _admin_user_ids():
+        return True
+
+    try:
+        import models
+        user = db.query(models.User).filter(models.User.id == user_id).first()
+        if user:
+            email = str(getattr(user, "email", "") or "").strip().lower()
+            if email and email in _admin_user_emails():
+                return True
+
+        admin_entry = db.query(models.AdminUser).filter(models.AdminUser.userId == user_id).first()
+        if admin_entry:
+            return True
+
+        if user:
+            email = str(getattr(user, "email", "") or "").strip().lower()
+            if email:
+                admin_by_email = db.query(models.AdminUser).filter(models.AdminUser.email == email).first()
+                if admin_by_email:
+                    return True
+    except Exception:
+        return False
+
+    return False

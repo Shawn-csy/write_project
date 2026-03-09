@@ -2,10 +2,11 @@ import React, { useRef, useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "../ui/button";
 
-export function HorizontalScrollLane({ children, title }) {
+export function HorizontalScrollLane({ children, title, actionLabel, onAction }) {
   const scrollRef = useRef(null);
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(false);
+  const [isLaneHovered, setIsLaneHovered] = useState(false);
 
   const checkScroll = () => {
     if (!scrollRef.current) return;
@@ -36,18 +37,37 @@ export function HorizontalScrollLane({ children, title }) {
   };
 
   return (
-    <section className="relative group w-full flex flex-col">
+    <section className="relative w-full flex flex-col">
       {title && (
         <div className="flex items-center justify-between mb-4 px-1">
           <h2 className="text-xl font-bold tracking-tight text-foreground">
             {title}
           </h2>
+          {actionLabel && typeof onAction === "function" ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+              onClick={onAction}
+            >
+              {actionLabel}
+            </Button>
+          ) : null}
         </div>
       )}
-      <div className="relative w-full">
+      <div
+        className="relative w-full"
+        onMouseEnter={() => setIsLaneHovered(true)}
+        onMouseLeave={() => setIsLaneHovered(false)}
+      >
         {/* Left Scroll Button */}
         {showLeft && (
-          <div className="absolute -left-4 top-0 bottom-6 z-10 pointer-events-none flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div
+            className={`absolute -left-4 top-0 bottom-6 z-10 pointer-events-none flex items-center justify-center transition-opacity duration-300 ${
+              isLaneHovered ? "opacity-100" : "opacity-0"
+            }`}
+          >
             <Button
               variant="secondary"
               size="icon"
@@ -71,7 +91,11 @@ export function HorizontalScrollLane({ children, title }) {
 
         {/* Right Scroll Button */}
         {showRight && (
-          <div className="absolute -right-4 top-0 bottom-6 z-10 pointer-events-none flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div
+            className={`absolute -right-4 top-0 bottom-6 z-10 pointer-events-none flex items-center justify-center transition-opacity duration-300 ${
+              isLaneHovered ? "opacity-100" : "opacity-0"
+            }`}
+          >
             <Button
               variant="secondary"
               size="icon"

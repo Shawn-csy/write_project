@@ -23,10 +23,13 @@ export const downloadBlob = (blob, filename) => {
   const link = document.createElement("a");
   link.href = url;
   link.download = filename;
+  link.rel = "noopener";
+  link.style.display = "none";
   document.body.appendChild(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(url);
+  // Revoke in next tick to avoid Safari/Chromium intermittent download drops.
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 
 export const downloadText = (content, filename, mimeType = "text/plain;charset=utf-8;") => {
