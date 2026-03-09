@@ -267,7 +267,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     }, [manager.visibleItems, filterType, filterStatus, filterQuery, sortKey, sortDir]);
     
     const hasActiveFilters = filterType !== "all" || filterStatus !== "all" || Boolean(filterQuery.trim()) || sortKey !== "custom";
-    const controlClassName = "h-8 rounded-md border border-[var(--morandi-tone-panel-border)] bg-background/90 text-foreground";
+    const controlClassName = "h-8 rounded-md border border-[color:var(--morandi-tone-panel-border)] bg-background/90 text-foreground";
 
     const totalItems = filteredAndSortedItems.length;
     const pagedItems = useMemo(() => {
@@ -380,11 +380,11 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     }, [closeGuide, guideIndex, guideSteps.length]);
 
     return (
-        <div className="flex h-full flex-col overflow-hidden gap-2">
+        <div className="flex h-full flex-col gap-2 overflow-hidden">
             {manager.currentPath !== "/" ? (
                 <div
                     style={writeTone}
-                    className="rounded-lg border border-[var(--morandi-tone-panel-border)] bg-gradient-to-r from-[var(--morandi-tone-helper-bg)] via-card to-card px-3 py-2 sm:px-4"
+                    className="rounded-lg border border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-r from-[var(--morandi-tone-helper-bg)] via-card to-card px-3 py-2 sm:px-4"
                 >
                     <ScriptToolbar
                         currentPath={manager.currentPath}
@@ -398,7 +398,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
             <div className={`flex-1 min-h-0 grid grid-cols-1 gap-3 ${isPreviewCollapsed ? "xl:grid-cols-1" : "xl:grid-cols-[minmax(0,1fr)_22rem]"}`}>
                 <section
                     style={writeTone}
-                    className="rounded-lg border border-[var(--morandi-tone-panel-border)] bg-card shadow-sm min-h-0 flex flex-col overflow-hidden"
+                    className="min-h-0 flex flex-col overflow-hidden rounded-lg border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] shadow-sm"
                     data-guide-id="write-list-panel"
                 >
                     <div
@@ -406,7 +406,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                         data-guide-id="write-middle-controls"
                     >
                         <div className="mb-2 flex items-center justify-between">
-                            <h3 className="text-sm font-semibold tracking-tight text-[var(--morandi-tone-helper-fg)]">
+                            <h3 className="text-sm font-semibold tracking-tight text-[color:var(--morandi-tone-helper-fg)]">
                                 {t("writeTab.listTitle", "檔案清單")}
                             </h3>
                         </div>
@@ -520,10 +520,10 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                         </div>
                     </div>
 
-                    <div className="flex-1 min-h-0 overflow-y-auto" onScroll={handleListScroll}>
+                    <div className="min-h-0 flex-1 overflow-y-auto bg-[hsl(var(--surface-1))]/35" onScroll={handleListScroll}>
                         {showGuide && totalItems === 0 ? (
-                            <div className="m-4 rounded-lg border border-dashed border-[var(--morandi-tone-helper-border)] bg-[var(--morandi-tone-helper-bg)]/45 p-4">
-                                <h4 className="text-sm font-semibold text-[var(--morandi-tone-helper-fg)]">{t("writeTab.guideDemoTitle")}</h4>
+                            <div className="m-4 rounded-lg border border-dashed border-[color:var(--morandi-tone-helper-border)] bg-[color:var(--morandi-tone-helper-bg)]/45 p-4">
+                                <h4 className="text-sm font-semibold text-[color:var(--morandi-tone-helper-fg)]">{t("writeTab.guideDemoTitle")}</h4>
                                 <p className="mt-1 text-xs text-muted-foreground">{t("writeTab.guideDemoDesc")}</p>
                             </div>
                         ) : null}
@@ -566,7 +566,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                         />
                     </div>
 
-                    <div className="border-t bg-[var(--morandi-tone-helper-bg)]/45 px-4 py-2 flex flex-wrap items-center justify-end gap-2 text-sm text-muted-foreground">
+                    <div className="flex flex-wrap items-center justify-end gap-2 border-t bg-[color:var(--morandi-tone-helper-bg)]/55 px-4 py-2 text-sm text-muted-foreground">
                         {hasMoreItems ? (
                             <Button
                                 variant="outline"
@@ -581,19 +581,19 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
 
                 <aside
                     style={writeTone}
-                    className={`${isPreviewCollapsed ? "hidden" : "hidden xl:flex"} rounded-lg border border-[var(--morandi-tone-panel-border)] bg-gradient-to-b from-[var(--morandi-tone-helper-bg)]/45 to-card p-4 flex-col gap-3`}
+                    className={`${isPreviewCollapsed ? "hidden" : "hidden xl:flex"} rounded-lg border border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-b from-[var(--morandi-tone-helper-bg)]/45 to-card p-4 flex-col gap-3`}
                     data-guide-id="write-preview-panel"
                 >
-                    <h3 className="text-sm font-semibold text-[var(--morandi-tone-helper-fg)]">{t("writeTab.previewInfo")}</h3>
+                    <h3 className="text-sm font-semibold text-[color:var(--morandi-tone-helper-fg)]">{t("writeTab.previewInfo")}</h3>
                     {!previewItem ? (
                         <p className="text-sm text-muted-foreground">{t("writeTab.previewHint")}</p>
                     ) : (
                         <>
                             <div className="flex items-center gap-2">
                                 {previewItem.type === "folder" ? (
-                                    <Folder className="w-4 h-4 text-blue-500" />
+                                    <Folder className="w-4 h-4 text-primary" />
                                 ) : (
-                                    <FileText className="w-4 h-4 text-blue-500" />
+                                    <FileText className="w-4 h-4 text-primary" />
                                 )}
                                 <p className="font-medium truncate">{previewItem.title}</p>
                             </div>
@@ -615,7 +615,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                                         <>
                                             <Button
                                                 size="sm"
-                                                className="bg-primary text-primary-foreground hover:brightness-110 dark:bg-[var(--morandi-tone-trigger-bg)] dark:text-[var(--morandi-tone-trigger-fg)] dark:hover:brightness-95"
+                                                className="bg-primary text-primary-foreground hover:brightness-110 dark:bg-[color:var(--morandi-tone-trigger-bg)] dark:text-[color:var(--morandi-tone-trigger-fg)] dark:hover:brightness-95"
                                                 onClick={() => handleOpenScript(previewItem)}
                                             >
                                                 {t("writeTab.openFile")}
@@ -623,7 +623,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                                             <Button
                                                 size="sm"
                                                 variant="outline"
-                                                className="border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-helper-bg)]/40 text-[var(--morandi-tone-helper-fg)] hover:bg-[var(--morandi-tone-helper-bg)]"
+                                                className="border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-helper-bg)]/40 text-[color:var(--morandi-tone-helper-fg)] hover:bg-[color:var(--morandi-tone-helper-bg)]"
                                                 onClick={() => manager.openMoveDialog(previewItem)}
                                             >
                                                 {t("writeTab.moveTo")}
@@ -633,7 +633,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                                     <Button
                                         size="sm"
                                         variant="outline"
-                                        className="border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-helper-bg)]/35 text-[var(--morandi-tone-helper-fg)] hover:bg-[var(--morandi-tone-helper-bg)]"
+                                        className="border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-helper-bg)]/35 text-[color:var(--morandi-tone-helper-fg)] hover:bg-[color:var(--morandi-tone-helper-bg)]"
                                         onClick={() => manager.openRenameDialog(previewItem)}
                                     >
                                         {t("writeTab.rename")}
@@ -655,7 +655,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
 
             <footer
                 style={writeTone}
-                className="hidden md:block shrink-0 rounded-lg border border-[var(--morandi-tone-panel-border)] bg-gradient-to-r from-[var(--morandi-tone-helper-bg)]/50 via-card to-card px-3 py-2 text-xs text-muted-foreground"
+                className="hidden md:block shrink-0 rounded-lg border border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-r from-[var(--morandi-tone-helper-bg)]/50 via-card to-card px-3 py-2 text-xs text-muted-foreground"
                 title={footerQuote ? `${footerQuote.anime || "-"}-${footerQuote.character || "-"}` : undefined}
             >
                 <p className="truncate">{footerQuote?.quote || footerTip}</p>

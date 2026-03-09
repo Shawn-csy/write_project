@@ -1,4 +1,5 @@
-import React, { useMemo, useCallback, useState } from "react";
+import React, { useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Loader2, Download, Trash2, Folder, ChevronRight, FileText, MoreHorizontal, Settings, Globe, FolderInput, ArrowUpDown } from "lucide-react";
 import { Button } from "../../ui/button";
 import { FileRow, SortableFileRow } from "../FileRow";
@@ -25,7 +26,6 @@ import {
     verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { updateScript, getScript } from "../../../lib/api/scripts";
-import { ScriptMetadataDialog } from "../../dashboard/ScriptMetadataDialog";
 import { extractMetadata } from "../../../lib/metadataParser";
 import { buildFilename, downloadText } from "../../../lib/download";
 import { isDefaultLikeTheme } from "../../../lib/themeNameUtils";
@@ -74,7 +74,7 @@ export function ScriptList({
     setScripts // Passed from hook if needed for inline theme update
 }) {
     const { t } = useI18n();
-    const [editingScriptId, setEditingScriptId] = useState(null);
+    const navigate = useNavigate();
 
     const dateFormatter = useMemo(() => new Intl.DateTimeFormat(undefined), []);
     const formatDate = useCallback((ts) => {
@@ -128,21 +128,8 @@ export function ScriptList({
     const handleStatusClick = (e, item) => {
         if (readOnly) return;
         e.stopPropagation();
-        setEditingScriptId(item.id);
+        navigate(`/studio?tab=works&scriptId=${encodeURIComponent(item.id)}&open=publish`);
     };
-
-    const handleMetadataSave = (updatedScript) => {
-        // Ideally we update the local list locally before waiting for refresh
-        // But the dialog already calls API.
-        // We can just trigger a refresh or let the parent handle it via onTogglePublic if it did refresh logic?
-        // Actually, let's just update local state if we can.
-        // setScripts(prev => prev.map(s => s.id === updatedScript.id ? { ...s, ...updatedScript } : s));
-        // But setScripts is passed from props.
-        if (setScripts) {
-             setScripts(prev => prev.map(s => s.id === updatedScript.id ? { ...s, ...updatedScript, isPublic: updatedScript.status === 'Public' } : s));
-        }
-    };
-
 
     return (
         <>
@@ -220,8 +207,8 @@ export function ScriptList({
                                 <FileRow
                                     style={{ marginLeft: `${(item.depth || 0) * 20}px` }}
                                     icon={item.type === 'folder' 
-                                        ? <Folder className={`w-4 h-4 ${expandedPaths.has((item.folder === '/' ? '' : item.folder) + '/' + item.title) ? "fill-blue-500/20" : ""}`} /> 
-                                        : <FileText className="w-4 h-4 text-blue-500" />
+                                        ? <Folder className={`w-4 h-4 ${expandedPaths.has((item.folder === '/' ? '' : item.folder) + '/' + item.title) ? "fill-primary/20" : ""}`} /> 
+                                        : <FileText className="w-4 h-4 text-primary" />
                                     }
                                     title={item.title || t("scriptList.untitled")}
                                     meta={
@@ -234,13 +221,13 @@ export function ScriptList({
                                             {/* Mobile: Show theme and public status */}
                                             <div className="flex items-center gap-1 sm:hidden">
                                                 {item.markerThemeId && markerThemes && (
-                                                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-600 border border-blue-200">
+                                                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-primary/10 text-primary border border-primary/30">
                                                         {item._themeName || t("scriptList.theme")}
                                                     </span>
                                                 )}
                                                 <span 
                                                     onClick={(e) => handleStatusClick(e, item)}
-                                                    className={`px-1.5 py-0.5 rounded text-[10px] border ${item.isPublic ? 'bg-green-500/10 text-green-600 border-green-200' : 'bg-muted text-muted-foreground border-border'} ${!readOnly ? "cursor-pointer active:scale-95 transition-transform" : ""}`}
+                                                    className={`px-1.5 py-0.5 rounded text-[10px] border ${item.isPublic ? 'border-[color:var(--license-selected-border)] bg-[color:var(--license-selected-bg)] text-[color:var(--license-selected-fg)]' : 'border-border bg-[hsl(var(--surface-2))] text-foreground/75'} ${!readOnly ? "cursor-pointer active:scale-95 transition-transform" : ""}`}
                                                 >
                                                     {item.isPublic ? 'Public' : 'Private'}
                                                 </span>
@@ -315,7 +302,7 @@ export function ScriptList({
                                             {item.type !== 'folder' && (
                                                 <div 
                                                     onClick={(e) => handleStatusClick(e, item)}
-                                                    className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider border ${!readOnly ? "cursor-pointer hover:opacity-80 active:scale-95 transition-all" : ""} ${item.isPublic ? 'bg-green-500/10 text-green-600 border-green-200' : 'bg-muted text-muted-foreground border-border'}`}
+                                                    className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider border ${!readOnly ? "cursor-pointer hover:opacity-85 active:scale-95 transition-all" : ""} ${item.isPublic ? 'border-[color:var(--license-selected-border)] bg-[color:var(--license-selected-bg)] text-[color:var(--license-selected-fg)]' : 'border-border bg-[hsl(var(--surface-2))] text-foreground/75'}`}
                                                     title={readOnly ? "" : t("scriptList.clickToManagePublish")}
                                                 >
                                                     {item.isPublic ? "Public" : "Private"}
@@ -439,16 +426,8 @@ export function ScriptList({
                     </div>
                  ) : null}
             </DragOverlay>
-            
+        
         </DndContext>
-
-        {/* Metadata Dialog */}
-            <ScriptMetadataDialog 
-                open={!!editingScriptId}
-                onOpenChange={(open) => !open && setEditingScriptId(null)}
-                scriptId={editingScriptId}
-                onSave={handleMetadataSave}
-            />
         </>
     );
 }

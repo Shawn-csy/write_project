@@ -31,9 +31,9 @@ export default function HybridDashboard({
   };
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex h-full flex-col bg-[hsl(var(--surface-1))]">
       <div className="flex-1 overflow-hidden flex flex-col">
-          <div className={`${TOPBAR_OUTER_CLASS} shrink-0`}>
+          <div className={`${TOPBAR_OUTER_CLASS} shrink-0 border-b border-border/60 bg-[hsl(var(--surface-2))]/90`}>
             <div className={`${TOPBAR_INNER_CLASS} h-14 sm:h-16 flex items-center gap-2 sm:gap-3`}>
               <div className="lg:hidden">
                   <Button variant="ghost" size="icon" onClick={openMobileMenu}>
@@ -58,22 +58,22 @@ export default function HybridDashboard({
               </div>
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <div className="inline-flex items-center gap-1.5 sm:gap-2">
-                  <div className="inline-flex items-center overflow-hidden rounded-md border border-primary/70 bg-primary text-primary-foreground shadow-[0_14px_28px_-14px_hsl(var(--primary)/0.95)]">
+                  <div className="cta-breathe cta-lift inline-flex items-center overflow-hidden rounded-md border border-primary/70 bg-primary text-primary-foreground shadow-[0_14px_28px_-14px_hsl(var(--primary)/0.95)]">
                     <Button
                       size="sm"
                       onClick={() => dispatchWriteTabAction("create-script")}
                       title={t("scriptToolbar.newScript")}
-                      className="inline-flex h-9 sm:h-10 rounded-none border-0 bg-transparent px-2.5 sm:px-4 font-bold text-primary-foreground shadow-none hover:bg-white/12"
+                      className="inline-flex h-9 sm:h-10 rounded-none border-0 bg-transparent px-2.5 sm:px-4 font-extrabold text-primary-foreground shadow-none hover:bg-white/16"
                       data-guide-id="write-create-script-btn"
                     >
-                      <Plus className="w-4 h-4 sm:mr-1" />
+                      <Plus className="w-4 h-4 sm:mr-1.5" />
                       <span className="hidden sm:inline">{t("scriptToolbar.newScriptLabel")}</span>
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
                           size="sm"
-                          className="h-9 sm:h-10 rounded-none border-0 border-l border-white/35 bg-transparent px-2 text-primary-foreground shadow-none hover:bg-white/12"
+                          className="h-9 sm:h-10 rounded-none border-0 border-l border-white/35 bg-transparent px-2 text-primary-foreground shadow-none hover:bg-white/16"
                           title={t("scriptToolbar.moreCreateOptions")}
                         >
                           <ChevronDown className="w-4 h-4" />
@@ -100,10 +100,10 @@ export default function HybridDashboard({
                     size="sm"
                     onClick={() => dispatchWriteTabAction("import-script")}
                     title={t("scriptToolbar.importScript")}
-                    className="inline-flex h-9 sm:h-10 rounded-md border border-primary/70 bg-primary px-2.5 sm:px-4 font-semibold text-primary-foreground shadow-[0_14px_28px_-14px_hsl(var(--primary)/0.9)] hover:bg-primary/90"
+                    className="cta-breathe cta-breathe-delayed cta-lift inline-flex h-9 sm:h-10 rounded-md border-2 border-primary bg-[hsl(var(--surface-1))] px-2.5 sm:px-4 font-bold text-primary shadow-[0_10px_22px_-14px_hsl(var(--primary)/0.9)] hover:bg-primary/10 hover:shadow-[0_14px_26px_-14px_hsl(var(--primary)/0.9)]"
                     data-guide-id="write-import-script-btn"
                   >
-                    <Upload className="w-4 h-4 sm:mr-1" />
+                    <Upload className="w-4 h-4 sm:mr-1.5" />
                     <span className="hidden sm:inline">{t("scriptToolbar.import")}</span>
                   </Button>
                 </div>
@@ -135,7 +135,7 @@ export default function HybridDashboard({
               </div>
             </div>
           </div>
-          <div className="flex-1 min-h-0 overflow-hidden p-4 sm:p-6">
+          <div className="flex-1 min-h-0 overflow-hidden bg-gradient-to-b from-[hsl(var(--surface-2))] to-[hsl(var(--surface-1))] p-4 sm:p-6">
               {currentUser ? <WriteTab onSelectScript={onSelectCloudScript} /> : null}
           </div>
       </div>

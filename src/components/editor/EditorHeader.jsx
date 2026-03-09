@@ -124,10 +124,10 @@ export function EditorHeader({
               <div
                 className={`p-1 px-2 rounded flex items-center gap-1 text-[10px] sm:text-xs border ${
                     saveStatus === "error" ? "bg-destructive/10 text-destructive border-destructive/30" :
-                    saveStatus === "local-saved" ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30" :
-                    saveStatus === "unsaved" ? "bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/30" :
+                    saveStatus === "local-saved" ? "bg-[color:var(--license-term-bg)] text-[color:var(--license-term-fg)] border-[color:var(--license-term-border)]" :
+                    saveStatus === "unsaved" ? "bg-muted text-muted-foreground border-border" :
                     saveStatus === "saving" ? "bg-primary/10 text-primary border-primary/30" :
-                    "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                    "bg-primary/10 text-primary border-primary/30"
                 }`}
                 title={saveStatusTitle}
                 aria-label={saveStatusTitle}

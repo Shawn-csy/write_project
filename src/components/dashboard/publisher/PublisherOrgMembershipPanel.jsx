@@ -7,8 +7,8 @@ import { Loader2 } from "lucide-react";
 import { PublisherFormRow } from "./PublisherFormRow";
 
 const roleBadgeClass = (role) => {
-  if (role === "owner") return "border-amber-300 bg-amber-50 text-amber-800";
-  if (role === "admin") return "border-blue-300 bg-blue-50 text-blue-800";
+  if (role === "owner") return "border-[color:var(--license-term-border)] bg-[color:var(--license-term-bg)] text-[color:var(--license-term-fg)]";
+  if (role === "admin") return "border-primary/35 bg-primary/12 text-primary";
   return "border-muted-foreground/30 bg-muted text-muted-foreground";
 };
 

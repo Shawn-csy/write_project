@@ -43,20 +43,20 @@ export function MarkerLogicSettings({ config, idx, updateMarker, isAdvancedMode 
                             {/* 開始/結束符號 */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div className="space-y-1">
-                                    <label className="text-[10px] text-muted-foreground block">{t("markerLogic.rangeStartLabel")} <span className="text-red-500">*</span></label>
+                                    <label className="text-[10px] text-muted-foreground block">{t("markerLogic.rangeStartLabel")} <span className="text-destructive">*</span></label>
                                     <Input 
                                         value={config.start || ''} 
                                         onChange={(e) => updateMarker(idx, 'start', e.target.value)}
-                                        className={`h-8 font-mono text-xs text-center ${!config.start ? 'border-red-500' : ''}`}
+                                        className={`h-8 font-mono text-xs text-center ${!config.start ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                                         placeholder={t("markerLogic.rangeStartPlaceholder")}
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] text-muted-foreground block">{t("markerLogic.rangeEndLabel")} <span className="text-red-500">*</span></label>
+                                    <label className="text-[10px] text-muted-foreground block">{t("markerLogic.rangeEndLabel")} <span className="text-destructive">*</span></label>
                                     <Input 
                                         value={config.end || ''} 
                                         onChange={(e) => updateMarker(idx, 'end', e.target.value)}
-                                        className={`h-8 font-mono text-xs text-center ${!config.end ? 'border-red-500' : ''}`}
+                                        className={`h-8 font-mono text-xs text-center ${!config.end ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                                         placeholder={t("markerLogic.rangeEndPlaceholder")}
                                     />
                                 </div>
@@ -113,7 +113,7 @@ export function MarkerLogicSettings({ config, idx, updateMarker, isAdvancedMode 
                                         type="button"
                                         onClick={() => updateMarker(idx, 'style', { 
                                             ...config.style, 
-                                            backgroundColor: 'rgba(100, 100, 100, 0.08)',
+                                            backgroundColor: 'hsl(var(--muted) / 0.45)',
                                             borderLeft: undefined,
                                             paddingLeft: undefined
                                         })}
@@ -141,41 +141,41 @@ export function MarkerLogicSettings({ config, idx, updateMarker, isAdvancedMode 
                 
                 {config.matchMode === 'regex' ? (
                     <div className="sm:col-span-2 space-y-1">
-                        <label className="text-[10px] text-muted-foreground block mb-1">{t("markerLogic.regexLabel")} <span className="text-red-500">*</span></label>
+                        <label className="text-[10px] text-muted-foreground block mb-1">{t("markerLogic.regexLabel")} <span className="text-destructive">*</span></label>
                         <Input 
                             value={config.regex || ''}
                             onChange={(e) => updateMarker(idx, 'regex', e.target.value)}
-                            className={`h-8 font-mono text-xs ${!config.regex ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                            className={`h-8 font-mono text-xs ${!config.regex ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                             placeholder={t("markerLogic.regexPlaceholder")}
                         />
                         {!config.regex && (
-                             <p className="text-[10px] text-red-500 font-medium">{t("markerLogic.regexRequired")}</p>
+                             <p className="text-[10px] text-destructive font-medium">{t("markerLogic.regexRequired")}</p>
                         )}
                     </div>
                 ) : config.matchMode !== 'range' && (
                     <>
                         <div className="flex flex-col sm:flex-row gap-2">
                                 <div className="flex-1 space-y-1">
-                                    <label className="text-[10px] text-muted-foreground block mb-1">{t("markerLogic.startLabel")} <span className="text-red-500">*</span></label>
+                                    <label className="text-[10px] text-muted-foreground block mb-1">{t("markerLogic.startLabel")} <span className="text-destructive">*</span></label>
                                     <Input 
                                         value={config.start || ''} 
                                         onChange={(e) => updateMarker(idx, 'start', e.target.value)}
-                                        className={`h-8 font-mono text-xs text-center ${!config.start ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                                        className={`h-8 font-mono text-xs text-center ${!config.start ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                                     />
                                     {!config.start && (
-                                        <p className="text-[10px] text-red-500 font-medium">{t("markerLogic.startRequired")}</p>
+                                        <p className="text-[10px] text-destructive font-medium">{t("markerLogic.startRequired")}</p>
                                     )}
                                 </div>
                             {(isBlock || config.matchMode !== 'prefix') && (
                                 <div className="flex-1 space-y-1">
-                                    <label className="text-[10px] text-muted-foreground block mb-1">{t("markerLogic.endLabel")} <span className="text-red-500">*</span></label>
+                                    <label className="text-[10px] text-muted-foreground block mb-1">{t("markerLogic.endLabel")} <span className="text-destructive">*</span></label>
                                     <Input 
                                         value={config.end || ''} 
                                         onChange={(e) => updateMarker(idx, 'end', e.target.value)}
-                                        className={`h-8 font-mono text-xs text-center ${!config.end ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                                        className={`h-8 font-mono text-xs text-center ${!config.end ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                                     />
                                     {!config.end && (
-                                        <p className="text-[10px] text-red-500 font-medium">{t("markerLogic.startRequired")}</p>
+                                        <p className="text-[10px] text-destructive font-medium">{t("markerLogic.startRequired")}</p>
                                     )}
                                 </div>
                             )}
@@ -188,7 +188,7 @@ export function MarkerLogicSettings({ config, idx, updateMarker, isAdvancedMode 
                                         type="checkbox" 
                                         checked={config.showEndLabel !== false}
                                         onChange={(e) => updateMarker(idx, 'showEndLabel', e.target.checked)}
-                                        className="rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5"
+                                        className="h-3.5 w-3.5 rounded border-input text-primary focus:ring-ring"
                                     />
                                     <span className="text-xs text-foreground">{t("markerLogic.showEnd")}</span>
                                 </label>
@@ -203,7 +203,7 @@ export function MarkerLogicSettings({ config, idx, updateMarker, isAdvancedMode 
                                         type="checkbox" 
                                         checked={!!config.smartToggle} 
                                         onChange={(e) => updateMarker(idx, 'smartToggle', e.target.checked)}
-                                        className="rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5"
+                                        className="h-3.5 w-3.5 rounded border-input text-primary focus:ring-ring"
                                     />
                                     <span className="text-xs text-foreground">{t("markerLogic.smartToggle")}</span>
                                 </label>
@@ -242,7 +242,7 @@ export function MarkerLogicSettings({ config, idx, updateMarker, isAdvancedMode 
                             type="checkbox" 
                             checked={!!config.dimIfNotKeyword} 
                             onChange={(e) => updateMarker(idx, 'dimIfNotKeyword', e.target.checked)}
-                            className="rounded border-gray-300 text-primary focus:ring-primary h-3 w-3"
+                            className="h-3 w-3 rounded border-input text-primary focus:ring-ring"
                         />
                         <span className="text-xs text-muted-foreground">{t("markerLogic.dimKeyword")}</span>
                     </label>
@@ -257,7 +257,7 @@ export function MarkerLogicSettings({ config, idx, updateMarker, isAdvancedMode 
                             type="checkbox" 
                             checked={!!config.showDelimiters} 
                             onChange={(e) => updateMarker(idx, 'showDelimiters', e.target.checked)}
-                            className="rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5"
+                            className="h-3.5 w-3.5 rounded border-input text-primary focus:ring-ring"
                         />
                         <span className="text-xs text-muted-foreground">{t("markerLogic.showDelimiters")}</span>
                     </label>

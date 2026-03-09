@@ -151,7 +151,7 @@ export default function PublicHelpPage() {
       <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         <Card
           style={MORANDI_STUDIO_TONE_VARS.works}
-          className="border-[var(--morandi-tone-panel-border)] bg-gradient-to-br from-[var(--morandi-tone-helper-bg)]/45 via-background to-[var(--morandi-tone-panel-bg)]"
+          className="border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-br from-[var(--morandi-tone-helper-bg)]/45 via-background to-[var(--morandi-tone-panel-bg)]"
         >
           <CardContent className="pt-8 pb-6">
             <div className="flex flex-col items-start gap-4">
@@ -187,7 +187,7 @@ export default function PublicHelpPage() {
                     key={tag}
                     type="button"
                     onClick={() => setQuery(tag)}
-                    className="rounded-full border border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-helper-bg)]/20 px-3 py-1 text-xs text-[var(--morandi-tone-helper-fg)] hover:bg-[var(--morandi-tone-helper-bg)]/40"
+                    className="rounded-full border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-helper-bg)]/20 px-3 py-1 text-xs text-[color:var(--morandi-tone-helper-fg)] hover:bg-[color:var(--morandi-tone-helper-bg)]/40"
                   >
                     #{tag}
                   </button>
@@ -249,17 +249,17 @@ export default function PublicHelpPage() {
               <Card
                 key={categoryKey}
                 style={MORANDI_STUDIO_TONE_VARS[meta?.toneKey] || MORANDI_STUDIO_TONE_VARS.works}
-                className="border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-panel-bg)]/65"
+                className="border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)]/65"
               >
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center justify-between">
-                    <span className="inline-flex items-center gap-2 text-[var(--morandi-tone-helper-fg)]">
+                    <span className="inline-flex items-center gap-2 text-[color:var(--morandi-tone-helper-fg)]">
                       <Icon className="w-4 h-4" />
                       {meta?.label || categoryKey}
                     </span>
                     <Badge
                       variant="outline"
-                      className="border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-helper-bg)]/35 text-[var(--morandi-tone-helper-fg)]"
+                      className="border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-helper-bg)]/35 text-[color:var(--morandi-tone-helper-fg)]"
                     >
                       {items.length} 題
                     </Badge>
@@ -269,13 +269,13 @@ export default function PublicHelpPage() {
                   {items.map((item) => {
                     const isOpen = expandedId === item.id;
                     return (
-                      <div key={item.id} className="rounded-lg border border-[var(--morandi-tone-panel-border)] bg-background/80">
+                      <div key={item.id} className="rounded-lg border border-[color:var(--morandi-tone-panel-border)] bg-background/80">
                         <button
                           type="button"
                           className="w-full flex items-center justify-between gap-2 px-4 py-3 text-left"
                           onClick={() => setExpandedId((prev) => (prev === item.id ? null : item.id))}
                         >
-                          <span className="text-sm font-semibold text-[var(--morandi-tone-helper-fg)]">{item.question}</span>
+                          <span className="text-sm font-semibold text-[color:var(--morandi-tone-helper-fg)]">{item.question}</span>
                           <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`} />
                         </button>
                         {isOpen ? (

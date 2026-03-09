@@ -176,11 +176,31 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
       setActiveTab((prev) => (prev === nextTab ? prev : nextTab));
   }, [location.search, resolveTabFromSearch]);
 
+  useEffect(() => {
+      const params = new URLSearchParams(location.search || "");
+      const requestedScriptId = params.get("scriptId");
+      const shouldOpenPublish = params.get("open") === "publish";
+      if (!requestedScriptId || !shouldOpenPublish) return;
+      const target = (scripts || []).find((s) => s.id === requestedScriptId);
+      if (!target) return;
+      setActiveTab("works");
+      setEditingScript((prev) => (prev?.id === target.id ? prev : target));
+  }, [location.search, scripts]);
+
   const handleTabChange = useCallback((nextTab) => {
       setActiveTab(nextTab);
       const params = new URLSearchParams(location.search || "");
       if (!nextTab || nextTab === "works") params.delete("tab");
       else params.set("tab", nextTab);
+      const query = params.toString();
+      navigate(`/studio${query ? `?${query}` : ""}`, { replace: true });
+  }, [location.search, navigate]);
+
+  const closePublishDialog = useCallback(() => {
+      setEditingScript(null);
+      const params = new URLSearchParams(location.search || "");
+      params.delete("scriptId");
+      params.delete("open");
       const query = params.toString();
       navigate(`/studio${query ? `?${query}` : ""}`, { replace: true });
   }, [location.search, navigate]);
@@ -497,7 +517,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 <TabsTrigger
                   value="works"
                   style={tabTone.works}
-                  className="h-11 justify-start px-3 border border-transparent transition-colors data-[state=active]:border-[var(--morandi-tone-panel-border)] data-[state=active]:bg-[var(--morandi-tone-trigger-bg)] data-[state=active]:text-[var(--morandi-tone-trigger-fg)]"
+                  className="h-11 justify-start px-3 border border-transparent transition-colors data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)]"
                 >
                     <span className="flex items-center gap-2 text-xs sm:text-sm">
                         <FileText className="h-4 w-4" />
@@ -508,7 +528,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 <TabsTrigger
                   value="profile"
                   style={tabTone.profile}
-                  className="h-11 justify-start px-3 border border-transparent transition-colors data-[state=active]:border-[var(--morandi-tone-panel-border)] data-[state=active]:bg-[var(--morandi-tone-trigger-bg)] data-[state=active]:text-[var(--morandi-tone-trigger-fg)]"
+                  className="h-11 justify-start px-3 border border-transparent transition-colors data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)]"
                 >
                     <span className="flex items-center gap-2 text-xs sm:text-sm">
                         <UserRound className="h-4 w-4" />
@@ -519,7 +539,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 <TabsTrigger
                   value="org"
                   style={tabTone.org}
-                  className="h-11 justify-start px-3 border border-transparent transition-colors data-[state=active]:border-[var(--morandi-tone-panel-border)] data-[state=active]:bg-[var(--morandi-tone-trigger-bg)] data-[state=active]:text-[var(--morandi-tone-trigger-fg)]"
+                  className="h-11 justify-start px-3 border border-transparent transition-colors data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)]"
                 >
                     <span className="flex items-center gap-2 text-xs sm:text-sm">
                         <Building2 className="h-4 w-4" />
@@ -530,7 +550,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 <TabsTrigger
                   value="series"
                   style={tabTone.series}
-                  className="h-11 justify-start px-3 border border-transparent transition-colors data-[state=active]:border-[var(--morandi-tone-panel-border)] data-[state=active]:bg-[var(--morandi-tone-trigger-bg)] data-[state=active]:text-[var(--morandi-tone-trigger-fg)]"
+                  className="h-11 justify-start px-3 border border-transparent transition-colors data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)]"
                 >
                     <span className="flex items-center gap-2 text-xs sm:text-sm">
                         <Layers3 className="h-4 w-4" />
@@ -541,7 +561,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
             </TabsList>
             <div
               style={tabTone[activeTab] || tabTone.works}
-              className="mt-2 rounded-md border-l-4 border-[var(--morandi-tone-helper-border)] bg-[var(--morandi-tone-helper-bg)] px-2 py-1.5 text-xs text-[var(--morandi-tone-helper-fg)]"
+              className="mt-2 rounded-md border-l-4 border-[color:var(--morandi-tone-helper-border)] bg-[color:var(--morandi-tone-helper-bg)] px-2 py-1.5 text-xs text-[color:var(--morandi-tone-helper-fg)]"
             >
                 {tabDescriptions[activeTab] || tabDescriptions.works}
             </div>
@@ -551,7 +571,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         <TabsContent
           value="works"
           style={tabTone.works}
-          className="space-y-4 rounded-xl border border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-panel-bg)] p-3"
+          className="space-y-4 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-3"
           data-guide-id="studio-works-panel"
         >
              <PublisherWorksTab 
@@ -568,7 +588,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         <TabsContent
           value="profile"
           style={tabTone.profile}
-          className="rounded-xl border border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-panel-bg)] p-3"
+          className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-3"
           data-guide-id="studio-profile-panel"
         >
             <PublisherProfileTab
@@ -589,7 +609,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
 
         <ScriptMetadataDialog 
             open={!!editingScript} 
-            onOpenChange={(open) => !open && setEditingScript(null)} 
+            onOpenChange={(open) => !open && closePublishDialog()} 
             script={editingScript}
             seriesOptions={seriesList}
             onSeriesCreated={(createdSeries) => {
@@ -601,7 +621,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 setSelectedSeriesId(createdSeries.id);
             }}
             onSave={(updatedScript) => {
-                setEditingScript(null);
+                closePublishDialog();
                 setScripts(prev => prev.map(s => s.id === updatedScript.id ? { ...s, ...updatedScript } : s));
             }}
         />
@@ -610,7 +630,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         <TabsContent
           value="org"
           style={tabTone.org}
-          className="rounded-xl border border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-panel-bg)] p-3"
+          className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-3"
           data-guide-id="studio-org-panel"
         >
                 <PublisherOrgTab 
@@ -647,7 +667,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         <TabsContent
           value="series"
           style={tabTone.series}
-          className="rounded-xl border border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-panel-bg)] p-3"
+          className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-3"
         >
             <PublisherSeriesTab
               seriesList={seriesList}

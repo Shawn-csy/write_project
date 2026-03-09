@@ -134,8 +134,8 @@ export function PublicScriptInfoOverlay({
         label: "商業使用",
         value: commercial === "allow" ? "可" : "不可",
         className: commercial === "allow"
-          ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
-          : "border-red-500/40 bg-red-500/15 text-red-700 dark:text-red-300",
+          ? "border-primary/40 bg-primary/10 text-primary"
+          : "border-destructive/40 bg-destructive/10 text-destructive",
       });
     }
     if (derivative) {
@@ -146,10 +146,10 @@ export function PublicScriptInfoOverlay({
         label: "改作許可",
         value: isAllow ? "可" : isDisallow ? "不可" : "需同意",
         className: isAllow
-          ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+          ? "border-primary/40 bg-primary/10 text-primary"
           : isDisallow
-            ? "border-red-500/40 bg-red-500/15 text-red-700 dark:text-red-300"
-            : "border-amber-500/40 bg-amber-500/20 text-amber-800 dark:text-amber-300",
+            ? "border-destructive/40 bg-destructive/10 text-destructive"
+            : "border-[color:var(--license-term-border)] bg-[color:var(--license-term-bg)] text-[color:var(--license-term-fg)]",
       });
     }
     if (notify) {
@@ -159,8 +159,8 @@ export function PublicScriptInfoOverlay({
         label: "修改須通知作者",
         value: required ? "需要" : "不需要",
         className: required
-          ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
-          : "border-red-500/40 bg-red-500/15 text-red-700 dark:text-red-300",
+          ? "border-primary/40 bg-primary/10 text-primary"
+          : "border-destructive/40 bg-destructive/10 text-destructive",
       });
     }
     return items;
@@ -209,8 +209,8 @@ export function PublicScriptInfoOverlay({
             <div className="absolute inset-0 opacity-20" style={{ background: "radial-gradient(circle at 80% 85%, rgba(0,0,0,0.35), transparent 40%)" }} />
             <div className="relative max-w-[85%] rounded-xl border border-white/25 bg-black/25 px-5 py-4 backdrop-blur-sm shadow-lg">
               <div className="absolute -right-6 -top-6 h-12 w-12 rounded-full border border-white/40" style={{ backgroundColor: placeholderTheme.accent }} />
-              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/80">No Cover</div>
-              <div className="mt-2 line-clamp-3 text-2xl font-extrabold leading-tight text-white drop-shadow md:text-3xl">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-foreground/80">No Cover</div>
+              <div className="mt-2 line-clamp-3 text-2xl font-extrabold leading-tight text-primary-foreground drop-shadow md:text-3xl">
                 {title || "Untitled"}
               </div>
             </div>

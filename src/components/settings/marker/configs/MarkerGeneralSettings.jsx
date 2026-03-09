@@ -7,14 +7,14 @@ export function MarkerGeneralSettings({ config, idx, updateMarker, isAdvancedMod
     return (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 items-end">
             <div className="col-span-1 space-y-1">
-                <label className="text-[10px] uppercase text-muted-foreground font-semibold">{t("markerGeneral.name")} <span className="text-red-500">*</span></label>
+                <label className="text-[10px] uppercase text-muted-foreground font-semibold">{t("markerGeneral.name")} <span className="text-destructive">*</span></label>
                 <Input 
                     value={config.label || ''} 
                     onChange={(e) => updateMarker(idx, 'label', e.target.value)}
-                    className={`h-8 text-xs ${!config.label ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                    className={`h-8 text-xs ${!config.label ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                 />
                 {!config.label && (
-                    <p className="text-[10px] text-red-500 font-medium">{t("markerGeneral.required")}</p>
+                    <p className="text-[10px] text-destructive font-medium">{t("markerGeneral.required")}</p>
                 )}
             </div>
              <div className="col-span-1 space-y-1">

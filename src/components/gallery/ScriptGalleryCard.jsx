@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "../ui/badge";
 import { Card } from "../ui/card";
-import { Eye, Heart } from "lucide-react";
+import { ChevronRight, Eye, Heart } from "lucide-react";
 import { toggleScriptLike, incrementScriptView } from "../../lib/api/scripts";
 import { AuthorBadge } from "../ui/AuthorBadge";
 import { CoverPlaceholder } from "../ui/CoverPlaceholder";
@@ -67,16 +67,16 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
     return (
       <Card
         onClick={handleCardClick}
-        className="group relative overflow-hidden border border-border/40 bg-background/40 hover:-translate-y-0.5 hover:bg-background/75 hover:border-primary/60 hover:shadow-md hover:cursor-pointer transition-all duration-200"
+        className="group relative overflow-hidden rounded-none border-0 bg-transparent shadow-none hover:cursor-pointer"
       >
-        <div className="flex gap-3 p-3">
-          <div className="w-16 shrink-0">
-            <div className="aspect-[2/3] w-full overflow-hidden rounded-md bg-muted">
+        <div className="flex items-stretch gap-2.5 px-3 py-2 transition-colors duration-200 hover:bg-muted/30">
+          <div className="w-[44px] shrink-0">
+            <div className="aspect-[2/3] w-full overflow-hidden rounded-sm border border-border/40 bg-muted/25 shadow-sm">
               {coverUrl ? (
                 <img
                   src={coverUrl}
                   alt={title}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                   loading="lazy"
                 />
               ) : (
@@ -84,28 +84,38 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
               )}
             </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-sm font-semibold leading-snug line-clamp-2">{title}</div>
-            <div className="mt-1">
-              <AuthorBadge author={author} />
-            </div>
-            {seriesName && (
-              <button
-                type="button"
-                className="mt-1 text-[11px] text-muted-foreground line-clamp-1 hover:text-primary"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/series/${encodeURIComponent(seriesName)}`);
-                }}
-              >
-                {seriesName}{seriesOrderText}
-              </button>
-            )}
-            <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
-              <div className="flex items-center gap-1" title="Views">
-                <Eye className="w-3.5 h-3.5" />
-                <span>{views.toLocaleString()}</span>
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className="flex min-w-0 items-center justify-between gap-2">
+              <div className="min-w-0 text-sm font-semibold leading-tight text-foreground line-clamp-1 group-hover:text-primary">
+                {title}
               </div>
+              <div className="shrink-0 text-[10px] text-muted-foreground">
+                <span className="inline-flex items-center gap-1" title="Views">
+                  <Eye className="h-3 w-3" />
+                  <span>{views.toLocaleString()}</span>
+                </span>
+              </div>
+            </div>
+            <div className="min-w-0 flex items-center gap-2">
+              <AuthorBadge author={author} />
+              {seriesName && (
+                <button
+                  type="button"
+                  className="min-w-0 text-[10px] text-muted-foreground line-clamp-1 hover:text-primary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/series/${encodeURIComponent(seriesName)}`);
+                  }}
+                >
+                  {seriesName}{seriesOrderText}
+                </button>
+              )}
+              {!seriesName && displayTags.length > 0 && (
+                <span className="text-[10px] text-muted-foreground line-clamp-1">
+                  {primaryTags.join(" · ")}
+                </span>
+              )}
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/70 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-primary" />
             </div>
           </div>
         </div>
@@ -207,7 +217,7 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
                     <span>{views.toLocaleString()}</span>
                 </div>
                 <div 
-                    className={`flex items-center gap-1 cursor-pointer transition-colors ${isLiked ? "text-red-500" : "hover:text-foreground"}`}
+                    className={`flex items-center gap-1 cursor-pointer transition-colors ${isLiked ? "text-destructive" : "hover:text-foreground"}`}
                     onClick={handleLike}
                     title="Like"
                 >

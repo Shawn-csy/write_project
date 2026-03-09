@@ -28,6 +28,11 @@ export default function PublicLicensePage() {
   const termsSections = Array.isArray(termsConfig?.sections) ? termsConfig.sections : [];
   const requiredChecks = Array.isArray(termsConfig?.requiredChecks) ? termsConfig.requiredChecks : [];
   const effectiveDate = /^\d{4}-\d{2}-\d{2}$/.test(termsVersion) ? termsVersion : "";
+  const licenseCardStyle = {
+    backgroundColor: "var(--license-card-bg)",
+    borderColor: "var(--license-card-border)",
+    color: "var(--license-card-fg)",
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -39,7 +44,10 @@ export default function PublicLicensePage() {
 
       <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
         <div className="flex flex-col items-center text-center space-y-4 mb-10">
-          <div className="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-2 shadow-sm border border-primary/20">
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center mb-2 shadow-sm border"
+            style={licenseCardStyle}
+          >
             <Scale className="w-8 h-8" />
           </div>
           <h1 className="text-3xl font-serif font-bold text-foreground">{t("publicLicense.title")}</h1>
@@ -60,7 +68,7 @@ export default function PublicLicensePage() {
 
         <div className="space-y-6">
           {termsSections.length > 0 && (
-            <Card>
+            <Card style={licenseCardStyle}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">
                   <ShieldCheck className="w-5 h-5 text-primary" />
@@ -78,7 +86,7 @@ export default function PublicLicensePage() {
             </Card>
           )}
 
-          <Card>
+          <Card style={licenseCardStyle}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-xl">
                 <ShieldCheck className="w-5 h-5 text-primary" />
@@ -106,7 +114,7 @@ export default function PublicLicensePage() {
             </Card>
 
           {requiredChecks.length > 0 && (
-            <Card>
+            <Card style={licenseCardStyle}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">
                   <FileCheck2 className="w-5 h-5 text-primary" />
@@ -124,7 +132,7 @@ export default function PublicLicensePage() {
             </Card>
           )}
 
-          <Card>
+          <Card style={licenseCardStyle}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-xl">
                 <FileCheck2 className="w-5 h-5 text-primary" />
@@ -136,7 +144,7 @@ export default function PublicLicensePage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card style={licenseCardStyle}>
             <CardHeader>
               <CardTitle className="text-xl">{t("publicLicense.signingLogTitle")}</CardTitle>
             </CardHeader>

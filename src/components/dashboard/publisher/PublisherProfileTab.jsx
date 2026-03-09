@@ -385,9 +385,9 @@ export function PublisherProfileTab({
                                             {avatarUploadError ? (
                                                 <p className="text-destructive">{avatarUploadError}</p>
                                             ) : avatarUploadWarning ? (
-                                                <p className="text-amber-700 dark:text-amber-300">{avatarUploadWarning}</p>
+                                                <p className="text-[color:var(--license-term-fg)]">{avatarUploadWarning}</p>
                                             ) : avatarPreviewFailed ? (
-                                                <p className="text-amber-700 dark:text-amber-300">{t("publisherProfileTab.avatarPreviewFailed")}</p>
+                                                <p className="text-[color:var(--license-term-fg)]">{t("publisherProfileTab.avatarPreviewFailed")}</p>
                                             ) : (
                                                 <p className="opacity-0">placeholder</p>
                                             )}
@@ -446,9 +446,9 @@ export function PublisherProfileTab({
                                             {bannerUploadError ? (
                                                 <p className="text-destructive">{bannerUploadError}</p>
                                             ) : bannerUploadWarning ? (
-                                                <p className="text-amber-700 dark:text-amber-300">{bannerUploadWarning}</p>
+                                                <p className="text-[color:var(--license-term-fg)]">{bannerUploadWarning}</p>
                                             ) : bannerPreviewFailed ? (
-                                                <p className="text-amber-700 dark:text-amber-300">{t("publisherProfileTab.bannerPreviewFailed")}</p>
+                                                <p className="text-[color:var(--license-term-fg)]">{t("publisherProfileTab.bannerPreviewFailed")}</p>
                                             ) : (
                                                 <p className="opacity-0">placeholder</p>
                                             )}
