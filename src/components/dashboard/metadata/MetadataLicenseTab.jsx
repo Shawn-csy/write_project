@@ -77,7 +77,7 @@ export function MetadataLicenseTab({
                         <div id="license-derivative" className="grid grid-cols-1 gap-1 sm:grid-cols-3">
                             <Button type="button" variant="outline" className={optionClass(licenseDerivative === "allow")} onClick={() => setLicenseDerivative("allow")}>Y</Button>
                             <Button type="button" variant="outline" className={optionClass(licenseDerivative === "disallow")} onClick={() => setLicenseDerivative("disallow")}>N</Button>
-                            <Button type="button" variant="outline" className={optionClass(licenseDerivative === "limited")} onClick={() => setLicenseDerivative("limited")}>L</Button>
+                            <Button type="button" variant="outline" className={optionClass(licenseDerivative === "limited")} onClick={() => setLicenseDerivative("limited")}>有條件</Button>
                         </div>
                     </div>
                     <div className={optionPanelClass}>

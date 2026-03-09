@@ -122,6 +122,8 @@ const messages = {
     "downloadXlsx": "Download Excel (.xlsx)",
     "downloadCsv": "Download CSV",
     "markerLegend": "Marker Legend",
+    "toc": "Details",
+    "openToc": "Open details sidebar",
     "guide": "Guide",
     "guideHeaderTitle": "Page Controls",
     "guideHeaderDesc": "Use this area to switch language, toggle markers, adjust appearance, download, and share.",
