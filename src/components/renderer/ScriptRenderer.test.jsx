@@ -353,4 +353,21 @@ describe('ScriptRenderer Styles', () => {
         fireEvent.pointerMove(getByText('淡出'), { clientX: 120, clientY: 100 });
         expect(screen.getByText('標記: 背景音結束')).toBeDefined();
     });
+
+    it('should add underline mode class when showLineUnderline is enabled', () => {
+        const text = "測試文字";
+        const { ast } = parseScreenplay(text, []);
+        const { container } = render(
+            <ScriptRenderer
+                ast={ast}
+                markerConfigs={[]}
+                themePalette={["160 84% 39%"]}
+                colorCache={{ current: new Map() }}
+                showLineUnderline={true}
+            />
+        );
+
+        const root = container.querySelector(".script-renderer");
+        expect(root?.className || "").toContain("show-line-underline");
+    });
 });

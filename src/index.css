@@ -586,6 +586,10 @@ html.transparent-mode {
   text-align: left;
 }
 
+.script-renderer.show-line-underline .script-line {
+  border-bottom: 1px solid hsl(var(--border) / 0.55);
+}
+
 /* Range pause line connector mask:
    Keep a single continuous connector, but cut it only on pause rows. */
 .range-node .range-pause-mask-row {

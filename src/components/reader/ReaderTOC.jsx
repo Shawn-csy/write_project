@@ -20,6 +20,7 @@ export function ReaderTOC({
   onOpenChange,
   triggerGuideId = "public-guide-toc-trigger",
   panelGuideId = "public-guide-toc-panel",
+  hideHeaderTrigger = false,
 }) {
   const [internalOpen, setInternalOpen] = React.useState(false);
   const isControlled = typeof open === "boolean";
@@ -50,17 +51,19 @@ export function ReaderTOC({
         </button>
       )}
       <Sheet open={resolvedOpen} onOpenChange={setOpen} modal={false}>
-        <SheetTrigger asChild>
-          <Button
-            data-guide-id={triggerGuideId}
-            variant="ghost"
-            size="icon"
-            className="rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md"
-            aria-label={t("publicReader.toc", "詳細資料")}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-        </SheetTrigger>
+        {!hideHeaderTrigger ? (
+          <SheetTrigger asChild>
+            <Button
+              data-guide-id={triggerGuideId}
+              variant="ghost"
+              size="icon"
+              className="rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md"
+              aria-label={t("publicReader.toc", "詳細資料")}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+        ) : null}
         <SheetContent
           data-guide-id={panelGuideId}
           side="left"
