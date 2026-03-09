@@ -288,11 +288,6 @@ export function PublicReaderLayout({
   });
   const guideSteps = useMemo(() => ([
     {
-      title: t("publicReader.guideTocButtonTitle", "目錄按鈕"),
-      description: t("publicReader.guideTocButtonDesc", "先點這裡打開左側導覽面板。"),
-      targetId: "public-guide-toc-trigger",
-    },
-    {
       title: t("publicReader.guideTocPanelTitle", "左側導覽面板"),
       description: t("publicReader.guideTocPanelDesc", "這裡可快速跳場景、查看更多作品資訊。"),
       targetId: "public-guide-toc-panel",
@@ -393,7 +388,7 @@ export function PublicReaderLayout({
     const targetId = currentGuide?.targetId || "";
     if (targetId === "public-guide-toc-panel") {
       setTocOpen(true);
-    } else if (targetId && targetId !== "public-guide-toc-trigger") {
+    } else if (targetId) {
       setTocOpen(false);
     }
   }, [showGuide, currentGuide]);
@@ -454,12 +449,9 @@ export function PublicReaderLayout({
         onShare={onShare}
         onOpenGuide={handleStartGuide}
         downloadOptions={downloadOptions}
-        // Removed generic onSettings, now using integrated components
-        
-        // TOC Props
-        sceneList={viewerProps?.sceneList || viewerProps?.scenes || []} // Provide fallback
-        currentSceneId={viewerProps?.activeSceneId} // We need to ensure we track this
-        onSelectScene={viewerProps?.scrollToScene} // The viewer prop usually expects an ID
+        sceneList={viewerProps?.sceneList || viewerProps?.scenes || []}
+        currentSceneId={viewerProps?.activeSceneId}
+        onSelectScene={viewerProps?.scrollToScene}
         tocOpen={tocOpen}
         onTocOpenChange={setTocOpen}
         metaItems={metaItems}

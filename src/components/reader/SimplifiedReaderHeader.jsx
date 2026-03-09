@@ -1,10 +1,9 @@
 import React from "react";
-import { ArrowLeft, Share2, Sun, Moon, HelpCircle } from "lucide-react";
+import { ArrowLeft, Share2, HelpCircle } from "lucide-react";
 import { Button } from "../ui/button";
 import { ReaderAppearanceMenu } from "./ReaderAppearanceMenu";
 import { ReaderTOC } from "./ReaderTOC";
 import { MarkerVisibilitySelect } from "../ui/MarkerVisibilitySelect";
-import { useSettings } from "../../contexts/SettingsContext";
 import { DownloadMenu } from "../common/DownloadMenu";
 import { LanguageSwitcher } from "../common/LanguageSwitcher";
 import { useI18n } from "../../contexts/I18nContext";
@@ -16,7 +15,7 @@ export function SimplifiedReaderHeader({
   onShare,
   onOpenGuide,
   downloadOptions = [],
-  // New props for TOC
+  // TOC props
   sceneList,
   currentSceneId,
   onSelectScene,
@@ -29,7 +28,6 @@ export function SimplifiedReaderHeader({
   onToggleMarker,
   className = "",
 }) {
-  const { isDark, setTheme } = useSettings();
   const { t } = useI18n();
 
   return (
@@ -37,7 +35,7 @@ export function SimplifiedReaderHeader({
       data-guide-id="public-guide-header"
       className={`fixed top-0 left-0 right-0 h-14 md:h-16 px-4 z-50 flex items-center justify-between transition-all duration-300 ${className}`}
     >
-      {/* Left: Back & TOC */}
+      {/* Left: Back */}
       <div className="flex items-center gap-2 min-w-0 flex-1">
         <Button
           data-guide-id="public-guide-back"
@@ -50,17 +48,16 @@ export function SimplifiedReaderHeader({
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        
-        {/* Table of Contents */}
-        <ReaderTOC 
-            sceneList={sceneList} 
-            currentSceneId={currentSceneId} 
-            onSelectScene={onSelectScene}
-            metaItems={metaItems}
-            open={tocOpen}
-            onOpenChange={onTocOpenChange}
-            triggerGuideId="public-guide-toc-trigger"
-            panelGuideId="public-guide-toc-panel"
+        <ReaderTOC
+          sceneList={sceneList}
+          currentSceneId={currentSceneId}
+          onSelectScene={onSelectScene}
+          metaItems={metaItems}
+          open={tocOpen}
+          onOpenChange={onTocOpenChange}
+          triggerGuideId="public-guide-toc-trigger"
+          panelGuideId="public-guide-toc-panel"
+          hideHeaderTrigger
         />
 
         <div className={`h-6 w-px bg-white/20 mx-1 transition-opacity duration-300 ${showTitle ? "opacity-100" : "opacity-0"}`} />
@@ -105,22 +102,7 @@ export function SimplifiedReaderHeader({
          </div>
 
         {/* Appearance Settings */}
-        <ReaderAppearanceMenu 
-            markerConfigs={markerConfigs}
-            hiddenMarkerIds={hiddenMarkerIds}
-            onToggleMarker={onToggleMarker}
-        />
-
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setTheme(isDark ? "light" : "dark")}
-          className="rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md"
-          title={isDark ? t("publicTopbar.switchLight") : t("publicTopbar.switchDark")}
-          aria-label={isDark ? t("publicTopbar.switchLight") : t("publicTopbar.switchDark")}
-        >
-          {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-        </Button>
+        <ReaderAppearanceMenu />
 
         <DownloadMenu
           options={downloadOptions}
