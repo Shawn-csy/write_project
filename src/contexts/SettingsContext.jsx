@@ -20,7 +20,7 @@ const SettingsContext = createContext();
 
 export function SettingsProvider({ children }) {
   // --- Theme (Wrapped) ---
-  const { resolvedTheme, setTheme } = useTheme();
+  const { theme: themeMode, resolvedTheme, setTheme } = useTheme();
 
   const isDark = resolvedTheme === "dark";
   const { currentUser, profile } = useAuth();
@@ -308,6 +308,8 @@ export function SettingsProvider({ children }) {
   const value = {
     // Theme
     currentUser,
+    theme: resolvedTheme,
+    themeMode,
     isDark,
     setTheme,
     
