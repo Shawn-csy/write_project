@@ -34,9 +34,9 @@ export function MetadataBasicTab({
     const panelClass = "grid gap-3 rounded-xl border border-border/70 bg-background p-4 shadow-sm";
     const rowLabelBaseClass = "p-4 text-sm font-medium text-foreground";
     const rowLabelToneClass = {
-        required: "border-l-[5px] border-sky-600 bg-sky-100/80 text-sky-950 dark:border-sky-500 dark:bg-sky-950/25 dark:text-foreground",
-        recommended: "border-l-[5px] border-amber-600 bg-amber-100/80 text-amber-950 dark:border-amber-500 dark:bg-amber-950/25 dark:text-foreground",
-        advanced: "border-l-[5px] border-fuchsia-600 bg-fuchsia-100/80 text-fuchsia-950 dark:border-fuchsia-500 dark:bg-fuchsia-950/25 dark:text-foreground",
+        required: "border-l-[5px] border-primary bg-primary/12 text-primary dark:bg-primary/20 dark:text-foreground",
+        recommended: "border-l-[5px] border-[color:var(--license-term-border)] bg-[color:var(--license-term-bg)] text-[color:var(--license-term-fg)]",
+        advanced: "border-l-[5px] border-muted-foreground/50 bg-muted/35 text-foreground dark:bg-muted/45 dark:text-foreground",
     };
     const getRowLabelClass = (tone = "recommended", missing = false) =>
         `${rowLabelBaseClass} ${rowLabelToneClass[tone] || rowLabelToneClass.recommended} ${
@@ -214,7 +214,7 @@ export function MetadataBasicTab({
                                 className="h-32"
                             />
                             {recommendedErrors.synopsis && (
-                                <p className="text-xs text-amber-700 dark:text-amber-300">{t("metadataBasic.tipSynopsis")}</p>
+                                <p className="text-xs text-[color:var(--license-term-fg)]">{t("metadataBasic.tipSynopsis")}</p>
                             )}
                         </div>
                     </div>
@@ -301,7 +301,7 @@ export function MetadataBasicTab({
                             className="h-40"
                         />
                         {recommendedErrors.synopsis && (
-                            <p className="text-xs text-amber-700 dark:text-amber-300">{t("metadataBasic.tipSynopsis")}</p>
+                            <p className="text-xs text-[color:var(--license-term-fg)]">{t("metadataBasic.tipSynopsis")}</p>
                         )}
                     </div>
                 </div>

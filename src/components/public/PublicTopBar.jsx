@@ -6,6 +6,7 @@ import { cn } from "../../lib/utils";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useI18n } from "../../contexts/I18nContext";
 import { LanguageSwitcher } from "../common/LanguageSwitcher";
+import { TOPBAR_INNER_CLASS, TOPBAR_OUTER_CLASS } from "../layout/topbarLayout";
 
 export function PublicTopBar({
   title,
@@ -22,8 +23,8 @@ export function PublicTopBar({
   const resolvedTitle = title || t("publicTopbar.title");
 
   return (
-    <header className="border-b sticky top-0 bg-background/80 backdrop-blur z-20">
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
+    <header className={TOPBAR_OUTER_CLASS}>
+      <div className={`${TOPBAR_INNER_CLASS} h-16 flex items-center justify-between gap-3`}>
         <div className="flex items-center gap-2 min-w-0">
           {showBack && (
             <Button variant="ghost" size="icon" onClick={onBack || (() => navigate(-1))} aria-label={t("publicTopbar.back")}>
@@ -60,7 +61,8 @@ export function PublicTopBar({
 
         <div className="flex items-center gap-2">
           <LanguageSwitcher
-            selectClassName="bg-background/70 backdrop-blur"
+            compact
+            buttonClassName="bg-background/70 backdrop-blur"
             ariaLabel={t("settings.language")}
           />
           <Button
@@ -78,7 +80,7 @@ export function PublicTopBar({
 
       {tabs.length > 0 && (
         <div className="md:hidden border-t">
-          <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center gap-2 overflow-x-auto">
+          <div className={`${TOPBAR_INNER_CLASS} py-2 flex items-center gap-2 overflow-x-auto`}>
             {tabs.map((tab) => (
               <button
                 key={tab.key}

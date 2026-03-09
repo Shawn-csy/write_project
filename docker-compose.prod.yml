@@ -12,6 +12,8 @@ services:
       - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}
       - FIREBASE_CREDENTIALS=/secrets/firebase-service-account.json
       - FIREBASE_CREDENTIALS_JSON=${FIREBASE_CREDENTIALS_JSON}
+      - ADMIN_USER_IDS=${ADMIN_USER_IDS}
+      - ADMIN_USER_EMAILS=${ADMIN_USER_EMAILS}
       - VITE_API_URL=${VITE_API_URL}
     volumes:
       - ./server/data:/data

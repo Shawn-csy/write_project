@@ -13,6 +13,11 @@
     --muted-stronger: 220 14% 88%;
     --muted-foreground: 220 9% 46%;
     --border: 221 13% 90%;
+    /* Morandi primary (light): steel blue */
+    --primary: 200 21% 44%;
+    --primary-foreground: 210 20% 96%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
     --accent: 160 84% 39%;
     --accent-foreground: 154 44% 16%;
     --accent-muted: 160 60% 92%;
@@ -84,38 +89,38 @@
     --marker-color-deep-iris: #4E4057;
     --marker-color-charcoal: #333333;
 
-    /* Morandi Panel Tokens (Light Mode) */
-    --morandi-tone-works-trigger-bg: #CCD3D9;
-    --morandi-tone-works-trigger-fg: #4F5C66;
-    --morandi-tone-works-helper-border: #8A9AA6;
-    --morandi-tone-works-helper-bg: #E6EBEF;
-    --morandi-tone-works-helper-fg: #4E5B65;
-    --morandi-tone-works-panel-border: #C7D1D8;
-    --morandi-tone-works-panel-bg: #F1F4F6;
+    /* Morandi Panel Tokens (Light Mode, derived from global semantic tokens) */
+    --morandi-tone-works-trigger-bg: color-mix(in srgb, hsl(var(--accent)) 30%, hsl(var(--card)) 70%);
+    --morandi-tone-works-trigger-fg: color-mix(in srgb, hsl(var(--accent-strong)) 52%, hsl(var(--foreground)) 48%);
+    --morandi-tone-works-helper-border: color-mix(in srgb, hsl(var(--accent)) 38%, hsl(var(--border)) 62%);
+    --morandi-tone-works-helper-bg: color-mix(in srgb, hsl(var(--accent)) 20%, hsl(var(--background)) 80%);
+    --morandi-tone-works-helper-fg: color-mix(in srgb, hsl(var(--accent-strong)) 44%, hsl(var(--foreground)) 56%);
+    --morandi-tone-works-panel-border: color-mix(in srgb, hsl(var(--accent)) 30%, hsl(var(--border)) 70%);
+    --morandi-tone-works-panel-bg: color-mix(in srgb, hsl(var(--accent)) 16%, hsl(var(--card)) 84%);
 
-    --morandi-tone-profile-trigger-bg: #DCCFC6;
-    --morandi-tone-profile-trigger-fg: #6B5850;
-    --morandi-tone-profile-helper-border: #B79F93;
-    --morandi-tone-profile-helper-bg: #EFE6E1;
-    --morandi-tone-profile-helper-fg: #6B5850;
-    --morandi-tone-profile-panel-border: #D8C9C1;
-    --morandi-tone-profile-panel-bg: #F6F1EE;
+    --morandi-tone-profile-trigger-bg: color-mix(in srgb, hsl(var(--accent)) 25%, hsl(var(--card)) 75%);
+    --morandi-tone-profile-trigger-fg: color-mix(in srgb, hsl(var(--accent-strong)) 48%, hsl(var(--foreground)) 52%);
+    --morandi-tone-profile-helper-border: color-mix(in srgb, hsl(var(--accent)) 34%, hsl(var(--border)) 66%);
+    --morandi-tone-profile-helper-bg: color-mix(in srgb, hsl(var(--accent)) 16%, hsl(var(--background)) 84%);
+    --morandi-tone-profile-helper-fg: color-mix(in srgb, hsl(var(--accent-strong)) 40%, hsl(var(--foreground)) 60%);
+    --morandi-tone-profile-panel-border: color-mix(in srgb, hsl(var(--accent)) 26%, hsl(var(--border)) 74%);
+    --morandi-tone-profile-panel-bg: color-mix(in srgb, hsl(var(--accent)) 12%, hsl(var(--card)) 88%);
 
-    --morandi-tone-org-trigger-bg: #CBD4C8;
-    --morandi-tone-org-trigger-fg: #556257;
-    --morandi-tone-org-helper-border: #8EA28F;
-    --morandi-tone-org-helper-bg: #E6ECE3;
-    --morandi-tone-org-helper-fg: #556257;
-    --morandi-tone-org-panel-border: #C7D4C6;
-    --morandi-tone-org-panel-bg: #F0F5EE;
+    --morandi-tone-org-trigger-bg: color-mix(in srgb, hsl(var(--accent)) 27%, hsl(var(--card)) 73%);
+    --morandi-tone-org-trigger-fg: color-mix(in srgb, hsl(var(--accent-strong)) 50%, hsl(var(--foreground)) 50%);
+    --morandi-tone-org-helper-border: color-mix(in srgb, hsl(var(--accent)) 36%, hsl(var(--border)) 64%);
+    --morandi-tone-org-helper-bg: color-mix(in srgb, hsl(var(--accent)) 17%, hsl(var(--background)) 83%);
+    --morandi-tone-org-helper-fg: color-mix(in srgb, hsl(var(--accent-strong)) 42%, hsl(var(--foreground)) 58%);
+    --morandi-tone-org-panel-border: color-mix(in srgb, hsl(var(--accent)) 28%, hsl(var(--border)) 72%);
+    --morandi-tone-org-panel-bg: color-mix(in srgb, hsl(var(--accent)) 13%, hsl(var(--card)) 87%);
 
-    --morandi-tone-series-trigger-bg: #D2C8CF;
-    --morandi-tone-series-trigger-fg: #60525E;
-    --morandi-tone-series-helper-border: #A894A2;
-    --morandi-tone-series-helper-bg: #EAE3E8;
-    --morandi-tone-series-helper-fg: #60525E;
-    --morandi-tone-series-panel-border: #D2C7D0;
-    --morandi-tone-series-panel-bg: #F4F0F3;
+    --morandi-tone-series-trigger-bg: color-mix(in srgb, hsl(var(--accent)) 33%, hsl(var(--card)) 67%);
+    --morandi-tone-series-trigger-fg: color-mix(in srgb, hsl(var(--accent-strong)) 55%, hsl(var(--foreground)) 45%);
+    --morandi-tone-series-helper-border: color-mix(in srgb, hsl(var(--accent)) 40%, hsl(var(--border)) 60%);
+    --morandi-tone-series-helper-bg: color-mix(in srgb, hsl(var(--accent)) 22%, hsl(var(--background)) 78%);
+    --morandi-tone-series-helper-fg: color-mix(in srgb, hsl(var(--accent-strong)) 46%, hsl(var(--foreground)) 54%);
+    --morandi-tone-series-panel-border: color-mix(in srgb, hsl(var(--accent)) 32%, hsl(var(--border)) 68%);
+    --morandi-tone-series-panel-bg: color-mix(in srgb, hsl(var(--accent)) 18%, hsl(var(--card)) 82%);
     --desktop-ui-scale: 1;
   }
 
@@ -135,6 +140,11 @@
     --muted-stronger: 220 6% 28%;
     --muted-foreground: 220 10% 68%;
     --border: 220 6% 24%;
+    /* Morandi primary (dark): soft steel */
+    --primary: 200 32% 70%;
+    --primary-foreground: 210 18% 14%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
     --accent-foreground: 210 24% 94%;
     --accent-muted: 160 20% 18%;
     --accent-strong: 160 72% 60%;
@@ -203,38 +213,122 @@
     --marker-color-deep-iris: #91809C;
     --marker-color-charcoal: #808080;
 
-    /* Morandi Panel Tokens (Dark Mode) */
-    --morandi-tone-works-trigger-bg: #3C4750;
-    --morandi-tone-works-trigger-fg: #D8DEE3;
-    --morandi-tone-works-helper-border: #6F7E88;
-    --morandi-tone-works-helper-bg: #2F3940;
-    --morandi-tone-works-helper-fg: #CFD8DE;
-    --morandi-tone-works-panel-border: #4B5963;
-    --morandi-tone-works-panel-bg: #252D33;
+    /* Morandi Panel Tokens (Dark Mode, derived from global semantic tokens) */
+    --morandi-tone-works-trigger-bg: color-mix(in srgb, hsl(var(--accent)) 24%, hsl(var(--card)) 76%);
+    --morandi-tone-works-trigger-fg: color-mix(in srgb, hsl(var(--accent-foreground)) 62%, hsl(var(--foreground)) 38%);
+    --morandi-tone-works-helper-border: color-mix(in srgb, hsl(var(--accent)) 36%, hsl(var(--border)) 64%);
+    --morandi-tone-works-helper-bg: color-mix(in srgb, hsl(var(--accent)) 16%, hsl(var(--background)) 84%);
+    --morandi-tone-works-helper-fg: color-mix(in srgb, hsl(var(--accent-foreground)) 56%, hsl(var(--foreground)) 44%);
+    --morandi-tone-works-panel-border: color-mix(in srgb, hsl(var(--accent)) 28%, hsl(var(--border)) 72%);
+    --morandi-tone-works-panel-bg: color-mix(in srgb, hsl(var(--accent)) 12%, hsl(var(--card)) 88%);
 
-    --morandi-tone-profile-trigger-bg: #4E403A;
-    --morandi-tone-profile-trigger-fg: #E7DCD6;
-    --morandi-tone-profile-helper-border: #8C776E;
-    --morandi-tone-profile-helper-bg: #3F342F;
-    --morandi-tone-profile-helper-fg: #E8DDD8;
-    --morandi-tone-profile-panel-border: #5A4C45;
-    --morandi-tone-profile-panel-bg: #2F2825;
+    --morandi-tone-profile-trigger-bg: color-mix(in srgb, hsl(var(--accent)) 20%, hsl(var(--card)) 80%);
+    --morandi-tone-profile-trigger-fg: color-mix(in srgb, hsl(var(--accent-foreground)) 56%, hsl(var(--foreground)) 44%);
+    --morandi-tone-profile-helper-border: color-mix(in srgb, hsl(var(--accent)) 31%, hsl(var(--border)) 69%);
+    --morandi-tone-profile-helper-bg: color-mix(in srgb, hsl(var(--accent)) 13%, hsl(var(--background)) 87%);
+    --morandi-tone-profile-helper-fg: color-mix(in srgb, hsl(var(--accent-foreground)) 52%, hsl(var(--foreground)) 48%);
+    --morandi-tone-profile-panel-border: color-mix(in srgb, hsl(var(--accent)) 24%, hsl(var(--border)) 76%);
+    --morandi-tone-profile-panel-bg: color-mix(in srgb, hsl(var(--accent)) 10%, hsl(var(--card)) 90%);
 
-    --morandi-tone-org-trigger-bg: #3D4940;
-    --morandi-tone-org-trigger-fg: #D4DDD2;
-    --morandi-tone-org-helper-border: #6F8571;
-    --morandi-tone-org-helper-bg: #2F3A32;
-    --morandi-tone-org-helper-fg: #D4DDD2;
-    --morandi-tone-org-panel-border: #4A5C4C;
-    --morandi-tone-org-panel-bg: #242E26;
+    --morandi-tone-org-trigger-bg: color-mix(in srgb, hsl(var(--accent)) 22%, hsl(var(--card)) 78%);
+    --morandi-tone-org-trigger-fg: color-mix(in srgb, hsl(var(--accent-foreground)) 58%, hsl(var(--foreground)) 42%);
+    --morandi-tone-org-helper-border: color-mix(in srgb, hsl(var(--accent)) 33%, hsl(var(--border)) 67%);
+    --morandi-tone-org-helper-bg: color-mix(in srgb, hsl(var(--accent)) 14%, hsl(var(--background)) 86%);
+    --morandi-tone-org-helper-fg: color-mix(in srgb, hsl(var(--accent-foreground)) 54%, hsl(var(--foreground)) 46%);
+    --morandi-tone-org-panel-border: color-mix(in srgb, hsl(var(--accent)) 26%, hsl(var(--border)) 74%);
+    --morandi-tone-org-panel-bg: color-mix(in srgb, hsl(var(--accent)) 11%, hsl(var(--card)) 89%);
 
-    --morandi-tone-series-trigger-bg: #483F47;
-    --morandi-tone-series-trigger-fg: #DED5DB;
-    --morandi-tone-series-helper-border: #7F6E7A;
-    --morandi-tone-series-helper-bg: #372F36;
-    --morandi-tone-series-helper-fg: #DDD3DA;
-    --morandi-tone-series-panel-border: #564A55;
-    --morandi-tone-series-panel-bg: #272327;
+    --morandi-tone-series-trigger-bg: color-mix(in srgb, hsl(var(--accent)) 26%, hsl(var(--card)) 74%);
+    --morandi-tone-series-trigger-fg: color-mix(in srgb, hsl(var(--accent-foreground)) 64%, hsl(var(--foreground)) 36%);
+    --morandi-tone-series-helper-border: color-mix(in srgb, hsl(var(--accent)) 38%, hsl(var(--border)) 62%);
+    --morandi-tone-series-helper-bg: color-mix(in srgb, hsl(var(--accent)) 18%, hsl(var(--background)) 82%);
+    --morandi-tone-series-helper-fg: color-mix(in srgb, hsl(var(--accent-foreground)) 58%, hsl(var(--foreground)) 42%);
+    --morandi-tone-series-panel-border: color-mix(in srgb, hsl(var(--accent)) 30%, hsl(var(--border)) 70%);
+    --morandi-tone-series-panel-bg: color-mix(in srgb, hsl(var(--accent)) 13%, hsl(var(--card)) 87%);
+  }
+
+  :root[data-accent="indigo"] {
+    --background: 30 16% 97%;
+    --foreground: 24 16% 18%;
+    --card: 30 14% 99%;
+    --card-foreground: 24 16% 18%;
+    --muted: 30 16% 94%;
+    --muted-strong: 30 14% 90%;
+    --muted-stronger: 29 12% 86%;
+    --muted-foreground: 24 9% 42%;
+    --border: 28 14% 85%;
+    --primary: 25 22% 44%;
+    --primary-foreground: 30 18% 96%;
+    --surface-1: 30 12% 97%;
+    --surface-2: 30 12% 94%;
+    --surface-3: 30 10% 90%;
+    --surface-4: 29 10% 86%;
+    --paper-bg: #fffdfb;
+    --paper-border: #e3d7cd;
+    --paper-shadow: rgba(44, 32, 24, 0.14);
+  }
+
+  :root[data-accent="amber"] {
+    --background: 286 14% 97%;
+    --foreground: 282 14% 19%;
+    --card: 286 12% 99%;
+    --card-foreground: 282 14% 19%;
+    --muted: 287 14% 94%;
+    --muted-strong: 287 12% 90%;
+    --muted-stronger: 287 10% 86%;
+    --muted-foreground: 282 8% 43%;
+    --border: 286 12% 85%;
+    --primary: 286 16% 45%;
+    --primary-foreground: 286 14% 96%;
+    --surface-1: 286 10% 97%;
+    --surface-2: 287 10% 94%;
+    --surface-3: 287 9% 90%;
+    --surface-4: 287 8% 86%;
+    --paper-bg: #fdfbfd;
+    --paper-border: #ddd3dc;
+    --paper-shadow: rgba(38, 28, 36, 0.14);
+  }
+
+  .dark[data-accent="indigo"] {
+    --background: 24 6% 11%;
+    --foreground: 30 12% 90%;
+    --card: 24 6% 13%;
+    --card-foreground: 30 12% 90%;
+    --muted: 24 6% 18%;
+    --muted-strong: 24 6% 23%;
+    --muted-stronger: 24 6% 28%;
+    --muted-foreground: 30 8% 70%;
+    --border: 24 6% 27%;
+    --primary: 25 22% 72%;
+    --primary-foreground: 24 10% 16%;
+    --surface-1: 24 6% 11%;
+    --surface-2: 24 6% 18%;
+    --surface-3: 24 6% 23%;
+    --surface-4: 24 6% 28%;
+    --paper-bg: #120f0d;
+    --paper-border: #2a211d;
+    --paper-shadow: rgba(0, 0, 0, 0.42);
+  }
+
+  .dark[data-accent="amber"] {
+    --background: 286 6% 11%;
+    --foreground: 286 10% 90%;
+    --card: 286 6% 13%;
+    --card-foreground: 286 10% 90%;
+    --muted: 286 6% 18%;
+    --muted-strong: 286 6% 23%;
+    --muted-stronger: 286 6% 28%;
+    --muted-foreground: 286 6% 70%;
+    --border: 286 6% 27%;
+    --primary: 286 18% 73%;
+    --primary-foreground: 286 10% 16%;
+    --surface-1: 286 6% 11%;
+    --surface-2: 286 6% 18%;
+    --surface-3: 286 6% 23%;
+    --surface-4: 286 6% 28%;
+    --paper-bg: #120f12;
+    --paper-border: #2a222a;
+    --paper-shadow: rgba(0, 0, 0, 0.42);
   }
 
   body {
@@ -400,6 +494,15 @@
   box-shadow: inset 0 0 0 1px color-mix(in srgb, hsl(var(--accent)) 28%, transparent);
 }
 
+/* Ensure editor can comfortably scroll to the final lines on all viewports. */
+.live-editor-cm .cm-content {
+  padding-bottom: 112px;
+}
+
+.live-editor-cm .cm-scroller {
+  padding-bottom: 56px;
+}
+
 .title-page h1 {
   font-size: 28px;
   font-weight: 700;
@@ -481,6 +584,68 @@ html.transparent-mode {
   padding-left: 16px;
   padding-right: 16px;
   text-align: left;
+}
+
+/* Range pause line connector mask:
+   Keep a single continuous connector, but cut it only on pause rows. */
+.range-node .range-pause-mask-row {
+  position: relative;
+}
+
+.range-node .range-pause-mask-row::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: -1px;
+  bottom: -1px;
+  width: 12px;
+  background: hsl(var(--background));
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.range-node .range-pause-mask-row > * {
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes cta-breathe {
+  0%, 100% {
+    box-shadow: 0 10px 22px -16px hsl(var(--primary) / 0.35);
+  }
+  50% {
+    box-shadow: 0 14px 30px -14px hsl(var(--primary) / 0.58);
+  }
+}
+
+.cta-breathe {
+  animation: cta-breathe 2.8s ease-in-out infinite;
+}
+
+.cta-breathe-delayed {
+  animation-delay: 1.2s;
+}
+
+.cta-lift {
+  transition: transform 180ms ease, box-shadow 220ms ease, background-color 180ms ease;
+}
+
+.cta-lift:hover {
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta-breathe,
+  .cta-breathe-delayed {
+    animation: none;
+  }
+
+  .cta-lift,
+  .cta-lift:hover {
+    transition: none;
+    transform: none;
+  }
 }
 
 @media (max-width: 640px) {

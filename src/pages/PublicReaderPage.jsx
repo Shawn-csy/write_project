@@ -144,6 +144,8 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                     "notes", "description", "synopsis", "summary",
                     "outline",
                     "rolesetting", "backgroundinfo", "performanceinstruction", "openingintro", "environmentinfo", "situationinfo",
+                    "activityname", "activitybanner", "activitycontent", "activitydemourl", "activityworkurl",
+                    "eventname", "eventbanner", "eventcontent", "eventdemolink", "eventworklink",
                     "setting", "settingintro", "background", "backgroundintro",
                     "cover", "coverurl", "marker_legend", "show_legend",
                     "license", "licenseurl", "licenseterms", "licensetags",
@@ -193,6 +195,13 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                     seriesName,
                     seriesOrder,
                     prefaceItems: buildPrefaceItems(meta),
+                    activity: {
+                        name: String(meta.activityname || meta.eventname || "").trim(),
+                        bannerUrl: String(meta.activitybanner || meta.eventbanner || "").trim(),
+                        content: String(meta.activitycontent || meta.eventcontent || "").trim(),
+                        demoUrl: String(meta.activitydemourl || meta.eventdemolink || "").trim(),
+                        workUrl: String(meta.activityworkurl || meta.eventworklink || "").trim(),
+                    },
                     customFields,
                     showMarkerLegend: String(meta.marker_legend) === 'true' || String(meta.show_legend) === 'true'
                 });
@@ -488,17 +497,19 @@ They discover a glowing artifact.
         onOpenRelatedScript={(scriptId) => navigate(`/read/${scriptId}`)}
         onOpenSeries={(name) => navigate(`/series/${encodeURIComponent(name)}`)}
         onBack={() => navigate("/")} // Return to library/home
-        onShare={() => {
-            if (navigator.share) {
-                navigator.share({
-                    title: fullScriptData.title,
-                    text: fullScriptData.synopsis,
-                    url: window.location.href
-                });
-            } else {
-                navigator.clipboard.writeText(window.location.href);
-                alert("Link copied!");
+        onShare={async () => {
+            const url = window.location.href;
+            try {
+                if (navigator.clipboard?.writeText) {
+                    await navigator.clipboard.writeText(url);
+                    alert("已複製連結");
+                    return;
+                }
+            } catch (error) {
+                console.error("Failed to write share url to clipboard", error);
+                alert("複製連結失敗，請稍後再試");
             }
+            window.prompt("請複製目前網址", url);
         }}
         // Marker Props for Header (same source as ScriptViewer)
         validMarkerConfigs={publicMarkerConfigs}

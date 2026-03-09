@@ -14,18 +14,49 @@ export const toFullWidth = (str) => {
               .replace(/ /g, '\u3000');
 };
 
+const toFullWidthAlphaNum = (char) => {
+  const code = char.charCodeAt(0);
+  if ((code >= 0x30 && code <= 0x39) || (code >= 0x41 && code <= 0x5A) || (code >= 0x61 && code <= 0x7A)) {
+    return String.fromCharCode(code + 0xFEE0);
+  }
+  return char;
+};
+
+const buildFlexibleTokenPattern = (token = "") => {
+  return Array.from(String(token)).map((ch) => {
+    const code = ch.charCodeAt(0);
+    // ASCII letters: support half/full width + upper/lower
+    if ((code >= 0x41 && code <= 0x5A) || (code >= 0x61 && code <= 0x7A)) {
+      const lower = ch.toLowerCase();
+      const upper = ch.toUpperCase();
+      const fullLower = toFullWidthAlphaNum(lower);
+      const fullUpper = toFullWidthAlphaNum(upper);
+      return `[${escapeRegExp(lower)}${escapeRegExp(upper)}${escapeRegExp(fullLower)}${escapeRegExp(fullUpper)}]`;
+    }
+    // ASCII digits: support half/full width
+    if (code >= 0x30 && code <= 0x39) {
+      const fullDigit = toFullWidthAlphaNum(ch);
+      return `[${escapeRegExp(ch)}${escapeRegExp(fullDigit)}]`;
+    }
+    // ASCII punctuation/symbols that have fullwidth forms
+    if (code >= 0x21 && code <= 0x7E) {
+      const full = toFullWidth(ch);
+      if (full !== ch) {
+        return `[${escapeRegExp(ch)}${escapeRegExp(full)}]`;
+      }
+    }
+    return escapeRegExp(ch);
+  }).join("");
+};
+
 export const createDynamicParsers = (configs = []) => {
     const parsers = {};
     const safeConfigs = Array.isArray(configs) ? configs : [];
     const prefixStarts = safeConfigs
         .filter((c) => isInlineLike(c) && (c.matchMode === 'prefix' || (!c.end && c.start)) && c.start)
-        .flatMap((c) => {
-            const full = toFullWidth(c.start);
-            return c.start === full ? [c.start] : [c.start, full];
-        })
+        .map((c) => buildFlexibleTokenPattern(c.start))
         .filter(Boolean)
-        .sort((a, b) => b.length - a.length)
-        .map((s) => escapeRegExp(s));
+        .sort((a, b) => b.length - a.length);
     const nextPrefixPattern = prefixStarts.length ? `(?:${prefixStarts.join('|')})` : null;
 
     safeConfigs.forEach(config => {
@@ -53,12 +84,8 @@ export const createDynamicParsers = (configs = []) => {
              if (!config.start || typeof config.start !== 'string' || config.start.length === 0) return;
              
              const startStr = config.start;
-             const fullStartStr = toFullWidth(startStr);
-             
-             // Support both Halfwidth and Fullwidth
-             const startParser = startStr === fullStartStr 
-                ? P.string(startStr)
-                : P.alt(P.string(startStr), P.string(fullStartStr));
+             const startPattern = buildFlexibleTokenPattern(startStr);
+             const startParser = P.regex(new RegExp(startPattern, "i"));
              
              const contentRegex = nextPrefixPattern
                 ? new RegExp(`^[\\s\\S]*?(?=${nextPrefixPattern}|$)`)
@@ -77,26 +104,13 @@ export const createDynamicParsers = (configs = []) => {
              
              if (!startStr || startStr.length === 0) return;
 
-             const fullStartStr = toFullWidth(startStr);
-             const fullEndStr = toFullWidth(endStr);
+             const startPattern = buildFlexibleTokenPattern(startStr);
+             const endPattern = buildFlexibleTokenPattern(endStr);
+             const startParser = P.regex(new RegExp(startPattern, "i"));
+             const endParser = P.regex(new RegExp(endPattern, "i"));
              
-             const startParser = startStr === fullStartStr
-                ? P.string(startStr)
-                : P.alt(P.string(startStr), P.string(fullStartStr));
-                
-             const endParser = endStr === fullEndStr
-                ? P.string(endStr)
-                : P.alt(P.string(endStr), P.string(fullEndStr));
-             
-             const escapedEnd = escapeRegExp(endStr);
-             const escapedFullEnd = escapeRegExp(fullEndStr);
-             
-             // We need to stop at either end string
-             const pattern = endStr === fullEndStr 
-                ? escapedEnd 
-                : `${escapedEnd}|${escapedFullEnd}`;
-                
-             const contentRegex = new RegExp(`^(?:(?!${pattern}).)*`);
+             const pattern = endPattern;
+             const contentRegex = new RegExp(`^(?:(?!${pattern}).)*`, "i");
              
              const safeContent = P.regex(contentRegex);
 

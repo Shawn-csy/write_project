@@ -8,11 +8,12 @@ import { DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { SortableField } from "./SortableField";
 import { SortableContactField } from "./SortableContactField";
-import { optimizeImageForUpload, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
+import { optimizeImageForUpload, getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
 import { uploadMediaObject } from "../../../lib/api/media";
 import { useI18n } from "../../../contexts/I18nContext";
 import { MediaPicker } from "../../ui/MediaPicker";
 import { CoverPlaceholder } from "../../ui/CoverPlaceholder";
+import { ImageCropDialog } from "../../ui/ImageCropDialog";
 
 export function MetadataDetailsTab({
     status,
@@ -55,21 +56,29 @@ export function MetadataDetailsTab({
     showCustom = true,
     layout = "stack"
 }) {
+    const resolveTagSwatch = React.useCallback((rawColor) => {
+        const value = String(rawColor || "").trim();
+        if (!value) return { className: "bg-primary/60", style: undefined };
+        if (value.startsWith("#") || value.startsWith("rgb") || value.startsWith("hsl") || value.startsWith("var(")) {
+            return { className: "", style: { backgroundColor: value } };
+        }
+        return { className: value, style: undefined };
+    }, []);
     const { t } = useI18n();
     const hasInvalidCoverUrl = Boolean(coverUrl?.trim()) && !/^(https?:\/\/|\/)/i.test(coverUrl.trim());
     const [coverPreviewFailed, setCoverPreviewFailed] = React.useState(false);
     const [coverUploadError, setCoverUploadError] = React.useState("");
     const [coverUploadWarning, setCoverUploadWarning] = React.useState("");
     const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState(false);
+    const [cropOpen, setCropOpen] = React.useState(false);
+    const [cropSource, setCropSource] = React.useState(null);
+    const coverGuide = React.useMemo(() => getImageUploadGuide("cover"), []);
 
-    const handleCoverUpload = async (event) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
+    const applyCoverUpload = async (file) => {
         const optimized = await optimizeImageForUpload(file, "cover");
         if (!optimized.ok) {
             setCoverUploadError(optimized.error || "圖片格式不正確。");
             setCoverUploadWarning("");
-            event.target.value = "";
             return;
         }
         try {
@@ -83,9 +92,15 @@ export function MetadataDetailsTab({
         } catch (error) {
             setCoverUploadError(error?.message || "上傳失敗。");
             setCoverUploadWarning("");
-        } finally {
-            event.target.value = "";
         }
+    };
+
+    const handleCoverUpload = async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        setCropSource({ file, name: file.name });
+        setCropOpen(true);
+        event.target.value = "";
     };
 
     const parsePastedTags = (text) =>
@@ -119,11 +134,18 @@ export function MetadataDetailsTab({
         <div className={containerClass}>
             {/* Status Alert */}
             {showStatusAlert && status === "Public" && (!coverUrl || currentTags.length === 0) && (
-                <div className="flex w-full items-start gap-3 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-900 dark:border-yellow-900 dark:bg-yellow-950/30 dark:text-yellow-200">
-                    <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 dark:text-yellow-300" />
+                <div
+                    className="flex w-full items-start gap-3 rounded-lg border p-4 text-sm"
+                    style={{
+                        borderColor: "var(--license-term-border)",
+                        backgroundColor: "var(--license-term-bg)",
+                        color: "var(--license-term-fg)",
+                    }}
+                >
+                    <AlertTriangle className="h-5 w-5 mt-0.5" />
                     <div className="grid gap-1">
-                        <h5 className="font-medium text-yellow-900 leading-none tracking-tight dark:text-yellow-200">{t("metadataDetails.suggestionTitle")}</h5>
-                        <div className="text-yellow-700 opacity-90 leading-relaxed dark:text-yellow-300">
+                        <h5 className="font-medium leading-none tracking-tight">{t("metadataDetails.suggestionTitle")}</h5>
+                        <div className="opacity-90 leading-relaxed">
                             {t("metadataDetails.suggestionText", "").replace("{cover}", !coverUrl ? ` ${t("metadataDetails.coverWord")}` : "").replace("{and}", !coverUrl && currentTags.length === 0 ? ` ${t("metadataDetails.andWord")}` : "").replace("{tags}", currentTags.length === 0 ? ` ${t("metadataDetails.tagsWord")}` : "")}
                         </div>
                     </div>
@@ -154,11 +176,15 @@ export function MetadataDetailsTab({
                             {t("mediaLibrary.selectFromLibrary", "從媒體庫選擇")}
                         </Button>
                     </div>
+                    <div className="space-y-0.5 text-[11px] text-muted-foreground">
+                        <p>{coverGuide.supported}</p>
+                        <p>{coverGuide.recommended}</p>
+                    </div>
                     {coverUploadError && (
                         <p className="text-xs text-destructive">{coverUploadError}</p>
                     )}
                     {coverUploadWarning && (
-                        <p className="text-xs text-amber-700 dark:text-amber-300">{coverUploadWarning}</p>
+                        <p className="text-xs text-[color:var(--license-term-fg)]">{coverUploadWarning}</p>
                     )}
                     <div className="mt-1 h-28 w-full overflow-hidden rounded-md border bg-muted/20">
                         {coverUrl && !coverPreviewFailed ? (
@@ -177,10 +203,10 @@ export function MetadataDetailsTab({
                         <p className="text-xs text-muted-foreground">{t("metadataDetails.coverPreviewFail")}</p>
                     )}
                     {recommendedErrors.cover && (
-                        <p className="text-xs text-amber-700 dark:text-amber-300">{t("metadataDetails.coverTip")}</p>
+                        <p className="text-xs text-[color:var(--license-term-fg)]">{t("metadataDetails.coverTip")}</p>
                     )}
                     {hasInvalidCoverUrl && (
-                        <p className="text-xs text-amber-700 dark:text-amber-300">{t("metadataDetails.urlTip")}</p>
+                        <p className="text-xs text-[color:var(--license-term-fg)]">{t("metadataDetails.urlTip")}</p>
                     )}
                 </div>
             </div>
@@ -230,7 +256,7 @@ export function MetadataDetailsTab({
                                     className={`h-8 px-3 text-xs font-medium transition ${
                                         contentRating === opt
                                             ? (opt === "成人向"
-                                                ? "border-red-600 bg-red-600 text-white ring-2 ring-red-500/40"
+                                                ? "border-destructive bg-destructive text-destructive-foreground ring-2 ring-destructive/40"
                                                 : "border-primary bg-primary text-primary-foreground ring-2 ring-primary/40")
                                             : "border-border bg-background text-muted-foreground hover:bg-muted"
                                     }`}
@@ -349,9 +375,9 @@ export function MetadataDetailsTab({
                         </Button>
                     )}
                 </div>
-                {recommendedErrors.tags && (
-                    <p className="text-xs text-amber-700 dark:text-amber-300">{t("metadataDetails.tagsTip")}</p>
-                )}
+                    {recommendedErrors.tags && (
+                    <p className="text-xs text-[color:var(--license-term-fg)]">{t("metadataDetails.tagsTip")}</p>
+                    )}
                 
                 <div className="flex flex-col gap-3 mt-1">
                     <Input
@@ -415,10 +441,14 @@ export function MetadataDetailsTab({
                             return (
                                 <Badge 
                                     key={tag.id} 
-                                    variant="secondary"
-                                    className={`${tag.color || "bg-slate-200"} text-foreground pl-3 pr-1.5 py-1 flex items-center`}
+                                    variant="outline"
+                                    className="flex items-center gap-1 border-[color:var(--license-filter-border)] bg-[color:var(--license-filter-bg)] py-1 pl-2.5 pr-1.5 text-[color:var(--license-filter-fg)]"
                                 >
-                                    {tag.name}
+                                    {(() => {
+                                        const swatch = resolveTagSwatch(tag.color);
+                                        return <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${swatch.className}`} style={swatch.style} />;
+                                    })()}
+                                    <span>{tag.name}</span>
                                     {!isManagedOption && (
                                         <button 
                                             type="button"
@@ -572,12 +602,20 @@ export function MetadataDetailsTab({
             <MediaPicker
                 open={isMediaPickerOpen}
                 onOpenChange={setIsMediaPickerOpen}
+                cropPurpose="cover"
                 onSelect={(url) => {
                     setCoverUrl(url);
                     setCoverPreviewFailed(false);
                     setCoverUploadError("");
                     setCoverUploadWarning("");
                 }}
+            />
+            <ImageCropDialog
+                open={cropOpen}
+                onOpenChange={setCropOpen}
+                source={cropSource}
+                purpose="cover"
+                onConfirm={applyCoverUpload}
             />
         </div>
     );

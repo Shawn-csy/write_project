@@ -3,7 +3,8 @@ import uuid
 from pathlib import Path
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
-from dependencies import get_current_user_id
+from sqlalchemy.orm import Session
+from dependencies import get_current_user_id, get_db, is_admin_user
 
 router = APIRouter(prefix="/api/media", tags=["media"])
 
@@ -80,6 +81,7 @@ async def upload_media(
     file: UploadFile = File(...),
     purpose: str = Form("generic"),
     owner_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
 ):
     content_type = str(file.content_type or "").lower()
     ext = ALLOWED_IMAGE_TYPES.get(content_type)
@@ -89,7 +91,8 @@ async def upload_media(
     content = await file.read()
     if not content:
         raise HTTPException(status_code=400, detail="Empty upload")
-    if len(content) > MAX_UPLOAD_BYTES:
+    is_admin = is_admin_user(db, owner_id)
+    if not is_admin and len(content) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="Uploaded image is too large")
 
     safe_owner = _safe_segment(owner_id, "anon")

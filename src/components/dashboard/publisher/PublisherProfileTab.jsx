@@ -1,13 +1,13 @@
 import React from 'react';
 import { useNavigate } from "react-router-dom";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Loader2, Plus, Trash2, ExternalLink } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Card } from "../../ui/card";
 import { Input } from "../../ui/input";
 import { Textarea } from "../../ui/textarea";
 import { Avatar, AvatarImage, AvatarFallback } from "../../ui/avatar";
 import { MetadataLicenseTab } from "../metadata/MetadataLicenseTab";
-import { searchOrganizations, requestToJoinOrganization } from "../../../lib/api/organizations";
+import { searchOrganizations, requestToJoinOrganization, getMyOrganizationRequests } from "../../../lib/api/organizations";
 import { uploadMediaObject } from "../../../lib/api/media";
 import { optimizeImageForUpload, getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
 import { useI18n } from "../../../contexts/I18nContext";
@@ -16,6 +16,7 @@ import { PublisherFormRow } from "./PublisherFormRow";
 import { PublisherTabHeader } from "./PublisherTabHeader";
 import { useToast } from "../../ui/toast";
 import { PublisherTagEditor } from "./PublisherTagEditor";
+import { ImageCropDialog } from "../../ui/ImageCropDialog";
 
 export function PublisherProfileTab({
     selectedPersonaId, setSelectedPersonaId,
@@ -38,6 +39,7 @@ export function PublisherProfileTab({
     const [orgSearchQuery, setOrgSearchQuery] = React.useState("");
     const [orgSearchResults, setOrgSearchResults] = React.useState([]);
     const [isOrgSearching, setIsOrgSearching] = React.useState(false);
+    const [myOrgRequests, setMyOrgRequests] = React.useState([]);
     const [avatarPreviewFailed, setAvatarPreviewFailed] = React.useState(false);
     const [bannerPreviewFailed, setBannerPreviewFailed] = React.useState(false);
     const [avatarUploadError, setAvatarUploadError] = React.useState("");
@@ -46,6 +48,10 @@ export function PublisherProfileTab({
     const [bannerUploadWarning, setBannerUploadWarning] = React.useState("");
     const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState(false);
     const [mediaPickerTarget, setMediaPickerTarget] = React.useState(null); // 'avatar' or 'banner'
+    const [cropOpen, setCropOpen] = React.useState(false);
+    const [cropPurpose, setCropPurpose] = React.useState("avatar");
+    const [cropTargetField, setCropTargetField] = React.useState(null);
+    const [cropSource, setCropSource] = React.useState(null);
     const avatarGuide = React.useMemo(() => getImageUploadGuide("avatar"), []);
     const bannerGuide = React.useMemo(() => getImageUploadGuide("banner"), []);
     const hasPersona = Array.isArray(personas) && personas.length > 0;
@@ -81,6 +87,22 @@ export function PublisherProfileTab({
         return () => clearTimeout(delay);
     }, [orgSearchQuery]);
 
+    React.useEffect(() => {
+        let alive = true;
+        const loadMyOrgRequests = async () => {
+            try {
+                const data = await getMyOrganizationRequests();
+                if (!alive) return;
+                setMyOrgRequests(data?.requests || []);
+            } catch {
+                if (!alive) return;
+                setMyOrgRequests([]);
+            }
+        };
+        loadMyOrgRequests();
+        return () => { alive = false; };
+    }, []);
+
     const handleRequestJoinOrg = async (orgId) => {
         if (!hasPersona) {
             toast({
@@ -91,9 +113,25 @@ export function PublisherProfileTab({
             onStartCreate();
             return;
         }
-        await requestToJoinOrganization(orgId);
-        setOrgSearchQuery("");
-        setOrgSearchResults([]);
+        try {
+            await requestToJoinOrganization(orgId);
+            setOrgSearchQuery("");
+            setOrgSearchResults([]);
+            try {
+                const data = await getMyOrganizationRequests();
+                setMyOrgRequests(data?.requests || []);
+            } catch {}
+            toast({
+                title: t("publisherProfileTab.requestJoinSuccessTitle", "已送出申請"),
+                description: t("publisherProfileTab.requestJoinSuccessDesc", "已送出加入組織申請，請等待管理者審核。"),
+            });
+        } catch (error) {
+            toast({
+                title: t("publisherProfileTab.requestJoinFailedTitle", "申請送出失敗"),
+                description: String(error?.message || t("publisherProfileTab.requestJoinFailedDesc", "無法送出申請，請稍後再試。")),
+                variant: "destructive",
+            });
+        }
     };
 
     const safeLinks = React.useMemo(() => {
@@ -124,10 +162,39 @@ export function PublisherProfileTab({
     const profileDone = profileChecklist.filter((item) => item.ok).length;
     const profileProgress = Math.round((profileDone / profileChecklist.length) * 100);
     const profileNextSteps = profileChecklist.filter((item) => !item.ok).slice(0, 3);
+    const requiredFieldTargets = React.useMemo(() => ({
+        displayName: "persona-display-name",
+        bio: "persona-bio",
+        avatar: "persona-avatar-url",
+        bannerUrl: "persona-banner-url",
+        links: "persona-add-link-btn",
+        tags: "persona-tag-input",
+    }), []);
+    const missingRequiredFields = React.useMemo(() => {
+        const nameItem = profileChecklist.find((item) => item.key === "displayName");
+        if (!nameItem || nameItem.ok) return [];
+        return [nameItem];
+    }, [profileChecklist]);
+    const suggestedFields = React.useMemo(
+        () => profileChecklist.filter((item) => item.key !== "displayName" && !item.ok),
+        [profileChecklist]
+    );
+    const jumpToRequiredField = React.useCallback((fieldKey) => {
+        const targetId = requiredFieldTargets[fieldKey];
+        if (!targetId) return;
+        const el = document.getElementById(targetId);
+        if (!el) return;
+        el.scrollIntoView({ block: "center", behavior: "smooth" });
+        window.setTimeout(() => {
+            try {
+                el.focus({ preventScroll: true });
+            } catch {
+                el.focus();
+            }
+        }, 240);
+    }, [requiredFieldTargets]);
 
-    const handleImageUpload = (field) => async (event) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
+    const applyUploadedImage = React.useCallback(async (file, field) => {
         const ruleKey = field === "avatar" ? "avatar" : "banner";
         const optimized = await optimizeImageForUpload(file, ruleKey);
         if (!optimized.ok) {
@@ -139,7 +206,6 @@ export function PublisherProfileTab({
                 setBannerUploadError(optimized.error || t("publisherProfileTab.invalidImage"));
                 setBannerUploadWarning("");
             }
-            event.target.value = "";
             return;
         }
         try {
@@ -168,9 +234,17 @@ export function PublisherProfileTab({
                 setBannerUploadError(errorMessage);
                 setBannerUploadWarning("");
             }
-        } finally {
-            event.target.value = "";
         }
+    }, [t, setPersonaDraft]);
+
+    const handleImageUpload = (field) => async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        setCropTargetField(field);
+        setCropPurpose(field === "avatar" ? "avatar" : "banner");
+        setCropSource({ file, name: file.name });
+        setCropOpen(true);
+        event.target.value = "";
     };
 
     const onStartCreate = () => {
@@ -204,6 +278,28 @@ export function PublisherProfileTab({
                 </div>
                 
                 <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                    <div className={`flex items-center gap-1 pb-1 ${viewMode === "edit" && selectedPersonaId ? "" : "invisible pointer-events-none h-0 overflow-hidden p-0 m-0"}`}>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-xs"
+                            onClick={() => selectedPersonaId && navigate(`/author/${selectedPersonaId}`)}
+                        >
+                            <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                            {t("publisherProfileTab.viewAuthorPage")}
+                        </Button>
+                        <Button 
+                            type="button"
+                            size="sm"
+                            variant="ghost" 
+                            className="h-8 text-xs text-destructive hover:bg-destructive/10"
+                            onClick={handleDeletePersona}
+                        >
+                            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                            {t("publisherProfileTab.deleteIdentity")}
+                        </Button>
+                    </div>
                     {isLoading && (
                         <div className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground">
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -239,24 +335,6 @@ export function PublisherProfileTab({
                     <PublisherTabHeader
                         title={viewMode === "create" ? t("publisherProfileTab.createIdentity") : t("publisherProfileTab.editIdentity")}
                         description="編輯作者名稱、個人簡介、圖片與作者頁展示內容。"
-                        actions={<div className="flex items-center justify-end gap-2 min-w-[260px]">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className={viewMode === "edit" && selectedPersonaId ? "" : "invisible pointer-events-none"}
-                            onClick={() => selectedPersonaId && navigate(`/author/${selectedPersonaId}`)}
-                        >
-                            {t("publisherProfileTab.viewAuthorPage")}
-                        </Button>
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className={`text-destructive hover:bg-destructive/10 h-8 text-xs ${viewMode === "edit" && selectedPersonaId ? "" : "invisible pointer-events-none"}`}
-                            onClick={handleDeletePersona}
-                        >
-                            <Trash2 className="w-3.5 h-3.5 mr-1.5" /> {t("publisherProfileTab.deleteIdentity")}
-                        </Button>
-                    </div>}
                     />
                 </div>
 
@@ -276,6 +354,44 @@ export function PublisherProfileTab({
                                         {profileNextSteps.length > 0 && (
                                             <div className="text-xs text-muted-foreground">
                                                 {t("publisherProfileTab.nextSteps").replace("{items}", profileNextSteps.map((item) => item.label).join("、"))}
+                                            </div>
+                                        )}
+                                        {missingRequiredFields.length > 0 && (
+                                            <div className="pt-1">
+                                                <div className="mb-1 text-[11px] font-medium text-muted-foreground">
+                                                    {t("publisherProfileTab.missingRequiredFields", "缺少必填欄位")}
+                                                </div>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {missingRequiredFields.map((field) => (
+                                                        <button
+                                                            key={`missing-required-${field.key}`}
+                                                            type="button"
+                                                            onClick={() => jumpToRequiredField(field.key)}
+                                                            className="rounded-full border border-[hsl(var(--destructive)/0.35)] bg-[hsl(var(--destructive)/0.08)] px-2.5 py-1 text-[11px] font-medium text-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive)/0.14)]"
+                                                        >
+                                                            {field.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {suggestedFields.length > 0 && (
+                                            <div className="pt-1">
+                                                <div className="mb-1 text-[11px] font-medium text-muted-foreground">
+                                                    {t("publisherProfileTab.suggestedFields", "建議填寫")}
+                                                </div>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {suggestedFields.map((field) => (
+                                                        <button
+                                                            key={`suggested-field-${field.key}`}
+                                                            type="button"
+                                                            onClick={() => jumpToRequiredField(field.key)}
+                                                            className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                                                        >
+                                                            {field.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
                                             </div>
                                         )}
                                     </div>
@@ -375,9 +491,9 @@ export function PublisherProfileTab({
                                             {avatarUploadError ? (
                                                 <p className="text-destructive">{avatarUploadError}</p>
                                             ) : avatarUploadWarning ? (
-                                                <p className="text-amber-700 dark:text-amber-300">{avatarUploadWarning}</p>
+                                                <p className="text-[color:var(--license-term-fg)]">{avatarUploadWarning}</p>
                                             ) : avatarPreviewFailed ? (
-                                                <p className="text-amber-700 dark:text-amber-300">{t("publisherProfileTab.avatarPreviewFailed")}</p>
+                                                <p className="text-[color:var(--license-term-fg)]">{t("publisherProfileTab.avatarPreviewFailed")}</p>
                                             ) : (
                                                 <p className="opacity-0">placeholder</p>
                                             )}
@@ -436,9 +552,9 @@ export function PublisherProfileTab({
                                             {bannerUploadError ? (
                                                 <p className="text-destructive">{bannerUploadError}</p>
                                             ) : bannerUploadWarning ? (
-                                                <p className="text-amber-700 dark:text-amber-300">{bannerUploadWarning}</p>
+                                                <p className="text-[color:var(--license-term-fg)]">{bannerUploadWarning}</p>
                                             ) : bannerPreviewFailed ? (
-                                                <p className="text-amber-700 dark:text-amber-300">{t("publisherProfileTab.bannerPreviewFailed")}</p>
+                                                <p className="text-[color:var(--license-term-fg)]">{t("publisherProfileTab.bannerPreviewFailed")}</p>
                                             ) : (
                                                 <p className="opacity-0">placeholder</p>
                                             )}
@@ -491,6 +607,7 @@ export function PublisherProfileTab({
                                         </div>
                                     ))}
                                     <Button
+                                        id="persona-add-link-btn"
                                         variant="outline"
                                         size="sm"
                                         onClick={() => {
@@ -577,6 +694,25 @@ export function PublisherProfileTab({
                                                     ))}
                                                 </div>
                                             )}
+                                            <div className="pt-1 border-t border-border/60">
+                                                <div className="mb-1.5 text-xs font-medium text-muted-foreground">
+                                                    {t("publisherProfileTab.pendingJoinRequests", "等待接受的組織申請")}
+                                                </div>
+                                                {myOrgRequests.length === 0 ? (
+                                                    <div className="text-xs text-muted-foreground">{t("publisherProfileTab.noPendingJoinRequests", "目前沒有待審核申請。")}</div>
+                                                ) : (
+                                                    <div className="space-y-1.5">
+                                                        {myOrgRequests.map((req) => (
+                                                            <div key={req.id} className="flex items-center justify-between rounded border bg-background px-2 py-1.5 text-xs">
+                                                                <span className="truncate">{req.organization?.name || req.orgName || req.organizationId || "-"}</span>
+                                                                <span className="text-[color:var(--license-term-fg)]">
+                                                                    {req.status || t("publisherProfileTab.pendingStatus", "待審核")}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </PublisherFormRow>
 
@@ -626,18 +762,54 @@ export function PublisherProfileTab({
                                 </div>
                             </>
                         ) : (
-                            <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground">
-                                <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
-                                    <Plus className="w-8 h-8 text-muted-foreground/30" />
+                            !hasPersona ? (
+                                <div className="h-[420px] flex items-center justify-center">
+                                    <Card className="w-full max-w-xl border-dashed p-5">
+                                        <div className="mb-4">
+                                            <h4 className="text-base font-semibold">{t("publisherProfileTab.emptyDemoTitle", "這是作者身份示範")}</h4>
+                                            <p className="mt-1 text-sm text-muted-foreground">
+                                                {t("publisherProfileTab.emptyDemoDesc", "建立第一個作者身份後，可在公開頁展示頭像、簡介、連結與標籤。")}
+                                            </p>
+                                        </div>
+                                        <div className="rounded-lg border bg-muted/20 p-4">
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="h-12 w-12 border">
+                                                    <AvatarFallback>D</AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <div className="font-semibold">{t("publisherProfileTab.emptyDemoName", "示範作者名稱")}</div>
+                                                    <div className="text-xs text-muted-foreground">{t("publisherProfileTab.emptyDemoBio", "這裡會顯示作者簡介、風格與合作資訊。")}</div>
+                                                </div>
+                                            </div>
+                                            <div className="mt-3 flex flex-wrap gap-1.5">
+                                                <span className="rounded-full border bg-background px-2 py-0.5 text-xs">Drama</span>
+                                                <span className="rounded-full border bg-background px-2 py-0.5 text-xs">Fantasy</span>
+                                                <span className="rounded-full border bg-background px-2 py-0.5 text-xs">Narration</span>
+                                            </div>
+                                        </div>
+                                        <div className="mt-4">
+                                            <Button onClick={onStartCreate}>
+                                                <Plus className="mr-1.5 h-4 w-4" />
+                                                {t("publisherProfileTab.createNow")}
+                                            </Button>
+                                        </div>
+                                    </Card>
                                 </div>
-                                <p className="mb-2">{t("publisherProfileTab.selectIdentityToEdit")}</p>
-                                <Button variant="outline" onClick={onStartCreate}>{t("publisherProfileTab.orCreateNewIdentity")}</Button>
-                            </div>
+                            ) : (
+                                <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground">
+                                    <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
+                                        <Plus className="w-8 h-8 text-muted-foreground/30" />
+                                    </div>
+                                    <p className="mb-2">{t("publisherProfileTab.selectIdentityToEdit")}</p>
+                                    <Button variant="outline" onClick={onStartCreate}>{t("publisherProfileTab.orCreateNewIdentity")}</Button>
+                                </div>
+                            )
                         )}
                     </div>
                 </div>
 
                 {/* Footer Actions */}
+                {(viewMode === "create" || selectedPersonaId) ? (
                 <div className="p-3 border-t bg-background/50 backdrop-blur-sm flex justify-end">
                      <Button 
                         onClick={viewMode === "create" ? handleCreatePersona : handleSaveProfile} 
@@ -648,11 +820,13 @@ export function PublisherProfileTab({
                         {viewMode === "create" ? t("publisherProfileTab.createIdentityShort") : t("publisherProfileTab.saveChanges")}
                     </Button>
                 </div>
+                ) : null}
             </div>
             
             <MediaPicker
                 open={isMediaPickerOpen}
                 onOpenChange={setIsMediaPickerOpen}
+                cropPurpose={mediaPickerTarget === "avatar" ? "avatar" : mediaPickerTarget === "banner" ? "banner" : null}
                 onSelect={(url) => {
                     if (mediaPickerTarget === 'avatar') {
                         setPersonaDraft(prev => ({ ...prev, avatar: url }));
@@ -665,6 +839,16 @@ export function PublisherProfileTab({
                         setBannerUploadError("");
                         setBannerUploadWarning("");
                     }
+                }}
+            />
+            <ImageCropDialog
+                open={cropOpen}
+                onOpenChange={setCropOpen}
+                source={cropSource}
+                purpose={cropPurpose}
+                onConfirm={async (croppedFile) => {
+                    if (!cropTargetField) return;
+                    await applyUploadedImage(croppedFile, cropTargetField);
                 }}
             />
         </Card>

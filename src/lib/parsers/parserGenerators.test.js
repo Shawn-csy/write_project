@@ -35,6 +35,16 @@ describe('parserGenerators', () => {
     expect(full.value).toEqual({ type: 'highlight', id: 'mention', content: '世界' });
   });
 
+  it('createDynamicParsers should parse prefix markers with mixed width/case', () => {
+    const parsers = createDynamicParsers([
+      { id: 'bg-mid', start: '/\\BG', matchMode: 'prefix' }
+    ]);
+
+    const mixed = parsers['bg-mid'].parse('/＼bＧ 降低音量');
+    expect(mixed.status).toBe(true);
+    expect(mixed.value).toEqual({ type: 'highlight', id: 'bg-mid', content: '降低音量' });
+  });
+
   it('createDynamicParsers should not generate inline parser for block marker', () => {
     const parsers = createDynamicParsers([
       { id: 'scene', start: '<t>', type: 'block', isBlock: true, matchMode: 'prefix' }
@@ -61,6 +71,16 @@ describe('parserGenerators', () => {
     const res = parsers.brace.parse('{ hello }');
     expect(res.status).toBe(true);
     expect(res.value).toEqual({ type: 'highlight', id: 'brace', content: 'hello' });
+  });
+
+  it('createDynamicParsers should parse enclosure markers with mixed width/case', () => {
+    const parsers = createDynamicParsers([
+      { id: 'paren', start: '(A', end: ')', matchMode: 'enclosure' }
+    ]);
+
+    const mixed = parsers.paren.parse('（ａ測試）');
+    expect(mixed.status).toBe(true);
+    expect(mixed.value).toEqual({ type: 'highlight', id: 'paren', content: '測試' });
   });
 
   it('createDynamicParsers should parse regex markers and skip invalid regex', () => {

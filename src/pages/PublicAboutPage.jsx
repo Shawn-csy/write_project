@@ -1,7 +1,7 @@
 import React from "react";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, Mail, MessageSquare, Heart, ShieldQuestion } from "lucide-react";
+import { BookOpen, Mail, MessageSquare, Heart } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { useI18n } from "../contexts/I18nContext";
@@ -32,7 +32,7 @@ export default function PublicAboutPage() {
 
                 <div className="space-y-6">
                     {/* Intro Card */}
-                    <Card>
+                    <Card id="guide">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-xl">
                                 <Heart className="w-5 h-5 text-primary" />
@@ -49,24 +49,6 @@ export default function PublicAboutPage() {
                                 <li><strong>{t("publicAbout.featureStudioTitle")}</strong>：{t("publicAbout.featureStudioBody")}</li>
                                 <li><strong>{t("publicAbout.featureEditorTitle")}</strong>：{t("publicAbout.featureEditorBody")}</li>
                             </ul>
-                        </CardContent>
-                    </Card>
-
-                    {/* License Card */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-xl">
-                                <ShieldQuestion className="w-5 h-5 text-primary" />
-                                {t("publicAbout.licenseTitle")}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4 text-muted-foreground leading-relaxed text-sm sm:text-base">
-                            <p>
-                                {t("publicAbout.licenseBody1")}
-                            </p>
-                            <p>
-                                {t("publicAbout.licenseBody2")}
-                            </p>
                         </CardContent>
                     </Card>
 

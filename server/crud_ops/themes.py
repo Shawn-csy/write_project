@@ -9,6 +9,9 @@ from sqlalchemy.orm import Session
 import models
 import schemas
 
+SYSTEM_DEFAULT_THEME_ID = "__system_default_marker_rules__"
+SYSTEM_DEFAULT_THEME_NAME = "系統預設標記"
+
 
 def get_user_themes(db: Session, ownerId: str):
     return db.query(models.MarkerTheme).filter(models.MarkerTheme.ownerId == ownerId).all()
@@ -23,6 +26,18 @@ def get_public_themes(db: Session):
         .limit(100)
         .all()
     )
+
+
+def get_system_default_theme(db: Session):
+    return db.query(models.MarkerTheme).filter(models.MarkerTheme.id == SYSTEM_DEFAULT_THEME_ID).first()
+
+
+def get_system_default_configs(db: Session):
+    theme = get_system_default_theme(db)
+    if not theme:
+        return []
+    parsed = _parse_theme_configs(theme.configs)
+    return parsed if isinstance(parsed, list) else []
 
 
 def _parse_theme_configs(raw: Any):
@@ -97,12 +112,46 @@ def delete_theme(db: Session, theme_id: str, ownerId: str):
     db.commit()
 
 
+def upsert_system_default_configs(db: Session, configs: Any, ownerId: str):
+    serialized = _serialize_theme_configs(configs)
+    now_ms = int(time.time() * 1000)
+    row = get_system_default_theme(db)
+    if row:
+        row.configs = serialized
+        row.updatedAt = now_ms
+        if not row.ownerId:
+            row.ownerId = ownerId
+        db.commit()
+        db.refresh(row)
+        return row
+
+    db_theme = models.MarkerTheme(
+        id=SYSTEM_DEFAULT_THEME_ID,
+        ownerId=ownerId,
+        name=SYSTEM_DEFAULT_THEME_NAME,
+        configs=serialized,
+        isPublic=False,
+        description="Global default marker configs managed by super admin.",
+        createdAt=now_ms,
+        updatedAt=now_ms,
+    )
+    db.add(db_theme)
+    db.commit()
+    db.refresh(db_theme)
+    return db_theme
+
+
 __all__ = [
+    "SYSTEM_DEFAULT_THEME_ID",
+    "SYSTEM_DEFAULT_THEME_NAME",
     "get_user_themes",
     "get_public_themes",
+    "get_system_default_theme",
+    "get_system_default_configs",
     "_parse_theme_configs",
     "_serialize_theme_configs",
     "create_theme",
     "update_theme",
     "delete_theme",
+    "upsert_system_default_configs",
 ]

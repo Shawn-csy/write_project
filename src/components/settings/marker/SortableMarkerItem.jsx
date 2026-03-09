@@ -7,7 +7,7 @@ import { cn } from "../../../lib/utils";
 import { Button } from "../../ui/button";
 
 // --- Sortable Item Component (Row Only) ---
-export function SortableMarkerItem({ id, config, idx, updateMarker, removeMarker, selectedId, onSelect }) {
+export function SortableMarkerItem({ id, config, idx, updateMarker, removeMarker, selectedId, onSelect, readOnly = false }) {
     const {
         attributes,
         listeners,
@@ -40,9 +40,12 @@ export function SortableMarkerItem({ id, config, idx, updateMarker, removeMarker
             >
                 {/* Drag Handle */}
                 <div 
-                    {...attributes} 
-                    {...listeners} 
-                    className="cursor-grab text-muted-foreground/50 hover:text-foreground p-1 rounded hover:bg-muted active:cursor-grabbing"
+                    {...(readOnly ? {} : attributes)} 
+                    {...(readOnly ? {} : listeners)} 
+                    className={cn(
+                      "text-muted-foreground/50 p-1 rounded",
+                      readOnly ? "cursor-not-allowed opacity-40" : "cursor-grab hover:text-foreground hover:bg-muted active:cursor-grabbing"
+                    )}
                     onClick={(e) => e.stopPropagation()} // Prevent selection when dragging
                 >
                     <GripVertical className="w-4 h-4" />
@@ -71,6 +74,7 @@ export function SortableMarkerItem({ id, config, idx, updateMarker, removeMarker
                         e.stopPropagation();
                         removeMarker(idx);
                     }}
+                    disabled={readOnly}
                 >
                     <Trash2 className="w-3.5 h-3.5" />
                 </Button>
@@ -78,4 +82,3 @@ export function SortableMarkerItem({ id, config, idx, updateMarker, removeMarker
         </div>
     );
 }
-

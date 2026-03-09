@@ -5,7 +5,7 @@ import { Button } from "../../ui/button";
 import { CoverPlaceholder } from "../../ui/CoverPlaceholder";
 import { Input } from "../../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
-import { MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
+import { getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
 
 export function ScriptMetadataExposureSection({
   t,
@@ -45,6 +45,15 @@ export function ScriptMetadataExposureSection({
   currentTags,
   handleRemoveTag,
 }) {
+  const coverGuide = React.useMemo(() => getImageUploadGuide("cover"), []);
+  const resolveTagSwatch = React.useCallback((rawColor) => {
+    const value = String(rawColor || "").trim();
+    if (!value) return { className: "bg-primary/60", style: undefined };
+    if (value.startsWith("#") || value.startsWith("rgb") || value.startsWith("hsl") || value.startsWith("var(")) {
+      return { className: "", style: { backgroundColor: value } };
+    }
+    return { className: value, style: undefined };
+  }, []);
   return (
     <section id="metadata-section-exposure" className="space-y-3 scroll-mt-24">
       <h3 className="text-base font-semibold">{t("scriptMetadataDialog.tabExposure", "曝光資訊")}</h3>
@@ -71,8 +80,12 @@ export function ScriptMetadataExposureSection({
                 從媒體庫選擇
               </Button>
             </div>
+            <div className="space-y-0.5 text-[11px] text-muted-foreground">
+              <p>{coverGuide.supported}</p>
+              <p>{coverGuide.recommended}</p>
+            </div>
             {coverUploadError && <p className="text-xs text-destructive">{coverUploadError}</p>}
-            {coverUploadWarning && <p className="text-xs text-amber-700 dark:text-amber-300">{coverUploadWarning}</p>}
+            {coverUploadWarning && <p className="text-xs text-[color:var(--license-term-fg)]">{coverUploadWarning}</p>}
             <div className="mt-1 h-28 w-full overflow-hidden rounded-md border bg-muted/20">
               {coverUrl && !coverPreviewFailed ? (
                 <img
@@ -89,7 +102,7 @@ export function ScriptMetadataExposureSection({
             {coverUrl && coverPreviewFailed && (
               <p className="text-xs text-muted-foreground">{t("metadataDetails.coverPreviewFail")}</p>
             )}
-            {recommendedErrorMap.cover && <p className="text-xs text-amber-700 dark:text-amber-300">{t("metadataDetails.coverTip")}</p>}
+            {recommendedErrorMap.cover && <p className="text-xs text-[color:var(--license-term-fg)]">{t("metadataDetails.coverTip")}</p>}
           </div>
         </div>
         <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
@@ -213,12 +226,20 @@ export function ScriptMetadataExposureSection({
               />
               <Button type="button" variant="secondary" onClick={() => handleAddTag()}>新增</Button>
             </div>
-            {recommendedErrorMap.tags && <p className="text-xs text-amber-700 dark:text-amber-300">{t("metadataDetails.tagsTip")}</p>}
+            {recommendedErrorMap.tags && <p className="text-xs text-[color:var(--license-term-fg)]">{t("metadataDetails.tagsTip")}</p>}
             <div className="flex flex-wrap gap-2">
               {(currentTags || []).map((tag) => (
-                <Badge key={tag.id} variant="secondary" className={`${tag.color || "bg-slate-200"} text-foreground pl-3 pr-1.5 py-1 flex items-center`}>
-                  {tag.name}
-                  <button type="button" className="ml-1.5 rounded-full p-0.5 hover:bg-black/20 dark:hover:bg-white/20" onClick={() => handleRemoveTag(tag.id)}>
+                <Badge
+                  key={tag.id}
+                  variant="outline"
+                  className="flex items-center gap-1 border-[color:var(--license-filter-border)] bg-[color:var(--license-filter-bg)] py-1 pl-2.5 pr-1.5 text-[color:var(--license-filter-fg)]"
+                >
+                  {(() => {
+                    const swatch = resolveTagSwatch(tag.color);
+                    return <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${swatch.className}`} style={swatch.style} />;
+                  })()}
+                  <span>{tag.name}</span>
+                  <button type="button" className="ml-1.5 rounded-full p-0.5 hover:bg-foreground/15" onClick={() => handleRemoveTag(tag.id)}>
                     <X className="h-3 w-3 opacity-70" />
                   </button>
                 </Badge>

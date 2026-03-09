@@ -23,4 +23,3 @@ describe("resolveEffectiveMarkerConfigs", () => {
     assert.strictEqual(resolved.configs[0].id, "chapter");
   });
 });
-

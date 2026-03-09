@@ -3,10 +3,13 @@ import { defaultMarkerConfigs } from "../constants/defaultMarkerRules";
 import { apiCall as serviceApiCall } from "../services/settingsApi.js";
 import { normalizeMarkerConfigsSchema } from "../lib/markerThemeCodec.js";
 import { isDefaultLikeTheme } from "../lib/themeNameUtils";
+import { fetchPublic } from "../lib/api/client.js";
 
-export function useMarkerThemes(currentUser) {
+export function useMarkerThemes(currentUser, isAdmin = false) {
     const DEFAULT_THEME_ID = 'default';
-    const defaultTheme = { id: DEFAULT_THEME_ID, name: '預設主題 (Default)', configs: normalizeMarkerConfigsSchema(defaultMarkerConfigs) };
+    const localDefaultConfigs = normalizeMarkerConfigsSchema(defaultMarkerConfigs);
+    const [systemDefaultConfigs, setSystemDefaultConfigs] = useState(localDefaultConfigs);
+    const defaultTheme = { id: DEFAULT_THEME_ID, name: '預設主題 (Default)', configs: systemDefaultConfigs };
     const withDefaultTheme = (themes = []) => {
         const normalizedThemes = Array.isArray(themes) ? themes : [];
         const withoutDefault = normalizedThemes.filter(
@@ -27,7 +30,6 @@ export function useMarkerThemes(currentUser) {
             configs: normalizeMarkerConfigsSchema(theme?.configs),
         }))
     );
-  
     const [markerThemes, setMarkerThemesState] = useState([defaultTheme]);
     const [currentThemeId, setCurrentThemeIdState] = useState(DEFAULT_THEME_ID);
 
@@ -37,13 +39,30 @@ export function useMarkerThemes(currentUser) {
     // Derived State: Active Markers
     const markerConfigs = useMemo(() => {
         if (currentThemeId === DEFAULT_THEME_ID) {
-            return normalizeMarkerConfigsSchema(defaultMarkerConfigs);
+            return normalizeMarkerConfigsSchema(systemDefaultConfigs);
         }
         const activeTheme = markerThemes.find(t => t.id === currentThemeId);
-        return normalizeMarkerConfigsSchema(activeTheme?.configs).length > 0
-            ? normalizeMarkerConfigsSchema(activeTheme?.configs)
-            : normalizeMarkerConfigsSchema(defaultMarkerConfigs);
-    }, [markerThemes, currentThemeId]);
+        if (!activeTheme) return normalizeMarkerConfigsSchema(systemDefaultConfigs);
+        return normalizeMarkerConfigsSchema(activeTheme?.configs);
+    }, [markerThemes, currentThemeId, systemDefaultConfigs]);
+
+    useEffect(() => {
+        let active = true;
+        fetchPublic("/default-marker-configs")
+            .then((configs) => {
+                if (!active) return;
+                const normalized = normalizeMarkerConfigsSchema(configs);
+                if (normalized.length > 0) {
+                    setSystemDefaultConfigs(normalized);
+                } else {
+                    setSystemDefaultConfigs(localDefaultConfigs);
+                }
+            })
+            .catch(() => {
+                if (active) setSystemDefaultConfigs(localDefaultConfigs);
+            });
+        return () => { active = false; };
+    }, []);
 
     // Actions
     const setMarkerThemes = (val) => {
@@ -67,15 +86,21 @@ export function useMarkerThemes(currentUser) {
     }, [markerThemes, currentThemeId]);
 
     // Update CURRENT theme's configs
-    const setMarkerConfigs = (newConfigs) => {
-        if (currentThemeId === DEFAULT_THEME_ID) return;
+    const setMarkerConfigs = async (newConfigs) => {
+        const normalizedConfigs = normalizeMarkerConfigsSchema(newConfigs);
+        if (currentThemeId === DEFAULT_THEME_ID) {
+            if (!isAdmin || !currentUser) return;
+            setSystemDefaultConfigs(normalizedConfigs);
+            await apiCall('/admin/default-marker-configs', 'PUT', normalizedConfigs);
+            return;
+        }
         const newThemes = markerThemes.map(t => 
-            t.id === currentThemeId ? { ...t, configs: normalizeMarkerConfigsSchema(newConfigs) } : t
+            t.id === currentThemeId ? { ...t, configs: normalizedConfigs } : t
         );
         setMarkerThemes(newThemes);
         
         if (currentUser && currentThemeId !== 'default') {
-            apiCall(`/themes/${currentThemeId}`, 'PUT', { configs: normalizeMarkerConfigsSchema(newConfigs) });
+            await apiCall(`/themes/${currentThemeId}`, 'PUT', { configs: normalizedConfigs });
         }
     };
 
@@ -87,7 +112,7 @@ export function useMarkerThemes(currentUser) {
             ? (legacyOptions || {})
             : (initialOrOptions || {});
         const newId = crypto.randomUUID();
-        const configsToSave = initialConfigs || defaultMarkerConfigs;
+        const configsToSave = initialConfigs || systemDefaultConfigs;
         const newTheme = {
             id: newId,
             name: name,
@@ -193,6 +218,7 @@ export function useMarkerThemes(currentUser) {
         currentThemeId,
         setCurrentThemeId,
         markerConfigs,
+        systemDefaultConfigs,
         
         // Actions
         setMarkerConfigs,

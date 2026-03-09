@@ -28,9 +28,12 @@ const DEFAULT_SLIDES = [
   },
 ];
 
-export function PublicHeroMarquee({ slides = DEFAULT_SLIDES, intervalMs = 4500 }) {
+export function PublicHeroMarquee({ slides = DEFAULT_SLIDES, intervalMs = 4500, fallbackToDefault = true }) {
   const { t } = useI18n();
-  const safeSlides = Array.isArray(slides) && slides.length > 0 ? slides : DEFAULT_SLIDES;
+  const safeSlides = Array.isArray(slides) && slides.length > 0
+    ? slides
+    : (fallbackToDefault ? DEFAULT_SLIDES : []);
+  if (safeSlides.length === 0) return null;
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -61,17 +64,36 @@ export function PublicHeroMarquee({ slides = DEFAULT_SLIDES, intervalMs = 4500 }
                 key={slide.id || index}
                 className={cn(
                   "absolute inset-0 bg-gradient-to-r p-4 sm:p-6 transition-opacity duration-500",
-                  slide.className,
-                  activeIndex === index ? "opacity-100" : "opacity-0 pointer-events-none"
+                  slide.className || "from-[#e7f4ff] via-[#f2fbff] to-[#fff9f2] dark:from-[#16314b] dark:via-[#13313c] dark:to-[#3b2a1e]",
+                  activeIndex === index ? "opacity-100" : "opacity-0 pointer-events-none",
+                  String(slide.link || "").trim() ? "cursor-pointer" : ""
                 )}
               >
+                {String(slide.link || "").trim() && (
+                  <a
+                    href={String(slide.link || "").trim()}
+                    className="absolute inset-0 z-10"
+                    aria-label={slide.title || t("publicGallery.marqueeTitle", "跑馬燈區塊")}
+                  />
+                )}
+                {String(slide.imageUrl || "").trim() && (
+                  <>
+                    <img
+                      src={String(slide.imageUrl || "").trim()}
+                      alt={slide.title || "banner"}
+                      className="absolute inset-0 h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-black/30" />
+                  </>
+                )}
                 <div className="flex h-full items-end">
-                  <div className="max-w-xl rounded-lg border border-white/30 bg-white/65 px-3 py-2 backdrop-blur dark:border-white/15 dark:bg-black/35">
+                  <div className="relative z-20 max-w-xl rounded-lg border border-white/30 bg-white/65 px-3 py-2 backdrop-blur dark:border-white/15 dark:bg-black/35">
                     <p className="text-sm sm:text-base font-semibold text-foreground">
                       {slide.title || t("publicGallery.marqueeTitle", "跑馬燈區塊")}
                     </p>
                     <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
-                      {slide.subtitle || t("publicGallery.marqueeSubtitle", "可在此放置圖片輪播。")}
+                      {slide.subtitle || slide.content || t("publicGallery.marqueeSubtitle", "可在此放置圖片輪播。")}
                     </p>
                   </div>
                 </div>
@@ -79,7 +101,7 @@ export function PublicHeroMarquee({ slides = DEFAULT_SLIDES, intervalMs = 4500 }
             ))}
           </div>
 
-          <div className="absolute inset-y-0 left-2 flex items-center">
+          <div className="absolute inset-y-0 left-2 z-30 flex items-center">
             <Button
               type="button"
               variant="secondary"
@@ -91,7 +113,7 @@ export function PublicHeroMarquee({ slides = DEFAULT_SLIDES, intervalMs = 4500 }
               <ChevronLeft className="h-4 w-4" />
             </Button>
           </div>
-          <div className="absolute inset-y-0 right-2 flex items-center">
+          <div className="absolute inset-y-0 right-2 z-30 flex items-center">
             <Button
               type="button"
               variant="secondary"
@@ -104,7 +126,7 @@ export function PublicHeroMarquee({ slides = DEFAULT_SLIDES, intervalMs = 4500 }
             </Button>
           </div>
 
-          <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1.5">
+          <div className="absolute bottom-2 left-1/2 z-30 flex -translate-x-1/2 items-center gap-1.5">
             {safeSlides.map((slide, index) => (
               <button
                 key={`dot-${slide.id || index}`}

@@ -14,7 +14,7 @@ import { X } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
 function SettingsPanel({ onClose, activeTab, onTabChange }) {
-  const { currentUser } = useAuth();
+  const { currentUser, profile } = useAuth();
   const { t } = useI18n();
   const scrollContainerRef = useRef(null);
   const [internalTab, setInternalTab] = useState("display");
@@ -22,18 +22,29 @@ function SettingsPanel({ onClose, activeTab, onTabChange }) {
   const currentTab = activeTab || internalTab;
   const setTab = onTabChange || setInternalTab;
   
+  const isAdmin = Boolean(profile?.isAdmin);
   const allTabs = [
     { key: "display", label: t("settings.display") },
-    { key: "transfer", label: t("settings.transfer"), authRequired: true },
+    { key: "transfer", label: t("settings.transfer"), authRequired: true, adminOnly: true },
     { key: "media", label: t("settings.media"), authRequired: true },
     { key: "markers", label: t("settings.markers"), authRequired: true },
     { key: "profile", label: t("settings.profile"), authRequired: true },
   ];
 
-  const tabs = allTabs.filter(tab => !tab.authRequired || currentUser);
+  const tabs = allTabs.filter(
+    (tab) =>
+      (!tab.authRequired || currentUser) &&
+      (!tab.adminOnly || isAdmin)
+  );
   const activeToneKey = SETTINGS_TAB_MORANDI_TONE[currentTab] || "works";
   const activeToneVars = MORANDI_STUDIO_TONE_VARS[activeToneKey] || MORANDI_STUDIO_TONE_VARS.works;
   const activeTabLabel = tabs.find((item) => item.key === currentTab)?.label || tabs[0]?.label || "";
+
+  React.useEffect(() => {
+    if (!tabs.some((tab) => tab.key === currentTab) && tabs[0]) {
+      setTab(tabs[0].key);
+    }
+  }, [tabs, currentTab, setTab]);
 
   return (
     <div className="flex-1 min-h-0 overflow-hidden border border-border/40 bg-background/60 backdrop-blur-xl rounded-2xl shadow-sm data-[state=open]:animate-in data-[state=closed]:animate-out fade-in-0 zoom-in-95 flex flex-col">
@@ -55,7 +66,7 @@ function SettingsPanel({ onClose, activeTab, onTabChange }) {
         <div className="h-full grid grid-cols-1 md:grid-cols-[240px_1fr] gap-3 sm:gap-4">
           <aside
             style={activeToneVars}
-            className="rounded-xl border border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-helper-bg)]/45 backdrop-blur-sm"
+            className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-helper-bg)]/45 backdrop-blur-sm"
           >
             <div className="px-3 py-3 overflow-x-auto md:overflow-visible scrollbar-hide">
               <div className="flex md:flex-col items-center md:items-stretch gap-1 p-1 bg-muted/50 rounded-lg w-fit md:w-full whitespace-nowrap">
@@ -67,8 +78,8 @@ function SettingsPanel({ onClose, activeTab, onTabChange }) {
                     className={cn(
                       "px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 text-left border",
                       currentTab === item.key
-                        ? "border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-trigger-bg)] text-[var(--morandi-tone-trigger-fg)] shadow-sm"
-                        : "border-transparent text-muted-foreground hover:border-[var(--morandi-tone-panel-border)] hover:bg-[var(--morandi-tone-helper-bg)] hover:text-[var(--morandi-tone-helper-fg)]"
+                        ? "border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-trigger-bg)] text-[color:var(--morandi-tone-trigger-fg)] shadow-sm"
+                        : "border-transparent text-muted-foreground hover:border-[color:var(--morandi-tone-panel-border)] hover:bg-[color:var(--morandi-tone-helper-bg)] hover:text-[color:var(--morandi-tone-helper-fg)]"
                     )}
                   >
                     {item.label}
@@ -77,7 +88,7 @@ function SettingsPanel({ onClose, activeTab, onTabChange }) {
               </div>
               <p
                 style={activeToneVars}
-                className="mt-2 rounded-md border-l-4 border-[var(--morandi-tone-helper-border)] bg-[var(--morandi-tone-helper-bg)] px-2 py-1.5 text-xs text-[var(--morandi-tone-helper-fg)]"
+                className="mt-2 rounded-md border-l-4 border-[color:var(--morandi-tone-helper-border)] bg-[color:var(--morandi-tone-helper-bg)] px-2 py-1.5 text-xs text-[color:var(--morandi-tone-helper-fg)]"
               >
                 {activeTabLabel}
               </p>
@@ -86,7 +97,7 @@ function SettingsPanel({ onClose, activeTab, onTabChange }) {
 
           <div
             style={activeToneVars}
-            className="flex-1 min-h-0 overflow-y-auto scrollbar-hide rounded-xl border border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-panel-bg)] p-4 sm:p-6 space-y-6"
+            className="flex-1 min-h-0 overflow-y-auto scrollbar-hide rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-4 sm:p-6 space-y-6"
             ref={scrollContainerRef}
           >
             {currentTab === "transfer" && (

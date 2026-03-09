@@ -120,7 +120,13 @@ export function GalleryFilterBar({
           </div>
 
           {selectedTags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 p-2 bg-muted/20 border rounded-md">
+              <div
+                className="flex flex-wrap gap-2 rounded-md border p-2.5 shadow-sm"
+                style={{
+                  borderColor: "var(--license-filter-border)",
+                  backgroundColor: "var(--license-filter-bg)",
+                }}
+              >
                   {selectedTags.map(tag => {
                       const isLicense = quickTagSet.has(tag);
                       const isAdult = String(tag).toLowerCase() === "r-18" || String(tag).toLowerCase() === "r18" || String(tag).toLowerCase() === "成人向";
@@ -130,17 +136,25 @@ export function GalleryFilterBar({
                               key={`selected-${tag}`}
                               variant={isAdult ? "destructive" : "secondary"}
                               size="sm"
-                              className={`rounded-full text-[11px] h-6 px-2 flex items-center gap-1 focus:outline-none ${isAdult ? "bg-red-600/90 text-white hover:bg-red-700" : ""}`}
+                              className={`rounded-full text-xs h-7 px-2.5 font-semibold border flex items-center gap-1.5 focus:outline-none shadow-sm ${
+                                isAdult
+                                  ? "bg-destructive text-destructive-foreground border-destructive/85 hover:bg-destructive/90"
+                                  : "text-[color:var(--license-selected-fg)]"
+                              }`}
                               onClick={() => toggleTag(tag)}
                               title={t("galleryFilterBar.clickToRemove", "點擊移除")}
                               style={isLicense && !isAdult ? {
                                   backgroundColor: "var(--license-selected-bg)",
                                   borderColor: "var(--license-selected-border)",
                                   color: "var(--license-selected-fg)",
+                              } : !isAdult ? {
+                                  backgroundColor: "var(--license-filter-bg)",
+                                  borderColor: "var(--license-filter-border)",
+                                  color: "var(--license-filter-fg)",
                               } : undefined}
                           >
                               <span className="truncate max-w-[150px]">{label}</span>
-                              <span className="text-muted-foreground hover:text-destructive shrink-0">×</span>
+                              <span className={`shrink-0 text-sm leading-none ${isAdult ? "text-white/90" : "text-current/80"}`}>×</span>
                           </Button>
                       );
                   })}
@@ -148,7 +162,7 @@ export function GalleryFilterBar({
                       variant="ghost" 
                       size="sm" 
                       onClick={clearTags}
-                      className="h-6 px-1.5 text-[10px] text-muted-foreground hover:text-destructive ml-auto"
+                      className="h-7 px-2 text-[11px] text-muted-foreground hover:text-destructive ml-auto"
                   >
                       {t("galleryFilterBar.clearTags", "清除全部")}
                   </Button>
@@ -172,7 +186,7 @@ export function GalleryFilterBar({
                           <button
                               key={`license-${opt.value}`}
                               type="button"
-                              className={`flex items-center w-full min-h-8 px-2 py-1.5 text-xs rounded-md text-left transition-colors ${isAdult ? "text-red-500 font-bold hover:bg-red-500/10" : "hover:bg-muted/50"}`}
+                              className={`flex items-center w-full min-h-8 px-2 py-1.5 text-xs rounded-md text-left transition-colors ${isAdult ? "font-bold text-destructive hover:bg-destructive/10" : "hover:bg-muted/50"}`}
                               onClick={() => toggleTag(opt.value)}
                           >
                               <span className="flex-1 truncate">{opt.label}</span>

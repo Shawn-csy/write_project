@@ -19,9 +19,9 @@ export function ImportStageInput({
                 <div className="text-sm font-medium">{t("importStageInput.tabContent")}</div>
             </div>
 
-            <div ref={containerRef} className="flex-1 min-h-0 relative mt-0 group">
+            <div ref={containerRef} className="flex-1 min-h-[180px] sm:min-h-[240px] relative mt-0 group">
                 <Textarea 
-                    className="w-full h-full font-mono text-sm resize-none p-4"
+                    className="w-full h-full min-h-[180px] sm:min-h-[240px] font-mono text-sm resize-none p-4"
                     placeholder={t("importStageInput.contentPlaceholder")}
                     value={text}
                     onChange={(e) => setText(e.target.value)}

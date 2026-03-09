@@ -8,10 +8,8 @@ import { ImportScriptDialog } from "./write/ImportScriptDialog";
 import { DeleteScriptDialog } from "./write/DeleteScriptDialog";
 import { MoveScriptDialog } from "./write/MoveScriptDialog";
 import { createScript, updateScript, getScript } from "../../lib/api/scripts";
-import { exportScripts } from "../../lib/api/user";
-import { downloadBlob } from "../../lib/download";
 import { Button } from "../ui/button";
-import { FileText, Folder, Search, ArrowUpDown, FileStack, Globe, RotateCcw } from "lucide-react";
+import { FileText, Folder, Search, ArrowUpDown, FileStack, Globe, RotateCcw, PanelRightOpen, PanelRightClose } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -22,11 +20,12 @@ import {
     DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { useI18n } from "../../contexts/I18nContext";
-import { useToast } from "../ui/toast";
+import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
+import { MORANDI_STUDIO_TONE_VARS } from "../../constants/morandiPanelTones";
 
 export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     const { t } = useI18n();
-    const { toast } = useToast();
+    const writeTone = MORANDI_STUDIO_TONE_VARS.works;
     // Hooks
     const manager = useWriteTab(refreshTrigger, {
         onScriptCreated: onSelectScript
@@ -42,6 +41,11 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     const [filterType, setFilterType] = useState("all");
     const [filterStatus, setFilterStatus] = useState("all");
     const [filterQuery, setFilterQuery] = useState("");
+    const [showGuide, setShowGuide] = useState(false);
+    const [guideIndex, setGuideIndex] = useState(0);
+    const [guideSpotlightRect, setGuideSpotlightRect] = useState(null);
+    const [isPreviewCollapsed, setIsPreviewCollapsed] = useState(false);
+    const [footerQuote, setFooterQuote] = useState(null);
     
     // Breadcrumbs Logic
     const breadcrumbs = useMemo(() => {
@@ -53,16 +57,17 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         });
     }, [manager.currentPath]);
 
-    const handleExport = async () => {
-         if(!manager.currentUser) return;
-         try {
-             const blob = await exportScripts();
-             downloadBlob(blob, "scripts_backup.zip");
-         } catch(e) {
-             console.error(e);
-             toast({ title: t("writeTab.exportFailed"), variant: "destructive" });
-         }
-    };
+    const footerTip = useMemo(() => {
+        const tips = [
+            t("scriptToolbar.tipOne"),
+            t("scriptToolbar.tipTwo"),
+            t("scriptToolbar.tipThree"),
+        ].filter(Boolean);
+        if (tips.length === 0) return "";
+        const now = new Date();
+        const seed = now.getFullYear() * 1000 + (now.getMonth() + 1) * 50 + now.getDate();
+        return tips[seed % tips.length];
+    }, [t]);
 
     // Handle import script
     const handleImport = useCallback(async ({ title, content, folder }) => {
@@ -101,6 +106,57 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
             throw err;
         }
     }, [manager, t]);
+
+    useEffect(() => {
+        if (typeof window === "undefined") return undefined;
+        const handleAction = (event) => {
+            const type = event?.detail?.type;
+            if (type === "create-script") {
+                manager.setNewType("script");
+                manager.setIsCreateOpen(true);
+                return;
+            }
+            if (type === "create-folder") {
+                manager.setNewType("folder");
+                manager.setIsCreateOpen(true);
+                return;
+            }
+            if (type === "import-script") {
+                setIsImportOpen(true);
+                return;
+            }
+            if (type === "open-guide") {
+                setGuideIndex(0);
+                setShowGuide(true);
+            }
+        };
+        window.addEventListener("write-tab-action", handleAction);
+        return () => window.removeEventListener("write-tab-action", handleAction);
+    }, [manager]);
+
+    useEffect(() => {
+        let cancelled = false;
+        const loadRandomQuote = async () => {
+            try {
+                const res = await fetch("/random_text.json", { cache: "no-store" });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (!Array.isArray(data) || data.length === 0) return;
+                const sorted = [...data]
+                    .filter((item) => item && typeof item.quote === "string")
+                    .sort((a, b) => Number(a?.id || 0) - Number(b?.id || 0));
+                if (sorted.length === 0 || cancelled) return;
+                const picked = sorted[Math.floor(Math.random() * sorted.length)];
+                if (!cancelled) setFooterQuote(picked);
+            } catch {
+                // keep fallback tip
+            }
+        };
+        loadRandomQuote();
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     const handleOpenScript = useCallback((script) => {
         if (typeof window !== "undefined") {
@@ -162,6 +218,18 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         );
     }, [pageSize, sortKey, sortDir, filterType, filterStatus, filterQuery]);
 
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        const saved = window.localStorage.getItem("write_tab_preview_collapsed_v1");
+        if (!saved) return;
+        setIsPreviewCollapsed(saved === "1");
+    }, []);
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        window.localStorage.setItem("write_tab_preview_collapsed_v1", isPreviewCollapsed ? "1" : "0");
+    }, [isPreviewCollapsed]);
+
     const filteredAndSortedItems = useMemo(() => {
         let items = manager.visibleItems;
 
@@ -199,6 +267,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     }, [manager.visibleItems, filterType, filterStatus, filterQuery, sortKey, sortDir]);
     
     const hasActiveFilters = filterType !== "all" || filterStatus !== "all" || Boolean(filterQuery.trim()) || sortKey !== "custom";
+    const controlClassName = "h-8 rounded-md border border-[color:var(--morandi-tone-panel-border)] bg-background/90 text-foreground";
 
     const totalItems = filteredAndSortedItems.length;
     const pagedItems = useMemo(() => {
@@ -223,36 +292,130 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         }
     }, [hasMoreItems, loadMore]);
 
-    return (
-        <div className="flex flex-col h-full overflow-hidden">
-            {/* Toolbar */}
-            <ScriptToolbar 
-                currentPath={manager.currentPath}
-                breadcrumbs={breadcrumbs}
-                onSelectScript={handleOpenScript}
-                currentUser={manager.currentUser}
-                readOnly={readOnly}
-                goUp={manager.goUp}
-                navigateTo={manager.navigateTo}
-                onExport={handleExport}
-                onImport={() => setIsImportOpen(true)}
-                onCreateFolder={() => { manager.setNewType('folder'); manager.setIsCreateOpen(true); }}
-                onCreateScript={() => { manager.setNewType('script'); manager.setIsCreateOpen(true); }}
-            />
+    const guideSteps = useMemo(() => ([
+        {
+            title: t("writeTab.guideCreateTitle"),
+            description: t("writeTab.guideCreateDesc"),
+            target: "write-create-script-btn",
+        },
+        {
+            title: t("writeTab.guideImportTitle"),
+            description: t("writeTab.guideImportDesc"),
+            target: "write-import-script-btn",
+        },
+        {
+            title: t("writeTab.guideMiddleTitle"),
+            description: totalItems === 0 ? t("writeTab.guideMiddleDescDemo") : t("writeTab.guideMiddleDesc"),
+            target: "write-middle-controls",
+        },
+        {
+            title: t("writeTab.guideListTitle"),
+            description: t("writeTab.guideListDesc"),
+            target: "write-list-panel",
+        },
+        {
+            title: t("writeTab.guidePreviewTitle"),
+            description: t("writeTab.guidePreviewDesc"),
+            target: "write-preview-panel",
+        },
+    ]), [t, totalItems]);
 
-            {/* File Explorer */}
-            <div className="flex-1 min-h-0 flex gap-3">
+    const getGuideTargetElement = useCallback((target) => {
+        if (typeof document === "undefined") return null;
+        return document.querySelector(`[data-guide-id="${target}"]`);
+    }, []);
+
+    const updateGuideSpotlight = useCallback(() => {
+        if (!showGuide) {
+            setGuideSpotlightRect(null);
+            return;
+        }
+        const step = guideSteps[guideIndex];
+        const element = step ? getGuideTargetElement(step.target) : null;
+        if (!element) {
+            setGuideSpotlightRect(null);
+            return;
+        }
+        const rect = element.getBoundingClientRect();
+        if (!rect.width || !rect.height) {
+            setGuideSpotlightRect(null);
+            return;
+        }
+        const padding = 8;
+        setGuideSpotlightRect({
+            top: Math.max(0, rect.top - padding),
+            left: Math.max(0, rect.left - padding),
+            width: rect.width + padding * 2,
+            height: rect.height + padding * 2,
+        });
+    }, [getGuideTargetElement, guideIndex, guideSteps, showGuide]);
+
+    useEffect(() => {
+        if (!showGuide) return undefined;
+        updateGuideSpotlight();
+        const onLayoutChange = () => updateGuideSpotlight();
+        window.addEventListener("resize", onLayoutChange);
+        window.addEventListener("scroll", onLayoutChange, true);
+        return () => {
+            window.removeEventListener("resize", onLayoutChange);
+            window.removeEventListener("scroll", onLayoutChange, true);
+        };
+    }, [guideIndex, showGuide, updateGuideSpotlight]);
+
+    const closeGuide = useCallback(() => {
+        setShowGuide(false);
+        setGuideSpotlightRect(null);
+    }, []);
+
+    const prevGuide = useCallback(() => {
+        setGuideIndex((prev) => Math.max(0, prev - 1));
+    }, []);
+
+    const nextGuide = useCallback(() => {
+        if (guideIndex >= guideSteps.length - 1) {
+            closeGuide();
+            return;
+        }
+        setGuideIndex((prev) => Math.min(guideSteps.length - 1, prev + 1));
+    }, [closeGuide, guideIndex, guideSteps.length]);
+
+    return (
+        <div className="flex h-full flex-col gap-2 overflow-hidden">
+            {manager.currentPath !== "/" ? (
                 <div
-                    className="border rounded-lg bg-card flex-1 min-h-0 overflow-y-auto"
-                    onScroll={handleListScroll}
+                    style={writeTone}
+                    className="rounded-lg border border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-r from-[var(--morandi-tone-helper-bg)] via-card to-card px-3 py-2 sm:px-4"
                 >
-                    <div className="px-4 py-2 border-b bg-muted/20 text-xs">
-                        <div className="flex flex-wrap items-center gap-2">
-                            <div className="flex min-w-[220px] flex-1 items-center gap-1" title={t("writeTab.searchTitle")}>
+                    <ScriptToolbar
+                        currentPath={manager.currentPath}
+                        breadcrumbs={breadcrumbs}
+                        goUp={manager.goUp}
+                        navigateTo={manager.navigateTo}
+                    />
+                </div>
+            ) : null}
+
+            <div className={`flex-1 min-h-0 grid grid-cols-1 gap-3 ${isPreviewCollapsed ? "xl:grid-cols-1" : "xl:grid-cols-[minmax(0,1fr)_22rem]"}`}>
+                <section
+                    style={writeTone}
+                    className="min-h-0 flex flex-col overflow-hidden rounded-lg border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] shadow-sm"
+                    data-guide-id="write-list-panel"
+                >
+                    <div
+                        className="px-4 py-2 border-b bg-gradient-to-r from-[var(--morandi-tone-helper-bg)]/80 via-[var(--morandi-tone-helper-bg)]/35 to-transparent text-xs"
+                        data-guide-id="write-middle-controls"
+                    >
+                        <div className="mb-2 flex items-center justify-between">
+                            <h3 className="text-sm font-semibold tracking-tight text-[color:var(--morandi-tone-helper-fg)]">
+                                {t("writeTab.listTitle", "檔案清單")}
+                            </h3>
+                        </div>
+                        <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                            <div className="flex w-48 sm:min-w-[220px] sm:flex-1 items-center gap-1 shrink-0" title={t("writeTab.searchTitle")}>
                                 <Search className="w-3.5 h-3.5 text-muted-foreground" />
                                 <input
                                     type="text"
-                                    className="h-8 w-full rounded-md border border-input bg-background px-2 text-foreground"
+                                    className={`${controlClassName} w-full px-2`}
                                     placeholder={t("writeTab.searchPlaceholder")}
                                     value={filterQuery}
                                     onChange={(e) => setFilterQuery(e.target.value)}
@@ -263,8 +426,8 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                                 <DropdownMenuTrigger asChild>
                                     <Button
                                         size="sm"
-                                        variant="ghost"
-                                        className="h-8 px-2"
+                                        variant="outline"
+                                        className={`${controlClassName} shrink-0 px-2`}
                                         title={t("writeTab.sortSettings")}
                                         aria-label={t("writeTab.sortSettings")}
                                     >
@@ -289,10 +452,10 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                                     </DropdownMenuRadioGroup>
                                 </DropdownMenuContent>
                             </DropdownMenu>
-                            <div className="flex items-center gap-1" title={t("writeTab.filterType")}>
+                            <div className="flex items-center gap-1 shrink-0" title={t("writeTab.filterType")}>
                                 <FileStack className="w-3.5 h-3.5 text-muted-foreground" />
                                 <select
-                                    className="h-8 rounded-md border border-input bg-background px-2 text-foreground"
+                                    className={`${controlClassName} px-2`}
                                     value={filterType}
                                     onChange={(e) => setFilterType(e.target.value)}
                                     aria-label={t("writeTab.filterType")}
@@ -302,10 +465,10 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                                     <option value="folder">{t("writeTab.folder")}</option>
                                 </select>
                             </div>
-                            <div className="flex items-center gap-1" title={t("writeTab.filterStatus")}>
+                            <div className="hidden sm:flex items-center gap-1 shrink-0" title={t("writeTab.filterStatus")}>
                                 <Globe className="w-3.5 h-3.5 text-muted-foreground" />
                                 <select
-                                    className="h-8 rounded-md border border-input bg-background px-2 text-foreground"
+                                    className={`${controlClassName} px-2`}
                                     value={filterStatus}
                                     onChange={(e) => setFilterStatus(e.target.value)}
                                     aria-label={t("writeTab.filterStatus")}
@@ -317,8 +480,8 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                             </div>
                             <Button
                                 size="sm"
-                                variant="ghost"
-                                className="h-8 px-2"
+                                variant="outline"
+                                className={`${controlClassName} shrink-0 px-2`}
                                 disabled={!hasActiveFilters}
                                 onClick={() => {
                                     setFilterQuery("");
@@ -332,63 +495,105 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                             >
                                 <RotateCcw className="w-3.5 h-3.5" />
                             </Button>
-                            <span className={`max-w-[42vw] truncate rounded-full border px-2 py-1 text-[11px] ${
-                                hasActiveFilters ? "border-primary/40 bg-primary/5 text-primary" : "text-muted-foreground"
-                            }`}>
-                                {hasActiveFilters ? "已套用篩選" : "未套用篩選"}
-                            </span>
+                            <div className="hidden xl:flex items-center gap-1 shrink-0 sm:ml-auto">
+                                <span className="text-[11px] text-muted-foreground">{t("writeTab.perPage")}</span>
+                                <select
+                                    className={`${controlClassName} px-2`}
+                                    value={pageSize}
+                                    onChange={(e) => setPageSize(Number(e.target.value))}
+                                >
+                                    <option value={30}>30</option>
+                                    <option value={50}>50</option>
+                                    <option value={100}>100</option>
+                                </select>
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-8 px-2"
+                                    onClick={() => setIsPreviewCollapsed((prev) => !prev)}
+                                    title={isPreviewCollapsed ? t("writeTab.showPreviewPanel") : t("writeTab.hidePreviewPanel")}
+                                    aria-label={isPreviewCollapsed ? t("writeTab.showPreviewPanel") : t("writeTab.hidePreviewPanel")}
+                                >
+                                    {isPreviewCollapsed ? <PanelRightOpen className="w-3.5 h-3.5" /> : <PanelRightClose className="w-3.5 h-3.5" />}
+                                </Button>
+                            </div>
                         </div>
                     </div>
-                    <ScriptList 
-                        loading={manager.loading}
-                        visibleItems={pagedItems}
-                        readOnly={readOnly}
-                        sortKey={sortKey}
-                        sortDir={sortDir}
-                        onSortChange={(key) => {
-                            if (key !== "title" && key !== "lastModified") return;
-                            if (sortKey === key) {
-                                setSortDir((d) => d === "asc" ? "desc" : "asc");
-                            } else {
-                                setSortKey(key);
-                                setSortDir(key === "title" ? "asc" : "desc");
-                            }
-                        }}
-                        currentPath={manager.currentPath}
-                        expandedPaths={manager.expandedPaths}
-                        activeDragId={manager.activeDragId}
-                        markerThemes={manager.markerThemes}
-                        sensors={manager.sensors}
-                        
-                        // Actions
-                        onSelectScript={handleOpenScript}
-                        onToggleExpand={manager.toggleExpand}
-                        onRequestDelete={manager.openDeleteDialog}
-                        onRequestMove={manager.openMoveDialog}
-                        onTogglePublic={manager.handleTogglePublic}
-                        onRename={manager.openRenameDialog}
-                        onPreviewItem={(item) => setPreviewItemId(item.id)}
-                        onGoUp={manager.goUp}
-                        onDragStart={manager.handleDragStart}
-                        onDragEnd={manager.handleDragEnd}
-                        selectedPreviewId={previewItemId}
-                        
-                        // Setters
-                        setScripts={manager.setScripts}
-                    />
-                </div>
 
-                <aside className="hidden xl:flex xl:w-80 border rounded-lg bg-card p-4 flex-col gap-3">
-                    <h3 className="text-sm font-semibold">{t("writeTab.previewInfo")}</h3>
+                    <div className="min-h-0 flex-1 overflow-y-auto bg-[hsl(var(--surface-1))]/35" onScroll={handleListScroll}>
+                        {showGuide && totalItems === 0 ? (
+                            <div className="m-4 rounded-lg border border-dashed border-[color:var(--morandi-tone-helper-border)] bg-[color:var(--morandi-tone-helper-bg)]/45 p-4">
+                                <h4 className="text-sm font-semibold text-[color:var(--morandi-tone-helper-fg)]">{t("writeTab.guideDemoTitle")}</h4>
+                                <p className="mt-1 text-xs text-muted-foreground">{t("writeTab.guideDemoDesc")}</p>
+                            </div>
+                        ) : null}
+                        <ScriptList
+                            loading={manager.loading}
+                            visibleItems={pagedItems}
+                            readOnly={readOnly}
+                            sortKey={sortKey}
+                            sortDir={sortDir}
+                            onSortChange={(key) => {
+                                if (key !== "title" && key !== "lastModified") return;
+                                if (sortKey === key) {
+                                    setSortDir((d) => d === "asc" ? "desc" : "asc");
+                                } else {
+                                    setSortKey(key);
+                                    setSortDir(key === "title" ? "asc" : "desc");
+                                }
+                            }}
+                            currentPath={manager.currentPath}
+                            expandedPaths={manager.expandedPaths}
+                            activeDragId={manager.activeDragId}
+                            markerThemes={manager.markerThemes}
+                            sensors={manager.sensors}
+
+                            // Actions
+                            onSelectScript={handleOpenScript}
+                            onToggleExpand={manager.toggleExpand}
+                            onRequestDelete={manager.openDeleteDialog}
+                            onRequestMove={manager.openMoveDialog}
+                            onTogglePublic={manager.handleTogglePublic}
+                            onRename={manager.openRenameDialog}
+                            onPreviewItem={(item) => setPreviewItemId(item.id)}
+                            onGoUp={manager.goUp}
+                            onDragStart={manager.handleDragStart}
+                            onDragEnd={manager.handleDragEnd}
+                            selectedPreviewId={previewItemId}
+
+                            // Setters
+                            setScripts={manager.setScripts}
+                        />
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-end gap-2 border-t bg-[color:var(--morandi-tone-helper-bg)]/55 px-4 py-2 text-sm text-muted-foreground">
+                        {hasMoreItems ? (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={loadMore}
+                            >
+                                {t("writeTab.loadMore")}
+                            </Button>
+                        ) : null}
+                    </div>
+                </section>
+
+                <aside
+                    style={writeTone}
+                    className={`${isPreviewCollapsed ? "hidden" : "hidden xl:flex"} rounded-lg border border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-b from-[var(--morandi-tone-helper-bg)]/45 to-card p-4 flex-col gap-3`}
+                    data-guide-id="write-preview-panel"
+                >
+                    <h3 className="text-sm font-semibold text-[color:var(--morandi-tone-helper-fg)]">{t("writeTab.previewInfo")}</h3>
                     {!previewItem ? (
                         <p className="text-sm text-muted-foreground">{t("writeTab.previewHint")}</p>
                     ) : (
                         <>
                             <div className="flex items-center gap-2">
                                 {previewItem.type === "folder" ? (
-                                    <Folder className="w-4 h-4 text-blue-500" />
+                                    <Folder className="w-4 h-4 text-primary" />
                                 ) : (
-                                    <FileText className="w-4 h-4 text-blue-500" />
+                                    <FileText className="w-4 h-4 text-primary" />
                                 )}
                                 <p className="font-medium truncate">{previewItem.title}</p>
                             </div>
@@ -408,44 +613,53 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                                 <div className="pt-2 flex flex-col gap-2">
                                     {previewItem.type !== "folder" && (
                                         <>
-                                            <Button size="sm" onClick={() => handleOpenScript(previewItem)}>{t("writeTab.openFile")}</Button>
-                                            <Button size="sm" variant="outline" onClick={() => manager.openMoveDialog(previewItem)}>{t("writeTab.moveTo")}</Button>
+                                            <Button
+                                                size="sm"
+                                                className="bg-primary text-primary-foreground hover:brightness-110 dark:bg-[color:var(--morandi-tone-trigger-bg)] dark:text-[color:var(--morandi-tone-trigger-fg)] dark:hover:brightness-95"
+                                                onClick={() => handleOpenScript(previewItem)}
+                                            >
+                                                {t("writeTab.openFile")}
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-helper-bg)]/40 text-[color:var(--morandi-tone-helper-fg)] hover:bg-[color:var(--morandi-tone-helper-bg)]"
+                                                onClick={() => manager.openMoveDialog(previewItem)}
+                                            >
+                                                {t("writeTab.moveTo")}
+                                            </Button>
                                         </>
                                     )}
-                                    <Button size="sm" variant="outline" onClick={() => manager.openRenameDialog(previewItem)}>{t("writeTab.rename")}</Button>
-                                    <Button size="sm" variant="destructive" onClick={() => manager.openDeleteDialog(previewItem)}>{t("common.remove")}</Button>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-helper-bg)]/35 text-[color:var(--morandi-tone-helper-fg)] hover:bg-[color:var(--morandi-tone-helper-bg)]"
+                                        onClick={() => manager.openRenameDialog(previewItem)}
+                                    >
+                                        {t("writeTab.rename")}
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="border-[hsl(var(--destructive)/0.35)] bg-[hsl(var(--destructive)/0.08)] text-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive)/0.14)]"
+                                        onClick={() => manager.openDeleteDialog(previewItem)}
+                                    >
+                                        {t("common.remove")}
+                                    </Button>
                                 </div>
                             )}
                         </>
                     )}
                 </aside>
             </div>
-            <div className="pt-3 flex items-center justify-between text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                    <span>{t("writeTab.perPage")}</span>
-                    <select
-                        className="h-8 rounded-md border border-input bg-background px-2 text-foreground"
-                        value={pageSize}
-                        onChange={(e) => setPageSize(Number(e.target.value))}
-                    >
-                        <option value={30}>30</option>
-                        <option value={50}>50</option>
-                        <option value={100}>100</option>
-                    </select>
-                    <span>{t("writeTab.loadedCount").replace("{loaded}", String(pagedItems.length)).replace("{total}", String(totalItems))}</span>
-                </div>
-                {hasMoreItems ? (
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={loadMore}
-                    >
-                        {t("writeTab.loadMore")}
-                    </Button>
-                ) : (
-                    <span>{t("writeTab.loadedAll")}</span>
-                )}
-            </div>
+
+            <footer
+                style={writeTone}
+                className="hidden md:block shrink-0 rounded-lg border border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-r from-[var(--morandi-tone-helper-bg)]/50 via-card to-card px-3 py-2 text-xs text-muted-foreground"
+                title={footerQuote ? `${footerQuote.anime || "-"}-${footerQuote.character || "-"}` : undefined}
+            >
+                <p className="truncate">{footerQuote?.quote || footerTip}</p>
+            </footer>
 
             {/* Create Dialog */}
             <CreateScriptDialog 
@@ -497,6 +711,22 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                 setTargetFolder={manager.setMoveTargetFolder}
                 moving={manager.moving}
                 onConfirm={manager.handleMoveConfirm}
+            />
+
+            <SpotlightGuideOverlay
+                open={showGuide}
+                spotlightRect={guideSpotlightRect}
+                currentStep={guideIndex + 1}
+                totalSteps={guideSteps.length}
+                title={guideSteps[guideIndex]?.title || ""}
+                description={guideSteps[guideIndex]?.description || ""}
+                onSkip={closeGuide}
+                skipLabel={t("writeTab.guideSkip")}
+                onPrev={prevGuide}
+                prevLabel={t("writeTab.guidePrev")}
+                prevDisabled={guideIndex === 0}
+                onNext={nextGuide}
+                nextLabel={guideIndex === guideSteps.length - 1 ? t("writeTab.guideDone") : t("writeTab.guideNext")}
             />
         </div>
     );

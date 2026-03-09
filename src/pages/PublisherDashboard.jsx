@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
 import { Button } from "../components/ui/button";
 import { PanelLeftOpen, FileText, UserRound, Building2, Layers3, CircleHelp } from "lucide-react";
+import { LanguageSwitcher } from "../components/common/LanguageSwitcher";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { ScriptMetadataDialog } from "../components/dashboard/ScriptMetadataDialog";
 import { getMorandiTagStyle } from "../lib/tagColors";
@@ -32,6 +33,7 @@ import { usePublisherOrgQueues } from "../hooks/publisher/usePublisherOrgQueues"
 import { usePublisherCrudActions } from "../hooks/publisher/usePublisherCrudActions";
 import { buildAffiliatedOrganizations } from "../lib/orgAffiliation";
 import { SpotlightGuideOverlay } from "../components/common/SpotlightGuideOverlay";
+import { TOPBAR_INNER_CLASS, TOPBAR_OUTER_CLASS } from "../components/layout/topbarLayout";
 
 
 export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMenu }) {
@@ -132,12 +134,32 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
   };
 
 
-  const currentUserId = currentUser?.uid || currentProfile?.id || null;
+  const currentUserIds = React.useMemo(() => {
+      return Array.from(new Set([
+          currentUser?.uid,
+          currentProfile?.id,
+          currentProfile?.uid,
+          currentProfile?.userId,
+      ].filter(Boolean)));
+  }, [currentProfile?.id, currentProfile?.uid, currentProfile?.userId, currentUser?.uid]);
+  const currentUserId = currentUserIds[0] || null;
   const currentOrgRole = React.useMemo(() => {
-      if (!currentUserId || !selectedOrgId) return null;
-      const me = (orgMembers?.users || []).find((u) => u.id === currentUserId);
-      return me?.organizationRole || null;
-  }, [currentUserId, selectedOrgId, orgMembers]);
+      if (!selectedOrgId) return null;
+      const me = (orgMembers?.users || []).find((u) => currentUserIds.includes(u.id));
+      const memberRole = me?.organizationRole || null;
+      if (memberRole) return memberRole;
+      const selectedOrg = (orgsForPersona || []).find((o) => o.id === selectedOrgId);
+      const fallbackRole =
+          selectedOrg?.organizationRole ||
+          selectedOrg?.myRole ||
+          selectedOrg?.memberRole ||
+          selectedOrg?.role ||
+          null;
+      if (fallbackRole) return fallbackRole;
+      const ownerId = selectedOrg?.ownerId || selectedOrg?.ownerUid || selectedOrg?.ownerUserId || null;
+      if (ownerId && currentUserIds.includes(ownerId)) return "owner";
+      return null;
+  }, [selectedOrgId, orgMembers, currentUserIds, orgsForPersona]);
   const canManageOrgMembers = currentOrgRole === "owner" || currentOrgRole === "admin";
   const tabCounts = React.useMemo(() => ({
       works: scripts.length,
@@ -145,12 +167,6 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
       org: orgsForPersona.length,
       series: seriesList.length,
   }), [scripts.length, personas.length, orgsForPersona.length, seriesList.length]);
-  const tabDescriptions = React.useMemo(() => ({
-      works: "管理作品公開狀態、封面與授權資訊",
-      profile: "管理作者身份、作者頁顯示內容與組織展示",
-      org: "管理組織資訊、成員與角色權限",
-      series: "管理系列封面、摘要與收錄作品",
-  }), []);
   const tabTone = MORANDI_STUDIO_TONE_VARS;
   const renderTabCount = (count) => (
       count ? <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">{count}</span> : null
@@ -174,11 +190,31 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
       setActiveTab((prev) => (prev === nextTab ? prev : nextTab));
   }, [location.search, resolveTabFromSearch]);
 
+  useEffect(() => {
+      const params = new URLSearchParams(location.search || "");
+      const requestedScriptId = params.get("scriptId");
+      const shouldOpenPublish = params.get("open") === "publish";
+      if (!requestedScriptId || !shouldOpenPublish) return;
+      const target = (scripts || []).find((s) => s.id === requestedScriptId);
+      if (!target) return;
+      setActiveTab("works");
+      setEditingScript((prev) => (prev?.id === target.id ? prev : target));
+  }, [location.search, scripts]);
+
   const handleTabChange = useCallback((nextTab) => {
       setActiveTab(nextTab);
       const params = new URLSearchParams(location.search || "");
       if (!nextTab || nextTab === "works") params.delete("tab");
       else params.set("tab", nextTab);
+      const query = params.toString();
+      navigate(`/studio${query ? `?${query}` : ""}`, { replace: true });
+  }, [location.search, navigate]);
+
+  const closePublishDialog = useCallback(() => {
+      setEditingScript(null);
+      const params = new URLSearchParams(location.search || "");
+      params.delete("scriptId");
+      params.delete("open");
       const query = params.toString();
       navigate(`/studio${query ? `?${query}` : ""}`, { replace: true });
   }, [location.search, navigate]);
@@ -425,56 +461,52 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
   });
 
   return (
-    <div className="h-full overflow-y-auto overflow-x-hidden bg-background">
-    <div className="container mx-auto p-6 max-w-6xl space-y-8 animate-in fade-in duration-500">
-      
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-6">
-        <div className="flex items-center gap-4">
-            {/* Mobile Menu Toggle */}
-            <div className="lg:hidden">
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => openMobileMenu?.()}
-                    title={t("publisher.expandMenu")}
-                    className="-ml-2"
-                >
-                    <PanelLeftOpen className="w-5 h-5 text-muted-foreground" />
-                </Button>
-            </div>
-            {/* Desktop Sidebar Toggle */}
-            <div className={`hidden lg:block ${isSidebarOpen ? "lg:hidden" : ""}`}>
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => setSidebarOpen && setSidebarOpen(true)}
-                    title={t("publisher.expandSidebar")}
-                    className="-ml-2"
-                >
-                    <PanelLeftOpen className="w-5 h-5 text-muted-foreground" />
-                </Button>
-            </div>
-            
-             {/* Mobile Menu Toggle (Assuming openMobileMenu is passed or handled via Context/MainLayout logic, but here we might need to rely on MainLayout context if not passed) */}
-            {/* Ideally openMobileMenu should be passed. App.jsx didn't pass it yet. Let's rely on setSidebarOpen usually being sufficient or we need openMobileMenu.
-                Actually MainLayout passes setIsMobileDrawerOpen to children? No.
-                App.jsx routes don't easily pass it.
-                Let's stick to Desktop Toggle first which is the complaint.
-            */}
-
-            <div>
-                <h1 className="text-3xl font-serif font-bold tracking-tight">{t("publisher.title")}</h1>
-                <p className="text-muted-foreground mt-1">{t("publisher.subtitle")}</p>
-            </div>
-        </div>
-        <div className="flex items-center gap-3">
-            <Button type="button" variant="outline" size="sm" onClick={handleStartStudioGuide}>
-                <CircleHelp className="w-4 h-4 mr-1.5" />
-                {t("publisher.guide")}
+    <div className="flex h-full flex-col bg-background">
+      <div className={`${TOPBAR_OUTER_CLASS} shrink-0`}>
+        <div className={`${TOPBAR_INNER_CLASS} h-16 flex items-center gap-3`}>
+          <div className="lg:hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => openMobileMenu?.()}
+              title={t("publisher.expandMenu")}
+            >
+              <PanelLeftOpen className="w-5 h-5 text-muted-foreground" />
             </Button>
+          </div>
+          <div className={`hidden lg:block ${isSidebarOpen ? "lg:hidden" : ""}`}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen && setSidebarOpen(true)}
+              title={t("publisher.expandSidebar")}
+            >
+              <PanelLeftOpen className="w-5 h-5 text-muted-foreground" />
+            </Button>
+          </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate font-serif font-semibold text-lg text-primary">{t("publisher.title")}</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher selectClassName="h-8 bg-background/70 backdrop-blur" />
+            <Button type="button" variant="outline" size="sm" className="h-8" onClick={handleStartStudioGuide}>
+              <CircleHelp className="w-4 h-4 mr-1.5" />
+              {t("publisher.guide")}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8"
+              onClick={() => navigate("/")}
+            >
+              {t("nav.gallery", "公開台本")}
+            </Button>
+          </div>
         </div>
       </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6">
+      <div className="mx-auto w-full max-w-6xl space-y-6 animate-in fade-in duration-500">
 
       {myInvites.length > 0 && (
         <div className="border rounded-lg p-4 bg-muted/20 mb-6">
@@ -499,7 +531,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 <TabsTrigger
                   value="works"
                   style={tabTone.works}
-                  className="h-11 justify-start px-3 border border-transparent transition-colors data-[state=active]:border-[var(--morandi-tone-panel-border)] data-[state=active]:bg-[var(--morandi-tone-trigger-bg)] data-[state=active]:text-[var(--morandi-tone-trigger-fg)]"
+                  className="h-11 justify-start px-3 border border-transparent bg-background/70 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/50 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]"
                 >
                     <span className="flex items-center gap-2 text-xs sm:text-sm">
                         <FileText className="h-4 w-4" />
@@ -510,7 +542,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 <TabsTrigger
                   value="profile"
                   style={tabTone.profile}
-                  className="h-11 justify-start px-3 border border-transparent transition-colors data-[state=active]:border-[var(--morandi-tone-panel-border)] data-[state=active]:bg-[var(--morandi-tone-trigger-bg)] data-[state=active]:text-[var(--morandi-tone-trigger-fg)]"
+                  className="h-11 justify-start px-3 border border-transparent bg-background/70 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/50 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]"
                 >
                     <span className="flex items-center gap-2 text-xs sm:text-sm">
                         <UserRound className="h-4 w-4" />
@@ -521,7 +553,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 <TabsTrigger
                   value="org"
                   style={tabTone.org}
-                  className="h-11 justify-start px-3 border border-transparent transition-colors data-[state=active]:border-[var(--morandi-tone-panel-border)] data-[state=active]:bg-[var(--morandi-tone-trigger-bg)] data-[state=active]:text-[var(--morandi-tone-trigger-fg)]"
+                  className="h-11 justify-start px-3 border border-transparent bg-background/70 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/50 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]"
                 >
                     <span className="flex items-center gap-2 text-xs sm:text-sm">
                         <Building2 className="h-4 w-4" />
@@ -532,7 +564,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 <TabsTrigger
                   value="series"
                   style={tabTone.series}
-                  className="h-11 justify-start px-3 border border-transparent transition-colors data-[state=active]:border-[var(--morandi-tone-panel-border)] data-[state=active]:bg-[var(--morandi-tone-trigger-bg)] data-[state=active]:text-[var(--morandi-tone-trigger-fg)]"
+                  className="h-11 justify-start px-3 border border-transparent bg-background/70 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/50 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]"
                 >
                     <span className="flex items-center gap-2 text-xs sm:text-sm">
                         <Layers3 className="h-4 w-4" />
@@ -541,19 +573,13 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                     </span>
                 </TabsTrigger>
             </TabsList>
-            <div
-              style={tabTone[activeTab] || tabTone.works}
-              className="mt-2 rounded-md border-l-4 border-[var(--morandi-tone-helper-border)] bg-[var(--morandi-tone-helper-bg)] px-2 py-1.5 text-xs text-[var(--morandi-tone-helper-fg)]"
-            >
-                {tabDescriptions[activeTab] || tabDescriptions.works}
-            </div>
         </div>
 
         {/* 1. My Works Tab */}
         <TabsContent
           value="works"
           style={tabTone.works}
-          className="space-y-4 rounded-xl border border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-panel-bg)] p-3"
+          className="space-y-4 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-3"
           data-guide-id="studio-works-panel"
         >
              <PublisherWorksTab 
@@ -570,7 +596,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         <TabsContent
           value="profile"
           style={tabTone.profile}
-          className="rounded-xl border border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-panel-bg)] p-3"
+          className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-3"
           data-guide-id="studio-profile-panel"
         >
             <PublisherProfileTab
@@ -591,7 +617,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
 
         <ScriptMetadataDialog 
             open={!!editingScript} 
-            onOpenChange={(open) => !open && setEditingScript(null)} 
+            onOpenChange={(open) => !open && closePublishDialog()} 
             script={editingScript}
             seriesOptions={seriesList}
             onSeriesCreated={(createdSeries) => {
@@ -603,7 +629,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 setSelectedSeriesId(createdSeries.id);
             }}
             onSave={(updatedScript) => {
-                setEditingScript(null);
+                closePublishDialog();
                 setScripts(prev => prev.map(s => s.id === updatedScript.id ? { ...s, ...updatedScript } : s));
             }}
         />
@@ -612,7 +638,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         <TabsContent
           value="org"
           style={tabTone.org}
-          className="rounded-xl border border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-panel-bg)] p-3"
+          className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-3"
           data-guide-id="studio-org-panel"
         >
                 <PublisherOrgTab 
@@ -649,7 +675,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         <TabsContent
           value="series"
           style={tabTone.series}
-          className="rounded-xl border border-[var(--morandi-tone-panel-border)] bg-[var(--morandi-tone-panel-bg)] p-3"
+          className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-3"
         >
             <PublisherSeriesTab
               seriesList={seriesList}
@@ -716,6 +742,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         onNext={handleStudioGuideNext}
         nextLabel={studioGuideIndex === studioGuideSteps.length - 1 ? t("publisher.guideDone") : t("publisher.guideNext")}
       />
+      </div>
     </div>
     </div>
   );

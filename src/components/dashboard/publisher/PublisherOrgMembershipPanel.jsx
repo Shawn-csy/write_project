@@ -7,8 +7,8 @@ import { Loader2 } from "lucide-react";
 import { PublisherFormRow } from "./PublisherFormRow";
 
 const roleBadgeClass = (role) => {
-  if (role === "owner") return "border-amber-300 bg-amber-50 text-amber-800";
-  if (role === "admin") return "border-blue-300 bg-blue-50 text-blue-800";
+  if (role === "owner") return "border-[color:var(--license-term-border)] bg-[color:var(--license-term-bg)] text-[color:var(--license-term-fg)]";
+  if (role === "admin") return "border-primary/35 bg-primary/12 text-primary";
   return "border-muted-foreground/30 bg-muted text-muted-foreground";
 };
 
@@ -140,7 +140,7 @@ export function PublisherOrgMembershipPanel({
         </PublisherFormRow>
       </div>
 
-      {canManageOrgMembers && (
+      {canManageOrgMembers ? (
         <>
           <div id="org-guide-invite">
             <PublisherFormRow label={t("publisherOrgTab.inviteMember")}>
@@ -211,6 +211,12 @@ export function PublisherOrgMembershipPanel({
             </div>
           </PublisherFormRow>
         </>
+      ) : (
+        <PublisherFormRow label={t("publisherOrgTab.inviteMember", "邀請成員")}>
+          <div className="border rounded-md p-3 bg-muted/10 text-xs text-muted-foreground">
+            {t("publisherOrgTab.noInvitePermissionHint", "你目前沒有管理員/擁有者權限，因此無法查看與操作邀請、審核清單。")}
+          </div>
+        </PublisherFormRow>
       )}
     </>
   );

@@ -36,15 +36,19 @@ def update_user(db: Session, user_id: str, user_update: schemas.UserCreate):
 
 
 def search_users(db: Session, query: str):
-    search = f"%{query}%"
+    normalized = (query or "").strip()
+    if not normalized:
+        return []
+
+    search = f"%{normalized}%"
     return (
         db.query(models.User)
         .filter(
             or_(
-                models.User.handle.like(search),
-                models.User.displayName.like(search),
-                models.User.email.like(search),
-                models.User.id == query,
+                models.User.handle.ilike(search),
+                models.User.displayName.ilike(search),
+                models.User.email.ilike(search),
+                models.User.id.ilike(search),
             )
         )
         .limit(10)
