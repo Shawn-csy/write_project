@@ -10,6 +10,7 @@ class Script(Base):
     ownerId = Column(String, ForeignKey("users.id"), index=True)
     title = Column(String)
     content = Column(String, default="")
+    customMetadata = Column(JSON, default=list)
     createdAt = Column(Integer, default=lambda: int(time.time() * 1000))
     lastModified = Column(Integer, default=lambda: int(time.time() * 1000))
     author = Column(String, default="")

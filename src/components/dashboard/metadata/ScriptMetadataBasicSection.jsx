@@ -28,10 +28,8 @@ export function ScriptMetadataBasicSection({
   setPerformanceInstruction,
   openingIntro,
   setOpeningIntro,
-  environmentInfo,
-  setEnvironmentInfo,
-  situationInfo,
-  setSituationInfo,
+  chapterSettings,
+  setChapterSettings,
   requiredErrorMap,
   recommendedErrorMap,
   missingRequiredMap,
@@ -65,10 +63,8 @@ export function ScriptMetadataBasicSection({
         setPerformanceInstruction={setPerformanceInstruction}
         openingIntro={openingIntro}
         setOpeningIntro={setOpeningIntro}
-        environmentInfo={environmentInfo}
-        setEnvironmentInfo={setEnvironmentInfo}
-        situationInfo={situationInfo}
-        setSituationInfo={setSituationInfo}
+        chapterSettings={chapterSettings}
+        setChapterSettings={setChapterSettings}
         requiredErrors={requiredErrorMap}
         recommendedErrors={recommendedErrorMap}
         layout="rows"
@@ -82,8 +78,7 @@ export function ScriptMetadataBasicSection({
           roleSetting: "advanced",
           backgroundInfo: "advanced",
           openingIntro: "advanced",
-          environmentInfo: "advanced",
-          situationInfo: "advanced",
+          chapterSettings: "advanced",
         }}
       />
     </section>

@@ -11,7 +11,6 @@ import { PublicTopBar } from "../components/public/PublicTopBar";
 import { PublicHeroMarquee } from "../components/public/PublicHeroMarquee";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../components/ui/sheet";
 import { getPublicBundle, getPublicTermsConfig, acceptPublicTerms, getPublicHomepageBanner } from "../lib/api/public";
-import { extractMetadataWithRaw } from "../lib/metadataParser";
 import { deriveSimpleLicenseTags, parseBasicLicenseFromMeta } from "../lib/licenseRights";
 import { normalizeSeriesName, parseSeriesOrder } from "../lib/series";
 import { useI18n } from "../contexts/I18nContext";
@@ -21,6 +20,7 @@ import { Checkbox } from "../components/ui/checkbox";
 import { SlidersHorizontal, Search, X } from "lucide-react";
 import { CoverPlaceholder } from "../components/ui/CoverPlaceholder";
 import { Input } from "../components/ui/input";
+import { customMetadataEntriesToMeta } from "../lib/customMetadata";
 
 const SEGMENT_KEYS = {
   all: "all",
@@ -265,16 +265,13 @@ export default function PublicGalleryPage() {
 
   const scriptsWithMeta = useMemo(() => {
       return (scripts || []).map((script) => {
-          if (!script?.content) {
-              return { ...script, _licenseText: "", _licenseTermsText: "" };
-          }
-          let meta = {};
-          try {
-              meta = extractMetadataWithRaw(script.content || "").meta || {};
-          } catch {
-              meta = {};
-          }
-          const basicLicense = parseBasicLicenseFromMeta(meta);
+          const meta = customMetadataEntriesToMeta(script.customMetadata || []);
+          const basicLicenseFromMeta = parseBasicLicenseFromMeta(meta);
+          const basicLicense = {
+            commercialUse: basicLicenseFromMeta.commercialUse || String(script.licenseCommercial || "").toLowerCase(),
+            derivativeUse: basicLicenseFromMeta.derivativeUse || String(script.licenseDerivative || "").toLowerCase(),
+            notifyOnModify: basicLicenseFromMeta.notifyOnModify || String(script.licenseNotify || "").toLowerCase(),
+          };
           const license = meta.license || meta.licenseName || "";
           const seriesName = normalizeSeriesName(script.series?.name || meta.series || meta.seriesname);
           const seriesOrder = parseSeriesOrder(script.seriesOrder ?? meta.seriesorder ?? meta.episode);

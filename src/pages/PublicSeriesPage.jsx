@@ -5,7 +5,7 @@ import { PublicTopBar } from "../components/public/PublicTopBar";
 import { ScriptGalleryCard } from "../components/gallery/ScriptGalleryCard";
 import { Button } from "../components/ui/button";
 import { getPublicBundle } from "../lib/api/public";
-import { getSeriesInfoFromContent, normalizeSeriesName } from "../lib/series";
+import { getSeriesInfoFromScript, normalizeSeriesName } from "../lib/series";
 import { useI18n } from "../contexts/I18nContext";
 
 export default function PublicSeriesPage() {
@@ -25,7 +25,7 @@ export default function PublicSeriesPage() {
         const normalized = (bundle?.scripts || [])
           .filter((item) => item?.id)
           .map((item) => {
-            const series = getSeriesInfoFromContent(item.content || "");
+            const series = getSeriesInfoFromScript(item);
             return {
               ...item,
               author: item.persona || item.owner || item.author,

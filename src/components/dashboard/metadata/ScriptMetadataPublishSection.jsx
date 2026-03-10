@@ -35,7 +35,7 @@ export function ScriptMetadataPublishSection({
           {renderRowLabel("觀眾取向", "required", Boolean(missingRequiredMap.audience))}
           <div id="metadata-audience" className="space-y-2 p-4">
             <div className="inline-flex flex-wrap gap-1.5 rounded-md border bg-background p-1">
-              {["男性向", "女性向", "一般向"].map((opt) => (
+              {["男性向", "女性向", "全性向"].map((opt) => (
                 <Button
                   key={`aud-${opt}`}
                   type="button"

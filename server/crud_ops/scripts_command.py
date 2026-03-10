@@ -18,42 +18,52 @@ def _norm_key(key: str) -> str:
     return str(key or "").strip().lower().replace(" ", "")
 
 
-def _extract_top_meta(content: str):
-    lines = str(content or "").split("\n")
-    meta = {}
-    for raw in lines:
-        line = raw.strip()
-        if line == "":
-            continue
-        if ":" not in line:
-            break
-        k, v = line.split(":", 1)
-        meta[_norm_key(k)] = v.strip()
-    return meta
-
-
 def _norm_choice(value, allowed):
     raw = str(value or "").strip().lower()
     return raw if raw in allowed else ""
 
 
+def _normalize_custom_metadata(entries):
+    if not isinstance(entries, list):
+        return []
+    normalized = []
+    for item in entries:
+        if not isinstance(item, dict):
+            continue
+        key = str(item.get("key") or "").strip()
+        if not key:
+            continue
+        normalized.append(
+            {
+                "key": key,
+                "value": str(item.get("value") or ""),
+                "type": "divider" if str(item.get("type") or "").strip().lower() == "divider" else "text",
+            }
+        )
+    return normalized
+
+
 def _resolve_license_fields(update_data):
-    content = update_data.get("content")
-    if content is None:
+    if "licenseCommercial" in update_data:
+        update_data["licenseCommercial"] = _norm_choice(update_data.get("licenseCommercial"), VALID_COMMERCIAL)
+    if "licenseDerivative" in update_data:
+        update_data["licenseDerivative"] = _norm_choice(update_data.get("licenseDerivative"), VALID_DERIVATIVE)
+    if "licenseNotify" in update_data:
+        update_data["licenseNotify"] = _norm_choice(update_data.get("licenseNotify"), VALID_NOTIFY)
+
+    if "customMetadata" not in update_data:
         return
 
-    meta = _extract_top_meta(content)
-    parsed = {
-        "licenseCommercial": _norm_choice(meta.get("licensecommercial"), VALID_COMMERCIAL),
-        "licenseDerivative": _norm_choice(meta.get("licensederivative"), VALID_DERIVATIVE),
-        "licenseNotify": _norm_choice(meta.get("licensenotify"), VALID_NOTIFY),
-    }
+    custom = _normalize_custom_metadata(update_data.get("customMetadata"))
+    update_data["customMetadata"] = custom
+    meta_map = {_norm_key(item.get("key")): str(item.get("value") or "") for item in custom}
+
     if "licenseCommercial" not in update_data:
-        update_data["licenseCommercial"] = parsed["licenseCommercial"]
+        update_data["licenseCommercial"] = _norm_choice(meta_map.get("licensecommercial"), VALID_COMMERCIAL)
     if "licenseDerivative" not in update_data:
-        update_data["licenseDerivative"] = parsed["licenseDerivative"]
+        update_data["licenseDerivative"] = _norm_choice(meta_map.get("licensederivative"), VALID_DERIVATIVE)
     if "licenseNotify" not in update_data:
-        update_data["licenseNotify"] = parsed["licenseNotify"]
+        update_data["licenseNotify"] = _norm_choice(meta_map.get("licensenotify"), VALID_NOTIFY)
 
 
 def create_script(db: Session, script: schemas.ScriptCreate, ownerId: str):
@@ -61,7 +71,7 @@ def create_script(db: Session, script: schemas.ScriptCreate, ownerId: str):
         "licenseCommercial": _norm_choice(script.licenseCommercial, VALID_COMMERCIAL),
         "licenseDerivative": _norm_choice(script.licenseDerivative, VALID_DERIVATIVE),
         "licenseNotify": _norm_choice(script.licenseNotify, VALID_NOTIFY),
-        "content": script.content or "",
+        "customMetadata": _normalize_custom_metadata(script.customMetadata or []),
     }
     _resolve_license_fields(seed_license)
 
@@ -91,6 +101,7 @@ def create_script(db: Session, script: schemas.ScriptCreate, ownerId: str):
         ownerId=ownerId,
         title=script.title or "Untitled",
         content=script.content or "",
+        customMetadata=seed_license.get("customMetadata", []),
         type=script.type,
         folder=script.folder or "/",
         author=script.author or "",
@@ -139,6 +150,8 @@ def update_script(db: Session, script_id: str, script: schemas.ScriptUpdate, own
             child.folder = new_path_prefix + child.folder[len(old_path_prefix):]
 
     update_data = script.model_dump(exclude_unset=True)
+    if "customMetadata" in update_data:
+        update_data["customMetadata"] = _normalize_custom_metadata(update_data.get("customMetadata"))
     _resolve_license_fields(update_data)
     if "seriesId" in update_data:
         new_series_id = update_data.get("seriesId")

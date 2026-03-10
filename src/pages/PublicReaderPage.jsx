@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { PublicReaderLayout } from "../components/reader/PublicReaderLayout";
 import { getPublicBundle, getPublicScript, getPublicThemes, getPublicTermsConfig, acceptPublicTerms } from "../lib/api/public";
-import { extractMetadataWithRaw } from "../lib/metadataParser";
 import { deriveSimpleLicenseTags, parseBasicLicenseFromMeta } from "../lib/licenseRights";
 import { normalizeSeriesName, parseSeriesOrder } from "../lib/series";
 import ScriptViewer from "../components/renderer/ScriptViewer";
@@ -15,6 +14,7 @@ import { parseScreenplay } from "../lib/screenplayAST.js";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Checkbox } from "../components/ui/checkbox";
 import { Button } from "../components/ui/button";
+import { customMetadataEntriesToMeta, customMetadataEntriesToRawEntries } from "../lib/customMetadata";
 
 // Helper for robust list parsing (handles double-encoded JSON strings)
 const ensureList = (val) => {
@@ -46,8 +46,7 @@ const PREFACE_RULES = [
     { id: "backgroundinfo", title: "背景資訊", keys: ["backgroundinfo", "背景資訊"] },
     { id: "performanceinstruction", title: "演繹指示", keys: ["performanceinstruction", "演繹指示"] },
     { id: "openingintro", title: "作品的開頭引言", keys: ["openingintro", "作品的開頭引言"] },
-    { id: "environmentinfo", title: "環境", keys: ["environmentinfo", "環境"] },
-    { id: "situationinfo", title: "狀況", keys: ["situationinfo", "狀況"] },
+    { id: "chaptersettings", title: "章節", keys: ["chaptersettings"] },
 ].map((rule) => ({
     ...rule,
     keys: rule.keys.map(normalizePrefaceKey),
@@ -171,14 +170,15 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                 const organization = script.organization;
                 const person = script.persona || script.owner;
                 
-                const { meta, rawEntries } = extractMetadataWithRaw(script.content || "");
+                const rawEntries = customMetadataEntriesToRawEntries(script.customMetadata || []);
+                const meta = customMetadataEntriesToMeta(script.customMetadata || []);
                 setRawScript(script.content || "");
                 const reserved = new Set([
                     "title", "credit", "author", "authors", "source",
                     "draftdate", "date", "contact", "copyright",
                     "notes", "description", "synopsis", "summary",
                     "outline",
-                    "rolesetting", "backgroundinfo", "performanceinstruction", "openingintro", "environmentinfo", "situationinfo",
+                    "rolesetting", "backgroundinfo", "performanceinstruction", "openingintro", "chaptersettings",
                     "activityname", "activitybanner", "activitycontent", "activitydemourl", "activityworkurl",
                     "eventname", "eventbanner", "eventcontent", "eventdemolink", "eventworklink",
                     "setting", "settingintro", "background", "backgroundintro",
@@ -229,6 +229,13 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                         logoUrl: organization.logoUrl || organization.avatar || organization.avatarUrl
                     } : null);
 
+                const basicLicenseFromMeta = parseBasicLicenseFromMeta(meta);
+                const basicLicense = {
+                    commercialUse: basicLicenseFromMeta.commercialUse || String(script.licenseCommercial || "").toLowerCase(),
+                    derivativeUse: basicLicenseFromMeta.derivativeUse || String(script.licenseDerivative || "").toLowerCase(),
+                    notifyOnModify: basicLicenseFromMeta.notifyOnModify || String(script.licenseNotify || "").toLowerCase(),
+                };
+
                 setMockMeta({
                     coverUrl: script.coverUrl || null,
                     author: resolvedAuthor,
@@ -236,16 +243,16 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                     tags: script.tags ? script.tags.map(t => t.name) : [],
                     synopsis: meta.synopsis || meta.summary || "",
                     description: meta.description || meta.notes || "",
-                    date: meta.date || meta.draftdate || "",
+                    date: script.draftDate || meta.date || meta.draftdate || "",
                     contact: contactValue,
                     source: meta.source || "",
                     credit: meta.credit || "",
                     authors: meta.authors || "",
                     headerAuthor: meta.author || "",
                     license: meta.license || "",
-                    ...parseBasicLicenseFromMeta(meta),
+                    ...basicLicense,
                     licenseSpecialTerms: ensureList(meta.licensespecialterms || meta.licenseSpecialTerms),
-                    licenseTags: deriveSimpleLicenseTags(parseBasicLicenseFromMeta(meta)),
+                    licenseTags: deriveSimpleLicenseTags(basicLicense),
                     seriesName,
                     seriesOrder,
                     prefaceItems: buildPrefaceItems(meta),
@@ -266,19 +273,14 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                         const sameSeries = (bundle?.scripts || [])
                             .filter((item) => item?.id && item.id !== script.id)
                             .map((item) => {
-                                let parsed = { meta: {} };
-                                try {
-                                    parsed = extractMetadataWithRaw(item.content || "");
-                                } catch {
-                                    parsed = { meta: {} };
-                                }
-                                const itemSeriesName = normalizeSeriesName(parsed.meta?.series || parsed.meta?.seriesname);
+                                const parsedMeta = customMetadataEntriesToMeta(item.customMetadata || []);
+                                const itemSeriesName = normalizeSeriesName(parsedMeta?.series || parsedMeta?.seriesname);
                                 if (itemSeriesName.toLowerCase() !== seriesName.toLowerCase()) return null;
                                 return {
                                     id: item.id,
                                     title: item.title || t("publicGallery.unknown"),
                                     coverUrl: item.coverUrl || null,
-                                    seriesOrder: parseSeriesOrder(parsed?.meta?.seriesorder),
+                                    seriesOrder: parseSeriesOrder(item?.seriesOrder ?? parsedMeta?.seriesorder),
                                 };
                             })
                             .filter(Boolean)

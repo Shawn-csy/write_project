@@ -223,7 +223,7 @@ export function MetadataDetailsTab({
                     <div className="space-y-1">
                         <div className="text-xs text-muted-foreground">觀眾取向</div>
                         <div className="inline-flex flex-wrap gap-1.5 rounded-md border bg-background p-1">
-                            {["男性向", "女性向", "一般向"].map(opt => (
+                            {["男性向", "女性向", "全性向"].map(opt => (
                                 <Button
                                     key={`aud-${opt}`}
                                     type="button"
@@ -437,7 +437,7 @@ export function MetadataDetailsTab({
                 {currentTags.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-2 p-3 bg-background border rounded-md">
                         {currentTags.map(tag => {
-                            const isManagedOption = ["男性向", "女性向", "一般向", "一般", "一般內容", "r-18", "r18", "18+", "全年齡向", "成人向"].includes(tag.name.toLowerCase());
+                            const isManagedOption = ["男性向", "女性向", "全性向", "一般", "一般內容", "r-18", "r18", "18+", "全年齡向", "成人向"].includes(tag.name);
                             return (
                                 <Badge 
                                     key={tag.id} 

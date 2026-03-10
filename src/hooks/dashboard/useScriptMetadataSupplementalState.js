@@ -21,8 +21,7 @@ export function useScriptMetadataSupplementalState() {
   const [backgroundInfo, setBackgroundInfo] = useState("");
   const [performanceInstruction, setPerformanceInstruction] = useState("");
   const [openingIntro, setOpeningIntro] = useState("");
-  const [environmentInfo, setEnvironmentInfo] = useState("");
-  const [situationInfo, setSituationInfo] = useState("");
+  const [chapterSettings, setChapterSettings] = useState("");
   const [activityName, setActivityName] = useState("");
   const [activityBannerUrl, setActivityBannerUrl] = useState("");
   const [activityContent, setActivityContent] = useState("");
@@ -93,10 +92,8 @@ export function useScriptMetadataSupplementalState() {
     setPerformanceInstruction,
     openingIntro,
     setOpeningIntro,
-    environmentInfo,
-    setEnvironmentInfo,
-    situationInfo,
-    setSituationInfo,
+    chapterSettings,
+    setChapterSettings,
     activityName,
     setActivityName,
     activityBannerUrl,

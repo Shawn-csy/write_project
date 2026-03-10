@@ -95,10 +95,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setPerformanceInstruction,
         openingIntro,
         setOpeningIntro,
-        environmentInfo,
-        setEnvironmentInfo,
-        situationInfo,
-        setSituationInfo,
+        chapterSettings,
+        setChapterSettings,
         activityName,
         setActivityName,
         activityBannerUrl,
@@ -290,8 +288,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setBackgroundInfo,
         setPerformanceInstruction,
         setOpeningIntro,
-        setEnvironmentInfo,
-        setSituationInfo,
+        setChapterSettings,
         setActivityName,
         setActivityBannerUrl,
         setActivityContent,
@@ -458,8 +455,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setBackgroundInfo,
         setPerformanceInstruction,
         setOpeningIntro,
-        setEnvironmentInfo,
-        setSituationInfo,
+        setChapterSettings,
         setActivityName,
         setActivityBannerUrl,
         setActivityContent,
@@ -534,8 +530,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         backgroundInfo,
         performanceInstruction,
         openingIntro,
-        environmentInfo,
-        situationInfo,
+        chapterSettings,
         activityName,
         activityBannerUrl,
         activityContent,
@@ -598,8 +593,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         backgroundInfo,
         performanceInstruction,
         openingIntro,
-        environmentInfo,
-        situationInfo,
+        chapterSettings,
         activityName,
         activityBannerUrl,
         activityContent,
@@ -806,10 +800,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                                     setPerformanceInstruction={setPerformanceInstruction}
                                     openingIntro={openingIntro}
                                     setOpeningIntro={setOpeningIntro}
-                                    environmentInfo={environmentInfo}
-                                    setEnvironmentInfo={setEnvironmentInfo}
-                                    situationInfo={situationInfo}
-                                    setSituationInfo={setSituationInfo}
+                                    chapterSettings={chapterSettings}
+                                    setChapterSettings={setChapterSettings}
                                     requiredErrorMap={requiredErrorMap}
                                     recommendedErrorMap={recommendedErrorMap}
                                     missingRequiredMap={missingRequiredMap}

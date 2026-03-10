@@ -1,4 +1,4 @@
-import { extractMetadataWithRaw } from "./metadataParser";
+import { customMetadataEntriesToMeta } from "./customMetadata";
 
 export const normalizeSeriesName = (value) => String(value || "").trim();
 
@@ -8,13 +8,15 @@ export const parseSeriesOrder = (value) => {
   return Math.floor(parsed);
 };
 
-export const getSeriesInfoFromContent = (content) => {
+export const getSeriesInfoFromScript = (script) => {
   try {
-    const { meta } = extractMetadataWithRaw(content || "");
+    const meta = customMetadataEntriesToMeta(script?.customMetadata || []);
     const seriesName = normalizeSeriesName(meta?.series || meta?.seriesname);
-    const seriesOrder = parseSeriesOrder(meta?.seriesorder ?? meta?.episode);
+    const seriesOrder = parseSeriesOrder(script?.seriesOrder ?? meta?.seriesorder ?? meta?.episode);
     return { seriesName, seriesOrder };
   } catch {
     return { seriesName: "", seriesOrder: null };
   }
 };
+
+export const getSeriesInfoFromContent = () => ({ seriesName: "", seriesOrder: null });

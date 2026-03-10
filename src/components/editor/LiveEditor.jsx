@@ -434,6 +434,22 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   }, [applyEditorPaneWidth, persistEditorPaneWidth]);
 
   useEffect(() => {
+    if (readOnly) return undefined;
+
+    const onKeyDown = (event) => {
+      if (event.defaultPrevented) return;
+      if (event.altKey) return;
+      if (!(event.metaKey || event.ctrlKey)) return;
+      if (String(event.key || "").toLowerCase() !== "s") return;
+      event.preventDefault();
+      handleManualSave();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [handleManualSave, readOnly]);
+
+  useEffect(() => {
     if (!isResizing) return undefined;
     const previousCursor = document.body.style.cursor;
     const previousUserSelect = document.body.style.userSelect;

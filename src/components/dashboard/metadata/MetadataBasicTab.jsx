@@ -21,8 +21,7 @@ export function MetadataBasicTab({
     backgroundInfo = "", setBackgroundInfo,
     performanceInstruction = "", setPerformanceInstruction,
     openingIntro = "", setOpeningIntro,
-    environmentInfo = "", setEnvironmentInfo,
-    situationInfo = "", setSituationInfo,
+    chapterSettings = "", setChapterSettings,
     requiredErrors = {},
     recommendedErrors = {},
     layout = "cards",
@@ -71,6 +70,21 @@ export function MetadataBasicTab({
         }
     }, []);
 
+    const parseChapterMulti = React.useCallback((raw) => {
+        try {
+            const parsed = JSON.parse(String(raw || ""));
+            if (parsed?.mode !== "chapter_multi" || !Array.isArray(parsed.items)) return null;
+            return parsed.items.map((item, idx) => ({
+                id: `chapter-${idx + 1}`,
+                chapter: String(item?.chapter || ""),
+                environment: String(item?.environment || ""),
+                situation: String(item?.situation || ""),
+            }));
+        } catch {
+            return null;
+        }
+    }, []);
+
     const heroEntries = React.useMemo(() => {
         const roleItems = parseMulti(roleSetting);
         const performanceItems = parseMulti(performanceInstruction);
@@ -90,8 +104,9 @@ export function MetadataBasicTab({
     }, [roleSetting, performanceInstruction, parseMulti]);
 
     const commitHeroEntries = React.useCallback((nextEntries) => {
-        const compact = nextEntries.filter((item) => item.name.trim() || item.role.trim() || item.performance.trim());
-        const normalized = compact.length > 0 ? compact : nextEntries;
+        const normalized = Array.isArray(nextEntries) && nextEntries.length > 0
+            ? nextEntries
+            : [{ id: "hero-1", name: "", role: "", performance: "" }];
         if (normalized.length <= 1 && !String(normalized[0]?.name || "").trim()) {
             const nextRole = String(normalized[0]?.role || "");
             const nextPerformance = String(normalized[0]?.performance || "");
@@ -127,6 +142,51 @@ export function MetadataBasicTab({
     const removeHeroEntry = (idx) => {
         if (heroEntries.length <= 1) return;
         commitHeroEntries(heroEntries.filter((_, i) => i !== idx));
+    };
+
+    const chapterEntries = React.useMemo(() => {
+        const parsed = parseChapterMulti(chapterSettings);
+        if (parsed && parsed.length > 0) return parsed;
+        return [{
+            id: "chapter-1",
+            chapter: "",
+            environment: "",
+            situation: "",
+        }];
+    }, [chapterSettings, parseChapterMulti]);
+
+    const commitChapterEntries = React.useCallback((nextEntries) => {
+        const normalized = Array.isArray(nextEntries) && nextEntries.length > 0
+            ? nextEntries
+            : [{ id: "chapter-1", chapter: "", environment: "", situation: "" }];
+        const payloadItems = normalized.map((item) => ({
+            chapter: String(item.chapter || ""),
+            environment: String(item.environment || ""),
+            situation: String(item.situation || ""),
+        }));
+        const nextChapterSettings = JSON.stringify({
+            mode: "chapter_multi",
+            items: payloadItems,
+        });
+        if (nextChapterSettings !== String(chapterSettings || "")) {
+            setChapterSettings?.(nextChapterSettings);
+        }
+    }, [chapterSettings, setChapterSettings]);
+
+    const addChapterEntry = () => {
+        commitChapterEntries([
+            ...chapterEntries,
+            { id: `chapter-${Date.now()}-${chapterEntries.length + 1}`, chapter: "", environment: "", situation: "" },
+        ]);
+    };
+
+    const updateChapterEntry = (idx, field, value) => {
+        commitChapterEntries(chapterEntries.map((item, i) => (i === idx ? { ...item, [field]: value } : item)));
+    };
+
+    const removeChapterEntry = (idx) => {
+        if (chapterEntries.length <= 1) return;
+        commitChapterEntries(chapterEntries.filter((_, i) => i !== idx));
     };
 
     return (
@@ -415,29 +475,51 @@ export function MetadataBasicTab({
                                 </div>
                             </div>
                             <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
-                                <div className={getRowLabelClass(rowLabelTones.environmentInfo || "advanced")}>{t("metadataBasic.environmentInfo", "環境")}</div>
-                                <div className="p-4">
-                                    <Textarea
-                                        id="metadata-environment-info"
-                                        name="metadataEnvironmentInfo"
-                                        value={environmentInfo}
-                                        onChange={(e) => setEnvironmentInfo?.(e.target.value)}
-                                        placeholder={t("metadataBasic.environmentInfoPlaceholder", "場景空間、氣候、聲音、光線")}
-                                        className="h-28"
-                                    />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
-                                <div className={getRowLabelClass(rowLabelTones.situationInfo || "advanced")}>{t("metadataBasic.situationInfo", "狀況")}</div>
-                                <div className="p-4">
-                                    <Textarea
-                                        id="metadata-situation-info"
-                                        name="metadataSituationInfo"
-                                        value={situationInfo}
-                                        onChange={(e) => setSituationInfo?.(e.target.value)}
-                                        placeholder={t("metadataBasic.situationInfoPlaceholder", "開場時角色所處的當前狀況")}
-                                        className="h-28"
-                                    />
+                                <div className={getRowLabelClass(rowLabelTones.chapterSettings || "advanced")}>章節環境與狀況</div>
+                                <div className="space-y-3 p-4">
+                                    <div className="flex justify-end">
+                                        <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={addChapterEntry}>
+                                            新增章節
+                                        </Button>
+                                    </div>
+                                    {chapterEntries.map((entry, idx) => (
+                                        <div key={entry.id} className="rounded-lg border border-border/70 bg-background p-3">
+                                            <div className="mb-2 flex items-center justify-between">
+                                                <div className="text-sm font-medium">章節 {idx + 1}</div>
+                                                <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => removeChapterEntry(idx)}>
+                                                    移除
+                                                </Button>
+                                            </div>
+                                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                                <div className="grid gap-2 sm:col-span-2">
+                                                    <label className="text-xs text-muted-foreground">章節名稱</label>
+                                                    <Input
+                                                        value={entry.chapter}
+                                                        onChange={(e) => updateChapterEntry(idx, "chapter", e.target.value)}
+                                                        placeholder={`例如：第${idx + 1}章`}
+                                                    />
+                                                </div>
+                                                <div className="grid gap-2">
+                                                    <label className="text-xs text-muted-foreground">{t("metadataBasic.environmentInfo", "環境")}</label>
+                                                    <Textarea
+                                                        value={entry.environment}
+                                                        onChange={(e) => updateChapterEntry(idx, "environment", e.target.value)}
+                                                        placeholder={t("metadataBasic.environmentInfoPlaceholder", "場景空間、氣候、聲音、光線")}
+                                                        className="h-24"
+                                                    />
+                                                </div>
+                                                <div className="grid gap-2">
+                                                    <label className="text-xs text-muted-foreground">{t("metadataBasic.situationInfo", "狀況")}</label>
+                                                    <Textarea
+                                                        value={entry.situation}
+                                                        onChange={(e) => updateChapterEntry(idx, "situation", e.target.value)}
+                                                        placeholder={t("metadataBasic.situationInfoPlaceholder", "開場時角色所處的當前狀況")}
+                                                        className="h-24"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>
@@ -524,27 +606,53 @@ export function MetadataBasicTab({
                                     className="h-28"
                                 />
                             </div>
-                            <div className="grid gap-2">
-                                <label className="text-sm font-medium" htmlFor="metadata-environment-info">{t("metadataBasic.environmentInfo", "環境")}</label>
-                                <Textarea
-                                    id="metadata-environment-info"
-                                    name="metadataEnvironmentInfo"
-                                    value={environmentInfo}
-                                    onChange={(e) => setEnvironmentInfo?.(e.target.value)}
-                                    placeholder={t("metadataBasic.environmentInfoPlaceholder", "場景空間、氣候、聲音、光線")}
-                                    className="h-28"
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <label className="text-sm font-medium" htmlFor="metadata-situation-info">{t("metadataBasic.situationInfo", "狀況")}</label>
-                                <Textarea
-                                    id="metadata-situation-info"
-                                    name="metadataSituationInfo"
-                                    value={situationInfo}
-                                    onChange={(e) => setSituationInfo?.(e.target.value)}
-                                    placeholder={t("metadataBasic.situationInfoPlaceholder", "開場時角色所處的當前狀況")}
-                                    className="h-28"
-                                />
+                            <div className="grid gap-3 rounded-lg border border-border/70 bg-muted/10 p-3 sm:col-span-2">
+                                <div className="flex items-center justify-between gap-2">
+                                    <label className="text-sm font-medium">章節環境與狀況</label>
+                                    <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={addChapterEntry}>
+                                        新增章節
+                                    </Button>
+                                </div>
+                                <div className="space-y-3">
+                                    {chapterEntries.map((entry, idx) => (
+                                        <div key={entry.id} className="rounded-lg border border-border/70 bg-background p-3">
+                                            <div className="mb-2 flex items-center justify-between">
+                                                <div className="text-sm font-medium">章節 {idx + 1}</div>
+                                                <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => removeChapterEntry(idx)}>
+                                                    移除
+                                                </Button>
+                                            </div>
+                                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                                <div className="grid gap-2 sm:col-span-2">
+                                                    <label className="text-xs text-muted-foreground">章節名稱</label>
+                                                    <Input
+                                                        value={entry.chapter}
+                                                        onChange={(e) => updateChapterEntry(idx, "chapter", e.target.value)}
+                                                        placeholder={`例如：第${idx + 1}章`}
+                                                    />
+                                                </div>
+                                                <div className="grid gap-2">
+                                                    <label className="text-xs text-muted-foreground">{t("metadataBasic.environmentInfo", "環境")}</label>
+                                                    <Textarea
+                                                        value={entry.environment}
+                                                        onChange={(e) => updateChapterEntry(idx, "environment", e.target.value)}
+                                                        placeholder={t("metadataBasic.environmentInfoPlaceholder", "場景空間、氣候、聲音、光線")}
+                                                        className="h-24"
+                                                    />
+                                                </div>
+                                                <div className="grid gap-2">
+                                                    <label className="text-xs text-muted-foreground">{t("metadataBasic.situationInfo", "狀況")}</label>
+                                                    <Textarea
+                                                        value={entry.situation}
+                                                        onChange={(e) => updateChapterEntry(idx, "situation", e.target.value)}
+                                                        placeholder={t("metadataBasic.situationInfoPlaceholder", "開場時角色所處的當前狀況")}
+                                                        className="h-24"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     )

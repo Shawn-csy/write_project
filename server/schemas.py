@@ -236,6 +236,7 @@ class ScriptCreate(ScriptBase):
     licenseCommercial: Optional[str] = None
     licenseDerivative: Optional[str] = None
     licenseNotify: Optional[str] = None
+    customMetadata: Optional[List[Dict[str, Any]]] = None
     
 class ScriptUpdate(BaseModel):
     title: Optional[str] = None
@@ -256,6 +257,7 @@ class ScriptUpdate(BaseModel):
     licenseCommercial: Optional[str] = None
     licenseDerivative: Optional[str] = None
     licenseNotify: Optional[str] = None
+    customMetadata: Optional[List[Dict[str, Any]]] = None
 
 class ScriptReorderItem(BaseModel):
     id: str
@@ -269,6 +271,7 @@ class Script(BaseModel):
     ownerId: str
     title: str
     content: str
+    customMetadata: List[Dict[str, Any]] = []
     createdAt: int
     lastModified: int
     author: Optional[str] = None
@@ -304,6 +307,7 @@ class ScriptSummary(BaseModel):
     ownerId: str
     title: str
     contentLength: Optional[int] = 0
+    customMetadata: List[Dict[str, Any]] = []
     # content excluded
     createdAt: int
     lastModified: int

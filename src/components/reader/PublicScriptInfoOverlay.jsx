@@ -51,11 +51,26 @@ export function PublicScriptInfoOverlay({
       return null;
     }
   };
+  const parseChapterTemplate = (rawValue) => {
+    try {
+      const parsed = JSON.parse(String(rawValue || ""));
+      if (parsed?.mode !== "chapter_multi" || !Array.isArray(parsed?.items)) return [];
+      return parsed.items.map((entry, idx) => ({
+        chapter: String(entry?.chapter || `第${idx + 1}章`).trim() || `第${idx + 1}章`,
+        environment: String(entry?.environment || "").trim(),
+        situation: String(entry?.situation || "").trim(),
+      }));
+    } catch {
+      return [];
+    }
+  };
 
   const roleSettingItem = itemById.get("rolesetting");
   const performanceItem = itemById.get("performanceinstruction");
+  const chapterSettingsItem = itemById.get("chaptersettings");
   const roleMulti = parseMultiTemplate(roleSettingItem?.value);
   const performanceMulti = parseMultiTemplate(performanceItem?.value);
+  const chapterMulti = parseChapterTemplate(chapterSettingsItem?.value);
   const hasCharacterTemplate = Array.isArray(roleMulti) || Array.isArray(performanceMulti);
 
   const characterTemplateItems = React.useMemo(() => {
@@ -105,6 +120,24 @@ export function PublicScriptInfoOverlay({
     if (id === "performanceinstruction" && hasCharacterTemplate) {
       return null;
     }
+    if (id === "chaptersettings" && chapterMulti.length > 0) {
+      return (
+        <div key="chapter-settings">
+          <div className="text-xs font-semibold text-muted-foreground">章節</div>
+          <div className="mt-1 grid gap-2">
+            {chapterMulti.map((entry, idx) => (
+              <div key={`chapter-${idx}`} className="rounded-md border border-border/70 bg-background/70 px-3 py-2.5 shadow-sm text-left">
+                <div className="text-sm font-semibold text-foreground">{entry.chapter}</div>
+                <div className="mt-1 text-xs font-medium text-muted-foreground">環境</div>
+                <div className="text-sm leading-6 text-foreground/90 whitespace-pre-wrap">{entry.environment || "—"}</div>
+                <div className="mt-1 text-xs font-medium text-muted-foreground">狀況</div>
+                <div className="text-sm leading-6 text-foreground/90 whitespace-pre-wrap">{entry.situation || "—"}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div key={id}>
@@ -113,9 +146,9 @@ export function PublicScriptInfoOverlay({
       </div>
     );
   };
-  const compactIds = ["outline", "openingintro", "environmentinfo", "situationinfo"];
+  const compactIds = ["outline", "openingintro", "chaptersettings"];
   const expandedTopIds = ["outline", "rolesetting", "backgroundinfo", "performanceinstruction"];
-  const expandedBottomIds = ["openingintro", "environmentinfo", "situationinfo"];
+  const expandedBottomIds = ["openingintro", "chaptersettings"];
   const compactItems = compactIds.map(renderItem).filter(Boolean);
   const expandedTopItems = expandedTopIds.map(renderItem).filter(Boolean);
   const expandedBottomItems = expandedBottomIds.map(renderItem).filter(Boolean);
