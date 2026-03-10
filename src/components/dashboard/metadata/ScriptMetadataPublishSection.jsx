@@ -22,8 +22,6 @@ export function ScriptMetadataPublishSection({
   addLicenseSpecialTerm,
   licenseSpecialTerms,
   removeLicenseSpecialTerm,
-  copyright,
-  setCopyright,
   renderRowLabel,
 }) {
   const selectedPositiveClass = "border-primary bg-primary text-primary-foreground ring-2 ring-primary/40 hover:bg-primary/90";
@@ -133,8 +131,8 @@ export function ScriptMetadataPublishSection({
               color: "var(--license-term-fg)",
             }}
           >
-            <div className="text-sm font-medium text-foreground">附加條款與著作權</div>
-            <div className="mt-1 text-xs text-muted-foreground">補充限制與版權聲明</div>
+            <div className="text-sm font-medium text-foreground">附加條款</div>
+            <div className="mt-1 text-xs text-muted-foreground">補充授權限制與使用說明</div>
           </div>
           <div className="space-y-3 p-4">
             <div className="flex gap-2">
@@ -163,11 +161,6 @@ export function ScriptMetadataPublishSection({
                 ))}
               </div>
             )}
-            <Input
-              value={copyright}
-              onChange={(e) => setCopyright(e.target.value)}
-              placeholder="Copyright (c) ..."
-            />
           </div>
         </div>
       </div>

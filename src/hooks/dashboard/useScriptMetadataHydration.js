@@ -22,6 +22,7 @@ export function useScriptMetadataHydration({
   setIdentity,
   setSelectedOrgId,
   setAuthor,
+  setAuthorDisplayMode,
   setDate,
   setContact,
   setSynopsis,
@@ -111,7 +112,14 @@ export function useScriptMetadataHydration({
 
       const { meta, rawEntries } = extractMetadataWithRaw(content);
       setTitle((prev) => prev || meta.title || "");
-      setAuthor(sourceScript.author || meta.author || meta.authors || "");
+      const resolvedAuthor = sourceScript.author || meta.author || meta.authors || "";
+      setAuthor(resolvedAuthor);
+      const rawAuthorDisplayMode = String(meta.authordisplaymode || meta.authorDisplayMode || "").trim().toLowerCase();
+      if (rawAuthorDisplayMode === "override" || rawAuthorDisplayMode === "badge") {
+        setAuthorDisplayMode(rawAuthorDisplayMode);
+      } else {
+        setAuthorDisplayMode(String(resolvedAuthor || "").trim() ? "override" : "badge");
+      }
       setDate(sourceScript.draftDate || meta.date || meta.draftdate || "");
       setContact(meta.contact || "");
       setSynopsis(meta.synopsis || meta.summary || meta.description || meta.notes || "");
@@ -156,6 +164,7 @@ export function useScriptMetadataHydration({
       ensureList,
       loadPublicInfoIfNeeded,
       setAuthor,
+      setAuthorDisplayMode,
       setBackgroundInfo,
       setContact,
       setContentRating,

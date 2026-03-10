@@ -31,5 +31,47 @@ describe("PublisherWorksTab", () => {
       expect.objectContaining({ id: "s1", title: "Script A" })
     );
   });
-});
 
+  it("determines missing license only from metadata basic license fields", () => {
+    render(
+      <PublisherWorksTab
+        isLoading={false}
+        scripts={[
+          {
+            id: "legacy-only",
+            title: "Legacy License",
+            status: "Private",
+            lastModified: Date.now(),
+            content: [
+              "Title: Legacy License",
+              "License: CC BY 4.0",
+              "LicenseTags: 授權:可商用,授權:可改作",
+              "",
+              "Body",
+            ].join("\n"),
+          },
+          {
+            id: "metadata-license",
+            title: "Metadata License",
+            status: "Private",
+            lastModified: Date.now(),
+            content: [
+              "Title: Metadata License",
+              "LicenseCommercial: allow",
+              "LicenseDerivative: allow",
+              "LicenseNotify: required",
+              "",
+              "Body",
+            ].join("\n"),
+          },
+        ]}
+        setEditingScript={vi.fn()}
+        navigate={vi.fn()}
+        formatDate={() => "2026-02-15"}
+        onContinueEdit={vi.fn()}
+      />
+    );
+
+    expect(screen.getAllByText("缺授權")).toHaveLength(1);
+  });
+});

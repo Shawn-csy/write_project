@@ -213,6 +213,7 @@ export const writeMetadata = (content, entries) => {
         "outline",
         "rolesetting", "backgroundinfo", "performanceinstruction", "openingintro", "environmentinfo", "situationinfo",
         "setting", "settingintro", "background", "backgroundintro",
+        "authordisplaymode",
         "licensespecialterms", "licensecommercial", "licensederivative", "licensenotify",
         "cover", "coverurl", "synopsis", "summary", "description", "notes",
         "marker_legend", "show_legend"
@@ -230,4 +231,173 @@ export const writeMetadata = (content, entries) => {
     const body = cleanedBodyLines.join('\n').trimStart();
     
     return headerLines.join('\n') + "\n\n" + body;
+};
+
+/**
+ * Splits Fountain content into metadata header block and script body.
+ * Header detection follows the same top-of-file `Key: Value` convention.
+ * @param {string} content
+ * @returns {{ metadataBlock: string, body: string }}
+ */
+export const splitMetadataAndBody = (content) => {
+    if (!content) return { metadataBlock: "", body: "" };
+    const lines = String(content).split("\n");
+    let endOfMeta = 0;
+    let sawMeta = false;
+
+    for (let i = 0; i < lines.length; i++) {
+        const trimmed = lines[i].trim();
+
+        if (trimmed === "") {
+            if (sawMeta) {
+                endOfMeta = i + 1;
+            }
+            continue;
+        }
+
+        const match = trimmed.match(/^([^:]+):\s*(.*)$/);
+        if (match) {
+            sawMeta = true;
+            endOfMeta = i + 1;
+            continue;
+        }
+
+        break;
+    }
+
+    if (!sawMeta) {
+        return { metadataBlock: "", body: String(content) };
+    }
+
+    const metadataBlock = lines.slice(0, endOfMeta).join("\n").trimEnd();
+    const body = lines.slice(endOfMeta).join("\n").replace(/^\n+/, "");
+    return { metadataBlock, body };
+};
+
+/**
+ * Rebuilds Fountain content from metadata header block and script body.
+ * @param {string} metadataBlock
+ * @param {string} body
+ * @returns {string}
+ */
+export const mergeMetadataAndBody = (metadataBlock, body) => {
+    const header = String(metadataBlock || "").trim();
+    const scriptBody = String(body || "").replace(/^\n+/, "");
+    if (!header) return scriptBody;
+    if (!scriptBody) return `${header}\n`;
+    return `${header}\n\n${scriptBody}`;
+};
+
+const normalizeMetaKey = (key) => String(key || "").toLowerCase().replace(/\s/g, "");
+
+// Fields managed by Script Metadata dialog and should be hidden in raw editor.
+export const EDITOR_HIDDEN_METADATA_KEYS = new Set([
+    "title",
+    "credit",
+    "author",
+    "authors",
+    "source",
+    "draftdate",
+    "date",
+    "contact",
+    "copyright",
+    "notes",
+    "description",
+    "synopsis",
+    "summary",
+    "outline",
+    "rolesetting",
+    "backgroundinfo",
+    "performanceinstruction",
+    "openingintro",
+    "environmentinfo",
+    "situationinfo",
+    "activityname",
+    "activitybanner",
+    "activitycontent",
+    "activitydemourl",
+    "activityworkurl",
+    "eventname",
+    "eventbanner",
+    "eventcontent",
+    "eventdemolink",
+    "eventworklink",
+    "setting",
+    "settingintro",
+    "background",
+    "backgroundintro",
+    "cover",
+    "coverurl",
+    "marker_legend",
+    "show_legend",
+    "license",
+    "licenseurl",
+    "licenseterms",
+    "licensespecialterms",
+    "licensecommercial",
+    "licensederivative",
+    "licensenotify",
+    "licensetags",
+    "series",
+    "seriesname",
+    "seriesorder",
+    "authordisplaymode",
+    "audience",
+    "contentrating",
+    "rating",
+]);
+
+const parseMetadataEntries = (metadataBlock) => {
+    if (!metadataBlock) return [];
+    return String(metadataBlock)
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => {
+            const match = line.match(/^([^:]+):\s*(.*)$/);
+            if (!match) return null;
+            return { key: match[1].trim(), value: match[2] };
+        })
+        .filter(Boolean);
+};
+
+const buildMetadataBlock = (entries) =>
+    (entries || [])
+        .map((entry) => `${entry.key}: ${entry.value}`)
+        .join("\n")
+        .trim();
+
+export const partitionMetadataForEditor = (content) => {
+    const { metadataBlock, body } = splitMetadataAndBody(content || "");
+    const entries = parseMetadataEntries(metadataBlock);
+    const hiddenEntries = [];
+    const editableEntries = [];
+
+    entries.forEach((entry) => {
+        const norm = normalizeMetaKey(entry.key);
+        if (EDITOR_HIDDEN_METADATA_KEYS.has(norm)) hiddenEntries.push(entry);
+        else editableEntries.push(entry);
+    });
+
+    const hiddenMetadataBlock = buildMetadataBlock(hiddenEntries);
+    const editableMetadataBlock = buildMetadataBlock(editableEntries);
+    const editorContent = mergeMetadataAndBody(editableMetadataBlock, body);
+
+    return {
+        hiddenMetadataBlock,
+        editableMetadataBlock,
+        body,
+        editorContent,
+    };
+};
+
+export const mergeEditorContentWithHiddenMetadata = (editorContent, hiddenMetadataBlock = "") => {
+    const { metadataBlock, body } = splitMetadataAndBody(editorContent || "");
+    const userEntries = parseMetadataEntries(metadataBlock).filter((entry) => {
+        const norm = normalizeMetaKey(entry.key);
+        return !EDITOR_HIDDEN_METADATA_KEYS.has(norm);
+    });
+    const hiddenEntries = parseMetadataEntries(hiddenMetadataBlock);
+    const mergedHeader = buildMetadataBlock([...hiddenEntries, ...userEntries]);
+    return mergeMetadataAndBody(mergedHeader, body);
 };
