@@ -233,6 +233,9 @@ class ScriptCreate(ScriptBase):
     coverUrl: Optional[str] = None # Added
     seriesId: Optional[str] = None
     seriesOrder: Optional[int] = None
+    licenseCommercial: Optional[str] = None
+    licenseDerivative: Optional[str] = None
+    licenseNotify: Optional[str] = None
     
 class ScriptUpdate(BaseModel):
     title: Optional[str] = None
@@ -250,6 +253,9 @@ class ScriptUpdate(BaseModel):
     disableCopy: Optional[bool] = None
     seriesId: Optional[str] = None
     seriesOrder: Optional[int] = None
+    licenseCommercial: Optional[str] = None
+    licenseDerivative: Optional[str] = None
+    licenseNotify: Optional[str] = None
 
 class ScriptReorderItem(BaseModel):
     id: str
@@ -284,6 +290,9 @@ class Script(BaseModel):
     persona: Optional[Persona] = None
     owner: Optional[UserPublic] = None
     disableCopy: bool = False
+    licenseCommercial: Optional[str] = ""
+    licenseDerivative: Optional[str] = ""
+    licenseNotify: Optional[str] = ""
     seriesId: Optional[str] = None
     seriesOrder: Optional[int] = None
     series: Optional[Series] = None
@@ -311,6 +320,9 @@ class ScriptSummary(BaseModel):
     markerThemeId: Optional[str] = None
     tags: List[Tag] = []
     disableCopy: bool = False
+    licenseCommercial: Optional[str] = ""
+    licenseDerivative: Optional[str] = ""
+    licenseNotify: Optional[str] = ""
     seriesId: Optional[str] = None
     seriesOrder: Optional[int] = None
     series: Optional[Series] = None

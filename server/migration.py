@@ -4,6 +4,34 @@ import uuid
 from sqlalchemy import text
 from database import engine
 
+VALID_COMMERCIAL = {"allow", "disallow"}
+VALID_DERIVATIVE = {"allow", "disallow", "limited"}
+VALID_NOTIFY = {"required", "not_required"}
+
+
+def _norm_key(key: str) -> str:
+    return str(key or "").strip().lower().replace(" ", "")
+
+
+def _extract_top_meta(content: str):
+    lines = str(content or "").split("\n")
+    meta = {}
+    for raw in lines:
+        line = raw.strip()
+        if line == "":
+            continue
+        if ":" not in line:
+            break
+        k, v = line.split(":", 1)
+        meta[_norm_key(k)] = v.strip()
+    return meta
+
+
+def _norm_choice(value, allowed):
+    raw = str(value or "").strip().lower()
+    return raw if raw in allowed else ""
+
+
 def run_migrations():
     try:
         with engine.connect() as conn:
@@ -66,6 +94,18 @@ def run_migrations():
             if 'seriesOrder' not in columns:
                 print("Migrating: Adding 'seriesOrder' column")
                 conn.execute(text("ALTER TABLE scripts ADD COLUMN seriesOrder INTEGER DEFAULT NULL"))
+
+            if 'licenseCommercial' not in columns:
+                print("Migrating: Adding 'licenseCommercial' column")
+                conn.execute(text("ALTER TABLE scripts ADD COLUMN licenseCommercial TEXT DEFAULT ''"))
+
+            if 'licenseDerivative' not in columns:
+                print("Migrating: Adding 'licenseDerivative' column")
+                conn.execute(text("ALTER TABLE scripts ADD COLUMN licenseDerivative TEXT DEFAULT ''"))
+
+            if 'licenseNotify' not in columns:
+                print("Migrating: Adding 'licenseNotify' column")
+                conn.execute(text("ALTER TABLE scripts ADD COLUMN licenseNotify TEXT DEFAULT ''"))
             
             # Check users columns
             result_users = conn.execute(text("PRAGMA table_info(users)"))
@@ -324,6 +364,48 @@ def run_migrations():
                             "updatedAt": now_ms,
                         },
                     )
+
+            # Backfill script license fields from metadata header.
+            script_rows = conn.execute(
+                text(
+                    "SELECT id, content, licenseCommercial, licenseDerivative, licenseNotify FROM scripts"
+                )
+            ).fetchall()
+            for row in script_rows:
+                current_commercial = _norm_choice(getattr(row, "licenseCommercial", ""), VALID_COMMERCIAL)
+                current_derivative = _norm_choice(getattr(row, "licenseDerivative", ""), VALID_DERIVATIVE)
+                current_notify = _norm_choice(getattr(row, "licenseNotify", ""), VALID_NOTIFY)
+
+                if current_commercial and current_derivative and current_notify:
+                    continue
+
+                meta = _extract_top_meta(getattr(row, "content", "") or "")
+                next_commercial = current_commercial or _norm_choice(meta.get("licensecommercial"), VALID_COMMERCIAL)
+                next_derivative = current_derivative or _norm_choice(meta.get("licensederivative"), VALID_DERIVATIVE)
+                next_notify = current_notify or _norm_choice(meta.get("licensenotify"), VALID_NOTIFY)
+                if (
+                    next_commercial == current_commercial
+                    and next_derivative == current_derivative
+                    and next_notify == current_notify
+                ):
+                    continue
+                conn.execute(
+                    text(
+                        """
+                        UPDATE scripts
+                        SET licenseCommercial = :commercial,
+                            licenseDerivative = :derivative,
+                            licenseNotify = :notify
+                        WHERE id = :id
+                        """
+                    ),
+                    {
+                        "id": row.id,
+                        "commercial": next_commercial,
+                        "derivative": next_derivative,
+                        "notify": next_notify,
+                    },
+                )
             
             conn.commit()
     except Exception as e:

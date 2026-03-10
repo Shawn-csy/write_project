@@ -198,6 +198,9 @@ class Persona(Base):
 Script.personaId = Column(String, ForeignKey("personas.id"), nullable=True)
 Script.persona = relationship("Persona", lazy="joined")
 Script.disableCopy = Column(Boolean, default=False)  # Content protection: disable copy on public page
+Script.licenseCommercial = Column(String, default="")
+Script.licenseDerivative = Column(String, default="")
+Script.licenseNotify = Column(String, default="")
 
 
 class PublicTermsAcceptance(Base):

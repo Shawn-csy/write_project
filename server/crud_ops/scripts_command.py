@@ -9,8 +9,62 @@ import schemas
 from .common import touch_parent_folders
 from .scripts_query import get_script
 
+VALID_COMMERCIAL = {"allow", "disallow"}
+VALID_DERIVATIVE = {"allow", "disallow", "limited"}
+VALID_NOTIFY = {"required", "not_required"}
+
+
+def _norm_key(key: str) -> str:
+    return str(key or "").strip().lower().replace(" ", "")
+
+
+def _extract_top_meta(content: str):
+    lines = str(content or "").split("\n")
+    meta = {}
+    for raw in lines:
+        line = raw.strip()
+        if line == "":
+            continue
+        if ":" not in line:
+            break
+        k, v = line.split(":", 1)
+        meta[_norm_key(k)] = v.strip()
+    return meta
+
+
+def _norm_choice(value, allowed):
+    raw = str(value or "").strip().lower()
+    return raw if raw in allowed else ""
+
+
+def _resolve_license_fields(update_data):
+    content = update_data.get("content")
+    if content is None:
+        return
+
+    meta = _extract_top_meta(content)
+    parsed = {
+        "licenseCommercial": _norm_choice(meta.get("licensecommercial"), VALID_COMMERCIAL),
+        "licenseDerivative": _norm_choice(meta.get("licensederivative"), VALID_DERIVATIVE),
+        "licenseNotify": _norm_choice(meta.get("licensenotify"), VALID_NOTIFY),
+    }
+    if "licenseCommercial" not in update_data:
+        update_data["licenseCommercial"] = parsed["licenseCommercial"]
+    if "licenseDerivative" not in update_data:
+        update_data["licenseDerivative"] = parsed["licenseDerivative"]
+    if "licenseNotify" not in update_data:
+        update_data["licenseNotify"] = parsed["licenseNotify"]
+
 
 def create_script(db: Session, script: schemas.ScriptCreate, ownerId: str):
+    seed_license = {
+        "licenseCommercial": _norm_choice(script.licenseCommercial, VALID_COMMERCIAL),
+        "licenseDerivative": _norm_choice(script.licenseDerivative, VALID_DERIVATIVE),
+        "licenseNotify": _norm_choice(script.licenseNotify, VALID_NOTIFY),
+        "content": script.content or "",
+    }
+    _resolve_license_fields(seed_license)
+
     if script.seriesId:
         series = db.query(models.Series).filter(models.Series.id == script.seriesId, models.Series.ownerId == ownerId).first()
         if not series:
@@ -45,6 +99,9 @@ def create_script(db: Session, script: schemas.ScriptCreate, ownerId: str):
         markerThemeId=script.markerThemeId,
         seriesId=script.seriesId,
         seriesOrder=script.seriesOrder,
+        licenseCommercial=seed_license.get("licenseCommercial", ""),
+        licenseDerivative=seed_license.get("licenseDerivative", ""),
+        licenseNotify=seed_license.get("licenseNotify", ""),
     )
     max_order = (
         db.query(models.Script)
@@ -82,6 +139,7 @@ def update_script(db: Session, script_id: str, script: schemas.ScriptUpdate, own
             child.folder = new_path_prefix + child.folder[len(old_path_prefix):]
 
     update_data = script.model_dump(exclude_unset=True)
+    _resolve_license_fields(update_data)
     if "seriesId" in update_data:
         new_series_id = update_data.get("seriesId")
         if new_series_id:

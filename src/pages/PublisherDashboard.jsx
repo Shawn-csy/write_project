@@ -585,6 +585,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
              <PublisherWorksTab 
                 isLoading={isWorksLoading} 
                 scripts={scripts} 
+                personas={personas}
                 setEditingScript={setEditingScript} 
                 navigate={navigate} 
                 formatDate={formatDate} 

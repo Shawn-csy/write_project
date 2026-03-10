@@ -126,3 +126,37 @@ def test_script_disable_copy_update(client):
     data = res.json()
     assert data["disableCopy"] == False
 
+
+def test_script_license_fields_sync_from_content(client):
+    headers = {"X-User-ID": "u1"}
+    create_res = client.post("/api/scripts", json={"title": "License Sync"}, headers=headers)
+    script_id = create_res.json()["id"]
+
+    content = "\n".join(
+        [
+            "Title: License Sync",
+            "LicenseCommercial: allow",
+            "LicenseDerivative: limited",
+            "LicenseNotify: required",
+            "",
+            "INT. ROOM - DAY",
+        ]
+    )
+    upd = client.put(
+        f"/api/scripts/{script_id}",
+        json={"content": content},
+        headers=headers,
+    )
+    assert upd.status_code == 200
+
+    detail = client.get(f"/api/scripts/{script_id}", headers=headers).json()
+    assert detail["licenseCommercial"] == "allow"
+    assert detail["licenseDerivative"] == "limited"
+    assert detail["licenseNotify"] == "required"
+
+    summary = client.get("/api/scripts", headers=headers).json()
+    item = next((s for s in summary if s["id"] == script_id), None)
+    assert item is not None
+    assert item["licenseCommercial"] == "allow"
+    assert item["licenseDerivative"] == "limited"
+    assert item["licenseNotify"] == "required"

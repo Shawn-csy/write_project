@@ -32,7 +32,7 @@ describe("PublisherWorksTab", () => {
     );
   });
 
-  it("determines missing license only from metadata basic license fields", () => {
+  it("treats scripts without top-level license fields as missing license", () => {
     render(
       <PublisherWorksTab
         isLoading={false}
@@ -72,6 +72,42 @@ describe("PublisherWorksTab", () => {
       />
     );
 
-    expect(screen.getAllByText("缺授權")).toHaveLength(1);
+    expect(screen.getAllByText("缺授權")).toHaveLength(2);
+  });
+
+  it("treats persona default license as valid when script metadata has no license fields", () => {
+    render(
+      <PublisherWorksTab
+        isLoading={false}
+        personas={[
+          {
+            id: "p1",
+            defaultLicenseCommercial: "allow",
+            defaultLicenseDerivative: "allow",
+            defaultLicenseNotify: "required",
+          },
+        ]}
+        scripts={[
+          {
+            id: "persona-default-license",
+            personaId: "p1",
+            title: "Persona Default License",
+            status: "Private",
+            lastModified: Date.now(),
+            content: [
+              "Title: Persona Default License",
+              "",
+              "Body",
+            ].join("\n"),
+          },
+        ]}
+        setEditingScript={vi.fn()}
+        navigate={vi.fn()}
+        formatDate={() => "2026-02-15"}
+        onContinueEdit={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByText("缺授權")).not.toBeInTheDocument();
   });
 });
