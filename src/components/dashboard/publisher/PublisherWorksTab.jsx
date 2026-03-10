@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { CoverPlaceholder } from "../../ui/CoverPlaceholder";
 import { useI18n } from "../../../contexts/I18nContext";
 import { extractMetadataWithRaw } from "../../../lib/metadataParser";
+import { parseBasicLicenseFromMeta } from "../../../lib/licenseRights";
 import { PublisherTabHeader } from "./PublisherTabHeader";
 
 export function PublisherWorksTab({ isLoading, scripts, setEditingScript, navigate, formatDate, onContinueEdit }) {
@@ -29,10 +30,12 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
     }, [scripts]);
     const hasCompleteLicense = React.useCallback((script) => {
         const meta = metadataById[script?.id] || {};
-        const commercial = String(script?.licenseCommercial || meta.licensecommercial || "").trim();
-        const derivative = String(script?.licenseDerivative || meta.licensederivative || "").trim();
-        const notify = String(script?.licenseNotify || meta.licensenotify || "").trim();
-        return Boolean(commercial && derivative && notify);
+        const parsedBasic = parseBasicLicenseFromMeta(meta || {});
+        return Boolean(
+            parsedBasic.commercialUse &&
+            parsedBasic.derivativeUse &&
+            parsedBasic.notifyOnModify
+        );
     }, [metadataById]);
     const statusBadgeClass = (script) => {
         const isPublic = script?.status === "Public" || script?.isPublic;

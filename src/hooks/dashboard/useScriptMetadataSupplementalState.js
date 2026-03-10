@@ -4,6 +4,7 @@ export function useScriptMetadataSupplementalState() {
   const [coverUrl, setCoverUrl] = useState("");
 
   const [author, setAuthor] = useState("");
+  const [authorDisplayMode, setAuthorDisplayMode] = useState("badge");
   const [date, setDate] = useState("");
   const [contact, setContact] = useState("");
   const [contactFields, setContactFields] = useState([]);
@@ -62,6 +63,8 @@ export function useScriptMetadataSupplementalState() {
     setCoverUrl,
     author,
     setAuthor,
+    authorDisplayMode,
+    setAuthorDisplayMode,
     date,
     setDate,
     contact,

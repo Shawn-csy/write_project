@@ -65,6 +65,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setCoverUrl,
         author,
         setAuthor,
+        authorDisplayMode,
+        setAuthorDisplayMode,
         date,
         setDate,
         contact,
@@ -280,6 +282,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setJsonError,
         setTitle,
         setAuthor,
+        setAuthorDisplayMode,
         setDate,
         setSynopsis,
         setOutline,
@@ -446,6 +449,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setIdentity,
         setSelectedOrgId,
         setAuthor,
+        setAuthorDisplayMode,
         setDate,
         setContact,
         setSynopsis,
@@ -522,6 +526,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         script,
         title,
         author,
+        authorDisplayMode,
         date,
         synopsis,
         outline,
@@ -586,6 +591,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         coverUrl,
         status,
         author,
+        authorDisplayMode,
         date,
         outline,
         roleSetting,
@@ -838,6 +844,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                                     title={title}
                                     author={author}
                                     setAuthor={setAuthor}
+                                    authorDisplayMode={authorDisplayMode}
+                                    setAuthorDisplayMode={setAuthorDisplayMode}
                                     getRowLabelClass={getRowLabelClass}
                                     coverUrl={coverUrl}
                                     setCoverUrl={setCoverUrl}

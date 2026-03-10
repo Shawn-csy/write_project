@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { getScript, updateScript } from "../../lib/api/scripts";
-import { extractMetadata } from "../../lib/metadataParser";
+import { extractMetadata, mergeEditorContentWithHiddenMetadata, partitionMetadataForEditor } from "../../lib/metadataParser";
 import { debounce } from "../../lib/utils";
 
 const getDraftKey = (id) => `draft_script_${id}`;
@@ -15,6 +15,7 @@ const readNewerDraft = (scriptId, serverLastModified) => {
       return {
         content: draft.content || "",
         title: draft.title || "",
+        metadataBlock: draft.metadataBlock || "",
       };
     }
   } catch (error) {
@@ -23,13 +24,14 @@ const readNewerDraft = (scriptId, serverLastModified) => {
   return null;
 };
 
-const persistDraft = (scriptId, content, title, setSaveStatus) => {
+const persistDraft = (scriptId, content, title, metadataBlock, setSaveStatus) => {
   try {
     localStorage.setItem(
       getDraftKey(scriptId),
       JSON.stringify({
         content,
         title,
+        metadataBlock: metadataBlock || "",
         mtime: Date.now(),
       })
     );
@@ -56,10 +58,14 @@ export function useLiveEditorPersistence({
   lastSavedContentRef,
   lastSavedTitleRef,
 }) {
+  const metadataBlockRef = useRef("");
+
   useEffect(() => {
     if (initialData && initialData.id === scriptId && initialData.content !== undefined) {
       const draft = readNewerDraft(scriptId, initialData.lastModified);
-      const loadedContent = draft?.content ?? initialData.content;
+      const partitioned = partitionMetadataForEditor(initialData.content || "");
+      metadataBlockRef.current = draft?.metadataBlock ?? partitioned.hiddenMetadataBlock;
+      const loadedContent = draft?.content ?? partitioned.editorContent;
       const loadedTitle = draft?.title ?? initialData.title ?? t("liveEditor.untitled");
       if (draft) {
         setSaveStatus("local-saved");
@@ -80,7 +86,9 @@ export function useLiveEditorPersistence({
         const data = await getScript(scriptId);
         if (cancelled) return;
         const draft = readNewerDraft(scriptId, data.lastModified);
-        const loadedContent = draft?.content ?? data.content ?? "";
+        const partitioned = partitionMetadataForEditor(data.content || "");
+        metadataBlockRef.current = draft?.metadataBlock ?? partitioned.hiddenMetadataBlock;
+        const loadedContent = draft?.content ?? partitioned.editorContent;
         const loadedTitle = draft?.title ?? data.title ?? t("liveEditor.untitled");
         if (draft) {
           setSaveStatus("local-saved");
@@ -122,9 +130,10 @@ export function useLiveEditorPersistence({
     async (id, newContent, newTitle) => {
       try {
         setSaveStatus("saving");
-        const meta = extractMetadata(newContent);
+        const fullContent = mergeEditorContentWithHiddenMetadata(newContent, metadataBlockRef.current);
+        const meta = extractMetadata(fullContent);
         await updateScript(id, {
-          content: newContent,
+          content: fullContent,
           title: newTitle,
           author: meta.author || meta.authors || "",
           draftDate: meta.date || meta.draftdate || "",
@@ -159,7 +168,7 @@ export function useLiveEditorPersistence({
     (nextContent) => {
       setContent(nextContent);
       if (readOnly) return;
-      persistDraft(scriptId, nextContent, title, setSaveStatus);
+      persistDraft(scriptId, nextContent, title, metadataBlockRef.current, setSaveStatus);
       debouncedSave(scriptId, nextContent, title);
     },
     [debouncedSave, readOnly, scriptId, setContent, setSaveStatus, title]
@@ -171,7 +180,7 @@ export function useLiveEditorPersistence({
       setTitle(newTitle);
       onTitleName?.(newTitle);
       if (readOnly) return;
-      persistDraft(scriptId, content, newTitle, setSaveStatus);
+      persistDraft(scriptId, content, newTitle, metadataBlockRef.current, setSaveStatus);
       debouncedSave(scriptId, content, newTitle);
     },
     [content, debouncedSave, onTitleName, readOnly, scriptId, setSaveStatus, setTitle, title]

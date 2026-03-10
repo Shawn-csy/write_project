@@ -12,6 +12,8 @@ export function ScriptMetadataExposureSection({
   title,
   author,
   setAuthor,
+  authorDisplayMode,
+  setAuthorDisplayMode,
   getRowLabelClass,
   coverUrl,
   setCoverUrl,
@@ -61,7 +63,32 @@ export function ScriptMetadataExposureSection({
         <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("recommended")}>顯示作者</div>
           <div className="space-y-2 p-4">
+            <div className="inline-flex flex-wrap gap-1.5 rounded-md border bg-background p-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className={`h-8 px-3 text-xs font-medium ${authorDisplayMode === "badge" ? "border-primary bg-primary text-primary-foreground ring-2 ring-primary/40" : "border-border bg-background text-muted-foreground hover:bg-muted"}`}
+                onClick={() => setAuthorDisplayMode("badge")}
+              >
+                顯示 Badge
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className={`h-8 px-3 text-xs font-medium ${authorDisplayMode === "override" ? "border-primary bg-primary text-primary-foreground ring-2 ring-primary/40" : "border-border bg-background text-muted-foreground hover:bg-muted"}`}
+                onClick={() => setAuthorDisplayMode("override")}
+              >
+                覆蓋作者
+              </Button>
+            </div>
             <Input id="metadata-author" value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="覆蓋顯示的作者名稱..." />
+            {authorDisplayMode === "override" ? (
+              <p className="text-xs text-muted-foreground">目前為覆蓋作者模式，公開頁只會顯示這裡填寫的作者。</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">目前為 Badge 模式，公開頁會顯示預設作者/組織資訊。</p>
+            )}
           </div>
         </div>
         <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">

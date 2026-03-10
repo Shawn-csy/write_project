@@ -8,6 +8,7 @@ export function useScriptMetadataJson({
   setJsonError,
   setTitle,
   setAuthor,
+  setAuthorDisplayMode,
   setDate,
   setSynopsis,
   setOutline,
@@ -46,6 +47,10 @@ export function useScriptMetadataJson({
       if (parsed.title !== undefined) setTitle(parsed.title);
       if (parsed.author !== undefined) setAuthor(parsed.author);
       if (parsed.authors !== undefined && !parsed.author) setAuthor(parsed.authors);
+      if (parsed.authorDisplayMode !== undefined) {
+        const next = String(parsed.authorDisplayMode || "").trim().toLowerCase();
+        setAuthorDisplayMode(next === "override" ? "override" : "badge");
+      }
       if (parsed.date !== undefined) setDate(parsed.date);
       if (parsed.draftDate !== undefined) setDate(parsed.draftDate);
       if (parsed.synopsis !== undefined) setSynopsis(parsed.synopsis);
@@ -129,6 +134,7 @@ export function useScriptMetadataJson({
     availableTags,
     jsonText,
     setAuthor,
+    setAuthorDisplayMode,
     setBackgroundInfo,
     setContact,
     setContactFields,

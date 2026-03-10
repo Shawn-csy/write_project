@@ -14,6 +14,7 @@ export function useScriptMetadataSave({
   coverUrl,
   status,
   author,
+  authorDisplayMode,
   date,
   outline,
   roleSetting,
@@ -138,7 +139,10 @@ export function useScriptMetadataSave({
 
       const orderedEntries = [];
       if (title) orderedEntries.push({ key: "Title", value: title });
-      if (author) orderedEntries.push({ key: "Author", value: author });
+      if (authorDisplayMode === "override" && author) {
+        orderedEntries.push({ key: "Author", value: author });
+      }
+      orderedEntries.push({ key: "AuthorDisplayMode", value: authorDisplayMode === "override" ? "override" : "badge" });
       if (outline) orderedEntries.push({ key: "Outline", value: outline });
       if (roleSetting) orderedEntries.push({ key: "RoleSetting", value: roleSetting });
       if (backgroundInfo) orderedEntries.push({ key: "BackgroundInfo", value: backgroundInfo });
@@ -163,7 +167,6 @@ export function useScriptMetadataSave({
         notifyOnModify: licenseNotify,
       });
       if (basicTags.length > 0) orderedEntries.push({ key: "LicenseTags", value: JSON.stringify(basicTags) });
-      if (copyright) orderedEntries.push({ key: "Copyright", value: copyright });
       if (date) orderedEntries.push({ key: "Draft date", value: date });
       if (contact || (contactFields && contactFields.length > 0)) {
         const contactVal = contactFields && contactFields.length > 0
@@ -200,7 +203,7 @@ export function useScriptMetadataSave({
         coverUrl,
         status,
         content: finalContent,
-        author,
+        author: authorDisplayMode === "override" ? author : "",
         draftDate: date,
         isPublic: status === "Public",
         personaId: identity.split(":")[1],
@@ -230,7 +233,7 @@ export function useScriptMetadataSave({
         coverUrl,
         status,
         content: finalContent,
-        author,
+        author: authorDisplayMode === "override" ? author : "",
         draftDate: date,
         tags: tagsToSave,
         markerThemeId,
@@ -250,12 +253,12 @@ export function useScriptMetadataSave({
   }, [
     activeScript,
     author,
+    authorDisplayMode,
     availableTags,
     backgroundInfo,
     contact,
     contactFields,
     contentRating,
-    copyright,
     coverUrl,
     currentTags,
     customFields,

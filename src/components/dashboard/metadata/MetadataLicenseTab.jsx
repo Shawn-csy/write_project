@@ -129,22 +129,6 @@ export function MetadataLicenseTab({
                 </div>
             </div>
 
-            {/* 3. Copyright Input */}
-            <div className="pt-4 border-t">
-                <Label className="text-base font-semibold mb-2 block" htmlFor="license-copyright">{t("metadataLicense.copyright")}</Label>
-                <div className="grid gap-2">
-                    <p className="text-sm text-muted-foreground">
-                        {t("metadataLicense.copyrightTip")}
-                    </p>
-                    <Input 
-                        id="license-copyright"
-                        name="licenseCopyright"
-                        placeholder={t("metadataLicense.copyrightPlaceholder")}
-                        value={copyright}
-                        onChange={(e) => setCopyright(e.target.value)}
-                    />
-                </div>
-            </div>
         </div>
     );
 }
