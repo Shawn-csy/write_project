@@ -70,7 +70,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     }, [t]);
 
     // Handle import script
-    const handleImport = useCallback(async ({ title, content, folder }) => {
+    const handleImport = useCallback(async ({ title, content, folder, customMetadata, author, draftDate }) => {
         try {
             // 1. Create Script Shell
             const id = await createScript(title, 'script', folder || manager.currentPath);
@@ -78,6 +78,9 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
             // 2. Update Content
             await updateScript(id, {
                 content,
+                customMetadata: Array.isArray(customMetadata) ? customMetadata : [],
+                author: String(author || "").trim(),
+                draftDate: String(draftDate || "").trim(),
                 isPublic: false
             });
 

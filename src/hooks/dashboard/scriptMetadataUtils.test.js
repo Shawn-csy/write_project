@@ -6,7 +6,7 @@ describe("buildCustomFieldsFromRawEntries", () => {
     const rows = [
       { key: "AuthorDisplayMode", value: "override" },
       { key: "LicenseCommercial", value: "allow" },
-      { key: "Audience", value: "一般向" },
+      { key: "Audience", value: "全性向" },
       { key: "ContentRating", value: "全年齡向" },
       { key: "MyCustomKey", value: "hello" },
     ];
@@ -16,4 +16,3 @@ describe("buildCustomFieldsFromRawEntries", () => {
     expect(result[0].key).toBe("MyCustomKey");
   });
 });
-

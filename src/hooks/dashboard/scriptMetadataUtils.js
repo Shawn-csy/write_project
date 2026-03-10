@@ -74,6 +74,8 @@ export const RESERVED_METADATA_KEYS = new Set([
   "backgroundinfo",
   "performanceinstruction",
   "openingintro",
+  "chaptersettings",
+  "chapterinfo",
   "environmentinfo",
   "situationinfo",
   "activityname",

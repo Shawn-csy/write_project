@@ -30,7 +30,7 @@ describe("buildPublishChecklist", () => {
       coverUrl: "",
       synopsis: "",
       tags: [],
-      targetAudience: "一般向",
+      targetAudience: "全性向",
       contentRating: "一般"
     });
 

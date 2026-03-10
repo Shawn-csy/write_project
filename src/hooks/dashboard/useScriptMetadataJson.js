@@ -16,8 +16,7 @@ export function useScriptMetadataJson({
   setBackgroundInfo,
   setPerformanceInstruction,
   setOpeningIntro,
-  setEnvironmentInfo,
-  setSituationInfo,
+  setChapterSettings,
   setActivityName,
   setActivityBannerUrl,
   setActivityContent,
@@ -60,8 +59,7 @@ export function useScriptMetadataJson({
       if (parsed.backgroundInfo !== undefined) setBackgroundInfo(String(parsed.backgroundInfo || ""));
       if (parsed.performanceInstruction !== undefined) setPerformanceInstruction(String(parsed.performanceInstruction || ""));
       if (parsed.openingIntro !== undefined) setOpeningIntro(String(parsed.openingIntro || ""));
-      if (parsed.environmentInfo !== undefined) setEnvironmentInfo(String(parsed.environmentInfo || ""));
-      if (parsed.situationInfo !== undefined) setSituationInfo(String(parsed.situationInfo || ""));
+      if (parsed.chapterSettings !== undefined) setChapterSettings(String(parsed.chapterSettings || ""));
       if (parsed.activityName !== undefined) setActivityName(String(parsed.activityName || ""));
       if (parsed.activityBannerUrl !== undefined) setActivityBannerUrl(String(parsed.activityBannerUrl || ""));
       if (parsed.activityContent !== undefined) setActivityContent(String(parsed.activityContent || ""));
@@ -143,7 +141,7 @@ export function useScriptMetadataJson({
     setCurrentTags,
     setCustomFields,
     setDate,
-    setEnvironmentInfo,
+    setChapterSettings,
     setActivityName,
     setActivityBannerUrl,
     setActivityContent,
@@ -163,7 +161,6 @@ export function useScriptMetadataJson({
     setSeriesId,
     setSeriesName,
     setSeriesOrder,
-    setSituationInfo,
     setStatus,
     setSynopsis,
     setTitle,

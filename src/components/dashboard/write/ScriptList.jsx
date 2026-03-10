@@ -26,7 +26,6 @@ import {
     verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { updateScript, getScript } from "../../../lib/api/scripts";
-import { extractMetadata } from "../../../lib/metadataParser";
 import { buildFilename, downloadText } from "../../../lib/download";
 import { isDefaultLikeTheme } from "../../../lib/themeNameUtils";
 import { useI18n } from "../../../contexts/I18nContext";
@@ -103,11 +102,10 @@ export function ScriptList({
 
     const enrichedItems = useMemo(() => {
         return (visibleItems || []).map((item) => {
-            const metaData = item.content ? extractMetadata(item.content) : {};
             return {
                 ...item,
-                _displayDate: item.draftDate || metaData.date || metaData.draftdate || formatDate(item.lastModified || item.createdAt),
-                _displayAuthor: item.author || metaData.author || metaData.authors || t("scriptList.defaultUser"),
+                _displayDate: item.draftDate || formatDate(item.lastModified || item.createdAt),
+                _displayAuthor: item.author || t("scriptList.defaultUser"),
                 _themeName: item.markerThemeId ? (markerThemeNameById[item.markerThemeId] || t("scriptList.theme")) : "",
             };
         });

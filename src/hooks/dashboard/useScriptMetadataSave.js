@@ -1,9 +1,9 @@
 import { useCallback, useState } from "react";
 import { updateScript, addTagToScript, removeTagFromScript, getScript } from "../../lib/api/scripts";
 import { createTag } from "../../lib/api/tags";
-import { writeMetadata } from "../../lib/metadataParser";
 import { deriveSimpleLicenseTags } from "../../lib/licenseRights";
 import { AUDIENCE_TAG_GROUP, RATING_TAG_GROUP, syncGroupedTagSelection } from "./tagGroupUtils";
+import { normalizeCustomMetadataEntries } from "../../lib/customMetadata";
 
 export function useScriptMetadataSave({
   t,
@@ -21,8 +21,7 @@ export function useScriptMetadataSave({
   backgroundInfo,
   performanceInstruction,
   openingIntro,
-  environmentInfo,
-  situationInfo,
+  chapterSettings,
   activityName,
   activityBannerUrl,
   activityContent,
@@ -138,7 +137,6 @@ export function useScriptMetadataSave({
       }
 
       const orderedEntries = [];
-      if (title) orderedEntries.push({ key: "Title", value: title });
       if (authorDisplayMode === "override" && author) {
         orderedEntries.push({ key: "Author", value: author });
       }
@@ -148,8 +146,7 @@ export function useScriptMetadataSave({
       if (backgroundInfo) orderedEntries.push({ key: "BackgroundInfo", value: backgroundInfo });
       if (performanceInstruction) orderedEntries.push({ key: "PerformanceInstruction", value: performanceInstruction });
       if (openingIntro) orderedEntries.push({ key: "OpeningIntro", value: openingIntro });
-      if (environmentInfo) orderedEntries.push({ key: "EnvironmentInfo", value: environmentInfo });
-      if (situationInfo) orderedEntries.push({ key: "SituationInfo", value: situationInfo });
+      if (chapterSettings) orderedEntries.push({ key: "ChapterSettings", value: chapterSettings });
       if (activityName) orderedEntries.push({ key: "ActivityName", value: activityName });
       if (activityBannerUrl) orderedEntries.push({ key: "ActivityBanner", value: activityBannerUrl });
       if (activityContent) orderedEntries.push({ key: "ActivityContent", value: activityContent });
@@ -167,14 +164,12 @@ export function useScriptMetadataSave({
         notifyOnModify: licenseNotify,
       });
       if (basicTags.length > 0) orderedEntries.push({ key: "LicenseTags", value: JSON.stringify(basicTags) });
-      if (date) orderedEntries.push({ key: "Draft date", value: date });
       if (contact || (contactFields && contactFields.length > 0)) {
         const contactVal = contactFields && contactFields.length > 0
           ? JSON.stringify(Object.fromEntries(contactFields.filter((field) => field.key).map((field) => [field.key, field.value])))
           : contact;
         orderedEntries.push({ key: "Contact", value: contactVal });
       }
-      if (coverUrl) orderedEntries.push({ key: "Cover", value: coverUrl });
       if (synopsis) orderedEntries.push({ key: "Synopsis", value: synopsis });
       const selectedSeries = seriesOptions.find((item) => item.id === seriesId);
       const selectedSeriesName = selectedSeries?.name || seriesName;
@@ -195,14 +190,14 @@ export function useScriptMetadataSave({
       if (showMarkerLegend) {
         orderedEntries.push({ key: "marker_legend", value: "true" });
       }
-
-      const finalContent = writeMetadata(content, orderedEntries);
+      const customMetadata = normalizeCustomMetadataEntries(orderedEntries);
 
       const updatePayload = {
         title,
         coverUrl,
         status,
-        content: finalContent,
+        content: content || "",
+        customMetadata,
         author: authorDisplayMode === "override" ? author : "",
         draftDate: date,
         isPublic: status === "Public",
@@ -235,7 +230,8 @@ export function useScriptMetadataSave({
         title,
         coverUrl,
         status,
-        content: finalContent,
+        content: content || "",
+        customMetadata,
         author: authorDisplayMode === "override" ? author : "",
         draftDate: date,
         licenseCommercial: licenseCommercial || "",
@@ -270,7 +266,6 @@ export function useScriptMetadataSave({
     customFields,
     date,
     disableCopy,
-    environmentInfo,
     hasAnyPersona,
     identity,
     jumpToChecklistItem,
@@ -283,6 +278,7 @@ export function useScriptMetadataSave({
     onOpenChange,
     onSave,
     openingIntro,
+    chapterSettings,
     outline,
     performanceInstruction,
     publishChecklist.missingRequired,
@@ -298,7 +294,6 @@ export function useScriptMetadataSave({
     setShowPersonaSetupDialog,
     setShowValidationHints,
     showMarkerLegend,
-    situationInfo,
     activityName,
     activityBannerUrl,
     activityContent,
