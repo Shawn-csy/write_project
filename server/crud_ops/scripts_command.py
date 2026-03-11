@@ -222,6 +222,10 @@ def increment_script_view(db: Session, script_id: str):
 
 
 def toggle_script_like(db: Session, script_id: str, user_id: str):
+    script = db.query(models.Script).filter(models.Script.id == script_id).first()
+    if not script:
+        return None
+
     existing = (
         db.query(models.ScriptLike)
         .filter(models.ScriptLike.scriptId == script_id, models.ScriptLike.userId == user_id)

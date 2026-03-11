@@ -1,5 +1,6 @@
 import main
 import models
+import crud_ops as crud
 
 def _create_user(db, user_id):
     user = models.User(id=user_id, displayName=user_id)
@@ -133,6 +134,111 @@ def test_script_transfer_route(client, db_session):
 
     script = db_session.query(models.Script).filter(models.Script.id == script_id).first()
     assert script.ownerId == new_owner_id
+
+
+def test_script_transfer_route_requires_existing_new_owner(client, db_session):
+    owner_id = "script-owner-missing-target"
+    _create_user(db_session, owner_id)
+
+    headers = {"X-User-ID": owner_id}
+    create_res = client.post("/api/scripts", json={"title": "Transfer Me 2"}, headers=headers)
+    assert create_res.status_code == 200
+    script_id = create_res.json()["id"]
+
+    transfer_res = client.post(
+        f"/api/scripts/{script_id}/transfer",
+        json={"newOwnerId": "missing-user"},
+        headers=headers,
+    )
+    assert transfer_res.status_code == 404
+
+
+def test_toggle_like_not_found_returns_404(client, db_session):
+    user_id = "like-user"
+    _create_user(db_session, user_id)
+    headers = {"X-User-ID": user_id}
+
+    res = client.post("/api/scripts/missing-script/like", headers=headers)
+    assert res.status_code == 404
+
+
+def test_reorder_scripts_failure_returns_500(client, db_session, monkeypatch):
+    user_id = "reorder-user"
+    _create_user(db_session, user_id)
+    headers = {"X-User-ID": user_id}
+
+    monkeypatch.setattr(crud, "reorder_scripts", lambda *args, **kwargs: False)
+    res = client.put(
+        "/api/scripts/reorder",
+        json={"items": [{"id": "missing", "sortOrder": 1.0}]},
+        headers=headers,
+    )
+    assert res.status_code == 500
+
+
+def test_dynamic_admin_has_consistent_admin_privileges(client, db_session):
+    owner_id = "dynamic-owner"
+    new_owner_id = "dynamic-new-owner"
+    delegated_admin_id = "dynamic-sub-admin"
+    _create_user(db_session, owner_id)
+    _create_user(db_session, new_owner_id)
+    _create_user(db_session, delegated_admin_id)
+
+    owner_headers = {"X-User-ID": owner_id}
+    admin_headers = {"X-User-ID": "admin-owner"}
+    delegated_headers = {"X-User-ID": delegated_admin_id}
+
+    script_res = client.post("/api/scripts", json={"title": "Delegated Script"}, headers=owner_headers)
+    assert script_res.status_code == 200
+    script_id = script_res.json()["id"]
+
+    org_res = client.post("/api/organizations", json={"name": "Delegated Org"}, headers=owner_headers)
+    assert org_res.status_code == 200
+    org_id = org_res.json()["id"]
+
+    persona_res = client.post("/api/personas", json={"displayName": "Delegated Persona"}, headers=owner_headers)
+    assert persona_res.status_code == 200
+    persona_id = persona_res.json()["id"]
+
+    add_admin_res = client.post(
+        "/api/admin/admin-users",
+        json={"userId": delegated_admin_id},
+        headers=admin_headers,
+    )
+    assert add_admin_res.status_code == 200
+
+    scripts_as_admin = client.get(f"/api/scripts?ownerIdQuery={owner_id}", headers=delegated_headers)
+    assert scripts_as_admin.status_code == 200
+    assert any(item["id"] == script_id for item in scripts_as_admin.json())
+
+    orgs_as_admin = client.get(f"/api/organizations?ownerIdQuery={owner_id}", headers=delegated_headers)
+    assert orgs_as_admin.status_code == 200
+    assert any(item["id"] == org_id for item in orgs_as_admin.json())
+
+    personas_as_admin = client.get(f"/api/personas?ownerIdQuery={owner_id}", headers=delegated_headers)
+    assert personas_as_admin.status_code == 200
+    assert any(item["id"] == persona_id for item in personas_as_admin.json())
+
+    transfer_script_res = client.post(
+        f"/api/scripts/{script_id}/transfer",
+        json={"newOwnerId": new_owner_id},
+        headers=delegated_headers,
+    )
+    assert transfer_script_res.status_code == 200
+
+    transfer_org_res = client.post(
+        f"/api/organizations/{org_id}/transfer",
+        json={"newOwnerId": new_owner_id, "transferScripts": False},
+        headers=delegated_headers,
+    )
+    assert transfer_org_res.status_code == 200
+
+    transfer_persona_res = client.post(
+        f"/api/personas/{persona_id}/transfer",
+        json={"newOwnerId": new_owner_id},
+        headers=delegated_headers,
+    )
+    assert transfer_persona_res.status_code == 200
 
 
 def test_organization_transfer_respects_transfer_scripts_flag(client, db_session):

@@ -112,6 +112,13 @@ export function ScriptList({
         });
     }, [visibleItems, markerThemeNameById, formatDate, t]);
 
+    const nextThemeUpdateSeq = useCallback((scriptId) => {
+        const current = themeUpdateSeqRef.current.get(scriptId) || 0;
+        const next = current + 1;
+        themeUpdateSeqRef.current.set(scriptId, next);
+        return next;
+    }, []);
+
     if (loading) {
         return <div className="flex justify-center p-8"><Loader2 className="w-6 h-6 animate-spin" /></div>;
     }
@@ -129,12 +136,6 @@ export function ScriptList({
         e.stopPropagation();
         navigate(`/studio?tab=works&scriptId=${encodeURIComponent(item.id)}&open=publish`);
     };
-    const nextThemeUpdateSeq = useCallback((scriptId) => {
-        const current = themeUpdateSeqRef.current.get(scriptId) || 0;
-        const next = current + 1;
-        themeUpdateSeqRef.current.set(scriptId, next);
-        return next;
-    }, []);
 
     return (
         <>

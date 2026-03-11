@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 import crud_ops as crud
 import models
 import schemas
-from dependencies import get_db, get_current_user_id, is_admin_user_id
+from dependencies import get_db, get_current_user_id, is_admin_user
 
 router = APIRouter(prefix="/api/personas", tags=["personas"])
 
@@ -18,7 +18,7 @@ def get_personas(
     ownerIdQuery: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    effective_owner_id = ownerIdQuery if ownerIdQuery and is_admin_user_id(current_user) else current_user
+    effective_owner_id = ownerIdQuery if ownerIdQuery and is_admin_user(db, current_user) else current_user
     return crud.get_user_personas(db, effective_owner_id)
 
 @router.put("/{persona_id}", response_model=schemas.Persona)
@@ -44,7 +44,7 @@ def delete_persona(persona_id: str, db: Session = Depends(get_db), current_user:
 def transfer_persona(persona_id: str, payload: schemas.ScriptTransferRequest, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
     # Reusing ScriptTransferRequest because it has 'newOwnerId'. Ideally make a GenericTransferRequest.
     # schemas.ScriptTransferRequest = { newOwnerId: str }
-    if is_admin_user_id(ownerId):
+    if is_admin_user(db, ownerId):
         success = crud.transfer_persona_ownership_admin(db, persona_id, payload.newOwnerId)
     else:
         success = crud.transfer_persona_ownership(db, persona_id, payload.newOwnerId, ownerId)
