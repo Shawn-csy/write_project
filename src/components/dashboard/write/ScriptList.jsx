@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Download, Trash2, Folder, ChevronRight, FileText, MoreHorizontal, Settings, Globe, FolderInput, ArrowUpDown } from "lucide-react";
 import { Button } from "../../ui/button";
@@ -74,6 +74,7 @@ export function ScriptList({
 }) {
     const { t } = useI18n();
     const navigate = useNavigate();
+    const themeUpdateSeqRef = useRef(new Map());
 
     const dateFormatter = useMemo(() => new Intl.DateTimeFormat(undefined), []);
     const formatDate = useCallback((ts) => {
@@ -128,6 +129,12 @@ export function ScriptList({
         e.stopPropagation();
         navigate(`/studio?tab=works&scriptId=${encodeURIComponent(item.id)}&open=publish`);
     };
+    const nextThemeUpdateSeq = useCallback((scriptId) => {
+        const current = themeUpdateSeqRef.current.get(scriptId) || 0;
+        const next = current + 1;
+        themeUpdateSeqRef.current.set(scriptId, next);
+        return next;
+    }, []);
 
     return (
         <>
@@ -280,10 +287,15 @@ export function ScriptList({
                                                     value={item.markerThemeId || "default"}
                                                     onChange={async (e) => {
                                                         const newVal = e.target.value || "default";
+                                                        const prevVal = item.markerThemeId || "default";
+                                                        if (newVal === prevVal) return;
+                                                        const requestSeq = nextThemeUpdateSeq(item.id);
                                                         try {
                                                             setScripts(prev => prev.map(s => s.id === item.id ? { ...s, markerThemeId: newVal } : s));
                                                             await updateScript(item.id, { markerThemeId: newVal });
                                                         } catch(err) {
+                                                            if (themeUpdateSeqRef.current.get(item.id) !== requestSeq) return;
+                                                            setScripts(prev => prev.map(s => s.id === item.id ? { ...s, markerThemeId: prevVal } : s));
                                                             console.error(t("scriptList.themeUpdateFailed"), err);
                                                         }
                                                     }}
@@ -338,11 +350,16 @@ export function ScriptList({
                                                                     <DropdownMenuRadioGroup 
                                                                         value={item.markerThemeId || "default"} 
                                                                         onValueChange={async (val) => {
+                                                                            const prevVal = item.markerThemeId || "default";
+                                                                            const newVal = val === "__default__" ? "default" : val;
+                                                                            if (newVal === prevVal) return;
+                                                                            const requestSeq = nextThemeUpdateSeq(item.id);
                                                                              try {
-                                                                                const newVal = val === "__default__" ? "default" : val;
                                                                                 setScripts(prev => prev.map(s => s.id === item.id ? { ...s, markerThemeId: newVal } : s));
                                                                                 await updateScript(item.id, { markerThemeId: newVal });
                                                                             } catch(err) {
+                                                                                if (themeUpdateSeqRef.current.get(item.id) !== requestSeq) return;
+                                                                                setScripts(prev => prev.map(s => s.id === item.id ? { ...s, markerThemeId: prevVal } : s));
                                                                                 console.error(t("scriptList.themeUpdateFailed"), err);
                                                                             }
                                                                         }}
