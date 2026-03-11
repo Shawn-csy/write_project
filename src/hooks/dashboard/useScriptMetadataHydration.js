@@ -1,8 +1,9 @@
 import { useCallback } from "react";
 import { getScript } from "../../lib/api/scripts";
-import { extractMetadataWithRaw } from "../../lib/metadataParser";
 import { parseBasicLicenseFromMeta } from "../../lib/licenseRights";
 import { buildCustomFieldsFromRawEntries } from "./scriptMetadataUtils";
+import { customMetadataEntriesToMeta, customMetadataEntriesToRawEntries } from "../../lib/customMetadata";
+import { parseActivityDemoLinks } from "../../lib/activityDemoLinks";
 
 export function useScriptMetadataHydration({
   customFields,
@@ -22,6 +23,7 @@ export function useScriptMetadataHydration({
   setIdentity,
   setSelectedOrgId,
   setAuthor,
+  setAuthorDisplayMode,
   setDate,
   setContact,
   setSynopsis,
@@ -30,12 +32,11 @@ export function useScriptMetadataHydration({
   setBackgroundInfo,
   setPerformanceInstruction,
   setOpeningIntro,
-  setEnvironmentInfo,
-  setSituationInfo,
+  setChapterSettings,
   setActivityName,
   setActivityBannerUrl,
   setActivityContent,
-  setActivityDemoUrl,
+  setActivityDemoLinks,
   setActivityWorkUrl,
   setSeriesName,
   setSeriesId,
@@ -63,7 +64,7 @@ export function useScriptMetadataHydration({
         const tagNames = baseScript.tags.map((tag) => String(tag.name || "").toLowerCase());
         if (tagNames.includes("男性向")) setTargetAudience("男性向");
         else if (tagNames.includes("女性向")) setTargetAudience("女性向");
-        else if (tagNames.includes("一般向")) setTargetAudience("一般向");
+        else if (tagNames.includes("全性向")) setTargetAudience("全性向");
 
         if (tagNames.includes("r-18") || tagNames.includes("r18") || tagNames.includes("18+") || tagNames.includes("成人向")) {
           setContentRating("成人向");
@@ -82,14 +83,12 @@ export function useScriptMetadataHydration({
       }
 
       let sourceScript = baseScript;
-      let content = baseScript.content;
 
       if (baseScript.id) {
         try {
           const full = await getScript(baseScript.id);
           if (full) {
             sourceScript = full;
-            content = full.content || content;
             setTitle(full.title || "");
             setCoverUrl(full.coverUrl || "");
             setStatus(full.status || (full.isPublic ? "Public" : "Private"));
@@ -104,15 +103,18 @@ export function useScriptMetadataHydration({
 
       await loadPublicInfoIfNeeded(sourceScript);
 
-      if (!content) {
-        setIsInitializing(false);
-        return;
+      const rawEntries = customMetadataEntriesToRawEntries(sourceScript.customMetadata || []);
+      const meta = customMetadataEntriesToMeta(sourceScript.customMetadata || []);
+      setTitle((prev) => prev || sourceScript.title || meta.title || "");
+      const resolvedAuthor = sourceScript.author || meta.author || meta.authors || "";
+      setAuthor(resolvedAuthor);
+      const rawAuthorDisplayMode = String(meta.authordisplaymode || meta.authorDisplayMode || "").trim().toLowerCase();
+      if (rawAuthorDisplayMode === "override" || rawAuthorDisplayMode === "badge") {
+        setAuthorDisplayMode(rawAuthorDisplayMode);
+      } else {
+        setAuthorDisplayMode(String(resolvedAuthor || "").trim() ? "override" : "badge");
       }
-
-      const { meta, rawEntries } = extractMetadataWithRaw(content);
-      setTitle((prev) => prev || meta.title || "");
-      setAuthor(sourceScript.author || meta.author || meta.authors || "");
-      setDate(sourceScript.draftDate || meta.date || meta.draftdate || "");
+      setDate(sourceScript.draftDate || "");
       setContact(meta.contact || "");
       setSynopsis(meta.synopsis || meta.summary || meta.description || meta.notes || "");
       setOutline(meta.outline || "");
@@ -120,12 +122,17 @@ export function useScriptMetadataHydration({
       setBackgroundInfo(meta.backgroundinfo || "");
       setPerformanceInstruction(meta.performanceinstruction || "");
       setOpeningIntro(meta.openingintro || meta.setting || meta.settingintro || "");
-      setEnvironmentInfo(meta.environmentinfo || meta.background || meta.backgroundintro || "");
-      setSituationInfo(meta.situationinfo || "");
+      setChapterSettings(meta.chaptersettings || "");
       setActivityName(String(meta.activityname || meta.eventname || ""));
       setActivityBannerUrl(String(meta.activitybanner || meta.eventbanner || ""));
       setActivityContent(String(meta.activitycontent || meta.eventcontent || ""));
-      setActivityDemoUrl(String(meta.activitydemourl || meta.eventdemolink || ""));
+      const parsedDemoLinks = parseActivityDemoLinks(meta.activitydemolinks || meta.eventdemolinks);
+      if (parsedDemoLinks.length > 0) {
+        setActivityDemoLinks(parsedDemoLinks);
+      } else {
+        const legacyDemoUrl = String(meta.activitydemourl || meta.eventdemolink || "").trim();
+        setActivityDemoLinks(legacyDemoUrl ? [{ id: "demo-1", name: "", url: legacyDemoUrl, cast: "", description: "" }] : []);
+      }
       setActivityWorkUrl(String(meta.activityworkurl || meta.eventworklink || ""));
       setSeriesName(String(meta.series || meta.seriesname || sourceScript?.series?.name || ""));
       setSeriesId(sourceScript?.seriesId || "");
@@ -134,15 +141,19 @@ export function useScriptMetadataHydration({
       if (meta.marker_legend !== undefined) setShowMarkerLegend(String(meta.marker_legend) === "true");
       else if (meta.show_legend !== undefined) setShowMarkerLegend(String(meta.show_legend) === "true");
 
-      if (!sourceScript.coverUrl && (meta.cover || meta.coverurl)) {
-        setCoverUrl(meta.cover || meta.coverurl);
-      }
-
       const basicLicense = parseBasicLicenseFromMeta(meta);
-      setLicenseCommercial(basicLicense.commercialUse || "");
-      setLicenseDerivative(basicLicense.derivativeUse || "");
-      setLicenseNotify(basicLicense.notifyOnModify || "");
-      setLicenseSpecialTerms(ensureList(meta.licensespecialterms || meta.licenseSpecialTerms));
+      const nextCommercial = String(sourceScript.licenseCommercial || basicLicense.commercialUse || "").trim();
+      const nextDerivative = String(sourceScript.licenseDerivative || basicLicense.derivativeUse || "").trim();
+      const nextNotify = String(sourceScript.licenseNotify || basicLicense.notifyOnModify || "").trim();
+      const nextSpecialTerms = ensureList(meta.licensespecialterms || meta.licenseSpecialTerms);
+
+      setLicenseCommercial((prev) => nextCommercial || prev || "");
+      setLicenseDerivative((prev) => nextDerivative || prev || "");
+      setLicenseNotify((prev) => nextNotify || prev || "");
+      setLicenseSpecialTerms((prev) => {
+        if (Array.isArray(nextSpecialTerms) && nextSpecialTerms.length > 0) return nextSpecialTerms;
+        return Array.isArray(prev) ? prev : [];
+      });
       setCopyright(meta.copyright || "");
 
       if (!userEditedRef.current && (customFields || []).length === 0) {
@@ -156,6 +167,7 @@ export function useScriptMetadataHydration({
       ensureList,
       loadPublicInfoIfNeeded,
       setAuthor,
+      setAuthorDisplayMode,
       setBackgroundInfo,
       setContact,
       setContentRating,
@@ -165,7 +177,6 @@ export function useScriptMetadataHydration({
       setCustomFields,
       setDate,
       setDisableCopy,
-      setEnvironmentInfo,
       setIdentity,
       setIsInitializing,
       setLicenseCommercial,
@@ -176,6 +187,7 @@ export function useScriptMetadataHydration({
       setOpeningIntro,
       setOutline,
       setPerformanceInstruction,
+      setChapterSettings,
       setRoleSetting,
       setSelectedOrgId,
       setSeriesId,
@@ -184,10 +196,9 @@ export function useScriptMetadataHydration({
       setActivityName,
       setActivityBannerUrl,
       setActivityContent,
-      setActivityDemoUrl,
+      setActivityDemoLinks,
       setActivityWorkUrl,
       setShowMarkerLegend,
-      setSituationInfo,
       setStatus,
       setSynopsis,
       setTargetAudience,

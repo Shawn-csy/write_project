@@ -6,10 +6,10 @@ import { Badge } from "../../ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { CoverPlaceholder } from "../../ui/CoverPlaceholder";
 import { useI18n } from "../../../contexts/I18nContext";
-import { extractMetadataWithRaw } from "../../../lib/metadataParser";
+import { parseBasicLicenseFromMeta } from "../../../lib/licenseRights";
 import { PublisherTabHeader } from "./PublisherTabHeader";
 
-export function PublisherWorksTab({ isLoading, scripts, setEditingScript, navigate, formatDate, onContinueEdit }) {
+export function PublisherWorksTab({ isLoading, scripts, personas = [], setEditingScript, navigate, formatDate, onContinueEdit }) {
     const { t } = useI18n();
     const [filter, setFilter] = React.useState("all"); // all, public, private
     const [coverFilter, setCoverFilter] = React.useState("all"); // all, with, without
@@ -20,20 +20,33 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
     const PREFETCH_STEP = 24;
     const [visibleCount, setVisibleCount] = React.useState(INITIAL_VISIBLE);
     const hasCover = (value) => Boolean(String(value || "").trim());
-    const metadataById = React.useMemo(() => {
-        const entries = (scripts || []).map((script) => {
-            const meta = extractMetadataWithRaw(script?.content || "").meta || {};
-            return [script.id, meta];
+    const parseTopLevelLicense = React.useCallback((script) => {
+        return parseBasicLicenseFromMeta({
+            licensecommercial: script?.licenseCommercial ?? script?.licensecommercial ?? "",
+            licensederivative: script?.licenseDerivative ?? script?.licensederivative ?? "",
+            licensenotify: script?.licenseNotify ?? script?.licensenotify ?? "",
         });
-        return Object.fromEntries(entries);
-    }, [scripts]);
+    }, []);
+    const isBasicLicenseComplete = React.useCallback((basic) => {
+        return Boolean(basic?.commercialUse && basic?.derivativeUse && basic?.notifyOnModify);
+    }, []);
+    const getPersonaFallbackLicense = React.useCallback((script) => {
+        if (!script?.personaId) return { commercialUse: "", derivativeUse: "", notifyOnModify: "" };
+        const persona = (personas || []).find((item) => item?.id === script.personaId);
+        if (!persona) return { commercialUse: "", derivativeUse: "", notifyOnModify: "" };
+        return parseBasicLicenseFromMeta({
+            licensecommercial: persona.defaultLicenseCommercial || "",
+            licensederivative: persona.defaultLicenseDerivative || "",
+            licensenotify: persona.defaultLicenseNotify || "",
+        });
+    }, [personas]);
     const hasCompleteLicense = React.useCallback((script) => {
-        const meta = metadataById[script?.id] || {};
-        const commercial = String(script?.licenseCommercial || meta.licensecommercial || "").trim();
-        const derivative = String(script?.licenseDerivative || meta.licensederivative || "").trim();
-        const notify = String(script?.licenseNotify || meta.licensenotify || "").trim();
-        return Boolean(commercial && derivative && notify);
-    }, [metadataById]);
+        const topLevel = parseTopLevelLicense(script);
+        if (isBasicLicenseComplete(topLevel)) return true;
+
+        const fallback = getPersonaFallbackLicense(script);
+        return isBasicLicenseComplete(fallback);
+    }, [getPersonaFallbackLicense, isBasicLicenseComplete, parseTopLevelLicense]);
     const statusBadgeClass = (script) => {
         const isPublic = script?.status === "Public" || script?.isPublic;
         return isPublic
@@ -92,6 +105,11 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
         setFailedCoverById({});
     }, [scripts]);
 
+    const visibleScripts = React.useMemo(
+        () => sortedScripts.slice(0, visibleCount),
+        [sortedScripts, visibleCount]
+    );
+
     React.useEffect(() => {
         if (isLoading) return;
         if (visibleCount >= sortedScripts.length) return;
@@ -122,10 +140,6 @@ export function PublisherWorksTab({ isLoading, scripts, setEditingScript, naviga
         };
     }, [sortedScripts.length, isLoading, visibleCount]);
 
-    const visibleScripts = React.useMemo(
-        () => sortedScripts.slice(0, visibleCount),
-        [sortedScripts, visibleCount]
-    );
     const hasMore = visibleCount < sortedScripts.length;
     const loadMore = React.useCallback(() => {
         setVisibleCount((prev) => Math.min(prev + PREFETCH_STEP, sortedScripts.length));

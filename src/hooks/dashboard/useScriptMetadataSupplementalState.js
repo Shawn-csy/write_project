@@ -4,6 +4,7 @@ export function useScriptMetadataSupplementalState() {
   const [coverUrl, setCoverUrl] = useState("");
 
   const [author, setAuthor] = useState("");
+  const [authorDisplayMode, setAuthorDisplayMode] = useState("badge");
   const [date, setDate] = useState("");
   const [contact, setContact] = useState("");
   const [contactFields, setContactFields] = useState([]);
@@ -20,12 +21,11 @@ export function useScriptMetadataSupplementalState() {
   const [backgroundInfo, setBackgroundInfo] = useState("");
   const [performanceInstruction, setPerformanceInstruction] = useState("");
   const [openingIntro, setOpeningIntro] = useState("");
-  const [environmentInfo, setEnvironmentInfo] = useState("");
-  const [situationInfo, setSituationInfo] = useState("");
+  const [chapterSettings, setChapterSettings] = useState("");
   const [activityName, setActivityName] = useState("");
   const [activityBannerUrl, setActivityBannerUrl] = useState("");
   const [activityContent, setActivityContent] = useState("");
-  const [activityDemoUrl, setActivityDemoUrl] = useState("");
+  const [activityDemoLinks, setActivityDemoLinks] = useState([]);
   const [activityWorkUrl, setActivityWorkUrl] = useState("");
 
   const [seriesName, setSeriesName] = useState("");
@@ -62,6 +62,8 @@ export function useScriptMetadataSupplementalState() {
     setCoverUrl,
     author,
     setAuthor,
+    authorDisplayMode,
+    setAuthorDisplayMode,
     date,
     setDate,
     contact,
@@ -90,18 +92,16 @@ export function useScriptMetadataSupplementalState() {
     setPerformanceInstruction,
     openingIntro,
     setOpeningIntro,
-    environmentInfo,
-    setEnvironmentInfo,
-    situationInfo,
-    setSituationInfo,
+    chapterSettings,
+    setChapterSettings,
     activityName,
     setActivityName,
     activityBannerUrl,
     setActivityBannerUrl,
     activityContent,
     setActivityContent,
-    activityDemoUrl,
-    setActivityDemoUrl,
+    activityDemoLinks,
+    setActivityDemoLinks,
     activityWorkUrl,
     setActivityWorkUrl,
     seriesName,

@@ -114,6 +114,19 @@ def test_transfer_organization_admin_exceptions(db_session: Session, monkeypatch
     
     assert crud.transfer_organization_admin(db_session, org.id, new_owner) is False
 
+
+def test_transfer_script_ownership_admin_requires_new_owner(db_session: Session):
+    owner = "script_admin_owner"
+    db_session.add(models.User(id=owner))
+    db_session.commit()
+    script = crud.create_script(db_session, schemas.ScriptCreate(title="S1", type="script"), owner)
+
+    ok = crud.transfer_script_ownership_admin(db_session, script.id, "missing-user")
+    assert ok is False
+
+    db_session.refresh(script)
+    assert script.ownerId == owner
+
 def test_get_user_organizations_exceptions_tags(db_session: Session):
     owner = "u1"
     org = crud.create_organization(db_session, schemas.OrganizationCreate(name="OrgTags"), owner)

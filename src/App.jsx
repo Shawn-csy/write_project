@@ -82,12 +82,10 @@ function App() {
 
   // 6. Effects
   useEffect(() => {
-      if (activeCloudScript?.markerThemeId) {
-          const themeExists = markerThemes.some(t => t.id === activeCloudScript.markerThemeId);
-          if (themeExists) {
-              setCurrentThemeId(activeCloudScript.markerThemeId);
-          }
-      }
+      if (!activeCloudScript) return;
+      const desiredThemeId = activeCloudScript?.markerThemeId || "default";
+      const themeExists = markerThemes.some((t) => t.id === desiredThemeId);
+      setCurrentThemeId(themeExists ? desiredThemeId : "default");
   }, [activeCloudScript?.id, activeCloudScript?.markerThemeId, markerThemes, setCurrentThemeId]);
 
   const handleCloudTitleUpdate = useCallback(async (newTitle) => {

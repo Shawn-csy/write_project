@@ -66,6 +66,23 @@ def run_migrations():
             if 'seriesOrder' not in columns:
                 print("Migrating: Adding 'seriesOrder' column")
                 conn.execute(text("ALTER TABLE scripts ADD COLUMN seriesOrder INTEGER DEFAULT NULL"))
+
+            if 'licenseCommercial' not in columns:
+                print("Migrating: Adding 'licenseCommercial' column")
+                conn.execute(text("ALTER TABLE scripts ADD COLUMN licenseCommercial TEXT DEFAULT ''"))
+
+            if 'licenseDerivative' not in columns:
+                print("Migrating: Adding 'licenseDerivative' column")
+                conn.execute(text("ALTER TABLE scripts ADD COLUMN licenseDerivative TEXT DEFAULT ''"))
+
+            if 'licenseNotify' not in columns:
+                print("Migrating: Adding 'licenseNotify' column")
+                conn.execute(text("ALTER TABLE scripts ADD COLUMN licenseNotify TEXT DEFAULT ''"))
+
+            if 'customMetadata' not in columns:
+                print("Migrating: Adding 'customMetadata' column")
+                conn.execute(text("ALTER TABLE scripts ADD COLUMN customMetadata TEXT DEFAULT '[]'"))
+            conn.execute(text("UPDATE scripts SET customMetadata = '[]' WHERE customMetadata IS NULL OR TRIM(customMetadata) = ''"))
             
             # Check users columns
             result_users = conn.execute(text("PRAGMA table_info(users)"))
@@ -324,7 +341,7 @@ def run_migrations():
                             "updatedAt": now_ms,
                         },
                     )
-            
+
             conn.commit()
     except Exception as e:
         print(f"Migration failed: {e}")

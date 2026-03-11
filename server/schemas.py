@@ -233,6 +233,10 @@ class ScriptCreate(ScriptBase):
     coverUrl: Optional[str] = None # Added
     seriesId: Optional[str] = None
     seriesOrder: Optional[int] = None
+    licenseCommercial: Optional[str] = None
+    licenseDerivative: Optional[str] = None
+    licenseNotify: Optional[str] = None
+    customMetadata: Optional[List[Dict[str, Any]]] = None
     
 class ScriptUpdate(BaseModel):
     title: Optional[str] = None
@@ -250,6 +254,10 @@ class ScriptUpdate(BaseModel):
     disableCopy: Optional[bool] = None
     seriesId: Optional[str] = None
     seriesOrder: Optional[int] = None
+    licenseCommercial: Optional[str] = None
+    licenseDerivative: Optional[str] = None
+    licenseNotify: Optional[str] = None
+    customMetadata: Optional[List[Dict[str, Any]]] = None
 
 class ScriptReorderItem(BaseModel):
     id: str
@@ -263,6 +271,7 @@ class Script(BaseModel):
     ownerId: str
     title: str
     content: str
+    customMetadata: List[Dict[str, Any]] = []
     createdAt: int
     lastModified: int
     author: Optional[str] = None
@@ -284,6 +293,9 @@ class Script(BaseModel):
     persona: Optional[Persona] = None
     owner: Optional[UserPublic] = None
     disableCopy: bool = False
+    licenseCommercial: Optional[str] = ""
+    licenseDerivative: Optional[str] = ""
+    licenseNotify: Optional[str] = ""
     seriesId: Optional[str] = None
     seriesOrder: Optional[int] = None
     series: Optional[Series] = None
@@ -295,6 +307,7 @@ class ScriptSummary(BaseModel):
     ownerId: str
     title: str
     contentLength: Optional[int] = 0
+    customMetadata: List[Dict[str, Any]] = []
     # content excluded
     createdAt: int
     lastModified: int
@@ -311,6 +324,9 @@ class ScriptSummary(BaseModel):
     markerThemeId: Optional[str] = None
     tags: List[Tag] = []
     disableCopy: bool = False
+    licenseCommercial: Optional[str] = ""
+    licenseDerivative: Optional[str] = ""
+    licenseNotify: Optional[str] = ""
     seriesId: Optional[str] = None
     seriesOrder: Optional[int] = None
     series: Optional[Series] = None

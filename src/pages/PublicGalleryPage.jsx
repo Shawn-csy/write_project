@@ -11,7 +11,6 @@ import { PublicTopBar } from "../components/public/PublicTopBar";
 import { PublicHeroMarquee } from "../components/public/PublicHeroMarquee";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../components/ui/sheet";
 import { getPublicBundle, getPublicTermsConfig, acceptPublicTerms, getPublicHomepageBanner } from "../lib/api/public";
-import { extractMetadataWithRaw } from "../lib/metadataParser";
 import { deriveSimpleLicenseTags, parseBasicLicenseFromMeta } from "../lib/licenseRights";
 import { normalizeSeriesName, parseSeriesOrder } from "../lib/series";
 import { useI18n } from "../contexts/I18nContext";
@@ -21,6 +20,7 @@ import { Checkbox } from "../components/ui/checkbox";
 import { SlidersHorizontal, Search, X } from "lucide-react";
 import { CoverPlaceholder } from "../components/ui/CoverPlaceholder";
 import { Input } from "../components/ui/input";
+import { customMetadataEntriesToMeta } from "../lib/customMetadata";
 
 const SEGMENT_KEYS = {
   all: "all",
@@ -69,6 +69,7 @@ const hasAcceptedTermsVersion = (version) => {
 
 export default function PublicGalleryPage() {
   const { t } = useI18n();
+  const appVersion = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev";
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { currentUser, login } = useAuth();
@@ -265,16 +266,16 @@ export default function PublicGalleryPage() {
 
   const scriptsWithMeta = useMemo(() => {
       return (scripts || []).map((script) => {
-          if (!script?.content) {
-              return { ...script, _licenseText: "", _licenseTermsText: "" };
-          }
-          let meta = {};
-          try {
-              meta = extractMetadataWithRaw(script.content || "").meta || {};
-          } catch {
-              meta = {};
-          }
-          const basicLicense = parseBasicLicenseFromMeta(meta);
+          const meta = customMetadataEntriesToMeta(script.customMetadata || []);
+          const authorOverride = String(meta.author || "").trim();
+          const rawAuthorDisplayMode = String(meta.authordisplaymode || meta.authorDisplayMode || "").trim().toLowerCase();
+          const useOverrideAuthor = rawAuthorDisplayMode === "override" && Boolean(authorOverride);
+          const basicLicenseFromMeta = parseBasicLicenseFromMeta(meta);
+          const basicLicense = {
+            commercialUse: basicLicenseFromMeta.commercialUse || String(script.licenseCommercial || "").toLowerCase(),
+            derivativeUse: basicLicenseFromMeta.derivativeUse || String(script.licenseDerivative || "").toLowerCase(),
+            notifyOnModify: basicLicenseFromMeta.notifyOnModify || String(script.licenseNotify || "").toLowerCase(),
+          };
           const license = meta.license || meta.licenseName || "";
           const seriesName = normalizeSeriesName(script.series?.name || meta.series || meta.seriesname);
           const seriesOrder = parseSeriesOrder(script.seriesOrder ?? meta.seriesorder ?? meta.episode);
@@ -304,13 +305,21 @@ export default function PublicGalleryPage() {
             ...licenseTagsFromMeta
           ]));
           const mergedTags = Array.from(new Set([...(script.tags || []), ...licenseTags]));
+          const resolvedAuthor = useOverrideAuthor
+            ? {
+                displayName: authorOverride,
+                avatarUrl: "",
+              }
+            : (script.author || null);
           return {
               ...script,
+              author: resolvedAuthor,
               tags: mergedTags,
               _licenseText: [license, ...licenseTags].filter(Boolean).join(" "),
               _licenseTermsText: termsText,
               _derivedLicenseTags: licenseTags,
               _allowCommercial: basicLicense.commercialUse === "allow",
+              _disableAuthorLink: useOverrideAuthor,
               _seriesName: seriesName,
               _seriesOrder: seriesOrder,
               seriesName,
@@ -1067,9 +1076,12 @@ export default function PublicGalleryPage() {
       <footer className="border-t border-border/60 bg-muted/20">
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <p className="text-xs text-muted-foreground">{t("publicGallery.footerText")}</p>
-          <Button variant="link" size="sm" className="h-auto px-0 text-xs" onClick={() => navigate("/about")}>
-            {t("publicGallery.about")}
-          </Button>
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] tracking-wide text-muted-foreground/70">v{appVersion}</span>
+            <Button variant="link" size="sm" className="h-auto px-0 text-xs" onClick={() => navigate("/about")}>
+              {t("publicGallery.about")}
+            </Button>
+          </div>
         </div>
       </footer>
 

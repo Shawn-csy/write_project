@@ -105,11 +105,12 @@ def delete_theme(db: Session, theme_id: str, ownerId: str):
         models.Script.markerThemeId == theme_id,
     ).update({models.Script.markerThemeId: None})
 
-    db.query(models.MarkerTheme).filter(
+    deleted = db.query(models.MarkerTheme).filter(
         models.MarkerTheme.id == theme_id,
         models.MarkerTheme.ownerId == ownerId,
     ).delete()
     db.commit()
+    return deleted > 0
 
 
 def upsert_system_default_configs(db: Session, configs: Any, ownerId: str):

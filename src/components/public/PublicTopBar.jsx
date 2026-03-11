@@ -1,12 +1,13 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, ArrowLeft, Sun, Moon } from "lucide-react";
+import { BookOpen, ArrowLeft, Settings2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
-import { useSettings } from "../../contexts/SettingsContext";
 import { useI18n } from "../../contexts/I18nContext";
 import { LanguageSwitcher } from "../common/LanguageSwitcher";
 import { TOPBAR_INNER_CLASS, TOPBAR_OUTER_CLASS } from "../layout/topbarLayout";
+import { Dialog, DialogContent, DialogTitle } from "../ui/dialog";
+import { AppearanceSettings } from "../settings/AppearanceSettings";
 
 export function PublicTopBar({
   title,
@@ -18,9 +19,9 @@ export function PublicTopBar({
   actions,
 }) {
   const navigate = useNavigate();
-  const { isDark, setTheme } = useSettings();
   const { t } = useI18n();
   const resolvedTitle = title || t("publicTopbar.title");
+  const [appearanceOpen, setAppearanceOpen] = React.useState(false);
 
   return (
     <header className={TOPBAR_OUTER_CLASS}>
@@ -60,20 +61,20 @@ export function PublicTopBar({
         )}
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setAppearanceOpen(true)}
+            title={t("publicTopbar.appearanceSettings", "外觀與閱讀")}
+            aria-label={t("publicTopbar.appearanceSettings", "外觀與閱讀")}
+          >
+            <Settings2 className="w-4 h-4" />
+          </Button>
           <LanguageSwitcher
             compact
             buttonClassName="bg-background/70 backdrop-blur"
             ariaLabel={t("settings.language")}
           />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setTheme(isDark ? "light" : "dark")}
-            title={isDark ? t("publicTopbar.switchLight") : t("publicTopbar.switchDark")}
-            aria-label={isDark ? t("publicTopbar.switchLight") : t("publicTopbar.switchDark")}
-          >
-            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </Button>
           {actions}
         </div>
       </div>
@@ -98,6 +99,21 @@ export function PublicTopBar({
           </div>
         </div>
       )}
+
+      <Dialog open={appearanceOpen} onOpenChange={setAppearanceOpen}>
+        <DialogContent className="w-[min(96vw,980px)] max-w-none p-0 overflow-hidden [&>button]:hidden">
+          <div className="flex h-[min(88vh,760px)] min-h-[420px] flex-col bg-background">
+            <div className="flex items-center justify-between border-b px-4 py-3">
+              <DialogTitle className="text-sm font-semibold">
+                {t("publicTopbar.appearanceSettings", "外觀與閱讀")}
+              </DialogTitle>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6">
+              <AppearanceSettings />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }

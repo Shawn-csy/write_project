@@ -1,5 +1,5 @@
 # 系統架構圖（Mermaid）
-最後更新：2026-02-06
+最後更新：2026-03-11
 
 以下架構圖提供給新加入成員快速理解系統組成與資料走向。
 
@@ -41,7 +41,8 @@ flowchart LR
     FE_COMP[src/components/*]
     FE_API[src/lib/api/*.js\nAPI 模組層]
     FE_AUTH[src/lib/firebase.js\nFirebase Auth]
-    FE_META[src/lib/metadataParser.js]
+    FE_IMPORT[src/lib/importPipeline/*]
+    FE_META[src/components/dashboard/ScriptMetadataDialog.jsx + hooks/dashboard/*]
     FE_STATS[src/lib/statistics/*]
     FE_CTX[src/contexts/SettingsContext.jsx]
   end
@@ -66,6 +67,7 @@ flowchart LR
 
   FE_PAGES --> FE_API
   FE_COMP --> FE_API
+  FE_PAGES --> FE_IMPORT
   FE_PAGES --> FE_META
   FE_COMP --> FE_STATS
   FE_CTX --> FE_STATS
@@ -88,7 +90,7 @@ flowchart LR
 │ Frontend (Vite/React)         │
 │ - src/pages + components      │
 │ - src/lib/api/*.js (API modules) │
-│ - src/lib/firebase.js (Auth)  │
+│ - src/lib/firebase.js (Auth + lazy analytics) │
 └───────────────┬──────────────┘
                 │ HTTP (Authorization: Bearer)
                 │ Local fallback: X-User-ID

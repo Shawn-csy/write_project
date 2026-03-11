@@ -126,3 +126,59 @@ def test_script_disable_copy_update(client):
     data = res.json()
     assert data["disableCopy"] == False
 
+
+def test_script_license_fields_sync_from_custom_metadata(client):
+    headers = {"X-User-ID": "u1"}
+    create_res = client.post("/api/scripts", json={"title": "License Sync"}, headers=headers)
+    script_id = create_res.json()["id"]
+
+    upd = client.put(
+        f"/api/scripts/{script_id}",
+        json={
+            "customMetadata": [
+                {"key": "LicenseCommercial", "value": "allow"},
+                {"key": "LicenseDerivative", "value": "limited"},
+                {"key": "LicenseNotify", "value": "required"},
+            ]
+        },
+        headers=headers,
+    )
+    assert upd.status_code == 200
+
+    detail = client.get(f"/api/scripts/{script_id}", headers=headers).json()
+    assert detail["licenseCommercial"] == "allow"
+    assert detail["licenseDerivative"] == "limited"
+    assert detail["licenseNotify"] == "required"
+
+    summary = client.get("/api/scripts", headers=headers).json()
+    item = next((s for s in summary if s["id"] == script_id), None)
+    assert item is not None
+    assert item["licenseCommercial"] == "allow"
+    assert item["licenseDerivative"] == "limited"
+    assert item["licenseNotify"] == "required"
+
+
+def test_script_custom_metadata_roundtrip(client):
+    headers = {"X-User-ID": "u1"}
+    create_res = client.post(
+        "/api/scripts",
+        json={
+            "title": "Meta Roundtrip",
+            "customMetadata": [
+                {"key": "Outline", "value": "A"},
+                {"key": "X-Custom", "value": "B", "type": "text"},
+            ],
+        },
+        headers=headers,
+    )
+    assert create_res.status_code == 200
+    script_id = create_res.json()["id"]
+
+    detail = client.get(f"/api/scripts/{script_id}", headers=headers).json()
+    assert isinstance(detail.get("customMetadata"), list)
+    assert any(item.get("key") == "Outline" for item in detail["customMetadata"])
+
+    summary_items = client.get("/api/scripts", headers=headers).json()
+    row = next((item for item in summary_items if item["id"] == script_id), None)
+    assert row is not None
+    assert isinstance(row.get("customMetadata"), list)

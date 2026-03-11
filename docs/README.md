@@ -1,4 +1,5 @@
 # 文件索引
+最後更新：2026-03-11
 
 ## 產品與功能
 - `docs/product/architecture.md`：系統架構圖與說明
@@ -16,6 +17,11 @@
 
 ## 封存（過時）
 - `docs/archive/cloud-architecture.md`：舊版雲端備援架構（已封存）
+
+## 最近更新（2026-03-11）
+- 匯入流程文件改為現況版：`docs/product/script-import-pipeline.md`
+- 資料流與架構文件改為目前 hooks/importPipeline 路徑
+- 測試與 CI 文件同步目前腳本與測試檔案命名
 
 ---
 
@@ -41,5 +47,4 @@
 - `examples/`：範例資料
 - `tests-e2e/`：E2E 測試
 - `logs/`：本機日誌
-
 

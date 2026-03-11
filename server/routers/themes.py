@@ -25,7 +25,9 @@ def update_theme(theme_id: str, theme: schemas.MarkerThemeUpdate, db: Session = 
 
 @router.delete("/{theme_id}")
 def delete_theme(theme_id: str, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
-    crud.delete_theme(db, theme_id, ownerId)
+    deleted = crud.delete_theme(db, theme_id, ownerId)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Theme not found")
     return {"success": True}
 
 @router.post("/{theme_id}/copy")

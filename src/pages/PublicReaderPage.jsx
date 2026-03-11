@@ -2,8 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { PublicReaderLayout } from "../components/reader/PublicReaderLayout";
-import { getPublicBundle, getPublicScript, getPublicThemes } from "../lib/api/public";
-import { extractMetadataWithRaw } from "../lib/metadataParser";
+import { getPublicBundle, getPublicScript, getPublicThemes, getPublicTermsConfig, acceptPublicTerms } from "../lib/api/public";
 import { deriveSimpleLicenseTags, parseBasicLicenseFromMeta } from "../lib/licenseRights";
 import { normalizeSeriesName, parseSeriesOrder } from "../lib/series";
 import ScriptViewer from "../components/renderer/ScriptViewer";
@@ -11,7 +10,11 @@ import { useScriptViewerDefaults } from "../hooks/useScriptViewerDefaults";
 import { useI18n } from "../contexts/I18nContext";
 import { normalizeMarkerConfigsSchema } from "../lib/markerThemeCodec.js";
 import { defaultMarkerConfigs } from "../constants/defaultMarkerRules.js";
-import { parseScreenplay } from "../lib/screenplayAST.js";
+import { parseActivityDemoLinks } from "../lib/activityDemoLinks";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import { Checkbox } from "../components/ui/checkbox";
+import { Button } from "../components/ui/button";
+import { customMetadataEntriesToMeta, customMetadataEntriesToRawEntries } from "../lib/customMetadata";
 
 // Helper for robust list parsing (handles double-encoded JSON strings)
 const ensureList = (val) => {
@@ -43,12 +46,37 @@ const PREFACE_RULES = [
     { id: "backgroundinfo", title: "背景資訊", keys: ["backgroundinfo", "背景資訊"] },
     { id: "performanceinstruction", title: "演繹指示", keys: ["performanceinstruction", "演繹指示"] },
     { id: "openingintro", title: "作品的開頭引言", keys: ["openingintro", "作品的開頭引言"] },
-    { id: "environmentinfo", title: "環境", keys: ["environmentinfo", "環境"] },
-    { id: "situationinfo", title: "狀況", keys: ["situationinfo", "狀況"] },
+    { id: "chaptersettings", title: "章節", keys: ["chaptersettings"] },
 ].map((rule) => ({
     ...rule,
     keys: rule.keys.map(normalizePrefaceKey),
 }));
+
+const TERMS_VISITOR_ID_KEY = "public_terms_visitor_id";
+const TERMS_ACCEPTED_PREFIX = "public_terms_accepted_v";
+
+const getOrCreateTermsVisitorId = () => {
+  try {
+    const existing = localStorage.getItem(TERMS_VISITOR_ID_KEY);
+    if (existing) return existing;
+    const generated =
+      (typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID()) ||
+      `visitor_${Date.now()}_${Math.random().toString(16).slice(2, 10)}`;
+    localStorage.setItem(TERMS_VISITOR_ID_KEY, generated);
+    return generated;
+  } catch {
+    return "";
+  }
+};
+
+const hasAcceptedTermsVersion = (version) => {
+  if (!version) return false;
+  try {
+    return Boolean(localStorage.getItem(`${TERMS_ACCEPTED_PREFIX}${version}`));
+  } catch {
+    return false;
+  }
+};
 
 const buildPrefaceItems = (meta = {}) => {
     const valueByKey = new Map();
@@ -96,6 +124,12 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
   const [publicMarkerConfigs, setPublicMarkerConfigs] = useState(
     normalizeMarkerConfigsSchema(defaultMarkerConfigs)
   );
+  const [termsConfig, setTermsConfig] = useState(null);
+  const [termsDialogOpen, setTermsDialogOpen] = useState(false);
+  const [termsReadToBottom, setTermsReadToBottom] = useState(false);
+  const [termsRequireScroll, setTermsRequireScroll] = useState(false);
+  const [acceptedChecks, setAcceptedChecks] = useState({});
+  const [isSubmittingTerms, setIsSubmittingTerms] = useState(false);
 
   useEffect(() => {
     // Reset override on mount/unmount or id change
@@ -136,17 +170,22 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                 const organization = script.organization;
                 const person = script.persona || script.owner;
                 
-                const { meta, rawEntries } = extractMetadataWithRaw(script.content || "");
+                const rawEntries = customMetadataEntriesToRawEntries(script.customMetadata || []);
+                const meta = customMetadataEntriesToMeta(script.customMetadata || []);
                 setRawScript(script.content || "");
                 const reserved = new Set([
                     "title", "credit", "author", "authors", "source",
                     "draftdate", "date", "contact", "copyright",
                     "notes", "description", "synopsis", "summary",
+                    "tag", "tags",
                     "outline",
-                    "rolesetting", "backgroundinfo", "performanceinstruction", "openingintro", "environmentinfo", "situationinfo",
+                    "rolesetting", "backgroundinfo", "performanceinstruction", "openingintro", "chaptersettings",
                     "activityname", "activitybanner", "activitycontent", "activitydemourl", "activityworkurl",
+                    "activitydemolinks",
                     "eventname", "eventbanner", "eventcontent", "eventdemolink", "eventworklink",
+                    "eventdemolinks",
                     "setting", "settingintro", "background", "backgroundintro",
+                    "authordisplaymode",
                     "cover", "coverurl", "marker_legend", "show_legend",
                     "license", "licenseurl", "licenseterms", "licensetags",
                     "licensespecialterms", "licensecommercial", "licensederivative", "licensenotify",
@@ -167,31 +206,56 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                     contactValue = parsedContact;
                 } catch {}
                 
-                setMockMeta({
-                    coverUrl: script.coverUrl || null,
-                    author: person ? {
+                const authorOverride = String(meta.author || "").trim();
+                const rawAuthorDisplayMode = String(meta.authordisplaymode || meta.authorDisplayMode || "").trim().toLowerCase();
+                const useOverrideAuthor = rawAuthorDisplayMode === "override" && Boolean(authorOverride);
+                const resolvedAuthor = useOverrideAuthor
+                    ? {
+                        id: "override-author",
+                        displayName: authorOverride,
+                        avatarUrl: "",
+                    }
+                    : (person ? {
                         id: person.id,
                         displayName: person.displayName || person.name || "Unknown",
                         avatarUrl: person.avatar || person.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${person.displayName || person.name || "U"}`
-                    } : null,
-                    organization: organization ? {
+                    } : (authorOverride ? {
+                        id: "header-author-fallback",
+                        displayName: authorOverride,
+                        avatarUrl: "",
+                    } : null));
+                const resolvedOrganization = useOverrideAuthor
+                    ? null
+                    : (organization ? {
                         id: organization.id,
                         name: organization.name || organization.displayName,
                         logoUrl: organization.logoUrl || organization.avatar || organization.avatarUrl
-                    } : null,
+                    } : null);
+
+                const basicLicenseFromMeta = parseBasicLicenseFromMeta(meta);
+                const basicLicense = {
+                    commercialUse: basicLicenseFromMeta.commercialUse || String(script.licenseCommercial || "").toLowerCase(),
+                    derivativeUse: basicLicenseFromMeta.derivativeUse || String(script.licenseDerivative || "").toLowerCase(),
+                    notifyOnModify: basicLicenseFromMeta.notifyOnModify || String(script.licenseNotify || "").toLowerCase(),
+                };
+
+                setMockMeta({
+                    coverUrl: script.coverUrl || null,
+                    author: resolvedAuthor,
+                    organization: resolvedOrganization,
                     tags: script.tags ? script.tags.map(t => t.name) : [],
                     synopsis: meta.synopsis || meta.summary || "",
                     description: meta.description || meta.notes || "",
-                    date: meta.date || meta.draftdate || "",
+                    date: script.draftDate || meta.date || meta.draftdate || "",
                     contact: contactValue,
                     source: meta.source || "",
                     credit: meta.credit || "",
                     authors: meta.authors || "",
                     headerAuthor: meta.author || "",
                     license: meta.license || "",
-                    ...parseBasicLicenseFromMeta(meta),
+                    ...basicLicense,
                     licenseSpecialTerms: ensureList(meta.licensespecialterms || meta.licenseSpecialTerms),
-                    licenseTags: deriveSimpleLicenseTags(parseBasicLicenseFromMeta(meta)),
+                    licenseTags: deriveSimpleLicenseTags(basicLicense),
                     seriesName,
                     seriesOrder,
                     prefaceItems: buildPrefaceItems(meta),
@@ -200,6 +264,7 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                         bannerUrl: String(meta.activitybanner || meta.eventbanner || "").trim(),
                         content: String(meta.activitycontent || meta.eventcontent || "").trim(),
                         demoUrl: String(meta.activitydemourl || meta.eventdemolink || "").trim(),
+                        demoLinks: parseActivityDemoLinks(meta.activitydemolinks || meta.eventdemolinks),
                         workUrl: String(meta.activityworkurl || meta.eventworklink || "").trim(),
                     },
                     customFields,
@@ -212,19 +277,14 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                         const sameSeries = (bundle?.scripts || [])
                             .filter((item) => item?.id && item.id !== script.id)
                             .map((item) => {
-                                let parsed = { meta: {} };
-                                try {
-                                    parsed = extractMetadataWithRaw(item.content || "");
-                                } catch {
-                                    parsed = { meta: {} };
-                                }
-                                const itemSeriesName = normalizeSeriesName(parsed.meta?.series || parsed.meta?.seriesname);
+                                const parsedMeta = customMetadataEntriesToMeta(item.customMetadata || []);
+                                const itemSeriesName = normalizeSeriesName(parsedMeta?.series || parsedMeta?.seriesname);
                                 if (itemSeriesName.toLowerCase() !== seriesName.toLowerCase()) return null;
                                 return {
                                     id: item.id,
                                     title: item.title || t("publicGallery.unknown"),
                                     coverUrl: item.coverUrl || null,
-                                    seriesOrder: parseSeriesOrder(parsed?.meta?.seriesorder),
+                                    seriesOrder: parseSeriesOrder(item?.seriesOrder ?? parsedMeta?.seriesorder),
                                 };
                             })
                             .filter(Boolean)
@@ -332,6 +392,119 @@ They discover a glowing artifact.
 
     loadScript();
   }, [id, setIsLoading, setActivePublicScriptId, setRawScript, setTitleName, setActiveFile, setCloudScriptMode]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadTermsConfig = async () => {
+      try {
+        const config = await getPublicTermsConfig();
+        if (cancelled) return;
+        const normalized = config || null;
+        setTermsConfig(normalized);
+        const version = normalized?.version;
+        if (!version || hasAcceptedTermsVersion(version)) return;
+        const requiredChecks = Array.isArray(normalized?.requiredChecks) ? normalized.requiredChecks : [];
+        const initialChecks = {};
+        requiredChecks.forEach((item) => {
+          if (item?.id) initialChecks[item.id] = false;
+        });
+        setAcceptedChecks(initialChecks);
+        setTermsReadToBottom(false);
+        setTermsDialogOpen(true);
+      } catch (error) {
+        console.error("Failed to load public terms config", error);
+      }
+    };
+    loadTermsConfig();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!termsDialogOpen) return;
+    let cancelled = false;
+    const check = () => {
+      if (cancelled) return;
+      const node = document.getElementById("reader-terms-scroll");
+      if (!node) {
+        requestAnimationFrame(check);
+        return;
+      }
+      const scrollable = node.scrollHeight > node.clientHeight + 1;
+      setTermsRequireScroll(scrollable);
+      if (!scrollable) setTermsReadToBottom(true);
+    };
+    requestAnimationFrame(check);
+    return () => {
+      cancelled = true;
+    };
+  }, [termsDialogOpen, termsConfig]);
+
+  const handleTermsScroll = (event) => {
+    const target = event.currentTarget;
+    if (!target) return;
+    const buffer = 16;
+    const scrollable = target.scrollHeight > target.clientHeight + 1;
+    setTermsRequireScroll(scrollable);
+    if (!scrollable) {
+      setTermsReadToBottom(true);
+      return;
+    }
+    const reachedBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - buffer;
+    if (reachedBottom) setTermsReadToBottom(true);
+  };
+
+  const toggleRequiredCheck = (checkId, checked) => {
+    setAcceptedChecks((prev) => ({ ...prev, [checkId]: Boolean(checked) }));
+  };
+
+  const canConfirmTerms = (() => {
+    if (termsRequireScroll && !termsReadToBottom) return false;
+    const requiredChecks = Array.isArray(termsConfig?.requiredChecks) ? termsConfig.requiredChecks : [];
+    if (requiredChecks.length === 0) return true;
+    return requiredChecks.every((item) => Boolean(acceptedChecks[item.id]));
+  })();
+
+  const confirmTermsConsent = async () => {
+    if (!id || !termsConfig?.version || !canConfirmTerms || isSubmittingTerms) return;
+    setIsSubmittingTerms(true);
+    try {
+      const visitorId = getOrCreateTermsVisitorId();
+      const agreedCheckIds = (termsConfig.requiredChecks || [])
+        .filter((item) => item?.id && acceptedChecks[item.id])
+        .map((item) => item.id);
+      await acceptPublicTerms({
+        termsVersion: termsConfig.version,
+        scriptId: id,
+        visitorId,
+        locale: navigator.language || "",
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "",
+        timezoneOffsetMinutes: new Date().getTimezoneOffset(),
+        userAgent: navigator.userAgent || "",
+        platform: navigator.platform || "",
+        screen: {
+          width: window.screen?.width || 0,
+          height: window.screen?.height || 0,
+          colorDepth: window.screen?.colorDepth || 0,
+          pixelRatio: window.devicePixelRatio || 1,
+        },
+        viewport: {
+          width: window.innerWidth || 0,
+          height: window.innerHeight || 0,
+        },
+        pagePath: window.location.pathname + window.location.search,
+        referrer: document.referrer || "",
+        acceptedChecks: agreedCheckIds,
+      });
+      localStorage.setItem(`${TERMS_ACCEPTED_PREFIX}${termsConfig.version}`, String(Date.now()));
+      setTermsDialogOpen(false);
+    } catch (error) {
+      console.error("Failed to submit terms consent", error);
+    } finally {
+      setIsSubmittingTerms(false);
+    }
+  };
 
   // Hook for viewer defaults (font, theme css injection)
   const viewerDefaults = useScriptViewerDefaults({
@@ -451,32 +624,6 @@ They discover a glowing artifact.
       scriptManager.hiddenMarkerIds,
   ]);
 
-  useEffect(() => {
-    const sceneRules = (Array.isArray(publicMarkerConfigs) ? publicMarkerConfigs : []).filter((cfg) =>
-      cfg?.parseAs === "scene_heading" || String(cfg?.id || "").toLowerCase().includes("chapter")
-    );
-    const parsed = (() => {
-      try {
-        return parseScreenplay(rawScript || "", publicMarkerConfigs || [])?.scenes || [];
-      } catch (error) {
-        console.error("[MarkerDebug] parseScreenplay failed", error);
-        return [];
-      }
-    })();
-
-    console.log("[MarkerDebug] effective public marker configs", {
-      totalConfigs: Array.isArray(publicMarkerConfigs) ? publicMarkerConfigs.length : 0,
-      sceneRules: sceneRules.map((cfg) => ({
-        id: cfg?.id,
-        matchMode: cfg?.matchMode,
-        parseAs: cfg?.parseAs,
-        regex: cfg?.regex || null,
-      })),
-      parsedScenes: parsed.map((s) => ({ id: s.id, label: s.label })),
-      rawScriptHead: (rawScript || "").split("\n").slice(0, 28),
-    });
-  }, [publicMarkerConfigs, rawScript]);
-
   return (
     <>
     {structuredData && (
@@ -521,6 +668,87 @@ They discover a glowing artifact.
         scriptSurfaceProps={surfaceProps}
         viewerProps={mergedViewerProps}
     />
+    <Dialog
+      open={termsDialogOpen}
+      onOpenChange={(open) => {
+        if (!open && !isSubmittingTerms) {
+          setTermsDialogOpen(false);
+          navigate("/");
+        }
+      }}
+    >
+      <DialogContent
+        className="w-[94vw] max-w-2xl p-0 overflow-hidden border"
+        style={{
+          backgroundColor: "var(--license-overlay-bg)",
+          borderColor: "var(--license-overlay-border)",
+          color: "var(--license-overlay-fg)",
+        }}
+      >
+        <DialogHeader className="px-5 pt-5 pb-2">
+          <DialogTitle className="text-left">{termsConfig?.title || "授權條款與使用聲明"}</DialogTitle>
+          <DialogDescription className="text-left">
+            {termsConfig?.intro || "請先閱讀並同意以下條款，完成後才能進入劇本閱讀頁。"}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="px-5 pb-2">
+          <div
+            id="reader-terms-scroll"
+            onScroll={handleTermsScroll}
+            className="max-h-[46vh] overflow-y-auto touch-pan-y rounded-md border p-4 text-sm leading-6"
+            style={{
+              backgroundColor: "var(--license-term-bg)",
+              borderColor: "var(--license-term-border)",
+              color: "var(--license-term-fg)",
+            }}
+          >
+            {(termsConfig?.sections || []).map((section) => (
+              <section key={section.id || section.title} className="mb-4 last:mb-0">
+                <h4 className="font-semibold text-foreground">{section.title}</h4>
+                <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{section.body}</p>
+              </section>
+            ))}
+            {(termsConfig?.sections || []).length === 0 && (
+              <p className="text-muted-foreground">條款內容尚未設定。</p>
+            )}
+          </div>
+          <p
+            className="mt-2 text-xs"
+            style={{
+              color:
+                termsReadToBottom || !termsRequireScroll
+                  ? "var(--license-selected-fg)"
+                  : "hsl(var(--muted-foreground))",
+            }}
+          >
+            {termsRequireScroll
+              ? (termsReadToBottom ? "已讀到最下方，可進行確認。" : "請先將條款內容滑到最下方。")
+              : "確認已閱條款後，可勾選確認。"}
+          </p>
+        </div>
+        <div className="px-5 pb-2 space-y-2">
+          {(termsConfig?.requiredChecks || []).map((item) => (
+            <label key={item.id} className="flex items-start gap-2 text-sm">
+              <Checkbox
+                className="mt-0.5"
+                checked={Boolean(acceptedChecks[item.id])}
+                onCheckedChange={(checked) => toggleRequiredCheck(item.id, checked)}
+                disabled={(termsRequireScroll && !termsReadToBottom) || isSubmittingTerms}
+              />
+              <span className="text-foreground/90">{item.label}</span>
+            </label>
+          ))}
+        </div>
+        <DialogFooter className="px-5 pb-5 pt-2">
+          <Button variant="outline" onClick={() => navigate("/")} disabled={isSubmittingTerms}>
+            返回公開台本
+          </Button>
+          <Button onClick={confirmTermsConsent} disabled={!canConfirmTerms || isSubmittingTerms}>
+            {isSubmittingTerms ? "送出中..." : "同意並進入"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </>
   );
 }

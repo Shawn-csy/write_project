@@ -1,4 +1,4 @@
-export const AUDIENCE_TAG_GROUP = ["男性向", "女性向", "一般向"];
+export const AUDIENCE_TAG_GROUP = ["男性向", "女性向", "全性向"];
 export const RATING_TAG_GROUP = ["一般", "R-18", "r18", "一般內容", "全年齡向", "成人向"];
 
 const toLower = (value) => String(value || "").trim().toLowerCase();

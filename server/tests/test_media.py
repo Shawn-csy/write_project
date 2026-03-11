@@ -31,3 +31,22 @@ def test_media_upload_list_delete_flow(client, tmp_path, monkeypatch):
     assert listed_after.status_code == 200
     assert listed_after.json().get("items", []) == []
 
+
+def test_media_upload_rejects_oversized_file_without_persisting(client, tmp_path, monkeypatch):
+    monkeypatch.setenv("MEDIA_STORAGE_ROOT", str(tmp_path / "media"))
+    import routers.media as media_router
+
+    monkeypatch.setattr(media_router, "MAX_UPLOAD_BYTES", 8)
+    headers = {"X-User-ID": "u1"}
+
+    upload = client.post(
+        "/api/media/upload",
+        headers=headers,
+        files={"file": ("large.webp", b"RIFFxxxxWEBPVP8-TOO-LARGE", "image/webp")},
+        data={"purpose": "cover"},
+    )
+    assert upload.status_code == 413
+
+    listed = client.get("/api/media/items", headers=headers)
+    assert listed.status_code == 200
+    assert listed.json().get("items", []) == []

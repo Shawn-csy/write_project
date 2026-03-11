@@ -195,3 +195,15 @@ def test_transfer_script_ownership_and_engagement(db_session):
     assert liked is False
     db_session.refresh(script)
     assert script.likes == 0
+
+
+def test_transfer_script_ownership_requires_existing_new_owner(db_session):
+    owner_id = "owner-11"
+    _create_user(db_session, owner_id)
+    script = _create_script(db_session, owner_id)
+
+    ok = crud.transfer_script_ownership(db_session, script.id, "missing-user", owner_id)
+    assert ok is False
+
+    db_session.refresh(script)
+    assert script.ownerId == owner_id

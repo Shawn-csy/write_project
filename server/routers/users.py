@@ -12,20 +12,33 @@ def read_users_me(db: Session = Depends(get_db), ownerId: str = Depends(get_curr
     user = crud.get_user(db, ownerId)
     if not user:
         return {"id": ownerId, "settings": {}, "organizationIds": [], "isAdmin": is_admin_user(db, ownerId)}
-    # Parse settings JSON
+
+    # Parse settings JSON without mutating ORM fields. Mutating `user.settings`
+    # to a dict marks the row dirty and can break later flush/commit on SQLite.
     try:
         if isinstance(user.settings, dict):
-            user.settings = user.settings
+            parsed_settings = user.settings
         else:
-            user.settings = json.loads(user.settings) if user.settings else {}
+            parsed_settings = json.loads(user.settings) if user.settings else {}
     except (ValueError, TypeError):
-        user.settings = {}
+        parsed_settings = {}
+
     user_org_ids = crud.list_user_org_ids(db, ownerId)
-    setattr(user, "organizationIds", user_org_ids)
-    if not user.organizationId and user_org_ids:
-        user.organizationId = user_org_ids[0]
-    setattr(user, "isAdmin", is_admin_user(db, ownerId))
-    return user
+    effective_org_id = user.organizationId or (user_org_ids[0] if user_org_ids else None)
+
+    return {
+        "id": user.id,
+        "handle": user.handle,
+        "email": user.email,
+        "displayName": user.displayName,
+        "bio": user.bio,
+        "avatar": user.avatar,
+        "website": user.website,
+        "settings": parsed_settings,
+        "organizationId": effective_org_id,
+        "organizationIds": user_org_ids,
+        "isAdmin": is_admin_user(db, ownerId),
+    }
 
 @router.put("", response_model=schemas.User)
 def update_user_me(user: schemas.UserCreate, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):

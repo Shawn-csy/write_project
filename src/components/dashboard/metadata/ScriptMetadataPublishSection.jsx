@@ -4,6 +4,8 @@ import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 
 export function ScriptMetadataPublishSection({
+  sectionId = "metadata-section-publish",
+  showTitle = true,
   t,
   missingRequiredMap,
   requiredErrorMap,
@@ -22,22 +24,20 @@ export function ScriptMetadataPublishSection({
   addLicenseSpecialTerm,
   licenseSpecialTerms,
   removeLicenseSpecialTerm,
-  copyright,
-  setCopyright,
   renderRowLabel,
 }) {
   const selectedPositiveClass = "border-primary bg-primary text-primary-foreground ring-2 ring-primary/40 hover:bg-primary/90";
   const selectedNegativeClass = "border-destructive bg-destructive text-destructive-foreground ring-2 ring-destructive/40 hover:bg-destructive/90";
   const selectedWarningClass = "border-[color:var(--license-term-border)] bg-[color:var(--license-term-bg)] text-[color:var(--license-term-fg)] ring-2 ring-[color:var(--license-term-border)]/60 hover:bg-[color:var(--license-term-bg)]";
   return (
-    <section id="metadata-section-publish" className="space-y-3 scroll-mt-24">
-      <h3 className="text-base font-semibold">{t("scriptMetadataDialog.tabPublish", "發布設定")}</h3>
+    <section id={sectionId || undefined} className="space-y-3 scroll-mt-24">
+      {showTitle && <h3 className="text-base font-semibold">{t("scriptMetadataDialog.tabPublish", "發布設定")}</h3>}
       <div className="rounded-xl border border-border/70 bg-background shadow-sm">
         <div className="grid grid-cols-1 divide-y md:grid-cols-[220px_minmax(0,1fr)] md:divide-y-0 md:divide-x">
           {renderRowLabel("觀眾取向", "required", Boolean(missingRequiredMap.audience))}
           <div id="metadata-audience" className="space-y-2 p-4">
             <div className="inline-flex flex-wrap gap-1.5 rounded-md border bg-background p-1">
-              {["男性向", "女性向", "一般向"].map((opt) => (
+              {["男性向", "女性向", "全性向"].map((opt) => (
                 <Button
                   key={`aud-${opt}`}
                   type="button"
@@ -133,8 +133,8 @@ export function ScriptMetadataPublishSection({
               color: "var(--license-term-fg)",
             }}
           >
-            <div className="text-sm font-medium text-foreground">附加條款與著作權</div>
-            <div className="mt-1 text-xs text-muted-foreground">補充限制與版權聲明</div>
+            <div className="text-sm font-medium text-foreground">附加條款</div>
+            <div className="mt-1 text-xs text-muted-foreground">補充授權限制與使用說明</div>
           </div>
           <div className="space-y-3 p-4">
             <div className="flex gap-2">
@@ -163,11 +163,6 @@ export function ScriptMetadataPublishSection({
                 ))}
               </div>
             )}
-            <Input
-              value={copyright}
-              onChange={(e) => setCopyright(e.target.value)}
-              placeholder="Copyright (c) ..."
-            />
           </div>
         </div>
       </div>

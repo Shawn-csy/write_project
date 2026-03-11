@@ -7,7 +7,7 @@ import zipfile
 import crud_ops as crud
 import schemas
 import models
-from dependencies import get_db, get_current_user_id, is_admin_user_id
+from dependencies import get_db, get_current_user_id, is_admin_user
 from rate_limit import limiter
 
 router = APIRouter(prefix="/api/scripts", tags=["scripts"])
@@ -18,7 +18,7 @@ def read_scripts(
     ownerIdQuery: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    effective_owner_id = ownerIdQuery if ownerIdQuery and is_admin_user_id(ownerId) else ownerId
+    effective_owner_id = ownerIdQuery if ownerIdQuery and is_admin_user(db, ownerId) else ownerId
     return crud.get_scripts(db, ownerId=effective_owner_id)
 
 @router.post("", response_model=schemas.Script)
@@ -28,7 +28,9 @@ def create_script(script: schemas.ScriptCreate, db: Session = Depends(get_db), o
 @router.put("/reorder")
 def reorder_scripts(payload: schemas.ScriptReorderRequest, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
     print(f"Reordering {len(payload.items)} items")
-    crud.reorder_scripts(db, payload.items, ownerId)
+    success = crud.reorder_scripts(db, payload.items, ownerId)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to reorder scripts")
     return {"success": True}
 
 @router.get("/{script_id}", response_model=schemas.Script)
@@ -54,7 +56,7 @@ def delete_script(script_id: str, db: Session = Depends(get_db), ownerId: str = 
 
 @router.post("/{script_id}/transfer")
 def transfer_script(script_id: str, payload: schemas.ScriptTransferRequest, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
-    if is_admin_user_id(ownerId):
+    if is_admin_user(db, ownerId):
         success = crud.transfer_script_ownership_admin(db, script_id, payload.newOwnerId)
     else:
         success = crud.transfer_script_ownership(db, script_id, payload.newOwnerId, ownerId)
@@ -71,6 +73,8 @@ def increment_view(script_id: str, db: Session = Depends(get_db)):
 @router.post("/{script_id}/like")
 def toggle_like(script_id: str, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
     liked = crud.toggle_script_like(db, script_id, ownerId)
+    if liked is None:
+        raise HTTPException(status_code=404, detail="Script not found")
     return {"success": True, "liked": liked}
 
 # Export (Note: Endpoint path is /api/export/all, handled here or in a separate router? 

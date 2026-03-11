@@ -217,3 +217,29 @@ def test_organization_member_role_and_remove_permissions(client: TestClient, db_
         headers={"X-User-Id": "u3"},
     )
     assert resp.status_code == 400
+
+
+def test_persona_org_ids_cannot_grant_unauthorized_org_access(client: TestClient):
+    owner_headers = {"X-User-Id": "org-owner-locked"}
+    attacker_headers = {"X-User-Id": "org-attacker-locked"}
+
+    create_org_res = client.post("/api/organizations", json={"name": "Locked Org"}, headers=owner_headers)
+    assert create_org_res.status_code == 200
+    org_id = create_org_res.json()["id"]
+
+    blocked_res = client.get(f"/api/organizations/{org_id}", headers=attacker_headers)
+    assert blocked_res.status_code == 403
+
+    create_persona_res = client.post(
+        "/api/personas",
+        json={"displayName": "Attacker Persona", "organizationIds": [org_id]},
+        headers=attacker_headers,
+    )
+    assert create_persona_res.status_code == 200
+    assert create_persona_res.json().get("organizationIds") == []
+
+    blocked_again = client.get(f"/api/organizations/{org_id}", headers=attacker_headers)
+    assert blocked_again.status_code == 403
+
+    blocked_members = client.get(f"/api/organizations/{org_id}/members", headers=attacker_headers)
+    assert blocked_members.status_code == 403

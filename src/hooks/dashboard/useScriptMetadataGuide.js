@@ -3,7 +3,7 @@ import { usePersistentSpotlightGuide } from "../usePersistentSpotlightGuide";
 
 const SCRIPT_METADATA_GUIDE_STORAGE_KEY = "script-metadata-guide-seen-v1";
 
-const SECTION_IDS = ["basic", "publish", "exposure", "advanced"];
+const SECTION_IDS = ["basic", "publish", "exposure", "activity", "demo", "advanced"];
 
 function getChecklistTarget(key) {
   if (key === "title") return { section: "basic", fieldId: "metadata-title" };

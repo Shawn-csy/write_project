@@ -1,5 +1,6 @@
 import main
 import models
+import crud_ops as crud
 
 def _create_user(db, user_id):
     user = models.User(id=user_id, displayName=user_id)
@@ -135,6 +136,151 @@ def test_script_transfer_route(client, db_session):
     assert script.ownerId == new_owner_id
 
 
+def test_script_transfer_route_requires_existing_new_owner(client, db_session):
+    owner_id = "script-owner-missing-target"
+    _create_user(db_session, owner_id)
+
+    headers = {"X-User-ID": owner_id}
+    create_res = client.post("/api/scripts", json={"title": "Transfer Me 2"}, headers=headers)
+    assert create_res.status_code == 200
+    script_id = create_res.json()["id"]
+
+    transfer_res = client.post(
+        f"/api/scripts/{script_id}/transfer",
+        json={"newOwnerId": "missing-user"},
+        headers=headers,
+    )
+    assert transfer_res.status_code == 404
+
+
+def test_toggle_like_not_found_returns_404(client, db_session):
+    user_id = "like-user"
+    _create_user(db_session, user_id)
+    headers = {"X-User-ID": user_id}
+
+    res = client.post("/api/scripts/missing-script/like", headers=headers)
+    assert res.status_code == 404
+
+
+def test_reorder_scripts_failure_returns_500(client, db_session, monkeypatch):
+    user_id = "reorder-user"
+    _create_user(db_session, user_id)
+    headers = {"X-User-ID": user_id}
+
+    monkeypatch.setattr(crud, "reorder_scripts", lambda *args, **kwargs: False)
+    res = client.put(
+        "/api/scripts/reorder",
+        json={"items": [{"id": "missing", "sortOrder": 1.0}]},
+        headers=headers,
+    )
+    assert res.status_code == 500
+
+
+def test_dynamic_admin_has_consistent_admin_privileges(client, db_session):
+    owner_id = "dynamic-owner"
+    new_owner_id = "dynamic-new-owner"
+    delegated_admin_id = "dynamic-sub-admin"
+    _create_user(db_session, owner_id)
+    _create_user(db_session, new_owner_id)
+    _create_user(db_session, delegated_admin_id)
+
+    owner_headers = {"X-User-ID": owner_id}
+    admin_headers = {"X-User-ID": "admin-owner"}
+    delegated_headers = {"X-User-ID": delegated_admin_id}
+
+    script_res = client.post("/api/scripts", json={"title": "Delegated Script"}, headers=owner_headers)
+    assert script_res.status_code == 200
+    script_id = script_res.json()["id"]
+
+    org_res = client.post("/api/organizations", json={"name": "Delegated Org"}, headers=owner_headers)
+    assert org_res.status_code == 200
+    org_id = org_res.json()["id"]
+
+    persona_res = client.post("/api/personas", json={"displayName": "Delegated Persona"}, headers=owner_headers)
+    assert persona_res.status_code == 200
+    persona_id = persona_res.json()["id"]
+
+    add_admin_res = client.post(
+        "/api/admin/admin-users",
+        json={"userId": delegated_admin_id},
+        headers=admin_headers,
+    )
+    assert add_admin_res.status_code == 200
+
+    scripts_as_admin = client.get(f"/api/scripts?ownerIdQuery={owner_id}", headers=delegated_headers)
+    assert scripts_as_admin.status_code == 200
+    assert any(item["id"] == script_id for item in scripts_as_admin.json())
+
+    orgs_as_admin = client.get(f"/api/organizations?ownerIdQuery={owner_id}", headers=delegated_headers)
+    assert orgs_as_admin.status_code == 200
+    assert any(item["id"] == org_id for item in orgs_as_admin.json())
+
+    personas_as_admin = client.get(f"/api/personas?ownerIdQuery={owner_id}", headers=delegated_headers)
+    assert personas_as_admin.status_code == 200
+    assert any(item["id"] == persona_id for item in personas_as_admin.json())
+
+    transfer_script_res = client.post(
+        f"/api/scripts/{script_id}/transfer",
+        json={"newOwnerId": new_owner_id},
+        headers=delegated_headers,
+    )
+    assert transfer_script_res.status_code == 200
+
+    transfer_org_res = client.post(
+        f"/api/organizations/{org_id}/transfer",
+        json={"newOwnerId": new_owner_id, "transferScripts": False},
+        headers=delegated_headers,
+    )
+    assert transfer_org_res.status_code == 200
+
+    transfer_persona_res = client.post(
+        f"/api/personas/{persona_id}/transfer",
+        json={"newOwnerId": new_owner_id},
+        headers=delegated_headers,
+    )
+    assert transfer_persona_res.status_code == 200
+
+
+def test_organization_transfer_respects_transfer_scripts_flag(client, db_session):
+    owner_id = "org-transfer-owner"
+    new_owner_id = "org-transfer-new-owner"
+    _create_user(db_session, owner_id)
+    _create_user(db_session, new_owner_id)
+
+    owner_headers = {"X-User-ID": owner_id}
+    new_owner_headers = {"X-User-ID": new_owner_id}
+
+    org_res = client.post("/api/organizations", json={"name": "Transfer Org"}, headers=owner_headers)
+    assert org_res.status_code == 200
+    org_id = org_res.json()["id"]
+
+    script_res = client.post(
+        "/api/scripts",
+        json={"title": "Org Script"},
+        headers=owner_headers,
+    )
+    assert script_res.status_code == 200
+    script_id = script_res.json()["id"]
+    assign_res = client.put(
+        f"/api/scripts/{script_id}",
+        json={"organizationId": org_id},
+        headers=owner_headers,
+    )
+    assert assign_res.status_code == 200
+
+    transfer_res = client.post(
+        f"/api/organizations/{org_id}/transfer",
+        json={"newOwnerId": new_owner_id, "transferScripts": True},
+        headers=owner_headers,
+    )
+    assert transfer_res.status_code == 200
+
+    old_owner_read = client.get(f"/api/scripts/{script_id}", headers=owner_headers)
+    assert old_owner_read.status_code == 404
+    new_owner_read = client.get(f"/api/scripts/{script_id}", headers=new_owner_headers)
+    assert new_owner_read.status_code == 200
+
+
 def test_theme_copy_route(client, db_session):
     owner_id = "theme-owner"
     other_id = "theme-other"
@@ -208,6 +354,49 @@ def test_public_script_visibility_route(client, db_session):
     assert private_root.status_code == 404
 
 
+def test_public_script_owner_redacts_sensitive_fields(client, db_session):
+    owner_id = "public-owner-redact"
+    _create_user(db_session, owner_id)
+    headers = {"X-User-ID": owner_id}
+
+    owner = db_session.query(models.User).filter(models.User.id == owner_id).first()
+    owner.email = "private-owner@example.com"
+    owner.displayName = "Redact Owner"
+    db_session.commit()
+
+    script_res = client.post(
+        "/api/scripts",
+        json={"title": "Public Redact Script", "isPublic": True},
+        headers=headers,
+    )
+    assert script_res.status_code == 200
+    script_id = script_res.json()["id"]
+
+    list_res = client.get("/api/public-scripts")
+    assert list_res.status_code == 200
+    row = next((item for item in list_res.json() if item["id"] == script_id), None)
+    assert row is not None
+    owner_obj = row.get("owner") or {}
+    assert owner_obj.get("email") in (None, "")
+    assert "settings" not in owner_obj
+    assert "lastLogin" not in owner_obj
+
+    detail_res = client.get(f"/api/public-scripts/{script_id}")
+    assert detail_res.status_code == 200
+    detail_owner = (detail_res.json().get("owner") or {})
+    assert detail_owner.get("email") in (None, "")
+    assert "settings" not in detail_owner
+    assert "lastLogin" not in detail_owner
+
+    bundle_res = client.get("/api/public-bundle")
+    assert bundle_res.status_code == 200
+    bundle_script = next((item for item in bundle_res.json().get("scripts", []) if item["id"] == script_id), None)
+    assert bundle_script is not None
+    bundle_owner = bundle_script.get("owner") or {}
+    assert bundle_owner.get("email") in (None, "")
+    assert "settings" not in bundle_owner
+
+
 def test_admin_user_search_and_engagement_routes(client, db_session):
     owner_id = "admin-owner"
     _create_user(db_session, owner_id)
@@ -274,6 +463,11 @@ def test_non_admin_can_search_user_by_exact_email_only(client, db_session):
 
     fuzzy_res = client.get("/api/admin/users?q=target", headers=headers)
     assert fuzzy_res.status_code == 403
+
+
+def test_unknown_api_path_returns_404(client):
+    res = client.get("/api/definitely-not-exists")
+    assert res.status_code == 404
 
 
 def test_admin_can_delete_user_and_owned_resources(client, db_session):
@@ -414,3 +608,15 @@ def test_read_script_seo_injects_meta(client, db_session, tmp_path, monkeypatch)
     assert "<title>SEO Title｜Screenplay Reader</title>" in body
     assert "og:title" in body
     assert "SEO Title" in body
+
+
+def test_seo_error_response_does_not_expose_traceback(client, monkeypatch):
+    import routers.seo as seo
+
+    def _boom(*_args, **_kwargs):
+        raise RuntimeError("forced failure")
+
+    monkeypatch.setattr(seo.os.path, "exists", _boom)
+    res = client.get("/read/non-existent-script")
+    assert res.status_code == 500
+    assert "Traceback" not in res.text
