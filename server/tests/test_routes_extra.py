@@ -135,6 +135,46 @@ def test_script_transfer_route(client, db_session):
     assert script.ownerId == new_owner_id
 
 
+def test_organization_transfer_respects_transfer_scripts_flag(client, db_session):
+    owner_id = "org-transfer-owner"
+    new_owner_id = "org-transfer-new-owner"
+    _create_user(db_session, owner_id)
+    _create_user(db_session, new_owner_id)
+
+    owner_headers = {"X-User-ID": owner_id}
+    new_owner_headers = {"X-User-ID": new_owner_id}
+
+    org_res = client.post("/api/organizations", json={"name": "Transfer Org"}, headers=owner_headers)
+    assert org_res.status_code == 200
+    org_id = org_res.json()["id"]
+
+    script_res = client.post(
+        "/api/scripts",
+        json={"title": "Org Script"},
+        headers=owner_headers,
+    )
+    assert script_res.status_code == 200
+    script_id = script_res.json()["id"]
+    assign_res = client.put(
+        f"/api/scripts/{script_id}",
+        json={"organizationId": org_id},
+        headers=owner_headers,
+    )
+    assert assign_res.status_code == 200
+
+    transfer_res = client.post(
+        f"/api/organizations/{org_id}/transfer",
+        json={"newOwnerId": new_owner_id, "transferScripts": True},
+        headers=owner_headers,
+    )
+    assert transfer_res.status_code == 200
+
+    old_owner_read = client.get(f"/api/scripts/{script_id}", headers=owner_headers)
+    assert old_owner_read.status_code == 404
+    new_owner_read = client.get(f"/api/scripts/{script_id}", headers=new_owner_headers)
+    assert new_owner_read.status_code == 200
+
+
 def test_theme_copy_route(client, db_session):
     owner_id = "theme-owner"
     other_id = "theme-other"
@@ -206,6 +246,49 @@ def test_public_script_visibility_route(client, db_session):
     # Private root should 404
     private_root = client.get(f"/api/public-scripts/{private_id}")
     assert private_root.status_code == 404
+
+
+def test_public_script_owner_redacts_sensitive_fields(client, db_session):
+    owner_id = "public-owner-redact"
+    _create_user(db_session, owner_id)
+    headers = {"X-User-ID": owner_id}
+
+    owner = db_session.query(models.User).filter(models.User.id == owner_id).first()
+    owner.email = "private-owner@example.com"
+    owner.displayName = "Redact Owner"
+    db_session.commit()
+
+    script_res = client.post(
+        "/api/scripts",
+        json={"title": "Public Redact Script", "isPublic": True},
+        headers=headers,
+    )
+    assert script_res.status_code == 200
+    script_id = script_res.json()["id"]
+
+    list_res = client.get("/api/public-scripts")
+    assert list_res.status_code == 200
+    row = next((item for item in list_res.json() if item["id"] == script_id), None)
+    assert row is not None
+    owner_obj = row.get("owner") or {}
+    assert owner_obj.get("email") in (None, "")
+    assert "settings" not in owner_obj
+    assert "lastLogin" not in owner_obj
+
+    detail_res = client.get(f"/api/public-scripts/{script_id}")
+    assert detail_res.status_code == 200
+    detail_owner = (detail_res.json().get("owner") or {})
+    assert detail_owner.get("email") in (None, "")
+    assert "settings" not in detail_owner
+    assert "lastLogin" not in detail_owner
+
+    bundle_res = client.get("/api/public-bundle")
+    assert bundle_res.status_code == 200
+    bundle_script = next((item for item in bundle_res.json().get("scripts", []) if item["id"] == script_id), None)
+    assert bundle_script is not None
+    bundle_owner = bundle_script.get("owner") or {}
+    assert bundle_owner.get("email") in (None, "")
+    assert "settings" not in bundle_owner
 
 
 def test_admin_user_search_and_engagement_routes(client, db_session):
@@ -419,3 +502,15 @@ def test_read_script_seo_injects_meta(client, db_session, tmp_path, monkeypatch)
     assert "<title>SEO Title｜Screenplay Reader</title>" in body
     assert "og:title" in body
     assert "SEO Title" in body
+
+
+def test_seo_error_response_does_not_expose_traceback(client, monkeypatch):
+    import routers.seo as seo
+
+    def _boom(*_args, **_kwargs):
+        raise RuntimeError("forced failure")
+
+    monkeypatch.setattr(seo.os.path, "exists", _boom)
+    res = client.get("/read/non-existent-script")
+    assert res.status_code == 500
+    assert "Traceback" not in res.text

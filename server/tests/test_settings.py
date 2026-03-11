@@ -132,3 +132,27 @@ def test_update_settings_duplicate_handle_returns_409(client, db_session):
     )
     assert response.status_code == 409
     assert response.json()["detail"] == "Handle already taken"
+
+
+def test_read_me_does_not_dirty_user_settings_before_other_writes(client, db_session):
+    now = int(time.time() * 1000)
+    db_session.add(
+        User(
+            id="settings_flush_user",
+            handle="settings_flush_user",
+            settings='{"accent":"blue"}',
+            createdAt=now,
+            lastLogin=now,
+        )
+    )
+    db_session.commit()
+
+    headers = {"X-User-ID": "settings_flush_user"}
+    me_res = client.get("/api/me", headers=headers)
+    assert me_res.status_code == 200
+    assert me_res.json()["settings"]["accent"] == "blue"
+
+    # Regression: this used to fail with sqlite binding error because /api/me
+    # mutated ORM user.settings from JSON string to dict in-session.
+    create_res = client.post("/api/scripts", json={"title": "AfterMe"}, headers=headers)
+    assert create_res.status_code == 200
