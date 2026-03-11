@@ -3,6 +3,7 @@ import { getScript } from "../../lib/api/scripts";
 import { parseBasicLicenseFromMeta } from "../../lib/licenseRights";
 import { buildCustomFieldsFromRawEntries } from "./scriptMetadataUtils";
 import { customMetadataEntriesToMeta, customMetadataEntriesToRawEntries } from "../../lib/customMetadata";
+import { parseActivityDemoLinks } from "../../lib/activityDemoLinks";
 
 export function useScriptMetadataHydration({
   customFields,
@@ -35,7 +36,7 @@ export function useScriptMetadataHydration({
   setActivityName,
   setActivityBannerUrl,
   setActivityContent,
-  setActivityDemoUrl,
+  setActivityDemoLinks,
   setActivityWorkUrl,
   setSeriesName,
   setSeriesId,
@@ -125,7 +126,13 @@ export function useScriptMetadataHydration({
       setActivityName(String(meta.activityname || meta.eventname || ""));
       setActivityBannerUrl(String(meta.activitybanner || meta.eventbanner || ""));
       setActivityContent(String(meta.activitycontent || meta.eventcontent || ""));
-      setActivityDemoUrl(String(meta.activitydemourl || meta.eventdemolink || ""));
+      const parsedDemoLinks = parseActivityDemoLinks(meta.activitydemolinks || meta.eventdemolinks);
+      if (parsedDemoLinks.length > 0) {
+        setActivityDemoLinks(parsedDemoLinks);
+      } else {
+        const legacyDemoUrl = String(meta.activitydemourl || meta.eventdemolink || "").trim();
+        setActivityDemoLinks(legacyDemoUrl ? [{ id: "demo-1", name: "", url: legacyDemoUrl, cast: "", description: "" }] : []);
+      }
       setActivityWorkUrl(String(meta.activityworkurl || meta.eventworklink || ""));
       setSeriesName(String(meta.series || meta.seriesname || sourceScript?.series?.name || ""));
       setSeriesId(sourceScript?.seriesId || "");
@@ -189,7 +196,7 @@ export function useScriptMetadataHydration({
       setActivityName,
       setActivityBannerUrl,
       setActivityContent,
-      setActivityDemoUrl,
+      setActivityDemoLinks,
       setActivityWorkUrl,
       setShowMarkerLegend,
       setStatus,

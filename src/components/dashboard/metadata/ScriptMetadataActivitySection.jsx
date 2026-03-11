@@ -19,8 +19,6 @@ export function ScriptMetadataActivitySection({
   activityBannerUploadWarning,
   activityContent,
   setActivityContent,
-  activityDemoUrl,
-  setActivityDemoUrl,
   activityWorkUrl,
   setActivityWorkUrl,
 }) {
@@ -94,19 +92,6 @@ export function ScriptMetadataActivitySection({
               onChange={(e) => setActivityContent(e.target.value)}
               placeholder="輸入活動內容..."
               className="min-h-[120px]"
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
-          <div className={getRowLabelClass("recommended")}>
-            <div className="text-sm font-medium text-foreground">試聽範例連結</div>
-            <div className="mt-1 text-xs text-muted-foreground">可放 YouTube / SoundCloud / 平台試聽頁</div>
-          </div>
-          <div className="space-y-2 p-4">
-            <Input
-              value={activityDemoUrl}
-              onChange={(e) => setActivityDemoUrl(e.target.value)}
-              placeholder="https://..."
             />
           </div>
         </div>

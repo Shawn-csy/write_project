@@ -1,6 +1,10 @@
 import time
 
 from models import User
+import crud_ops as crud
+import schemas
+from models import Script
+from routers import admin as admin_router
 
 
 def _seed_user(db_session, user_id: str, email: str, display_name: str = ""):
@@ -52,3 +56,24 @@ def test_admin_delete_user_guards_and_success(client, db_session):
     deleted = client.delete("/api/admin/all-users/delete-me", headers={"X-User-ID": "admin-owner"})
     assert deleted.status_code == 200
     assert deleted.json()["success"] is True
+
+
+def test_admin_delete_user_rolls_back_on_failure(client, db_session, monkeypatch):
+    _seed_user(db_session, "admin-owner", "admin-owner@example.com")
+    _seed_user(db_session, "rollback-user", "rollback-user@example.com")
+
+    fail_script = crud.create_script(db_session, schemas.ScriptCreate(title="will-fail", type="script"), "rollback-user")
+    script_id = fail_script.id
+
+    def fail_owned_script_delete(*args, **kwargs):
+        raise RuntimeError("forced failure during delete")
+
+    monkeypatch.setattr(admin_router, "_delete_scripts_owned_by", fail_owned_script_delete)
+
+    res = client.delete("/api/admin/all-users/rollback-user", headers={"X-User-ID": "admin-owner"})
+    assert res.status_code == 500
+
+    # In this test harness, route-level rollback reverts the whole function-scoped transaction,
+    # including fixture setup rows created earlier in the same test.
+    assert db_session.query(User).filter(User.id == "rollback-user").first() is None
+    assert db_session.query(Script).filter(Script.id == script_id).first() is None

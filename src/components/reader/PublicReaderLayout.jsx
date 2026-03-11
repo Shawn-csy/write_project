@@ -9,6 +9,7 @@ import { loadBasicScriptExport, loadXlsxScriptExport } from "../../lib/scriptExp
 import { useI18n } from "../../contexts/I18nContext";
 import { CoverPlaceholder } from "../ui/CoverPlaceholder";
 import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
+import { normalizeActivityDemoLinks } from "../../lib/activityDemoLinks";
 
 const PUBLIC_READER_GUIDE_STORAGE_KEY = "public-reader-guide-seen-v1";
 const PUBLIC_READER_TOC_OPEN_STORAGE_KEY = "public-reader-toc-open-v1";
@@ -420,10 +421,19 @@ export function PublicReaderLayout({
     const name = String(base?.name || "").trim();
     const bannerUrl = String(base?.bannerUrl || "").trim();
     const content = String(base?.content || "").trim();
-    const demoUrl = String(base?.demoUrl || "").trim();
     const workUrl = String(base?.workUrl || "").trim();
-    if (!name && !bannerUrl && !content && !demoUrl && !workUrl) return null;
-    return { name, bannerUrl, content, demoUrl, workUrl };
+    if (!name && !bannerUrl && !content && !workUrl) return null;
+    return { name, bannerUrl, content, workUrl };
+  }, [activity]);
+
+  const normalizedDemoLinks = useMemo(() => {
+    const base = activity || {};
+    const demoUrl = String(base?.demoUrl || "").trim();
+    const links = normalizeActivityDemoLinks(base?.demoLinks || []).filter((item) => item.url);
+    if (links.length === 0 && demoUrl) {
+      links.push({ id: "demo-legacy", name: "試聽範例", url: demoUrl, cast: "", description: "" });
+    }
+    return links;
   }, [activity]);
 
   return (
@@ -497,6 +507,7 @@ export function PublicReaderLayout({
                          derivativeUse={derivativeUse}
                          notifyOnModify={notifyOnModify}
                          prefaceItems={prefaceItems}
+                         demoLinks={normalizedDemoLinks}
                      />
                    </div>
                    {normalizedActivity && (
@@ -521,28 +532,16 @@ export function PublicReaderLayout({
                              {normalizedActivity.content}
                            </p>
                          )}
-                         {(normalizedActivity.demoUrl || normalizedActivity.workUrl) && (
-                           <div className="mt-3 flex flex-wrap gap-2">
-                             {normalizedActivity.demoUrl && (
-                               <a
-                                 href={normalizedActivity.demoUrl}
-                                 target="_blank"
-                                 rel="noreferrer"
-                                 className="inline-flex items-center rounded-md border border-border/60 bg-background px-2.5 py-1 text-xs font-medium text-primary hover:bg-muted"
-                               >
-                                 試聽範例
-                               </a>
-                             )}
-                             {normalizedActivity.workUrl && (
-                               <a
-                                 href={normalizedActivity.workUrl}
-                                 target="_blank"
-                                 rel="noreferrer"
-                                 className="inline-flex items-center rounded-md border border-border/60 bg-background px-2.5 py-1 text-xs font-medium text-primary hover:bg-muted"
-                               >
-                                 成品連結
-                               </a>
-                             )}
+                         {normalizedActivity.workUrl && (
+                           <div className="mt-3">
+                             <a
+                               href={normalizedActivity.workUrl}
+                               target="_blank"
+                               rel="noreferrer"
+                               className="inline-flex items-center rounded-md border border-border/60 bg-background px-2.5 py-1 text-xs font-medium text-primary hover:bg-muted"
+                             >
+                               成品連結
+                             </a>
                            </div>
                          )}
                        </div>

@@ -59,6 +59,46 @@ def _normalize_homepage_banner_value(raw_value: str) -> dict:
     }
 
 
+def _delete_scripts_owned_by(db: Session, owner_id: str):
+    scripts = db.query(models.Script).filter(models.Script.ownerId == owner_id).all()
+    for script in scripts:
+        if script.type == "folder":
+            folder_path = f"{script.folder}/{script.title}" if script.folder != "/" else f"/{script.title}"
+            descendants = db.query(models.Script).filter(
+                models.Script.ownerId == owner_id,
+                (
+                    (models.Script.folder == folder_path)
+                    | models.Script.folder.like(f"{folder_path}/%")
+                ),
+            ).all()
+            for child in descendants:
+                db.delete(child)
+        db.delete(script)
+
+
+def _delete_organizations_owned_by(db: Session, owner_id: str):
+    orgs = db.query(models.Organization).filter(models.Organization.ownerId == owner_id).all()
+    for org in orgs:
+        org_id = org.id
+        db.query(models.OrganizationMembership).filter(models.OrganizationMembership.orgId == org_id).delete(synchronize_session=False)
+        db.query(models.Script).filter(models.Script.organizationId == org_id).update(
+            {models.Script.organizationId: None},
+            synchronize_session=False,
+        )
+        db.query(models.PersonaOrganizationMembership).filter(
+            models.PersonaOrganizationMembership.orgId == org_id
+        ).delete(synchronize_session=False)
+        personas = db.query(models.Persona).all()
+        for persona in personas:
+            org_ids = crud._ensure_list(persona.organizationIds)
+            if org_id in org_ids:
+                persona.organizationIds = [oid for oid in org_ids if oid != org_id]
+        users = db.query(models.User).filter(models.User.organizationId == org_id).all()
+        for user in users:
+            user.organizationId = crud.get_primary_user_org_id(db, user.id, include_legacy=False)
+        db.query(models.Organization).filter(models.Organization.id == org_id).delete(synchronize_session=False)
+
+
 @router.get("/default-marker-configs", response_model=List[dict])
 def get_default_marker_configs(
     db: Session = Depends(get_db),
@@ -194,8 +234,10 @@ def create_admin_user(
             user_id = user.id
 
     exists_query = db.query(models.AdminUser)
-    if user_id:
+    if user_id and email:
         exists_query = exists_query.filter((models.AdminUser.userId == user_id) | (models.AdminUser.email == email))
+    elif user_id:
+        exists_query = exists_query.filter(models.AdminUser.userId == user_id)
     else:
         exists_query = exists_query.filter(models.AdminUser.email == email)
     if exists_query.first():
@@ -348,50 +390,55 @@ def admin_delete_user(
         raise HTTPException(status_code=404, detail="User not found")
 
     email = str(getattr(user, "email", "") or "").strip().lower()
+    try:
+        _delete_scripts_owned_by(db, user_id)
+        _delete_organizations_owned_by(db, user_id)
 
-    # Delete owned resources first to avoid leaving orphaned records.
-    script_ids = [row.id for row in db.query(models.Script.id).filter(models.Script.ownerId == user_id).all()]
-    for script_id in script_ids:
-        crud.delete_script(db, script_id, user_id)
-
-    org_rows = db.query(models.Organization).filter(models.Organization.ownerId == user_id).all()
-    for org in org_rows:
-        crud.delete_organization(db, org.id, user_id)
-
-    persona_ids = [row.id for row in db.query(models.Persona.id).filter(models.Persona.ownerId == user_id).all()]
-    for persona_id in persona_ids:
-        crud.delete_persona(db, persona_id)
-
-    series_ids = [row.id for row in db.query(models.Series.id).filter(models.Series.ownerId == user_id).all()]
-    for series_id in series_ids:
-        crud.delete_series(db, series_id, user_id)
-
-    db.query(models.OrganizationInvite).filter(
-        (models.OrganizationInvite.invitedUserId == user_id)
-        | (models.OrganizationInvite.inviterUserId == user_id)
-    ).delete(synchronize_session=False)
-    db.query(models.OrganizationRequest).filter(
-        models.OrganizationRequest.requesterUserId == user_id
-    ).delete(synchronize_session=False)
-    db.query(models.OrganizationMembership).filter(
-        models.OrganizationMembership.userId == user_id
-    ).delete(synchronize_session=False)
-    db.query(models.ScriptLike).filter(models.ScriptLike.userId == user_id).delete(synchronize_session=False)
-    db.query(models.MarkerTheme).filter(models.MarkerTheme.ownerId == user_id).delete(synchronize_session=False)
-    db.query(models.Tag).filter(models.Tag.ownerId == user_id).delete(synchronize_session=False)
-    db.query(models.PublicTermsAcceptance).filter(
-        models.PublicTermsAcceptance.userId == user_id
-    ).delete(synchronize_session=False)
-
-    if email:
-        db.query(models.AdminUser).filter(
-            (models.AdminUser.userId == user_id) | (func.lower(models.AdminUser.email) == email)
+        db.query(models.PersonaOrganizationMembership).filter(
+            models.PersonaOrganizationMembership.personaId.in_(
+                db.query(models.Persona.id).filter(models.Persona.ownerId == user_id)
+            )
         ).delete(synchronize_session=False)
-    else:
-        db.query(models.AdminUser).filter(models.AdminUser.userId == user_id).delete(synchronize_session=False)
+        db.query(models.Script).filter(models.Script.personaId.in_(
+            db.query(models.Persona.id).filter(models.Persona.ownerId == user_id)
+        )).update({models.Script.personaId: None}, synchronize_session=False)
+        db.query(models.Persona).filter(models.Persona.ownerId == user_id).delete(synchronize_session=False)
 
-    db.delete(user)
-    db.commit()
+        db.query(models.Script).filter(models.Script.ownerId == user_id).update(
+            {models.Script.seriesId: None, models.Script.seriesOrder: None},
+            synchronize_session=False,
+        )
+        db.query(models.Series).filter(models.Series.ownerId == user_id).delete(synchronize_session=False)
+
+        db.query(models.OrganizationInvite).filter(
+            (models.OrganizationInvite.invitedUserId == user_id)
+            | (models.OrganizationInvite.inviterUserId == user_id)
+        ).delete(synchronize_session=False)
+        db.query(models.OrganizationRequest).filter(
+            models.OrganizationRequest.requesterUserId == user_id
+        ).delete(synchronize_session=False)
+        db.query(models.OrganizationMembership).filter(
+            models.OrganizationMembership.userId == user_id
+        ).delete(synchronize_session=False)
+        db.query(models.ScriptLike).filter(models.ScriptLike.userId == user_id).delete(synchronize_session=False)
+        db.query(models.MarkerTheme).filter(models.MarkerTheme.ownerId == user_id).delete(synchronize_session=False)
+        db.query(models.Tag).filter(models.Tag.ownerId == user_id).delete(synchronize_session=False)
+        db.query(models.PublicTermsAcceptance).filter(
+            models.PublicTermsAcceptance.userId == user_id
+        ).delete(synchronize_session=False)
+
+        if email:
+            db.query(models.AdminUser).filter(
+                (models.AdminUser.userId == user_id) | (func.lower(models.AdminUser.email) == email)
+            ).delete(synchronize_session=False)
+        else:
+            db.query(models.AdminUser).filter(models.AdminUser.userId == user_id).delete(synchronize_session=False)
+
+        db.delete(user)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to delete user")
     return {"success": True}
 
 

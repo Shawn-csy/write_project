@@ -61,11 +61,14 @@ def create_app() -> FastAPI:
         response = await call_next(request)
         response.headers.setdefault(
             "Content-Security-Policy",
-            "default-src * 'self' data: blob: 'unsafe-inline' 'unsafe-eval'; "
-            "img-src * data: blob:; "
-            "connect-src *; "
-            "style-src * 'unsafe-inline'; "
-            "frame-ancestors 'self';",
+            "default-src 'self'; "
+            "base-uri 'self'; "
+            "frame-ancestors 'self'; "
+            "object-src 'none'; "
+            "script-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: blob: https:; "
+            "connect-src 'self' https: http://localhost:5173 http://localhost:1090 ws://localhost:5173 ws://localhost:1090; "
+            "style-src 'self' 'unsafe-inline';",
         )
         response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin-allow-popups")
         response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
@@ -227,7 +230,7 @@ If you send the `Accept: text/markdown` header, or if you identify as an AI bot 
                         return Response(content=script.content, media_type="text/markdown")
                     return Response(content="Script not found or is private.", status_code=404, media_type="text/markdown")
                 except Exception:
-                    pass
+                    return Response(content="Internal Server Error", status_code=500, media_type="text/markdown")
 
         if os.path.exists(INDEX_PATH):
             with open(INDEX_PATH, "r", encoding="utf-8") as f:

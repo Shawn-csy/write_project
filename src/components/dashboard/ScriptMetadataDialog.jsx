@@ -15,6 +15,7 @@ import { PersonaSetupDialog } from "./metadata/PersonaSetupDialog";
 import { ScriptMetadataPublishSection } from "./metadata/ScriptMetadataPublishSection";
 import { ScriptMetadataExposureSection } from "./metadata/ScriptMetadataExposureSection";
 import { ScriptMetadataActivitySection } from "./metadata/ScriptMetadataActivitySection";
+import { ScriptMetadataDemoSection } from "./metadata/ScriptMetadataDemoSection";
 import { ScriptMetadataAdvancedSection } from "./metadata/ScriptMetadataAdvancedSection";
 import { MediaPicker } from "../ui/MediaPicker";
 import { useToast } from "../ui/toast";
@@ -38,6 +39,7 @@ import { useScriptMetadataDetailsProps } from "../../hooks/dashboard/useScriptMe
 import { useScriptMetadataSupplementalState } from "../../hooks/dashboard/useScriptMetadataSupplementalState";
 import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
 import { ImageCropDialog } from "../ui/ImageCropDialog";
+import { createEmptyActivityDemoLink } from "../../lib/activityDemoLinks";
 
 export { buildPublishChecklist };
 
@@ -103,8 +105,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setActivityBannerUrl,
         activityContent,
         setActivityContent,
-        activityDemoUrl,
-        setActivityDemoUrl,
+        activityDemoLinks,
+        setActivityDemoLinks,
         activityWorkUrl,
         setActivityWorkUrl,
         seriesName,
@@ -292,7 +294,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setActivityName,
         setActivityBannerUrl,
         setActivityContent,
-        setActivityDemoUrl,
+        setActivityDemoLinks,
         setActivityWorkUrl,
         setContact,
         setContactFields,
@@ -459,7 +461,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setActivityName,
         setActivityBannerUrl,
         setActivityContent,
-        setActivityDemoUrl,
+        setActivityDemoLinks,
         setActivityWorkUrl,
         setSeriesName,
         setSeriesId,
@@ -534,7 +536,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         activityName,
         activityBannerUrl,
         activityContent,
-        activityDemoUrl,
+        activityDemoLinks,
         activityWorkUrl,
         contact,
         seriesName,
@@ -597,7 +599,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         activityName,
         activityBannerUrl,
         activityContent,
-        activityDemoUrl,
+        activityDemoLinks,
         activityWorkUrl,
         licenseCommercial,
         licenseDerivative,
@@ -709,6 +711,26 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
 
     const removeLicenseSpecialTerm = (index) => {
         setLicenseSpecialTerms((prev) => {
+            const next = [...(prev || [])];
+            next.splice(index, 1);
+            return next;
+        });
+    };
+
+    const handleAddActivityDemoLink = () => {
+        setActivityDemoLinks((prev) => [...(prev || []), createEmptyActivityDemoLink(`demo-${Date.now()}`)]);
+    };
+
+    const handleUpdateActivityDemoLink = (index, field, value) => {
+        setActivityDemoLinks((prev) => {
+            const next = [...(prev || [])];
+            next[index] = { ...(next[index] || createEmptyActivityDemoLink(`demo-${index + 1}`)), [field]: value };
+            return next;
+        });
+    };
+
+    const handleRemoveActivityDemoLink = (index) => {
+        setActivityDemoLinks((prev) => {
             const next = [...(prev || [])];
             next.splice(index, 1);
             return next;
@@ -898,10 +920,15 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                                     activityBannerUploadWarning={activityBannerUploadWarning}
                                     activityContent={activityContent}
                                     setActivityContent={setActivityContent}
-                                    activityDemoUrl={activityDemoUrl}
-                                    setActivityDemoUrl={setActivityDemoUrl}
                                     activityWorkUrl={activityWorkUrl}
                                     setActivityWorkUrl={setActivityWorkUrl}
+                                />
+                                <ScriptMetadataDemoSection
+                                    getRowLabelClass={getRowLabelClass}
+                                    activityDemoLinks={activityDemoLinks}
+                                    onAddActivityDemoLink={handleAddActivityDemoLink}
+                                    onUpdateActivityDemoLink={handleUpdateActivityDemoLink}
+                                    onRemoveActivityDemoLink={handleRemoveActivityDemoLink}
                                 />
 
                                 <ScriptMetadataAdvancedSection

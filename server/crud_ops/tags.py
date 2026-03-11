@@ -26,12 +26,22 @@ def delete_tag(db: Session, tag_id: int, ownerId: str):
 
 
 def add_tag_to_script(db: Session, script_id: str, tag_id: int):
+    existing = (
+        db.query(models.ScriptTag)
+        .filter(models.ScriptTag.scriptId == script_id, models.ScriptTag.tagId == tag_id)
+        .first()
+    )
+    if existing:
+        return True
+
     link = models.ScriptTag(scriptId=script_id, tagId=tag_id)
     db.add(link)
     try:
         db.commit()
+        return True
     except Exception:
         db.rollback()
+        return False
 
 
 def remove_tag_from_script(db: Session, script_id: str, tag_id: int):

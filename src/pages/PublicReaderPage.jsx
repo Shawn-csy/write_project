@@ -10,7 +10,7 @@ import { useScriptViewerDefaults } from "../hooks/useScriptViewerDefaults";
 import { useI18n } from "../contexts/I18nContext";
 import { normalizeMarkerConfigsSchema } from "../lib/markerThemeCodec.js";
 import { defaultMarkerConfigs } from "../constants/defaultMarkerRules.js";
-import { parseScreenplay } from "../lib/screenplayAST.js";
+import { parseActivityDemoLinks } from "../lib/activityDemoLinks";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Checkbox } from "../components/ui/checkbox";
 import { Button } from "../components/ui/button";
@@ -177,10 +177,13 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                     "title", "credit", "author", "authors", "source",
                     "draftdate", "date", "contact", "copyright",
                     "notes", "description", "synopsis", "summary",
+                    "tag", "tags",
                     "outline",
                     "rolesetting", "backgroundinfo", "performanceinstruction", "openingintro", "chaptersettings",
                     "activityname", "activitybanner", "activitycontent", "activitydemourl", "activityworkurl",
+                    "activitydemolinks",
                     "eventname", "eventbanner", "eventcontent", "eventdemolink", "eventworklink",
+                    "eventdemolinks",
                     "setting", "settingintro", "background", "backgroundintro",
                     "authordisplaymode",
                     "cover", "coverurl", "marker_legend", "show_legend",
@@ -261,6 +264,7 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                         bannerUrl: String(meta.activitybanner || meta.eventbanner || "").trim(),
                         content: String(meta.activitycontent || meta.eventcontent || "").trim(),
                         demoUrl: String(meta.activitydemourl || meta.eventdemolink || "").trim(),
+                        demoLinks: parseActivityDemoLinks(meta.activitydemolinks || meta.eventdemolinks),
                         workUrl: String(meta.activityworkurl || meta.eventworklink || "").trim(),
                     },
                     customFields,
@@ -619,32 +623,6 @@ They discover a glowing artifact.
       scrollSceneId,
       scriptManager.hiddenMarkerIds,
   ]);
-
-  useEffect(() => {
-    const sceneRules = (Array.isArray(publicMarkerConfigs) ? publicMarkerConfigs : []).filter((cfg) =>
-      cfg?.parseAs === "scene_heading" || String(cfg?.id || "").toLowerCase().includes("chapter")
-    );
-    const parsed = (() => {
-      try {
-        return parseScreenplay(rawScript || "", publicMarkerConfigs || [])?.scenes || [];
-      } catch (error) {
-        console.error("[MarkerDebug] parseScreenplay failed", error);
-        return [];
-      }
-    })();
-
-    console.log("[MarkerDebug] effective public marker configs", {
-      totalConfigs: Array.isArray(publicMarkerConfigs) ? publicMarkerConfigs.length : 0,
-      sceneRules: sceneRules.map((cfg) => ({
-        id: cfg?.id,
-        matchMode: cfg?.matchMode,
-        parseAs: cfg?.parseAs,
-        regex: cfg?.regex || null,
-      })),
-      parsedScenes: parsed.map((s) => ({ id: s.id, label: s.label })),
-      rawScriptHead: (rawScript || "").split("\n").slice(0, 28),
-    });
-  }, [publicMarkerConfigs, rawScript]);
 
   return (
     <>

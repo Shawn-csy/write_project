@@ -131,3 +131,32 @@ def test_analyze_script_with_fixed_duration(client, db_session):
     # Verify custom duration field exists (optional debugging)
     # assert data["customDurationSeconds"] == 10 # Only if we expose it in API response
 
+def test_analyze_script_with_invalid_theme_configs_json(client, db_session):
+    headers = {"X-User-ID": "u_analysis_invalid_theme"}
+
+    from models import MarkerTheme, User
+    user = User(id="u_analysis_invalid_theme", handle="u_invalid", displayName="Invalid Theme User")
+    db_session.add(user)
+    db_session.add(
+        MarkerTheme(
+            id="theme_invalid_json",
+            ownerId="u_analysis_invalid_theme",
+            name="Broken Theme",
+            configs="{not-valid-json}",
+        )
+    )
+    db_session.commit()
+
+    res = client.post("/api/scripts", json={
+        "title": "Invalid Theme JSON Test",
+        "content": "INT. ROOM - DAY\n\nALICE\nHello.",
+        "markerThemeId": "theme_invalid_json",
+    }, headers=headers)
+    assert res.status_code == 200
+    script_id = res.json()["id"]
+
+    res = client.get(f"/api/analysis/script/{script_id}", headers=headers)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["counts"]["scenes"] == 1
+    assert data["counts"]["dialogueLines"] == 1
