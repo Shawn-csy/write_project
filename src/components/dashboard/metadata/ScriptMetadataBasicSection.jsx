@@ -2,6 +2,8 @@ import React from "react";
 import { MetadataBasicTab } from "./MetadataBasicTab";
 
 export function ScriptMetadataBasicSection({
+  sectionId = "metadata-section-basic",
+  showTitle = true,
   t,
   title,
   setTitle,
@@ -35,8 +37,8 @@ export function ScriptMetadataBasicSection({
   missingRequiredMap,
 }) {
   return (
-    <section id="metadata-section-basic" className="space-y-3 scroll-mt-24">
-      <h3 className="text-base font-semibold">{t("scriptMetadataDialog.tabBasic", "基本資料")}</h3>
+    <section id={sectionId || undefined} className="space-y-3 scroll-mt-24">
+      {showTitle && <h3 className="text-base font-semibold">{t("scriptMetadataDialog.tabBasic", "基本資料")}</h3>}
       <MetadataBasicTab
         title={title}
         setTitle={setTitle}

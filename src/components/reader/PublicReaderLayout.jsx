@@ -438,7 +438,6 @@ export function PublicReaderLayout({
 
   return (
     <div className={`relative w-full h-[100dvh] overflow-hidden flex flex-col bg-background ${hideWhitespace ? 'hide-whitespace' : ''} ${protectionClass}`}>
-      
       {/* 1. Fixed Background Layer */}
       <div 
         className="absolute inset-0 z-0 opacity-30 dark:opacity-20 pointer-events-none"

@@ -5,6 +5,8 @@ import { Textarea } from "../../ui/textarea";
 import { MetadataDetailsTab } from "./MetadataDetailsTab";
 
 export function ScriptMetadataAdvancedSection({
+  sectionId = "metadata-section-advanced",
+  showTitle = true,
   t,
   getRowLabelClass,
   markerThemeId,
@@ -23,8 +25,8 @@ export function ScriptMetadataAdvancedSection({
   applyJson,
 }) {
   return (
-    <section id="metadata-section-advanced" className="space-y-3 scroll-mt-24">
-      <h3 className="text-base font-semibold">{t("scriptMetadataDialog.tabAdvanced", "進階設定")}</h3>
+    <section id={sectionId || undefined} className="space-y-3 scroll-mt-24">
+      {showTitle && <h3 className="text-base font-semibold">{t("scriptMetadataDialog.tabAdvanced", "進階設定")}</h3>}
       <div className="rounded-xl border border-border/70 bg-background shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("advanced")}>標記主題</div>

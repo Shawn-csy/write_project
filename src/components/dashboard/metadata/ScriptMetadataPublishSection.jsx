@@ -4,6 +4,8 @@ import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 
 export function ScriptMetadataPublishSection({
+  sectionId = "metadata-section-publish",
+  showTitle = true,
   t,
   missingRequiredMap,
   requiredErrorMap,
@@ -28,8 +30,8 @@ export function ScriptMetadataPublishSection({
   const selectedNegativeClass = "border-destructive bg-destructive text-destructive-foreground ring-2 ring-destructive/40 hover:bg-destructive/90";
   const selectedWarningClass = "border-[color:var(--license-term-border)] bg-[color:var(--license-term-bg)] text-[color:var(--license-term-fg)] ring-2 ring-[color:var(--license-term-border)]/60 hover:bg-[color:var(--license-term-bg)]";
   return (
-    <section id="metadata-section-publish" className="space-y-3 scroll-mt-24">
-      <h3 className="text-base font-semibold">{t("scriptMetadataDialog.tabPublish", "發布設定")}</h3>
+    <section id={sectionId || undefined} className="space-y-3 scroll-mt-24">
+      {showTitle && <h3 className="text-base font-semibold">{t("scriptMetadataDialog.tabPublish", "發布設定")}</h3>}
       <div className="rounded-xl border border-border/70 bg-background shadow-sm">
         <div className="grid grid-cols-1 divide-y md:grid-cols-[220px_minmax(0,1fr)] md:divide-y-0 md:divide-x">
           {renderRowLabel("觀眾取向", "required", Boolean(missingRequiredMap.audience))}
