@@ -14,14 +14,14 @@ export function ImportStageInput({
     const handleDrop = (e) => { e.preventDefault(); e.stopPropagation(); };
 
     return (
-        <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex flex-col min-h-0">
             <div className="flex items-center justify-between mb-2">
                 <div className="text-sm font-medium">{t("importStageInput.tabContent")}</div>
             </div>
 
-            <div ref={containerRef} className="flex-1 min-h-[180px] sm:min-h-[240px] relative mt-0 group">
+            <div ref={containerRef} className="relative h-[34vh] min-h-[140px] max-h-[420px] mt-0 group">
                 <Textarea 
-                    className="w-full h-full min-h-[180px] sm:min-h-[240px] font-mono text-sm resize-none p-4"
+                    className="w-full h-full min-h-0 font-mono text-sm resize-none p-4"
                     placeholder={t("importStageInput.contentPlaceholder")}
                     value={text}
                     onChange={(e) => setText(e.target.value)}

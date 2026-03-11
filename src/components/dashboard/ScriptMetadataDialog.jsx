@@ -639,6 +639,13 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         navigate("/studio?tab=profile");
     };
 
+    const handlePersonaSetupDialogOpenChange = (nextOpen) => {
+        setShowPersonaSetupDialog(nextOpen);
+        if (!nextOpen) {
+            onOpenChange(false);
+        }
+    };
+
     const { handleSetTargetAudience, handleSetContentRating } = useScriptMetadataTagHandlers({
         currentTags,
         availableTags,
@@ -975,7 +982,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         <PersonaSetupDialog
             t={t}
             open={showPersonaSetupDialog}
-            onOpenChange={setShowPersonaSetupDialog}
+            onOpenChange={handlePersonaSetupDialogOpenChange}
             onGoProfile={handleGoToAuthorProfile}
         />
         </>

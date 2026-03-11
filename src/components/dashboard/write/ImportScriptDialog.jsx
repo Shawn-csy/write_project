@@ -337,13 +337,14 @@ export function ImportScriptDialog({
     }, [preprocessResult]);
 
     const finishGuide = useCallback(() => {
-        resetState();
+        setShowGuide(false);
+        setSpotlightRect(null);
         try {
             localStorage.setItem(GUIDE_STORAGE_KEY, "1");
         } catch (err) {
             console.error("Failed to save guide state", err);
         }
-    }, [resetState]);
+    }, []);
 
     const jumpGuide = useCallback((index) => {
         const next = guideSteps[index];
@@ -418,7 +419,6 @@ export function ImportScriptDialog({
             const seen = localStorage.getItem(GUIDE_STORAGE_KEY) === "1";
             if (!seen) {
                 jumpGuide(0);
-                localStorage.setItem(GUIDE_STORAGE_KEY, "1");
             }
         } catch (err) {
             console.error("Failed to read guide state", err);
@@ -520,8 +520,8 @@ export function ImportScriptDialog({
                 <div className="flex-1 overflow-hidden min-h-0 pt-4">
                     {/* Step 1: 輸入內容 */}
                     {step === STEPS.INPUT && (
-                        <div className="flex flex-col gap-4 h-full min-h-0 overflow-y-auto pr-1">
-                            <div ref={guidePasteRef} className="flex flex-col gap-4 flex-1 min-h-[220px]">
+                        <div className="flex flex-col gap-4 h-full min-h-0 overflow-y-auto pr-1 pb-1">
+                            <div ref={guidePasteRef} className="flex flex-col gap-4 min-h-0">
                             <div className="flex items-center gap-2">
                                 <Input 
                                     placeholder={t("importDialog.scriptTitle")}
