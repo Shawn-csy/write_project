@@ -6,10 +6,22 @@ from sqlalchemy.orm import Session
 import models
 import schemas
 from .common import _ensure_list
-from .organizations_query import sync_persona_org_memberships
+from .organizations_query import is_user_org_manager, sync_persona_org_memberships
+
+
+def _sanitize_persona_org_ids(db: Session, owner_id: str, org_ids) -> list[str]:
+    sanitized = []
+    for org_id in _ensure_list(org_ids):
+        org_id_str = str(org_id or "").strip()
+        if not org_id_str:
+            continue
+        if is_user_org_manager(db, owner_id, org_id_str):
+            sanitized.append(org_id_str)
+    return sanitized
 
 
 def create_persona(db: Session, persona: schemas.PersonaCreate, ownerId: str):
+    org_ids = _sanitize_persona_org_ids(db, ownerId, persona.organizationIds or [])
     db_persona = models.Persona(
         id=str(uuid.uuid4()),
         ownerId=ownerId,
@@ -19,7 +31,7 @@ def create_persona(db: Session, persona: schemas.PersonaCreate, ownerId: str):
         bannerUrl=persona.bannerUrl or "",
         website=persona.website or "",
         links=persona.links or [],
-        organizationIds=persona.organizationIds or [],
+        organizationIds=org_ids,
         tags=persona.tags or [],
         defaultLicenseCommercial=persona.defaultLicenseCommercial or "",
         defaultLicenseDerivative=persona.defaultLicenseDerivative or "",
@@ -45,6 +57,8 @@ def update_persona(db: Session, persona_id: str, persona: schemas.PersonaCreate,
         update_data["defaultLicenseSpecialTerms"] = []
     if "links" in update_data and update_data["links"] is None:
         update_data["links"] = []
+    if "organizationIds" in update_data:
+        update_data["organizationIds"] = _sanitize_persona_org_ids(db, ownerId, update_data.get("organizationIds"))
 
     for key, value in update_data.items():
         setattr(db_persona, key, value)
