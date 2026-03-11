@@ -142,6 +142,17 @@ def _has_public_parent_folder(db: Session, script: models.Script) -> bool:
     return folder_script is not None
 
 
+def sanitize_public_script(script: models.Script):
+    owner = getattr(script, "owner", None)
+    if owner:
+        # Public script payload should not expose account email.
+        try:
+            owner.email = None
+        except Exception:
+            pass
+    return script
+
+
 # Helper to convert User to PersonaPublic
 def user_to_persona_public(user: models.User, db: Session) -> schemas.PersonaPublic:
     # Get Organization if any
@@ -266,7 +277,7 @@ def create_public_terms_acceptance(
         acceptedAt=now_ms,
     )
 
-@router.get("/public-scripts")
+@router.get("/public-scripts", response_model=List[schemas.Script])
 def read_public_scripts(
     ownerId: Optional[str] = None,
     folder: Optional[str] = None,
@@ -274,13 +285,14 @@ def read_public_scripts(
     organizationId: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    return crud.get_public_scripts(
+    scripts = crud.get_public_scripts(
         db,
         ownerId=ownerId,
         folder=folder,
         personaId=personaId,
         organizationId=organizationId
     )
+    return [sanitize_public_script(s) for s in scripts]
 
 @router.get("/public-scripts/{script_id}", response_model=schemas.Script)
 def read_public_script(script_id: str, db: Session = Depends(get_db)):
@@ -344,7 +356,7 @@ def read_public_script(script_id: str, db: Session = Depends(get_db)):
             except:
                 script.organization.tags = []
     
-    return script
+    return sanitize_public_script(script)
 
 @router.get("/public-scripts/{script_id}/raw")
 def read_public_script_raw(script_id: str, db: Session = Depends(get_db)):

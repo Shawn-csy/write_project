@@ -146,4 +146,4 @@ def read_script_seo(script_id: str, request: Request, db: Session = Depends(get_
     except Exception as e:
         error_msg = f"SEO Injection Error: {str(e)}\n{traceback.format_exc()}"
         print(error_msg)
-        return HTMLResponse(content=f"<h1>500 Internal Server Error</h1><pre>{error_msg}</pre>", status_code=500)
+        return HTMLResponse(content="<h1>500 Internal Server Error</h1>", status_code=500)

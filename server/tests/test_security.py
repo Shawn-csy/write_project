@@ -33,3 +33,19 @@ def test_script_access_control(client):
     # U2 tries to delete
     res = client.delete(f"/api/scripts/{sid}", headers=u2)
     assert res.status_code == 404
+
+
+def test_cross_owner_tag_attach_is_forbidden(client):
+    owner = {"X-User-ID": "u_tag_owner"}
+    attacker = {"X-User-ID": "u_tag_attacker"}
+
+    script_res = client.post("/api/scripts", json={"title": "Victim Script"}, headers=owner)
+    assert script_res.status_code == 200
+    script_id = script_res.json()["id"]
+
+    tag_res = client.post("/api/tags", json={"name": "BadTag", "color": "red"}, headers=attacker)
+    assert tag_res.status_code == 200
+    tag_id = tag_res.json()["id"]
+
+    attach_res = client.post(f"/api/scripts/{script_id}/tags", json={"tagId": tag_id}, headers=attacker)
+    assert attach_res.status_code == 403

@@ -80,9 +80,9 @@ def get_organization_members(org_id: str, db: Session = Depends(get_db), ownerId
 @router.post("/{org_id}/transfer")
 def transfer_organization(org_id: str, payload: schemas.OrganizationTransferRequest, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
     if is_admin_user_id(ownerId):
-        success = crud.transfer_organization_admin(db, org_id, payload.newOwnerId, False)
+        success = crud.transfer_organization_admin(db, org_id, payload.newOwnerId, payload.transferScripts)
     else:
-        success = crud.transfer_organization(db, org_id, payload.newOwnerId, ownerId, False)
+        success = crud.transfer_organization(db, org_id, payload.newOwnerId, ownerId, payload.transferScripts)
     if not success:
          raise HTTPException(status_code=400, detail="Transfer failed. Check permissions or validity.")
     return {"success": True, "id": org_id, "newOwnerId": payload.newOwnerId}
