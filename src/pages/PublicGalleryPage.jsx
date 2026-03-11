@@ -69,6 +69,7 @@ const hasAcceptedTermsVersion = (version) => {
 
 export default function PublicGalleryPage() {
   const { t } = useI18n();
+  const appVersion = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev";
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { currentUser, login } = useAuth();
@@ -1075,9 +1076,12 @@ export default function PublicGalleryPage() {
       <footer className="border-t border-border/60 bg-muted/20">
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <p className="text-xs text-muted-foreground">{t("publicGallery.footerText")}</p>
-          <Button variant="link" size="sm" className="h-auto px-0 text-xs" onClick={() => navigate("/about")}>
-            {t("publicGallery.about")}
-          </Button>
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] tracking-wide text-muted-foreground/70">v{appVersion}</span>
+            <Button variant="link" size="sm" className="h-auto px-0 text-xs" onClick={() => navigate("/about")}>
+              {t("publicGallery.about")}
+            </Button>
+          </div>
         </div>
       </footer>
 

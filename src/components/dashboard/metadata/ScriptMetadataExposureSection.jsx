@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
 
 export function ScriptMetadataExposureSection({
+  sectionId = "metadata-section-exposure",
+  showTitle = true,
   t,
   title,
   author,
@@ -57,8 +59,8 @@ export function ScriptMetadataExposureSection({
     return { className: value, style: undefined };
   }, []);
   return (
-    <section id="metadata-section-exposure" className="space-y-3 scroll-mt-24">
-      <h3 className="text-base font-semibold">{t("scriptMetadataDialog.tabExposure", "曝光資訊")}</h3>
+    <section id={sectionId || undefined} className="space-y-3 scroll-mt-24">
+      {showTitle && <h3 className="text-base font-semibold">{t("scriptMetadataDialog.tabExposure", "曝光資訊")}</h3>}
       <div className="rounded-xl border border-border/70 bg-background shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("recommended")}>顯示作者</div>

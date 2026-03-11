@@ -1,10 +1,12 @@
 import React from "react";
-import { X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Textarea } from "../../ui/textarea";
 
 export function ScriptMetadataDemoSection({
+  sectionId = "metadata-section-demo",
+  showTitle = true,
   getRowLabelClass,
   activityDemoLinks,
   onAddActivityDemoLink,
@@ -12,8 +14,8 @@ export function ScriptMetadataDemoSection({
   onRemoveActivityDemoLink,
 }) {
   return (
-    <section id="metadata-section-demo" className="space-y-3 scroll-mt-24">
-      <h3 className="text-base font-semibold">試聽範例</h3>
+    <section id={sectionId || undefined} className="space-y-3 scroll-mt-24">
+      {showTitle && <h3 className="text-base font-semibold">試聽範例</h3>}
       <div className="rounded-xl border border-border/70 bg-background shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("recommended")}>
@@ -61,7 +63,8 @@ export function ScriptMetadataDemoSection({
                 />
               </div>
             ))}
-            <Button type="button" variant="secondary" onClick={onAddActivityDemoLink}>
+            <Button type="button" variant="outline" size="sm" className="h-8" onClick={onAddActivityDemoLink}>
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
               新增試聽範例
             </Button>
           </div>
