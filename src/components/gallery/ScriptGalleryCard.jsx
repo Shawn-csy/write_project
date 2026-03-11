@@ -10,6 +10,7 @@ import { CoverPlaceholder } from "../ui/CoverPlaceholder";
 export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
   const navigate = useNavigate();
   const { id, title, author, coverUrl, tags = [], views = 0, likes = 0 } = script;
+  const authorClickable = !script?._disableAuthorLink;
   const seriesName = String(script?.seriesName || script?._seriesName || "").trim();
   const seriesOrderRaw = script?.seriesOrder ?? script?._seriesOrder;
   const parsedSeriesOrder = Number(seriesOrderRaw);
@@ -97,7 +98,7 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
               </div>
             </div>
             <div className="min-w-0 flex items-center gap-2">
-              <AuthorBadge author={author} />
+              <AuthorBadge author={author} clickable={authorClickable} />
               {seriesName && (
                 <button
                   type="button"
@@ -154,7 +155,7 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
 
         {/* Author */}
         <div className="pt-1">
-            <AuthorBadge author={author} />
+            <AuthorBadge author={author} clickable={authorClickable} />
         </div>
         {seriesName && (
           <button

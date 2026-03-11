@@ -4,11 +4,12 @@ import { useNavigate } from "react-router-dom";
 import { cn } from "../../lib/utils";
 import { useI18n } from "../../contexts/I18nContext";
 
-export function AuthorBadge({ author, className, showAvatar = true, link }) {
+export function AuthorBadge({ author, className, showAvatar = true, link, clickable = true }) {
   const { t } = useI18n();
   const navigate = useNavigate();
 
   const handleClick = (e) => {
+    if (!clickable) return;
     e.stopPropagation();
     if (link) {
         navigate(link);
@@ -20,11 +21,15 @@ export function AuthorBadge({ author, className, showAvatar = true, link }) {
   return (
     <div 
       className={cn(
-        "flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer bg-muted/40 hover:bg-muted px-2 py-1 rounded-full",
+        `flex items-center gap-1.5 text-xs text-muted-foreground transition-colors bg-muted/40 px-2 py-1 rounded-full ${
+          clickable
+            ? "cursor-pointer hover:text-foreground hover:bg-muted"
+            : "cursor-default"
+        }`,
         className
       )}
       onClick={handleClick}
-      title={t("authorBadge.goAuthor")}
+      title={clickable ? t("authorBadge.goAuthor") : undefined}
     >
       {showAvatar && (
         <>

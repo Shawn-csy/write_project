@@ -266,6 +266,9 @@ export default function PublicGalleryPage() {
   const scriptsWithMeta = useMemo(() => {
       return (scripts || []).map((script) => {
           const meta = customMetadataEntriesToMeta(script.customMetadata || []);
+          const authorOverride = String(meta.author || "").trim();
+          const rawAuthorDisplayMode = String(meta.authordisplaymode || meta.authorDisplayMode || "").trim().toLowerCase();
+          const useOverrideAuthor = rawAuthorDisplayMode === "override" && Boolean(authorOverride);
           const basicLicenseFromMeta = parseBasicLicenseFromMeta(meta);
           const basicLicense = {
             commercialUse: basicLicenseFromMeta.commercialUse || String(script.licenseCommercial || "").toLowerCase(),
@@ -301,13 +304,21 @@ export default function PublicGalleryPage() {
             ...licenseTagsFromMeta
           ]));
           const mergedTags = Array.from(new Set([...(script.tags || []), ...licenseTags]));
+          const resolvedAuthor = useOverrideAuthor
+            ? {
+                displayName: authorOverride,
+                avatarUrl: "",
+              }
+            : (script.author || null);
           return {
               ...script,
+              author: resolvedAuthor,
               tags: mergedTags,
               _licenseText: [license, ...licenseTags].filter(Boolean).join(" "),
               _licenseTermsText: termsText,
               _derivedLicenseTags: licenseTags,
               _allowCommercial: basicLicense.commercialUse === "allow",
+              _disableAuthorLink: useOverrideAuthor,
               _seriesName: seriesName,
               _seriesOrder: seriesOrder,
               seriesName,

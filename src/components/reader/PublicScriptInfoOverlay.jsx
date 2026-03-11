@@ -72,6 +72,11 @@ export function PublicScriptInfoOverlay({
   const performanceMulti = parseMultiTemplate(performanceItem?.value);
   const chapterMulti = parseChapterTemplate(chapterSettingsItem?.value);
   const hasCharacterTemplate = Array.isArray(roleMulti) || Array.isArray(performanceMulti);
+  const isNonLinkAuthorId = (id) => {
+    const value = String(id || "").trim();
+    return value === "override-author" || value === "header-author-fallback";
+  };
+  const isAuthorClickable = Boolean(author?.id) && !isNonLinkAuthorId(author?.id);
 
   const characterTemplateItems = React.useMemo(() => {
     if (!hasCharacterTemplate) return [];
@@ -299,7 +304,10 @@ export function PublicScriptInfoOverlay({
           {author && (
             <AuthorBadge
               author={author}
-              className="bg-background/30 backdrop-blur-md rounded-full pl-1 pr-4 py-1 border border-white/10 shadow-sm hover:bg-background/40"
+              clickable={isAuthorClickable}
+              className={`bg-background/30 backdrop-blur-md rounded-full pl-1 pr-4 py-1 border border-white/10 shadow-sm ${
+                isAuthorClickable ? "hover:bg-background/40" : ""
+              }`}
             />
           )}
         </div>
