@@ -238,7 +238,8 @@ def create_public_terms_acceptance(
         termsKey=str(config.get("termsKey") or "public_reader_terms"),
         termsVersion=expected_version,
         scriptId=script_id,
-        userId=(request.headers.get("x-user-id") or "").strip() or None,
+        # Public endpoint is intentionally unauthenticated; never trust caller-provided user id headers.
+        userId=None,
         visitorId=(payload.visitorId or "").strip() or None,
         acceptedAt=now_ms,
         ipAddress=ip_address,

@@ -88,3 +88,28 @@ def test_public_terms_acceptance_requires_all_checks(client):
         },
     )
     assert res.status_code == 400
+
+
+def test_public_terms_acceptance_ignores_spoofed_x_user_id(client, db_session):
+    _seed_script(db_session)
+    config = client.get("/api/public-terms-config").json()
+    required_ids = [item["id"] for item in (config.get("requiredChecks") or [])]
+
+    res = client.post(
+        "/api/public-terms-acceptances",
+        json={
+            "termsVersion": config["version"],
+            "scriptId": "terms-script-1",
+            "visitorId": "visitor-spoof-check",
+            "acceptedChecks": required_ids,
+        },
+        headers={"X-User-ID": "forged-user-id"},
+    )
+    assert res.status_code == 200
+    acceptance_id = res.json()["acceptanceId"]
+
+    from models import PublicTermsAcceptance
+
+    row = db_session.query(PublicTermsAcceptance).filter(PublicTermsAcceptance.id == acceptance_id).first()
+    assert row is not None
+    assert row.userId is None
