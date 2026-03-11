@@ -88,12 +88,7 @@ async def upload_media(
     if not ext:
         raise HTTPException(status_code=400, detail="Unsupported image type")
 
-    content = await file.read()
-    if not content:
-        raise HTTPException(status_code=400, detail="Empty upload")
     is_admin = is_admin_user(db, owner_id)
-    if not is_admin and len(content) > MAX_UPLOAD_BYTES:
-        raise HTTPException(status_code=413, detail="Uploaded image is too large")
 
     safe_owner = _safe_segment(owner_id, "anon")
     safe_purpose = _safe_segment(purpose, "generic")
@@ -104,13 +99,37 @@ async def upload_media(
     os.makedirs(folder, exist_ok=True)
     full_path = os.path.join(folder, filename)
 
-    with open(full_path, "wb") as target:
-        target.write(content)
+    total_size = 0
+    try:
+        with open(full_path, "wb") as target:
+            while True:
+                chunk = await file.read(1024 * 1024)
+                if not chunk:
+                    break
+                total_size += len(chunk)
+                if not is_admin and total_size > MAX_UPLOAD_BYTES:
+                    raise HTTPException(status_code=413, detail="Uploaded image is too large")
+                target.write(chunk)
+    except HTTPException:
+        if os.path.exists(full_path):
+            os.remove(full_path)
+        raise
+    except Exception:
+        if os.path.exists(full_path):
+            os.remove(full_path)
+        raise
+    finally:
+        await file.close()
+
+    if total_size == 0:
+        if os.path.exists(full_path):
+            os.remove(full_path)
+        raise HTTPException(status_code=400, detail="Empty upload")
 
     public_path = f"/media/{safe_owner}/{safe_purpose}/{filename}"
     return {
         "url": public_path,
-        "size": len(content),
+        "size": total_size,
         "contentType": content_type,
     }
 

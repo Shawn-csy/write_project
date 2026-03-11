@@ -5,7 +5,7 @@ import json
 import crud_ops as crud
 import schemas
 import models
-from dependencies import get_db, get_current_user_id, is_admin_user_id
+from dependencies import get_db, get_current_user_id, is_admin_user
 
 router = APIRouter(prefix="/api/organizations", tags=["organizations"])
 
@@ -34,7 +34,7 @@ def read_organizations(
     ownerIdQuery: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    effective_owner_id = ownerIdQuery if ownerIdQuery and is_admin_user_id(ownerId) else ownerId
+    effective_owner_id = ownerIdQuery if ownerIdQuery and is_admin_user(db, ownerId) else ownerId
     return crud.get_user_organizations(db, effective_owner_id)
 
 @router.get("/{org_id}", response_model=schemas.Organization)
@@ -42,7 +42,7 @@ def read_organization(org_id: str, db: Session = Depends(get_db), ownerId: str =
     org = db.query(models.Organization).filter(models.Organization.id == org_id).first()
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
-    if not (org.ownerId == ownerId or is_admin_user_id(ownerId)):
+    if not (org.ownerId == ownerId or is_admin_user(db, ownerId)):
         if not _has_org_access(db, ownerId, org_id):
             raise HTTPException(status_code=403, detail="Not authorized")
     if isinstance(org.tags, str):
@@ -71,7 +71,7 @@ def get_organization_members(org_id: str, db: Session = Depends(get_db), ownerId
     org = db.query(models.Organization).filter(models.Organization.id == org_id).first()
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
-    if not (org.ownerId == ownerId or is_admin_user_id(ownerId)):
+    if not (org.ownerId == ownerId or is_admin_user(db, ownerId)):
         if not _has_org_access(db, ownerId, org_id):
             raise HTTPException(status_code=403, detail="Not authorized")
     users, personas = crud.get_organization_members(db, org_id)
@@ -79,7 +79,7 @@ def get_organization_members(org_id: str, db: Session = Depends(get_db), ownerId
 
 @router.post("/{org_id}/transfer")
 def transfer_organization(org_id: str, payload: schemas.OrganizationTransferRequest, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
-    if is_admin_user_id(ownerId):
+    if is_admin_user(db, ownerId):
         success = crud.transfer_organization_admin(db, org_id, payload.newOwnerId, payload.transferScripts)
     else:
         success = crud.transfer_organization(db, org_id, payload.newOwnerId, ownerId, payload.transferScripts)
@@ -137,7 +137,7 @@ def invite_member(org_id: str, payload: schemas.OrganizationInviteRequest, db: S
     org = db.query(models.Organization).filter(models.Organization.id == org_id).first()
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
-    if not (crud.is_user_org_manager(db, ownerId, org_id) or is_admin_user_id(ownerId)):
+    if not (crud.is_user_org_manager(db, ownerId, org_id) or is_admin_user(db, ownerId)):
         raise HTTPException(status_code=403, detail="Not authorized")
     if target_user_id == ownerId:
         raise HTTPException(status_code=400, detail="Cannot invite yourself")
@@ -168,7 +168,7 @@ def my_requests(db: Session = Depends(get_db), ownerId: str = Depends(get_curren
 
 @router.get("/{org_id}/invites", response_model=schemas.OrganizationInvitesResponse)
 def list_org_invites(org_id: str, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
-    if not (crud.is_user_org_manager(db, ownerId, org_id) or is_admin_user_id(ownerId)):
+    if not (crud.is_user_org_manager(db, ownerId, org_id) or is_admin_user(db, ownerId)):
         raise HTTPException(status_code=403, detail="Not authorized")
     invites = crud.list_org_invites(db, org_id)
     enriched = []
@@ -182,7 +182,7 @@ def list_org_invites(org_id: str, db: Session = Depends(get_db), ownerId: str = 
 
 @router.get("/{org_id}/requests", response_model=schemas.OrganizationRequestsResponse)
 def list_org_requests(org_id: str, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
-    if not (crud.is_user_org_manager(db, ownerId, org_id) or is_admin_user_id(ownerId)):
+    if not (crud.is_user_org_manager(db, ownerId, org_id) or is_admin_user(db, ownerId)):
         raise HTTPException(status_code=403, detail="Not authorized")
     reqs = crud.list_org_requests(db, org_id)
     enriched = []
