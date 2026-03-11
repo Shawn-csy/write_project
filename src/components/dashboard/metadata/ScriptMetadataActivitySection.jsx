@@ -5,6 +5,8 @@ import { Textarea } from "../../ui/textarea";
 import { getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
 
 export function ScriptMetadataActivitySection({
+  sectionId = "metadata-section-activity",
+  showTitle = true,
   t,
   getRowLabelClass,
   activityName,
@@ -19,15 +21,13 @@ export function ScriptMetadataActivitySection({
   activityBannerUploadWarning,
   activityContent,
   setActivityContent,
-  activityDemoUrl,
-  setActivityDemoUrl,
   activityWorkUrl,
   setActivityWorkUrl,
 }) {
   const bannerGuide = React.useMemo(() => getImageUploadGuide("banner"), []);
   return (
-    <section id="metadata-section-activity" className="space-y-3 scroll-mt-24">
-      <h3 className="text-base font-semibold">{t("scriptMetadataDialog.tabActivity", "活動宣傳")}</h3>
+    <section id={sectionId || undefined} className="space-y-3 scroll-mt-24">
+      {showTitle && <h3 className="text-base font-semibold">{t("scriptMetadataDialog.tabActivity", "活動宣傳")}</h3>}
       <div className="rounded-xl border border-border/70 bg-background shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("recommended")}>
@@ -94,19 +94,6 @@ export function ScriptMetadataActivitySection({
               onChange={(e) => setActivityContent(e.target.value)}
               placeholder="輸入活動內容..."
               className="min-h-[120px]"
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
-          <div className={getRowLabelClass("recommended")}>
-            <div className="text-sm font-medium text-foreground">試聽範例連結</div>
-            <div className="mt-1 text-xs text-muted-foreground">可放 YouTube / SoundCloud / 平台試聽頁</div>
-          </div>
-          <div className="space-y-2 p-4">
-            <Input
-              value={activityDemoUrl}
-              onChange={(e) => setActivityDemoUrl(e.target.value)}
-              placeholder="https://..."
             />
           </div>
         </div>

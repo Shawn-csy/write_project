@@ -3,47 +3,36 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Gallery Flow', () => {
     test.beforeEach(async ({ page }) => {
-        // Mock API responses
-        await page.route('**/api/public-scripts*', async route => {
+        // Mock API responses (current page uses /api/public-bundle)
+        await page.route('**/api/public-bundle*', async route => {
             await route.fulfill({
                 status: 200,
                 contentType: 'application/json',
-                body: JSON.stringify([{
-                    id: 's1',
-                    title: 'Searchable Script',
-                    author: { displayName: 'Author A' },
-                    tags: ['tag1']
-                }, {
-                    id: 's2',
-                    title: 'Other Script',
-                    author: { displayName: 'Author B' },
-                    tags: ['tag2']
-                }])
+                body: JSON.stringify({
+                    scripts: [{
+                        id: 's1',
+                        title: 'Searchable Script',
+                        persona: { id: 'p1', displayName: 'Author A' },
+                        tags: ['tag1']
+                    }, {
+                        id: 's2',
+                        title: 'Other Script',
+                        persona: { id: 'p2', displayName: 'Author B' },
+                        tags: ['tag2']
+                    }],
+                    personas: [{
+                        id: 'p1',
+                        displayName: 'Famous Author',
+                        tags: ['pro']
+                    }],
+                    organizations: [{
+                        id: 'o1',
+                        name: 'Big Studio',
+                        tags: ['studio']
+                    }],
+                    topTags: ['tag1', 'tag2']
+                })
             });
-        });
-        
-        await page.route('**/api/public-personas', async route => {
-             await route.fulfill({ 
-                 status: 200, 
-                 contentType: 'application/json', 
-                 body: JSON.stringify([{
-                     id: 'p1',
-                     displayName: 'Famous Author',
-                     tags: ['pro']
-                 }]) 
-             });
-        });
-        
-        await page.route('**/api/public-organizations', async route => {
-             await route.fulfill({ 
-                 status: 200, 
-                 contentType: 'application/json', 
-                 body: JSON.stringify([{
-                     id: 'o1',
-                     name: 'Big Studio',
-                     tags: ['studio']
-                 }]) 
-             });
         });
 
         await page.goto('/');
@@ -65,18 +54,18 @@ test.describe('Gallery Flow', () => {
     });
 
     test('should search and filter', async ({ page }) => {
-        // Assuming search bar is present
-        const searchInput = page.getByPlaceholder('搜尋劇本...');
+        const searchInput = page.locator('aside input[placeholder="搜尋劇本..."]').first();
         await expect(searchInput).toBeVisible();
         
-        // Type something
+        // Type something that should not match
         await searchInput.fill('NonExistentScriptXYZ');
         
         // Expect empty state
         await expect(page.getByText('找不到符合條件的劇本')).toBeVisible();
         
-        // Clear search
-        await page.getByRole('button', { name: /清除篩選/ }).click();
+        // Clear search and verify item returns
+        await searchInput.fill('');
+        await expect(page.getByRole('heading', { name: 'Searchable Script' }).first()).toBeVisible();
         await expect(page.getByText('找不到符合條件的劇本')).not.toBeVisible();
     });
 });

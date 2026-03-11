@@ -1,4 +1,7 @@
 
+from routers import tags as tags_router
+
+
 def test_tag_crud(client):
     """Test creating, deleting and listing tags"""
     headers = {"X-User-ID": "u2"}
@@ -49,3 +52,21 @@ def test_tag_assignment(client):
     client.delete(f"/api/scripts/{sid}/tags/{tid}", headers=headers)
     res = client.get(f"/api/scripts/{sid}", headers=headers)
     assert len(res.json()["tags"]) == 0
+
+
+def test_create_tag_failure_returns_500(client, monkeypatch):
+    headers = {"X-User-ID": "u-tag-fail"}
+    monkeypatch.setattr(tags_router.crud, "create_tag", lambda *args, **kwargs: None)
+
+    res = client.post("/api/tags", json={"name": "Fail", "color": "red"}, headers=headers)
+    assert res.status_code == 500
+
+
+def test_attach_tag_failure_returns_500(client, monkeypatch):
+    headers = {"X-User-ID": "u-tag-attach-fail"}
+    sid = client.post("/api/scripts", json={"title": "S"}, headers=headers).json()["id"]
+    tid = client.post("/api/tags", json={"name": "T", "color": "blue"}, headers=headers).json()["id"]
+
+    monkeypatch.setattr(tags_router.crud, "add_tag_to_script", lambda *args, **kwargs: False)
+    res = client.post(f"/api/scripts/{sid}/tags", json={"tagId": tid}, headers=headers)
+    assert res.status_code == 500

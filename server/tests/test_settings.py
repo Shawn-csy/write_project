@@ -66,6 +66,13 @@ def test_marker_themes(client):
     assert themes[0]["id"] == created_theme["id"]
 
 
+def test_delete_missing_theme_returns_404(client):
+    user_id = "test_user_theme_delete_missing"
+    headers = {"X-User-ID": user_id}
+    response = client.delete("/api/themes/no-such-theme", headers=headers)
+    assert response.status_code == 404
+
+
 def test_get_settings_invalid_json_falls_back_to_empty_and_sets_primary_org(client, db_session):
     now = int(time.time() * 1000)
     db_session.add(
@@ -132,3 +139,27 @@ def test_update_settings_duplicate_handle_returns_409(client, db_session):
     )
     assert response.status_code == 409
     assert response.json()["detail"] == "Handle already taken"
+
+
+def test_read_me_does_not_dirty_user_settings_before_other_writes(client, db_session):
+    now = int(time.time() * 1000)
+    db_session.add(
+        User(
+            id="settings_flush_user",
+            handle="settings_flush_user",
+            settings='{"accent":"blue"}',
+            createdAt=now,
+            lastLogin=now,
+        )
+    )
+    db_session.commit()
+
+    headers = {"X-User-ID": "settings_flush_user"}
+    me_res = client.get("/api/me", headers=headers)
+    assert me_res.status_code == 200
+    assert me_res.json()["settings"]["accent"] == "blue"
+
+    # Regression: this used to fail with sqlite binding error because /api/me
+    # mutated ORM user.settings from JSON string to dict in-session.
+    create_res = client.post("/api/scripts", json={"title": "AfterMe"}, headers=headers)
+    assert create_res.status_code == 200

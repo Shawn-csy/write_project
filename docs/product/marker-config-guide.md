@@ -1,5 +1,5 @@
 # Marker 設定與解析說明
-最後更新：2026-02-06
+最後更新：2026-03-11
 
 ## 設定面板位置
 
@@ -120,6 +120,6 @@ flowchart TD
 | 檔案 | 說明 |
 |------|------|
 | `src/lib/importPipeline/directASTBuilder.js` | 解析器核心 |
-| `src/lib/importPipeline/defaultMarkers.js` | 預設 marker 設定 |
+| `src/constants/defaultMarkerRules.js` | 預設 marker 設定 |
 | `src/components/settings/marker/configs/ModeSelector.jsx` | 模式選擇器 UI |
 | `src/components/settings/marker/configs/MarkerPreview.jsx` | 即時預覽組件 |

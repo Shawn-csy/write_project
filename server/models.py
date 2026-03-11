@@ -10,6 +10,7 @@ class Script(Base):
     ownerId = Column(String, ForeignKey("users.id"), index=True)
     title = Column(String)
     content = Column(String, default="")
+    customMetadata = Column(JSON, default=list)
     createdAt = Column(Integer, default=lambda: int(time.time() * 1000))
     lastModified = Column(Integer, default=lambda: int(time.time() * 1000))
     author = Column(String, default="")
@@ -198,6 +199,9 @@ class Persona(Base):
 Script.personaId = Column(String, ForeignKey("personas.id"), nullable=True)
 Script.persona = relationship("Persona", lazy="joined")
 Script.disableCopy = Column(Boolean, default=False)  # Content protection: disable copy on public page
+Script.licenseCommercial = Column(String, default="")
+Script.licenseDerivative = Column(String, default="")
+Script.licenseNotify = Column(String, default="")
 
 
 class PublicTermsAcceptance(Base):

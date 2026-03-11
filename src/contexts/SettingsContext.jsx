@@ -20,7 +20,7 @@ const SettingsContext = createContext();
 
 export function SettingsProvider({ children }) {
   // --- Theme (Wrapped) ---
-  const { resolvedTheme, setTheme } = useTheme();
+  const { theme: themeMode, resolvedTheme, setTheme } = useTheme();
 
   const isDark = resolvedTheme === "dark";
   const { currentUser, profile } = useAuth();
@@ -176,7 +176,6 @@ export function SettingsProvider({ children }) {
               const data = await fetchUserSettings(currentUser);
               if (data) {
                   if (data.settings && Object.keys(data.settings).length > 0) {
-                      console.log("Applying cloud settings...");
                       const s = data.settings;
                       
                       // Batch Updates
@@ -191,8 +190,6 @@ export function SettingsProvider({ children }) {
 
                       if(s.lineHeight) setLineHeight(s.lineHeight);
                       if (s.desktopUiScale !== undefined && s.desktopUiScale !== null) setDesktopUiScale(s.desktopUiScale);
-                      if(s.transparentBg !== undefined) setTransparentBg(s.transparentBg);
-                      if(s.lineHeight) setLineHeight(s.lineHeight);
                       if(s.transparentBg !== undefined) setTransparentBg(s.transparentBg);
                       if(s.showLineUnderline !== undefined) setShowLineUnderline(s.showLineUnderline);
                       if(s.statsConfig) setStatsConfig(s.statsConfig);
@@ -222,7 +219,6 @@ export function SettingsProvider({ children }) {
                   } else {
                       // CLOUD IS EMPTY: Push current local settings to cloud
                       // This ensures initial sync for new users or first-time login
-                      console.log("Cloud settings empty, syncing local to cloud...");
                        const payload = {
                           accent,
                           fontSize,
@@ -308,6 +304,8 @@ export function SettingsProvider({ children }) {
   const value = {
     // Theme
     currentUser,
+    theme: resolvedTheme,
+    themeMode,
     isDark,
     setTheme,
     

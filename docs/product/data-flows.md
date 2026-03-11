@@ -1,5 +1,5 @@
 # 核心與功能資料流（檔案到檔案）
-最後更新：2026-02-06
+最後更新：2026-03-11
 
 本文件整理「核心資料流」與「各功能資料流」的走向，描述資料從前端到後端、以及在後端的路徑。重點放在「從什麼檔案到什麼檔案」。
 
@@ -44,7 +44,7 @@ flowchart LR
   A[src/pages/PublicReaderPage.jsx] --> B[src/lib/api/public.js:getPublicScript]
   B --> C[server/routers/public.py\nGET /api/public-scripts/{id}]
   C --> D[server/models.py:Script\ncontent,tags,persona,org]
-  A --> E[src/lib/metadataParser.js\nextractMetadataWithRaw]
+  A --> E[src/pages/PublicReaderPage.jsx\nnormalize metadata fields]
   A --> F[src/components/reader/PublicReaderLayout.jsx]
   F --> G[src/components/reader/PublicScriptInfoOverlay.jsx]
 ```
@@ -53,7 +53,7 @@ flowchart LR
 Public Reader（ASCII）
 PublicReaderPage.jsx
   ├─> api/public.js:getPublicScript → public.py:/public-scripts/{id}
-  ├─> metadataParser.extractMetadataWithRaw
+  ├─> PublicReaderPage normalize/contact/license parsing
   └─> PublicReaderLayout → PublicScriptInfoOverlay
 ```
 
@@ -83,8 +83,8 @@ PublisherDashboard.jsx
 flowchart LR
   A[src/components/dashboard/ScriptMetadataDialog.jsx] --> B[src/lib/api/scripts.js:getScript]
   B --> C[server/routers/scripts.py\nGET /api/scripts/{id}]
-  A --> D[src/lib/metadataParser.js\nextractMetadataWithRaw]
-  A --> E[src/lib/metadataParser.js\nwriteMetadata]
+  A --> D[src/hooks/dashboard/useScriptMetadataHydration.js]
+  A --> E[src/hooks/dashboard/useScriptMetadataSave.js]
   A --> F[src/lib/api/scripts.js:updateScript]
   F --> G[server/routers/scripts.py\nPUT /api/scripts/{id}]
   G --> H[server/crud.py:update_script]
@@ -94,8 +94,8 @@ flowchart LR
 Metadata（ASCII）
 ScriptMetadataDialog.jsx
   ├─> api/scripts.js:getScript → scripts.py:GET /api/scripts/{id}
-  ├─> metadataParser.extractMetadataWithRaw
-  ├─> metadataParser.writeMetadata
+  ├─> useScriptMetadataHydration (讀取/映射)
+  ├─> useScriptMetadataSave (寫回 script/customMetadata)
   └─> api/scripts.js:updateScript → scripts.py:PUT /api/scripts/{id} → crud.py:update_script
 ```
 
@@ -188,21 +188,21 @@ SearchBar.jsx → api/scripts.js:searchScripts → scripts.py:/api/search → cr
 ### 授權流程（Metadata → Public 顯示）
 ```mermaid
 flowchart LR
-  A[src/components/dashboard/ScriptMetadataDialog.jsx] --> B[src/lib/metadataParser.js\nwriteMetadata]
+  A[src/components/dashboard/ScriptMetadataDialog.jsx] --> B[src/hooks/dashboard/useScriptMetadataSave.js]
   B --> C[script.content\nTitlePage: License/LicenseUrl/LicenseTerms]
   A --> D[src/lib/api/scripts.js:updateScript]
   D --> E[server/routers/scripts.py\nPUT /api/scripts/{id}]
   E --> F[server/crud.py:update_script]
   F --> G[server/models.py:Script.content]
-  G --> H[src/pages/PublicReaderPage.jsx\nextractMetadataWithRaw]
+  G --> H[src/pages/PublicReaderPage.jsx\nnormalize metadata fields]
   H --> I[src/components/reader/PublicScriptInfoOverlay.jsx\nLicense/Terms 顯示]
 ```
 
 ```
 License Flow（ASCII）
-ScriptMetadataDialog.jsx → writeMetadata → script.content
+ScriptMetadataDialog.jsx → useScriptMetadataSave → script/customMetadata
 updateScript → scripts.py → crud.py:update_script → Script.content
-PublicReaderPage.jsx → extractMetadataWithRaw → PublicScriptInfoOverlay
+PublicReaderPage.jsx → normalize metadata fields → PublicScriptInfoOverlay
 ```
 
 ### 登入 / 授權（Firebase Auth → API Header）
@@ -328,10 +328,10 @@ PublisherProfileTab.jsx → requestToJoinOrganization → orgs.py:/organizations
 ### 4. 編輯劇本資訊（Metadata）
 1. 入口  
 `src/components/dashboard/ScriptMetadataDialog.jsx`  
-從 `getScript(id)` 拉最新內容與 metadata，寫回時使用 `writeMetadata()`。
-2. Metadata 解析  
-`src/lib/metadataParser.js`  
-`extractMetadataWithRaw()` / `writeMetadata()`
+從 `getScript(id)` 拉最新內容與 metadata，寫回由 `useScriptMetadataSave()` 負責。
+2. Metadata 讀寫  
+`src/hooks/dashboard/useScriptMetadataHydration.js`  
+`src/hooks/dashboard/useScriptMetadataSave.js`
 3. 後端更新  
 `server/routers/scripts.py` → `server/crud.py:update_script()`
 
@@ -387,4 +387,4 @@ PublisherProfileTab.jsx → requestToJoinOrganization → orgs.py:/organizations
 - 若新增欄位，請同步更新：  
 `server/models.py` → `server/migration.py` → `server/schemas.py` → 前端表單與顯示
 - 若新增 metadata key，請同步更新：  
-`src/lib/metadataParser.js` → 讀/寫 → `PublicScriptInfoOverlay.jsx`
+`useScriptMetadataHydration.js` / `useScriptMetadataSave.js` → `PublicScriptInfoOverlay.jsx`

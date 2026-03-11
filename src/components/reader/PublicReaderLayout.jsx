@@ -9,6 +9,7 @@ import { loadBasicScriptExport, loadXlsxScriptExport } from "../../lib/scriptExp
 import { useI18n } from "../../contexts/I18nContext";
 import { CoverPlaceholder } from "../ui/CoverPlaceholder";
 import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
+import { normalizeActivityDemoLinks } from "../../lib/activityDemoLinks";
 
 const PUBLIC_READER_GUIDE_STORAGE_KEY = "public-reader-guide-seen-v1";
 const PUBLIC_READER_TOC_OPEN_STORAGE_KEY = "public-reader-toc-open-v1";
@@ -288,11 +289,6 @@ export function PublicReaderLayout({
   });
   const guideSteps = useMemo(() => ([
     {
-      title: t("publicReader.guideTocButtonTitle", "目錄按鈕"),
-      description: t("publicReader.guideTocButtonDesc", "先點這裡打開左側導覽面板。"),
-      targetId: "public-guide-toc-trigger",
-    },
-    {
       title: t("publicReader.guideTocPanelTitle", "左側導覽面板"),
       description: t("publicReader.guideTocPanelDesc", "這裡可快速跳場景、查看更多作品資訊。"),
       targetId: "public-guide-toc-panel",
@@ -393,7 +389,7 @@ export function PublicReaderLayout({
     const targetId = currentGuide?.targetId || "";
     if (targetId === "public-guide-toc-panel") {
       setTocOpen(true);
-    } else if (targetId && targetId !== "public-guide-toc-trigger") {
+    } else if (targetId) {
       setTocOpen(false);
     }
   }, [showGuide, currentGuide]);
@@ -425,15 +421,23 @@ export function PublicReaderLayout({
     const name = String(base?.name || "").trim();
     const bannerUrl = String(base?.bannerUrl || "").trim();
     const content = String(base?.content || "").trim();
-    const demoUrl = String(base?.demoUrl || "").trim();
     const workUrl = String(base?.workUrl || "").trim();
-    if (!name && !bannerUrl && !content && !demoUrl && !workUrl) return null;
-    return { name, bannerUrl, content, demoUrl, workUrl };
+    if (!name && !bannerUrl && !content && !workUrl) return null;
+    return { name, bannerUrl, content, workUrl };
+  }, [activity]);
+
+  const normalizedDemoLinks = useMemo(() => {
+    const base = activity || {};
+    const demoUrl = String(base?.demoUrl || "").trim();
+    const links = normalizeActivityDemoLinks(base?.demoLinks || []).filter((item) => item.url);
+    if (links.length === 0 && demoUrl) {
+      links.push({ id: "demo-legacy", name: "試聽範例", url: demoUrl, cast: "", description: "" });
+    }
+    return links;
   }, [activity]);
 
   return (
     <div className={`relative w-full h-[100dvh] overflow-hidden flex flex-col bg-background ${hideWhitespace ? 'hide-whitespace' : ''} ${protectionClass}`}>
-      
       {/* 1. Fixed Background Layer */}
       <div 
         className="absolute inset-0 z-0 opacity-30 dark:opacity-20 pointer-events-none"
@@ -454,12 +458,9 @@ export function PublicReaderLayout({
         onShare={onShare}
         onOpenGuide={handleStartGuide}
         downloadOptions={downloadOptions}
-        // Removed generic onSettings, now using integrated components
-        
-        // TOC Props
-        sceneList={viewerProps?.sceneList || viewerProps?.scenes || []} // Provide fallback
-        currentSceneId={viewerProps?.activeSceneId} // We need to ensure we track this
-        onSelectScene={viewerProps?.scrollToScene} // The viewer prop usually expects an ID
+        sceneList={viewerProps?.sceneList || viewerProps?.scenes || []}
+        currentSceneId={viewerProps?.activeSceneId}
+        onSelectScene={viewerProps?.scrollToScene}
         tocOpen={tocOpen}
         onTocOpenChange={setTocOpen}
         metaItems={metaItems}
@@ -505,6 +506,7 @@ export function PublicReaderLayout({
                          derivativeUse={derivativeUse}
                          notifyOnModify={notifyOnModify}
                          prefaceItems={prefaceItems}
+                         demoLinks={normalizedDemoLinks}
                      />
                    </div>
                    {normalizedActivity && (
@@ -529,28 +531,16 @@ export function PublicReaderLayout({
                              {normalizedActivity.content}
                            </p>
                          )}
-                         {(normalizedActivity.demoUrl || normalizedActivity.workUrl) && (
-                           <div className="mt-3 flex flex-wrap gap-2">
-                             {normalizedActivity.demoUrl && (
-                               <a
-                                 href={normalizedActivity.demoUrl}
-                                 target="_blank"
-                                 rel="noreferrer"
-                                 className="inline-flex items-center rounded-md border border-border/60 bg-background px-2.5 py-1 text-xs font-medium text-primary hover:bg-muted"
-                               >
-                                 試聽範例
-                               </a>
-                             )}
-                             {normalizedActivity.workUrl && (
-                               <a
-                                 href={normalizedActivity.workUrl}
-                                 target="_blank"
-                                 rel="noreferrer"
-                                 className="inline-flex items-center rounded-md border border-border/60 bg-background px-2.5 py-1 text-xs font-medium text-primary hover:bg-muted"
-                               >
-                                 成品連結
-                               </a>
-                             )}
+                         {normalizedActivity.workUrl && (
+                           <div className="mt-3">
+                             <a
+                               href={normalizedActivity.workUrl}
+                               target="_blank"
+                               rel="noreferrer"
+                               className="inline-flex items-center rounded-md border border-border/60 bg-background px-2.5 py-1 text-xs font-medium text-primary hover:bg-muted"
+                             >
+                               成品連結
+                             </a>
                            </div>
                          )}
                        </div>

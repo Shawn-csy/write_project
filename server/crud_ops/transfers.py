@@ -62,23 +62,39 @@ def transfer_script_ownership(db: Session, script_id: str, new_owner_id: str, cu
     db_script = db.query(models.Script).filter(models.Script.id == script_id, models.Script.ownerId == current_owner_id).first()
     if not db_script:
         return False
+    new_owner = db.query(models.User).filter(models.User.id == new_owner_id).first()
+    if not new_owner:
+        return False
 
-    ensure_folder_tree(db, new_owner_id, db_script.folder or "/")
-    db_script.ownerId = new_owner_id
-    db_script.lastModified = int(time.time() * 1000)
-    db.commit()
-    return True
+    try:
+        ensure_folder_tree(db, new_owner_id, db_script.folder or "/")
+        db_script.ownerId = new_owner_id
+        db_script.lastModified = int(time.time() * 1000)
+        db.commit()
+        return True
+    except Exception as e:
+        db.rollback()
+        print(f"Script transfer failed: {e}")
+        return False
 
 
 def transfer_script_ownership_admin(db: Session, script_id: str, new_owner_id: str):
     db_script = db.query(models.Script).filter(models.Script.id == script_id).first()
     if not db_script:
         return False
-    ensure_folder_tree(db, new_owner_id, db_script.folder or "/")
-    db_script.ownerId = new_owner_id
-    db_script.lastModified = int(time.time() * 1000)
-    db.commit()
-    return True
+    new_owner = db.query(models.User).filter(models.User.id == new_owner_id).first()
+    if not new_owner:
+        return False
+    try:
+        ensure_folder_tree(db, new_owner_id, db_script.folder or "/")
+        db_script.ownerId = new_owner_id
+        db_script.lastModified = int(time.time() * 1000)
+        db.commit()
+        return True
+    except Exception as e:
+        db.rollback()
+        print(f"Script transfer failed: {e}")
+        return False
 
 
 def transfer_persona_ownership(db: Session, persona_id: str, new_owner_id: str, current_owner_id: str):

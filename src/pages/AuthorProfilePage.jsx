@@ -5,7 +5,7 @@ import { Link as LinkIcon, Building2, Globe, Twitter, Instagram, Youtube, Github
 import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { ScriptGalleryCard } from "../components/gallery/ScriptGalleryCard";
 import { getPublicPersona, getPublicScripts } from "../lib/api/public";
-import { getSeriesInfoFromContent } from "../lib/series";
+import { getSeriesInfoFromScript } from "../lib/series";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { getMorandiTagStyle } from "../lib/tagColors";
 import { useI18n } from "../contexts/I18nContext";
@@ -32,7 +32,7 @@ export default function AuthorProfilePage() {
         const normalizedScripts = (publicScripts || [])
           .filter(s => s.type !== "folder" && !s.isFolder)
           .map((s) => ({
-          ...getSeriesInfoFromContent(s.content || ""),
+          ...getSeriesInfoFromScript(s),
           ...s,
           author: s.persona || s.owner || s.author,
         }));

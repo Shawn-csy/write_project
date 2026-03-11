@@ -1,5 +1,4 @@
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
 // Your web app's Firebase configuration
@@ -22,7 +21,20 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+let analyticsInitPromise = null;
+
+export const initAnalytics = async () => {
+  if (typeof window === "undefined") return null;
+  if (!firebaseConfig.measurementId) return null;
+  if (!analyticsInitPromise) {
+    analyticsInitPromise = import("firebase/analytics")
+      .then(({ isSupported, getAnalytics }) =>
+        isSupported().then((supported) => (supported ? getAnalytics(app) : null))
+      )
+      .catch(() => null);
+  }
+  return analyticsInitPromise;
+};
 
 // Initialize Auth
 export const auth = getAuth(app);

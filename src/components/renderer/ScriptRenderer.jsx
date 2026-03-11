@@ -423,7 +423,7 @@ export const ScriptRenderer = React.memo(({
 
     return (
         <article
-            className="script-renderer relative"
+            className={`script-renderer relative${showLineUnderline ? " show-line-underline" : ""}`}
             style={{ fontFamily: readingFontStack }}
             onPointerMove={handlePointerMove}
             onPointerLeave={handlePointerLeave}

@@ -1,8 +1,8 @@
-import React, { useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import { Loader2, CircleHelp } from "lucide-react";
+import { Loader2, CircleHelp, ChevronDown, ChevronRight } from "lucide-react";
 import { getPublicScript } from "../../lib/api/public";
 import { uploadMediaObject } from "../../lib/api/media";
 import { useAuth } from "../../contexts/AuthContext";
@@ -15,6 +15,7 @@ import { PersonaSetupDialog } from "./metadata/PersonaSetupDialog";
 import { ScriptMetadataPublishSection } from "./metadata/ScriptMetadataPublishSection";
 import { ScriptMetadataExposureSection } from "./metadata/ScriptMetadataExposureSection";
 import { ScriptMetadataActivitySection } from "./metadata/ScriptMetadataActivitySection";
+import { ScriptMetadataDemoSection } from "./metadata/ScriptMetadataDemoSection";
 import { ScriptMetadataAdvancedSection } from "./metadata/ScriptMetadataAdvancedSection";
 import { MediaPicker } from "../ui/MediaPicker";
 import { useToast } from "../ui/toast";
@@ -38,8 +39,37 @@ import { useScriptMetadataDetailsProps } from "../../hooks/dashboard/useScriptMe
 import { useScriptMetadataSupplementalState } from "../../hooks/dashboard/useScriptMetadataSupplementalState";
 import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
 import { ImageCropDialog } from "../ui/ImageCropDialog";
+import { createEmptyActivityDemoLink } from "../../lib/activityDemoLinks";
 
 export { buildPublishChecklist };
+
+export const ACTIVE_TAB_TO_SECTION = Object.freeze({
+    basic: "basic",
+    publish: "publish",
+    exposure: "exposure",
+    activity: "activity",
+    demo: "demo",
+    advanced: "advanced",
+});
+
+export const CHECKLIST_ITEM_TO_SECTION = Object.freeze({
+    title: "basic",
+    identity: "basic",
+    audience: "publish",
+    rating: "publish",
+    license: "publish",
+    cover: "exposure",
+    synopsis: "basic",
+    tags: "exposure",
+});
+
+export function getCollapsedSectionsAfterTabSync(collapsedSections, activeTab, shouldExpand) {
+    if (!shouldExpand) return collapsedSections;
+    const target = ACTIVE_TAB_TO_SECTION[activeTab];
+    if (!target) return collapsedSections;
+    if (!collapsedSections[target]) return collapsedSections;
+    return { ...collapsedSections, [target]: false };
+}
 
 
 
@@ -59,12 +89,23 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     const [activityBannerPreviewFailed, setActivityBannerPreviewFailed] = useState(false);
     const [activityBannerUploadError, setActivityBannerUploadError] = useState("");
     const [activityBannerUploadWarning, setActivityBannerUploadWarning] = useState("");
+    const initialCollapsedSections = {
+        basic: true,
+        publish: true,
+        exposure: true,
+        activity: true,
+        demo: true,
+        advanced: true,
+    };
+    const [collapsedSections, setCollapsedSections] = useState(initialCollapsedSections);
 
     const {
         coverUrl,
         setCoverUrl,
         author,
         setAuthor,
+        authorDisplayMode,
+        setAuthorDisplayMode,
         date,
         setDate,
         contact,
@@ -93,18 +134,16 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setPerformanceInstruction,
         openingIntro,
         setOpeningIntro,
-        environmentInfo,
-        setEnvironmentInfo,
-        situationInfo,
-        setSituationInfo,
+        chapterSettings,
+        setChapterSettings,
         activityName,
         setActivityName,
         activityBannerUrl,
         setActivityBannerUrl,
         activityContent,
         setActivityContent,
-        activityDemoUrl,
-        setActivityDemoUrl,
+        activityDemoLinks,
+        setActivityDemoLinks,
         activityWorkUrl,
         setActivityWorkUrl,
         seriesName,
@@ -160,6 +199,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     const [showAllChecklistChips, setShowAllChecklistChips] = useState(false);
     const [showValidationHints, setShowValidationHints] = useState(false);
     const [showPersonaSetupDialog, setShowPersonaSetupDialog] = useState(false);
+    const lastActiveTabRef = useRef("basic");
+    const pendingActiveTabExpandRef = useRef(false);
     const customIdRef = useRef(0);
     const contentScrollRef = useRef(null);
     const initializedRef = useRef(false);
@@ -280,6 +321,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setJsonError,
         setTitle,
         setAuthor,
+        setAuthorDisplayMode,
         setDate,
         setSynopsis,
         setOutline,
@@ -287,12 +329,11 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setBackgroundInfo,
         setPerformanceInstruction,
         setOpeningIntro,
-        setEnvironmentInfo,
-        setSituationInfo,
+        setChapterSettings,
         setActivityName,
         setActivityBannerUrl,
         setActivityContent,
-        setActivityDemoUrl,
+        setActivityDemoLinks,
         setActivityWorkUrl,
         setContact,
         setContactFields,
@@ -446,6 +487,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setIdentity,
         setSelectedOrgId,
         setAuthor,
+        setAuthorDisplayMode,
         setDate,
         setContact,
         setSynopsis,
@@ -454,12 +496,11 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setBackgroundInfo,
         setPerformanceInstruction,
         setOpeningIntro,
-        setEnvironmentInfo,
-        setSituationInfo,
+        setChapterSettings,
         setActivityName,
         setActivityBannerUrl,
         setActivityContent,
-        setActivityDemoUrl,
+        setActivityDemoLinks,
         setActivityWorkUrl,
         setSeriesName,
         setSeriesId,
@@ -522,6 +563,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         script,
         title,
         author,
+        authorDisplayMode,
         date,
         synopsis,
         outline,
@@ -529,12 +571,11 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         backgroundInfo,
         performanceInstruction,
         openingIntro,
-        environmentInfo,
-        situationInfo,
+        chapterSettings,
         activityName,
         activityBannerUrl,
         activityContent,
-        activityDemoUrl,
+        activityDemoLinks,
         activityWorkUrl,
         contact,
         seriesName,
@@ -586,18 +627,18 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         coverUrl,
         status,
         author,
+        authorDisplayMode,
         date,
         outline,
         roleSetting,
         backgroundInfo,
         performanceInstruction,
         openingIntro,
-        environmentInfo,
-        situationInfo,
+        chapterSettings,
         activityName,
         activityBannerUrl,
         activityContent,
-        activityDemoUrl,
+        activityDemoLinks,
         activityWorkUrl,
         licenseCommercial,
         licenseDerivative,
@@ -637,6 +678,13 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setShowPersonaSetupDialog(false);
         onOpenChange(false);
         navigate("/studio?tab=profile");
+    };
+
+    const handlePersonaSetupDialogOpenChange = (nextOpen) => {
+        setShowPersonaSetupDialog(nextOpen);
+        if (!nextOpen) {
+            onOpenChange(false);
+        }
     };
 
     const { handleSetTargetAudience, handleSetContentRating } = useScriptMetadataTagHandlers({
@@ -708,6 +756,98 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         });
     };
 
+    const handleAddActivityDemoLink = () => {
+        setActivityDemoLinks((prev) => [...(prev || []), createEmptyActivityDemoLink(`demo-${Date.now()}`)]);
+    };
+
+    const handleUpdateActivityDemoLink = (index, field, value) => {
+        setActivityDemoLinks((prev) => {
+            const next = [...(prev || [])];
+            next[index] = { ...(next[index] || createEmptyActivityDemoLink(`demo-${index + 1}`)), [field]: value };
+            return next;
+        });
+    };
+
+    const handleRemoveActivityDemoLink = (index) => {
+        setActivityDemoLinks((prev) => {
+            const next = [...(prev || [])];
+            next.splice(index, 1);
+            return next;
+        });
+    };
+
+    useEffect(() => {
+        if (!open) return;
+        setCollapsedSections(initialCollapsedSections);
+        lastActiveTabRef.current = activeTab;
+        pendingActiveTabExpandRef.current = false;
+    }, [open, scriptId, script?.id]);
+
+    const toggleSection = (key) => {
+        setCollapsedSections((prev) => ({ ...prev, [key]: !prev[key] }));
+    };
+
+    useEffect(() => {
+        if (!open) return;
+        const previous = lastActiveTabRef.current;
+        lastActiveTabRef.current = activeTab;
+        if (previous === activeTab) return;
+        const shouldExpand = pendingActiveTabExpandRef.current;
+        pendingActiveTabExpandRef.current = false;
+        setCollapsedSections((prev) => getCollapsedSectionsAfterTabSync(prev, activeTab, shouldExpand));
+    }, [activeTab, open]);
+
+    const handleFocusSection = (section) => {
+        const targetSection = ACTIVE_TAB_TO_SECTION[section] || section;
+        if (activeTab === targetSection) {
+            pendingActiveTabExpandRef.current = false;
+            setCollapsedSections((prev) => getCollapsedSectionsAfterTabSync(prev, targetSection, true));
+            focusSection(section);
+            return;
+        }
+        pendingActiveTabExpandRef.current = true;
+        focusSection(section);
+    };
+
+    const handleJumpToChecklistItem = (key) => {
+        const targetSection = CHECKLIST_ITEM_TO_SECTION[key] || "basic";
+        if (activeTab === targetSection) {
+            pendingActiveTabExpandRef.current = false;
+            setCollapsedSections((prev) => getCollapsedSectionsAfterTabSync(prev, targetSection, true));
+            jumpToChecklistItem(key);
+            return;
+        }
+        pendingActiveTabExpandRef.current = true;
+        jumpToChecklistItem(key);
+    };
+
+    const renderSectionBlock = (key, title, sectionId, node) => {
+        const collapsed = Boolean(collapsedSections[key]);
+        return (
+            <div id={sectionId} className="rounded-xl border border-border/70 bg-background shadow-sm">
+                <button
+                    type="button"
+                    onClick={() => toggleSection(key)}
+                    className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-left hover:bg-muted/30"
+                    aria-expanded={!collapsed}
+                    aria-controls={`${sectionId}-content`}
+                >
+                    <span className="text-sm font-semibold text-foreground">{title}</span>
+                    {collapsed ? (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    )}
+                </button>
+                {!collapsed && (
+                    <div id={`${sectionId}-content`} className="px-4 pb-4">
+                        {node}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     return (
         <>
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -755,9 +895,9 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                             checklistChipItems={checklistChipItems}
                             maxVisibleChecklistChips={maxVisibleChecklistChips}
                             activeTab={activeTab}
-                            jumpToChecklistItem={jumpToChecklistItem}
+                            jumpToChecklistItem={handleJumpToChecklistItem}
                             setShowAllChecklistChips={setShowAllChecklistChips}
-                            focusSection={focusSection}
+                            focusSection={handleFocusSection}
                         />
                     </div>
                 </DialogHeader>
@@ -772,149 +912,197 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                                 </div>
                             </div>
                         ) : (
-                            <div className="space-y-8">
-                                <ScriptMetadataBasicSection
-                                    t={t}
-                                    title={title}
-                                    setTitle={setTitle}
-                                    identity={identity}
-                                    setIdentity={setIdentity}
-                                    currentUser={currentUser}
-                                    personas={personas}
-                                    orgs={orgs}
-                                    selectedOrgId={selectedOrgId}
-                                    setSelectedOrgId={setSelectedOrgId}
-                                    status={status}
-                                    setStatus={setStatus}
-                                    date={date}
-                                    setDate={setDate}
-                                    synopsis={synopsis}
-                                    setSynopsis={setSynopsis}
-                                    outline={outline}
-                                    setOutline={setOutline}
-                                    roleSetting={roleSetting}
-                                    setRoleSetting={setRoleSetting}
-                                    backgroundInfo={backgroundInfo}
-                                    setBackgroundInfo={setBackgroundInfo}
-                                    performanceInstruction={performanceInstruction}
-                                    setPerformanceInstruction={setPerformanceInstruction}
-                                    openingIntro={openingIntro}
-                                    setOpeningIntro={setOpeningIntro}
-                                    environmentInfo={environmentInfo}
-                                    setEnvironmentInfo={setEnvironmentInfo}
-                                    situationInfo={situationInfo}
-                                    setSituationInfo={setSituationInfo}
-                                    requiredErrorMap={requiredErrorMap}
-                                    recommendedErrorMap={recommendedErrorMap}
-                                    missingRequiredMap={missingRequiredMap}
-                                />
+                            <div className="space-y-4">
+                                {renderSectionBlock(
+                                    "basic",
+                                    t("scriptMetadataDialog.tabBasic", "基本資料"),
+                                    "metadata-section-basic",
+                                    <ScriptMetadataBasicSection
+                                        sectionId={null}
+                                        showTitle={false}
+                                        t={t}
+                                        title={title}
+                                        setTitle={setTitle}
+                                        identity={identity}
+                                        setIdentity={setIdentity}
+                                        currentUser={currentUser}
+                                        personas={personas}
+                                        orgs={orgs}
+                                        selectedOrgId={selectedOrgId}
+                                        setSelectedOrgId={setSelectedOrgId}
+                                        status={status}
+                                        setStatus={setStatus}
+                                        date={date}
+                                        setDate={setDate}
+                                        synopsis={synopsis}
+                                        setSynopsis={setSynopsis}
+                                        outline={outline}
+                                        setOutline={setOutline}
+                                        roleSetting={roleSetting}
+                                        setRoleSetting={setRoleSetting}
+                                        backgroundInfo={backgroundInfo}
+                                        setBackgroundInfo={setBackgroundInfo}
+                                        performanceInstruction={performanceInstruction}
+                                        setPerformanceInstruction={setPerformanceInstruction}
+                                        openingIntro={openingIntro}
+                                        setOpeningIntro={setOpeningIntro}
+                                        chapterSettings={chapterSettings}
+                                        setChapterSettings={setChapterSettings}
+                                        requiredErrorMap={requiredErrorMap}
+                                        recommendedErrorMap={recommendedErrorMap}
+                                        missingRequiredMap={missingRequiredMap}
+                                    />
+                                )}
 
-                                <ScriptMetadataPublishSection
-                                    t={t}
-                                    missingRequiredMap={missingRequiredMap}
-                                    requiredErrorMap={requiredErrorMap}
-                                    targetAudience={targetAudience}
-                                    handleSetTargetAudience={handleSetTargetAudience}
-                                    contentRating={contentRating}
-                                    handleSetContentRating={handleSetContentRating}
-                                    licenseCommercial={licenseCommercial}
-                                    setLicenseCommercial={setLicenseCommercial}
-                                    licenseDerivative={licenseDerivative}
-                                    setLicenseDerivative={setLicenseDerivative}
-                                    licenseNotify={licenseNotify}
-                                    setLicenseNotify={setLicenseNotify}
-                                    publishNewTerm={publishNewTerm}
-                                    setPublishNewTerm={setPublishNewTerm}
-                                    addLicenseSpecialTerm={addLicenseSpecialTerm}
-                                    licenseSpecialTerms={licenseSpecialTerms}
-                                    removeLicenseSpecialTerm={removeLicenseSpecialTerm}
-                                    copyright={copyright}
-                                    setCopyright={setCopyright}
-                                    renderRowLabel={renderRowLabel}
-                                />
+                                {renderSectionBlock(
+                                    "publish",
+                                    t("scriptMetadataDialog.tabPublish", "發布設定"),
+                                    "metadata-section-publish",
+                                    <ScriptMetadataPublishSection
+                                        sectionId={null}
+                                        showTitle={false}
+                                        t={t}
+                                        missingRequiredMap={missingRequiredMap}
+                                        requiredErrorMap={requiredErrorMap}
+                                        targetAudience={targetAudience}
+                                        handleSetTargetAudience={handleSetTargetAudience}
+                                        contentRating={contentRating}
+                                        handleSetContentRating={handleSetContentRating}
+                                        licenseCommercial={licenseCommercial}
+                                        setLicenseCommercial={setLicenseCommercial}
+                                        licenseDerivative={licenseDerivative}
+                                        setLicenseDerivative={setLicenseDerivative}
+                                        licenseNotify={licenseNotify}
+                                        setLicenseNotify={setLicenseNotify}
+                                        publishNewTerm={publishNewTerm}
+                                        setPublishNewTerm={setPublishNewTerm}
+                                        addLicenseSpecialTerm={addLicenseSpecialTerm}
+                                        licenseSpecialTerms={licenseSpecialTerms}
+                                        removeLicenseSpecialTerm={removeLicenseSpecialTerm}
+                                        copyright={copyright}
+                                        setCopyright={setCopyright}
+                                        renderRowLabel={renderRowLabel}
+                                    />
+                                )}
 
-                                <ScriptMetadataExposureSection
-                                    t={t}
-                                    title={title}
-                                    author={author}
-                                    setAuthor={setAuthor}
-                                    getRowLabelClass={getRowLabelClass}
-                                    coverUrl={coverUrl}
-                                    setCoverUrl={setCoverUrl}
-                                    handleCoverUpload={handleCoverUpload}
-                                    setIsMediaPickerOpen={(open) => {
-                                        if (open) setMediaPickerTarget("cover");
-                                        setIsMediaPickerOpen(open);
-                                    }}
-                                    coverUploadError={coverUploadError}
-                                    coverUploadWarning={coverUploadWarning}
-                                    coverPreviewFailed={coverPreviewFailed}
-                                    setCoverPreviewFailed={setCoverPreviewFailed}
-                                    recommendedErrorMap={recommendedErrorMap}
-                                    seriesExpanded={seriesExpanded}
-                                    setSeriesExpanded={setSeriesExpanded}
-                                    setSeriesId={setSeriesId}
-                                    setSeriesName={setSeriesName}
-                                    setSeriesOrder={setSeriesOrder}
-                                    setQuickSeriesName={setQuickSeriesName}
-                                    setShowSeriesQuickCreate={setShowSeriesQuickCreate}
-                                    focusSeriesSelect={focusSeriesSelect}
-                                    seriesId={seriesId}
-                                    seriesOptions={seriesOptions}
-                                    showSeriesQuickCreate={showSeriesQuickCreate}
-                                    quickSeriesName={quickSeriesName}
-                                    handleQuickCreateSeries={handleQuickCreateSeries}
-                                    isCreatingSeries={isCreatingSeries}
-                                    seriesOrder={seriesOrder}
-                                    newTagInput={newTagInput}
-                                    setNewTagInput={setNewTagInput}
-                                    handleAddTag={handleAddTag}
-                                    currentTags={currentTags}
-                                    handleRemoveTag={handleRemoveTag}
-                                />
+                                {renderSectionBlock(
+                                    "exposure",
+                                    t("scriptMetadataDialog.tabExposure", "曝光資訊"),
+                                    "metadata-section-exposure",
+                                    <ScriptMetadataExposureSection
+                                        sectionId={null}
+                                        showTitle={false}
+                                        t={t}
+                                        title={title}
+                                        author={author}
+                                        setAuthor={setAuthor}
+                                        authorDisplayMode={authorDisplayMode}
+                                        setAuthorDisplayMode={setAuthorDisplayMode}
+                                        getRowLabelClass={getRowLabelClass}
+                                        coverUrl={coverUrl}
+                                        setCoverUrl={setCoverUrl}
+                                        handleCoverUpload={handleCoverUpload}
+                                        setIsMediaPickerOpen={(open) => {
+                                            if (open) setMediaPickerTarget("cover");
+                                            setIsMediaPickerOpen(open);
+                                        }}
+                                        coverUploadError={coverUploadError}
+                                        coverUploadWarning={coverUploadWarning}
+                                        coverPreviewFailed={coverPreviewFailed}
+                                        setCoverPreviewFailed={setCoverPreviewFailed}
+                                        recommendedErrorMap={recommendedErrorMap}
+                                        seriesExpanded={seriesExpanded}
+                                        setSeriesExpanded={setSeriesExpanded}
+                                        setSeriesId={setSeriesId}
+                                        setSeriesName={setSeriesName}
+                                        setSeriesOrder={setSeriesOrder}
+                                        setQuickSeriesName={setQuickSeriesName}
+                                        setShowSeriesQuickCreate={setShowSeriesQuickCreate}
+                                        focusSeriesSelect={focusSeriesSelect}
+                                        seriesId={seriesId}
+                                        seriesOptions={seriesOptions}
+                                        showSeriesQuickCreate={showSeriesQuickCreate}
+                                        quickSeriesName={quickSeriesName}
+                                        handleQuickCreateSeries={handleQuickCreateSeries}
+                                        isCreatingSeries={isCreatingSeries}
+                                        seriesOrder={seriesOrder}
+                                        newTagInput={newTagInput}
+                                        setNewTagInput={setNewTagInput}
+                                        handleAddTag={handleAddTag}
+                                        currentTags={currentTags}
+                                        handleRemoveTag={handleRemoveTag}
+                                    />
+                                )}
 
-                                <ScriptMetadataActivitySection
-                                    t={t}
-                                    getRowLabelClass={getRowLabelClass}
-                                    activityName={activityName}
-                                    setActivityName={setActivityName}
-                                    activityBannerUrl={activityBannerUrl}
-                                    setActivityBannerUrl={setActivityBannerUrl}
-                                    handleActivityBannerUpload={handleActivityBannerUpload}
-                                    onOpenActivityBannerMediaPicker={() => {
-                                        setMediaPickerTarget("activityBanner");
-                                        setIsMediaPickerOpen(true);
-                                    }}
-                                    activityBannerPreviewFailed={activityBannerPreviewFailed}
-                                    setActivityBannerPreviewFailed={setActivityBannerPreviewFailed}
-                                    activityBannerUploadError={activityBannerUploadError}
-                                    activityBannerUploadWarning={activityBannerUploadWarning}
-                                    activityContent={activityContent}
-                                    setActivityContent={setActivityContent}
-                                    activityDemoUrl={activityDemoUrl}
-                                    setActivityDemoUrl={setActivityDemoUrl}
-                                    activityWorkUrl={activityWorkUrl}
-                                    setActivityWorkUrl={setActivityWorkUrl}
-                                />
+                                {renderSectionBlock(
+                                    "activity",
+                                    t("scriptMetadataDialog.tabActivity", "活動宣傳"),
+                                    "metadata-section-activity",
+                                    <ScriptMetadataActivitySection
+                                        sectionId={null}
+                                        showTitle={false}
+                                        t={t}
+                                        getRowLabelClass={getRowLabelClass}
+                                        activityName={activityName}
+                                        setActivityName={setActivityName}
+                                        activityBannerUrl={activityBannerUrl}
+                                        setActivityBannerUrl={setActivityBannerUrl}
+                                        handleActivityBannerUpload={handleActivityBannerUpload}
+                                        onOpenActivityBannerMediaPicker={() => {
+                                            setMediaPickerTarget("activityBanner");
+                                            setIsMediaPickerOpen(true);
+                                        }}
+                                        activityBannerPreviewFailed={activityBannerPreviewFailed}
+                                        setActivityBannerPreviewFailed={setActivityBannerPreviewFailed}
+                                        activityBannerUploadError={activityBannerUploadError}
+                                        activityBannerUploadWarning={activityBannerUploadWarning}
+                                        activityContent={activityContent}
+                                        setActivityContent={setActivityContent}
+                                        activityWorkUrl={activityWorkUrl}
+                                        setActivityWorkUrl={setActivityWorkUrl}
+                                    />
+                                )}
 
-                                <ScriptMetadataAdvancedSection
-                                    t={t}
-                                    getRowLabelClass={getRowLabelClass}
-                                    markerThemeId={markerThemeId}
-                                    setMarkerThemeId={setMarkerThemeId}
-                                    markerThemes={markerThemes}
-                                    showMarkerLegend={showMarkerLegend}
-                                    setShowMarkerLegend={setShowMarkerLegend}
-                                    disableCopy={disableCopy}
-                                    setDisableCopy={setDisableCopy}
-                                    metadataDetailsCommonProps={metadataDetailsCommonProps}
-                                    jsonMode={jsonMode}
-                                    setJsonMode={setJsonMode}
-                                    jsonText={jsonText}
-                                    setJsonText={setJsonText}
-                                    jsonError={jsonError}
-                                    applyJson={applyJson}
-                                />
+                                {renderSectionBlock(
+                                    "demo",
+                                    "試聽範例",
+                                    "metadata-section-demo",
+                                    <ScriptMetadataDemoSection
+                                        sectionId={null}
+                                        showTitle={false}
+                                        getRowLabelClass={getRowLabelClass}
+                                        activityDemoLinks={activityDemoLinks}
+                                        onAddActivityDemoLink={handleAddActivityDemoLink}
+                                        onUpdateActivityDemoLink={handleUpdateActivityDemoLink}
+                                        onRemoveActivityDemoLink={handleRemoveActivityDemoLink}
+                                    />
+                                )}
+
+                                {renderSectionBlock(
+                                    "advanced",
+                                    t("scriptMetadataDialog.tabAdvanced", "進階設定"),
+                                    "metadata-section-advanced",
+                                    <ScriptMetadataAdvancedSection
+                                        sectionId={null}
+                                        showTitle={false}
+                                        t={t}
+                                        getRowLabelClass={getRowLabelClass}
+                                        markerThemeId={markerThemeId}
+                                        setMarkerThemeId={setMarkerThemeId}
+                                        markerThemes={markerThemes}
+                                        showMarkerLegend={showMarkerLegend}
+                                        setShowMarkerLegend={setShowMarkerLegend}
+                                        disableCopy={disableCopy}
+                                        setDisableCopy={setDisableCopy}
+                                        metadataDetailsCommonProps={metadataDetailsCommonProps}
+                                        jsonMode={jsonMode}
+                                        setJsonMode={setJsonMode}
+                                        jsonText={jsonText}
+                                        setJsonText={setJsonText}
+                                        jsonError={jsonError}
+                                        applyJson={applyJson}
+                                    />
+                                )}
                             </div>
                         )}
                     </div>
@@ -975,7 +1163,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         <PersonaSetupDialog
             t={t}
             open={showPersonaSetupDialog}
-            onOpenChange={setShowPersonaSetupDialog}
+            onOpenChange={handlePersonaSetupDialogOpenChange}
             onGoProfile={handleGoToAuthorProfile}
         />
         </>

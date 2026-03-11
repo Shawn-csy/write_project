@@ -4,7 +4,6 @@ import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Textarea } from "../../ui/textarea";
 import { Label } from "../../ui/label";
-import { Switch } from "../../ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "../../ui/dialog";
 import { ScrollArea } from "../../ui/scroll-area";
 import { useToast } from "../../ui/toast";
@@ -19,6 +18,7 @@ import { ImportStagePreview } from "./import/ImportStagePreview";
 // 三階段處理流程 (純 Marker 模式)
 import { preprocess } from "../../../lib/importPipeline/textPreprocessor.js";
 import { extractMetadata } from "../../../lib/importPipeline/metadataExtractor.js";
+import { stripMarkerGuideBlocks } from "../../../lib/importPipeline/markerGuideStripper.js";
 import { parseScreenplay } from "../../../lib/screenplayAST";
 import { getDefaultMarkerRules } from "../../../constants/defaultMarkerRules";
 
@@ -30,10 +30,43 @@ const STEPS = {
 const GUIDE_STORAGE_KEY = "import-guide-seen-v1";
 
 const MAX_IMPORT_FILE_MB = 5;
-const SCRIPT_INFO_FIELDS = ["Title", "Author", "Description", "Tags", "Rating", "Duration", "Source"];
+const SCRIPT_INFO_FIELDS = [
+    "Title",
+    "Author",
+    "Draft date",
+    "Description",
+    "Tags",
+    "Rating",
+    "Duration",
+    "Source",
+    "RoleSetting",
+    "PerformanceInstruction",
+    "ChapterSettings",
+];
+
+const CONTROLLED_METADATA_FIELDS = [
+    { key: "Title", label: "標題", multiline: false },
+    { key: "Author", label: "作者", multiline: false },
+    { key: "Draft date", label: "日期", multiline: false },
+    { key: "Rating", label: "分級", multiline: false },
+    { key: "Duration", label: "時長", multiline: false },
+    { key: "Source", label: "來源", multiline: false },
+    { key: "Tags", label: "標籤", multiline: true },
+    { key: "Description", label: "作品描述", multiline: true },
+    { key: "RoleSetting", label: "角色設定", type: "role_group" },
+    { key: "ChapterSettings", label: "章節", type: "chapter_group" },
+];
+
+const buildEditableMetadata = (input = {}) => {
+    const next = {};
+    SCRIPT_INFO_FIELDS.forEach((key) => {
+        next[key] = String(input?.[key] ?? "");
+    });
+    return next;
+};
 
 const pickDefaultScriptInfo = (input = {}) => {
-    const next = {};
+    const next = buildEditableMetadata();
     for (const key of SCRIPT_INFO_FIELDS) {
         const value = input?.[key];
         if (typeof value === "string" && value.trim()) {
@@ -41,6 +74,19 @@ const pickDefaultScriptInfo = (input = {}) => {
         }
     }
     return next;
+};
+
+const normalizeMetaKey = (key = "") => String(key || "").trim().toLowerCase().replace(/\s+/g, "");
+const CONTROLLED_META_KEYS = new Set(["title", "author", "authors", "draftdate", "date", "tag", "tags", "標籤"]);
+const EXCLUDED_META_KEYS = new Set(["environmentinfo", "situationinfo", "chapterinfo"]);
+
+export const metadataToCustomEntries = (meta = {}) => {
+    return Object.entries(meta || {})
+        .map(([key, value]) => ({ key: String(key || "").trim(), value: String(value ?? "") }))
+        .filter((item) => item.key && item.value)
+        .filter((item) => !CONTROLLED_META_KEYS.has(normalizeMetaKey(item.key)))
+        .filter((item) => !EXCLUDED_META_KEYS.has(normalizeMetaKey(item.key)))
+        .map((item) => ({ ...item, type: "text" }));
 };
 
 const normalizeNameKey = (name = "") => name.trim().toLowerCase();
@@ -95,7 +141,6 @@ export function ImportScriptDialog({
     const [step, setStep] = useState(STEPS.INPUT);
     const [rawInput, setRawInput] = useState("");
     const [title, setTitle] = useState("");
-    const [autoCharacterWholeLine, setAutoCharacterWholeLine] = useState(false);
     const [characterNamesInput, setCharacterNamesInput] = useState("");
     const [importing, setImporting] = useState(false);
     const [showGuide, setShowGuide] = useState(false);
@@ -111,7 +156,8 @@ export function ImportScriptDialog({
     
     // 處理結果
     const [preprocessResult, setPreprocessResult] = useState(null);
-    const [metadata, setMetadata] = useState({});
+    const [metadataParseResult, setMetadataParseResult] = useState({ metadata: {}, strippedText: "", autoCleanedText: "" });
+    const [metadata, setMetadata] = useState(buildEditableMetadata());
     const previewMarkerConfigs = getDefaultMarkerRules();
     const previewAst = preprocessResult?.cleanedText
         ? parseScreenplay(preprocessResult.cleanedText, previewMarkerConfigs).ast
@@ -181,10 +227,10 @@ export function ImportScriptDialog({
         setStep(STEPS.INPUT);
         setRawInput("");
         setTitle("");
-        setAutoCharacterWholeLine(false);
         setCharacterNamesInput("");
         setPreprocessResult(null);
-        setMetadata({});
+        setMetadataParseResult({ metadata: {}, strippedText: "", autoCleanedText: "" });
+        setMetadata(buildEditableMetadata());
         setShowGuide(false);
         setShowFormatQuickInfo(false);
         setShowFormatDetails(false);
@@ -221,7 +267,7 @@ export function ImportScriptDialog({
             setRawInput(inputText);
         }
         const characterNames = parseCharacterNames(characterNamesInput);
-        const sourceText = autoCharacterWholeLine
+        const sourceText = characterNames.length > 0
             ? applyWholeLineCharacterTagging(inputText, characterNames)
             : inputText;
 
@@ -230,9 +276,17 @@ export function ImportScriptDialog({
         setPreprocessResult(result);
         
         // 2. Metadata 提取
-        const { metadata: extractedMeta } = extractMetadata(result.cleanedText);
+        const extracted = extractMetadata(result.cleanedText);
+        const extractedMeta = extracted?.metadata || {};
         const parsedInfo = pickDefaultScriptInfo(extractedMeta);
-        setMetadata(parsedInfo);
+        setMetadata(buildEditableMetadata(parsedInfo));
+        const strippedText = String(extracted?.strippedText || "");
+        const autoCleanedText = stripMarkerGuideBlocks(strippedText || result.cleanedText);
+        setMetadataParseResult({
+            metadata: parsedInfo,
+            strippedText,
+            autoCleanedText,
+        });
         
         // 自動偵測標題 (優先使用 Metadata Title, 否則嘗試 Regex)
         if (!title) {
@@ -253,7 +307,23 @@ export function ImportScriptDialog({
         
         setStep(STEPS.PREVIEW);
         return true;
-    }, [title, autoCharacterWholeLine, characterNamesInput, t]);
+    }, [title, characterNamesInput, t]);
+
+    const handleApplyParsedMetadataRemoval = useCallback(() => {
+        if (!preprocessResult?.cleanedText) return;
+        const extracted = extractMetadata(preprocessResult.cleanedText);
+        const strippedText = String(extracted?.strippedText || "");
+        const autoCleanedText = stripMarkerGuideBlocks(strippedText || preprocessResult.cleanedText);
+        setMetadataParseResult({
+            metadata: pickDefaultScriptInfo(extracted?.metadata || {}),
+            strippedText,
+            autoCleanedText,
+        });
+        setMetadata(buildEditableMetadata(pickDefaultScriptInfo(extracted?.metadata || {})));
+        if (typeof autoCleanedText === "string" && autoCleanedText.length > 0) {
+            setPreprocessResult((prev) => ({ ...prev, cleanedText: autoCleanedText }));
+        }
+    }, [preprocessResult]);
 
     // Stage 1: 預處理
     const handlePreprocess = useCallback(() => {
@@ -267,13 +337,14 @@ export function ImportScriptDialog({
     }, [preprocessResult]);
 
     const finishGuide = useCallback(() => {
-        resetState();
+        setShowGuide(false);
+        setSpotlightRect(null);
         try {
             localStorage.setItem(GUIDE_STORAGE_KEY, "1");
         } catch (err) {
             console.error("Failed to save guide state", err);
         }
-    }, [resetState]);
+    }, []);
 
     const jumpGuide = useCallback((index) => {
         const next = guideSteps[index];
@@ -348,23 +419,11 @@ export function ImportScriptDialog({
             const seen = localStorage.getItem(GUIDE_STORAGE_KEY) === "1";
             if (!seen) {
                 jumpGuide(0);
-                localStorage.setItem(GUIDE_STORAGE_KEY, "1");
             }
         } catch (err) {
             console.error("Failed to read guide state", err);
         }
     }, [open, jumpGuide]);
-
-    // 生成 Fountain Metadata Header
-    const generateMetadataHeader = useCallback((meta) => {
-        const lines = [];
-        for (const key of SCRIPT_INFO_FIELDS) {
-            if (meta[key]) {
-                lines.push(`${key}: ${meta[key]}`);
-            }
-        }
-        return lines.length > 0 ? lines.join('\n') + '\n\n' : '';
-    }, []);
 
     // 確認匯入（純 Marker 模式：儲存原始 cleanedText）
     const handleConfirmImport = useCallback(async () => {
@@ -377,15 +436,16 @@ export function ImportScriptDialog({
                 ...metadata,
                 Title: resolvedTitle,
             });
-            // 將 Metadata 加入到內容開頭
-            const metadataHeader = generateMetadataHeader(normalizedMetadata);
-            const contentWithMeta = metadataHeader + preprocessResult.cleanedText;
+            const customMetadata = metadataToCustomEntries(normalizedMetadata);
             
             await onImport({
                 title: resolvedTitle,
-                content: contentWithMeta,
+                content: preprocessResult.cleanedText,
                 folder: currentPath,
-                metadata: normalizedMetadata
+                metadata: normalizedMetadata,
+                customMetadata,
+                author: String(normalizedMetadata?.Author || "").trim(),
+                draftDate: String(normalizedMetadata?.["Draft date"] || normalizedMetadata?.Date || "").trim(),
             });
             handleOpenChange(false);
         } catch (err) {
@@ -402,7 +462,7 @@ export function ImportScriptDialog({
         } finally {
             setImporting(false);
         }
-    }, [preprocessResult, title, currentPath, onImport, handleOpenChange, metadata, generateMetadataHeader, toast, t]);
+    }, [preprocessResult, title, currentPath, onImport, handleOpenChange, metadata, toast, t]);
 
     // ... (return JSX)
 
@@ -460,8 +520,8 @@ export function ImportScriptDialog({
                 <div className="flex-1 overflow-hidden min-h-0 pt-4">
                     {/* Step 1: 輸入內容 */}
                     {step === STEPS.INPUT && (
-                        <div className="flex flex-col gap-4 h-full min-h-0 overflow-y-auto pr-1">
-                            <div ref={guidePasteRef} className="flex flex-col gap-4 flex-1 min-h-[220px]">
+                        <div className="flex flex-col gap-4 h-full min-h-0 overflow-y-auto pr-1 pb-1">
+                            <div ref={guidePasteRef} className="flex flex-col gap-4 min-h-0">
                             <div className="flex items-center gap-2">
                                 <Input 
                                     placeholder={t("importDialog.scriptTitle")}
@@ -480,25 +540,17 @@ export function ImportScriptDialog({
                                 />
                             </div>
                             <div ref={guideCharacterRef} className="border rounded-md p-3 space-y-2 bg-muted/20 shrink-0">
-                                <div className="flex items-center justify-between gap-3">
-                                    <div className="space-y-0.5">
-                                        <Label htmlFor="auto-character-whole-line">{t("importDialog.characterAutoLabel")}</Label>
-                                        <p className="text-xs text-muted-foreground">{t("importDialog.characterAutoDesc")}</p>
-                                    </div>
-                                    <Switch
-                                        id="auto-character-whole-line"
-                                        checked={autoCharacterWholeLine}
-                                        onCheckedChange={(checked) => setAutoCharacterWholeLine(Boolean(checked))}
-                                    />
+                                <div className="space-y-0.5">
+                                    <Label htmlFor="character-whole-line-input">{t("importDialog.characterAutoLabel")}</Label>
+                                    <p className="text-xs text-muted-foreground">{t("importDialog.characterAutoDesc")}</p>
                                 </div>
-                                {autoCharacterWholeLine && (
-                                    <Textarea
-                                        className="min-h-[88px] font-mono text-xs"
-                                        placeholder={t("importDialog.characterListPlaceholder")}
-                                        value={characterNamesInput}
-                                        onChange={(e) => setCharacterNamesInput(e.target.value)}
-                                    />
-                                )}
+                                <Textarea
+                                    id="character-whole-line-input"
+                                    className="min-h-[88px] font-mono text-xs"
+                                    placeholder={t("importDialog.characterListPlaceholder")}
+                                    value={characterNamesInput}
+                                    onChange={(e) => setCharacterNamesInput(e.target.value)}
+                                />
                             </div>
                         </div>
                     )}
@@ -514,6 +566,16 @@ export function ImportScriptDialog({
                                         ...prev,
                                         cleanedText: autoRemoveWhitespace(prev?.cleanedText || ""),
                                     }))
+                                }
+                                metadataPreview={metadata}
+                                controlledMetadataFields={CONTROLLED_METADATA_FIELDS}
+                                onMetadataChange={(key, value) =>
+                                    setMetadata((prev) => ({ ...prev, [key]: String(value ?? "") }))
+                                }
+                                onApplyParsedMetadataRemoval={handleApplyParsedMetadataRemoval}
+                                canApplyParsedMetadataRemoval={
+                                    Boolean(metadataParseResult?.autoCleanedText) &&
+                                    metadataParseResult.autoCleanedText !== preprocessResult.cleanedText
                                 }
                             />
                         </div>
