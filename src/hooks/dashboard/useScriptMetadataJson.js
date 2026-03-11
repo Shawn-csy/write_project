@@ -1,5 +1,46 @@
 import { useCallback } from "react";
 import { createTag } from "../../lib/api/tags";
+import { normalizeActivityDemoLinks, parseActivityDemoLinks } from "../../lib/activityDemoLinks";
+
+const TAG_KEYS = new Set(["tag", "tags", "標籤"]);
+const normalizeKey = (value) => String(value || "").trim().toLowerCase();
+
+export const parseTagCandidates = (raw) => {
+  if (!raw) return [];
+  const list = Array.isArray(raw)
+    ? raw
+    : String(raw)
+        .split(/[,，、#\n\t;]+/)
+        .map((tag) => tag.trim())
+        .filter(Boolean);
+  return list.map((tag) => (typeof tag === "string" ? { name: tag } : tag));
+};
+
+export const sanitizeCustomJsonFields = (raw) => {
+  if (Array.isArray(raw)) {
+    return raw.filter((entry) => !TAG_KEYS.has(normalizeKey(entry?.key)));
+  }
+  if (raw && typeof raw === "object") {
+    return Object.fromEntries(
+      Object.entries(raw).filter(([key]) => !TAG_KEYS.has(normalizeKey(key)))
+    );
+  }
+  return raw;
+};
+
+export const resolveTagSourceFromParsedJson = (parsed) => {
+  if (parsed?.tags !== undefined) return parsed.tags;
+  const custom = parsed?.customFields || parsed?.custom;
+  if (Array.isArray(custom)) {
+    const first = custom.find((entry) => TAG_KEYS.has(normalizeKey(entry?.key)));
+    return first?.value;
+  }
+  if (custom && typeof custom === "object") {
+    const key = Object.keys(custom).find((item) => TAG_KEYS.has(normalizeKey(item)));
+    if (key) return custom[key];
+  }
+  return undefined;
+};
 
 export function useScriptMetadataJson({
   jsonText,
@@ -20,7 +61,7 @@ export function useScriptMetadataJson({
   setActivityName,
   setActivityBannerUrl,
   setActivityContent,
-  setActivityDemoUrl,
+  setActivityDemoLinks,
   setActivityWorkUrl,
   setContact,
   setContactFields,
@@ -63,7 +104,12 @@ export function useScriptMetadataJson({
       if (parsed.activityName !== undefined) setActivityName(String(parsed.activityName || ""));
       if (parsed.activityBannerUrl !== undefined) setActivityBannerUrl(String(parsed.activityBannerUrl || ""));
       if (parsed.activityContent !== undefined) setActivityContent(String(parsed.activityContent || ""));
-      if (parsed.activityDemoUrl !== undefined) setActivityDemoUrl(String(parsed.activityDemoUrl || ""));
+      if (parsed.activityDemoLinks !== undefined) {
+        setActivityDemoLinks(parseActivityDemoLinks(parsed.activityDemoLinks));
+      } else if (parsed.activityDemoUrl !== undefined) {
+        const legacyUrl = String(parsed.activityDemoUrl || "").trim();
+        setActivityDemoLinks(legacyUrl ? normalizeActivityDemoLinks([legacyUrl]) : []);
+      }
       if (parsed.activityWorkUrl !== undefined) setActivityWorkUrl(String(parsed.activityWorkUrl || ""));
       if (parsed.contact !== undefined) setContact(parsed.contact);
       if (parsed.contactFields !== undefined || parsed.contactInfo !== undefined || parsed.contact !== undefined) {
@@ -100,16 +146,14 @@ export function useScriptMetadataJson({
       }
       if (parsed.selectedOrgId !== undefined) setSelectedOrgId(parsed.selectedOrgId);
       if (parsed.orgId !== undefined) setSelectedOrgId(parsed.orgId);
-      const custom = parsed.custom || parsed.customFields || {};
+      const custom = sanitizeCustomJsonFields(parsed.custom || parsed.customFields || {});
       const next = Array.isArray(custom)
         ? custom.map((f, idx) => ({ id: `cf-${idx + 1}`, key: f.key || "", value: f.value || "" }))
         : Object.entries(custom).map(([k, v], idx) => ({ id: `cf-${idx + 1}`, key: k, value: String(v ?? "") }));
       setCustomFields(next);
-      if (parsed.tags) {
-        const raw = Array.isArray(parsed.tags)
-          ? parsed.tags
-          : String(parsed.tags).split(/[,，、#\n\t;]+/).map((tag) => tag.trim()).filter(Boolean);
-        const entries = raw.map((tag) => (typeof tag === "string" ? { name: tag } : tag));
+      const rawTagSource = resolveTagSourceFromParsedJson(parsed);
+      if (rawTagSource !== undefined) {
+        const entries = parseTagCandidates(rawTagSource);
         const byName = new Map((availableTags || []).map((tag) => [tag.name.toLowerCase(), tag]));
         const resolved = [];
         for (const entry of entries) {
@@ -145,7 +189,7 @@ export function useScriptMetadataJson({
     setActivityName,
     setActivityBannerUrl,
     setActivityContent,
-    setActivityDemoUrl,
+    setActivityDemoLinks,
     setActivityWorkUrl,
     setIdentity,
     setJsonError,

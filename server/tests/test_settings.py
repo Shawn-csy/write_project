@@ -66,6 +66,13 @@ def test_marker_themes(client):
     assert themes[0]["id"] == created_theme["id"]
 
 
+def test_delete_missing_theme_returns_404(client):
+    user_id = "test_user_theme_delete_missing"
+    headers = {"X-User-ID": user_id}
+    response = client.delete("/api/themes/no-such-theme", headers=headers)
+    assert response.status_code == 404
+
+
 def test_get_settings_invalid_json_falls_back_to_empty_and_sets_primary_org(client, db_session):
     now = int(time.time() * 1000)
     db_session.add(

@@ -4,6 +4,7 @@ import { createTag } from "../../lib/api/tags";
 import { deriveSimpleLicenseTags } from "../../lib/licenseRights";
 import { AUDIENCE_TAG_GROUP, RATING_TAG_GROUP, syncGroupedTagSelection } from "./tagGroupUtils";
 import { normalizeCustomMetadataEntries } from "../../lib/customMetadata";
+import { normalizeActivityDemoLinks, serializeActivityDemoLinks } from "../../lib/activityDemoLinks";
 
 export function useScriptMetadataSave({
   t,
@@ -25,7 +26,7 @@ export function useScriptMetadataSave({
   activityName,
   activityBannerUrl,
   activityContent,
-  activityDemoUrl,
+  activityDemoLinks,
   activityWorkUrl,
   licenseCommercial,
   licenseDerivative,
@@ -150,7 +151,14 @@ export function useScriptMetadataSave({
       if (activityName) orderedEntries.push({ key: "ActivityName", value: activityName });
       if (activityBannerUrl) orderedEntries.push({ key: "ActivityBanner", value: activityBannerUrl });
       if (activityContent) orderedEntries.push({ key: "ActivityContent", value: activityContent });
-      if (activityDemoUrl) orderedEntries.push({ key: "ActivityDemoUrl", value: activityDemoUrl });
+      const serializedDemoLinks = serializeActivityDemoLinks(activityDemoLinks);
+      const normalizedDemoLinks = normalizeActivityDemoLinks(activityDemoLinks);
+      if (serializedDemoLinks) {
+        orderedEntries.push({ key: "ActivityDemoLinks", value: serializedDemoLinks });
+      }
+      if (normalizedDemoLinks[0]?.url) {
+        orderedEntries.push({ key: "ActivityDemoUrl", value: normalizedDemoLinks[0].url });
+      }
       if (activityWorkUrl) orderedEntries.push({ key: "ActivityWorkUrl", value: activityWorkUrl });
       orderedEntries.push({ key: "LicenseCommercial", value: licenseCommercial });
       orderedEntries.push({ key: "LicenseDerivative", value: licenseDerivative });
@@ -297,7 +305,7 @@ export function useScriptMetadataSave({
     activityName,
     activityBannerUrl,
     activityContent,
-    activityDemoUrl,
+    activityDemoLinks,
     activityWorkUrl,
     status,
     synopsis,

@@ -28,3 +28,22 @@ def test_seo_tags(client):
             assert "<title>SEO Script｜Screenplay Reader</title>" in content
             assert 'content="SEO Script"' in content # og:title
             assert 'content="Great content here..."' in content # description
+
+
+def test_security_headers_csp_is_restricted(client):
+    response = client.get("/api/public-terms-config")
+    assert response.status_code == 200
+    csp = response.headers.get("content-security-policy", "")
+    assert "default-src 'self'" in csp
+    assert "'unsafe-eval'" not in csp
+    assert "default-src *" not in csp
+
+
+def test_spa_read_markdown_error_returns_500(client, db_session, monkeypatch):
+    def boom(*args, **kwargs):
+        raise RuntimeError("forced query failure")
+
+    monkeypatch.setattr(db_session, "query", boom)
+    response = client.get("/read/any/extra", headers={"Accept": "text/markdown"})
+    assert response.status_code == 500
+    assert response.text == "Internal Server Error"

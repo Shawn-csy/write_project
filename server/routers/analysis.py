@@ -45,8 +45,8 @@ def analyze_script(
         import json
         try:
             marker_configs = json.loads(script.markerTheme.configs)
-        except:
-            pass
+        except json.JSONDecodeError:
+            logger.warning("Invalid marker theme configs JSON for script %s", script_id)
             
     # Analyze
     analyzer = ScriptAnalyzer(script.content, marker_configs=marker_configs)

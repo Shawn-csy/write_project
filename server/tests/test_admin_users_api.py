@@ -70,6 +70,27 @@ def test_admin_users_create_list_delete_flow(client, db_session):
     assert delete_missing.status_code == 404
 
 
+def test_admin_users_create_without_email_does_not_conflict(client, db_session):
+    now = int(time.time() * 1000)
+    db_session.add(User(id="user-a", handle="user-a", createdAt=now, lastLogin=now))
+    db_session.add(User(id="user-b", handle="user-b", createdAt=now, lastLogin=now))
+    db_session.commit()
+
+    first = client.post(
+        "/api/admin/admin-users",
+        json={"userId": "user-a"},
+        headers={"X-User-ID": "admin-owner"},
+    )
+    assert first.status_code == 200
+
+    second = client.post(
+        "/api/admin/admin-users",
+        json={"userId": "user-b"},
+        headers={"X-User-ID": "admin-owner"},
+    )
+    assert second.status_code == 200
+
+
 def test_env_admin_email_row_cannot_be_deleted(client):
     old_env = os.environ.get("ADMIN_USER_EMAILS")
     os.environ["ADMIN_USER_EMAILS"] = "boss@example.com"

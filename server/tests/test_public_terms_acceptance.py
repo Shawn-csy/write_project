@@ -21,6 +21,24 @@ def _seed_script(db_session):
     db_session.commit()
 
 
+def _seed_private_script(db_session):
+    now = int(time.time() * 1000)
+    user = User(id="terms-owner-private", handle="terms-owner-private")
+    script = Script(
+        id="terms-script-private-1",
+        ownerId="terms-owner-private",
+        title="Terms Script Private",
+        content="Title: Private\n\nINT. ROOM - NIGHT",
+        folder="/",
+        type="script",
+        isPublic=0,
+        createdAt=now,
+        lastModified=now,
+    )
+    db_session.add_all([user, script])
+    db_session.commit()
+
+
 def test_public_terms_config_endpoint(client):
     res = client.get("/api/public-terms-config")
     assert res.status_code == 200
@@ -113,3 +131,20 @@ def test_public_terms_acceptance_ignores_spoofed_x_user_id(client, db_session):
     row = db_session.query(PublicTermsAcceptance).filter(PublicTermsAcceptance.id == acceptance_id).first()
     assert row is not None
     assert row.userId is None
+
+
+def test_public_terms_acceptance_rejects_private_script(client, db_session):
+    _seed_private_script(db_session)
+    config = client.get("/api/public-terms-config").json()
+    required_ids = [item["id"] for item in (config.get("requiredChecks") or [])]
+
+    res = client.post(
+        "/api/public-terms-acceptances",
+        json={
+            "termsVersion": config["version"],
+            "scriptId": "terms-script-private-1",
+            "visitorId": "visitor-private-script",
+            "acceptedChecks": required_ids,
+        },
+    )
+    assert res.status_code == 404

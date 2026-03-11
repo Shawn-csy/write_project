@@ -77,10 +77,10 @@ const pickDefaultScriptInfo = (input = {}) => {
 };
 
 const normalizeMetaKey = (key = "") => String(key || "").trim().toLowerCase().replace(/\s+/g, "");
-const CONTROLLED_META_KEYS = new Set(["title", "author", "authors", "draftdate", "date"]);
+const CONTROLLED_META_KEYS = new Set(["title", "author", "authors", "draftdate", "date", "tag", "tags", "標籤"]);
 const EXCLUDED_META_KEYS = new Set(["environmentinfo", "situationinfo", "chapterinfo"]);
 
-const metadataToCustomEntries = (meta = {}) => {
+export const metadataToCustomEntries = (meta = {}) => {
     return Object.entries(meta || {})
         .map(([key, value]) => ({ key: String(key || "").trim(), value: String(value ?? "") }))
         .filter((item) => item.key && item.value)

@@ -112,7 +112,6 @@ export const saveUserSettings = async (currentUser, payload) => {
           });
           if (res.ok) {
               clearApiOffline();
-              console.log("Settings synced to cloud");
           }
       } catch(e) {
           if (e?.name === "TypeError") {

@@ -25,7 +25,7 @@ export function useScriptMetadataSupplementalState() {
   const [activityName, setActivityName] = useState("");
   const [activityBannerUrl, setActivityBannerUrl] = useState("");
   const [activityContent, setActivityContent] = useState("");
-  const [activityDemoUrl, setActivityDemoUrl] = useState("");
+  const [activityDemoLinks, setActivityDemoLinks] = useState([]);
   const [activityWorkUrl, setActivityWorkUrl] = useState("");
 
   const [seriesName, setSeriesName] = useState("");
@@ -100,8 +100,8 @@ export function useScriptMetadataSupplementalState() {
     setActivityBannerUrl,
     activityContent,
     setActivityContent,
-    activityDemoUrl,
-    setActivityDemoUrl,
+    activityDemoLinks,
+    setActivityDemoLinks,
     activityWorkUrl,
     setActivityWorkUrl,
     seriesName,

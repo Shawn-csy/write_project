@@ -142,6 +142,54 @@ def _has_public_parent_folder(db: Session, script: models.Script) -> bool:
     return folder_script is not None
 
 
+def _is_publicly_visible_script(db: Session, script: models.Script) -> bool:
+    if not script:
+        return False
+    if bool(getattr(script, "isPublic", 0)):
+        return True
+    if str(getattr(script, "folder", "/") or "/") == "/":
+        return False
+    return _has_public_parent_folder(db, script)
+
+
+def _has_public_script_for_persona(db: Session, persona_id: str) -> bool:
+    scripts = db.query(models.Script).filter(models.Script.personaId == persona_id).all()
+    return any(_is_publicly_visible_script(db, script) for script in scripts)
+
+
+def _has_public_script_for_user_fallback(db: Session, user_id: str) -> bool:
+    scripts = db.query(models.Script).filter(
+        models.Script.ownerId == user_id,
+        models.Script.personaId.is_(None),
+    ).all()
+    return any(_is_publicly_visible_script(db, script) for script in scripts)
+
+
+def _has_public_script_for_organization(db: Session, org_id: str) -> bool:
+    scripts = db.query(models.Script).filter(models.Script.organizationId == org_id).all()
+    return any(_is_publicly_visible_script(db, script) for script in scripts)
+
+
+def _get_public_org_map(db: Session, org_ids: list[str]) -> dict[str, models.Organization]:
+    if not org_ids:
+        return {}
+    uniq_ids = [oid for oid in dict.fromkeys(org_ids) if oid]
+    if not uniq_ids:
+        return {}
+    orgs = db.query(models.Organization).filter(models.Organization.id.in_(uniq_ids)).all()
+    out = {}
+    for org in orgs:
+        if not _has_public_script_for_organization(db, org.id):
+            continue
+        if isinstance(org.tags, str):
+            try:
+                org.tags = json.loads(org.tags)
+            except Exception:
+                org.tags = []
+        out[org.id] = org
+    return out
+
+
 def sanitize_public_script(script: models.Script):
     owner = getattr(script, "owner", None)
     if owner:
@@ -159,18 +207,11 @@ def user_to_persona_public(user: models.User, db: Session) -> schemas.PersonaPub
     orgs = []
     org_ids = crud.list_user_org_ids(db, user.id)
     if org_ids:
-        fetched_orgs = db.query(models.Organization).filter(models.Organization.id.in_(org_ids)).all()
-        org_map = {o.id: o for o in fetched_orgs}
+        org_map = _get_public_org_map(db, org_ids)
         for org_id in org_ids:
             org = org_map.get(org_id)
-            if not org:
-                continue
-            if isinstance(org.tags, str):
-                try:
-                    org.tags = json.loads(org.tags)
-                except Exception:
-                    org.tags = []
-            orgs.append(org)
+            if org:
+                orgs.append(org)
     
     return schemas.PersonaPublic(
         id=user.id,
@@ -220,6 +261,8 @@ def create_public_terms_acceptance(
     if script_id:
         script = db.query(models.Script).filter(models.Script.id == script_id).first()
         if not script:
+            raise HTTPException(status_code=404, detail="Script not found")
+        if not _is_publicly_visible_script(db, script):
             raise HTTPException(status_code=404, detail="Script not found")
 
     required_checks = {
@@ -384,19 +427,17 @@ def get_public_persona(persona_id: str, db: Session = Depends(get_db)):
     # 1. Try Persona
     persona = db.query(models.Persona).filter(models.Persona.id == persona_id).first()
     if persona:
+        if not _has_public_script_for_persona(db, persona.id):
+            raise HTTPException(status_code=404, detail="Author not found")
         persona.organizationIds = crud.get_persona_org_ids(db, persona)
         persona.tags = crud._ensure_list(persona.tags)
         persona.links = crud._ensure_list(persona.links)
         persona.defaultLicenseSpecialTerms = crud._ensure_list(persona.defaultLicenseSpecialTerms)
         orgs = []
         if persona.organizationIds:
-            orgs = db.query(models.Organization).filter(models.Organization.id.in_(persona.organizationIds)).all()
-            for o in orgs:
-                if isinstance(o.tags, str):
-                    try:
-                        o.tags = json.loads(o.tags)
-                    except Exception:
-                        o.tags = []
+            org_map = _get_public_org_map(db, persona.organizationIds)
+            orgs = [org_map[oid] for oid in persona.organizationIds if oid in org_map]
+            persona.organizationIds = [oid for oid in persona.organizationIds if oid in org_map]
         result = schemas.PersonaPublic.model_validate(persona)
         result.organizations = orgs
         return result
@@ -404,21 +445,20 @@ def get_public_persona(persona_id: str, db: Session = Depends(get_db)):
     # 2. Try User
     user = db.query(models.User).filter(models.User.id == persona_id).first()
     if user:
+        if not _has_public_script_for_user_fallback(db, user.id):
+            raise HTTPException(status_code=404, detail="Author not found")
         return user_to_persona_public(user, db)
 
     raise HTTPException(status_code=404, detail="Author not found")
 
 @router.get("/public-personas", response_model=List[schemas.PersonaPublic])
 def list_public_personas(db: Session = Depends(get_db)):
-    # Return personas that have at least one explicitly public script
-    persona_ids = [
-        row[0]
-        for row in db.query(models.Script.personaId)
-        .filter(models.Script.isPublic == 1)
-        .filter(models.Script.personaId.isnot(None))
-        .distinct()
-        .all()
-    ]
+    # Return personas that have at least one publicly visible script
+    persona_ids = []
+    for row in db.query(models.Script.personaId).filter(models.Script.personaId.isnot(None)).distinct().all():
+        persona_id = row[0]
+        if persona_id and _has_public_script_for_persona(db, persona_id):
+            persona_ids.append(persona_id)
 
     if not persona_ids:
         return []
@@ -437,20 +477,13 @@ def list_public_personas(db: Session = Depends(get_db)):
         persona_org_map[p.id] = org_ids
         all_org_ids.update(org_ids)
 
-    org_map = {}
-    if all_org_ids:
-        orgs = db.query(models.Organization).filter(models.Organization.id.in_(list(all_org_ids))).all()
-        for o in orgs:
-            if isinstance(o.tags, str):
-                try:
-                    o.tags = json.loads(o.tags)
-                except Exception:
-                    o.tags = []
-        org_map = {o.id: o for o in orgs}
+    org_map = _get_public_org_map(db, list(all_org_ids))
 
     for p in personas:
+        visible_org_ids = [oid for oid in persona_org_map.get(p.id, []) if oid in org_map]
+        p.organizationIds = visible_org_ids
         result = schemas.PersonaPublic.model_validate(p)
-        result.organizations = [org_map[oid] for oid in persona_org_map.get(p.id, []) if oid in org_map]
+        result.organizations = [org_map[oid] for oid in visible_org_ids]
         results.append(result)
     return results
 
@@ -458,6 +491,8 @@ def list_public_personas(db: Session = Depends(get_db)):
 def get_public_organization(org_id: str, db: Session = Depends(get_db)):
     org = db.query(models.Organization).filter(models.Organization.id == org_id).first()
     if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    if not _has_public_script_for_organization(db, org_id):
         raise HTTPException(status_code=404, detail="Organization not found")
     if isinstance(org.tags, str):
         try:
@@ -493,7 +528,8 @@ def get_public_organization(org_id: str, db: Session = Depends(get_db)):
             except Exception:
                 p.defaultLicenseSpecialTerms = []
         if p.id in persona_ids_via_membership or (org_ids and org_id in org_ids):
-            members.append(p)
+            if _has_public_script_for_persona(db, p.id):
+                members.append(p)
     # Avoid validating org.members (User objects) against Persona schema
     try:
         org.members = []
@@ -505,8 +541,19 @@ def get_public_organization(org_id: str, db: Session = Depends(get_db)):
 
 @router.get("/public-organizations", response_model=List[schemas.OrganizationPublic])
 def list_public_organizations(db: Session = Depends(get_db)):
-    # Return all organizations (even without public scripts)
-    orgs = db.query(models.Organization).all()
+    # Return organizations that have at least one publicly visible script.
+    org_ids = {
+        row[0]
+        for row in db.query(models.Script.organizationId)
+        .filter(models.Script.organizationId.isnot(None))
+        .all()
+        if row and row[0]
+    }
+    orgs = [
+        org
+        for org in db.query(models.Organization).filter(models.Organization.id.in_(list(org_ids))).all()
+        if _has_public_script_for_organization(db, org.id)
+    ]
     results = []
     for org in orgs:
         if isinstance(org.tags, str):

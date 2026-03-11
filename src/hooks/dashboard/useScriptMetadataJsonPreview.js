@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { normalizeActivityDemoLinks } from "../../lib/activityDemoLinks";
 
 export function useScriptMetadataJsonPreview({
   script,
@@ -16,7 +17,7 @@ export function useScriptMetadataJsonPreview({
   activityName,
   activityBannerUrl,
   activityContent,
-  activityDemoUrl,
+  activityDemoLinks,
   activityWorkUrl,
   contact,
   seriesName,
@@ -64,7 +65,12 @@ export function useScriptMetadataJsonPreview({
       activityName,
       activityBannerUrl,
       activityContent,
-      activityDemoUrl,
+      activityDemoLinks: normalizeActivityDemoLinks(activityDemoLinks).map(({ name, url, cast, description }) => ({
+        name,
+        url,
+        cast,
+        description,
+      })),
       activityWorkUrl,
       contact,
       series: seriesName,
@@ -100,7 +106,7 @@ export function useScriptMetadataJsonPreview({
     activityName,
     activityBannerUrl,
     activityContent,
-    activityDemoUrl,
+    activityDemoLinks,
     activityWorkUrl,
     contact,
     seriesName,

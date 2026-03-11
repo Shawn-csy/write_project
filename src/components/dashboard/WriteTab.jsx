@@ -8,6 +8,7 @@ import { ImportScriptDialog } from "./write/ImportScriptDialog";
 import { DeleteScriptDialog } from "./write/DeleteScriptDialog";
 import { MoveScriptDialog } from "./write/MoveScriptDialog";
 import { createScript, updateScript, getScript } from "../../lib/api/scripts";
+import { parseImportTagNames, syncImportedTagsToScript } from "../../lib/importPipeline/tagSync";
 import { Button } from "../ui/button";
 import { FileText, Folder, Search, ArrowUpDown, FileStack, Globe, RotateCcw, PanelRightOpen, PanelRightClose } from "lucide-react";
 import {
@@ -70,7 +71,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     }, [t]);
 
     // Handle import script
-    const handleImport = useCallback(async ({ title, content, folder, customMetadata, author, draftDate }) => {
+    const handleImport = useCallback(async ({ title, content, folder, metadata, customMetadata, author, draftDate }) => {
         try {
             // 1. Create Script Shell
             const id = await createScript(title, 'script', folder || manager.currentPath);
@@ -83,6 +84,18 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                 draftDate: String(draftDate || "").trim(),
                 isPublic: false
             });
+
+            // 2.1 Sync parsed import tags into real script tags
+            const importedTagNames = parseImportTagNames({
+                metadata,
+                customMetadata,
+            });
+            if (importedTagNames.length > 0) {
+                await syncImportedTagsToScript({
+                    scriptId: id,
+                    tagNames: importedTagNames,
+                });
+            }
 
             // 3. Load newly created script and optimistically inject into list
             const importedScript = await getScript(id);

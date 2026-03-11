@@ -14,7 +14,10 @@ def read_tags(db: Session = Depends(get_db), ownerId: str = Depends(get_current_
 
 @router.post("/tags")
 def create_tag(tag: schemas.TagCreate, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
-    return crud.create_tag(db, tag, ownerId)
+    created = crud.create_tag(db, tag, ownerId)
+    if not created:
+        raise HTTPException(status_code=500, detail="Failed to create tag")
+    return created
 
 @router.delete("/tags/{tag_id}")
 def delete_tag(tag_id: int, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
@@ -37,7 +40,9 @@ def attach_tag(script_id: str, payload: dict, db: Session = Depends(get_db), own
     if not tag:
         raise HTTPException(status_code=404, detail="Tag not found")
 
-    crud.add_tag_to_script(db, script_id, tag_id)
+    ok = crud.add_tag_to_script(db, script_id, tag_id)
+    if not ok:
+        raise HTTPException(status_code=500, detail="Failed to attach tag")
     return {"success": True}
 
 @router.delete("/scripts/{script_id}/tags/{tag_id}")

@@ -8,6 +8,7 @@ describe("buildCustomFieldsFromRawEntries", () => {
       { key: "LicenseCommercial", value: "allow" },
       { key: "Audience", value: "全性向" },
       { key: "ContentRating", value: "全年齡向" },
+      { key: "Tags", value: "懸疑,戀愛" },
       { key: "MyCustomKey", value: "hello" },
     ];
 

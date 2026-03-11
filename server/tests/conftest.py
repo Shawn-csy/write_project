@@ -40,6 +40,13 @@ def db_session():
         transaction.rollback()
     session.close()
     connection.close()
+    # Extra safety: clear all rows after each test so data can never leak
+    # across test cases even if a path bypasses the shared transaction.
+    with engine.begin() as cleanup_conn:
+        cleanup_conn.exec_driver_sql("PRAGMA foreign_keys=OFF")
+        for table in Base.metadata.tables.values():
+            cleanup_conn.execute(table.delete())
+        cleanup_conn.exec_driver_sql("PRAGMA foreign_keys=ON")
 
 from database import get_db as database_get_db
 
