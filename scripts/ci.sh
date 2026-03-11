@@ -29,8 +29,16 @@ echo "\n🐍 Backend deps + tests"
 if [ -x "./server/venv/bin/python" ]; then
   (cd server && ./venv/bin/python -m pytest -q)
 else
-  python -m pip install -r server/requirements.txt
-  (cd server && pytest -q)
+  if command -v python3 >/dev/null 2>&1; then
+    PYTHON_BIN="python3"
+  elif command -v python >/dev/null 2>&1; then
+    PYTHON_BIN="python"
+  else
+    echo "❌ 找不到可用的 Python（python3/python）"
+    exit 1
+  fi
+  "$PYTHON_BIN" -m pip install -r server/requirements.txt
+  (cd server && "$PYTHON_BIN" -m pytest -q)
 fi
 
 echo "\n✅ CI checks passed"

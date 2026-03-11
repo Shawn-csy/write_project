@@ -79,6 +79,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   });
   const [rawRenderedHtml, setRawRenderedHtml] = useState("");
   const [processedRenderedHtml, setProcessedRenderedHtml] = useState("");
+  const [captureRenderedHtml, setCaptureRenderedHtml] = useState(false);
   const renderedHtmlRef = useRef({ raw: "", processed: "" });
   const isDarkMode = theme === "dark" || (theme === "system" && systemPrefersDark);
   const editorTheme = isDarkMode ? oneDark : "light";
@@ -105,6 +106,35 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
       processed: processedRenderedHtml,
     };
   }, [rawRenderedHtml, processedRenderedHtml]);
+
+  useEffect(() => {
+    renderedHtmlRef.current = { raw: "", processed: "" };
+    setRawRenderedHtml("");
+    setProcessedRenderedHtml("");
+  }, [content, markerConfigs, hiddenMarkerIds]);
+
+  const ensureRenderedHtml = useCallback(async () => {
+    const existing = renderedHtmlRef.current.processed || renderedHtmlRef.current.raw;
+    if (existing) return existing;
+
+    if (!showPreview && !readOnly) {
+      setShowPreview(true);
+    }
+
+    setCaptureRenderedHtml(true);
+    const start = Date.now();
+    while (Date.now() - start < 800) {
+      // Wait for PreviewPanel + ScriptViewer to emit processed/raw html once.
+      await new Promise((resolve) => window.setTimeout(resolve, 40));
+      const next = renderedHtmlRef.current.processed || renderedHtmlRef.current.raw;
+      if (next) {
+        setCaptureRenderedHtml(false);
+        return next;
+      }
+    }
+    setCaptureRenderedHtml(false);
+    return "";
+  }, [readOnly, showPreview]);
 
   // Parse AST for Statistics & Sync
   const { ast } = useMemo(() => {
@@ -188,12 +218,8 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     t,
     title,
     content,
-    processedRenderedHtml,
-    rawRenderedHtml,
     renderedHtmlRef,
-    showPreview,
-    setShowPreview,
-    readOnly,
+    ensureRenderedHtml,
   });
 
   const { handleLocateText, handlePreviewLineClick } = usePreviewLineNavigation({
@@ -619,8 +645,8 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
             onHasTitle={onHasTitle}
             onTitleNote={onTitleNote}
             onTitleSummary={onTitleSummary}
-            onRawHtml={setRawRenderedHtml}
-            onProcessedHtml={setProcessedRenderedHtml}
+            onRawHtml={captureRenderedHtml ? setRawRenderedHtml : undefined}
+            onProcessedHtml={captureRenderedHtml ? setProcessedRenderedHtml : undefined}
             initialSceneId={initialSceneId}
             onScenes={setScenes}
             onRequestEdit={readOnly ? onRequestEdit : undefined}

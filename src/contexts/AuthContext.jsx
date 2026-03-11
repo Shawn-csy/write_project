@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { auth, googleProvider } from "../lib/firebase";
+import { auth, googleProvider, initAnalytics } from "../lib/firebase";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { getUserProfile, updateUserProfile } from "../lib/api/user";
 
@@ -89,6 +89,7 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
+    initAnalytics();
     if (localAuthEnabled) {
       const user = getLocalUser();
       setCurrentUser(user);

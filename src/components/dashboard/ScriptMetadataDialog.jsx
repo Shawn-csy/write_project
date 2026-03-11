@@ -43,6 +43,34 @@ import { createEmptyActivityDemoLink } from "../../lib/activityDemoLinks";
 
 export { buildPublishChecklist };
 
+export const ACTIVE_TAB_TO_SECTION = Object.freeze({
+    basic: "basic",
+    publish: "publish",
+    exposure: "exposure",
+    activity: "activity",
+    demo: "demo",
+    advanced: "advanced",
+});
+
+export const CHECKLIST_ITEM_TO_SECTION = Object.freeze({
+    title: "basic",
+    identity: "basic",
+    audience: "publish",
+    rating: "publish",
+    license: "publish",
+    cover: "exposure",
+    synopsis: "basic",
+    tags: "exposure",
+});
+
+export function getCollapsedSectionsAfterTabSync(collapsedSections, activeTab, shouldExpand) {
+    if (!shouldExpand) return collapsedSections;
+    const target = ACTIVE_TAB_TO_SECTION[activeTab];
+    if (!target) return collapsedSections;
+    if (!collapsedSections[target]) return collapsedSections;
+    return { ...collapsedSections, [target]: false };
+}
+
 
 
 
@@ -171,6 +199,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     const [showAllChecklistChips, setShowAllChecklistChips] = useState(false);
     const [showValidationHints, setShowValidationHints] = useState(false);
     const [showPersonaSetupDialog, setShowPersonaSetupDialog] = useState(false);
+    const lastActiveTabRef = useRef("basic");
+    const pendingActiveTabExpandRef = useRef(false);
     const customIdRef = useRef(0);
     const contentScrollRef = useRef(null);
     const initializedRef = useRef(false);
@@ -749,6 +779,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     useEffect(() => {
         if (!open) return;
         setCollapsedSections(initialCollapsedSections);
+        lastActiveTabRef.current = activeTab;
+        pendingActiveTabExpandRef.current = false;
     }, [open, scriptId, script?.id]);
 
     const toggleSection = (key) => {
@@ -756,17 +788,38 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     };
 
     useEffect(() => {
-        const mapping = {
-            basic: "basic",
-            publish: "publish",
-            exposure: "exposure",
-            activity: "activity",
-            advanced: "advanced",
-        };
-        const target = mapping[activeTab];
-        if (!target) return;
-        setCollapsedSections((prev) => ({ ...prev, [target]: false }));
-    }, [activeTab]);
+        if (!open) return;
+        const previous = lastActiveTabRef.current;
+        lastActiveTabRef.current = activeTab;
+        if (previous === activeTab) return;
+        const shouldExpand = pendingActiveTabExpandRef.current;
+        pendingActiveTabExpandRef.current = false;
+        setCollapsedSections((prev) => getCollapsedSectionsAfterTabSync(prev, activeTab, shouldExpand));
+    }, [activeTab, open]);
+
+    const handleFocusSection = (section) => {
+        const targetSection = ACTIVE_TAB_TO_SECTION[section] || section;
+        if (activeTab === targetSection) {
+            pendingActiveTabExpandRef.current = false;
+            setCollapsedSections((prev) => getCollapsedSectionsAfterTabSync(prev, targetSection, true));
+            focusSection(section);
+            return;
+        }
+        pendingActiveTabExpandRef.current = true;
+        focusSection(section);
+    };
+
+    const handleJumpToChecklistItem = (key) => {
+        const targetSection = CHECKLIST_ITEM_TO_SECTION[key] || "basic";
+        if (activeTab === targetSection) {
+            pendingActiveTabExpandRef.current = false;
+            setCollapsedSections((prev) => getCollapsedSectionsAfterTabSync(prev, targetSection, true));
+            jumpToChecklistItem(key);
+            return;
+        }
+        pendingActiveTabExpandRef.current = true;
+        jumpToChecklistItem(key);
+    };
 
     const renderSectionBlock = (key, title, sectionId, node) => {
         const collapsed = Boolean(collapsedSections[key]);
@@ -842,9 +895,9 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                             checklistChipItems={checklistChipItems}
                             maxVisibleChecklistChips={maxVisibleChecklistChips}
                             activeTab={activeTab}
-                            jumpToChecklistItem={jumpToChecklistItem}
+                            jumpToChecklistItem={handleJumpToChecklistItem}
                             setShowAllChecklistChips={setShowAllChecklistChips}
-                            focusSection={focusSection}
+                            focusSection={handleFocusSection}
                         />
                     </div>
                 </DialogHeader>

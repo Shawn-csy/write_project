@@ -147,6 +147,27 @@ const isSceneOrChapterLine = (line) => {
         /^(INT|EXT)\./i.test(trimmed);
 };
 
+const isLikelyScriptContentLine = (line) => {
+    const trimmed = String(line || "").trim();
+    if (!trimmed) return false;
+    if (/^(#|\/\/|@)/.test(trimmed)) return true;
+    if (/^\(.+\)$/.test(trimmed)) return true;
+    if (isSceneOrChapterLine(trimmed)) return true;
+    if (/^(INT|EXT)\./i.test(trimmed)) return true;
+    return false;
+};
+
+const isFallbackTitleCandidate = (line) => {
+    const trimmed = String(line || "").trim();
+    if (!trimmed) return false;
+    if (trimmed.length > 60) return false;
+    if (isLikelyScriptContentLine(trimmed)) return false;
+    if (isKeyValueLine(trimmed)) return false;
+    if (isKnownKey(trimmed)) return false;
+    if (isSectionHeader(trimmed)) return false;
+    return true;
+};
+
 const normalizeRoleName = (name = "") => {
     return String(name || "")
         .replace(/^[\-*•\d\.\)\(、\s]+/, "")
@@ -246,17 +267,21 @@ export function extractMetadata(text) {
         }
 
         if (rawKey) {
-            parsedLineIndexes.add(i);
             const mappedKey = mapKey(rawKey);
             if (mappedKey === '_IGNORE') {
-                // Skip
+                parsedLineIndexes.add(i);
+                seenAnyKey = true;
             } else if (mappedKey && COMMON_KEYS.has(mappedKey)) {
+                parsedLineIndexes.add(i);
                 seenAnyKey = true;
                 if (metadata[mappedKey]) {
                     metadata[mappedKey] += `; ${value}`;
                 } else {
                     metadata[mappedKey] = value;
                 }
+            } else {
+                // Unknown key-value most likely belongs to body content; stop scanning.
+                break;
             }
             continue;
         }
@@ -383,11 +408,20 @@ export function extractMetadata(text) {
         }
 
         // Fallback: treat first meaningful line as Title
-        if (!metadata['Title'] && !seenAnyKey && line.length <= 60) {
+        if (!metadata['Title'] && !seenAnyKey && isFallbackTitleCandidate(line)) {
             metadata['Title'] = line;
             parsedLineIndexes.add(i);
             continue;
         }
+
+        // Once metadata block has started, the first non-metadata line marks body start.
+        if (seenAnyKey) break;
+
+        // No metadata context and first meaningful line is script-like body content.
+        if (isLikelyScriptContentLine(line)) break;
+
+        // Conservative fallback: stop at unknown lines instead of scanning deep into body.
+        break;
     }
         
     // TODO: robust stopping condition.

@@ -96,4 +96,31 @@ describe("metadataExtractor", () => {
     expect(result.metadata.Tags).toBe("ASMR、年下、療癒、掏耳朵、日常/生活、雙胞胎");
     expect(result.metadata.Tags).not.toContain("人物設定1");
   });
+
+  it("stops scanning after body starts and does not strip body because of trailing key-value lines", () => {
+    const text = [
+      "標題：A",
+      "",
+      "#C 小雨",
+      "第一句台詞",
+      "",
+      "標籤：測試",
+    ].join("\n");
+
+    const result = extractMetadata(text);
+    expect(result.metadata.Title).toBe("A");
+    expect(result.metadata.Tags).toBeUndefined();
+    expect(result.strippedText).toBe(["#C 小雨", "第一句台詞", "", "標籤：測試"].join("\n"));
+  });
+
+  it("does not treat marker-first scripts as fallback title", () => {
+    const text = [
+      "#C 小雨",
+      "第一句台詞",
+    ].join("\n");
+
+    const result = extractMetadata(text);
+    expect(result.metadata.Title).toBeUndefined();
+    expect(result.strippedText).toBe(text);
+  });
 });

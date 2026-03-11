@@ -6,33 +6,22 @@ export function useLiveEditorDownloadOptions({
   t,
   title,
   content,
-  processedRenderedHtml,
-  rawRenderedHtml,
   renderedHtmlRef,
-  showPreview,
-  setShowPreview,
-  readOnly,
+  ensureRenderedHtml,
 }) {
   const runRenderedExport = useCallback(
     async (exporter) => {
-      const currentHtml = renderedHtmlRef.current.processed || renderedHtmlRef.current.raw;
+      let currentHtml = renderedHtmlRef.current.processed || renderedHtmlRef.current.raw;
+      if (!currentHtml && ensureRenderedHtml) {
+        currentHtml = await ensureRenderedHtml();
+      }
       if (currentHtml) {
         await exporter({ text: content, renderedHtml: currentHtml });
         return;
       }
-
-      if (!showPreview && !readOnly) {
-        setShowPreview(true);
-        setTimeout(async () => {
-          const nextHtml = renderedHtmlRef.current.processed || renderedHtmlRef.current.raw;
-          await exporter({ text: content, renderedHtml: nextHtml });
-        }, 220);
-        return;
-      }
-
       await exporter({ text: content, renderedHtml: "" });
     },
-    [content, readOnly, renderedHtmlRef, setShowPreview, showPreview]
+    [content, ensureRenderedHtml, renderedHtmlRef]
   );
 
   return useMemo(
