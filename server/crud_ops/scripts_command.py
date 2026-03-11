@@ -2,6 +2,7 @@ from typing import List
 import time
 import uuid
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 import models
@@ -64,6 +65,15 @@ def _resolve_license_fields(update_data):
         update_data["licenseDerivative"] = _norm_choice(meta_map.get("licensederivative"), VALID_DERIVATIVE)
     if "licenseNotify" not in update_data:
         update_data["licenseNotify"] = _norm_choice(meta_map.get("licensenotify"), VALID_NOTIFY)
+
+
+def _folder_descendants_filter(folder_path: str):
+    # Match exactly `/a/b` and descendants like `/a/b/...`; avoid prefix collisions (`/a/b2`).
+    escaped = str(folder_path or "").replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return or_(
+        models.Script.folder == folder_path,
+        models.Script.folder.like(f"{escaped}/%", escape="\\"),
+    )
 
 
 def create_script(db: Session, script: schemas.ScriptCreate, ownerId: str):
@@ -143,7 +153,7 @@ def update_script(db: Session, script_id: str, script: schemas.ScriptUpdate, own
 
         children = (
             db.query(models.Script)
-            .filter(models.Script.ownerId == ownerId, models.Script.folder.like(f"{old_path_prefix}%"))
+            .filter(models.Script.ownerId == ownerId, _folder_descendants_filter(old_path_prefix))
             .all()
         )
         for child in children:
@@ -183,7 +193,7 @@ def delete_script(db: Session, script_id: str, ownerId: str):
         folder_path = f"{db_script.folder}/{db_script.title}" if db_script.folder != "/" else f"/{db_script.title}"
         db.query(models.Script).filter(
             models.Script.ownerId == ownerId,
-            models.Script.folder.like(f"{folder_path}%"),
+            _folder_descendants_filter(folder_path),
         ).delete(synchronize_session=False)
 
     db.delete(db_script)

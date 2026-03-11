@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 import os
 
-from fastapi import Depends, FastAPI, Request, Response
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -211,7 +211,7 @@ If you send the `Accept: text/markdown` header, or if you identify as an AI bot 
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str, request: Request, db: database.SessionLocal = Depends(get_db)):
         if full_path.startswith("api/"):
-            return {"error": "API endpoint not found (404)"}
+            raise HTTPException(status_code=404, detail="API endpoint not found")
 
         if full_path.startswith("read/"):
             script_id = full_path.strip("/").split("/")[-1]
