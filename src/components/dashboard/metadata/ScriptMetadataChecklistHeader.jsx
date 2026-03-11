@@ -71,11 +71,13 @@ export function ScriptMetadataChecklistHeader({
           </span>
         )}
       </div>
-      <div className="mt-2 grid grid-cols-2 gap-1 rounded-md border border-border/70 bg-background p-1 sm:grid-cols-4">
+      <div className="mt-2 grid grid-cols-2 gap-1 rounded-md border border-border/70 bg-background p-1 sm:grid-cols-3">
         {[
           { key: "basic", label: t("scriptMetadataDialog.tabBasic", "基本資料") },
           { key: "publish", label: t("scriptMetadataDialog.tabPublish", "發布設定") },
           { key: "exposure", label: t("scriptMetadataDialog.tabExposure", "曝光資訊") },
+          { key: "activity", label: t("scriptMetadataDialog.tabActivity", "活動宣傳") },
+          { key: "demo", label: "試聽範例" },
           { key: "advanced", label: t("scriptMetadataDialog.tabAdvanced", "進階設定") },
         ].map((item, idx) => (
           <button

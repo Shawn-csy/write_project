@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { getScript, updateScript } from "../../lib/api/scripts";
 import { debounce } from "../../lib/utils";
 
@@ -55,6 +55,27 @@ export function useLiveEditorPersistence({
   lastSavedContentRef,
   lastSavedTitleRef,
 }) {
+  const pendingDraftRef = useRef(null);
+  const flushPendingDraft = useCallback(() => {
+    const pending = pendingDraftRef.current;
+    if (!pending) return;
+    persistDraft(pending.scriptId, pending.content, pending.title, setSaveStatus);
+    pendingDraftRef.current = null;
+  }, [setSaveStatus]);
+
+  const debouncedPersistDraft = useMemo(
+    () =>
+      debounce((scriptId, nextContent, nextTitle) => {
+        pendingDraftRef.current = {
+          scriptId,
+          content: nextContent,
+          title: nextTitle,
+        };
+        flushPendingDraft();
+      }, 800),
+    [flushPendingDraft]
+  );
+
   useEffect(() => {
     if (initialData && initialData.id === scriptId && initialData.content !== undefined) {
       const draft = readNewerDraft(scriptId, initialData.lastModified);
@@ -148,17 +169,24 @@ export function useLiveEditorPersistence({
   useEffect(() => {
     return () => {
       debouncedSave.cancel();
+      debouncedPersistDraft.cancel();
+      flushPendingDraft();
     };
-  }, [debouncedSave]);
+  }, [debouncedPersistDraft, debouncedSave, flushPendingDraft]);
 
   const handleChange = useCallback(
     (nextContent) => {
       setContent(nextContent);
       if (readOnly) return;
-      persistDraft(scriptId, nextContent, title, setSaveStatus);
+      pendingDraftRef.current = {
+        scriptId,
+        content: nextContent,
+        title,
+      };
+      debouncedPersistDraft(scriptId, nextContent, title);
       debouncedSave(scriptId, nextContent, title);
     },
-    [debouncedSave, readOnly, scriptId, setContent, setSaveStatus, title]
+    [debouncedPersistDraft, debouncedSave, readOnly, scriptId, setContent, title]
   );
 
   const handleTitleUpdate = useCallback(
@@ -167,25 +195,34 @@ export function useLiveEditorPersistence({
       setTitle(newTitle);
       onTitleName?.(newTitle);
       if (readOnly) return;
-      persistDraft(scriptId, content, newTitle, setSaveStatus);
+      pendingDraftRef.current = {
+        scriptId,
+        content,
+        title: newTitle,
+      };
+      debouncedPersistDraft(scriptId, content, newTitle);
       debouncedSave(scriptId, content, newTitle);
     },
-    [content, debouncedSave, onTitleName, readOnly, scriptId, setSaveStatus, setTitle, title]
+    [content, debouncedPersistDraft, debouncedSave, onTitleName, readOnly, scriptId, setTitle, title]
   );
 
   const handleBack = useCallback(async () => {
+    debouncedPersistDraft.cancel();
+    flushPendingDraft();
     debouncedSave.cancel();
     const hasCloudDiff = content !== lastSavedContentRef.current || title !== lastSavedTitleRef.current;
     if (!readOnly && hasCloudDiff) {
       await performSave(scriptId, content, title);
     }
     onClose();
-  }, [content, debouncedSave, lastSavedContentRef, lastSavedTitleRef, onClose, performSave, readOnly, scriptId, title]);
+  }, [content, debouncedPersistDraft, debouncedSave, flushPendingDraft, lastSavedContentRef, lastSavedTitleRef, onClose, performSave, readOnly, scriptId, title]);
 
   const handleManualSave = useCallback(() => {
+    debouncedPersistDraft.cancel();
+    flushPendingDraft();
     debouncedSave.cancel();
     performSave(scriptId, content, title);
-  }, [content, debouncedSave, performSave, scriptId, title]);
+  }, [content, debouncedPersistDraft, debouncedSave, flushPendingDraft, performSave, scriptId, title]);
 
   return {
     performSave,
