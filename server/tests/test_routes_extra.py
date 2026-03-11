@@ -276,6 +276,11 @@ def test_non_admin_can_search_user_by_exact_email_only(client, db_session):
     assert fuzzy_res.status_code == 403
 
 
+def test_unknown_api_path_returns_404(client):
+    res = client.get("/api/definitely-not-exists")
+    assert res.status_code == 404
+
+
 def test_admin_can_delete_user_and_owned_resources(client, db_session):
     owner_id = "admin-owner"
     target_user_id = "delete-me-user"

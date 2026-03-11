@@ -188,3 +188,31 @@ def test_script_folder_cascades(db_session: Session):
     from models import Script
     assert db_session.query(Script).filter(Script.id == child_id).first() is None
     assert db_session.query(Script).filter(Script.id == grandchild_id).first() is None
+
+
+def test_folder_rename_does_not_touch_similar_prefix_paths(db_session: Session):
+    user1 = "user1"
+    folder_foo = crud.create_script(db_session, schemas.ScriptCreate(title="Foo", type="folder", folder="/"), user1)
+    crud.create_script(db_session, schemas.ScriptCreate(title="Foobar", type="folder", folder="/"), user1)
+    child_foo = crud.create_script(db_session, schemas.ScriptCreate(title="A1", folder="/Foo"), user1)
+    child_foobar = crud.create_script(db_session, schemas.ScriptCreate(title="B1", folder="/Foobar"), user1)
+
+    crud.update_script(db_session, folder_foo.id, schemas.ScriptUpdate(title="FooRenamed"), user1)
+    db_session.refresh(child_foo)
+    db_session.refresh(child_foobar)
+
+    assert child_foo.folder == "/FooRenamed"
+    assert child_foobar.folder == "/Foobar"
+
+
+def test_folder_delete_does_not_delete_similar_prefix_paths(db_session: Session):
+    user1 = "user1"
+    folder_foo = crud.create_script(db_session, schemas.ScriptCreate(title="Foo", type="folder", folder="/"), user1)
+    folder_foobar = crud.create_script(db_session, schemas.ScriptCreate(title="Foobar", type="folder", folder="/"), user1)
+    crud.create_script(db_session, schemas.ScriptCreate(title="A1", folder="/Foo"), user1)
+    child_foobar = crud.create_script(db_session, schemas.ScriptCreate(title="B1", folder="/Foobar"), user1)
+
+    assert crud.delete_script(db_session, folder_foo.id, user1) is True
+
+    assert db_session.query(models.Script).filter(models.Script.id == folder_foobar.id).first() is not None
+    assert db_session.query(models.Script).filter(models.Script.id == child_foobar.id).first() is not None
