@@ -1106,13 +1106,17 @@ const messages = {
     "guideNext": "Next",
     "guideDone": "Done",
     "guideChecklistTitle": "Start with the publish checklist",
-    "guideChecklistDesc": "Use this list to see missing fields and jump directly to each section.",
+    "guideChecklistDesc": "Review missing required items first, then tap any item to jump directly to that field.",
     "guideBasicTitle": "Basic info section",
-    "guideBasicDesc": "Confirm title, author identity, and visibility first.",
+    "guideBasicDesc": "Confirm title and author identity first, since they affect whether Public mode can be enabled.",
+    "guideStatusTitle": "Public / Private status",
+    "guideStatusDesc": "Use the top-right controls to switch between Public and Private, and verify the current badge state.",
     "guidePublishTitle": "Publishing settings section",
-    "guidePublishDesc": "Audience, content rating, and license are required before publishing.",
+    "guidePublishDesc": "Audience, content rating, and license terms (commercial, derivative, notify) are required before publishing.",
     "guideExposureTitle": "Exposure section",
-    "guideExposureDesc": "Adding cover, tags, and display author improves discovery."
+    "guideExposureDesc": "Adding cover, tags, and display author improves discovery.",
+    "guideAdvancedTitle": "Advanced section",
+    "guideAdvancedDesc": "Advanced fields include marker theme, legend display, and JSON editing. Read field hints before changing them."
   },
   "importDialog": {
     "title": "Import Script",

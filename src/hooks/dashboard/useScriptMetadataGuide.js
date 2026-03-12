@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { usePersistentSpotlightGuide } from "../usePersistentSpotlightGuide";
 
-const SCRIPT_METADATA_GUIDE_STORAGE_KEY = "script-metadata-guide-seen-v1";
+const SCRIPT_METADATA_GUIDE_STORAGE_KEY = "script-metadata-guide-seen-v2";
 
 const SECTION_IDS = ["basic", "publish", "exposure", "activity", "demo", "advanced"];
 
@@ -42,6 +42,12 @@ export function useScriptMetadataGuide({
         section: "basic",
       },
       {
+        title: t("scriptMetadataDialog.guideStatusTitle"),
+        description: t("scriptMetadataDialog.guideStatusDesc"),
+        targetId: "metadata-status-badge",
+        section: "basic",
+      },
+      {
         title: t("scriptMetadataDialog.guidePublishTitle"),
         description: t("scriptMetadataDialog.guidePublishDesc"),
         targetId: "metadata-section-publish",
@@ -52,6 +58,12 @@ export function useScriptMetadataGuide({
         description: t("scriptMetadataDialog.guideExposureDesc"),
         targetId: "metadata-section-exposure",
         section: "exposure",
+      },
+      {
+        title: t("scriptMetadataDialog.guideAdvancedTitle"),
+        description: t("scriptMetadataDialog.guideAdvancedDesc"),
+        targetId: "metadata-section-advanced",
+        section: "advanced",
       },
     ]),
     [t]

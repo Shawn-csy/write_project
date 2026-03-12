@@ -1106,13 +1106,17 @@ const messages = {
     "guideNext": "下一步",
     "guideDone": "完成",
     "guideChecklistTitle": "先看發佈檢查清單",
-    "guideChecklistDesc": "這裡會提示你哪些欄位缺漏，點擊即可快速跳到對應區塊。",
+    "guideChecklistDesc": "先看哪些必填項目還沒完成，點一下就能直接跳到該欄位補齊。",
     "guideBasicTitle": "基本資訊區塊",
-    "guideBasicDesc": "先確認標題、作者身份與狀態，這些會直接影響是否能公開。",
+    "guideBasicDesc": "先確認標題與作者身份，這些會直接影響發布狀態是否可切換成公開。",
+    "guideStatusTitle": "公開 / 私人狀態",
+    "guideStatusDesc": "右上角可快速切換設定公開或設定私人，旁邊徽章會即時顯示目前狀態。",
     "guidePublishTitle": "發布設定區塊",
-    "guidePublishDesc": "觀眾取向、內容分級與授權條款是公開前必填。",
+    "guidePublishDesc": "觀眾取向、內容分級與授權條款（商用/改作/通知）是公開前必填。",
     "guideExposureTitle": "曝光資訊區塊",
-    "guideExposureDesc": "補上封面、標籤與顯示作者，可以明顯提升作品可見度。"
+    "guideExposureDesc": "補上封面、標籤與顯示作者，可以明顯提升作品可見度。",
+    "guideAdvancedTitle": "進階設定區塊",
+    "guideAdvancedDesc": "進階內容可設定標記主題、圖例與 JSON 編輯；不熟悉時可先看欄位提示再調整。"
   },
   "importDialog": {
     "title": "匯入台本",

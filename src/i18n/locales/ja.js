@@ -1109,13 +1109,17 @@ const messages = {
     "guideNext": "次へ",
     "guideDone": "完了",
     "guideChecklistTitle": "まず公開チェックリストを確認",
-    "guideChecklistDesc": "不足項目を確認し、クリックで該当セクションへ移動できます。",
+    "guideChecklistDesc": "必須の未入力項目を先に確認し、項目を押すと該当フィールドへ直接移動できます。",
     "guideBasicTitle": "基本情報セクション",
-    "guideBasicDesc": "タイトル・作者名義・公開状態を先に確認します。",
+    "guideBasicDesc": "タイトルと作者名義を先に確認します。公開設定へ切り替える前提になります。",
+    "guideStatusTitle": "公開 / 非公開ステータス",
+    "guideStatusDesc": "右上の操作で公開・非公開を即時切替できます。横のバッジで現在状態を確認してください。",
     "guidePublishTitle": "公開設定セクション",
-    "guidePublishDesc": "観客向け、年齢区分、ライセンスは公開前の必須項目です。",
+    "guidePublishDesc": "対象読者・年齢区分・ライセンス条件（商用/改変/通知）は公開前の必須項目です。",
     "guideExposureTitle": "露出情報セクション",
-    "guideExposureDesc": "カバー・タグ・表示作者を補うと見つけやすくなります。"
+    "guideExposureDesc": "カバー・タグ・表示作者を補うと見つけやすくなります。",
+    "guideAdvancedTitle": "上級設定セクション",
+    "guideAdvancedDesc": "上級ではマーカーテーマ・凡例表示・JSON編集を設定できます。まず各項目の説明を確認してから調整してください。"
   },
   "importDialog": {
     "title": "台本をインポート",
