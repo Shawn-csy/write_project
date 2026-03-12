@@ -1,7 +1,7 @@
 import React from "react";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, Mail, MessageSquare, Heart } from "lucide-react";
+import { BookOpen, Mail, MessageSquare, Heart, History } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { useI18n } from "../contexts/I18nContext";
@@ -48,6 +48,37 @@ export default function PublicAboutPage() {
                                 <li><strong>{t("publicAbout.featureProfileTitle")}</strong>：{t("publicAbout.featureProfileBody")}</li>
                                 <li><strong>{t("publicAbout.featureStudioTitle")}</strong>：{t("publicAbout.featureStudioBody")}</li>
                                 <li><strong>{t("publicAbout.featureEditorTitle")}</strong>：{t("publicAbout.featureEditorBody")}</li>
+                            </ul>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-xl">
+                                <History className="w-5 h-5 text-primary" />
+                                {t("publicAbout.changelogTitle")}
+                            </CardTitle>
+                            <CardDescription className="text-sm">
+                                {t("publicAbout.changelogDesc")}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ul className="space-y-3 text-sm sm:text-base">
+                                <li className="rounded-lg border bg-muted/20 p-3">
+                                    <div className="text-xs text-muted-foreground">{t("publicAbout.changelogDate1")}</div>
+                                    <div className="mt-1 font-medium text-foreground">{t("publicAbout.changelogTitle1")}</div>
+                                    <div className="mt-1 text-muted-foreground">{t("publicAbout.changelogBody1")}</div>
+                                </li>
+                                <li className="rounded-lg border bg-muted/20 p-3">
+                                    <div className="text-xs text-muted-foreground">{t("publicAbout.changelogDate2")}</div>
+                                    <div className="mt-1 font-medium text-foreground">{t("publicAbout.changelogTitle2")}</div>
+                                    <div className="mt-1 text-muted-foreground">{t("publicAbout.changelogBody2")}</div>
+                                </li>
+                                <li className="rounded-lg border bg-muted/20 p-3">
+                                    <div className="text-xs text-muted-foreground">{t("publicAbout.changelogDate3")}</div>
+                                    <div className="mt-1 font-medium text-foreground">{t("publicAbout.changelogTitle3")}</div>
+                                    <div className="mt-1 text-muted-foreground">{t("publicAbout.changelogBody3")}</div>
+                                </li>
                             </ul>
                         </CardContent>
                     </Card>
