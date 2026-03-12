@@ -47,6 +47,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     const [guideSpotlightRect, setGuideSpotlightRect] = useState(null);
     const [isPreviewCollapsed, setIsPreviewCollapsed] = useState(false);
     const [footerQuote, setFooterQuote] = useState(null);
+    const [isQuickCreatingScript, setIsQuickCreatingScript] = useState(false);
     
     // Breadcrumbs Logic
     const breadcrumbs = useMemo(() => {
@@ -123,13 +124,72 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         }
     }, [manager, t]);
 
+    const handleOpenScript = useCallback((script, targetMode = "read") => {
+        if (typeof window !== "undefined") {
+            try {
+                window.sessionStorage.setItem(
+                    "write_tab_return_state_v1",
+                    JSON.stringify({
+                        currentPath: manager.currentPath || "/",
+                        expandedPaths: Array.from(manager.expandedPaths || []),
+                    })
+                );
+            } catch (e) {
+                console.warn("Failed to persist write tab return state", e);
+            }
+        }
+        onSelectScript(script, targetMode);
+    }, [manager.currentPath, manager.expandedPaths, onSelectScript]);
+
+    const handleQuickCreateScript = useCallback(async () => {
+        if (readOnly || isQuickCreatingScript) return;
+        const title = t("dashboard.untitledScript", "未命名劇本");
+        const folder = manager.currentPath || "/";
+        setIsQuickCreatingScript(true);
+        try {
+            const id = await createScript(title, "script", folder);
+            let createdScript = {
+                id,
+                title,
+                type: "script",
+                folder,
+                content: "",
+                isPublic: false,
+            };
+            try {
+                const fromServer = await getScript(id);
+                if (fromServer?.id) {
+                    createdScript = { ...createdScript, ...fromServer };
+                }
+            } catch (err) {
+                console.warn("Failed to fetch newly created script", err);
+            }
+
+            manager.setScripts((prev) => {
+                const list = Array.isArray(prev) ? prev : [];
+                const idx = list.findIndex((item) => item.id === createdScript.id);
+                if (idx >= 0) {
+                    const next = [...list];
+                    next[idx] = { ...next[idx], ...createdScript };
+                    return next;
+                }
+                return [...list, createdScript];
+            });
+            await manager.fetchScripts?.();
+            handleOpenScript(createdScript, "edit");
+        } catch (err) {
+            console.error(t("publisher.createScriptFailed", "建立劇本失敗"), err);
+        } finally {
+            setIsQuickCreatingScript(false);
+        }
+    }, [handleOpenScript, isQuickCreatingScript, manager, readOnly, t]);
+
     useEffect(() => {
         if (typeof window === "undefined") return undefined;
         const handleAction = (event) => {
             const type = event?.detail?.type;
             if (type === "create-script") {
-                manager.setNewType("script");
-                manager.setIsCreateOpen(true);
+                handleQuickCreateScript();
                 return;
             }
             if (type === "create-folder") {
@@ -148,7 +208,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         };
         window.addEventListener("write-tab-action", handleAction);
         return () => window.removeEventListener("write-tab-action", handleAction);
-    }, [manager]);
+    }, [handleQuickCreateScript, manager]);
 
     useEffect(() => {
         let cancelled = false;
@@ -173,23 +233,6 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
             cancelled = true;
         };
     }, []);
-
-    const handleOpenScript = useCallback((script) => {
-        if (typeof window !== "undefined") {
-            try {
-                window.sessionStorage.setItem(
-                    "write_tab_return_state_v1",
-                    JSON.stringify({
-                        currentPath: manager.currentPath || "/",
-                        expandedPaths: Array.from(manager.expandedPaths || []),
-                    })
-                );
-            } catch (e) {
-                console.warn("Failed to persist write tab return state", e);
-            }
-        }
-        onSelectScript(script);
-    }, [manager.currentPath, manager.expandedPaths, onSelectScript]);
 
     const previewItem = useMemo(
         () => manager.scripts.find((s) => s.id === previewItemId) || null,
