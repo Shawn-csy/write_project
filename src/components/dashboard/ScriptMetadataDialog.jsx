@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import { Loader2, CircleHelp, ChevronDown, ChevronRight } from "lucide-react";
+import { Loader2, CircleHelp, ChevronDown, ChevronRight, Globe2, Lock } from "lucide-react";
 import { getPublicScript } from "../../lib/api/public";
 import { uploadMediaObject } from "../../lib/api/media";
 import { useAuth } from "../../contexts/AuthContext";
@@ -871,6 +871,36 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                                     <CircleHelp className="mr-1.5 h-4 w-4" />
                                     {t("scriptMetadataDialog.guide")}
                                 </Button>
+                                <div className="hidden sm:flex items-center gap-1 rounded-md border bg-background p-1">
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className={`h-7 px-2 text-xs ${
+                                            status === "Private"
+                                                ? "border-slate-600/60 bg-slate-500/15 text-slate-800 ring-2 ring-slate-500/40 dark:text-slate-200"
+                                                : "border-border text-muted-foreground"
+                                        }`}
+                                        onClick={() => setStatus("Private")}
+                                    >
+                                        <Lock className="mr-1 h-3.5 w-3.5" />
+                                        {t("metadataBasic.setPrivate", "設定私人")}
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className={`h-7 px-2 text-xs ${
+                                            status === "Public"
+                                                ? "border-emerald-600/60 bg-emerald-500/15 text-emerald-800 ring-2 ring-emerald-500/40 dark:text-emerald-300"
+                                                : "border-border text-muted-foreground"
+                                        }`}
+                                        onClick={() => setStatus("Public")}
+                                    >
+                                        <Globe2 className="mr-1 h-3.5 w-3.5" />
+                                        {t("metadataBasic.setPublic", "設定公開")}
+                                    </Button>
+                                </div>
                                 <Badge
                                     variant="outline"
                                     className={`text-xs font-medium ${

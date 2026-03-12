@@ -1544,6 +1544,10 @@ const messages = {
     "datePlaceholder": "例: 2024-01-01 / 初稿",
     "source": "出典",
     "sourcePlaceholder": "原作・参照元など",
+    "statusPublicHint": "公開状態です。公開台本に表示されます。",
+    "statusPrivateHint": "非公開状態です。あなたのみ閲覧できます。",
+    "setPrivate": "非公開に設定",
+    "setPublic": "公開に設定",
     "synopsis": "あらすじ",
     "synopsisPlaceholder": "台本のあらすじや要約...",
     "errTitle": "公開前にタイトルを入力してください。",
@@ -1694,7 +1698,11 @@ const messages = {
     "textColor": "文字色",
     "bgColor": "背景",
     "removeBg": "背景を削除",
-    "transparent": "透明にする"
+    "transparent": "透明にする",
+    "themePreviewTitle": "ライト/ダーク プレビュー",
+    "previewLight": "ライトモード",
+    "previewDark": "ダークモード",
+    "previewSample": "プレビュー文字"
   },
   "markerAnalysis": {
     "fixedDuration": "固定時間",

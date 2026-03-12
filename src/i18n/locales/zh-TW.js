@@ -1541,6 +1541,10 @@ const messages = {
     "datePlaceholder": "例如：2024-01-01 或初稿",
     "source": "來源",
     "sourcePlaceholder": "改編來源或其他",
+    "statusPublicHint": "目前為公開狀態，會顯示在公開台本。",
+    "statusPrivateHint": "目前為私有狀態，只有你可見。",
+    "setPrivate": "設定私人",
+    "setPublic": "設定公開",
     "synopsis": "簡介",
     "synopsisPlaceholder": "劇本的簡介或摘要...",
     "errTitle": "發布公開作品前請填寫標題。",
@@ -1691,7 +1695,11 @@ const messages = {
     "textColor": "文字顏色",
     "bgColor": "背景顏色",
     "removeBg": "移除背景色",
-    "transparent": "設為透明"
+    "transparent": "設為透明",
+    "themePreviewTitle": "亮暗模式預覽",
+    "previewLight": "亮色模式",
+    "previewDark": "暗色模式",
+    "previewSample": "預覽文字"
   },
   "markerAnalysis": {
     "fixedDuration": "固定時間",
