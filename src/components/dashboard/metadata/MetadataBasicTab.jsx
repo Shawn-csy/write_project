@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Textarea } from "../../ui/textarea";
 import { useI18n } from "../../../contexts/I18nContext";
 import { Button } from "../../ui/button";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Globe2, Lock } from "lucide-react";
 
 export function MetadataBasicTab({
     title, setTitle,
@@ -55,6 +55,15 @@ export function MetadataBasicTab({
     );
     const today = React.useMemo(() => new Date().toISOString().slice(0, 10), []);
     const [showExtendedFields, setShowExtendedFields] = React.useState(false);
+    const isPublicStatus = status === "Public";
+    const statusButtonClass = (active, type) =>
+        `flex items-center gap-2 rounded-md border px-3 py-2 text-left text-sm transition-all ${
+            active
+                ? type === "public"
+                    ? "border-emerald-600/60 bg-emerald-500/15 text-emerald-800 ring-2 ring-emerald-500/40 dark:text-emerald-300"
+                    : "border-slate-600/60 bg-slate-500/15 text-slate-800 ring-2 ring-slate-500/40 dark:text-slate-200"
+                : "border-border bg-background text-muted-foreground hover:bg-muted"
+        }`;
 
     const parseMulti = React.useCallback((raw) => {
         try {
@@ -244,15 +253,31 @@ export function MetadataBasicTab({
                     <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
                         {renderRowLabel(t("metadataBasic.status"), rowLabelTones.status || "required", Boolean(requiredHighlights.status))}
                         <div className="grid gap-2 p-4 sm:grid-cols-2">
-                            <Select value={status} onValueChange={setStatus}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder={t("metadataBasic.statusPlaceholder")} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Private">{t("metadataBasic.private")}</SelectItem>
-                                    <SelectItem value="Public">{t("metadataBasic.public")}</SelectItem>
-                                </SelectContent>
-                            </Select>
+                            <div className="space-y-2">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        className={statusButtonClass(status === "Private", "private")}
+                                        onClick={() => setStatus("Private")}
+                                    >
+                                        <Lock className="h-4 w-4 shrink-0" />
+                                        <span>{t("metadataBasic.private")}</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={statusButtonClass(status === "Public", "public")}
+                                        onClick={() => setStatus("Public")}
+                                    >
+                                        <Globe2 className="h-4 w-4 shrink-0" />
+                                        <span>{t("metadataBasic.public")}</span>
+                                    </button>
+                                </div>
+                                <p className={`rounded-md px-2 py-1 text-xs ${isPublicStatus ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-slate-500/10 text-slate-700 dark:text-slate-300"}`}>
+                                    {isPublicStatus
+                                        ? t("metadataBasic.statusPublicHint", "目前為公開狀態，會顯示在公開台本。")
+                                        : t("metadataBasic.statusPrivateHint", "目前為私有狀態，只有你可見。")}
+                                </p>
+                            </div>
                             <div className="space-y-1">
                                 <Input id="metadata-date" name="metadataDate" type="date" value={date} onChange={e => setDate(e.target.value)} />
                                 <div className="flex gap-2">
@@ -333,15 +358,29 @@ export function MetadataBasicTab({
 
                     <div className={panelClass}>
                         <label className="text-sm font-medium">{t("metadataBasic.status")}</label>
-                        <Select value={status} onValueChange={setStatus}>
-                            <SelectTrigger>
-                                <SelectValue placeholder={t("metadataBasic.statusPlaceholder")} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Private">{t("metadataBasic.private")}</SelectItem>
-                                <SelectItem value="Public">{t("metadataBasic.public")}</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                className={statusButtonClass(status === "Private", "private")}
+                                onClick={() => setStatus("Private")}
+                            >
+                                <Lock className="h-4 w-4 shrink-0" />
+                                <span>{t("metadataBasic.private")}</span>
+                            </button>
+                            <button
+                                type="button"
+                                className={statusButtonClass(status === "Public", "public")}
+                                onClick={() => setStatus("Public")}
+                            >
+                                <Globe2 className="h-4 w-4 shrink-0" />
+                                <span>{t("metadataBasic.public")}</span>
+                            </button>
+                        </div>
+                        <p className={`rounded-md px-2 py-1 text-xs ${isPublicStatus ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-slate-500/10 text-slate-700 dark:text-slate-300"}`}>
+                            {isPublicStatus
+                                ? t("metadataBasic.statusPublicHint", "目前為公開狀態，會顯示在公開台本。")
+                                : t("metadataBasic.statusPrivateHint", "目前為私有狀態，只有你可見。")}
+                        </p>
                         <label className="text-sm font-medium" htmlFor="metadata-date">{t("metadataBasic.date")}</label>
                         <Input id="metadata-date" name="metadataDate" type="date" value={date} onChange={e => setDate(e.target.value)} />
                         <div className="flex gap-2">

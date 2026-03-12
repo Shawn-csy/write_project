@@ -1541,6 +1541,10 @@ const messages = {
     "datePlaceholder": "e.g. 2024-01-01 or Draft 1",
     "source": "Source",
     "sourcePlaceholder": "Adaptation source or notes",
+    "statusPublicHint": "Public status: this script is visible in the public gallery.",
+    "statusPrivateHint": "Private status: only you can view this script.",
+    "setPrivate": "Set Private",
+    "setPublic": "Set Public",
     "synopsis": "Synopsis",
     "synopsisPlaceholder": "Synopsis...",
     "errTitle": "Title is required before publishing.",
@@ -1691,7 +1695,11 @@ const messages = {
     "textColor": "Text Color",
     "bgColor": "Background",
     "removeBg": "Remove Background",
-    "transparent": "Set Transparent"
+    "transparent": "Set Transparent",
+    "themePreviewTitle": "Light/Dark Preview",
+    "previewLight": "Light Mode",
+    "previewDark": "Dark Mode",
+    "previewSample": "Preview text"
   },
   "markerAnalysis": {
     "fixedDuration": "Fixed Duration",
