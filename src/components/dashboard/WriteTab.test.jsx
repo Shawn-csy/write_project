@@ -2,6 +2,7 @@ import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { WriteTab } from "./WriteTab";
+import { createScript, getScript } from "../../lib/api/scripts";
 
 const managerMock = {
   currentPath: "/",
@@ -109,19 +110,30 @@ describe("WriteTab", () => {
     managerMock.currentPath = "/";
     managerMock.visibleItems = [];
     managerMock.scripts = [];
+    createScript.mockResolvedValue("s-new");
+    getScript.mockResolvedValue({
+      id: "s-new",
+      title: "Untitled Script",
+      type: "script",
+      folder: "/",
+      content: "",
+      isPublic: false,
+    });
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("no quote")));
   });
 
-  it("responds to create-script global action", async () => {
-    render(<WriteTab onSelectScript={vi.fn()} />);
+  it("responds to create-script global action by creating and opening script", async () => {
+    const onSelectScript = vi.fn();
+    render(<WriteTab onSelectScript={onSelectScript} />);
 
     act(() => {
       window.dispatchEvent(new CustomEvent("write-tab-action", { detail: { type: "create-script" } }));
     });
 
     await waitFor(() => {
-      expect(managerMock.setNewType).toHaveBeenCalledWith("script");
-      expect(managerMock.setIsCreateOpen).toHaveBeenCalledWith(true);
+      expect(createScript).toHaveBeenCalledWith("未命名劇本", "script", "/");
+      expect(getScript).toHaveBeenCalledWith("s-new");
+      expect(onSelectScript).toHaveBeenCalledWith(expect.objectContaining({ id: "s-new", type: "script" }), "edit");
     });
   });
 

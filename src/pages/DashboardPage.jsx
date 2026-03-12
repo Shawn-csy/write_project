@@ -27,8 +27,9 @@ export default function DashboardPage({ scriptManager, navProps }) {
   //     navigate(`/file/${file.name}`);
   // };
 
-  const handleSelectCloud = (script) => {
-      navigate(`/edit/${script.id}?mode=read`);
+  const handleSelectCloud = (script, mode = "read") => {
+      const resolvedMode = mode === "edit" ? "edit" : "read";
+      navigate(`/edit/${script.id}?mode=${resolvedMode}`);
   };
 
   return (
