@@ -1140,7 +1140,7 @@ const messages = {
     "help": "教學",
     "characterAutoLabel": "多角色名設定",
     "characterAutoDesc": "多角色時使用，一行一個角色",
-    "characterListPlaceholder": "每行一個角色名，例如：\n小雨\n阿哲\n會自動在原先的角色錢加上#C解析",
+    "characterListPlaceholder": "每行一個角色名，例如：\n小雨\n阿哲\n會自動在原先的角色前加上#C解析",
     "guideSkip": "略過",
     "guidePrev": "上一步",
     "guideNext": "下一步",
