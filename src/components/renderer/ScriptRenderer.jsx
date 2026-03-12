@@ -8,6 +8,11 @@ import { isInlineLike } from '../../lib/markerRules.js';
 import { useI18n } from '../../contexts/I18nContext';
 import { resolveReadingFontStack } from '../../constants/readingFonts';
 
+const TOOLTIP_OFFSET = 14;
+const TOOLTIP_MAX_WIDTH = 280;
+const TOOLTIP_EDGE_PADDING = 8;
+const TOOLTIP_TOP_FALLBACK_THRESHOLD = 96;
+
 const CHARACTER_COLOR_SEQUENCE = [
     'var(--marker-color-russet)',      // 1st: red
     'var(--marker-color-slate-blue)',  // 2nd: blue
@@ -421,6 +426,25 @@ export const ScriptRenderer = React.memo(({
         if (markerTooltip) setMarkerTooltip(null);
     };
 
+    const markerTooltipStyle = useMemo(() => {
+        if (!markerTooltip) return null;
+        const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 1024;
+        const preferTop = markerTooltip.y > TOOLTIP_TOP_FALLBACK_THRESHOLD;
+        const unclampedLeft = markerTooltip.x + TOOLTIP_OFFSET;
+        const maxLeft = Math.max(TOOLTIP_EDGE_PADDING, viewportWidth - TOOLTIP_MAX_WIDTH - TOOLTIP_EDGE_PADDING);
+        const left = Math.min(Math.max(TOOLTIP_EDGE_PADDING, unclampedLeft), maxLeft);
+        const top = preferTop
+            ? markerTooltip.y - TOOLTIP_OFFSET
+            : markerTooltip.y + TOOLTIP_OFFSET;
+
+        return {
+            left: `${left}px`,
+            top: `${top}px`,
+            maxWidth: `${TOOLTIP_MAX_WIDTH}px`,
+            transform: preferTop ? "translateY(-100%)" : "none",
+        };
+    }, [markerTooltip]);
+
     return (
         <article
             className={`script-renderer relative${showLineUnderline ? " show-line-underline" : ""}`}
@@ -432,11 +456,7 @@ export const ScriptRenderer = React.memo(({
             {markerTooltip && (
                 <div
                     className="fixed z-[80] pointer-events-none rounded-md border border-border/60 bg-popover/95 px-2 py-1 text-xs text-popover-foreground shadow-lg backdrop-blur-sm"
-                    style={{
-                        left: `${markerTooltip.x + 14}px`,
-                        top: `${markerTooltip.y + 14}px`,
-                        maxWidth: "280px",
-                    }}
+                    style={markerTooltipStyle || undefined}
                 >
                     {markerTooltip.text}
                 </div>
