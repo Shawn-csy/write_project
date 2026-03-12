@@ -160,12 +160,24 @@ export function ScriptMetadataPublishSection({
             <div className="text-sm font-medium text-foreground">附加條款</div>
             <div className="mt-1 text-xs text-muted-foreground">補充授權限制與使用說明</div>
           </div>
-          <div className="space-y-3 p-4">
-            <div className="flex gap-2">
+          <div
+            className="space-y-3 p-4"
+            style={{
+              backgroundColor: "var(--license-term-bg)",
+              color: "var(--license-term-fg)",
+            }}
+          >
+            <div className="flex gap-2 rounded-md border p-2" style={{ borderColor: "var(--license-term-border)" }}>
               <Input
                 value={publishNewTerm}
                 onChange={(e) => setPublishNewTerm(e.target.value)}
                 placeholder="新增附加條款..."
+                className="border"
+                style={{
+                  borderColor: "var(--license-term-border)",
+                  backgroundColor: "var(--license-term-bg)",
+                  color: "var(--license-term-fg)",
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -173,12 +185,32 @@ export function ScriptMetadataPublishSection({
                   }
                 }}
               />
-              <Button type="button" variant="secondary" onClick={addLicenseSpecialTerm}>新增</Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="border"
+                style={{
+                  borderColor: "var(--license-term-border)",
+                  backgroundColor: "var(--license-term-bg)",
+                  color: "var(--license-term-fg)",
+                }}
+                onClick={addLicenseSpecialTerm}
+              >
+                新增
+              </Button>
             </div>
             {(licenseSpecialTerms || []).length > 0 && (
               <div className="space-y-2">
                 {licenseSpecialTerms.map((term, idx) => (
-                  <div key={`${term}-${idx}`} className="flex items-center justify-between rounded-md border p-2">
+                  <div
+                    key={`${term}-${idx}`}
+                    className="flex items-center justify-between rounded-md border p-2"
+                    style={{
+                      borderColor: "var(--license-term-border)",
+                      backgroundColor: "var(--license-term-bg)",
+                      color: "var(--license-term-fg)",
+                    }}
+                  >
                     <span className="text-sm">{term}</span>
                     <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeLicenseSpecialTerm(idx)}>
                       <X className="h-3.5 w-3.5" />

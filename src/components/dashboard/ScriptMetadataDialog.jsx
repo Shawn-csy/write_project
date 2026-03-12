@@ -902,6 +902,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                                     </Button>
                                 </div>
                                 <Badge
+                                    id="metadata-status-badge"
                                     variant="outline"
                                     className={`text-xs font-medium ${
                                         status === "Public"
