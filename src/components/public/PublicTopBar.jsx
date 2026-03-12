@@ -1,12 +1,12 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, ArrowLeft, Settings2 } from "lucide-react";
+import { BookOpen, ArrowLeft, Settings2, X } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
 import { useI18n } from "../../contexts/I18nContext";
 import { LanguageSwitcher } from "../common/LanguageSwitcher";
 import { TOPBAR_INNER_CLASS, TOPBAR_OUTER_CLASS } from "../layout/topbarLayout";
-import { Dialog, DialogContent, DialogTitle } from "../ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogTitle } from "../ui/dialog";
 import { AppearanceSettings } from "../settings/AppearanceSettings";
 
 export function PublicTopBar({
@@ -107,6 +107,17 @@ export function PublicTopBar({
               <DialogTitle className="text-sm font-semibold">
                 {t("publicTopbar.appearanceSettings", "外觀與閱讀")}
               </DialogTitle>
+              <DialogClose asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  aria-label={t("common.close")}
+                  title={t("common.close")}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </DialogClose>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6">
               <AppearanceSettings />
