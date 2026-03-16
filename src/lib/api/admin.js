@@ -85,6 +85,35 @@ export const deleteScriptAdmin = async (scriptId) => {
   });
 };
 
+export const updateScriptMetadataAdmin = async (scriptId, payload = {}) => {
+  const body = {
+    title: payload?.title,
+    author: payload?.author,
+    draftDate: payload?.draftDate,
+    status: payload?.status,
+    markerThemeId: payload?.markerThemeId,
+    coverUrl: payload?.coverUrl,
+    organizationId: payload?.organizationId,
+    personaId: payload?.personaId,
+    disableCopy: payload?.disableCopy,
+    seriesId: payload?.seriesId,
+    seriesOrder: payload?.seriesOrder,
+    licenseCommercial: payload?.licenseCommercial,
+    licenseDerivative: payload?.licenseDerivative,
+    licenseNotify: payload?.licenseNotify,
+    customMetadata: Array.isArray(payload?.customMetadata) ? payload.customMetadata : [],
+    tags: Array.isArray(payload?.tags) ? payload.tags : [],
+  };
+  return fetchApi(`/admin/all-scripts/${encodeURIComponent(scriptId)}/metadata`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+};
+
+export const getScriptMetadataAdmin = async (scriptId) => {
+  return fetchApi(`/admin/all-scripts/${encodeURIComponent(scriptId)}/metadata`);
+};
+
 export const getDefaultMarkerConfigsAdmin = async () => {
   return fetchApi("/admin/default-marker-configs");
 };

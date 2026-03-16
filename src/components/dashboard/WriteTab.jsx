@@ -12,6 +12,13 @@ import { parseImportTagNames, syncImportedTagsToScript } from "../../lib/importP
 import { Button } from "../ui/button";
 import { FileText, Folder, Search, ArrowUpDown, FileStack, Globe, RotateCcw, PanelRightOpen, PanelRightClose } from "lucide-react";
 import {
+    Drawer,
+    DrawerContent,
+    DrawerDescription,
+    DrawerHeader,
+    DrawerTitle,
+} from "../ui/drawer";
+import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuLabel,
@@ -48,6 +55,8 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     const [isPreviewCollapsed, setIsPreviewCollapsed] = useState(false);
     const [footerQuote, setFooterQuote] = useState(null);
     const [isQuickCreatingScript, setIsQuickCreatingScript] = useState(false);
+    const [isMobilePreviewOpen, setIsMobilePreviewOpen] = useState(false);
+    const [hasDesktopPreview, setHasDesktopPreview] = useState(false);
     
     // Breadcrumbs Logic
     const breadcrumbs = useMemo(() => {
@@ -234,6 +243,15 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         };
     }, []);
 
+    useEffect(() => {
+        if (typeof window === "undefined") return undefined;
+        const media = window.matchMedia("(min-width: 1280px)");
+        const sync = () => setHasDesktopPreview(media.matches);
+        sync();
+        media.addEventListener("change", sync);
+        return () => media.removeEventListener("change", sync);
+    }, []);
+
     const previewItem = useMemo(
         () => manager.scripts.find((s) => s.id === previewItemId) || null,
         [manager.scripts, previewItemId]
@@ -244,6 +262,14 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         const parent = previewItem.folder === "/" ? "" : previewItem.folder;
         return `${parent}/${previewItem.title}`;
     }, [previewItem]);
+
+    const handlePreviewItemSelect = useCallback((item) => {
+        if (!item?.id) return;
+        setPreviewItemId(item.id);
+        if (!hasDesktopPreview) {
+            setIsMobilePreviewOpen(true);
+        }
+    }, [hasDesktopPreview]);
 
     const availableFolders = useMemo(() => {
         const folders = manager.scripts
@@ -614,7 +640,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                             onRequestMove={manager.openMoveDialog}
                             onTogglePublic={manager.handleTogglePublic}
                             onRename={manager.openRenameDialog}
-                            onPreviewItem={(item) => setPreviewItemId(item.id)}
+                            onPreviewItem={handlePreviewItemSelect}
                             onGoUp={manager.goUp}
                             onDragStart={manager.handleDragStart}
                             onDragEnd={manager.handleDragEnd}
@@ -711,6 +737,98 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                     )}
                 </aside>
             </div>
+
+            <Drawer open={isMobilePreviewOpen && !hasDesktopPreview} onOpenChange={setIsMobilePreviewOpen}>
+                <DrawerContent side="bottom" className="max-h-[88dvh]">
+                    <DrawerHeader className="border-b border-border/50">
+                        <DrawerTitle>{t("writeTab.previewInfo", "項目資訊")}</DrawerTitle>
+                        <DrawerDescription>
+                            {previewItem?.title || t("writeTab.previewHint", "選取檔案後可查看資訊")}
+                        </DrawerDescription>
+                    </DrawerHeader>
+                    <div className="overflow-y-auto px-4 pb-6 pt-3">
+                        {!previewItem ? (
+                            <p className="text-sm text-muted-foreground">{t("writeTab.previewHint", "選取檔案後可查看資訊")}</p>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2">
+                                    {previewItem.type === "folder" ? (
+                                        <Folder className="w-4 h-4 text-primary" />
+                                    ) : (
+                                        <FileText className="w-4 h-4 text-primary" />
+                                    )}
+                                    <p className="font-medium break-words">{previewItem.title}</p>
+                                </div>
+                                <div className="space-y-1 text-sm text-muted-foreground">
+                                    <p className="break-all">{t("writeTab.pathLabel").replace("{path}", previewPath)}</p>
+                                    <p>{t("writeTab.typeLabel").replace("{type}", previewItem.type === "folder" ? t("writeTab.folder") : t("writeTab.file"))}</p>
+                                    {previewItem.type !== "folder" ? (
+                                        <>
+                                            <p>{t("writeTab.statusLabel").replace("{status}", previewItem.isPublic ? "Public" : "Private")}</p>
+                                            <p>{t("writeTab.charCountApprox").replace("{count}", String(previewItem.contentLength ? Math.ceil(previewItem.contentLength / 2) : 0))}</p>
+                                        </>
+                                    ) : null}
+                                </div>
+                                {!readOnly ? (
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {previewItem.type !== "folder" ? (
+                                            <>
+                                                <Button
+                                                    onClick={() => {
+                                                        handleOpenScript(previewItem);
+                                                        setIsMobilePreviewOpen(false);
+                                                    }}
+                                                >
+                                                    {t("writeTab.openFile", "開啟檔案")}
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        manager.openMoveDialog(previewItem);
+                                                        setIsMobilePreviewOpen(false);
+                                                    }}
+                                                >
+                                                    {t("writeTab.moveTo", "移動到")}
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => {
+                                                    const fullPath = (previewItem.folder === "/" ? "" : previewItem.folder) + "/" + previewItem.title;
+                                                    manager.toggleExpand(fullPath);
+                                                    setIsMobilePreviewOpen(false);
+                                                }}
+                                            >
+                                                {t("writeTab.openFolder", "展開資料夾")}
+                                            </Button>
+                                        )}
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => {
+                                                manager.openRenameDialog(previewItem);
+                                                setIsMobilePreviewOpen(false);
+                                            }}
+                                        >
+                                            {t("writeTab.rename", "重新命名")}
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            className="border-[hsl(var(--destructive)/0.35)] bg-[hsl(var(--destructive)/0.08)] text-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive)/0.14)]"
+                                            onClick={() => {
+                                                manager.openDeleteDialog(previewItem);
+                                                setIsMobilePreviewOpen(false);
+                                            }}
+                                        >
+                                            {t("common.remove", "刪除")}
+                                        </Button>
+                                    </div>
+                                ) : null}
+                            </div>
+                        )}
+                    </div>
+                </DrawerContent>
+            </Drawer>
 
             <footer
                 style={writeTone}

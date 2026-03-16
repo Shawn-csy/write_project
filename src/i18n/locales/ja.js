@@ -10,16 +10,16 @@ const messages = {
     "workspace": "閲覧と執筆",
     "studio": "ワークスペース",
     "mediaLibrary": "メディアライブラリ",
-    "transfer": "移管管理"
+    "transfer": "プラットフォーム管理"
   },
   "settings": {
     "title": "設定",
     "display": "表示と閲覧",
-    "transfer": "移管管理",
+    "transfer": "プラットフォーム管理",
     "media": "メディアライブラリ",
     "markers": "カスタムマーカー",
     "profile": "プロフィール",
-    "transferDesc": "作者・台本の所有権移管と例外処理を管理します。",
+    "transferDesc": "全体データ、台本設定、権限操作を管理します。",
     "language": "言語",
     "languageZh": "繁体字",
     "languageEn": "英語",

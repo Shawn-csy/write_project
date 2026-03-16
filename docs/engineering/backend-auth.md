@@ -14,8 +14,10 @@ This backend now verifies Firebase ID Tokens sent via `Authorization: Bearer <id
 Use this **only** for local/dev testing:
 
 - `ALLOW_X_USER_ID=1`
+- `ENVIRONMENT` must **not** be `production`
 
 When enabled, the backend accepts `X-User-ID` in lieu of a Firebase token.
+In `production` (`ENVIRONMENT=production` or equivalent), `X-User-ID` is always rejected even if `ALLOW_X_USER_ID=1`.
 
 ## Admin Access
 - `ADMIN_USER_IDS=admin-owner,another-admin`

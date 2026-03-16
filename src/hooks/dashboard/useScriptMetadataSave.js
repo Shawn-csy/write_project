@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { updateScript, addTagToScript, removeTagFromScript, getScript } from "../../lib/api/scripts";
+import { updateScript, addTagToScript, removeTagFromScript } from "../../lib/api/scripts";
 import { createTag } from "../../lib/api/tags";
 import { deriveSimpleLicenseTags } from "../../lib/licenseRights";
 import { AUDIENCE_TAG_GROUP, RATING_TAG_GROUP, syncGroupedTagSelection } from "./tagGroupUtils";
@@ -60,6 +60,8 @@ export function useScriptMetadataSave({
   setActiveTab,
   onSave,
   onOpenChange,
+  saveScript,
+  syncScriptTags,
 }) {
   const [isSaving, setIsSaving] = useState(false);
 
@@ -131,11 +133,6 @@ export function useScriptMetadataSave({
       }
 
       const workingScript = activeScript || script;
-      let content = workingScript?.content;
-      if (!content && workingScript?.id) {
-        const full = await getScript(workingScript.id);
-        content = full.content;
-      }
 
       const orderedEntries = [];
       if (authorDisplayMode === "override" && author) {
@@ -204,11 +201,9 @@ export function useScriptMetadataSave({
         title,
         coverUrl,
         status,
-        content: content || "",
         customMetadata,
         author: authorDisplayMode === "override" ? author : "",
         draftDate: date,
-        isPublic: status === "Public",
         personaId: identity.split(":")[1],
         organizationId: selectedOrgId || null,
         licenseCommercial: licenseCommercial || "",
@@ -221,24 +216,32 @@ export function useScriptMetadataSave({
         seriesOrder: Number.isFinite(Number(seriesOrder)) && Number(seriesOrder) >= 0 ? Math.floor(Number(seriesOrder)) : null,
       };
 
-      await updateScript(workingScript.id, updatePayload);
+      const persistScript = saveScript || updateScript;
+      const persisted = await persistScript(workingScript.id, updatePayload, {
+        script: workingScript,
+        tagIds: tagsToSave.map((tag) => Number(tag?.id)).filter((id) => Number.isFinite(id)),
+      });
 
       const originalTagIds = new Set(((workingScript && workingScript.tags) || []).map((tag) => tag.id));
       const finalTagIds = new Set(tagsToSave.map((tag) => tag.id));
       const addedTags = tagsToSave.filter((tag) => !originalTagIds.has(tag.id));
       const removedTags = ((workingScript && workingScript.tags) || []).filter((tag) => !finalTagIds.has(tag.id));
 
-      await Promise.all([
-        ...addedTags.map((tag) => addTagToScript(workingScript.id, tag.id)),
-        ...removedTags.map((tag) => removeTagFromScript(workingScript.id, tag.id)),
-      ]);
+      if (typeof syncScriptTags === "function") {
+        await syncScriptTags(workingScript.id, tagsToSave);
+      } else {
+        await Promise.all([
+          ...addedTags.map((tag) => addTagToScript(workingScript.id, tag.id)),
+          ...removedTags.map((tag) => removeTagFromScript(workingScript.id, tag.id)),
+        ]);
+      }
 
       onSave({
         ...(workingScript || script),
+        ...(persisted || {}),
         title,
         coverUrl,
         status,
-        content: content || "",
         customMetadata,
         author: authorDisplayMode === "override" ? author : "",
         draftDate: date,
@@ -313,6 +316,8 @@ export function useScriptMetadataSave({
     targetAudience,
     title,
     toast,
+    saveScript,
+    syncScriptTags,
   ]);
 
   return {

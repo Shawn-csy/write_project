@@ -75,7 +75,18 @@ export function getCollapsedSectionsAfterTabSync(collapsedSections, activeTab, s
 
 
 
-export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onSave, seriesOptions = [], onSeriesCreated }) {
+export function ScriptMetadataDialog({
+    script,
+    scriptId,
+    open,
+    onOpenChange,
+    onSave,
+    seriesOptions = [],
+    onSeriesCreated,
+    fetchFullScript = true,
+    saveScript = null,
+    syncScriptTags = null,
+}) {
     const { t } = useI18n();
     const { toast } = useToast();
     const navigate = useNavigate();
@@ -295,7 +306,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         handleAddTagsBatch,
         handleRemoveTag,
         handleClearTags,
-    } = useScriptTags({ t, toast });
+    } = useScriptTags({ t, toast, tagOwnerId: activeScript?.ownerId || "" });
     
     // Identity Selection
     const { currentUser, profile: currentProfile } = useAuth();
@@ -470,6 +481,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     };
 
     const hydrateScriptState = useScriptMetadataHydration({
+        fetchFullScript,
         customFields,
         ensureList,
         loadPublicInfoIfNeeded,
@@ -672,6 +684,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setActiveTab,
         onSave,
         onOpenChange,
+        saveScript,
+        syncScriptTags,
     });
 
     const handleGoToAuthorProfile = () => {

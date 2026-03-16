@@ -333,6 +333,24 @@ class ScriptSummary(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class ScriptAdminMetadataUpdate(BaseModel):
+    title: Optional[str] = None
+    author: Optional[str] = None
+    draftDate: Optional[str] = None
+    status: Optional[str] = None
+    markerThemeId: Optional[str] = None
+    coverUrl: Optional[str] = None
+    organizationId: Optional[str] = None
+    personaId: Optional[str] = None
+    disableCopy: Optional[bool] = None
+    seriesId: Optional[str] = None
+    seriesOrder: Optional[int] = None
+    licenseCommercial: Optional[str] = None
+    licenseDerivative: Optional[str] = None
+    licenseNotify: Optional[str] = None
+    customMetadata: Optional[List[Dict[str, Any]]] = None
+    tags: Optional[List[int]] = None
+
 
 class PublicTermsSection(BaseModel):
     id: str
