@@ -66,6 +66,16 @@ def test_get_current_user_id_x_user_id_fallback():
             assert "Missing Authorization token" in exc.value.detail
     anyio.run(run_test)
 
+def test_get_current_user_id_x_user_id_blocked_in_production(monkeypatch):
+    async def run_test():
+        monkeypatch.setenv("ENVIRONMENT", "production")
+        with patch("dependencies.ALLOW_X_USER_ID", True):
+            with pytest.raises(HTTPException) as exc:
+                await get_current_user_id(authorization=None, x_user_id="fallback-user-1")
+            assert exc.value.status_code == 401
+            assert "Missing Authorization token" in exc.value.detail
+    anyio.run(run_test)
+
 def test_is_admin_user_id():
     # Testing matching admin logic
     with patch("dependencies.ADMIN_USER_IDS", {"admin-user-1", "admin-user-2"}):

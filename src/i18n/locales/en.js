@@ -10,16 +10,16 @@ const messages = {
     "workspace": "Workspace",
     "studio": "Workspace",
     "mediaLibrary": "Media Library",
-    "transfer": "Transfer Admin"
+    "transfer": "Platform Admin"
   },
   "settings": {
     "title": "Settings",
     "display": "Display & Reading",
-    "transfer": "Transfer Admin",
+    "transfer": "Platform Admin",
     "media": "Media Library",
     "markers": "Markers",
     "profile": "Identity",
-    "transferDesc": "Manage ownership transfer and exceptions.",
+    "transferDesc": "Manage platform data, script settings, and privileged operations.",
     "language": "Language",
     "languageZh": "Traditional Chinese",
     "languageEn": "English",

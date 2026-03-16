@@ -30,6 +30,13 @@ const SEGMENT_KEYS = {
   female: "female",
 };
 
+const FEATURED_TAB_KEYS = {
+  featured: "featured",
+  top: "top",
+  latest: "latest",
+  series: "series",
+};
+
 const SEGMENT_TAGS = {
   [SEGMENT_KEYS.allAges]: ["全年齡向", "一般", "一般內容"],
   [SEGMENT_KEYS.adult]: ["成人向", "R-18", "r18", "18+"],
@@ -451,6 +458,12 @@ export default function PublicGalleryPage() {
     { value: "all", label: t("publicGallery.usageAll") },
     { value: "commercial", label: t("publicGallery.usageCommercial") },
   ]), [t]);
+  const featuredViewTabs = useMemo(() => ([
+    { key: FEATURED_TAB_KEYS.featured, label: t("publicGallery.featuredTab", "精選") },
+    { key: FEATURED_TAB_KEYS.top, label: t("publicGallery.categoryTopViewed", "點閱排行") },
+    { key: FEATURED_TAB_KEYS.latest, label: t("publicGallery.categoryLatest", "最新發布") },
+    { key: FEATURED_TAB_KEYS.series, label: t("publicGallery.categorySeries", "熱門系列") },
+  ]), [t]);
   const hasScriptFilters = searchTerm.trim() !== "" || selectedTags.length > 0 || usageFilter !== "all" || segmentFilter !== SEGMENT_KEYS.all;
   useEffect(() => {
     if (!isDefaultView && featuredLaneMode) setFeaturedLaneMode(null);
@@ -686,6 +699,31 @@ export default function PublicGalleryPage() {
                   {segment.label}
                 </button>
               ))}
+            </div>
+          </div>
+        )}
+        {view === "scripts" && isDefaultView && (
+          <div className="mb-4 overflow-x-auto lg:hidden">
+            <div className="flex min-w-max items-center gap-2">
+              {featuredViewTabs.map((tab) => {
+                const isActive = (featuredLaneMode || FEATURED_TAB_KEYS.featured) === tab.key;
+                return (
+                  <Button
+                    key={tab.key}
+                    type="button"
+                    size="sm"
+                    variant={isActive ? "default" : "outline"}
+                    className={`h-8 rounded-full px-3 text-xs ${
+                      isActive
+                        ? "border border-primary bg-primary text-primary-foreground shadow ring-1 ring-primary/35"
+                        : "border-border/60 bg-background text-muted-foreground"
+                    }`}
+                    onClick={() => setFeaturedLaneMode(tab.key === FEATURED_TAB_KEYS.featured ? null : tab.key)}
+                  >
+                    {tab.label}
+                  </Button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -940,7 +978,11 @@ export default function PublicGalleryPage() {
                   )}
 
                   {featuredSeries.length > 0 && (
-                      <HorizontalScrollLane title={t("publicGallery.categorySeries", "熱門系列")}>
+                      <HorizontalScrollLane
+                        title={t("publicGallery.categorySeries", "熱門系列")}
+                        actionLabel={t("publicGallery.viewAll", "查看全部")}
+                        onAction={() => setFeaturedLaneMode("series")}
+                      >
                           {featuredSeries.map((series) => (
                               <button
                                 key={series.name}
@@ -968,6 +1010,50 @@ export default function PublicGalleryPage() {
                           ))}
                       </HorizontalScrollLane>
                   )}
+              </div>
+          ) : featuredLaneMode === "series" ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-foreground">
+                        {t("publicGallery.categorySeries", "熱門系列")} <span className="text-muted-foreground text-sm font-normal">({featuredSeries.length})</span>
+                    </h2>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => setFeaturedLaneMode(null)}
+                    >
+                      {t("publicGallery.backToFeatured", "返回精選")}
+                    </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                  {featuredSeries.map((series) => (
+                    <button
+                      key={series.name}
+                      type="button"
+                      className="text-left group"
+                      onClick={() => navigate(`/series/${encodeURIComponent(series.name)}`)}
+                    >
+                      <div className="aspect-[2/3] overflow-hidden rounded-lg border border-border/60 bg-muted/25">
+                        {series.coverUrl ? (
+                          <img
+                            src={series.coverUrl}
+                            alt={series.name}
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <CoverPlaceholder title={series.name} compact />
+                        )}
+                      </div>
+                      <div className="pt-2">
+                        <p className="line-clamp-1 text-sm font-semibold text-foreground group-hover:text-primary">{series.name}</p>
+                        <p className="line-clamp-1 text-[11px] text-muted-foreground">{series.count} {t("publicReader.worksUnit", "部")}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
           ) : (
               <div className="space-y-4">
@@ -1309,13 +1395,13 @@ export default function PublicGalleryPage() {
 
       {/* R-18 Consent Dialog */}
       <AlertDialog open={!!pendingR18Route} onOpenChange={(open) => !open && setPendingR18Route(null)}>
-        <AlertDialogContent className="w-[92vw] max-w-[92vw] sm:max-w-md rounded-xl p-4 sm:p-6 gap-3">
+        <AlertDialogContent className="w-[92vw] max-w-[92vw] sm:max-w-lg rounded-xl p-4 sm:p-6 gap-3 max-h-[90vh] overflow-y-auto">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-destructive font-bold flex items-center gap-2 text-base sm:text-lg leading-snug">
+            <AlertDialogTitle className="text-destructive font-bold flex items-center gap-2 text-base sm:text-lg leading-snug break-words">
               <span className="text-xl sm:text-2xl">🔞</span>
               <span>內容分級警告 (Adult Content Warning)</span>
             </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2 text-left">
+            <AlertDialogDescription className="space-y-2 text-left break-words">
               <p className="text-[13px] sm:text-sm text-foreground/80 leading-relaxed">
                 您即將進入受限制的內容頁面。此作品含有 <strong>成人向(R-18)</strong> 的標籤，可能包含不適合未成年人觀看的成人題材、暴力或過度裸露內容。
               </p>
@@ -1324,13 +1410,16 @@ export default function PublicGalleryPage() {
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="mt-2 sm:mt-4 gap-2 sm:gap-0">
-            <AlertDialogCancel className="w-full sm:w-auto h-10" onClick={() => setPendingR18Route(null)}>
+          <AlertDialogFooter className="mt-2 sm:mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <AlertDialogCancel
+              className="w-full h-auto min-h-10 whitespace-normal leading-snug px-3 py-2"
+              onClick={() => setPendingR18Route(null)}
+            >
               返回 (Go Back)
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={confirmR18Consent}
-              className="w-full sm:w-auto h-10 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+              className="w-full h-auto min-h-10 whitespace-normal leading-snug px-3 py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
               已滿 18 歲，進入觀看 (I am 18+, Enter)
             </AlertDialogAction>

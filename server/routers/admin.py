@@ -531,6 +531,65 @@ def list_all_scripts(
     return rows
 
 
+@router.put("/all-scripts/{script_id}/metadata", response_model=schemas.ScriptSummary)
+def update_script_metadata_admin(
+    script_id: str,
+    payload: schemas.ScriptAdminMetadataUpdate,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    script = db.query(models.Script).filter(models.Script.id == script_id).first()
+    if not script:
+        raise HTTPException(status_code=404, detail="Script not found")
+
+    update_data = payload.model_dump(exclude_unset=True)
+    tag_ids = update_data.pop("tags", None)
+    updated = crud.update_script(
+        db,
+        script_id=script_id,
+        script=schemas.ScriptUpdate(**update_data),
+        ownerId=script.ownerId,
+    )
+    if not updated:
+        raise HTTPException(status_code=404, detail="Script not found")
+
+    if isinstance(tag_ids, list):
+        clean_ids = sorted({int(tag_id) for tag_id in tag_ids if str(tag_id).isdigit()})
+        if clean_ids:
+            tags = (
+                db.query(models.Tag)
+                .filter(models.Tag.ownerId == script.ownerId, models.Tag.id.in_(clean_ids))
+                .all()
+            )
+        else:
+            tags = []
+        updated.tags = tags
+        db.commit()
+        db.refresh(updated)
+
+    setattr(updated, "contentLength", len(updated.content or ""))
+    updated.tags = updated.tags or []
+    return updated
+
+
+@router.get("/all-scripts/{script_id}/metadata", response_model=schemas.ScriptSummary)
+def get_script_metadata_admin(
+    script_id: str,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    script = db.query(models.Script).filter(models.Script.id == script_id).first()
+    if not script:
+        raise HTTPException(status_code=404, detail="Script not found")
+    setattr(script, "contentLength", len(script.content or ""))
+    script.tags = script.tags or []
+    return script
+
+
 @router.delete("/all-organizations/{org_id}")
 def admin_delete_organization(
     org_id: str,

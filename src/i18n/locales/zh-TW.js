@@ -10,16 +10,16 @@ const messages = {
     "workspace": "寫作",
     "studio": "發布工作台",
     "mediaLibrary": "媒體庫",
-    "transfer": "移轉管理"
+    "transfer": "平台管理"
   },
   "settings": {
     "title": "設定",
     "display": "外觀與閱讀",
-    "transfer": "移轉管理",
+    "transfer": "平台管理",
     "media": "媒體庫",
     "markers": "自訂標記",
     "profile": "身份設定",
-    "transferDesc": "管理作者與劇本擁有權移轉及異常處理。",
+    "transferDesc": "管理全站資料、劇本設定與權限操作。",
     "language": "語言",
     "languageZh": "繁體中文",
     "languageEn": "English",

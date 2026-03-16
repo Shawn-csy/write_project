@@ -6,6 +6,7 @@ import { customMetadataEntriesToMeta, customMetadataEntriesToRawEntries } from "
 import { parseActivityDemoLinks } from "../../lib/activityDemoLinks";
 
 export function useScriptMetadataHydration({
+  fetchFullScript = true,
   customFields,
   ensureList,
   loadPublicInfoIfNeeded,
@@ -84,7 +85,7 @@ export function useScriptMetadataHydration({
 
       let sourceScript = baseScript;
 
-      if (baseScript.id) {
+      if (fetchFullScript && baseScript.id) {
         try {
           const full = await getScript(baseScript.id);
           if (full) {
@@ -164,6 +165,7 @@ export function useScriptMetadataHydration({
     },
     [
       customFields,
+      fetchFullScript,
       ensureList,
       loadPublicInfoIfNeeded,
       setAuthor,
