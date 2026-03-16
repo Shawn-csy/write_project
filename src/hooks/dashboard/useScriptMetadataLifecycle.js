@@ -10,6 +10,7 @@ export function useScriptMetadataLifecycle({
   hydrateScriptState,
   initializedRef,
   userEditedRef,
+  authorEditedRef,
   contactAutoFilledRef,
   publicLoadedRef,
   setActiveTab,
@@ -28,6 +29,7 @@ export function useScriptMetadataLifecycle({
     if (!open) {
       initializedRef.current = false;
       userEditedRef.current = false;
+      if (authorEditedRef) authorEditedRef.current = false;
       contactAutoFilledRef.current = false;
       publicLoadedRef.current = null;
       setLocalScript(null);
@@ -49,6 +51,7 @@ export function useScriptMetadataLifecycle({
       setIsInitializing(true);
       initializedRef.current = true;
       userEditedRef.current = false;
+      if (authorEditedRef) authorEditedRef.current = false;
       getScript(scriptId)
         .then((full) => setLocalScript(full))
         .catch((error) => {
@@ -61,6 +64,7 @@ export function useScriptMetadataLifecycle({
     setIsInitializing(true);
     initializedRef.current = true;
     userEditedRef.current = false;
+    if (authorEditedRef) authorEditedRef.current = false;
     hydrateScriptState(script);
   }, [
     open,
@@ -69,6 +73,7 @@ export function useScriptMetadataLifecycle({
     hydrateScriptState,
     initializedRef,
     userEditedRef,
+    authorEditedRef,
     contactAutoFilledRef,
     publicLoadedRef,
     setLocalScript,
