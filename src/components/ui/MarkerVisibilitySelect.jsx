@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { Eye } from "lucide-react";
 import { Check } from "lucide-react";
 import {
   Select,
@@ -17,7 +18,10 @@ export function MarkerVisibilitySelect({
   triggerClassName,
   contentAlign = "end",
   label,
-  titlePrefix
+  titlePrefix,
+  compact = false,
+  iconOnly = false,
+  iconOnlyOnMobile = false,
 }) {
   const { t } = useI18n();
   const resolvedLabel = label ?? t("markerVisibility.label");
@@ -34,9 +38,31 @@ export function MarkerVisibilitySelect({
   return (
     <Select value="markers" onValueChange={() => {}}>
       <SelectTrigger className={triggerClassName}>
-        <span className="truncate">
-          {resolvedTitlePrefix} ({computedVisibleIds.length}/{markerConfigs.length})
-        </span>
+        {iconOnly ? (
+          <>
+            <Eye className="h-4 w-4" />
+            <span className="sr-only">
+              {compact
+                ? `${computedVisibleIds.length}/${markerConfigs.length}`
+                : `${resolvedTitlePrefix} (${computedVisibleIds.length}/${markerConfigs.length})`}
+            </span>
+          </>
+        ) : iconOnlyOnMobile ? (
+          <>
+            <Eye className="h-4 w-4 sm:hidden" />
+            <span className="truncate hidden sm:inline">
+              {compact
+                ? `${computedVisibleIds.length}/${markerConfigs.length}`
+                : `${resolvedTitlePrefix} (${computedVisibleIds.length}/${markerConfigs.length})`}
+            </span>
+          </>
+        ) : (
+          <span className="truncate">
+            {compact
+              ? `${computedVisibleIds.length}/${markerConfigs.length}`
+              : `${resolvedTitlePrefix} (${computedVisibleIds.length}/${markerConfigs.length})`}
+          </span>
+        )}
       </SelectTrigger>
       <SelectContent align={contentAlign}>
         <SelectGroup>
