@@ -928,6 +928,7 @@ export default function SuperAdminPage() {
           }}
           script={selectedScriptSettings}
           fetchFullScript={false}
+          preserveAuthorInternalData
           saveScript={async (scriptId, updates, context = {}) => {
             return updateScriptMetadataAdmin(scriptId, {
               ...updates,

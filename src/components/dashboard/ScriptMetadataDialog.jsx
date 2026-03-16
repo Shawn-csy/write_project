@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -86,6 +86,8 @@ export function ScriptMetadataDialog({
     fetchFullScript = true,
     saveScript = null,
     syncScriptTags = null,
+    disableAuthorAutofill = false,
+    preserveAuthorInternalData = false,
 }) {
     const { t } = useI18n();
     const { toast } = useToast();
@@ -217,6 +219,7 @@ export function ScriptMetadataDialog({
     const initializedRef = useRef(false);
     const userEditedRef = useRef(false);
     const contactAutoFilledRef = useRef(false);
+    const authorEditedRef = useRef(false);
     const publicLoadedRef = useRef(null);
     const [localScript, setLocalScript] = useState(null);
     const activeScript = scriptId ? localScript : (localScript || script);
@@ -314,6 +317,17 @@ export function ScriptMetadataDialog({
     const [selectedOrgId, setSelectedOrgId] = useState("");
     const [personas, setPersonas] = useState([]);
     const [orgs, setOrgs] = useState([]);
+
+    const setAuthorWithTracking = useCallback((value) => {
+        authorEditedRef.current = true;
+        setAuthor(value);
+    }, [setAuthor]);
+
+    const setAuthorDisplayModeWithTracking = useCallback((value) => {
+        authorEditedRef.current = true;
+        setAuthorDisplayMode(value);
+    }, [setAuthorDisplayMode]);
+
     useScriptMetadataBootstrap({
         open,
         currentUser,
@@ -331,8 +345,8 @@ export function ScriptMetadataDialog({
         availableTags,
         setJsonError,
         setTitle,
-        setAuthor,
-        setAuthorDisplayMode,
+        setAuthor: setAuthorWithTracking,
+        setAuthorDisplayMode: setAuthorDisplayModeWithTracking,
         setDate,
         setSynopsis,
         setOutline,
@@ -482,6 +496,8 @@ export function ScriptMetadataDialog({
 
     const hydrateScriptState = useScriptMetadataHydration({
         fetchFullScript,
+        disableAuthorAutofill,
+        disablePersonaAutofill: preserveAuthorInternalData,
         customFields,
         ensureList,
         loadPublicInfoIfNeeded,
@@ -534,6 +550,7 @@ export function ScriptMetadataDialog({
         hydrateScriptState,
         initializedRef,
         userEditedRef,
+        authorEditedRef,
         contactAutoFilledRef,
         publicLoadedRef,
         setActiveTab,
@@ -551,6 +568,7 @@ export function ScriptMetadataDialog({
 
     useScriptMetadataPersonaSync({
         open,
+        disablePersonaAutofill: preserveAuthorInternalData,
         identity,
         personas,
         contact,
@@ -686,6 +704,8 @@ export function ScriptMetadataDialog({
         onOpenChange,
         saveScript,
         syncScriptTags,
+        preserveAuthorInternalData,
+        authorEditedRef,
     });
 
     const handleGoToAuthorProfile = () => {
@@ -716,7 +736,7 @@ export function ScriptMetadataDialog({
         setCoverUrl,
         currentTags,
         author,
-        setAuthor,
+        setAuthor: setAuthorWithTracking,
         availableTags,
         newTagInput,
         setNewTagInput,
@@ -970,6 +990,7 @@ export function ScriptMetadataDialog({
                                         setTitle={setTitle}
                                         identity={identity}
                                         setIdentity={setIdentity}
+                                        identityDisplayName={author}
                                         currentUser={currentUser}
                                         personas={personas}
                                         orgs={orgs}
@@ -1040,9 +1061,9 @@ export function ScriptMetadataDialog({
                                         t={t}
                                         title={title}
                                         author={author}
-                                        setAuthor={setAuthor}
+                                        setAuthor={setAuthorWithTracking}
                                         authorDisplayMode={authorDisplayMode}
-                                        setAuthorDisplayMode={setAuthorDisplayMode}
+                                        setAuthorDisplayMode={setAuthorDisplayModeWithTracking}
                                         getRowLabelClass={getRowLabelClass}
                                         coverUrl={coverUrl}
                                         setCoverUrl={setCoverUrl}

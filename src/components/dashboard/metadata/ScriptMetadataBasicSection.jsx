@@ -9,6 +9,7 @@ export function ScriptMetadataBasicSection({
   setTitle,
   identity,
   setIdentity,
+  identityDisplayName,
   currentUser,
   personas,
   orgs,
@@ -44,6 +45,7 @@ export function ScriptMetadataBasicSection({
         setTitle={setTitle}
         identity={identity}
         setIdentity={setIdentity}
+        identityDisplayName={identityDisplayName}
         currentUser={currentUser}
         personas={personas}
         orgs={orgs}

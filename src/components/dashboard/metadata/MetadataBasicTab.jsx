@@ -9,6 +9,7 @@ import { ChevronDown, ChevronUp, Globe2, Lock } from "lucide-react";
 export function MetadataBasicTab({
     title, setTitle,
     identity, setIdentity,
+    identityDisplayName = "",
     currentUser,
     personas,
     orgs,
@@ -56,6 +57,27 @@ export function MetadataBasicTab({
     const today = React.useMemo(() => new Date().toISOString().slice(0, 10), []);
     const [showExtendedFields, setShowExtendedFields] = React.useState(false);
     const isPublicStatus = status === "Public";
+    const safePersonas = React.useMemo(() => (Array.isArray(personas) ? personas : []), [personas]);
+    const identityPersonaId = React.useMemo(
+        () => (identity && identity.startsWith("persona:") ? identity.split(":")[1] : ""),
+        [identity]
+    );
+    const selectedPersona = React.useMemo(
+        () => safePersonas.find((item) => item.id === identityPersonaId),
+        [safePersonas, identityPersonaId]
+    );
+    const identityOptions = React.useMemo(() => {
+        if (!identityPersonaId || selectedPersona) return safePersonas;
+        return [
+            {
+                id: identityPersonaId,
+                displayName: String(identityDisplayName || "").trim() || t("metadataBasic.currentIdentityFallback", "目前作品身分"),
+                organizationIds: [],
+                __fallback: true,
+            },
+            ...safePersonas,
+        ];
+    }, [identityDisplayName, identityPersonaId, selectedPersona, safePersonas, t]);
     const statusButtonClass = (active, type) =>
         `flex items-center gap-2 rounded-md border px-3 py-2 text-left text-sm transition-all ${
             active
@@ -212,16 +234,21 @@ export function MetadataBasicTab({
                     <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
                         {renderRowLabel(t("metadataBasic.identity"), rowLabelTones.identity || "required", Boolean(requiredHighlights.identity))}
                         <div className="space-y-2 p-4">
-                            <Select value={identity} onValueChange={setIdentity}>
+                            <Select value={identity || "none"} onValueChange={(val) => setIdentity(val === "none" ? "" : val)}>
                                 <SelectTrigger id="metadata-identity-trigger">
                                     <SelectValue placeholder={t("metadataBasic.identityPlaceholder")} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {personas.length > 0 && (
+                                    <SelectItem value="none">{t("common.none", "不指定")}</SelectItem>
+                                    {identityOptions.length > 0 && (
                                         <SelectGroup>
                                             <SelectLabel>{t("metadataBasic.personaGroup")}</SelectLabel>
-                                            {personas.map(p => (
-                                                <SelectItem key={p.id} value={`persona:${p.id}`}>{p.displayName}</SelectItem>
+                                            {identityOptions.map((p) => (
+                                                <SelectItem key={p.id} value={`persona:${p.id}`}>
+                                                    {p.__fallback
+                                                        ? `${p.displayName}`
+                                                        : (p.displayName || p.id)}
+                                                </SelectItem>
                                             ))}
                                         </SelectGroup>
                                     )}
@@ -237,7 +264,7 @@ export function MetadataBasicTab({
                                         <SelectItem value="none">{t("common.none")}</SelectItem>
                                         {(() => {
                                             const personaId = identity.split(":")[1];
-                                            const persona = personas.find(p => p.id === personaId);
+                                            const persona = safePersonas.find(p => p.id === personaId);
                                             const orgIds = persona?.organizationIds || [];
                                             return orgs
                                                 .filter(o => orgIds.includes(o.id))
@@ -313,16 +340,21 @@ export function MetadataBasicTab({
                             <p className="text-xs text-destructive">{t("metadataBasic.errTitle")}</p>
                         )}
                         <label className="text-sm font-medium">{t("metadataBasic.identity")}</label>
-                        <Select value={identity} onValueChange={setIdentity}>
+                        <Select value={identity || "none"} onValueChange={(val) => setIdentity(val === "none" ? "" : val)}>
                             <SelectTrigger id="metadata-identity-trigger">
                                 <SelectValue placeholder={t("metadataBasic.identityPlaceholder")} />
                             </SelectTrigger>
                             <SelectContent>
-                                {personas.length > 0 && (
+                                <SelectItem value="none">{t("common.none", "不指定")}</SelectItem>
+                                {identityOptions.length > 0 && (
                                     <SelectGroup>
                                         <SelectLabel>{t("metadataBasic.personaGroup")}</SelectLabel>
-                                        {personas.map(p => (
-                                            <SelectItem key={p.id} value={`persona:${p.id}`}>{p.displayName}</SelectItem>
+                                        {identityOptions.map((p) => (
+                                            <SelectItem key={p.id} value={`persona:${p.id}`}>
+                                                {p.__fallback
+                                                    ? `${p.displayName}`
+                                                    : (p.displayName || p.id)}
+                                            </SelectItem>
                                         ))}
                                     </SelectGroup>
                                 )}
@@ -342,7 +374,7 @@ export function MetadataBasicTab({
                                         <SelectItem value="none">{t("common.none")}</SelectItem>
                                         {(() => {
                                             const personaId = identity.split(":")[1];
-                                            const persona = personas.find(p => p.id === personaId);
+                                            const persona = safePersonas.find(p => p.id === personaId);
                                             const orgIds = persona?.organizationIds || [];
                                             return orgs
                                                 .filter(o => orgIds.includes(o.id))

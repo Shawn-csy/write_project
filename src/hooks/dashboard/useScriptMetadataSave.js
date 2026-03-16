@@ -62,10 +62,17 @@ export function useScriptMetadataSave({
   onOpenChange,
   saveScript,
   syncScriptTags,
+  preserveAuthorInternalData = false,
+  authorEditedRef = null,
 }) {
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = useCallback(async () => {
+    const normalizeMetaKey = (key) => String(key || "").trim().toLowerCase().replace(/\s+/g, "");
+    const isAuthorMetaKey = (key) => {
+      const normalized = normalizeMetaKey(key);
+      return normalized === "author" || normalized === "authors" || normalized === "authordisplaymode";
+    };
     setShowValidationHints(true);
     if (needsPersonaBeforePublish) {
       toast({
@@ -133,12 +140,21 @@ export function useScriptMetadataSave({
       }
 
       const workingScript = activeScript || script;
+      const workingScriptMetadata = Array.isArray(workingScript?.customMetadata) ? workingScript.customMetadata : [];
+      const workingAuthorMetadataEntries = normalizeCustomMetadataEntries(workingScriptMetadata).filter((entry) => isAuthorMetaKey(entry?.key));
+      const authorEditedValue = authorEditedRef?.current ?? false;
+      const shouldPreserveAuthor = preserveAuthorInternalData && !authorEditedValue;
+      const effectiveAuthorDisplayMode = authorDisplayMode === "override" ? "override" : "badge";
+      const effectiveAuthor = String(author || "");
+      const persistedAuthor = effectiveAuthorDisplayMode === "override" ? effectiveAuthor : "";
 
       const orderedEntries = [];
-      if (authorDisplayMode === "override" && author) {
-        orderedEntries.push({ key: "Author", value: author });
+      if (!shouldPreserveAuthor && effectiveAuthorDisplayMode === "override" && effectiveAuthor) {
+        orderedEntries.push({ key: "Author", value: effectiveAuthor });
       }
-      orderedEntries.push({ key: "AuthorDisplayMode", value: authorDisplayMode === "override" ? "override" : "badge" });
+      if (!shouldPreserveAuthor) {
+        orderedEntries.push({ key: "AuthorDisplayMode", value: effectiveAuthorDisplayMode });
+      }
       if (outline) orderedEntries.push({ key: "Outline", value: outline });
       if (roleSetting) orderedEntries.push({ key: "RoleSetting", value: roleSetting });
       if (backgroundInfo) orderedEntries.push({ key: "BackgroundInfo", value: backgroundInfo });
@@ -195,14 +211,20 @@ export function useScriptMetadataSave({
       if (showMarkerLegend) {
         orderedEntries.push({ key: "marker_legend", value: "true" });
       }
-      const customMetadata = normalizeCustomMetadataEntries(orderedEntries);
+      let customMetadata = normalizeCustomMetadataEntries(orderedEntries);
+      if (shouldPreserveAuthor) {
+        const preservedAuthorEntries = workingAuthorMetadataEntries;
+        customMetadata = normalizeCustomMetadataEntries([
+          ...customMetadata.filter((entry) => !isAuthorMetaKey(entry?.key)),
+          ...preservedAuthorEntries,
+        ]);
+      }
 
       const updatePayload = {
         title,
         coverUrl,
         status,
         customMetadata,
-        author: authorDisplayMode === "override" ? author : "",
         draftDate: date,
         personaId: identity.split(":")[1],
         organizationId: selectedOrgId || null,
@@ -215,6 +237,9 @@ export function useScriptMetadataSave({
         seriesId: seriesId || null,
         seriesOrder: Number.isFinite(Number(seriesOrder)) && Number(seriesOrder) >= 0 ? Math.floor(Number(seriesOrder)) : null,
       };
+      if (!shouldPreserveAuthor) {
+        updatePayload.author = persistedAuthor;
+      }
 
       const persistScript = saveScript || updateScript;
       const persisted = await persistScript(workingScript.id, updatePayload, {
@@ -243,7 +268,7 @@ export function useScriptMetadataSave({
         coverUrl,
         status,
         customMetadata,
-        author: authorDisplayMode === "override" ? author : "",
+        author: shouldPreserveAuthor ? String(workingScript?.author || "") : persistedAuthor,
         draftDate: date,
         licenseCommercial: licenseCommercial || "",
         licenseDerivative: licenseDerivative || "",
@@ -318,6 +343,8 @@ export function useScriptMetadataSave({
     toast,
     saveScript,
     syncScriptTags,
+    preserveAuthorInternalData,
+    authorEditedRef,
   ]);
 
   return {

@@ -7,6 +7,8 @@ import { parseActivityDemoLinks } from "../../lib/activityDemoLinks";
 
 export function useScriptMetadataHydration({
   fetchFullScript = true,
+  disableAuthorAutofill = false,
+  disablePersonaAutofill = false,
   customFields,
   ensureList,
   loadPublicInfoIfNeeded,
@@ -78,7 +80,7 @@ export function useScriptMetadataHydration({
         setIdentity(`persona:${baseScript.personaId}`);
         setSelectedOrgId(baseScript.organizationId || "");
       } else {
-        const preferredPersonaId = localStorage.getItem("preferredPersonaId");
+        const preferredPersonaId = disablePersonaAutofill ? "" : localStorage.getItem("preferredPersonaId");
         setIdentity(preferredPersonaId ? `persona:${preferredPersonaId}` : "");
         setSelectedOrgId("");
       }
@@ -108,12 +110,17 @@ export function useScriptMetadataHydration({
       const meta = customMetadataEntriesToMeta(sourceScript.customMetadata || []);
       setTitle((prev) => prev || sourceScript.title || meta.title || "");
       const resolvedAuthor = sourceScript.author || meta.author || meta.authors || "";
-      setAuthor(resolvedAuthor);
       const rawAuthorDisplayMode = String(meta.authordisplaymode || meta.authorDisplayMode || "").trim().toLowerCase();
-      if (rawAuthorDisplayMode === "override" || rawAuthorDisplayMode === "badge") {
-        setAuthorDisplayMode(rawAuthorDisplayMode);
+      const resolvedAuthorDisplayMode =
+        rawAuthorDisplayMode === "override" || rawAuthorDisplayMode === "badge"
+          ? rawAuthorDisplayMode
+          : (String(resolvedAuthor || "").trim() ? "override" : "badge");
+      if (disableAuthorAutofill) {
+        setAuthor("");
+        setAuthorDisplayMode("badge");
       } else {
-        setAuthorDisplayMode(String(resolvedAuthor || "").trim() ? "override" : "badge");
+        setAuthor(resolvedAuthor);
+        setAuthorDisplayMode(resolvedAuthorDisplayMode);
       }
       setDate(sourceScript.draftDate || "");
       setContact(meta.contact || "");
@@ -165,6 +172,8 @@ export function useScriptMetadataHydration({
     },
     [
       customFields,
+      disableAuthorAutofill,
+      disablePersonaAutofill,
       fetchFullScript,
       ensureList,
       loadPublicInfoIfNeeded,
