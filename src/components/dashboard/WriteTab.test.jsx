@@ -4,6 +4,20 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import { WriteTab } from "./WriteTab";
 import { createScript, getScript } from "../../lib/api/scripts";
 
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(), // deprecated
+    removeListener: vi.fn(), // deprecated
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
 const managerMock = {
   currentPath: "/",
   visibleItems: [],

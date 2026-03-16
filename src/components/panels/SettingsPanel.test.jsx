@@ -55,7 +55,7 @@ describe("SettingsPanel", () => {
     useAuth.mockReturnValue({ currentUser: { id: "u1" }, profile: { isAdmin: true } });
     renderWithRouter(<SettingsPanel onClose={() => {}} />);
 
-    expect(screen.getByRole("button", { name: "移轉管理" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "平台管理" })).toBeDefined();
     expect(screen.getByRole("button", { name: "外觀與閱讀" })).toBeDefined();
     expect(screen.getByRole("button", { name: "媒體庫" })).toBeDefined();
     expect(screen.getByRole("button", { name: "自訂標記" })).toBeDefined();

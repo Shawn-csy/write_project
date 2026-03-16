@@ -37,7 +37,7 @@ describe("useScriptTags", () => {
       await result.current.handleAddTag();
     });
 
-    expect(createTag).toHaveBeenCalledWith("新標籤", "bg-gray-500");
+    expect(createTag).toHaveBeenCalledWith("新標籤", "bg-gray-500", "");
     expect(result.current.currentTags).toEqual([{ id: "new-1", name: "新標籤", color: "bg-gray-500" }]);
     expect(result.current.newTagInput).toBe("");
 
@@ -70,7 +70,7 @@ describe("useScriptTags", () => {
     });
 
     expect(createTag).toHaveBeenCalledTimes(1);
-    expect(createTag).toHaveBeenCalledWith("NewOne", "bg-gray-500");
+    expect(createTag).toHaveBeenCalledWith("NewOne", "bg-gray-500", "");
     expect(result.current.currentTags.map((tag) => tag.name)).toEqual(["Existing", "NewOne"]);
     expect(toast).toHaveBeenCalledWith({
       title: "scriptMetadataDialog.tagsAdded",
