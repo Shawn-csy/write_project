@@ -27,7 +27,7 @@ const clampEditorPaneWidth = (value) => {
 };
 
 // LiveEditor Component
-export default function LiveEditor({ scriptId, initialData, onClose, initialSceneId, defaultShowPreview = false, readOnly = false, onRequestEdit, onOpenMarkerSettings, contentScrollRef, isSidebarOpen, onSetSidebarOpen, onTitleHtml, onHasTitle, onTitleNote, onTitleSummary, onTitleName, showHeader = true, crossModeGuideActive = false, crossModeGuideStep = "", onCrossGuideNext, onCrossGuidePrev, onCrossGuideExit }) {
+export default function LiveEditor({ scriptId, initialData, onClose, initialSceneId, defaultShowPreview = false, readOnly = false, onRequestEdit, onOpenMarkerSettings, contentScrollRef, isSidebarOpen, onSetSidebarOpen, onTitleHtml, onHasTitle, onTitleNote, onTitleSummary, onTitleName, showHeader = true, crossModeGuideActive = false, crossModeGuideStep = "", onCrossGuideNext, onCrossGuidePrev, onCrossGuideExit, onPersistMarkerTheme }) {
   const { t } = useI18n();
   const {
     theme = "system",
@@ -37,6 +37,9 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     lineHeight,
     accentConfig,
     markerConfigs,
+    markerThemes = [],
+    currentThemeId = "default",
+    switchTheme = () => {},
     hiddenMarkerIds,
     toggleMarkerVisibility
   } = useSettings();
@@ -547,6 +550,18 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
       handleEditorScroll();
   }, [setEditorReady, handleEditorScroll]);
 
+  const handleSwitchMarkerTheme = useCallback(async (themeId) => {
+    const nextId = String(themeId || "default");
+    const prevId = String(currentThemeId || "default");
+    if (nextId === prevId) return;
+    switchTheme(nextId);
+    if (!onPersistMarkerTheme) return;
+    const ok = await onPersistMarkerTheme(nextId);
+    if (ok === false) {
+      switchTheme(prevId);
+    }
+  }, [currentThemeId, onPersistMarkerTheme, switchTheme]);
+
   return (
     <div className="flex flex-col h-full bg-background relative z-0">
       {showHeader && (
@@ -570,6 +585,9 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
             onSetSidebarOpen={onSetSidebarOpen}
             onTitleChange={handleTitleUpdate}
             markerConfigs={markerConfigs}
+            markerThemes={markerThemes}
+            currentThemeId={currentThemeId}
+            onSwitchMarkerTheme={handleSwitchMarkerTheme}
             hiddenMarkerIds={hiddenMarkerIds}
             onToggleMarker={toggleMarkerVisibility}
             script={initialData}

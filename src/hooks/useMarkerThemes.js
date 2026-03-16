@@ -27,6 +27,7 @@ export function useMarkerThemes(currentUser, isAdmin = false) {
     const normalizeThemeList = (themes) => withDefaultTheme(
         (Array.isArray(themes) ? themes : []).map((theme) => ({
             ...theme,
+            id: String(theme?.id || ""),
             configs: normalizeMarkerConfigsSchema(theme?.configs),
         }))
     );
@@ -72,7 +73,12 @@ export function useMarkerThemes(currentUser, isAdmin = false) {
     };
 
     const setCurrentThemeId = (id) => {
-        setCurrentThemeIdState((prev) => (markerThemes.some((theme) => theme.id === id) ? id : DEFAULT_THEME_ID));
+        const nextId = String(id || DEFAULT_THEME_ID);
+        setCurrentThemeIdState((prev) =>
+            markerThemes.some((theme) => String(theme?.id || "") === nextId)
+                ? nextId
+                : DEFAULT_THEME_ID
+        );
     };
 
     useEffect(() => {
@@ -80,7 +86,7 @@ export function useMarkerThemes(currentUser, isAdmin = false) {
             setCurrentThemeIdState(DEFAULT_THEME_ID);
             return;
         }
-        if (!markerThemes.some((theme) => theme.id === currentThemeId)) {
+        if (!markerThemes.some((theme) => String(theme?.id || "") === String(currentThemeId || ""))) {
             setCurrentThemeIdState(markerThemes[0].id);
         }
     }, [markerThemes, currentThemeId]);

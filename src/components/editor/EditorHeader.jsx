@@ -2,13 +2,13 @@ import React, { useState } from "react";
 import { Loader2, Save, Eye, Columns, BarChart2, HelpCircle, Globe, Lock, MoreHorizontal } from "lucide-react";
 import { useEditableTitle } from "../../hooks/useEditableTitle";
 import EditableTitle from "../header/EditableTitle";
-import { MarkerVisibilitySelect } from "../ui/MarkerVisibilitySelect";
 import HeaderTitleBlock from "../header/HeaderTitleBlock";
 import { Badge } from "../ui/badge";
 import { ScriptMetadataDialog } from "../dashboard/ScriptMetadataDialog";
 import { LanguageSwitcher } from "../common/LanguageSwitcher";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
+import { MarkerThemeVisibilityControl } from "../ui/MarkerThemeVisibilityControl";
 import { useI18n } from "../../contexts/I18nContext";
 
 export function EditorHeader({
@@ -31,6 +31,9 @@ export function EditorHeader({
   moreActionsRef,
   onTitleChange,
   markerConfigs = [],
+  markerThemes = [],
+  currentThemeId = "default",
+  onSwitchMarkerTheme = () => {},
   hiddenMarkerIds = [],
   onToggleMarker,
   script, // Full script object for metadata
@@ -193,6 +196,21 @@ export function EditorHeader({
           <HelpCircle className="w-4 h-4" />
           <span className="hidden sm:inline">{t("editorHeader.syntaxRules")}</span>
         </Button>
+        <MarkerThemeVisibilityControl
+          markerConfigs={markerConfigs}
+          hiddenMarkerIds={hiddenMarkerIds}
+          onToggleMarker={onToggleMarker}
+          markerThemes={markerThemes}
+          currentThemeId={currentThemeId}
+          onSwitchMarkerTheme={onSwitchMarkerTheme}
+          compact
+          iconOnlyOnMobile
+          className="shrink-0"
+          visibilityTriggerClassName="h-8 px-2 text-xs rounded-r-none bg-background border border-r-0 hover:bg-muted/50 transition-all"
+          themeTriggerClassName="h-8 px-2 rounded-l-none rounded-r-md bg-background border text-muted-foreground hover:bg-muted/50 transition-all"
+          contentAlign="end"
+          titlePrefix={t("editorHeader.markerPrefix")}
+        />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -211,17 +229,6 @@ export function EditorHeader({
             <div className="px-2 py-1.5">
               <div className="text-[11px] text-muted-foreground mb-1">{t("settings.language")}</div>
               <LanguageSwitcher className="w-full" selectClassName="w-full" />
-            </div>
-            <div className="px-2 py-1.5">
-              <div className="text-[11px] text-muted-foreground mb-1">{t("editorHeader.markerPrefix")}</div>
-              <MarkerVisibilitySelect
-                markerConfigs={markerConfigs}
-                hiddenMarkerIds={hiddenMarkerIds}
-                onToggleMarker={onToggleMarker}
-                triggerClassName="h-8 px-2 text-xs w-full bg-background border hover:bg-muted/50 transition-all"
-                contentAlign="end"
-                titlePrefix={t("editorHeader.markerPrefix")}
-              />
             </div>
             <DropdownMenuSeparator />
             {onOpenGuide && (

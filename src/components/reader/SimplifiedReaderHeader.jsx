@@ -90,12 +90,14 @@ export function SimplifiedReaderHeader({
         />
         
         {/* Marker Visibility Select (Desktop) */}
-         <div className="hidden sm:block w-[140px]">
+         <div className="hidden sm:block w-[84px]">
           <MarkerVisibilitySelect
             markerConfigs={markerConfigs}
             hiddenMarkerIds={hiddenMarkerIds}
             onToggleMarker={onToggleMarker}
-            triggerClassName="h-8 px-2 text-xs w-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md border-0 transition-all font-medium"
+            compact
+            iconOnly
+            triggerClassName="h-8 px-2 text-xs w-full rounded-md bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md border-0 transition-all font-medium"
             contentAlign="end"
             titlePrefix={t("editorHeader.markerPrefix")}
           />

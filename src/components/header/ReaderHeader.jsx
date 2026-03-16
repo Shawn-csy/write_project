@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   SlidersHorizontal,
 } from "lucide-react";
@@ -39,6 +39,7 @@ function ReaderHeader({
   onBack,
   onToggleStats, // New prop
   onTitleChange,
+  onSwitchMarkerTheme,
   
   markerConfigs,
   visibleMarkerIds: visibleMarkerIdsProp,
@@ -46,10 +47,28 @@ function ReaderHeader({
   onToggleMarker: onToggleMarkerProp
 }) {
   const { t } = useI18n();
-  const { hiddenMarkerIds: ctxHiddenMarkerIds, toggleMarkerVisibility } = useSettings();
+  const {
+    hiddenMarkerIds: ctxHiddenMarkerIds,
+    toggleMarkerVisibility,
+    markerThemes = [],
+    currentThemeId = "default",
+    switchTheme = () => {},
+  } = useSettings();
   const effectiveHiddenMarkerIds = hiddenMarkerIdsProp ?? ctxHiddenMarkerIds ?? [];
   const effectiveToggleMarker = onToggleMarkerProp ?? toggleMarkerVisibility;
+  const persistMarkerTheme = onSwitchMarkerTheme;
   const effectiveVisibleMarkerIds = visibleMarkerIdsProp ?? (Array.isArray(markerConfigs) ? markerConfigs.filter(c => !effectiveHiddenMarkerIds.includes(c.id)).map(c => c.id) : []);
+  const handleSwitchMarkerTheme = useCallback(async (themeId) => {
+    const nextId = String(themeId || "default");
+    const prevId = String(currentThemeId || "default");
+    if (nextId === prevId) return;
+    switchTheme(nextId);
+    if (!persistMarkerTheme) return;
+    const ok = await persistMarkerTheme(nextId);
+    if (ok === false) {
+      switchTheme(prevId);
+    }
+  }, [currentThemeId, switchTheme, persistMarkerTheme]);
   const [collapsed, setCollapsed] = useState(true);
   const [autoCollapse, setAutoCollapse] = useState(true);
   const [isLg, setIsLg] = useState(false);
@@ -201,7 +220,11 @@ function ReaderHeader({
                 setFocusMode={setFocusMode} 
  
                 markerConfigs={markerConfigs}
+                markerThemes={markerThemes}
+                currentThemeId={currentThemeId}
+                onSwitchMarkerTheme={handleSwitchMarkerTheme}
                 visibleMarkerIds={effectiveVisibleMarkerIds}
+                hiddenMarkerIds={effectiveHiddenMarkerIds}
                 onToggleMarker={effectiveToggleMarker}
             />
             
