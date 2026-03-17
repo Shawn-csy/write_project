@@ -2,8 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useLocation, useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
 import { Button } from "../components/ui/button";
-import { PanelLeftOpen, FileText, UserRound, Building2, Layers3, CircleHelp } from "lucide-react";
-import { LanguageSwitcher } from "../components/common/LanguageSwitcher";
+import { PanelLeftOpen, FileText, UserRound, Building2, Layers3 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { ScriptMetadataDialog } from "../components/dashboard/ScriptMetadataDialog";
 import { getMorandiTagStyle } from "../lib/tagColors";
@@ -33,7 +32,17 @@ import { usePublisherOrgQueues } from "../hooks/publisher/usePublisherOrgQueues"
 import { usePublisherCrudActions } from "../hooks/publisher/usePublisherCrudActions";
 import { buildAffiliatedOrganizations } from "../lib/orgAffiliation";
 import { SpotlightGuideOverlay } from "../components/common/SpotlightGuideOverlay";
-import { TOPBAR_INNER_CLASS, TOPBAR_OUTER_CLASS } from "../components/layout/topbarLayout";
+import { TOPBAR_OUTER_CLASS } from "../components/layout/topbarLayout";
+import {
+  STUDIO_TOPBAR_ACTIONS_CLASS,
+  STUDIO_TOPBAR_INNER_CLASS,
+  STUDIO_PAGE_CONTENT_CLASS,
+  STUDIO_PAGE_PADDING_CLASS,
+  STUDIO_TOPBAR_ROW_CLASS,
+  STUDIO_TOPBAR_SURFACE_CLASS,
+  STUDIO_TOPBAR_TITLE_WRAP_CLASS,
+} from "../components/layout/studioTopbarTokens";
+import { StudioTopbarQuickActions } from "../components/layout/StudioTopbarQuickActions";
 
 
 export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMenu }) {
@@ -462,8 +471,9 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
 
   return (
     <div className="flex h-full flex-col bg-background">
-      <div className={`${TOPBAR_OUTER_CLASS} shrink-0`}>
-        <div className={`${TOPBAR_INNER_CLASS} h-16 flex items-center gap-3`}>
+      <div className={`${TOPBAR_OUTER_CLASS} ${STUDIO_TOPBAR_SURFACE_CLASS}`}>
+        <div className={STUDIO_TOPBAR_INNER_CLASS}>
+        <div className={STUDIO_TOPBAR_ROW_CLASS}>
           <div className="lg:hidden">
             <Button
               variant="ghost"
@@ -484,29 +494,32 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
               <PanelLeftOpen className="w-5 h-5 text-muted-foreground" />
             </Button>
           </div>
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate font-serif font-semibold text-lg text-primary">{t("publisher.title")}</h1>
+          <div className={STUDIO_TOPBAR_TITLE_WRAP_CLASS}>
+            <div className="flex items-center gap-2">
+              <span className="hidden rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary sm:inline-flex">
+                Studio
+              </span>
+              <h1 className="truncate font-serif text-lg font-semibold text-primary">{t("publisher.title")}</h1>
+            </div>
+            <p className="mt-0.5 hidden truncate text-[11px] text-muted-foreground sm:block">
+              作品、作者、組織與系列的發佈資料集中管理
+            </p>
           </div>
-          <div className="flex items-center gap-2">
-            <LanguageSwitcher selectClassName="h-8 bg-background/70 backdrop-blur" />
-            <Button type="button" variant="outline" size="sm" className="h-8" onClick={handleStartStudioGuide}>
-              <CircleHelp className="w-4 h-4 mr-1.5" />
-              {t("publisher.guide")}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8"
-              onClick={() => navigate("/")}
-            >
-              {t("nav.gallery", "公開台本")}
-            </Button>
+          <div className={STUDIO_TOPBAR_ACTIONS_CLASS}>
+            <StudioTopbarQuickActions
+              onOpenGuide={handleStartStudioGuide}
+              onOpenGallery={() => navigate("/")}
+              guideLabel={t("publisher.guide")}
+              galleryLabel={t("nav.gallery", "公開台本")}
+              languageLabel={t("settings.language")}
+            />
           </div>
+        </div>
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6">
-      <div className="mx-auto w-full max-w-6xl space-y-6 animate-in fade-in duration-500">
+      <div className={`flex-1 min-h-0 overflow-y-auto ${STUDIO_PAGE_PADDING_CLASS}`}>
+      <div className={STUDIO_PAGE_CONTENT_CLASS}>
 
       {myInvites.length > 0 && (
         <div className="border rounded-lg p-4 bg-muted/20 mb-6">
@@ -525,13 +538,13 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         </div>
       )}
 
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <div className="sticky top-0 z-20 rounded-lg border bg-background/95 p-2 backdrop-blur">
-            <TabsList ref={tabsGuideRef} className="grid w-full grid-cols-2 md:grid-cols-4 gap-1 h-auto bg-transparent p-0">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
+        <div className="sticky top-0 z-20 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-r from-[var(--morandi-tone-helper-bg)]/85 via-[var(--morandi-tone-helper-bg)]/45 to-background p-2.5 shadow-sm backdrop-blur">
+            <TabsList ref={tabsGuideRef} className="grid h-auto w-full grid-cols-2 gap-1.5 bg-transparent p-0 md:grid-cols-4">
                 <TabsTrigger
                   value="works"
                   style={tabTone.works}
-                  className="h-11 justify-start px-3 border border-transparent bg-background/70 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/50 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]"
+                  className="h-11 justify-start rounded-lg border border-transparent bg-background/75 px-3 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/55 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]"
                 >
                     <span className="flex items-center gap-2 text-xs sm:text-sm">
                         <FileText className="h-4 w-4" />
@@ -542,7 +555,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 <TabsTrigger
                   value="profile"
                   style={tabTone.profile}
-                  className="h-11 justify-start px-3 border border-transparent bg-background/70 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/50 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]"
+                  className="h-11 justify-start rounded-lg border border-transparent bg-background/75 px-3 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/55 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]"
                 >
                     <span className="flex items-center gap-2 text-xs sm:text-sm">
                         <UserRound className="h-4 w-4" />
@@ -553,7 +566,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 <TabsTrigger
                   value="org"
                   style={tabTone.org}
-                  className="h-11 justify-start px-3 border border-transparent bg-background/70 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/50 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]"
+                  className="h-11 justify-start rounded-lg border border-transparent bg-background/75 px-3 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/55 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]"
                 >
                     <span className="flex items-center gap-2 text-xs sm:text-sm">
                         <Building2 className="h-4 w-4" />
@@ -564,7 +577,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 <TabsTrigger
                   value="series"
                   style={tabTone.series}
-                  className="h-11 justify-start px-3 border border-transparent bg-background/70 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/50 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]"
+                  className="h-11 justify-start rounded-lg border border-transparent bg-background/75 px-3 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/55 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]"
                 >
                     <span className="flex items-center gap-2 text-xs sm:text-sm">
                         <Layers3 className="h-4 w-4" />
@@ -579,7 +592,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         <TabsContent
           value="works"
           style={tabTone.works}
-          className="space-y-4 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-3"
+          className="space-y-4 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3"
           data-guide-id="studio-works-panel"
         >
              <PublisherWorksTab 
@@ -597,7 +610,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         <TabsContent
           value="profile"
           style={tabTone.profile}
-          className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-3"
+          className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3"
           data-guide-id="studio-profile-panel"
         >
             <PublisherProfileTab
@@ -639,7 +652,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         <TabsContent
           value="org"
           style={tabTone.org}
-          className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-3"
+          className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3"
           data-guide-id="studio-org-panel"
         >
                 <PublisherOrgTab 
@@ -676,7 +689,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         <TabsContent
           value="series"
           style={tabTone.series}
-          className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-3"
+          className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3"
         >
             <PublisherSeriesTab
               seriesList={seriesList}

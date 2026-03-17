@@ -51,6 +51,19 @@ def _allow_x_user_id() -> bool:
         return False
     if ALLOW_X_USER_ID is not None:
         return bool(ALLOW_X_USER_ID)
+
+    # Only allow fallback auth in explicitly non-production environments.
+    env_value = (
+        os.getenv("ENVIRONMENT")
+        or os.getenv("APP_ENV")
+        or os.getenv("FASTAPI_ENV")
+        or os.getenv("NODE_ENV")
+        or ""
+    ).strip().lower()
+    is_explicit_non_prod = env_value in {"dev", "development", "local", "test", "testing"}
+    if not is_explicit_non_prod:
+        return False
+
     return os.getenv("ALLOW_X_USER_ID", "").lower() in {"1", "true", "yes"}
 
 

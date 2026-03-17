@@ -47,3 +47,14 @@ def test_spa_read_markdown_error_returns_500(client, db_session, monkeypatch):
     response = client.get("/read/any/extra", headers={"Accept": "text/markdown"})
     assert response.status_code == 500
     assert response.text == "Internal Server Error"
+
+
+def test_seo_structured_data_escapes_script_breakout(client):
+    from services.seo import inject_structured_data
+
+    html = "<html><head></head><body></body></html>"
+    payload = {"name": '</script><script>alert("xss")</script>'}
+    body = inject_structured_data(html, payload)
+
+    assert '</script><script>alert("xss")</script>' not in body
+    assert "\\u003c/script\\u003e\\u003cscript\\u003ealert" in body
