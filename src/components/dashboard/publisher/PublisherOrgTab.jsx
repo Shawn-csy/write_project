@@ -465,7 +465,7 @@ export function PublisherOrgTab({
                                         <PublisherFormRow label={t("publisherOrgTab.orgTags")}>
                                             <PublisherTagEditor
                                                 tags={orgDraft.tags || []}
-                                                setTags={(nextTags) => setOrgDraft({ ...orgDraft, tags: nextTags })}
+                                                setTags={(nextTags) => setOrgDraft((prev) => ({ ...prev, tags: nextTags }))}
                                                 tagInput={orgTagInput}
                                                 setTagInput={setOrgTagInput}
                                                 parseTags={parseTags}

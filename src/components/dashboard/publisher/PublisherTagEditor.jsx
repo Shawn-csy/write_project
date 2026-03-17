@@ -1,10 +1,8 @@
 import React from "react";
-import { DndContext, closestCenter } from "@dnd-kit/core";
-import { SortableContext, horizontalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
-import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
-import { SortableTag } from "./SortableTag";
+import { Badge } from "../../ui/badge";
+import { X } from "lucide-react";
 
 export function PublisherTagEditor({
   tags = [],
@@ -24,8 +22,6 @@ export function PublisherTagEditor({
   noMatchedTagLabel,
   emptyHintLabel,
 }) {
-  const [tagOpen, setTagOpen] = React.useState(false);
-
   const handleTagPaste = (event) => {
     const text = event.clipboardData?.getData("text") || "";
     const incoming = parseTags(text);
@@ -35,112 +31,102 @@ export function PublisherTagEditor({
     setTagInput("");
   };
 
+  const handleAddFromInput = () => {
+    const incoming = parseTags(tagInput);
+    if (incoming.length === 0) return;
+    setTags(addTags(tags || [], incoming));
+    setTagInput("");
+  };
+
   return (
     <div className="border rounded-md p-3 bg-muted/10 space-y-2">
-      <DndContext
-        collisionDetection={closestCenter}
-        onDragEnd={({ active, over }) => {
-          if (!over || active.id === over.id) return;
-          const items = tags || [];
-          const oldIndex = items.indexOf(active.id);
-          const newIndex = items.indexOf(over.id);
-          setTags(arrayMove(items, oldIndex, newIndex));
-        }}
-      >
-        <SortableContext items={tags || []} strategy={horizontalListSortingStrategy}>
-          <div className="flex flex-wrap gap-2">
-            {(tags || []).map((tag) => (
-              <SortableTag
-                key={tag}
-                id={tag}
-                style={getTagStyle(tag)}
-                onRemove={() => {
-                  setTags((tags || []).filter((item) => item !== tag));
-                }}
-              />
-            ))}
-            {(tags || []).length === 0 && <span className="text-sm text-muted-foreground">{emptyHintLabel}</span>}
-          </div>
-        </SortableContext>
-      </DndContext>
+      <div className="flex gap-2">
+        <Input
+          id={inputId}
+          name={inputName}
+          aria-label={inputAriaLabel}
+          value={tagInput}
+          onChange={(e) => setTagInput(e.target.value)}
+          onPaste={handleTagPaste}
+          onKeyDown={(e) => {
+            if (e.nativeEvent?.isComposing) return;
+            if (e.key === "Enter" || e.key === "," || e.key === "，") {
+              e.preventDefault();
+              handleAddFromInput();
+            }
+          }}
+          placeholder={inputPlaceholder}
+          className="h-8"
+        />
+        <Button type="button" variant="secondary" size="sm" onClick={handleAddFromInput}>
+          {addTagLabel}
+        </Button>
+      </div>
 
-      <Popover open={tagOpen} onOpenChange={setTagOpen}>
-        <PopoverTrigger asChild>
-          <Button type="button" variant="outline" size="sm" className="w-fit">
-            {addTagLabel}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[90vw] sm:w-80 p-2" align="start">
-          <div className="p-2">
-            <Input
-              id={inputId}
-              name={inputName}
-              aria-label={inputAriaLabel}
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onPaste={handleTagPaste}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === "," || e.key === "，") {
-                  e.preventDefault();
-                  const incoming = parseTags(tagInput);
-                  if (incoming.length === 0) return;
-                  setTags(addTags(tags || [], incoming));
-                  setTagInput("");
-                  setTagOpen(false);
+      <div className="flex flex-wrap gap-2">
+        {(tags || []).map((tag) => (
+          <Badge
+            key={tag}
+            variant="outline"
+            className="flex items-center gap-1 py-1 pl-2.5 pr-1.5"
+            style={getTagStyle(tag)}
+          >
+            <span>{tag}</span>
+            <button
+              type="button"
+              className="ml-1.5 rounded-full p-0.5 hover:bg-foreground/15"
+              onClick={() => setTags((tags || []).filter((item) => item !== tag))}
+              aria-label={`remove-${tag}`}
+            >
+              <X className="h-3 w-3 opacity-70" />
+            </button>
+          </Badge>
+        ))}
+        {(tags || []).length === 0 ? (
+          <span className="text-sm text-muted-foreground">{emptyHintLabel}</span>
+        ) : null}
+      </div>
+
+      <div className="max-h-44 overflow-y-auto rounded-md border border-border/60 bg-background/70 p-1">
+        {tagInput.trim() && (
+          <button
+            type="button"
+            className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent"
+            onClick={handleAddFromInput}
+          >
+            {addQuotedTemplate.replace("{value}", tagInput.trim())}
+          </button>
+        )}
+        {filteredOptions.map((name) => {
+          const selected = (tags || []).includes(name);
+          return (
+            <button
+              key={name}
+              type="button"
+              className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded hover:bg-accent ${
+                selected ? "bg-accent/50" : ""
+              }`}
+              onClick={() => {
+                if (selected) {
+                  setTags((tags || []).filter((item) => item !== name));
+                } else {
+                  setTags(addTags(tags || [], [name]));
                 }
+                setTagInput("");
               }}
-              placeholder={inputPlaceholder}
-              className="h-8"
-            />
-          </div>
-          <div className="max-h-56 overflow-y-auto px-1 pb-1">
-            {tagInput.trim() && (
-              <button
-                type="button"
-                className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent"
-                onClick={() => {
-                  const incoming = parseTags(tagInput);
-                  if (incoming.length === 0) return;
-                  setTags(addTags(tags || [], incoming));
-                  setTagInput("");
-                  setTagOpen(false);
-                }}
-              >
-                {addQuotedTemplate.replace("{value}", tagInput.trim())}
-              </button>
-            )}
-            {filteredOptions.map((name) => {
-              const selected = (tags || []).includes(name);
-              return (
-                <button
-                  key={name}
-                  type="button"
-                  className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded hover:bg-accent ${
-                    selected ? "bg-accent/50" : ""
-                  }`}
-                  onClick={() => {
-                    if (selected) {
-                      setTags((tags || []).filter((item) => item !== name));
-                    } else {
-                      setTags(addTags(tags || [], [name]));
-                    }
-                    setTagInput("");
-                  }}
-                >
-                  <span className="truncate">{name}</span>
-                  <span
-                    className="inline-block h-2 w-2 rounded-full"
-                    style={{ backgroundColor: getTagStyle(name)?.backgroundColor || "#CBD5E1" }}
-                  />
-                </button>
-              );
-            })}
-            {tagInput.trim() && filteredOptions.length === 0 && (
-              <div className="px-3 py-2 text-xs text-muted-foreground">{noMatchedTagLabel}</div>
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
+            >
+              <span className="truncate">{name}</span>
+              <span
+                className="inline-block h-2 w-2 rounded-full"
+                style={{ backgroundColor: getTagStyle(name)?.backgroundColor || "#CBD5E1" }}
+              />
+            </button>
+          );
+        })}
+        {tagInput.trim() && filteredOptions.length === 0 ? (
+          <div className="px-3 py-2 text-xs text-muted-foreground">{noMatchedTagLabel}</div>
+        ) : null}
+      </div>
     </div>
   );
 }
