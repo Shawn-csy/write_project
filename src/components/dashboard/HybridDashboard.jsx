@@ -60,7 +60,7 @@ export default function HybridDashboard({
                         <PanelLeftOpen className="w-5 h-5 text-muted-foreground" />
                     </Button>
               </div>
-              <div className={STUDIO_TOPBAR_TITLE_WRAP_CLASS}>
+              <div className={`hidden sm:block ${STUDIO_TOPBAR_TITLE_WRAP_CLASS}`}>
                   <div className="flex items-center gap-2">
                     <span className="hidden rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary sm:inline-flex">
                       Studio
@@ -119,10 +119,10 @@ export default function HybridDashboard({
                     variant="outline"
                     onClick={() => dispatchWriteTabAction("import-script")}
                     title={t("scriptToolbar.importScript")}
-                    className={STUDIO_TOPBAR_SECONDARY_BUTTON_CLASS}
+                    className={`${STUDIO_TOPBAR_SECONDARY_BUTTON_CLASS} w-10 px-0 sm:w-auto sm:px-3`}
                     data-guide-id="write-import-script-btn"
                   >
-                    <Upload className="mr-1.5 h-4 w-4" />
+                    <Upload className="h-4 w-4 sm:mr-1.5" />
                     <span className="hidden sm:inline">{t("scriptToolbar.import")}</span>
                   </Button>
                 </div>

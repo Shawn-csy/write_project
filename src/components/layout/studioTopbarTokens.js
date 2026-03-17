@@ -7,10 +7,11 @@ export const STUDIO_TOPBAR_ROW_CLASS = "flex h-16 items-center gap-2 py-2 sm:h-[
 
 export const STUDIO_TOPBAR_TITLE_WRAP_CLASS = "min-w-0 flex-1";
 
-export const STUDIO_TOPBAR_ACTIONS_CLASS = "ml-auto flex items-center gap-1.5 sm:gap-2";
+export const STUDIO_TOPBAR_ACTIONS_CLASS =
+  "ml-auto flex max-w-full items-center gap-1.5 sm:gap-2 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden";
 
-export const STUDIO_TOPBAR_SECONDARY_BUTTON_CLASS = "h-9 sm:h-10 px-3";
-export const STUDIO_TOPBAR_ICON_BUTTON_CLASS = "h-9 w-9 sm:h-10 sm:w-10 border border-border/60 bg-background/70 backdrop-blur";
+export const STUDIO_TOPBAR_SECONDARY_BUTTON_CLASS = "h-10 px-3";
+export const STUDIO_TOPBAR_ICON_BUTTON_CLASS = "h-10 w-10 border border-border/60 bg-background/70 backdrop-blur";
 
 export const STUDIO_PAGE_PADDING_CLASS = "p-4 sm:p-6";
 
