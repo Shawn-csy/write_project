@@ -10,6 +10,7 @@ import { useEditableTitle } from "../../hooks/useEditableTitle";
 import EditableTitle from "./EditableTitle";
 import HeaderTitleBlock from "./HeaderTitleBlock";
 import { useI18n } from "../../contexts/I18nContext";
+import { useLocation } from "react-router-dom";
 
 function ReaderHeader({
   hasTitle,
@@ -47,6 +48,7 @@ function ReaderHeader({
   onToggleMarker: onToggleMarkerProp
 }) {
   const { t } = useI18n();
+  const location = useLocation();
   const {
     hiddenMarkerIds: ctxHiddenMarkerIds,
     toggleMarkerVisibility,
@@ -97,7 +99,11 @@ function ReaderHeader({
     submitTitle
   } = useEditableTitle(titleName || "", onTitleChange);
 
-  const showTools = isLg || !collapsed;
+  const isGuideMode = React.useMemo(() => {
+    const params = new URLSearchParams(location.search || "");
+    return params.get("guide") === "1";
+  }, [location.search]);
+  const showTools = isGuideMode || isLg || !collapsed;
 
   return (
     <Card id="reader-guide-header" className="border border-border bg-card/80 backdrop-blur rounded-none sm:rounded-xl border-x-0 sm:border-x">
@@ -194,6 +200,7 @@ function ReaderHeader({
 
             {!isLg && (
               <button
+                id="reader-guide-tools-toggle"
                 onClick={(e) => {
                   e.stopPropagation();
                   setAutoCollapse(false);
