@@ -5,6 +5,7 @@ import { Globe, Users } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { ScriptGalleryCard } from "../components/gallery/ScriptGalleryCard";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
+import { Button } from "../components/ui/button";
 import { getPublicOrganization, getPublicScripts } from "../lib/api/public";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { getMorandiTagStyle } from "../lib/tagColors";
@@ -15,7 +16,7 @@ export default function OrganizationPage() {
   const { t } = useI18n();
   const { id } = useParams();
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { currentUser, login } = useAuth();
   const [org, setOrg] = useState(null);
   const [scripts, setScripts] = useState([]);
   const [members, setMembers] = useState([]);
@@ -93,8 +94,7 @@ export default function OrganizationPage() {
         <script type="application/ld+json">{JSON.stringify(orgSchema)}</script>
       </Helmet>
       <PublicTopBar
-        showBack
-        onBack={() => navigate(-1)}
+        fullBleed
         tabs={[
           { key: "scripts", label: t("publicTopbar.scripts") },
           { key: "authors", label: t("publicTopbar.authors") },
@@ -106,27 +106,55 @@ export default function OrganizationPage() {
           if (key === "authors") navigate("/?view=authors");
           if (key === "orgs") navigate("/?view=orgs");
         }}
+        actions={
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-1">
+              <Button variant="ghost" size="sm" onClick={() => navigate("/license")}>
+                {t("publicGallery.licenseTerms")}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/help")}>
+                {t("publicGallery.help")}
+              </Button>
+            </div>
+            {currentUser ? (
+              <Button variant="default" size="sm" onClick={() => navigate("/dashboard")}>
+                {t("publicGallery.goStudio")}
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  try { await login(); } catch (e) { console.error(e); }
+                }}
+              >
+                {t("publicGallery.login")}
+              </Button>
+            )}
+          </div>
+        }
       />
 
       {/* Banner Area */}
-      <div className="h-48">
+      <div className="relative h-48">
         {org.bannerUrl ? (
           <img src={org.bannerUrl} alt={`${org.name} banner`} className="w-full h-full object-cover" />
         ) : (
           <div className="h-full bg-gradient-to-r from-blue-900 to-slate-900" />
         )}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-black/18 to-transparent" />
       </div>
       
-      <main className="container mx-auto px-4 -mt-16 pb-12 relative animate-in slide-in-from-bottom-4 duration-700">
+      <main className="relative -mt-16 mx-auto w-full max-w-7xl px-4 pb-20 sm:px-6 lg:px-8 animate-in slide-in-from-bottom-4 duration-700">
          {/* Org Header Card */}
-         <div className="bg-card border rounded-xl p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center gap-6 shadow-sm mb-8">
+         <div className="mb-8 flex flex-col items-start gap-6 rounded-xl border border-white/45 bg-background/72 p-6 shadow-[0_24px_50px_-28px_rgba(15,23,42,0.6)] backdrop-blur-md backdrop-brightness-90 backdrop-saturate-75 md:flex-row md:items-center md:p-8 dark:border-white/20 dark:bg-background/68">
              <div className="w-24 h-24 md:w-32 md:h-32 bg-background rounded-lg border-4 border-background shadow overflow-hidden shrink-0">
                  <img src={org.logoUrl || "https://images.unsplash.com/photo-1560179707-f14e90ef3623?q=80&w=300&auto=format&fit=crop"} alt={org.name} className="w-full h-full object-cover" />
              </div>
              
              <div className="flex-1 space-y-2">
                  <h1 className="text-3xl md:text-4xl font-bold font-serif">{org.name}</h1>
-                 <p className="text-muted-foreground max-w-2xl">{org.description}</p>
+                 <p className="max-w-2xl text-foreground/85">{org.description}</p>
                  {org.tags && org.tags.length > 0 && (
                    <div className="flex flex-wrap gap-2 pt-2">
                      {org.tags.map((tag, i) => (
@@ -149,7 +177,7 @@ export default function OrganizationPage() {
                              {t("orgPage.officialWebsite")}
                          </a>
                      )}
-                     <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                     <div className="flex items-center gap-1.5 text-sm text-foreground/80">
                          <Users className="w-4 h-4" />
                          {t("orgPage.membersCount").replace("{count}", String(members.length))}
                      </div>
@@ -161,12 +189,22 @@ export default function OrganizationPage() {
 
          {/* Content Tabs */}
          <Tabs defaultValue="works" className="w-full">
-            <TabsList className="mb-6">
-                <TabsTrigger value="works">{t("orgPage.publicWorks")}</TabsTrigger>
-                <TabsTrigger value="members">{t("orgPage.membersTab")}</TabsTrigger>
+            <TabsList className="mb-5 h-auto rounded-lg border border-border/60 bg-[hsl(var(--surface-2))]/55 p-1">
+                <TabsTrigger
+                  value="works"
+                  className="h-9 rounded-md border border-transparent bg-background/65 px-3 text-sm text-muted-foreground transition-colors data-[state=active]:border-primary/35 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm"
+                >
+                  {t("orgPage.publicWorks")}
+                </TabsTrigger>
+                <TabsTrigger
+                  value="members"
+                  className="h-9 rounded-md border border-transparent bg-background/65 px-3 text-sm text-muted-foreground transition-colors data-[state=active]:border-primary/35 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm"
+                >
+                  {t("orgPage.membersTab")}
+                </TabsTrigger>
             </TabsList>
             
-            <TabsContent value="works">
+            <TabsContent value="works" className="rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                     {scripts.map(script => (
                         <ScriptGalleryCard 
@@ -178,12 +216,12 @@ export default function OrganizationPage() {
                 </div>
             </TabsContent>
             
-            <TabsContent value="members">
+            <TabsContent value="members" className="rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {members.map(member => (
                         <div 
                             key={member.id} 
-                            className="bg-card border rounded-lg p-4 flex items-center gap-4 hover:border-primary/50 cursor-pointer transition-colors"
+                            className="rounded-lg border border-border/70 bg-background/75 p-4 flex items-center gap-4 transition-colors hover:border-primary/50 hover:bg-background cursor-pointer"
                             onClick={() => navigate(`/author/${member.id}`)}
                         >
                             <Avatar>

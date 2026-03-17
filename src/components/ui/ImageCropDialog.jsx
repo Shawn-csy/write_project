@@ -9,8 +9,16 @@ const PURPOSE_PRESETS = {
   avatar: { aspect: 1, outputWidth: 512, outputHeight: 512 },
   logo: { aspect: 1, outputWidth: 512, outputHeight: 512 },
   cover: { aspect: 1200 / 630, outputWidth: 1200, outputHeight: 630 },
-  banner: { aspect: 1500 / 500, outputWidth: 1500, outputHeight: 500 },
+  banner: { aspect: 2560 / 850, outputWidth: 2560, outputHeight: 850 },
   generic: { aspect: 16 / 9, outputWidth: 1280, outputHeight: 720 },
+};
+
+const SAFE_AREA_PRESETS = {
+  avatar: { width: 84, height: 84 },
+  logo: { width: 84, height: 84 },
+  cover: { width: 82, height: 62 },
+  banner: { width: 80, height: 58 },
+  generic: { width: 82, height: 60 },
 };
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -42,6 +50,7 @@ export function ImageCropDialog({
 }) {
   const { t } = useI18n();
   const preset = PURPOSE_PRESETS[purpose] || PURPOSE_PRESETS.generic;
+  const safeArea = SAFE_AREA_PRESETS[purpose] || SAFE_AREA_PRESETS.generic;
   const [sourceUrl, setSourceUrl] = React.useState("");
   const [imgEl, setImgEl] = React.useState(null);
   const [zoom, setZoom] = React.useState(1);
@@ -51,6 +60,7 @@ export function ImageCropDialog({
   const [dragging, setDragging] = React.useState(false);
   const [errorText, setErrorText] = React.useState("");
   const [backgroundMode, setBackgroundMode] = React.useState("transparent");
+  const [showSafeArea, setShowSafeArea] = React.useState(true);
   const dragStartRef = React.useRef({ x: 0, y: 0, ox: 0, oy: 0 });
   const frameRef = React.useRef(null);
 
@@ -62,6 +72,7 @@ export function ImageCropDialog({
     setZoom(1);
     setOffset({ x: 0, y: 0 });
     setBackgroundMode("transparent");
+    setShowSafeArea(true);
     setIsLoading(true);
     setImgEl(null);
     const resolveSource = async () => {
@@ -264,6 +275,20 @@ export function ImageCropDialog({
                 }}
               />
             ) : null}
+            {showSafeArea ? (
+              <div
+                className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-md border-2 border-dashed border-white/85 shadow-[0_0_0_1px_rgba(0,0,0,0.25)]"
+                style={{
+                  width: `${safeArea.width}%`,
+                  height: `${safeArea.height}%`,
+                }}
+                aria-label={t("mediaLibrary.safeArea", "安全區")}
+              >
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 rounded bg-black/55 px-2 py-0.5 text-[10px] text-white">
+                  {t("mediaLibrary.safeAreaHint", "重要內容請放在虛線框內")}
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <div className="space-y-1">
@@ -293,6 +318,15 @@ export function ImageCropDialog({
               onClick={() => setBackgroundMode("solid")}
             >
               {t("mediaLibrary.solidBg", "實色")}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={showSafeArea ? "default" : "outline"}
+              className="h-7 px-2 text-xs"
+              onClick={() => setShowSafeArea((prev) => !prev)}
+            >
+              {t("mediaLibrary.toggleSafeArea", "安全區")}
             </Button>
           </div>
 

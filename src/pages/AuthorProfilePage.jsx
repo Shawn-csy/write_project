@@ -10,11 +10,14 @@ import { PublicTopBar } from "../components/public/PublicTopBar";
 import { getMorandiTagStyle } from "../lib/tagColors";
 import { useI18n } from "../contexts/I18nContext";
 import { CoverPlaceholder } from "../components/ui/CoverPlaceholder";
+import { useAuth } from "../contexts/AuthContext";
+import { Button } from "../components/ui/button";
 
 export default function AuthorProfilePage() {
   const { t } = useI18n();
   const { id } = useParams();
   const navigate = useNavigate();
+  const { currentUser, login } = useAuth();
   const [author, setAuthor] = useState(null);
   const [scripts, setScripts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -123,8 +126,7 @@ export default function AuthorProfilePage() {
         <script type="application/ld+json">{JSON.stringify(personSchema)}</script>
       </Helmet>
       <PublicTopBar
-        showBack
-        onBack={() => navigate(-1)}
+        fullBleed
         tabs={[
           { key: "scripts", label: t("publicTopbar.scripts") },
           { key: "authors", label: t("publicTopbar.authors") },
@@ -136,94 +138,127 @@ export default function AuthorProfilePage() {
           if (key === "authors") navigate("/?view=authors");
           if (key === "orgs") navigate("/?view=orgs");
         }}
+        actions={
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-1">
+              <Button variant="ghost" size="sm" onClick={() => navigate("/license")}>
+                {t("publicGallery.licenseTerms")}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/help")}>
+                {t("publicGallery.help")}
+              </Button>
+            </div>
+            {currentUser ? (
+              <Button variant="default" size="sm" onClick={() => navigate("/dashboard")}>
+                {t("publicGallery.goStudio")}
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  try { await login(); } catch (e) { console.error(e); }
+                }}
+              >
+                {t("publicGallery.login")}
+              </Button>
+            )}
+          </div>
+        }
       />
 
-      <div className="h-48 bg-muted/30">
+      <div className="relative h-48 bg-muted/30">
         {author.bannerUrl ? (
           <img src={author.bannerUrl} alt={`${author.displayName} banner`} className="w-full h-full object-cover" />
         ) : (
           <div className="h-full bg-gradient-to-r from-slate-900 to-slate-700" />
         )}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-black/18 to-transparent" />
       </div>
 
-      <main className="container mx-auto px-4 py-8 -mt-16">
+      <main className="relative -mt-16 mx-auto w-full max-w-7xl px-4 py-8 pb-20 sm:px-6 lg:px-8">
         
         {/* Profile Header */}
-        <div className="flex flex-col md:flex-row items-start gap-8 mb-12">
-            <Avatar className="w-32 h-32 md:w-40 md:h-40 border-4 border-muted bg-background">
-                <AvatarImage src={author.avatar} />
-                <AvatarFallback>{author.displayName?.[0]}</AvatarFallback>
-            </Avatar>
-            
-            <div className="flex-1 space-y-4 pt-2">
-                <div>
-                    <h1 className="text-3xl font-bold font-serif">{author.displayName}</h1>
-                    {author.organizations && author.organizations.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-1">
-                            {author.organizations.map(org => (
-                                <div
-                                    key={org.id}
-                                    className="flex items-center gap-1.5 text-primary hover:underline cursor-pointer"
-                                    onClick={() => navigate(`/org/${org.id}`)}
-                                >
-                                    <Building2 className="w-4 h-4" />
-                                    <span>{org.name}</span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
-                    {author.bio}
-                </p>
-                {author.tags && author.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {author.tags.map((tag, i) => (
-                      <button
-                        key={`author-tag-${i}`}
-                        className="text-xs px-2 py-1 rounded-full hover:opacity-90"
-                        style={tagStyle(tag)}
-                        onClick={() => navigate(`/?view=authors&authorTag=${encodeURIComponent(tag)}`)}
-                      >
-                        {tag}
-                      </button>
-                    ))}
+        <div className="mb-8 rounded-xl border border-border/60 bg-muted/20 p-6 shadow-sm md:p-8">
+          <div className="flex flex-col md:flex-row items-start gap-8">
+              <Avatar className="w-32 h-32 md:w-40 md:h-40 border-4 border-muted bg-background">
+                  <AvatarImage src={author.avatar} />
+                  <AvatarFallback>{author.displayName?.[0]}</AvatarFallback>
+              </Avatar>
+              
+              <div className="flex-1 space-y-4 pt-2">
+                  <div>
+                      <h1 className="text-3xl font-bold font-serif">{author.displayName}</h1>
+                      {author.organizations && author.organizations.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-1">
+                              {author.organizations.map(org => (
+                                  <div
+                                      key={org.id}
+                                      className="flex items-center gap-1.5 text-primary hover:underline cursor-pointer"
+                                      onClick={() => navigate(`/org/${org.id}`)}
+                                  >
+                                      <Building2 className="w-4 h-4" />
+                                      <span>{org.name}</span>
+                                  </div>
+                              ))}
+                          </div>
+                      )}
                   </div>
-                )}
 
-                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                    {author.website && (
-                        <a href={author.website} target="_blank" rel="noreferrer" className="flex items-center gap-1 hover:text-primary transition-colors">
-                            <LinkIcon className="w-4 h-4" />
-                            {t("authorPage.website")}
-                        </a>
-                    )}
-                    {(author.links || []).filter(l => l && l.url).map((link, idx) => {
-                        const Icon = getLinkIcon(link.url || "");
-                        const label = link.label || link.url || t("authorPage.link");
-                        return (
-                            <a
-                                key={`author-link-${idx}`}
-                                href={link.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="flex items-center gap-1 hover:text-primary transition-colors"
-                            >
-                                <Icon className="w-4 h-4" />
-                                {label}
-                            </a>
-                        );
-                    })}
+                  <p className="max-w-2xl text-lg leading-relaxed text-foreground/85">
+                      {author.bio}
+                  </p>
+                  {author.tags && author.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {author.tags.map((tag, i) => (
+                        <button
+                          key={`author-tag-${i}`}
+                          className="text-xs px-2 py-1 rounded-full hover:opacity-90"
+                          style={tagStyle(tag)}
+                          onClick={() => navigate(`/?view=authors&authorTag=${encodeURIComponent(tag)}`)}
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-4 text-sm text-foreground/80">
+                      {author.website && (
+                          <a href={author.website} target="_blank" rel="noreferrer" className="flex items-center gap-1 hover:text-primary transition-colors">
+                              <LinkIcon className="w-4 h-4" />
+                              {t("authorPage.website")}
+                          </a>
+                      )}
+                      {(author.links || []).filter(l => l && l.url).map((link, idx) => {
+                          const Icon = getLinkIcon(link.url || "");
+                          const label = link.label || link.url || t("authorPage.link");
+                          return (
+                              <a
+                                  key={`author-link-${idx}`}
+                                  href={link.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="flex items-center gap-1 hover:text-primary transition-colors"
+                              >
+                                  <Icon className="w-4 h-4" />
+                                  {label}
+                              </a>
+                          );
+                      })}
+                  </div>
                 </div>
             </div>
         </div>
 
 	        {/* Works Section */}
-	        <div className="space-y-6">
+	        <section className="space-y-6 rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-5">
               {authorSeries.length > 0 && (
                 <div className="space-y-3">
-                  <h2 className="text-2xl font-bold border-b pb-2">{t("authorPage.seriesWorks", "系列作品")}</h2>
+                  <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                    <h2 className="text-xl font-bold">{t("authorPage.seriesWorks", "系列作品")}</h2>
+                    <span className="rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground">{authorSeries.length}</span>
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {authorSeries.map((series) => (
                       <button
@@ -248,7 +283,10 @@ export default function AuthorProfilePage() {
                   </div>
                 </div>
               )}
-	            <h2 className="text-2xl font-bold border-b pb-2">{t("authorPage.publicWorks")}</h2>
+	            <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                <h2 className="text-xl font-bold">{t("authorPage.publicWorks")}</h2>
+                <span className="rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground">{scripts.length}</span>
+              </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                 {scripts.map(script => (
                     <ScriptGalleryCard 
@@ -258,7 +296,7 @@ export default function AuthorProfilePage() {
                     />
                 ))}
             </div>
-        </div>
+        </section>
 
       </main>
     </div>
