@@ -494,7 +494,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
               <PanelLeftOpen className="w-5 h-5 text-muted-foreground" />
             </Button>
           </div>
-          <div className={STUDIO_TOPBAR_TITLE_WRAP_CLASS}>
+          <div className={`hidden sm:block ${STUDIO_TOPBAR_TITLE_WRAP_CLASS}`}>
             <div className="flex items-center gap-2">
               <span className="hidden rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary sm:inline-flex">
                 Studio

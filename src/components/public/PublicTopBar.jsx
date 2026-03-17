@@ -48,11 +48,11 @@ export function PublicTopBar({
                 </Button>
               )}
               <div
-                className="flex items-center gap-2 font-serif font-semibold text-lg text-primary cursor-pointer"
+                className="flex min-w-0 items-center gap-2 font-serif font-semibold text-base text-primary cursor-pointer sm:text-lg"
                 onClick={() => navigate("/")}
               >
-                <BookOpen className="w-6 h-6" />
-                <span className="truncate">{resolvedTitle}</span>
+                <BookOpen className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" />
+                <span className="max-w-[42vw] truncate sm:max-w-none">{resolvedTitle}</span>
               </div>
             </div>
 

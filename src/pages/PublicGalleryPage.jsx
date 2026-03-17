@@ -17,7 +17,7 @@ import { useI18n } from "../contexts/I18nContext";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Checkbox } from "../components/ui/checkbox";
-import { BookOpen, Building2, CircleHelp, Scale, Search, SlidersHorizontal, Users, X } from "lucide-react";
+import { BookOpen, Building2, CircleHelp, LayoutDashboard, LogIn, Scale, Search, SlidersHorizontal, Users, X } from "lucide-react";
 import { CoverPlaceholder } from "../components/ui/CoverPlaceholder";
 import { Input } from "../components/ui/input";
 import { customMetadataEntriesToMeta } from "../lib/customMetadata";
@@ -652,23 +652,66 @@ export default function PublicGalleryPage() {
         onTabChange={setView}
         actions={
           <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-1">
-              <Button variant="ghost" size="sm" onClick={() => navigate("/license")}>
-                {t("publicGallery.licenseTerms")}
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 sm:hidden"
+              onClick={() => setIsMobileFilterOpen(true)}
+              title={t("publicGallery.mobileFilter", "篩選")}
+              aria-label={t("publicGallery.mobileFilter", "篩選")}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-10 px-0 sm:w-auto sm:px-3"
+                onClick={() => navigate("/license")}
+                title={t("publicGallery.licenseTerms")}
+                aria-label={t("publicGallery.licenseTerms")}
+              >
+                <Scale className="h-4 w-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">{t("publicGallery.licenseTerms")}</span>
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => navigate("/help")}>
-                {t("publicGallery.help")}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-10 px-0 sm:w-auto sm:px-3"
+                onClick={() => navigate("/help")}
+                title={t("publicGallery.help")}
+                aria-label={t("publicGallery.help")}
+              >
+                <CircleHelp className="h-4 w-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">{t("publicGallery.help")}</span>
               </Button>
             </div>
             {currentUser ? (
-              <Button variant="default" size="sm" onClick={() => navigate("/dashboard")}>
-                {t("publicGallery.goStudio")}
+              <Button
+                variant="default"
+                size="sm"
+                className="w-10 px-0 sm:w-auto sm:px-3"
+                onClick={() => navigate("/dashboard")}
+                title={t("publicGallery.goStudio")}
+                aria-label={t("publicGallery.goStudio")}
+              >
+                <LayoutDashboard className="h-4 w-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">{t("publicGallery.goStudio")}</span>
               </Button>
             ) : (
-              <Button variant="outline" size="sm" onClick={async () => {
-                try { await login(); } catch(e) { console.error(e); }
-              }}>
-                {t("publicGallery.login")}
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-10 px-0 sm:w-auto sm:px-3"
+                onClick={async () => {
+                  try { await login(); } catch(e) { console.error(e); }
+                }}
+                title={t("publicGallery.login")}
+                aria-label={t("publicGallery.login")}
+              >
+                <LogIn className="h-4 w-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">{t("publicGallery.login")}</span>
               </Button>
             )}
           </div>

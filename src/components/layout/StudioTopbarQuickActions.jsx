@@ -25,25 +25,25 @@ export function StudioTopbarQuickActions({
         type="button"
         variant="outline"
         size="sm"
-        className={STUDIO_TOPBAR_SECONDARY_BUTTON_CLASS}
+        className={`${STUDIO_TOPBAR_SECONDARY_BUTTON_CLASS} w-10 px-0 sm:w-auto sm:px-3`}
         onClick={onOpenGuide}
         title={guideLabel}
         aria-label={guideLabel}
       >
-        <CircleHelp className="mr-1.5 h-4 w-4" />
-        <span>{guideLabel}</span>
+        <CircleHelp className="h-4 w-4 sm:mr-1.5" />
+        <span className="hidden sm:inline">{guideLabel}</span>
       </Button>
       <Button
         type="button"
         variant="outline"
         size="sm"
-        className={STUDIO_TOPBAR_SECONDARY_BUTTON_CLASS}
+        className={`${STUDIO_TOPBAR_SECONDARY_BUTTON_CLASS} w-10 px-0 sm:w-auto sm:px-3`}
         onClick={onOpenGallery}
         title={galleryLabel}
         aria-label={galleryLabel}
       >
-        <BookOpen className="mr-1.5 h-4 w-4" />
-        <span>{galleryLabel}</span>
+        <BookOpen className="h-4 w-4 sm:mr-1.5" />
+        <span className="hidden sm:inline">{galleryLabel}</span>
       </Button>
     </>
   );
