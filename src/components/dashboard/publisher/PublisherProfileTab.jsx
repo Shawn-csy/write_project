@@ -732,7 +732,7 @@ export function PublisherProfileTab({
                                     <PublisherFormRow label={t("publisherProfileTab.tags")}>
                                         <PublisherTagEditor
                                             tags={personaDraft.tags || []}
-                                            setTags={(nextTags) => setPersonaDraft({ ...personaDraft, tags: nextTags })}
+                                            setTags={(nextTags) => setPersonaDraft((prev) => ({ ...prev, tags: nextTags }))}
                                             tagInput={personaTagInput}
                                             setTagInput={setPersonaTagInput}
                                             parseTags={parseTags}
