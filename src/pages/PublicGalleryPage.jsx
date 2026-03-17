@@ -674,34 +674,36 @@ export default function PublicGalleryPage() {
           </div>
         }
       />
-      <PublicHeroMarquee
-        fullBleed
-        slides={(() => {
-          const items = Array.isArray(homepageBanner?.items) ? homepageBanner.items : [];
-          const valid = items.filter((item) => item && (item.title || item.content || item.link || item.imageUrl));
-          if (valid.length > 0) {
-            return valid.map((item, idx) => ({
-              id: item.id || `admin-homepage-banner-${idx + 1}`,
-              title: item.title || "",
-              content: item.content || "",
-              subtitle: item.content || "",
-              link: item.link || "",
-              imageUrl: item.imageUrl || "",
-            }));
-          }
-          if (homepageBanner && (homepageBanner.title || homepageBanner.content || homepageBanner.link || homepageBanner.imageUrl)) {
-            return [{
-              id: "admin-homepage-banner",
-              title: homepageBanner.title || "",
-              content: homepageBanner.content || "",
-              subtitle: homepageBanner.content || "",
-              link: homepageBanner.link || "",
-              imageUrl: homepageBanner.imageUrl || "",
-            }];
-          }
-          return undefined;
-        })()}
-      />
+      {view === "scripts" ? (
+        <PublicHeroMarquee
+          fullBleed
+          slides={(() => {
+            const items = Array.isArray(homepageBanner?.items) ? homepageBanner.items : [];
+            const valid = items.filter((item) => item && (item.title || item.content || item.link || item.imageUrl));
+            if (valid.length > 0) {
+              return valid.map((item, idx) => ({
+                id: item.id || `admin-homepage-banner-${idx + 1}`,
+                title: item.title || "",
+                content: item.content || "",
+                subtitle: item.content || "",
+                link: item.link || "",
+                imageUrl: item.imageUrl || "",
+              }));
+            }
+            if (homepageBanner && (homepageBanner.title || homepageBanner.content || homepageBanner.link || homepageBanner.imageUrl)) {
+              return [{
+                id: "admin-homepage-banner",
+                title: homepageBanner.title || "",
+                content: homepageBanner.content || "",
+                subtitle: homepageBanner.content || "",
+                link: homepageBanner.link || "",
+                imageUrl: homepageBanner.imageUrl || "",
+              }];
+            }
+            return undefined;
+          })()}
+        />
+      ) : null}
 
       {/* Main Content */}
       <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-5 sm:py-8 pb-20">
