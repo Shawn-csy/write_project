@@ -651,12 +651,12 @@ export default function PublicGalleryPage() {
         activeTab={view}
         onTabChange={setView}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <Button
               type="button"
               variant="outline"
               size="icon"
-              className="h-10 w-10 sm:hidden"
+              className="h-10 w-10 lg:hidden"
               onClick={() => setIsMobileFilterOpen(true)}
               title={t("publicGallery.mobileFilter", "篩選")}
               aria-label={t("publicGallery.mobileFilter", "篩選")}

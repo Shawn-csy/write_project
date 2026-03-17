@@ -39,9 +39,21 @@ export function ReaderTOC({
 
   return (
     <>
+      {!resolvedOpen && hideHeaderTrigger && (
+        <button
+          type="button"
+          data-guide-id={triggerGuideId}
+          className="md:hidden inline-flex items-center justify-center rounded-full bg-background/20 p-2 text-foreground backdrop-blur-md hover:bg-background/40"
+          onClick={() => setOpen(true)}
+          aria-label={t("publicReader.openToc", "開啟詳細資料側欄")}
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+      )}
       {!resolvedOpen && (
         <button
           type="button"
+          data-guide-id={triggerGuideId}
           className="hidden md:inline-flex fixed left-0 top-1/2 -translate-y-1/2 z-40 items-center gap-1 rounded-r-lg border border-l-0 border-border/70 bg-background/85 px-2 py-3 text-xs text-muted-foreground backdrop-blur-sm hover:bg-background hover:text-foreground"
           onClick={() => setOpen(true)}
           aria-label={t("publicReader.openToc", "開啟詳細資料側欄")}
