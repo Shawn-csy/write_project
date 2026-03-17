@@ -29,6 +29,7 @@ import { updateScript, getScript } from "../../../lib/api/scripts";
 import { buildFilename, downloadText } from "../../../lib/download";
 import { isDefaultLikeTheme } from "../../../lib/themeNameUtils";
 import { useI18n } from "../../../contexts/I18nContext";
+import { StudioEmptyStateCard } from "../../common/StudioEmptyStateCard";
 
 // Helper: assureContent
 async function assureContent(item) {
@@ -125,9 +126,11 @@ export function ScriptList({
 
     if (visibleItems.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-4">
-                <p>{t("scriptList.emptyFolder")}</p>
-            </div>
+            <StudioEmptyStateCard
+                icon={Folder}
+                title={t("scriptList.emptyFolder")}
+                description={t("writeTab.guideDemoDesc", "你可以建立新劇本、資料夾，或匯入既有稿件。")}
+            />
         );
     }
 
@@ -149,9 +152,9 @@ export function ScriptList({
                 items={visibleItems.map(i => i.id)}
                 strategy={verticalListSortingStrategy}
             >
-                <div className="flex flex-col">
+                <div className="flex flex-col gap-1">
                      {/* Header Row */}
-                     <div className="flex items-center px-4 py-2 border-b bg-gradient-to-r from-muted/60 via-muted/35 to-transparent text-xs font-medium text-muted-foreground">
+                     <div className="sticky top-0 z-10 flex items-center rounded-md border border-border/60 bg-gradient-to-r from-muted/70 via-muted/45 to-background px-4 py-2 text-xs font-medium text-muted-foreground shadow-sm">
                          <div className="flex-1">
                             <button
                                 type="button"
@@ -184,7 +187,7 @@ export function ScriptList({
                      {currentPath !== "/" && (
                         <div 
                             onClick={onGoUp}
-                            className="flex items-center px-4 py-3 hover:bg-muted/50 border-b border-border/40 cursor-pointer text-muted-foreground transition-colors"
+                            className="flex cursor-pointer items-center rounded-md border border-border/50 bg-background px-4 py-3 text-muted-foreground transition-colors hover:bg-muted/40"
                         >
                             <div className="mr-3 p-1">
                                 <ChevronRight className="w-4 h-4 rotate-180" />

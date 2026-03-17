@@ -28,7 +28,12 @@ const DEFAULT_SLIDES = [
   },
 ];
 
-export function PublicHeroMarquee({ slides = DEFAULT_SLIDES, intervalMs = 4500, fallbackToDefault = true }) {
+export function PublicHeroMarquee({
+  slides = DEFAULT_SLIDES,
+  intervalMs = 4500,
+  fallbackToDefault = true,
+  fullBleed = false,
+}) {
   const { t } = useI18n();
   const safeSlides = Array.isArray(slides) && slides.length > 0
     ? slides
@@ -49,17 +54,32 @@ export function PublicHeroMarquee({ slides = DEFAULT_SLIDES, intervalMs = 4500, 
     const bounded = ((nextIndex % safeSlides.length) + safeSlides.length) % safeSlides.length;
     setActiveIndex(bounded);
   };
+  const visibleSlideIndexes = new Set([
+    activeIndex,
+    (activeIndex - 1 + safeSlides.length) % safeSlides.length,
+    (activeIndex + 1) % safeSlides.length,
+  ]);
 
   return (
     <section className="w-full border-b border-border/60 bg-background/50">
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
+      <div
+        className={
+          fullBleed
+            ? "w-full px-0 py-0"
+            : "w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5"
+        }
+      >
         <div
-          className="relative overflow-hidden rounded-xl border border-border/70"
+          className={cn(
+            "relative overflow-hidden border border-border/70",
+            fullBleed ? "rounded-none border-x-0" : "rounded-xl"
+          )}
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
-          <div className="relative aspect-[3.6/1] min-h-[120px] sm:min-h-[160px]">
+          <div className={cn("relative aspect-[3.6/1] min-h-[120px] sm:min-h-[160px]", fullBleed && "min-h-[180px] sm:min-h-[260px] lg:min-h-[320px]")}>
             {safeSlides.map((slide, index) => (
+              visibleSlideIndexes.has(index) ? (
               <div
                 key={slide.id || index}
                 className={cn(
@@ -82,22 +102,30 @@ export function PublicHeroMarquee({ slides = DEFAULT_SLIDES, intervalMs = 4500, 
                       src={String(slide.imageUrl || "").trim()}
                       alt={slide.title || "banner"}
                       className="absolute inset-0 h-full w-full object-cover"
-                      loading="lazy"
+                      loading={index === 0 ? "eager" : "lazy"}
+                      fetchPriority={index === 0 ? "high" : "auto"}
                     />
                     <div className="absolute inset-0 bg-black/30" />
                   </>
                 )}
-                <div className="flex h-full items-end">
-                  <div className="relative z-20 max-w-xl rounded-lg border border-white/30 bg-white/65 px-3 py-2 backdrop-blur dark:border-white/15 dark:bg-black/35">
-                    <p className="text-sm sm:text-base font-semibold text-foreground">
-                      {slide.title || t("publicGallery.marqueeTitle", "跑馬燈區塊")}
-                    </p>
-                    <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
-                      {slide.subtitle || slide.content || t("publicGallery.marqueeSubtitle", "可在此放置圖片輪播。")}
-                    </p>
+                {(String(slide.title || "").trim() || String(slide.subtitle || slide.content || "").trim()) ? (
+                  <div className="flex h-full items-end">
+                    <div className="relative z-20 max-w-xl rounded-lg border border-white/30 bg-white/65 px-3 py-2 backdrop-blur dark:border-white/15 dark:bg-black/35">
+                      {String(slide.title || "").trim() ? (
+                        <p className="text-sm sm:text-base font-semibold text-foreground">
+                          {slide.title}
+                        </p>
+                      ) : null}
+                      {String(slide.subtitle || slide.content || "").trim() ? (
+                        <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
+                          {slide.subtitle || slide.content}
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
+                ) : null}
               </div>
+              ) : null
             ))}
           </div>
 

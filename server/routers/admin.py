@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from typing import Any, List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -9,6 +9,7 @@ import crud_ops as crud
 import models
 import schemas
 from dependencies import get_db, get_current_user_id, is_admin_user, _admin_user_emails
+from rate_limit import limiter
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 HOMEPAGE_BANNER_SETTING_KEY = "homepage_banner"
@@ -123,7 +124,13 @@ def update_default_marker_configs(
     return parsed if isinstance(parsed, list) else []
 
 @router.get("/users", response_model=List[schemas.UserPublic])
-def search_users(q: str, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+@limiter.limit("20/minute")
+def search_users(
+    request: Request,
+    q: str,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
     if is_admin_user(db, ownerId):
         return crud.search_users(db, q)
 
@@ -141,7 +148,21 @@ def search_users(q: str, db: Session = Depends(get_db), ownerId: str = Depends(g
         .filter(func.lower(models.User.email) == normalized.lower())
         .first()
     )
-    return [user] if user else []
+    if not user:
+        return []
+
+    # For non-admin callers, return minimal profile only to reduce PII exposure.
+    return [
+        schemas.UserPublic(
+            id=user.id,
+            displayName=user.displayName or user.handle or "User",
+            handle=None,
+            email=None,
+            avatar=None,
+            website=None,
+            organizationRole=None,
+        )
+    ]
 
 
 @router.get("/public-terms-acceptances", response_model=schemas.PublicTermsAcceptanceListResponse)

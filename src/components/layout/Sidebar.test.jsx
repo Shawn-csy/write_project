@@ -58,7 +58,7 @@ describe('Sidebar Component', () => {
 
     expect(screen.getByText('設定')).toBeDefined();
     expect(screen.getByText('關於')).toBeDefined();
-    expect(screen.getByText('寫作')).toBeDefined();
+    expect(screen.getByText('寫作工作室')).toBeDefined();
     expect(screen.getByText('發布工作台')).toBeDefined();
     expect(screen.queryByText('移轉管理')).toBeNull();
   });
@@ -85,5 +85,18 @@ describe('Sidebar Component', () => {
     const aboutBtn = screen.getByText('關於');
     fireEvent.click(aboutBtn);
     expect(mockProps.openAbout).toHaveBeenCalled();
+  });
+
+  it('renders icon rail when collapsed and keeps actions accessible', () => {
+    render(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <Sidebar {...mockProps} collapsed />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByText('寫作工作室')).toBeNull();
+    expect(screen.queryByText('發布工作台')).toBeNull();
+    expect(screen.getByLabelText('寫作工作室')).toBeDefined();
+    expect(screen.getByLabelText('發布工作台')).toBeDefined();
   });
 });

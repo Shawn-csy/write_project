@@ -1,12 +1,21 @@
 import React from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useI18n } from "../../contexts/I18nContext";
-import { PanelLeftOpen, Plus, ChevronDown, FolderPlus, Upload, CircleHelp, BookOpen } from "lucide-react";
+import { PanelLeftOpen, Plus, ChevronDown, FolderPlus, Upload } from "lucide-react";
 import { Button } from "../ui/button";
-import { LanguageSwitcher } from "../common/LanguageSwitcher";
 import { WriteTab } from "./WriteTab";
 import { useNavigate } from "react-router-dom";
-import { TOPBAR_INNER_CLASS, TOPBAR_OUTER_CLASS } from "../layout/topbarLayout";
+import { TOPBAR_OUTER_CLASS } from "../layout/topbarLayout";
+import {
+  STUDIO_TOPBAR_ACTIONS_CLASS,
+  STUDIO_TOPBAR_INNER_CLASS,
+  STUDIO_PAGE_PADDING_CLASS,
+  STUDIO_TOPBAR_ROW_CLASS,
+  STUDIO_TOPBAR_SECONDARY_BUTTON_CLASS,
+  STUDIO_TOPBAR_SURFACE_CLASS,
+  STUDIO_TOPBAR_TITLE_WRAP_CLASS,
+} from "../layout/studioTopbarTokens";
+import { StudioTopbarQuickActions } from "../layout/StudioTopbarQuickActions";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,8 +42,9 @@ export default function HybridDashboard({
   return (
     <div className="flex h-full flex-col bg-[hsl(var(--surface-1))]">
       <div className="flex-1 overflow-hidden flex flex-col">
-          <div className={`${TOPBAR_OUTER_CLASS} shrink-0 border-b border-border/60 bg-[hsl(var(--surface-2))]/90`}>
-            <div className={`${TOPBAR_INNER_CLASS} h-14 sm:h-16 flex items-center gap-2 sm:gap-3`}>
+          <div className={`${TOPBAR_OUTER_CLASS} ${STUDIO_TOPBAR_SURFACE_CLASS}`}>
+            <div className={STUDIO_TOPBAR_INNER_CLASS}>
+            <div className={STUDIO_TOPBAR_ROW_CLASS}>
               <div className="lg:hidden">
                   <Button variant="ghost" size="icon" onClick={openMobileMenu}>
                       <PanelLeftOpen className="w-5 h-5" />
@@ -50,13 +60,21 @@ export default function HybridDashboard({
                         <PanelLeftOpen className="w-5 h-5 text-muted-foreground" />
                     </Button>
               </div>
-              <div className="min-w-0 flex-1">
-                  <h2 className="truncate font-serif font-semibold text-base sm:text-lg text-primary">
-                    <span className="sm:hidden">工作台</span>
-                    <span className="hidden sm:inline">寫作工作台</span>
-                  </h2>
+              <div className={STUDIO_TOPBAR_TITLE_WRAP_CLASS}>
+                  <div className="flex items-center gap-2">
+                    <span className="hidden rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary sm:inline-flex">
+                      Studio
+                    </span>
+                    <h2 className="truncate font-serif text-base font-semibold text-primary sm:text-lg">
+                      <span className="sm:hidden">工作台</span>
+                      <span className="hidden sm:inline">寫作工作台</span>
+                    </h2>
+                  </div>
+                  <p className="mt-0.5 hidden truncate text-[11px] text-muted-foreground sm:block">
+                    草稿管理、發佈設定與作品維護集中在這裡
+                  </p>
               </div>
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className={STUDIO_TOPBAR_ACTIONS_CLASS}>
                 <div className="inline-flex items-center gap-1.5 sm:gap-2">
                   <div className="cta-breathe cta-lift inline-flex items-center overflow-hidden rounded-md border border-primary/70 bg-primary text-primary-foreground shadow-[0_14px_28px_-14px_hsl(var(--primary)/0.95)]">
                     <Button
@@ -98,44 +116,28 @@ export default function HybridDashboard({
                   </div>
                   <Button
                     size="sm"
+                    variant="outline"
                     onClick={() => dispatchWriteTabAction("import-script")}
                     title={t("scriptToolbar.importScript")}
-                    className="cta-breathe cta-breathe-delayed cta-lift inline-flex h-9 sm:h-10 rounded-md border-2 border-primary bg-[hsl(var(--surface-1))] px-2.5 sm:px-4 font-bold text-primary shadow-[0_10px_22px_-14px_hsl(var(--primary)/0.9)] hover:bg-primary/10 hover:shadow-[0_14px_26px_-14px_hsl(var(--primary)/0.9)]"
+                    className={STUDIO_TOPBAR_SECONDARY_BUTTON_CLASS}
                     data-guide-id="write-import-script-btn"
                   >
-                    <Upload className="w-4 h-4 sm:mr-1.5" />
+                    <Upload className="mr-1.5 h-4 w-4" />
                     <span className="hidden sm:inline">{t("scriptToolbar.import")}</span>
                   </Button>
                 </div>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-9 w-9"
-                  title={t("scriptToolbar.guide")}
-                  aria-label={t("scriptToolbar.guide")}
-                  onClick={() => dispatchWriteTabAction("open-guide")}
-                >
-                  <CircleHelp className="w-4 h-4" />
-                </Button>
-                <LanguageSwitcher
-                  compact
-                  buttonClassName="bg-background/70 backdrop-blur"
-                  ariaLabel={t("settings.language")}
+                <StudioTopbarQuickActions
+                  onOpenGuide={() => dispatchWriteTabAction("open-guide")}
+                  onOpenGallery={() => navigate("/")}
+                  guideLabel={t("scriptToolbar.guide")}
+                  galleryLabel={t("nav.gallery", "公開台本")}
+                  languageLabel={t("settings.language")}
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="hidden min-[440px]:inline-flex h-8 px-2 sm:px-3"
-                  onClick={() => navigate("/")}
-                  title={t("nav.gallery", "公開台本")}
-                >
-                  <BookOpen className="w-4 h-4 sm:hidden" />
-                  <span className="hidden sm:inline">{t("nav.gallery", "公開台本")}</span>
-                </Button>
               </div>
             </div>
+            </div>
           </div>
-          <div className="flex-1 min-h-0 overflow-hidden bg-gradient-to-b from-[hsl(var(--surface-2))] to-[hsl(var(--surface-1))] p-4 sm:p-6">
+          <div className={`flex-1 min-h-0 overflow-hidden bg-gradient-to-b from-[hsl(var(--surface-2))] to-[hsl(var(--surface-1))] ${STUDIO_PAGE_PADDING_CLASS}`}>
               {currentUser ? <WriteTab onSelectScript={onSelectCloudScript} /> : null}
           </div>
       </div>

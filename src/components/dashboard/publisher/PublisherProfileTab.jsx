@@ -17,6 +17,14 @@ import { PublisherTabHeader } from "./PublisherTabHeader";
 import { useToast } from "../../ui/toast";
 import { PublisherTagEditor } from "./PublisherTagEditor";
 import { ImageCropDialog } from "../../ui/ImageCropDialog";
+import {
+    PublisherSplitPanel,
+    PublisherEntityListPane,
+    PublisherEntityListItem,
+    PublisherEmptyState,
+    PublisherActionBar,
+    PUBLISHER_CONTENT_STACK_CLASS,
+} from "./PublisherEntityLayout";
 
 export function PublisherProfileTab({
     selectedPersonaId, setSelectedPersonaId,
@@ -267,79 +275,84 @@ export function PublisherProfileTab({
     };
 
     return (
-        <Card className="flex flex-col md:flex-row h-auto min-h-0 md:min-h-[500px] overflow-hidden border">
-            {/* Left Sidebar: List */}
-            <div className="w-full md:w-[280px] border-b md:border-b-0 md:border-r flex flex-col bg-muted/10">
-                <div className="p-4 border-b flex items-center justify-between bg-background/50 backdrop-blur-sm sticky top-0 z-10">
-                    <h3 className="font-semibold text-sm">{t("publisherProfileTab.authorList")}</h3>
-                    <Button size="icon" variant="ghost" className="h-8 w-8 ml-auto" onClick={onStartCreate}>
-                        <Plus className="w-4 h-4" />
-                    </Button>
-                </div>
-                
-                <div className="flex-1 overflow-y-auto p-3 space-y-2">
-                    <div className={`flex items-center gap-1 pb-1 ${viewMode === "edit" && selectedPersonaId ? "" : "invisible pointer-events-none h-0 overflow-hidden p-0 m-0"}`}>
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="h-8 text-xs"
-                            onClick={() => selectedPersonaId && navigate(`/author/${selectedPersonaId}`)}
-                        >
-                            <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
-                            {t("publisherProfileTab.viewAuthorPage")}
-                        </Button>
-                        <Button 
-                            type="button"
-                            size="sm"
-                            variant="ghost" 
-                            className="h-8 text-xs text-destructive hover:bg-destructive/10"
-                            onClick={handleDeletePersona}
-                        >
-                            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                            {t("publisherProfileTab.deleteIdentity")}
-                        </Button>
-                    </div>
-                    {isLoading && (
-                        <div className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground">
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            <span>載入作者資料中...</span>
+        <PublisherSplitPanel
+            sidebar={(
+                <PublisherEntityListPane
+                    title={t("publisherProfileTab.authorList")}
+                    onCreate={onStartCreate}
+                    createAriaLabel={t("publisherProfileTab.createIdentity")}
+                    topActions={(
+                        <div className={`flex items-center gap-1 pb-1 ${viewMode === "edit" && selectedPersonaId ? "" : "invisible pointer-events-none h-0 overflow-hidden p-0 m-0"}`}>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-xs"
+                                onClick={() => selectedPersonaId && navigate(`/author/${selectedPersonaId}`)}
+                            >
+                                <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                                {t("publisherProfileTab.viewAuthorPage")}
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 text-xs text-destructive hover:bg-destructive/10"
+                                onClick={handleDeletePersona}
+                            >
+                                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                                {t("publisherProfileTab.deleteIdentity")}
+                            </Button>
                         </div>
                     )}
-                    {personas.map(p => (
-                        <div 
-                            key={p.id} 
+                    isLoading={isLoading}
+                    loadingLabel="載入作者資料中..."
+                    emptyState={personas.length === 0 ? (
+                        <PublisherEmptyState
+                            title={t("publisherProfileTab.noPersona")}
+                            description={t("publisherProfileTab.emptyDemoDesc", "建立第一個作者身份後，可在公開頁展示頭像、簡介、連結與標籤。")}
+                            actionLabel={t("publisherProfileTab.createNow")}
+                            onAction={onStartCreate}
+                            className="mx-1"
+                        />
+                    ) : null}
+                >
+                    {personas.map((p) => (
+                        <PublisherEntityListItem
+                            key={p.id}
+                            selected={selectedPersonaId === p.id}
                             onClick={() => setSelectedPersonaId(p.id)}
-                            className={`p-3 rounded-lg border cursor-pointer hover:bg-background/80 hover:shadow-sm transition-all flex items-center gap-3 ${selectedPersonaId === p.id ? "bg-background shadow-sm border-primary/50 ring-1 ring-primary/20" : "bg-transparent border-transparent hover:border-border/50"}`}
-                        >
-                            <Avatar className="w-8 h-8 border">
-                                <AvatarImage src={p.avatar} />
-                                <AvatarFallback>{p.displayName?.[0]}</AvatarFallback>
-                            </Avatar>
-                            <div className="font-medium truncate text-sm flex-1">{p.displayName}</div>
-                        </div>
+                            leading={(
+                                <Avatar className="h-8 w-8 border">
+                                    <AvatarImage src={p.avatar} />
+                                    <AvatarFallback>{p.displayName?.[0]}</AvatarFallback>
+                                </Avatar>
+                            )}
+                            title={p.displayName}
+                        />
                     ))}
-                    
-                    {personas.length === 0 && (
-                        <div className="text-center text-muted-foreground p-8 text-sm">
-                            {t("publisherProfileTab.noPersona")}
-                            <Button variant="link" size="sm" onClick={onStartCreate} className="mt-2 text-xs">{t("publisherProfileTab.createNow")}</Button>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Right Main: Editor */}
-            <div className="flex-1 flex flex-col overflow-hidden bg-card">
-                <div className="p-4 border-b bg-background/50 backdrop-blur-sm">
-                    <PublisherTabHeader
-                        title={viewMode === "create" ? t("publisherProfileTab.createIdentity") : t("publisherProfileTab.editIdentity")}
-                        description="編輯作者名稱、個人簡介、圖片與作者頁展示內容。"
-                    />
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-4 md:p-5">
-                    <div className="max-w-4xl mx-auto space-y-6 pb-16">
+                </PublisherEntityListPane>
+            )}
+            header={(
+                <PublisherTabHeader
+                    title={viewMode === "create" ? t("publisherProfileTab.createIdentity") : t("publisherProfileTab.editIdentity")}
+                    description="編輯作者名稱、個人簡介、圖片與作者頁展示內容。"
+                />
+            )}
+            footer={(viewMode === "create" || selectedPersonaId) ? (
+                <PublisherActionBar>
+                    <Button
+                        onClick={viewMode === "create" ? handleCreatePersona : handleSaveProfile}
+                        disabled={(viewMode === "create" ? isCreatingPersona : isSavingProfile) || !personaDraft.displayName.trim()}
+                        className="min-w-[100px]"
+                    >
+                        {(viewMode === "create" ? isCreatingPersona : isSavingProfile) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {viewMode === "create" ? t("publisherProfileTab.createIdentityShort") : t("publisherProfileTab.saveChanges")}
+                    </Button>
+                </PublisherActionBar>
+            ) : null}
+        >
+            <div className={PUBLISHER_CONTENT_STACK_CLASS}>
                         {(viewMode === "create" || selectedPersonaId) ? (
                             <>
                                 {profileProgress < 100 && (
@@ -805,24 +818,8 @@ export function PublisherProfileTab({
                                 </div>
                             )
                         )}
-                    </div>
-                </div>
-
-                {/* Footer Actions */}
-                {(viewMode === "create" || selectedPersonaId) ? (
-                <div className="p-3 border-t bg-background/50 backdrop-blur-sm flex justify-end">
-                     <Button 
-                        onClick={viewMode === "create" ? handleCreatePersona : handleSaveProfile} 
-                        disabled={(viewMode === "create" ? isCreatingPersona : isSavingProfile) || !personaDraft.displayName.trim()}
-                        className="min-w-[100px]"
-                    >
-                        {(viewMode === "create" ? isCreatingPersona : isSavingProfile) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {viewMode === "create" ? t("publisherProfileTab.createIdentityShort") : t("publisherProfileTab.saveChanges")}
-                    </Button>
-                </div>
-                ) : null}
             </div>
-            
+
             <MediaPicker
                 open={isMediaPickerOpen}
                 onOpenChange={setIsMediaPickerOpen}
@@ -851,6 +848,6 @@ export function PublisherProfileTab({
                     await applyUploadedImage(croppedFile, cropTargetField);
                 }}
             />
-        </Card>
+        </PublisherSplitPanel>
     );
 }

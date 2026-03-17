@@ -50,3 +50,21 @@ def test_media_upload_rejects_oversized_file_without_persisting(client, tmp_path
     listed = client.get("/api/media/items", headers=headers)
     assert listed.status_code == 200
     assert listed.json().get("items", []) == []
+
+
+def test_media_upload_rejects_mismatched_signature(client, tmp_path, monkeypatch):
+    monkeypatch.setenv("MEDIA_STORAGE_ROOT", str(tmp_path / "media"))
+    headers = {"X-User-ID": "u1"}
+
+    upload = client.post(
+        "/api/media/upload",
+        headers=headers,
+        files={"file": ("fake.png", b"NOT_A_REAL_PNG_FILE", "image/png")},
+        data={"purpose": "cover"},
+    )
+    assert upload.status_code == 400
+    assert "signature" in upload.json().get("detail", "").lower()
+
+    listed = client.get("/api/media/items", headers=headers)
+    assert listed.status_code == 200
+    assert listed.json().get("items", []) == []

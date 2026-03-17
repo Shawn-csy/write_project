@@ -44,6 +44,21 @@ def _user_media_root(owner_id: str) -> str:
     return path
 
 
+def _matches_image_signature(content_type: str, data: bytes) -> bool:
+    if not data:
+        return False
+    if content_type in {"image/jpeg", "image/jpg"}:
+        return data.startswith(b"\xFF\xD8\xFF")
+    if content_type == "image/png":
+        return data.startswith(b"\x89PNG\r\n\x1a\n")
+    if content_type == "image/gif":
+        return data.startswith(b"GIF87a") or data.startswith(b"GIF89a")
+    if content_type == "image/webp":
+        # RIFF....WEBP
+        return len(data) >= 12 and data[:4] == b"RIFF" and data[8:12] == b"WEBP"
+    return False
+
+
 def _to_public_url(owner_id: str, full_path: str) -> str:
     owner_root = Path(_user_media_root(owner_id))
     target = Path(full_path)
@@ -100,12 +115,17 @@ async def upload_media(
     full_path = os.path.join(folder, filename)
 
     total_size = 0
+    validated_signature = False
     try:
         with open(full_path, "wb") as target:
             while True:
                 chunk = await file.read(1024 * 1024)
                 if not chunk:
                     break
+                if not validated_signature:
+                    if not _matches_image_signature(content_type, chunk):
+                        raise HTTPException(status_code=400, detail="Uploaded file signature does not match image type")
+                    validated_signature = True
                 total_size += len(chunk)
                 if not is_admin and total_size > MAX_UPLOAD_BYTES:
                     raise HTTPException(status_code=413, detail="Uploaded image is too large")

@@ -6,6 +6,14 @@ import { cn } from "../../lib/utils";
 import { useI18n } from "../../contexts/I18nContext";
 import { LanguageSwitcher } from "../common/LanguageSwitcher";
 import { TOPBAR_INNER_CLASS, TOPBAR_OUTER_CLASS } from "../layout/topbarLayout";
+import {
+  STUDIO_TOPBAR_ACTIONS_CLASS,
+  STUDIO_TOPBAR_ICON_BUTTON_CLASS,
+  STUDIO_TOPBAR_INNER_CLASS,
+  STUDIO_TOPBAR_ROW_CLASS,
+  STUDIO_TOPBAR_SURFACE_CLASS,
+  STUDIO_TOPBAR_TITLE_WRAP_CLASS,
+} from "../layout/studioTopbarTokens";
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "../ui/dialog";
 import { AppearanceSettings } from "../settings/AppearanceSettings";
 
@@ -17,6 +25,7 @@ export function PublicTopBar({
   activeTab,
   onTabChange,
   actions,
+  fullBleed = false,
 }) {
   const navigate = useNavigate();
   const { t } = useI18n();
@@ -24,78 +33,88 @@ export function PublicTopBar({
   const [appearanceOpen, setAppearanceOpen] = React.useState(false);
 
   return (
-    <header className={TOPBAR_OUTER_CLASS}>
-      <div className={`${TOPBAR_INNER_CLASS} h-16 flex items-center justify-between gap-3`}>
-        <div className="flex items-center gap-2 min-w-0">
-          {showBack && (
-            <Button variant="ghost" size="icon" onClick={onBack || (() => navigate(-1))} aria-label={t("publicTopbar.back")}>
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          )}
-          <div
-            className="flex items-center gap-2 font-serif font-semibold text-lg text-primary cursor-pointer"
-            onClick={() => navigate("/")}
-          >
-            <BookOpen className="w-6 h-6" />
-            <span className="truncate">{resolvedTitle}</span>
-          </div>
-        </div>
-
-        {tabs.length > 0 && (
-          <div className="hidden md:flex items-center gap-1">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                className={cn(
-                  "px-3 py-1.5 text-sm rounded-full transition-colors",
-                  activeTab === tab.key
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                )}
-                onClick={() => onTabChange?.(tab.key)}
+    <header className={`${TOPBAR_OUTER_CLASS} ${STUDIO_TOPBAR_SURFACE_CLASS}`}>
+      <div
+        className={`${
+          fullBleed ? "w-full px-3 sm:px-4 lg:px-5" : `${TOPBAR_INNER_CLASS} ${STUDIO_TOPBAR_INNER_CLASS}`
+        }`}
+      >
+        <div className={STUDIO_TOPBAR_ROW_CLASS}>
+          <div className={`flex min-w-0 items-center gap-4 ${STUDIO_TOPBAR_TITLE_WRAP_CLASS}`}>
+            <div className="flex items-center gap-2 min-w-0">
+              {showBack && (
+                <Button variant="ghost" size="icon" onClick={onBack || (() => navigate(-1))} aria-label={t("publicTopbar.back")}>
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
+              )}
+              <div
+                className="flex items-center gap-2 font-serif font-semibold text-lg text-primary cursor-pointer"
+                onClick={() => navigate("/")}
               >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        )}
+                <BookOpen className="w-6 h-6" />
+                <span className="truncate">{resolvedTitle}</span>
+              </div>
+            </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setAppearanceOpen(true)}
-            title={t("publicTopbar.appearanceSettings", "外觀與閱讀")}
-            aria-label={t("publicTopbar.appearanceSettings", "外觀與閱讀")}
-          >
-            <Settings2 className="w-4 h-4" />
-          </Button>
-          <LanguageSwitcher
-            compact
-            buttonClassName="bg-background/70 backdrop-blur"
-            ariaLabel={t("settings.language")}
-          />
-          {actions}
+            {tabs.length > 0 && (
+              <div className="hidden md:flex items-center gap-1 rounded-lg border border-border/60 bg-[hsl(var(--surface-2))]/55 p-1">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.key}
+                    className={cn(
+                      "h-9 rounded-md border px-3 text-sm transition-colors",
+                      activeTab === tab.key
+                        ? "border-primary/35 bg-primary/10 text-primary shadow-sm"
+                        : "border-transparent bg-background/65 text-muted-foreground hover:border-border/70 hover:bg-muted/50 hover:text-foreground"
+                    )}
+                    onClick={() => onTabChange?.(tab.key)}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className={STUDIO_TOPBAR_ACTIONS_CLASS}>
+            <Button
+              variant="outline"
+              size="icon"
+              className={STUDIO_TOPBAR_ICON_BUTTON_CLASS}
+              onClick={() => setAppearanceOpen(true)}
+              title={t("publicTopbar.appearanceSettings", "外觀與閱讀")}
+              aria-label={t("publicTopbar.appearanceSettings", "外觀與閱讀")}
+            >
+              <Settings2 className="w-4 h-4" />
+            </Button>
+            <LanguageSwitcher
+              compact
+              buttonClassName={STUDIO_TOPBAR_ICON_BUTTON_CLASS}
+              ariaLabel={t("settings.language")}
+            />
+            {actions}
+          </div>
         </div>
       </div>
 
       {tabs.length > 0 && (
         <div className="md:hidden border-t">
-          <div className={`${TOPBAR_INNER_CLASS} py-2 flex items-center gap-2 overflow-x-auto`}>
+          <div className={`${fullBleed ? "w-full px-3 sm:px-4 lg:px-5" : TOPBAR_INNER_CLASS} py-2`}>
+            <div className="flex items-center gap-1 rounded-lg border border-border/60 bg-[hsl(var(--surface-2))]/55 p-1 overflow-x-auto">
             {tabs.map((tab) => (
               <button
                 key={tab.key}
                 className={cn(
-                  "px-3 py-1.5 text-sm rounded-full whitespace-nowrap transition-colors",
+                  "h-9 rounded-md border px-3 text-sm whitespace-nowrap transition-colors",
                   activeTab === tab.key
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    ? "border-primary/35 bg-primary/10 text-primary shadow-sm"
+                    : "border-transparent bg-background/65 text-muted-foreground hover:border-border/70 hover:bg-muted/50 hover:text-foreground"
                 )}
                 onClick={() => onTabChange?.(tab.key)}
               >
                 {tab.label}
               </button>
             ))}
+            </div>
           </div>
         </div>
       )}

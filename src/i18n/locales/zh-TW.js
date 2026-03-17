@@ -7,7 +7,7 @@ const messages = {
   },
   "nav": {
     "gallery": "公開台本",
-    "workspace": "寫作",
+    "workspace": "寫作工作室",
     "studio": "發布工作台",
     "mediaLibrary": "媒體庫",
     "transfer": "平台管理"
