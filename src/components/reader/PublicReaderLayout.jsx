@@ -289,6 +289,11 @@ export function PublicReaderLayout({
   });
   const guideSteps = useMemo(() => ([
     {
+      title: t("publicReader.guideTocEntryTitle", "詳細資料按鈕"),
+      description: t("publicReader.guideTocEntryDesc", "先點這個按鈕可開啟詳細資料側欄。"),
+      targetId: "public-guide-toc-trigger",
+    },
+    {
       title: t("publicReader.guideTocPanelTitle", "左側導覽面板"),
       description: t("publicReader.guideTocPanelDesc", "這裡可快速跳場景、查看更多作品資訊。"),
       targetId: "public-guide-toc-panel",
