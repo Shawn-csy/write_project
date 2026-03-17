@@ -387,9 +387,9 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         {
             title: t("writeTab.guidePreviewTitle"),
             description: t("writeTab.guidePreviewDesc"),
-            target: "write-preview-panel",
+            target: hasDesktopPreview ? "write-preview-panel" : "write-list-panel",
         },
-    ]), [t, totalItems]);
+    ]), [hasDesktopPreview, t, totalItems]);
 
     const getGuideTargetElement = useCallback((target) => {
         if (typeof document === "undefined") return null;

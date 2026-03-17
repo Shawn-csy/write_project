@@ -22,7 +22,10 @@ export function usePersistentSpotlightGuide({
       return;
     }
     const target = currentGuide ? resolveTarget(currentGuide, guideIndex) : null;
-    if (!target) return;
+    if (!target) {
+      setGuideSpotlightRect(null);
+      return;
+    }
     const rect = target.getBoundingClientRect();
     const pad = 10;
     setGuideSpotlightRect({

@@ -67,11 +67,11 @@ export function useCrossModeReadGuide({ activeCloudScript, cloudScriptMode, isPu
     return t("readerActions.crossGuideReadIntroDesc");
   })();
 
-  const getReadGuideTargetId = useCallback(() => {
-    if (guideStep === "readIntro") return "reader-guide-header";
-    if (guideStep === "readTools") return "reader-guide-tools";
-    if (guideStep === "readToEdit") return "reader-guide-edit-button";
-    return "";
+  const getReadGuideTargetIds = useCallback(() => {
+    if (guideStep === "readIntro") return ["reader-guide-header"];
+    if (guideStep === "readTools") return ["reader-guide-tools", "reader-guide-tools-toggle", "reader-guide-header"];
+    if (guideStep === "readToEdit") return ["reader-guide-edit-button", "reader-guide-tools", "reader-guide-tools-toggle"];
+    return [];
   }, [guideStep]);
 
   const refreshReadGuideSpotlight = useCallback(() => {
@@ -79,12 +79,14 @@ export function useCrossModeReadGuide({ activeCloudScript, cloudScriptMode, isPu
       setReadGuideSpotlightRect(null);
       return;
     }
-    const targetId = getReadGuideTargetId();
-    if (!targetId) {
+    const targetIds = getReadGuideTargetIds();
+    if (!targetIds.length) {
       setReadGuideSpotlightRect(null);
       return;
     }
-    const target = document.getElementById(targetId);
+    const target = targetIds
+      .map((id) => document.getElementById(id))
+      .find(Boolean);
     if (!target) {
       setReadGuideSpotlightRect(null);
       return;
@@ -97,7 +99,7 @@ export function useCrossModeReadGuide({ activeCloudScript, cloudScriptMode, isPu
       width: Math.max(64, rect.width + pad * 2),
       height: Math.max(48, rect.height + pad * 2),
     });
-  }, [getReadGuideTargetId, readGuideDialogOpen]);
+  }, [getReadGuideTargetIds, readGuideDialogOpen]);
 
   useEffect(() => {
     if (!readGuideDialogOpen) {
