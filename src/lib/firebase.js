@@ -36,6 +36,25 @@ export const initAnalytics = async () => {
   return analyticsInitPromise;
 };
 
+export const trackPageView = async ({ path, title, location } = {}) => {
+  const analytics = await initAnalytics();
+  if (!analytics) return false;
+
+  try {
+    const { logEvent } = await import("firebase/analytics");
+    logEvent(analytics, "page_view", {
+      page_path:
+        path ||
+        `${window.location.pathname}${window.location.search}${window.location.hash}`,
+      page_title: title || document.title || "",
+      page_location: location || window.location.href,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 // Initialize Auth
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();

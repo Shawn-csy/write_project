@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 import os
+from urllib.parse import urlparse
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -45,9 +46,66 @@ def public_base_url() -> str:
     return os.getenv("PUBLIC_BASE_URL", "https://open-scripts.shawnup.com").rstrip("/")
 
 
+def _cors_allow_origins() -> list[str]:
+    return [
+        "http://localhost:5173",
+        "http://localhost:1090",
+        "http://localhost:8080",
+        "https://scripts.shawnup.com",
+        "https://open-scripts.shawnup.com",
+        "https://scripts-api.shawnup.com",
+        "https://scripts-666540946249.asia-east1.run.app",
+    ]
+
+
+def _connect_src_values(allow_origins: list[str]) -> str:
+    origins = {"'self'"}
+
+    for origin in allow_origins:
+        parsed = urlparse(origin)
+        if not parsed.scheme or not parsed.netloc:
+            continue
+        origins.add(f"{parsed.scheme}://{parsed.netloc}")
+
+        # Allow local websocket endpoints used by dev servers/HMR.
+        if parsed.scheme == "http" and parsed.hostname == "localhost":
+            origins.add(f"ws://{parsed.netloc}")
+
+    return " ".join(sorted(origins))
+
+
+def _build_csp_headers(allow_origins: list[str]) -> tuple[str, str]:
+    connect_src = _connect_src_values(allow_origins)
+    csp_enforced = (
+        "default-src 'self'; "
+        "base-uri 'self'; "
+        "frame-ancestors 'self'; "
+        "form-action 'self'; "
+        "object-src 'none'; "
+        "script-src 'self'; "
+        "img-src 'self' data: blob:; "
+        f"connect-src {connect_src}; "
+        "style-src 'self' 'unsafe-inline';"
+    )
+    csp_report_only = (
+        "default-src 'self'; "
+        "base-uri 'self'; "
+        "frame-ancestors 'self'; "
+        "form-action 'self'; "
+        "object-src 'none'; "
+        "script-src 'self'; "
+        "img-src 'self' data: blob:; "
+        f"connect-src {connect_src}; "
+        "style-src 'self';"
+    )
+    return csp_enforced, csp_report_only
+
+
 def create_app() -> FastAPI:
     app = FastAPI()
     app.state.limiter = limiter
+    allow_origins = _cors_allow_origins()
+    csp_enforced, csp_report_only = _build_csp_headers(allow_origins)
 
     if RATE_LIMIT_ENABLED and SlowAPIMiddleware and RateLimitExceeded:
         app.add_middleware(SlowAPIMiddleware)
@@ -59,34 +117,17 @@ def create_app() -> FastAPI:
     @app.middleware("http")
     async def security_headers(request: Request, call_next):
         response = await call_next(request)
-        response.headers.setdefault(
-            "Content-Security-Policy",
-            "default-src 'self'; "
-            "base-uri 'self'; "
-            "frame-ancestors 'self'; "
-            "object-src 'none'; "
-            "script-src 'self' 'unsafe-inline'; "
-            "img-src 'self' data: blob: https:; "
-            "connect-src 'self' https: http://localhost:5173 http://localhost:1090 ws://localhost:5173 ws://localhost:1090; "
-            "style-src 'self' 'unsafe-inline';",
-        )
+        response.headers.setdefault("Content-Security-Policy", csp_enforced)
+        response.headers.setdefault("Content-Security-Policy-Report-Only", csp_report_only)
         response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin-allow-popups")
         response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
-        response.headers.setdefault("Referrer-Policy", "no-referrer-when-downgrade")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         return response
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "http://localhost:5173",
-            "http://localhost:1090",
-            "http://localhost:8080",
-            "https://scripts.shawnup.com",
-            "https://open-scripts.shawnup.com",
-            "https://scripts-api.shawnup.com",
-            "https://scripts-666540946249.asia-east1.run.app",
-        ],
+        allow_origins=allow_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
