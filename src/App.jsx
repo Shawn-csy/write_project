@@ -10,6 +10,7 @@ import { MetaTags } from "./components/common/MetaTags.jsx";
 import { useReaderScriptActions } from "./hooks/useScriptActions";
 import { useInitialScroll } from "./hooks/useInitialScroll";
 import { updateScript } from "./lib/api/scripts";
+import { trackPageView } from "./lib/firebase";
 
 import { ScriptViewProvider } from "./contexts/ScriptViewContext";
 
@@ -36,6 +37,7 @@ function App() {
   // 2. Refs (for initial params)
   const initialParamsRef = useRef({ char: null, scene: null });
   const appliedScriptThemeRef = useRef(null);
+  const lastTrackedPageRef = useRef("");
   // Initialize refs from URL once
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -99,6 +101,18 @@ function App() {
       setCurrentThemeId(themeExists ? desiredThemeId : "default");
       appliedScriptThemeRef.current = scriptId;
   }, [activeCloudScript?.id, activeCloudScript?.markerThemeId, markerThemes, setCurrentThemeId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const currentPath = `${location.pathname}${location.search}${location.hash}`;
+    if (lastTrackedPageRef.current === currentPath) return;
+    lastTrackedPageRef.current = currentPath;
+    trackPageView({
+      path: currentPath,
+      title: document.title,
+      location: window.location.href,
+    });
+  }, [location.pathname, location.search, location.hash]);
 
   const handleCloudTitleUpdate = useCallback(async (newTitle) => {
        if (!activeCloudScript || !newTitle) return;

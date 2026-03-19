@@ -261,10 +261,11 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         return `${parent}/${previewItem.title}`;
     }, [previewItem]);
 
-    const handlePreviewItemSelect = useCallback((item) => {
+    const handlePreviewItemSelect = useCallback((item, options = {}) => {
         if (!item?.id) return;
+        const { openMobileDrawer = true } = options;
         setPreviewItemId(item.id);
-        if (!hasDesktopPreview) {
+        if (!hasDesktopPreview && openMobileDrawer) {
             setIsMobilePreviewOpen(true);
         }
     }, [hasDesktopPreview]);

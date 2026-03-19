@@ -251,7 +251,7 @@ export function ScriptList({
                                         if (item.type === 'folder') {
                                             const fullPath = (item.folder === '/' ? '' : item.folder) + '/' + item.title;
                                             onToggleExpand(fullPath, e);
-                                            onPreviewItem && onPreviewItem(item);
+                                            onPreviewItem && onPreviewItem(item, { openMobileDrawer: false });
                                         } else {
                                             onPreviewItem && onPreviewItem(item);
                                         }

@@ -97,7 +97,6 @@ def read_script_seo(script_id: str, request: Request, db: Session = Depends(get_
                 content=(
                     "<!doctype html><html><head><meta charset=\"utf-8\">"
                     f"<meta http-equiv=\"refresh\" content=\"0;url={dev_read_url}\">"
-                    f"<script>window.location.replace({dev_read_url!r});</script>"
                     "</head><body>"
                     "<p>Development mode: redirecting to frontend dev server...</p>"
                     f"<p><a href=\"{dev_read_url}\">{dev_read_url}</a></p>"
