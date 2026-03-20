@@ -1,5 +1,5 @@
 # 核心與功能資料流（檔案到檔案）
-最後更新：2026-03-11
+最後更新：2026-03-20
 
 本文件整理「核心資料流」與「各功能資料流」的走向，描述資料從前端到後端、以及在後端的路徑。重點放在「從什麼檔案到什麼檔案」。
 
@@ -9,7 +9,7 @@
 ```mermaid
 flowchart LR
   A[src/lib/api/*.js\nAPI 模組層] --> B[server/routers/*.py\nAPI 路由]
-  B --> C[server/crud.py\n業務邏輯/DB 操作]
+  B --> C[server/crud_ops/*.py\n業務邏輯/DB 操作]
   C --> D[server/models.py\n資料表/模型]
   B --> E[server/schemas.py\nResponse Schema]
 ```
@@ -18,7 +18,7 @@ flowchart LR
 核心資料流（ASCII）
 api/* (API modules)
    └─> routers/*.py (API routes)
-         └─> crud.py (DB logic)
+         └─> crud_ops/*.py (DB logic)
                └─> models.py (DB models)
          └─> schemas.py (response)
 ```
@@ -28,14 +28,14 @@ api/* (API modules)
 flowchart LR
   A[src/pages/PublicGalleryPage.jsx\n搜尋/排序/篩選] --> B[src/lib/api/public.js:getPublicBundle]
   B --> C[server/routers/public_bundle.py\nGET /api/public-bundle]
-  C --> D[server/crud.py\nget_public_*]
+  C --> D[server/crud_ops/*.py\nget_public_*]
   D --> E[server/models.py\nScript/Persona/Organization]
 ```
 
 ```
 Public Gallery（ASCII）
 PublicGalleryPage.jsx
-  └─> api/public.js:getPublicBundle → public_bundle.py:/public-bundle → crud.py:get_public_* → Script/Persona/Organization
+  └─> api/public.js:getPublicBundle → public_bundle.py:/public-bundle → crud_ops/*.py:get_public_* → Script/Persona/Organization
 ```
 
 ### 公開作品閱讀頁（Public Reader）
@@ -64,7 +64,7 @@ flowchart LR
   B --> C[server/routers/personas.py]
   B --> D[server/routers/orgs.py]
   B --> E[server/routers/scripts.py]
-  C --> F[server/crud.py]
+  C --> F[server/crud_ops/*.py]
   D --> F
   E --> F
   F --> G[server/models.py\nPersona/Organization/Script]
@@ -73,9 +73,9 @@ flowchart LR
 ```
 Studio（ASCII）
 PublisherDashboard.jsx
-  ├─> api/personas.js:getPersonas → personas.py → crud.py → Persona
-  ├─> api/organizations.js:getOrganizations → orgs.py → crud.py → Organization
-  └─> api/scripts.js:getUserScripts → scripts.py → crud.py → Script
+  ├─> api/personas.js:getPersonas → personas.py → crud_ops/*.py → Persona
+  ├─> api/organizations.js:getOrganizations → orgs.py → crud_ops/*.py → Organization
+  └─> api/scripts.js:getUserScripts → scripts.py → crud_ops/*.py → Script
 ```
 
 ### 編輯劇本資訊（Metadata）
@@ -87,7 +87,7 @@ flowchart LR
   A --> E[src/hooks/dashboard/useScriptMetadataSave.js]
   A --> F[src/lib/api/scripts.js:updateScript]
   F --> G[server/routers/scripts.py\nPUT /api/scripts/{id}]
-  G --> H[server/crud.py:update_script]
+  G --> H[server/crud_ops/*.py:update_script]
 ```
 
 ```
@@ -96,7 +96,7 @@ ScriptMetadataDialog.jsx
   ├─> api/scripts.js:getScript → scripts.py:GET /api/scripts/{id}
   ├─> useScriptMetadataHydration (讀取/映射)
   ├─> useScriptMetadataSave (寫回 script/customMetadata)
-  └─> api/scripts.js:updateScript → scripts.py:PUT /api/scripts/{id} → crud.py:update_script
+  └─> api/scripts.js:updateScript → scripts.py:PUT /api/scripts/{id} → crud_ops/*.py:update_script
 ```
 
 ### 統計分析（Stats）
@@ -121,15 +121,15 @@ StatisticsPanel.jsx
 flowchart LR
   A[src/components/dashboard/publisher/PublisherOrgTab.jsx] --> B[src/lib/api/organizations.js\ninviteOrganizationMember/requestToJoinOrganization]
   B --> C[server/routers/orgs.py\nPOST /organizations/{id}/invite\nPOST /organizations/{id}/request]
-  C --> D[server/crud.py\ncreate_organization_invite/request]
+  C --> D[server/crud_ops/*.py\ncreate_organization_invite/request]
   D --> E[server/models.py\nOrganizationInvite/OrganizationRequest]
 ```
 
 ```
 Org Invites/Requests（ASCII）
 PublisherOrgTab.jsx
-  ├─> api/organizations.js:inviteOrganizationMember → orgs.py:/invite → crud.py:create_organization_invite
-  └─> api/organizations.js:requestToJoinOrganization → orgs.py:/request → crud.py:create_organization_request
+  ├─> api/organizations.js:inviteOrganizationMember → orgs.py:/invite → crud_ops/*.py:create_organization_invite
+  └─> api/organizations.js:requestToJoinOrganization → orgs.py:/request → crud_ops/*.py:create_organization_request
 ```
 
 ### 作品移轉 / 作者移轉 / 組織移轉
@@ -137,13 +137,13 @@ PublisherOrgTab.jsx
 flowchart LR
   A[src/lib/api/scripts.js + personas.js + organizations.js\ntransferScriptOwnership/transferPersonaOwnership/transferOrganizationOwnership]
   A --> B[server/routers/scripts.py|personas.py|orgs.py]
-  B --> C[server/crud.py:transfer_*]
+  B --> C[server/crud_ops/*.py:transfer_*]
   C --> D[server/models.py\nScript/Persona/Organization]
 ```
 
 ```
 Transfers（ASCII）
-api/*:transfer* → scripts.py/personas.py/orgs.py → crud.py:transfer_* → models.py
+api/*:transfer* → scripts.py/personas.py/orgs.py → crud_ops/*.py:transfer_* → models.py
 ```
 
 ### 公開作者 / 組織頁
@@ -174,7 +174,7 @@ flowchart LR
   subgraph Studio
     D[src/components/dashboard/SearchBar.jsx] --> E[src/lib/api/scripts.js:searchScripts]
     E --> F[server/routers/scripts.py\nGET /api/search?q=]
-    F --> G[server/crud.py:search_scripts]
+    F --> G[server/crud_ops/*.py:search_scripts]
     G --> H[server/models.py:Script\ntitle/content]
   end
 ```
@@ -182,7 +182,7 @@ flowchart LR
 ```
 Search（ASCII）
 PublicGalleryPage.jsx → 前端過濾（標題/作者/授權/條款/標籤）
-SearchBar.jsx → api/scripts.js:searchScripts → scripts.py:/api/search → crud.py:search_scripts
+SearchBar.jsx → api/scripts.js:searchScripts → scripts.py:/api/search → crud_ops/*.py:search_scripts
 ```
 
 ### 授權流程（Metadata → Public 顯示）
@@ -192,7 +192,7 @@ flowchart LR
   B --> C[script.content\nTitlePage: License/LicenseUrl/LicenseTerms]
   A --> D[src/lib/api/scripts.js:updateScript]
   D --> E[server/routers/scripts.py\nPUT /api/scripts/{id}]
-  E --> F[server/crud.py:update_script]
+  E --> F[server/crud_ops/*.py:update_script]
   F --> G[server/models.py:Script.content]
   G --> H[src/pages/PublicReaderPage.jsx\nnormalize metadata fields]
   H --> I[src/components/reader/PublicScriptInfoOverlay.jsx\nLicense/Terms 顯示]
@@ -201,7 +201,7 @@ flowchart LR
 ```
 License Flow（ASCII）
 ScriptMetadataDialog.jsx → useScriptMetadataSave → script/customMetadata
-updateScript → scripts.py → crud.py:update_script → Script.content
+updateScript → scripts.py → crud_ops/*.py:update_script → Script.content
 PublicReaderPage.jsx → normalize metadata fields → PublicScriptInfoOverlay
 ```
 
@@ -261,7 +261,7 @@ flowchart LR
   B --> C[server/routers/orgs.py\nGET /organizations/search]
   A --> D[src/lib/api/organizations.js:requestToJoinOrganization]
   D --> E[server/routers/orgs.py\nPOST /organizations/{id}/request]
-  E --> F[server/crud.py:create_organization_request]
+  E --> F[server/crud_ops/*.py:create_organization_request]
 ```
 
 ```
@@ -280,7 +280,7 @@ PublisherProfileTab.jsx → requestToJoinOrganization → orgs.py:/organizations
 `server/routers/*.py` 實作 API endpoints。
 
 3. 後端資料層  
-`server/crud.py` 實作 DB 存取與業務邏輯。  
+`server/crud_ops/*.py` 實作 DB 存取與業務邏輯。  
 `server/models.py` 定義資料庫模型。  
 `server/schemas.py` 定義 Pydantic 回傳結構。  
 `server/database.py` DB 連線。  
@@ -298,7 +298,7 @@ PublisherProfileTab.jsx → requestToJoinOrganization → orgs.py:/organizations
 渲染公開作品卡片。
 4. `server/routers/public.py`  
 `GET /api/public-scripts`、`/public-personas`、`/public-organizations`
-5. `server/crud.py:get_public_scripts()`  
+5. `server/crud_ops/*.py:get_public_scripts()`  
 拉取公開作品（含 persona/org）
 
 ### 2. 公開作品閱讀頁
@@ -322,7 +322,7 @@ PublisherProfileTab.jsx → requestToJoinOrganization → orgs.py:/organizations
 組織編輯、成員與邀請。
 5. `server/routers/personas.py`、`orgs.py`、`scripts.py`、`tags.py`  
 提供 CRUD 端點。
-6. `server/crud.py`  
+6. `server/crud_ops/*.py`  
 處理資料寫入、轉移、成員、邀請、清理等。
 
 ### 4. 編輯劇本資訊（Metadata）
@@ -333,7 +333,7 @@ PublisherProfileTab.jsx → requestToJoinOrganization → orgs.py:/organizations
 `src/hooks/dashboard/useScriptMetadataHydration.js`  
 `src/hooks/dashboard/useScriptMetadataSave.js`
 3. 後端更新  
-`server/routers/scripts.py` → `server/crud.py:update_script()`
+`server/routers/scripts.py` → `server/crud_ops/*.py:update_script()`
 
 ### 5. 標記 / 解析 / 統計
 1. AST 解析  
@@ -357,7 +357,7 @@ PublisherProfileTab.jsx → requestToJoinOrganization → orgs.py:/organizations
 `/organizations/{id}/invite`、`/request`、`/invites`、`/requests`  
 3. DB  
 `server/models.py`：`OrganizationInvite`、`OrganizationRequest`  
-`server/crud.py`：`create_organization_invite` / `create_organization_request` / accept / decline
+`server/crud_ops/*.py`：`create_organization_invite` / `create_organization_request` / accept / decline
 
 ### 7. 作品移轉 / 作者移轉 / 組織移轉
 1. 前端  
@@ -365,7 +365,7 @@ PublisherProfileTab.jsx → requestToJoinOrganization → orgs.py:/organizations
 2. 後端  
 `server/routers/scripts.py` / `personas.py` / `orgs.py`
 3. DB  
-`server/crud.py:transfer_*`  
+`server/crud_ops/*.py:transfer_*`  
 含 folder 建立與移轉後更新
 
 ### 8. 公開作者 / 組織頁

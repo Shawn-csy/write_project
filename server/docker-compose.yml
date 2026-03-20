@@ -13,8 +13,11 @@ services:
       - ./secrets:/secrets:ro
     restart: unless-stopped
     environment:
+      - DATABASE_URL=${DATABASE_URL}
       - PORT=1091
       - DB_PATH=/data/scripts.db
+      - DB_AUTO_CREATE_TABLES=${DB_AUTO_CREATE_TABLES:-1}
+      - DB_RUN_LEGACY_MIGRATIONS=${DB_RUN_LEGACY_MIGRATIONS:-1}
       - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}
       - FIREBASE_CREDENTIALS=/secrets/firebase-service-account.json
       - FIREBASE_CREDENTIALS_JSON=${FIREBASE_CREDENTIALS_JSON}
