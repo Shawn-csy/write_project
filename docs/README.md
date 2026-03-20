@@ -11,6 +11,7 @@
 - `docs/engineering/backend-auth.md`：後端驗證（Firebase Token）
 - `docs/engineering/ci-process.md`：CI 建議流程
 - `docs/engineering/testing.md`：測試指南
+- `docs/engineering/database-runtime.md`：DB 執行模式（SQLite/Postgres）與啟動初始化開關
 
 ## 安全
 - `docs/weak-scan-2026-02-05.md`：弱點掃描最終版報告
@@ -47,4 +48,3 @@
 - `examples/`：範例資料
 - `tests-e2e/`：E2E 測試
 - `logs/`：本機日誌
-
