@@ -1,12 +1,30 @@
-
 services:
+  write_project-postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-write_project}
+      - POSTGRES_USER=${POSTGRES_USER:-write_project}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-write_project}
+    volumes:
+      - write_project_pgdata:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-1092}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-write_project} -d ${POSTGRES_DB:-write_project}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   write_project-backend:
     build:
       context: ./server
     ports:
       - "1091:1091"
     environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql+psycopg://${POSTGRES_USER:-write_project}:${POSTGRES_PASSWORD:-write_project}@write_project-postgres:5432/${POSTGRES_DB:-write_project}}
       - DB_PATH=/data/scripts.db
+      - DB_AUTO_CREATE_TABLES=${DB_AUTO_CREATE_TABLES:-1}
+      - DB_RUN_LEGACY_MIGRATIONS=${DB_RUN_LEGACY_MIGRATIONS:-1}
       - PORT=1091
       - ENVIRONMENT=production
       - ALLOW_X_USER_ID=0
@@ -21,6 +39,9 @@ services:
       - ./server/data:/data
       - ./server/secrets:/secrets:ro
       - ./dist:/app/dist:ro
+    depends_on:
+      write_project-postgres:
+        condition: service_healthy
 
   write_project-frontend-build:
     image: node:20-alpine
@@ -40,3 +61,7 @@ services:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - write_project-frontend-build
+      - write_project-backend
+
+volumes:
+  write_project_pgdata:

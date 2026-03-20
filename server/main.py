@@ -23,9 +23,21 @@ except Exception:
     RateLimitExceeded = None
     SlowAPIMiddleware = None
 
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+
+
+AUTO_CREATE_TABLES = _env_bool("DB_AUTO_CREATE_TABLES", True)
+RUN_LEGACY_MIGRATIONS = _env_bool("DB_RUN_LEGACY_MIGRATIONS", True)
+
 # Initialize Database and Run Migrations
-models.Base.metadata.create_all(bind=database.engine)
-migration.run_migrations()
+if AUTO_CREATE_TABLES:
+    models.Base.metadata.create_all(bind=database.engine)
+if RUN_LEGACY_MIGRATIONS:
+    migration.run_migrations()
 
 SERVER_DIR = os.path.dirname(__file__)
 DIST_CANDIDATES = [
