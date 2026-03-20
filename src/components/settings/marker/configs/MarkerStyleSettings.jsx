@@ -216,6 +216,30 @@ export function MarkerStyleSettings({ config, idx, updateMarker }) {
                             </div>
                         </TabsContent>
                     </Tabs>
+
+                    <div className="mt-3 space-y-2">
+                        <div className="text-[10px] font-medium text-muted-foreground">
+                            {t("markerStyle.themePreviewTitle")}
+                        </div>
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            <div className="rounded-md border border-border/60 bg-white px-3 py-2 shadow-sm">
+                                <div className="mb-1 text-[10px] uppercase tracking-wide text-slate-500">
+                                    {t("markerStyle.previewLight")}
+                                </div>
+                                <div className="rounded-sm px-2 py-1 text-sm text-slate-900" style={{ ...(config.style || {}) }}>
+                                    {t("markerStyle.previewSample")}
+                                </div>
+                            </div>
+                            <div className="rounded-md border border-slate-700/70 bg-slate-900 px-3 py-2 shadow-sm">
+                                <div className="mb-1 text-[10px] uppercase tracking-wide text-slate-400">
+                                    {t("markerStyle.previewDark")}
+                                </div>
+                                <div className="rounded-sm px-2 py-1 text-sm text-slate-100" style={{ ...(config.style || {}) }}>
+                                    {t("markerStyle.previewSample")}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

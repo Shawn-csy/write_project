@@ -27,7 +27,6 @@ export function GalleryFilterBar({
     quickTagFilters = []
 }) {
   const { t } = useI18n();
-  const [tagOpen, setTagOpen] = useState(false);
   const [tagQuery, setTagQuery] = useState("");
   const searchPlaceholder = placeholder || t("galleryFilterBar.search");
   const filteredTags = useMemo(() => {

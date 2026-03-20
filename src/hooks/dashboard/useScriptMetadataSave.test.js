@@ -126,4 +126,91 @@ describe("useScriptMetadataSave", () => {
     expect(props.setCurrentTags).toHaveBeenCalledWith([{ id: "tag-new", name: "新標籤" }]);
     expect(props.onOpenChange).toHaveBeenCalledWith(false);
   });
+
+  it("preserves original author data when author field is untouched", async () => {
+    const props = baseProps();
+    props.activeScript = {
+      ...props.activeScript,
+      author: "原作者",
+      customMetadata: [
+        { key: "Author", value: "原作者" },
+        { key: "AuthorDisplayMode", value: "override" },
+      ],
+    };
+    props.author = "其他值";
+    props.authorDisplayMode = "badge";
+    props.preserveAuthorInternalData = true;
+    props.authorEditedRef = { current: false };
+
+    const { result } = renderHook(() => useScriptMetadataSave(props));
+
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    const [, payload] = updateScript.mock.calls[0];
+    expect(Object.prototype.hasOwnProperty.call(payload, "author")).toBe(false);
+    expect(payload.customMetadata.some((entry) => entry.key === "Author" && entry.value === "原作者")).toBe(true);
+    expect(payload.customMetadata.some((entry) => entry.key === "AuthorDisplayMode" && entry.value === "override")).toBe(true);
+  });
+
+  it("keeps author field unchanged when source author is empty and preserves metadata", async () => {
+    const props = baseProps();
+    props.activeScript = {
+      id: "s-1",
+      content: "body",
+      author: "",
+      customMetadata: [
+        { key: "Authors", value: "workingScript作者" },
+        { key: "AuthorDisplayMode", value: "override" },
+      ],
+      tags: [{ id: "tag-old", name: "舊標籤" }],
+    };
+    props.author = "";
+    props.authorDisplayMode = "badge";
+    props.preserveAuthorInternalData = true;
+    props.authorEditedRef = { current: false };
+
+    const { result } = renderHook(() => useScriptMetadataSave(props));
+
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    const [, payload] = updateScript.mock.calls[0];
+    expect(Object.prototype.hasOwnProperty.call(payload, "author")).toBe(false);
+    expect(payload.customMetadata.some((entry) => entry.key === "Authors" && entry.value === "workingScript作者")).toBe(true);
+    expect(payload.customMetadata.some((entry) => entry.key === "AuthorDisplayMode" && entry.value === "override")).toBe(true);
+  });
+
+  it("keeps original author metadata entries instead of regenerated ones", async () => {
+    const props = baseProps();
+    props.activeScript = {
+      ...props.activeScript,
+      author: "來源作者",
+      customMetadata: [
+        { key: "Authors", value: "來源作者" },
+        { key: "AuthorDisplayMode", value: "override" },
+      ],
+    };
+    props.author = "";
+    props.authorDisplayMode = "badge";
+    props.preserveAuthorInternalData = true;
+    props.authorEditedRef = { current: false };
+
+    const { result } = renderHook(() => useScriptMetadataSave(props));
+
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    const [, payload] = updateScript.mock.calls[0];
+    const authorLike = payload.customMetadata.filter((entry) =>
+      ["author", "authors", "authordisplaymode"].includes(String(entry.key || "").toLowerCase().replace(/\s+/g, ""))
+    );
+    expect(authorLike).toEqual([
+      { key: "Authors", value: "來源作者", type: "text" },
+      { key: "AuthorDisplayMode", value: "override", type: "text" },
+    ]);
+  });
 });

@@ -89,7 +89,7 @@ export default function PublicHelpPage() {
       id: "layout-2",
       category: "layout",
       question: "教學在哪裡重新開啟？",
-      answer: "在公開台本與閱讀頁的操作列可再次開啟教學；若是匯入相關規則，請在匯入對話框內查看格式說明。",
+      answer: "在寫作工作室與發佈工作室頂部右側可用「教學」按鈕重新開啟；公開台本可從右上角「說明」進入。匯入規則則在匯入對話框查看格式說明。",
       keywords: ["教學", "重新開啟", "格式說明"],
     },
     {

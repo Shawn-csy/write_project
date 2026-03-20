@@ -55,11 +55,21 @@ def test_get_current_user_id_valid_token(mock_firebase_auth):
 
 def test_get_current_user_id_x_user_id_fallback():
     async def run_test():
-        with patch("dependencies.ALLOW_X_USER_ID", True):
+        with patch("dependencies.ALLOW_X_USER_ID", True), patch.dict("os.environ", {"ENVIRONMENT": "development"}):
             user_id = await get_current_user_id(authorization=None, x_user_id="fallback-user-1")
             assert user_id == "fallback-user-1"
             
-        with patch("dependencies.ALLOW_X_USER_ID", False):
+        with patch("dependencies.ALLOW_X_USER_ID", False), patch.dict("os.environ", {"ENVIRONMENT": "development"}):
+            with pytest.raises(HTTPException) as exc:
+                await get_current_user_id(authorization=None, x_user_id="fallback-user-1")
+            assert exc.value.status_code == 401
+            assert "Missing Authorization token" in exc.value.detail
+    anyio.run(run_test)
+
+def test_get_current_user_id_x_user_id_blocked_in_production(monkeypatch):
+    async def run_test():
+        monkeypatch.setenv("ENVIRONMENT", "production")
+        with patch("dependencies.ALLOW_X_USER_ID", True):
             with pytest.raises(HTTPException) as exc:
                 await get_current_user_id(authorization=None, x_user_id="fallback-user-1")
             assert exc.value.status_code == 401

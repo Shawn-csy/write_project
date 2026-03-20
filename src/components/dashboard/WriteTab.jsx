@@ -10,7 +10,14 @@ import { MoveScriptDialog } from "./write/MoveScriptDialog";
 import { createScript, updateScript, getScript } from "../../lib/api/scripts";
 import { parseImportTagNames, syncImportedTagsToScript } from "../../lib/importPipeline/tagSync";
 import { Button } from "../ui/button";
-import { FileText, Folder, Search, ArrowUpDown, FileStack, Globe, RotateCcw, PanelRightOpen, PanelRightClose } from "lucide-react";
+import { FileText, Folder, Search, ArrowUpDown, RotateCcw, PanelRightOpen, PanelRightClose } from "lucide-react";
+import {
+    Drawer,
+    DrawerContent,
+    DrawerDescription,
+    DrawerHeader,
+    DrawerTitle,
+} from "../ui/drawer";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -39,14 +46,15 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     const [loadedCount, setLoadedCount] = useState(50);
     const [sortKey, setSortKey] = useState("custom");
     const [sortDir, setSortDir] = useState("desc");
-    const [filterType, setFilterType] = useState("all");
-    const [filterStatus, setFilterStatus] = useState("all");
     const [filterQuery, setFilterQuery] = useState("");
     const [showGuide, setShowGuide] = useState(false);
     const [guideIndex, setGuideIndex] = useState(0);
     const [guideSpotlightRect, setGuideSpotlightRect] = useState(null);
-    const [isPreviewCollapsed, setIsPreviewCollapsed] = useState(false);
+    const [isPreviewCollapsed, setIsPreviewCollapsed] = useState(true);
     const [footerQuote, setFooterQuote] = useState(null);
+    const [isQuickCreatingScript, setIsQuickCreatingScript] = useState(false);
+    const [isMobilePreviewOpen, setIsMobilePreviewOpen] = useState(false);
+    const [hasDesktopPreview, setHasDesktopPreview] = useState(false);
     
     // Breadcrumbs Logic
     const breadcrumbs = useMemo(() => {
@@ -123,13 +131,72 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         }
     }, [manager, t]);
 
+    const handleOpenScript = useCallback((script, targetMode = "read") => {
+        if (typeof window !== "undefined") {
+            try {
+                window.sessionStorage.setItem(
+                    "write_tab_return_state_v1",
+                    JSON.stringify({
+                        currentPath: manager.currentPath || "/",
+                        expandedPaths: Array.from(manager.expandedPaths || []),
+                    })
+                );
+            } catch (e) {
+                console.warn("Failed to persist write tab return state", e);
+            }
+        }
+        onSelectScript(script, targetMode);
+    }, [manager.currentPath, manager.expandedPaths, onSelectScript]);
+
+    const handleQuickCreateScript = useCallback(async () => {
+        if (readOnly || isQuickCreatingScript) return;
+        const title = t("dashboard.untitledScript", "未命名劇本");
+        const folder = manager.currentPath || "/";
+        setIsQuickCreatingScript(true);
+        try {
+            const id = await createScript(title, "script", folder);
+            let createdScript = {
+                id,
+                title,
+                type: "script",
+                folder,
+                content: "",
+                isPublic: false,
+            };
+            try {
+                const fromServer = await getScript(id);
+                if (fromServer?.id) {
+                    createdScript = { ...createdScript, ...fromServer };
+                }
+            } catch (err) {
+                console.warn("Failed to fetch newly created script", err);
+            }
+
+            manager.setScripts((prev) => {
+                const list = Array.isArray(prev) ? prev : [];
+                const idx = list.findIndex((item) => item.id === createdScript.id);
+                if (idx >= 0) {
+                    const next = [...list];
+                    next[idx] = { ...next[idx], ...createdScript };
+                    return next;
+                }
+                return [...list, createdScript];
+            });
+            await manager.fetchScripts?.();
+            handleOpenScript(createdScript, "edit");
+        } catch (err) {
+            console.error(t("publisher.createScriptFailed", "建立劇本失敗"), err);
+        } finally {
+            setIsQuickCreatingScript(false);
+        }
+    }, [handleOpenScript, isQuickCreatingScript, manager, readOnly, t]);
+
     useEffect(() => {
         if (typeof window === "undefined") return undefined;
         const handleAction = (event) => {
             const type = event?.detail?.type;
             if (type === "create-script") {
-                manager.setNewType("script");
-                manager.setIsCreateOpen(true);
+                handleQuickCreateScript();
                 return;
             }
             if (type === "create-folder") {
@@ -148,7 +215,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         };
         window.addEventListener("write-tab-action", handleAction);
         return () => window.removeEventListener("write-tab-action", handleAction);
-    }, [manager]);
+    }, [handleQuickCreateScript, manager]);
 
     useEffect(() => {
         let cancelled = false;
@@ -174,22 +241,14 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         };
     }, []);
 
-    const handleOpenScript = useCallback((script) => {
-        if (typeof window !== "undefined") {
-            try {
-                window.sessionStorage.setItem(
-                    "write_tab_return_state_v1",
-                    JSON.stringify({
-                        currentPath: manager.currentPath || "/",
-                        expandedPaths: Array.from(manager.expandedPaths || []),
-                    })
-                );
-            } catch (e) {
-                console.warn("Failed to persist write tab return state", e);
-            }
-        }
-        onSelectScript(script);
-    }, [manager.currentPath, manager.expandedPaths, onSelectScript]);
+    useEffect(() => {
+        if (typeof window === "undefined") return undefined;
+        const media = window.matchMedia("(min-width: 1280px)");
+        const sync = () => setHasDesktopPreview(media.matches);
+        sync();
+        media.addEventListener("change", sync);
+        return () => media.removeEventListener("change", sync);
+    }, []);
 
     const previewItem = useMemo(
         () => manager.scripts.find((s) => s.id === previewItemId) || null,
@@ -201,6 +260,15 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         const parent = previewItem.folder === "/" ? "" : previewItem.folder;
         return `${parent}/${previewItem.title}`;
     }, [previewItem]);
+
+    const handlePreviewItemSelect = useCallback((item, options = {}) => {
+        if (!item?.id) return;
+        const { openMobileDrawer = true } = options;
+        setPreviewItemId(item.id);
+        if (!hasDesktopPreview && openMobileDrawer) {
+            setIsMobilePreviewOpen(true);
+        }
+    }, [hasDesktopPreview]);
 
     const availableFolders = useMemo(() => {
         const folders = manager.scripts
@@ -218,8 +286,6 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
             if (prefs.pageSize) setPageSize(Number(prefs.pageSize));
             if (prefs.sortKey) setSortKey(prefs.sortKey);
             if (prefs.sortDir) setSortDir(prefs.sortDir);
-            if (prefs.filterType) setFilterType(prefs.filterType);
-            if (prefs.filterStatus) setFilterStatus(prefs.filterStatus);
             if (typeof prefs.filterQuery === "string") setFilterQuery(prefs.filterQuery);
         } catch (e) {
             console.warn("Failed to parse list preferences", e);
@@ -230,9 +296,9 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         if (typeof window === "undefined") return;
         window.localStorage.setItem(
             "write_list_preferences_v1",
-            JSON.stringify({ pageSize, sortKey, sortDir, filterType, filterStatus, filterQuery })
+            JSON.stringify({ pageSize, sortKey, sortDir, filterQuery })
         );
-    }, [pageSize, sortKey, sortDir, filterType, filterStatus, filterQuery]);
+    }, [pageSize, sortKey, sortDir, filterQuery]);
 
     useEffect(() => {
         if (typeof window === "undefined") return;
@@ -248,15 +314,6 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
 
     const filteredAndSortedItems = useMemo(() => {
         let items = manager.visibleItems;
-
-        if (filterType !== "all") {
-            items = items.filter((item) => item.type === filterType);
-        }
-
-        if (filterStatus !== "all") {
-            const target = filterStatus === "public";
-            items = items.filter((item) => item.type === "script" && Boolean(item.isPublic) === target);
-        }
 
         if (filterQuery.trim()) {
             const q = filterQuery.trim().toLowerCase();
@@ -280,11 +337,10 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
             });
         }
         return sorted;
-    }, [manager.visibleItems, filterType, filterStatus, filterQuery, sortKey, sortDir]);
+    }, [manager.visibleItems, filterQuery, sortKey, sortDir]);
     
-    const hasActiveFilters = filterType !== "all" || filterStatus !== "all" || Boolean(filterQuery.trim()) || sortKey !== "custom";
+    const hasActiveFilters = Boolean(filterQuery.trim()) || sortKey !== "custom";
     const controlClassName = "h-8 rounded-md border border-[color:var(--morandi-tone-panel-border)] bg-background/90 text-foreground";
-
     const totalItems = filteredAndSortedItems.length;
     const pagedItems = useMemo(() => {
         return filteredAndSortedItems.slice(0, loadedCount);
@@ -293,7 +349,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
 
     useEffect(() => {
         setLoadedCount(pageSize);
-    }, [manager.currentPath, pageSize, sortKey, sortDir, filterType, filterStatus, filterQuery]);
+    }, [manager.currentPath, pageSize, sortKey, sortDir, filterQuery]);
 
     const loadMore = useCallback(() => {
         setLoadedCount((prev) => Math.min(prev + pageSize, totalItems));
@@ -332,9 +388,9 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         {
             title: t("writeTab.guidePreviewTitle"),
             description: t("writeTab.guidePreviewDesc"),
-            target: "write-preview-panel",
+            target: hasDesktopPreview ? "write-preview-panel" : "write-list-panel",
         },
-    ]), [t, totalItems]);
+    ]), [hasDesktopPreview, t, totalItems]);
 
     const getGuideTargetElement = useCallback((target) => {
         if (typeof document === "undefined") return null;
@@ -396,7 +452,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     }, [closeGuide, guideIndex, guideSteps.length]);
 
     return (
-        <div className="flex h-full flex-col gap-2 overflow-hidden">
+        <div className="flex h-full flex-col gap-3 overflow-hidden">
             {manager.currentPath !== "/" ? (
                 <div
                     style={writeTone}
@@ -414,14 +470,14 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
             <div className={`flex-1 min-h-0 grid grid-cols-1 gap-3 ${isPreviewCollapsed ? "xl:grid-cols-1" : "xl:grid-cols-[minmax(0,1fr)_22rem]"}`}>
                 <section
                     style={writeTone}
-                    className="min-h-0 flex flex-col overflow-hidden rounded-lg border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] shadow-sm"
+                    className="min-h-0 flex flex-col overflow-hidden rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] shadow-sm"
                     data-guide-id="write-list-panel"
                 >
                     <div
-                        className="px-4 py-2 border-b bg-gradient-to-r from-[var(--morandi-tone-helper-bg)]/80 via-[var(--morandi-tone-helper-bg)]/35 to-transparent text-xs"
+                        className="border-b bg-gradient-to-r from-[var(--morandi-tone-helper-bg)]/80 via-[var(--morandi-tone-helper-bg)]/35 to-transparent px-4 py-3 text-xs"
                         data-guide-id="write-middle-controls"
                     >
-                        <div className="mb-2 flex items-center justify-between">
+                        <div className="mb-3 flex items-center justify-between">
                             <h3 className="text-sm font-semibold tracking-tight text-[color:var(--morandi-tone-helper-fg)]">
                                 {t("writeTab.listTitle", "檔案清單")}
                             </h3>
@@ -468,32 +524,6 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                                     </DropdownMenuRadioGroup>
                                 </DropdownMenuContent>
                             </DropdownMenu>
-                            <div className="flex items-center gap-1 shrink-0" title={t("writeTab.filterType")}>
-                                <FileStack className="w-3.5 h-3.5 text-muted-foreground" />
-                                <select
-                                    className={`${controlClassName} px-2`}
-                                    value={filterType}
-                                    onChange={(e) => setFilterType(e.target.value)}
-                                    aria-label={t("writeTab.filterType")}
-                                >
-                                    <option value="all">{t("writeTab.all")}</option>
-                                    <option value="script">{t("writeTab.file")}</option>
-                                    <option value="folder">{t("writeTab.folder")}</option>
-                                </select>
-                            </div>
-                            <div className="hidden sm:flex items-center gap-1 shrink-0" title={t("writeTab.filterStatus")}>
-                                <Globe className="w-3.5 h-3.5 text-muted-foreground" />
-                                <select
-                                    className={`${controlClassName} px-2`}
-                                    value={filterStatus}
-                                    onChange={(e) => setFilterStatus(e.target.value)}
-                                    aria-label={t("writeTab.filterStatus")}
-                                >
-                                    <option value="all">{t("writeTab.all")}</option>
-                                    <option value="public">Public</option>
-                                    <option value="private">Private</option>
-                                </select>
-                            </div>
                             <Button
                                 size="sm"
                                 variant="outline"
@@ -501,8 +531,6 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                                 disabled={!hasActiveFilters}
                                 onClick={() => {
                                     setFilterQuery("");
-                                    setFilterType("all");
-                                    setFilterStatus("all");
                                     setSortKey("custom");
                                     setSortDir("desc");
                                 }}
@@ -512,16 +540,6 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                                 <RotateCcw className="w-3.5 h-3.5" />
                             </Button>
                             <div className="hidden xl:flex items-center gap-1 shrink-0 sm:ml-auto">
-                                <span className="text-[11px] text-muted-foreground">{t("writeTab.perPage")}</span>
-                                <select
-                                    className={`${controlClassName} px-2`}
-                                    value={pageSize}
-                                    onChange={(e) => setPageSize(Number(e.target.value))}
-                                >
-                                    <option value={30}>30</option>
-                                    <option value={50}>50</option>
-                                    <option value={100}>100</option>
-                                </select>
                                 <Button
                                     size="sm"
                                     variant="ghost"
@@ -536,7 +554,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                         </div>
                     </div>
 
-                    <div className="min-h-0 flex-1 overflow-y-auto bg-[hsl(var(--surface-1))]/35" onScroll={handleListScroll}>
+                    <div className="min-h-0 flex-1 overflow-y-auto bg-[hsl(var(--surface-1))]/35 px-2 py-2" onScroll={handleListScroll}>
                         {showGuide && totalItems === 0 ? (
                             <div className="m-4 rounded-lg border border-dashed border-[color:var(--morandi-tone-helper-border)] bg-[color:var(--morandi-tone-helper-bg)]/45 p-4">
                                 <h4 className="text-sm font-semibold text-[color:var(--morandi-tone-helper-fg)]">{t("writeTab.guideDemoTitle")}</h4>
@@ -571,7 +589,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                             onRequestMove={manager.openMoveDialog}
                             onTogglePublic={manager.handleTogglePublic}
                             onRename={manager.openRenameDialog}
-                            onPreviewItem={(item) => setPreviewItemId(item.id)}
+                            onPreviewItem={handlePreviewItemSelect}
                             onGoUp={manager.goUp}
                             onDragStart={manager.handleDragStart}
                             onDragEnd={manager.handleDragEnd}
@@ -597,7 +615,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
 
                 <aside
                     style={writeTone}
-                    className={`${isPreviewCollapsed ? "hidden" : "hidden xl:flex"} rounded-lg border border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-b from-[var(--morandi-tone-helper-bg)]/45 to-card p-4 flex-col gap-3`}
+                    className={`${isPreviewCollapsed ? "hidden" : "hidden xl:flex"} flex-col gap-3 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-b from-[var(--morandi-tone-helper-bg)]/45 to-card p-4`}
                     data-guide-id="write-preview-panel"
                 >
                     <h3 className="text-sm font-semibold text-[color:var(--morandi-tone-helper-fg)]">{t("writeTab.previewInfo")}</h3>
@@ -668,6 +686,98 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                     )}
                 </aside>
             </div>
+
+            <Drawer open={isMobilePreviewOpen && !hasDesktopPreview} onOpenChange={setIsMobilePreviewOpen}>
+                <DrawerContent side="bottom" className="max-h-[88dvh]">
+                    <DrawerHeader className="border-b border-border/50">
+                        <DrawerTitle>{t("writeTab.previewInfo", "項目資訊")}</DrawerTitle>
+                        <DrawerDescription>
+                            {previewItem?.title || t("writeTab.previewHint", "選取檔案後可查看資訊")}
+                        </DrawerDescription>
+                    </DrawerHeader>
+                    <div className="overflow-y-auto px-4 pb-6 pt-3">
+                        {!previewItem ? (
+                            <p className="text-sm text-muted-foreground">{t("writeTab.previewHint", "選取檔案後可查看資訊")}</p>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2">
+                                    {previewItem.type === "folder" ? (
+                                        <Folder className="w-4 h-4 text-primary" />
+                                    ) : (
+                                        <FileText className="w-4 h-4 text-primary" />
+                                    )}
+                                    <p className="font-medium break-words">{previewItem.title}</p>
+                                </div>
+                                <div className="space-y-1 text-sm text-muted-foreground">
+                                    <p className="break-all">{t("writeTab.pathLabel").replace("{path}", previewPath)}</p>
+                                    <p>{t("writeTab.typeLabel").replace("{type}", previewItem.type === "folder" ? t("writeTab.folder") : t("writeTab.file"))}</p>
+                                    {previewItem.type !== "folder" ? (
+                                        <>
+                                            <p>{t("writeTab.statusLabel").replace("{status}", previewItem.isPublic ? "Public" : "Private")}</p>
+                                            <p>{t("writeTab.charCountApprox").replace("{count}", String(previewItem.contentLength ? Math.ceil(previewItem.contentLength / 2) : 0))}</p>
+                                        </>
+                                    ) : null}
+                                </div>
+                                {!readOnly ? (
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {previewItem.type !== "folder" ? (
+                                            <>
+                                                <Button
+                                                    onClick={() => {
+                                                        handleOpenScript(previewItem);
+                                                        setIsMobilePreviewOpen(false);
+                                                    }}
+                                                >
+                                                    {t("writeTab.openFile", "開啟檔案")}
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        manager.openMoveDialog(previewItem);
+                                                        setIsMobilePreviewOpen(false);
+                                                    }}
+                                                >
+                                                    {t("writeTab.moveTo", "移動到")}
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => {
+                                                    const fullPath = (previewItem.folder === "/" ? "" : previewItem.folder) + "/" + previewItem.title;
+                                                    manager.toggleExpand(fullPath);
+                                                    setIsMobilePreviewOpen(false);
+                                                }}
+                                            >
+                                                {t("writeTab.openFolder", "展開資料夾")}
+                                            </Button>
+                                        )}
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => {
+                                                manager.openRenameDialog(previewItem);
+                                                setIsMobilePreviewOpen(false);
+                                            }}
+                                        >
+                                            {t("writeTab.rename", "重新命名")}
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            className="border-[hsl(var(--destructive)/0.35)] bg-[hsl(var(--destructive)/0.08)] text-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive)/0.14)]"
+                                            onClick={() => {
+                                                manager.openDeleteDialog(previewItem);
+                                                setIsMobilePreviewOpen(false);
+                                            }}
+                                        >
+                                            {t("common.remove", "刪除")}
+                                        </Button>
+                                    </div>
+                                ) : null}
+                            </div>
+                        )}
+                    </div>
+                </DrawerContent>
+            </Drawer>
 
             <footer
                 style={writeTone}

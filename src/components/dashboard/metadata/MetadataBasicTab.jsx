@@ -4,11 +4,12 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Textarea } from "../../ui/textarea";
 import { useI18n } from "../../../contexts/I18nContext";
 import { Button } from "../../ui/button";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Globe2, Lock } from "lucide-react";
 
 export function MetadataBasicTab({
     title, setTitle,
     identity, setIdentity,
+    identityDisplayName = "",
     currentUser,
     personas,
     orgs,
@@ -55,6 +56,36 @@ export function MetadataBasicTab({
     );
     const today = React.useMemo(() => new Date().toISOString().slice(0, 10), []);
     const [showExtendedFields, setShowExtendedFields] = React.useState(false);
+    const isPublicStatus = status === "Public";
+    const safePersonas = React.useMemo(() => (Array.isArray(personas) ? personas : []), [personas]);
+    const identityPersonaId = React.useMemo(
+        () => (identity && identity.startsWith("persona:") ? identity.split(":")[1] : ""),
+        [identity]
+    );
+    const selectedPersona = React.useMemo(
+        () => safePersonas.find((item) => item.id === identityPersonaId),
+        [safePersonas, identityPersonaId]
+    );
+    const identityOptions = React.useMemo(() => {
+        if (!identityPersonaId || selectedPersona) return safePersonas;
+        return [
+            {
+                id: identityPersonaId,
+                displayName: String(identityDisplayName || "").trim() || t("metadataBasic.currentIdentityFallback", "目前作品身分"),
+                organizationIds: [],
+                __fallback: true,
+            },
+            ...safePersonas,
+        ];
+    }, [identityDisplayName, identityPersonaId, selectedPersona, safePersonas, t]);
+    const statusButtonClass = (active, type) =>
+        `flex items-center gap-2 rounded-md border px-3 py-2 text-left text-sm transition-all ${
+            active
+                ? type === "public"
+                    ? "border-emerald-600/60 bg-emerald-500/15 text-emerald-800 ring-2 ring-emerald-500/40 dark:text-emerald-300"
+                    : "border-slate-600/60 bg-slate-500/15 text-slate-800 ring-2 ring-slate-500/40 dark:text-slate-200"
+                : "border-border bg-background text-muted-foreground hover:bg-muted"
+        }`;
 
     const parseMulti = React.useCallback((raw) => {
         try {
@@ -203,16 +234,21 @@ export function MetadataBasicTab({
                     <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
                         {renderRowLabel(t("metadataBasic.identity"), rowLabelTones.identity || "required", Boolean(requiredHighlights.identity))}
                         <div className="space-y-2 p-4">
-                            <Select value={identity} onValueChange={setIdentity}>
+                            <Select value={identity || "none"} onValueChange={(val) => setIdentity(val === "none" ? "" : val)}>
                                 <SelectTrigger id="metadata-identity-trigger">
                                     <SelectValue placeholder={t("metadataBasic.identityPlaceholder")} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {personas.length > 0 && (
+                                    <SelectItem value="none">{t("common.none", "不指定")}</SelectItem>
+                                    {identityOptions.length > 0 && (
                                         <SelectGroup>
                                             <SelectLabel>{t("metadataBasic.personaGroup")}</SelectLabel>
-                                            {personas.map(p => (
-                                                <SelectItem key={p.id} value={`persona:${p.id}`}>{p.displayName}</SelectItem>
+                                            {identityOptions.map((p) => (
+                                                <SelectItem key={p.id} value={`persona:${p.id}`}>
+                                                    {p.__fallback
+                                                        ? `${p.displayName}`
+                                                        : (p.displayName || p.id)}
+                                                </SelectItem>
                                             ))}
                                         </SelectGroup>
                                     )}
@@ -228,7 +264,7 @@ export function MetadataBasicTab({
                                         <SelectItem value="none">{t("common.none")}</SelectItem>
                                         {(() => {
                                             const personaId = identity.split(":")[1];
-                                            const persona = personas.find(p => p.id === personaId);
+                                            const persona = safePersonas.find(p => p.id === personaId);
                                             const orgIds = persona?.organizationIds || [];
                                             return orgs
                                                 .filter(o => orgIds.includes(o.id))
@@ -244,15 +280,31 @@ export function MetadataBasicTab({
                     <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
                         {renderRowLabel(t("metadataBasic.status"), rowLabelTones.status || "required", Boolean(requiredHighlights.status))}
                         <div className="grid gap-2 p-4 sm:grid-cols-2">
-                            <Select value={status} onValueChange={setStatus}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder={t("metadataBasic.statusPlaceholder")} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Private">{t("metadataBasic.private")}</SelectItem>
-                                    <SelectItem value="Public">{t("metadataBasic.public")}</SelectItem>
-                                </SelectContent>
-                            </Select>
+                            <div className="space-y-2">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        className={statusButtonClass(status === "Private", "private")}
+                                        onClick={() => setStatus("Private")}
+                                    >
+                                        <Lock className="h-4 w-4 shrink-0" />
+                                        <span>{t("metadataBasic.private")}</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={statusButtonClass(status === "Public", "public")}
+                                        onClick={() => setStatus("Public")}
+                                    >
+                                        <Globe2 className="h-4 w-4 shrink-0" />
+                                        <span>{t("metadataBasic.public")}</span>
+                                    </button>
+                                </div>
+                                <p className={`rounded-md px-2 py-1 text-xs ${isPublicStatus ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-slate-500/10 text-slate-700 dark:text-slate-300"}`}>
+                                    {isPublicStatus
+                                        ? t("metadataBasic.statusPublicHint", "目前為公開狀態，會顯示在公開台本。")
+                                        : t("metadataBasic.statusPrivateHint", "目前為私有狀態，只有你可見。")}
+                                </p>
+                            </div>
                             <div className="space-y-1">
                                 <Input id="metadata-date" name="metadataDate" type="date" value={date} onChange={e => setDate(e.target.value)} />
                                 <div className="flex gap-2">
@@ -288,16 +340,21 @@ export function MetadataBasicTab({
                             <p className="text-xs text-destructive">{t("metadataBasic.errTitle")}</p>
                         )}
                         <label className="text-sm font-medium">{t("metadataBasic.identity")}</label>
-                        <Select value={identity} onValueChange={setIdentity}>
+                        <Select value={identity || "none"} onValueChange={(val) => setIdentity(val === "none" ? "" : val)}>
                             <SelectTrigger id="metadata-identity-trigger">
                                 <SelectValue placeholder={t("metadataBasic.identityPlaceholder")} />
                             </SelectTrigger>
                             <SelectContent>
-                                {personas.length > 0 && (
+                                <SelectItem value="none">{t("common.none", "不指定")}</SelectItem>
+                                {identityOptions.length > 0 && (
                                     <SelectGroup>
                                         <SelectLabel>{t("metadataBasic.personaGroup")}</SelectLabel>
-                                        {personas.map(p => (
-                                            <SelectItem key={p.id} value={`persona:${p.id}`}>{p.displayName}</SelectItem>
+                                        {identityOptions.map((p) => (
+                                            <SelectItem key={p.id} value={`persona:${p.id}`}>
+                                                {p.__fallback
+                                                    ? `${p.displayName}`
+                                                    : (p.displayName || p.id)}
+                                            </SelectItem>
                                         ))}
                                     </SelectGroup>
                                 )}
@@ -317,7 +374,7 @@ export function MetadataBasicTab({
                                         <SelectItem value="none">{t("common.none")}</SelectItem>
                                         {(() => {
                                             const personaId = identity.split(":")[1];
-                                            const persona = personas.find(p => p.id === personaId);
+                                            const persona = safePersonas.find(p => p.id === personaId);
                                             const orgIds = persona?.organizationIds || [];
                                             return orgs
                                                 .filter(o => orgIds.includes(o.id))
@@ -333,15 +390,29 @@ export function MetadataBasicTab({
 
                     <div className={panelClass}>
                         <label className="text-sm font-medium">{t("metadataBasic.status")}</label>
-                        <Select value={status} onValueChange={setStatus}>
-                            <SelectTrigger>
-                                <SelectValue placeholder={t("metadataBasic.statusPlaceholder")} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Private">{t("metadataBasic.private")}</SelectItem>
-                                <SelectItem value="Public">{t("metadataBasic.public")}</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                className={statusButtonClass(status === "Private", "private")}
+                                onClick={() => setStatus("Private")}
+                            >
+                                <Lock className="h-4 w-4 shrink-0" />
+                                <span>{t("metadataBasic.private")}</span>
+                            </button>
+                            <button
+                                type="button"
+                                className={statusButtonClass(status === "Public", "public")}
+                                onClick={() => setStatus("Public")}
+                            >
+                                <Globe2 className="h-4 w-4 shrink-0" />
+                                <span>{t("metadataBasic.public")}</span>
+                            </button>
+                        </div>
+                        <p className={`rounded-md px-2 py-1 text-xs ${isPublicStatus ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-slate-500/10 text-slate-700 dark:text-slate-300"}`}>
+                            {isPublicStatus
+                                ? t("metadataBasic.statusPublicHint", "目前為公開狀態，會顯示在公開台本。")
+                                : t("metadataBasic.statusPrivateHint", "目前為私有狀態，只有你可見。")}
+                        </p>
                         <label className="text-sm font-medium" htmlFor="metadata-date">{t("metadataBasic.date")}</label>
                         <Input id="metadata-date" name="metadataDate" type="date" value={date} onChange={e => setDate(e.target.value)} />
                         <div className="flex gap-2">
@@ -371,6 +442,9 @@ export function MetadataBasicTab({
                 <div className="flex items-center justify-between gap-2">
                     <div>
                         <p className="text-sm font-medium">進階內容欄位</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            {t("metadataBasic.advancedIntroHint", "這些欄位為選填，用來補充作品世界觀、角色與章節脈絡。")}
+                        </p>
                     </div>
                     <Button type="button" variant="ghost" size="sm" onClick={() => setShowExtendedFields((prev) => !prev)}>
                         {showExtendedFields ? (
@@ -385,11 +459,17 @@ export function MetadataBasicTab({
                     </Button>
                 </div>
                 {showExtendedFields && (
-                    isRowLayout ? (
+                    <>
+                    <div className="mt-3 rounded-md border border-[color:var(--license-term-border)] bg-[color:var(--license-term-bg)] px-3 py-2 text-xs text-[color:var(--license-term-fg)]">
+                        <p>{t("metadataBasic.advancedGuideLine1", "填寫重點：先寫大綱，再補角色與章節；不確定可先留空。")}</p>
+                        <p className="mt-1">{t("metadataBasic.advancedGuideLine2", "公開頁會顯示這些內容，能幫助讀者更快理解作品。")}</p>
+                    </div>
+                    {isRowLayout ? (
                         <div className="mt-3 rounded-lg border border-border/70 bg-background">
                             <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
                                 <div className={getRowLabelClass(rowLabelTones.outline || "advanced")}>{t("metadataBasic.outline", "大綱")}</div>
                                 <div className="p-4">
+                                    <p className="mb-2 text-xs text-muted-foreground">{t("metadataBasic.outlineHint", "一句話到一段即可，聚焦主線衝突與核心看點。")}</p>
                                     <Textarea
                                         id="metadata-outline"
                                         name="metadataOutline"
@@ -403,6 +483,7 @@ export function MetadataBasicTab({
                             <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
                                 <div className={getRowLabelClass(rowLabelTones.roleSetting || "advanced")}>角色設定</div>
                                 <div className="space-y-3 p-4">
+                                    <p className="text-xs text-muted-foreground">{t("metadataBasic.roleSettingHint", "建議至少填角色名稱與一句人物定位，演繹指示可寫語氣或表演重點。")}</p>
                                     <div className="flex justify-end">
                                         <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={addHeroEntry}>
                                             新增主角
@@ -451,6 +532,7 @@ export function MetadataBasicTab({
                             <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
                                 <div className={getRowLabelClass(rowLabelTones.backgroundInfo || "advanced")}>{t("metadataBasic.backgroundInfo", "背景資訊")}</div>
                                 <div className="p-4">
+                                    <p className="mb-2 text-xs text-muted-foreground">{t("metadataBasic.backgroundInfoHint", "可補充時代、地點、前情提要，避免讀者閱讀時資訊落差。")}</p>
                                     <Textarea
                                         id="metadata-background-info"
                                         name="metadataBackgroundInfo"
@@ -464,6 +546,7 @@ export function MetadataBasicTab({
                             <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
                                 <div className={getRowLabelClass(rowLabelTones.openingIntro || "advanced")}>{t("metadataBasic.openingIntro", "作品的開頭引言")}</div>
                                 <div className="p-4">
+                                    <p className="mb-2 text-xs text-muted-foreground">{t("metadataBasic.openingIntroHint", "這段會在讀者進入內容前看到，適合放導讀或閱讀提醒。")}</p>
                                     <Textarea
                                         id="metadata-opening-intro"
                                         name="metadataOpeningIntro"
@@ -477,6 +560,7 @@ export function MetadataBasicTab({
                             <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
                                 <div className={getRowLabelClass(rowLabelTones.chapterSettings || "advanced")}>章節環境與狀況</div>
                                 <div className="space-y-3 p-4">
+                                    <p className="text-xs text-muted-foreground">{t("metadataBasic.chapterSettingsHint", "每章可填環境與角色當下狀況，幫助快速進入情境。")}</p>
                                     <div className="flex justify-end">
                                         <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={addChapterEntry}>
                                             新增章節
@@ -527,6 +611,7 @@ export function MetadataBasicTab({
                         <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div className="grid gap-2">
                                 <label className="text-sm font-medium" htmlFor="metadata-outline">{t("metadataBasic.outline", "大綱")}</label>
+                                <p className="text-xs text-muted-foreground">{t("metadataBasic.outlineHint", "一句話到一段即可，聚焦主線衝突與核心看點。")}</p>
                                 <Textarea
                                     id="metadata-outline"
                                     name="metadataOutline"
@@ -543,6 +628,7 @@ export function MetadataBasicTab({
                                         新增主角
                                     </Button>
                                 </div>
+                                <p className="text-xs text-muted-foreground">{t("metadataBasic.roleSettingHint", "建議至少填角色名稱與一句人物定位，演繹指示可寫語氣或表演重點。")}</p>
                                 <div className="space-y-3">
                                     {heroEntries.map((entry, idx) => (
                                         <div key={entry.id} className="rounded-lg border border-border/70 bg-background p-3">
@@ -586,6 +672,7 @@ export function MetadataBasicTab({
                             </div>
                             <div className="grid gap-2">
                                 <label className="text-sm font-medium" htmlFor="metadata-background-info">{t("metadataBasic.backgroundInfo", "背景資訊")}</label>
+                                <p className="text-xs text-muted-foreground">{t("metadataBasic.backgroundInfoHint", "可補充時代、地點、前情提要，避免讀者閱讀時資訊落差。")}</p>
                                 <Textarea
                                     id="metadata-background-info"
                                     name="metadataBackgroundInfo"
@@ -597,6 +684,7 @@ export function MetadataBasicTab({
                             </div>
                             <div className="grid gap-2">
                                 <label className="text-sm font-medium" htmlFor="metadata-opening-intro">{t("metadataBasic.openingIntro", "作品的開頭引言")}</label>
+                                <p className="text-xs text-muted-foreground">{t("metadataBasic.openingIntroHint", "這段會在讀者進入內容前看到，適合放導讀或閱讀提醒。")}</p>
                                 <Textarea
                                     id="metadata-opening-intro"
                                     name="metadataOpeningIntro"
@@ -613,6 +701,7 @@ export function MetadataBasicTab({
                                         新增章節
                                     </Button>
                                 </div>
+                                <p className="text-xs text-muted-foreground">{t("metadataBasic.chapterSettingsHint", "每章可填環境與角色當下狀況，幫助快速進入情境。")}</p>
                                 <div className="space-y-3">
                                     {chapterEntries.map((entry, idx) => (
                                         <div key={entry.id} className="rounded-lg border border-border/70 bg-background p-3">
@@ -655,7 +744,8 @@ export function MetadataBasicTab({
                                 </div>
                             </div>
                         </div>
-                    )
+                    )}
+                    </>
                 )}
             </div>
         </div>

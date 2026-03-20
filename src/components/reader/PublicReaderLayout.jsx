@@ -276,6 +276,7 @@ export function PublicReaderLayout({
   ];
 
   const { hideWhitespace } = useSettings();
+  const [titleVisible, setTitleVisible] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [guideIndex, setGuideIndex] = useState(0);
   const [guideSpotlightRect, setGuideSpotlightRect] = useState(null);
@@ -289,9 +290,15 @@ export function PublicReaderLayout({
   });
   const guideSteps = useMemo(() => ([
     {
+      title: t("publicReader.guideTocEntryTitle", "詳細資料按鈕"),
+      description: t("publicReader.guideTocEntryDesc", "先點這個按鈕可開啟詳細資料側欄。"),
+      targetId: "public-guide-toc-trigger",
+    },
+    {
       title: t("publicReader.guideTocPanelTitle", "左側導覽面板"),
       description: t("publicReader.guideTocPanelDesc", "這裡可快速跳場景、查看更多作品資訊。"),
       targetId: "public-guide-toc-panel",
+      delaySpotlight: 350,
     },
     {
       title: t("publicReader.guideHeaderTitle"),
@@ -301,19 +308,24 @@ export function PublicReaderLayout({
     {
       title: t("publicReader.guideInfoTitle"),
       description: t("publicReader.guideInfoDesc"),
-      targetId: "public-guide-info",
+      targetId: null,
     },
     {
       title: t("publicReader.guideScriptTitle"),
       description: t("publicReader.guideScriptDesc"),
-      targetId: "public-guide-script",
+      targetId: null,
     },
   ]), [t]);
   const currentGuide = showGuide ? guideSteps[guideIndex] : null;
 
   const resolveGuideTarget = useCallback(() => {
     if (!currentGuide?.targetId) return null;
-    return document.querySelector(`[data-guide-id="${currentGuide.targetId}"]`);
+    const nodes = document.querySelectorAll(`[data-guide-id="${currentGuide.targetId}"]`);
+    for (const node of nodes) {
+      const rect = node.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) return node;
+    }
+    return null;
   }, [currentGuide]);
 
   const refreshGuideSpotlight = useCallback(() => {
@@ -396,15 +408,20 @@ export function PublicReaderLayout({
 
   useEffect(() => {
     if (!showGuide) return;
-    const raf = window.requestAnimationFrame(refreshGuideSpotlight);
+    const delay = currentGuide?.delaySpotlight || 0;
+    let raf;
+    const run = () => { raf = window.requestAnimationFrame(refreshGuideSpotlight); };
+    const timer = delay > 0 ? window.setTimeout(run, delay) : undefined;
+    if (!timer) run();
     window.addEventListener("resize", refreshGuideSpotlight);
     window.addEventListener("scroll", refreshGuideSpotlight, true);
     return () => {
-      window.cancelAnimationFrame(raf);
+      if (timer) window.clearTimeout(timer);
+      if (raf) window.cancelAnimationFrame(raf);
       window.removeEventListener("resize", refreshGuideSpotlight);
       window.removeEventListener("scroll", refreshGuideSpotlight, true);
     };
-  }, [showGuide, guideIndex, tocOpen, refreshGuideSpotlight]);
+  }, [showGuide, guideIndex, tocOpen, refreshGuideSpotlight, currentGuide?.delaySpotlight]);
 
   useEffect(() => {
     try {
@@ -413,6 +430,14 @@ export function PublicReaderLayout({
       console.error("Failed to persist reader toc state", err);
     }
   }, [tocOpen]);
+
+  useEffect(() => {
+    const scrollEl = scriptSurfaceProps?.scrollRef?.current;
+    if (!scrollEl) return;
+    const onScroll = () => setTitleVisible(scrollEl.scrollTop > 300);
+    scrollEl.addEventListener("scroll", onScroll, { passive: true });
+    return () => scrollEl.removeEventListener("scroll", onScroll);
+  }, [scriptSurfaceProps?.scrollRef]);
 
   // Content protection CSS class
   const protectionClass = disableCopy ? 'select-none' : '';
@@ -453,7 +478,7 @@ export function PublicReaderLayout({
       {/* 2. Simplified Header (Fixed) */}
       <SimplifiedReaderHeader 
         title={title}
-        showTitle={false} // Maybe show on scroll? Future enhancement.
+        showTitle={titleVisible}
         onBack={onBack}
         onShare={onShare}
         onOpenGuide={handleStartGuide}

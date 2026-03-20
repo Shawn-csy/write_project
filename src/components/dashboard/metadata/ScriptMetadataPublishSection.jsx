@@ -29,6 +29,12 @@ export function ScriptMetadataPublishSection({
   const selectedPositiveClass = "border-primary bg-primary text-primary-foreground ring-2 ring-primary/40 hover:bg-primary/90";
   const selectedNegativeClass = "border-destructive bg-destructive text-destructive-foreground ring-2 ring-destructive/40 hover:bg-destructive/90";
   const selectedWarningClass = "border-[color:var(--license-term-border)] bg-[color:var(--license-term-bg)] text-[color:var(--license-term-fg)] ring-2 ring-[color:var(--license-term-border)]/60 hover:bg-[color:var(--license-term-bg)]";
+  const showLicenseRequired = Boolean(requiredErrorMap.license);
+  const missingCommercial = !licenseCommercial?.trim();
+  const missingDerivative = !licenseDerivative?.trim();
+  const missingNotify = !licenseNotify?.trim();
+  const licenseGroupClass = (missing) =>
+    `rounded-md border p-2 ${showLicenseRequired && missing ? "border-destructive/60 bg-destructive/5" : "border-border/50 bg-background/50"}`;
   return (
     <section id={sectionId || undefined} className="space-y-3 scroll-mt-24">
       {showTitle && <h3 className="text-base font-semibold">{t("scriptMetadataDialog.tabPublish", "發布設定")}</h3>}
@@ -79,8 +85,11 @@ export function ScriptMetadataPublishSection({
           {renderRowLabel("授權條款", "required", Boolean(missingRequiredMap.license), "商業使用 / 改作 / 修改通知")}
           <div className="space-y-3 p-4">
             <div className="grid gap-2 sm:grid-cols-3">
-              <div>
-                <div className="mb-1 text-xs text-muted-foreground">可否商業使用</div>
+              <div className={licenseGroupClass(missingCommercial)}>
+                <div className="mb-1 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <span>可否商業使用</span>
+                  <span className="rounded bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-destructive">必填</span>
+                </div>
                 <div id="license-commercial" className="grid grid-cols-2 gap-1">
                   <Button
                     type="button"
@@ -101,21 +110,36 @@ export function ScriptMetadataPublishSection({
                     不可
                   </Button>
                 </div>
+                {showLicenseRequired && missingCommercial && (
+                  <p className="mt-1 text-[11px] text-destructive">請選擇商業使用</p>
+                )}
               </div>
-              <div>
-                <div className="mb-1 text-xs text-muted-foreground">改作</div>
+              <div className={licenseGroupClass(missingDerivative)}>
+                <div className="mb-1 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <span>改作</span>
+                  <span className="rounded bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-destructive">必填</span>
+                </div>
                 <div className="grid grid-cols-3 gap-1">
                   <Button type="button" size="sm" variant="outline" className={licenseDerivative === "allow" ? selectedPositiveClass : ""} onClick={() => setLicenseDerivative("allow")}>可</Button>
                   <Button type="button" size="sm" variant="outline" className={licenseDerivative === "disallow" ? selectedNegativeClass : ""} onClick={() => setLicenseDerivative("disallow")}>不可</Button>
                   <Button type="button" size="sm" variant="outline" className={licenseDerivative === "limited" ? selectedWarningClass : ""} onClick={() => setLicenseDerivative("limited")}>需同意</Button>
                 </div>
+                {showLicenseRequired && missingDerivative && (
+                  <p className="mt-1 text-[11px] text-destructive">請選擇改作授權</p>
+                )}
               </div>
-              <div>
-                <div className="mb-1 text-xs text-muted-foreground">修改須通知作者</div>
+              <div className={licenseGroupClass(missingNotify)}>
+                <div className="mb-1 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <span>修改須通知作者</span>
+                  <span className="rounded bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-destructive">必填</span>
+                </div>
                 <div className="grid grid-cols-2 gap-1">
                   <Button type="button" size="sm" variant="outline" className={licenseNotify === "required" ? selectedPositiveClass : ""} onClick={() => setLicenseNotify("required")}>需要</Button>
                   <Button type="button" size="sm" variant="outline" className={licenseNotify === "not_required" ? selectedNegativeClass : ""} onClick={() => setLicenseNotify("not_required")}>不需要</Button>
                 </div>
+                {showLicenseRequired && missingNotify && (
+                  <p className="mt-1 text-[11px] text-destructive">請選擇是否需通知作者</p>
+                )}
               </div>
             </div>
             {requiredErrorMap.license && (
@@ -136,12 +160,24 @@ export function ScriptMetadataPublishSection({
             <div className="text-sm font-medium text-foreground">附加條款</div>
             <div className="mt-1 text-xs text-muted-foreground">補充授權限制與使用說明</div>
           </div>
-          <div className="space-y-3 p-4">
-            <div className="flex gap-2">
+          <div
+            className="space-y-3 p-4"
+            style={{
+              backgroundColor: "var(--license-term-bg)",
+              color: "var(--license-term-fg)",
+            }}
+          >
+            <div className="flex gap-2 rounded-md border p-2" style={{ borderColor: "var(--license-term-border)" }}>
               <Input
                 value={publishNewTerm}
                 onChange={(e) => setPublishNewTerm(e.target.value)}
                 placeholder="新增附加條款..."
+                className="border"
+                style={{
+                  borderColor: "var(--license-term-border)",
+                  backgroundColor: "var(--license-term-bg)",
+                  color: "var(--license-term-fg)",
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -149,12 +185,32 @@ export function ScriptMetadataPublishSection({
                   }
                 }}
               />
-              <Button type="button" variant="secondary" onClick={addLicenseSpecialTerm}>新增</Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="border"
+                style={{
+                  borderColor: "var(--license-term-border)",
+                  backgroundColor: "var(--license-term-bg)",
+                  color: "var(--license-term-fg)",
+                }}
+                onClick={addLicenseSpecialTerm}
+              >
+                新增
+              </Button>
             </div>
             {(licenseSpecialTerms || []).length > 0 && (
               <div className="space-y-2">
                 {licenseSpecialTerms.map((term, idx) => (
-                  <div key={`${term}-${idx}`} className="flex items-center justify-between rounded-md border p-2">
+                  <div
+                    key={`${term}-${idx}`}
+                    className="flex items-center justify-between rounded-md border p-2"
+                    style={{
+                      borderColor: "var(--license-term-border)",
+                      backgroundColor: "var(--license-term-bg)",
+                      color: "var(--license-term-fg)",
+                    }}
+                  >
                     <span className="text-sm">{term}</span>
                     <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeLicenseSpecialTerm(idx)}>
                       <X className="h-3.5 w-3.5" />

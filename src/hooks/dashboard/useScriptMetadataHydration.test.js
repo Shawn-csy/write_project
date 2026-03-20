@@ -125,4 +125,48 @@ describe("useScriptMetadataHydration", () => {
       { id: "demo-1", name: "", url: "https://example.com/legacy-demo", cast: "", description: "" },
     ]);
   });
+
+  it("does not prefill author when disableAuthorAutofill is enabled", async () => {
+    getScript.mockResolvedValue({
+      id: "s-3",
+      title: "admin",
+      author: "既有作者",
+      customMetadata: [{ key: "AuthorDisplayMode", value: "override" }],
+      tags: [],
+    });
+
+    const params = buildParams();
+    const { result } = renderHook(() => useScriptMetadataHydration({
+      ...params,
+      disableAuthorAutofill: true,
+    }));
+
+    await act(async () => {
+      await result.current({ id: "s-3", title: "admin", tags: [] });
+    });
+
+    expect(params.setAuthor).toHaveBeenCalledWith("");
+    expect(params.setAuthorDisplayMode).toHaveBeenCalledWith("badge");
+  });
+
+  it("does not auto-apply preferred persona when disablePersonaAutofill is enabled", async () => {
+    localStorage.setItem("preferredPersonaId", "persona-pref");
+    getScript.mockResolvedValue({
+      id: "s-4",
+      title: "admin",
+      tags: [],
+    });
+
+    const params = buildParams();
+    const { result } = renderHook(() => useScriptMetadataHydration({
+      ...params,
+      disablePersonaAutofill: true,
+    }));
+
+    await act(async () => {
+      await result.current({ id: "s-4", title: "admin", tags: [] });
+    });
+
+    expect(params.setIdentity).toHaveBeenCalledWith("");
+  });
 });

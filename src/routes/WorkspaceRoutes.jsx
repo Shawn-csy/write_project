@@ -45,6 +45,7 @@ export function renderWorkspaceRoutes({
   shareCopied,
   handleReturnHome,
   handleCloudTitleUpdate,
+  handleCloudMarkerThemeUpdate,
   accentStyle,
   fileLabelMode,
   setFileLabelMode,
@@ -159,6 +160,7 @@ export function renderWorkspaceRoutes({
                       }
                       setFocusMode={setFocusMode}
                       onTitleChange={activeCloudScript && !isPublicReader ? handleCloudTitleUpdate : undefined}
+                      onSwitchMarkerTheme={activeCloudScript && !isPublicReader ? handleCloudMarkerThemeUpdate : undefined}
                       markerConfigs={scriptManager.effectiveMarkerConfigs}
                     />
                     {!nav.homeOpen && !nav.aboutOpen && !nav.settingsOpen && hasTitle && showTitle && (

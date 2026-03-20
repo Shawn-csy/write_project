@@ -36,7 +36,7 @@ export const IMAGE_UPLOAD_RULES = {
     maxWidth: 4096,
     maxHeight: 2048,
     maxBytes: 6 * MB,
-    recommended: "1500 x 500",
+    recommended: "2560 x 850",
   },
   logo: {
     minWidth: 256,
@@ -97,7 +97,7 @@ function canvasToBlob(canvas, quality) {
 
 function getTargetSize(ruleKey) {
   if (ruleKey === "avatar" || ruleKey === "logo") return { maxWidth: 1024, maxHeight: 1024, targetBytes: 450 * 1024 };
-  if (ruleKey === "banner") return { maxWidth: 1920, maxHeight: 640, targetBytes: 900 * 1024 };
+  if (ruleKey === "banner") return { maxWidth: 2560, maxHeight: 850, targetBytes: 1400 * 1024 };
   if (ruleKey === "cover") return { maxWidth: 1920, maxHeight: 1080, targetBytes: 900 * 1024 };
   return { maxWidth: 1920, maxHeight: 1080, targetBytes: 1200 * 1024 };
 }

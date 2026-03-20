@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { updateScript, addTagToScript, removeTagFromScript, getScript } from "../../lib/api/scripts";
+import { updateScript, addTagToScript, removeTagFromScript } from "../../lib/api/scripts";
 import { createTag } from "../../lib/api/tags";
 import { deriveSimpleLicenseTags } from "../../lib/licenseRights";
 import { AUDIENCE_TAG_GROUP, RATING_TAG_GROUP, syncGroupedTagSelection } from "./tagGroupUtils";
@@ -60,10 +60,19 @@ export function useScriptMetadataSave({
   setActiveTab,
   onSave,
   onOpenChange,
+  saveScript,
+  syncScriptTags,
+  preserveAuthorInternalData = false,
+  authorEditedRef = null,
 }) {
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = useCallback(async () => {
+    const normalizeMetaKey = (key) => String(key || "").trim().toLowerCase().replace(/\s+/g, "");
+    const isAuthorMetaKey = (key) => {
+      const normalized = normalizeMetaKey(key);
+      return normalized === "author" || normalized === "authors" || normalized === "authordisplaymode";
+    };
     setShowValidationHints(true);
     if (needsPersonaBeforePublish) {
       toast({
@@ -131,17 +140,21 @@ export function useScriptMetadataSave({
       }
 
       const workingScript = activeScript || script;
-      let content = workingScript?.content;
-      if (!content && workingScript?.id) {
-        const full = await getScript(workingScript.id);
-        content = full.content;
-      }
+      const workingScriptMetadata = Array.isArray(workingScript?.customMetadata) ? workingScript.customMetadata : [];
+      const workingAuthorMetadataEntries = normalizeCustomMetadataEntries(workingScriptMetadata).filter((entry) => isAuthorMetaKey(entry?.key));
+      const authorEditedValue = authorEditedRef?.current ?? false;
+      const shouldPreserveAuthor = preserveAuthorInternalData && !authorEditedValue;
+      const effectiveAuthorDisplayMode = authorDisplayMode === "override" ? "override" : "badge";
+      const effectiveAuthor = String(author || "");
+      const persistedAuthor = effectiveAuthorDisplayMode === "override" ? effectiveAuthor : "";
 
       const orderedEntries = [];
-      if (authorDisplayMode === "override" && author) {
-        orderedEntries.push({ key: "Author", value: author });
+      if (!shouldPreserveAuthor && effectiveAuthorDisplayMode === "override" && effectiveAuthor) {
+        orderedEntries.push({ key: "Author", value: effectiveAuthor });
       }
-      orderedEntries.push({ key: "AuthorDisplayMode", value: authorDisplayMode === "override" ? "override" : "badge" });
+      if (!shouldPreserveAuthor) {
+        orderedEntries.push({ key: "AuthorDisplayMode", value: effectiveAuthorDisplayMode });
+      }
       if (outline) orderedEntries.push({ key: "Outline", value: outline });
       if (roleSetting) orderedEntries.push({ key: "RoleSetting", value: roleSetting });
       if (backgroundInfo) orderedEntries.push({ key: "BackgroundInfo", value: backgroundInfo });
@@ -198,17 +211,21 @@ export function useScriptMetadataSave({
       if (showMarkerLegend) {
         orderedEntries.push({ key: "marker_legend", value: "true" });
       }
-      const customMetadata = normalizeCustomMetadataEntries(orderedEntries);
+      let customMetadata = normalizeCustomMetadataEntries(orderedEntries);
+      if (shouldPreserveAuthor) {
+        const preservedAuthorEntries = workingAuthorMetadataEntries;
+        customMetadata = normalizeCustomMetadataEntries([
+          ...customMetadata.filter((entry) => !isAuthorMetaKey(entry?.key)),
+          ...preservedAuthorEntries,
+        ]);
+      }
 
       const updatePayload = {
         title,
         coverUrl,
         status,
-        content: content || "",
         customMetadata,
-        author: authorDisplayMode === "override" ? author : "",
         draftDate: date,
-        isPublic: status === "Public",
         personaId: identity.split(":")[1],
         organizationId: selectedOrgId || null,
         licenseCommercial: licenseCommercial || "",
@@ -220,27 +237,38 @@ export function useScriptMetadataSave({
         seriesId: seriesId || null,
         seriesOrder: Number.isFinite(Number(seriesOrder)) && Number(seriesOrder) >= 0 ? Math.floor(Number(seriesOrder)) : null,
       };
+      if (!shouldPreserveAuthor) {
+        updatePayload.author = persistedAuthor;
+      }
 
-      await updateScript(workingScript.id, updatePayload);
+      const persistScript = saveScript || updateScript;
+      const persisted = await persistScript(workingScript.id, updatePayload, {
+        script: workingScript,
+        tagIds: tagsToSave.map((tag) => Number(tag?.id)).filter((id) => Number.isFinite(id)),
+      });
 
       const originalTagIds = new Set(((workingScript && workingScript.tags) || []).map((tag) => tag.id));
       const finalTagIds = new Set(tagsToSave.map((tag) => tag.id));
       const addedTags = tagsToSave.filter((tag) => !originalTagIds.has(tag.id));
       const removedTags = ((workingScript && workingScript.tags) || []).filter((tag) => !finalTagIds.has(tag.id));
 
-      await Promise.all([
-        ...addedTags.map((tag) => addTagToScript(workingScript.id, tag.id)),
-        ...removedTags.map((tag) => removeTagFromScript(workingScript.id, tag.id)),
-      ]);
+      if (typeof syncScriptTags === "function") {
+        await syncScriptTags(workingScript.id, tagsToSave);
+      } else {
+        await Promise.all([
+          ...addedTags.map((tag) => addTagToScript(workingScript.id, tag.id)),
+          ...removedTags.map((tag) => removeTagFromScript(workingScript.id, tag.id)),
+        ]);
+      }
 
       onSave({
         ...(workingScript || script),
+        ...(persisted || {}),
         title,
         coverUrl,
         status,
-        content: content || "",
         customMetadata,
-        author: authorDisplayMode === "override" ? author : "",
+        author: shouldPreserveAuthor ? String(workingScript?.author || "") : persistedAuthor,
         draftDate: date,
         licenseCommercial: licenseCommercial || "",
         licenseDerivative: licenseDerivative || "",
@@ -313,6 +341,10 @@ export function useScriptMetadataSave({
     targetAudience,
     title,
     toast,
+    saveScript,
+    syncScriptTags,
+    preserveAuthorInternalData,
+    authorEditedRef,
   ]);
 
   return {

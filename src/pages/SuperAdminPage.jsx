@@ -10,6 +10,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useI18n } from "../contexts/I18nContext";
 import { MediaPicker } from "../components/ui/MediaPicker";
 import { ImageCropDialog } from "../components/ui/ImageCropDialog";
+import { ScriptMetadataDialog } from "../components/dashboard/ScriptMetadataDialog";
 import { getImageUploadGuide, MEDIA_FILE_ACCEPT, optimizeImageForUpload } from "../lib/mediaLibrary";
 import { uploadMediaObject } from "../lib/api/media";
 import { createOrganization, transferOrganizationOwnership } from "../lib/api/organizations";
@@ -25,6 +26,8 @@ import {
   getAllOrganizationsAdmin,
   getAllPersonasAdmin,
   getAllScriptsAdmin,
+  getScriptMetadataAdmin,
+  updateScriptMetadataAdmin,
   deleteUserAdmin,
   deleteOrganizationAdmin,
   deletePersonaAdmin,
@@ -56,6 +59,8 @@ export default function SuperAdminPage() {
 
   const [newOrgName, setNewOrgName] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showScriptSettingsModal, setShowScriptSettingsModal] = useState(false);
+  const [selectedScriptSettings, setSelectedScriptSettings] = useState(null);
 
   const [termsRecords, setTermsRecords] = useState([]);
   const [termsTotal, setTermsTotal] = useState(0);
@@ -327,6 +332,19 @@ export default function SuperAdminPage() {
     }
   };
 
+  const handleOpenScriptSettings = async (script) => {
+    if (!script?.id) return;
+    try {
+      const latest = await getScriptMetadataAdmin(script.id);
+      setSelectedScriptSettings(latest || script);
+      setShowScriptSettingsModal(true);
+    } catch (error) {
+      console.error("Failed to load script metadata", error);
+      setSelectedScriptSettings(script);
+      setShowScriptSettingsModal(true);
+    }
+  };
+
   const handleAddAdmin = async () => {
     const email = adminEmailInput.trim().toLowerCase();
     if (!email) return;
@@ -485,13 +503,40 @@ export default function SuperAdminPage() {
 
   return (
     <div className="container mx-auto p-4 sm:p-8 max-w-6xl h-full overflow-y-auto">
-      <header className="mb-8 border-b pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <header className="mb-6 border-b pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold font-serif mb-2">{t("transferAdmin.title")}</h1>
-          <p className="text-muted-foreground">全域超管模式：可檢視所有使用者、組織、作者、劇本並執行刪除。</p>
+          <h1 className="text-3xl font-bold font-serif mb-2">平台管理中心</h1>
+          <p className="text-muted-foreground">超級管理員可管理全站資料與劇本設定（不含內容檢視）。</p>
         </div>
         <Badge variant="outline" className="text-xs">{t("transferAdmin.loggedInAs")}：{currentUser?.displayName || "Admin"}</Badge>
       </header>
+
+      <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Card>
+          <CardContent className="p-3">
+            <div className="text-[11px] text-muted-foreground">使用者</div>
+            <div className="text-2xl font-bold leading-tight">{users.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3">
+            <div className="text-[11px] text-muted-foreground">組織</div>
+            <div className="text-2xl font-bold leading-tight">{orgs.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3">
+            <div className="text-[11px] text-muted-foreground">作者</div>
+            <div className="text-2xl font-bold leading-tight">{personas.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3">
+            <div className="text-[11px] text-muted-foreground">劇本</div>
+            <div className="text-2xl font-bold leading-tight">{scripts.filter((s) => s.type !== "folder").length}</div>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card className="mb-8">
         <CardContent className="pt-6">
@@ -660,12 +705,12 @@ export default function SuperAdminPage() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="users" className="space-y-6">
+      <Tabs defaultValue="scripts" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 max-w-2xl gap-1 h-auto sm:h-9">
-          <TabsTrigger value="users">使用者</TabsTrigger>
+          <TabsTrigger value="scripts">{t("transferAdmin.scriptTab")}</TabsTrigger>
           <TabsTrigger value="orgs">{t("transferAdmin.orgTab")}</TabsTrigger>
           <TabsTrigger value="personas">{t("transferAdmin.personaTab")}</TabsTrigger>
-          <TabsTrigger value="scripts">{t("transferAdmin.scriptTab")}</TabsTrigger>
+          <TabsTrigger value="users">使用者</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users">
@@ -787,6 +832,9 @@ export default function SuperAdminPage() {
                         <span className="text-xs text-muted-foreground">owner: {getOwnerLabel(s.ownerId)}</span>
                       </div>
                       <div className="flex items-center gap-2">
+                        <Button variant="secondary" size="sm" onClick={() => handleOpenScriptSettings(s)}>
+                          設定
+                        </Button>
                         <Button variant="outline" size="sm" onClick={() => handleOpenTransfer("script", s)}><ArrowRightLeft className="w-4 h-4 mr-2" />{t("transferAdmin.transfer")}</Button>
                         <Button variant="destructive" size="sm" disabled={isDeleting} onClick={() => handleDeleteScript(s)}><Trash2 className="w-4 h-4" /></Button>
                       </div>
@@ -870,6 +918,29 @@ export default function SuperAdminPage() {
             </CardContent>
           </Card>
         </div>
+      )}
+      {showScriptSettingsModal && selectedScriptSettings && (
+        <ScriptMetadataDialog
+          open={showScriptSettingsModal}
+          onOpenChange={(open) => {
+            setShowScriptSettingsModal(open);
+            if (!open) setSelectedScriptSettings(null);
+          }}
+          script={selectedScriptSettings}
+          fetchFullScript={false}
+          preserveAuthorInternalData
+          saveScript={async (scriptId, updates, context = {}) => {
+            return updateScriptMetadataAdmin(scriptId, {
+              ...updates,
+              tags: Array.isArray(context?.tagIds) ? context.tagIds : [],
+            });
+          }}
+          onSave={(savedScript) => {
+            setScripts((prev) =>
+              (prev || []).map((item) => (item.id === savedScript.id ? { ...item, ...savedScript } : item))
+            );
+          }}
+        />
       )}
       <MediaPicker
         open={homepageBannerPickerIndex !== null}

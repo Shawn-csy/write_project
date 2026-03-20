@@ -34,9 +34,18 @@ def test_security_headers_csp_is_restricted(client):
     response = client.get("/api/public-terms-config")
     assert response.status_code == 200
     csp = response.headers.get("content-security-policy", "")
+    csp_report_only = response.headers.get("content-security-policy-report-only", "")
     assert "default-src 'self'" in csp
     assert "'unsafe-eval'" not in csp
     assert "default-src *" not in csp
+    assert "connect-src https:" not in csp
+    assert "http://localhost:5173" in csp
+    assert "ws://localhost:5173" in csp
+    assert "script-src 'self' 'unsafe-inline'" not in csp
+    assert "script-src 'self'" in csp_report_only
+    assert "script-src 'self' 'unsafe-inline'" not in csp_report_only
+    assert "style-src 'self'" in csp_report_only
+    assert "style-src 'self' 'unsafe-inline'" not in csp_report_only
 
 
 def test_spa_read_markdown_error_returns_500(client, db_session, monkeypatch):
@@ -47,3 +56,14 @@ def test_spa_read_markdown_error_returns_500(client, db_session, monkeypatch):
     response = client.get("/read/any/extra", headers={"Accept": "text/markdown"})
     assert response.status_code == 500
     assert response.text == "Internal Server Error"
+
+
+def test_seo_structured_data_escapes_script_breakout(client):
+    from services.seo import inject_structured_data
+
+    html = "<html><head></head><body></body></html>"
+    payload = {"name": '</script><script>alert("xss")</script>'}
+    body = inject_structured_data(html, payload)
+
+    assert '</script><script>alert("xss")</script>' not in body
+    assert "\\u003c/script\\u003e\\u003cscript\\u003ealert" in body

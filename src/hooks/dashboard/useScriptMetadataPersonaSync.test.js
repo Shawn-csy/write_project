@@ -6,6 +6,7 @@ const setter = () => vi.fn();
 
 const buildProps = (overrides = {}) => ({
   open: true,
+  disablePersonaAutofill: false,
   identity: "persona:p1",
   personas: [
     {
@@ -106,6 +107,25 @@ describe("useScriptMetadataPersonaSync", () => {
 
     await waitFor(() => {
       expect(orgAlignProps.setSelectedOrgId).toHaveBeenCalledWith("org-1");
+    });
+  });
+
+  it("does not mutate identity/license/contact when persona autofill is disabled", async () => {
+    const props = buildProps({
+      disablePersonaAutofill: true,
+      identity: "persona:not-found",
+      personas: [],
+    });
+    renderHook(() => useScriptMetadataPersonaSync(props));
+
+    await waitFor(() => {
+      expect(props.setContactFields).not.toHaveBeenCalled();
+      expect(props.setLicenseCommercial).not.toHaveBeenCalled();
+      expect(props.setLicenseDerivative).not.toHaveBeenCalled();
+      expect(props.setLicenseNotify).not.toHaveBeenCalled();
+      expect(props.setLicenseSpecialTerms).not.toHaveBeenCalled();
+      expect(props.setIdentity).not.toHaveBeenCalled();
+      expect(props.setSelectedOrgId).not.toHaveBeenCalled();
     });
   });
 });

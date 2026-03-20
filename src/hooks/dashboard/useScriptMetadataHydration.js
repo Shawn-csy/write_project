@@ -6,6 +6,9 @@ import { customMetadataEntriesToMeta, customMetadataEntriesToRawEntries } from "
 import { parseActivityDemoLinks } from "../../lib/activityDemoLinks";
 
 export function useScriptMetadataHydration({
+  fetchFullScript = true,
+  disableAuthorAutofill = false,
+  disablePersonaAutofill = false,
   customFields,
   ensureList,
   loadPublicInfoIfNeeded,
@@ -77,14 +80,14 @@ export function useScriptMetadataHydration({
         setIdentity(`persona:${baseScript.personaId}`);
         setSelectedOrgId(baseScript.organizationId || "");
       } else {
-        const preferredPersonaId = localStorage.getItem("preferredPersonaId");
+        const preferredPersonaId = disablePersonaAutofill ? "" : localStorage.getItem("preferredPersonaId");
         setIdentity(preferredPersonaId ? `persona:${preferredPersonaId}` : "");
         setSelectedOrgId("");
       }
 
       let sourceScript = baseScript;
 
-      if (baseScript.id) {
+      if (fetchFullScript && baseScript.id) {
         try {
           const full = await getScript(baseScript.id);
           if (full) {
@@ -107,12 +110,17 @@ export function useScriptMetadataHydration({
       const meta = customMetadataEntriesToMeta(sourceScript.customMetadata || []);
       setTitle((prev) => prev || sourceScript.title || meta.title || "");
       const resolvedAuthor = sourceScript.author || meta.author || meta.authors || "";
-      setAuthor(resolvedAuthor);
       const rawAuthorDisplayMode = String(meta.authordisplaymode || meta.authorDisplayMode || "").trim().toLowerCase();
-      if (rawAuthorDisplayMode === "override" || rawAuthorDisplayMode === "badge") {
-        setAuthorDisplayMode(rawAuthorDisplayMode);
+      const resolvedAuthorDisplayMode =
+        rawAuthorDisplayMode === "override" || rawAuthorDisplayMode === "badge"
+          ? rawAuthorDisplayMode
+          : (String(resolvedAuthor || "").trim() ? "override" : "badge");
+      if (disableAuthorAutofill) {
+        setAuthor("");
+        setAuthorDisplayMode("badge");
       } else {
-        setAuthorDisplayMode(String(resolvedAuthor || "").trim() ? "override" : "badge");
+        setAuthor(resolvedAuthor);
+        setAuthorDisplayMode(resolvedAuthorDisplayMode);
       }
       setDate(sourceScript.draftDate || "");
       setContact(meta.contact || "");
@@ -164,6 +172,9 @@ export function useScriptMetadataHydration({
     },
     [
       customFields,
+      disableAuthorAutofill,
+      disablePersonaAutofill,
+      fetchFullScript,
       ensureList,
       loadPublicInfoIfNeeded,
       setAuthor,
