@@ -248,7 +248,7 @@ export function PublicScriptInfoOverlay({
 
   return (
     <div className="relative mx-auto flex w-full max-w-4xl flex-col items-center space-y-6 px-6 py-12 text-center md:py-20">
-      <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-white/15 bg-background/40 shadow-xl backdrop-blur-sm">
+      <div className={`w-full max-w-2xl overflow-hidden rounded-2xl border border-white/15 shadow-xl backdrop-blur-sm ${hasCover ? "bg-transparent" : "bg-background/40"}`}>
         {hasCover ? (
           <img
             src={coverUrl}

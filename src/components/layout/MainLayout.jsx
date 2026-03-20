@@ -77,13 +77,13 @@ export function MainLayout({
       {showSidebar && (
         <div
           className={`hidden lg:block shrink-0 border-r border-border bg-muted/30 transition-[width] duration-300 ease-in-out overflow-hidden ${
-            isDesktopSidebarOpen ? "w-64" : "w-0 border-r-0"
+            isDesktopSidebarOpen ? "w-64" : "w-16"
           }`}
-          aria-hidden={!isDesktopSidebarOpen}
         >
-          <div className="w-64 h-full flex flex-col">
+          <div className="h-full flex flex-col">
             <Sidebar
               className="bg-transparent"
+              collapsed={!isDesktopSidebarOpen}
               fileTree={fileTree}
               activeFile={activeFile}
               onSelectFile={onSelectFile}

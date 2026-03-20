@@ -1,6 +1,6 @@
 import time
 
-from models import Organization, Persona, Script, User
+from models import Organization, Persona, Script, Tag, User
 
 
 def _seed_user(db_session, user_id: str, email: str):
@@ -125,3 +125,56 @@ def test_admin_delete_org_persona_script_and_not_found(client, db_session):
     assert client.delete("/api/admin/all-organizations/org-b", headers={"X-User-ID": "admin-owner"}).status_code == 404
     assert client.delete("/api/admin/all-personas/persona-b", headers={"X-User-ID": "admin-owner"}).status_code == 404
     assert client.delete("/api/admin/all-scripts/script-b", headers={"X-User-ID": "admin-owner"}).status_code == 404
+
+
+def test_admin_can_update_script_metadata_with_tags(client, db_session):
+    now = int(time.time() * 1000)
+    _seed_user(db_session, "owner-d", "owner-d@example.com")
+    script = Script(
+        id="script-d",
+        ownerId="owner-d",
+        title="Old Title",
+        content="SECRET",
+        type="script",
+        folder="/",
+        createdAt=now,
+        lastModified=now,
+        isPublic=0,
+        status="Private",
+        customMetadata=[],
+    )
+    db_session.add(script)
+    tag = Tag(ownerId="owner-d", name="女性向", color="bg-gray-500")
+    db_session.add(tag)
+    db_session.commit()
+    db_session.refresh(tag)
+
+    res = client.put(
+        "/api/admin/all-scripts/script-d/metadata",
+        headers={"X-User-ID": "admin-owner"},
+        json={
+            "title": "New Title",
+            "status": "Public",
+            "customMetadata": [{"key": "Synopsis", "value": "hello"}],
+            "tags": [tag.id],
+        },
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["id"] == "script-d"
+    assert body["title"] == "New Title"
+    assert body["status"] == "Public"
+    assert "content" not in body
+    assert isinstance(body.get("tags"), list)
+    assert len(body["tags"]) == 1
+    assert body["tags"][0]["id"] == tag.id
+
+    get_res = client.get("/api/admin/all-scripts/script-d/metadata", headers={"X-User-ID": "admin-owner"})
+    assert get_res.status_code == 200
+    get_body = get_res.json()
+    assert get_body["id"] == "script-d"
+    assert get_body["title"] == "New Title"
+    assert "content" not in get_body
+
+    denied = client.get("/api/admin/all-scripts/script-d/metadata", headers={"X-User-ID": "owner-d"})
+    assert denied.status_code == 403

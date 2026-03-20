@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { getScript } from "../lib/api/scripts";
+import { getScript, updateScript } from "../lib/api/scripts";
 import LiveEditor from "../components/editor/LiveEditor";
 
 // This page accepts :id
@@ -48,6 +48,26 @@ export default function CloudEditorPage({ scriptManager, navProps }) {
   if (!activeCloudScript || activeCloudScript.id !== id) {
       return <div className="flex items-center justify-center h-full">Loading...</div>;
   }
+
+  const handlePersistMarkerTheme = async (themeId) => {
+    if (!activeCloudScript?.id) return false;
+    const normalizedThemeId = String(themeId || "default");
+    const prevThemeId = String(activeCloudScript?.markerThemeId || "default");
+    if (normalizedThemeId === prevThemeId) return true;
+    setActiveCloudScript((prev) =>
+      prev ? { ...prev, markerThemeId: normalizedThemeId } : prev
+    );
+    try {
+      await updateScript(activeCloudScript.id, { markerThemeId: normalizedThemeId });
+      return true;
+    } catch (err) {
+      console.error("Failed to update marker theme", err);
+      setActiveCloudScript((prev) =>
+        prev ? { ...prev, markerThemeId: prevThemeId } : prev
+      );
+      return false;
+    }
+  };
 
   const guideParams = new URLSearchParams(location.search);
   const crossModeGuideActive = guideParams.get("guide") === "1";
@@ -137,6 +157,7 @@ export default function CloudEditorPage({ scriptManager, navProps }) {
         onCrossGuideNext={handleCrossGuideNext}
         onCrossGuidePrev={handleCrossGuidePrev}
         onCrossGuideExit={handleCrossGuideExit}
+        onPersistMarkerTheme={!isReadMode ? handlePersistMarkerTheme : undefined}
       />
   );
 }

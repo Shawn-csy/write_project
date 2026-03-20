@@ -1,19 +1,19 @@
 import { useCallback, useState } from "react";
 import { createTag, getTags } from "../../lib/api/tags";
 
-export function useScriptTags({ t, toast } = {}) {
+export function useScriptTags({ t, toast, tagOwnerId = "" } = {}) {
   const [currentTags, setCurrentTags] = useState([]);
   const [availableTags, setAvailableTags] = useState([]);
   const [newTagInput, setNewTagInput] = useState("");
 
   const loadTags = useCallback(async () => {
     try {
-      const tags = await getTags();
+      const tags = await getTags(tagOwnerId);
       setAvailableTags(tags || []);
     } catch (error) {
       console.error("Failed to load tags", error);
     }
-  }, []);
+  }, [tagOwnerId]);
 
   const handleAddTagsBatch = useCallback(
     async (inputs = []) => {
@@ -40,7 +40,7 @@ export function useScriptTags({ t, toast } = {}) {
         let existing = availableTags.find((tag) => tag.name.toLowerCase() === lowerName);
         if (!existing) {
           try {
-            existing = await createTag(displayName, "bg-gray-500");
+            existing = await createTag(displayName, "bg-gray-500", tagOwnerId);
             setAvailableTags((prev) => {
               if (prev.some((tag) => tag.id === existing.id || tag.name.toLowerCase() === lowerName)) return prev;
               return [...prev, existing];
@@ -71,7 +71,7 @@ export function useScriptTags({ t, toast } = {}) {
         }
       }
     },
-    [availableTags, t, toast]
+    [availableTags, t, toast, tagOwnerId]
   );
 
   const handleAddTag = useCallback(
@@ -100,7 +100,7 @@ export function useScriptTags({ t, toast } = {}) {
 
       try {
         if (!tagToAdd) {
-          const newTag = await createTag(tagName, "bg-gray-500");
+          const newTag = await createTag(tagName, "bg-gray-500", tagOwnerId);
           tagToAdd = newTag;
           setAvailableTags((prev) => {
             if (prev.some((tag) => tag.id === newTag.id || tag.name.toLowerCase() === newTag.name.toLowerCase())) return prev;
@@ -116,7 +116,7 @@ export function useScriptTags({ t, toast } = {}) {
         console.error("Error adding tag", error);
       }
     },
-    [availableTags, currentTags, handleAddTagsBatch, newTagInput]
+    [availableTags, currentTags, handleAddTagsBatch, newTagInput, tagOwnerId]
   );
 
   const handleRemoveTag = useCallback((tagId) => {

@@ -10,6 +10,7 @@ import { MetaTags } from "./components/common/MetaTags.jsx";
 import { useReaderScriptActions } from "./hooks/useScriptActions";
 import { useInitialScroll } from "./hooks/useInitialScroll";
 import { updateScript } from "./lib/api/scripts";
+import { trackPageView } from "./lib/firebase";
 
 import { ScriptViewProvider } from "./contexts/ScriptViewContext";
 
@@ -35,6 +36,8 @@ function App() {
 
   // 2. Refs (for initial params)
   const initialParamsRef = useRef({ char: null, scene: null });
+  const appliedScriptThemeRef = useRef(null);
+  const lastTrackedPageRef = useRef("");
   // Initialize refs from URL once
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -82,11 +85,34 @@ function App() {
 
   // 6. Effects
   useEffect(() => {
-      if (!activeCloudScript) return;
-      const desiredThemeId = activeCloudScript?.markerThemeId || "default";
-      const themeExists = markerThemes.some((t) => t.id === desiredThemeId);
+      if (!activeCloudScript) {
+          appliedScriptThemeRef.current = null;
+          return;
+      }
+      const scriptId = String(activeCloudScript?.id || "");
+      if (!scriptId) return;
+      if (appliedScriptThemeRef.current === scriptId) return;
+
+      const desiredThemeId = String(activeCloudScript?.markerThemeId || "default");
+      const themeExists = markerThemes.some((t) => String(t?.id || "") === desiredThemeId);
+
+      // Wait until the script's custom theme is loaded, then apply once for this script.
+      if (desiredThemeId !== "default" && !themeExists) return;
       setCurrentThemeId(themeExists ? desiredThemeId : "default");
+      appliedScriptThemeRef.current = scriptId;
   }, [activeCloudScript?.id, activeCloudScript?.markerThemeId, markerThemes, setCurrentThemeId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const currentPath = `${location.pathname}${location.search}${location.hash}`;
+    if (lastTrackedPageRef.current === currentPath) return;
+    lastTrackedPageRef.current = currentPath;
+    trackPageView({
+      path: currentPath,
+      title: document.title,
+      location: window.location.href,
+    });
+  }, [location.pathname, location.search, location.hash]);
 
   const handleCloudTitleUpdate = useCallback(async (newTitle) => {
        if (!activeCloudScript || !newTitle) return;
@@ -99,6 +125,28 @@ function App() {
        } catch (e) {
            console.error("Failed to rename script", e);
        }
+  }, [activeCloudScript, scriptManager]);
+
+  const handleCloudMarkerThemeUpdate = useCallback(async (newThemeId) => {
+      if (!activeCloudScript) return false;
+      const normalizedThemeId = String(newThemeId || "default");
+      const prevThemeId = String(activeCloudScript?.markerThemeId || "default");
+      if (normalizedThemeId === prevThemeId) return true;
+
+      scriptManager.setActiveCloudScript((prev) =>
+        prev ? { ...prev, markerThemeId: normalizedThemeId } : prev
+      );
+
+      try {
+          await updateScript(activeCloudScript.id, { markerThemeId: normalizedThemeId });
+          return true;
+      } catch (e) {
+          console.error("Failed to update marker theme", e);
+          scriptManager.setActiveCloudScript((prev) =>
+            prev ? { ...prev, markerThemeId: prevThemeId } : prev
+          );
+          return false;
+      }
   }, [activeCloudScript, scriptManager]);
 
   const handleReturnHome = () => {
@@ -245,6 +293,7 @@ function App() {
           shareCopied={shareCopied}
           handleReturnHome={handleReturnHome}
           handleCloudTitleUpdate={handleCloudTitleUpdate}
+          handleCloudMarkerThemeUpdate={handleCloudMarkerThemeUpdate}
           
           accentStyle={accentStyle}
           fileLabelMode={fileLabelMode}

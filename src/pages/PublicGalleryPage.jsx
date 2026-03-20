@@ -17,7 +17,7 @@ import { useI18n } from "../contexts/I18nContext";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Checkbox } from "../components/ui/checkbox";
-import { SlidersHorizontal, Search, X } from "lucide-react";
+import { CircleHelp, LayoutDashboard, LogIn, Scale, Search, SlidersHorizontal, X } from "lucide-react";
 import { CoverPlaceholder } from "../components/ui/CoverPlaceholder";
 import { Input } from "../components/ui/input";
 import { customMetadataEntriesToMeta } from "../lib/customMetadata";
@@ -28,6 +28,13 @@ const SEGMENT_KEYS = {
   adult: "adult",
   male: "male",
   female: "female",
+};
+
+const FEATURED_TAB_KEYS = {
+  featured: "featured",
+  top: "top",
+  latest: "latest",
+  series: "series",
 };
 
 const SEGMENT_TAGS = {
@@ -91,7 +98,7 @@ export default function PublicGalleryPage() {
   const [orgs, setOrgs] = useState([]);
   const [topTags, setTopTags] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortKey, setSortKey] = useState("recent");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [featuredLaneMode, setFeaturedLaneMode] = useState(null);
   const [pendingR18Route, setPendingR18Route] = useState(null);
   const [pendingScript, setPendingScript] = useState(null);
@@ -191,6 +198,13 @@ export default function PublicGalleryPage() {
   const [isLoadingPeople, setIsLoadingPeople] = useState(true);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [homepageBanner, setHomepageBanner] = useState(null);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 180);
+    return () => window.clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
     const loadTermsConfig = async () => {
@@ -311,6 +325,11 @@ export default function PublicGalleryPage() {
                 avatarUrl: "",
               }
             : (script.author || null);
+          const searchTitle = String(script.title || "").toLowerCase();
+          const searchAuthor = String(resolvedAuthor?.displayName || "").toLowerCase();
+          const searchLicenseText = [license, ...licenseTags].filter(Boolean).join(" ").toLowerCase();
+          const searchLicenseTermsText = termsText.toLowerCase();
+          const tagSetLower = new Set(mergedTags.map((tag) => String(tag).toLowerCase()));
           return {
               ...script,
               author: resolvedAuthor,
@@ -324,45 +343,50 @@ export default function PublicGalleryPage() {
               _seriesOrder: seriesOrder,
               seriesName,
               seriesOrder,
+              _searchTitle: searchTitle,
+              _searchAuthor: searchAuthor,
+              _searchLicenseText: searchLicenseText,
+              _searchLicenseTermsText: searchLicenseTermsText,
+              _tagSetLower: tagSetLower,
           };
       });
   }, [scripts]);
 
+  const searchNeedle = debouncedSearchTerm.trim().toLowerCase();
+
   // Filter Logic
-  const filteredScripts = scriptsWithMeta.filter(script => {
-      const needle = searchTerm.toLowerCase();
-      const scriptTagSet = new Set((script.tags || []).map((tag) => String(tag).toLowerCase()));
-      const matchesSearch =
-          script.title?.toLowerCase().includes(needle) ||
-          script.author?.displayName?.toLowerCase().includes(needle) ||
-          script._licenseText?.toLowerCase().includes(needle) ||
-          script._licenseTermsText?.toLowerCase().includes(needle);
-      const matchesTag = selectedTags.length > 0 
-        ? (script.tags || []).some(t => selectedTags.includes(t)) 
-        : true;
-      const matchesSegment = segmentFilter === SEGMENT_KEYS.all
-        ? true
-        : (SEGMENT_TAGS[segmentFilter] || []).some((tag) => scriptTagSet.has(String(tag).toLowerCase()));
-      const matchesUsage =
+  const filteredScripts = useMemo(() => {
+    return scriptsWithMeta
+      .filter((script) => {
+        const matchesSearch =
+          searchNeedle === "" ||
+          script._searchTitle.includes(searchNeedle) ||
+          script._searchAuthor.includes(searchNeedle) ||
+          script._searchLicenseText.includes(searchNeedle) ||
+          script._searchLicenseTermsText.includes(searchNeedle);
+        const matchesTag = selectedTags.length > 0
+          ? (script.tags || []).some((tag) => selectedTags.includes(tag))
+          : true;
+        const matchesSegment = segmentFilter === SEGMENT_KEYS.all
+          ? true
+          : (SEGMENT_TAGS[segmentFilter] || []).some((tag) => script._tagSetLower.has(String(tag).toLowerCase()));
+        const matchesUsage =
           usageFilter === "all" ? true :
           usageFilter === "commercial" ? script._allowCommercial === true :
           true;
-      return matchesSearch && matchesTag && matchesSegment && matchesUsage;
-  }).sort((a, b) => {
-      // By default, recent is standard if not sorted
-      return (b.lastModified || b.updatedAt || 0) - (a.lastModified || a.updatedAt || 0);
-  });
+        return matchesSearch && matchesTag && matchesSegment && matchesUsage;
+      })
+      .sort((a, b) => (b.lastModified || b.updatedAt || 0) - (a.lastModified || a.updatedAt || 0));
+  }, [scriptsWithMeta, searchNeedle, selectedTags, segmentFilter, usageFilter]);
 
   // Calculate default view lanes (when no filters are actively applied)
-  const isDefaultView = searchTerm.trim() === "" && selectedTags.length === 0 && usageFilter === "all" && segmentFilter === SEGMENT_KEYS.all;
+  const isDefaultView = searchNeedle === "" && selectedTags.length === 0 && usageFilter === "all" && segmentFilter === SEGMENT_KEYS.all;
 
   const topViewedScripts = useMemo(() => {
     return [...filteredScripts].sort((a, b) => (b.views || 0) - (a.views || 0));
   }, [filteredScripts]);
 
-  const latestScripts = useMemo(() => {
-    return [...filteredScripts].sort((a, b) => (b.lastModified || b.updatedAt || 0) - (a.lastModified || a.updatedAt || 0));
-  }, [filteredScripts]);
+  const latestScripts = filteredScripts;
   const topViewedScriptsPreview = useMemo(() => topViewedScripts.slice(0, 15), [topViewedScripts]);
   const latestScriptsPreview = useMemo(() => latestScripts.slice(0, 15), [latestScripts]);
   const featuredLaneScripts = useMemo(() => {
@@ -417,20 +441,24 @@ export default function PublicGalleryPage() {
   const licenseTagShortcuts = Array.from(
     new Set(scriptsWithMeta.flatMap((s) => s._derivedLicenseTags || []))
   );
-  const filteredAuthors = authors.filter(a => {
-    const matchesSearch = a.displayName?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTag = selectedAuthorTags.length > 0 
-      ? (a.tags || []).some(t => selectedAuthorTags.includes(t)) 
-      : true;
-    return matchesSearch && matchesTag;
-  });
-  const filteredOrgs = orgs.filter(o => {
-    const matchesSearch = o.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTag = selectedOrgTags.length > 0 
-      ? (o.tags || []).some(t => selectedOrgTags.includes(t)) 
-      : true;
-    return matchesSearch && matchesTag;
-  });
+  const filteredAuthors = useMemo(() => {
+    return authors.filter((a) => {
+      const matchesSearch = String(a.displayName || "").toLowerCase().includes(searchNeedle);
+      const matchesTag = selectedAuthorTags.length > 0
+        ? (a.tags || []).some((tag) => selectedAuthorTags.includes(tag))
+        : true;
+      return matchesSearch && matchesTag;
+    });
+  }, [authors, searchNeedle, selectedAuthorTags]);
+  const filteredOrgs = useMemo(() => {
+    return orgs.filter((o) => {
+      const matchesSearch = String(o.name || "").toLowerCase().includes(searchNeedle);
+      const matchesTag = selectedOrgTags.length > 0
+        ? (o.tags || []).some((tag) => selectedOrgTags.includes(tag))
+        : true;
+      return matchesSearch && matchesTag;
+    });
+  }, [orgs, searchNeedle, selectedOrgTags]);
   const mobileResultCount =
     view === "scripts" ? filteredScripts.length :
     view === "authors" ? filteredAuthors.length :
@@ -451,7 +479,13 @@ export default function PublicGalleryPage() {
     { value: "all", label: t("publicGallery.usageAll") },
     { value: "commercial", label: t("publicGallery.usageCommercial") },
   ]), [t]);
-  const hasScriptFilters = searchTerm.trim() !== "" || selectedTags.length > 0 || usageFilter !== "all" || segmentFilter !== SEGMENT_KEYS.all;
+  const featuredViewTabs = useMemo(() => ([
+    { key: FEATURED_TAB_KEYS.featured, label: t("publicGallery.featuredTab", "精選") },
+    { key: FEATURED_TAB_KEYS.top, label: t("publicGallery.categoryTopViewed", "點閱排行") },
+    { key: FEATURED_TAB_KEYS.latest, label: t("publicGallery.categoryLatest", "最新發布") },
+    { key: FEATURED_TAB_KEYS.series, label: t("publicGallery.categorySeries", "熱門系列") },
+  ]), [t]);
+  const hasScriptFilters = searchNeedle !== "" || selectedTags.length > 0 || usageFilter !== "all" || segmentFilter !== SEGMENT_KEYS.all;
   useEffect(() => {
     if (!isDefaultView && featuredLaneMode) setFeaturedLaneMode(null);
   }, [isDefaultView, featuredLaneMode]);
@@ -554,6 +588,10 @@ export default function PublicGalleryPage() {
     if (requiredChecks.length === 0) return true;
     return requiredChecks.every((item) => Boolean(acceptedChecks[item.id]));
   })();
+  const missingRequiredCheckCount = (() => {
+    const requiredChecks = Array.isArray(termsConfig?.requiredChecks) ? termsConfig.requiredChecks : [];
+    return requiredChecks.filter((item) => !acceptedChecks[item.id]).length;
+  })();
 
   const confirmTermsConsent = async () => {
     if (!pendingScript || !termsConfig?.version || !canConfirmTerms || isSubmittingTerms) return;
@@ -608,63 +646,110 @@ export default function PublicGalleryPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <PublicTopBar
+        fullBleed
         tabs={tabs}
         activeTab={view}
         onTabChange={setView}
         actions={
-          <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-1">
-              <Button variant="ghost" size="sm" onClick={() => navigate("/license")}>
-                {t("publicGallery.licenseTerms")}
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 lg:hidden"
+              onClick={() => setIsMobileFilterOpen(true)}
+              title={t("publicGallery.mobileFilter", "篩選")}
+              aria-label={t("publicGallery.mobileFilter", "篩選")}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-10 px-0 sm:w-auto sm:px-3"
+                onClick={() => navigate("/license")}
+                title={t("publicGallery.licenseTerms")}
+                aria-label={t("publicGallery.licenseTerms")}
+              >
+                <Scale className="h-4 w-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">{t("publicGallery.licenseTerms")}</span>
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => navigate("/help")}>
-                {t("publicGallery.help")}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-10 px-0 sm:w-auto sm:px-3"
+                onClick={() => navigate("/help")}
+                title={t("publicGallery.help")}
+                aria-label={t("publicGallery.help")}
+              >
+                <CircleHelp className="h-4 w-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">{t("publicGallery.help")}</span>
               </Button>
             </div>
             {currentUser ? (
-              <Button variant="default" size="sm" onClick={() => navigate("/dashboard")}>
-                {t("publicGallery.goStudio")}
+              <Button
+                variant="default"
+                size="sm"
+                className="w-10 px-0 sm:w-auto sm:px-3"
+                onClick={() => navigate("/dashboard")}
+                title={t("publicGallery.goStudio")}
+                aria-label={t("publicGallery.goStudio")}
+              >
+                <LayoutDashboard className="h-4 w-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">{t("publicGallery.goStudio")}</span>
               </Button>
             ) : (
-              <Button variant="outline" size="sm" onClick={async () => {
-                try { await login(); } catch(e) { console.error(e); }
-              }}>
-                {t("publicGallery.login")}
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-10 px-0 sm:w-auto sm:px-3"
+                onClick={async () => {
+                  try { await login(); } catch(e) { console.error(e); }
+                }}
+                title={t("publicGallery.login")}
+                aria-label={t("publicGallery.login")}
+              >
+                <LogIn className="h-4 w-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">{t("publicGallery.login")}</span>
               </Button>
             )}
           </div>
         }
       />
-      <PublicHeroMarquee
-        slides={(() => {
-          const items = Array.isArray(homepageBanner?.items) ? homepageBanner.items : [];
-          const valid = items.filter((item) => item && (item.title || item.content || item.link || item.imageUrl));
-          if (valid.length > 0) {
-            return valid.map((item, idx) => ({
-              id: item.id || `admin-homepage-banner-${idx + 1}`,
-              title: item.title || "",
-              content: item.content || "",
-              subtitle: item.content || "",
-              link: item.link || "",
-              imageUrl: item.imageUrl || "",
-            }));
-          }
-          if (homepageBanner && (homepageBanner.title || homepageBanner.content || homepageBanner.link || homepageBanner.imageUrl)) {
-            return [{
-              id: "admin-homepage-banner",
-              title: homepageBanner.title || "",
-              content: homepageBanner.content || "",
-              subtitle: homepageBanner.content || "",
-              link: homepageBanner.link || "",
-              imageUrl: homepageBanner.imageUrl || "",
-            }];
-          }
-          return undefined;
-        })()}
-      />
+      {view === "scripts" ? (
+        <PublicHeroMarquee
+          fullBleed
+          slides={(() => {
+            const items = Array.isArray(homepageBanner?.items) ? homepageBanner.items : [];
+            const valid = items.filter((item) => item && (item.title || item.content || item.link || item.imageUrl));
+            if (valid.length > 0) {
+              return valid.map((item, idx) => ({
+                id: item.id || `admin-homepage-banner-${idx + 1}`,
+                title: item.title || "",
+                content: item.content || "",
+                subtitle: item.content || "",
+                link: item.link || "",
+                imageUrl: item.imageUrl || "",
+              }));
+            }
+            if (homepageBanner && (homepageBanner.title || homepageBanner.content || homepageBanner.link || homepageBanner.imageUrl)) {
+              return [{
+                id: "admin-homepage-banner",
+                title: homepageBanner.title || "",
+                content: homepageBanner.content || "",
+                subtitle: homepageBanner.content || "",
+                link: homepageBanner.link || "",
+                imageUrl: homepageBanner.imageUrl || "",
+              }];
+            }
+            return undefined;
+          })()}
+        />
+      ) : null}
 
       {/* Main Content */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 pb-20">
+      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-5 sm:py-8 pb-20">
         {view === "scripts" && (
           <div className="mb-4 sm:mb-6 overflow-x-auto border-b border-border/70">
             <div className="flex min-w-max items-end gap-1">
@@ -685,6 +770,31 @@ export default function PublicGalleryPage() {
             </div>
           </div>
         )}
+        {view === "scripts" && isDefaultView && (
+          <div className="mb-4 overflow-x-auto lg:hidden">
+            <div className="flex min-w-max items-center gap-2">
+              {featuredViewTabs.map((tab) => {
+                const isActive = (featuredLaneMode || FEATURED_TAB_KEYS.featured) === tab.key;
+                return (
+                  <Button
+                    key={tab.key}
+                    type="button"
+                    size="sm"
+                    variant={isActive ? "default" : "outline"}
+                    className={`h-8 rounded-full px-3 text-xs ${
+                      isActive
+                        ? "border border-primary bg-primary text-primary-foreground shadow ring-1 ring-primary/35"
+                        : "border-border/60 bg-background text-muted-foreground"
+                    }`}
+                    onClick={() => setFeaturedLaneMode(tab.key === FEATURED_TAB_KEYS.featured ? null : tab.key)}
+                  >
+                    {tab.label}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+        )}
         <div className="mb-3 space-y-2 lg:hidden">
           <div className="flex items-center gap-2">
             <div className="relative min-w-0 flex-1">
@@ -697,7 +807,7 @@ export default function PublicGalleryPage() {
                   view === "authors" ? t("publicGallery.searchAuthors", "搜尋作者...") :
                   t("publicGallery.searchOrgs", "搜尋組織...")
                 }
-                className="h-9 rounded-full border-border/70 bg-background pl-8 pr-8 text-sm"
+                className="h-9 rounded-full border-border/70 bg-background/90 pl-8 pr-8 text-sm"
               />
               {searchTerm ? (
                 <button
@@ -744,53 +854,56 @@ export default function PublicGalleryPage() {
             ) : null}
           </div>
         </div>
-        <div className="flex flex-col lg:flex-row gap-8">
-            {/* Sidebar Filters */}
-            <aside className="hidden lg:block w-full lg:w-[280px] shrink-0">
-                <div className="lg:sticky lg:top-24 space-y-6">
-                    <GalleryFilterBar 
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            selectedTags={
-                view === "scripts" ? selectedTags :
-                view === "authors" ? selectedAuthorTags :
-                selectedOrgTags
-            }
-            onSelectTags={
-                view === "scripts" ? setSelectedTags :
-                view === "authors" ? setAuthorTags :
-                setOrgTags
-            }
-            featuredTags={view === "scripts" ? topTags : []}
-            tags={
-                view === "scripts" ? allTags :
-                view === "authors" ? authorTags :
-                orgTags
-            }
-            placeholder={
-                view === "scripts" ? t("publicGallery.searchScripts", "搜尋劇本...") :
-                view === "authors" ? t("publicGallery.searchAuthors", "搜尋作者...") :
-                t("publicGallery.searchOrgs", "搜尋組織...")
-            }
-            showViewToggle={false}
-            viewValue={viewMode}
-            onViewChange={handleViewModeChange}
-            viewOptions={[
-                { value: "standard", label: t("publicGallery.viewStandard", "圖文排版") },
-                { value: "compact", label: t("publicGallery.viewCompact", "緊湊排版") }
-            ]}
-            quickFilters={[]}
-            quickTagFilters={view === "scripts" ? [
-                ...licenseTagShortcuts.map((tag) => ({
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+
+          <aside id="desktop-filter-panel" className="hidden lg:block w-[280px] shrink-0">
+            <div className="sticky top-24 rounded-2xl border border-border/70 bg-card/70 px-4 py-3 shadow-sm backdrop-blur">
+              <p className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground">
+                {t("publicGallery.mobileFilterTitle", "篩選與搜尋")}
+              </p>
+              <GalleryFilterBar
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                selectedTags={
+                  view === "scripts" ? selectedTags :
+                  view === "authors" ? selectedAuthorTags :
+                  selectedOrgTags
+                }
+                onSelectTags={
+                  view === "scripts" ? setSelectedTags :
+                  view === "authors" ? setAuthorTags :
+                  setOrgTags
+                }
+                featuredTags={view === "scripts" ? topTags : []}
+                tags={
+                  view === "scripts" ? allTags :
+                  view === "authors" ? authorTags :
+                  orgTags
+                }
+                placeholder={
+                  view === "scripts" ? t("publicGallery.searchScripts", "搜尋劇本...") :
+                  view === "authors" ? t("publicGallery.searchAuthors", "搜尋作者...") :
+                  t("publicGallery.searchOrgs", "搜尋組織...")
+                }
+                showViewToggle={false}
+                viewValue={viewMode}
+                onViewChange={handleViewModeChange}
+                viewOptions={[
+                  { value: "standard", label: t("publicGallery.viewStandard", "圖文排版") },
+                  { value: "compact", label: t("publicGallery.viewCompact", "緊湊排版") }
+                ]}
+                quickFilters={[]}
+                quickTagFilters={view === "scripts" ? [
+                  ...licenseTagShortcuts.map((tag) => ({
                     value: tag,
                     label: tag.replace(/^授權:/, "").replace(/^License:/, "")
-                }))
-            ] : []}
-            />
-                </div>
-            </aside>
+                  }))
+                ] : []}
+              />
+            </div>
+          </aside>
 
-        <div className="flex-1 min-w-0 flex flex-col">
+          <div className="flex-1 min-w-0 flex flex-col">
             {view === "scripts" && (
               <div className="mb-4 hidden lg:flex items-center gap-4 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
                 <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -936,7 +1049,11 @@ export default function PublicGalleryPage() {
                   )}
 
                   {featuredSeries.length > 0 && (
-                      <HorizontalScrollLane title={t("publicGallery.categorySeries", "熱門系列")}>
+                      <HorizontalScrollLane
+                        title={t("publicGallery.categorySeries", "熱門系列")}
+                        actionLabel={t("publicGallery.viewAll", "查看全部")}
+                        onAction={() => setFeaturedLaneMode("series")}
+                      >
                           {featuredSeries.map((series) => (
                               <button
                                 key={series.name}
@@ -964,6 +1081,50 @@ export default function PublicGalleryPage() {
                           ))}
                       </HorizontalScrollLane>
                   )}
+              </div>
+          ) : featuredLaneMode === "series" ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-foreground">
+                        {t("publicGallery.categorySeries", "熱門系列")} <span className="text-muted-foreground text-sm font-normal">({featuredSeries.length})</span>
+                    </h2>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => setFeaturedLaneMode(null)}
+                    >
+                      {t("publicGallery.backToFeatured", "返回精選")}
+                    </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                  {featuredSeries.map((series) => (
+                    <button
+                      key={series.name}
+                      type="button"
+                      className="text-left group"
+                      onClick={() => navigate(`/series/${encodeURIComponent(series.name)}`)}
+                    >
+                      <div className="aspect-[2/3] overflow-hidden rounded-lg border border-border/60 bg-muted/25">
+                        {series.coverUrl ? (
+                          <img
+                            src={series.coverUrl}
+                            alt={series.name}
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <CoverPlaceholder title={series.name} compact />
+                        )}
+                      </div>
+                      <div className="pt-2">
+                        <p className="line-clamp-1 text-sm font-semibold text-foreground group-hover:text-primary">{series.name}</p>
+                        <p className="line-clamp-1 text-[11px] text-muted-foreground">{series.count} {t("publicReader.worksUnit", "部")}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
           ) : (
               <div className="space-y-4">
@@ -1266,15 +1427,29 @@ export default function PublicGalleryPage() {
             </p>
           </div>
           <div className="px-5 pb-2 space-y-2">
+            {missingRequiredCheckCount > 0 && (
+              <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                尚有 {missingRequiredCheckCount} 項必須同意。
+              </div>
+            )}
             {(termsConfig?.requiredChecks || []).map((item) => (
-              <label key={item.id} className="flex items-start gap-2 text-sm">
+              <label
+                key={item.id}
+                className={`flex items-start gap-2 rounded-md border px-2 py-2 text-sm ${
+                  acceptedChecks[item.id]
+                    ? "border-emerald-500/30 bg-emerald-500/10"
+                    : "border-amber-500/40 bg-amber-500/10"
+                }`}
+              >
                 <Checkbox
                   className="mt-0.5"
                   checked={Boolean(acceptedChecks[item.id])}
                   onCheckedChange={(checked) => toggleRequiredCheck(item.id, checked)}
                   disabled={(termsRequireScroll && !termsReadToBottom) || isSubmittingTerms}
                 />
-                <span className="text-foreground/90">{item.label}</span>
+                <span className={acceptedChecks[item.id] ? "text-foreground/90" : "text-amber-800 dark:text-amber-300"}>
+                  {item.label}
+                </span>
               </label>
             ))}
           </div>
@@ -1291,13 +1466,13 @@ export default function PublicGalleryPage() {
 
       {/* R-18 Consent Dialog */}
       <AlertDialog open={!!pendingR18Route} onOpenChange={(open) => !open && setPendingR18Route(null)}>
-        <AlertDialogContent className="w-[92vw] max-w-[92vw] sm:max-w-md rounded-xl p-4 sm:p-6 gap-3">
+        <AlertDialogContent className="w-[92vw] max-w-[92vw] sm:max-w-lg rounded-xl p-4 sm:p-6 gap-3 max-h-[90vh] overflow-y-auto">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-destructive font-bold flex items-center gap-2 text-base sm:text-lg leading-snug">
+            <AlertDialogTitle className="text-destructive font-bold flex items-center gap-2 text-base sm:text-lg leading-snug break-words">
               <span className="text-xl sm:text-2xl">🔞</span>
               <span>內容分級警告 (Adult Content Warning)</span>
             </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2 text-left">
+            <AlertDialogDescription className="space-y-2 text-left break-words">
               <p className="text-[13px] sm:text-sm text-foreground/80 leading-relaxed">
                 您即將進入受限制的內容頁面。此作品含有 <strong>成人向(R-18)</strong> 的標籤，可能包含不適合未成年人觀看的成人題材、暴力或過度裸露內容。
               </p>
@@ -1306,13 +1481,16 @@ export default function PublicGalleryPage() {
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="mt-2 sm:mt-4 gap-2 sm:gap-0">
-            <AlertDialogCancel className="w-full sm:w-auto h-10" onClick={() => setPendingR18Route(null)}>
+          <AlertDialogFooter className="mt-2 sm:mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <AlertDialogCancel
+              className="w-full h-auto min-h-10 whitespace-normal leading-snug px-3 py-2"
+              onClick={() => setPendingR18Route(null)}
+            >
               返回 (Go Back)
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={confirmR18Consent}
-              className="w-full sm:w-auto h-10 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+              className="w-full h-auto min-h-10 whitespace-normal leading-snug px-3 py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
               已滿 18 歲，進入觀看 (I am 18+, Enter)
             </AlertDialogAction>

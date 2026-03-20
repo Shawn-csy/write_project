@@ -1,6 +1,7 @@
 import { buildFilename, downloadBlob, downloadText } from "./download";
 import { getRenderedSnapshot, getRenderedLines } from "./scriptExportShared";
 import { buildPrintHtml } from "./print";
+import { runExportWorkerTask } from "./scriptExportWorkerClient";
 
 const toHtmlDoc = (bodyHtml, title = "Script") => `<!doctype html>
 <html>
@@ -35,7 +36,15 @@ export const exportScriptAsCsv = (title, payload) => {
 export const exportScriptAsDocx = async (title, payload) => {
   const snapshot = getRenderedSnapshot(payload);
   const html = toHtmlDoc(`<h1>${title || "Script"}</h1><div>${snapshot.html}</div>`, title || "Script");
-  const blob = new Blob([html], { type: "application/msword;charset=utf-8;" });
+  let docBuffer;
+  try {
+    const result = await runExportWorkerTask("doc", { html });
+    docBuffer = result.buffer;
+  } catch (error) {
+    console.warn("Worker doc export failed; falling back to main thread.", error);
+    docBuffer = html;
+  }
+  const blob = new Blob([docBuffer], { type: "application/msword;charset=utf-8;" });
   downloadBlob(blob, buildFilename(title || "script", "doc"));
 };
 

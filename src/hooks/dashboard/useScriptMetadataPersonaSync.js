@@ -2,6 +2,7 @@ import { useEffect } from "react";
 
 export function useScriptMetadataPersonaSync({
   open,
+  disablePersonaAutofill = false,
   identity,
   personas,
   contact,
@@ -22,6 +23,7 @@ export function useScriptMetadataPersonaSync({
   setSelectedOrgId,
 }) {
   useEffect(() => {
+    if (disablePersonaAutofill) return;
     if (!open) return;
     if (contactAutoFilledRef.current) return;
     if (!identity || !identity.startsWith("persona:")) return;
@@ -46,9 +48,10 @@ export function useScriptMetadataPersonaSync({
       setContactFields(next);
       contactAutoFilledRef.current = true;
     }
-  }, [open, identity, personas, contact, contactFields, contactAutoFilledRef, setContactFields]);
+  }, [disablePersonaAutofill, open, identity, personas, contact, contactFields, contactAutoFilledRef, setContactFields]);
 
   useEffect(() => {
+    if (disablePersonaAutofill) return;
     const hasLicenseSet =
       Boolean(licenseCommercial) ||
       Boolean(licenseDerivative) ||
@@ -66,6 +69,7 @@ export function useScriptMetadataPersonaSync({
       setLicenseSpecialTerms(ensureList(persona.defaultLicenseSpecialTerms));
     }
   }, [
+    disablePersonaAutofill,
     identity,
     personas,
     licenseCommercial,
@@ -80,6 +84,7 @@ export function useScriptMetadataPersonaSync({
   ]);
 
   useEffect(() => {
+    if (disablePersonaAutofill) return;
     if (!identity.startsWith("persona:")) return;
     if (personas.length === 0) return;
 
@@ -98,5 +103,5 @@ export function useScriptMetadataPersonaSync({
     if (!orgIds.includes(selectedOrgId)) {
       setSelectedOrgId(orgIds[0]);
     }
-  }, [identity, personas, selectedOrgId, setIdentity, setSelectedOrgId]);
+  }, [disablePersonaAutofill, identity, personas, selectedOrgId, setIdentity, setSelectedOrgId]);
 }

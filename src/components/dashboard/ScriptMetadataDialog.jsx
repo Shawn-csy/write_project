@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import { Loader2, CircleHelp, ChevronDown, ChevronRight } from "lucide-react";
+import { Loader2, CircleHelp, ChevronDown, ChevronRight, Globe2, Lock } from "lucide-react";
 import { getPublicScript } from "../../lib/api/public";
 import { uploadMediaObject } from "../../lib/api/media";
 import { useAuth } from "../../contexts/AuthContext";
@@ -75,7 +75,20 @@ export function getCollapsedSectionsAfterTabSync(collapsedSections, activeTab, s
 
 
 
-export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onSave, seriesOptions = [], onSeriesCreated }) {
+export function ScriptMetadataDialog({
+    script,
+    scriptId,
+    open,
+    onOpenChange,
+    onSave,
+    seriesOptions = [],
+    onSeriesCreated,
+    fetchFullScript = true,
+    saveScript = null,
+    syncScriptTags = null,
+    disableAuthorAutofill = false,
+    preserveAuthorInternalData = false,
+}) {
     const { t } = useI18n();
     const { toast } = useToast();
     const navigate = useNavigate();
@@ -206,6 +219,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     const initializedRef = useRef(false);
     const userEditedRef = useRef(false);
     const contactAutoFilledRef = useRef(false);
+    const authorEditedRef = useRef(false);
     const publicLoadedRef = useRef(null);
     const [localScript, setLocalScript] = useState(null);
     const activeScript = scriptId ? localScript : (localScript || script);
@@ -295,7 +309,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         handleAddTagsBatch,
         handleRemoveTag,
         handleClearTags,
-    } = useScriptTags({ t, toast });
+    } = useScriptTags({ t, toast, tagOwnerId: activeScript?.ownerId || "" });
     
     // Identity Selection
     const { currentUser, profile: currentProfile } = useAuth();
@@ -303,6 +317,17 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     const [selectedOrgId, setSelectedOrgId] = useState("");
     const [personas, setPersonas] = useState([]);
     const [orgs, setOrgs] = useState([]);
+
+    const setAuthorWithTracking = useCallback((value) => {
+        authorEditedRef.current = true;
+        setAuthor(value);
+    }, [setAuthor]);
+
+    const setAuthorDisplayModeWithTracking = useCallback((value) => {
+        authorEditedRef.current = true;
+        setAuthorDisplayMode(value);
+    }, [setAuthorDisplayMode]);
+
     useScriptMetadataBootstrap({
         open,
         currentUser,
@@ -320,8 +345,8 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         availableTags,
         setJsonError,
         setTitle,
-        setAuthor,
-        setAuthorDisplayMode,
+        setAuthor: setAuthorWithTracking,
+        setAuthorDisplayMode: setAuthorDisplayModeWithTracking,
         setDate,
         setSynopsis,
         setOutline,
@@ -470,6 +495,9 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
     };
 
     const hydrateScriptState = useScriptMetadataHydration({
+        fetchFullScript,
+        disableAuthorAutofill,
+        disablePersonaAutofill: preserveAuthorInternalData,
         customFields,
         ensureList,
         loadPublicInfoIfNeeded,
@@ -522,6 +550,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         hydrateScriptState,
         initializedRef,
         userEditedRef,
+        authorEditedRef,
         contactAutoFilledRef,
         publicLoadedRef,
         setActiveTab,
@@ -539,6 +568,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
 
     useScriptMetadataPersonaSync({
         open,
+        disablePersonaAutofill: preserveAuthorInternalData,
         identity,
         personas,
         contact,
@@ -672,6 +702,10 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setActiveTab,
         onSave,
         onOpenChange,
+        saveScript,
+        syncScriptTags,
+        preserveAuthorInternalData,
+        authorEditedRef,
     });
 
     const handleGoToAuthorProfile = () => {
@@ -702,7 +736,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
         setCoverUrl,
         currentTags,
         author,
-        setAuthor,
+        setAuthor: setAuthorWithTracking,
         availableTags,
         newTagInput,
         setNewTagInput,
@@ -871,7 +905,38 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                                     <CircleHelp className="mr-1.5 h-4 w-4" />
                                     {t("scriptMetadataDialog.guide")}
                                 </Button>
+                                <div className="hidden sm:flex items-center gap-1 rounded-md border bg-background p-1">
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className={`h-7 px-2 text-xs ${
+                                            status === "Private"
+                                                ? "border-slate-600/60 bg-slate-500/15 text-slate-800 ring-2 ring-slate-500/40 dark:text-slate-200"
+                                                : "border-border text-muted-foreground"
+                                        }`}
+                                        onClick={() => setStatus("Private")}
+                                    >
+                                        <Lock className="mr-1 h-3.5 w-3.5" />
+                                        {t("metadataBasic.setPrivate", "設定私人")}
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className={`h-7 px-2 text-xs ${
+                                            status === "Public"
+                                                ? "border-emerald-600/60 bg-emerald-500/15 text-emerald-800 ring-2 ring-emerald-500/40 dark:text-emerald-300"
+                                                : "border-border text-muted-foreground"
+                                        }`}
+                                        onClick={() => setStatus("Public")}
+                                    >
+                                        <Globe2 className="mr-1 h-3.5 w-3.5" />
+                                        {t("metadataBasic.setPublic", "設定公開")}
+                                    </Button>
+                                </div>
                                 <Badge
+                                    id="metadata-status-badge"
                                     variant="outline"
                                     className={`text-xs font-medium ${
                                         status === "Public"
@@ -925,6 +990,7 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                                         setTitle={setTitle}
                                         identity={identity}
                                         setIdentity={setIdentity}
+                                        identityDisplayName={author}
                                         currentUser={currentUser}
                                         personas={personas}
                                         orgs={orgs}
@@ -995,9 +1061,9 @@ export function ScriptMetadataDialog({ script, scriptId, open, onOpenChange, onS
                                         t={t}
                                         title={title}
                                         author={author}
-                                        setAuthor={setAuthor}
+                                        setAuthor={setAuthorWithTracking}
                                         authorDisplayMode={authorDisplayMode}
-                                        setAuthorDisplayMode={setAuthorDisplayMode}
+                                        setAuthorDisplayMode={setAuthorDisplayModeWithTracking}
                                         getRowLabelClass={getRowLabelClass}
                                         coverUrl={coverUrl}
                                         setCoverUrl={setCoverUrl}

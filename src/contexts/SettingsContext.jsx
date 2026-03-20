@@ -25,6 +25,7 @@ export function SettingsProvider({ children }) {
   const isDark = resolvedTheme === "dark";
   const { currentUser, profile } = useAuth();
   const isRemoteUpdate = useRef(false);
+  const hydratedUserIdRef = useRef(null);
 
   // --- Persistent State ---
   const [accent, setAccent] = usePersistentState(STORAGE_KEYS.ACCENT, defaultAccent);
@@ -168,7 +169,14 @@ export function SettingsProvider({ children }) {
   // --- Cloud Sync ---
   // 1. Load from Cloud on Login
   useEffect(() => {
-      if (!currentUser) return; // Don't run if no user
+      if (!currentUser) {
+          hydratedUserIdRef.current = null;
+          return; // Don't run if no user
+      }
+      const userId = String(currentUser?.uid || "");
+      if (!userId) return;
+      if (hydratedUserIdRef.current === userId) return;
+      hydratedUserIdRef.current = userId;
 
       async function loadSettings() {
           isRemoteUpdate.current = true;

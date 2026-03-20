@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   PanelLeftClose,
+  PanelLeftOpen,
   Settings,
   Info,
   LayoutTemplate,
@@ -11,6 +12,7 @@ import {
 import { Button } from "../ui/button";
 import UserMenu from "../auth/UserMenu";
 import { useI18n } from "../../contexts/I18nContext";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 function Sidebar({
   // Scene Props
@@ -27,6 +29,7 @@ function Sidebar({
   openHome,
   accentStyle,
   className,
+  collapsed = false,
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -46,54 +49,90 @@ function Sidebar({
     closeSidebarIfMobile();
   };
 
-  const NavItem = ({ icon: Icon, label, onClick, isActive, className = "" }) => (
-    <button
-      onClick={onClick}
-      className={`
-        w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all
-        ${isActive
-          ? "bg-primary/10 text-primary font-medium"
-          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-        }
-        ${className}
-      `}
-    >
-      <Icon className="w-4 h-4 shrink-0" />
-      <span className="truncate">{label}</span>
-    </button>
-  );
+  const NavItem = ({ icon: Icon, label, onClick, isActive, className = "" }) => {
+    const buttonEl = (
+      <button
+        onClick={onClick}
+        title={collapsed ? undefined : label}
+        aria-label={label}
+        className={`
+          w-full flex items-center rounded-md text-sm transition-all
+          ${collapsed ? "justify-center px-2 py-2" : "gap-3 px-3 py-2"}
+          ${isActive
+            ? "bg-primary/10 text-primary font-medium"
+            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+          }
+          ${className}
+        `}
+      >
+        <Icon className="w-4 h-4 shrink-0" />
+        {collapsed ? null : <span className="truncate">{label}</span>}
+      </button>
+    );
+
+    if (!collapsed) return buttonEl;
+    return (
+      <Tooltip delayDuration={150}>
+        <TooltipTrigger asChild>{buttonEl}</TooltipTrigger>
+        <TooltipContent side="right">{label}</TooltipContent>
+      </Tooltip>
+    );
+  };
 
   return (
-    <aside className={`relative h-full min-h-0 flex flex-col bg-muted/30 border-r border-border/40 ${className}`}>
+    <TooltipProvider delayDuration={150}>
+      <aside className={`relative h-full min-h-0 flex flex-col bg-muted/30 border-r border-border/40 ${className}`}>
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-3 h-14 shrink-0">
-        <button
+      <div className={`flex items-center px-3 py-3 h-14 shrink-0 ${collapsed ? "justify-center" : "justify-between"}`}>
+        {collapsed ? (
+          <Tooltip delayDuration={150}>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0"
+                onClick={() => setSidebarOpen(true)}
+                aria-label={t("sidebar.expandList")}
+              >
+                <PanelLeftOpen className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">{t("sidebar.expandList")}</TooltipContent>
+          </Tooltip>
+        ) : (
+          <button
             type="button"
-            className="flex items-center gap-2 hover:opacity-80 transition-opacity text-left group"
+            className={`flex items-center hover:opacity-80 transition-opacity text-left group ${collapsed ? "justify-center" : "gap-2"}`}
             onClick={(e) => {
                e.preventDefault();
                handleHome();
             }}
             aria-label={t("sidebar.backHome")}
+            title={t("sidebar.backHome")}
           >
             <div className={`w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors`}>
                 <span className={`text-[10px] font-bold ${accentStyle.label}`}>SR</span>
             </div>
-            <div className="flex flex-col overflow-hidden">
-                <span className="text-sm font-semibold leading-none truncate font-tracking-tight">Screenplay</span>
-                <span className="text-[10px] text-muted-foreground leading-none mt-0.5 truncate group-hover:text-primary/80 transition-colors">Reader</span>
-            </div>
-        </button>
+            {collapsed ? null : (
+              <div className="flex flex-col overflow-hidden">
+                  <span className="text-sm font-semibold leading-none truncate font-tracking-tight">Screenplay</span>
+                  <span className="text-[10px] text-muted-foreground leading-none mt-0.5 truncate group-hover:text-primary/80 transition-colors">Reader</span>
+              </div>
+            )}
+          </button>
+        )}
 
-        <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0"
-            onClick={() => setSidebarOpen(false)}
-            aria-label={t("sidebar.collapseList")}
-        >
-            <PanelLeftClose className="h-4 w-4" />
-        </Button>
+        {collapsed ? null : (
+          <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0"
+              onClick={() => setSidebarOpen(false)}
+              aria-label={t("sidebar.collapseList")}
+          >
+              <PanelLeftClose className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       {/* Main Content Area */}
@@ -102,10 +141,12 @@ function Sidebar({
           <div className="flex-1 overflow-y-auto px-2 py-2 scrollbar-thin space-y-4">
              {/* Highlighted Public Gallery */}
               <div className="space-y-2 pt-2">
-                  <div className="px-3">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">{t("sidebar.publicSection")}</span>
-                  </div>
-                  <div className="px-2">
+                  {collapsed ? null : (
+                    <div className="px-3">
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">{t("sidebar.publicSection")}</span>
+                    </div>
+                  )}
+                  <div className={collapsed ? "px-1" : "px-2"}>
                       <NavItem
                           icon={Library}
                           label={t("nav.gallery")}
@@ -114,14 +155,16 @@ function Sidebar({
                           className="bg-primary/5 border border-primary/20"
                       />
                   </div>
-                  <div className="border-b border-border/40 mx-3" />
+                  <div className={`border-b border-border/40 ${collapsed ? "mx-2" : "mx-3"}`} />
               </div>
 
              {/* Main Navigation */}
              <div className="space-y-1 pt-1">
-                  <div className="px-3 pb-2">
-                        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground opacity-70">{t("sidebar.menuSection")}</span>
-                  </div>
+                  {collapsed ? null : (
+                    <div className="px-3 pb-2">
+                          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground opacity-70">{t("sidebar.menuSection")}</span>
+                    </div>
+                  )}
 
                   <NavItem
                       icon={PencilLine}
@@ -142,10 +185,10 @@ function Sidebar({
       </div>
 
       {/* Footer Area */}
-      <div className="p-3 shrink-0 bg-background/40 backdrop-blur-sm border-t border-border/40 space-y-1">
+      <div className={`p-3 shrink-0 bg-background/40 backdrop-blur-sm border-t border-border/40 space-y-1 ${collapsed ? "px-2" : ""}`}>
 
         {/* Secondary Actions */}
-        <div className="space-y-0.5 mb-2 border-b border-border/40 pb-2">
+        <div className={`space-y-0.5 mb-2 border-b border-border/40 pb-2 ${collapsed ? "mb-1 pb-1" : ""}`}>
              <NavItem
                 icon={Settings}
                 label={t("app.settings")}
@@ -161,9 +204,10 @@ function Sidebar({
         </div>
 
         {/* User Profile */}
-        <UserMenu />
+        {collapsed ? null : <UserMenu />}
       </div>
-    </aside>
+      </aside>
+    </TooltipProvider>
   );
 }
 

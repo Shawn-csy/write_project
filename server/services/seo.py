@@ -34,7 +34,14 @@ def upsert_canonical(html_text: str, canonical_url: str) -> str:
 def inject_structured_data(html_text: str, payload: dict) -> str:
     if not payload:
         return html_text
-    script_tag = f'<script type="application/ld+json">{json.dumps(payload, ensure_ascii=False)}</script>'
+    # Escape script-breaking characters to prevent JSON-LD payload from terminating script tag.
+    json_payload = (
+        json.dumps(payload, ensure_ascii=False)
+        .replace("<", "\\u003c")
+        .replace(">", "\\u003e")
+        .replace("&", "\\u0026")
+    )
+    script_tag = f'<script type="application/ld+json">{json_payload}</script>'
     return html_text.replace("</head>", f"  {script_tag}\n</head>")
 
 

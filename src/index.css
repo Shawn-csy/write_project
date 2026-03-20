@@ -11,10 +11,10 @@
     --muted: 220 14% 96%;
     --muted-strong: 220 14% 92%;
     --muted-stronger: 220 14% 88%;
-    --muted-foreground: 220 9% 46%;
-    --border: 221 13% 90%;
+    --muted-foreground: 220 9% 42%;
+    --border: 221 13% 88%;
     /* Morandi primary (light): steel blue */
-    --primary: 200 21% 44%;
+    --primary: 200 24% 40%;
     --primary-foreground: 210 20% 96%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
@@ -255,9 +255,9 @@
     --muted: 30 16% 94%;
     --muted-strong: 30 14% 90%;
     --muted-stronger: 29 12% 86%;
-    --muted-foreground: 24 9% 42%;
-    --border: 28 14% 85%;
-    --primary: 25 22% 44%;
+    --muted-foreground: 24 10% 40%;
+    --border: 28 14% 83%;
+    --primary: 25 24% 42%;
     --primary-foreground: 30 18% 96%;
     --surface-1: 30 12% 97%;
     --surface-2: 30 12% 94%;
@@ -276,9 +276,9 @@
     --muted: 287 14% 94%;
     --muted-strong: 287 12% 90%;
     --muted-stronger: 287 10% 86%;
-    --muted-foreground: 282 8% 43%;
-    --border: 286 12% 85%;
-    --primary: 286 16% 45%;
+    --muted-foreground: 282 10% 40%;
+    --border: 286 12% 83%;
+    --primary: 286 18% 43%;
     --primary-foreground: 286 14% 96%;
     --surface-1: 286 10% 97%;
     --surface-2: 287 10% 94%;

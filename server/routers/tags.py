@@ -4,17 +4,28 @@ from sqlalchemy.orm import Session
 import crud_ops as crud
 import schemas
 import models
-from dependencies import get_db, get_current_user_id
+from dependencies import get_db, get_current_user_id, is_admin_user
 
 router = APIRouter(prefix="/api", tags=["tags"])
 
 @router.get("/tags", response_model=List[schemas.Tag])
-def read_tags(db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
-    return crud.get_tags(db, ownerId)
+def read_tags(
+    ownerIdQuery: str | None = None,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    effective_owner = ownerIdQuery if ownerIdQuery and is_admin_user(db, ownerId) else ownerId
+    return crud.get_tags(db, effective_owner)
 
 @router.post("/tags")
-def create_tag(tag: schemas.TagCreate, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
-    created = crud.create_tag(db, tag, ownerId)
+def create_tag(
+    tag: schemas.TagCreate,
+    ownerIdQuery: str | None = None,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    effective_owner = ownerIdQuery if ownerIdQuery and is_admin_user(db, ownerId) else ownerId
+    created = crud.create_tag(db, tag, effective_owner)
     if not created:
         raise HTTPException(status_code=500, detail="Failed to create tag")
     return created
@@ -33,10 +44,12 @@ def attach_tag(script_id: str, payload: dict, db: Session = Depends(get_db), own
     script = db.query(models.Script).filter(models.Script.id == script_id).first()
     if not script:
         raise HTTPException(status_code=404, detail="Script not found")
-    if script.ownerId != ownerId:
+    can_admin_override = is_admin_user(db, ownerId)
+    if script.ownerId != ownerId and not can_admin_override:
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    tag = db.query(models.Tag).filter(models.Tag.id == tag_id, models.Tag.ownerId == ownerId).first()
+    tag_owner_id = script.ownerId if can_admin_override else ownerId
+    tag = db.query(models.Tag).filter(models.Tag.id == tag_id, models.Tag.ownerId == tag_owner_id).first()
     if not tag:
         raise HTTPException(status_code=404, detail="Tag not found")
 
@@ -50,7 +63,7 @@ def detach_tag(script_id: str, tag_id: int, db: Session = Depends(get_db), owner
     script = db.query(models.Script).filter(models.Script.id == script_id).first()
     if not script:
         raise HTTPException(status_code=404, detail="Script not found")
-    if script.ownerId != ownerId:
+    if script.ownerId != ownerId and not is_admin_user(db, ownerId):
         raise HTTPException(status_code=403, detail="Not authorized")
 
     crud.remove_tag_from_script(db, script_id, tag_id)

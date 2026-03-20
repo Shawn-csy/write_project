@@ -12,6 +12,17 @@ _firebase_auth = None
 ALLOW_X_USER_ID = None
 ADMIN_USER_IDS = None
 
+
+def _is_production_env() -> bool:
+    env_value = (
+        os.getenv("ENVIRONMENT")
+        or os.getenv("APP_ENV")
+        or os.getenv("FASTAPI_ENV")
+        or os.getenv("NODE_ENV")
+        or ""
+    ).strip().lower()
+    return env_value in {"prod", "production"}
+
 def _init_firebase_auth():
     global _firebase_auth
     if _firebase_auth is not None:
@@ -35,8 +46,24 @@ def _init_firebase_auth():
         raise HTTPException(status_code=500, detail=f"Auth backend not configured: {exc}")
 
 def _allow_x_user_id() -> bool:
+    # Safety guard: never allow header-based user impersonation in production.
+    if _is_production_env():
+        return False
     if ALLOW_X_USER_ID is not None:
         return bool(ALLOW_X_USER_ID)
+
+    # Only allow fallback auth in explicitly non-production environments.
+    env_value = (
+        os.getenv("ENVIRONMENT")
+        or os.getenv("APP_ENV")
+        or os.getenv("FASTAPI_ENV")
+        or os.getenv("NODE_ENV")
+        or ""
+    ).strip().lower()
+    is_explicit_non_prod = env_value in {"dev", "development", "local", "test", "testing"}
+    if not is_explicit_non_prod:
+        return False
+
     return os.getenv("ALLOW_X_USER_ID", "").lower() in {"1", "true", "yes"}
 
 

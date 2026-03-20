@@ -1,8 +1,7 @@
 import React from 'react';
 import { useNavigate } from "react-router-dom";
-import { Loader2, Plus, Trash2, Building2, CircleHelp, ExternalLink, AlertTriangle } from "lucide-react";
+import { Loader2, Trash2, Building2, CircleHelp, ExternalLink, AlertTriangle } from "lucide-react";
 import { Button } from "../../ui/button";
-import { Card } from "../../ui/card";
 import { Input } from "../../ui/input";
 import { optimizeImageForUpload, getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
 import { uploadMediaObject } from "../../../lib/api/media";
@@ -15,6 +14,16 @@ import { PublisherOrgMembershipPanel } from "./PublisherOrgMembershipPanel";
 import { PublisherTagEditor } from "./PublisherTagEditor";
 import { SpotlightGuideOverlay } from "../../common/SpotlightGuideOverlay";
 import { ImageCropDialog } from "../../ui/ImageCropDialog";
+import {
+    PublisherSplitPanel,
+    PublisherEntityListPane,
+    PublisherEntityListItem,
+    PublisherEmptyState,
+    PublisherActionBar,
+    PUBLISHER_CONTENT_STACK_CLASS,
+    PUBLISHER_SECTION_CARD_CLASS,
+    PUBLISHER_DEMO_CARD_CLASS,
+} from "./PublisherEntityLayout";
 
 export function PublisherOrgTab({
     orgs,
@@ -184,75 +193,71 @@ export function PublisherOrgTab({
     };
 
     return (
-        <Card className="flex flex-col md:flex-row h-auto min-h-0 md:min-h-[500px] overflow-hidden border">
-            {/* Left Sidebar: List */}
-            <div id="org-guide-list" className="w-full md:w-[280px] border-b md:border-b-0 md:border-r flex flex-col bg-muted/10">
-                <div className="p-4 border-b flex items-center justify-between bg-background/50 backdrop-blur-sm sticky top-0 z-10">
-                    <h3 className="font-semibold text-sm">{t("publisherOrgTab.orgList")}</h3>
-                    <Button size="icon" variant="ghost" className="h-8 w-8 ml-auto" onClick={onStartCreate}>
-                        <Plus className="w-4 h-4" />
-                    </Button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-3 space-y-2">
-                    <div className={`flex items-center gap-1 pb-1 ${viewMode === "edit" && selectedOrgId ? "" : "invisible pointer-events-none h-0 overflow-hidden p-0 m-0"}`}>
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="h-8 text-xs"
-                            onClick={() => selectedOrgId && navigate(`/org/${selectedOrgId}`)}
-                        >
-                            <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
-                            {t("publisherOrgTab.viewOrgPage")}
-                        </Button>
-                        <Button 
-                            type="button"
-                            size="sm"
-                            variant="ghost" 
-                            className="h-8 text-xs text-destructive hover:bg-destructive/10"
-                            disabled={isReadOnlyExistingOrg}
-                            onClick={handleDeleteOrg}
-                        >
-                            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                            {t("publisherOrgTab.deleteOrg")}
-                        </Button>
-                    </div>
-                    {isLoading && (
-                        <div className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground">
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            <span>載入組織資料中...</span>
+        <>
+        <PublisherSplitPanel
+            sidebar={(
+                <PublisherEntityListPane
+                    id="org-guide-list"
+                    title={t("publisherOrgTab.orgList")}
+                    onCreate={onStartCreate}
+                    createAriaLabel={t("publisherOrgTab.createOrg")}
+                    topActions={(
+                        <div className={`flex items-center gap-1 pb-1 ${viewMode === "edit" && selectedOrgId ? "" : "invisible pointer-events-none h-0 overflow-hidden p-0 m-0"}`}>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-xs"
+                                onClick={() => selectedOrgId && navigate(`/org/${selectedOrgId}`)}
+                            >
+                                <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                                {t("publisherOrgTab.viewOrgPage")}
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 text-xs text-destructive hover:bg-destructive/10"
+                                disabled={isReadOnlyExistingOrg}
+                                onClick={handleDeleteOrg}
+                            >
+                                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                                {t("publisherOrgTab.deleteOrg")}
+                            </Button>
                         </div>
                     )}
-                    {orgs.map(o => (
-                        <div 
-                            key={o.id} 
+                    isLoading={isLoading}
+                    loadingLabel="載入組織資料中..."
+                    emptyState={orgs.length === 0 ? (
+                        <PublisherEmptyState
+                            title={t("publisherOrgTab.noOrg")}
+                            description={t("publisherOrgTab.emptyDemoDesc", "尚未建立組織時，教學會先用示範資料帶你了解表單、成員與邀請區。")}
+                            actionLabel={t("publisherOrgTab.createNow")}
+                            onAction={onStartCreate}
+                            className="mx-1"
+                        />
+                    ) : null}
+                >
+                    {orgs.map((o) => (
+                        <PublisherEntityListItem
+                            key={o.id}
+                            selected={selectedOrgId === o.id}
                             onClick={() => setSelectedOrgId(o.id)}
-                            className={`p-3 rounded-lg border cursor-pointer hover:bg-background/80 hover:shadow-sm transition-all flex items-center gap-3 ${selectedOrgId === o.id ? "bg-background shadow-sm border-primary/50 ring-1 ring-primary/20" : "bg-transparent border-transparent hover:border-border/50"}`}
-                        >
-                            <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center shrink-0 border border-primary/10">
-                                <Building2 className="w-4 h-4 text-primary" />
-                            </div>
-                            <div className="font-medium truncate text-sm flex-1">{o.name}</div>
-                        </div>
+                            leading={(
+                                <div className="flex h-8 w-8 items-center justify-center rounded border border-primary/10 bg-primary/10">
+                                    <Building2 className="h-4 w-4 text-primary" />
+                                </div>
+                            )}
+                            title={o.name}
+                        />
                     ))}
-                    
-                    {orgs.length === 0 && (
-                        <div className="text-center text-muted-foreground p-8 text-sm">
-                            {t("publisherOrgTab.noOrg")}
-                            <Button variant="link" size="sm" onClick={onStartCreate} className="mt-2 text-xs">{t("publisherOrgTab.createNow")}</Button>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Right Main: Editor */}
-            <div className="flex-1 flex flex-col overflow-hidden bg-card">
-                 <div className="p-4 border-b bg-background/50 backdrop-blur-sm">
-                    <PublisherTabHeader
-                        title={viewMode === "create" ? t("publisherOrgTab.createOrg") : t("publisherOrgTab.editOrg")}
-                        description="管理組織資料、成員權限與邀請審核。"
-                        actions={<div className="flex items-center justify-end gap-2 min-w-[260px]">
+                </PublisherEntityListPane>
+            )}
+            header={(
+                <PublisherTabHeader
+                    title={viewMode === "create" ? t("publisherOrgTab.createOrg") : t("publisherOrgTab.editOrg")}
+                    description="管理組織資料、成員權限與邀請審核。"
+                    actions={<div className="flex min-w-[260px] items-center justify-end gap-2">
                         <Button
                             type="button"
                             variant="outline"
@@ -260,15 +265,26 @@ export function PublisherOrgTab({
                             className="h-8 text-xs"
                             onClick={startGuide}
                         >
-                            <CircleHelp className="w-3.5 h-3.5 mr-1.5" />
+                            <CircleHelp className="mr-1.5 h-3.5 w-3.5" />
                             {t("publisherOrgTab.guide")}
                         </Button>
                     </div>}
-                    />
-                </div>
-                
-                <div className="flex-1 overflow-y-auto p-4 md:p-5">
-                     <div className="max-w-4xl mx-auto space-y-6 pb-16">
+                />
+            )}
+            footer={(viewMode === "create" || selectedOrgId) ? (
+                <PublisherActionBar id="org-guide-save">
+                    <Button
+                        onClick={viewMode === "create" ? handleCreateOrg : handleSaveOrg}
+                        disabled={(viewMode === "create" ? isCreatingOrg : isSavingOrg) || !orgDraft.name.trim()}
+                        className="min-w-[100px]"
+                    >
+                        {(viewMode === "create" ? isCreatingOrg : isSavingOrg) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {viewMode === "create" ? t("publisherOrgTab.createOrg") : t("publisherOrgTab.saveChanges")}
+                    </Button>
+                </PublisherActionBar>
+            ) : null}
+        >
+            <div className={PUBLISHER_CONTENT_STACK_CLASS}>
                         {(viewMode === "create" || selectedOrgId) ? (
                             <>
                                 {isReadOnlyExistingOrg && (
@@ -449,7 +465,7 @@ export function PublisherOrgTab({
                                         <PublisherFormRow label={t("publisherOrgTab.orgTags")}>
                                             <PublisherTagEditor
                                                 tags={orgDraft.tags || []}
-                                                setTags={(nextTags) => setOrgDraft({ ...orgDraft, tags: nextTags })}
+                                                setTags={(nextTags) => setOrgDraft((prev) => ({ ...prev, tags: nextTags }))}
                                                 tagInput={orgTagInput}
                                                 setTagInput={setOrgTagInput}
                                                 parseTags={parseTags}
@@ -488,22 +504,11 @@ export function PublisherOrgTab({
                                         />
                                     </div>
                                 
-                                {/* Footer Actions */}
-                                <div id="org-guide-save" className="p-3 border-t bg-background/50 backdrop-blur-sm flex justify-end mt-3">
-                                    <Button 
-                                        onClick={viewMode === "create" ? handleCreateOrg : handleSaveOrg} 
-                                        disabled={(viewMode === "create" ? isCreatingOrg : isSavingOrg) || !orgDraft.name.trim()}
-                                        className="min-w-[100px]"
-                                    >
-                                        {(viewMode === "create" ? isCreatingOrg : isSavingOrg) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        {viewMode === "create" ? t("publisherOrgTab.createOrg") : t("publisherOrgTab.saveChanges")}
-                                    </Button>
-                                </div>
                                 </div>
                             </>
                         ) : (
                             <div className="space-y-4">
-                                <div className="rounded-xl border border-dashed bg-muted/20 p-4">
+                                <div className={PUBLISHER_DEMO_CARD_CLASS}>
                                     <div className="flex items-start gap-3">
                                         <div className="mt-0.5 h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
                                             <Building2 className="h-5 w-5" />
@@ -517,7 +522,7 @@ export function PublisherOrgTab({
                                     </div>
                                 </div>
 
-                                <div id="org-guide-basic" className="rounded-lg border bg-card p-4 space-y-3">
+                                <div id="org-guide-basic" className={`${PUBLISHER_SECTION_CARD_CLASS} space-y-3`}>
                                     <div className="text-sm font-semibold">{t("publisherOrgTab.emptyDemoBasicTitle", "示範：組織基本資訊")}</div>
                                     <div className="grid gap-2 md:grid-cols-2">
                                         <div className="rounded-md border bg-muted/20 px-3 py-2 text-xs">
@@ -531,14 +536,14 @@ export function PublisherOrgTab({
                                     </div>
                                 </div>
 
-                                <div id="org-guide-members" className="rounded-lg border bg-card p-4 space-y-2">
+                                <div id="org-guide-members" className={`${PUBLISHER_SECTION_CARD_CLASS} space-y-2`}>
                                     <div className="text-sm font-semibold">{t("publisherOrgTab.emptyDemoMembersTitle", "示範：成員與角色")}</div>
                                     <p className="text-xs text-muted-foreground">
                                         {t("publisherOrgTab.emptyDemoMembersDesc", "這裡會顯示帳號成員、作者身份，以及每位成員的組織角色。")}
                                     </p>
                                 </div>
 
-                                <div id="org-guide-invite" className="rounded-lg border bg-card p-4 space-y-2">
+                                <div id="org-guide-invite" className={`${PUBLISHER_SECTION_CARD_CLASS} space-y-2`}>
                                     <div className="text-sm font-semibold">{t("publisherOrgTab.emptyDemoInviteTitle", "示範：邀請與申請")}</div>
                                     <p className="text-xs text-muted-foreground">
                                         {t("publisherOrgTab.emptyDemoInviteDesc", "這裡可搜尋帳號發送邀請，並處理加入申請。")}
@@ -552,9 +557,8 @@ export function PublisherOrgTab({
                             </div>
                         )}
                     </div>
-                </div>
-            </div>
-            
+        </PublisherSplitPanel>
+
             <SpotlightGuideOverlay
                 open={showGuide && Boolean(currentGuide)}
                 zIndex={230}
@@ -599,6 +603,6 @@ export function PublisherOrgTab({
                     await applyUploadedImage(croppedFile, cropTargetField);
                 }}
             />
-        </Card>
+        </>
     );
 }
