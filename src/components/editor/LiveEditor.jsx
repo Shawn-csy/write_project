@@ -16,6 +16,7 @@ import { PreviewPanel } from "./PreviewPanel";
 import { MarkerRulesPanel } from "./MarkerRulesPanel";
 import { useI18n } from "../../contexts/I18nContext";
 import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
+import { Drawer, DrawerContent, DrawerTitle, DrawerDescription } from "../ui/drawer";
 
 const EDITOR_PANE_WIDTH_STORAGE_KEY = "live_editor_pane_width_percent";
 const MIN_EDITOR_PANE_WIDTH = 28;
@@ -80,6 +81,16 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     if (typeof window === "undefined" || !window.matchMedia) return false;
     return window.matchMedia("(prefers-color-scheme: dark)").matches;
   });
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.innerWidth < 640;
+  });
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const handler = (e) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
   const [rawRenderedHtml, setRawRenderedHtml] = useState("");
   const [processedRenderedHtml, setProcessedRenderedHtml] = useState("");
   const [captureRenderedHtml, setCaptureRenderedHtml] = useState(false);
@@ -251,21 +262,21 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
       target: "header",
     },
     {
-      title: t("liveEditor.guideEditorTitle"),
-      description: t("liveEditor.guideEditorDesc"),
+      title: isMobile ? t("liveEditor.guideEditorTitleMobile") : t("liveEditor.guideEditorTitle"),
+      description: isMobile ? t("liveEditor.guideEditorDescMobile") : t("liveEditor.guideEditorDesc"),
       target: "editor",
     },
     {
-      title: t("liveEditor.guidePreviewTitle"),
-      description: t("liveEditor.guidePreviewDesc"),
+      title: isMobile ? t("liveEditor.guidePreviewTitleMobile") : t("liveEditor.guidePreviewTitle"),
+      description: isMobile ? t("liveEditor.guidePreviewDescMobile") : t("liveEditor.guidePreviewDesc"),
       target: "preview",
     },
     {
       title: t("liveEditor.guideActionsTitle"),
-      description: t("liveEditor.guideActionsDesc"),
+      description: isMobile ? t("liveEditor.guideActionsDescMobile") : t("liveEditor.guideActionsDesc"),
       target: "actions",
     },
-  ]), [t]);
+  ]), [t, isMobile]);
 
   const currentGuide = showGuide ? guideSteps[guideIndex] : null;
   const showCrossModeEditGuide = !readOnly && crossModeGuideActive && (
@@ -291,8 +302,14 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
 
   const getGuideTargetElement = useCallback((target) => {
     switch (target) {
-      case "header":
-        return headerRef.current;
+      case "header": {
+        const el = headerRef.current;
+        if (!el) return null;
+        const rect = el.getBoundingClientRect();
+        if (rect.width && rect.height) return el;
+        // fallback: first child with actual size
+        return el.firstElementChild || el;
+      }
       case "editor":
         return editorPaneRef.current;
       case "preview":
@@ -604,11 +621,11 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
         {!readOnly && (
             <div
                 ref={editorPaneRef}
-                className={`h-full ${
+                className={`${
                   showPreview
-                    ? "w-full sm:w-auto sm:shrink-0 sm:basis-[var(--editor-pane-width,50%)] sm:border-r sm:border-border"
-                    : "w-full"
-                } ${isResizing ? "transition-none" : "transition-[flex-basis,width] duration-150"} flex flex-col`}
+                    ? "h-1/2 w-full sm:h-full sm:w-auto sm:shrink-0 sm:basis-[var(--editor-pane-width,50%)] border-b sm:border-b-0 sm:border-r border-border"
+                    : "h-full w-full"
+                } ${isResizing ? "transition-none" : "transition-[flex-basis,width,height] duration-150"} flex flex-col`}
             >
                 <CodeMirror
                     value={content}
@@ -672,36 +689,61 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
             onContentClick={handlePreviewLineClick}
             outerClassName={`${
               readOnly
-                ? "w-full"
+                ? "w-full h-full"
                 : showPreview
-                  ? "w-full sm:w-auto sm:grow sm:min-w-[280px]"
+                  ? "w-full h-1/2 sm:h-full sm:w-auto sm:grow sm:min-w-[280px]"
                   : "hidden"
-            } h-full overflow-hidden bg-background flex flex-col`}
+            } overflow-hidden bg-background flex flex-col`}
             scrollClassName="h-full overflow-y-auto overflow-x-hidden scrollbar-hide px-4 pt-8 pb-28"
         />
 
-        {/* Stats Side Panel (Non-modal) */}
+        {/* Stats Side Panel — desktop */}
         {showStats && (
-            <div className="w-full sm:w-[400px] border-l border-border bg-background shrink-0 flex flex-col h-full shadow-xl z-20 transition-all duration-300">
+            <div className="hidden sm:flex w-[400px] border-l border-border bg-background shrink-0 flex-col h-full shadow-xl z-20">
                 <div className="h-12 border-b flex items-center px-4 shrink-0 bg-muted/20 gap-3">
-                    <button 
-                        onClick={() => setShowStats(false)} 
-                        className="text-muted-foreground hover:text-foreground text-sm"
+                    <button
+                        onClick={() => setShowStats(false)}
+                        className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors text-sm"
                     >
                         ✕
                     </button>
                     <h3 className="font-semibold text-sm">{t("liveEditor.statsPanel")}</h3>
                 </div>
                 <div className="flex-1 min-h-0 overflow-hidden">
-                    <StatisticsPanel 
-                        rawScript={deferredContent} 
-                        scriptAst={ast} 
-                        onLocateText={handleLocateText} 
+                    <StatisticsPanel
+                        rawScript={deferredContent}
+                        scriptAst={ast}
+                        onLocateText={handleLocateText}
                         scriptId={scriptId}
                     />
                 </div>
             </div>
         )}
+
+        {/* Stats Drawer — mobile */}
+        <Drawer open={showStats} onOpenChange={setShowStats} direction="bottom">
+            <DrawerContent className="sm:hidden flex flex-col h-[80dvh] outline-none">
+                <DrawerTitle className="sr-only">{t("liveEditor.statsPanel")}</DrawerTitle>
+                <DrawerDescription className="sr-only">{t("liveEditor.statsPanel")}</DrawerDescription>
+                <div className="h-12 border-b flex items-center px-4 shrink-0 bg-muted/20 gap-3">
+                    <button
+                        onClick={() => setShowStats(false)}
+                        className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors text-sm"
+                    >
+                        ✕
+                    </button>
+                    <h3 className="font-semibold text-sm">{t("liveEditor.statsPanel")}</h3>
+                </div>
+                <div className="flex-1 min-h-0 overflow-hidden px-4 pb-4">
+                    <StatisticsPanel
+                        rawScript={deferredContent}
+                        scriptAst={ast}
+                        onLocateText={handleLocateText}
+                        scriptId={scriptId}
+                    />
+                </div>
+            </DrawerContent>
+        </Drawer>
 
         <MarkerRulesPanel 
             show={showRules} 

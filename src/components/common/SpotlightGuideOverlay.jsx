@@ -51,7 +51,7 @@ export function SpotlightGuideOverlay({
       ) : (
         <div className="absolute inset-0 bg-black/75 pointer-events-none" />
       )}
-      <div className="absolute right-6 bottom-6 w-[380px] max-w-[calc(100vw-3rem)] rounded-xl border bg-background p-4 shadow-2xl pointer-events-auto">
+      <div className="absolute left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-6 bottom-6 w-[380px] max-w-[calc(100vw-2rem)] rounded-xl border bg-background p-4 shadow-2xl pointer-events-auto">
         {showProgress ? (
           <div className="text-xs text-muted-foreground">
             {currentStep}/{totalSteps}

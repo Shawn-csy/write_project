@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   PanelLeftClose,
+  PanelLeftOpen,
   Settings,
   Info,
   LayoutTemplate,
@@ -86,21 +87,17 @@ function Sidebar({
         {collapsed ? (
           <Tooltip delayDuration={150}>
             <TooltipTrigger asChild>
-              <button
-                  type="button"
-                  className={`flex items-center hover:opacity-80 transition-opacity text-left group ${collapsed ? "justify-center" : "gap-2"}`}
-                  onClick={(e) => {
-                     e.preventDefault();
-                     handleHome();
-                  }}
-                  aria-label={t("sidebar.backHome")}
-                >
-                  <div className={`w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors`}>
-                      <span className={`text-[10px] font-bold ${accentStyle.label}`}>SR</span>
-                  </div>
-              </button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0"
+                onClick={() => setSidebarOpen(true)}
+                aria-label={t("sidebar.expandList")}
+              >
+                <PanelLeftOpen className="h-4 w-4" />
+              </Button>
             </TooltipTrigger>
-            <TooltipContent side="right">{t("sidebar.backHome")}</TooltipContent>
+            <TooltipContent side="right">{t("sidebar.expandList")}</TooltipContent>
           </Tooltip>
         ) : (
           <button
