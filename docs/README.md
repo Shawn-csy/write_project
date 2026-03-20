@@ -1,5 +1,5 @@
 # 文件索引
-最後更新：2026-03-11
+最後更新：2026-03-20
 
 ## 產品與功能
 - `docs/product/architecture.md`：系統架構圖與說明
@@ -11,7 +11,8 @@
 - `docs/engineering/backend-auth.md`：後端驗證（Firebase Token）
 - `docs/engineering/ci-process.md`：CI 建議流程
 - `docs/engineering/testing.md`：測試指南
-- `docs/engineering/database-runtime.md`：DB 執行模式（SQLite/Postgres）與啟動初始化開關
+- `docs/engineering/database-runtime.md`：DB 執行模式（PostgreSQL 主用、SQLite 備用）與啟動初始化開關
+- `docs/engineering/database-architecture-current.md`：目前正式環境的資料庫架構（Postgres）
 
 ## 安全
 - `docs/weak-scan-2026-02-05.md`：弱點掃描最終版報告
@@ -19,7 +20,9 @@
 ## 封存（過時）
 - `docs/archive/cloud-architecture.md`：舊版雲端備援架構（已封存）
 
-## 最近更新（2026-03-11）
+## 最近更新（2026-03-20）
+- 資料庫架構改為 PostgreSQL 主用（SQLite 備用/遷移來源）
+- 新增目前 DB 架構文件：`docs/engineering/database-architecture-current.md`
 - 匯入流程文件改為現況版：`docs/product/script-import-pipeline.md`
 - 資料流與架構文件改為目前 hooks/importPipeline 路徑
 - 測試與 CI 文件同步目前腳本與測試檔案命名
@@ -32,7 +35,7 @@
 - `README.md`：專案說明（面向非開發者）
 - `docker-compose.yml`：正式模式（build + nginx serve）
 - `docker-compose.dev.yml`：開發模式（Vite dev server）
-- `docker-compose.prod.yml`：正式模式（備份/明確版本）
+- `docker-compose.prod.yml`：正式模式（含 PostgreSQL）
 - `nginx.conf`：SPA fallback + `/api` 反代
 - `vite.config.js`：Vite 設定
 - `vitest.config.js`：Vitest 設定
