@@ -17,7 +17,7 @@ import { useI18n } from "../contexts/I18nContext";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Checkbox } from "../components/ui/checkbox";
-import { BookOpen, Building2, CircleHelp, LayoutDashboard, LogIn, Scale, Search, SlidersHorizontal, Users, X } from "lucide-react";
+import { CircleHelp, LayoutDashboard, LogIn, Scale, Search, SlidersHorizontal, X } from "lucide-react";
 import { CoverPlaceholder } from "../components/ui/CoverPlaceholder";
 import { Input } from "../components/ui/input";
 import { customMetadataEntriesToMeta } from "../lib/customMetadata";
@@ -855,117 +855,6 @@ export default function PublicGalleryPage() {
           </div>
         </div>
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
-          <aside className="hidden lg:block w-[86px] shrink-0">
-            <div className="sticky top-24 rounded-2xl border border-border/70 bg-card/70 p-2 shadow-sm backdrop-blur">
-              <div className="flex flex-col gap-1.5">
-                <button
-                  type="button"
-                  className={`group flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[11px] transition-colors ${
-                    view === "scripts" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
-                  }`}
-                  onClick={() => setView("scripts")}
-                >
-                  <BookOpen className="h-4 w-4" />
-                  <span className="leading-none">{t("publicTopbar.scripts")}</span>
-                </button>
-                <button
-                  type="button"
-                  className={`group flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[11px] transition-colors ${
-                    view === "authors" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
-                  }`}
-                  onClick={() => setView("authors")}
-                >
-                  <Users className="h-4 w-4" />
-                  <span className="leading-none">{t("publicTopbar.authors")}</span>
-                </button>
-                <button
-                  type="button"
-                  className={`group flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[11px] transition-colors ${
-                    view === "orgs" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
-                  }`}
-                  onClick={() => setView("orgs")}
-                >
-                  <Building2 className="h-4 w-4" />
-                  <span className="leading-none">{t("publicTopbar.orgs")}</span>
-                </button>
-              </div>
-              <div className="my-2 h-px bg-border/70" aria-hidden="true" />
-              <div className="flex flex-col gap-1">
-                <button
-                  type="button"
-                  className={`rounded-lg px-1.5 py-1.5 text-[10px] leading-tight transition-colors ${
-                    view === "scripts" && usageFilter === "commercial"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }`}
-                  onClick={() => {
-                    if (view !== "scripts") setView("scripts");
-                    setUsageFilter(usageFilter === "commercial" ? "all" : "commercial");
-                  }}
-                >
-                  {t("publicGallery.usageCommercial", "可商用")}
-                </button>
-                <button
-                  type="button"
-                  className={`rounded-lg px-1.5 py-1.5 text-[10px] leading-tight transition-colors ${
-                    view === "scripts" && segmentFilter === SEGMENT_KEYS.male
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }`}
-                  onClick={() => {
-                    if (view !== "scripts") setView("scripts");
-                    setSegmentFilter(segmentFilter === SEGMENT_KEYS.male ? SEGMENT_KEYS.all : SEGMENT_KEYS.male);
-                  }}
-                >
-                  {t("publicGallery.segmentMale", "男性向")}
-                </button>
-                <button
-                  type="button"
-                  className={`rounded-lg px-1.5 py-1.5 text-[10px] leading-tight transition-colors ${
-                    view === "scripts" && segmentFilter === SEGMENT_KEYS.female
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }`}
-                  onClick={() => {
-                    if (view !== "scripts") setView("scripts");
-                    setSegmentFilter(segmentFilter === SEGMENT_KEYS.female ? SEGMENT_KEYS.all : SEGMENT_KEYS.female);
-                  }}
-                >
-                  {t("publicGallery.segmentFemale", "女性向")}
-                </button>
-              </div>
-              <div className="my-2 h-px bg-border/70" aria-hidden="true" />
-              <div className="flex flex-col gap-1.5">
-                <button
-                  type="button"
-                  className="flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[11px] text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
-                  onClick={() => setIsMobileFilterOpen(true)}
-                  title={t("publicGallery.mobileFilter", "篩選")}
-                >
-                  <SlidersHorizontal className="h-4 w-4" />
-                  <span className="leading-none">{t("publicGallery.mobileFilter", "篩選")}</span>
-                </button>
-                <button
-                  type="button"
-                  className="flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[11px] text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
-                  onClick={() => navigate("/license")}
-                  title={t("publicGallery.licenseTerms")}
-                >
-                  <Scale className="h-4 w-4" />
-                  <span className="leading-none">{t("publicGallery.licenseTerms")}</span>
-                </button>
-                <button
-                  type="button"
-                  className="flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[11px] text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
-                  onClick={() => navigate("/help")}
-                  title={t("publicGallery.help")}
-                >
-                  <CircleHelp className="h-4 w-4" />
-                  <span className="leading-none">{t("publicGallery.help")}</span>
-                </button>
-              </div>
-            </div>
-          </aside>
 
           <aside id="desktop-filter-panel" className="hidden lg:block w-[280px] shrink-0">
             <div className="sticky top-24 rounded-2xl border border-border/70 bg-card/70 px-4 py-3 shadow-sm backdrop-blur">

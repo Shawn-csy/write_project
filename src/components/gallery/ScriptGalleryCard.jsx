@@ -26,7 +26,7 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
   const licenseTagSet = new Set(licenseTags);
   const displayTags = normalizedTags.filter((tag) => !licenseTagSet.has(tag));
   const primaryTags = displayTags.slice(0, 2);
-  const secondaryTags = displayTags.slice(2, 4);
+  const secondaryTags = displayTags.slice(2, 3);
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(likes);
 
@@ -204,8 +204,8 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
             {displayTags.length > 2 && (
                 <span className="sm:hidden text-[10px] text-muted-foreground self-center">+{displayTags.length - 2}</span>
             )}
-            {displayTags.length > 4 && (
-                <span className="hidden sm:inline text-[10px] text-muted-foreground self-center">+{displayTags.length - 4}</span>
+            {displayTags.length > 3 && (
+                <span className="hidden sm:inline text-[10px] text-muted-foreground self-center">+{displayTags.length - 3}</span>
             )}
           </div>
         )}
