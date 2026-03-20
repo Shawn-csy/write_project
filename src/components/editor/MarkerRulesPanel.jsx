@@ -13,7 +13,7 @@ export function MarkerRulesPanel({
   if (!show) return null;
 
   return (
-    <div className="absolute top-12 right-4 w-80 max-h-[80%] overflow-y-auto bg-popover border border-border rounded-lg shadow-xl z-50 p-4">
+    <div className="absolute top-14 right-4 w-96 max-h-[80%] overflow-y-auto bg-popover border border-border rounded-lg shadow-xl z-50 p-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-sm flex items-center gap-2">
           {t("markerRules.title")}
@@ -29,7 +29,8 @@ export function MarkerRulesPanel({
         </h3>
         <button
           onClick={onClose}
-          className="text-muted-foreground hover:text-foreground"
+          className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="close"
         >
           ✕
         </button>
