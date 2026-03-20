@@ -1,11 +1,17 @@
 # Database Runtime Notes
 最後更新：2026-03-20
 
-## 支援模式
-- SQLite（預設）：使用 `DB_PATH`，例如 `/data/scripts.db`
-- Postgres：設定 `DATABASE_URL`，例如 `postgresql+psycopg://user:pass@host:5432/dbname`
+## 正式模式（主用）
+- 正式環境以 PostgreSQL 為唯一主用資料庫。
+- 連線使用 `DATABASE_URL`，例如 `postgresql+psycopg://user:pass@host:5432/dbname`。
+- 目前正式 compose 由 `write_project-postgres` 提供資料庫服務。
 
-當 `DATABASE_URL` 存在時，後端會優先使用它；否則回退到 `DB_PATH`。
+## SQLite 角色（備用）
+- SQLite 不再作為正式主用 DB。
+- SQLite 僅保留為：
+  - 歷史資料來源（轉移到 Postgres）
+  - 本機臨時備援/除錯用途（必要時）
+- 程式層仍支援 `DB_PATH` 回退，但不建議作為 production 常態。
 
 ## 啟動時初始化開關
 - `DB_AUTO_CREATE_TABLES`（預設 `1`）  
@@ -18,7 +24,7 @@
 - 在 Postgres 下會自動略過 legacy migration，不會執行 SQLite 專用語法。
 - 若要做正式 schema 版控，建議導入 Alembic 並將 `DB_AUTO_CREATE_TABLES` / `DB_RUN_LEGACY_MIGRATIONS` 在 production 設為 `0`，改由 CI/CD migration job 管理。
 
-## SQLite -> Postgres 一次性轉移
+## SQLite -> Postgres（一次性轉移）
 在專案根目錄執行：
 
 ```bash
