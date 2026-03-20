@@ -54,12 +54,13 @@ export function ReaderTOC({
         <button
           type="button"
           data-guide-id={triggerGuideId}
-          className="hidden md:inline-flex fixed left-0 top-1/2 -translate-y-1/2 z-40 items-center gap-1 rounded-r-lg border border-l-0 border-border/70 bg-background/85 px-2 py-3 text-xs text-muted-foreground backdrop-blur-sm hover:bg-background hover:text-foreground"
+          className="hidden md:inline-flex fixed left-0 top-1/2 -translate-y-1/2 z-40 items-center gap-1.5 rounded-r-xl border border-l-0 border-border/80 bg-background/95 px-3 py-4 text-xs font-medium text-foreground shadow-md backdrop-blur-sm transition-all hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-lg"
           onClick={() => setOpen(true)}
           aria-label={t("publicReader.openToc", "開啟詳細資料側欄")}
         >
-          <Menu className="h-3.5 w-3.5" />
+          <Menu className="h-4 w-4 shrink-0" />
           <span className="[writing-mode:vertical-rl] tracking-wider">{t("publicReader.toc", "詳細資料")}</span>
+          <ChevronRight className="h-3 w-3 shrink-0 opacity-60" />
         </button>
       )}
       <Sheet open={resolvedOpen} onOpenChange={setOpen} modal={false}>

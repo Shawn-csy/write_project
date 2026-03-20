@@ -77,7 +77,7 @@ export function PublicHeroMarquee({
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
-          <div className={cn("relative aspect-[3.6/1] min-h-[120px] sm:min-h-[160px]", fullBleed && "min-h-[180px] sm:min-h-[260px] lg:min-h-[320px]")}>
+          <div className={cn("relative aspect-[4.5/1] min-h-[100px] sm:min-h-[140px]", fullBleed && "min-h-[140px] sm:min-h-[200px] lg:min-h-[240px]")}>
             {safeSlides.map((slide, index) => (
               visibleSlideIndexes.has(index) ? (
               <div
