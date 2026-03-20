@@ -5,6 +5,10 @@ from sqlalchemy import text
 from database import engine
 
 def run_migrations():
+    if engine.dialect.name != "sqlite":
+        print(f"Skipping legacy sqlite migrations for dialect: {engine.dialect.name}")
+        return
+
     try:
         with engine.connect() as conn:
             # Check existing columns

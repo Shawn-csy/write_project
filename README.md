@@ -18,6 +18,7 @@
 - **正式環境**：前端由靜態網站提供，API 由後端服務提供  
 - **反向代理**：前端同源轉發 `/api` 到後端  
 - **入口網域**：使用 `open-scripts` 作為前端入口，`scripts-api` 作為 API（或僅單一入口）  
+- **資料庫模式**：正式環境全面使用 PostgreSQL；SQLite 僅作為備用/歷史遷移來源
 
 ## 文件與說明
 - 入口文件：`docs/README.md`
@@ -27,4 +28,3 @@
 
 ## 常用連結（可自行補充）
 - 前端：`https://open-scripts.shawnup.com`
-

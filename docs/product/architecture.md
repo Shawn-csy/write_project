@@ -1,5 +1,5 @@
 # 系統架構圖（Mermaid）
-最後更新：2026-03-11
+最後更新：2026-03-20
 
 以下架構圖提供給新加入成員快速理解系統組成與資料走向。
 
@@ -16,7 +16,7 @@ flowchart TB
 
   subgraph Server["Backend (FastAPI)"]
     ROUTER[server/routers/*.py]
-    CRUD[server/crud.py]
+    CRUD[server/crud_ops/*.py]
     MODELS[server/models.py]
     SCHEMA[server/schemas.py]
     ROUTER --> CRUD
@@ -24,8 +24,8 @@ flowchart TB
     CRUD --> MODELS
   end
 
-  subgraph DB["SQLite"]
-    SQLITE[(scripts.db)]
+  subgraph DB["PostgreSQL"]
+    SQLITE[(write_project DB)]
   end
 
   API --> ROUTER
@@ -51,14 +51,14 @@ flowchart LR
     BE_MAIN[server/main.py]
     BE_DEP[server/dependencies.py]
     BE_ROUTERS[server/routers/*.py]
-    BE_CRUD[server/crud.py]
+    BE_CRUD[server/crud_ops/*.py]
     BE_MODELS[server/models.py]
     BE_SCHEMA[server/schemas.py]
     BE_MIG[server/migration.py]
   end
 
-  subgraph DB["SQLite"]
-    DB_SQL[(scripts.db)]
+  subgraph DB["PostgreSQL"]
+    DB_SQL[(write_project DB)]
   end
 
   subgraph Services["External"]
@@ -98,14 +98,14 @@ flowchart LR
 ┌──────────────────────────────┐
 │ Backend (FastAPI)             │
 │ - server/routers/*.py         │
-│ - server/crud.py              │
+│ - server/crud_ops/*.py              │
 │ - server/models.py            │
 │ - server/schemas.py           │
 └───────────────┬──────────────┘
                 │ SQLAlchemy
                 ▼
 ┌──────────────────────────────┐
-│ SQLite (scripts.db)           │
+│ PostgreSQL (write_project DB) │
 └──────────────────────────────┘
 ```
 
