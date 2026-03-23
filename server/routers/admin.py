@@ -184,11 +184,11 @@ def list_public_terms_acceptances(
     if normalized_q:
         like_q = f"%{normalized_q}%"
         query = query.filter(
-            (models.PublicTermsAcceptance.scriptId.like(like_q))
-            | (models.PublicTermsAcceptance.userId.like(like_q))
-            | (models.PublicTermsAcceptance.visitorId.like(like_q))
-            | (models.PublicTermsAcceptance.ipAddress.like(like_q))
-            | (models.PublicTermsAcceptance.userAgent.like(like_q))
+            (models.PublicTermsAcceptance.scriptId.ilike(like_q))
+            | (models.PublicTermsAcceptance.userId.ilike(like_q))
+            | (models.PublicTermsAcceptance.visitorId.ilike(like_q))
+            | (models.PublicTermsAcceptance.ipAddress.ilike(like_q))
+            | (models.PublicTermsAcceptance.userAgent.ilike(like_q))
         )
 
     total = query.count()

@@ -77,7 +77,7 @@ def get_organization_members(db: Session, org_id: str):
 
 def search_organizations(db: Session, query: str):
     search = f"%{query}%"
-    return db.query(models.Organization).filter(models.Organization.name.like(search)).limit(20).all()
+    return db.query(models.Organization).filter(models.Organization.name.ilike(search)).limit(20).all()
 
 
 def list_org_invites(db: Session, org_id: str):

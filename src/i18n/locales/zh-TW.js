@@ -331,7 +331,7 @@ const messages = {
     "importFormatCta": "先看匯入重點",
     "importQuickTitle": "匯入格式重點",
     "importQuickDesc": "先用這裡快速了解，再進入詳細格式頁查看完整對照。",
-    "importQuickItem1": "目前僅支援被談聲聆格式，可以直接全選複製貼上後自動調整。",
+    "importQuickItem1": "可以直接全選複製貼上後自動調整。",
     "importQuickItem2": "多角色時，需開啟下面的角色名設定去指定。",
     "importQuickItem3": "匯入會套用預設規則進行轉換與預覽。",
     "importFormatDetailCta": "查看詳細格式",
@@ -340,7 +340,7 @@ const messages = {
   "importFormat": {
     "topbarTitle": "匯入格式說明",
     "title": "支援匯入與轉換格式",
-    "subtitle": "目前僅支援被談聲聆格式。",
+    "subtitle": "目前支援以下格式。",
     "supportedTitle": "目前支援範圍",
     "supportedDesc": "匯入流程會以預設規則解析內容。若格式與規則相符，系統可直接完成轉換與預覽。",
     "characterRuleDesc": "角色建議寫法：角色名單獨一行。你也可以在匯入時開啟「角色整行轉換」自動補上 #C。",

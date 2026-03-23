@@ -40,7 +40,7 @@ def read_script_seo(script_id: str, request: Request, db: Session = Depends(get_
         is_ai_bot = any(bot in user_agent for bot in ["gptbot", "claudebot", "google-extended", "anthropic", "perplexitybot"])
         wants_markdown = "text/markdown" in accept_header or "text/plain" in accept_header
         
-        if (is_ai_bot or wants_markdown) and script and script.isPublic == 1:
+        if (is_ai_bot or wants_markdown) and script and script.isPublic == True:
             return Response(content=script.content, media_type="text/markdown")
             
         # --- Googlebot SSR Injection & Fallback ---
@@ -72,7 +72,7 @@ def read_script_seo(script_id: str, request: Request, db: Session = Depends(get_
 
         # 2. Read template
         if not os.path.exists(INDEX_PATH):
-            if is_googlebot and script and script.isPublic == 1:
+            if is_googlebot and script and script.isPublic == True:
                 return HTMLResponse(content=ssr_html, status_code=200)
             dev_read_url = f"{FRONTEND_DEV_URL}/read/{script_id}"
             current_url = str(request.url)

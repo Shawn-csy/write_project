@@ -115,7 +115,7 @@ def inject_seo_for_route(full_path: str, db, html_template: str, public_base_url
     if full_path.startswith("read/"):
         script_id = full_path.strip("/").split("/")[-1]
         script = db.query(models.Script).filter(models.Script.id == script_id).first()
-        if script and script.isPublic == 1:
+        if script and script.isPublic == True:
             canonical_url = f"{public_base_url}/read/{script_id}"
             title = f"{script.title or 'Untitled'}｜Screenplay Reader"
             desc = ((script.content or "").strip().replace("\n", " ")[:200] or "公開劇本閱讀頁")
