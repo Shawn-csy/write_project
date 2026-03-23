@@ -96,8 +96,8 @@ export default function PublicHelpPage() {
       id: "import-1",
       category: "import",
       question: "目前支援哪些匯入格式？",
-      answer: "目前支援談聲聆風格文字格式，建議使用預設 marker。你可以在匯入對話框內查看精簡規則與完整規則。",
-      keywords: ["匯入", "格式", "marker", "談聲聆"],
+      answer: "目前支援特定風格文字格式，建議使用預設 marker。你可以在匯入對話框內查看精簡規則與完整規則。",
+      keywords: ["匯入", "格式", "marker"],
     },
     {
       id: "import-2",

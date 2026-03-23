@@ -4,7 +4,50 @@ import uuid
 from sqlalchemy import text
 from database import engine
 
+def _run_postgres_migrations():
+    """Migrate PostgreSQL schema changes (ALTER COLUMN type changes, etc.)."""
+    timestamp_columns = [
+        ("scripts", "createdAt"),
+        ("scripts", "lastModified"),
+        ("users", "createdAt"),
+        ("users", "lastLogin"),
+        ("marker_themes", "createdAt"),
+        ("marker_themes", "updatedAt"),
+        ("organizations", "createdAt"),
+        ("organizations", "updatedAt"),
+        ("organization_invites", "createdAt"),
+        ("organization_memberships", "createdAt"),
+        ("organization_memberships", "updatedAt"),
+        ("persona_organization_memberships", "createdAt"),
+        ("persona_organization_memberships", "updatedAt"),
+        ("organization_requests", "createdAt"),
+        ("script_likes", "createdAt"),
+        ("series", "createdAt"),
+        ("series", "updatedAt"),
+        ("personas", "createdAt"),
+        ("personas", "updatedAt"),
+        ("public_terms_acceptances", "acceptedAt"),
+        ("admin_users", "createdAt"),
+        ("site_settings", "updatedAt"),
+    ]
+    with engine.connect() as conn:
+        for table, col in timestamp_columns:
+            result = conn.execute(text(
+                "SELECT data_type FROM information_schema.columns "
+                "WHERE table_name = :t AND column_name = :c"
+            ), {"t": table, "c": col}).fetchone()
+            if result and result[0].lower() == "integer":
+                print(f"Migrating: ALTER {table}.{col} INTEGER -> BIGINT")
+                conn.execute(text(
+                    f'ALTER TABLE "{table}" ALTER COLUMN "{col}" TYPE BIGINT'
+                ))
+        conn.commit()
+
+
 def run_migrations():
+    if engine.dialect.name == "postgresql":
+        _run_postgres_migrations()
+        return
     if engine.dialect.name != "sqlite":
         print(f"Skipping legacy sqlite migrations for dialect: {engine.dialect.name}")
         return

@@ -53,7 +53,7 @@ def get_public_scripts(
         orm.joinedload(models.Script.organization),
         orm.joinedload(models.Script.persona),
         orm.joinedload(models.Script.series),
-    ).filter(models.Script.isPublic == 1)
+    ).filter(models.Script.isPublic == True)
 
     if personaId:
         base_q = base_q.filter(
@@ -79,7 +79,7 @@ def get_public_scripts(
                 models.Script.title == folder_title,
                 models.Script.folder == folder_parent,
                 models.Script.type == "folder",
-                models.Script.isPublic == 1,
+                models.Script.isPublic == True,
             ).first()
 
             if folder_script:
@@ -120,7 +120,7 @@ def get_public_scripts(
                 s.organization.tags = _ensure_list(s.organization.tags)
         return results
 
-    pub_folders = db.query(models.Script).filter(models.Script.isPublic == 1, models.Script.type == "folder").all()
+    pub_folders = db.query(models.Script).filter(models.Script.isPublic == True, models.Script.type == "folder").all()
     public_paths = set()
     for f in pub_folders:
         path = (f.folder if f.folder != "/" else "") + "/" + f.title
@@ -151,7 +151,7 @@ def search_scripts(db: Session, query: str, ownerId: str):
         db.query(models.Script)
         .filter(
             models.Script.ownerId == ownerId,
-            or_(models.Script.title.like(search), models.Script.content.like(search)),
+            or_(models.Script.title.ilike(search), models.Script.content.ilike(search)),
         )
         .limit(20)
         .all()

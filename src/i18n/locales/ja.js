@@ -331,7 +331,7 @@ const messages = {
     "importFormatCta": "まずは要点を見る",
     "importQuickTitle": "インポート形式の要点",
     "importQuickDesc": "まずここで概要を確認し、必要なら詳細ページで完全な対応表を確認してください。",
-    "importQuickItem1": "現在は談聲聆（被談聲聆）形式のみ対応です。",
+    "importQuickItem1": "全選択してコピー＆ペーストすると自動調整されます。",
     "importQuickItem2": "キャラクターは「#C 名前」または名前のみ1行で記述します。",
     "importQuickItem3": "インポート時は既定の marker ルールで変換・プレビューされます。",
     "importFormatDetailCta": "詳細形式ガイドへ",
@@ -340,7 +340,7 @@ const messages = {
   "importFormat": {
     "topbarTitle": "インポート形式ガイド",
     "title": "対応インポート・変換形式",
-    "subtitle": "現在は「談聲聆形式（既定マーカー変換）」のみ対応しています。",
+    "subtitle": "現在は以下の形式に対応しています。",
     "supportedTitle": "現在の対応範囲",
     "supportedDesc": "インポートは既定マーカールールで解析されます。形式が一致すれば、そのまま変換とプレビューが可能です。",
     "characterRuleDesc": "キャラクター記法の推奨: 名前を単独行で記述するか、#C 名前 を直接使用してください。インポート時に「行全体をキャラクター変換」も利用できます。",
