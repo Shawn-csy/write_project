@@ -153,7 +153,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     const handleQuickCreateScript = useCallback(async () => {
         if (readOnly || isQuickCreatingScript) return;
         const title = t("dashboard.untitledScript", "未命名劇本");
-        const folder = manager.currentPath || "/";
+        const folder = manager.createPath || manager.currentPath || "/";
         setIsQuickCreatingScript(true);
         try {
             const id = await createScript(title, "script", folder);

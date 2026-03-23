@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback, useRef, memo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Download, Trash2, Folder, ChevronRight, FileText, MoreHorizontal, Settings, Globe, FolderInput, ArrowUpDown } from "lucide-react";
+import { Loader2, Trash2, Folder, ChevronRight, FileText, MoreHorizontal, Settings, Globe, FolderInput, ArrowUpDown } from "lucide-react";
 import { Button } from "../../ui/button";
 import { FileRow, SortableFileRow } from "../FileRow";
 import {
@@ -25,23 +25,10 @@ import {
     SortableContext,
     verticalListSortingStrategy
 } from '@dnd-kit/sortable';
-import { updateScript, getScript } from "../../../lib/api/scripts";
-import { buildFilename, downloadText } from "../../../lib/download";
+import { updateScript } from "../../../lib/api/scripts";
 import { isDefaultLikeTheme } from "../../../lib/themeNameUtils";
 import { useI18n } from "../../../contexts/I18nContext";
 import { StudioEmptyStateCard } from "../../common/StudioEmptyStateCard";
-
-// Helper: assureContent
-async function assureContent(item) {
-    if (item.content !== undefined && item.content !== null) return item.content;
-    try {
-        const full = await getScript(item.id);
-        return full.content || "";
-    } catch (e) {
-        console.error("Failed to fetch content", e);
-        return "";
-    }
-}
 
 // --- ScriptListRow (memoized) ---
 const ScriptListRow = memo(function ScriptListRow({
@@ -220,16 +207,6 @@ const ScriptListRow = memo(function ScriptListRow({
                                             </DropdownMenuItem>
                                         )}
 
-                                        {item.type !== 'folder' && (
-                                            <DropdownMenuItem onClick={async () => {
-                                                const content = await assureContent(item);
-                                                const filename = buildFilename(item.title || t("scriptList.script"), "fountain");
-                                                downloadText(content, filename);
-                                            }}>
-                                                <Download className="w-4 h-4 mr-2" />
-                                                <span>{t("scriptList.downloadFountain")}</span>
-                                            </DropdownMenuItem>
-                                        )}
 
                                         <DropdownMenuItem
                                             onClick={(e) => {
