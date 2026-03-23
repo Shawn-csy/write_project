@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import { Loader2, CircleHelp, ChevronDown, ChevronRight, Globe2, Lock } from "lucide-react";
+import { Loader2, CircleHelp, Globe2, Lock } from "lucide-react";
 import { getPublicScript } from "../../lib/api/public";
 import { uploadMediaObject } from "../../lib/api/media";
 import { useAuth } from "../../contexts/AuthContext";
@@ -40,6 +40,7 @@ import { useScriptMetadataSupplementalState } from "../../hooks/dashboard/useScr
 import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
 import { ImageCropDialog } from "../ui/ImageCropDialog";
 import { createEmptyActivityDemoLink } from "../../lib/activityDemoLinks";
+import { MetadataSectionBlock } from "./metadata/MetadataSectionBlock";
 
 export { buildPublishChecklist };
 
@@ -855,32 +856,16 @@ export function ScriptMetadataDialog({
         jumpToChecklistItem(key);
     };
 
-    const renderSectionBlock = (key, title, sectionId, node) => {
-        const collapsed = Boolean(collapsedSections[key]);
-        return (
-            <div id={sectionId} className="rounded-xl border border-border/70 bg-background shadow-sm">
-                <button
-                    type="button"
-                    onClick={() => toggleSection(key)}
-                    className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-left hover:bg-muted/30"
-                    aria-expanded={!collapsed}
-                    aria-controls={`${sectionId}-content`}
-                >
-                    <span className="text-sm font-semibold text-foreground">{title}</span>
-                    {collapsed ? (
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                    )}
-                </button>
-                {!collapsed && (
-                    <div id={`${sectionId}-content`} className="px-4 pb-4">
-                        {node}
-                    </div>
-                )}
-            </div>
-        );
-    };
+    const renderSectionBlock = (key, title, sectionId, node) => (
+        <MetadataSectionBlock
+            sectionId={sectionId}
+            title={title}
+            collapsed={Boolean(collapsedSections[key])}
+            onToggle={() => toggleSection(key)}
+        >
+            {node}
+        </MetadataSectionBlock>
+    );
 
     return (
         <>

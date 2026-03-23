@@ -10,7 +10,7 @@ import { MoveScriptDialog } from "./write/MoveScriptDialog";
 import { createScript, updateScript, getScript } from "../../lib/api/scripts";
 import { parseImportTagNames, syncImportedTagsToScript } from "../../lib/importPipeline/tagSync";
 import { Button } from "../ui/button";
-import { FileText, Folder, Search, ArrowUpDown, RotateCcw, PanelRightOpen, PanelRightClose } from "lucide-react";
+import { Search, ArrowUpDown, RotateCcw, PanelRightOpen, PanelRightClose } from "lucide-react";
 import {
     Drawer,
     DrawerContent,
@@ -29,7 +29,9 @@ import {
 } from "../ui/dropdown-menu";
 import { useI18n } from "../../contexts/I18nContext";
 import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
+import { WritePreviewContent } from "./write/WritePreviewPanel";
 import { MORANDI_STUDIO_TONE_VARS } from "../../constants/morandiPanelTones";
+import { useDebouncedSearch } from "../../hooks/useDebouncedSearch";
 
 export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     const { t } = useI18n();
@@ -312,11 +314,13 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         window.localStorage.setItem("write_tab_preview_collapsed_v1", isPreviewCollapsed ? "1" : "0");
     }, [isPreviewCollapsed]);
 
+    const debouncedFilterQuery = useDebouncedSearch(filterQuery, 200);
+
     const filteredAndSortedItems = useMemo(() => {
         let items = manager.visibleItems;
 
-        if (filterQuery.trim()) {
-            const q = filterQuery.trim().toLowerCase();
+        if (debouncedFilterQuery.trim()) {
+            const q = debouncedFilterQuery.trim().toLowerCase();
             items = items.filter((item) => {
                 const title = String(item.title || "").toLowerCase();
                 const path = String(item.folder || "/").toLowerCase();
@@ -337,7 +341,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
             });
         }
         return sorted;
-    }, [manager.visibleItems, filterQuery, sortKey, sortDir]);
+    }, [manager.visibleItems, debouncedFilterQuery, sortKey, sortDir]);
     
     const hasActiveFilters = Boolean(filterQuery.trim()) || sortKey !== "custom";
     const controlClassName = "h-8 rounded-md border border-[color:var(--morandi-tone-panel-border)] bg-background/90 text-foreground";
@@ -619,71 +623,19 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                     data-guide-id="write-preview-panel"
                 >
                     <h3 className="text-sm font-semibold text-[color:var(--morandi-tone-helper-fg)]">{t("writeTab.previewInfo")}</h3>
-                    {!previewItem ? (
-                        <p className="text-sm text-muted-foreground">{t("writeTab.previewHint")}</p>
-                    ) : (
-                        <>
-                            <div className="flex items-center gap-2">
-                                {previewItem.type === "folder" ? (
-                                    <Folder className="w-4 h-4 text-primary" />
-                                ) : (
-                                    <FileText className="w-4 h-4 text-primary" />
-                                )}
-                                <p className="font-medium truncate">{previewItem.title}</p>
-                            </div>
-                            <p className="text-xs text-muted-foreground break-all">{t("writeTab.pathLabel").replace("{path}", previewPath)}</p>
-                            <p className="text-xs text-muted-foreground">{t("writeTab.typeLabel").replace("{type}", previewItem.type === "folder" ? t("writeTab.folder") : t("writeTab.file"))}</p>
-                            {previewItem.type !== "folder" && (
-                                <>
-                                    <p className="text-xs text-muted-foreground">
-                                        {t("writeTab.statusLabel").replace("{status}", previewItem.isPublic ? "Public" : "Private")}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {t("writeTab.charCountApprox").replace("{count}", String(previewItem.contentLength ? Math.ceil(previewItem.contentLength / 2) : 0))}
-                                    </p>
-                                </>
-                            )}
-                            {!readOnly && (
-                                <div className="pt-2 flex flex-col gap-2">
-                                    {previewItem.type !== "folder" && (
-                                        <>
-                                            <Button
-                                                size="sm"
-                                                className="bg-primary text-primary-foreground hover:brightness-110 dark:bg-[color:var(--morandi-tone-trigger-bg)] dark:text-[color:var(--morandi-tone-trigger-fg)] dark:hover:brightness-95"
-                                                onClick={() => handleOpenScript(previewItem)}
-                                            >
-                                                {t("writeTab.openFile")}
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                className="border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-helper-bg)]/40 text-[color:var(--morandi-tone-helper-fg)] hover:bg-[color:var(--morandi-tone-helper-bg)]"
-                                                onClick={() => manager.openMoveDialog(previewItem)}
-                                            >
-                                                {t("writeTab.moveTo")}
-                                            </Button>
-                                        </>
-                                    )}
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-helper-bg)]/35 text-[color:var(--morandi-tone-helper-fg)] hover:bg-[color:var(--morandi-tone-helper-bg)]"
-                                        onClick={() => manager.openRenameDialog(previewItem)}
-                                    >
-                                        {t("writeTab.rename")}
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="border-[hsl(var(--destructive)/0.35)] bg-[hsl(var(--destructive)/0.08)] text-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive)/0.14)]"
-                                        onClick={() => manager.openDeleteDialog(previewItem)}
-                                    >
-                                        {t("common.remove")}
-                                    </Button>
-                                </div>
-                            )}
-                        </>
-                    )}
+                    <WritePreviewContent
+                        previewItem={previewItem}
+                        previewPath={previewPath}
+                        readOnly={readOnly}
+                        onOpen={handleOpenScript}
+                        onMove={manager.openMoveDialog}
+                        onRename={manager.openRenameDialog}
+                        onDelete={manager.openDeleteDialog}
+                        onToggleExpand={(item) => {
+                            const fullPath = (item.folder === "/" ? "" : item.folder) + "/" + item.title;
+                            manager.toggleExpand(fullPath);
+                        }}
+                    />
                 </aside>
             </div>
 
@@ -696,85 +648,20 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                         </DrawerDescription>
                     </DrawerHeader>
                     <div className="overflow-y-auto px-4 pb-6 pt-3">
-                        {!previewItem ? (
-                            <p className="text-sm text-muted-foreground">{t("writeTab.previewHint", "選取檔案後可查看資訊")}</p>
-                        ) : (
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-2">
-                                    {previewItem.type === "folder" ? (
-                                        <Folder className="w-4 h-4 text-primary" />
-                                    ) : (
-                                        <FileText className="w-4 h-4 text-primary" />
-                                    )}
-                                    <p className="font-medium break-words">{previewItem.title}</p>
-                                </div>
-                                <div className="space-y-1 text-sm text-muted-foreground">
-                                    <p className="break-all">{t("writeTab.pathLabel").replace("{path}", previewPath)}</p>
-                                    <p>{t("writeTab.typeLabel").replace("{type}", previewItem.type === "folder" ? t("writeTab.folder") : t("writeTab.file"))}</p>
-                                    {previewItem.type !== "folder" ? (
-                                        <>
-                                            <p>{t("writeTab.statusLabel").replace("{status}", previewItem.isPublic ? "Public" : "Private")}</p>
-                                            <p>{t("writeTab.charCountApprox").replace("{count}", String(previewItem.contentLength ? Math.ceil(previewItem.contentLength / 2) : 0))}</p>
-                                        </>
-                                    ) : null}
-                                </div>
-                                {!readOnly ? (
-                                    <div className="grid grid-cols-1 gap-2">
-                                        {previewItem.type !== "folder" ? (
-                                            <>
-                                                <Button
-                                                    onClick={() => {
-                                                        handleOpenScript(previewItem);
-                                                        setIsMobilePreviewOpen(false);
-                                                    }}
-                                                >
-                                                    {t("writeTab.openFile", "開啟檔案")}
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    onClick={() => {
-                                                        manager.openMoveDialog(previewItem);
-                                                        setIsMobilePreviewOpen(false);
-                                                    }}
-                                                >
-                                                    {t("writeTab.moveTo", "移動到")}
-                                                </Button>
-                                            </>
-                                        ) : (
-                                            <Button
-                                                variant="outline"
-                                                onClick={() => {
-                                                    const fullPath = (previewItem.folder === "/" ? "" : previewItem.folder) + "/" + previewItem.title;
-                                                    manager.toggleExpand(fullPath);
-                                                    setIsMobilePreviewOpen(false);
-                                                }}
-                                            >
-                                                {t("writeTab.openFolder", "展開資料夾")}
-                                            </Button>
-                                        )}
-                                        <Button
-                                            variant="outline"
-                                            onClick={() => {
-                                                manager.openRenameDialog(previewItem);
-                                                setIsMobilePreviewOpen(false);
-                                            }}
-                                        >
-                                            {t("writeTab.rename", "重新命名")}
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            className="border-[hsl(var(--destructive)/0.35)] bg-[hsl(var(--destructive)/0.08)] text-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive)/0.14)]"
-                                            onClick={() => {
-                                                manager.openDeleteDialog(previewItem);
-                                                setIsMobilePreviewOpen(false);
-                                            }}
-                                        >
-                                            {t("common.remove", "刪除")}
-                                        </Button>
-                                    </div>
-                                ) : null}
-                            </div>
-                        )}
+                        <WritePreviewContent
+                            previewItem={previewItem}
+                            previewPath={previewPath}
+                            readOnly={readOnly}
+                            onOpen={handleOpenScript}
+                            onMove={manager.openMoveDialog}
+                            onRename={manager.openRenameDialog}
+                            onDelete={manager.openDeleteDialog}
+                            onToggleExpand={(item) => {
+                                const fullPath = (item.folder === "/" ? "" : item.folder) + "/" + item.title;
+                                manager.toggleExpand(fullPath);
+                            }}
+                            onClose={() => setIsMobilePreviewOpen(false)}
+                        />
                     </div>
                 </DrawerContent>
             </Drawer>
