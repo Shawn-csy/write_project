@@ -32,7 +32,6 @@ export function ScriptMetadataActivitySection({
         <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("recommended")}>
             <div className="text-sm font-medium text-foreground">活動名稱</div>
-            <div className="mt-1 text-xs text-muted-foreground">顯示在公開台本的活動標題</div>
           </div>
           <div className="space-y-2 p-4">
             <Input
@@ -45,7 +44,6 @@ export function ScriptMetadataActivitySection({
         <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("recommended")}>
             <div className="text-sm font-medium text-foreground">活動 Banner</div>
-            <div className="mt-1 text-xs text-muted-foreground">可放活動視覺圖或宣傳圖 URL</div>
           </div>
           <div className="space-y-2 p-4">
             <Input
@@ -86,7 +84,6 @@ export function ScriptMetadataActivitySection({
         <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("recommended")}>
             <div className="text-sm font-medium text-foreground">活動內容</div>
-            <div className="mt-1 text-xs text-muted-foreground">說明活動資訊與參與方式</div>
           </div>
           <div className="space-y-2 p-4">
             <Textarea
@@ -100,7 +97,6 @@ export function ScriptMetadataActivitySection({
         <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("recommended")}>
             <div className="text-sm font-medium text-foreground">成品連結</div>
-            <div className="mt-1 text-xs text-muted-foreground">可放已發佈作品、商店頁或平台連結</div>
           </div>
           <div className="space-y-2 p-4">
             <Input

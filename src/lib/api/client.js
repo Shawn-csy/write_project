@@ -12,8 +12,8 @@ export const API_BASE_URL = getEnv("VITE_API_URL") || "/api";
 const localAuthEnabled = ["1", "true", "yes"].includes(String(getEnv("VITE_LOCAL_AUTH")).toLowerCase());
 const localAuthUserId = getEnv("VITE_LOCAL_AUTH_UID") || "local-test-user";
 
-const DEFAULT_CACHE_TTL_MS = 5000;
-const DEFAULT_PUBLIC_CACHE_TTL_MS = 15000;
+const DEFAULT_CACHE_TTL_MS = 60000;
+const DEFAULT_PUBLIC_CACHE_TTL_MS = 60000;
 const privateCache = new Map();
 const privateInflight = new Map();
 const publicCache = new Map();

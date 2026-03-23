@@ -20,7 +20,6 @@ export function ScriptMetadataDemoSection({
         <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("recommended")}>
             <div className="text-sm font-medium text-foreground">試聽項目</div>
-            <div className="mt-1 text-xs text-muted-foreground">可新增多筆，包含名稱、連結、聲演與說明</div>
           </div>
           <div className="space-y-3 p-4">
             {(activityDemoLinks || []).map((link, idx) => (

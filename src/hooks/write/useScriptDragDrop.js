@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { updateScript, reorderScripts } from "../../lib/api/scripts";
 import { useAuth } from "../../contexts/AuthContext";
 import { 
@@ -34,11 +34,11 @@ export function useScriptDragDrop({
         })
     );
 
-    const handleDragStart = (event) => {
+    const handleDragStart = useCallback((event) => {
         setActiveDragId(event.active.id);
-    };
+    }, []);
 
-    const handleDragEnd = async (event) => {
+    const handleDragEnd = useCallback(async (event) => {
         const { active, over } = event;
         setActiveDragId(null);
         if (!over) return;
@@ -122,7 +122,7 @@ export function useScriptDragDrop({
                  });
             });
         }
-    };
+    }, [scripts, setScripts, visibleItems, expandedPaths, currentPath, fetchScripts]);
 
     return {
         sensors,

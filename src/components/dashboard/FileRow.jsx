@@ -1,8 +1,17 @@
-import React from "react";
+import React, { memo } from "react";
 import { Badge } from "../ui/badge";
 import { GripVertical } from "lucide-react";
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+
+const resolveTagSwatch = (rawColor) => {
+    const value = String(rawColor || "").trim();
+    if (!value) return { className: "bg-primary/60", style: undefined };
+    if (value.startsWith("#") || value.startsWith("rgb") || value.startsWith("hsl") || value.startsWith("var(")) {
+        return { className: "", style: { backgroundColor: value } };
+    }
+    return { className: value, style: undefined };
+};
 
 export const SortableFileRow = (props) => {
     const {
@@ -37,15 +46,7 @@ export const SortableFileRow = (props) => {
     );
 };
 
-export const FileRow = ({ icon, title, meta, actions, onClick, onDoubleClick, isFolder, tags = [], dragListeners, style, className = "" }) => {
-    const resolveTagSwatch = (rawColor) => {
-        const value = String(rawColor || "").trim();
-        if (!value) return { className: "bg-primary/60", style: undefined };
-        if (value.startsWith("#") || value.startsWith("rgb") || value.startsWith("hsl") || value.startsWith("var(")) {
-            return { className: "", style: { backgroundColor: value } };
-        }
-        return { className: value, style: undefined };
-    };
+export const FileRow = memo(({ icon, title, meta, actions, onClick, onDoubleClick, isFolder, tags = [], dragListeners, style, className = "" }) => {
     const normalizedTags = (tags || [])
         .map((tag, idx) => {
             if (typeof tag === "string") {
@@ -132,4 +133,4 @@ export const FileRow = ({ icon, title, meta, actions, onClick, onDoubleClick, is
         </div>
     </div>
     );
-};
+});

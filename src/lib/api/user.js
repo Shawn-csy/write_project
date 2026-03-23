@@ -1,6 +1,6 @@
 import { API_BASE_URL, fetchApi, getAuthHeaders } from "./client";
 
-export const getUserProfile = async () => fetchApi("/me", { cacheTtlMs: 10000 });
+export const getUserProfile = async () => fetchApi("/me");
 
 export const updateUserProfile = async (updates) => {
   return fetchApi("/me", {

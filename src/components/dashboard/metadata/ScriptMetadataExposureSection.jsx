@@ -86,17 +86,11 @@ export function ScriptMetadataExposureSection({
               </Button>
             </div>
             <Input id="metadata-author" value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="覆蓋顯示的作者名稱..." />
-            {authorDisplayMode === "override" ? (
-              <p className="text-xs text-muted-foreground">目前為覆蓋作者模式，公開頁只會顯示這裡填寫的作者。</p>
-            ) : (
-              <p className="text-xs text-muted-foreground">目前為 Badge 模式，公開頁會顯示預設作者/組織資訊。</p>
-            )}
           </div>
         </div>
         <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("recommended")}>
             <div className="text-sm font-medium text-foreground">封面</div>
-            <div className="mt-1 text-xs text-muted-foreground">公開頁卡片與閱讀頁封面</div>
           </div>
           <div className="space-y-2 p-4">
             <Input id="metadata-cover-url" value={coverUrl} onChange={(e) => setCoverUrl(e.target.value)} placeholder="https://..." />
@@ -137,7 +131,6 @@ export function ScriptMetadataExposureSection({
         <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("recommended")}>
             <div className="text-sm font-medium text-foreground">系列資訊</div>
-            <div className="mt-1 text-xs text-muted-foreground">選擇加入系列後再填寫細節</div>
           </div>
           <div className="space-y-3 p-4">
             <div className="inline-flex gap-1 rounded-md border bg-background p-1">
@@ -199,7 +192,6 @@ export function ScriptMetadataExposureSection({
                   >
                     {showSeriesQuickCreate ? "收合建立區" : "建立新系列"}
                   </Button>
-                  <span className="text-xs text-muted-foreground">已選擇既有系列可略過</span>
                 </div>
                 {showSeriesQuickCreate && (
                   <div className="flex gap-2">
@@ -236,7 +228,6 @@ export function ScriptMetadataExposureSection({
         <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("recommended")}>
             <div className="text-sm font-medium text-foreground">標籤</div>
-            <div className="mt-1 text-xs text-muted-foreground">可輸入後 Enter 新增</div>
           </div>
           <div className="space-y-2 p-4">
             <div className="flex gap-2">

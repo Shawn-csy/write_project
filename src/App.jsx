@@ -38,6 +38,7 @@ function App() {
   const initialParamsRef = useRef({ char: null, scene: null });
   const appliedScriptThemeRef = useRef(null);
   const lastTrackedPageRef = useRef("");
+  const activeCloudScriptRef = useRef(null);
   // Initialize refs from URL once
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -65,6 +66,9 @@ function App() {
       sceneList,
       rawScript
   } = scriptManager;
+
+  // Keep ref in sync so callbacks don't need activeCloudScript in deps
+  activeCloudScriptRef.current = activeCloudScript;
 
   // 4. Local State
   const [searchTerm, setSearchTerm] = useState("");
@@ -115,30 +119,29 @@ function App() {
   }, [location.pathname, location.search, location.hash]);
 
   const handleCloudTitleUpdate = useCallback(async (newTitle) => {
-       if (!activeCloudScript || !newTitle) return;
-       // Optimistic update
-       scriptManager.setTitleName(newTitle); 
-       scriptManager.setActiveCloudScript(prev => ({...prev, title: newTitle}));
-       
-       try {
-           await updateScript(activeCloudScript.id, { title: newTitle });
-       } catch (e) {
-           console.error("Failed to rename script", e);
-       }
-  }, [activeCloudScript, scriptManager]);
+      const script = activeCloudScriptRef.current;
+      if (!script || !newTitle) return;
+      scriptManager.setTitleName(newTitle);
+      scriptManager.setActiveCloudScript(prev => ({ ...prev, title: newTitle }));
+      try {
+          await updateScript(script.id, { title: newTitle });
+      } catch (e) {
+          console.error("Failed to rename script", e);
+      }
+  }, [scriptManager]);
 
   const handleCloudMarkerThemeUpdate = useCallback(async (newThemeId) => {
-      if (!activeCloudScript) return false;
+      const script = activeCloudScriptRef.current;
+      if (!script) return false;
       const normalizedThemeId = String(newThemeId || "default");
-      const prevThemeId = String(activeCloudScript?.markerThemeId || "default");
+      const prevThemeId = String(script.markerThemeId || "default");
       if (normalizedThemeId === prevThemeId) return true;
 
       scriptManager.setActiveCloudScript((prev) =>
         prev ? { ...prev, markerThemeId: normalizedThemeId } : prev
       );
-
       try {
-          await updateScript(activeCloudScript.id, { markerThemeId: normalizedThemeId });
+          await updateScript(script.id, { markerThemeId: normalizedThemeId });
           return true;
       } catch (e) {
           console.error("Failed to update marker theme", e);
@@ -147,7 +150,7 @@ function App() {
           );
           return false;
       }
-  }, [activeCloudScript, scriptManager]);
+  }, [scriptManager]);
 
   const handleReturnHome = () => {
     if (activeCloudScript) {
