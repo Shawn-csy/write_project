@@ -206,7 +206,7 @@ If you send the `Accept: text/markdown` header, or if you identify as an AI bot 
             models.Script.ownerId,
             models.Script.organizationId,
         ).filter(
-            models.Script.isPublic == True,
+            models.Script.isPublic == 1,
             models.Script.type == "script",
         ).all()
 
@@ -279,7 +279,7 @@ If you send the `Accept: text/markdown` header, or if you identify as an AI bot 
             if is_ai_bot or wants_markdown:
                 try:
                     script = db.query(models.Script).filter(models.Script.id == script_id).first()
-                    if script and script.isPublic == True:
+                    if script and script.isPublic == 1:
                         return Response(content=script.content, media_type="text/markdown")
                     return Response(content="Script not found or is private.", status_code=404, media_type="text/markdown")
                 except Exception:
