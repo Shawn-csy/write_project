@@ -368,6 +368,21 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         }
     }, [hasMoreItems, loadMore]);
 
+    const handleSortChange = useCallback((key) => {
+        if (key !== "title" && key !== "lastModified") return;
+        if (sortKey === key) {
+            setSortDir((d) => d === "asc" ? "desc" : "asc");
+        } else {
+            setSortKey(key);
+            setSortDir(key === "title" ? "asc" : "desc");
+        }
+    }, [sortKey]);
+
+    const handleToggleExpandItem = useCallback((item) => {
+        const fullPath = (item.folder === "/" ? "" : item.folder) + "/" + item.title;
+        manager.toggleExpand(fullPath);
+    }, [manager.toggleExpand]);
+
     const guideSteps = useMemo(() => ([
         {
             title: t("writeTab.guideCreateTitle"),
@@ -571,15 +586,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                             readOnly={readOnly}
                             sortKey={sortKey}
                             sortDir={sortDir}
-                            onSortChange={(key) => {
-                                if (key !== "title" && key !== "lastModified") return;
-                                if (sortKey === key) {
-                                    setSortDir((d) => d === "asc" ? "desc" : "asc");
-                                } else {
-                                    setSortKey(key);
-                                    setSortDir(key === "title" ? "asc" : "desc");
-                                }
-                            }}
+                            onSortChange={handleSortChange}
                             currentPath={manager.currentPath}
                             expandedPaths={manager.expandedPaths}
                             activeDragId={manager.activeDragId}
@@ -631,10 +638,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                         onMove={manager.openMoveDialog}
                         onRename={manager.openRenameDialog}
                         onDelete={manager.openDeleteDialog}
-                        onToggleExpand={(item) => {
-                            const fullPath = (item.folder === "/" ? "" : item.folder) + "/" + item.title;
-                            manager.toggleExpand(fullPath);
-                        }}
+                        onToggleExpand={handleToggleExpandItem}
                     />
                 </aside>
             </div>

@@ -158,7 +158,6 @@ export function ScriptMetadataPublishSection({
             }}
           >
             <div className="text-sm font-medium text-foreground">附加條款</div>
-            <div className="mt-1 text-xs text-muted-foreground">補充授權限制與使用說明</div>
           </div>
           <div
             className="space-y-3 p-4"

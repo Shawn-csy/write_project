@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { Input } from "../ui/input";
 import { getPublicTermsAcceptances } from "../../lib/api/admin";
 
@@ -36,52 +35,48 @@ export function TermsAcceptanceTable() {
   useEffect(() => { loadTermsRecords(""); }, []);
 
   return (
-    <Card className="mb-8">
-      <CardHeader>
-        <CardTitle className="text-lg">授權條款簽署紀錄</CardTitle>
-        <CardDescription>記錄公開頁簽署當下的時間、IP、裝置與來源資訊。共 {termsTotal} 筆。</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Input
-            placeholder="搜尋 scriptId / visitorId / IP / UA"
-            value={termsQuery}
-            onChange={(e) => setTermsQuery(e.target.value)}
-          />
-          <Button variant="outline" onClick={() => loadTermsRecords(termsQuery.trim())}>
-            重新整理
-          </Button>
+    <div className="space-y-3">
+      <div className="flex flex-col sm:flex-row gap-2 items-center">
+        <Input
+          placeholder="搜尋 scriptId / visitorId / IP / UA"
+          value={termsQuery}
+          onChange={(e) => setTermsQuery(e.target.value)}
+          className="h-8 text-sm"
+        />
+        <Button variant="outline" size="sm" onClick={() => loadTermsRecords(termsQuery.trim())}>
+          重新整理
+        </Button>
+        <span className="text-xs text-muted-foreground shrink-0">共 {termsTotal} 筆</span>
+      </div>
+      {termsError && (
+        <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          {termsError}
         </div>
-        {termsError && (
-          <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-            {termsError}
-          </div>
-        )}
-        {isTermsLoading ? (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Loader2 className="w-3 h-3 animate-spin" />
-            載入簽署紀錄中...
-          </div>
-        ) : termsRecords.length === 0 ? (
-          <div className="text-xs text-muted-foreground py-4">目前沒有簽署紀錄。</div>
-        ) : (
-          <div className="space-y-2">
-            {termsRecords.map((row) => (
-              <div key={row.id} className="rounded-md border p-3 text-xs">
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-foreground">
-                  <span className="font-semibold">版本 {row.termsVersion}</span>
-                  <span>時間：{new Date(row.acceptedAt || 0).toLocaleString()}</span>
-                  <span>IP：{row.ipAddress || "-"}</span>
-                  <span>visitor：{row.visitorId || "-"}</span>
-                </div>
-                <div className="mt-1 text-muted-foreground">
-                  scriptId：{row.scriptId || "-"} ｜ UA：{row.userAgent || "-"}
-                </div>
+      )}
+      {isTermsLoading ? (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 className="w-3 h-3 animate-spin" />
+          載入簽署紀錄中...
+        </div>
+      ) : termsRecords.length === 0 ? (
+        <div className="text-xs text-muted-foreground py-4">目前沒有簽署紀錄。</div>
+      ) : (
+        <div className="space-y-2">
+          {termsRecords.map((row) => (
+            <div key={row.id} className="rounded-md border p-3 text-xs">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-foreground">
+                <span className="font-semibold">版本 {row.termsVersion}</span>
+                <span>時間：{new Date(row.acceptedAt || 0).toLocaleString()}</span>
+                <span>IP：{row.ipAddress || "-"}</span>
+                <span>visitor：{row.visitorId || "-"}</span>
               </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              <div className="mt-1 text-muted-foreground">
+                scriptId：{row.scriptId || "-"} ｜ UA：{row.userAgent || "-"}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

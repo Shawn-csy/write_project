@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { auth, googleProvider, initAnalytics } from "../lib/firebase";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { getUserProfile, updateUserProfile } from "../lib/api/user";
@@ -73,9 +73,9 @@ export function AuthProvider({ children }) {
         (desiredWithName.handle && profile.handle !== desiredWithName.handle);
 
       if (needsUpdate) {
-        await updateUserProfile(desiredWithName);
-        const refreshed = await getUserProfile();
-        setProfile(refreshed || profile || desiredWithName || null);
+        const updated = await updateUserProfile(desiredWithName);
+        // Use the returned value directly; avoid a second round-trip to GET /me.
+        setProfile(updated || profile || desiredWithName || null);
       }
     } catch (e) {
       console.error("Failed to sync user profile", e);
@@ -108,13 +108,13 @@ export function AuthProvider({ children }) {
     return unsubscribe;
   }, []);
 
-  const value = {
+  const value = useMemo(() => ({
     currentUser,
     profile,
     login,
     logout,
     saveProfile,
-  };
+  }), [currentUser, profile, login, logout, saveProfile]);
 
   return (
     <AuthContext.Provider value={value}>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { readString, readNumber, writeValue } from '../lib/storage';
 
 /**
@@ -16,10 +16,10 @@ export function usePersistentState(key, initialValue, type = 'string') {
     return readString(key, initialValue);
   });
 
-  const setPersistentState = (newValue) => {
+  const setPersistentState = useCallback((newValue) => {
     setState(newValue);
     writeValue(key, newValue);
-  };
+  }, [key]);
 
   return [state, setPersistentState];
 }

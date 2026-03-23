@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Button } from "../ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 import { MediaPicker } from "../ui/MediaPicker";
@@ -146,32 +145,27 @@ export function HomepageBannerSection() {
 
   return (
     <>
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="text-lg">首頁 Banner 設定</CardTitle>
-          <CardDescription>公開首頁跑馬燈可顯示多則活動公告（標題 / 內容 / 連結 / 圖片）。</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex justify-between items-center">
-            <div className="text-xs text-muted-foreground">目前 {homepageBannerItems.length} 張</div>
-            <div className="flex items-center gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={checkHomepageBannerApiVersion}>
-                檢查 API 版本
-              </Button>
-              <Button type="button" variant="outline" size="sm" onClick={addHomepageBannerItem}>
-                新增一張 Banner
-              </Button>
-            </div>
+      <div className="space-y-3">
+        <div className="flex justify-between items-center">
+          <div className="text-xs text-muted-foreground">目前 {homepageBannerItems.length} 張</div>
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={checkHomepageBannerApiVersion}>
+              檢查 API 版本
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={addHomepageBannerItem}>
+              新增一張 Banner
+            </Button>
           </div>
-          {homepageBannerApiCheckResult && (
-            <div className="text-xs text-muted-foreground">{homepageBannerApiCheckResult}</div>
-          )}
-          {homepageBannerItems.length === 0 && (
-            <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
-              尚未設定 Banner。可新增後儲存，公開首頁即會顯示輪播。
-            </div>
-          )}
-          {homepageBannerItems.map((item, idx) => (
+        </div>
+        {homepageBannerApiCheckResult && (
+          <div className="text-xs text-muted-foreground">{homepageBannerApiCheckResult}</div>
+        )}
+        {homepageBannerItems.length === 0 && (
+          <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+            尚未設定 Banner。可新增後儲存，公開首頁即會顯示輪播。
+          </div>
+        )}
+        {homepageBannerItems.map((item, idx) => (
             <div key={item.id || idx} className="rounded-md border p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="text-xs font-medium text-muted-foreground">第 {idx + 1} 張</div>
@@ -219,15 +213,14 @@ export function HomepageBannerSection() {
               )}
             </div>
           ))}
-          {homepageBannerError && <div className="text-xs text-destructive">{homepageBannerError}</div>}
-          {homepageBannerStatus && <div className="text-xs text-muted-foreground">{homepageBannerStatus}</div>}
-          <div className="flex justify-end">
-            <Button onClick={handleSaveHomepageBanner} disabled={isSavingHomepageBanner}>
-              {isSavingHomepageBanner ? "儲存中..." : "儲存首頁 Banner"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        {homepageBannerError && <div className="text-xs text-destructive">{homepageBannerError}</div>}
+        {homepageBannerStatus && <div className="text-xs text-muted-foreground">{homepageBannerStatus}</div>}
+        <div className="flex justify-end">
+          <Button onClick={handleSaveHomepageBanner} disabled={isSavingHomepageBanner}>
+            {isSavingHomepageBanner ? "儲存中..." : "儲存首頁 Banner"}
+          </Button>
+        </div>
+      </div>
 
       <MediaPicker
         open={homepageBannerPickerIndex !== null}
