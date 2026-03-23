@@ -10,10 +10,11 @@ export function useWriteTab(refreshTrigger, options = {}) {
     const data = useScriptData(refreshTrigger);
     
     // 2. Actions
-    const actions = useWriteScriptActions({ 
-        scripts: data.scripts, 
-        setScripts: data.setScripts, 
-        currentPath: data.currentPath, 
+    const actions = useWriteScriptActions({
+        scripts: data.scripts,
+        setScripts: data.setScripts,
+        currentPath: data.currentPath,
+        createPath: data.createPath,
         fetchScripts: data.fetchScripts,
         onScriptCreated: options.onScriptCreated
     });

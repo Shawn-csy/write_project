@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { createScript, updateScript, deleteScript } from "../../lib/api/scripts";
 
-export function useWriteScriptActions({ 
-    scripts, 
-    setScripts, 
-    currentPath, 
+export function useWriteScriptActions({
+    scripts,
+    setScripts,
+    currentPath,
+    createPath,
     fetchScripts,
     onScriptCreated
 }) {
@@ -63,7 +64,8 @@ export function useWriteScriptActions({
         if (!newTitle.trim()) return;
         setCreating(true);
         try {
-            const id = await createScript(newTitle, newType, currentPath);
+            const targetPath = createPath || currentPath;
+            const id = await createScript(newTitle, newType, targetPath);
             setNewTitle("");
             setIsCreateOpen(false);
             fetchScripts();
@@ -72,7 +74,7 @@ export function useWriteScriptActions({
                     id,
                     title: newTitle,
                     type: "script",
-                    folder: currentPath,
+                    folder: targetPath,
                     content: "",
                     isPublic: false
                 });
