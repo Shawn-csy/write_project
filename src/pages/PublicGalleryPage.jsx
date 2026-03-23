@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { GalleryFilterBar } from "../components/gallery/GalleryFilterBar";
@@ -9,18 +9,20 @@ import { OrgGalleryCard } from "../components/gallery/OrgGalleryCard";
 import { Button } from "../components/ui/button";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { PublicHeroMarquee } from "../components/public/PublicHeroMarquee";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../components/ui/sheet";
-import { getPublicBundle, getPublicTermsConfig, acceptPublicTerms, getPublicHomepageBanner } from "../lib/api/public";
-import { deriveSimpleLicenseTags, parseBasicLicenseFromMeta } from "../lib/licenseRights";
-import { normalizeSeriesName, parseSeriesOrder } from "../lib/series";
+import { GalleryMobileFilterSheet } from "../components/gallery/GalleryMobileFilterSheet";
+import { R18ConsentDialog } from "../components/public/R18ConsentDialog";
+import { getPublicBundle, getPublicHomepageBanner } from "../lib/api/public";
 import { useI18n } from "../contexts/I18nContext";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
-import { Checkbox } from "../components/ui/checkbox";
 import { CircleHelp, LayoutDashboard, LogIn, Scale, Search, SlidersHorizontal, X } from "lucide-react";
+import { HelpView } from "../components/gallery/views/HelpView";
+import { AboutView } from "../components/gallery/views/AboutView";
+import { LicenseView } from "../components/gallery/views/LicenseView";
 import { CoverPlaceholder } from "../components/ui/CoverPlaceholder";
 import { Input } from "../components/ui/input";
-import { customMetadataEntriesToMeta } from "../lib/customMetadata";
+import { usePublicTerms } from "../hooks/public/usePublicTerms";
+import { useDebouncedSearch } from "../hooks/useDebouncedSearch";
+import { TermsConsentDialog } from "../components/public/TermsConsentDialog";
+import { usePublicGalleryFiltering } from "../hooks/public/usePublicGalleryFiltering";
 
 const SEGMENT_KEYS = {
   all: "all",
@@ -35,43 +37,6 @@ const FEATURED_TAB_KEYS = {
   top: "top",
   latest: "latest",
   series: "series",
-};
-
-const SEGMENT_TAGS = {
-  [SEGMENT_KEYS.allAges]: ["全年齡向", "一般", "一般內容"],
-  [SEGMENT_KEYS.adult]: ["成人向", "R-18", "r18", "18+"],
-  [SEGMENT_KEYS.male]: ["男性向"],
-  [SEGMENT_KEYS.female]: ["女性向"],
-};
-
-const RESERVED_SEGMENT_TAGS = new Set(
-  Object.values(SEGMENT_TAGS).flat().map((tag) => String(tag).toLowerCase())
-);
-
-const TERMS_VISITOR_ID_KEY = "public_terms_visitor_id";
-const TERMS_ACCEPTED_PREFIX = "public_terms_accepted_v";
-
-const getOrCreateTermsVisitorId = () => {
-  try {
-    const existing = localStorage.getItem(TERMS_VISITOR_ID_KEY);
-    if (existing) return existing;
-    const generated =
-      (typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID()) ||
-      `visitor_${Date.now()}_${Math.random().toString(16).slice(2, 10)}`;
-    localStorage.setItem(TERMS_VISITOR_ID_KEY, generated);
-    return generated;
-  } catch {
-    return "";
-  }
-};
-
-const hasAcceptedTermsVersion = (version) => {
-  if (!version) return false;
-  try {
-    return Boolean(localStorage.getItem(`${TERMS_ACCEPTED_PREFIX}${version}`));
-  } catch {
-    return false;
-  }
 };
 
 export default function PublicGalleryPage() {
@@ -98,18 +63,34 @@ export default function PublicGalleryPage() {
   const [orgs, setOrgs] = useState([]);
   const [topTags, setTopTags] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [featuredLaneMode, setFeaturedLaneMode] = useState(null);
   const [pendingR18Route, setPendingR18Route] = useState(null);
   const [pendingScript, setPendingScript] = useState(null);
-  const [termsConfig, setTermsConfig] = useState(null);
-  const [termsDialogOpen, setTermsDialogOpen] = useState(false);
-  const [termsReadToBottom, setTermsReadToBottom] = useState(false);
-  const [termsRequireScroll, setTermsRequireScroll] = useState(false);
-  const [acceptedChecks, setAcceptedChecks] = useState({});
-  const [isSubmittingTerms, setIsSubmittingTerms] = useState(false);
-  const [isTermsConfigLoading, setIsTermsConfigLoading] = useState(true);
-  const termsScrollRef = useRef(null);
+
+  const {
+    termsConfig,
+    isTermsConfigLoading,
+    termsDialogOpen,
+    setTermsDialogOpen,
+    termsScrollRef,
+    termsReadToBottom,
+    termsRequireScroll,
+    acceptedChecks,
+    isSubmittingTerms,
+    canConfirmTerms,
+    missingRequiredCheckCount,
+    handleTermsScroll,
+    toggleRequiredCheck,
+    openTermsDialog,
+    confirmTermsConsent: confirmTermsConsentBase,
+    hasAcceptedTermsVersion,
+  } = usePublicTerms({
+    onAccepted: (scriptId) => {
+      const script = pendingScript;
+      setPendingScript(null);
+      if (script) continueToScript(script);
+    },
+  });
   const normalizeViewMode = (value) => (value === "compact" ? "compact" : "standard");
   const normalizeUsageFilter = (value) => (value === "commercial" ? "commercial" : "all");
 
@@ -194,32 +175,11 @@ export default function PublicGalleryPage() {
       setSearchParams(params);
       setViewMode(normalized);
   };
+  const debouncedSearchTerm = useDebouncedSearch(searchTerm, 180);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingPeople, setIsLoadingPeople] = useState(true);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [homepageBanner, setHomepageBanner] = useState(null);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-    }, 180);
-    return () => window.clearTimeout(timer);
-  }, [searchTerm]);
-
-  useEffect(() => {
-    const loadTermsConfig = async () => {
-      setIsTermsConfigLoading(true);
-      try {
-        const config = await getPublicTermsConfig();
-        setTermsConfig(config || null);
-      } catch (error) {
-        console.error("Failed to load public terms config", error);
-      } finally {
-        setIsTermsConfigLoading(false);
-      }
-    };
-    loadTermsConfig();
-  }, []);
 
   useEffect(() => {
     const loadHomepageBanner = async () => {
@@ -278,187 +238,38 @@ export default function PublicGalleryPage() {
     loadBundle();
   }, []);
 
-  const scriptsWithMeta = useMemo(() => {
-      return (scripts || []).map((script) => {
-          const meta = customMetadataEntriesToMeta(script.customMetadata || []);
-          const authorOverride = String(meta.author || "").trim();
-          const rawAuthorDisplayMode = String(meta.authordisplaymode || meta.authorDisplayMode || "").trim().toLowerCase();
-          const useOverrideAuthor = rawAuthorDisplayMode === "override" && Boolean(authorOverride);
-          const basicLicenseFromMeta = parseBasicLicenseFromMeta(meta);
-          const basicLicense = {
-            commercialUse: basicLicenseFromMeta.commercialUse || String(script.licenseCommercial || "").toLowerCase(),
-            derivativeUse: basicLicenseFromMeta.derivativeUse || String(script.licenseDerivative || "").toLowerCase(),
-            notifyOnModify: basicLicenseFromMeta.notifyOnModify || String(script.licenseNotify || "").toLowerCase(),
-          };
-          const license = meta.license || meta.licenseName || "";
-          const seriesName = normalizeSeriesName(script.series?.name || meta.series || meta.seriesname);
-          const seriesOrder = parseSeriesOrder(script.seriesOrder ?? meta.seriesorder ?? meta.episode);
-          let terms = meta.licensespecialterms || meta.licenseSpecialTerms || "";
-          let licenseTagsFromMeta = meta.licensetags || meta.licenseTags || [];
-          if (typeof terms === "string") {
-              try {
-                  const parsed = JSON.parse(terms);
-                  if (Array.isArray(parsed)) terms = parsed;
-              } catch {}
-          }
-          if (typeof licenseTagsFromMeta === "string") {
-              try {
-                  const parsed = JSON.parse(licenseTagsFromMeta);
-                  if (Array.isArray(parsed)) licenseTagsFromMeta = parsed;
-              } catch {
-                  licenseTagsFromMeta = String(licenseTagsFromMeta)
-                    .split(/,|，/)
-                    .map((t) => t.trim())
-                    .filter(Boolean);
-              }
-          }
-          if (!Array.isArray(licenseTagsFromMeta)) licenseTagsFromMeta = [];
-          const termsText = Array.isArray(terms) ? terms.join(" ") : String(terms || "");
-          const licenseTags = Array.from(new Set([
-            ...deriveSimpleLicenseTags(basicLicense),
-            ...licenseTagsFromMeta
-          ]));
-          const mergedTags = Array.from(new Set([...(script.tags || []), ...licenseTags]));
-          const resolvedAuthor = useOverrideAuthor
-            ? {
-                displayName: authorOverride,
-                avatarUrl: "",
-              }
-            : (script.author || null);
-          const searchTitle = String(script.title || "").toLowerCase();
-          const searchAuthor = String(resolvedAuthor?.displayName || "").toLowerCase();
-          const searchLicenseText = [license, ...licenseTags].filter(Boolean).join(" ").toLowerCase();
-          const searchLicenseTermsText = termsText.toLowerCase();
-          const tagSetLower = new Set(mergedTags.map((tag) => String(tag).toLowerCase()));
-          return {
-              ...script,
-              author: resolvedAuthor,
-              tags: mergedTags,
-              _licenseText: [license, ...licenseTags].filter(Boolean).join(" "),
-              _licenseTermsText: termsText,
-              _derivedLicenseTags: licenseTags,
-              _allowCommercial: basicLicense.commercialUse === "allow",
-              _disableAuthorLink: useOverrideAuthor,
-              _seriesName: seriesName,
-              _seriesOrder: seriesOrder,
-              seriesName,
-              seriesOrder,
-              _searchTitle: searchTitle,
-              _searchAuthor: searchAuthor,
-              _searchLicenseText: searchLicenseText,
-              _searchLicenseTermsText: searchLicenseTermsText,
-              _tagSetLower: tagSetLower,
-          };
-      });
-  }, [scripts]);
-
   const searchNeedle = debouncedSearchTerm.trim().toLowerCase();
 
-  // Filter Logic
-  const filteredScripts = useMemo(() => {
-    return scriptsWithMeta
-      .filter((script) => {
-        const matchesSearch =
-          searchNeedle === "" ||
-          script._searchTitle.includes(searchNeedle) ||
-          script._searchAuthor.includes(searchNeedle) ||
-          script._searchLicenseText.includes(searchNeedle) ||
-          script._searchLicenseTermsText.includes(searchNeedle);
-        const matchesTag = selectedTags.length > 0
-          ? (script.tags || []).some((tag) => selectedTags.includes(tag))
-          : true;
-        const matchesSegment = segmentFilter === SEGMENT_KEYS.all
-          ? true
-          : (SEGMENT_TAGS[segmentFilter] || []).some((tag) => script._tagSetLower.has(String(tag).toLowerCase()));
-        const matchesUsage =
-          usageFilter === "all" ? true :
-          usageFilter === "commercial" ? script._allowCommercial === true :
-          true;
-        return matchesSearch && matchesTag && matchesSegment && matchesUsage;
-      })
-      .sort((a, b) => (b.lastModified || b.updatedAt || 0) - (a.lastModified || a.updatedAt || 0));
-  }, [scriptsWithMeta, searchNeedle, selectedTags, segmentFilter, usageFilter]);
+  const {
+    scriptsWithMeta,
+    filteredScripts,
+    topViewedScripts,
+    latestScripts,
+    topViewedScriptsPreview,
+    latestScriptsPreview,
+    featuredLaneScripts,
+    featuredSeries,
+    allTags,
+    licenseTagShortcuts,
+    filteredAuthors,
+    filteredOrgs,
+    authorTags: hookAuthorTags,
+    orgTags: hookOrgTags,
+  } = usePublicGalleryFiltering({
+    scripts,
+    authors,
+    orgs,
+    searchNeedle,
+    selectedTags,
+    selectedAuthorTags,
+    selectedOrgTags,
+    segmentFilter,
+    usageFilter,
+    featuredLaneMode,
+  });
 
   // Calculate default view lanes (when no filters are actively applied)
   const isDefaultView = searchNeedle === "" && selectedTags.length === 0 && usageFilter === "all" && segmentFilter === SEGMENT_KEYS.all;
-
-  const topViewedScripts = useMemo(() => {
-    return [...filteredScripts].sort((a, b) => (b.views || 0) - (a.views || 0));
-  }, [filteredScripts]);
-
-  const latestScripts = filteredScripts;
-  const topViewedScriptsPreview = useMemo(() => topViewedScripts.slice(0, 15), [topViewedScripts]);
-  const latestScriptsPreview = useMemo(() => latestScripts.slice(0, 15), [latestScripts]);
-  const featuredLaneScripts = useMemo(() => {
-    if (featuredLaneMode === "top") return topViewedScripts;
-    if (featuredLaneMode === "latest") return latestScripts;
-    return filteredScripts;
-  }, [featuredLaneMode, topViewedScripts, latestScripts, filteredScripts]);
-  const featuredSeries = useMemo(() => {
-    const buckets = new Map();
-    for (const script of scriptsWithMeta || []) {
-      const name = normalizeSeriesName(script.seriesName || script._seriesName);
-      if (!name) continue;
-      const key = name.toLowerCase();
-      if (!buckets.has(key)) {
-        buckets.set(key, { name, scripts: [], totalViews: 0 });
-      }
-      const bucket = buckets.get(key);
-      bucket.scripts.push(script);
-      bucket.totalViews += script.views || 0;
-    }
-    return Array.from(buckets.values())
-      .map((bucket) => {
-        const sorted = [...bucket.scripts].sort((a, b) => {
-          const aOrder = a.seriesOrder ?? a._seriesOrder ?? Number.MAX_SAFE_INTEGER;
-          const bOrder = b.seriesOrder ?? b._seriesOrder ?? Number.MAX_SAFE_INTEGER;
-          if (aOrder !== bOrder) return aOrder - bOrder;
-          return (b.lastModified || b.updatedAt || 0) - (a.lastModified || a.updatedAt || 0);
-        });
-        return {
-          name: bucket.name,
-          totalViews: bucket.totalViews,
-          count: bucket.scripts.length,
-          lead: sorted[0] || null,
-          coverUrl:
-            sorted.find((item) => String(item?.series?.coverUrl || "").trim())?.series?.coverUrl ||
-            sorted.find((item) => String(item?.coverUrl || "").trim())?.coverUrl ||
-            "",
-        };
-      })
-      .filter((series) => series.lead)
-      .sort((a, b) => b.totalViews - a.totalViews)
-      .slice(0, 10);
-  }, [scriptsWithMeta]);
-
-  const allTags = Array.from(
-    new Set(
-      scriptsWithMeta
-        .flatMap((s) => s.tags || [])
-        .filter((tag) => !RESERVED_SEGMENT_TAGS.has(String(tag).toLowerCase()))
-    )
-  );
-  const licenseTagShortcuts = Array.from(
-    new Set(scriptsWithMeta.flatMap((s) => s._derivedLicenseTags || []))
-  );
-  const filteredAuthors = useMemo(() => {
-    return authors.filter((a) => {
-      const matchesSearch = String(a.displayName || "").toLowerCase().includes(searchNeedle);
-      const matchesTag = selectedAuthorTags.length > 0
-        ? (a.tags || []).some((tag) => selectedAuthorTags.includes(tag))
-        : true;
-      return matchesSearch && matchesTag;
-    });
-  }, [authors, searchNeedle, selectedAuthorTags]);
-  const filteredOrgs = useMemo(() => {
-    return orgs.filter((o) => {
-      const matchesSearch = String(o.name || "").toLowerCase().includes(searchNeedle);
-      const matchesTag = selectedOrgTags.length > 0
-        ? (o.tags || []).some((tag) => selectedOrgTags.includes(tag))
-        : true;
-      return matchesSearch && matchesTag;
-    });
-  }, [orgs, searchNeedle, selectedOrgTags]);
   const mobileResultCount =
     view === "scripts" ? filteredScripts.length :
     view === "authors" ? filteredAuthors.length :
@@ -500,10 +311,8 @@ export default function PublicGalleryPage() {
     (usageFilter !== "all" ? 1 : 0) + (segmentFilter !== SEGMENT_KEYS.all ? 1 : 0);
   const activeMobileFilterCount =
     activeTagFilterCount + (view === "scripts" ? activeScriptExtraFilterCount : 0);
-  const allAuthorTags = Array.from(new Set(authors.flatMap(a => a.tags || [])));
-  const allOrgTags = Array.from(new Set(orgs.flatMap(o => o.tags || [])));
-  const authorTags = allAuthorTags;
-  const orgTags = allOrgTags;
+  const authorTags = hookAuthorTags;
+  const orgTags = hookOrgTags;
 
   const continueToScript = (script) => {
     if (!script?.id) return;
@@ -530,110 +339,11 @@ export default function PublicGalleryPage() {
       continueToScript(script);
       return;
     }
-
-    const requiredChecks = Array.isArray(termsConfig?.requiredChecks) ? termsConfig.requiredChecks : [];
-    const initialChecks = {};
-    requiredChecks.forEach((item) => {
-      if (item?.id) initialChecks[item.id] = false;
-    });
-    setAcceptedChecks(initialChecks);
-    setTermsReadToBottom(false);
     setPendingScript(script);
-    setTermsDialogOpen(true);
+    openTermsDialog();
   };
 
-  const handleTermsScroll = (event) => {
-    const target = event.currentTarget;
-    if (!target) return;
-    const buffer = 16;
-    const scrollable = target.scrollHeight > target.clientHeight + 1;
-    setTermsRequireScroll(scrollable);
-    if (!scrollable) {
-      setTermsReadToBottom(true);
-      return;
-    }
-    const reachedBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - buffer;
-    if (reachedBottom) setTermsReadToBottom(true);
-  };
-
-  useEffect(() => {
-    if (!termsDialogOpen) return;
-    let cancelled = false;
-    const check = () => {
-      if (cancelled) return;
-      const node = termsScrollRef.current;
-      if (!node) {
-        requestAnimationFrame(check);
-        return;
-      }
-      const scrollable = node.scrollHeight > node.clientHeight + 1;
-      setTermsRequireScroll(scrollable);
-      if (!scrollable) {
-        setTermsReadToBottom(true);
-      }
-    };
-    requestAnimationFrame(check);
-    return () => {
-      cancelled = true;
-    };
-  }, [termsDialogOpen, termsConfig]);
-
-  const toggleRequiredCheck = (checkId, checked) => {
-    setAcceptedChecks((prev) => ({ ...prev, [checkId]: Boolean(checked) }));
-  };
-
-  const canConfirmTerms = (() => {
-    if (termsRequireScroll && !termsReadToBottom) return false;
-    const requiredChecks = Array.isArray(termsConfig?.requiredChecks) ? termsConfig.requiredChecks : [];
-    if (requiredChecks.length === 0) return true;
-    return requiredChecks.every((item) => Boolean(acceptedChecks[item.id]));
-  })();
-  const missingRequiredCheckCount = (() => {
-    const requiredChecks = Array.isArray(termsConfig?.requiredChecks) ? termsConfig.requiredChecks : [];
-    return requiredChecks.filter((item) => !acceptedChecks[item.id]).length;
-  })();
-
-  const confirmTermsConsent = async () => {
-    if (!pendingScript || !termsConfig?.version || !canConfirmTerms || isSubmittingTerms) return;
-    setIsSubmittingTerms(true);
-    try {
-      const visitorId = getOrCreateTermsVisitorId();
-      const agreedCheckIds = (termsConfig.requiredChecks || [])
-        .filter((item) => item?.id && acceptedChecks[item.id])
-        .map((item) => item.id);
-      await acceptPublicTerms({
-        termsVersion: termsConfig.version,
-        scriptId: pendingScript.id,
-        visitorId,
-        locale: navigator.language || "",
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "",
-        timezoneOffsetMinutes: new Date().getTimezoneOffset(),
-        userAgent: navigator.userAgent || "",
-        platform: navigator.platform || "",
-        screen: {
-          width: window.screen?.width || 0,
-          height: window.screen?.height || 0,
-          colorDepth: window.screen?.colorDepth || 0,
-          pixelRatio: window.devicePixelRatio || 1,
-        },
-        viewport: {
-          width: window.innerWidth || 0,
-          height: window.innerHeight || 0,
-        },
-        pagePath: window.location.pathname + window.location.search,
-        referrer: document.referrer || "",
-        acceptedChecks: agreedCheckIds,
-      });
-      localStorage.setItem(`${TERMS_ACCEPTED_PREFIX}${termsConfig.version}`, String(Date.now()));
-      setTermsDialogOpen(false);
-      continueToScript(pendingScript);
-      setPendingScript(null);
-    } catch (error) {
-      console.error("Failed to submit terms consent", error);
-    } finally {
-      setIsSubmittingTerms(false);
-    }
-  };
+  const confirmTermsConsent = () => confirmTermsConsentBase(pendingScript?.id);
 
   const confirmR18Consent = () => {
     if (pendingR18Route) {
@@ -668,7 +378,7 @@ export default function PublicGalleryPage() {
                 variant="ghost"
                 size="sm"
                 className="w-10 px-0 sm:w-auto sm:px-3"
-                onClick={() => navigate("/license")}
+                onClick={() => setView("license")}
                 title={t("publicGallery.licenseTerms")}
                 aria-label={t("publicGallery.licenseTerms")}
               >
@@ -679,7 +389,7 @@ export default function PublicGalleryPage() {
                 variant="ghost"
                 size="sm"
                 className="w-10 px-0 sm:w-auto sm:px-3"
-                onClick={() => navigate("/help")}
+                onClick={() => setView("help")}
                 title={t("publicGallery.help")}
                 aria-label={t("publicGallery.help")}
               >
@@ -795,6 +505,7 @@ export default function PublicGalleryPage() {
             </div>
           </div>
         )}
+        {["scripts", "authors", "orgs"].includes(view) && <>
         <div className="mb-3 space-y-2 lg:hidden">
           <div className="flex items-center gap-2">
             <div className="relative min-w-0 flex-1">
@@ -1232,6 +943,10 @@ export default function PublicGalleryPage() {
         )}
           </div>
         </div>
+        </>}
+        {view === "help" && <HelpView />}
+        {view === "license" && <LicenseView />}
+        {view === "about" && <AboutView />}
       </main>
 
       <footer className="border-t border-border/60 bg-muted/20">
@@ -1239,264 +954,61 @@ export default function PublicGalleryPage() {
           <p className="text-xs text-muted-foreground">{t("publicGallery.footerText")}</p>
           <div className="flex items-center gap-3">
             <span className="text-[10px] tracking-wide text-muted-foreground/70">v{appVersion}</span>
-            <Button variant="link" size="sm" className="h-auto px-0 text-xs" onClick={() => navigate("/about")}>
+            <Button variant="link" size="sm" className="h-auto px-0 text-xs" onClick={() => setView("about")}>
               {t("publicGallery.about")}
             </Button>
           </div>
         </div>
       </footer>
 
-      <Sheet open={isMobileFilterOpen} onOpenChange={setIsMobileFilterOpen}>
-        <SheetContent side="left" className="w-[92vw] max-w-none p-0 sm:max-w-sm">
-          <SheetHeader className="px-4 pt-4 pb-2 border-b border-border/50">
-            <SheetTitle>{t("publicGallery.mobileFilterTitle", "篩選與搜尋")}</SheetTitle>
-            <SheetDescription>{t("publicGallery.mobileFilterDesc", "調整搜尋關鍵字與標籤條件。")}</SheetDescription>
-          </SheetHeader>
-          <div className="h-[calc(100vh-96px)] overflow-y-auto px-4 pb-6">
-            {view === "scripts" && (
-              <div className="mt-4 space-y-4 rounded-lg border border-border/60 bg-muted/20 p-3">
-                <div className="space-y-2">
-                  <p className="mb-2 text-xs font-medium text-foreground">{t("galleryFilterBar.usageRights", "使用權限")}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {usageOptions.map((opt) => (
-                      <Button
-                        key={`mobile-usage-${opt.value}`}
-                        type="button"
-                        size="sm"
-                        variant={usageFilter === opt.value ? "default" : "outline"}
-                        className={`h-7 rounded-full px-3 text-xs transition-colors ${
-                          usageFilter === opt.value
-                            ? "border border-primary bg-primary text-primary-foreground shadow ring-1 ring-primary/35"
-                            : "border-transparent bg-transparent text-muted-foreground shadow-none hover:bg-muted/60 hover:text-foreground"
-                        }`}
-                        onClick={() => setUsageFilter(opt.value)}
-                      >
-                        {opt.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
+      <GalleryMobileFilterSheet
+        open={isMobileFilterOpen}
+        onOpenChange={setIsMobileFilterOpen}
+        view={view}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        selectedTags={selectedTags}
+        selectedAuthorTags={selectedAuthorTags}
+        selectedOrgTags={selectedOrgTags}
+        onSelectScriptTags={setSelectedTags}
+        onSelectAuthorTags={setAuthorTags}
+        onSelectOrgTags={setOrgTags}
+        allTags={allTags}
+        authorTags={authorTags}
+        orgTags={orgTags}
+        topTags={topTags}
+        licenseTagShortcuts={licenseTagShortcuts}
+        usageFilter={usageFilter}
+        usageOptions={usageOptions}
+        onSetUsageFilter={setUsageFilter}
+        viewMode={viewMode}
+        onViewModeChange={handleViewModeChange}
+        hasScriptFilters={hasScriptFilters}
+        onResetScriptFilters={resetScriptFilters}
+      />
 
-                <div className="h-px bg-border/70" aria-hidden="true" />
-
-                <div className="space-y-2">
-                  <p className="mb-2 text-xs font-medium text-foreground">{t("publicGallery.viewMode", "顯示模式")}</p>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={viewMode === "standard" ? "default" : "outline"}
-                      className={`h-7 rounded-full px-3 text-xs transition-colors ${
-                        viewMode === "standard"
-                          ? "border border-primary bg-primary text-primary-foreground shadow ring-1 ring-primary/35"
-                          : "border-transparent bg-transparent text-muted-foreground shadow-none hover:bg-muted/60 hover:text-foreground"
-                      }`}
-                      onClick={() => handleViewModeChange("standard")}
-                    >
-                      {t("publicGallery.viewStandard", "圖文排版")}
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={viewMode === "compact" ? "default" : "outline"}
-                      className={`h-7 rounded-full px-3 text-xs transition-colors ${
-                        viewMode === "compact"
-                          ? "border border-primary bg-primary text-primary-foreground shadow ring-1 ring-primary/35"
-                          : "border-transparent bg-transparent text-muted-foreground shadow-none hover:bg-muted/60 hover:text-foreground"
-                      }`}
-                      onClick={() => handleViewModeChange("compact")}
-                    >
-                      {t("publicGallery.viewCompact", "緊湊排版")}
-                    </Button>
-                  </div>
-                </div>
-                {hasScriptFilters && (
-                  <div className="pt-1">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                      onClick={resetScriptFilters}
-                    >
-                      {t("publicGallery.clearFilters")}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-            <GalleryFilterBar
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              selectedTags={
-                view === "scripts" ? selectedTags :
-                view === "authors" ? selectedAuthorTags :
-                selectedOrgTags
-              }
-              onSelectTags={
-                view === "scripts" ? setSelectedTags :
-                view === "authors" ? setAuthorTags :
-                setOrgTags
-              }
-              featuredTags={view === "scripts" ? topTags : []}
-              tags={
-                view === "scripts" ? allTags :
-                view === "authors" ? authorTags :
-                orgTags
-              }
-              placeholder={
-                view === "scripts" ? t("publicGallery.searchScripts", "搜尋劇本...") :
-                view === "authors" ? t("publicGallery.searchAuthors", "搜尋作者...") :
-                t("publicGallery.searchOrgs", "搜尋組織...")
-              }
-              showViewToggle={false}
-              viewValue={viewMode}
-              onViewChange={handleViewModeChange}
-              viewOptions={[
-                { value: "standard", label: t("publicGallery.viewStandard", "圖文排版") },
-                { value: "compact", label: t("publicGallery.viewCompact", "緊湊排版") }
-              ]}
-              quickFilters={[]}
-              quickTagFilters={view === "scripts" ? [
-                ...licenseTagShortcuts.map((tag) => ({
-                    value: tag,
-                    label: tag.replace(/^授權:/, "").replace(/^License:/, "")
-                }))
-              ] : []}
-            />
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      <Dialog
+      <TermsConsentDialog
         open={termsDialogOpen}
-        onOpenChange={(open) => {
-          if (!open && !isSubmittingTerms) {
-            setTermsDialogOpen(false);
-            setPendingScript(null);
-          }
-        }}
-      >
-        <DialogContent
-          className="w-[94vw] max-w-2xl p-0 overflow-hidden border"
-          style={{
-            backgroundColor: "var(--license-overlay-bg)",
-            borderColor: "var(--license-overlay-border)",
-            color: "var(--license-overlay-fg)",
-          }}
-        >
-          <DialogHeader className="px-5 pt-5 pb-2">
-            <DialogTitle className="text-left">{termsConfig?.title || "授權條款與使用聲明"}</DialogTitle>
-            <DialogDescription className="text-left">
-              {termsConfig?.intro || "請先閱讀並同意以下條款，完成後才能進入劇本閱讀頁。"}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="px-5 pb-2">
-            <div
-              ref={termsScrollRef}
-              onScroll={handleTermsScroll}
-              className="max-h-[46vh] overflow-y-auto touch-pan-y rounded-md border p-4 text-sm leading-6"
-              style={{
-                backgroundColor: "var(--license-term-bg)",
-                borderColor: "var(--license-term-border)",
-                color: "var(--license-term-fg)",
-              }}
-            >
-              {(termsConfig?.sections || []).map((section) => (
-                <section key={section.id || section.title} className="mb-4 last:mb-0">
-                  <h4 className="font-semibold text-foreground">{section.title}</h4>
-                  <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{section.body}</p>
-                </section>
-              ))}
-              {(termsConfig?.sections || []).length === 0 && (
-                <p className="text-muted-foreground">條款內容尚未設定。</p>
-              )}
-            </div>
-            <p
-              className="mt-2 text-xs"
-              style={{
-                color:
-                  termsReadToBottom || !termsRequireScroll
-                    ? "var(--license-selected-fg)"
-                    : "hsl(var(--muted-foreground))",
-              }}
-            >
-              {termsRequireScroll
-                ? (termsReadToBottom ? "已讀到最下方，可進行確認。" : "請先將條款內容滑到最下方。")
-                : "確認已閱條款後，可勾選確認。"}
-            </p>
-          </div>
-          <div className="px-5 pb-2 space-y-2">
-            {missingRequiredCheckCount > 0 && (
-              <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
-                尚有 {missingRequiredCheckCount} 項必須同意。
-              </div>
-            )}
-            {(termsConfig?.requiredChecks || []).map((item) => (
-              <label
-                key={item.id}
-                className={`flex items-start gap-2 rounded-md border px-2 py-2 text-sm ${
-                  acceptedChecks[item.id]
-                    ? "border-emerald-500/30 bg-emerald-500/10"
-                    : "border-amber-500/40 bg-amber-500/10"
-                }`}
-              >
-                <Checkbox
-                  className="mt-0.5"
-                  checked={Boolean(acceptedChecks[item.id])}
-                  onCheckedChange={(checked) => toggleRequiredCheck(item.id, checked)}
-                  disabled={(termsRequireScroll && !termsReadToBottom) || isSubmittingTerms}
-                />
-                <span className={acceptedChecks[item.id] ? "text-foreground/90" : "text-amber-800 dark:text-amber-300"}>
-                  {item.label}
-                </span>
-              </label>
-            ))}
-          </div>
-          <DialogFooter className="px-5 pb-5 pt-2">
-            <Button variant="outline" onClick={() => { setTermsDialogOpen(false); setPendingScript(null); }} disabled={isSubmittingTerms}>
-              稍後再看
-            </Button>
-            <Button onClick={confirmTermsConsent} disabled={!canConfirmTerms || isSubmittingTerms}>
-              {isSubmittingTerms ? "送出中..." : "同意並進入"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        onOpenChange={(open) => { if (!open && !isSubmittingTerms) { setTermsDialogOpen(false); setPendingScript(null); } }}
+        termsConfig={termsConfig}
+        termsScrollRef={termsScrollRef}
+        termsReadToBottom={termsReadToBottom}
+        termsRequireScroll={termsRequireScroll}
+        acceptedChecks={acceptedChecks}
+        isSubmittingTerms={isSubmittingTerms}
+        canConfirmTerms={canConfirmTerms}
+        missingRequiredCheckCount={missingRequiredCheckCount}
+        handleTermsScroll={handleTermsScroll}
+        toggleRequiredCheck={toggleRequiredCheck}
+        onConfirm={confirmTermsConsent}
+        onCancel={() => { setTermsDialogOpen(false); setPendingScript(null); }}
+      />
 
-      {/* R-18 Consent Dialog */}
-      <AlertDialog open={!!pendingR18Route} onOpenChange={(open) => !open && setPendingR18Route(null)}>
-        <AlertDialogContent className="w-[92vw] max-w-[92vw] sm:max-w-lg rounded-xl p-4 sm:p-6 gap-3 max-h-[90vh] overflow-y-auto">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-destructive font-bold flex items-center gap-2 text-base sm:text-lg leading-snug break-words">
-              <span className="text-xl sm:text-2xl">🔞</span>
-              <span>內容分級警告 (Adult Content Warning)</span>
-            </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2 text-left break-words">
-              <p className="text-[13px] sm:text-sm text-foreground/80 leading-relaxed">
-                您即將進入受限制的內容頁面。此作品含有 <strong>成人向(R-18)</strong> 的標籤，可能包含不適合未成年人觀看的成人題材、暴力或過度裸露內容。
-              </p>
-              <p className="text-sm sm:text-[15px] font-medium text-destructive">
-                請問您是否已滿 18 歲，並願意觀看此內容？
-              </p>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="mt-2 sm:mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <AlertDialogCancel
-              className="w-full h-auto min-h-10 whitespace-normal leading-snug px-3 py-2"
-              onClick={() => setPendingR18Route(null)}
-            >
-              返回 (Go Back)
-            </AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmR18Consent}
-              className="w-full h-auto min-h-10 whitespace-normal leading-snug px-3 py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-            >
-              已滿 18 歲，進入觀看 (I am 18+, Enter)
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <R18ConsentDialog
+        open={!!pendingR18Route}
+        onOpenChange={(open) => !open && setPendingR18Route(null)}
+        onConfirm={confirmR18Consent}
+      />
 
     </div>
   );
