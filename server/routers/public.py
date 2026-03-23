@@ -137,7 +137,7 @@ def _has_public_parent_folder(db: Session, script: models.Script) -> bool:
         models.Script.title == folder_title,
         models.Script.folder == folder_parent,
         models.Script.type == "folder",
-        models.Script.isPublic == True,
+        models.Script.isPublic == 1,
     ).first()
     return folder_script is not None
 
