@@ -153,12 +153,18 @@ export function useScriptData(refreshTrigger = 0) {
 
     const toggleExpand = (path, e) => {
         e?.stopPropagation();
-        setExpandedPaths(prev => {
-            const next = new Set(prev);
-            if (next.has(path)) next.delete(path);
-            else next.add(path);
-            return next;
-        });
+        const isExpanded = expandedPaths.has(path);
+        if (isExpanded) {
+            // Collapse: clear all, navigate to parent
+            setExpandedPaths(new Set());
+            const parts = path.split("/").filter(Boolean);
+            parts.pop();
+            navigateTo(parts.length ? "/" + parts.join("/") : "/");
+        } else {
+            // Expand: only this folder, navigate into it
+            setExpandedPaths(new Set([path]));
+            navigateTo(path);
+        }
     };
 
     return {
