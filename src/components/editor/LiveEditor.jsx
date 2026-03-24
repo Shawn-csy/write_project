@@ -699,7 +699,9 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
 
         {/* Stats Side Panel — desktop */}
         {showStats && (
-            <div className="hidden sm:flex w-[400px] border-l border-border bg-background shrink-0 flex-col h-full shadow-xl z-20">
+            <>
+            <div className="hidden sm:block absolute inset-0 z-10" onClick={() => setShowStats(false)} />
+            <div className="hidden sm:flex absolute right-0 top-0 bottom-0 w-[400px] border-l border-border bg-background flex-col shadow-xl z-20 animate-in slide-in-from-right duration-200">
                 <div className="h-12 border-b flex items-center px-4 shrink-0 bg-muted/20 gap-3">
                     <button
                         onClick={() => setShowStats(false)}
@@ -718,10 +720,11 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
                     />
                 </div>
             </div>
+            </>
         )}
 
-        {/* Stats Drawer — mobile */}
-        <Drawer open={showStats} onOpenChange={setShowStats} direction="bottom">
+        {/* Stats Drawer — mobile only */}
+        <Drawer open={showStats && isMobile} onOpenChange={setShowStats} direction="bottom">
             <DrawerContent className="sm:hidden flex flex-col h-[80dvh] outline-none">
                 <DrawerTitle className="sr-only">{t("liveEditor.statsPanel")}</DrawerTitle>
                 <DrawerDescription className="sr-only">{t("liveEditor.statsPanel")}</DrawerDescription>
