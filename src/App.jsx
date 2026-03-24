@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FileCode2, FileSpreadsheet, FileText, Printer } from "lucide-react";
+import { FileSpreadsheet, FileText, Printer } from "lucide-react";
 import { useSettings } from "./contexts/SettingsContext";
 import { useScriptManager } from "./hooks/useScriptManager";
 import { useAppNavigation } from "./hooks/useAppNavigation";
@@ -200,16 +200,6 @@ function App() {
       disabled: !exportContent && !scriptManager.titleHtml,
     },
     {
-      id: "fountain",
-      label: t("publicReader.downloadFountain"),
-      icon: FileCode2,
-      onClick: async () => {
-        const { exportScriptAsFountain } = await loadBasicScriptExport();
-        exportScriptAsFountain(exportTitle, exportContent);
-      },
-      disabled: !exportContent,
-    },
-    {
       id: "docx",
       label: t("publicReader.downloadDoc"),
       icon: FileText,
@@ -226,16 +216,6 @@ function App() {
       onClick: async () => {
         const { exportScriptAsXlsx } = await loadXlsxScriptExport();
         await exportScriptAsXlsx(exportTitle, { text: exportContent, renderedHtml: renderedExportHtml });
-      },
-      disabled: !exportContent,
-    },
-    {
-      id: "csv",
-      label: t("publicReader.downloadCsv"),
-      icon: FileSpreadsheet,
-      onClick: async () => {
-        const { exportScriptAsCsv } = await loadBasicScriptExport();
-        exportScriptAsCsv(exportTitle, { text: exportContent, renderedHtml: renderedExportHtml });
       },
       disabled: !exportContent,
     },
