@@ -8,12 +8,39 @@ import time
 import json
 
 def test_update_script_is_public(db_session: Session):
-    # Test line 96: isPublic toggle
+    # Test line 96: isPublic toggle via isPublic field directly
     script = crud.create_script(db_session, schemas.ScriptCreate(title="PublicTest", type="script"), "user1")
     updated = crud.update_script(db_session, script.id, schemas.ScriptUpdate(isPublic=True), "user1")
     assert updated.isPublic == 1
     updated = crud.update_script(db_session, script.id, schemas.ScriptUpdate(isPublic=False), "user1")
     assert updated.isPublic == 0
+
+def test_update_script_status_syncs_is_public(db_session: Session):
+    # Regression: frontend sends status="Public" (not isPublic), isPublic must be synced automatically.
+    # Previously this caused the public API to return 404 even after a successful publish.
+    script = crud.create_script(db_session, schemas.ScriptCreate(title="StatusSyncTest", type="script"), "user1")
+    assert script.isPublic == 0
+
+    updated = crud.update_script(db_session, script.id, schemas.ScriptUpdate(status="Public"), "user1")
+    assert updated.status == "Public"
+    assert updated.isPublic == 1, "isPublic should be set to 1 when status is updated to 'Public'"
+
+    updated = crud.update_script(db_session, script.id, schemas.ScriptUpdate(status="Private"), "user1")
+    assert updated.status == "Private"
+    assert updated.isPublic == 0, "isPublic should be set to 0 when status is updated to 'Private'"
+
+def test_public_api_accessible_after_status_publish(db_session: Session):
+    # Regression: a script updated to status="Public" must be visible via the public script query.
+    script = crud.create_script(db_session, schemas.ScriptCreate(title="E2EPublish", type="script", folder="/"), "user1")
+    assert script.isPublic == 0
+
+    # Simulate what the frontend does: only send status, not isPublic
+    crud.update_script(db_session, script.id, schemas.ScriptUpdate(status="Public"), "user1")
+
+    # The public scripts list should now include this script
+    public_scripts = crud.get_public_scripts(db_session)
+    public_ids = [s.id for s in public_scripts]
+    assert script.id in public_ids, "Script should be publicly visible after status='Public' update"
 
 def test_delete_script_not_found(db_session: Session):
     # Test line 108

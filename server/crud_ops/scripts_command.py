@@ -172,6 +172,10 @@ def update_script(db: Session, script_id: str, script: schemas.ScriptUpdate, own
                 update_data["seriesOrder"] = None
         else:
             update_data["seriesOrder"] = None
+    # Sync isPublic from status if status is being updated
+    if "status" in update_data and "isPublic" not in update_data:
+        update_data["isPublic"] = 1 if update_data["status"] == "Public" else 0
+
     for key, value in update_data.items():
         if key == "isPublic":
             setattr(db_script, key, 1 if value else 0)
