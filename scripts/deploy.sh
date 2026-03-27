@@ -183,6 +183,34 @@ docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" down
 echo "[deploy] building and starting containers..."
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up --build -d
 
+echo "[deploy] waiting for backend to be ready..."
+BACKEND_CID="$(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps -q write_project-backend 2>/dev/null || true)"
+if [ -z "$BACKEND_CID" ]; then
+  echo "WARN: cannot find write_project-backend container — skipping readiness check"
+else
+  READY=0
+  for i in $(seq 1 60); do
+    STATUS="$(docker inspect -f '{{.State.Status}}' "$BACKEND_CID" 2>/dev/null || true)"
+    if [ "$STATUS" = "running" ]; then
+      # Check if the server is actually accepting connections (health endpoint).
+      if docker exec "$BACKEND_CID" \
+          wget -qO- http://localhost:8080/api/health/auth 2>/dev/null | grep -q "ok\|401\|403\|422"; then
+        READY=1
+        break
+      fi
+    fi
+    sleep 2
+  done
+
+  if [ "$READY" = "1" ]; then
+    echo "[deploy] backend is up — migration log:"
+    docker logs "$BACKEND_CID" 2>&1 | grep -E "Migrat|migration|backfill" || echo "  (no migration output found)"
+  else
+    echo "WARN: backend did not become ready in time — showing last 40 log lines:"
+    docker logs --tail=40 "$BACKEND_CID" 2>&1 || true
+  fi
+fi
+
 echo "[deploy] service status:"
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
 

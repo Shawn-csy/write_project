@@ -41,6 +41,42 @@ def _run_postgres_migrations():
                 conn.execute(text(
                     f'ALTER TABLE "{table}" ALTER COLUMN "{col}" TYPE BIGINT'
                 ))
+
+        # Backfill persona_organization_memberships from personas.organizationIds JSON.
+        # Required after making PersonaOrganizationMembership the single source of truth.
+        # Safe to re-run: INSERT ... ON CONFLICT DO NOTHING.
+        now_ms = int(time.time() * 1000)
+        persona_rows = conn.execute(text(
+            'SELECT id, "organizationIds" FROM personas WHERE "organizationIds" IS NOT NULL'
+        )).fetchall()
+        inserted = 0
+        for row in persona_rows:
+            raw = row[1]
+            try:
+                org_ids = json.loads(raw) if isinstance(raw, str) else (raw or [])
+            except Exception:
+                org_ids = []
+            if not isinstance(org_ids, list):
+                org_ids = []
+            for org_id in org_ids:
+                if not org_id:
+                    continue
+                conn.execute(text("""
+                    INSERT INTO persona_organization_memberships
+                        (id, "orgId", "personaId", role, "createdAt", "updatedAt")
+                    VALUES (:id, :orgId, :personaId, 'member', :createdAt, :updatedAt)
+                    ON CONFLICT ("orgId", "personaId") DO NOTHING
+                """), {
+                    "id": str(uuid.uuid4()),
+                    "orgId": org_id,
+                    "personaId": row[0],
+                    "createdAt": now_ms,
+                    "updatedAt": now_ms,
+                })
+                inserted += 1
+        if inserted:
+            print(f"Migrating: backfilled {inserted} persona_organization_membership rows from organizationIds JSON")
+
         conn.commit()
 
 
