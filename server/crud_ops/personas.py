@@ -6,18 +6,15 @@ from sqlalchemy.orm import Session
 import models
 import schemas
 from .common import _ensure_list
-from .organizations_query import is_user_org_manager, sync_persona_org_memberships
+from .organizations_query import ensure_persona_org_memberships, get_persona_org_ids, is_user_org_manager
 
 
-def _sanitize_persona_org_ids(db: Session, owner_id: str, org_ids) -> list[str]:
-    sanitized = []
-    for org_id in _ensure_list(org_ids):
-        org_id_str = str(org_id or "").strip()
-        if not org_id_str:
-            continue
-        if is_user_org_manager(db, owner_id, org_id_str):
-            sanitized.append(org_id_str)
-    return sanitized
+def _sanitize_persona_org_ids(db: Session, owner_id: str, org_ids) -> list:
+    return [
+        str(org_id or "").strip()
+        for org_id in _ensure_list(org_ids)
+        if str(org_id or "").strip() and is_user_org_manager(db, owner_id, str(org_id).strip())
+    ]
 
 
 def create_persona(db: Session, persona: schemas.PersonaCreate, ownerId: str):
@@ -40,7 +37,7 @@ def create_persona(db: Session, persona: schemas.PersonaCreate, ownerId: str):
     )
     db.add(db_persona)
     db.flush()
-    sync_persona_org_memberships(db, db_persona)
+    ensure_persona_org_memberships(db, db_persona, org_ids)
     db.commit()
     db.refresh(db_persona)
     return db_persona
@@ -57,18 +54,23 @@ def update_persona(db: Session, persona_id: str, persona: schemas.PersonaCreate,
         update_data["defaultLicenseSpecialTerms"] = []
     if "links" in update_data and update_data["links"] is None:
         update_data["links"] = []
+
+    new_org_ids = None
     if "organizationIds" in update_data:
-        update_data["organizationIds"] = _sanitize_persona_org_ids(db, ownerId, update_data.get("organizationIds"))
+        new_org_ids = _sanitize_persona_org_ids(db, ownerId, update_data.pop("organizationIds"))
 
     for key, value in update_data.items():
         setattr(db_persona, key, value)
-    sync_persona_org_memberships(db, db_persona)
+
+    if new_org_ids is not None:
+        ensure_persona_org_memberships(db, db_persona, new_org_ids)
+
     db_persona.updatedAt = int(time.time() * 1000)
     db.commit()
     db.refresh(db_persona)
 
     db_persona.tags = _ensure_list(db_persona.tags)
-    db_persona.organizationIds = _ensure_list(db_persona.organizationIds)
+    db_persona.organizationIds = get_persona_org_ids(db, db_persona)
     db_persona.defaultLicenseSpecialTerms = _ensure_list(db_persona.defaultLicenseSpecialTerms)
     db_persona.links = _ensure_list(db_persona.links)
 
@@ -78,7 +80,7 @@ def update_persona(db: Session, persona_id: str, persona: schemas.PersonaCreate,
 def get_user_personas(db: Session, ownerId: str):
     personas = db.query(models.Persona).filter(models.Persona.ownerId == ownerId).all()
     for p in personas:
-        p.organizationIds = _ensure_list(p.organizationIds)
+        p.organizationIds = get_persona_org_ids(db, p)
         p.tags = _ensure_list(p.tags)
         p.defaultLicenseSpecialTerms = _ensure_list(p.defaultLicenseSpecialTerms)
         p.links = _ensure_list(p.links)

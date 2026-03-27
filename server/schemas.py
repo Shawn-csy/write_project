@@ -1,6 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from typing import List, Optional, Any, Dict, Union
-from typing_extensions import Literal
+from typing import List, Literal, Optional, Any, Dict, Union
 
 # Tag Schemas
 class TagBase(BaseModel):

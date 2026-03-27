@@ -10,54 +10,10 @@ import crud_ops as crud
 import schemas
 import models
 from dependencies import get_db
+from utils import normalize_homepage_banner_value, safe_json_list
 
 router = APIRouter(prefix="/api", tags=["public"])
 HOMEPAGE_BANNER_SETTING_KEY = "homepage_banner"
-
-
-def _normalize_homepage_banner_value(raw_value: str) -> dict:
-    try:
-        parsed = json.loads(str(raw_value or ""))
-    except Exception:
-        parsed = {}
-    if not isinstance(parsed, dict):
-        parsed = {}
-
-    raw_items = parsed.get("items")
-    items = []
-    if isinstance(raw_items, list):
-        for idx, item in enumerate(raw_items):
-            if not isinstance(item, dict):
-                continue
-            normalized = {
-                "id": str(item.get("id") or f"slide-{idx + 1}").strip() or f"slide-{idx + 1}",
-                "title": str(item.get("title") or "").strip(),
-                "content": str(item.get("content") or "").strip(),
-                "link": str(item.get("link") or "").strip(),
-                "imageUrl": str(item.get("imageUrl") or "").strip(),
-            }
-            if normalized["title"] or normalized["content"] or normalized["link"] or normalized["imageUrl"]:
-                items.append(normalized)
-
-    if not items:
-        fallback = {
-            "id": "slide-1",
-            "title": str(parsed.get("title") or "").strip(),
-            "content": str(parsed.get("content") or "").strip(),
-            "link": str(parsed.get("link") or "").strip(),
-            "imageUrl": str(parsed.get("imageUrl") or "").strip(),
-        }
-        if fallback["title"] or fallback["content"] or fallback["link"] or fallback["imageUrl"]:
-            items = [fallback]
-
-    first = items[0] if items else {"title": "", "content": "", "link": "", "imageUrl": ""}
-    return {
-        "title": str(first.get("title") or ""),
-        "content": str(first.get("content") or ""),
-        "link": str(first.get("link") or ""),
-        "imageUrl": str(first.get("imageUrl") or ""),
-        "items": items,
-    }
 
 
 def _load_public_terms_config() -> dict:
@@ -239,7 +195,7 @@ def read_public_homepage_banner(db: Session = Depends(get_db)):
     row = db.query(models.SiteSetting).filter(models.SiteSetting.key == HOMEPAGE_BANNER_SETTING_KEY).first()
     if not row or not str(getattr(row, "value", "") or "").strip():
         return schemas.HomepageBannerSetting(items=[])
-    return schemas.HomepageBannerSetting(**_normalize_homepage_banner_value(row.value))
+    return schemas.HomepageBannerSetting(**normalize_homepage_banner_value(row.value))
 
 
 @router.post("/public-terms-acceptances", response_model=schemas.PublicTermsAcceptanceResponse)
@@ -357,48 +313,15 @@ def read_public_script(script_id: str, db: Session = Depends(get_db)):
             raise HTTPException(status_code=404, detail="Script is private")
          
 
-    # Normalize nested JSON fields because this route reads ORM objects directly.
-    # Keep parsing inline here to avoid coupling this router to private helper functions.
-    
+    # Normalize nested JSON fields that may be stored as strings in the DB.
     if script.persona:
-        if isinstance(script.persona.tags, str):
-            try:
-                script.persona.tags = json.loads(script.persona.tags)
-            except:
-                script.persona.tags = []
-        # Double encoded check
-        if isinstance(script.persona.tags, str):
-             try: script.persona.tags = json.loads(script.persona.tags)
-             except: pass
-             
-        if isinstance(script.persona.links, str):
-            try:
-                script.persona.links = json.loads(script.persona.links)
-            except:
-                script.persona.links = []
+        script.persona.tags = safe_json_list(script.persona.tags)
+        script.persona.links = safe_json_list(script.persona.links)
+        script.persona.organizationIds = crud.get_persona_org_ids(db, script.persona)
+        script.persona.defaultLicenseSpecialTerms = safe_json_list(script.persona.defaultLicenseSpecialTerms)
 
-        if isinstance(script.persona.organizationIds, str):
-            try:
-                script.persona.organizationIds = json.loads(script.persona.organizationIds)
-            except:
-                script.persona.organizationIds = []
-
-        if isinstance(script.persona.defaultLicenseSpecialTerms, str):
-             try:
-                 script.persona.defaultLicenseSpecialTerms = json.loads(script.persona.defaultLicenseSpecialTerms)
-             except:
-                 script.persona.defaultLicenseSpecialTerms = []
-             # Double check
-             if isinstance(script.persona.defaultLicenseSpecialTerms, str):
-                  try: script.persona.defaultLicenseSpecialTerms = json.loads(script.persona.defaultLicenseSpecialTerms)
-                  except: pass
-             
     if script.organization:
-        if isinstance(script.organization.tags, str):
-            try:
-                script.organization.tags = json.loads(script.organization.tags)
-            except:
-                script.organization.tags = []
+        script.organization.tags = safe_json_list(script.organization.tags)
     
     return sanitize_public_script(script)
 
@@ -494,43 +417,26 @@ def get_public_organization(org_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Organization not found")
     if not _has_public_script_for_organization(db, org_id):
         raise HTTPException(status_code=404, detail="Organization not found")
-    if isinstance(org.tags, str):
-        try:
-            org.tags = json.loads(org.tags)
-        except Exception:
-            org.tags = []
-    all_personas = db.query(models.Persona).all()
-    persona_memberships = db.query(models.PersonaOrganizationMembership).filter(
-        models.PersonaOrganizationMembership.orgId == org_id
-    ).all()
-    persona_ids_via_membership = {row.personaId for row in persona_memberships}
+    org.tags = safe_json_list(org.tags)
+
+    # Load only personas that are members via PersonaOrganizationMembership (single source of truth).
+    member_persona_ids = [
+        row[0]
+        for row in db.query(models.PersonaOrganizationMembership.personaId).filter(
+            models.PersonaOrganizationMembership.orgId == org_id
+        ).all()
+        if row and row[0]
+    ]
     members = []
-    for p in all_personas:
-        org_ids = crud.get_persona_org_ids(db, p)
-        if isinstance(p.tags, str):
-            try:
-                p.tags = json.loads(p.tags)
-            except Exception:
-                p.tags = []
-        if isinstance(p.organizationIds, str):
-            try:
-                p.organizationIds = json.loads(p.organizationIds)
-            except Exception:
-                p.organizationIds = []
-        if isinstance(p.links, str):
-            try:
-                p.links = json.loads(p.links)
-            except Exception:
-                p.links = []
-        if isinstance(p.defaultLicenseSpecialTerms, str):
-            try:
-                p.defaultLicenseSpecialTerms = json.loads(p.defaultLicenseSpecialTerms)
-            except Exception:
-                p.defaultLicenseSpecialTerms = []
-        if p.id in persona_ids_via_membership or (org_ids and org_id in org_ids):
+    if member_persona_ids:
+        for p in db.query(models.Persona).filter(models.Persona.id.in_(member_persona_ids)).all():
+            p.tags = safe_json_list(p.tags)
+            p.links = safe_json_list(p.links)
+            p.organizationIds = crud.get_persona_org_ids(db, p)
+            p.defaultLicenseSpecialTerms = safe_json_list(p.defaultLicenseSpecialTerms)
             if _has_public_script_for_persona(db, p.id):
                 members.append(p)
-    # Avoid validating org.members (User objects) against Persona schema
+
     try:
         org.members = []
     except Exception:
@@ -556,11 +462,7 @@ def list_public_organizations(db: Session = Depends(get_db)):
     ]
     results = []
     for org in orgs:
-        if isinstance(org.tags, str):
-            try:
-                org.tags = json.loads(org.tags)
-            except Exception:
-                org.tags = []
+        org.tags = safe_json_list(org.tags)
         try:
             org.members = []
         except Exception:

@@ -124,20 +124,20 @@ def test_persona_crud_and_get_user_personas(db_session):
 
     persona = crud.create_persona(
         db_session,
-        schemas.PersonaCreate(displayName="Persona A", tags=["t1"], organizationIds=["org1"]),
+        schemas.PersonaCreate(displayName="Persona A", tags=["t1"]),
         owner_id,
     )
     assert persona.ownerId == owner_id
 
-    # Force JSON string to test conversion
-    persona.organizationIds = json.dumps(["org2"])
+    # Tags stored as JSON string in DB should be returned as list.
     persona.tags = json.dumps(["t2"])
     db_session.commit()
 
     personas = crud.get_user_personas(db_session, owner_id)
     assert len(personas) == 1
-    assert personas[0].organizationIds == ["org2"]
     assert personas[0].tags == ["t2"]
+    # organizationIds is sourced from PersonaOrganizationMembership, not the JSON field.
+    assert isinstance(personas[0].organizationIds, list)
 
 
 def test_update_persona_and_delete_unlinks_scripts(db_session):

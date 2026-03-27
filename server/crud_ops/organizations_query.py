@@ -19,11 +19,22 @@ def get_user_organizations(db: Session, ownerId: str):
     return orgs
 
 
+def get_persona_org_ids(db: Session, persona: models.Persona) -> list:
+    """Return org IDs for a persona, sourced exclusively from PersonaOrganizationMembership."""
+    if not persona:
+        return []
+    rows = db.query(models.PersonaOrganizationMembership.orgId).filter(
+        models.PersonaOrganizationMembership.personaId == persona.id
+    ).all()
+    return [row[0] for row in rows if row and row[0]]
+
+
 def get_organization_members(db: Session, org_id: str):
     membership_rows = db.query(models.OrganizationMembership).filter(models.OrganizationMembership.orgId == org_id).all()
     user_role_map = {m.userId: (m.role or "member") for m in membership_rows}
     member_user_ids = set(user_role_map.keys())
-    # Backward compatibility with legacy users.organizationId linkage
+
+    # Legacy: users whose organizationId field points here but have no membership row yet.
     legacy_users = db.query(models.User).filter(models.User.organizationId == org_id).all()
     for u in legacy_users:
         if not u or not u.id:
@@ -42,35 +53,22 @@ def get_organization_members(db: Session, org_id: str):
         for u in users:
             setattr(u, "organizationRole", user_role_map.get(u.id, "member"))
 
-    personas = []
+    # Persona membership is authoritative in PersonaOrganizationMembership table only.
     persona_membership_rows = db.query(models.PersonaOrganizationMembership).filter(
         models.PersonaOrganizationMembership.orgId == org_id
     ).all()
     persona_role_map = {m.personaId: (m.role or "member") for m in persona_membership_rows}
-    persona_ids = set(persona_role_map.keys())
-    if persona_ids:
-        linked_personas = db.query(models.Persona).filter(models.Persona.id.in_(list(persona_ids))).all()
+    personas = []
+    if persona_role_map:
+        linked_personas = db.query(models.Persona).filter(
+            models.Persona.id.in_(list(persona_role_map.keys()))
+        ).all()
         for p in linked_personas:
             p.tags = _ensure_list(p.tags)
-            p.organizationIds = _ensure_list(p.organizationIds)
-            if org_id not in p.organizationIds:
-                p.organizationIds = [*p.organizationIds, org_id]
+            p.links = _ensure_list(p.links)
+            p.organizationIds = get_persona_org_ids(db, p)
             p.defaultLicenseSpecialTerms = _ensure_list(p.defaultLicenseSpecialTerms)
             setattr(p, "organizationRole", persona_role_map.get(p.id, "member"))
-            personas.append(p)
-
-    # Backward compatibility for legacy persona.organizationIds
-    all_personas = db.query(models.Persona).all()
-    persona_id_set = {p.id for p in personas}
-    for p in all_personas:
-        if p.id in persona_id_set:
-            continue
-        org_ids = _ensure_list(p.organizationIds)
-        if org_id in org_ids:
-            p.tags = _ensure_list(p.tags)
-            p.organizationIds = org_ids
-            p.defaultLicenseSpecialTerms = _ensure_list(p.defaultLicenseSpecialTerms)
-            setattr(p, "organizationRole", "member")
             personas.append(p)
     return users, personas
 
@@ -202,16 +200,14 @@ def remove_persona_org_membership(db: Session, persona_id: str, org_id: str) -> 
         models.PersonaOrganizationMembership.personaId == persona_id,
         models.PersonaOrganizationMembership.orgId == org_id,
     ).first()
-    if row:
-        db.delete(row)
-
-    persona = db.query(models.Persona).filter(models.Persona.id == persona_id).first()
-    if not persona:
+    if not row:
         return False
-    org_ids = _ensure_list(persona.organizationIds)
-    if org_id in org_ids:
-        persona.organizationIds = [oid for oid in org_ids if oid != org_id]
-    return row is not None or org_id in org_ids
+    db.delete(row)
+    # Keep the denormalized field consistent.
+    persona = db.query(models.Persona).filter(models.Persona.id == persona_id).first()
+    if persona:
+        persona.organizationIds = [oid for oid in _ensure_list(persona.organizationIds) if oid != org_id]
+    return True
 
 
 def list_user_org_ids(db: Session, user_id: str, include_legacy: bool = True):
@@ -231,49 +227,40 @@ def get_primary_user_org_id(db: Session, user_id: str, include_legacy: bool = Tr
     return org_ids[0] if org_ids else None
 
 
-def get_persona_org_ids(db: Session, persona: models.Persona):
-    if not persona:
-        return []
-    org_ids = []
-    rows = db.query(models.PersonaOrganizationMembership.orgId).filter(
-        models.PersonaOrganizationMembership.personaId == persona.id
-    ).all()
-    org_ids.extend([row[0] for row in rows if row and row[0]])
-    legacy_org_ids = _ensure_list(persona.organizationIds)
-    for org_id in legacy_org_ids:
-        if org_id and org_id not in org_ids:
-            org_ids.append(org_id)
-    return org_ids
-
-
-def sync_persona_org_memberships(db: Session, persona: models.Persona):
-    desired_org_ids = set(_ensure_list(persona.organizationIds))
+def ensure_persona_org_memberships(db: Session, persona: models.Persona, desired_org_ids: list):
+    """Sync PersonaOrganizationMembership rows to match desired_org_ids.
+    This is the single write path for persona-org membership.
+    Also updates persona.organizationIds to keep it consistent for reads.
+    """
+    desired = set(oid for oid in desired_org_ids if oid)
     existing_rows = db.query(models.PersonaOrganizationMembership).filter(
         models.PersonaOrganizationMembership.personaId == persona.id
     ).all()
-    existing_org_ids = {r.orgId for r in existing_rows}
+    existing_map = {r.orgId: r for r in existing_rows}
     now_ms = int(time.time() * 1000)
 
-    for row in existing_rows:
-        if row.orgId not in desired_org_ids:
+    for org_id, row in existing_map.items():
+        if org_id not in desired:
             db.delete(row)
         else:
             row.updatedAt = now_ms
-    for org_id in desired_org_ids:
-        if not org_id or org_id in existing_org_ids:
-            continue
-        db.add(models.PersonaOrganizationMembership(
-            id=str(uuid.uuid4()),
-            personaId=persona.id,
-            orgId=org_id,
-            role="member",
-            createdAt=now_ms,
-            updatedAt=now_ms,
-        ))
+    for org_id in desired:
+        if org_id not in existing_map:
+            db.add(models.PersonaOrganizationMembership(
+                id=str(uuid.uuid4()),
+                personaId=persona.id,
+                orgId=org_id,
+                role="member",
+                createdAt=now_ms,
+                updatedAt=now_ms,
+            ))
+    # Keep the denormalized field consistent so existing reads/serialisation still work.
+    persona.organizationIds = sorted(desired)
 
 
 __all__ = [
     "get_user_organizations",
+    "get_persona_org_ids",
     "get_organization_members",
     "search_organizations",
     "list_org_invites",
@@ -287,8 +274,7 @@ __all__ = [
     "remove_user_org_membership",
     "update_user_org_membership_role",
     "remove_persona_org_membership",
+    "ensure_persona_org_memberships",
     "list_user_org_ids",
     "get_primary_user_org_id",
-    "get_persona_org_ids",
-    "sync_persona_org_memberships",
 ]

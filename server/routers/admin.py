@@ -10,54 +10,10 @@ import models
 import schemas
 from dependencies import get_db, get_current_user_id, is_admin_user, _admin_user_emails
 from rate_limit import limiter
+from utils import normalize_homepage_banner_value, safe_json_list
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 HOMEPAGE_BANNER_SETTING_KEY = "homepage_banner"
-
-
-def _normalize_homepage_banner_value(raw_value: str) -> dict:
-    try:
-        parsed = json.loads(str(raw_value or ""))
-    except Exception:
-        parsed = {}
-    if not isinstance(parsed, dict):
-        parsed = {}
-
-    raw_items = parsed.get("items")
-    items = []
-    if isinstance(raw_items, list):
-        for idx, item in enumerate(raw_items):
-            if not isinstance(item, dict):
-                continue
-            normalized = {
-                "id": str(item.get("id") or f"slide-{idx + 1}").strip() or f"slide-{idx + 1}",
-                "title": str(item.get("title") or "").strip(),
-                "content": str(item.get("content") or "").strip(),
-                "link": str(item.get("link") or "").strip(),
-                "imageUrl": str(item.get("imageUrl") or "").strip(),
-            }
-            if normalized["title"] or normalized["content"] or normalized["link"] or normalized["imageUrl"]:
-                items.append(normalized)
-
-    if not items:
-        fallback = {
-            "id": "slide-1",
-            "title": str(parsed.get("title") or "").strip(),
-            "content": str(parsed.get("content") or "").strip(),
-            "link": str(parsed.get("link") or "").strip(),
-            "imageUrl": str(parsed.get("imageUrl") or "").strip(),
-        }
-        if fallback["title"] or fallback["content"] or fallback["link"] or fallback["imageUrl"]:
-            items = [fallback]
-
-    first = items[0] if items else {"title": "", "content": "", "link": "", "imageUrl": ""}
-    return {
-        "title": str(first.get("title") or ""),
-        "content": str(first.get("content") or ""),
-        "link": str(first.get("link") or ""),
-        "imageUrl": str(first.get("imageUrl") or ""),
-        "items": items,
-    }
 
 
 def _delete_scripts_owned_by(db: Session, owner_id: str):
@@ -308,7 +264,7 @@ def get_homepage_banner(
     row = db.query(models.SiteSetting).filter(models.SiteSetting.key == HOMEPAGE_BANNER_SETTING_KEY).first()
     if not row or not str(getattr(row, "value", "") or "").strip():
         return schemas.HomepageBannerSetting(items=[])
-    return schemas.HomepageBannerSetting(**_normalize_homepage_banner_value(row.value))
+    return schemas.HomepageBannerSetting(**normalize_homepage_banner_value(row.value))
 
 
 @router.put("/homepage-banner", response_model=schemas.HomepageBannerSetting)
@@ -486,11 +442,7 @@ def list_all_organizations(
         )
     rows = query.order_by(models.Organization.updatedAt.desc()).offset(safe_offset).limit(safe_limit).all()
     for org in rows:
-        if isinstance(org.tags, str):
-            try:
-                org.tags = json.loads(org.tags)
-            except Exception:
-                org.tags = []
+        org.tags = safe_json_list(org.tags)
     return rows
 
 
