@@ -39,6 +39,17 @@ const FEATURED_TAB_KEYS = {
   series: "series",
 };
 
+let studioPreloadPromise = null;
+const preloadStudioEntry = () => {
+  if (!studioPreloadPromise) {
+    studioPreloadPromise = Promise.all([
+      import("./DashboardPage"),
+      import("./CloudEditorPage"),
+    ]).catch(() => {});
+  }
+  return studioPreloadPromise;
+};
+
 export default function PublicGalleryPage() {
   const { t } = useI18n();
   const appVersion = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev";
@@ -180,6 +191,20 @@ export default function PublicGalleryPage() {
   const [isLoadingPeople, setIsLoadingPeople] = useState(true);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [homepageBanner, setHomepageBanner] = useState(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    if ("requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(() => {
+        preloadStudioEntry();
+      });
+      return () => window.cancelIdleCallback(idleId);
+    }
+    const timeoutId = window.setTimeout(() => {
+      preloadStudioEntry();
+    }, 600);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   useEffect(() => {
     const loadHomepageBanner = async () => {
@@ -403,6 +428,8 @@ export default function PublicGalleryPage() {
                 size="sm"
                 className="w-10 px-0 sm:w-auto sm:px-3"
                 onClick={() => navigate("/dashboard")}
+                onMouseEnter={preloadStudioEntry}
+                onFocus={preloadStudioEntry}
                 title={t("publicGallery.goStudio")}
                 aria-label={t("publicGallery.goStudio")}
               >
@@ -417,6 +444,8 @@ export default function PublicGalleryPage() {
                 onClick={async () => {
                   try { await login(); } catch(e) { console.error(e); }
                 }}
+                onMouseEnter={preloadStudioEntry}
+                onFocus={preloadStudioEntry}
                 title={t("publicGallery.login")}
                 aria-label={t("publicGallery.login")}
               >

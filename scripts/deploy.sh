@@ -189,7 +189,7 @@ if [ -z "$BACKEND_CID" ]; then
   echo "WARN: cannot find write_project-backend container — skipping readiness check"
 else
   READY=0
-  for i in $(seq 1 60); do
+  for i in $(seq 1 30); do
     STATUS="$(docker inspect -f '{{.State.Status}}' "$BACKEND_CID" 2>/dev/null || true)"
     if [ "$STATUS" = "running" ]; then
       # Check if the server is actually accepting connections (health endpoint).
