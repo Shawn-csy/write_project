@@ -13,6 +13,7 @@ export function PublicScriptInfoOverlay({
   commercialUse = "",
   derivativeUse = "",
   notifyOnModify = "",
+  licenseSpecialTerms = [],
 }) {
   const [coverLoadFailed, setCoverLoadFailed] = React.useState(false);
   const [prefaceExpanded, setPrefaceExpanded] = React.useState(false);
@@ -160,6 +161,7 @@ export function PublicScriptInfoOverlay({
   const expandedBottomItems = expandedBottomIds.map(renderItem).filter(Boolean);
   const hasPrefaceItems = compactItems.length > 0 || expandedTopItems.length > 0 || expandedBottomItems.length > 0;
   const hasDemoLinks = Array.isArray(demoLinks) && demoLinks.length > 0;
+  const hasSpecialTerms = Array.isArray(licenseSpecialTerms) && licenseSpecialTerms.length > 0;
   const demoLinksBlock = hasDemoLinks ? (
     <div key="demo-links">
       <div className="text-xs font-semibold text-muted-foreground">試聽範例</div>
@@ -342,8 +344,19 @@ export function PublicScriptInfoOverlay({
         </div>
       )}
 
-      {(hasPrefaceItems || hasDemoLinks) && (
+      {(hasPrefaceItems || hasDemoLinks || hasSpecialTerms) && (
         <section className="w-full max-w-2xl rounded-xl border border-border/60 bg-background/55 px-4 py-3 text-left backdrop-blur-sm">
+          {hasSpecialTerms && (
+            <>
+              <div className="text-xs font-semibold text-muted-foreground">附加條款</div>
+              <ul className="mt-1 space-y-1">
+                {licenseSpecialTerms.map((term, idx) => (
+                  <li key={idx} className="text-sm leading-6 text-foreground/90">{term}</li>
+                ))}
+              </ul>
+              {(hasPrefaceItems || hasDemoLinks) && <div className="my-3 h-px w-full bg-border/60" />}
+            </>
+          )}
           {!prefaceExpanded && (
             <div className="space-y-2">
               {compactItems}

@@ -149,34 +149,13 @@ export function ScriptMetadataPublishSection({
         </div>
 
         <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
-          <div
-            className="p-4 text-sm font-medium text-foreground border-l-[5px]"
-            style={{
-              borderLeftColor: "var(--license-term-border)",
-              backgroundColor: "var(--license-term-bg)",
-              color: "var(--license-term-fg)",
-            }}
-          >
-            <div className="text-sm font-medium text-foreground">附加條款</div>
-          </div>
-          <div
-            className="space-y-3 p-4"
-            style={{
-              backgroundColor: "var(--license-term-bg)",
-              color: "var(--license-term-fg)",
-            }}
-          >
-            <div className="flex gap-2 rounded-md border p-2" style={{ borderColor: "var(--license-term-border)" }}>
+          {renderRowLabel("附加條款")}
+          <div className="space-y-3 p-4">
+            <div className="flex gap-2 rounded-md border border-border/50 bg-background/50 p-2">
               <Input
                 value={publishNewTerm}
                 onChange={(e) => setPublishNewTerm(e.target.value)}
                 placeholder="新增附加條款..."
-                className="border"
-                style={{
-                  borderColor: "var(--license-term-border)",
-                  backgroundColor: "var(--license-term-bg)",
-                  color: "var(--license-term-fg)",
-                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -184,17 +163,7 @@ export function ScriptMetadataPublishSection({
                   }
                 }}
               />
-              <Button
-                type="button"
-                variant="outline"
-                className="border"
-                style={{
-                  borderColor: "var(--license-term-border)",
-                  backgroundColor: "var(--license-term-bg)",
-                  color: "var(--license-term-fg)",
-                }}
-                onClick={addLicenseSpecialTerm}
-              >
+              <Button type="button" variant="outline" onClick={addLicenseSpecialTerm}>
                 新增
               </Button>
             </div>
@@ -203,12 +172,7 @@ export function ScriptMetadataPublishSection({
                 {licenseSpecialTerms.map((term, idx) => (
                   <div
                     key={`${term}-${idx}`}
-                    className="flex items-center justify-between rounded-md border p-2"
-                    style={{
-                      borderColor: "var(--license-term-border)",
-                      backgroundColor: "var(--license-term-bg)",
-                      color: "var(--license-term-fg)",
-                    }}
+                    className="flex items-center justify-between rounded-md border border-border/50 bg-background/50 p-2"
                   >
                     <span className="text-sm">{term}</span>
                     <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeLicenseSpecialTerm(idx)}>

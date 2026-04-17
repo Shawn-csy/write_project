@@ -40,18 +40,19 @@ export function PublicReaderLayout({
       .replace(/'/g, "&#39;")
   , []);
   const {
-    title, 
-    author, 
+    title,
+    author,
     organization,
-    synopsis, 
+    synopsis,
     commercialUse,
     derivativeUse,
     notifyOnModify,
+    licenseSpecialTerms,
     contact,
     seriesName,
     prefaceItems,
     activity,
-    coverUrl, 
+    coverUrl,
     content: rawScript,
     disableCopy
   } = script || {};
@@ -521,7 +522,7 @@ export function PublicReaderLayout({
                !isLoading && script && (
                    <>
                    <div data-guide-id="public-guide-info">
-                     <PublicScriptInfoOverlay 
+                     <PublicScriptInfoOverlay
                          title={title}
                          synopsis={synopsis}
                          coverUrl={coverUrl}
@@ -530,6 +531,7 @@ export function PublicReaderLayout({
                          commercialUse={commercialUse}
                          derivativeUse={derivativeUse}
                          notifyOnModify={notifyOnModify}
+                         licenseSpecialTerms={licenseSpecialTerms}
                          prefaceItems={prefaceItems}
                          demoLinks={normalizedDemoLinks}
                      />
