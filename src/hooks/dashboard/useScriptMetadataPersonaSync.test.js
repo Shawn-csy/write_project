@@ -110,6 +110,77 @@ describe("useScriptMetadataPersonaSync", () => {
     });
   });
 
+  it("autofills missing fields even when some license fields are already set", async () => {
+    const props = buildProps({
+      licenseCommercial: "allow",
+      licenseDerivative: "",
+      licenseNotify: "",
+      personas: [
+        {
+          id: "p1",
+          organizationIds: [],
+          defaultLicenseCommercial: "disallow",
+          defaultLicenseDerivative: "disallow",
+          defaultLicenseNotify: "required",
+          defaultLicenseSpecialTerms: [],
+        },
+      ],
+    });
+    renderHook(() => useScriptMetadataPersonaSync(props));
+
+    await waitFor(() => {
+      expect(props.setLicenseDerivative).toHaveBeenCalledWith("disallow");
+    });
+    expect(props.setLicenseNotify).toHaveBeenCalledWith("required");
+    expect(props.setLicenseCommercial).not.toHaveBeenCalled();
+  });
+
+  it("treats whitespace-only license fields as empty and autofills from persona", async () => {
+    const props = buildProps({
+      licenseCommercial: "   ",
+      licenseDerivative: "\t",
+      licenseNotify: "",
+    });
+    renderHook(() => useScriptMetadataPersonaSync(props));
+
+    await waitFor(() => {
+      expect(props.setLicenseCommercial).toHaveBeenCalledWith("allow");
+    });
+    expect(props.setLicenseDerivative).toHaveBeenCalledWith("allow");
+    expect(props.setLicenseNotify).toHaveBeenCalledWith("required");
+  });
+
+  it("does not stop autofill when only licenseSpecialTerms is set but basic fields are empty", async () => {
+    const props = buildProps({
+      licenseCommercial: "",
+      licenseDerivative: "",
+      licenseNotify: "",
+      licenseSpecialTerms: ["既有條款"],
+    });
+    renderHook(() => useScriptMetadataPersonaSync(props));
+
+    await waitFor(() => {
+      expect(props.setLicenseCommercial).toHaveBeenCalledWith("allow");
+    });
+    expect(props.setLicenseDerivative).toHaveBeenCalledWith("allow");
+    expect(props.setLicenseNotify).toHaveBeenCalledWith("required");
+  });
+
+  it("does not autofill when all three basic license fields are already set", async () => {
+    const props = buildProps({
+      licenseCommercial: "disallow",
+      licenseDerivative: "disallow",
+      licenseNotify: "not_required",
+    });
+    renderHook(() => useScriptMetadataPersonaSync(props));
+
+    await waitFor(() => {
+      expect(props.setLicenseCommercial).not.toHaveBeenCalled();
+    });
+    expect(props.setLicenseDerivative).not.toHaveBeenCalled();
+    expect(props.setLicenseNotify).not.toHaveBeenCalled();
+  });
+
   it("does not mutate identity/license/contact when persona autofill is disabled", async () => {
     const props = buildProps({
       disablePersonaAutofill: true,

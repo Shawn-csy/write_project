@@ -78,6 +78,54 @@ describe("PublicReaderLayout", () => {
     ]);
   });
 
+  it("passes licenseSpecialTerms to the info overlay", () => {
+    render(
+      <PublicReaderLayout
+        script={{
+          title: "作品",
+          content: "#C 角色\n台詞",
+          licenseSpecialTerms: ["署名", "非商用"],
+        }}
+        isLoading={false}
+      />
+    );
+
+    const lastCall = overlayPropsSpy.mock.calls[overlayPropsSpy.mock.calls.length - 1]?.[0];
+    expect(lastCall.licenseSpecialTerms).toEqual(["署名", "非商用"]);
+  });
+
+  it("passes undefined licenseSpecialTerms gracefully when not provided", () => {
+    render(
+      <PublicReaderLayout
+        script={{ title: "作品", content: "#C 角色\n台詞" }}
+        isLoading={false}
+      />
+    );
+
+    const lastCall = overlayPropsSpy.mock.calls[overlayPropsSpy.mock.calls.length - 1]?.[0];
+    expect(lastCall.licenseSpecialTerms).toBeUndefined();
+  });
+
+  it("passes pre-computed commercialUse/derivativeUse/notifyOnModify to the info overlay", () => {
+    render(
+      <PublicReaderLayout
+        script={{
+          title: "作品",
+          content: "#C 角色\n台詞",
+          commercialUse: "allow",
+          derivativeUse: "disallow",
+          notifyOnModify: "required",
+        }}
+        isLoading={false}
+      />
+    );
+
+    const lastCall = overlayPropsSpy.mock.calls[overlayPropsSpy.mock.calls.length - 1]?.[0];
+    expect(lastCall.commercialUse).toBe("allow");
+    expect(lastCall.derivativeUse).toBe("disallow");
+    expect(lastCall.notifyOnModify).toBe("required");
+  });
+
   it("enables copy protection listeners when disableCopy is true", () => {
     render(
       <PublicReaderLayout
