@@ -217,17 +217,22 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                     } : null);
 
                 const basicLicenseFromMeta = parseBasicLicenseFromMeta(meta);
+                const personaLicense = parseBasicLicenseFromMeta({
+                    licensecommercial: script.persona?.defaultLicenseCommercial || "",
+                    licensederivative: script.persona?.defaultLicenseDerivative || "",
+                    licensenotify: script.persona?.defaultLicenseNotify || "",
+                });
                 const basicLicense = {
-                    commercialUse: basicLicenseFromMeta.commercialUse || String(script.licenseCommercial || "").toLowerCase(),
-                    derivativeUse: basicLicenseFromMeta.derivativeUse || String(script.licenseDerivative || "").toLowerCase(),
-                    notifyOnModify: basicLicenseFromMeta.notifyOnModify || String(script.licenseNotify || "").toLowerCase(),
+                    commercialUse: basicLicenseFromMeta.commercialUse || String(script.licenseCommercial || "").toLowerCase() || personaLicense.commercialUse,
+                    derivativeUse: basicLicenseFromMeta.derivativeUse || String(script.licenseDerivative || "").toLowerCase() || personaLicense.derivativeUse,
+                    notifyOnModify: basicLicenseFromMeta.notifyOnModify || String(script.licenseNotify || "").toLowerCase() || personaLicense.notifyOnModify,
                 };
 
                 setMockMeta({
                     coverUrl: script.coverUrl || null,
                     author: resolvedAuthor,
                     organization: resolvedOrganization,
-                    tags: script.tags ? script.tags.map(t => t.name) : [],
+                    tags: script.tags ? script.tags.map(tag => tag.name) : [],
                     synopsis: meta.synopsis || meta.summary || "",
                     description: meta.description || meta.notes || "",
                     date: script.draftDate || meta.date || meta.draftdate || "",

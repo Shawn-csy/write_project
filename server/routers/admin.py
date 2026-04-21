@@ -2,6 +2,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from typing import Any, List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from sqlalchemy import orm
 import time
 import uuid
 import json
@@ -42,14 +43,21 @@ def _delete_organizations_owned_by(db: Session, owner_id: str):
             {models.Script.organizationId: None},
             synchronize_session=False,
         )
+        affected_persona_ids = [
+            row.personaId
+            for row in db.query(models.PersonaOrganizationMembership.personaId).filter(
+                models.PersonaOrganizationMembership.orgId == org_id
+            ).all()
+        ]
         db.query(models.PersonaOrganizationMembership).filter(
             models.PersonaOrganizationMembership.orgId == org_id
         ).delete(synchronize_session=False)
-        personas = db.query(models.Persona).all()
-        for persona in personas:
-            org_ids = crud._ensure_list(persona.organizationIds)
-            if org_id in org_ids:
-                persona.organizationIds = [oid for oid in org_ids if oid != org_id]
+        if affected_persona_ids:
+            personas = db.query(models.Persona).filter(models.Persona.id.in_(affected_persona_ids)).all()
+            for persona in personas:
+                org_ids = crud._ensure_list(persona.organizationIds)
+                if org_id in org_ids:
+                    persona.organizationIds = [oid for oid in org_ids if oid != org_id]
         users = db.query(models.User).filter(models.User.organizationId == org_id).all()
         for user in users:
             user.organizationId = crud.get_primary_user_org_id(db, user.id, include_legacy=False)
@@ -488,7 +496,12 @@ def list_all_scripts(
         raise HTTPException(status_code=403, detail="Not authorized")
     safe_limit = max(1, min(limit, 1000))
     safe_offset = max(offset, 0)
-    query = db.query(models.Script)
+    query = db.query(models.Script).options(
+        orm.joinedload(models.Script.tags),
+        orm.joinedload(models.Script.persona),
+        orm.joinedload(models.Script.organization),
+        orm.joinedload(models.Script.series),
+    )
     normalized_q = (q or "").strip().lower()
     if normalized_q:
         like_q = f"%{normalized_q}%"

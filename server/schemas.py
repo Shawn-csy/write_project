@@ -230,6 +230,8 @@ class ScriptCreate(ScriptBase):
     draftDate: Optional[str] = None
     markerThemeId: Optional[str] = None
     coverUrl: Optional[str] = None # Added
+    personaId: Optional[str] = None
+    organizationId: Optional[str] = None
     seriesId: Optional[str] = None
     seriesOrder: Optional[int] = None
     licenseCommercial: Optional[str] = None
@@ -326,6 +328,7 @@ class ScriptSummary(BaseModel):
     licenseCommercial: Optional[str] = ""
     licenseDerivative: Optional[str] = ""
     licenseNotify: Optional[str] = ""
+    personaId: Optional[str] = None
     seriesId: Optional[str] = None
     seriesOrder: Optional[int] = None
     series: Optional[Series] = None

@@ -48,10 +48,15 @@ export function usePublicGalleryFiltering({
       const rawAuthorDisplayMode = String(meta.authordisplaymode || meta.authorDisplayMode || "").trim().toLowerCase();
       const useOverrideAuthor = rawAuthorDisplayMode === "override" && Boolean(authorOverride);
       const basicLicenseFromMeta = parseBasicLicenseFromMeta(meta);
+      const personaLicense = parseBasicLicenseFromMeta({
+        licensecommercial: script.persona?.defaultLicenseCommercial || "",
+        licensederivative: script.persona?.defaultLicenseDerivative || "",
+        licensenotify: script.persona?.defaultLicenseNotify || "",
+      });
       const basicLicense = {
-        commercialUse: basicLicenseFromMeta.commercialUse || String(script.licenseCommercial || "").toLowerCase(),
-        derivativeUse: basicLicenseFromMeta.derivativeUse || String(script.licenseDerivative || "").toLowerCase(),
-        notifyOnModify: basicLicenseFromMeta.notifyOnModify || String(script.licenseNotify || "").toLowerCase(),
+        commercialUse: basicLicenseFromMeta.commercialUse || String(script.licenseCommercial || "").toLowerCase() || personaLicense.commercialUse,
+        derivativeUse: basicLicenseFromMeta.derivativeUse || String(script.licenseDerivative || "").toLowerCase() || personaLicense.derivativeUse,
+        notifyOnModify: basicLicenseFromMeta.notifyOnModify || String(script.licenseNotify || "").toLowerCase() || personaLicense.notifyOnModify,
       };
       const license = meta.license || meta.licenseName || "";
       const seriesName = normalizeSeriesName(script.series?.name || meta.series || meta.seriesname);
@@ -93,7 +98,7 @@ export function usePublicGalleryFiltering({
         seriesName,
         seriesOrder,
         _searchTitle: String(script.title || "").toLowerCase(),
-        _searchAuthor: String(resolvedAuthor?.displayName || "").toLowerCase(),
+        _searchAuthor: (typeof resolvedAuthor === "string" ? resolvedAuthor : String(resolvedAuthor?.displayName || "")).toLowerCase(),
         _searchLicenseText: [license, ...licenseTags].filter(Boolean).join(" ").toLowerCase(),
         _searchLicenseTermsText: termsText.toLowerCase(),
         _tagSetLower: new Set(mergedTags.map((tag) => String(tag).toLowerCase())),
