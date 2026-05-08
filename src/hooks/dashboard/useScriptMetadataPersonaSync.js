@@ -52,20 +52,14 @@ export function useScriptMetadataPersonaSync({
 
   useEffect(() => {
     if (disablePersonaAutofill) return;
-    const hasLicenseSet =
-      Boolean(licenseCommercial) ||
-      Boolean(licenseDerivative) ||
-      Boolean(licenseNotify) ||
-      (licenseSpecialTerms || []).length > 0;
-    if (hasLicenseSet) return;
-    if (!identity.startsWith("persona:")) return;
+    if (!identity || !identity.startsWith("persona:")) return;
     const personaId = identity.split(":")[1];
     const persona = personas.find((item) => item.id === personaId);
     if (!persona) return;
-    if (persona.defaultLicenseCommercial) setLicenseCommercial(persona.defaultLicenseCommercial);
-    if (persona.defaultLicenseDerivative) setLicenseDerivative(persona.defaultLicenseDerivative);
-    if (persona.defaultLicenseNotify) setLicenseNotify(persona.defaultLicenseNotify);
-    if (Array.isArray(persona.defaultLicenseSpecialTerms) && persona.defaultLicenseSpecialTerms.length > 0) {
+    if (!licenseCommercial?.trim() && persona.defaultLicenseCommercial) setLicenseCommercial(persona.defaultLicenseCommercial);
+    if (!licenseDerivative?.trim() && persona.defaultLicenseDerivative) setLicenseDerivative(persona.defaultLicenseDerivative);
+    if (!licenseNotify?.trim() && persona.defaultLicenseNotify) setLicenseNotify(persona.defaultLicenseNotify);
+    if ((licenseSpecialTerms || []).length === 0 && Array.isArray(persona.defaultLicenseSpecialTerms) && persona.defaultLicenseSpecialTerms.length > 0) {
       setLicenseSpecialTerms(ensureList(persona.defaultLicenseSpecialTerms));
     }
   }, [
@@ -85,7 +79,7 @@ export function useScriptMetadataPersonaSync({
 
   useEffect(() => {
     if (disablePersonaAutofill) return;
-    if (!identity.startsWith("persona:")) return;
+    if (!identity || !identity.startsWith("persona:")) return;
     if (personas.length === 0) return;
 
     const personaId = identity.split(":")[1];

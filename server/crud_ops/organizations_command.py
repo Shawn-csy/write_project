@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 
 import models
 import schemas
-from .common import _ensure_list
 from .organizations_query import (
     ensure_user_org_membership,
     get_primary_user_org_id,
@@ -233,15 +232,10 @@ def delete_organization(db: Session, org_id: str, ownerId: str):
     for u in users:
         u.organizationId = get_primary_user_org_id(db, u.id, include_legacy=False)
     db.query(models.Script).filter(models.Script.organizationId == org_id).update({models.Script.organizationId: None})
+    # PersonaOrganizationMembership is the source of truth; a single delete is enough.
     db.query(models.PersonaOrganizationMembership).filter(
         models.PersonaOrganizationMembership.orgId == org_id
     ).delete()
-
-    personas = db.query(models.Persona).all()
-    for p in personas:
-        org_ids = _ensure_list(p.organizationIds)
-        if org_id in org_ids:
-            p.organizationIds = [oid for oid in org_ids if oid != org_id]
 
     db.delete(org)
     db.commit()

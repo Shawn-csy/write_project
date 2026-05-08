@@ -12,8 +12,8 @@ export const API_BASE_URL = getEnv("VITE_API_URL") || "/api";
 const localAuthEnabled = ["1", "true", "yes"].includes(String(getEnv("VITE_LOCAL_AUTH")).toLowerCase());
 const localAuthUserId = getEnv("VITE_LOCAL_AUTH_UID") || "local-test-user";
 
-const DEFAULT_CACHE_TTL_MS = 5000;
-const DEFAULT_PUBLIC_CACHE_TTL_MS = 15000;
+const DEFAULT_CACHE_TTL_MS = 60000;
+const DEFAULT_PUBLIC_CACHE_TTL_MS = 60000;
 const privateCache = new Map();
 const privateInflight = new Map();
 const publicCache = new Map();
@@ -90,7 +90,22 @@ export async function fetchApi(endpoint, options = {}, retries = 3, backoff = 50
         privateCache.set(cacheKey, { value: data, expiresAt: Date.now() + cacheTtl });
         privateInflight.delete(cacheKey);
       } else {
-        privateCache.clear();
+        // Invalidate only cache entries for the same resource type,
+        // not the entire cache (e.g. saving settings shouldn't bust the script list cache).
+        try {
+          const parsed = new URL(url, "http://localhost");
+          const segments = parsed.pathname.split("/").filter(Boolean);
+          const resourceSegment = segments[1] || segments[0] || "";
+          if (resourceSegment) {
+            for (const key of privateCache.keys()) {
+              if (key.includes(`/${resourceSegment}`)) privateCache.delete(key);
+            }
+          } else {
+            privateCache.clear();
+          }
+        } catch {
+          privateCache.clear();
+        }
         privateInflight.clear();
       }
       return data;

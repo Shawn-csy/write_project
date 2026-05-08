@@ -7,6 +7,7 @@ export function useScriptData(refreshTrigger = 0) {
     const [scripts, setScripts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentPath, setCurrentPath] = useState("/");
+    const [createPath, setCreatePath] = useState("/");
     const [expandedPaths, setExpandedPaths] = useState(new Set());
 
     // Fetch Scripts
@@ -102,6 +103,8 @@ export function useScriptData(refreshTrigger = 0) {
 
     const navigateTo = (path) => {
         setCurrentPath(path);
+        setCreatePath(path);
+        setExpandedPaths(new Set());
         if (typeof window !== "undefined") {
             const url = new URL(window.location.href);
             if (path === "/") url.searchParams.delete("folder");
@@ -153,12 +156,21 @@ export function useScriptData(refreshTrigger = 0) {
 
     const toggleExpand = (path, e) => {
         e?.stopPropagation();
-        setExpandedPaths(prev => {
-            const next = new Set(prev);
-            if (next.has(path)) next.delete(path);
-            else next.add(path);
-            return next;
-        });
+        const isExpanded = expandedPaths.has(path);
+        if (isExpanded) {
+            setExpandedPaths(prev => {
+                const next = new Set(prev);
+                next.delete(path);
+                return next;
+            });
+            // Restore createPath to parent of collapsed folder
+            const parts = path.split("/").filter(Boolean);
+            parts.pop();
+            setCreatePath(parts.length ? "/" + parts.join("/") : currentPath);
+        } else {
+            setExpandedPaths(prev => new Set([...prev, path]));
+            setCreatePath(path);
+        }
     };
 
     return {
@@ -166,6 +178,7 @@ export function useScriptData(refreshTrigger = 0) {
         scripts, setScripts,
         loading,
         currentPath,
+        createPath,
         navigateTo, goUp,
         visibleItems,
         expandedPaths, setExpandedPaths, toggleExpand,

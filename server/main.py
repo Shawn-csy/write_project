@@ -86,6 +86,13 @@ def _connect_src_values(allow_origins: list[str]) -> str:
     return " ".join(sorted(origins))
 
 
+FIREBASE_CONNECT_ORIGINS = (
+    "https://identitytoolkit.googleapis.com "
+    "https://securetoken.googleapis.com "
+    "https://www.googleapis.com "
+    "https://firebasestorage.googleapis.com"
+)
+
 def _build_csp_headers(allow_origins: list[str]) -> tuple[str, str]:
     connect_src = _connect_src_values(allow_origins)
     csp_enforced = (
@@ -94,9 +101,9 @@ def _build_csp_headers(allow_origins: list[str]) -> tuple[str, str]:
         "frame-ancestors 'self'; "
         "form-action 'self'; "
         "object-src 'none'; "
-        "script-src 'self'; "
-        "img-src 'self' data: blob:; "
-        f"connect-src {connect_src}; "
+        "script-src 'self' https://www.googletagmanager.com; "
+        "img-src 'self' data: blob: https:; "
+        f"connect-src {connect_src} {FIREBASE_CONNECT_ORIGINS}; "
         "style-src 'self' 'unsafe-inline';"
     )
     csp_report_only = (
@@ -105,9 +112,9 @@ def _build_csp_headers(allow_origins: list[str]) -> tuple[str, str]:
         "frame-ancestors 'self'; "
         "form-action 'self'; "
         "object-src 'none'; "
-        "script-src 'self'; "
-        "img-src 'self' data: blob:; "
-        f"connect-src {connect_src}; "
+        "script-src 'self' https://www.googletagmanager.com; "
+        "img-src 'self' data: blob: https:; "
+        f"connect-src {connect_src} {FIREBASE_CONNECT_ORIGINS}; "
         "style-src 'self';"
     )
     return csp_enforced, csp_report_only

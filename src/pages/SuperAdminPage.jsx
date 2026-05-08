@@ -2,26 +2,17 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Input } from "../components/ui/input";
-import { Textarea } from "../components/ui/textarea";
 import { Badge } from "../components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { FileText, ArrowRightLeft, Building2, Plus, Search, UserCircle, Loader2, Trash2 } from "lucide-react";
+import { FileText, ArrowRightLeft, Building2, Plus, Search, UserCircle, Loader2, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useI18n } from "../contexts/I18nContext";
-import { MediaPicker } from "../components/ui/MediaPicker";
-import { ImageCropDialog } from "../components/ui/ImageCropDialog";
 import { ScriptMetadataDialog } from "../components/dashboard/ScriptMetadataDialog";
-import { getImageUploadGuide, MEDIA_FILE_ACCEPT, optimizeImageForUpload } from "../lib/mediaLibrary";
-import { uploadMediaObject } from "../lib/api/media";
 import { createOrganization, transferOrganizationOwnership } from "../lib/api/organizations";
 import { transferScriptOwnership } from "../lib/api/scripts";
 import { transferPersonaOwnership } from "../lib/api/personas";
 import {
   searchUsers,
-  getPublicTermsAcceptances,
-  getAdminUsers,
-  addAdminUser,
-  removeAdminUser,
   getAllUsersAdmin,
   getAllOrganizationsAdmin,
   getAllPersonasAdmin,
@@ -32,9 +23,30 @@ import {
   deleteOrganizationAdmin,
   deletePersonaAdmin,
   deleteScriptAdmin,
-  getHomepageBannerAdmin,
-  updateHomepageBannerAdmin,
 } from "../lib/api/admin";
+import { AdminUserManagementCard } from "../components/admin/AdminUserManagementCard";
+import { TermsAcceptanceTable } from "../components/admin/TermsAcceptanceTable";
+import { HomepageBannerSection } from "../components/admin/HomepageBannerSection";
+
+function CollapsibleSection({ title, description, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="rounded-xl border border-border/70 bg-background shadow-sm mb-4">
+      <button
+        type="button"
+        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-muted/30 transition-colors rounded-xl"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <div>
+          <div className="font-semibold text-sm">{title}</div>
+          {description && <div className="text-xs text-muted-foreground mt-0.5">{description}</div>}
+        </div>
+        {open ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
+      </button>
+      {open && <div className="px-5 pb-5 pt-1">{children}</div>}
+    </div>
+  );
+}
 
 export default function SuperAdminPage() {
   const { t } = useI18n();
@@ -62,26 +74,12 @@ export default function SuperAdminPage() {
   const [showScriptSettingsModal, setShowScriptSettingsModal] = useState(false);
   const [selectedScriptSettings, setSelectedScriptSettings] = useState(null);
 
-  const [termsRecords, setTermsRecords] = useState([]);
-  const [termsTotal, setTermsTotal] = useState(0);
-  const [termsQuery, setTermsQuery] = useState("");
-  const [isTermsLoading, setIsTermsLoading] = useState(false);
-  const [termsError, setTermsError] = useState("");
-
-  const [adminUsers, setAdminUsers] = useState([]);
-  const [adminEmailInput, setAdminEmailInput] = useState("");
-  const [adminManageError, setAdminManageError] = useState("");
-  const [isAdminManaging, setIsAdminManaging] = useState(false);
-  const [homepageBannerItems, setHomepageBannerItems] = useState([]);
-  const [isSavingHomepageBanner, setIsSavingHomepageBanner] = useState(false);
-  const [homepageBannerError, setHomepageBannerError] = useState("");
-  const [homepageBannerStatus, setHomepageBannerStatus] = useState("");
-  const [homepageBannerPickerIndex, setHomepageBannerPickerIndex] = useState(null);
-  const [homepageBannerApiCheckResult, setHomepageBannerApiCheckResult] = useState("");
-  const [homepageBannerCropOpen, setHomepageBannerCropOpen] = useState(false);
-  const [homepageBannerCropSource, setHomepageBannerCropSource] = useState(null);
-  const [homepageBannerCropIndex, setHomepageBannerCropIndex] = useState(null);
-  const homepageBannerGuide = useMemo(() => getImageUploadGuide("banner"), []);
+  // per-tab filter state
+  const [scriptFilter, setScriptFilter] = useState("");
+  const [scriptStatusFilter, setScriptStatusFilter] = useState("all");
+  const [orgFilter, setOrgFilter] = useState("");
+  const [personaFilter, setPersonaFilter] = useState("");
+  const [userFilter, setUserFilter] = useState("");
 
   const transferTypeLabel =
     transferType === "org"
@@ -110,75 +108,9 @@ export default function SuperAdminPage() {
     }
   };
 
-  const loadTermsRecords = async (queryText = "") => {
-    setIsTermsLoading(true);
-    setTermsError("");
-    try {
-      const result = await getPublicTermsAcceptances({
-        q: queryText,
-        limit: 50,
-        offset: 0,
-      });
-      setTermsRecords(result?.items || []);
-      setTermsTotal(result?.total || 0);
-    } catch (error) {
-      console.error("Failed to load terms acceptance records", error);
-      setTermsRecords([]);
-      setTermsTotal(0);
-      setTermsError(
-        error?.status === 403
-          ? "你目前不是管理員帳號（需在後端 ADMIN_USER_IDS 內），所以無法讀取簽署紀錄。"
-          : "讀取簽署紀錄失敗，請確認目前連線的 API 是否為同一個環境。"
-      );
-    } finally {
-      setIsTermsLoading(false);
-    }
-  };
-
-  const loadAdminUsers = async () => {
-    try {
-      const rows = await getAdminUsers();
-      setAdminUsers(rows || []);
-    } catch (error) {
-      console.error("Failed to load admin users", error);
-    }
-  };
-
-  const loadHomepageBanner = async () => {
-    try {
-      const payload = await getHomepageBannerAdmin();
-      const rows = Array.isArray(payload?.items) ? payload.items : [];
-      if (rows.length > 0) {
-        setHomepageBannerItems(rows.map((item, idx) => ({
-          id: String(item?.id || `slide-${idx + 1}`),
-          title: String(item?.title || ""),
-          content: String(item?.content || ""),
-          link: String(item?.link || ""),
-          imageUrl: String(item?.imageUrl || ""),
-        })));
-      } else {
-        const fallback = {
-          id: "slide-1",
-          title: String(payload?.title || ""),
-          content: String(payload?.content || ""),
-          link: String(payload?.link || ""),
-          imageUrl: String(payload?.imageUrl || ""),
-        };
-        setHomepageBannerItems((fallback.title || fallback.content || fallback.link || fallback.imageUrl) ? [fallback] : []);
-      }
-      setHomepageBannerStatus("");
-    } catch (error) {
-      console.error("Failed to load homepage banner", error);
-      setHomepageBannerStatus("載入首頁 Banner 設定失敗，請確認後端已部署最新版本。");
-    }
-  };
-
   useEffect(() => {
     if (!currentUser || !profile?.isAdmin) return;
     loadAllData("");
-    loadTermsRecords("");
-    loadAdminUsers();
-    loadHomepageBanner();
   }, [currentUser, profile?.isAdmin]);
 
   useEffect(() => {
@@ -217,14 +149,6 @@ export default function SuperAdminPage() {
     }, 350);
     return () => clearTimeout(delay);
   }, [searchQuery, t]);
-
-  useEffect(() => {
-    if (!currentUser || !profile?.isAdmin) return;
-    const delay = setTimeout(() => {
-      loadTermsRecords(termsQuery.trim());
-    }, 350);
-    return () => clearTimeout(delay);
-  }, [termsQuery, currentUser, profile?.isAdmin]);
 
   const handleCreateOrg = async () => {
     if (!newOrgName) return;
@@ -296,7 +220,6 @@ export default function SuperAdminPage() {
     try {
       await deleteUserAdmin(user.id);
       loadAllData(listQuery.trim());
-      await loadAdminUsers();
     } catch (error) {
       alert(error?.message || "刪除使用者失敗");
     } finally {
@@ -345,136 +268,6 @@ export default function SuperAdminPage() {
     }
   };
 
-  const handleAddAdmin = async () => {
-    const email = adminEmailInput.trim().toLowerCase();
-    if (!email) return;
-    setIsAdminManaging(true);
-    setAdminManageError("");
-    try {
-      await addAdminUser({ email });
-      setAdminEmailInput("");
-      await loadAdminUsers();
-    } catch (error) {
-      setAdminManageError(error?.message || "新增超管失敗");
-    } finally {
-      setIsAdminManaging(false);
-    }
-  };
-
-  const handleRemoveAdmin = async (adminId) => {
-    if (!adminId) return;
-    setIsAdminManaging(true);
-    setAdminManageError("");
-    try {
-      await removeAdminUser(adminId);
-      await loadAdminUsers();
-    } catch (error) {
-      setAdminManageError(error?.message || "移除超管失敗");
-    } finally {
-      setIsAdminManaging(false);
-    }
-  };
-
-  const handleSaveHomepageBanner = async () => {
-    setIsSavingHomepageBanner(true);
-    setHomepageBannerError("");
-    setHomepageBannerStatus("");
-    try {
-      const sanitizedItems = (homepageBannerItems || []).map((item, idx) => ({
-        id: String(item?.id || `slide-${idx + 1}`),
-        title: String(item?.title || "").trim(),
-        content: String(item?.content || "").trim(),
-        link: String(item?.link || "").trim(),
-        imageUrl: String(item?.imageUrl || "").trim(),
-      })).filter((item) => item.title || item.content || item.link || item.imageUrl);
-      await updateHomepageBannerAdmin({ items: sanitizedItems });
-      const reloaded = await getHomepageBannerAdmin();
-      const reloadedItems = Array.isArray(reloaded?.items) ? reloaded.items : [];
-      if (sanitizedItems.length > 1 && reloadedItems.length <= 1) {
-        setHomepageBannerItems(reloadedItems.length ? reloadedItems : sanitizedItems);
-        setHomepageBannerError("目前後端仍為舊版（未支援 items 多張儲存）。請重新部署最新後端後再試。");
-        return;
-      }
-      const nextItems = reloadedItems.length > 0 ? reloadedItems : sanitizedItems;
-      setHomepageBannerItems(nextItems);
-      setHomepageBannerStatus("首頁 Banner 已儲存。");
-    } catch (error) {
-      setHomepageBannerError(error?.message || "儲存首頁 Banner 失敗");
-    } finally {
-      setIsSavingHomepageBanner(false);
-    }
-  };
-
-  const addHomepageBannerItem = () => {
-    setHomepageBannerItems((prev) => [
-      ...prev,
-      {
-        id: `slide-${Date.now()}`,
-        title: "",
-        content: "",
-        link: "",
-        imageUrl: "",
-      },
-    ]);
-  };
-
-  const updateHomepageBannerItem = (index, field, value) => {
-    setHomepageBannerItems((prev) => prev.map((item, idx) => (
-      idx === index ? { ...item, [field]: value } : item
-    )));
-  };
-
-  const removeHomepageBannerItem = (index) => {
-    setHomepageBannerItems((prev) => prev.filter((_, idx) => idx !== index));
-  };
-
-  const applyHomepageBannerUpload = async (index, file) => {
-    if (!file || index === null || index === undefined) return;
-    setHomepageBannerError("");
-    setHomepageBannerStatus("");
-    try {
-      const optimized = await optimizeImageForUpload(file, "banner");
-      if (!optimized?.ok || !optimized?.file) {
-        throw new Error(optimized?.error || "圖片處理失敗");
-      }
-      const uploaded = await uploadMediaObject(optimized.file, "banner");
-      const url = String(uploaded?.url || "").trim();
-      if (!url) throw new Error("上傳成功但沒有取得圖片網址");
-      updateHomepageBannerItem(index, "imageUrl", url);
-    } catch (error) {
-      setHomepageBannerError(error?.message || "Banner 圖片上傳失敗");
-    }
-  };
-
-  const handleHomepageBannerUpload = async (index, event) => {
-    const file = event?.target?.files?.[0];
-    if (event?.target) event.target.value = "";
-    if (!file) return;
-    setHomepageBannerCropIndex(index);
-    setHomepageBannerCropSource({ file, name: file.name });
-    setHomepageBannerCropOpen(true);
-  };
-
-  const checkHomepageBannerApiVersion = async () => {
-    setHomepageBannerApiCheckResult("檢查中...");
-    try {
-      const payload = await getHomepageBannerAdmin();
-      const items = Array.isArray(payload?.items) ? payload.items : [];
-      if (items.length > 1) {
-        setHomepageBannerApiCheckResult("目前後端支援多張 Banner（items）。");
-      } else if (items.length === 1) {
-        setHomepageBannerApiCheckResult("目前後端可讀取 items，但資料目前僅 1 張。");
-      } else if (payload && ("items" in payload)) {
-        setHomepageBannerApiCheckResult("目前後端支援 items，但尚未儲存資料。");
-      } else {
-        setHomepageBannerApiCheckResult("目前後端看起來是舊版（未回傳 items）。");
-      }
-    } catch (error) {
-      setHomepageBannerApiCheckResult(error?.message || "檢查失敗");
-    }
-  };
-
-  const userCountText = useMemo(() => `${users.length} users`, [users.length]);
   const userById = useMemo(() => {
     const map = new Map();
     users.forEach((u) => map.set(u.id, u));
@@ -487,6 +280,29 @@ export default function SuperAdminPage() {
     if (!owner) return ownerId;
     return owner.displayName || owner.email || owner.handle || ownerId;
   };
+
+  const filteredScripts = useMemo(() => {
+    const q = scriptFilter.toLowerCase();
+    return scripts
+      .filter((s) => s.type !== "folder")
+      .filter((s) => scriptStatusFilter === "all" || s.status === scriptStatusFilter)
+      .filter((s) => !q || (s.title || "").toLowerCase().includes(q) || getOwnerLabel(s.ownerId).toLowerCase().includes(q));
+  }, [scripts, scriptFilter, scriptStatusFilter, userById]);
+
+  const filteredOrgs = useMemo(() => {
+    const q = orgFilter.toLowerCase();
+    return !q ? orgs : orgs.filter((o) => (o.name || "").toLowerCase().includes(q) || getOwnerLabel(o.ownerId).toLowerCase().includes(q));
+  }, [orgs, orgFilter, userById]);
+
+  const filteredPersonas = useMemo(() => {
+    const q = personaFilter.toLowerCase();
+    return !q ? personas : personas.filter((p) => (p.displayName || "").toLowerCase().includes(q) || getOwnerLabel(p.ownerId).toLowerCase().includes(q));
+  }, [personas, personaFilter, userById]);
+
+  const filteredUsers = useMemo(() => {
+    const q = userFilter.toLowerCase();
+    return !q ? users : users.filter((u) => (u.displayName || "").toLowerCase().includes(q) || (u.email || "").toLowerCase().includes(q) || u.id.toLowerCase().includes(q));
+  }, [users, userFilter]);
 
   if (!profile?.isAdmin) {
     return (
@@ -505,273 +321,192 @@ export default function SuperAdminPage() {
     <div className="container mx-auto p-4 sm:p-8 max-w-6xl h-full overflow-y-auto">
       <header className="mb-6 border-b pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold font-serif mb-2">平台管理中心</h1>
-          <p className="text-muted-foreground">超級管理員可管理全站資料與劇本設定（不含內容檢視）。</p>
+          <h1 className="text-3xl font-bold font-serif mb-1">平台管理中心</h1>
+          <p className="text-sm text-muted-foreground">超級管理員可管理全站資料與劇本設定（不含內容檢視）。</p>
         </div>
         <Badge variant="outline" className="text-xs">{t("transferAdmin.loggedInAs")}：{currentUser?.displayName || "Admin"}</Badge>
       </header>
 
-      <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Card>
-          <CardContent className="p-3">
-            <div className="text-[11px] text-muted-foreground">使用者</div>
-            <div className="text-2xl font-bold leading-tight">{users.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3">
-            <div className="text-[11px] text-muted-foreground">組織</div>
-            <div className="text-2xl font-bold leading-tight">{orgs.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3">
-            <div className="text-[11px] text-muted-foreground">作者</div>
-            <div className="text-2xl font-bold leading-tight">{personas.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3">
-            <div className="text-[11px] text-muted-foreground">劇本</div>
-            <div className="text-2xl font-bold leading-tight">{scripts.filter((s) => s.type !== "folder").length}</div>
-          </CardContent>
-        </Card>
+      {/* Stats */}
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { label: "使用者", value: users.length },
+          { label: "組織", value: orgs.length },
+          { label: "作者", value: personas.length },
+          { label: "劇本", value: scripts.filter((s) => s.type !== "folder").length },
+        ].map(({ label, value }) => (
+          <Card key={label}>
+            <CardContent className="p-3">
+              <div className="text-[11px] text-muted-foreground">{label}</div>
+              <div className="text-2xl font-bold leading-tight">{value}</div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <Card className="mb-8">
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-2 items-center">
-            <Input
-              placeholder="全域搜尋（名稱 / ID / owner）"
-              value={listQuery}
-              onChange={(e) => setListQuery(e.target.value)}
-            />
-            <Button variant="outline" onClick={() => loadAllData(listQuery.trim())}>
-              重新載入
-            </Button>
-            <span className="text-xs text-muted-foreground">{userCountText}</span>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Global search */}
+      <div className="mb-6 flex flex-col sm:flex-row gap-2 items-center rounded-xl border border-border/70 bg-background px-4 py-3 shadow-sm">
+        <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+        <Input
+          className="border-0 shadow-none focus-visible:ring-0 px-0"
+          placeholder="全域搜尋（名稱 / ID / owner）"
+          value={listQuery}
+          onChange={(e) => setListQuery(e.target.value)}
+        />
+        <Button variant="outline" size="sm" onClick={() => loadAllData(listQuery.trim())}>
+          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "重新載入"}
+        </Button>
+      </div>
 
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="text-lg">超管帳號管理</CardTitle>
-          <CardDescription>你可以新增或移除其他超級管理員帳號（email）。</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Input placeholder="輸入要新增的超管 email" value={adminEmailInput} onChange={(e) => setAdminEmailInput(e.target.value)} />
-            <Button onClick={handleAddAdmin} disabled={!adminEmailInput.trim() || isAdminManaging}>新增超管</Button>
-          </div>
-          {adminManageError && <div className="text-xs text-destructive">{adminManageError}</div>}
-          <div className="space-y-2">
-            {(adminUsers || []).map((item) => (
-              <div key={item.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
-                <div className="min-w-0">
-                  <div className="font-medium truncate">{item.email || item.userId || item.id}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {item.id.startsWith("env-email:") ? "來自環境變數（不可在此移除）" : `建立時間：${item.createdAt ? new Date(item.createdAt).toLocaleString() : "-"}`}
-                  </div>
-                </div>
-                <Button variant="outline" size="sm" disabled={isAdminManaging || item.id.startsWith("env-email:")} onClick={() => handleRemoveAdmin(item.id)}>
-                  移除
-                </Button>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Collapsible utility sections */}
+      <CollapsibleSection title="超管帳號管理" description="新增或移除平台超管帳號">
+        <AdminUserManagementCard />
+      </CollapsibleSection>
 
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="text-lg">授權條款簽署紀錄</CardTitle>
-          <CardDescription>記錄公開頁簽署當下的時間、IP、裝置與來源資訊。共 {termsTotal} 筆。</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Input placeholder="搜尋 scriptId / visitorId / IP / UA" value={termsQuery} onChange={(e) => setTermsQuery(e.target.value)} />
-            <Button variant="outline" onClick={() => loadTermsRecords(termsQuery.trim())}>重新整理</Button>
-          </div>
-          {termsError && <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">{termsError}</div>}
-          {isTermsLoading ? (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" />載入簽署紀錄中...</div>
-          ) : termsRecords.length === 0 ? (
-            <div className="text-xs text-muted-foreground py-4">目前沒有簽署紀錄。</div>
-          ) : (
-            <div className="space-y-2">
-              {termsRecords.map((row) => (
-                <div key={row.id} className="rounded-md border p-3 text-xs">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-foreground">
-                    <span className="font-semibold">版本 {row.termsVersion}</span>
-                    <span>時間：{new Date(row.acceptedAt || 0).toLocaleString()}</span>
-                    <span>IP：{row.ipAddress || "-"}</span>
-                    <span>visitor：{row.visitorId || "-"}</span>
-                  </div>
-                  <div className="mt-1 text-muted-foreground">scriptId：{row.scriptId || "-"} ｜ UA：{row.userAgent || "-"}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <CollapsibleSection title="授權條款簽署紀錄" description="公開頁簽署紀錄查詢">
+        <TermsAcceptanceTable />
+      </CollapsibleSection>
 
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="text-lg">首頁 Banner 設定</CardTitle>
-          <CardDescription>公開首頁跑馬燈可顯示多則活動公告（標題 / 內容 / 連結 / 圖片）。</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex justify-between items-center">
-            <div className="text-xs text-muted-foreground">目前 {homepageBannerItems.length} 張</div>
-            <div className="flex items-center gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={checkHomepageBannerApiVersion}>
-                檢查 API 版本
-              </Button>
-              <Button type="button" variant="outline" size="sm" onClick={addHomepageBannerItem}>
-                新增一張 Banner
-              </Button>
-            </div>
-          </div>
-          {homepageBannerApiCheckResult && (
-            <div className="text-xs text-muted-foreground">{homepageBannerApiCheckResult}</div>
-          )}
-          {homepageBannerItems.length === 0 && (
-            <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
-              尚未設定 Banner。可新增後儲存，公開首頁即會顯示輪播。
-            </div>
-          )}
-          {homepageBannerItems.map((item, idx) => (
-            <div key={item.id || idx} className="rounded-md border p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="text-xs font-medium text-muted-foreground">第 {idx + 1} 張</div>
-                <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => removeHomepageBannerItem(idx)}>
-                  刪除
-                </Button>
-              </div>
-              <Input
-                placeholder="標題"
-                value={item.title}
-                onChange={(e) => updateHomepageBannerItem(idx, "title", e.target.value)}
-              />
-              <Textarea
-                placeholder="內容"
-                value={item.content}
-                onChange={(e) => updateHomepageBannerItem(idx, "content", e.target.value)}
-                rows={3}
-              />
-              <Input
-                placeholder="連結（https://...）"
-                value={item.link}
-                onChange={(e) => updateHomepageBannerItem(idx, "link", e.target.value)}
-              />
-              <Input
-                placeholder="圖片網址（可手動貼上）"
-                value={item.imageUrl}
-                onChange={(e) => updateHomepageBannerItem(idx, "imageUrl", e.target.value)}
-              />
-              <div className="flex flex-wrap items-center gap-2">
-                <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
-                  上傳圖片
-                  <input
-                    type="file"
-                    accept={MEDIA_FILE_ACCEPT}
-                    className="hidden"
-                    onChange={(event) => handleHomepageBannerUpload(idx, event)}
-                  />
-                </label>
-                <Button type="button" variant="secondary" size="sm" onClick={() => setHomepageBannerPickerIndex(idx)}>
-                  從媒體庫選擇
-                </Button>
-              </div>
-              <div className="space-y-0.5 text-[11px] text-muted-foreground">
-                <p>{homepageBannerGuide.supported}</p>
-                <p>{homepageBannerGuide.recommended}</p>
-              </div>
-              {item.imageUrl && (
-                <div className="overflow-hidden rounded-md border bg-muted/20">
-                  <img src={item.imageUrl} alt={item.title || `banner-${idx + 1}`} className="h-32 w-full object-cover" loading="lazy" />
-                </div>
-              )}
-            </div>
-          ))}
-          {homepageBannerError && <div className="text-xs text-destructive">{homepageBannerError}</div>}
-          {homepageBannerStatus && <div className="text-xs text-muted-foreground">{homepageBannerStatus}</div>}
-          <div className="flex justify-end">
-            <Button onClick={handleSaveHomepageBanner} disabled={isSavingHomepageBanner}>
-              {isSavingHomepageBanner ? "儲存中..." : "儲存首頁 Banner"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <CollapsibleSection title="首頁 Banner 設定" description="管理首頁輪播 Banner 內容">
+        <HomepageBannerSection />
+      </CollapsibleSection>
 
-      <Tabs defaultValue="scripts" className="space-y-6">
+      {/* Data tabs */}
+      <Tabs defaultValue="scripts" className="space-y-4 mt-6">
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 max-w-2xl gap-1 h-auto sm:h-9">
-          <TabsTrigger value="scripts">{t("transferAdmin.scriptTab")}</TabsTrigger>
-          <TabsTrigger value="orgs">{t("transferAdmin.orgTab")}</TabsTrigger>
-          <TabsTrigger value="personas">{t("transferAdmin.personaTab")}</TabsTrigger>
-          <TabsTrigger value="users">使用者</TabsTrigger>
+          <TabsTrigger value="scripts">
+            {t("transferAdmin.scriptTab")}
+            <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{scripts.filter((s) => s.type !== "folder").length}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="orgs">
+            {t("transferAdmin.orgTab")}
+            <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{orgs.length}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="personas">
+            {t("transferAdmin.personaTab")}
+            <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{personas.length}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="users">
+            使用者
+            <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{users.length}</Badge>
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="users">
+        {/* Scripts */}
+        <TabsContent value="scripts">
           <Card>
-            <CardHeader>
-              <CardTitle>所有使用者</CardTitle>
-              <CardDescription>共 {users.length} 位</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {isLoading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div> : users.map((u) => (
-                <div key={u.id} className="rounded border px-3 py-2 text-sm flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">{u.displayName || u.handle || "-"}</div>
-                    <div className="text-xs text-muted-foreground truncate">{u.email || "-"} ｜ {u.id}</div>
-                  </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    disabled={isDeleting || u.id === currentUser?.uid}
-                    onClick={() => handleDeleteUser(u)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+            <CardHeader className="pb-3">
+              <CardTitle>所有劇本</CardTitle>
+              <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                <Input
+                  placeholder="篩選名稱或 owner..."
+                  value={scriptFilter}
+                  onChange={(e) => setScriptFilter(e.target.value)}
+                  className="h-8 text-sm"
+                />
+                <div className="inline-flex rounded-md border bg-background p-0.5 gap-0.5 shrink-0">
+                  {["all", "Public", "Private"].map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      className={`h-7 px-3 text-xs rounded transition-colors ${scriptStatusFilter === opt ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+                      onClick={() => setScriptStatusFilter(opt)}
+                    >
+                      {opt === "all" ? "全部" : opt === "Public" ? "公開" : "私人"}
+                    </button>
+                  ))}
                 </div>
-              ))}
+              </div>
+              <CardDescription className="mt-1">
+                顯示 {filteredScripts.length} / {scripts.filter((s) => s.type !== "folder").length} 部
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
+              ) : filteredScripts.length === 0 ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">無符合結果</div>
+              ) : (
+                <div className="space-y-1.5">
+                  {filteredScripts.map((s) => (
+                    <div key={s.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/40 transition-colors">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <div className="min-w-0">
+                          <div className="font-medium truncate text-sm">{s.title || "(無標題)"}</div>
+                          <div className="text-xs text-muted-foreground truncate">owner: {getOwnerLabel(s.ownerId)}</div>
+                        </div>
+                        {s.status === "Public" && (
+                          <Badge variant="secondary" className="text-[10px] h-5 shrink-0">{t("transferAdmin.publicBadge")}</Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Button variant="secondary" size="sm" className="h-7 text-xs" onClick={() => handleOpenScriptSettings(s)}>設定</Button>
+                        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleOpenTransfer("script", s)}>
+                          <ArrowRightLeft className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button variant="destructive" size="sm" className="h-7" disabled={isDeleting} onClick={() => handleDeleteScript(s)}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="orgs" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* Orgs */}
+        <TabsContent value="orgs" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="md:col-span-1 h-fit">
               <CardHeader>
-                <CardTitle className="text-lg">{t("transferAdmin.createOrgTitle")}</CardTitle>
-                <CardDescription>{t("transferAdmin.createOrgDesc")}</CardDescription>
+                <CardTitle className="text-base">{t("transferAdmin.createOrgTitle")}</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3">
                 <Input placeholder={t("transferAdmin.orgNamePlaceholder")} value={newOrgName} onChange={(e) => setNewOrgName(e.target.value)} />
-                <Button className="w-full" onClick={handleCreateOrg} disabled={!newOrgName}><Plus className="w-4 h-4 mr-2" />{t("transferAdmin.createOrg")}</Button>
+                <Button className="w-full" onClick={handleCreateOrg} disabled={!newOrgName}>
+                  <Plus className="w-4 h-4 mr-2" />{t("transferAdmin.createOrg")}
+                </Button>
               </CardContent>
             </Card>
             <Card className="md:col-span-2">
-              <CardHeader>
-                <CardTitle className="text-lg">所有組織</CardTitle>
-                <CardDescription>共 {orgs.length} 個</CardDescription>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">所有組織</CardTitle>
+                <Input
+                  placeholder="篩選名稱或 owner..."
+                  value={orgFilter}
+                  onChange={(e) => setOrgFilter(e.target.value)}
+                  className="h-8 text-sm mt-2"
+                />
+                <CardDescription>顯示 {filteredOrgs.length} / {orgs.length} 個</CardDescription>
               </CardHeader>
               <CardContent>
-                {isLoading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div> : (
-                  <div className="space-y-4">
-                    {orgs.map((org) => (
-                      <div key={org.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center text-primary"><Building2 className="w-6 h-6" /></div>
+                {isLoading ? (
+                  <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
+                ) : filteredOrgs.length === 0 ? (
+                  <div className="py-8 text-center text-sm text-muted-foreground">無符合結果</div>
+                ) : (
+                  <div className="space-y-2">
+                    {filteredOrgs.map((org) => (
+                      <div key={org.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/40 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                            <Building2 className="w-4 h-4" />
+                          </div>
                           <div>
-                            <h3 className="font-semibold">{org.name}</h3>
-                            <p className="text-xs text-muted-foreground">owner: {getOwnerLabel(org.ownerId)}</p>
+                            <div className="font-medium text-sm">{org.name}</div>
+                            <div className="text-xs text-muted-foreground">owner: {getOwnerLabel(org.ownerId)}</div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Button variant="outline" size="sm" onClick={() => handleOpenTransfer("org", org)}><ArrowRightLeft className="w-4 h-4 mr-2" />{t("transferAdmin.transfer")}</Button>
-                          <Button variant="destructive" size="sm" disabled={isDeleting} onClick={() => handleDeleteOrg(org)}><Trash2 className="w-4 h-4" /></Button>
+                        <div className="flex items-center gap-1.5">
+                          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleOpenTransfer("org", org)}>
+                            <ArrowRightLeft className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button variant="destructive" size="sm" className="h-7" disabled={isDeleting} onClick={() => handleDeleteOrg(org)}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -782,29 +517,44 @@ export default function SuperAdminPage() {
           </div>
         </TabsContent>
 
+        {/* Personas */}
         <TabsContent value="personas">
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-3">
               <CardTitle>所有作者</CardTitle>
-              <CardDescription>共 {personas.length} 位</CardDescription>
+              <Input
+                placeholder="篩選名稱或 owner..."
+                value={personaFilter}
+                onChange={(e) => setPersonaFilter(e.target.value)}
+                className="h-8 text-sm mt-2"
+              />
+              <CardDescription>顯示 {filteredPersonas.length} / {personas.length} 位</CardDescription>
             </CardHeader>
             <CardContent>
-              {isLoading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div> : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {personas.map((p) => (
-                    <div key={p.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center overflow-hidden">
-                          {p.avatar ? <img src={p.avatar} alt={p.displayName} className="w-full h-full object-cover" /> : <UserCircle />}
+              {isLoading ? (
+                <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
+              ) : filteredPersonas.length === 0 ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">無符合結果</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {filteredPersonas.map((p) => (
+                    <div key={p.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/40 transition-colors">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center overflow-hidden shrink-0">
+                          {p.avatar ? <img src={p.avatar} alt={p.displayName} className="w-full h-full object-cover" /> : <UserCircle className="w-5 h-5" />}
                         </div>
-                        <div>
-                          <div className="font-semibold">{p.displayName}</div>
-                          <div className="text-xs text-muted-foreground truncate max-w-[220px]">owner: {getOwnerLabel(p.ownerId)}</div>
+                        <div className="min-w-0">
+                          <div className="font-medium text-sm truncate">{p.displayName}</div>
+                          <div className="text-xs text-muted-foreground truncate">owner: {getOwnerLabel(p.ownerId)}</div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={() => handleOpenTransfer("persona", p)}><ArrowRightLeft className="w-4 h-4 mr-2" />{t("transferAdmin.transfer")}</Button>
-                        <Button variant="destructive" size="sm" disabled={isDeleting} onClick={() => handleDeletePersona(p)}><Trash2 className="w-4 h-4" /></Button>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleOpenTransfer("persona", p)}>
+                          <ArrowRightLeft className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button variant="destructive" size="sm" className="h-7" disabled={isDeleting} onClick={() => handleDeletePersona(p)}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -814,30 +564,41 @@ export default function SuperAdminPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="scripts">
+        {/* Users */}
+        <TabsContent value="users">
           <Card>
-            <CardHeader>
-              <CardTitle>所有劇本</CardTitle>
-              <CardDescription>共 {scripts.filter((s) => s.type !== "folder").length} 部（不含資料夾）</CardDescription>
+            <CardHeader className="pb-3">
+              <CardTitle>所有使用者</CardTitle>
+              <Input
+                placeholder="篩選名稱 / email / ID..."
+                value={userFilter}
+                onChange={(e) => setUserFilter(e.target.value)}
+                className="h-8 text-sm mt-2"
+              />
+              <CardDescription>顯示 {filteredUsers.length} / {users.length} 位</CardDescription>
             </CardHeader>
             <CardContent>
-              {isLoading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div> : (
-                <div className="space-y-2">
-                  {scripts.filter((s) => s.type !== "folder").map((s) => (
-                    <div key={s.id} className="flex items-center justify-between p-3 border rounded hover:bg-muted/50">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <FileText className="w-4 h-4 text-muted-foreground" />
-                        <span className="font-medium truncate">{s.title}</span>
-                        {s.status === "Public" && <Badge variant="secondary" className="text-[10px] h-5">{t("transferAdmin.publicBadge")}</Badge>}
-                        <span className="text-xs text-muted-foreground">owner: {getOwnerLabel(s.ownerId)}</span>
+              {isLoading ? (
+                <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
+              ) : filteredUsers.length === 0 ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">無符合結果</div>
+              ) : (
+                <div className="space-y-1.5">
+                  {filteredUsers.map((u) => (
+                    <div key={u.id} className="rounded border px-3 py-2.5 text-sm flex items-center justify-between gap-3 hover:bg-muted/40 transition-colors">
+                      <div className="min-w-0">
+                        <div className="font-medium truncate">{u.displayName || u.handle || "-"}</div>
+                        <div className="text-xs text-muted-foreground truncate">{u.email || "-"} ｜ {u.id}</div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button variant="secondary" size="sm" onClick={() => handleOpenScriptSettings(s)}>
-                          設定
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => handleOpenTransfer("script", s)}><ArrowRightLeft className="w-4 h-4 mr-2" />{t("transferAdmin.transfer")}</Button>
-                        <Button variant="destructive" size="sm" disabled={isDeleting} onClick={() => handleDeleteScript(s)}><Trash2 className="w-4 h-4" /></Button>
-                      </div>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="h-7 shrink-0"
+                        disabled={isDeleting || u.id === currentUser?.uid}
+                        onClick={() => handleDeleteUser(u)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -847,6 +608,7 @@ export default function SuperAdminPage() {
         </TabsContent>
       </Tabs>
 
+      {/* Transfer modal */}
       {showTransferModal && selectedItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <Card className="w-full max-w-md shadow-2xl animate-in fade-in zoom-in-95 duration-200">
@@ -919,6 +681,7 @@ export default function SuperAdminPage() {
           </Card>
         </div>
       )}
+
       {showScriptSettingsModal && selectedScriptSettings && (
         <ScriptMetadataDialog
           open={showScriptSettingsModal}
@@ -942,29 +705,6 @@ export default function SuperAdminPage() {
           }}
         />
       )}
-      <MediaPicker
-        open={homepageBannerPickerIndex !== null}
-        onOpenChange={(open) => {
-          if (!open) setHomepageBannerPickerIndex(null);
-        }}
-        cropPurpose="banner"
-        onSelect={(url) => {
-          if (homepageBannerPickerIndex === null) return;
-          updateHomepageBannerItem(homepageBannerPickerIndex, "imageUrl", url);
-          setHomepageBannerPickerIndex(null);
-        }}
-      />
-      <ImageCropDialog
-        open={homepageBannerCropOpen}
-        onOpenChange={setHomepageBannerCropOpen}
-        source={homepageBannerCropSource}
-        purpose="banner"
-        onConfirm={async (croppedFile) => {
-          if (homepageBannerCropIndex === null) return;
-          await applyHomepageBannerUpload(homepageBannerCropIndex, croppedFile);
-          setHomepageBannerCropIndex(null);
-        }}
-      />
     </div>
   );
 }

@@ -40,7 +40,7 @@ export function useScriptManager(initialParamsRef, initialMarkerConfigs = []) {
   }, [initialMarkerConfigs, scopedMarkerConfigs]);
   
   // AST Parsing (Centralized)
-  const { ast } = useMemo(() => {
+  const { ast, scenes: parsedScenes, titleEntries: parsedTitleEntries } = useMemo(() => {
     return parseScreenplay(rawScript || "", effectiveMarkerConfigs);
   }, [rawScript, effectiveMarkerConfigs]);
 
@@ -180,7 +180,9 @@ export function useScriptManager(initialParamsRef, initialMarkerConfigs = []) {
     activeCloudScript, setActiveCloudScript,
     cloudScriptMode, setCloudScriptMode,
     activePublicScriptId, setActivePublicScriptId,
-    ast, // Expose AST,
+    ast,
+    parsedScenes,
+    parsedTitleEntries,
     // Config Override
     setOverrideMarkerConfigs: setScopedMarkerConfigs, // backward compatibility
     setScopedMarkerConfigs,

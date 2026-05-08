@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { useTheme } from "../components/theme-provider";
 import {
@@ -181,15 +181,19 @@ export function SettingsProvider({ children }) {
       async function loadSettings() {
           isRemoteUpdate.current = true;
           try {
-              const data = await fetchUserSettings(currentUser);
+              // Fetch settings and themes in parallel to avoid serial round-trips.
+              const [data, realThemes] = await Promise.all([
+                  fetchUserSettings(currentUser),
+                  fetchUserThemes(currentUser),
+              ]);
               if (data) {
                   if (data.settings && Object.keys(data.settings).length > 0) {
                       const s = data.settings;
-                      
+
                       // Batch Updates
                       if(s.accent) setAccent(s.accent);
                       if(s.fontSize) setFontSize(s.fontSize);
-                      if(s.editorFontSize) setBodyFontSize(s.editorFontSize); 
+                      if(s.editorFontSize) setBodyFontSize(s.editorFontSize);
                       if(s.bodyFontSize) setBodyFontSize(s.bodyFontSize);
                       if(s.dialogueFontSize) setDialogueFontSize(s.dialogueFontSize);
                       if(s.readingFontFamily) setReadingFontFamily(s.readingFontFamily);
@@ -201,9 +205,7 @@ export function SettingsProvider({ children }) {
                       if(s.transparentBg !== undefined) setTransparentBg(s.transparentBg);
                       if(s.showLineUnderline !== undefined) setShowLineUnderline(s.showLineUnderline);
                       if(s.statsConfig) setStatsConfig(s.statsConfig);
-                      
-                      // Always fetch themes from API for logged in users
-                      const realThemes = await fetchUserThemes(currentUser);
+
                       if (realThemes && realThemes.length > 0) {
                           const parsedThemes = realThemes.map((t) => ({
                               ...t,
@@ -309,14 +311,15 @@ export function SettingsProvider({ children }) {
       themes.currentThemeId
   ]);
 
-  const value = {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const value = useMemo(() => ({
     // Theme
     currentUser,
     theme: resolvedTheme,
     themeMode,
     isDark,
     setTheme,
-    
+
     // Accent
     accent,
     setAccent,
@@ -337,12 +340,11 @@ export function SettingsProvider({ children }) {
 
     // Modes
     hideWhitespace, setHideWhitespace,
-
     transparentBg, setTransparentBg,
     showLineUnderline, setShowLineUnderline,
 
     // Markers (Backwards Compatible + Theme Aware)
-    markerConfigs: themes.markerConfigs, 
+    markerConfigs: themes.markerConfigs,
     setMarkerConfigs: themes.setMarkerConfigs,
     // Marker visibility
     hiddenMarkerIds,
@@ -354,8 +356,15 @@ export function SettingsProvider({ children }) {
     setStatsConfig,
 
     // Themes (New API)
-    ...themes
-  };
+    ...themes,
+  }), [
+    currentUser, resolvedTheme, themeMode, isDark, setTheme,
+    accent, accentConfig,
+    fontSize, bodyFontSize, dialogueFontSize, readingFontFamily, uiFontFamily, lineHeight, desktopUiScale,
+    hideWhitespace, transparentBg, showLineUnderline,
+    hiddenMarkerIds, statsConfig,
+    themes,
+  ]);
 
   return (
     <SettingsContext.Provider value={value}>

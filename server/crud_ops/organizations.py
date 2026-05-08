@@ -29,8 +29,8 @@ __all__ = [
     "remove_user_org_membership",
     "update_user_org_membership_role",
     "remove_persona_org_membership",
+    "ensure_persona_org_memberships",
     "list_user_org_ids",
     "get_primary_user_org_id",
     "get_persona_org_ids",
-    "sync_persona_org_memberships",
 ]

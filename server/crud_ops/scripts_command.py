@@ -59,11 +59,11 @@ def _resolve_license_fields(update_data):
     update_data["customMetadata"] = custom
     meta_map = {_norm_key(item.get("key")): str(item.get("value") or "") for item in custom}
 
-    if "licenseCommercial" not in update_data:
+    if not update_data.get("licenseCommercial"):
         update_data["licenseCommercial"] = _norm_choice(meta_map.get("licensecommercial"), VALID_COMMERCIAL)
-    if "licenseDerivative" not in update_data:
+    if not update_data.get("licenseDerivative"):
         update_data["licenseDerivative"] = _norm_choice(meta_map.get("licensederivative"), VALID_DERIVATIVE)
-    if "licenseNotify" not in update_data:
+    if not update_data.get("licenseNotify"):
         update_data["licenseNotify"] = _norm_choice(meta_map.get("licensenotify"), VALID_NOTIFY)
 
 
@@ -118,6 +118,7 @@ def create_script(db: Session, script: schemas.ScriptCreate, ownerId: str):
         draftDate=script.draftDate or "",
         isPublic=1 if script.isPublic else 0,
         markerThemeId=script.markerThemeId,
+        personaId=script.personaId or None,
         seriesId=script.seriesId,
         seriesOrder=script.seriesOrder,
         licenseCommercial=seed_license.get("licenseCommercial", ""),
@@ -172,6 +173,10 @@ def update_script(db: Session, script_id: str, script: schemas.ScriptUpdate, own
                 update_data["seriesOrder"] = None
         else:
             update_data["seriesOrder"] = None
+    # Sync isPublic from status if status is being updated
+    if "status" in update_data and "isPublic" not in update_data:
+        update_data["isPublic"] = 1 if update_data["status"] == "Public" else 0
+
     for key, value in update_data.items():
         if key == "isPublic":
             setattr(db_script, key, 1 if value else 0)
