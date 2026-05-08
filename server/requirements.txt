@@ -4,6 +4,7 @@ sqlalchemy>=2.0.36
 pydantic>=2.9.0
 python-multipart>=0.0.12
 firebase-admin>=6.5.0
+cryptography>=42.0.0,<45.0.0
 slowapi>=0.1.9
 psycopg[binary]>=3.2.0
 pytest
