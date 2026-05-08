@@ -469,6 +469,10 @@ They discover a glowing artifact.
 
   const mergedViewerProps = useMemo(() => ({
       ...viewerDefaults,
+      // Pass pre-parsed data so ScriptViewer skips its own parseScreenplay call.
+      externalAst: scriptManager.ast,
+      externalScenes: scriptManager.parsedScenes,
+      externalTitleEntries: scriptManager.parsedTitleEntries,
       filterCharacter,
       focusMode,
       focusEffect,
@@ -485,6 +489,9 @@ They discover a glowing artifact.
       hiddenMarkerIds: scriptManager.hiddenMarkerIds,
   }), [
       viewerDefaults,
+      scriptManager.ast,
+      scriptManager.parsedScenes,
+      scriptManager.parsedTitleEntries,
       filterCharacter,
       focusMode,
       focusEffect,

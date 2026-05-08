@@ -95,6 +95,8 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   const [processedRenderedHtml, setProcessedRenderedHtml] = useState("");
   const [captureRenderedHtml, setCaptureRenderedHtml] = useState(false);
   const renderedHtmlRef = useRef({ raw: "", processed: "" });
+  const htmlResolverRef = useRef(null);
+  const htmlTimeoutRef = useRef(null);
   const isDarkMode = theme === "dark" || (theme === "system" && systemPrefersDark);
   const editorTheme = isDarkMode ? oneDark : "light";
 
@@ -119,6 +121,17 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
       raw: rawRenderedHtml,
       processed: processedRenderedHtml,
     };
+    const html = processedRenderedHtml || rawRenderedHtml;
+    if (html && htmlResolverRef.current) {
+      const resolve = htmlResolverRef.current;
+      htmlResolverRef.current = null;
+      if (htmlTimeoutRef.current) {
+        window.clearTimeout(htmlTimeoutRef.current);
+        htmlTimeoutRef.current = null;
+      }
+      setCaptureRenderedHtml(false);
+      resolve(html);
+    }
   }, [rawRenderedHtml, processedRenderedHtml]);
 
   useEffect(() => {
@@ -127,28 +140,28 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     setProcessedRenderedHtml("");
   }, [content, markerConfigs, hiddenMarkerIds]);
 
-  const ensureRenderedHtml = useCallback(async () => {
+  const ensureRenderedHtml = useCallback(() => {
     const existing = renderedHtmlRef.current.processed || renderedHtmlRef.current.raw;
-    if (existing) return existing;
+    if (existing) return Promise.resolve(existing);
 
-    if (!showPreview && !readOnly) {
-      setShowPreview(true);
-    }
-
+    if (!showPreview && !readOnly) setShowPreview(true);
     setCaptureRenderedHtml(true);
-    const start = Date.now();
-    while (Date.now() - start < 800) {
-      // Wait for PreviewPanel + ScriptViewer to emit processed/raw html once.
-      await new Promise((resolve) => window.setTimeout(resolve, 40));
-      const next = renderedHtmlRef.current.processed || renderedHtmlRef.current.raw;
-      if (next) {
-        setCaptureRenderedHtml(false);
-        return next;
-      }
-    }
-    setCaptureRenderedHtml(false);
-    return "";
-  }, [readOnly, showPreview]);
+
+    // Scale timeout with content size: +200ms per 5KB over the first 5KB, capped at 5s.
+    const timeout = Math.min(800 + Math.floor((content?.length || 0) / 5000) * 200, 5000);
+
+    return new Promise((resolve) => {
+      htmlResolverRef.current = resolve;
+      htmlTimeoutRef.current = window.setTimeout(() => {
+        htmlTimeoutRef.current = null;
+        if (htmlResolverRef.current === resolve) {
+          htmlResolverRef.current = null;
+          setCaptureRenderedHtml(false);
+          resolve("");
+        }
+      }, timeout);
+    });
+  }, [readOnly, showPreview, content]);
 
   // Parse AST for Statistics & Sync
   const { ast } = useMemo(() => {

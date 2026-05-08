@@ -3,11 +3,18 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 
 export function RequireAuth({ children }) {
-  const { currentUser } = useAuth();
+  const { currentUser, loading } = useAuth();
   const location = useLocation();
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="w-6 h-6 border-2 border-muted-foreground border-t-foreground rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   if (!currentUser) {
-    // Redirect them to the home page (gallery) but save the current location they were trying to go to
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 

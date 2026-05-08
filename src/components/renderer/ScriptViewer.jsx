@@ -5,9 +5,13 @@ import { ScriptRenderer } from './ScriptRenderer';
 import { useI18n } from '../../contexts/I18nContext';
 import { resolveReadingFontStack } from '../../constants/readingFonts';
 
-// 1. Add prop
 function ScriptViewer({
   text,
+  // When provided by a parent that already parsed the same text, the internal
+  // parseScreenplay call is skipped (avoids redundant O(n) work).
+  externalAst = null,
+  externalScenes = null,
+  externalTitleEntries = null,
   filterCharacter,
   focusMode,
   focusEffect = 'hide',
@@ -44,10 +48,14 @@ function ScriptViewer({
   const isScript = type === 'script';
 
   // Unified Parsing Pipeline
-  const { ast, scenes: sceneList, titleEntries } = useMemo(
-    () => parseScreenplay(text || '', markerConfigs), // Pass configs here
-    [text, markerConfigs] // Add dependency
+  // Skip parsing when the caller already has a parsed result for the same text.
+  const internalParse = useMemo(
+    () => externalAst ? null : parseScreenplay(text || '', markerConfigs),
+    [externalAst, text, markerConfigs]
   );
+  const ast = externalAst ?? internalParse?.ast ?? null;
+  const sceneList = externalScenes ?? internalParse?.scenes ?? [];
+  const titleEntries = externalTitleEntries ?? internalParse?.titleEntries ?? [];
 
   const escapeHtml = (str) =>
     str
