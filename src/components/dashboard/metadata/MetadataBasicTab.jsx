@@ -460,16 +460,11 @@ export function MetadataBasicTab({
                 </div>
                 {showExtendedFields && (
                     <>
-                    <div className="mt-3 rounded-md border border-[color:var(--license-term-border)] bg-[color:var(--license-term-bg)] px-3 py-2 text-xs text-[color:var(--license-term-fg)]">
-                        <p>{t("metadataBasic.advancedGuideLine1", "填寫重點：先寫大綱，再補角色與章節；不確定可先留空。")}</p>
-                        <p className="mt-1">{t("metadataBasic.advancedGuideLine2", "公開頁會顯示這些內容，能幫助讀者更快理解作品。")}</p>
-                    </div>
-                    {isRowLayout ? (
+                        {isRowLayout ? (
                         <div className="mt-3 rounded-lg border border-border/70 bg-background">
                             <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
                                 <div className={getRowLabelClass(rowLabelTones.outline || "advanced")}>{t("metadataBasic.outline", "大綱")}</div>
                                 <div className="p-4">
-                                    <p className="mb-2 text-xs text-muted-foreground">{t("metadataBasic.outlineHint", "一句話到一段即可，聚焦主線衝突與核心看點。")}</p>
                                     <Textarea
                                         id="metadata-outline"
                                         name="metadataOutline"
@@ -483,7 +478,6 @@ export function MetadataBasicTab({
                             <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
                                 <div className={getRowLabelClass(rowLabelTones.roleSetting || "advanced")}>角色設定</div>
                                 <div className="space-y-3 p-4">
-                                    <p className="text-xs text-muted-foreground">{t("metadataBasic.roleSettingHint", "建議至少填角色名稱與一句人物定位，演繹指示可寫語氣或表演重點。")}</p>
                                     <div className="flex justify-end">
                                         <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={addHeroEntry}>
                                             新增主角
@@ -532,7 +526,6 @@ export function MetadataBasicTab({
                             <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
                                 <div className={getRowLabelClass(rowLabelTones.backgroundInfo || "advanced")}>{t("metadataBasic.backgroundInfo", "背景資訊")}</div>
                                 <div className="p-4">
-                                    <p className="mb-2 text-xs text-muted-foreground">{t("metadataBasic.backgroundInfoHint", "可補充時代、地點、前情提要，避免讀者閱讀時資訊落差。")}</p>
                                     <Textarea
                                         id="metadata-background-info"
                                         name="metadataBackgroundInfo"
@@ -546,7 +539,6 @@ export function MetadataBasicTab({
                             <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
                                 <div className={getRowLabelClass(rowLabelTones.openingIntro || "advanced")}>{t("metadataBasic.openingIntro", "作品的開頭引言")}</div>
                                 <div className="p-4">
-                                    <p className="mb-2 text-xs text-muted-foreground">{t("metadataBasic.openingIntroHint", "這段會在讀者進入內容前看到，適合放導讀或閱讀提醒。")}</p>
                                     <Textarea
                                         id="metadata-opening-intro"
                                         name="metadataOpeningIntro"
@@ -560,7 +552,6 @@ export function MetadataBasicTab({
                             <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
                                 <div className={getRowLabelClass(rowLabelTones.chapterSettings || "advanced")}>章節環境與狀況</div>
                                 <div className="space-y-3 p-4">
-                                    <p className="text-xs text-muted-foreground">{t("metadataBasic.chapterSettingsHint", "每章可填環境與角色當下狀況，幫助快速進入情境。")}</p>
                                     <div className="flex justify-end">
                                         <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={addChapterEntry}>
                                             新增章節
@@ -611,7 +602,6 @@ export function MetadataBasicTab({
                         <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div className="grid gap-2">
                                 <label className="text-sm font-medium" htmlFor="metadata-outline">{t("metadataBasic.outline", "大綱")}</label>
-                                <p className="text-xs text-muted-foreground">{t("metadataBasic.outlineHint", "一句話到一段即可，聚焦主線衝突與核心看點。")}</p>
                                 <Textarea
                                     id="metadata-outline"
                                     name="metadataOutline"
@@ -628,7 +618,6 @@ export function MetadataBasicTab({
                                         新增主角
                                     </Button>
                                 </div>
-                                <p className="text-xs text-muted-foreground">{t("metadataBasic.roleSettingHint", "建議至少填角色名稱與一句人物定位，演繹指示可寫語氣或表演重點。")}</p>
                                 <div className="space-y-3">
                                     {heroEntries.map((entry, idx) => (
                                         <div key={entry.id} className="rounded-lg border border-border/70 bg-background p-3">
@@ -672,7 +661,6 @@ export function MetadataBasicTab({
                             </div>
                             <div className="grid gap-2">
                                 <label className="text-sm font-medium" htmlFor="metadata-background-info">{t("metadataBasic.backgroundInfo", "背景資訊")}</label>
-                                <p className="text-xs text-muted-foreground">{t("metadataBasic.backgroundInfoHint", "可補充時代、地點、前情提要，避免讀者閱讀時資訊落差。")}</p>
                                 <Textarea
                                     id="metadata-background-info"
                                     name="metadataBackgroundInfo"
@@ -684,7 +672,6 @@ export function MetadataBasicTab({
                             </div>
                             <div className="grid gap-2">
                                 <label className="text-sm font-medium" htmlFor="metadata-opening-intro">{t("metadataBasic.openingIntro", "作品的開頭引言")}</label>
-                                <p className="text-xs text-muted-foreground">{t("metadataBasic.openingIntroHint", "這段會在讀者進入內容前看到，適合放導讀或閱讀提醒。")}</p>
                                 <Textarea
                                     id="metadata-opening-intro"
                                     name="metadataOpeningIntro"
@@ -701,7 +688,6 @@ export function MetadataBasicTab({
                                         新增章節
                                     </Button>
                                 </div>
-                                <p className="text-xs text-muted-foreground">{t("metadataBasic.chapterSettingsHint", "每章可填環境與角色當下狀況，幫助快速進入情境。")}</p>
                                 <div className="space-y-3">
                                     {chapterEntries.map((entry, idx) => (
                                         <div key={entry.id} className="rounded-lg border border-border/70 bg-background p-3">

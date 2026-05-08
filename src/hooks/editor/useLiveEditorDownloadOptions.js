@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { FileCode2, FileSpreadsheet, FileText } from "lucide-react";
+import { FileSpreadsheet, FileText, Printer } from "lucide-react";
 import { loadBasicScriptExport, loadXlsxScriptExport } from "../../lib/scriptExportLoader";
 
 export function useLiveEditorDownloadOptions({
@@ -27,12 +27,12 @@ export function useLiveEditorDownloadOptions({
   return useMemo(
     () => [
       {
-        id: "fountain",
-        label: t("publicReader.downloadFountain"),
-        icon: FileCode2,
+        id: "pdf",
+        label: t("publicReader.exportPdf"),
+        icon: Printer,
         onClick: async () => {
-          const { exportScriptAsFountain } = await loadBasicScriptExport();
-          exportScriptAsFountain(title, content);
+          const { exportScriptAsPdf } = await loadBasicScriptExport();
+          await runRenderedExport((payload) => exportScriptAsPdf(title, payload));
         },
       },
       {
@@ -51,15 +51,6 @@ export function useLiveEditorDownloadOptions({
         onClick: async () => {
           const { exportScriptAsXlsx } = await loadXlsxScriptExport();
           await runRenderedExport((payload) => exportScriptAsXlsx(title, payload));
-        },
-      },
-      {
-        id: "csv",
-        label: t("publicReader.downloadCsv"),
-        icon: FileSpreadsheet,
-        onClick: async () => {
-          const { exportScriptAsCsv } = await loadBasicScriptExport();
-          await runRenderedExport((payload) => exportScriptAsCsv(title, payload));
         },
       },
     ],

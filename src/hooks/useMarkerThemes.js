@@ -1,16 +1,21 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { defaultMarkerConfigs } from "../constants/defaultMarkerRules";
 import { apiCall as serviceApiCall } from "../services/settingsApi.js";
 import { normalizeMarkerConfigsSchema } from "../lib/markerThemeCodec.js";
 import { isDefaultLikeTheme } from "../lib/themeNameUtils";
 import { fetchPublic } from "../lib/api/client.js";
 
+// Computed once at module load — defaultMarkerConfigs is a static constant.
+const NORMALIZED_DEFAULT_CONFIGS = normalizeMarkerConfigsSchema(defaultMarkerConfigs);
+const DEFAULT_THEME_ID = 'default';
+
 export function useMarkerThemes(currentUser, isAdmin = false) {
-    const DEFAULT_THEME_ID = 'default';
-    const localDefaultConfigs = normalizeMarkerConfigsSchema(defaultMarkerConfigs);
-    const [systemDefaultConfigs, setSystemDefaultConfigs] = useState(localDefaultConfigs);
-    const defaultTheme = { id: DEFAULT_THEME_ID, name: '預設主題 (Default)', configs: systemDefaultConfigs };
-    const withDefaultTheme = (themes = []) => {
+    const [systemDefaultConfigs, setSystemDefaultConfigs] = useState(NORMALIZED_DEFAULT_CONFIGS);
+    const defaultTheme = useMemo(
+        () => ({ id: DEFAULT_THEME_ID, name: '預設主題 (Default)', configs: systemDefaultConfigs }),
+        [systemDefaultConfigs]
+    );
+    const withDefaultTheme = useCallback((themes = []) => {
         const normalizedThemes = Array.isArray(themes) ? themes : [];
         const withoutDefault = normalizedThemes.filter(
             (t) => t?.id !== DEFAULT_THEME_ID && !isDefaultLikeTheme(t, { includeDefaultId: false })
@@ -23,28 +28,28 @@ export function useMarkerThemes(currentUser, isAdmin = false) {
             dedupById.push(theme);
         }
         return [defaultTheme, ...dedupById];
-    };
-    const normalizeThemeList = (themes) => withDefaultTheme(
+    }, [defaultTheme]);
+    const normalizeThemeList = useCallback((themes) => withDefaultTheme(
         (Array.isArray(themes) ? themes : []).map((theme) => ({
             ...theme,
             id: String(theme?.id || ""),
             configs: normalizeMarkerConfigsSchema(theme?.configs),
         }))
-    );
-    const [markerThemes, setMarkerThemesState] = useState([defaultTheme]);
+    ), [withDefaultTheme]);
+    const [markerThemes, setMarkerThemesState] = useState([
+        { id: DEFAULT_THEME_ID, name: '預設主題 (Default)', configs: NORMALIZED_DEFAULT_CONFIGS },
+    ]);
     const [currentThemeId, setCurrentThemeIdState] = useState(DEFAULT_THEME_ID);
 
     // API Helper
     const apiCall = (url, method, body) => serviceApiCall(currentUser, url, method, body);
 
     // Derived State: Active Markers
+    // Themes already store normalized configs (set via normalizeThemeList), no re-normalization needed.
     const markerConfigs = useMemo(() => {
-        if (currentThemeId === DEFAULT_THEME_ID) {
-            return normalizeMarkerConfigsSchema(systemDefaultConfigs);
-        }
+        if (currentThemeId === DEFAULT_THEME_ID) return systemDefaultConfigs;
         const activeTheme = markerThemes.find(t => t.id === currentThemeId);
-        if (!activeTheme) return normalizeMarkerConfigsSchema(systemDefaultConfigs);
-        return normalizeMarkerConfigsSchema(activeTheme?.configs);
+        return activeTheme?.configs ?? systemDefaultConfigs;
     }, [markerThemes, currentThemeId, systemDefaultConfigs]);
 
     useEffect(() => {
@@ -56,30 +61,30 @@ export function useMarkerThemes(currentUser, isAdmin = false) {
                 if (normalized.length > 0) {
                     setSystemDefaultConfigs(normalized);
                 } else {
-                    setSystemDefaultConfigs(localDefaultConfigs);
+                    setSystemDefaultConfigs(NORMALIZED_DEFAULT_CONFIGS);
                 }
             })
             .catch(() => {
-                if (active) setSystemDefaultConfigs(localDefaultConfigs);
+                if (active) setSystemDefaultConfigs(NORMALIZED_DEFAULT_CONFIGS);
             });
         return () => { active = false; };
     }, []);
 
     // Actions
-    const setMarkerThemes = (val) => {
+    const setMarkerThemes = useCallback((val) => {
         const merged = normalizeThemeList(val);
         setMarkerThemesState(merged);
         setCurrentThemeIdState((prev) => (merged.some((t) => t.id === prev) ? prev : DEFAULT_THEME_ID));
-    };
+    }, [normalizeThemeList]);
 
-    const setCurrentThemeId = (id) => {
+    const setCurrentThemeId = useCallback((id) => {
         const nextId = String(id || DEFAULT_THEME_ID);
         setCurrentThemeIdState((prev) =>
             markerThemes.some((theme) => String(theme?.id || "") === nextId)
                 ? nextId
                 : DEFAULT_THEME_ID
         );
-    };
+    }, [markerThemes]);
 
     useEffect(() => {
         if (!markerThemes.length) {

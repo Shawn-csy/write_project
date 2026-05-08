@@ -1,4 +1,8 @@
-from sqlalchemy import Column, Integer, String, Text, Float, Boolean, ForeignKey, JSON, UniqueConstraint
+# NOTE: Use BigInteger (not Integer) for all millisecond timestamp columns.
+# SQLite Integer is dynamically sized and handles large values silently,
+# but PostgreSQL Integer is 32-bit (max ~2.1B) and will raise "integer out of range"
+# for Unix millisecond timestamps (~1.7T as of 2026).
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Float, Boolean, ForeignKey, JSON, UniqueConstraint
 from sqlalchemy.orm import relationship
 from database import Base
 import time
@@ -11,8 +15,8 @@ class Script(Base):
     title = Column(String)
     content = Column(String, default="")
     customMetadata = Column(JSON, default=list)
-    createdAt = Column(Integer, default=lambda: int(time.time() * 1000))
-    lastModified = Column(Integer, default=lambda: int(time.time() * 1000))
+    createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
+    lastModified = Column(BigInteger, default=lambda: int(time.time() * 1000))
     author = Column(String, default="")
     draftDate = Column(String, default="")
     isPublic = Column(Integer, default=0, index=True) # 0 or 1
@@ -39,8 +43,8 @@ class User(Base):
     avatar = Column(String)
     bio = Column(Text)
     settings = Column(String, default="{}") # JSON string
-    createdAt = Column(Integer, default=lambda: int(time.time() * 1000))
-    lastLogin = Column(Integer, default=lambda: int(time.time() * 1000))
+    createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
+    lastLogin = Column(BigInteger, default=lambda: int(time.time() * 1000))
 
 class Tag(Base):
     __tablename__ = "tags"
@@ -67,8 +71,8 @@ class MarkerTheme(Base):
     configs = Column(String, default="[]") # JSON string of configs
     isPublic = Column(Boolean, default=False, index=True)
     description = Column(Text, default="")
-    createdAt = Column(Integer, default=lambda: int(time.time() * 1000))
-    updatedAt = Column(Integer, default=lambda: int(time.time() * 1000))
+    createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
+    updatedAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
 
     # Relationships
     # Relationships
@@ -85,8 +89,8 @@ class Organization(Base):
     bannerUrl = Column(String, default="")
     tags = Column(JSON, default=list)
     ownerId = Column(String, ForeignKey("users.id"))
-    createdAt = Column(Integer, default=lambda: int(time.time() * 1000))
-    updatedAt = Column(Integer, default=lambda: int(time.time() * 1000))
+    createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
+    updatedAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
 
     # Relationships
     owner = relationship("User", foreign_keys=[ownerId], backref="owned_organizations")
@@ -100,7 +104,7 @@ class OrganizationInvite(Base):
     invitedUserId = Column(String, ForeignKey("users.id"), index=True)
     inviterUserId = Column(String, ForeignKey("users.id"), index=True)
     status = Column(String, default="pending")  # pending, accepted, declined, revoked
-    createdAt = Column(Integer, default=lambda: int(time.time() * 1000))
+    createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
 
 
 class OrganizationMembership(Base):
@@ -113,8 +117,8 @@ class OrganizationMembership(Base):
     orgId = Column(String, ForeignKey("organizations.id"), index=True, nullable=False)
     userId = Column(String, ForeignKey("users.id"), index=True, nullable=False)
     role = Column(String, default="member")
-    createdAt = Column(Integer, default=lambda: int(time.time() * 1000))
-    updatedAt = Column(Integer, default=lambda: int(time.time() * 1000))
+    createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
+    updatedAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
 
 
 class PersonaOrganizationMembership(Base):
@@ -127,8 +131,8 @@ class PersonaOrganizationMembership(Base):
     orgId = Column(String, ForeignKey("organizations.id"), index=True, nullable=False)
     personaId = Column(String, ForeignKey("personas.id"), index=True, nullable=False)
     role = Column(String, default="member")
-    createdAt = Column(Integer, default=lambda: int(time.time() * 1000))
-    updatedAt = Column(Integer, default=lambda: int(time.time() * 1000))
+    createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
+    updatedAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
 
 class OrganizationRequest(Base):
     __tablename__ = "organization_requests"
@@ -137,14 +141,14 @@ class OrganizationRequest(Base):
     orgId = Column(String, ForeignKey("organizations.id"), index=True)
     requesterUserId = Column(String, ForeignKey("users.id"), index=True)
     status = Column(String, default="pending")  # pending, accepted, declined, cancelled
-    createdAt = Column(Integer, default=lambda: int(time.time() * 1000))
+    createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
 
 class ScriptLike(Base):
     __tablename__ = "script_likes"
 
     userId = Column(String, ForeignKey("users.id"), primary_key=True)
     scriptId = Column(String, ForeignKey("scripts.id"), primary_key=True)
-    createdAt = Column(Integer, default=lambda: int(time.time() * 1000))
+    createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
 
 class Series(Base):
     __tablename__ = "series"
@@ -155,8 +159,8 @@ class Series(Base):
     slug = Column(String, index=True, nullable=False)
     summary = Column(Text, default="")
     coverUrl = Column(String, default="")
-    createdAt = Column(Integer, default=lambda: int(time.time() * 1000))
-    updatedAt = Column(Integer, default=lambda: int(time.time() * 1000))
+    createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
+    updatedAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
 
     owner = relationship("User", foreign_keys=[ownerId], backref="series")
 
@@ -191,8 +195,8 @@ class Persona(Base):
     defaultLicenseDerivative = Column(String, default="")
     defaultLicenseNotify = Column(String, default="")
     defaultLicenseSpecialTerms = Column(JSON, default=list)
-    createdAt = Column(Integer, default=lambda: int(time.time() * 1000))
-    updatedAt = Column(Integer, default=lambda: int(time.time() * 1000))
+    createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
+    updatedAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
     
     owner = relationship("User", back_populates="personas")
 
@@ -213,7 +217,7 @@ class PublicTermsAcceptance(Base):
     scriptId = Column(String, ForeignKey("scripts.id"), nullable=True, index=True)
     userId = Column(String, ForeignKey("users.id"), nullable=True, index=True)
     visitorId = Column(String, nullable=True, index=True)
-    acceptedAt = Column(Integer, default=lambda: int(time.time() * 1000), index=True)
+    acceptedAt = Column(BigInteger, default=lambda: int(time.time() * 1000), index=True)
     ipAddress = Column(String, default="")
     forwardedFor = Column(String, default="")
     userAgent = Column(Text, default="")
@@ -232,7 +236,7 @@ class AdminUser(Base):
     userId = Column(String, ForeignKey("users.id"), nullable=True, index=True)
     email = Column(String, nullable=True, index=True)
     createdBy = Column(String, ForeignKey("users.id"), nullable=True)
-    createdAt = Column(Integer, default=lambda: int(time.time() * 1000), index=True)
+    createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000), index=True)
 
 
 class SiteSetting(Base):
@@ -241,4 +245,4 @@ class SiteSetting(Base):
     key = Column(String, primary_key=True, index=True)
     value = Column(Text, default="")
     updatedBy = Column(String, ForeignKey("users.id"), nullable=True)
-    updatedAt = Column(Integer, default=lambda: int(time.time() * 1000), index=True)
+    updatedAt = Column(BigInteger, default=lambda: int(time.time() * 1000), index=True)

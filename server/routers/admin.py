@@ -2,6 +2,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from typing import Any, List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from sqlalchemy import orm
 import time
 import uuid
 import json
@@ -10,54 +11,10 @@ import models
 import schemas
 from dependencies import get_db, get_current_user_id, is_admin_user, _admin_user_emails
 from rate_limit import limiter
+from utils import normalize_homepage_banner_value, safe_json_list
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 HOMEPAGE_BANNER_SETTING_KEY = "homepage_banner"
-
-
-def _normalize_homepage_banner_value(raw_value: str) -> dict:
-    try:
-        parsed = json.loads(str(raw_value or ""))
-    except Exception:
-        parsed = {}
-    if not isinstance(parsed, dict):
-        parsed = {}
-
-    raw_items = parsed.get("items")
-    items = []
-    if isinstance(raw_items, list):
-        for idx, item in enumerate(raw_items):
-            if not isinstance(item, dict):
-                continue
-            normalized = {
-                "id": str(item.get("id") or f"slide-{idx + 1}").strip() or f"slide-{idx + 1}",
-                "title": str(item.get("title") or "").strip(),
-                "content": str(item.get("content") or "").strip(),
-                "link": str(item.get("link") or "").strip(),
-                "imageUrl": str(item.get("imageUrl") or "").strip(),
-            }
-            if normalized["title"] or normalized["content"] or normalized["link"] or normalized["imageUrl"]:
-                items.append(normalized)
-
-    if not items:
-        fallback = {
-            "id": "slide-1",
-            "title": str(parsed.get("title") or "").strip(),
-            "content": str(parsed.get("content") or "").strip(),
-            "link": str(parsed.get("link") or "").strip(),
-            "imageUrl": str(parsed.get("imageUrl") or "").strip(),
-        }
-        if fallback["title"] or fallback["content"] or fallback["link"] or fallback["imageUrl"]:
-            items = [fallback]
-
-    first = items[0] if items else {"title": "", "content": "", "link": "", "imageUrl": ""}
-    return {
-        "title": str(first.get("title") or ""),
-        "content": str(first.get("content") or ""),
-        "link": str(first.get("link") or ""),
-        "imageUrl": str(first.get("imageUrl") or ""),
-        "items": items,
-    }
 
 
 def _delete_scripts_owned_by(db: Session, owner_id: str):
@@ -86,14 +43,21 @@ def _delete_organizations_owned_by(db: Session, owner_id: str):
             {models.Script.organizationId: None},
             synchronize_session=False,
         )
+        affected_persona_ids = [
+            row.personaId
+            for row in db.query(models.PersonaOrganizationMembership.personaId).filter(
+                models.PersonaOrganizationMembership.orgId == org_id
+            ).all()
+        ]
         db.query(models.PersonaOrganizationMembership).filter(
             models.PersonaOrganizationMembership.orgId == org_id
         ).delete(synchronize_session=False)
-        personas = db.query(models.Persona).all()
-        for persona in personas:
-            org_ids = crud._ensure_list(persona.organizationIds)
-            if org_id in org_ids:
-                persona.organizationIds = [oid for oid in org_ids if oid != org_id]
+        if affected_persona_ids:
+            personas = db.query(models.Persona).filter(models.Persona.id.in_(affected_persona_ids)).all()
+            for persona in personas:
+                org_ids = crud._ensure_list(persona.organizationIds)
+                if org_id in org_ids:
+                    persona.organizationIds = [oid for oid in org_ids if oid != org_id]
         users = db.query(models.User).filter(models.User.organizationId == org_id).all()
         for user in users:
             user.organizationId = crud.get_primary_user_org_id(db, user.id, include_legacy=False)
@@ -184,11 +148,11 @@ def list_public_terms_acceptances(
     if normalized_q:
         like_q = f"%{normalized_q}%"
         query = query.filter(
-            (models.PublicTermsAcceptance.scriptId.like(like_q))
-            | (models.PublicTermsAcceptance.userId.like(like_q))
-            | (models.PublicTermsAcceptance.visitorId.like(like_q))
-            | (models.PublicTermsAcceptance.ipAddress.like(like_q))
-            | (models.PublicTermsAcceptance.userAgent.like(like_q))
+            (models.PublicTermsAcceptance.scriptId.ilike(like_q))
+            | (models.PublicTermsAcceptance.userId.ilike(like_q))
+            | (models.PublicTermsAcceptance.visitorId.ilike(like_q))
+            | (models.PublicTermsAcceptance.ipAddress.ilike(like_q))
+            | (models.PublicTermsAcceptance.userAgent.ilike(like_q))
         )
 
     total = query.count()
@@ -308,7 +272,7 @@ def get_homepage_banner(
     row = db.query(models.SiteSetting).filter(models.SiteSetting.key == HOMEPAGE_BANNER_SETTING_KEY).first()
     if not row or not str(getattr(row, "value", "") or "").strip():
         return schemas.HomepageBannerSetting(items=[])
-    return schemas.HomepageBannerSetting(**_normalize_homepage_banner_value(row.value))
+    return schemas.HomepageBannerSetting(**normalize_homepage_banner_value(row.value))
 
 
 @router.put("/homepage-banner", response_model=schemas.HomepageBannerSetting)
@@ -486,11 +450,7 @@ def list_all_organizations(
         )
     rows = query.order_by(models.Organization.updatedAt.desc()).offset(safe_offset).limit(safe_limit).all()
     for org in rows:
-        if isinstance(org.tags, str):
-            try:
-                org.tags = json.loads(org.tags)
-            except Exception:
-                org.tags = []
+        org.tags = safe_json_list(org.tags)
     return rows
 
 
@@ -536,7 +496,12 @@ def list_all_scripts(
         raise HTTPException(status_code=403, detail="Not authorized")
     safe_limit = max(1, min(limit, 1000))
     safe_offset = max(offset, 0)
-    query = db.query(models.Script)
+    query = db.query(models.Script).options(
+        orm.joinedload(models.Script.tags),
+        orm.joinedload(models.Script.persona),
+        orm.joinedload(models.Script.organization),
+        orm.joinedload(models.Script.series),
+    )
     normalized_q = (q or "").strip().lower()
     if normalized_q:
         like_q = f"%{normalized_q}%"

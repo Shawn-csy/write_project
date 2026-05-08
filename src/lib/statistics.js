@@ -1,6 +1,2 @@
-/**
- * 統計模組入口
- * 
- * 此檔案現在作為 re-export，實際邏輯在 statistics/index.js
- */
+/* v8 ignore next -- pure re-export barrel; logic covered by statistics/index.js tests */
 export { calculateScriptStats } from './statistics/index.js';

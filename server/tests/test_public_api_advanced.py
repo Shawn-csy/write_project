@@ -49,8 +49,15 @@ def setup_data(db_session):
         lastModified=now,
     )
 
-    db_session.add_all([org, user1, user2, persona, persona_broken, 
-                script_root_private, script_folder_public, script_in_pub_folder, 
+    # PersonaOrganizationMembership is the source of truth for persona-org relations.
+    persona_org_membership = PersonaOrganizationMembership(
+        id="pom-public-1", orgId="org-public-1", personaId="persona-public-1",
+        role="member", createdAt=now, updatedAt=now,
+    )
+
+    db_session.add_all([org, user1, user2, persona, persona_broken,
+                persona_org_membership,
+                script_root_private, script_folder_public, script_in_pub_folder,
                 script_folder_private, script_in_priv_folder, script_in_priv_explicit_false, script_org_public])
     db_session.commit()
 
@@ -192,7 +199,7 @@ def test_public_org_members_only_include_personas_with_public_scripts(client, db
         id="persona-hidden-member",
         ownerId="user-has-persona",
         displayName="Hidden Member",
-        organizationIds='["org-public-1"]',
+        organizationIds=["org-public-1"],
         createdAt=now,
         updatedAt=now,
     )
@@ -200,11 +207,15 @@ def test_public_org_members_only_include_personas_with_public_scripts(client, db
         id="persona-visible-member",
         ownerId="user-has-persona",
         displayName="Visible Member",
-        organizationIds='["org-public-1"]',
+        organizationIds=["org-public-1"],
         createdAt=now,
         updatedAt=now,
     )
     db_session.add_all([p_hidden, p_visible])
+    db_session.add_all([
+        PersonaOrganizationMembership(id="pom-hidden", orgId="org-public-1", personaId="persona-hidden-member", role="member", createdAt=now, updatedAt=now),
+        PersonaOrganizationMembership(id="pom-visible", orgId="org-public-1", personaId="persona-visible-member", role="member", createdAt=now, updatedAt=now),
+    ])
     db_session.add(
         Script(
             id="pub-org-member-visible-script",

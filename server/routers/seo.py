@@ -12,6 +12,27 @@ router = APIRouter()
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # /app in container
 
+def _get_script_description(script) -> str:
+    """Extract synopsis/outline from customMetadata; fall back to a content excerpt as last resort."""
+    SYNOPSIS_KEYS = {"synopsis", "summary", "摘要", "outline", "大綱"}
+    if script.customMetadata and isinstance(script.customMetadata, list):
+        meta_map = {
+            str(entry.get("key") or "").strip().lower().replace(" ", ""): str(entry.get("value") or "").strip()
+            for entry in script.customMetadata
+            if isinstance(entry, dict)
+        }
+        for key in SYNOPSIS_KEYS:
+            value = meta_map.get(key, "")
+            if value:
+                return value[:300]
+    # Last resort: first non-empty line of content (not the full body)
+    if script.content:
+        for line in script.content.splitlines():
+            line = line.strip()
+            if line:
+                return line[:200] + ("..." if len(line) > 200 else "")
+    return ""
+
 def _resolve_dist_dir() -> str:
     # Prefer /app/dist (docker compose mount), fallback to ../dist (local repo root)
     candidates = [
@@ -47,7 +68,9 @@ def read_script_seo(script_id: str, request: Request, db: Session = Depends(get_
         is_googlebot = "googlebot" in user_agent
         safe_content = html.escape(script.content) if script and script.content else ""
         safe_title = html.escape(script.title or "") if script else ""
-        
+        desc_text = _get_script_description(script) if script else ""
+        safe_desc = html.escape(desc_text) if desc_text else "線上閱讀、瀏覽與分享 Fountain 劇本的閱讀器。"
+
         ssr_html = f"""
         <!DOCTYPE html>
         <html lang="zh-TW">
@@ -55,9 +78,9 @@ def read_script_seo(script_id: str, request: Request, db: Session = Depends(get_
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>{safe_title}｜Screenplay Reader</title>
-            <meta name="description" content="{html.escape(safe_content[:200] + '...') if safe_content else '線上閱讀、瀏覽與分享 Fountain 劇本的閱讀器。'}">
+            <meta name="description" content="{safe_desc}">
             <meta property="og:title" content="{safe_title}">
-            <meta property="og:description" content="{html.escape(safe_content[:200] + '...') if safe_content else '線上閱讀、瀏覽與分享 Fountain 劇本的閱讀器。'}">
+            <meta property="og:description" content="{safe_desc}">
         </head>
         <body>
             <div id="root">
@@ -111,7 +134,7 @@ def read_script_seo(script_id: str, request: Request, db: Session = Depends(get_
         # 3. Inject Tags & Content
         if script and script.isPublic:
             title = f"{safe_title}｜Screenplay Reader"
-            desc_raw = (script.content[:200] + "...") if script.content else "線上閱讀、瀏覽與分享 Fountain 劇本的閱讀器。"
+            desc_raw = _get_script_description(script) or "線上閱讀、瀏覽與分享 Fountain 劇本的閱讀器。"
             desc = html.escape(desc_raw).replace("\n", " ")
             
             # Helper to replace meta content

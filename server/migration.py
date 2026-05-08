@@ -4,7 +4,86 @@ import uuid
 from sqlalchemy import text
 from database import engine
 
+def _run_postgres_migrations():
+    """Migrate PostgreSQL schema changes (ALTER COLUMN type changes, etc.)."""
+    timestamp_columns = [
+        ("scripts", "createdAt"),
+        ("scripts", "lastModified"),
+        ("users", "createdAt"),
+        ("users", "lastLogin"),
+        ("marker_themes", "createdAt"),
+        ("marker_themes", "updatedAt"),
+        ("organizations", "createdAt"),
+        ("organizations", "updatedAt"),
+        ("organization_invites", "createdAt"),
+        ("organization_memberships", "createdAt"),
+        ("organization_memberships", "updatedAt"),
+        ("persona_organization_memberships", "createdAt"),
+        ("persona_organization_memberships", "updatedAt"),
+        ("organization_requests", "createdAt"),
+        ("script_likes", "createdAt"),
+        ("series", "createdAt"),
+        ("series", "updatedAt"),
+        ("personas", "createdAt"),
+        ("personas", "updatedAt"),
+        ("public_terms_acceptances", "acceptedAt"),
+        ("admin_users", "createdAt"),
+        ("site_settings", "updatedAt"),
+    ]
+    with engine.connect() as conn:
+        for table, col in timestamp_columns:
+            result = conn.execute(text(
+                "SELECT data_type FROM information_schema.columns "
+                "WHERE table_name = :t AND column_name = :c"
+            ), {"t": table, "c": col}).fetchone()
+            if result and result[0].lower() == "integer":
+                print(f"Migrating: ALTER {table}.{col} INTEGER -> BIGINT")
+                conn.execute(text(
+                    f'ALTER TABLE "{table}" ALTER COLUMN "{col}" TYPE BIGINT'
+                ))
+
+        # Backfill persona_organization_memberships from personas.organizationIds JSON.
+        # Required after making PersonaOrganizationMembership the single source of truth.
+        # Safe to re-run: INSERT ... ON CONFLICT DO NOTHING.
+        now_ms = int(time.time() * 1000)
+        persona_rows = conn.execute(text(
+            'SELECT id, "organizationIds" FROM personas WHERE "organizationIds" IS NOT NULL'
+        )).fetchall()
+        inserted = 0
+        for row in persona_rows:
+            raw = row[1]
+            try:
+                org_ids = json.loads(raw) if isinstance(raw, str) else (raw or [])
+            except Exception:
+                org_ids = []
+            if not isinstance(org_ids, list):
+                org_ids = []
+            for org_id in org_ids:
+                if not org_id:
+                    continue
+                conn.execute(text("""
+                    INSERT INTO persona_organization_memberships
+                        (id, "orgId", "personaId", role, "createdAt", "updatedAt")
+                    VALUES (:id, :orgId, :personaId, 'member', :createdAt, :updatedAt)
+                    ON CONFLICT ("orgId", "personaId") DO NOTHING
+                """), {
+                    "id": str(uuid.uuid4()),
+                    "orgId": org_id,
+                    "personaId": row[0],
+                    "createdAt": now_ms,
+                    "updatedAt": now_ms,
+                })
+                inserted += 1
+        if inserted:
+            print(f"Migrating: backfilled {inserted} persona_organization_membership rows from organizationIds JSON")
+
+        conn.commit()
+
+
 def run_migrations():
+    if engine.dialect.name == "postgresql":
+        _run_postgres_migrations()
+        return
     if engine.dialect.name != "sqlite":
         print(f"Skipping legacy sqlite migrations for dialect: {engine.dialect.name}")
         return
