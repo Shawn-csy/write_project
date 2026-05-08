@@ -1,7 +1,6 @@
 import React from "react";
 import {
   DEFAULT_LANG,
-  getDefaultMessages,
   getMessagesForLang,
   isSupportedLang,
   normalizeLang,
@@ -27,12 +26,12 @@ function createTranslator(activeMessages, fallbackMessages) {
   };
 }
 
-const defaultMessages = getDefaultMessages();
+const emptyMessages = {};
 
 const defaultContextValue = {
   lang: DEFAULT_LANG,
   setLang: () => {},
-  t: createTranslator(defaultMessages, defaultMessages),
+  t: (key, fallback = "") => fallback || key,
 };
 
 const I18nContext = React.createContext(defaultContextValue);
@@ -46,17 +45,21 @@ export function I18nProvider({ children }) {
     return DEFAULT_LANG;
   });
 
-  const [activeMessages, setActiveMessages] = React.useState(defaultMessages);
+  const [activeMessages, setActiveMessages] = React.useState(emptyMessages);
+  const [ready, setReady] = React.useState(false);
 
   React.useEffect(() => {
     let cancelled = false;
 
     getMessagesForLang(lang)
       .then((loadedMessages) => {
-        if (!cancelled) setActiveMessages(loadedMessages || defaultMessages);
+        if (!cancelled) {
+          setActiveMessages(loadedMessages || emptyMessages);
+          setReady(true);
+        }
       })
       .catch(() => {
-        if (!cancelled) setActiveMessages(defaultMessages);
+        if (!cancelled) setReady(true);
       });
 
     return () => {
@@ -77,10 +80,12 @@ export function I18nProvider({ children }) {
     () => ({
       lang,
       setLang,
-      t: createTranslator(activeMessages, defaultMessages),
+      t: createTranslator(activeMessages, emptyMessages),
     }),
     [lang, setLang, activeMessages]
   );
+
+  if (!ready) return null;
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }

@@ -1,15 +1,13 @@
-import zhTW from "./locales/zh-TW";
-
 export const DEFAULT_LANG = "zh-TW";
 export const SUPPORTED_LANGS = ["zh-TW", "en", "ja"];
 
 const localeLoaders = {
-  "zh-TW": async () => ({ default: zhTW }),
+  "zh-TW": () => import("./locales/zh-TW.js"),
   en: () => import("./locales/en.js"),
   ja: () => import("./locales/ja.js"),
 };
 
-const localeCache = new Map([[DEFAULT_LANG, zhTW]]);
+const localeCache = new Map();
 
 export function isSupportedLang(lang) {
   return SUPPORTED_LANGS.includes(lang);
@@ -20,7 +18,7 @@ export function normalizeLang(lang) {
 }
 
 export function getDefaultMessages() {
-  return zhTW;
+  return {};
 }
 
 export async function getMessagesForLang(lang) {

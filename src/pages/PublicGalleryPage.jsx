@@ -192,19 +192,6 @@ export default function PublicGalleryPage() {
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [homepageBanner, setHomepageBanner] = useState(null);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return undefined;
-    if ("requestIdleCallback" in window) {
-      const idleId = window.requestIdleCallback(() => {
-        preloadStudioEntry();
-      });
-      return () => window.cancelIdleCallback(idleId);
-    }
-    const timeoutId = window.setTimeout(() => {
-      preloadStudioEntry();
-    }, 600);
-    return () => window.clearTimeout(timeoutId);
-  }, []);
 
   useEffect(() => {
     const loadHomepageBanner = async () => {

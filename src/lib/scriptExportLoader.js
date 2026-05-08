@@ -1,16 +1,10 @@
-let basicModulePromise = null;
-let xlsxModulePromise = null;
+// Export functions are now handled by the server-side API.
+// These loaders return the API-based implementations to maintain call-site compatibility.
+import { exportScriptAsDocx, exportScriptAsXlsx } from "./api/export";
+import { exportScriptAsFountain, exportScriptAsCsv, exportScriptAsPdf } from "./scriptExportBasic";
 
-export const loadBasicScriptExport = () => {
-  if (!basicModulePromise) {
-    basicModulePromise = import("./scriptExportBasic");
-  }
-  return basicModulePromise;
-};
+export const loadBasicScriptExport = () =>
+  Promise.resolve({ exportScriptAsFountain, exportScriptAsCsv, exportScriptAsPdf, exportScriptAsDocx });
 
-export const loadXlsxScriptExport = () => {
-  if (!xlsxModulePromise) {
-    xlsxModulePromise = import("./scriptExportXlsx");
-  }
-  return xlsxModulePromise;
-};
+export const loadXlsxScriptExport = () =>
+  Promise.resolve({ exportScriptAsXlsx });
