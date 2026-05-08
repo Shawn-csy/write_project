@@ -13,14 +13,20 @@ TARGET_DATABASE_URL="${TARGET_DATABASE_URL:-${DATABASE_URL:-}}"
 MIGRATION_BATCH_SIZE="${MIGRATION_BATCH_SIZE:-500}"
 MIGRATION_TRUNCATE="${MIGRATION_TRUNCATE:-0}"
 POSTGRES_DATA_DIR="${POSTGRES_DATA_DIR:-server/data/postgres}"
+FORCE_DEPLOY="${FORCE_DEPLOY:-0}"
+DEPLOY_HASH_FILE="${ROOT_DIR}/.deploy-hash"
 
 # Optional CLI overrides:
 #   bash scripts/deploy.sh ci=1
 #   bash scripts/deploy.sh env=.env.prod compose=docker-compose.yml
 #   bash scripts/deploy.sh migrate_pg=1 target_db='postgresql+psycopg://...'
 #   bash scripts/deploy.sh migrate_pg=1 pg_data_dir=server/data/postgres
+#   bash scripts/deploy.sh force=1   (skip change detection, always redeploy)
 for arg in "$@"; do
   case "$arg" in
+    force=0|force=1)
+      FORCE_DEPLOY="${arg#force=}"
+      ;;
     ci=0|ci=1)
       RUN_CI="${arg#ci=}"
       ;;
@@ -124,6 +130,18 @@ start_postgres_for_migration() {
   exit 1
 }
 
+CURRENT_HASH="$(git -C "$ROOT_DIR" rev-parse HEAD 2>/dev/null || echo "unknown")"
+LAST_HASH="$(cat "$DEPLOY_HASH_FILE" 2>/dev/null || echo "")"
+
+if [ "$FORCE_DEPLOY" != "1" ] && [ "$CURRENT_HASH" != "unknown" ] && [ "$CURRENT_HASH" = "$LAST_HASH" ]; then
+  echo "[deploy] no changes since last deploy (${CURRENT_HASH:0:8}) — skipping."
+  echo "[deploy] run with force=1 to deploy anyway."
+  exit 0
+fi
+
+LAST_HASH_DISPLAY="${LAST_HASH:0:8}"
+echo "[deploy] deploying commit ${CURRENT_HASH:0:8} (was: ${LAST_HASH_DISPLAY:-first deploy})"
+
 if [ "$RUN_CI" = "1" ]; then
   echo "[deploy] running CI precheck first..."
   AUTO_DEPLOY=0 bash "$ROOT_DIR/scripts/ci.sh"
@@ -213,5 +231,10 @@ fi
 
 echo "[deploy] service status:"
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
+
+if [ "$CURRENT_HASH" != "unknown" ]; then
+  echo "$CURRENT_HASH" > "$DEPLOY_HASH_FILE"
+  echo "[deploy] saved deploy hash: ${CURRENT_HASH:0:8}"
+fi
 
 echo "[deploy] done"
