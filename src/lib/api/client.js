@@ -90,7 +90,22 @@ export async function fetchApi(endpoint, options = {}, retries = 3, backoff = 50
         privateCache.set(cacheKey, { value: data, expiresAt: Date.now() + cacheTtl });
         privateInflight.delete(cacheKey);
       } else {
-        privateCache.clear();
+        // Invalidate only cache entries for the same resource type,
+        // not the entire cache (e.g. saving settings shouldn't bust the script list cache).
+        try {
+          const parsed = new URL(url, "http://localhost");
+          const segments = parsed.pathname.split("/").filter(Boolean);
+          const resourceSegment = segments[1] || segments[0] || "";
+          if (resourceSegment) {
+            for (const key of privateCache.keys()) {
+              if (key.includes(`/${resourceSegment}`)) privateCache.delete(key);
+            }
+          } else {
+            privateCache.clear();
+          }
+        } catch {
+          privateCache.clear();
+        }
         privateInflight.clear();
       }
       return data;
