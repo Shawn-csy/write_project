@@ -14,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Download, Copy, FileText, Sheet } from "lucide-react";
 import { downloadBlob, buildFilename } from "@/lib/download";
+import { exportReportAsXlsx, exportReportAsDocx } from "@/lib/api/export";
 import { useI18n } from "@/contexts/I18nContext";
 
 export function ReportGeneratorDialog({ open, onOpenChange, markerEntries }) {
@@ -94,82 +95,25 @@ export function ReportGeneratorDialog({ open, onOpenChange, markerEntries }) {
   };
 
   const handleDownloadXLSX = async () => {
-      const XLSX = await import("xlsx");
-      const sheetData = [
-          [t("reportGenerator.columnCategory"), t("reportGenerator.columnContent"), t("reportGenerator.columnLine")],
-          ...reportData.map((row) => [row.category, row.content, row.line]),
+      const columns = [
+          t("reportGenerator.columnCategory"),
+          t("reportGenerator.columnContent"),
+          t("reportGenerator.columnLine"),
       ];
-      const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
-      worksheet["!cols"] = [{ wch: 18 }, { wch: 70 }, { wch: 10 }];
-
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, t("reportGenerator.sheetName"));
-      const xlsxArray = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-
-      const blob = new Blob([xlsxArray], {
-          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      downloadBlob(blob, buildFilename("script_report", "xlsx"));
+      await exportReportAsXlsx("script_report", { columns, rows: reportData });
   };
 
   const handleDownloadDOCX = async () => {
-      const {
-          Document,
-          Packer,
-          Paragraph,
-          Table: DocxTable,
-          TableRow,
-          TableCell,
-          TextRun,
-          WidthType,
-          HeadingLevel,
-      } = await import("docx");
-
-      const tableRows = [
-          new TableRow({
-              children: [t("reportGenerator.columnCategory"), t("reportGenerator.columnContent"), t("reportGenerator.columnLine")].map((text) =>
-                  new TableCell({
-                      children: [new Paragraph({ children: [new TextRun({ text, bold: true })] })],
-                  })
-              ),
-          }),
-          ...reportData.map(
-              (row) =>
-                  new TableRow({
-                      children: [
-                          new TableCell({ children: [new Paragraph(String(row.category ?? ""))] }),
-                          new TableCell({ children: [new Paragraph(String(row.content ?? ""))] }),
-                          new TableCell({ children: [new Paragraph(String(row.line ?? ""))] }),
-                      ],
-                  })
-          ),
+      const columns = [
+          t("reportGenerator.columnCategory"),
+          t("reportGenerator.columnContent"),
+          t("reportGenerator.columnLine"),
       ];
-
-      const doc = new Document({
-          sections: [
-              {
-                  children: [
-                      new Paragraph({
-                          text: t("reportGenerator.docTitle"),
-                          heading: HeadingLevel.HEADING_1,
-                      }),
-                      new Paragraph({
-                          text: t("reportGenerator.exportCount").replace("{count}", String(reportData.length)),
-                      }),
-                      new DocxTable({
-                          rows: tableRows,
-                          width: {
-                              size: 100,
-                              type: WidthType.PERCENTAGE,
-                          },
-                      }),
-                  ],
-              },
-          ],
+      await exportReportAsDocx("script_report", {
+          docTitle: t("reportGenerator.docTitle"),
+          columns,
+          rows: reportData,
       });
-
-      const blob = await Packer.toBlob(doc);
-      downloadBlob(blob, buildFilename("script_report", "docx"));
   };
 
   return (

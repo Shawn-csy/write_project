@@ -5,7 +5,11 @@ node_modules
 
 # Production
 dist
+dist-analyze/
 build
+
+# Deploy
+.deploy-hash
 
 # OS Generated
 .DS_Store
