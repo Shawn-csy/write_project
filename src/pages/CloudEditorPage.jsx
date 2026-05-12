@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { getScript, updateScript } from "../lib/api/scripts";
 import LiveEditor from "../components/editor/LiveEditor";
+import { Loader2 } from "lucide-react";
 
 // This page accepts :id
 export default function CloudEditorPage({ scriptManager, navProps }) {
@@ -27,10 +28,11 @@ export default function CloudEditorPage({ scriptManager, navProps }) {
       const modeParam = params.get("mode");
       const targetMode = modeParam === "read" ? "read" : "edit";
 
-      // If we already have the correct script loaded, don't re-fetch
-      if (activeCloudScript?.id === id) {
+      // Skip fetch only if we have the full script data (content must be defined,
+      // since the list API deliberately omits content via ScriptSummary)
+      if (activeCloudScript?.id === id && activeCloudScript.content !== undefined) {
           setCloudScriptMode(targetMode);
-          return; 
+          return;
       }
 
       setCloudScriptMode(targetMode);
@@ -45,8 +47,15 @@ export default function CloudEditorPage({ scriptManager, navProps }) {
       });
   }, [id, location.search]);
 
-  if (!activeCloudScript || activeCloudScript.id !== id) {
-      return <div className="flex items-center justify-center h-full">Loading...</div>;
+  if (!activeCloudScript || activeCloudScript.id !== id || activeCloudScript.content === undefined) {
+      return (
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              {activeCloudScript?.id === id && activeCloudScript?.title ? (
+                  <p className="text-sm">{activeCloudScript.title}</p>
+              ) : null}
+          </div>
+      );
   }
 
   const handlePersistMarkerTheme = async (themeId) => {
