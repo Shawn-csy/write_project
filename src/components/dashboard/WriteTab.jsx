@@ -10,7 +10,7 @@ import { MoveScriptDialog } from "./write/MoveScriptDialog";
 import { createScript, updateScript, getScript } from "../../lib/api/scripts";
 import { parseImportTagNames, syncImportedTagsToScript } from "../../lib/importPipeline/tagSync";
 import { Button } from "../ui/button";
-import { Search, ArrowUpDown, RotateCcw, PanelRightOpen, PanelRightClose } from "lucide-react";
+import { Search, ArrowUpDown, RotateCcw, PanelRightOpen, PanelRightClose, Loader2 } from "lucide-react";
 import {
     Drawer,
     DrawerContent,
@@ -157,7 +157,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         setIsQuickCreatingScript(true);
         try {
             const id = await createScript(title, "script", folder);
-            let createdScript = {
+            const createdScript = {
                 id,
                 title,
                 type: "script",
@@ -165,26 +165,13 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                 content: "",
                 isPublic: false,
             };
-            try {
-                const fromServer = await getScript(id);
-                if (fromServer?.id) {
-                    createdScript = { ...createdScript, ...fromServer };
-                }
-            } catch (err) {
-                console.warn("Failed to fetch newly created script", err);
-            }
 
             manager.setScripts((prev) => {
                 const list = Array.isArray(prev) ? prev : [];
-                const idx = list.findIndex((item) => item.id === createdScript.id);
-                if (idx >= 0) {
-                    const next = [...list];
-                    next[idx] = { ...next[idx], ...createdScript };
-                    return next;
-                }
                 return [...list, createdScript];
             });
-            await manager.fetchScripts?.();
+            // fire-and-forget: refresh list in background after navigation
+            manager.fetchScripts?.();
             handleOpenScript(createdScript, "edit");
         } catch (err) {
             console.error(t("publisher.createScriptFailed", "建立劇本失敗"), err);
@@ -745,6 +732,15 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                 onNext={nextGuide}
                 nextLabel={guideIndex === guideSteps.length - 1 ? t("writeTab.guideDone") : t("writeTab.guideNext")}
             />
+
+            {isQuickCreatingScript && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm">
+                    <div className="flex flex-col items-center gap-3 rounded-xl border bg-card px-10 py-8 shadow-xl">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <p className="text-sm font-medium text-muted-foreground">{t("createDialog.creating")}</p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

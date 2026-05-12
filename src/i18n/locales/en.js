@@ -1303,7 +1303,8 @@ const messages = {
     "folderName": "Folder name",
     "scriptTitle": "Script title",
     "location": "Location: {path}",
-    "create": "Create"
+    "create": "Create",
+    "creating": "Creating script…"
   },
   "renameDialog": {
     "folderTitle": "Rename Folder",

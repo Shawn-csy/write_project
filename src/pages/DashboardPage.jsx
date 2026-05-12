@@ -4,9 +4,8 @@ import { useNavigate } from "react-router-dom";
 
 export default function DashboardPage({ scriptManager, navProps }) {
   const navigate = useNavigate();
-  const { 
-      // files, // Removed
-      setActiveCloudScript, setActivePublicScriptId, 
+  const {
+      setActiveCloudScript, setActivePublicScriptId,
       setRawScript, setTitleName, setCloudScriptMode
   } = scriptManager;
 
@@ -29,6 +28,14 @@ export default function DashboardPage({ scriptManager, navProps }) {
 
   const handleSelectCloud = (script, mode = "read") => {
       const resolvedMode = mode === "edit" ? "edit" : "read";
+      // Pre-populate scriptManager so CloudEditorPage skips redundant getScript() fetch
+      if (script?.id) {
+          setActiveCloudScript(script);
+          setRawScript(script.content || "");
+          setTitleName(script.title || "");
+          setCloudScriptMode(resolvedMode);
+          setActivePublicScriptId(null);
+      }
       navigate(`/edit/${script.id}?mode=${resolvedMode}`);
   };
 

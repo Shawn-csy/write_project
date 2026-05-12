@@ -1306,7 +1306,8 @@ const messages = {
     "folderName": "フォルダ名",
     "scriptTitle": "台本タイトル",
     "location": "場所: {path}",
-    "create": "作成"
+    "create": "作成",
+    "creating": "台本を作成中…"
   },
   "renameDialog": {
     "folderTitle": "フォルダ名を変更",
