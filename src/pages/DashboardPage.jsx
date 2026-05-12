@@ -28,10 +28,13 @@ export default function DashboardPage({ scriptManager, navProps }) {
 
   const handleSelectCloud = (script, mode = "read") => {
       const resolvedMode = mode === "edit" ? "edit" : "read";
-      // Pre-populate scriptManager so CloudEditorPage skips redundant getScript() fetch
+      // Pre-populate scriptManager: title/mode are immediately available from list data;
+      // rawScript is only set when content is defined (list API omits content via ScriptSummary)
       if (script?.id) {
           setActiveCloudScript(script);
-          setRawScript(script.content || "");
+          if (script.content !== undefined) {
+              setRawScript(script.content || "");
+          }
           setTitleName(script.title || "");
           setCloudScriptMode(resolvedMode);
           setActivePublicScriptId(null);
