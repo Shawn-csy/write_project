@@ -1303,7 +1303,8 @@ const messages = {
     "folderName": "資料夾名稱",
     "scriptTitle": "劇本標題",
     "location": "位置: {path}",
-    "create": "建立"
+    "create": "建立",
+    "creating": "正在建立劇本…"
   },
   "renameDialog": {
     "folderTitle": "重新命名資料夾",
