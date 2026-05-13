@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { BookOpen, CircleHelp } from "lucide-react";
 import { Button } from "../ui/button";
@@ -8,13 +7,21 @@ import {
   STUDIO_TOPBAR_SECONDARY_BUTTON_CLASS,
 } from "./studioTopbarTokens";
 
+interface StudioTopbarQuickActionsProps {
+  onOpenGuide: () => void;
+  onOpenGallery: () => void;
+  guideLabel: string;
+  galleryLabel: string;
+  languageLabel: string;
+}
+
 export function StudioTopbarQuickActions({
   onOpenGuide,
   onOpenGallery,
   guideLabel,
   galleryLabel,
   languageLabel,
-}) {
+}: StudioTopbarQuickActionsProps) {
   return (
     <>
       <LanguageSwitcher

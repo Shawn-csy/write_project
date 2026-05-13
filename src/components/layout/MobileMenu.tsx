@@ -1,6 +1,6 @@
-// @ts-nocheck
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import type { LucideIcon } from "lucide-react";
 import {
   Settings,
   Info,
@@ -16,6 +16,29 @@ import { Separator } from "../ui/separator";
 import UserMenu from "../auth/UserMenu";
 import { useI18n } from "../../contexts/I18nContext";
 
+interface AccentStyle {
+  label?: string;
+}
+
+interface MobileMenuProps {
+  sceneList?: Array<{ id: string; label?: string }>;
+  currentSceneId?: string;
+  onSelectScene?: (sceneId: string) => void;
+  openAbout: () => void;
+  openSettings: (tab?: string) => void;
+  openHome?: () => void;
+  onClose: () => void;
+  accentStyle?: AccentStyle;
+}
+
+interface NavItemProps {
+  icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+  isActive?: boolean;
+  className?: string;
+}
+
 function MobileMenu({
   // Scene Props
   sceneList = [],
@@ -29,7 +52,7 @@ function MobileMenu({
   openHome, // handleReturnHome
   onClose,
   accentStyle
-}) {
+}: MobileMenuProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useI18n();
@@ -39,7 +62,7 @@ function MobileMenu({
      onClose();
   };
 
-  const NavItem = ({ icon: Icon, label, onClick, isActive, className = "" }) => (
+  const NavItem = ({ icon: Icon, label, onClick, isActive, className = "" }: NavItemProps) => (
     <Button
       variant="ghost"
       onClick={onClick}

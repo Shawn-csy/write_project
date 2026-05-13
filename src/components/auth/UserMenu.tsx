@@ -1,18 +1,22 @@
-// @ts-nocheck
 import React, { useState, useRef, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { LogOut, User, ChevronDown } from "lucide-react";
 import { useI18n } from "../../contexts/I18nContext";
 
-export default function UserMenu() {
+interface UserMenuProps {
+  openSettings?: () => void;
+  openAbout?: () => void;
+}
+
+export default function UserMenu(_: UserMenuProps) {
   const { t } = useI18n();
   const { currentUser, login, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  const menuRef = useRef(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && event.target instanceof Node && !menuRef.current.contains(event.target)) {
         setIsOpen(false);
       }
     }
@@ -48,7 +52,7 @@ export default function UserMenu() {
           {currentUser.photoURL ? (
             <img 
               src={currentUser.photoURL} 
-              alt={currentUser.displayName} 
+              alt={currentUser.displayName || "User"} 
               className="w-8 h-8 rounded-full border border-border shrink-0"
             />
           ) : (
