@@ -1,10 +1,26 @@
-// @ts-nocheck
 import React from "react";
 import { PlusCircle, Sparkles } from "lucide-react";
 import { Button } from "../../../ui/button";
 import { MarkerList } from "../MarkerList";
 import { MarkerDetailEditor } from "../MarkerDetailEditor";
 import { useI18n } from "../../../../contexts/I18nContext";
+import type { MarkerConfig } from "../../../../types/script";
+
+interface MarkerVisualEditorPaneProps {
+  localConfigs: MarkerConfig[];
+  setLocalConfigs: React.Dispatch<React.SetStateAction<MarkerConfig[]>>;
+  updateMarker: (idx: number, field: string, value: unknown) => void;
+  removeMarker: (idx: number) => void;
+  expandedId: string | number | null;
+  setExpandedId: (id: string | number) => void;
+  selectedConfig: MarkerConfig | null;
+  selectedIndex: number;
+  existingIds: string[];
+  onAddMarker: () => void;
+  isAdvancedMode: boolean;
+  setIsAdvancedMode: (value: boolean) => void;
+  readOnly?: boolean;
+}
 
 export function MarkerVisualEditorPane({
   localConfigs,
@@ -20,7 +36,7 @@ export function MarkerVisualEditorPane({
   isAdvancedMode,
   setIsAdvancedMode,
   readOnly = false,
-}) {
+}: MarkerVisualEditorPaneProps): React.JSX.Element {
   const { t } = useI18n();
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] h-full divide-x divide-border/40">
@@ -50,8 +66,6 @@ export function MarkerVisualEditorPane({
             config={selectedConfig}
             idx={selectedIndex}
             updateMarker={updateMarker}
-            existingIds={existingIds}
-            setExpandedId={setExpandedId}
             isAdvancedMode={isAdvancedMode}
             setIsAdvancedMode={setIsAdvancedMode}
             readOnly={readOnly}

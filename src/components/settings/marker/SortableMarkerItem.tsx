@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { GripVertical, Trash2 } from "lucide-react";
 import { useSortable } from '@dnd-kit/sortable';
@@ -6,9 +5,21 @@ import { CSS } from '@dnd-kit/utilities';
 
 import { cn } from "../../../lib/utils";
 import { Button } from "../../ui/button";
+import type { MarkerConfig } from "../../../types/script";
+
+interface SortableMarkerItemProps {
+    id: string;
+    config: MarkerConfig;
+    idx: number;
+    updateMarker: (idx: number, field: string, value: unknown) => void;
+    removeMarker: (idx: number) => void;
+    selectedId: string | number | null;
+    onSelect: (id: string | number) => void;
+    readOnly?: boolean;
+}
 
 // --- Sortable Item Component (Row Only) ---
-export function SortableMarkerItem({ id, config, idx, updateMarker, removeMarker, selectedId, onSelect, readOnly = false }) {
+export function SortableMarkerItem({ id, config, idx, updateMarker, removeMarker, selectedId, onSelect, readOnly = false }: SortableMarkerItemProps): React.JSX.Element {
     const {
         attributes,
         listeners,
@@ -22,7 +33,7 @@ export function SortableMarkerItem({ id, config, idx, updateMarker, removeMarker
         transform: CSS.Transform.toString(transform),
         transition,
         zIndex: isDragging ? 10 : 1,
-        position: 'relative',
+        position: 'relative' as const,
     };
 
     const isSelected = selectedId === (config.id || idx);
@@ -47,7 +58,7 @@ export function SortableMarkerItem({ id, config, idx, updateMarker, removeMarker
                       "text-muted-foreground/50 p-1 rounded",
                       readOnly ? "cursor-not-allowed opacity-40" : "cursor-grab hover:text-foreground hover:bg-muted active:cursor-grabbing"
                     )}
-                    onClick={(e) => e.stopPropagation()} // Prevent selection when dragging
+                    onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()} // Prevent selection when dragging
                 >
                     <GripVertical className="w-4 h-4" />
                 </div>

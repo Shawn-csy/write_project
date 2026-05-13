@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { 
     DndContext, 
@@ -15,6 +14,17 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { SortableMarkerItem } from "./SortableMarkerItem";
+import type { MarkerConfig } from "../../../types/script";
+
+interface MarkerListProps {
+    localConfigs: MarkerConfig[];
+    setLocalConfigs: React.Dispatch<React.SetStateAction<MarkerConfig[]>>;
+    updateMarker: (idx: number, field: string, value: unknown) => void;
+    removeMarker: (idx: number) => void;
+    selectedId: string | number | null;
+    onSelect: (id: string | number) => void;
+    readOnly?: boolean;
+}
 
 export function MarkerList({
     localConfigs,
@@ -24,7 +34,7 @@ export function MarkerList({
     selectedId,
     onSelect,
     readOnly = false,
-}) {
+}: MarkerListProps): React.JSX.Element {
     const sensors = useSensors(
         useSensor(PointerSensor),
         useSensor(KeyboardSensor, {
@@ -32,7 +42,7 @@ export function MarkerList({
         })
     );
 
-    const handleDragEnd = (event) => {
+    const handleDragEnd = (event: { active: { id: string | number }; over: { id: string | number } | null }) => {
         if (readOnly) return;
         const { active, over } = event;
         if (!over) return;
