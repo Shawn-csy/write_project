@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Download, Globe, Search, Trash2, UserRound } from "lucide-react";
 import { Button } from "../../ui/button";
@@ -16,8 +15,25 @@ import { ScrollArea } from "../../ui/scroll-area";
 import { useSettings } from "../../../contexts/SettingsContext";
 import { useI18n } from "../../../contexts/I18nContext";
 import { usePublicThemes } from "../../../hooks/usePublicThemes";
+import type { MarkerConfig } from "../../../types/script";
 
-function formatDate(ts, unknownText) {
+interface PublicThemeOwner {
+  id?: string;
+  displayName?: string;
+  handle?: string;
+}
+
+interface PublicThemeItem {
+  id: string;
+  name?: string;
+  description?: string;
+  owner?: PublicThemeOwner;
+  ownerId?: string;
+  updatedAt?: string | number;
+  configs: MarkerConfig[];
+}
+
+function formatDate(ts: string | number | undefined, unknownText: string): string {
   if (!ts) return unknownText;
   const d = new Date(ts);
   if (Number.isNaN(d.getTime())) return unknownText;
@@ -27,13 +43,14 @@ function formatDate(ts, unknownText) {
 export function PublicThemeDialog() {
   const { t } = useI18n();
   const { copyPublicTheme, deleteTheme, currentUser } = useSettings();
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [activeId, setActiveId] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [feedback, setFeedback] = useState("");
-  const [copiedThemeIds, setCopiedThemeIds] = useState([]);
+  const [open, setOpen] = useState<boolean>(false);
+  const [query, setQuery] = useState<string>("");
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<PublicThemeItem | null>(null);
+  const [feedback, setFeedback] = useState<string>("");
+  const [copiedThemeIds, setCopiedThemeIds] = useState<string[]>([]);
   const { themes, loading, error: loadError, refresh, removeThemeById } = usePublicThemes({ t });
+  const typedThemes = themes as PublicThemeItem[];
 
   useEffect(() => {
     if (!open) return;
@@ -51,14 +68,14 @@ export function PublicThemeDialog() {
 
   const filtered = useMemo(() => {
     const kw = query.trim().toLowerCase();
-    if (!kw) return themes;
-    return themes.filter((theme) => {
+    if (!kw) return typedThemes;
+    return typedThemes.filter((theme) => {
       const ownerName = theme.owner?.displayName || "";
       const ownerHandle = theme.owner?.handle || "";
       const source = [theme.name, theme.description, ownerName, ownerHandle].join(" ").toLowerCase();
       return source.includes(kw);
     });
-  }, [themes, query]);
+  }, [typedThemes, query]);
 
   useEffect(() => {
     if (!filtered.length) {
@@ -70,7 +87,7 @@ export function PublicThemeDialog() {
     }
   }, [filtered, activeId]);
 
-  const activeTheme = filtered.find((t) => t.id === activeId) || null;
+  const activeTheme = filtered.find((theme) => theme.id === activeId) || null;
   const activeMarkers = activeTheme?.configs || [];
   const isOwner = Boolean(
     currentUser &&
@@ -105,7 +122,7 @@ export function PublicThemeDialog() {
     }
   };
 
-  const renderMarkerEffectPreview = (marker, index) => {
+  const renderMarkerEffectPreview = (marker: MarkerConfig, index: number) => {
     const markerStyle = marker?.style && typeof marker.style === "object" ? marker.style : {};
     const markerType = marker?.type || (marker?.isBlock ? "block" : "inline");
     const label = marker?.label || marker?.id || `marker-${index + 1}`;
@@ -161,7 +178,7 @@ export function PublicThemeDialog() {
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
                 placeholder={t("publicThemeDialog.searchPlaceholder")}
                 className="pl-9 h-9"
               />
@@ -308,7 +325,7 @@ export function PublicThemeDialog() {
             <DialogTitle>{t("publicThemeDialog.deleteTitle")}</DialogTitle>
             <DialogDescription>
               {deleteTarget
-                ? t("publicThemeDialog.deleteConfirmWithName").replace("{name}", deleteTarget.name)
+                ? t("publicThemeDialog.deleteConfirmWithName").replace("{name}", deleteTarget.name || "")
                 : t("publicThemeDialog.deleteConfirm")}
             </DialogDescription>
           </DialogHeader>

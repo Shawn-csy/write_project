@@ -1,12 +1,39 @@
-// @ts-nocheck
 import React from 'react';
 import { cn } from '../../../../lib/utils';
 import { Input } from '../../../ui/input';
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 import { useI18n } from "../../../../contexts/I18nContext";
 import { usePublicThemes } from "../../../../hooks/usePublicThemes";
+import type { MarkerConfig } from "../../../../types/script";
 
-export function evaluateMarkerSampleMatch({ markerType, config, sampleText, i18n = {} }) {
+type MarkerType = "single" | "range" | "inline" | null;
+type WizardMarkerConfig = MarkerConfig & {
+    pause?: string;
+    pauseLabel?: string;
+    keywords?: string[];
+    dimIfNotKeyword?: boolean;
+    showDelimiters?: boolean;
+};
+
+interface StepSymbolConfigProps {
+    markerType: MarkerType;
+    config: WizardMarkerConfig;
+    onChange: (config: WizardMarkerConfig) => void;
+}
+
+interface PublicThemeItem {
+    id: string;
+    name?: string;
+    description?: string;
+    configs?: MarkerConfig[];
+}
+
+export function evaluateMarkerSampleMatch({ markerType, config, sampleText, i18n = {} }: {
+    markerType: MarkerType;
+    config: WizardMarkerConfig;
+    sampleText: string;
+    i18n?: Record<string, string>;
+}) {
     const msg = {
         enterTestText: i18n.enterTestText || "Please enter test text first",
         setStartSymbol: i18n.setStartSymbol || "Please set a start symbol first",
@@ -61,21 +88,22 @@ export function evaluateMarkerSampleMatch({ markerType, config, sampleText, i18n
  * Step 2: 符號設定
  * 根據選擇的類型顯示對應的符號輸入欄位
  */
-export function StepSymbolConfig({ markerType, config, onChange }) {
+export function StepSymbolConfig({ markerType, config, onChange }: StepSymbolConfigProps): React.JSX.Element {
     const { t } = useI18n();
-    const [sampleText, setSampleText] = React.useState("");
-    const [showPublicImport, setShowPublicImport] = React.useState(false);
-    const [publicQuery, setPublicQuery] = React.useState("");
-    const [selectedThemeId, setSelectedThemeId] = React.useState("");
-    const [selectedPublicMarkerId, setSelectedPublicMarkerId] = React.useState("");
-    const [copyMode, setCopyMode] = React.useState("all"); // all | logic | style
+    const [sampleText, setSampleText] = React.useState<string>("");
+    const [showPublicImport, setShowPublicImport] = React.useState<boolean>(false);
+    const [publicQuery, setPublicQuery] = React.useState<string>("");
+    const [selectedThemeId, setSelectedThemeId] = React.useState<string>("");
+    const [selectedPublicMarkerId, setSelectedPublicMarkerId] = React.useState<string>("");
+    const [copyMode, setCopyMode] = React.useState<"all" | "logic" | "style">("all"); // all | logic | style
     const {
         themes: publicThemes,
         loading: publicLoading,
         error: publicError,
         refresh: refreshPublicThemes
     } = usePublicThemes({ t, errorKey: "stepSymbolConfig.loadPublicThemeFailed" });
-    const updateField = (field, value) => {
+    const typedPublicThemes = publicThemes as PublicThemeItem[];
+    const updateField = (field: string, value: unknown) => {
         onChange({ ...config, [field]: value });
     };
 
@@ -104,15 +132,15 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
     });
     const filteredPublicThemes = React.useMemo(() => {
         const q = publicQuery.trim().toLowerCase();
-        if (!q) return publicThemes;
-        return publicThemes.filter((theme) => {
+        if (!q) return typedPublicThemes;
+        return typedPublicThemes.filter((theme) => {
             const themeText = `${theme.name || ""} ${theme.description || ""}`.toLowerCase();
             if (themeText.includes(q)) return true;
             return (theme.configs || []).some((marker) =>
                 `${marker.label || ""} ${marker.id || ""} ${marker.start || ""} ${marker.end || ""}`.toLowerCase().includes(q)
             );
         });
-    }, [publicThemes, publicQuery]);
+    }, [typedPublicThemes, publicQuery]);
 
     const selectedTheme = filteredPublicThemes.find((theme) => theme.id === selectedThemeId) || null;
     const selectedThemeMarkers = selectedTheme?.configs || [];
@@ -126,12 +154,12 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
     const selectedPublicMarker =
         filteredThemeMarkers.find((marker) => (marker.id || marker.label) === selectedPublicMarkerId) || null;
 
-    const buildSampleFromPublicMarker = (marker) => {
+    const buildSampleFromPublicMarker = (marker: MarkerConfig | null) => {
         if (!marker) return "";
         const start = marker.start || "#MARK";
         const end = marker.end || "";
         const label = marker.label || marker.id || t("stepSymbolConfig.sampleMarkerContent");
-        const mode = marker.matchMode || "prefix";
+        const mode = String(marker.matchMode || "prefix");
         if (mode === "prefix") return `${start} ${label} ${t("stepSymbolConfig.sampleWord")}`;
         if (mode === "range") {
             return `${start} ${label} ${t("stepSymbolConfig.sampleStart")}\n${t("stepSymbolConfig.sampleRangeBody")}\n${end || start} ${label} ${t("stepSymbolConfig.sampleEnd")}`;
@@ -141,10 +169,10 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
 
     const loadPublicMarkerThemes = async () => {
         const normalized = await refreshPublicThemes();
-        const firstThemeId = normalized[0]?.id || "";
+        const firstThemeId = (normalized[0] as PublicThemeItem | undefined)?.id || "";
         setSelectedThemeId(firstThemeId);
-        const firstMarker = normalized[0]?.configs?.[0];
-        setSelectedPublicMarkerId(firstMarker ? (firstMarker.id || firstMarker.label) : "");
+        const firstMarker = (normalized[0] as PublicThemeItem | undefined)?.configs?.[0];
+        setSelectedPublicMarkerId(firstMarker ? String(firstMarker.id || firstMarker.label || "") : "");
     };
 
     React.useEffect(() => {
@@ -156,26 +184,28 @@ export function StepSymbolConfig({ markerType, config, onChange }) {
         const exists = filteredThemeMarkers.some((marker) => (marker.id || marker.label) === selectedPublicMarkerId);
         if (!exists) {
             const first = filteredThemeMarkers[0];
-            setSelectedPublicMarkerId(first.id || first.label);
+            setSelectedPublicMarkerId(String(first.id || first.label || ""));
         }
     }, [selectedThemeId, selectedTheme, filteredThemeMarkers, selectedPublicMarkerId]);
 
     const applyPublicMarkerToDraft = () => {
         if (!selectedPublicMarker) return;
         const logicPart = {
-            label: selectedPublicMarker.label || config.label,
-            matchMode: selectedPublicMarker.matchMode || config.matchMode,
-            isBlock: selectedPublicMarker.isBlock ?? (selectedPublicMarker.type === "block"),
-            type: selectedPublicMarker.type || config.type,
-            start: selectedPublicMarker.start || config.start,
-            end: selectedPublicMarker.end || "",
-            pause: selectedPublicMarker.pause || "",
-            pauseLabel: selectedPublicMarker.pauseLabel || "",
-            keywords: selectedPublicMarker.keywords || [],
-            dimIfNotKeyword: Boolean(selectedPublicMarker.dimIfNotKeyword),
-            showDelimiters: selectedPublicMarker.showDelimiters,
+            label: String(selectedPublicMarker.label || config.label || ""),
+            matchMode: String(selectedPublicMarker.matchMode || config.matchMode || "prefix"),
+            isBlock: Boolean(selectedPublicMarker.isBlock ?? (selectedPublicMarker.type === "block")),
+            type: String(selectedPublicMarker.type || config.type || "block"),
+            start: String(selectedPublicMarker.start || config.start || ""),
+            end: String(selectedPublicMarker.end || ""),
+            pause: String((selectedPublicMarker as WizardMarkerConfig).pause || ""),
+            pauseLabel: String((selectedPublicMarker as WizardMarkerConfig).pauseLabel || ""),
+            keywords: Array.isArray((selectedPublicMarker as WizardMarkerConfig).keywords)
+                ? (selectedPublicMarker as WizardMarkerConfig).keywords
+                : [],
+            dimIfNotKeyword: Boolean((selectedPublicMarker as WizardMarkerConfig).dimIfNotKeyword),
+            showDelimiters: Boolean((selectedPublicMarker as WizardMarkerConfig).showDelimiters),
         };
-        const stylePart = { style: selectedPublicMarker.style || {} };
+        const stylePart = { style: (selectedPublicMarker.style as Record<string, string>) || {} };
 
         if (copyMode === "logic") {
             onChange({ ...config, ...logicPart });

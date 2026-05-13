@@ -1,18 +1,22 @@
-// @ts-nocheck
 import React, { useState } from "react";
 import { Hash, Grid, List } from "lucide-react";
 import { cn } from "../../../lib/utils";
 import { MarkerGuideCard } from "./MarkerGuideCard";
 import { PublicMarkerLegend } from "../../reader/PublicMarkerLegend";
 import { useI18n } from "../../../contexts/I18nContext";
+import type { MarkerConfig } from "../../../types/script";
 
-export function MarkerUsageGuide({ markerConfigs }) {
+interface MarkerUsageGuideProps {
+  markerConfigs: MarkerConfig[];
+}
+
+export function MarkerUsageGuide({ markerConfigs }: MarkerUsageGuideProps): React.JSX.Element | null {
   const { t } = useI18n();
-  const [view, setView] = useState("visual"); // visual | list
+  const [view, setView] = useState<"visual" | "list">("visual"); // visual | list
 
   if (!markerConfigs || markerConfigs.length === 0) return null;
 
-  const copyToClipboard = (text) => {
+  const copyToClipboard = (text: string): void => {
     navigator.clipboard.writeText(text);
     alert(`${t("markerUsageGuide.copiedPrefix")}${text}`);
   };
@@ -75,7 +79,7 @@ export function MarkerUsageGuide({ markerConfigs }) {
                     <p className="text-xs text-muted-foreground mb-4">
                         {t("markerUsageGuide.listDescription")}
                     </p>
-                    <PublicMarkerLegend markerConfigs={markerConfigs} />
+                    <PublicMarkerLegend markerConfigs={markerConfigs} className="" />
                   </div>
               </div>
           )}

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useCallback } from 'react';
 import { WizardProgress, WIZARD_STEPS } from './wizard/WizardProgress';
 import { StepTypeSelector } from './wizard/StepTypeSelector';
@@ -8,16 +7,26 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '../../ui/button';
 import { ChevronLeft, ChevronRight, Check, Sparkles } from 'lucide-react';
 import { useI18n } from '../../../contexts/I18nContext';
+import type { MarkerConfig } from '../../../types/script';
+
+type MarkerType = 'single' | 'range' | 'inline';
+
+interface MarkerWizardProps {
+    open: boolean;
+    onClose: () => void;
+    onComplete: (config: MarkerConfig) => void;
+    initialConfig?: MarkerConfig | null;
+}
 
 /**
  * 標記設定 Wizard
  * 引導用戶透過三步驟建立新的標記規則
  */
-export function MarkerWizard({ open, onClose, onComplete, initialConfig = null }) {
+export function MarkerWizard({ open, onClose, onComplete, initialConfig = null }: MarkerWizardProps): React.JSX.Element {
     const { t } = useI18n();
-    const [currentStep, setCurrentStep] = useState(1);
-    const [markerType, setMarkerType] = useState(null); // 'single' | 'range' | 'inline'
-    const [config, setConfig] = useState(initialConfig || {
+    const [currentStep, setCurrentStep] = useState<number>(1);
+    const [markerType, setMarkerType] = useState<MarkerType | null>(null); // 'single' | 'range' | 'inline'
+    const [config, setConfig] = useState<MarkerConfig>(initialConfig || {
         id: '',
         label: '',
         matchMode: 'prefix',
@@ -51,11 +60,11 @@ export function MarkerWizard({ open, onClose, onComplete, initialConfig = null }
     };
 
     // 處理預設模板選擇
-    const handlePresetSelect = (preset) => {
+    const handlePresetSelect = (preset: { name?: string; config: MarkerConfig }) => {
         // 根據預設模板填充設定
         const newConfig = {
             ...preset.config,
-            id: generateId(preset.config.label || preset.name)
+            id: generateId(String(preset.config.label || preset.name || "marker"))
         };
         setConfig(newConfig);
         
@@ -72,7 +81,7 @@ export function MarkerWizard({ open, onClose, onComplete, initialConfig = null }
         setCurrentStep(2);
     };
 
-    const handleScenarioSelect = (scenario) => {
+    const handleScenarioSelect = (scenario: { presetId?: string; title?: string }) => {
         if (!scenario?.presetId) return;
         const presetMap = {
             "sound-effect": {
@@ -142,7 +151,7 @@ export function MarkerWizard({ open, onClose, onComplete, initialConfig = null }
     };
 
     // 處理類型選擇
-    const handleTypeChange = (type) => {
+    const handleTypeChange = (type: MarkerType) => {
         setMarkerType(type);
         
         // 根據類型設定預設 matchMode
@@ -164,7 +173,7 @@ export function MarkerWizard({ open, onClose, onComplete, initialConfig = null }
     };
 
     // 生成 ID
-    const generateId = (label) => {
+    const generateId = (label: string) => {
         const base = label
             .toLowerCase()
             .replace(/\s+/g, '-')
@@ -208,7 +217,7 @@ export function MarkerWizard({ open, onClose, onComplete, initialConfig = null }
     const handleComplete = () => {
         const finalConfig = {
             ...config,
-            id: config.id || generateId(config.label)
+            id: config.id || generateId(String(config.label || "marker"))
         };
         onComplete(finalConfig);
         handleClose();
