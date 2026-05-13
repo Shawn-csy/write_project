@@ -88,12 +88,8 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     };
 
     setSystemPrefersDark(media.matches);
-    if (media.addEventListener) {
-      media.addEventListener("change", handleChange);
-      return () => media.removeEventListener("change", handleChange);
-    }
-    media.addListener(handleChange);
-    return () => media.removeListener(handleChange);
+    media.addEventListener("change", handleChange);
+    return () => media.removeEventListener("change", handleChange);
   }, []);
 
   useEffect(() => {
@@ -212,37 +208,18 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     lastSavedTitleRef: lastSavedTitle,
   });
 
-  // BeforeUnload Warning
+  // BeforeUnload Warning — 只要與雲端版本有 diff 就警告
   useEffect(() => {
       const handleBeforeUnload = (e) => {
-          if (saveStatus === 'unsaved' || saveStatus === 'saving' || saveStatus === 'error' || saveStatus === 'local-saved') {
-             // local-saved is technically safe locally, but maybe user wants to ensure cloud?
-             // Prompt anyway to be safe? 
-             // "已儲存至本機" means browser close is SAFE.
-             // So if status is 'local-saved', we DO NOT need to warn about data loss,
-             // BUT we might want to warn about "upload pending".
-             // However, user specifically asked for "Local Draft" to be safe against crash/close.
-             // So we can SKIP warning if saved to local.
-             
-             // Let's check diff against CLOUD lastSavedContent
-             if (content !== lastSavedContent.current || title !== lastSavedTitle.current) {
-                 // It IS dirty relative to cloud.
-                 // But is it dirty relative to local? 
-                 // We write local on every change. So local is sync.
-                 
-                 // If status is 'local-saved', we can probably let them go, 
-                 // but maybe just warn "Changes saved to THIS BROWSER only".
-                 // For now, let's KEEP warning but maybe change text?
-                 // Or just keep standard warning. Safest.
-                 e.preventDefault();
-                 e.returnValue = t("liveEditor.leaveWarning");
-                 return e.returnValue;
-             }
+          if (content !== lastSavedContent.current || title !== lastSavedTitle.current) {
+              e.preventDefault();
+              e.returnValue = t("liveEditor.leaveWarning");
+              return e.returnValue;
           }
       };
       window.addEventListener("beforeunload", handleBeforeUnload);
       return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [saveStatus, content, title]);
+  }, [content, title]);
 
   const normalizedDownloadOptions = useLiveEditorDownloadOptions({
     t,
@@ -286,14 +263,6 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [handleManualSave, readOnly]);
-
-  if (loading) {
-    return (
-      <div className="h-full flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
 
   const extensions = useMemo(() => {
     const baseExtensions = [
@@ -344,6 +313,14 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
       switchTheme(prevId);
     }
   }, [currentThemeId, onPersistMarkerTheme, switchTheme]);
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-background relative z-0">

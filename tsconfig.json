@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+
+    /* 漸進式遷移：允許 JS 檔共存，但不強制 checkJs */
+    "allowJs": true,
+    "checkJs": false,
+
+    /* 嚴格模式：新寫的 TS 檔都要符合 */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+
+    /* 路徑 */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
+    /* 輸出：Vite 處理，tsc 只做型別檢查 */
+    "noEmit": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "ignoreDeprecations": "6.0"
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
+}

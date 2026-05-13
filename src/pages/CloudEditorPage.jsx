@@ -19,9 +19,11 @@ export default function CloudEditorPage({ scriptManager, navProps }) {
       cloudScriptMode, setCloudScriptMode
   } = scriptManager;
 
+  const handlePersistMarkerTheme = usePersistMarkerTheme(scriptManager);
+
   useEffect(() => {
       if (!id) return;
-      
+
       // Always reset UI to reader mode when entering this page
       navProps.nav.resetToReader();
 
@@ -58,8 +60,6 @@ export default function CloudEditorPage({ scriptManager, navProps }) {
           </div>
       );
   }
-
-  const handlePersistMarkerTheme = usePersistMarkerTheme(scriptManager);
 
   const guideParams = new URLSearchParams(location.search);
   const crossModeGuideActive = guideParams.get("guide") === "1";

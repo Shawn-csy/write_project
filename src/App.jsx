@@ -56,9 +56,7 @@ function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Destructure scriptManager for easier usage
-  const { 
-      // activeFile, 
+  const {
       activeCloudScript, cloudScriptMode, setCloudScriptMode,
       titleName, titleSummary, titleNote,
       currentSceneId, setCurrentSceneId, setScrollSceneId,

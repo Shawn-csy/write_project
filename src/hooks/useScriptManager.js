@@ -1,18 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import generatedFileMeta from "../constants/fileMeta.generated.json";
 import { resolveEffectiveMarkerConfigs } from "../lib/markerConfigResolver.js";
-
-// Import scripts directly here
-// const scriptModules = import.meta.glob("../scripts_file/**/*.fountain", {
-//   query: "?raw",
-//   import: "default",
-// });
-
 import { parseScreenplay } from "../lib/screenplayAST";
 
+/** @returns {import("./useScriptManager.types").ScriptManager} */
 export function useScriptManager(initialParamsRef, initialMarkerConfigs = []) {
-  // const [files, setFiles] = useState([]);
-  // const [activeFile, setActiveFile] = useState(null);
   const [rawScript, setRawScript] = useState("");
 
   // Metadata & Indexing
@@ -65,16 +57,6 @@ export function useScriptManager(initialParamsRef, initialMarkerConfigs = []) {
   const [activeCloudScript, setActiveCloudScript] = useState(null);
   const [cloudScriptMode, setCloudScriptMode] = useState("read"); // read | edit
   const [activePublicScriptId, setActivePublicScriptId] = useState(null);
-  // 1. Initialize Files (Removed)
-  // useEffect(() => {
-  //   const entries = Object.entries(scriptModules).map(([path, loader]) => ({
-  //     name: path.split("/").pop(),
-  //     path,
-  //     loader,
-  //     display: path.replace("../scripts_file/", ""),
-  //   }));
-  //   setFiles(entries);
-  // }, []);
 
   // File Meta (Dates)
   useEffect(() => {
@@ -88,19 +70,10 @@ export function useScriptManager(initialParamsRef, initialMarkerConfigs = []) {
     }
   }, []);
 
-  // 5. Load Script Function (Removed)
-  // const loadScript = async (file) => { ... }
-
-  return {
-    // files,
-    // setFiles,
-    // activeFile,
-    // setActiveFile, // Needed for URL sync or manual overrides
+  const manager = {
     rawScript,
     setRawScript,
     fileMeta,
-    // loadScript,
-    // Content States
     sceneList, setSceneList,
     characterList, setCharacterList,
     rawScriptHtml, setRawScriptHtml,
@@ -132,4 +105,20 @@ export function useScriptManager(initialParamsRef, initialMarkerConfigs = []) {
     hiddenMarkerIds,
     toggleMarkerVisibility
   };
+
+  if (import.meta.env.DEV) {
+    return new Proxy(manager, {
+      get(target, prop) {
+        if (typeof prop === "string" && !(prop in target) && !prop.startsWith("__") && prop !== "then") {
+          console.error(
+            `[useScriptManager] 存取不存在的欄位 "${prop}"。` +
+            `請檢查 useScriptManager 的 return 是否已移除此欄位。`
+          );
+        }
+        return target[prop];
+      },
+    });
+  }
+
+  return manager;
 }

@@ -149,9 +149,10 @@ def search_scripts(db: Session, query: str, ownerId: str):
     search = f"%{query}%"
     return (
         db.query(models.Script)
+        .options(orm.defer(models.Script.content))
         .filter(
             models.Script.ownerId == ownerId,
-            or_(models.Script.title.ilike(search), models.Script.content.ilike(search)),
+            models.Script.title.ilike(search),
         )
         .limit(20)
         .all()
