@@ -1,7 +1,47 @@
-// @ts-nocheck
 import React from "react";
 import { AuthorBadge } from "../ui/AuthorBadge";
 import { Badge } from "../ui/badge";
+
+interface PrefaceItem {
+  id?: string;
+  title?: string;
+  value?: string;
+  [key: string]: unknown;
+}
+
+interface DemoLinkItem {
+  id?: string;
+  name?: string;
+  url: string;
+  cast?: string;
+  description?: string;
+}
+
+interface AuthorInfo {
+  id?: string;
+  displayName?: string;
+  name?: string;
+}
+
+interface OrganizationInfo {
+  id?: string;
+  name?: string;
+  logoUrl?: string;
+}
+
+interface PublicScriptInfoOverlayProps {
+  title?: string;
+  synopsis?: string;
+  coverUrl?: string;
+  author?: AuthorInfo | null;
+  organization?: OrganizationInfo | null;
+  prefaceItems?: PrefaceItem[];
+  demoLinks?: DemoLinkItem[];
+  commercialUse?: string;
+  derivativeUse?: string;
+  notifyOnModify?: string;
+  licenseSpecialTerms?: string[];
+}
 
 export function PublicScriptInfoOverlay({
   title,
@@ -15,7 +55,7 @@ export function PublicScriptInfoOverlay({
   derivativeUse = "",
   notifyOnModify = "",
   licenseSpecialTerms = [],
-}) {
+}: PublicScriptInfoOverlayProps) {
   const [coverLoadFailed, setCoverLoadFailed] = React.useState(false);
   const [prefaceExpanded, setPrefaceExpanded] = React.useState(false);
   const hasCover = Boolean(String(coverUrl || "").trim()) && !coverLoadFailed;
@@ -32,7 +72,7 @@ export function PublicScriptInfoOverlay({
     };
   }, [title]);
   const itemById = React.useMemo(() => {
-    const map = new Map();
+    const map = new Map<string, PrefaceItem & { value: string }>();
     (prefaceItems || []).forEach((item) => {
       const id = String(item?.id || "").toLowerCase();
       const value = String(item?.value || "").trim();
@@ -42,7 +82,7 @@ export function PublicScriptInfoOverlay({
     return map;
   }, [prefaceItems]);
 
-  const parseMultiTemplate = (rawValue) => {
+  const parseMultiTemplate = (rawValue: string | undefined) => {
     try {
       const parsed = JSON.parse(String(rawValue || ""));
       if (parsed?.mode !== "multi" || !Array.isArray(parsed?.items)) return null;
@@ -54,7 +94,7 @@ export function PublicScriptInfoOverlay({
       return null;
     }
   };
-  const parseChapterTemplate = (rawValue) => {
+  const parseChapterTemplate = (rawValue: string | undefined) => {
     try {
       const parsed = JSON.parse(String(rawValue || ""));
       if (parsed?.mode !== "chapter_multi" || !Array.isArray(parsed?.items)) return [];
@@ -75,7 +115,7 @@ export function PublicScriptInfoOverlay({
   const performanceMulti = parseMultiTemplate(performanceItem?.value);
   const chapterMulti = parseChapterTemplate(chapterSettingsItem?.value);
   const hasCharacterTemplate = Array.isArray(roleMulti) || Array.isArray(performanceMulti);
-  const isNonLinkAuthorId = (id) => {
+  const isNonLinkAuthorId = (id: string | undefined) => {
     const value = String(id || "").trim();
     return value === "override-author" || value === "header-author-fallback";
   };
@@ -118,7 +158,7 @@ export function PublicScriptInfoOverlay({
     );
   };
 
-  const renderItem = (id) => {
+  const renderItem = (id: string) => {
     const item = itemById.get(id);
     if (!item) return null;
 
@@ -214,7 +254,12 @@ export function PublicScriptInfoOverlay({
     const derivative = normalize(derivativeUse);
     const notify = normalize(notifyOnModify);
 
-    const items = [];
+    const items: Array<{
+      key: string;
+      label: string;
+      value: string;
+      style: { borderColor: string; backgroundColor: string; color: string };
+    }> = [];
     if (commercial) {
       items.push({
         key: "commercial",

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import {
   Select,
@@ -11,6 +10,18 @@ import {
 } from "../ui/select";
 import { useI18n } from "../../contexts/I18nContext";
 
+interface CharacterSelectProps {
+  characterList?: string[];
+  filterCharacter?: string;
+  onChange: (value: string) => void;
+  triggerClassName?: string;
+  contentAlign?: "start" | "center" | "end";
+  label?: string;
+  placeholder?: string;
+  allValue?: string;
+  allLabel?: string;
+}
+
 export default function CharacterSelect({
   characterList = [],
   filterCharacter,
@@ -21,7 +32,7 @@ export default function CharacterSelect({
   placeholder = "",
   allValue = "__ALL__",
   allLabel = ""
-}) {
+}: CharacterSelectProps) {
   const { t } = useI18n();
   const resolvedLabel = label || t("readerControls.character");
   const resolvedPlaceholder = placeholder || t("readerControls.characterPlaceholder");

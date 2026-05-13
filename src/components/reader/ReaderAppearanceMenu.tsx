@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { Settings2, X } from "lucide-react";
 import { Button } from "../ui/button";
@@ -9,6 +8,7 @@ import { useI18n } from "../../contexts/I18nContext";
 export function ReaderAppearanceMenu() {
   const { t } = useI18n();
   const [open, setOpen] = React.useState(false);
+  const sectionRef = React.useRef<HTMLDivElement | null>(null);
 
   return (
     <>
@@ -35,7 +35,7 @@ export function ReaderAppearanceMenu() {
             <DialogDescription>{t("appearance.subtitle")}</DialogDescription>
           </DialogHeader>
           <div className="min-h-0 overflow-y-auto p-4 sm:p-6 space-y-4">
-            <AppearanceSettings />
+            <AppearanceSettings sectionRef={sectionRef} />
           </div>
           <div className="border-t px-4 py-3 sm:hidden">
             <DialogClose asChild>

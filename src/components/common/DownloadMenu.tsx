@@ -1,5 +1,5 @@
-// @ts-nocheck
 import React from "react";
+import type { LucideIcon } from "lucide-react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,13 +10,30 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useI18n } from "../../contexts/I18nContext";
 
+interface DownloadOption {
+  id: string;
+  label: string;
+  icon?: LucideIcon;
+  disabled?: boolean;
+  hidden?: boolean;
+  onClick?: (event: Event | React.MouseEvent) => void;
+}
+
+interface DownloadMenuProps {
+  options?: DownloadOption[];
+  align?: "start" | "center" | "end";
+  triggerClassName?: string;
+  title?: string;
+  iconOnly?: boolean;
+}
+
 export function DownloadMenu({
   options = [],
   align = "end",
   triggerClassName = "",
   title,
   iconOnly = true,
-}) {
+}: DownloadMenuProps) {
   const { t } = useI18n();
   const resolvedTitle = title || t("common.download");
   const enabledOptions = options.filter((opt) => !opt?.hidden);
