@@ -1,22 +1,29 @@
 import { useCallback, useRef, useEffect, useMemo } from "react";
 import { EditorView, Decoration } from "@codemirror/view";
 import { StateEffect, StateField } from "@codemirror/state";
+import type { ViewUpdate } from "@codemirror/view";
 
-export function useEditorSync({ readOnly, showPreview }) {
-  const previewRef = useRef(null);
-  const editorViewRef = useRef(null);
+interface ScrollOptions {
+  behavior?: ScrollBehavior;
+  center?: boolean;
+  select?: boolean;
+}
+
+export function useEditorSync({ readOnly, showPreview }: { readOnly: boolean; showPreview: boolean }) {
+  const previewRef = useRef<HTMLElement | null>(null);
+  const editorViewRef = useRef<EditorView | null>(null);
   const ignoreEditorScrollRef = useRef(false);
   const ignorePreviewScrollRef = useRef(false);
   const editorReadyRef = useRef(false);
 
   const setHighlightLine = useMemo(
-    () => StateEffect.define(),
+    () => StateEffect.define<number | null>(),
     []
   );
 
   const highlightField = useMemo(
     () =>
-      StateField.define({
+      StateField.define<import("@codemirror/view").DecorationSet>({
         create() {
           return Decoration.none;
         },
@@ -91,22 +98,22 @@ export function useEditorSync({ readOnly, showPreview }) {
     });
   }, []);
 
-  const handleViewUpdate = useCallback((update) => {
+  const handleViewUpdate = useCallback((update: ViewUpdate) => {
     if (!update.view) return;
     editorViewRef.current = update.view;
     editorReadyRef.current = true;
   }, []);
 
-  const scrollEditorToLine = useCallback((lineNumber, behaviorOrOptions = "auto") => {
+  const scrollEditorToLine = useCallback((lineNumber: number, behaviorOrOptions: ScrollBehavior | ScrollOptions = "auto") => {
     const view = editorViewRef.current;
     if (!view) return;
-    const options =
+    const options: Required<ScrollOptions> =
       typeof behaviorOrOptions === "string"
         ? { behavior: behaviorOrOptions, center: true, select: true }
         : {
-            behavior: behaviorOrOptions?.behavior ?? "auto",
-            center: behaviorOrOptions?.center ?? true,
-            select: behaviorOrOptions?.select ?? true,
+            behavior: behaviorOrOptions.behavior ?? "auto",
+            center: behaviorOrOptions.center ?? true,
+            select: behaviorOrOptions.select ?? true,
           };
     const safeLine = Math.max(1, Math.min(lineNumber, view.state.doc.lines));
     const line = view.state.doc.line(safeLine);
@@ -139,7 +146,7 @@ export function useEditorSync({ readOnly, showPreview }) {
     }
   }, []);
 
-  const highlightEditorLine = useCallback((lineNumber) => {
+  const highlightEditorLine = useCallback((lineNumber: number) => {
     const view = editorViewRef.current;
     if (!view) return;
     const safeLine = Math.max(1, Math.min(lineNumber, view.state.doc.lines));
@@ -167,7 +174,7 @@ export function useEditorSync({ readOnly, showPreview }) {
     return () => container.removeEventListener("scroll", handlePreviewScroll);
   }, [handlePreviewScroll, showPreview, readOnly]);
 
-  const setEditorReady = useCallback((val) => {
+  const setEditorReady = useCallback((val: boolean) => {
     editorReadyRef.current = val;
   }, []);
 
@@ -181,6 +188,6 @@ export function useEditorSync({ readOnly, showPreview }) {
     setEditorReady,
     scrollEditorToLine,
     highlightEditorLine,
-    clearHighlightLine
+    clearHighlightLine,
   };
 }

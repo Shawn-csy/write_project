@@ -1,11 +1,37 @@
 import React from "react";
 import { Routes, useNavigate } from "react-router-dom";
-
 import { useI18n } from "./contexts/I18nContext";
 import { useCrossModeReadGuide } from "./hooks/useCrossModeReadGuide";
-import { ReadGuideOverlay } from "./components/reader/ReadGuideOverlay";
 import { renderPublicRoutes } from "./routes/PublicRoutes";
 import { renderWorkspaceRoutes } from "./routes/WorkspaceRoutes";
+import type { ScriptManager } from "./hooks/useScriptManager.types";
+import type { Nav, NavProps } from "./types/nav";
+import type { DownloadOption } from "./types/routes";
+
+// JS component pending TS migration
+import { ReadGuideOverlay as ReadGuideOverlayJs } from "./components/reader/ReadGuideOverlay";
+const ReadGuideOverlay = ReadGuideOverlayJs as unknown as React.ComponentType<Record<string, unknown>>;
+
+interface AppRouterProps {
+  scriptManager: ScriptManager;
+  nav: Nav;
+  navProps: NavProps;
+  showStats: boolean;
+  setShowStats: (v: boolean) => void;
+  scrollProgress: number;
+  headerTitle: string;
+  canShare: boolean;
+  isPublicReader: boolean;
+  showReaderHeader: boolean;
+  readerDownloadOptions: DownloadOption[];
+  handleShareUrl: (e?: React.MouseEvent) => void;
+  shareCopied: boolean;
+  handleReturnHome: () => void;
+  handleCloudTitleUpdate: (title: string) => Promise<void>;
+  handleCloudMarkerThemeUpdate: (themeId: string) => Promise<boolean>;
+  accentStyle: string;
+  activeCloudScript: ScriptManager["activeCloudScript"];
+}
 
 export function AppRouter({
   scriptManager,
@@ -26,8 +52,8 @@ export function AppRouter({
   handleCloudMarkerThemeUpdate,
   accentStyle,
   activeCloudScript,
-}) {
-  const { t } = useI18n();
+}: AppRouterProps) {
+  const { t } = useI18n() as { t: (key: string, fallback?: string) => string };
   const navigate = useNavigate();
 
   const { cloudScriptMode } = scriptManager;

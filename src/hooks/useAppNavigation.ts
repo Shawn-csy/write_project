@@ -5,13 +5,13 @@ export function useAppNavigation() {
   const [aboutOpen, setAboutOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState("display");
-  
+
   // Sidebar State
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
   // Unified Sidebar Setter
-  const setSidebarOpen = (open) => {
+  const setSidebarOpen = (open: boolean) => {
     if (window.innerWidth < 1024) {
       setIsMobileDrawerOpen(open);
     } else {
@@ -26,8 +26,8 @@ export function useAppNavigation() {
         setIsMobileDrawerOpen(false);
       }
     };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, [isMobileDrawerOpen]);
 
   // Actions
@@ -43,7 +43,7 @@ export function useAppNavigation() {
     setSettingsOpen(false);
   };
 
-  const openSettings = (tabKey) => {
+  const openSettings = (tabKey?: string) => {
     if (tabKey) {
       setSettingsTab(tabKey);
       setSettingsOpen(true);
@@ -55,13 +55,13 @@ export function useAppNavigation() {
   };
 
   const closeOverlays = () => {
-      setHomeOpen(false);
-      setAboutOpen(false);
-      setSettingsOpen(false);
+    setHomeOpen(false);
+    setAboutOpen(false);
+    setSettingsOpen(false);
   };
-  
+
   const resetToReader = () => {
-      closeOverlays();
+    closeOverlays();
   };
 
   return {
@@ -75,6 +75,8 @@ export function useAppNavigation() {
     openHome,
     openAbout,
     openSettings,
-    resetToReader
+    resetToReader,
   };
 }
+
+export type Nav = ReturnType<typeof useAppNavigation>;

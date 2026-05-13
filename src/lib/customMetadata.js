@@ -15,8 +15,10 @@ export const normalizeCustomMetadataEntries = (entries) => {
     .filter(Boolean);
 };
 
+/** @returns {Record<string, string>} */
 export const customMetadataEntriesToMeta = (entries) => {
   const normalized = normalizeCustomMetadataEntries(entries);
+  /** @type {Record<string, string>} */
   const meta = {};
   normalized.forEach((entry) => {
     meta[normKey(entry.key)] = entry.value;

@@ -3,6 +3,10 @@ import { normalizeMarkerConfigsSchema } from "./markerThemeCodec.js";
 
 const isNil = (value) => value === null || value === undefined;
 
+/**
+ * @param {{ baseConfigs?: import("../hooks/useScriptManager.types").MarkerConfig[] | null, scopedConfigs?: import("../hooks/useScriptManager.types").MarkerConfig[] | null, fallbackConfigs?: import("../hooks/useScriptManager.types").MarkerConfig[] }} [options]
+ * @returns {{ configs: import("../hooks/useScriptManager.types").MarkerConfig[], source: "scoped" | "base" | "fallback" }}
+ */
 export const resolveEffectiveMarkerConfigs = ({
   baseConfigs,
   scopedConfigs,

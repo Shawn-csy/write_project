@@ -1,8 +1,28 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import type { CloudScript } from "./useScriptManager.types";
 
-export function useCrossModeReadGuide({ activeCloudScript, cloudScriptMode, isPublicReader, t }) {
-  const [readGuideSpotlightRect, setReadGuideSpotlightRect] = useState(null);
+interface SpotlightRect {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}
+
+interface UseCrossModeReadGuideParams {
+  activeCloudScript: CloudScript | null;
+  cloudScriptMode: string;
+  isPublicReader: boolean;
+  t: (key: string, fallback?: string) => string;
+}
+
+export function useCrossModeReadGuide({
+  activeCloudScript,
+  cloudScriptMode,
+  isPublicReader,
+  t,
+}: UseCrossModeReadGuideParams) {
+  const [readGuideSpotlightRect, setReadGuideSpotlightRect] = useState<SpotlightRect | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const isCloudReadMode = Boolean(activeCloudScript) && cloudScriptMode === "read";
@@ -11,7 +31,7 @@ export function useCrossModeReadGuide({ activeCloudScript, cloudScriptMode, isPu
   const guideStep = guideParams.get("guideStep") || "";
 
   const navigateGuide = useCallback(
-    (mode, step = "") => {
+    (mode: string, step = "") => {
       if (!activeCloudScript?.id) return;
       const params = new URLSearchParams();
       params.set("mode", mode);
@@ -28,21 +48,10 @@ export function useCrossModeReadGuide({ activeCloudScript, cloudScriptMode, isPu
   const startCrossModeGuide = useCallback(() => navigateGuide("read", "readIntro"), [navigateGuide]);
 
   const nextReadGuideStep = useCallback(() => {
-    if (guideStep === "readIntro") {
-      navigateGuide("read", "readTools");
-      return;
-    }
-    if (guideStep === "readTools") {
-      navigateGuide("read", "readToEdit");
-      return;
-    }
-    if (guideStep === "readToEdit") {
-      navigateGuide("edit", "editIntro");
-      return;
-    }
-    if (guideStep === "readFinish") {
-      exitGuideToRead();
-    }
+    if (guideStep === "readIntro") { navigateGuide("read", "readTools"); return; }
+    if (guideStep === "readTools") { navigateGuide("read", "readToEdit"); return; }
+    if (guideStep === "readToEdit") { navigateGuide("edit", "editIntro"); return; }
+    if (guideStep === "readFinish") { exitGuideToRead(); }
   }, [exitGuideToRead, guideStep, navigateGuide]);
 
   const readGuideDialogOpen =
@@ -67,7 +76,7 @@ export function useCrossModeReadGuide({ activeCloudScript, cloudScriptMode, isPu
     return t("readerActions.crossGuideReadIntroDesc");
   })();
 
-  const getReadGuideTargetIds = useCallback(() => {
+  const getReadGuideTargetIds = useCallback((): string[] => {
     if (guideStep === "readIntro") return ["reader-guide-header"];
     if (guideStep === "readTools") return ["reader-guide-tools", "reader-guide-tools-toggle", "reader-guide-header"];
     if (guideStep === "readToEdit") return ["reader-guide-edit-button", "reader-guide-tools", "reader-guide-tools-toggle"];
@@ -75,22 +84,11 @@ export function useCrossModeReadGuide({ activeCloudScript, cloudScriptMode, isPu
   }, [guideStep]);
 
   const refreshReadGuideSpotlight = useCallback(() => {
-    if (!readGuideDialogOpen) {
-      setReadGuideSpotlightRect(null);
-      return;
-    }
+    if (!readGuideDialogOpen) { setReadGuideSpotlightRect(null); return; }
     const targetIds = getReadGuideTargetIds();
-    if (!targetIds.length) {
-      setReadGuideSpotlightRect(null);
-      return;
-    }
-    const target = targetIds
-      .map((id) => document.getElementById(id))
-      .find(Boolean);
-    if (!target) {
-      setReadGuideSpotlightRect(null);
-      return;
-    }
+    if (!targetIds.length) { setReadGuideSpotlightRect(null); return; }
+    const target = targetIds.map((id) => document.getElementById(id)).find(Boolean);
+    if (!target) { setReadGuideSpotlightRect(null); return; }
     const rect = target.getBoundingClientRect();
     const pad = 10;
     setReadGuideSpotlightRect({
@@ -102,10 +100,7 @@ export function useCrossModeReadGuide({ activeCloudScript, cloudScriptMode, isPu
   }, [getReadGuideTargetIds, readGuideDialogOpen]);
 
   useEffect(() => {
-    if (!readGuideDialogOpen) {
-      setReadGuideSpotlightRect(null);
-      return undefined;
-    }
+    if (!readGuideDialogOpen) { setReadGuideSpotlightRect(null); return undefined; }
     refreshReadGuideSpotlight();
     const handleLayoutChange = () => refreshReadGuideSpotlight();
     window.addEventListener("resize", handleLayoutChange);

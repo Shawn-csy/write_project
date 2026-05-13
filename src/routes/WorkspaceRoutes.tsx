@@ -3,14 +3,28 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { Globe, SlidersHorizontal } from "lucide-react";
 import { lazyWithRefreshRetry } from "../lib/lazyWithRefreshRetry";
 
-import { Card, CardContent } from "../components/ui/card";
-import { Button } from "../components/ui/button";
-import ReaderHeader from "../components/header/ReaderHeader";
-import { LanguageSwitcher } from "../components/common/LanguageSwitcher";
-import { MainLayout } from "../components/layout/MainLayout";
-import { StatisticsPanel } from "../components/statistics/StatisticsPanel";
-import { RequireAuth } from "../components/auth/RequireAuth";
 import { renderSafeHtml } from "../lib/safeHtml";
+import type { WorkspaceRoutesProps } from "../types/routes";
+
+// Migrated TS components — direct import, no cast needed
+import { MainLayout } from "../components/layout/MainLayout";
+import ReaderHeader from "../components/header/ReaderHeader";
+
+// JS components still pending TS migration
+type AC = React.ComponentType<Record<string, unknown>>;
+type ACC = React.ComponentType<{ children?: React.ReactNode; [k: string]: unknown }>;
+
+import { Card as CardJs, CardContent as CardContentJs } from "../components/ui/card";
+import { Button as ButtonJs } from "../components/ui/button";
+import { LanguageSwitcher as LanguageSwitcherJs } from "../components/common/LanguageSwitcher";
+import { StatisticsPanel as StatisticsPanelJs } from "../components/statistics/StatisticsPanel";
+import { RequireAuth as RequireAuthJs } from "../components/auth/RequireAuth";
+const Card = CardJs as unknown as ACC;
+const CardContent = CardContentJs as unknown as ACC;
+const Button = ButtonJs as unknown as ACC;
+const LanguageSwitcher = LanguageSwitcherJs as unknown as AC;
+const StatisticsPanel = StatisticsPanelJs as unknown as AC;
+const RequireAuth = RequireAuthJs as unknown as ACC;
 
 const SettingsPanel = lazyWithRefreshRetry(() => import("../components/panels/SettingsPanel"), "settings-panel");
 const AboutPanelLazy = lazyWithRefreshRetry(() => import("../components/panels/AboutPanel"), "about-panel");
@@ -51,7 +65,7 @@ export function renderWorkspaceRoutes({
   handleReaderEdit,
   guideOverlay,
   navigate,
-}) {
+}: WorkspaceRoutesProps) {
   const {
     titleHtml,
     hasTitle,
@@ -95,7 +109,7 @@ export function renderWorkspaceRoutes({
                   <div>
                     <ReaderHeader
                       hasTitle={showReaderHeader && hasTitle}
-                      onToggleTitle={() => setShowTitle((v) => !v)}
+                      onToggleTitle={() => setShowTitle((v: boolean) => !v)}
                       titleName={headerTitle}
                       activeFile={null}
                       fileMeta={fileMeta}
@@ -107,7 +121,7 @@ export function renderWorkspaceRoutes({
                       shareCopied={shareCopied}
                       sceneList={sceneList}
                       currentSceneId={currentSceneId}
-                      onSelectScene={(id) => {
+                      onSelectScene={(id: string) => {
                         setCurrentSceneId(id);
                         setScrollSceneId(id);
                       }}
@@ -209,7 +223,11 @@ export function renderWorkspaceRoutes({
                     <h3 className="font-semibold text-sm">統計分析面板</h3>
                   </div>
                   <div className="flex-1 min-h-0 overflow-hidden">
-                    <StatisticsPanel rawScript={rawScript} scriptAst={ast} onLocateText={navProps.handleLocateText || navProps.onLocateText} />
+                    <StatisticsPanel
+                      rawScript={rawScript}
+                      scriptAst={ast}
+                      onLocateText={navProps.handleLocateText ?? navProps.onLocateText}
+                    />
                   </div>
                 </div>
               )}

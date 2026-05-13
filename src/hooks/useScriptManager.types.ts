@@ -8,7 +8,12 @@ export interface ScriptAst {
 
 export interface ParsedScene {
   id: string;
-  title: string;
+  /** 場景標題文字（由 screenplayAST 產生） */
+  label?: string;
+  /** 場景在列表中的序號（由 ScriptViewer 產生） */
+  index?: number;
+  /** 顯示用標頭文字（由 ScriptViewer 產生） */
+  header?: string;
   lineNumber?: number;
   [key: string]: unknown;
 }
@@ -36,6 +41,19 @@ export interface CloudScript {
   markerThemeId?: string;
   markerTheme?: { configs?: MarkerConfig[] };
   lastModified?: number | string;
+  updatedAt?: number | string;
+  draftDate?: string;
+  licenseCommercial?: string;
+  licenseDerivative?: string;
+  licenseNotify?: string;
+  coverUrl?: string | null;
+  tags?: { name: string }[];
+  customMetadata?: unknown[];
+  series?: { name?: string };
+  seriesOrder?: number | null;
+  organization?: { id: string; name?: string; displayName?: string; logoUrl?: string; avatar?: string; avatarUrl?: string };
+  persona?: { id?: string; displayName?: string; name?: string; avatar?: string; avatarUrl?: string; defaultLicenseCommercial?: string; defaultLicenseDerivative?: string; defaultLicenseNotify?: string };
+  owner?: { id?: string; displayName?: string; name?: string; avatar?: string; avatarUrl?: string };
   [key: string]: unknown;
 }
 
