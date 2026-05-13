@@ -1,6 +1,26 @@
 import React from "react";
+import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { PublisherWorksTab } from "./PublisherWorksTab";
+
+vi.mock("../../../contexts/I18nContext", () => ({
+  useI18n: () => ({
+    t: (key) => ({
+      "publisherWorksTab.filterAll": "全部",
+      "publisherWorksTab.filterPublic": "已公開",
+      "publisherWorksTab.filterPrivate": "未公開",
+      "publisherWorksTab.continueWriting": "繼續寫作",
+      "publisherWorksTab.editInfo": "編輯資訊",
+      "publisherWorksTab.viewPublicPage": "查看公開頁",
+      "publisherWorksTab.noCover": "無封面",
+      "publisherWorksTab.updatedAt": "更新",
+      "publisherWorksTab.loadMore": "載入更多",
+      "publisherWorksTab.emptyAll": "尚未有任何作品",
+      "publisherWorksTab.emptyPublic": "尚未有公開作品",
+      "publisherWorksTab.emptyPrivate": "尚未有未公開作品",
+    })[key] ?? key,
+  }),
+}));
 
 describe("PublisherWorksTab", () => {
   it("calls onContinueEdit when clicking continue writing", () => {

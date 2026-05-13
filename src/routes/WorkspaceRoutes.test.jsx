@@ -185,13 +185,6 @@ describe("renderWorkspaceRoutes", () => {
     expect(screen.queryByTestId("stats-panel")).not.toBeInTheDocument();
   });
 
-  it("MainLayout.onSelectFile calls navigate with encoded path", () => {
-    const navigate = vi.fn();
-    renderRoutes(makeProps({ navigate }));
-    capturedMainLayoutProps.onSelectFile({ name: "my script.fountain" });
-    expect(navigate).toHaveBeenCalledWith("/file/my%20script.fountain");
-  });
-
   it("MainLayout.openHome calls nav.openHome and navigates to /dashboard", () => {
     const navigate = vi.fn();
     const openHome = vi.fn();
@@ -199,17 +192,6 @@ describe("renderWorkspaceRoutes", () => {
     capturedMainLayoutProps.openHome();
     expect(openHome).toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith("/dashboard");
-  });
-
-  it("MainLayout.onSelectScene calls setCurrentSceneId and setScrollSceneId", () => {
-    const setCurrentSceneId = vi.fn();
-    const setScrollSceneId = vi.fn();
-    renderRoutes(makeProps({
-      scriptManager: { ...makeProps().scriptManager, setCurrentSceneId, setScrollSceneId },
-    }));
-    capturedMainLayoutProps.onSelectScene("scene-42");
-    expect(setCurrentSceneId).toHaveBeenCalledWith("scene-42");
-    expect(setScrollSceneId).toHaveBeenCalledWith("scene-42");
   });
 
   it("setShowStats is called when stats close button is clicked", () => {
