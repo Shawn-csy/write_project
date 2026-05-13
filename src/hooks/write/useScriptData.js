@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { getUserScripts } from "../../lib/api/scripts";
 
@@ -10,12 +10,13 @@ export function useScriptData(refreshTrigger = 0) {
     const [createPath, setCreatePath] = useState("/");
     const [expandedPaths, setExpandedPaths] = useState(new Set());
 
-    // Fetch Scripts
-    const fetchScripts = async () => {
+    const fetchScripts = useCallback(async () => {
         if (!currentUser) return;
+        let cancelled = false;
         try {
             setLoading(true);
             const data = await getUserScripts();
+            if (cancelled) return;
             if (!Array.isArray(data)) {
                 setScripts([]);
                 return;
@@ -47,17 +48,20 @@ export function useScriptData(refreshTrigger = 0) {
                     deduped.push(item);
                 }
             }
-            setScripts(deduped);
+            if (!cancelled) setScripts(deduped);
         } catch (err) {
-            console.error(err);
+            if (!cancelled) console.error(err);
         } finally {
-            setLoading(false);
+            if (!cancelled) setLoading(false);
         }
-    };
+        return () => { cancelled = true; };
+    }, [currentUser]);
 
     useEffect(() => {
-        fetchScripts();
-    }, [currentUser, refreshTrigger]);
+        let cancelFn;
+        fetchScripts().then(fn => { cancelFn = fn; });
+        return () => { cancelFn?.(); };
+    }, [fetchScripts, refreshTrigger]);
 
     // URL Sync
     useEffect(() => {
@@ -121,14 +125,18 @@ export function useScriptData(refreshTrigger = 0) {
     };
 
     // Derived State (Visible Items)
-    const visibleItems = useMemo(() => {
-        const byFolder = {};
-        scripts.forEach(s => {
+    // byFolder 只在 scripts 變動時重建，避免 path/expandedPaths 變動時重算整個 map
+    const byFolder = useMemo(() => {
+        const map = {};
+        for (const s of scripts) {
             const f = s.folder || "/";
-            if (!byFolder[f]) byFolder[f] = [];
-            byFolder[f].push(s);
-        });
+            if (!map[f]) map[f] = [];
+            map[f].push(s);
+        }
+        return map;
+    }, [scripts]);
 
+    const visibleItems = useMemo(() => {
         const sortFn = (a, b) => {
             const diff = (a.sortOrder || 0) - (b.sortOrder || 0);
             if (Math.abs(diff) > 0.01) return diff;
@@ -136,15 +144,14 @@ export function useScriptData(refreshTrigger = 0) {
         };
 
         const buildFlat = (path, depth = 0) => {
-            const items = byFolder[path] || [];
-            items.sort(sortFn);
+            const items = (byFolder[path] || []).slice().sort(sortFn);
             let result = [];
             for (const item of items) {
                 result.push({ ...item, depth });
                 if (item.type === 'folder') {
                     const fullPath = (path === '/' ? '' : path) + '/' + item.title;
                     if (expandedPaths.has(fullPath)) {
-                        result = [...result, ...buildFlat(fullPath, depth + 1)];
+                        result = result.concat(buildFlat(fullPath, depth + 1));
                     }
                 }
             }
@@ -152,7 +159,7 @@ export function useScriptData(refreshTrigger = 0) {
         };
 
         return buildFlat(currentPath);
-    }, [scripts, currentPath, expandedPaths]);
+    }, [byFolder, currentPath, expandedPaths]);
 
     const toggleExpand = (path, e) => {
         e?.stopPropagation();

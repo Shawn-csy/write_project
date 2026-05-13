@@ -84,16 +84,15 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
   const { t } = useI18n();
   const { id } = useParams();
   const navigate = useNavigate();
-  const { 
-      // Existing destructured props...
-      setActivePublicScriptId, setRawScript, setTitleName, setActiveFile,
-      isLoading, setIsLoading, setActiveCloudScript, activeCloudScript,
-      // Props required for ScriptSurface/Viewer
+  const {
+      setActivePublicScriptId, setRawScript, setTitleName,
+      setActiveCloudScript, activeCloudScript,
       rawScript, filterCharacter, focusMode, focusEffect, focusContentMode,
       highlightCharacters, highlightSfx, setCharacterList, setTitleHtml, setTitleNote, setTitleSummary, setHasTitle, setSceneList,
-      scrollSceneId, fontSize, bodyFontSize, dialogueFontSize, accentConfig, contentScrollRef, setScrollProgress, setCloudScriptMode
+      scrollSceneId, setScrollProgress, setCloudScriptMode
   } = scriptManager;
 
+  const [isLoading, setIsLoading] = useState(false);
   const [mockMeta, setMockMeta] = useState(null);
   const [relatedSeriesScripts, setRelatedSeriesScripts] = useState([]);
   const [publicMarkerConfigs, setPublicMarkerConfigs] = useState(
@@ -354,13 +353,7 @@ INT. ANCIENT RUINS
 They discover a glowing artifact.
 `);
                  setTitleName("The Infinite Horizon");
-                 setActiveFile({ 
-                    id: "mock-script-id", 
-                    name: "The Infinite Horizon", 
-                    type: 'script',
-                    isPublic: true 
-                 });
-                 setActiveCloudScript({ 
+                 setActiveCloudScript({
                      id: "mock-script-id", 
                      title: "The Infinite Horizon",
                      markerThemeId: "default" 
@@ -380,17 +373,13 @@ They discover a glowing artifact.
     };
 
     loadScript();
-  }, [id, setIsLoading, setActivePublicScriptId, setRawScript, setTitleName, setActiveFile, setCloudScriptMode]);
+  }, [id, setActivePublicScriptId, setRawScript, setTitleName, setCloudScriptMode]);
 
 
   // Hook for viewer defaults (font, theme css injection)
   const viewerDefaults = useScriptViewerDefaults({
-    theme: activeCloudScript?.markerThemeId, // Ideally this hook handles theme logic
-    fontSize,
-    bodyFontSize,
-    dialogueFontSize,
-    accentColor: accentConfig?.accent || "#3b82f6",
-    markerConfigs: publicMarkerConfigs, // Public reader uses resolved script-scoped configs directly
+    theme: activeCloudScript?.markerThemeId,
+    markerConfigs: publicMarkerConfigs,
   });
 
   const fullScriptData = useMemo(() => ({

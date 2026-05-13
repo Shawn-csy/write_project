@@ -31,8 +31,6 @@ export const PreviewPanel = forwardRef(function PreviewPanel({
   scrollClassName
 }, ref) {
   const { t } = useI18n();
-  if (!show && !readOnly) return null;
-
   const viewerDefaults = useScriptViewerDefaults({
     theme,
     fontSize,

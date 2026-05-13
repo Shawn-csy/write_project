@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { useCallback, useRef, useEffect, useMemo } from "react";
 import { EditorView, Decoration } from "@codemirror/view";
 import { StateEffect, StateField } from "@codemirror/state";
 
@@ -7,7 +7,7 @@ export function useEditorSync({ readOnly, showPreview }) {
   const editorViewRef = useRef(null);
   const ignoreEditorScrollRef = useRef(false);
   const ignorePreviewScrollRef = useRef(false);
-  const [editorReady, setEditorReady] = useState(false);
+  const editorReadyRef = useRef(false);
 
   const setHighlightLine = useMemo(
     () => StateEffect.define(),
@@ -94,10 +94,8 @@ export function useEditorSync({ readOnly, showPreview }) {
   const handleViewUpdate = useCallback((update) => {
     if (!update.view) return;
     editorViewRef.current = update.view;
-    if (!editorReady) {
-      setEditorReady(true);
-    }
-  }, [editorReady]);
+    editorReadyRef.current = true;
+  }, []);
 
   const scrollEditorToLine = useCallback((lineNumber, behaviorOrOptions = "auto") => {
     const view = editorViewRef.current;
@@ -160,7 +158,7 @@ export function useEditorSync({ readOnly, showPreview }) {
     const scrollDom = view.scrollDOM;
     scrollDom.addEventListener("scroll", handleEditorScroll, { passive: true });
     return () => scrollDom.removeEventListener("scroll", handleEditorScroll);
-  }, [handleEditorScroll, editorReady]);
+  }, [handleEditorScroll]);
 
   useEffect(() => {
     const container = previewRef.current;
@@ -168,6 +166,10 @@ export function useEditorSync({ readOnly, showPreview }) {
     container.addEventListener("scroll", handlePreviewScroll, { passive: true });
     return () => container.removeEventListener("scroll", handlePreviewScroll);
   }, [handlePreviewScroll, showPreview, readOnly]);
+
+  const setEditorReady = useCallback((val) => {
+    editorReadyRef.current = val;
+  }, []);
 
   return {
     previewRef,
