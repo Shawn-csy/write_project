@@ -15,11 +15,6 @@ import { useI18n } from "../../contexts/I18nContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 function Sidebar({
-  // Scene Props
-  sceneList = [],
-  currentSceneId,
-  onSelectScene,
-
   // Navigation
   // activeFile, // Removed
   openAbout,

@@ -8,6 +8,7 @@ import { useI18n } from "./contexts/I18nContext";
 
 import { MetaTags } from "./components/common/MetaTags.jsx";
 import { useReaderScriptActions } from "./hooks/useScriptActions";
+import { usePersistMarkerTheme } from "./hooks/usePersistMarkerTheme";
 import { useInitialScroll } from "./hooks/useInitialScroll";
 import { updateScript } from "./lib/api/scripts";
 import { trackPageView } from "./lib/firebase";
@@ -26,8 +27,6 @@ function App() {
       accentConfig,
       accentStyle,
       exportMode,
-      fileLabelMode,
-      setFileLabelMode,
       adjustFont,
       markerThemes,
       markerConfigs,
@@ -71,7 +70,6 @@ function App() {
   activeCloudScriptRef.current = activeCloudScript;
 
   // 4. Local State
-  const [searchTerm, setSearchTerm] = useState("");
   const [showStats, setShowStats] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
 
@@ -130,27 +128,7 @@ function App() {
       }
   }, [scriptManager]);
 
-  const handleCloudMarkerThemeUpdate = useCallback(async (newThemeId) => {
-      const script = activeCloudScriptRef.current;
-      if (!script) return false;
-      const normalizedThemeId = String(newThemeId || "default");
-      const prevThemeId = String(script.markerThemeId || "default");
-      if (normalizedThemeId === prevThemeId) return true;
-
-      scriptManager.setActiveCloudScript((prev) =>
-        prev ? { ...prev, markerThemeId: normalizedThemeId } : prev
-      );
-      try {
-          await updateScript(script.id, { markerThemeId: normalizedThemeId });
-          return true;
-      } catch (e) {
-          console.error("Failed to update marker theme", e);
-          scriptManager.setActiveCloudScript((prev) =>
-            prev ? { ...prev, markerThemeId: prevThemeId } : prev
-          );
-          return false;
-      }
-  }, [scriptManager]);
+  const handleCloudMarkerThemeUpdate = usePersistMarkerTheme(scriptManager);
 
   const handleReturnHome = () => {
     if (activeCloudScript) {
@@ -255,36 +233,29 @@ function App() {
     />
 
     <ScriptViewProvider scriptManager={scriptManager}>
-       <AppRouter 
+       <AppRouter
           scriptManager={scriptManager}
           nav={nav}
           navProps={navProps}
-          
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
+
           showStats={showStats}
           setShowStats={setShowStats}
           scrollProgress={scrollProgress}
-          
+
           headerTitle={headerTitle}
           canShare={canShare}
           isPublicReader={isPublicReader}
           showReaderHeader={showReaderHeader}
-          
+
           readerDownloadOptions={readerDownloadOptions}
           handleShareUrl={handleShareUrl}
           shareCopied={shareCopied}
           handleReturnHome={handleReturnHome}
           handleCloudTitleUpdate={handleCloudTitleUpdate}
           handleCloudMarkerThemeUpdate={handleCloudMarkerThemeUpdate}
-          
+
           accentStyle={accentStyle}
-          fileLabelMode={fileLabelMode}
-          setFileLabelMode={setFileLabelMode}
-          
-          activeFile={null}
           activeCloudScript={activeCloudScript}
-          fileTagsMap={scriptManager.fileTagsMap}
        />
     </ScriptViewProvider>
     </>

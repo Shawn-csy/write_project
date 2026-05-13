@@ -8,6 +8,8 @@ import { StatisticsPanel } from "../statistics/StatisticsPanel";
 import { parseScreenplay } from "../../lib/screenplayAST";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useEditorSync } from "../../hooks/useEditorSync";
+import { useEditorGuide } from "../../hooks/editor/useEditorGuide";
+import { useEditorResize } from "../../hooks/editor/useEditorResize";
 import { useLiveEditorPersistence } from "../../hooks/editor/useLiveEditorPersistence";
 import { usePreviewLineNavigation } from "../../hooks/usePreviewLineNavigation";
 import { useLiveEditorDownloadOptions } from "../../hooks/editor/useLiveEditorDownloadOptions";
@@ -17,15 +19,6 @@ import { MarkerRulesPanel } from "./MarkerRulesPanel";
 import { useI18n } from "../../contexts/I18nContext";
 import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
 import { Drawer, DrawerContent, DrawerTitle, DrawerDescription } from "../ui/drawer";
-
-const EDITOR_PANE_WIDTH_STORAGE_KEY = "live_editor_pane_width_percent";
-const MIN_EDITOR_PANE_WIDTH = 28;
-const MAX_EDITOR_PANE_WIDTH = 72;
-
-const clampEditorPaneWidth = (value) => {
-  if (!Number.isFinite(value)) return 50;
-  return Math.min(MAX_EDITOR_PANE_WIDTH, Math.max(MIN_EDITOR_PANE_WIDTH, value));
-};
 
 // LiveEditor Component
 export default function LiveEditor({ scriptId, initialData, onClose, initialSceneId, defaultShowPreview = false, readOnly = false, onRequestEdit, onOpenMarkerSettings, contentScrollRef, isSidebarOpen, onSetSidebarOpen, onTitleHtml, onHasTitle, onTitleNote, onTitleSummary, onTitleName, showHeader = true, crossModeGuideActive = false, crossModeGuideStep = "", onCrossGuideNext, onCrossGuidePrev, onCrossGuideExit, onPersistMarkerTheme }) {
@@ -59,24 +52,11 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   const lastSavedTitle = useRef(initialData?.title || "Untitled");
 
   const [showPreview, setShowPreview] = useState(defaultShowPreview || readOnly);
-  const [editorPaneWidth, setEditorPaneWidth] = useState(() => {
-    if (typeof window === "undefined") return 50;
-    const stored = Number(window.localStorage.getItem(EDITOR_PANE_WIDTH_STORAGE_KEY));
-    return clampEditorPaneWidth(stored);
-  });
-  const [isResizing, setIsResizing] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showRules, setShowRules] = useState(false);
-  const [showGuide, setShowGuide] = useState(false);
-  const [guideIndex, setGuideIndex] = useState(0);
-  const [guideSpotlightRect, setGuideSpotlightRect] = useState(null);
-  const [crossGuideSpotlightRect, setCrossGuideSpotlightRect] = useState(null);
-  const editorPreviewContainerRef = useRef(null);
   const headerRef = useRef(null);
   const editorPaneRef = useRef(null);
   const moreActionsButtonRef = useRef(null);
-  const editorPaneWidthRef = useRef(editorPaneWidth);
-  const resizeFrameRef = useRef(null);
   const [systemPrefersDark, setSystemPrefersDark] = useState(() => {
     if (typeof window === "undefined" || !window.matchMedia) return false;
     return window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -184,7 +164,30 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     // scenes (if needed later)
   } = useEditorSync({ readOnly, showPreview });
 
-  const [scenes, setScenes] = useState([]); 
+  const {
+    editorPreviewContainerRef,
+    editorPaneWidth,
+    isResizing,
+    handleResizerPointerDown,
+    handleResizerPointerMove,
+    handleResizerPointerUp,
+    handleResizerDoubleClick,
+  } = useEditorResize({ readOnly, showPreview });
+
+  const {
+    showGuide, guideSpotlightRect, currentGuide, guideSteps, guideIndex,
+    crossGuideSpotlightRect, showCrossModeEditGuide, crossGuideTitle, crossGuideDesc,
+    startGuide, finishGuide, handleGuidePrev, handleGuideNext,
+  } = useEditorGuide({
+    readOnly,
+    isMobile,
+    t,
+    crossModeGuideActive,
+    crossModeGuideStep,
+    refs: { headerRef, editorPaneRef, previewRef, moreActionsButtonRef },
+  });
+
+  const [scenes, setScenes] = useState([]);
 
   const {
     handleChange,
@@ -268,230 +271,6 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     [previewRef, contentScrollRef]
   );
 
-  const guideSteps = useMemo(() => ([
-    {
-      title: t("liveEditor.guideEditScriptTitle"),
-      description: t("liveEditor.guideEditScriptDesc"),
-      target: "header",
-    },
-    {
-      title: isMobile ? t("liveEditor.guideEditorTitleMobile") : t("liveEditor.guideEditorTitle"),
-      description: isMobile ? t("liveEditor.guideEditorDescMobile") : t("liveEditor.guideEditorDesc"),
-      target: "editor",
-    },
-    {
-      title: isMobile ? t("liveEditor.guidePreviewTitleMobile") : t("liveEditor.guidePreviewTitle"),
-      description: isMobile ? t("liveEditor.guidePreviewDescMobile") : t("liveEditor.guidePreviewDesc"),
-      target: "preview",
-    },
-    {
-      title: t("liveEditor.guideActionsTitle"),
-      description: isMobile ? t("liveEditor.guideActionsDescMobile") : t("liveEditor.guideActionsDesc"),
-      target: "actions",
-    },
-  ]), [t, isMobile]);
-
-  const currentGuide = showGuide ? guideSteps[guideIndex] : null;
-  const showCrossModeEditGuide = !readOnly && crossModeGuideActive && (
-    crossModeGuideStep === "editIntro" ||
-    crossModeGuideStep === "editPreview" ||
-    crossModeGuideStep === "editActions"
-  );
-  const crossGuideTitle = (() => {
-    if (crossModeGuideStep === "editPreview") return t("liveEditor.crossGuideEditPreviewTitle");
-    if (crossModeGuideStep === "editActions") return t("liveEditor.crossGuideEditActionsTitle");
-    return t("liveEditor.crossGuideEditIntroTitle");
-  })();
-  const crossGuideDesc = (() => {
-    if (crossModeGuideStep === "editPreview") return t("liveEditor.crossGuideEditPreviewDesc");
-    if (crossModeGuideStep === "editActions") return t("liveEditor.crossGuideEditActionsDesc");
-    return t("liveEditor.crossGuideEditIntroDesc");
-  })();
-  const crossGuideTarget = (() => {
-    if (crossModeGuideStep === "editPreview") return "preview";
-    if (crossModeGuideStep === "editActions") return "actions";
-    return "editor";
-  })();
-
-  const getGuideTargetElement = useCallback((target) => {
-    switch (target) {
-      case "header": {
-        const el = headerRef.current;
-        if (!el) return null;
-        const rect = el.getBoundingClientRect();
-        if (rect.width && rect.height) return el;
-        // fallback: first child with actual size
-        return el.firstElementChild || el;
-      }
-      case "editor":
-        return editorPaneRef.current;
-      case "preview":
-        return previewRef.current;
-      case "actions":
-        return moreActionsButtonRef.current;
-      default:
-        return null;
-    }
-  }, [previewRef]);
-
-  const updateGuideSpotlight = useCallback(() => {
-    if (!showGuide) {
-      setGuideSpotlightRect(null);
-      return;
-    }
-    const step = guideSteps[guideIndex];
-    const element = step ? getGuideTargetElement(step.target) : null;
-    if (!element) {
-      setGuideSpotlightRect(null);
-      return;
-    }
-    const rect = element.getBoundingClientRect();
-    if (!rect.width || !rect.height) {
-      setGuideSpotlightRect(null);
-      return;
-    }
-    const padding = 8;
-    setGuideSpotlightRect({
-      top: Math.max(0, rect.top - padding),
-      left: Math.max(0, rect.left - padding),
-      width: rect.width + padding * 2,
-      height: rect.height + padding * 2,
-    });
-  }, [showGuide, guideSteps, guideIndex, getGuideTargetElement]);
-
-  useEffect(() => {
-    if (!showGuide) return undefined;
-    updateGuideSpotlight();
-    const onLayoutChange = () => updateGuideSpotlight();
-    window.addEventListener("resize", onLayoutChange);
-    window.addEventListener("scroll", onLayoutChange, true);
-    return () => {
-      window.removeEventListener("resize", onLayoutChange);
-      window.removeEventListener("scroll", onLayoutChange, true);
-    };
-  }, [showGuide, guideIndex, updateGuideSpotlight]);
-
-  const updateCrossGuideSpotlight = useCallback(() => {
-    if (!showCrossModeEditGuide) {
-      setCrossGuideSpotlightRect(null);
-      return;
-    }
-    const element = getGuideTargetElement(crossGuideTarget);
-    if (!element) {
-      setCrossGuideSpotlightRect(null);
-      return;
-    }
-    const rect = element.getBoundingClientRect();
-    if (!rect.width || !rect.height) {
-      setCrossGuideSpotlightRect(null);
-      return;
-    }
-    const padding = 8;
-    setCrossGuideSpotlightRect({
-      top: Math.max(0, rect.top - padding),
-      left: Math.max(0, rect.left - padding),
-      width: rect.width + padding * 2,
-      height: rect.height + padding * 2,
-    });
-  }, [crossGuideTarget, getGuideTargetElement, showCrossModeEditGuide]);
-
-  useEffect(() => {
-    if (!showCrossModeEditGuide) {
-      setCrossGuideSpotlightRect(null);
-      return undefined;
-    }
-    updateCrossGuideSpotlight();
-    const onLayoutChange = () => updateCrossGuideSpotlight();
-    window.addEventListener("resize", onLayoutChange);
-    window.addEventListener("scroll", onLayoutChange, true);
-    return () => {
-      window.removeEventListener("resize", onLayoutChange);
-      window.removeEventListener("scroll", onLayoutChange, true);
-    };
-  }, [showCrossModeEditGuide, crossModeGuideStep, updateCrossGuideSpotlight]);
-
-  const startGuide = useCallback(() => {
-    setGuideIndex(0);
-    setShowGuide(true);
-  }, []);
-
-  const finishGuide = useCallback(() => {
-    setShowGuide(false);
-    setGuideSpotlightRect(null);
-  }, []);
-
-  const handleGuidePrev = useCallback(() => {
-    setGuideIndex((prev) => Math.max(0, prev - 1));
-  }, []);
-
-  const handleGuideNext = useCallback(() => {
-    if (guideIndex >= guideSteps.length - 1) {
-      finishGuide();
-      return;
-    }
-    setGuideIndex((prev) => Math.min(guideSteps.length - 1, prev + 1));
-  }, [finishGuide, guideIndex, guideSteps.length]);
-
-  const persistEditorPaneWidth = useCallback((value) => {
-    if (typeof window === "undefined") return;
-    try {
-      window.localStorage.setItem(EDITOR_PANE_WIDTH_STORAGE_KEY, String(Math.round(value * 10) / 10));
-    } catch (_error) {
-      // Ignore storage errors (private mode / quota).
-    }
-  }, []);
-
-  const applyEditorPaneWidth = useCallback((nextWidth) => {
-    const clamped = clampEditorPaneWidth(nextWidth);
-    editorPaneWidthRef.current = clamped;
-    const container = editorPreviewContainerRef.current;
-    if (container) {
-      container.style.setProperty("--editor-pane-width", `${clamped}%`);
-    }
-  }, []);
-
-  const updateEditorPaneWidth = useCallback((clientX) => {
-    const container = editorPreviewContainerRef.current;
-    if (!container || !Number.isFinite(clientX)) return;
-    const rect = container.getBoundingClientRect();
-    if (!rect.width) return;
-    const ratio = ((clientX - rect.left) / rect.width) * 100;
-    const clamped = clampEditorPaneWidth(ratio);
-    if (resizeFrameRef.current) return;
-    resizeFrameRef.current = requestAnimationFrame(() => {
-      applyEditorPaneWidth(clamped);
-      resizeFrameRef.current = null;
-    });
-  }, [applyEditorPaneWidth]);
-
-  const handleResizerPointerDown = useCallback((event) => {
-    if (readOnly || !showPreview) return;
-    event.preventDefault();
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-    setIsResizing(true);
-    updateEditorPaneWidth(event.clientX);
-  }, [readOnly, showPreview, updateEditorPaneWidth]);
-
-  const handleResizerPointerMove = useCallback((event) => {
-    if (!isResizing) return;
-    updateEditorPaneWidth(event.clientX);
-  }, [isResizing, updateEditorPaneWidth]);
-
-  const handleResizerPointerUp = useCallback((event) => {
-    event.currentTarget.releasePointerCapture?.(event.pointerId);
-    const finalWidth = editorPaneWidthRef.current;
-    setEditorPaneWidth(finalWidth);
-    persistEditorPaneWidth(finalWidth);
-    setIsResizing(false);
-  }, [persistEditorPaneWidth]);
-
-  const handleResizerDoubleClick = useCallback(() => {
-    const resetWidth = 50;
-    applyEditorPaneWidth(resetWidth);
-    setEditorPaneWidth(resetWidth);
-    persistEditorPaneWidth(resetWidth);
-  }, [applyEditorPaneWidth, persistEditorPaneWidth]);
-
   useEffect(() => {
     if (readOnly) return undefined;
 
@@ -508,30 +287,6 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [handleManualSave, readOnly]);
 
-  useEffect(() => {
-    if (!isResizing) return undefined;
-    const previousCursor = document.body.style.cursor;
-    const previousUserSelect = document.body.style.userSelect;
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-    return () => {
-      document.body.style.cursor = previousCursor;
-      document.body.style.userSelect = previousUserSelect;
-    };
-  }, [isResizing]);
-
-  useEffect(() => {
-    applyEditorPaneWidth(editorPaneWidth);
-  }, [editorPaneWidth, applyEditorPaneWidth]);
-
-  useEffect(() => {
-    return () => {
-      if (resizeFrameRef.current) {
-        cancelAnimationFrame(resizeFrameRef.current);
-      }
-    };
-  }, []);
-
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center bg-background">
@@ -540,8 +295,6 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     );
   }
 
-  // ... (previous hooks)
-  
   const extensions = useMemo(() => {
     const baseExtensions = [
         EditorView.lineWrapping, 
