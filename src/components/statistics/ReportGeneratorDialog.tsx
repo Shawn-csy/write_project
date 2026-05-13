@@ -1,5 +1,3 @@
-// @ts-nocheck
-
 import React, { useState, useMemo } from 'react';
 import {
   Dialog,
@@ -12,30 +10,52 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Download, Copy, FileText, Sheet } from "lucide-react";
 import { downloadBlob, buildFilename } from "@/lib/download";
 import { exportReportAsXlsx, exportReportAsDocx } from "@/lib/api/export";
 import { useI18n } from "@/contexts/I18nContext";
 
-export function ReportGeneratorDialog({ open, onOpenChange, markerEntries }) {
+interface ReportItem {
+  text?: string;
+  line?: number | null;
+  type?: string;
+}
+
+interface MarkerEntry {
+  id: string;
+  label: string;
+  count: number;
+  items: Array<string | ReportItem>;
+}
+
+interface ReportRow {
+  category: string;
+  content: string;
+  line: number | string;
+  type: string;
+}
+
+interface ReportGeneratorDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  markerEntries: MarkerEntry[];
+}
+
+export function ReportGeneratorDialog({ open, onOpenChange, markerEntries }: ReportGeneratorDialogProps) {
   const { t } = useI18n();
-  // markerEntries: Array of { id, label, count, items: [{ text, line, type }] }
-  
-  // State for selected marker IDs
-  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Initialize selection when opening (optional: select all by default, or none)
   // For now, let's select all if empty, or persist? 
   // Better: select all by default on first load.
   React.useEffect(() => {
       if (open && selectedIds.size === 0 && markerEntries.length > 0) {
-          setSelectedIds(new Set(markerEntries.map(e => e.id)));
+          setSelectedIds(new Set(markerEntries.map((entry) => entry.id)));
       }
   }, [open, markerEntries]);
 
-  const toggleSelection = (id) => {
-    setSelectedIds(prev => {
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -47,28 +67,28 @@ export function ReportGeneratorDialog({ open, onOpenChange, markerEntries }) {
       if (selectedIds.size === markerEntries.length) {
           setSelectedIds(new Set());
       } else {
-          setSelectedIds(new Set(markerEntries.map(e => e.id)));
+          setSelectedIds(new Set(markerEntries.map((entry) => entry.id)));
       }
   };
 
-  // Generate Report Data
-  const reportData = useMemo(() => {
-      const data = [];
-      markerEntries.forEach(entry => {
+  const reportData = useMemo<ReportRow[]>(() => {
+      const data: ReportRow[] = [];
+      markerEntries.forEach((entry) => {
           if (selectedIds.has(entry.id)) {
-              entry.items.forEach(item => {
+              entry.items.forEach((item) => {
+                  const isObjectItem = typeof item === "object" && item !== null;
+                  const content = typeof item === "string" ? item : String(item.text || "");
                   data.push({
                       category: entry.label,
-                      content: typeof item === 'string' ? item : item.text,
-                      line: typeof item === 'object' ? item.line : '-',
-                      type: typeof item === 'object' ? item.type : 'block'
+                      content,
+                      line: isObjectItem && typeof item.line === "number" ? item.line : "-",
+                      type: isObjectItem && typeof item.type === "string" ? item.type : "block",
                   });
               });
           }
       });
-      // Sort by line number if possible
       return data.sort((a, b) => {
-          if (a.line && b.line) return a.line - b.line;
+          if (typeof a.line === "number" && typeof b.line === "number") return a.line - b.line;
           return 0;
       });
   }, [selectedIds, markerEntries]);
@@ -76,17 +96,15 @@ export function ReportGeneratorDialog({ open, onOpenChange, markerEntries }) {
   // Copy to Clipboard
   const handleCopy = () => {
       const headers = [t("reportGenerator.columnCategory"), t("reportGenerator.columnContent"), t("reportGenerator.columnLine")];
-      const rows = reportData.map(row => `${row.category}\t${row.content}\t${row.line}`);
+      const rows = reportData.map((row) => `${row.category}\t${row.content}\t${row.line}`);
       const text = [headers.join('\t'), ...rows].join('\n');
-      navigator.clipboard.writeText(text);
-      // Could show toast here
+      void navigator.clipboard.writeText(text);
   };
 
   // Download CSV
   const handleDownloadCSV = () => {
       const headers = [[t("reportGenerator.columnCategory"), t("reportGenerator.columnContent"), t("reportGenerator.columnLine")].join(",")];
-      const rows = reportData.map(row => {
-          // Escape quotes in content
+      const rows = reportData.map((row) => {
           const safeContent = `"${row.content.replace(/"/g, '""')}"`;
           return `${row.category},${safeContent},${row.line}`;
       });
@@ -132,13 +150,13 @@ export function ReportGeneratorDialog({ open, onOpenChange, markerEntries }) {
             <div className="w-1/3 border-r pr-4 flex flex-col gap-2">
                 <div className="flex items-center justify-between mb-2">
                     <h4 className="text-sm font-semibold">{t("reportGenerator.selectCategories")}</h4>
-                    <Button variant="ghost" size="xs" onClick={toggleAll} className="h-6 text-xs">
+                    <Button variant="ghost" size="sm" onClick={toggleAll} className="h-6 text-xs">
                         {selectedIds.size === markerEntries.length ? t("reportGenerator.deselectAll") : t("reportGenerator.selectAll")}
                     </Button>
                 </div>
                 <ScrollArea className="flex-1">
                     <div className="space-y-2">
-                        {markerEntries.map(entry => (
+                        {markerEntries.map((entry) => (
                             <div key={entry.id} className="flex items-center space-x-2 p-1 hover:bg-muted/50 rounded">
                                 <Checkbox 
                                     id={`chk-${entry.id}`} 
@@ -165,32 +183,32 @@ export function ReportGeneratorDialog({ open, onOpenChange, markerEntries }) {
                 </div>
                 <div className="border rounded-md flex-1 overflow-hidden relative">
                     <ScrollArea className="h-full w-full">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-[120px]">{t("reportGenerator.columnCategory")}</TableHead>
-                                    <TableHead>{t("reportGenerator.columnContent")}</TableHead>
-                                    <TableHead className="w-[80px] text-right">{t("reportGenerator.columnLine")}</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b">
+                                    <th className="w-[120px] px-3 py-2 text-left font-medium">{t("reportGenerator.columnCategory")}</th>
+                                    <th className="px-3 py-2 text-left font-medium">{t("reportGenerator.columnContent")}</th>
+                                    <th className="w-[80px] px-3 py-2 text-right font-medium">{t("reportGenerator.columnLine")}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
                                 {reportData.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">
+                                    <tr>
+                                        <td colSpan={3} className="h-24 px-3 py-2 text-center text-muted-foreground">
                                             {t("reportGenerator.emptyPreview")}
-                                        </TableCell>
-                                    </TableRow>
+                                        </td>
+                                    </tr>
                                 ) : (
-                                    reportData.map((row, i) => (
-                                        <TableRow key={i}>
-                                            <TableCell className="font-medium text-xs">{row.category}</TableCell>
-                                            <TableCell className="whitespace-pre-wrap text-sm">{row.content}</TableCell>
-                                            <TableCell className="text-right font-mono text-xs text-muted-foreground">{row.line}</TableCell>
-                                        </TableRow>
+                                    reportData.map((row, index) => (
+                                        <tr key={`${row.category}-${index}`} className="border-b last:border-b-0">
+                                            <td className="px-3 py-2 text-xs font-medium">{row.category}</td>
+                                            <td className="whitespace-pre-wrap px-3 py-2">{row.content}</td>
+                                            <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">{row.line}</td>
+                                        </tr>
                                     ))
                                 )}
-                            </TableBody>
-                        </Table>
+                            </tbody>
+                        </table>
                     </ScrollArea>
                 </div>
             </div>
