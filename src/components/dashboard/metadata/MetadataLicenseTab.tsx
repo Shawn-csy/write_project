@@ -1,10 +1,25 @@
-// @ts-nocheck
 import React from "react";
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { Button } from "../../ui/button";
 import { X } from "lucide-react";
 import { useI18n } from "../../../contexts/I18nContext";
+
+interface MetadataLicenseTabProps {
+    licenseCommercial: string;
+    setLicenseCommercial: (value: string) => void;
+    licenseDerivative: string;
+    setLicenseDerivative: (value: string) => void;
+    licenseNotify: string;
+    setLicenseNotify: (value: string) => void;
+    licenseSpecialTerms?: string[];
+    setLicenseSpecialTerms?: (terms: string[]) => void;
+    copyright?: string;
+    setCopyright?: (value: string) => void;
+    requiredErrors?: Record<string, string | boolean | undefined>;
+    licenseTerms?: string[];
+    setLicenseTerms?: (terms: string[]) => void;
+}
 
 export function MetadataLicenseTab({
     licenseCommercial, setLicenseCommercial,
@@ -15,9 +30,9 @@ export function MetadataLicenseTab({
     requiredErrors = {},
     licenseTerms = [],
     setLicenseTerms
-}) {
+}: MetadataLicenseTabProps): React.JSX.Element {
     const { t } = useI18n();
-    const [newTerm, setNewTerm] = React.useState("");
+    const [newTerm, setNewTerm] = React.useState<string>("");
     const effectiveTerms = licenseSpecialTerms.length > 0 ? licenseSpecialTerms : licenseTerms;
     const setEffectiveTerms = setLicenseSpecialTerms || setLicenseTerms || (() => {});
 
@@ -27,13 +42,13 @@ export function MetadataLicenseTab({
         setNewTerm("");
     };
 
-    const handleRemoveTerm = (index) => {
+    const handleRemoveTerm = (index: number) => {
         const next = [...(effectiveTerms || [])];
         next.splice(index, 1);
         setEffectiveTerms(next);
     };
 
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             e.preventDefault();
             handleAddTerm();

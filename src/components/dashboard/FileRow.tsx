@@ -1,11 +1,44 @@
-// @ts-nocheck
 import React, { memo } from "react";
 import { Badge } from "../ui/badge";
 import { GripVertical } from "lucide-react";
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import type { DraggableAttributes } from "@dnd-kit/core";
 
-const resolveTagSwatch = (rawColor) => {
+// @dnd-kit does not export SyntheticListenerMap from the public entrypoint;
+// mirror the internal shape (values typed as Function to match dnd-kit internals).
+// eslint-disable-next-line @typescript-eslint/ban-types
+type SyntheticListenerMap = Record<string, Function>;
+
+interface FileTag {
+    id: string;
+    name: string;
+    color?: string;
+}
+
+interface SortableFileRowProps {
+    id: string;
+    item: unknown;
+    isFolder: boolean;
+    disableDrag?: boolean;
+    children: React.ReactNode;
+}
+
+interface FileRowProps {
+    icon: React.ReactNode;
+    title: string;
+    meta?: React.ReactNode;
+    actions?: React.ReactNode;
+    onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+    onDoubleClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+    isFolder?: boolean;
+    tags?: Array<string | Partial<FileTag>>;
+    dragListeners?: SyntheticListenerMap | null;
+    style?: React.CSSProperties;
+    className?: string;
+}
+
+const resolveTagSwatch = (rawColor: string | undefined) => {
     const value = String(rawColor || "").trim();
     if (!value) return { className: "bg-primary/60", style: undefined };
     if (value.startsWith("#") || value.startsWith("rgb") || value.startsWith("hsl") || value.startsWith("var(")) {
@@ -14,7 +47,7 @@ const resolveTagSwatch = (rawColor) => {
     return { className: value, style: undefined };
 };
 
-export const SortableFileRow = (props) => {
+export const SortableFileRow = (props: SortableFileRowProps): React.JSX.Element => {
     const {
         attributes,
         listeners,
@@ -40,14 +73,14 @@ export const SortableFileRow = (props) => {
     return (
         <div ref={setNodeRef} style={style} {...attributes}>
             {React.isValidElement(props.children) 
-                ? React.cloneElement(props.children, { dragListeners: props.disableDrag ? null : listeners })
+                ? React.cloneElement(props.children as React.ReactElement<{ dragListeners?: SyntheticListenerMap | null }>, { dragListeners: props.disableDrag ? null : listeners })
                 : props.children
             }
         </div>
     );
 };
 
-export const FileRow = memo(({ icon, title, meta, actions, onClick, onDoubleClick, isFolder, tags = [], dragListeners, style, className = "" }) => {
+export const FileRow = memo(function FileRow({ icon, title, meta, actions, onClick, onDoubleClick, isFolder, tags = [], dragListeners, style, className = "" }: FileRowProps): React.JSX.Element {
     const normalizedTags = (tags || [])
         .map((tag, idx) => {
             if (typeof tag === "string") {
@@ -80,7 +113,7 @@ export const FileRow = memo(({ icon, title, meta, actions, onClick, onDoubleClic
              <div 
                 {...dragListeners}
                 className="mr-2 text-muted-foreground/30 hover:text-foreground cursor-grab active:cursor-grabbing p-1"
-                onClick={e => e.stopPropagation()}
+                onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}
             >
                 <GripVertical className="w-4 h-4" />
             </div>
