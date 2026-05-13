@@ -9,7 +9,17 @@ export const PUBLISHER_CONTENT_COMPACT_STACK_CLASS = "mx-auto max-w-4xl space-y-
 export const PUBLISHER_SECTION_CARD_CLASS = "rounded-lg border bg-card p-4";
 export const PUBLISHER_DEMO_CARD_CLASS = "rounded-xl border border-dashed bg-muted/20 p-4";
 
-export function PublisherSplitPanel({ sidebar, header, children, footer = null }) {
+export function PublisherSplitPanel({
+  sidebar,
+  header,
+  children,
+  footer = null,
+}: {
+  sidebar: React.ReactNode;
+  header: React.ReactNode;
+  children: React.ReactNode;
+  footer?: React.ReactNode | null;
+}): React.JSX.Element {
   return (
     <Card className="flex h-auto min-h-0 flex-col overflow-hidden border md:min-h-[500px] md:flex-row">
       {sidebar}
@@ -32,7 +42,17 @@ export function PublisherEntityListPane({
   loadingLabel = "",
   children,
   emptyState = null,
-}) {
+}: {
+  id: string;
+  title: React.ReactNode;
+  onCreate: () => void;
+  createAriaLabel?: string;
+  topActions?: React.ReactNode | null;
+  isLoading?: boolean;
+  loadingLabel?: React.ReactNode;
+  children: React.ReactNode;
+  emptyState?: React.ReactNode | null;
+}): React.JSX.Element {
   return (
     <div id={id} className="flex w-full flex-col border-b bg-muted/10 md:w-[280px] md:border-b-0 md:border-r">
       <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/50 p-4 backdrop-blur-sm">
@@ -64,7 +84,19 @@ export function PublisherEntityListPane({
   );
 }
 
-export function PublisherEntityListItem({ selected = false, onClick, leading = null, title, subtitle = "" }) {
+export function PublisherEntityListItem({
+  selected = false,
+  onClick,
+  leading = null,
+  title,
+  subtitle = "",
+}: {
+  selected?: boolean;
+  onClick: () => void;
+  leading?: React.ReactNode | null;
+  title: React.ReactNode;
+  subtitle?: React.ReactNode;
+}): React.JSX.Element {
   return (
     <button
       type="button"
@@ -90,7 +122,13 @@ export function PublisherEmptyState({
   actionLabel = "",
   onAction = null,
   className = "",
-}) {
+}: {
+  title: React.ReactNode;
+  description?: React.ReactNode;
+  actionLabel?: React.ReactNode;
+  onAction?: (() => void) | null;
+  className?: string;
+}): React.JSX.Element {
   return (
     <StudioEmptyStateCard
       title={title}
@@ -102,7 +140,15 @@ export function PublisherEmptyState({
   );
 }
 
-export function PublisherActionBar({ children, id, className = "" }) {
+export function PublisherActionBar({
+  children,
+  id,
+  className = "",
+}: {
+  children: React.ReactNode;
+  id?: string;
+  className?: string;
+}): React.JSX.Element {
   return (
     <div id={id} className={`flex justify-end border-t bg-background/50 p-3 backdrop-blur-sm ${className}`}>
       {children}

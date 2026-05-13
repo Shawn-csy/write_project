@@ -3,6 +3,15 @@ import { Inbox } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 
+interface StudioEmptyStateCardProps {
+  icon?: React.ComponentType<{ className?: string }> | null;
+  title: React.ReactNode;
+  description?: React.ReactNode;
+  actionLabel?: React.ReactNode;
+  onAction?: (() => void) | null;
+  className?: string;
+}
+
 export function StudioEmptyStateCard({
   icon = null,
   title,
@@ -10,7 +19,7 @@ export function StudioEmptyStateCard({
   actionLabel = "",
   onAction = null,
   className = "",
-}) {
+}: StudioEmptyStateCardProps): React.JSX.Element {
   const Icon = icon || Inbox;
   return (
     <Card className={`border-dashed bg-muted/20 p-5 ${className}`}>

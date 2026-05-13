@@ -4,6 +4,25 @@ import { Input } from "../../ui/input";
 import { Badge } from "../../ui/badge";
 import { X } from "lucide-react";
 
+interface PublisherTagEditorProps {
+  tags?: string[];
+  setTags: (tags: string[]) => void;
+  tagInput: string;
+  setTagInput: (value: string) => void;
+  parseTags: (value: string) => string[];
+  addTags: (base: string[], incoming: string[]) => string[];
+  getTagStyle: (tag: string) => React.CSSProperties;
+  filteredOptions?: string[];
+  inputId?: string;
+  inputName?: string;
+  inputAriaLabel?: string;
+  addTagLabel: string;
+  inputPlaceholder?: string;
+  addQuotedTemplate: string;
+  noMatchedTagLabel: string;
+  emptyHintLabel: string;
+}
+
 export function PublisherTagEditor({
   tags = [],
   setTags,
@@ -21,8 +40,8 @@ export function PublisherTagEditor({
   addQuotedTemplate,
   noMatchedTagLabel,
   emptyHintLabel,
-}) {
-  const handleTagPaste = (event) => {
+}: PublisherTagEditorProps): React.JSX.Element {
+  const handleTagPaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
     const text = event.clipboardData?.getData("text") || "";
     const incoming = parseTags(text);
     if (incoming.length <= 1) return;
@@ -46,7 +65,7 @@ export function PublisherTagEditor({
           name={inputName}
           aria-label={inputAriaLabel}
           value={tagInput}
-          onChange={(e) => setTagInput(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTagInput(e.target.value)}
           onPaste={handleTagPaste}
           onKeyDown={(e) => {
             if (e.nativeEvent?.isComposing) return;

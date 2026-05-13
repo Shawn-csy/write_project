@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
@@ -16,6 +15,41 @@ import {
   PUBLISHER_CONTENT_STACK_CLASS,
 } from "./PublisherEntityLayout";
 
+interface SeriesItem {
+  id: string;
+  name?: string;
+  summary?: string;
+  coverUrl?: string;
+  scriptCount?: number;
+}
+
+interface SeriesDraft {
+  name: string;
+  summary: string;
+  coverUrl: string;
+}
+
+interface SeriesScriptItem {
+  id: string;
+  title?: string;
+  seriesOrder?: string | number;
+  status?: string;
+}
+
+interface PublisherSeriesTabProps {
+  seriesList?: SeriesItem[];
+  selectedSeriesId?: string;
+  setSelectedSeriesId: (id: string) => void;
+  seriesDraft: SeriesDraft;
+  setSeriesDraft: React.Dispatch<React.SetStateAction<SeriesDraft>>;
+  seriesScripts?: SeriesScriptItem[];
+  onDetachScript?: (scriptId: string, seriesId: string) => void;
+  onCreateSeries: () => void;
+  onUpdateSeries: () => void;
+  onDeleteSeries: () => void;
+  isSaving?: boolean;
+}
+
 export function PublisherSeriesTab({
   seriesList = [],
   selectedSeriesId = "",
@@ -28,10 +62,10 @@ export function PublisherSeriesTab({
   onUpdateSeries,
   onDeleteSeries,
   isSaving = false,
-}) {
+}: PublisherSeriesTabProps): React.JSX.Element {
   const selected = seriesList.find((s) => s.id === selectedSeriesId) || null;
-  const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState(false);
-  const [coverPreviewFailed, setCoverPreviewFailed] = React.useState(false);
+  const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState<boolean>(false);
+  const [coverPreviewFailed, setCoverPreviewFailed] = React.useState<boolean>(false);
 
   React.useEffect(() => {
     setCoverPreviewFailed(false);
@@ -46,19 +80,18 @@ export function PublisherSeriesTab({
     <PublisherSplitPanel
       sidebar={(
         <PublisherEntityListPane
+          id="publisher-series-list"
           title="系列清單"
           onCreate={onStartCreate}
           createAriaLabel="新增系列"
-          emptyState={seriesList.length === 0 ? (
+        >
+          {seriesList.length === 0 ? (
             <PublisherEmptyState
               title="尚未建立系列。"
               description="建立系列後，可集中管理封面、摘要與作品順序。"
-              actionLabel="新增系列"
-              onAction={onStartCreate}
               className="mx-1"
             />
           ) : null}
-        >
           {seriesList.map((series) => (
             <PublisherEntityListItem
               key={series.id}
@@ -81,7 +114,6 @@ export function PublisherSeriesTab({
         <PublisherTabHeader
           title={selected ? "編輯系列" : "建立系列"}
           description="建立系列，設定封面與摘要，並整理每部作品的系列關聯。"
-          actions={selected ? <Badge variant="secondary">ID: {selected.id.slice(0, 8)}</Badge> : null}
         />
       )}
     >
