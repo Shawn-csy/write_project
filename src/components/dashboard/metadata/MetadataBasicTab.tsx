@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { Input } from "../../ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "../../ui/select";
@@ -6,6 +5,56 @@ import { Textarea } from "../../ui/textarea";
 import { useI18n } from "../../../contexts/I18nContext";
 import { Button } from "../../ui/button";
 import { ChevronDown, ChevronUp, Globe2, Lock } from "lucide-react";
+
+interface PersonaOption {
+    id: string;
+    displayName?: string;
+    organizationIds?: string[];
+    __fallback?: boolean;
+}
+
+interface OrgOption {
+    id: string;
+    name: string;
+}
+
+type RowTone = "required" | "recommended" | "advanced";
+
+interface MetadataBasicTabProps {
+    title: string;
+    setTitle: (value: string) => void;
+    identity: string;
+    setIdentity: (value: string) => void;
+    identityDisplayName?: string;
+    currentUser?: { uid?: string } | null;
+    personas: PersonaOption[];
+    orgs: OrgOption[];
+    selectedOrgId: string;
+    setSelectedOrgId: (value: string) => void;
+    status: string;
+    setStatus: (value: string) => void;
+    date: string;
+    setDate: (value: string) => void;
+    synopsis: string;
+    setSynopsis: (value: string) => void;
+    outline?: string;
+    setOutline: (value: string) => void;
+    roleSetting?: string;
+    setRoleSetting?: (value: string) => void;
+    backgroundInfo?: string;
+    setBackgroundInfo: (value: string) => void;
+    performanceInstruction?: string;
+    setPerformanceInstruction?: (value: string) => void;
+    openingIntro?: string;
+    setOpeningIntro: (value: string) => void;
+    chapterSettings?: string;
+    setChapterSettings?: (value: string) => void;
+    requiredErrors?: Record<string, string | boolean | undefined>;
+    recommendedErrors?: Record<string, string | boolean | undefined>;
+    layout?: "cards" | "rows";
+    requiredHighlights?: Record<string, boolean | undefined>;
+    rowLabelTones?: Record<string, RowTone | undefined>;
+}
 
 export function MetadataBasicTab({
     title, setTitle,
@@ -29,7 +78,7 @@ export function MetadataBasicTab({
     layout = "cards",
     requiredHighlights = {},
     rowLabelTones = {}
-}) {
+}: MetadataBasicTabProps): React.JSX.Element {
     const { t } = useI18n();
     const isRowLayout = layout === "rows";
     const panelClass = "grid gap-3 rounded-xl border border-border/70 bg-background p-4 shadow-sm";
@@ -43,7 +92,7 @@ export function MetadataBasicTab({
         `${rowLabelBaseClass} ${rowLabelToneClass[tone] || rowLabelToneClass.recommended} ${
             missing ? "border-l-[6px] border-destructive bg-destructive/20 ring-2 ring-inset ring-destructive/55 dark:bg-destructive/30" : ""
         }`;
-    const renderRowLabel = (label, tone = "recommended", missing = false) => (
+    const renderRowLabel = (label: string, tone: RowTone = "recommended", missing = false) => (
         <div className={getRowLabelClass(tone, missing)}>
             <div className="flex items-center gap-2">
                 <span>{label}</span>
@@ -56,7 +105,7 @@ export function MetadataBasicTab({
         </div>
     );
     const today = React.useMemo(() => new Date().toISOString().slice(0, 10), []);
-    const [showExtendedFields, setShowExtendedFields] = React.useState(false);
+    const [showExtendedFields, setShowExtendedFields] = React.useState<boolean>(false);
     const isPublicStatus = status === "Public";
     const safePersonas = React.useMemo(() => (Array.isArray(personas) ? personas : []), [personas]);
     const identityPersonaId = React.useMemo(
@@ -88,7 +137,7 @@ export function MetadataBasicTab({
                 : "border-border bg-background text-muted-foreground hover:bg-muted"
         }`;
 
-    const parseMulti = React.useCallback((raw) => {
+    const parseMulti = React.useCallback((raw: string) => {
         try {
             const parsed = JSON.parse(String(raw || ""));
             if (parsed?.mode !== "multi" || !Array.isArray(parsed.items)) return null;
@@ -102,7 +151,7 @@ export function MetadataBasicTab({
         }
     }, []);
 
-    const parseChapterMulti = React.useCallback((raw) => {
+    const parseChapterMulti = React.useCallback((raw: string) => {
         try {
             const parsed = JSON.parse(String(raw || ""));
             if (parsed?.mode !== "chapter_multi" || !Array.isArray(parsed.items)) return null;
@@ -135,7 +184,7 @@ export function MetadataBasicTab({
             }];
     }, [roleSetting, performanceInstruction, parseMulti]);
 
-    const commitHeroEntries = React.useCallback((nextEntries) => {
+    const commitHeroEntries = React.useCallback((nextEntries: Array<{ id: string; name: string; role: string; performance: string }>) => {
         const normalized = Array.isArray(nextEntries) && nextEntries.length > 0
             ? nextEntries
             : [{ id: "hero-1", name: "", role: "", performance: "" }];
@@ -167,11 +216,11 @@ export function MetadataBasicTab({
         ]);
     };
 
-    const updateHeroEntry = (idx, field, value) => {
+    const updateHeroEntry = (idx: number, field: "name" | "role" | "performance", value: string) => {
         commitHeroEntries(heroEntries.map((item, i) => (i === idx ? { ...item, [field]: value } : item)));
     };
 
-    const removeHeroEntry = (idx) => {
+    const removeHeroEntry = (idx: number) => {
         if (heroEntries.length <= 1) return;
         commitHeroEntries(heroEntries.filter((_, i) => i !== idx));
     };
@@ -187,7 +236,7 @@ export function MetadataBasicTab({
         }];
     }, [chapterSettings, parseChapterMulti]);
 
-    const commitChapterEntries = React.useCallback((nextEntries) => {
+    const commitChapterEntries = React.useCallback((nextEntries: Array<{ id: string; chapter: string; environment: string; situation: string }>) => {
         const normalized = Array.isArray(nextEntries) && nextEntries.length > 0
             ? nextEntries
             : [{ id: "chapter-1", chapter: "", environment: "", situation: "" }];
@@ -212,11 +261,11 @@ export function MetadataBasicTab({
         ]);
     };
 
-    const updateChapterEntry = (idx, field, value) => {
+    const updateChapterEntry = (idx: number, field: "chapter" | "environment" | "situation", value: string) => {
         commitChapterEntries(chapterEntries.map((item, i) => (i === idx ? { ...item, [field]: value } : item)));
     };
 
-    const removeChapterEntry = (idx) => {
+    const removeChapterEntry = (idx: number) => {
         if (chapterEntries.length <= 1) return;
         commitChapterEntries(chapterEntries.filter((_, i) => i !== idx));
     };

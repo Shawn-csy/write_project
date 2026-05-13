@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { Badge } from "../../../ui/badge";
 import { Textarea } from "../../../ui/textarea";
@@ -6,7 +5,40 @@ import { Button } from "../../../ui/button";
 import { Input } from "../../../ui/input";
 import { useI18n } from "../../../../contexts/I18nContext";
 
-const parseChapterSettings = (raw) => {
+interface ChapterEntry {
+    id: string;
+    chapter: string;
+    environment: string;
+    situation: string;
+}
+
+interface RoleEntry {
+    id: string;
+    name: string;
+    role: string;
+    performance: string;
+}
+
+interface ControlledMetadataField {
+    key: string;
+    label?: string;
+    type?: "text" | "textarea" | "role_group" | "chapter_group";
+    rows?: number;
+    multiline?: boolean;
+}
+
+interface ImportStagePreviewProps {
+    previewText: string;
+    setPreviewText: (value: string) => void;
+    onAutoRemoveWhitespace: () => void;
+    metadataPreview?: Record<string, string | undefined>;
+    controlledMetadataFields?: ControlledMetadataField[];
+    onMetadataChange?: (key: string, value: string) => void;
+    onApplyParsedMetadataRemoval?: () => void;
+    canApplyParsedMetadataRemoval?: boolean;
+}
+
+const parseChapterSettings = (raw: string) => {
     try {
         const parsed = JSON.parse(String(raw || ""));
         if (parsed?.mode !== "chapter_multi" || !Array.isArray(parsed.items)) return [];
@@ -21,7 +53,7 @@ const parseChapterSettings = (raw) => {
     }
 };
 
-const serializeChapterSettings = (items = []) => {
+const serializeChapterSettings = (items: ChapterEntry[] = []) => {
     return JSON.stringify({
         mode: "chapter_multi",
         items: (items || []).map((item) => ({
@@ -32,7 +64,7 @@ const serializeChapterSettings = (items = []) => {
     });
 };
 
-const parseMultiTemplate = (raw) => {
+const parseMultiTemplate = (raw: string) => {
     try {
         const parsed = JSON.parse(String(raw || ""));
         if (parsed?.mode !== "multi" || !Array.isArray(parsed.items)) return null;
@@ -46,7 +78,7 @@ const parseMultiTemplate = (raw) => {
     }
 };
 
-const serializeMultiTemplate = (items = []) => JSON.stringify({
+const serializeMultiTemplate = (items: Array<{ name: string; text: string }> = []) => JSON.stringify({
     mode: "multi",
     items: (items || []).map((item) => ({
         name: String(item?.name || "").trim(),
@@ -63,7 +95,7 @@ export function ImportStagePreview({
     onMetadataChange,
     onApplyParsedMetadataRemoval,
     canApplyParsedMetadataRemoval = false,
-}) {
+}: ImportStagePreviewProps): React.JSX.Element {
     const { t } = useI18n();
     const chapterEntries = React.useMemo(() => {
         const fromSettings = parseChapterSettings(metadataPreview?.ChapterSettings || "");
@@ -71,7 +103,7 @@ export function ImportStagePreview({
         return [{ id: "chapter-1", chapter: "", environment: "", situation: "" }];
     }, [metadataPreview]);
 
-    const commitChapterEntries = React.useCallback((nextEntries) => {
+    const commitChapterEntries = React.useCallback((nextEntries: ChapterEntry[]) => {
         const normalized = Array.isArray(nextEntries) && nextEntries.length > 0
             ? nextEntries
             : [{ id: "chapter-1", chapter: "", environment: "", situation: "" }];
@@ -100,7 +132,7 @@ export function ImportStagePreview({
         }];
     }, [metadataPreview]);
 
-    const commitRoleEntries = React.useCallback((nextEntries) => {
+    const commitRoleEntries = React.useCallback((nextEntries: RoleEntry[]) => {
         const normalized = Array.isArray(nextEntries) && nextEntries.length > 0
             ? nextEntries
             : [{ id: "role-1", name: "", role: "", performance: "" }];

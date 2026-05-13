@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { Input } from "../../ui/input";
 import { Button } from "../../ui/button";
@@ -7,6 +6,7 @@ import { AlertTriangle, X, Plus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
+import type { SensorDescriptor, UniqueIdentifier } from "@dnd-kit/core";
 import { SortableField } from "./SortableField";
 import { SortableContactField } from "./SortableContactField";
 import { optimizeImageForUpload, getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
@@ -15,6 +15,85 @@ import { useI18n } from "../../../contexts/I18nContext";
 import { MediaPicker } from "../../ui/MediaPicker";
 import { CoverPlaceholder } from "../../ui/CoverPlaceholder";
 import { ImageCropDialog } from "../../ui/ImageCropDialog";
+
+interface TagOption {
+    id: string;
+    name: string;
+    color?: string;
+}
+
+interface ContactFieldItem {
+    id: string;
+    label?: string;
+    value?: string;
+    [key: string]: unknown;
+}
+
+interface CustomFieldItem {
+    id: string;
+    type?: string;
+    key?: string;
+    value?: string;
+    [key: string]: unknown;
+}
+
+interface SeriesOption {
+    id: string;
+    name: string;
+}
+
+interface MetadataDetailsTabProps {
+    status: string;
+    coverUrl: string;
+    setCoverUrl: (value: string) => void;
+    currentTags: TagOption[];
+    author: string;
+    setAuthor: (value: string) => void;
+    availableTags: TagOption[];
+    newTagInput: string;
+    setNewTagInput: (value: string) => void;
+    handleAddTag: (tagName?: string) => void;
+    handleAddTagsBatch?: (tags: string[]) => void;
+    handleRemoveTag: (tagId: string) => void;
+    handleClearTags: () => void;
+    contactFields: ContactFieldItem[];
+    setContactFields: React.Dispatch<React.SetStateAction<ContactFieldItem[]>>;
+    onAddContactField: (preset?: string) => void;
+    handleContactFieldUpdate: (id: string, key: string, value: string) => void;
+    activeSensors: SensorDescriptor<object>[] | undefined;
+    dragDisabled: boolean;
+    setDragDisabled: (value: boolean) => void;
+    customFields: CustomFieldItem[];
+    setCustomFields: React.Dispatch<React.SetStateAction<CustomFieldItem[]>>;
+    addCustomField: (key?: string, value?: string) => void;
+    addDivider: () => void;
+    handleCustomFieldUpdate: (id: string, key: string, value: string) => void;
+    requiredErrors?: Record<string, string | boolean | undefined>;
+    recommendedErrors?: Record<string, string | boolean | undefined>;
+    targetAudience: string;
+    setTargetAudience: (value: string) => void;
+    contentRating: string;
+    setContentRating: (value: string) => void;
+    seriesName: string;
+    setSeriesName: (value: string) => void;
+    seriesId: string;
+    setSeriesId: (value: string) => void;
+    seriesOptions?: SeriesOption[];
+    quickSeriesName?: string;
+    setQuickSeriesName?: (value: string) => void;
+    onQuickCreateSeries?: () => void;
+    isCreatingSeries?: boolean;
+    seriesOrder?: string;
+    setSeriesOrder?: (value: string) => void;
+    showStatusAlert?: boolean;
+    showAuthorCover?: boolean;
+    showAudienceRating?: boolean;
+    showSeries?: boolean;
+    showTags?: boolean;
+    showContact?: boolean;
+    showCustom?: boolean;
+    layout?: "stack" | "grid-2" | "grid-3";
+}
 
 export function MetadataDetailsTab({
     status,
@@ -56,7 +135,7 @@ export function MetadataDetailsTab({
     showContact = true,
     showCustom = true,
     layout = "stack"
-}) {
+}: MetadataDetailsTabProps): React.JSX.Element {
     const resolveTagSwatch = React.useCallback((rawColor) => {
         const value = String(rawColor || "").trim();
         if (!value) return { className: "bg-primary/60", style: undefined };
@@ -67,15 +146,15 @@ export function MetadataDetailsTab({
     }, []);
     const { t } = useI18n();
     const hasInvalidCoverUrl = Boolean(coverUrl?.trim()) && !/^(https?:\/\/|\/)/i.test(coverUrl.trim());
-    const [coverPreviewFailed, setCoverPreviewFailed] = React.useState(false);
-    const [coverUploadError, setCoverUploadError] = React.useState("");
-    const [coverUploadWarning, setCoverUploadWarning] = React.useState("");
-    const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState(false);
-    const [cropOpen, setCropOpen] = React.useState(false);
-    const [cropSource, setCropSource] = React.useState(null);
+    const [coverPreviewFailed, setCoverPreviewFailed] = React.useState<boolean>(false);
+    const [coverUploadError, setCoverUploadError] = React.useState<string>("");
+    const [coverUploadWarning, setCoverUploadWarning] = React.useState<string>("");
+    const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState<boolean>(false);
+    const [cropOpen, setCropOpen] = React.useState<boolean>(false);
+    const [cropSource, setCropSource] = React.useState<{ file: File; name: string } | null>(null);
     const coverGuide = React.useMemo(() => getImageUploadGuide("cover"), []);
 
-    const applyCoverUpload = async (file) => {
+    const applyCoverUpload = async (file: File): Promise<void> => {
         const optimized = await optimizeImageForUpload(file, "cover");
         if (!optimized.ok) {
             setCoverUploadError(optimized.error || "圖片格式不正確。");
@@ -90,13 +169,13 @@ export function MetadataDetailsTab({
             setCoverUploadWarning(optimized.warning || "");
             setCoverUrl(nextUrl);
             setCoverPreviewFailed(false);
-        } catch (error) {
-            setCoverUploadError(error?.message || "上傳失敗。");
+        } catch (error: unknown) {
+            setCoverUploadError(error instanceof Error ? error.message : "上傳失敗。");
             setCoverUploadWarning("");
         }
     };
 
-    const handleCoverUpload = async (event) => {
+    const handleCoverUpload = async (event: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
         const file = event.target.files?.[0];
         if (!file) return;
         setCropSource({ file, name: file.name });
@@ -104,13 +183,13 @@ export function MetadataDetailsTab({
         event.target.value = "";
     };
 
-    const parsePastedTags = (text) =>
+    const parsePastedTags = (text: string): string[] =>
         String(text || "")
             .split(/,|，|、|#|\n|\t|;/)
             .map((item) => item.trim())
             .filter(Boolean);
 
-    const handleTagPaste = (event) => {
+    const handleTagPaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
         const text = event.clipboardData?.getData("text") || "";
         const parsed = parsePastedTags(text);
         if (parsed.length <= 1) return;
@@ -348,8 +427,8 @@ export function MetadataDetailsTab({
                         type="number"
                         min="0"
                         step="1"
-                        value={seriesOrder}
-                        onChange={(e) => setSeriesOrder(e.target.value)}
+                        value={seriesOrder || ""}
+                        onChange={(e) => setSeriesOrder?.(e.target.value)}
                         placeholder={t("metadataDetails.seriesOrderPlaceholder", "例如：0（設定集）或 1")}
                     />
                     <p className="text-xs text-muted-foreground">
@@ -401,23 +480,23 @@ export function MetadataDetailsTab({
 
                     <div className="max-h-48 overflow-y-auto border rounded-md bg-background flex flex-wrap gap-1.5 p-2">
                          {availableTags
-                            .filter(t => t.name.toLowerCase().includes(newTagInput.toLowerCase()))
-                            .filter(t => !currentTags.some(ct => ct.id === t.id))
-                            .map(t => (
+                                .filter((tag) => tag.name.toLowerCase().includes(newTagInput.toLowerCase()))
+                            .filter((tag) => !currentTags.some((currentTag) => currentTag.id === tag.id))
+                            .map((tag) => (
                                 <button
-                                    key={t.id}
+                                    key={tag.id}
                                     type="button"
                                     className="px-2.5 py-1 text-xs rounded-full border bg-muted/30 hover:bg-accent hover:text-accent-foreground transition-colors flex items-center"
                                     onClick={(e) => {
                                         e.preventDefault();
-                                        handleAddTag(t.name);
+                                        handleAddTag(tag.name);
                                     }}
                                 >
-                                    <Plus className="w-3 h-3 mr-1 opacity-60" /> {t.name}
+                                    <Plus className="w-3 h-3 mr-1 opacity-60" /> {tag.name}
                                 </button>
                             ))
                          }
-                         {newTagInput.trim() && !availableTags.find(t => t.name.toLowerCase() === newTagInput.trim().toLowerCase()) && !currentTags.find(t => t.name.toLowerCase() === newTagInput.trim().toLowerCase()) && (
+                         {newTagInput.trim() && !availableTags.find((tag) => tag.name.toLowerCase() === newTagInput.trim().toLowerCase()) && !currentTags.find((tag) => tag.name.toLowerCase() === newTagInput.trim().toLowerCase()) && (
                              <button
                                  type="button"
                                  className="px-2.5 py-1 text-xs rounded-full border border-primary/30 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors flex items-center"
@@ -429,7 +508,7 @@ export function MetadataDetailsTab({
                                  <Plus className="w-3 h-3 mr-1" /> {t("metadataDetails.addQuoted", `新增 "${newTagInput.trim()}"`).replace("{value}", newTagInput.trim())}
                              </button>
                          )}
-                         {availableTags.filter(t => !currentTags.some(ct => ct.id === t.id)).length === 0 && !newTagInput.trim() && (
+                         {availableTags.filter((tag) => !currentTags.some((currentTag) => currentTag.id === tag.id)).length === 0 && !newTagInput.trim() && (
                              <div className="text-xs text-muted-foreground w-full text-center py-2 opacity-70">{t("metadataDetails.noTags", "無可用標籤")}</div>
                          )}
                     </div>
@@ -437,7 +516,7 @@ export function MetadataDetailsTab({
 
                 {currentTags.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-2 p-3 bg-background border rounded-md">
-                        {currentTags.map(tag => {
+                        {currentTags.map((tag) => {
                             const isManagedOption = ["男性向", "女性向", "全性向", "一般", "一般內容", "r-18", "r18", "18+", "全年齡向", "成人向"].includes(tag.name);
                             return (
                                 <Badge 
@@ -495,11 +574,11 @@ export function MetadataDetailsTab({
                 <DndContext
                     sensors={activeSensors}
                     collisionDetection={closestCenter}
-                    onDragEnd={({ active, over }) => {
+                    onDragEnd={({ active, over }: { active: { id: UniqueIdentifier }; over: { id: UniqueIdentifier } | null }) => {
                         if (!over || active.id === over.id) return;
                         const items = contactFields.map((f) => f.id);
-                        const oldIndex = items.indexOf(active.id);
-                        const newIndex = items.indexOf(over.id);
+                        const oldIndex = items.indexOf(String(active.id));
+                        const newIndex = items.indexOf(String(over.id));
                         setContactFields(arrayMove(contactFields, oldIndex, newIndex));
                     }}
                 >
@@ -566,11 +645,11 @@ export function MetadataDetailsTab({
                 <DndContext
                     sensors={activeSensors}
                     collisionDetection={closestCenter}
-                    onDragEnd={({ active, over }) => {
+                    onDragEnd={({ active, over }: { active: { id: UniqueIdentifier }; over: { id: UniqueIdentifier } | null }) => {
                         if (!over || active.id === over.id) return;
                         const items = customFields.map((f) => f.id);
-                        const oldIndex = items.indexOf(active.id);
-                        const newIndex = items.indexOf(over.id);
+                        const oldIndex = items.indexOf(String(active.id));
+                        const newIndex = items.indexOf(String(over.id));
                         setCustomFields(arrayMove(customFields, oldIndex, newIndex));
                     }}
                 >
