@@ -1,6 +1,32 @@
-// @ts-nocheck
 import { useState, useCallback } from "react";
-import { optimizeImageForUpload, uploadMediaObject } from "../lib/mediaLibrary";
+import type React from "react";
+import { optimizeImageForUpload } from "../lib/mediaLibrary";
+import { uploadMediaObject } from "../lib/api/media";
+
+interface UseImageUploadOptions {
+  ruleKey?: "avatar" | "banner" | "cover" | "logo";
+  purpose?: string;
+  onSuccess?: (url: string) => void;
+}
+
+interface CropSource {
+  file: File;
+  name: string;
+}
+
+interface UseImageUploadResult {
+  cropOpen: boolean;
+  setCropOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  cropSource: CropSource | null;
+  setCropSource: React.Dispatch<React.SetStateAction<CropSource | null>>;
+  cropPurpose: string | undefined;
+  uploadError: string;
+  uploadWarning: string;
+  previewFailed: boolean;
+  setPreviewFailed: React.Dispatch<React.SetStateAction<boolean>>;
+  handleFileInputChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  applyCroppedUpload: (file: File) => Promise<void>;
+}
 
 /**
  * useImageUpload
@@ -21,14 +47,14 @@ import { optimizeImageForUpload, uploadMediaObject } from "../lib/mediaLibrary";
  *   applyCroppedUpload,
  * }}
  */
-export function useImageUpload({ ruleKey, purpose, onSuccess } = {}) {
-  const [cropOpen, setCropOpen] = useState(false);
-  const [cropSource, setCropSource] = useState(null);
-  const [uploadError, setUploadError] = useState("");
-  const [uploadWarning, setUploadWarning] = useState("");
-  const [previewFailed, setPreviewFailed] = useState(false);
+export function useImageUpload({ ruleKey, purpose, onSuccess }: UseImageUploadOptions = {}): UseImageUploadResult {
+  const [cropOpen, setCropOpen] = useState<boolean>(false);
+  const [cropSource, setCropSource] = useState<CropSource | null>(null);
+  const [uploadError, setUploadError] = useState<string>("");
+  const [uploadWarning, setUploadWarning] = useState<string>("");
+  const [previewFailed, setPreviewFailed] = useState<boolean>(false);
 
-  const handleFileInputChange = useCallback((event) => {
+  const handleFileInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     setCropSource({ file, name: file.name });
@@ -36,7 +62,7 @@ export function useImageUpload({ ruleKey, purpose, onSuccess } = {}) {
     event.target.value = "";
   }, []);
 
-  const applyCroppedUpload = useCallback(async (file) => {
+  const applyCroppedUpload = useCallback(async (file: File) => {
     const optimized = await optimizeImageForUpload(file, ruleKey);
     if (!optimized.ok) {
       setUploadError(optimized.error || "圖片格式不正確。");
@@ -44,15 +70,15 @@ export function useImageUpload({ ruleKey, purpose, onSuccess } = {}) {
       return;
     }
     try {
-      const uploaded = await uploadMediaObject(optimized.file, purpose ?? ruleKey);
+      const uploaded = await uploadMediaObject(optimized.file, purpose ?? ruleKey ?? "generic");
       const url = String(uploaded?.url || "").trim();
       if (!url) throw new Error("上傳失敗。");
       setUploadError("");
       setUploadWarning(optimized.warning || "");
       setPreviewFailed(false);
       onSuccess?.(url);
-    } catch (error) {
-      setUploadError(error?.message || "上傳失敗。");
+    } catch (error: unknown) {
+      setUploadError(error instanceof Error ? error.message : "上傳失敗。");
       setUploadWarning("");
     }
   }, [ruleKey, purpose, onSuccess]);

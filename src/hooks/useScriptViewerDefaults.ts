@@ -1,8 +1,23 @@
-// @ts-nocheck
 import { useSettings } from "../contexts/SettingsContext";
 import { useScriptView } from "../contexts/ScriptViewContext";
+import type { MarkerConfig } from "../types/script";
 
-export const useScriptViewerDefaults = (overrides = {}) => {
+interface ScriptViewerDefaults {
+  theme: string;
+  fontSize: number;
+  bodyFontSize: number;
+  dialogueFontSize: number;
+  readingFontFamily: string;
+  lineHeight: number;
+  accentColor: string;
+  markerConfigs: MarkerConfig[];
+  hiddenMarkerIds: string[];
+  showLineUnderline: boolean;
+}
+
+type ScriptViewerDefaultsOverrides = Partial<ScriptViewerDefaults>;
+
+export const useScriptViewerDefaults = (overrides: ScriptViewerDefaultsOverrides = {}): ScriptViewerDefaults => {
   const {
     isDark,
     fontSize,

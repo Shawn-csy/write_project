@@ -1,24 +1,52 @@
-// @ts-nocheck
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { safeParseThemeConfigsText } from "../../lib/markerThemeCodec.js";
+import type React from "react";
+import { safeParseThemeConfigsText } from "../../lib/markerThemeCodec";
+import type { MarkerConfig } from "../../types/script";
+
+interface MarkerSettingsStateProps {
+  markerConfigs: MarkerConfig[];
+  setMarkerConfigs: (configs: MarkerConfig[]) => Promise<void> | void;
+  viewMode: string;
+  readOnly?: boolean;
+}
+
+interface UseMarkerSettingsStateResult {
+  localConfigs: MarkerConfig[];
+  setLocalConfigs: React.Dispatch<React.SetStateAction<MarkerConfig[]>>;
+  expandedId: string | null;
+  setExpandedId: React.Dispatch<React.SetStateAction<string | null>>;
+  isAdvancedMode: boolean;
+  setIsAdvancedMode: React.Dispatch<React.SetStateAction<boolean>>;
+  jsonText: string;
+  setJsonText: React.Dispatch<React.SetStateAction<string>>;
+  parseError: string;
+  isDirty: boolean;
+  isSaving: boolean;
+  lastSavedAt: Date | null;
+  existingIds: string[];
+  updateMarker: (index: number, field: keyof MarkerConfig | Partial<MarkerConfig>, value?: unknown) => void;
+  addMarker: () => void;
+  removeMarker: (index: number) => void;
+  applyJson: () => void;
+}
 
 export function useMarkerSettingsState({
   markerConfigs,
   setMarkerConfigs,
   viewMode,
   readOnly = false,
-}) {
-  const [localConfigs, setLocalConfigs] = useState(markerConfigs || []);
-  const [expandedId, setExpandedId] = useState(null);
-  const [isAdvancedMode, setIsAdvancedMode] = useState(false);
-  const [jsonText, setJsonText] = useState("");
-  const [parseError, setParseError] = useState("");
-  const [isDirty, setIsDirty] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [lastSavedAt, setLastSavedAt] = useState(null);
+}: MarkerSettingsStateProps): UseMarkerSettingsStateResult {
+  const [localConfigs, setLocalConfigs] = useState<MarkerConfig[]>(markerConfigs || []);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [isAdvancedMode, setIsAdvancedMode] = useState<boolean>(false);
+  const [jsonText, setJsonText] = useState<string>("");
+  const [parseError, setParseError] = useState<string>("");
+  const [isDirty, setIsDirty] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
 
   const existingIds = useMemo(
-    () => localConfigs.map((c) => c.id).filter(Boolean),
+    () => localConfigs.map((c) => c.id).filter(Boolean) as string[],
     [localConfigs]
   );
 
@@ -97,7 +125,7 @@ export function useMarkerSettingsState({
     setMarkerConfigs,
   ]);
 
-  const updateMarker = useCallback((index, field, value) => {
+  const updateMarker = useCallback((index: number, field: keyof MarkerConfig | Partial<MarkerConfig>, value?: unknown) => {
     if (readOnly) return;
     setLocalConfigs((prev) => {
       const next = [...prev];
@@ -106,7 +134,13 @@ export function useMarkerSettingsState({
       if (typeof field === "object" && field !== null) {
         next[index] = { ...next[index], ...field };
       } else if (field === "style") {
-        next[index] = { ...next[index], style: value };
+        if (value && typeof value === "object" && !Array.isArray(value)) {
+          const styleRecord: Record<string, string> = {};
+          for (const [k, v] of Object.entries(value)) {
+            styleRecord[k] = String(v ?? "");
+          }
+          next[index] = { ...next[index], style: styleRecord };
+        }
       } else {
         next[index] = { ...next[index], [field]: value };
       }
@@ -144,7 +178,7 @@ export function useMarkerSettingsState({
   }, [readOnly, localConfigs.length]);
 
   const removeMarker = useCallback(
-    (index) => {
+    (index: number) => {
       if (readOnly) return;
       const removed = localConfigs[index];
       setLocalConfigs((prev) => {
@@ -154,7 +188,7 @@ export function useMarkerSettingsState({
       });
       if (
         removed &&
-        (removed.id === expandedId || removed._tempId === expandedId)
+        (removed.id === expandedId || String(removed._tempId || "") === expandedId)
       ) {
         setExpandedId(null);
       }
