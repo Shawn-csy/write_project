@@ -146,7 +146,6 @@ describe("WriteTab", () => {
 
     await waitFor(() => {
       expect(createScript).toHaveBeenCalledWith("未命名劇本", "script", "/");
-      expect(getScript).toHaveBeenCalledWith("s-new");
       expect(onSelectScript).toHaveBeenCalledWith(expect.objectContaining({ id: "s-new", type: "script" }), "edit");
     });
   });

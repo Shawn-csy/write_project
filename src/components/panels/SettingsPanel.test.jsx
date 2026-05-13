@@ -8,6 +8,20 @@ vi.mock("../../contexts/AuthContext", () => ({
   useAuth: vi.fn(),
 }));
 
+vi.mock("../../contexts/I18nContext", () => ({
+  useI18n: () => ({
+    t: (key) => ({
+      "settings.title": "設定",
+      "settings.display": "外觀與閱讀",
+      "settings.transfer": "平台管理",
+      "settings.media": "媒體庫",
+      "settings.markers": "自訂標記",
+      "settings.profile": "身份設定",
+      "common.close": "關閉",
+    })[key] ?? key,
+  }),
+}));
+
 vi.mock("../settings/AppearanceSettings", () => ({
   AppearanceSettings: () => <div data-testid="appearance-settings">Appearance</div>,
 }));

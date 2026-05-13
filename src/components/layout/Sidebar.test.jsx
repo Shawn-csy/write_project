@@ -20,6 +20,23 @@ vi.mock("../auth/UserMenu", () => ({
   default: () => <div data-testid="user-menu">User Menu</div>
 }));
 
+vi.mock("../../contexts/I18nContext", () => ({
+  useI18n: () => ({
+    t: (key) => ({
+      "app.settings": "設定",
+      "app.about": "關於",
+      "nav.workspace": "寫作工作室",
+      "nav.studio": "發布工作台",
+      "nav.gallery": "公開台本",
+      "sidebar.backHome": "回首頁",
+      "sidebar.collapseList": "收合列表",
+      "sidebar.expandList": "展開列表",
+      "sidebar.publicSection": "公開",
+      "sidebar.menuSection": "選單",
+    })[key] ?? key,
+  }),
+}));
+
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

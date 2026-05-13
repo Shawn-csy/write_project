@@ -35,6 +35,14 @@ vi.mock("../../hooks/useEditableTitle", () => ({
     })
 }));
 
+vi.mock("../../contexts/I18nContext", () => ({
+    useI18n: () => ({
+        t: (key) => ({
+            "common.back": "返回上一頁",
+        })[key] ?? key,
+    }),
+}));
+
 describe('ReaderHeader', () => {
     it('renders without crashing', () => {
         render(
