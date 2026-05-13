@@ -1,6 +1,6 @@
-// @ts-nocheck
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import type { LucideIcon } from "lucide-react";
 import {
   PanelLeftClose,
   PanelLeftOpen,
@@ -15,6 +15,29 @@ import UserMenu from "../auth/UserMenu";
 import { useI18n } from "../../contexts/I18nContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
+interface AccentStyle {
+  label?: string;
+}
+
+interface SidebarProps {
+  openAbout: () => void;
+  openSettings: () => void;
+  closeAbout: () => void;
+  setSidebarOpen: (open: boolean) => void;
+  openHome: () => void;
+  accentStyle: AccentStyle;
+  className?: string;
+  collapsed?: boolean;
+}
+
+interface NavItemProps {
+  icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+  isActive?: boolean;
+  className?: string;
+}
+
 function Sidebar({
   // Navigation
   // activeFile, // Removed
@@ -26,7 +49,7 @@ function Sidebar({
   accentStyle,
   className,
   collapsed = false,
-}) {
+}: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useI18n();
@@ -45,7 +68,7 @@ function Sidebar({
     closeSidebarIfMobile();
   };
 
-  const NavItem = ({ icon: Icon, label, onClick, isActive, className = "" }) => {
+  const NavItem = ({ icon: Icon, label, onClick, isActive, className = "" }: NavItemProps) => {
     const buttonEl = (
       <button
         onClick={onClick}
