@@ -1,6 +1,23 @@
-// @ts-nocheck
 import React from "react";
 import ScriptViewer from "../renderer/ScriptViewer";
+
+interface ScriptSurfaceProps {
+  show?: boolean;
+  readOnly?: boolean;
+  outerClassName: string;
+  scrollClassName: string;
+  contentClassName: string;
+  scrollRef?: React.Ref<HTMLDivElement>;
+  onScrollProgress?: (progress: number) => void;
+  onDoubleClick?: (event: React.MouseEvent | React.TouchEvent) => void;
+  onContentClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
+  isLoading?: boolean;
+  loadingMessage?: string;
+  emptyMessage?: string;
+  text?: string;
+  viewerProps?: Record<string, unknown>;
+  headerNode?: React.ReactNode;
+}
 
 export default function ScriptSurface({
   show = true,
@@ -18,17 +35,18 @@ export default function ScriptSurface({
   text,
   viewerProps = {},
   headerNode,
-}) {
-  const rafRef = React.useRef(null);
-  const touchStartRef = React.useRef(null);
+}: ScriptSurfaceProps) {
+  const rafRef = React.useRef<number | null>(null);
+  const internalScrollRef = React.useRef<HTMLDivElement | null>(null);
+  const touchStartRef = React.useRef<{ x: number; y: number; time: number } | null>(null);
   const lastTapRef = React.useRef({ time: 0, x: 0, y: 0 });
 
   const handleScroll = () => {
-    if (!scrollRef?.current || !onScrollProgress) return;
+    if (!internalScrollRef.current || !onScrollProgress) return;
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
 
     rafRef.current = requestAnimationFrame(() => {
-      const el = scrollRef.current;
+      const el = internalScrollRef.current;
       if (!el) return;
       const max = el.scrollHeight - el.clientHeight;
       if (max <= 0) {
@@ -40,7 +58,7 @@ export default function ScriptSurface({
     });
   };
 
-  const handleTouchStart = (event) => {
+  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
     const touch = event.touches?.[0];
     if (!touch) return;
     touchStartRef.current = {
@@ -50,7 +68,7 @@ export default function ScriptSurface({
     };
   };
 
-  const handleTouchEnd = (event) => {
+  const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
     if (!onDoubleClick) return;
     const touch = event.changedTouches?.[0];
     if (!touch || !touchStartRef.current) return;
@@ -88,7 +106,15 @@ export default function ScriptSurface({
     <div className={outerClassName}>
       <div
         className={scrollClassName}
-        ref={scrollRef}
+        ref={(node) => {
+          internalScrollRef.current = node;
+          if (!scrollRef) return;
+          if (typeof scrollRef === "function") {
+            scrollRef(node);
+          } else {
+            (scrollRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+          }
+        }}
         onScroll={handleScroll}
         onDoubleClick={onDoubleClick}
         onTouchStart={handleTouchStart}
@@ -100,7 +126,7 @@ export default function ScriptSurface({
           {isLoading && loadingMessage && (
             <p className="text-sm text-muted-foreground">{loadingMessage}</p>
           )}
-          {!isLoading && text && <ScriptViewer text={text} {...viewerProps} />}
+          {!isLoading && text && <ScriptViewer text={text} {...(viewerProps as object)} />}
           {!isLoading && !text && emptyMessage && (
             <p className="text-sm text-muted-foreground">{emptyMessage}</p>
           )}

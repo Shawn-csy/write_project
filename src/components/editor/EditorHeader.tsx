@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState } from "react";
 import { Loader2, Save, Eye, Columns, BarChart2, HelpCircle, Globe, Lock, MoreHorizontal } from "lucide-react";
 import { useEditableTitle } from "../../hooks/useEditableTitle";
@@ -11,6 +10,56 @@ import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { MarkerThemeVisibilityControl } from "../ui/MarkerThemeVisibilityControl";
 import { useI18n } from "../../contexts/I18nContext";
+import type { MarkerConfig } from "../../types/script";
+
+interface DownloadOption {
+  id: string;
+  label: string;
+  hidden?: boolean;
+  disabled?: boolean;
+  icon?: React.ComponentType<{ className?: string }>;
+  onClick?: (event?: React.MouseEvent) => void;
+}
+
+interface EditorScript {
+  status?: "Public" | "Private" | string;
+  [key: string]: unknown;
+}
+
+interface MarkerThemeLike {
+  id: string;
+  name?: string;
+  [key: string]: unknown;
+}
+
+interface EditorHeaderProps {
+  readOnly: boolean;
+  title: string;
+  onBack: () => void;
+  onManualSave: () => void;
+  saveStatus?: "saving" | "saved" | "unsaved" | "error" | "local-saved";
+  lastSaved: Date | null;
+  showRules: boolean;
+  onToggleRules: () => void;
+  downloadOptions?: DownloadOption[];
+  onToggleStats: () => void;
+  showPreview: boolean;
+  onTogglePreview: () => void;
+  onOpenGuide?: () => void;
+  isSidebarOpen?: boolean;
+  onSetSidebarOpen?: (open: boolean) => void;
+  guideButtonRef?: React.Ref<HTMLDivElement>;
+  moreActionsRef?: React.Ref<HTMLButtonElement>;
+  onTitleChange: (title: string) => void;
+  markerConfigs?: MarkerConfig[];
+  markerThemes?: MarkerThemeLike[];
+  currentThemeId?: string;
+  onSwitchMarkerTheme?: (themeId: string) => void;
+  hiddenMarkerIds?: string[];
+  onToggleMarker: (id: string) => void;
+  script?: EditorScript;
+  onScriptUpdate?: (updated: EditorScript) => void;
+}
 
 export function EditorHeader({
   readOnly,
@@ -39,7 +88,7 @@ export function EditorHeader({
   onToggleMarker,
   script, // Full script object for metadata
   onScriptUpdate // Callback when metadata changes
-}) {
+}: EditorHeaderProps) {
   const { t } = useI18n();
   const [showMetadataDialog, setShowMetadataDialog] = useState(false);
   const saveStatusTitle =
@@ -84,8 +133,11 @@ export function EditorHeader({
         onOpenSidebar={() => onSetSidebarOpen?.(true)}
         sidebarButtonClassName="p-2 hover:bg-muted rounded-full transition-colors lg:hidden"
         sidebarIconClassName="w-5 h-5 text-muted-foreground"
+        sidebarTitle={t("editorHeader.backToDashboard")}
+        sidebarAriaLabel={t("editorHeader.backToDashboard")}
         containerClassName="flex items-center gap-2 min-w-0 flex-1"
         titleWrapperClassName="min-w-0"
+        metaNode={null}
         titleNode={
           <div className="min-w-0">
             <div className="flex items-center gap-2 min-w-0">
@@ -95,6 +147,7 @@ export function EditorHeader({
                 setEditTitle={(val) => setEditTitle(val)}
                 onSubmit={submitTitle}
                 inputClassName="font-semibold text-sm border border-primary/50 rounded px-1 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary min-w-[80px] w-[30vw] max-w-[200px]"
+                inputProps={{}}
                 renderDisplay={() => (
                   <div className="flex items-center gap-1.5 min-w-0">
                     <h2
@@ -120,6 +173,8 @@ export function EditorHeader({
                 open={showMetadataDialog} 
                 onOpenChange={setShowMetadataDialog} 
                 script={script}
+                scriptId={String((script as { id?: string } | undefined)?.id || "")}
+                onSeriesCreated={() => {}}
                 onSave={(updated) => {
                     if (onScriptUpdate) onScriptUpdate(updated);
                     setShowMetadataDialog(false);
@@ -204,7 +259,7 @@ export function EditorHeader({
         </Button>
 
         {/* Marker 控制：小螢幕隱藏 */}
-        <MarkerThemeVisibilityControl
+          <MarkerThemeVisibilityControl
           markerConfigs={markerConfigs}
           hiddenMarkerIds={hiddenMarkerIds}
           onToggleMarker={onToggleMarker}
@@ -252,7 +307,7 @@ export function EditorHeader({
 
             <div className="px-2 py-1.5">
               <div className="text-[11px] text-muted-foreground mb-1">{t("settings.language")}</div>
-              <LanguageSwitcher className="w-full" selectClassName="w-full" />
+              <LanguageSwitcher className="w-full" selectClassName="w-full" ariaLabel={t("settings.language")} buttonClassName="" />
             </div>
             <DropdownMenuSeparator />
             {onOpenGuide && (

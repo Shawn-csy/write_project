@@ -1,8 +1,36 @@
-// @ts-nocheck
 import React, { forwardRef } from "react";
 import ScriptSurface from "./ScriptSurface";
 import { useScriptViewerDefaults } from "../../hooks/useScriptViewerDefaults";
 import { useI18n } from "../../contexts/I18nContext";
+import type { MarkerConfig } from "../../types/script";
+
+interface PreviewPanelProps {
+  show: boolean;
+  readOnly: boolean;
+  content: string;
+  type?: string;
+  theme?: string;
+  fontSize?: number;
+  bodyFontSize?: number;
+  dialogueFontSize?: number;
+  lineHeight?: number;
+  accentColor?: string;
+  markerConfigs?: MarkerConfig[];
+  onTitleHtml?: (html: string) => void;
+  onHasTitle?: (has: boolean) => void;
+  onTitleNote?: (note: string) => void;
+  onTitleSummary?: (summary: string) => void;
+  onTitleName?: (name: string) => void;
+  onRawHtml?: (html: string) => void;
+  onProcessedHtml?: (html: string) => void;
+  initialSceneId?: string | null;
+  onScenes?: (scenes: Array<{ id?: string; [key: string]: unknown }>) => void;
+  onRequestEdit?: () => void;
+  hiddenMarkerIds?: string[];
+  onContentClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
+  outerClassName?: string;
+  scrollClassName?: string;
+}
 
 export const PreviewPanel = forwardRef(function PreviewPanel({
   show,
@@ -30,7 +58,7 @@ export const PreviewPanel = forwardRef(function PreviewPanel({
   onContentClick,
   outerClassName,
   scrollClassName
-}, ref) {
+}: PreviewPanelProps, ref: React.ForwardedRef<HTMLDivElement>) {
   const { t } = useI18n();
   const viewerDefaults = useScriptViewerDefaults({
     theme,

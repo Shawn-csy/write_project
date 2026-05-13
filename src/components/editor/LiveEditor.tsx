@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useEffect, useState, useCallback, useMemo, useRef, useDeferredValue } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { oneDark } from "@codemirror/theme-one-dark";
@@ -20,9 +19,44 @@ import { MarkerRulesPanel } from "./MarkerRulesPanel";
 import { useI18n } from "../../contexts/I18nContext";
 import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
 import { Drawer, DrawerContent, DrawerTitle, DrawerDescription } from "../ui/drawer";
+import type { MarkerConfig } from "../../types/script";
+
+interface LiveEditorScriptData {
+  id: string;
+  title?: string;
+  content?: string;
+  lastModified?: string | number | Date;
+  [key: string]: unknown;
+}
+
+interface LiveEditorProps {
+  scriptId: string;
+  initialData?: LiveEditorScriptData | null;
+  onClose: () => void;
+  initialSceneId?: string | null;
+  defaultShowPreview?: boolean;
+  readOnly?: boolean;
+  onRequestEdit?: () => void;
+  onOpenMarkerSettings?: () => void;
+  contentScrollRef?: React.RefObject<HTMLElement | null>;
+  isSidebarOpen?: boolean;
+  onSetSidebarOpen?: (open: boolean) => void;
+  onTitleHtml?: (html: string) => void;
+  onHasTitle?: (has: boolean) => void;
+  onTitleNote?: (note: string) => void;
+  onTitleSummary?: (summary: string) => void;
+  onTitleName?: (name: string) => void;
+  showHeader?: boolean;
+  crossModeGuideActive?: boolean;
+  crossModeGuideStep?: string;
+  onCrossGuideNext?: () => void;
+  onCrossGuidePrev?: () => void;
+  onCrossGuideExit?: () => void;
+  onPersistMarkerTheme?: (themeId: string) => Promise<boolean | void>;
+}
 
 // LiveEditor Component
-export default function LiveEditor({ scriptId, initialData, onClose, initialSceneId, defaultShowPreview = false, readOnly = false, onRequestEdit, onOpenMarkerSettings, contentScrollRef, isSidebarOpen, onSetSidebarOpen, onTitleHtml, onHasTitle, onTitleNote, onTitleSummary, onTitleName, showHeader = true, crossModeGuideActive = false, crossModeGuideStep = "", onCrossGuideNext, onCrossGuidePrev, onCrossGuideExit, onPersistMarkerTheme }) {
+export default function LiveEditor({ scriptId, initialData, onClose, initialSceneId, defaultShowPreview = false, readOnly = false, onRequestEdit, onOpenMarkerSettings, contentScrollRef, isSidebarOpen, onSetSidebarOpen, onTitleHtml, onHasTitle, onTitleNote, onTitleSummary, onTitleName, showHeader = true, crossModeGuideActive = false, crossModeGuideStep = "", onCrossGuideNext, onCrossGuidePrev, onCrossGuideExit, onPersistMarkerTheme }: LiveEditorProps) {
   const { t } = useI18n();
   const {
     theme = "system",
@@ -45,8 +79,8 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   const [title, setTitle] = useState(initialData?.title || t("liveEditor.untitled"));
   const [loading, setLoading] = useState(!initialData);
   // Save State Machine: 'saved' | 'saving' | 'unsaved' | 'error'
-  const [saveStatus, setSaveStatus] = useState("saved");
-  const [lastSaved, setLastSaved] = useState(null);
+  const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved" | "error" | "local-saved">("saved");
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   
   // Track if we have unsaved changes related to content ref
   const lastSavedContent = useRef(initialData?.content || "");
@@ -55,9 +89,9 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   const [showPreview, setShowPreview] = useState(defaultShowPreview || readOnly);
   const [showStats, setShowStats] = useState(false);
   const [showRules, setShowRules] = useState(false);
-  const headerRef = useRef(null);
-  const editorPaneRef = useRef(null);
-  const moreActionsButtonRef = useRef(null);
+  const headerRef = useRef<HTMLDivElement | null>(null);
+  const editorPaneRef = useRef<HTMLDivElement | null>(null);
+  const moreActionsButtonRef = useRef<HTMLButtonElement | null>(null);
   const [systemPrefersDark, setSystemPrefersDark] = useState(() => {
     if (typeof window === "undefined" || !window.matchMedia) return false;
     return window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -72,12 +106,12 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, []);
-  const [rawRenderedHtml, setRawRenderedHtml] = useState("");
-  const [processedRenderedHtml, setProcessedRenderedHtml] = useState("");
-  const [captureRenderedHtml, setCaptureRenderedHtml] = useState(false);
+  const [rawRenderedHtml, setRawRenderedHtml] = useState<string>("");
+  const [processedRenderedHtml, setProcessedRenderedHtml] = useState<string>("");
+  const [captureRenderedHtml, setCaptureRenderedHtml] = useState<boolean>(false);
   const renderedHtmlRef = useRef({ raw: "", processed: "" });
-  const htmlResolverRef = useRef(null);
-  const htmlTimeoutRef = useRef(null);
+  const htmlResolverRef = useRef<((html: string) => void) | null>(null);
+  const htmlTimeoutRef = useRef<number | null>(null);
   const isDarkMode = theme === "dark" || (theme === "system" && systemPrefersDark);
   const editorTheme = isDarkMode ? oneDark : "light";
 
@@ -184,7 +218,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     refs: { headerRef, editorPaneRef, previewRef, moreActionsButtonRef },
   });
 
-  const [scenes, setScenes] = useState([]);
+  const [scenes, setScenes] = useState<Array<{ id?: string; [key: string]: unknown }>>([]);
 
   const {
     handleChange,
@@ -240,7 +274,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   });
 
   const setPreviewContainerRef = useCallback(
-    (node) => {
+    (node: HTMLDivElement | null) => {
       previewRef.current = node;
       if (contentScrollRef) {
         contentScrollRef.current = node;
@@ -351,9 +385,10 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
             onSwitchMarkerTheme={handleSwitchMarkerTheme}
             hiddenMarkerIds={hiddenMarkerIds}
             onToggleMarker={toggleMarkerVisibility}
-            script={initialData}
+            script={initialData || undefined}
             onScriptUpdate={(updated) => {
-                if (updated.title && updated.title !== title) setTitle(updated.title);
+                const nextTitle = String((updated as { title?: unknown }).title || "");
+                if (nextTitle && nextTitle !== title) setTitle(nextTitle);
             }}
           />
         </div>
@@ -411,7 +446,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
             show={showPreview}
             readOnly={readOnly}
             content={deferredContent}
-            type={initialData?.type || "script"}
+            type={String(initialData?.type || "script")}
             theme={isDarkMode ? "dark" : "light"}
             fontSize={fontSize}
             bodyFontSize={bodyFontSize}
