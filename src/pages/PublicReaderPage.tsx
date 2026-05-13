@@ -158,7 +158,7 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
     handleTermsScroll,
     toggleRequiredCheck,
     confirmTermsConsent,
-  } = usePublicTerms({ autoOpen: true, onAccepted: () => {} });
+  } = (usePublicTerms as any)({ autoOpen: true, onAccepted: () => {} });
 
   useEffect(() => {
     // Reset override on mount/unmount or id change
@@ -200,7 +200,7 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
                 const person = script.persona || script.owner;
                 
                 const rawEntries = customMetadataEntriesToRawEntries(script.customMetadata || []);
-                const meta = customMetadataEntriesToMeta(script.customMetadata || []);
+                const meta = customMetadataEntriesToMeta(script.customMetadata || []) as Record<string, string>;
                 setRawScript(script.content || "");
                 const reserved = new Set([
                     "title", "credit", "author", "authors", "source",
@@ -313,7 +313,7 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
                             .filter((item: unknown) => (item as any)?.id && (item as any).id !== script.id)
                             .map((item: unknown): SeriesItem | null => {
                                 const i = item as any;
-                                const parsedMeta = customMetadataEntriesToMeta(i.customMetadata || []);
+                                const parsedMeta = customMetadataEntriesToMeta(i.customMetadata || []) as Record<string, string>;
                                 const itemSeriesName = normalizeSeriesName(parsedMeta?.series || parsedMeta?.seriesname);
                                 if (itemSeriesName.toLowerCase() !== seriesName.toLowerCase()) return null;
                                 return {
