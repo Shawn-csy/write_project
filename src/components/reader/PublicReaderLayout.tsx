@@ -1,5 +1,5 @@
-// @ts-nocheck
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import type { LucideIcon } from "lucide-react";
 import { FileSpreadsheet, FileText, Printer } from "lucide-react";
 import { SimplifiedReaderHeader } from "./SimplifiedReaderHeader";
 import { PublicScriptInfoOverlay } from "./PublicScriptInfoOverlay";
@@ -14,6 +14,78 @@ import { normalizeActivityDemoLinks } from "../../lib/activityDemoLinks";
 
 const PUBLIC_READER_GUIDE_STORAGE_KEY = "public-reader-guide-seen-v1";
 const PUBLIC_READER_TOC_OPEN_STORAGE_KEY = "public-reader-toc-open-v1";
+
+interface RectLike {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}
+
+interface DownloadOption {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  onClick: () => Promise<void>;
+  disabled?: boolean;
+}
+
+interface ViewerSceneItem {
+  id: string;
+  label: string;
+}
+
+interface ViewerProps {
+  onProcessedHtml?: (html: string) => void;
+  onRawHtml?: (html: string) => void;
+  sceneList?: ViewerSceneItem[];
+  scenes?: ViewerSceneItem[];
+  activeSceneId?: string;
+  scrollToScene?: ((sceneId: string) => void) | string;
+  [key: string]: unknown;
+}
+
+interface RelatedSeriesScriptItem {
+  id: string;
+  title: string;
+  coverUrl?: string;
+  seriesOrder?: string | number;
+}
+
+interface PublicReaderScriptData {
+  title?: string;
+  author?: { id?: string; displayName?: string; name?: string } | null;
+  organization?: { id?: string; name?: string; displayName?: string; logoUrl?: string; avatar?: string; avatarUrl?: string } | null;
+  synopsis?: string;
+  commercialUse?: string;
+  derivativeUse?: string;
+  notifyOnModify?: string;
+  licenseSpecialTerms?: unknown[];
+  contact?: unknown;
+  seriesName?: string;
+  prefaceItems?: unknown[];
+  activity?: { name?: string; bannerUrl?: string; content?: string; workUrl?: string; demoUrl?: string; demoLinks?: unknown[] };
+  coverUrl?: string | null;
+  content?: string | null;
+  showMarkerLegend?: boolean;
+  disableCopy?: boolean;
+}
+
+interface PublicReaderLayoutProps {
+  script?: PublicReaderScriptData | null;
+  isLoading?: boolean;
+  relatedSeriesScripts?: RelatedSeriesScriptItem[];
+  onOpenRelatedScript?: (scriptId: string) => void;
+  onOpenSeries?: (seriesName: string) => void;
+  onBack?: () => void;
+  onShare?: () => void;
+  viewerProps?: ViewerProps;
+  scriptSurfaceProps?: { scrollRef?: React.RefObject<HTMLElement | null>; [key: string]: unknown };
+  renderedHtml?: string;
+  validMarkerConfigs?: Array<{ id: string; label?: string }>;
+  hiddenMarkerIds?: string[];
+  onToggleMarker?: (markerId: string) => void;
+}
 
 export function PublicReaderLayout({
   script, // { content, title, ...meta }
@@ -30,7 +102,7 @@ export function PublicReaderLayout({
   validMarkerConfigs = [],
   hiddenMarkerIds = [],
   onToggleMarker
-}) {
+}: PublicReaderLayoutProps) {
   const { t } = useI18n();
   const escapeHtml = useCallback((value = "") =>
     String(value ?? "")
@@ -59,7 +131,7 @@ export function PublicReaderLayout({
   } = script || {};
 
   const contactLines = useMemo(() => {
-    const toPairsFromObject = (obj) =>
+    const toPairsFromObject = (obj: Record<string, unknown>) =>
       Object.entries(obj || {})
         .map(([key, value]) => ({
           key: String(key || "").trim(),
@@ -68,7 +140,7 @@ export function PublicReaderLayout({
         .filter((entry) => entry.key && entry.value);
 
     if (contact && typeof contact === "object" && !Array.isArray(contact)) {
-      return toPairsFromObject(contact);
+      return toPairsFromObject(contact as Record<string, unknown>);
     }
 
     let raw = String(contact || "").trim();
@@ -77,7 +149,7 @@ export function PublicReaderLayout({
     try {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        return toPairsFromObject(parsed);
+        return toPairsFromObject(parsed as Record<string, unknown>);
       }
       if (Array.isArray(parsed)) {
         const list = parsed
@@ -125,15 +197,15 @@ export function PublicReaderLayout({
           ),
         }
       : null,
-  ].filter((item) => item && (item.render || String(item.value || "").trim()));
+  ].filter((item) => Boolean(item && item.render));
 
   // Content Protection: Disable copy when disableCopy is true
   useEffect(() => {
     if (!disableCopy) return;
 
-    const preventCopy = (e) => e.preventDefault();
-    const preventContextMenu = (e) => e.preventDefault();
-    const preventKeyboardShortcuts = (e) => {
+    const preventCopy = (e: ClipboardEvent) => e.preventDefault();
+    const preventContextMenu = (e: MouseEvent) => e.preventDefault();
+    const preventKeyboardShortcuts = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey) {
         if (e.key === 'c' || e.key === 'a' || e.key === 's' || e.key === 'x') {
           e.preventDefault();
@@ -214,7 +286,7 @@ export function PublicReaderLayout({
     const safeTitle = escapeHtml(title || "Script");
     const safeSynopsis = escapeHtml(synopsis || "");
     const safeCoverUrl = String(coverUrl || "").trim();
-    const metaRows = [];
+    const metaRows: string[] = [];
     if (organization?.name) metaRows.push(`組織：${escapeHtml(organization.name)}`);
     if (author?.displayName) metaRows.push(`作者：${escapeHtml(author.displayName)}`);
     contactLines.forEach((line) => {
@@ -240,7 +312,7 @@ export function PublicReaderLayout({
     `.trim();
   }, [escapeHtml, title, synopsis, coverUrl, organization?.name, author?.displayName, contactLines, licenseSummary]);
 
-  const downloadOptions = [
+  const downloadOptions: DownloadOption[] = [
     {
       id: "pdf",
       label: t("publicReader.exportPdf"),
@@ -281,7 +353,7 @@ export function PublicReaderLayout({
   const [titleVisible, setTitleVisible] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [guideIndex, setGuideIndex] = useState(0);
-  const [guideSpotlightRect, setGuideSpotlightRect] = useState(null);
+  const [guideSpotlightRect, setGuideSpotlightRect] = useState<RectLike | null>(null);
   const [tocOpen, setTocOpen] = useState(() => {
     try {
       if (typeof window === "undefined") return false;
@@ -320,7 +392,7 @@ export function PublicReaderLayout({
   ]), [t]);
   const currentGuide = showGuide ? guideSteps[guideIndex] : null;
 
-  const resolveGuideTarget = useCallback(() => {
+  const resolveGuideTarget = useCallback((): Element | null => {
     if (!currentGuide?.targetId) return null;
     const nodes = document.querySelectorAll(`[data-guide-id="${currentGuide.targetId}"]`);
     for (const node of nodes) {
@@ -350,7 +422,7 @@ export function PublicReaderLayout({
     });
   }, [resolveGuideTarget, showGuide]);
 
-  const jumpGuide = useCallback((index) => {
+  const jumpGuide = useCallback((index: number) => {
     if (index < 0 || index >= guideSteps.length) return;
     setGuideIndex(index);
     setShowGuide(true);
@@ -411,7 +483,7 @@ export function PublicReaderLayout({
   useEffect(() => {
     if (!showGuide) return;
     const delay = currentGuide?.delaySpotlight || 0;
-    let raf;
+    let raf: number | undefined;
     const run = () => { raf = window.requestAnimationFrame(refreshGuideSpotlight); };
     const timer = delay > 0 ? window.setTimeout(run, delay) : undefined;
     if (!timer) run();
@@ -462,6 +534,11 @@ export function PublicReaderLayout({
     }
     return links;
   }, [activity]);
+  const normalizedLicenseSpecialTerms = useMemo(
+    () => (Array.isArray(licenseSpecialTerms) ? licenseSpecialTerms.map((item) => String(item ?? "").trim()).filter(Boolean) : []),
+    [licenseSpecialTerms]
+  );
+  const safeScrollRef = scriptSurfaceProps?.scrollRef as React.RefObject<HTMLDivElement | null> | undefined;
 
   return (
     <div className={`relative w-full h-[100dvh] overflow-hidden flex flex-col bg-background ${hideWhitespace ? 'hide-whitespace' : ''} ${protectionClass}`}>
@@ -481,21 +558,21 @@ export function PublicReaderLayout({
       <SimplifiedReaderHeader 
         title={title}
         showTitle={titleVisible}
-        onBack={onBack}
+        onBack={onBack || (() => {})}
         onShare={onShare}
         onOpenGuide={handleStartGuide}
         downloadOptions={downloadOptions}
         sceneList={viewerProps?.sceneList || viewerProps?.scenes || []}
         currentSceneId={viewerProps?.activeSceneId}
-        onSelectScene={viewerProps?.scrollToScene}
+        onSelectScene={typeof viewerProps?.scrollToScene === "function" ? viewerProps.scrollToScene : () => {}}
         tocOpen={tocOpen}
         onTocOpenChange={setTocOpen}
-        metaItems={metaItems}
+        metaItems={metaItems.filter(Boolean) as Array<{ label: string; value?: React.ReactNode; render?: React.ReactNode }>}
         
         // Marker Props
         markerConfigs={validMarkerConfigs}
         hiddenMarkerIds={hiddenMarkerIds}
-        onToggleMarker={onToggleMarker}
+        onToggleMarker={onToggleMarker || (() => {})}
 
         className="bg-transparent hover:bg-background/80 transition-colors"
       />
@@ -514,7 +591,8 @@ export function PublicReaderLayout({
         <div data-guide-id="public-guide-script" className="relative z-10 flex-1 min-h-0 h-full">
         <ScriptSurface
            {...scriptSurfaceProps}
-           text={rawScript}
+           scrollRef={safeScrollRef}
+           text={rawScript || ""}
            isLoading={isLoading}
            viewerProps={mergedViewerProps}
            // We need to inject the overlay here. 
@@ -526,14 +604,14 @@ export function PublicReaderLayout({
                      <PublicScriptInfoOverlay
                          title={title}
                          synopsis={synopsis}
-                         coverUrl={coverUrl}
+                         coverUrl={coverUrl || ""}
                          author={author}
                          organization={organization}
                          commercialUse={commercialUse}
                          derivativeUse={derivativeUse}
                          notifyOnModify={notifyOnModify}
-                         licenseSpecialTerms={licenseSpecialTerms}
-                         prefaceItems={prefaceItems}
+                         licenseSpecialTerms={normalizedLicenseSpecialTerms}
+                         prefaceItems={(prefaceItems || []) as Array<{ id?: string; title?: string; value?: string }>}
                          demoLinks={normalizedDemoLinks}
                      />
                    </div>

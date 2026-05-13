@@ -1,6 +1,6 @@
-// @ts-nocheck
 import React from "react";
 import { Button } from "@/components/ui/button";
+import type { LucideIcon } from "lucide-react";
 import { Share2, PenBox, BarChart, MoreHorizontal, HelpCircle } from "lucide-react";
 import {
     DropdownMenu,
@@ -12,6 +12,26 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useI18n } from "../../contexts/I18nContext";
 
+interface DownloadOption {
+    id: string;
+    label: string;
+    icon?: LucideIcon;
+    disabled?: boolean;
+    hidden?: boolean;
+    onClick?: (event: Event | React.MouseEvent) => void;
+}
+
+interface ReaderActionsProps {
+    canShare?: boolean;
+    onShareUrl?: (event?: Event | React.MouseEvent) => void;
+    shareCopied?: boolean;
+    downloadOptions?: DownloadOption[];
+    onEdit?: () => void;
+    onOpenGuide?: () => void;
+    extraActions?: React.ReactNode;
+    onToggleStats?: () => void;
+}
+
 export function ReaderActions({
     canShare,
     onShareUrl,
@@ -20,8 +40,8 @@ export function ReaderActions({
     onEdit,
     onOpenGuide,
     extraActions,
-    onToggleStats // New prop
-}) {
+    onToggleStats,
+}: ReaderActionsProps) {
     const { t } = useI18n();
     const enabledDownloadOptions = (downloadOptions || []).filter((opt) => !opt?.hidden);
 

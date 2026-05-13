@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { Menu, ChevronRight } from "lucide-react";
 import { Button } from "../../components/ui/button";
@@ -12,6 +11,29 @@ import {
 import { ScrollArea } from "../../components/ui/scroll-area";
 import { useI18n } from "../../contexts/I18nContext";
 
+interface SceneItem {
+  id: string;
+  label: string;
+}
+
+interface MetaItem {
+  label: string;
+  value?: React.ReactNode;
+  render?: React.ReactNode;
+}
+
+interface ReaderTOCProps {
+  sceneList?: SceneItem[];
+  currentSceneId?: string;
+  onSelectScene: (sceneId: string) => void;
+  metaItems?: MetaItem[];
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  triggerGuideId?: string;
+  panelGuideId?: string;
+  hideHeaderTrigger?: boolean;
+}
+
 export function ReaderTOC({
   sceneList = [],
   currentSceneId,
@@ -22,16 +44,16 @@ export function ReaderTOC({
   triggerGuideId = "public-guide-toc-trigger",
   panelGuideId = "public-guide-toc-panel",
   hideHeaderTrigger = false,
-}) {
+}: ReaderTOCProps) {
   const [internalOpen, setInternalOpen] = React.useState(false);
   const isControlled = typeof open === "boolean";
   const resolvedOpen = isControlled ? open : internalOpen;
-  const setOpen = onOpenChange || setInternalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
   const { t } = useI18n();
   const hasScenes = Array.isArray(sceneList) && sceneList.length > 0;
   const hasMeta = Array.isArray(metaItems) && metaItems.length > 0;
 
-  const handleSelect = (id) => {
+  const handleSelect = (id: string) => {
       onSelectScene(id);
       setOpen(false);
   };

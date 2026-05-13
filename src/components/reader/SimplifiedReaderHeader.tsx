@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { ArrowLeft, Share2, HelpCircle } from "lucide-react";
 import { Button } from "../ui/button";
@@ -8,6 +7,50 @@ import { MarkerVisibilitySelect } from "../ui/MarkerVisibilitySelect";
 import { DownloadMenu } from "../common/DownloadMenu";
 import { LanguageSwitcher } from "../common/LanguageSwitcher";
 import { useI18n } from "../../contexts/I18nContext";
+
+interface DownloadOption {
+  id: string;
+  label: string;
+  disabled?: boolean;
+  hidden?: boolean;
+  onClick?: (event: Event | React.MouseEvent) => void;
+}
+
+interface SceneItem {
+  id: string;
+  label: string;
+}
+
+interface MetaItem {
+  label: string;
+  value?: React.ReactNode;
+  render?: React.ReactNode;
+}
+
+interface MarkerConfigItem {
+  id: string;
+  label?: string;
+  [key: string]: unknown;
+}
+
+interface SimplifiedReaderHeaderProps {
+  onBack: () => void;
+  title?: string;
+  showTitle?: boolean;
+  onShare?: () => void;
+  onOpenGuide?: () => void;
+  downloadOptions?: DownloadOption[];
+  sceneList?: SceneItem[];
+  currentSceneId?: string;
+  onSelectScene: (sceneId: string) => void;
+  tocOpen?: boolean;
+  onTocOpenChange?: (open: boolean) => void;
+  metaItems?: MetaItem[];
+  markerConfigs?: MarkerConfigItem[];
+  hiddenMarkerIds?: string[];
+  onToggleMarker: (markerId: string) => void;
+  className?: string;
+}
 
 export function SimplifiedReaderHeader({
   onBack,
@@ -28,7 +71,7 @@ export function SimplifiedReaderHeader({
   hiddenMarkerIds = [],
   onToggleMarker,
   className = "",
-}) {
+}: SimplifiedReaderHeaderProps) {
   const { t } = useI18n();
 
   return (
@@ -87,6 +130,8 @@ export function SimplifiedReaderHeader({
           </Button>
         ) : null}
         <LanguageSwitcher
+          ariaLabel={t("settings.language")}
+          buttonClassName="bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md border-0"
           selectClassName="bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md border-0"
         />
         

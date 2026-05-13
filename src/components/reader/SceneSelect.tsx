@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import {
   Select,
@@ -11,6 +10,23 @@ import {
 } from "../ui/select";
 import { useI18n } from "../../contexts/I18nContext";
 
+interface SceneItem {
+  id: string;
+  index?: string | number;
+  header?: string;
+  label?: string;
+}
+
+interface SceneSelectProps {
+  sceneList?: SceneItem[];
+  currentSceneId?: string;
+  onSelectScene: (sceneId: string) => void;
+  triggerClassName?: string;
+  contentAlign?: "start" | "center" | "end";
+  label?: string;
+  placeholder?: string;
+}
+
 export default function SceneSelect({
   sceneList = [],
   currentSceneId,
@@ -19,7 +35,7 @@ export default function SceneSelect({
   contentAlign = "start",
   label = "",
   placeholder = ""
-}) {
+}: SceneSelectProps) {
   const { t } = useI18n();
   const resolvedLabel = label || t("readerControls.scene");
   const resolvedPlaceholder = placeholder || t("readerControls.scenePlaceholder");
@@ -39,7 +55,7 @@ export default function SceneSelect({
                 <span className="text-muted-foreground text-xs min-w-[20px]">
                   {scene.index}
                 </span>
-                <span className="truncate">{scene.header}</span>
+                <span className="truncate">{scene.header || scene.label || scene.id}</span>
               </div>
             </SelectItem>
           ))}
