@@ -1,5 +1,5 @@
-// @ts-nocheck
 import { useState, useRef, useEffect, useCallback } from "react";
+import type React from "react";
 import { getPublicTermsConfig, acceptPublicTerms } from "../../lib/api/public";
 
 const TERMS_VISITOR_ID_KEY = "public_terms_visitor_id";
@@ -28,6 +28,42 @@ export const hasAcceptedTermsVersion = (version) => {
   }
 };
 
+interface PublicTermsCheck {
+  id: string;
+  label?: string;
+  required?: boolean;
+}
+
+interface PublicTermsConfig {
+  version?: string;
+  requiredChecks?: PublicTermsCheck[];
+  [key: string]: unknown;
+}
+
+interface UsePublicTermsOptions {
+  autoOpen?: boolean;
+  onAccepted?: (scriptId?: string) => void;
+}
+
+interface UsePublicTermsResult {
+  termsConfig: PublicTermsConfig | null;
+  isTermsConfigLoading: boolean;
+  termsDialogOpen: boolean;
+  setTermsDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  termsScrollRef: React.RefObject<HTMLDivElement | null>;
+  termsReadToBottom: boolean;
+  termsRequireScroll: boolean;
+  acceptedChecks: Record<string, boolean>;
+  isSubmittingTerms: boolean;
+  canConfirmTerms: boolean;
+  missingRequiredCheckCount: number;
+  handleTermsScroll: (event: React.UIEvent<HTMLDivElement>) => void;
+  toggleRequiredCheck: (checkId: string, checked: boolean) => void;
+  openTermsDialog: (config?: PublicTermsConfig | null) => void;
+  confirmTermsConsent: (scriptId?: string) => Promise<void>;
+  hasAcceptedTermsVersion: (version: string) => boolean;
+}
+
 /**
  * usePublicTerms
  *
@@ -37,15 +73,15 @@ export const hasAcceptedTermsVersion = (version) => {
  * @param {boolean} options.autoOpen - 載入後若未接受則自動開啟 dialog（用於 ReaderPage）
  * @param {function} options.onAccepted - 條款同意後的 callback(scriptId)
  */
-export function usePublicTerms({ autoOpen = false, onAccepted } = {}) {
-  const [termsConfig, setTermsConfig] = useState(null);
-  const [isTermsConfigLoading, setIsTermsConfigLoading] = useState(true);
-  const [termsDialogOpen, setTermsDialogOpen] = useState(false);
-  const [termsReadToBottom, setTermsReadToBottom] = useState(false);
-  const [termsRequireScroll, setTermsRequireScroll] = useState(false);
-  const [acceptedChecks, setAcceptedChecks] = useState({});
-  const [isSubmittingTerms, setIsSubmittingTerms] = useState(false);
-  const termsScrollRef = useRef(null);
+export function usePublicTerms({ autoOpen = false, onAccepted }: UsePublicTermsOptions = {}): UsePublicTermsResult {
+  const [termsConfig, setTermsConfig] = useState<PublicTermsConfig | null>(null);
+  const [isTermsConfigLoading, setIsTermsConfigLoading] = useState<boolean>(true);
+  const [termsDialogOpen, setTermsDialogOpen] = useState<boolean>(false);
+  const [termsReadToBottom, setTermsReadToBottom] = useState<boolean>(false);
+  const [termsRequireScroll, setTermsRequireScroll] = useState<boolean>(false);
+  const [acceptedChecks, setAcceptedChecks] = useState<Record<string, boolean>>({});
+  const [isSubmittingTerms, setIsSubmittingTerms] = useState<boolean>(false);
+  const termsScrollRef = useRef<HTMLDivElement | null>(null);
 
   // 載入條款設定
   useEffect(() => {
@@ -53,14 +89,14 @@ export function usePublicTerms({ autoOpen = false, onAccepted } = {}) {
     const load = async () => {
       setIsTermsConfigLoading(true);
       try {
-        const config = await getPublicTermsConfig();
+        const config = await getPublicTermsConfig() as PublicTermsConfig | null;
         if (cancelled) return;
         const normalized = config || null;
         setTermsConfig(normalized);
         if (autoOpen) {
           const version = normalized?.version;
           if (!version || hasAcceptedTermsVersion(version)) return;
-          const initialChecks = {};
+          const initialChecks: Record<string, boolean> = {};
           (normalized?.requiredChecks || []).forEach((item) => {
             if (item?.id) initialChecks[item.id] = false;
           });
@@ -94,7 +130,7 @@ export function usePublicTerms({ autoOpen = false, onAccepted } = {}) {
     return () => { cancelled = true; };
   }, [termsDialogOpen, termsConfig]);
 
-  const handleTermsScroll = useCallback((event) => {
+  const handleTermsScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
     const target = event.currentTarget;
     if (!target) return;
     const buffer = 16;
@@ -106,7 +142,7 @@ export function usePublicTerms({ autoOpen = false, onAccepted } = {}) {
     }
   }, []);
 
-  const toggleRequiredCheck = useCallback((checkId, checked) => {
+  const toggleRequiredCheck = useCallback((checkId: string, checked: boolean) => {
     setAcceptedChecks((prev) => ({ ...prev, [checkId]: Boolean(checked) }));
   }, []);
 
@@ -119,9 +155,9 @@ export function usePublicTerms({ autoOpen = false, onAccepted } = {}) {
   const missingRequiredCheckCount = requiredChecks.filter((item) => !acceptedChecks[item.id]).length;
 
   /** 開啟 dialog 前先初始化 checks 狀態（用於 GalleryPage 手動觸發） */
-  const openTermsDialog = useCallback((config) => {
+  const openTermsDialog = useCallback((config?: PublicTermsConfig | null) => {
     const cfg = config ?? termsConfig;
-    const initialChecks = {};
+    const initialChecks: Record<string, boolean> = {};
     (cfg?.requiredChecks || []).forEach((item) => {
       if (item?.id) initialChecks[item.id] = false;
     });
@@ -130,7 +166,7 @@ export function usePublicTerms({ autoOpen = false, onAccepted } = {}) {
     setTermsDialogOpen(true);
   }, [termsConfig]);
 
-  const confirmTermsConsent = useCallback(async (scriptId) => {
+  const confirmTermsConsent = useCallback(async (scriptId?: string) => {
     if (!termsConfig?.version || !canConfirmTerms || isSubmittingTerms) return;
     setIsSubmittingTerms(true);
     try {

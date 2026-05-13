@@ -1,12 +1,39 @@
-// @ts-nocheck
 import { useCallback, useMemo } from "react";
+import type React from "react";
 import { usePersistentSpotlightGuide } from "../usePersistentSpotlightGuide";
 
 const STUDIO_GUIDE_STORAGE_KEY = "studio-guide-seen-v1";
 
-export function useStudioGuide({ t, currentUser, activeTab, handleTabChange, tabsGuideRef }) {
+interface StudioGuideStep {
+  title: string;
+  description: string;
+  target: "tabs" | "works" | "worksFilters" | "worksEditInfo" | "profile" | "org";
+  tab: "works" | "profile" | "org";
+}
+
+interface UseStudioGuideProps {
+  t: (key: string) => string;
+  currentUser: { uid?: string } | null;
+  activeTab: string;
+  handleTabChange: (tab: string) => void;
+  tabsGuideRef: React.RefObject<HTMLElement | null>;
+}
+
+interface UseStudioGuideResult {
+  showStudioGuide: boolean;
+  studioGuideIndex: number;
+  studioGuideSteps: StudioGuideStep[];
+  currentStudioGuide: StudioGuideStep | null;
+  studioSpotlightRect: { top: number; left: number; width: number; height: number } | null;
+  finishStudioGuide: () => void;
+  handleStudioGuideNext: () => void;
+  handleStudioGuidePrev: () => void;
+  handleStartStudioGuide: () => void;
+}
+
+export function useStudioGuide({ t, currentUser, activeTab, handleTabChange, tabsGuideRef }: UseStudioGuideProps): UseStudioGuideResult {
   const studioGuideSteps = useMemo(
-    () => ([
+    (): StudioGuideStep[] => ([
       {
         title: t("publisher.guideTabsTitle"),
         description: t("publisher.guideTabsDesc"),
@@ -47,7 +74,7 @@ export function useStudioGuide({ t, currentUser, activeTab, handleTabChange, tab
     [t]
   );
   const resolveStudioGuideTarget = useCallback(
-    (step) => {
+    (step: StudioGuideStep | null) => {
       if (!step) return null;
       if (step.target === "tabs") return tabsGuideRef.current;
       if (step.target === "works") return document.querySelector('[data-guide-id="studio-works-panel"]');
@@ -73,7 +100,7 @@ export function useStudioGuide({ t, currentUser, activeTab, handleTabChange, tab
     steps: studioGuideSteps,
     storageKey: STUDIO_GUIDE_STORAGE_KEY,
     resolveTarget: resolveStudioGuideTarget,
-    onStepEnter: (step) => {
+    onStepEnter: (step: StudioGuideStep | null) => {
       if (step?.tab && activeTab !== step.tab) {
         handleTabChange(step.tab);
       }

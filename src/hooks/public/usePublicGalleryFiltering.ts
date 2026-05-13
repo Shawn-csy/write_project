@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMemo } from "react";
 import { deriveSimpleLicenseTags, parseBasicLicenseFromMeta } from "../../lib/licenseRights";
 import { normalizeSeriesName, parseSeriesOrder } from "../../lib/series";
@@ -18,6 +17,115 @@ const SEGMENT_TAGS = {
   [SEGMENT_KEYS.male]: ["男性向"],
   [SEGMENT_KEYS.female]: ["女性向"],
 };
+
+type SegmentKey = keyof typeof SEGMENT_KEYS;
+type UsageFilter = "all" | "commercial";
+
+interface TagLike {
+  name?: string;
+  [key: string]: unknown;
+}
+
+interface AuthorLike {
+  displayName?: string;
+  avatarUrl?: string;
+  tags?: string[];
+  [key: string]: unknown;
+}
+
+interface OrgLike {
+  name?: string;
+  tags?: string[];
+  [key: string]: unknown;
+}
+
+interface PersonaLike {
+  defaultLicenseCommercial?: string;
+  defaultLicenseDerivative?: string;
+  defaultLicenseNotify?: string;
+}
+
+interface SeriesLike {
+  name?: string;
+  coverUrl?: string;
+}
+
+interface ScriptLike {
+  id: string;
+  title?: string;
+  customMetadata?: Array<{ key?: string; value?: string; type?: string }>;
+  persona?: PersonaLike | null;
+  author?: AuthorLike | string | null;
+  series?: SeriesLike | null;
+  seriesName?: string;
+  seriesOrder?: number | null;
+  episode?: number | string;
+  licenseCommercial?: string;
+  licenseDerivative?: string;
+  licenseNotify?: string;
+  coverUrl?: string;
+  tags?: Array<string | TagLike>;
+  views?: number;
+  lastModified?: number;
+  updatedAt?: number;
+  [key: string]: unknown;
+}
+
+interface EnrichedScript extends ScriptLike {
+  author: AuthorLike | string | null;
+  tags: string[];
+  _licenseText: string;
+  _licenseTermsText: string;
+  _derivedLicenseTags: string[];
+  _allowCommercial: boolean;
+  _disableAuthorLink: boolean;
+  _seriesName: string;
+  _seriesOrder: number | null;
+  _searchTitle: string;
+  _searchAuthor: string;
+  _searchLicenseText: string;
+  _searchLicenseTermsText: string;
+  _tagSetLower: Set<string>;
+}
+
+interface FeaturedSeries {
+  name: string;
+  totalViews: number;
+  count: number;
+  lead: EnrichedScript | null;
+  coverUrl: string;
+  scripts: EnrichedScript[];
+}
+
+interface UsePublicGalleryFilteringInput {
+  scripts: ScriptLike[];
+  authors: AuthorLike[];
+  orgs: OrgLike[];
+  searchNeedle: string;
+  selectedTags: string[];
+  selectedAuthorTags: string[];
+  selectedOrgTags: string[];
+  segmentFilter: SegmentKey | string;
+  usageFilter: UsageFilter | string;
+  featuredLaneMode: "top" | "latest" | string | boolean;
+}
+
+interface UsePublicGalleryFilteringResult {
+  scriptsWithMeta: EnrichedScript[];
+  filteredScripts: EnrichedScript[];
+  topViewedScripts: EnrichedScript[];
+  latestScripts: EnrichedScript[];
+  topViewedScriptsPreview: EnrichedScript[];
+  latestScriptsPreview: EnrichedScript[];
+  featuredLaneScripts: EnrichedScript[];
+  featuredSeries: FeaturedSeries[];
+  allTags: string[];
+  licenseTagShortcuts: string[];
+  filteredAuthors: AuthorLike[];
+  filteredOrgs: OrgLike[];
+  authorTags: string[];
+  orgTags: string[];
+}
 
 export const RESERVED_SEGMENT_TAGS = new Set(
   Object.values(SEGMENT_TAGS).flat().map((tag) => String(tag).toLowerCase())
@@ -40,7 +148,7 @@ export function usePublicGalleryFiltering({
   segmentFilter,
   usageFilter,
   featuredLaneMode,
-}) {
+}: UsePublicGalleryFilteringInput): UsePublicGalleryFilteringResult {
   // 1. Enrich scripts with computed metadata fields
   const scriptsWithMeta = useMemo(() => {
     return (scripts || []).map((script) => {
@@ -63,8 +171,8 @@ export function usePublicGalleryFiltering({
       const seriesName = normalizeSeriesName(script.series?.name || meta.series || meta.seriesname);
       const seriesOrder = parseSeriesOrder(script.seriesOrder ?? meta.seriesorder ?? meta.episode);
 
-      let terms = meta.licensespecialterms || meta.licenseSpecialTerms || "";
-      let licenseTagsFromMeta = meta.licensetags || meta.licenseTags || [];
+      let terms: string | string[] = (meta.licensespecialterms || meta.licenseSpecialTerms || "") as string | string[];
+      let licenseTagsFromMeta: string[] | string = (meta.licensetags || meta.licenseTags || []) as string[] | string;
       if (typeof terms === "string") {
         try { const p = JSON.parse(terms); if (Array.isArray(p)) terms = p; } catch {}
       }
@@ -78,9 +186,18 @@ export function usePublicGalleryFiltering({
       }
       if (!Array.isArray(licenseTagsFromMeta)) licenseTagsFromMeta = [];
 
-      const termsText = Array.isArray(terms) ? terms.join(" ") : String(terms || "");
-      const licenseTags = Array.from(new Set([...deriveSimpleLicenseTags(basicLicense), ...licenseTagsFromMeta]));
-      const mergedTags = Array.from(new Set([...(script.tags || []), ...licenseTags]));
+      const termsText = Array.isArray(terms) ? terms.map((t) => String(t)).join(" ") : String(terms || "");
+      const normalizedLicenseTags = Array.isArray(licenseTagsFromMeta)
+        ? licenseTagsFromMeta.map((tag) => String(tag)).filter(Boolean)
+        : [];
+      const licenseTags = Array.from(new Set([...deriveSimpleLicenseTags(basicLicense), ...normalizedLicenseTags]));
+      const mergedTags = Array.from(
+        new Set(
+          ([...(script.tags || []), ...licenseTags] as Array<string | TagLike>)
+            .map((tag) => (typeof tag === "string" ? tag : String(tag?.name || "")))
+            .filter(Boolean)
+        )
+      );
       const resolvedAuthor = useOverrideAuthor
         ? { displayName: authorOverride, avatarUrl: "" }
         : (script.author || null);
@@ -191,7 +308,7 @@ export function usePublicGalleryFiltering({
   const licenseTagShortcuts = Array.from(new Set(scriptsWithMeta.flatMap((s) => s._derivedLicenseTags || [])));
 
   // 6. Filter authors / orgs
-  const filteredAuthors = useMemo(() => {
+  const filteredAuthors = useMemo<AuthorLike[]>(() => {
     return authors.filter((a) => {
       const matchesSearch = String(a.displayName || "").toLowerCase().includes(searchNeedle);
       const matchesTag = selectedAuthorTags.length > 0
@@ -201,7 +318,7 @@ export function usePublicGalleryFiltering({
     });
   }, [authors, searchNeedle, selectedAuthorTags]);
 
-  const filteredOrgs = useMemo(() => {
+  const filteredOrgs = useMemo<OrgLike[]>(() => {
     return orgs.filter((o) => {
       const matchesSearch = String(o.name || "").toLowerCase().includes(searchNeedle);
       const matchesTag = selectedOrgTags.length > 0
@@ -211,8 +328,8 @@ export function usePublicGalleryFiltering({
     });
   }, [orgs, searchNeedle, selectedOrgTags]);
 
-  const authorTags = useMemo(() => Array.from(new Set(authors.flatMap((a) => a.tags || []))), [authors]);
-  const orgTags = useMemo(() => Array.from(new Set(orgs.flatMap((o) => o.tags || []))), [orgs]);
+  const authorTags = useMemo<string[]>(() => Array.from(new Set(authors.flatMap((a) => a.tags || []))), [authors]);
+  const orgTags = useMemo<string[]>(() => Array.from(new Set(orgs.flatMap((o) => o.tags || []))), [orgs]);
 
   return {
     scriptsWithMeta,

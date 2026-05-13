@@ -1,15 +1,32 @@
-// @ts-nocheck
 import { useRef, useState } from "react";
+import type React from "react";
 import { buildPrintHtml } from "../lib/print";
+
+interface UseReaderScriptActionsProps {
+  accentConfig?: unknown;
+  processedScriptHtml?: string;
+  rawScriptHtml?: string;
+  titleHtml?: string;
+  titleName?: string;
+  activeFile?: string;
+  titleSummary?: string;
+  titleNote?: string;
+}
+
+interface UseReaderScriptActionsResult {
+  handleExportPdf: (e?: React.MouseEvent | Event | null) => void;
+  handleShareUrl: (e?: React.MouseEvent | Event | null) => Promise<void>;
+  shareCopied: boolean;
+}
 
 export function useReaderScriptActions({ 
     accentConfig, processedScriptHtml, rawScriptHtml, 
     titleHtml, titleName, activeFile, titleSummary, titleNote 
-}) {
-    const [shareCopied, setShareCopied] = useState(false);
-    const shareCopiedTimer = useRef(null);
+}: UseReaderScriptActionsProps): UseReaderScriptActionsResult {
+    const [shareCopied, setShareCopied] = useState<boolean>(false);
+    const shareCopiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const handleExportPdf = (e) => {
+    const handleExportPdf = (e?: React.MouseEvent | Event | null) => {
         e?.stopPropagation();
         const bodyHtml = processedScriptHtml || rawScriptHtml;
         const hasContent = Boolean(bodyHtml || titleHtml);
@@ -49,7 +66,7 @@ export function useReaderScriptActions({
             iframeDoc.close();
             
             // Append cloned styles to head
-            styles.forEach(styleNode => {
+            styles.forEach((styleNode) => {
                 iframeDoc.head.appendChild(styleNode);
             });
 
@@ -71,14 +88,11 @@ export function useReaderScriptActions({
         }
     };
 
-    const handleShareUrl = async (e) => {
+    const handleShareUrl = async (e?: React.MouseEvent | Event | null) => {
         e?.stopPropagation?.();
         if (typeof window === "undefined") return;
         const shareUrl = window.location.href;
         
-        const title = titleName || activeFile || "Screenplay Reader";
-        const summary = titleSummary || titleNote || (titleName ? `${titleName} 劇本摘要` : "線上閱讀、瀏覽與分享 Fountain 劇本的閱讀器。");
-
         // Force Clipboard Copy (User requested to skip native share menu)
         // Fallback: Copy to clipboard (URL only for better preview generation)
         const textToCopy = shareUrl;
@@ -91,7 +105,7 @@ export function useReaderScriptActions({
             } else {
                 window.prompt("複製分享連結", shareUrl);
             }
-        } catch (err) { console.error(err); }
+        } catch (err: unknown) { console.error(err); }
     };
 
     return {

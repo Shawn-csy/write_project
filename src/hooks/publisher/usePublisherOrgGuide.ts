@@ -1,12 +1,37 @@
-// @ts-nocheck
 import { useMemo } from "react";
 import { usePersistentSpotlightGuide } from "../usePersistentSpotlightGuide";
 
 const ORG_TAB_GUIDE_STORAGE_KEY = "publisher-org-guide-seen-v1";
 
-export function usePublisherOrgGuide({ t, viewMode, selectedOrgId, canManageOrgMembers }) {
+interface OrgGuideStep {
+  title: string;
+  description: string;
+  targetId: string;
+  fallbackId?: string;
+}
+
+interface UsePublisherOrgGuideProps {
+  t: (key: string) => string;
+  viewMode: string;
+  selectedOrgId: string;
+  canManageOrgMembers: boolean;
+}
+
+interface UsePublisherOrgGuideResult {
+  showGuide: boolean;
+  guideIndex: number;
+  guideSteps: OrgGuideStep[];
+  currentGuide: OrgGuideStep | null;
+  guideSpotlightRect: { top: number; left: number; width: number; height: number } | null;
+  startGuide: () => void;
+  finishGuide: () => void;
+  handleGuidePrev: () => void;
+  handleGuideNext: () => void;
+}
+
+export function usePublisherOrgGuide({ t, viewMode, selectedOrgId, canManageOrgMembers }: UsePublisherOrgGuideProps): UsePublisherOrgGuideResult {
   const guideSteps = useMemo(
-    () => ([
+    (): OrgGuideStep[] => ([
       {
         title: t("publisherOrgTab.guideListTitle"),
         description: t("publisherOrgTab.guideListDesc"),
@@ -43,7 +68,7 @@ export function usePublisherOrgGuide({ t, viewMode, selectedOrgId, canManageOrgM
   } = usePersistentSpotlightGuide({
     steps: guideSteps,
     storageKey: ORG_TAB_GUIDE_STORAGE_KEY,
-    resolveTarget: (step) => {
+    resolveTarget: (step: OrgGuideStep | null) => {
       const target = step?.targetId ? document.getElementById(step.targetId) : null;
       const fallback = step?.fallbackId ? document.getElementById(step.fallbackId) : null;
       return target || fallback || null;

@@ -25,7 +25,7 @@ import { AppRouter } from "./AppRouter";
 
 // JS components pending TS migration
 type AC = React.ComponentType<Record<string, unknown>>;
-import { MetaTags as MetaTagsJs } from "./components/common/MetaTags.jsx";
+import { MetaTags as MetaTagsJs } from "./components/common/MetaTags";
 import { GlobalListeners as GlobalListenersJs } from "./components/common/GlobalListeners";
 const MetaTags = MetaTagsJs as unknown as AC;
 const GlobalListeners = GlobalListenersJs as unknown as AC;
@@ -100,7 +100,7 @@ function App() {
     rawScriptHtml: scriptManager.rawScriptHtml,
     titleHtml: scriptManager.titleHtml,
     titleName,
-    activeFile: null,
+    activeFile: undefined,
     titleSummary,
     titleNote,
   });

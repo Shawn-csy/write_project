@@ -1,7 +1,38 @@
-// @ts-nocheck
 import { useCallback, useEffect, useState } from "react";
+import type React from "react";
 
-export function usePersistentSpotlightGuide({
+interface SpotlightRect {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}
+
+interface UsePersistentSpotlightGuideProps<TStep> {
+  steps: TStep[];
+  storageKey: string;
+  resolveTarget: (step: TStep, index: number) => Element | null;
+  onStepEnter?: (step: TStep, index: number) => void;
+  onFinish?: () => void;
+  autoStart?: boolean;
+  autoStartEnabled?: boolean;
+  refreshDeps?: ReadonlyArray<unknown>;
+}
+
+interface UsePersistentSpotlightGuideResult<TStep> {
+  showGuide: boolean;
+  setShowGuide: React.Dispatch<React.SetStateAction<boolean>>;
+  guideIndex: number;
+  setGuideIndex: React.Dispatch<React.SetStateAction<number>>;
+  guideSpotlightRect: SpotlightRect | null;
+  currentGuide: TStep | null;
+  startGuide: () => void;
+  finishGuide: () => void;
+  handleGuideNext: () => void;
+  handleGuidePrev: () => void;
+}
+
+export function usePersistentSpotlightGuide<TStep>({
   steps,
   storageKey,
   resolveTarget,
@@ -10,10 +41,10 @@ export function usePersistentSpotlightGuide({
   autoStart = true,
   autoStartEnabled = true,
   refreshDeps = [],
-}) {
-  const [showGuide, setShowGuide] = useState(false);
-  const [guideIndex, setGuideIndex] = useState(0);
-  const [guideSpotlightRect, setGuideSpotlightRect] = useState(null);
+}: UsePersistentSpotlightGuideProps<TStep>): UsePersistentSpotlightGuideResult<TStep> {
+  const [showGuide, setShowGuide] = useState<boolean>(false);
+  const [guideIndex, setGuideIndex] = useState<number>(0);
+  const [guideSpotlightRect, setGuideSpotlightRect] = useState<SpotlightRect | null>(null);
 
   const currentGuide = showGuide ? steps[guideIndex] : null;
 
@@ -38,7 +69,7 @@ export function usePersistentSpotlightGuide({
   }, [currentGuide, guideIndex, resolveTarget, showGuide]);
 
   const jumpGuide = useCallback(
-    (index) => {
+    (index: number) => {
       const next = steps[index];
       if (!next) return;
       if (onStepEnter) onStepEnter(next, index);

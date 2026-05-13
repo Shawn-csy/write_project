@@ -1,10 +1,29 @@
-// @ts-nocheck
 import { useSettings } from "../contexts/SettingsContext";
 import { useScriptData } from "./write/useScriptData";
 import { useWriteScriptActions } from "./write/useScriptActions";
 import { useScriptDragDrop } from "./write/useScriptDragDrop";
 
-export function useWriteTab(refreshTrigger, options = {}) {
+interface UseWriteTabOptions {
+    onScriptCreated?: (script: {
+        id: string;
+        title: string;
+        type?: string;
+        folder: string;
+        content?: string;
+        isPublic?: boolean;
+        [key: string]: unknown;
+    }) => void;
+}
+
+type UseScriptDataReturn = ReturnType<typeof useScriptData>;
+type UseWriteScriptActionsReturn = ReturnType<typeof useWriteScriptActions>;
+type UseScriptDragDropReturn = ReturnType<typeof useScriptDragDrop>;
+
+type UseWriteTabResult = UseScriptDataReturn & UseWriteScriptActionsReturn & UseScriptDragDropReturn & {
+    markerThemes: Array<{ id: string; [key: string]: unknown }>;
+};
+
+export function useWriteTab(refreshTrigger: number, options: UseWriteTabOptions = {}): UseWriteTabResult {
     const { markerThemes } = useSettings();
     
     // 1. Data & Navigation
