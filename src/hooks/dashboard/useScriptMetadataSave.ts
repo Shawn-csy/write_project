@@ -1,0 +1,355 @@
+// @ts-nocheck
+import { useCallback, useState } from "react";
+import { updateScript, addTagToScript, removeTagFromScript } from "../../lib/api/scripts";
+import { createTag } from "../../lib/api/tags";
+import { deriveSimpleLicenseTags } from "../../lib/licenseRights";
+import { AUDIENCE_TAG_GROUP, RATING_TAG_GROUP, syncGroupedTagSelection } from "./tagGroupUtils";
+import { normalizeCustomMetadataEntries } from "../../lib/customMetadata";
+import { normalizeActivityDemoLinks, serializeActivityDemoLinks } from "../../lib/activityDemoLinks";
+
+export function useScriptMetadataSave({
+  t,
+  toast,
+  script,
+  activeScript,
+  title,
+  coverUrl,
+  status,
+  author,
+  authorDisplayMode,
+  date,
+  outline,
+  roleSetting,
+  backgroundInfo,
+  performanceInstruction,
+  openingIntro,
+  chapterSettings,
+  activityName,
+  activityBannerUrl,
+  activityContent,
+  activityDemoLinks,
+  activityWorkUrl,
+  licenseCommercial,
+  licenseDerivative,
+  licenseNotify,
+  licenseSpecialTerms,
+  copyright,
+  synopsis,
+  contact,
+  contactFields,
+  customFields,
+  seriesOptions,
+  seriesId,
+  seriesName,
+  seriesOrder,
+  currentTags,
+  setCurrentTags,
+  availableTags,
+  markerThemeId,
+  showMarkerLegend,
+  disableCopy,
+  identity,
+  selectedOrgId,
+  targetAudience,
+  contentRating,
+  publishChecklist,
+  needsPersonaBeforePublish,
+  hasAnyPersona,
+  jumpToChecklistItem,
+  setShowValidationHints,
+  setShowPersonaSetupDialog,
+  setActiveTab,
+  onSave,
+  onOpenChange,
+  saveScript,
+  syncScriptTags,
+  preserveAuthorInternalData = false,
+  authorEditedRef = null,
+}) {
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = useCallback(async () => {
+    const normalizeMetaKey = (key) => String(key || "").trim().toLowerCase().replace(/\s+/g, "");
+    const isAuthorMetaKey = (key) => {
+      const normalized = normalizeMetaKey(key);
+      return normalized === "author" || normalized === "authors" || normalized === "authordisplaymode";
+    };
+    setShowValidationHints(true);
+    if (needsPersonaBeforePublish) {
+      toast({
+        title: t("scriptMetadataDialog.selectIdentityFirst", "請先選擇作者"),
+        description: t("scriptMetadataDialog.selectIdentityToPublish", "公開前需要作者身份，可直接在下方快速建立。"),
+        variant: "destructive",
+      });
+      setActiveTab("basic");
+      if (!hasAnyPersona) {
+        setShowPersonaSetupDialog(true);
+      }
+      return;
+    }
+    if (!identity || !identity.startsWith("persona:")) {
+      toast({
+        title: !hasAnyPersona
+          ? t("scriptMetadataDialog.noPersonaYet", "尚未建立作者身份")
+          : t("scriptMetadataDialog.selectIdentityFirst"),
+        description: !hasAnyPersona
+          ? t("scriptMetadataDialog.noPersonaYetDesc", "先建立一個作者身份，之後即可在這裡選擇並套用到劇本。")
+          : undefined,
+        variant: "destructive",
+      });
+      setActiveTab("basic");
+      if (!hasAnyPersona) {
+        setShowPersonaSetupDialog(true);
+      }
+      return;
+    }
+    if (status === "Public" && publishChecklist.missingRequired.length > 0) {
+      const firstMissing = publishChecklist.missingRequired[0];
+      if (firstMissing?.key) {
+        jumpToChecklistItem(firstMissing.key);
+      }
+      toast({
+        title: t("scriptMetadataDialog.cannotPublish"),
+        description: t("scriptMetadataDialog.cannotPublishDesc").replace("{items}", publishChecklist.missingRequired.map((item) => item.label).join("、")),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      let tagsToSave = [...currentTags];
+      if (targetAudience) {
+        tagsToSave = await syncGroupedTagSelection({
+          currentTags: tagsToSave,
+          availableTags,
+          selectedName: targetAudience,
+          groupNames: AUDIENCE_TAG_GROUP,
+          createTag,
+          resolveColor: () => "bg-gray-500",
+        });
+      }
+      if (contentRating) {
+        tagsToSave = await syncGroupedTagSelection({
+          currentTags: tagsToSave,
+          availableTags,
+          selectedName: contentRating,
+          groupNames: RATING_TAG_GROUP,
+          createTag,
+          resolveColor: (name) => (name === "成人向" ? "bg-red-500" : "bg-gray-500"),
+        });
+      }
+
+      const workingScript = activeScript || script;
+      const workingScriptMetadata = Array.isArray(workingScript?.customMetadata) ? workingScript.customMetadata : [];
+      const workingAuthorMetadataEntries = normalizeCustomMetadataEntries(workingScriptMetadata).filter((entry) => isAuthorMetaKey(entry?.key));
+      const authorEditedValue = authorEditedRef?.current ?? false;
+      const shouldPreserveAuthor = preserveAuthorInternalData && !authorEditedValue;
+      const effectiveAuthorDisplayMode = authorDisplayMode === "override" ? "override" : "badge";
+      const effectiveAuthor = String(author || "");
+      const persistedAuthor = effectiveAuthorDisplayMode === "override" ? effectiveAuthor : "";
+
+      const orderedEntries = [];
+      if (!shouldPreserveAuthor && effectiveAuthorDisplayMode === "override" && effectiveAuthor) {
+        orderedEntries.push({ key: "Author", value: effectiveAuthor });
+      }
+      if (!shouldPreserveAuthor) {
+        orderedEntries.push({ key: "AuthorDisplayMode", value: effectiveAuthorDisplayMode });
+      }
+      if (outline) orderedEntries.push({ key: "Outline", value: outline });
+      if (roleSetting) orderedEntries.push({ key: "RoleSetting", value: roleSetting });
+      if (backgroundInfo) orderedEntries.push({ key: "BackgroundInfo", value: backgroundInfo });
+      if (performanceInstruction) orderedEntries.push({ key: "PerformanceInstruction", value: performanceInstruction });
+      if (openingIntro) orderedEntries.push({ key: "OpeningIntro", value: openingIntro });
+      if (chapterSettings) orderedEntries.push({ key: "ChapterSettings", value: chapterSettings });
+      if (activityName) orderedEntries.push({ key: "ActivityName", value: activityName });
+      if (activityBannerUrl) orderedEntries.push({ key: "ActivityBanner", value: activityBannerUrl });
+      if (activityContent) orderedEntries.push({ key: "ActivityContent", value: activityContent });
+      const serializedDemoLinks = serializeActivityDemoLinks(activityDemoLinks);
+      const normalizedDemoLinks = normalizeActivityDemoLinks(activityDemoLinks);
+      if (serializedDemoLinks) {
+        orderedEntries.push({ key: "ActivityDemoLinks", value: serializedDemoLinks });
+      }
+      if (normalizedDemoLinks[0]?.url) {
+        orderedEntries.push({ key: "ActivityDemoUrl", value: normalizedDemoLinks[0].url });
+      }
+      if (activityWorkUrl) orderedEntries.push({ key: "ActivityWorkUrl", value: activityWorkUrl });
+      orderedEntries.push({ key: "LicenseCommercial", value: licenseCommercial });
+      orderedEntries.push({ key: "LicenseDerivative", value: licenseDerivative });
+      orderedEntries.push({ key: "LicenseNotify", value: licenseNotify });
+      if (licenseSpecialTerms && licenseSpecialTerms.length > 0) {
+        orderedEntries.push({ key: "LicenseSpecialTerms", value: JSON.stringify(licenseSpecialTerms) });
+      }
+      const basicTags = deriveSimpleLicenseTags({
+        commercialUse: licenseCommercial,
+        derivativeUse: licenseDerivative,
+        notifyOnModify: licenseNotify,
+      });
+      if (basicTags.length > 0) orderedEntries.push({ key: "LicenseTags", value: JSON.stringify(basicTags) });
+      if (contact || (contactFields && contactFields.length > 0)) {
+        const contactVal = contactFields && contactFields.length > 0
+          ? JSON.stringify(Object.fromEntries(contactFields.filter((field) => field.key).map((field) => [field.key, field.value])))
+          : contact;
+        orderedEntries.push({ key: "Contact", value: contactVal });
+      }
+      if (synopsis) orderedEntries.push({ key: "Synopsis", value: synopsis });
+      const selectedSeries = seriesOptions.find((item) => item.id === seriesId);
+      const selectedSeriesName = selectedSeries?.name || seriesName;
+      if (selectedSeriesName?.trim()) orderedEntries.push({ key: "Series", value: selectedSeriesName.trim() });
+      const parsedSeriesOrder = Number(seriesOrder);
+      if (Number.isFinite(parsedSeriesOrder) && parsedSeriesOrder >= 0) {
+        orderedEntries.push({ key: "SeriesOrder", value: String(Math.floor(parsedSeriesOrder)) });
+      }
+
+      (customFields || []).forEach(({ key, value, type }) => {
+        if (type === "divider") {
+          orderedEntries.push({ key, value: value || "SECTION" });
+        } else if (key && value) {
+          orderedEntries.push({ key, value });
+        }
+      });
+
+      if (showMarkerLegend) {
+        orderedEntries.push({ key: "marker_legend", value: "true" });
+      }
+      let customMetadata = normalizeCustomMetadataEntries(orderedEntries);
+      if (shouldPreserveAuthor) {
+        const preservedAuthorEntries = workingAuthorMetadataEntries;
+        customMetadata = normalizeCustomMetadataEntries([
+          ...customMetadata.filter((entry) => !isAuthorMetaKey(entry?.key)),
+          ...preservedAuthorEntries,
+        ]);
+      }
+
+      const updatePayload = {
+        title,
+        coverUrl,
+        status,
+        customMetadata,
+        draftDate: date,
+        personaId: identity.split(":")[1],
+        organizationId: selectedOrgId || null,
+        licenseCommercial: licenseCommercial || "",
+        licenseDerivative: licenseDerivative || "",
+        licenseNotify: licenseNotify || "",
+        markerThemeId,
+        showMarkerLegend,
+        disableCopy,
+        seriesId: seriesId || null,
+        seriesOrder: Number.isFinite(Number(seriesOrder)) && Number(seriesOrder) >= 0 ? Math.floor(Number(seriesOrder)) : null,
+      };
+      if (!shouldPreserveAuthor) {
+        updatePayload.author = persistedAuthor;
+      }
+
+      const persistScript = saveScript || updateScript;
+      const persisted = await persistScript(workingScript.id, updatePayload, {
+        script: workingScript,
+        tagIds: tagsToSave.map((tag) => Number(tag?.id)).filter((id) => Number.isFinite(id)),
+      });
+
+      const originalTagIds = new Set(((workingScript && workingScript.tags) || []).map((tag) => tag.id));
+      const finalTagIds = new Set(tagsToSave.map((tag) => tag.id));
+      const addedTags = tagsToSave.filter((tag) => !originalTagIds.has(tag.id));
+      const removedTags = ((workingScript && workingScript.tags) || []).filter((tag) => !finalTagIds.has(tag.id));
+
+      if (typeof syncScriptTags === "function") {
+        await syncScriptTags(workingScript.id, tagsToSave);
+      } else {
+        await Promise.all([
+          ...addedTags.map((tag) => addTagToScript(workingScript.id, tag.id)),
+          ...removedTags.map((tag) => removeTagFromScript(workingScript.id, tag.id)),
+        ]);
+      }
+
+      onSave({
+        ...(workingScript || script),
+        ...(persisted || {}),
+        title,
+        coverUrl,
+        status,
+        customMetadata,
+        author: shouldPreserveAuthor ? String(workingScript?.author || "") : persistedAuthor,
+        draftDate: date,
+        licenseCommercial: licenseCommercial || "",
+        licenseDerivative: licenseDerivative || "",
+        licenseNotify: licenseNotify || "",
+        tags: tagsToSave,
+        markerThemeId,
+        seriesId: updatePayload.seriesId,
+        seriesOrder: updatePayload.seriesOrder,
+      });
+      setCurrentTags(tagsToSave);
+      toast({ title: t("scriptMetadataDialog.saved") });
+      setShowValidationHints(false);
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Failed to save script metadata", error);
+      toast({ title: t("scriptMetadataDialog.saveFailed"), description: t("scriptMetadataDialog.tryLater"), variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  }, [
+    activeScript,
+    author,
+    authorDisplayMode,
+    availableTags,
+    backgroundInfo,
+    contact,
+    contactFields,
+    contentRating,
+    coverUrl,
+    currentTags,
+    customFields,
+    date,
+    disableCopy,
+    hasAnyPersona,
+    identity,
+    jumpToChecklistItem,
+    licenseCommercial,
+    licenseDerivative,
+    licenseNotify,
+    licenseSpecialTerms,
+    markerThemeId,
+    needsPersonaBeforePublish,
+    onOpenChange,
+    onSave,
+    openingIntro,
+    chapterSettings,
+    outline,
+    performanceInstruction,
+    publishChecklist.missingRequired,
+    roleSetting,
+    script,
+    selectedOrgId,
+    seriesId,
+    seriesName,
+    seriesOptions,
+    seriesOrder,
+    setActiveTab,
+    setCurrentTags,
+    setShowPersonaSetupDialog,
+    setShowValidationHints,
+    showMarkerLegend,
+    activityName,
+    activityBannerUrl,
+    activityContent,
+    activityDemoLinks,
+    activityWorkUrl,
+    status,
+    synopsis,
+    t,
+    targetAudience,
+    title,
+    toast,
+    saveScript,
+    syncScriptTags,
+    preserveAuthorInternalData,
+    authorEditedRef,
+  ]);
+
+  return {
+    isSaving,
+    handleSave,
+  };
+}

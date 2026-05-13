@@ -199,7 +199,7 @@ function App() {
       id: "pdf",
       label: t("publicReader.exportPdf"),
       icon: Printer,
-      onClick: () => handleExportPdf(),
+      onClick: () => (handleExportPdf as any)(),
       disabled: !exportContent && !scriptManager.titleHtml,
     },
     {
