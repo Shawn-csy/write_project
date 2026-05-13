@@ -19,7 +19,7 @@ interface RoleEntry {
     performance: string;
 }
 
-interface ControlledMetadataField {
+export interface ControlledMetadataField {
     key: string;
     label?: string;
     type?: "text" | "textarea" | "role_group" | "chapter_group";
