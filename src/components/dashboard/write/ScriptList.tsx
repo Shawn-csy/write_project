@@ -33,7 +33,7 @@ import { StudioEmptyStateCard } from "../../common/StudioEmptyStateCard";
 
 interface MarkerThemeOption {
     id: string;
-    name: string;
+    name?: string;
     [key: string]: unknown;
 }
 
@@ -45,13 +45,13 @@ interface ScriptTag {
 
 interface ScriptListItem {
     id: string;
-    type: "folder" | "script";
+    type?: string;
     title: string;
     folder: string;
     depth?: number;
     draftDate?: string;
-    lastModified?: string | number;
-    createdAt?: string | number;
+    lastModified?: number;
+    createdAt?: number;
     author?: string;
     markerThemeId?: string;
     isPublic?: boolean;
@@ -61,6 +61,7 @@ interface ScriptListItem {
     _displayDate?: string;
     _displayAuthor?: string;
     _themeName?: string;
+    [key: string]: unknown;
 }
 
 interface ScriptListRowProps {
@@ -95,7 +96,7 @@ interface ScriptListProps {
     onToggleExpand: (path: string, e: React.MouseEvent<HTMLDivElement>) => void;
     onRequestDelete?: (item: ScriptListItem) => void;
     onRequestMove?: (item: ScriptListItem) => void;
-    onTogglePublic?: (item: ScriptListItem) => void;
+    onTogglePublic?: (e: React.MouseEvent, item: ScriptListItem) => void | Promise<void>;
     onRename?: (item: ScriptListItem) => void;
     onPreviewItem?: (item: ScriptListItem, options?: { openMobileDrawer?: boolean }) => void;
     onGoUp: () => void;

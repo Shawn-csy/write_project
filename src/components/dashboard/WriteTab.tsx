@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useMemo, useState, useCallback, useEffect } from "react";
 import { useWriteTab } from "../../hooks/useWriteTab";
 import { ScriptToolbar } from "./write/ScriptToolbar";
@@ -34,7 +33,28 @@ import { WritePreviewContent } from "./write/WritePreviewPanel";
 import { MORANDI_STUDIO_TONE_VARS } from "../../constants/morandiPanelTones";
 import { useDebouncedSearch } from "../../hooks/useDebouncedSearch";
 
-export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
+interface WriteTabScriptItem {
+    id: string;
+    title: string;
+    type?: string;
+    folder: string;
+    content?: string;
+    isPublic?: boolean;
+    markerThemeId?: string;
+    draftDate?: string;
+    lastModified?: number;
+    createdAt?: number;
+    author?: string;
+    [key: string]: unknown;
+}
+
+interface WriteTabProps {
+    onSelectScript: (script: WriteTabScriptItem, mode?: string) => void;
+    readOnly?: boolean;
+    refreshTrigger?: number;
+}
+
+export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger = 0 }: WriteTabProps): React.JSX.Element {
     const { t } = useI18n();
     const writeTone = MORANDI_STUDIO_TONE_VARS.works;
     // Hooks
@@ -44,20 +64,20 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     
     // Import Dialog State
     const [isImportOpen, setIsImportOpen] = useState(false);
-    const [previewItemId, setPreviewItemId] = useState(null);
-    const [pageSize, setPageSize] = useState(50);
-    const [loadedCount, setLoadedCount] = useState(50);
-    const [sortKey, setSortKey] = useState("custom");
-    const [sortDir, setSortDir] = useState("desc");
-    const [filterQuery, setFilterQuery] = useState("");
-    const [showGuide, setShowGuide] = useState(false);
-    const [guideIndex, setGuideIndex] = useState(0);
-    const [guideSpotlightRect, setGuideSpotlightRect] = useState(null);
-    const [isPreviewCollapsed, setIsPreviewCollapsed] = useState(true);
-    const [footerQuote, setFooterQuote] = useState(null);
-    const [isQuickCreatingScript, setIsQuickCreatingScript] = useState(false);
-    const [isMobilePreviewOpen, setIsMobilePreviewOpen] = useState(false);
-    const [hasDesktopPreview, setHasDesktopPreview] = useState(false);
+    const [previewItemId, setPreviewItemId] = useState<string | null>(null);
+    const [pageSize, setPageSize] = useState<number>(50);
+    const [loadedCount, setLoadedCount] = useState<number>(50);
+    const [sortKey, setSortKey] = useState<string>("custom");
+    const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+    const [filterQuery, setFilterQuery] = useState<string>("");
+    const [showGuide, setShowGuide] = useState<boolean>(false);
+    const [guideIndex, setGuideIndex] = useState<number>(0);
+    const [guideSpotlightRect, setGuideSpotlightRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
+    const [isPreviewCollapsed, setIsPreviewCollapsed] = useState<boolean>(true);
+    const [footerQuote, setFooterQuote] = useState<{ quote?: string; anime?: string; character?: string } | null>(null);
+    const [isQuickCreatingScript, setIsQuickCreatingScript] = useState<boolean>(false);
+    const [isMobilePreviewOpen, setIsMobilePreviewOpen] = useState<boolean>(false);
+    const [hasDesktopPreview, setHasDesktopPreview] = useState<boolean>(false);
     
     // Breadcrumbs Logic
     const breadcrumbs = useMemo(() => {
@@ -82,7 +102,15 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
     }, [t]);
 
     // Handle import script
-    const handleImport = useCallback(async ({ title, content, folder, metadata, customMetadata, author, draftDate }) => {
+    const handleImport = useCallback(async ({ title, content, folder, metadata, customMetadata, author, draftDate }: {
+        title: string;
+        content: string;
+        folder: string;
+        metadata: Record<string, string>;
+        customMetadata: Array<{ key: string; value: string; type: string }>;
+        author: string;
+        draftDate: string;
+    }) => {
         try {
             // 1. Create Script Shell
             const id = await createScript(title, 'script', folder || manager.currentPath);
@@ -161,7 +189,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
             const createdScript = {
                 id,
                 title,
-                type: "script",
+                type: "script" as const,
                 folder,
                 content: "",
                 isPublic: false,
@@ -183,8 +211,9 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
 
     useEffect(() => {
         if (typeof window === "undefined") return undefined;
-        const handleAction = (event) => {
-            const type = event?.detail?.type;
+        const handleAction = (event: Event) => {
+            const customEvent = event as CustomEvent<{ type?: string }>;
+            const type = customEvent?.detail?.type;
             if (type === "create-script") {
                 handleQuickCreateScript();
                 return;
@@ -216,7 +245,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                 const data = await res.json();
                 if (!Array.isArray(data) || data.length === 0) return;
                 const sorted = [...data]
-                    .filter((item) => item && typeof item.quote === "string")
+                    .filter((item: unknown) => Boolean(item) && typeof (item as { quote?: string }).quote === "string")
                     .sort((a, b) => Number(a?.id || 0) - Number(b?.id || 0));
                 if (sorted.length === 0 || cancelled) return;
                 const picked = sorted[Math.floor(Math.random() * sorted.length)];
@@ -251,7 +280,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         return `${parent}/${previewItem.title}`;
     }, [previewItem]);
 
-    const handlePreviewItemSelect = useCallback((item, options = {}) => {
+    const handlePreviewItemSelect = useCallback((item: WriteTabScriptItem, options: { openMobileDrawer?: boolean } = {}) => {
         if (!item?.id) return;
         const { openMobileDrawer = true } = options;
         setPreviewItemId(item.id);
@@ -347,7 +376,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         setLoadedCount((prev) => Math.min(prev + pageSize, totalItems));
     }, [pageSize, totalItems]);
 
-    const handleListScroll = useCallback((e) => {
+    const handleListScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
         const el = e.currentTarget;
         const threshold = 80;
         const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - threshold;
@@ -356,7 +385,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         }
     }, [hasMoreItems, loadMore]);
 
-    const handleSortChange = useCallback((key) => {
+    const handleSortChange = useCallback((key: string) => {
         if (key !== "title" && key !== "lastModified") return;
         if (sortKey === key) {
             setSortDir((d) => d === "asc" ? "desc" : "asc");
@@ -366,7 +395,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         }
     }, [sortKey]);
 
-    const handleToggleExpandItem = useCallback((item) => {
+    const handleToggleExpandItem = useCallback((item: WriteTabScriptItem) => {
         const fullPath = (item.folder === "/" ? "" : item.folder) + "/" + item.title;
         manager.toggleExpand(fullPath);
     }, [manager.toggleExpand]);
@@ -399,7 +428,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         },
     ]), [hasDesktopPreview, t, totalItems]);
 
-    const getGuideTargetElement = useCallback((target) => {
+    const getGuideTargetElement = useCallback((target: string) => {
         if (typeof document === "undefined") return null;
         return document.querySelector(`[data-guide-id="${target}"]`);
     }, []);
@@ -462,7 +491,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
         <div className="flex h-full flex-col gap-3 overflow-hidden">
             {manager.currentPath !== "/" ? (
                 <div
-                    style={writeTone}
+                    style={writeTone as React.CSSProperties}
                     className="rounded-lg border border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-r from-[var(--morandi-tone-helper-bg)] via-card to-card px-3 py-2 sm:px-4"
                 >
                     <ScriptToolbar
@@ -476,7 +505,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
 
             <div className={`flex-1 min-h-0 grid grid-cols-1 gap-3 ${isPreviewCollapsed ? "xl:grid-cols-1" : "xl:grid-cols-[minmax(0,1fr)_22rem]"}`}>
                 <section
-                    style={writeTone}
+                    style={writeTone as React.CSSProperties}
                     className="min-h-0 flex flex-col overflow-hidden rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] shadow-sm"
                     data-guide-id="write-list-panel"
                 >
@@ -524,7 +553,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                                     <DropdownMenuLabel>{t("writeTab.sortDirection")}</DropdownMenuLabel>
                                     <DropdownMenuRadioGroup
                                         value={sortDir}
-                                        onValueChange={(val) => setSortDir(val)}
+                                        onValueChange={(val) => setSortDir(val as "asc" | "desc")}
                                     >
                                         <DropdownMenuRadioItem value="desc">{t("writeTab.sortDesc")}</DropdownMenuRadioItem>
                                         <DropdownMenuRadioItem value="asc">{t("writeTab.sortAsc")}</DropdownMenuRadioItem>
@@ -592,7 +621,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                             onGoUp={manager.goUp}
                             onDragStart={manager.handleDragStart}
                             onDragEnd={manager.handleDragEnd}
-                            selectedPreviewId={previewItemId}
+                            selectedPreviewId={previewItemId || undefined}
 
                             // Setters
                             setScripts={manager.setScripts}
@@ -613,7 +642,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                 </section>
 
                 <aside
-                    style={writeTone}
+                    style={writeTone as React.CSSProperties}
                     className={`${isPreviewCollapsed ? "hidden" : "hidden xl:flex"} flex-col gap-3 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-b from-[var(--morandi-tone-helper-bg)]/45 to-card p-4`}
                     data-guide-id="write-preview-panel"
                 >
@@ -627,6 +656,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
                         onRename={manager.openRenameDialog}
                         onDelete={manager.openDeleteDialog}
                         onToggleExpand={handleToggleExpandItem}
+                        onClose={() => {}}
                     />
                 </aside>
             </div>
@@ -659,7 +689,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger }) {
             </Drawer>
 
             <footer
-                style={writeTone}
+                style={writeTone as React.CSSProperties}
                 className="hidden md:block shrink-0 rounded-lg border border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-r from-[var(--morandi-tone-helper-bg)]/50 via-card to-card px-3 py-2 text-xs text-muted-foreground"
                 title={footerQuote ? `${footerQuote.anime || "-"}-${footerQuote.character || "-"}` : undefined}
             >
