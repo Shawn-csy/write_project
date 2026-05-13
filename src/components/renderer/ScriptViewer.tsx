@@ -1,10 +1,67 @@
-// @ts-nocheck
 import React, { useEffect, useMemo, useRef } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { parseScreenplay } from '../../lib/screenplayAST';
 import { ScriptRenderer } from './ScriptRenderer';
 import { useI18n } from '../../contexts/I18nContext';
 import { resolveReadingFontStack } from '../../constants/readingFonts';
+
+interface TitleEntry {
+  key: string;
+  values?: string[];
+  indent?: number;
+}
+
+interface SceneItem {
+  id?: string;
+  [key: string]: unknown;
+}
+
+interface AstNode {
+  type: string;
+  text?: string;
+  lineStart?: number;
+  lineEnd?: number;
+  layerType?: string;
+  character?: string;
+  id?: string;
+  scene_number?: string;
+  children?: AstNode[];
+  left?: AstNode[];
+  right?: AstNode[];
+  [key: string]: unknown;
+}
+
+interface ScriptViewerProps {
+  text: string;
+  externalAst?: { children?: AstNode[] } | null;
+  externalScenes?: SceneItem[] | null;
+  externalTitleEntries?: TitleEntry[] | null;
+  filterCharacter?: string | null;
+  focusMode?: boolean;
+  focusEffect?: string;
+  onCharacters?: (chars: string[]) => void;
+  onTitle?: (html: string) => void;
+  onTitleName?: (name: string) => void;
+  onTitleNote?: (note: string) => void;
+  onSummary?: (summary: string) => void;
+  onHasTitle?: (has: boolean) => void;
+  onRawHtml?: (html: string) => void;
+  onProcessedHtml?: (html: string) => void;
+  onScenes?: (scenes: SceneItem[]) => void;
+  scrollToScene?: string | null;
+  theme?: string;
+  fontSize?: number;
+  bodyFontSize?: number;
+  dialogueFontSize?: number;
+  readingFontFamily?: string;
+  focusContentMode?: string;
+  accentColor?: string;
+  type?: string;
+  markerConfigs?: Array<{ id?: string; [key: string]: unknown }>;
+  hiddenMarkerIds?: string[];
+  lineHeight?: number;
+  showLineUnderline?: boolean;
+}
 
 function ScriptViewer({
   text,
@@ -40,17 +97,17 @@ function ScriptViewer({
   hiddenMarkerIds = [],
   lineHeight = 1.4,
   showLineUnderline = false,
-}) {
+}: ScriptViewerProps) {
   const { t } = useI18n();
   const readingFontStack = resolveReadingFontStack(readingFontFamily);
-  const colorCache = useRef(new Map());
+  const colorCache = useRef<Map<string, string>>(new Map());
 
   // Mode check
   const isScript = type === 'script';
 
   // Unified Parsing Pipeline
   // Skip parsing when the caller already has a parsed result for the same text.
-  const internalParse = useMemo(
+  const internalParse = useMemo<{ ast?: { children?: AstNode[] }; scenes?: SceneItem[]; titleEntries?: TitleEntry[] } | null>(
     () => externalAst ? null : parseScreenplay(text || '', markerConfigs),
     [externalAst, text, markerConfigs]
   );
@@ -58,7 +115,7 @@ function ScriptViewer({
   const sceneList = externalScenes ?? internalParse?.scenes ?? [];
   const titleEntries = externalTitleEntries ?? internalParse?.titleEntries ?? [];
 
-  const escapeHtml = (str) =>
+  const escapeHtml = (str: string) =>
     str
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
@@ -73,10 +130,11 @@ function ScriptViewer({
     return html;
   };
 
-  const renderTitlePageHtml = (entries) => {
+  const renderTitlePageHtml = (entries: TitleEntry[]) => {
     if (!entries.length) return '';
     return entries.map((e) => {
-        const margin = e.indent > 0 ? ` style="margin-left:${Math.min(e.indent / 2, 8)}rem"` : '';
+        const indentValue = Number(e.indent || 0);
+        const margin = indentValue > 0 ? ` style="margin-left:${Math.min(indentValue / 2, 8)}rem"` : '';
         const values = e.values && e.values.length > 0 ? e.values.map(formatInline) : [];
         const isTitle = e.key.toLowerCase() === 'title';
         const value = values.length > 0 ? values.join(isTitle ? ' ' : '<br />') : '';
@@ -93,7 +151,7 @@ function ScriptViewer({
     const wrapperEnd = `</div>`;
     const html = `${wrapperStart}${renderTitlePageHtml(titleEntries)}${wrapperEnd}`;
 
-    const getValue = (keyName) => {
+    const getValue = (keyName: string) => {
         const entry = titleEntries.find((e) => e.key.toLowerCase() === keyName);
         return (entry?.values || []).join(' ');
     };
@@ -131,9 +189,9 @@ function ScriptViewer({
   const bodySummary = useMemo(() => {
     if (!ast?.children?.length) return "";
     const allowedTypes = new Set(["action", "dialogue", "centered", "parenthetical", "transition"]);
-    const chunks = [];
+    const chunks: string[] = [];
 
-    const walk = (node) => {
+    const walk = (node: AstNode) => {
       if (!node || chunks.join(" ").length >= 320) return;
       if (allowedTypes.has(node.type) && typeof node.text === "string") {
         const text = node.text.replace(/\s+/g, " ").trim();
@@ -156,8 +214,8 @@ function ScriptViewer({
       onCharacters?.([]);
       return;
     }
-    const chars = new Set();
-    ast.children.forEach(node => {
+    const chars = new Set<string>();
+    (ast.children || []).forEach((node) => {
         // Support legacy speech format and marker-based character layer
         if (node.type === 'speech' && node.character) {
             chars.add(node.character.trim().toUpperCase());
@@ -202,7 +260,7 @@ function ScriptViewer({
   // Render filtered HTML for processed output / print
   const filteredHtml = useMemo(() => {
     if (!onProcessedHtml || !ast) return '';
-    return renderToStaticMarkup(
+      return renderToStaticMarkup(
        <ScriptRenderer 
          ast={ast} 
          fontSize={fontSize || bodyFontSize}

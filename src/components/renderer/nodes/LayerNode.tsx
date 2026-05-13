@@ -1,13 +1,54 @@
-// @ts-nocheck
 import React from 'react';
 import { InlineRenderer } from '../InlineRenderer';
 
-export const LayerNode = ({ node, context, NodeRenderer, styleOverride }) => {
-    // Check if hidden
-    if (context.hiddenMarkerIds?.includes(node.layerType)) return null;
+interface LayerNodeData {
+    layerType?: string;
+    rangeRole?: string;
+    lineStart?: number;
+    endLine?: number;
+    inlineLabel?: InlineNodeLike[];
+    inlineEndLabel?: InlineNodeLike[];
+    label?: string;
+    text?: string;
+    endLabel?: string;
+    children?: unknown[];
+}
 
-    const config = context.markerConfigs?.find(c => c.id === node.layerType);
-    const style = { ...(config?.style || {}), ...styleOverride };
+interface LayerNodeContext {
+    hiddenMarkerIds?: string[];
+    markerConfigs?: Array<{
+        id?: string;
+        label?: string;
+        style?: Record<string, string>;
+        renderer?: { template?: string };
+        showEndLabel?: boolean;
+    }>;
+    markerTooltipPrefix?: string;
+}
+
+interface InlineNodeLike {
+    type: string;
+    id?: string;
+    content?: string;
+}
+
+interface LayerNodeProps {
+    node: LayerNodeData;
+    context: LayerNodeContext;
+    NodeRenderer: React.ComponentType<{ node: unknown; context: LayerNodeContext }>;
+    styleOverride?: { hideFooter?: boolean; [key: string]: string | boolean | undefined };
+}
+
+export const LayerNode = ({ node, context, NodeRenderer, styleOverride }: LayerNodeProps) => {
+    // Check if hidden
+    if (node.layerType && context.hiddenMarkerIds?.includes(node.layerType)) return null;
+
+    const config = context.markerConfigs?.find((c) => c.id === node.layerType);
+    const mergedRawStyle = { ...(config?.style || {}), ...(styleOverride || {}) };
+    const style: Record<string, string> = {};
+    for (const [k, v] of Object.entries(mergedRawStyle)) {
+        if (typeof v === "string") style[k] = v;
+    }
     const borderColor = style.color || undefined;
     const bgColor = style.backgroundColor || undefined;
     const template = config?.renderer?.template;
@@ -16,7 +57,7 @@ export const LayerNode = ({ node, context, NodeRenderer, styleOverride }) => {
         ? `${context.markerTooltipPrefix || "標記"}: ${markerName}`
         : undefined;
 
-    const lineProps = (lineValue) => {
+    const lineProps = (lineValue?: number) => {
         if (!lineValue) return {};
         return {
             "data-line-start": lineValue,
@@ -27,7 +68,7 @@ export const LayerNode = ({ node, context, NodeRenderer, styleOverride }) => {
     const isRangeControlLine = Boolean(node.rangeRole);
 
     // If template exists, we need to inject the inline nodes into the template
-    const renderLabelContent = (inlineNodes, rawLabel, fallbackText = "") => {
+    const renderLabelContent = (inlineNodes: InlineNodeLike[] | undefined, rawLabel?: string, fallbackText = "") => {
         if (!inlineNodes || inlineNodes.length === 0) {
             return fallbackText || rawLabel;
         }
@@ -44,13 +85,13 @@ export const LayerNode = ({ node, context, NodeRenderer, styleOverride }) => {
         return (
             <>
                 {parts[0]}
-                <InlineRenderer nodes={inlineNodes} context={context} />
+                <InlineRenderer nodes={inlineNodes || []} context={context} />
                 {parts[1]}
             </>
         );
     };
 
-    const showEndLabel = !styleOverride?.hideFooter && !isRangeControlLine && config?.showEndLabel !== false; 
+    const showEndLabel = styleOverride?.hideFooter !== true && !isRangeControlLine && config?.showEndLabel !== false; 
     const isSingleLineBlock = (!node.children || node.children.length === 0) && !node.rangeRole;
     const labelClass = isSingleLineBlock
         ? `${node.layerType}-single-block-content layer-label mb-1`
@@ -78,7 +119,7 @@ export const LayerNode = ({ node, context, NodeRenderer, styleOverride }) => {
                 </span>
              </div>
              <div className="layer-content">
-                {node.children.map((child, i) => <NodeRenderer key={i} node={child} context={context} />)}
+                {(node.children || []).map((child, i) => <NodeRenderer key={i} node={child} context={context} />)}
              </div>
              {showEndLabel && (
                 <div className={`${node.layerType}-continuous-footer layer-footer text-xs opacity-70 font-mono mt-1`}>
