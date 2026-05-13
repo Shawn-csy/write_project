@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useI18n } from "../../contexts/I18nContext";
@@ -26,16 +25,23 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 
+interface HybridDashboardProps {
+    isSidebarOpen: boolean;
+    setSidebarOpen?: (open: boolean) => void;
+    onSelectCloudScript: (script: unknown, mode?: string) => void;
+    openMobileMenu: () => void;
+}
+
 export default function HybridDashboard({ 
     isSidebarOpen,
     setSidebarOpen,
     onSelectCloudScript,
     openMobileMenu
-}) {
+}: HybridDashboardProps): React.JSX.Element {
   const { currentUser } = useAuth();
   const { t } = useI18n();
   const navigate = useNavigate();
-  const dispatchWriteTabAction = (type) => {
+  const dispatchWriteTabAction = (type: "create-script" | "create-folder" | "import-script" | "open-guide") => {
     if (typeof window === "undefined") return;
     window.dispatchEvent(new CustomEvent("write-tab-action", { detail: { type } }));
   };
@@ -139,7 +145,7 @@ export default function HybridDashboard({
             </div>
           </div>
           <div className={`flex-1 min-h-0 overflow-hidden bg-gradient-to-b from-[hsl(var(--surface-2))] to-[hsl(var(--surface-1))] ${STUDIO_PAGE_PADDING_CLASS}`}>
-              {currentUser ? <WriteTab onSelectScript={onSelectCloudScript} /> : null}
+              {currentUser ? <WriteTab onSelectScript={onSelectCloudScript} refreshTrigger={0} /> : null}
           </div>
       </div>
     </div>

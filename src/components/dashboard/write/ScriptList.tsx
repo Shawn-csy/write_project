@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useMemo, useCallback, useRef, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Trash2, Folder, ChevronRight, FileText, MoreHorizontal, Settings, Globe, FolderInput, ArrowUpDown } from "lucide-react";
@@ -22,6 +21,7 @@ import {
     closestCenter,
     DragOverlay
 } from '@dnd-kit/core';
+import type { DragEndEvent, DragStartEvent, SensorDescriptor } from "@dnd-kit/core";
 import {
     SortableContext,
     verticalListSortingStrategy
@@ -30,6 +30,81 @@ import { updateScript } from "../../../lib/api/scripts";
 import { isDefaultLikeTheme } from "../../../lib/themeNameUtils";
 import { useI18n } from "../../../contexts/I18nContext";
 import { StudioEmptyStateCard } from "../../common/StudioEmptyStateCard";
+
+interface MarkerThemeOption {
+    id: string;
+    name: string;
+    [key: string]: unknown;
+}
+
+interface ScriptTag {
+    id: string;
+    name: string;
+    color?: string;
+}
+
+interface ScriptListItem {
+    id: string;
+    type: "folder" | "script";
+    title: string;
+    folder: string;
+    depth?: number;
+    draftDate?: string;
+    lastModified?: string | number;
+    createdAt?: string | number;
+    author?: string;
+    markerThemeId?: string;
+    isPublic?: boolean;
+    contentLength?: number;
+    content?: string;
+    tags?: ScriptTag[];
+    _displayDate?: string;
+    _displayAuthor?: string;
+    _themeName?: string;
+}
+
+interface ScriptListRowProps {
+    item: ScriptListItem;
+    isSelected: boolean;
+    readOnly: boolean;
+    expandedPaths: Set<string>;
+    selectableMarkerThemes: MarkerThemeOption[];
+    markerThemes: MarkerThemeOption[];
+    formatDate: (ts?: string | number) => string;
+    onClickRow: (item: ScriptListItem, e: React.MouseEvent<HTMLDivElement>) => void;
+    onDoubleClickRow: (item: ScriptListItem, e: React.MouseEvent<HTMLDivElement>) => void;
+    onStatusClick: (e: React.MouseEvent<HTMLElement>, item: ScriptListItem) => void;
+    onThemeChange: (scriptId: string, newVal: string, prevValRaw?: string) => Promise<void>;
+    onRequestMove?: (item: ScriptListItem) => void;
+    onRename?: (item: ScriptListItem) => void;
+    onRequestDelete?: (item: ScriptListItem) => void;
+}
+
+interface ScriptListProps {
+    loading: boolean;
+    visibleItems: ScriptListItem[];
+    readOnly: boolean;
+    sortKey: string;
+    sortDir: "asc" | "desc";
+    onSortChange?: (key: string) => void;
+    currentPath: string;
+    expandedPaths: Set<string>;
+    activeDragId?: string | null;
+    markerThemes: MarkerThemeOption[];
+    onSelectScript: (item: ScriptListItem) => void;
+    onToggleExpand: (path: string, e: React.MouseEvent<HTMLDivElement>) => void;
+    onRequestDelete?: (item: ScriptListItem) => void;
+    onRequestMove?: (item: ScriptListItem) => void;
+    onTogglePublic?: (item: ScriptListItem) => void;
+    onRename?: (item: ScriptListItem) => void;
+    onPreviewItem?: (item: ScriptListItem, options?: { openMobileDrawer?: boolean }) => void;
+    onGoUp: () => void;
+    selectedPreviewId?: string;
+    sensors?: SensorDescriptor<object>[];
+    onDragStart?: (event: DragStartEvent) => void;
+    onDragEnd?: (event: DragEndEvent) => void;
+    setScripts: React.Dispatch<React.SetStateAction<ScriptListItem[]>>;
+}
 
 // --- ScriptListRow (memoized) ---
 const ScriptListRow = memo(function ScriptListRow({
@@ -47,7 +122,7 @@ const ScriptListRow = memo(function ScriptListRow({
     onRequestMove,
     onRename,
     onRequestDelete,
-}) {
+}: ScriptListRowProps): React.JSX.Element {
     const { t } = useI18n();
 
     const isChild = (item.depth || 0) > 0;
@@ -87,7 +162,7 @@ const ScriptListRow = memo(function ScriptListRow({
                                     </span>
                                 )}
                                 <span
-                                    onClick={(e) => onStatusClick(e, item)}
+                                    onClick={(e: React.MouseEvent<HTMLSpanElement>) => onStatusClick(e, item)}
                                     className={`px-1.5 py-0.5 rounded text-[10px] border ${item.isPublic ? 'border-[color:var(--license-selected-border)] bg-[color:var(--license-selected-bg)] text-[color:var(--license-selected-fg)]' : 'border-border bg-[hsl(var(--surface-2))] text-foreground/75'} ${!readOnly ? "cursor-pointer active:scale-95 transition-transform" : ""}`}
                                 >
                                     {item.isPublic ? 'Public' : 'Private'}
@@ -128,7 +203,7 @@ const ScriptListRow = memo(function ScriptListRow({
                                     aria-label={t("scriptList.scriptMarkerTheme")}
                                     className="w-full h-6 text-[10px] rounded border border-input bg-background px-1"
                                     value={item.markerThemeId || "default"}
-                                    onChange={(e) => onThemeChange(item.id, e.target.value, item.markerThemeId)}
+                                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onThemeChange(item.id, e.target.value, item.markerThemeId)}
                                 >
                                     {selectableMarkerThemes.map(th => (
                                         <option key={th.id} value={th.id}>{th.name}</option>
@@ -271,19 +346,19 @@ export const ScriptList = memo(function ScriptList({
 
     // State Setters (for local optimistic updates)
     setScripts
-}) {
+}: ScriptListProps): React.JSX.Element {
     const { t } = useI18n();
     const navigate = useNavigate();
-    const themeUpdateSeqRef = useRef(new Map());
+    const themeUpdateSeqRef = useRef<Map<string, number>>(new Map());
 
     const dateFormatter = useMemo(() => new Intl.DateTimeFormat(undefined), []);
-    const formatDate = useCallback((ts) => {
+    const formatDate = useCallback((ts?: string | number) => {
         if (!ts) return "";
         return dateFormatter.format(new Date(ts));
     }, [dateFormatter]);
 
     const markerThemeNameById = useMemo(() => {
-        const map = {};
+        const map: Record<string, string> = {};
         (markerThemes || []).forEach((theme) => {
             if (theme?.id) map[theme.id] = theme.name || t("scriptList.theme");
         });
@@ -291,7 +366,7 @@ export const ScriptList = memo(function ScriptList({
     }, [markerThemes, t]);
 
     const selectableMarkerThemes = useMemo(() => {
-        const unique = [];
+        const unique: MarkerThemeOption[] = [];
         const seen = new Set();
         (markerThemes || []).forEach((theme) => {
             if (!theme?.id || seen.has(theme.id)) return;
@@ -311,13 +386,13 @@ export const ScriptList = memo(function ScriptList({
         }));
     }, [visibleItems, markerThemeNameById, formatDate, t]);
 
-    const handleStatusClick = useCallback((e, item) => {
+    const handleStatusClick = useCallback((e: React.MouseEvent<HTMLElement>, item: ScriptListItem) => {
         if (readOnly) return;
         e.stopPropagation();
         navigate(`/studio?tab=works&scriptId=${encodeURIComponent(item.id)}&open=publish`);
     }, [readOnly, navigate]);
 
-    const handleThemeChange = useCallback(async (scriptId, newVal, prevValRaw) => {
+    const handleThemeChange = useCallback(async (scriptId: string, newVal: string, prevValRaw?: string) => {
         const prevVal = prevValRaw || "default";
         newVal = newVal || "default";
         if (newVal === prevVal) return;
@@ -325,16 +400,16 @@ export const ScriptList = memo(function ScriptList({
         const requestSeq = current + 1;
         themeUpdateSeqRef.current.set(scriptId, requestSeq);
         try {
-            setScripts(prev => prev.map(s => s.id === scriptId ? { ...s, markerThemeId: newVal } : s));
+            setScripts((prev) => prev.map((script) => script.id === scriptId ? { ...script, markerThemeId: newVal } : script));
             await updateScript(scriptId, { markerThemeId: newVal });
         } catch (err) {
             if (themeUpdateSeqRef.current.get(scriptId) !== requestSeq) return;
-            setScripts(prev => prev.map(s => s.id === scriptId ? { ...s, markerThemeId: prevVal } : s));
+            setScripts((prev) => prev.map((script) => script.id === scriptId ? { ...script, markerThemeId: prevVal } : script));
             console.error(t("scriptList.themeUpdateFailed"), err);
         }
     }, [setScripts, t]);
 
-    const handleClickRow = useCallback((item, e) => {
+    const handleClickRow = useCallback((item: ScriptListItem, e: React.MouseEvent<HTMLDivElement>) => {
         if (item.type === 'folder') {
             const fullPath = (item.folder === '/' ? '' : item.folder) + '/' + item.title;
             onToggleExpand(fullPath, e);
@@ -344,7 +419,7 @@ export const ScriptList = memo(function ScriptList({
         }
     }, [onToggleExpand, onPreviewItem]);
 
-    const handleDoubleClickRow = useCallback((item, e) => {
+    const handleDoubleClickRow = useCallback((item: ScriptListItem, e: React.MouseEvent<HTMLDivElement>) => {
         if (item.type !== 'folder') {
             e.stopPropagation();
             onSelectScript(item);
@@ -358,7 +433,6 @@ export const ScriptList = memo(function ScriptList({
     if (visibleItems.length === 0) {
         return (
             <StudioEmptyStateCard
-                icon={Folder}
                 title={t("scriptList.emptyFolder")}
                 description={t("writeTab.guideDemoDesc", "你可以建立新劇本、資料夾，或匯入既有稿件。")}
             />

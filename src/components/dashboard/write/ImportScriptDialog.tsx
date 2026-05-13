@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { Loader2, ClipboardPaste, FileText, Eye, CheckCircle2, CircleHelp } from "lucide-react";
 import { Button } from "../../ui/button";
@@ -15,6 +14,7 @@ import { SpotlightGuideOverlay } from "../../common/SpotlightGuideOverlay";
 // Sub-components
 import { ImportStageInput } from "./import/ImportStageInput";
 import { ImportStagePreview } from "./import/ImportStagePreview";
+import type { ControlledMetadataField } from "./import/ImportStagePreview";
 
 // 三階段處理流程 (純 Marker 模式)
 import { preprocess } from "../../../lib/importPipeline/textPreprocessor";
@@ -27,8 +27,55 @@ const STEPS = {
     INPUT: 'input',       // 貼入文本
     PREVIEW: 'preview',   // 預處理預覽
     RESULT: 'result'      // 結果確認
-};
+} as const;
 const GUIDE_STORAGE_KEY = "import-guide-seen-v1";
+type ImportStep = "input" | "preview" | "result";
+
+interface ImportGuideStep {
+    title: string;
+    description: string;
+    step: ImportStep;
+    focus: "paste" | "character" | "preview" | "result";
+}
+
+interface EditableMetadata {
+    [key: string]: string;
+}
+
+interface PreprocessResultLike {
+    cleanedText: string;
+    [key: string]: unknown;
+}
+
+interface MetadataParseResult {
+    metadata: EditableMetadata;
+    strippedText: string;
+    autoCleanedText: string;
+}
+
+interface SpotlightRect {
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+}
+
+interface ImportPayload {
+    title: string;
+    content: string;
+    folder: string;
+    metadata: EditableMetadata;
+    customMetadata: Array<{ key: string; value: string; type: string }>;
+    author: string;
+    draftDate: string;
+}
+
+interface ImportScriptDialogProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    onImport: (payload: ImportPayload) => Promise<void>;
+    currentPath: string;
+}
 
 const MAX_IMPORT_FILE_MB = 5;
 const SCRIPT_INFO_FIELDS = [
@@ -45,7 +92,7 @@ const SCRIPT_INFO_FIELDS = [
     "ChapterSettings",
 ];
 
-const CONTROLLED_METADATA_FIELDS = [
+const CONTROLLED_METADATA_FIELDS: ControlledMetadataField[] = [
     { key: "Title", label: "標題", multiline: false },
     { key: "Author", label: "作者", multiline: false },
     { key: "Draft date", label: "日期", multiline: false },
@@ -58,15 +105,15 @@ const CONTROLLED_METADATA_FIELDS = [
     { key: "ChapterSettings", label: "章節", type: "chapter_group" },
 ];
 
-const buildEditableMetadata = (input = {}) => {
-    const next = {};
+const buildEditableMetadata = (input: Record<string, unknown> = {}): EditableMetadata => {
+    const next: EditableMetadata = {};
     SCRIPT_INFO_FIELDS.forEach((key) => {
         next[key] = String(input?.[key] ?? "");
     });
     return next;
 };
 
-const pickDefaultScriptInfo = (input = {}) => {
+const pickDefaultScriptInfo = (input: Record<string, unknown> = {}): EditableMetadata => {
     const next = buildEditableMetadata();
     for (const key of SCRIPT_INFO_FIELDS) {
         const value = input?.[key];
@@ -92,14 +139,14 @@ export const metadataToCustomEntries = (meta = {}) => {
 
 const normalizeNameKey = (name = "") => name.trim().toLowerCase();
 
-const parseCharacterNames = (raw = "") => {
+const parseCharacterNames = (raw = ""): string[] => {
     return String(raw)
         .split(/\r?\n|,|，|、/)
         .map((v) => v.trim())
         .filter(Boolean);
 };
 
-const applyWholeLineCharacterTagging = (text = "", characterNames = []) => {
+const applyWholeLineCharacterTagging = (text = "", characterNames: string[] = []) => {
     if (!text) return text;
     if (!Array.isArray(characterNames) || characterNames.length === 0) return text;
 
@@ -137,33 +184,34 @@ export function ImportScriptDialog({
     onOpenChange,
     onImport,
     currentPath
-}) {
+}: ImportScriptDialogProps): React.JSX.Element {
     const { t } = useI18n();
-    const [step, setStep] = useState(STEPS.INPUT);
-    const [rawInput, setRawInput] = useState("");
-    const [title, setTitle] = useState("");
-    const [characterNamesInput, setCharacterNamesInput] = useState("");
-    const [importing, setImporting] = useState(false);
-    const [showGuide, setShowGuide] = useState(false);
-    const [showFormatQuickInfo, setShowFormatQuickInfo] = useState(false);
-    const [showFormatDetails, setShowFormatDetails] = useState(false);
-    const [guideIndex, setGuideIndex] = useState(0);
-    const [spotlightRect, setSpotlightRect] = useState(null);
-    const { toast } = useToast();
-    const guidePasteRef = useRef(null);
-    const guideCharacterRef = useRef(null);
-    const guidePreviewRef = useRef(null);
-    const guideResultRef = useRef(null);
+    const [step, setStep] = useState<ImportStep>(STEPS.INPUT);
+    const [rawInput, setRawInput] = useState<string>("");
+    const [title, setTitle] = useState<string>("");
+    const [characterNamesInput, setCharacterNamesInput] = useState<string>("");
+    const [importing, setImporting] = useState<boolean>(false);
+    const [showGuide, setShowGuide] = useState<boolean>(false);
+    const [showFormatQuickInfo, setShowFormatQuickInfo] = useState<boolean>(false);
+    const [showFormatDetails, setShowFormatDetails] = useState<boolean>(false);
+    const [guideIndex, setGuideIndex] = useState<number>(0);
+    const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { toast } = useToast() as any;
+    const guidePasteRef = useRef<HTMLDivElement | null>(null);
+    const guideCharacterRef = useRef<HTMLDivElement | null>(null);
+    const guidePreviewRef = useRef<HTMLDivElement | null>(null);
+    const guideResultRef = useRef<HTMLDivElement | null>(null);
     
     // 處理結果
-    const [preprocessResult, setPreprocessResult] = useState(null);
-    const [metadataParseResult, setMetadataParseResult] = useState({ metadata: {}, strippedText: "", autoCleanedText: "" });
-    const [metadata, setMetadata] = useState(buildEditableMetadata());
+    const [preprocessResult, setPreprocessResult] = useState<PreprocessResultLike | null>(null);
+    const [metadataParseResult, setMetadataParseResult] = useState<MetadataParseResult>({ metadata: {}, strippedText: "", autoCleanedText: "" });
+    const [metadata, setMetadata] = useState<EditableMetadata>(buildEditableMetadata());
     const previewMarkerConfigs = getDefaultMarkerRules();
     const previewAst = preprocessResult?.cleanedText
         ? parseScreenplay(preprocessResult.cleanedText, previewMarkerConfigs).ast
         : null;
-    const guideSteps = [
+    const guideSteps: ImportGuideStep[] = [
         {
             title: t("importDialog.guideStepPasteTitle"),
             description: t("importDialog.guideStepPasteDesc"),
@@ -190,7 +238,7 @@ export function ImportScriptDialog({
         },
     ];
     const currentGuide = showGuide ? guideSteps[guideIndex] : null;
-    const currentGuideTargetRef = useMemo(() => {
+    const currentGuideTargetRef = useMemo<React.RefObject<HTMLDivElement | null> | null>(() => {
         if (!currentGuide) return null;
         if (currentGuide.focus === "paste") return guidePasteRef;
         if (currentGuide.focus === "character") return guideCharacterRef;
@@ -224,7 +272,7 @@ export function ImportScriptDialog({
     );
     
     // 重置狀態
-    const resetState = useCallback(() => {
+    const resetState = useCallback((): void => {
         setStep(STEPS.INPUT);
         setRawInput("");
         setTitle("");
@@ -240,7 +288,7 @@ export function ImportScriptDialog({
     }, []);
     
     // 處理對話框關閉
-    const handleOpenChange = useCallback((isOpen) => {
+    const handleOpenChange = useCallback((isOpen: boolean): void => {
         if (!isOpen) {
             resetState();
         }
@@ -257,7 +305,7 @@ export function ImportScriptDialog({
         }
     }, [t]);
 
-    const runPreprocess = useCallback((sourceInput, { allowSample = false } = {}) => {
+    const runPreprocess = useCallback((sourceInput: string, { allowSample = false }: { allowSample?: boolean } = {}): boolean => {
         const hasInput = Boolean(sourceInput?.trim());
         const fallbackSample = t("importDialog.guideSampleScript");
         const inputText = hasInput
@@ -273,7 +321,7 @@ export function ImportScriptDialog({
             : inputText;
 
         // 1. 基本清理
-        const result = preprocess(sourceText);
+        const result = preprocess(sourceText) as PreprocessResultLike;
         setPreprocessResult(result);
         
         // 2. Metadata 提取
@@ -347,7 +395,7 @@ export function ImportScriptDialog({
         }
     }, []);
 
-    const jumpGuide = useCallback((index) => {
+    const jumpGuide = useCallback((index: number): void => {
         const next = guideSteps[index];
         if (!next) return;
         if (next.step === STEPS.INPUT) {
@@ -451,7 +499,7 @@ export function ImportScriptDialog({
             handleOpenChange(false);
         } catch (err) {
             console.error(t("importDialog.importFailedLog"), err);
-            const message = String(err?.message || "");
+            const message = String(err instanceof Error ? err.message : "");
             const payloadTooLarge = /payload too large|413/i.test(message);
             toast({
                 title: t("importDialog.importFailed"),
@@ -527,7 +575,7 @@ export function ImportScriptDialog({
                                 <Input 
                                     placeholder={t("importDialog.scriptTitle")}
                                     value={title}
-                                    onChange={e => setTitle(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
                                     className="flex-1"
                                 />
                                 <Button variant="outline" size="sm" onClick={handlePaste}>
@@ -592,7 +640,7 @@ export function ImportScriptDialog({
                              <Input 
                                 placeholder={t("importDialog.scriptTitle")}
                                 value={title}
-                                onChange={e => setTitle(e.target.value)}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
                             />
                             <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-3">
                                 <div className="min-h-0 border rounded relative">
@@ -632,7 +680,7 @@ export function ImportScriptDialog({
                         <Button 
                             variant="outline" 
                             onClick={() => {
-                                const steps = [STEPS.INPUT, STEPS.PREVIEW, STEPS.RESULT];
+                                const steps: ImportStep[] = [STEPS.INPUT, STEPS.PREVIEW, STEPS.RESULT];
                                 const currentIndex = steps.indexOf(step);
                                 if (currentIndex > 0) setStep(steps[currentIndex - 1]);
                             }}
