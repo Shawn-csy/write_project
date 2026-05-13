@@ -197,7 +197,7 @@ export function ImportScriptDialog({
     const [guideIndex, setGuideIndex] = useState<number>(0);
     const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { toast } = useToast() as any;
+    const { toast } = useToast();
     const guidePasteRef = useRef<HTMLDivElement | null>(null);
     const guideCharacterRef = useRef<HTMLDivElement | null>(null);
     const guidePreviewRef = useRef<HTMLDivElement | null>(null);

@@ -1,22 +1,42 @@
-// @ts-nocheck
 import React from "react";
 import { X } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Button } from "./button";
 
-const ToastContext = React.createContext(null);
+type ToastVariant = "default" | "destructive";
+
+interface ToastOptions {
+  title?: string;
+  description?: string;
+  variant?: ToastVariant;
+  duration?: number;
+}
+
+interface ToastItem {
+  id: number;
+  title?: string;
+  description?: string;
+  variant: ToastVariant;
+}
+
+interface ToastContextValue {
+  toast: (options: ToastOptions) => number;
+  dismiss: (id: number) => void;
+}
+
+const ToastContext = React.createContext<ToastContextValue | null>(null);
 
 let nextToastId = 1;
 
-export function ToastProvider({ children }) {
-  const [toasts, setToasts] = React.useState([]);
+export function ToastProvider({ children }: { children: React.ReactNode }): React.JSX.Element {
+  const [toasts, setToasts] = React.useState<ToastItem[]>([]);
 
-  const dismiss = React.useCallback((id) => {
+  const dismiss = React.useCallback((id: number) => {
     setToasts((prev) => prev.filter((item) => item.id !== id));
   }, []);
 
   const toast = React.useCallback(
-    ({ title, description, variant = "default", duration = 3500 }) => {
+    ({ title, description, variant = "default", duration = 3500 }: ToastOptions) => {
       const id = nextToastId++;
       const item = { id, title, description, variant };
       setToasts((prev) => [...prev, item]);
@@ -76,11 +96,10 @@ export function ToastProvider({ children }) {
   );
 }
 
-export function useToast() {
+export function useToast(): ToastContextValue {
   const context = React.useContext(ToastContext);
   if (!context) {
     throw new Error("useToast must be used within ToastProvider");
   }
   return context;
 }
-
