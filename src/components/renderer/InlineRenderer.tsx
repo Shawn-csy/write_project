@@ -1,21 +1,51 @@
-// @ts-nocheck
 import React from 'react';
+
+interface InlineNode {
+    type: string;
+    id?: string;
+    content?: string;
+}
+
+interface MarkerConfigLike {
+    id?: string;
+    label?: string;
+    style?: Record<string, string>;
+    keywords?: string[];
+    dimIfNotKeyword?: boolean;
+    start?: string;
+    end?: string;
+    showDelimiters?: boolean;
+    renderer?: {
+        template?: string;
+    };
+}
+
+interface InlineRenderContext {
+    hiddenMarkerIds?: string[];
+    markerConfigs?: MarkerConfigLike[];
+    markerTooltipPrefix?: string;
+}
+
+interface InlineRendererProps {
+    nodes: unknown[] | null | undefined;
+    context: InlineRenderContext;
+}
 
 /**
  * 純 Marker 模式：所有 inline 渲染都來自 markerConfigs
  * 移除硬編碼的 direction/sfx 渲染器
  */
-const renderHighlight = (node, key, context) => {
+const renderHighlight = (node: InlineNode, key: string, context: InlineRenderContext) => {
     // Check if hidden
-    if (context.hiddenMarkerIds?.includes(node.id)) return null;
+    if (node.id && context.hiddenMarkerIds?.includes(node.id)) return null;
 
-    const config = context.markerConfigs?.find(c => c.id === node.id) || {};
-    const style = { ...config.style };
+    const config = context.markerConfigs?.find((c) => c.id === node.id) || {};
+    const style = { ...(config.style || {}) };
     
     let displayText = node.content || "";
     let extraClasses = "";
     if (config.keywords && config.keywords.length > 0) {
-        const isKeyword = config.keywords.some(k => 
+        const isKeyword = config.keywords.some((k) =>
             displayText.toUpperCase().includes(k.toUpperCase())
         );
         if (!isKeyword && config.dimIfNotKeyword) {
@@ -59,22 +89,23 @@ const renderHighlight = (node, key, context) => {
 
 // 純 Marker 模式：只保留 text 和 highlight 渲染器
 const renderers = {
-    text: (node, key) => <span key={key}>{node.content}</span>,
+    text: (node: InlineNode, key: string) => <span key={key}>{node.content}</span>,
     highlight: renderHighlight
 };
 
-export const InlineRenderer = React.memo(({ nodes, context }) => {
+export const InlineRenderer = React.memo(function InlineRenderer({ nodes, context }: InlineRendererProps) {
     if (!nodes) return null;
     return (
         <>
             {nodes.map((node, i) => {
-                const key = `${i}-${node.type}`; 
-                const renderFn = renderers[node.type];
+                const safeNode = (node && typeof node === "object") ? node as InlineNode : { type: "text", content: String(node ?? "") };
+                const key = `${i}-${safeNode.type}`; 
+                const renderFn = renderers[safeNode.type as keyof typeof renderers];
                 // 如果沒有對應的渲染器，顯示為純文字
                 if (!renderFn) {
-                    return <span key={key}>{node.content || ''}</span>;
+                    return <span key={key}>{safeNode.content || ''}</span>;
                 }
-                return renderFn(node, key, context);
+                return renderFn(safeNode, key, context);
             })}
         </>
     );

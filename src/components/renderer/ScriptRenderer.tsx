@@ -1,13 +1,13 @@
-// @ts-nocheck
 import React, { useMemo, useRef, useState } from 'react';
 import { InlineRenderer } from './InlineRenderer';
 import { LayerNode } from './nodes/LayerNode';
 import { DualDialogueNode } from './nodes/DualDialogueNode';
 import { SpeechNode } from './nodes/SpeechNode';
-import { parseInline } from '../../lib/parsers/inlineParser.js';
-import { isInlineLike } from '../../lib/markerRules.js';
+import { parseInline } from '../../lib/parsers/inlineParser';
+import { isInlineLike } from '../../lib/markerRules';
 import { useI18n } from '../../contexts/I18nContext';
 import { resolveReadingFontStack } from '../../constants/readingFonts';
+import type { MarkerConfig } from '../../types/script';
 
 const TOOLTIP_OFFSET = 14;
 const TOOLTIP_MAX_WIDTH = 280;
@@ -29,9 +29,97 @@ const CHARACTER_COLOR_SEQUENCE = [
     'var(--marker-color-charcoal)',
 ];
 
+interface RendererNode {
+    type: string;
+    text?: string;
+    id?: string;
+    markerId?: string;
+    markerLabel?: string;
+    lineStart?: number;
+    lineEnd?: number;
+    line?: number;
+    endLine?: number;
+    inRange?: string[];
+    inlineLabel?: InlineNodeLike[];
+    inlineEndLabel?: InlineNodeLike[];
+    rangeRole?: string;
+    layerType?: string;
+    label?: string;
+    endLabel?: string;
+    scene_number?: string;
+    raw?: string;
+    content?: string;
+    children?: RendererNode[];
+    left?: RendererNode[];
+    right?: RendererNode[];
+    [key: string]: unknown;
+}
+
+interface TooltipState {
+    text: string;
+    x: number;
+    y: number;
+}
+
+interface MarkerConfigLike {
+    id?: string;
+    label?: string;
+    name?: string;
+    displayName?: string;
+    type?: string;
+    matchMode?: string;
+    start?: string;
+    end?: string;
+    regex?: string;
+    priority?: number;
+    parseAs?: string;
+    showEndLabel?: boolean;
+    style?: Record<string, string>;
+    rangeStyle?: Record<string, string>;
+    renderer?: { template?: string };
+    [key: string]: unknown;
+}
+
+interface InlineNodeLike {
+    type: string;
+    id?: string;
+    content?: string;
+}
+
+interface ScriptRendererProps {
+    ast: RendererNode | { children?: RendererNode[] } | null;
+    fontSize?: number;
+    readingFontFamily?: string;
+    filterCharacter?: string | null;
+    focusMode?: boolean;
+    focusEffect?: string;
+    focusContentMode?: string;
+    themePalette?: unknown;
+    colorCache?: React.MutableRefObject<Map<string, string>>;
+    theme?: string;
+    markerConfigs?: MarkerConfigLike[];
+    hiddenMarkerIds?: string[];
+    showLineUnderline?: boolean;
+}
+
+interface NodeRenderContext {
+    fontSize?: number;
+    filterCharacter?: string | null;
+    focusMode?: boolean;
+    focusEffect?: string;
+    focusContentMode?: string;
+    colorCache?: React.MutableRefObject<Map<string, string>>;
+    markerConfigs: MarkerConfigLike[];
+    inlineMarkerConfigs: MarkerConfig[];
+    parseInlineLine: (line: string) => Array<{ type: string; content?: string; id?: string }>;
+    hiddenMarkerIds: string[];
+    whitespaceLabels: Record<string, string>;
+    markerTooltipPrefix: string;
+}
+
 const normalizeCharacterKey = (name = "") => String(name).trim().toLowerCase();
 
-const resolveCharacterColor = (characterName, context) => {
+const resolveCharacterColor = (characterName: string | undefined, context: NodeRenderContext) => {
     const key = normalizeCharacterKey(characterName);
     if (!key) return null;
     const cache = context?.colorCache?.current;
@@ -42,7 +130,7 @@ const resolveCharacterColor = (characterName, context) => {
     return color;
 };
 
-const getLineProps = (node) => {
+const getLineProps = (node: RendererNode) => {
     const start = node?.lineStart ?? node?.line ?? null;
     const end = node?.lineEnd ?? node?.endLine ?? start;
     if (!start) return {};
@@ -52,7 +140,7 @@ const getLineProps = (node) => {
     };
 };
 
-const renderInlineLines = (node, context) => {
+const renderInlineLines = (node: RendererNode, context: NodeRenderContext) => {
     const lines = (node?.text || "").split("\n");
     const baseLine = Number.isFinite(node?.lineStart) ? node.lineStart : null;
 
@@ -89,18 +177,18 @@ const renderInlineLines = (node, context) => {
 import { RangeNode } from './nodes/RangeNode';
 
 // --- Node Renderer ---
-const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
+const NodeRenderer = React.memo(function NodeRenderer({ node, context, isDual = false }: { node: RendererNode; context: NodeRenderContext; isDual?: boolean }) {
     const { hiddenMarkerIds = [] } = context;
 
     // Non-marker styling controls are disabled. Marker configs are the only style source.
-    const getFocusStyle = () => {
+    const getFocusStyle = (): Record<string, string> => {
         return {};
     };
 
     // Apply optional range-content style for nodes wrapped inside active ranges.
     // Important: marker `style` is for marker lines themselves; content remains normal
     // unless `rangeStyle` is explicitly provided.
-    const getRangeStyle = () => {
+    const getRangeStyle = (): Record<string, string> => {
         if (!node.inRange || node.inRange.length === 0) return {};
         
         // Filter out hidden markers only; range content style is controlled by config.rangeStyle/style
@@ -111,7 +199,7 @@ const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
 
         if (activeRanges.length === 0) return {};
 
-        const sanitizeRangeContentStyle = (style = {}) => {
+        const sanitizeRangeContentStyle = (style: Record<string, string> = {}) => {
             const {
                 border,
                 borderLeft,
@@ -143,7 +231,7 @@ const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
         };
 
         // Reconstruct style from active ranges using dedicated rangeStyle only.
-        let mergedStyle = {};
+        let mergedStyle: Record<string, string> = {};
         activeRanges.forEach(id => {
              const config = context.markerConfigs?.find(c => c.id === id);
              const candidate = config?.rangeStyle;
@@ -157,17 +245,33 @@ const NodeRenderer = React.memo(({ node, context, isDual = false }) => {
 
     switch (node.type) {
         case 'root':
-            return <>{node.children.map((child, i) => <NodeRenderer key={i} node={child} context={context} />)}</>;
+            return <>{(node.children || []).map((child, i) => <NodeRenderer key={i} node={child} context={context} />)}</>;
             
         case 'range':
-            return <RangeNode node={node} context={context} NodeRenderer={NodeRenderer} />;
+            return (
+                <RangeNode
+                    node={node}
+                    context={context}
+                    NodeRenderer={({ node: childNode, context: childContext }) => (
+                        <NodeRenderer node={childNode as RendererNode} context={childContext as NodeRenderContext} />
+                    )}
+                />
+            );
 
         case 'layer':
-            return <LayerNode node={node} context={context} NodeRenderer={NodeRenderer} />;
+            return (
+                <LayerNode
+                    node={node}
+                    context={context}
+                    NodeRenderer={({ node: childNode, context: childContext }) => (
+                        <NodeRenderer node={childNode as RendererNode} context={childContext as NodeRenderContext} />
+                    )}
+                />
+            );
         
         case 'whitespace':
             const labels = context.whitespaceLabels || {};
-            const label = labels[node.kind] || '';
+            const label = labels[String(node.kind || "")] || '';
             const style = getFocusStyle(); 
             if (style.display === 'none') return null; // Optimization
             
@@ -326,10 +430,10 @@ export const ScriptRenderer = React.memo(({
     markerConfigs = [],
     hiddenMarkerIds = [],
     showLineUnderline = false,
-}) => {
+}: ScriptRendererProps) => {
     const { t } = useI18n();
     const readingFontStack = resolveReadingFontStack(readingFontFamily);
-    const [markerTooltip, setMarkerTooltip] = useState(null);
+    const [markerTooltip, setMarkerTooltip] = useState<TooltipState | null>(null);
     const whitespaceLabels = useMemo(
         () => ({
             short: t("scriptRenderer.pauseShort"),
@@ -344,6 +448,23 @@ export const ScriptRenderer = React.memo(({
         const safe = Array.isArray(markerConfigs) ? markerConfigs : [];
         return safe.filter((c) => isInlineLike(c));
     }, [markerConfigs]);
+    const normalizedInlineMarkerConfigs = useMemo<MarkerConfig[]>(
+        () =>
+            inlineMarkerConfigs
+                .filter((cfg) => typeof cfg.id === "string" && cfg.id.trim() !== "")
+                .map((cfg) => ({
+                    id: String(cfg.id),
+                    type: typeof cfg.type === "string" ? cfg.type : undefined,
+                    matchMode: typeof cfg.matchMode === "string" ? cfg.matchMode : undefined,
+                    start: typeof cfg.start === "string" ? cfg.start : undefined,
+                    end: typeof cfg.end === "string" ? cfg.end : undefined,
+                    regex: typeof cfg.regex === "string" ? cfg.regex : undefined,
+                    priority: typeof cfg.priority === "number" ? cfg.priority : undefined,
+                    style: cfg.style,
+                    label: typeof cfg.label === "string" ? cfg.label : undefined,
+                })),
+        [inlineMarkerConfigs]
+    );
     const inlineParseCacheRef = useRef(new Map());
     const inlineConfigSignature = useMemo(
         () => JSON.stringify(
@@ -359,16 +480,16 @@ export const ScriptRenderer = React.memo(({
         [inlineMarkerConfigs]
     );
     const parseInlineLine = useMemo(() => {
-        return (line) => {
+        return (line: string) => {
             const key = `${inlineConfigSignature}::${line}`;
             const cache = inlineParseCacheRef.current;
             if (cache.has(key)) return cache.get(key);
-            const parsed = parseInline(line, inlineMarkerConfigs);
+            const parsed = parseInline(line, normalizedInlineMarkerConfigs);
             cache.set(key, parsed);
             if (cache.size > 2000) cache.clear();
             return parsed;
         };
-    }, [inlineConfigSignature, inlineMarkerConfigs]);
+    }, [inlineConfigSignature, normalizedInlineMarkerConfigs]);
 
     const context = useMemo(() => ({
         fontSize,
@@ -378,12 +499,12 @@ export const ScriptRenderer = React.memo(({
         focusContentMode,
         colorCache,
         markerConfigs: Array.isArray(markerConfigs) ? markerConfigs : [],
-        inlineMarkerConfigs,
+        inlineMarkerConfigs: normalizedInlineMarkerConfigs,
         parseInlineLine,
         hiddenMarkerIds,
         whitespaceLabels,
         markerTooltipPrefix: t("scriptRenderer.markerTooltipPrefix", "標記"),
-    }), [fontSize, filterCharacter, focusMode, focusEffect, focusContentMode, colorCache, markerConfigs, inlineMarkerConfigs, parseInlineLine, hiddenMarkerIds, whitespaceLabels, t]);
+    }), [fontSize, filterCharacter, focusMode, focusEffect, focusContentMode, colorCache, markerConfigs, normalizedInlineMarkerConfigs, parseInlineLine, hiddenMarkerIds, whitespaceLabels, t]);
 
     const markerLabelById = useMemo(() => {
         const map = new Map();
@@ -396,9 +517,10 @@ export const ScriptRenderer = React.memo(({
         return map;
     }, [markerConfigs]);
 
-    const resolveMarkerTooltip = (target) => {
-        if (!target || typeof target.closest !== "function") return null;
-        const markerEl = target.closest("[data-marker-id]");
+    const resolveMarkerTooltip = (target: EventTarget | null) => {
+        const targetEl = target instanceof Element ? target : null;
+        if (!targetEl || typeof targetEl.closest !== "function") return null;
+        const markerEl = targetEl.closest("[data-marker-id]");
         if (!markerEl) return null;
         const markerId = String(markerEl.getAttribute("data-marker-id") || "").trim();
         if (!markerId) return null;
@@ -409,7 +531,7 @@ export const ScriptRenderer = React.memo(({
         };
     };
 
-    const handlePointerMove = (event) => {
+    const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
         const resolved = resolveMarkerTooltip(event.target);
         if (!resolved) {
             if (markerTooltip) setMarkerTooltip(null);
@@ -453,7 +575,11 @@ export const ScriptRenderer = React.memo(({
             onPointerMove={handlePointerMove}
             onPointerLeave={handlePointerLeave}
         >
-            <NodeRenderer node={ast} context={context} />
+            {ast ? (
+                "type" in ast
+                    ? <NodeRenderer node={ast} context={context} />
+                    : <NodeRenderer node={{ type: "root", children: ast.children || [] }} context={context} />
+            ) : null}
             {markerTooltip && (
                 <div
                     className="fixed z-[80] pointer-events-none rounded-md border border-border/60 bg-popover/95 px-2 py-1 text-xs text-popover-foreground shadow-lg backdrop-blur-sm"

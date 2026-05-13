@@ -1,13 +1,32 @@
-// @ts-nocheck
 import React from 'react';
 import { LayerNode } from './LayerNode';
 
-export const RangeNode = ({ node, context, NodeRenderer }) => {
+interface RangeNodeData {
+    rangeGroupId?: string;
+    style?: Record<string, string>;
+    children?: Array<Record<string, unknown>>;
+    startNode?: Record<string, unknown> | null;
+    endNode?: Record<string, unknown> | null;
+}
+
+interface RangeNodeContext {
+    hiddenMarkerIds?: string[];
+    markerConfigs?: Array<{ id?: string; label?: string }>;
+    markerTooltipPrefix?: string;
+}
+
+interface RangeNodeProps {
+    node: RangeNodeData;
+    context: RangeNodeContext;
+    NodeRenderer: React.ComponentType<{ node: unknown; context: RangeNodeContext }>;
+}
+
+export const RangeNode = ({ node, context, NodeRenderer }: RangeNodeProps) => {
     // 檢查是否隱藏：如果隱藏了，只渲染內容子節點，不渲染外框和標頭/標尾
-    if (context.hiddenMarkerIds?.includes(node.rangeGroupId)) {
+    if (node.rangeGroupId && context.hiddenMarkerIds?.includes(node.rangeGroupId)) {
         return (
             <>
-                {node.children.map((child, i) => (
+                {(node.children || []).map((child, i) => (
                     <NodeRenderer key={i} node={child} context={context} />
                 ))}
             </>
@@ -41,8 +60,8 @@ export const RangeNode = ({ node, context, NodeRenderer }) => {
     const connectorBorder = containerOnlyStyle.borderLeft || `2px solid ${borderColor}`;
     const connectorPaddingLeft = containerOnlyStyle.paddingLeft || '8px';
     const connectorMarginLeft = '4px';
-    const isPauseNode = (candidate) => candidate?.type === 'layer' && candidate?.rangeRole === 'pause';
-    const renderWithPauseMask = (contentNode, isPause = false, key = undefined) => {
+    const isPauseNode = (candidate: Record<string, unknown> | undefined) => candidate?.type === 'layer' && candidate?.rangeRole === 'pause';
+    const renderWithPauseMask = (contentNode: React.ReactNode, isPause = false, key?: React.Key) => {
         if (!isPause) return contentNode;
         return (
             <div key={key} className="range-pause-mask-row" data-range-pause-mask="true">
@@ -50,11 +69,11 @@ export const RangeNode = ({ node, context, NodeRenderer }) => {
             </div>
         );
     };
-    const renderPauseAsAction = (pauseNode, key = undefined) => {
+    const renderPauseAsAction = (pauseNode: Record<string, unknown>, key?: React.Key) => {
         const text = String(pauseNode?.text || "").trim();
         if (!text) return null;
-        const markerConfig = context?.markerConfigs?.find?.((cfg) => cfg?.id === pauseNode?.layerType);
-        const markerName = String(markerConfig?.label || pauseNode?.layerType || "").trim();
+        const markerConfig = context?.markerConfigs?.find?.((cfg) => cfg?.id === String(pauseNode?.layerType || ""));
+        const markerName = String(markerConfig?.label || String(pauseNode?.layerType || "") || "").trim();
         const tooltipPrefix = context?.markerTooltipPrefix || "標記";
         const pauseTooltip = markerName
             ? `${tooltipPrefix}: ${markerName}暫停`
@@ -62,10 +81,10 @@ export const RangeNode = ({ node, context, NodeRenderer }) => {
         const actionLikeNode = {
             type: "action",
             text,
-            lineStart: pauseNode?.lineStart,
-            lineEnd: pauseNode?.lineEnd ?? pauseNode?.lineStart,
+            lineStart: pauseNode?.lineStart as number | undefined,
+            lineEnd: (pauseNode?.lineEnd as number | undefined) ?? (pauseNode?.lineStart as number | undefined),
             raw: pauseNode?.raw || text,
-            markerId: pauseNode?.layerType || "",
+            markerId: String(pauseNode?.layerType || ""),
             markerLabel: markerName ? `${markerName}暫停` : "暫停",
         };
         return (
@@ -93,7 +112,7 @@ export const RangeNode = ({ node, context, NodeRenderer }) => {
             {node.startNode && (() => {
                 // 如果是 pause 節點且 label 為空，不顯示
                 const isPauseStart = node.startNode.rangeRole === 'pause';
-                const hasPauseText = node.startNode.text && node.startNode.text.trim() !== '';
+                const hasPauseText = String(node.startNode.text || "").trim() !== '';
                 if (isPauseStart && !hasPauseText) return null;
                 
                 return renderWithPauseMask(
@@ -104,7 +123,7 @@ export const RangeNode = ({ node, context, NodeRenderer }) => {
                     ) : (
                         <div className="range-header" key="range-header">
                             <LayerNode 
-                                node={node.startNode} 
+                                node={{ ...node.startNode, children: Array.isArray(node.startNode.children) ? node.startNode.children : [] }} 
                                 context={context} 
                                 NodeRenderer={NodeRenderer}
                                 styleOverride={layerStyleOverride}
@@ -117,7 +136,7 @@ export const RangeNode = ({ node, context, NodeRenderer }) => {
 
             {/* 內容 */}
             <div className="range-content">
-                {node.children.map((child, i) => {
+                {(node.children || []).map((child, i) => {
                     const isPause = isPauseNode(child);
                     const rowContent = isPause
                         ? renderPauseAsAction(child, `pause-${i}`)
@@ -131,7 +150,7 @@ export const RangeNode = ({ node, context, NodeRenderer }) => {
             {node.endNode && (() => {
                 // 如果是 pause 節點且 label 為空，不顯示
                 const isPauseEnd = node.endNode.rangeRole === 'pause';
-                const hasPauseText = node.endNode.text && node.endNode.text.trim() !== '';
+                const hasPauseText = String(node.endNode.text || "").trim() !== '';
                 if (isPauseEnd && !hasPauseText) return null;
                 
                 return renderWithPauseMask(
@@ -142,7 +161,7 @@ export const RangeNode = ({ node, context, NodeRenderer }) => {
                     ) : (
                         <div className="range-footer" key="range-footer">
                             <LayerNode 
-                                node={node.endNode} 
+                                node={{ ...node.endNode, children: Array.isArray(node.endNode.children) ? node.endNode.children : [] }} 
                                 context={context} 
                                 NodeRenderer={NodeRenderer} 
                                 styleOverride={layerStyleOverride}
