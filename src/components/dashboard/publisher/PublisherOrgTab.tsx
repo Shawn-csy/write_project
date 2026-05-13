@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from 'react';
 import { useNavigate } from "react-router-dom";
 import { Loader2, Trash2, Building2, CircleHelp, ExternalLink, AlertTriangle } from "lucide-react";
@@ -25,6 +24,83 @@ import {
     PUBLISHER_SECTION_CARD_CLASS,
     PUBLISHER_DEMO_CARD_CLASS,
 } from "./PublisherEntityLayout";
+
+interface OrgItem {
+    id: string;
+    name?: string;
+    description?: string;
+    website?: string;
+    logoUrl?: string;
+    bannerUrl?: string;
+    tags?: string[];
+}
+
+interface OrgDraft {
+    id: string;
+    name: string;
+    description: string;
+    website: string;
+    logoUrl: string;
+    bannerUrl: string;
+    tags: string[];
+}
+
+interface TagOption {
+    name: string;
+}
+
+interface OrgMember {
+    id: string;
+    [key: string]: unknown;
+}
+
+interface OrgInvite {
+    id: string;
+    [key: string]: unknown;
+}
+
+interface OrgRequest {
+    id: string;
+    [key: string]: unknown;
+}
+
+interface PublisherOrgTabProps {
+    orgs: OrgItem[];
+    isLoading?: boolean;
+    selectedOrgId: string | null;
+    setSelectedOrgId: (id: string | null) => void;
+    handleCreateOrg: () => void;
+    isCreatingOrg: boolean;
+    handleDeleteOrg: () => void;
+    orgDraft: OrgDraft;
+    setOrgDraft: React.Dispatch<React.SetStateAction<OrgDraft>>;
+    handleSaveOrg: () => void;
+    isSavingOrg: boolean;
+    orgTagInput: string;
+    setOrgTagInput: (value: string) => void;
+    parseTags: (value: string) => string[];
+    addTags: (next: string[] | string) => string[];
+    getSuggestions: (value: string) => string[];
+    getTagStyle: (tag: string) => React.CSSProperties;
+    tagOptions?: TagOption[];
+    orgMembers: OrgMember[];
+    orgInvites: OrgInvite[];
+    orgRequests: OrgRequest[];
+    canEditSelectedOrg?: boolean;
+    currentUserId?: string;
+    currentOrgRole?: string;
+    canManageOrgMembers?: boolean;
+    inviteSearchQuery: string;
+    setInviteSearchQuery: (value: string) => void;
+    inviteSearchResults: Array<{ id: string; [key: string]: unknown }>;
+    isInviteSearching: boolean;
+    handleInviteMember: (id: string) => void;
+    handleAcceptRequest: (id: string) => void;
+    handleDeclineRequest: (id: string) => void;
+    handleRemoveMember: (id: string) => void;
+    handleRemovePersonaMember: (id: string) => void;
+    handleChangeMemberRole: (id: string, role: string) => void;
+}
 
 export function PublisherOrgTab({
     orgs,
@@ -54,27 +130,27 @@ export function PublisherOrgTab({
     handleRemoveMember,
     handleRemovePersonaMember,
     handleChangeMemberRole
-}) {
+}: PublisherOrgTabProps): React.JSX.Element {
     const { t } = useI18n();
     const navigate = useNavigate();
-    const [viewMode, setViewMode] = React.useState("edit");
-    const [logoPreviewFailed, setLogoPreviewFailed] = React.useState(false);
-    const [bannerPreviewFailed, setBannerPreviewFailed] = React.useState(false);
-    const [logoUploadError, setLogoUploadError] = React.useState("");
-    const [bannerUploadError, setBannerUploadError] = React.useState("");
-    const [logoUploadWarning, setLogoUploadWarning] = React.useState("");
-    const [bannerUploadWarning, setBannerUploadWarning] = React.useState("");
-    const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState(false);
-    const [mediaPickerTarget, setMediaPickerTarget] = React.useState(null); // 'logo' or 'banner'
-    const [cropOpen, setCropOpen] = React.useState(false);
-    const [cropPurpose, setCropPurpose] = React.useState("logo");
-    const [cropTargetField, setCropTargetField] = React.useState(null);
-    const [cropSource, setCropSource] = React.useState(null);
+    const [viewMode, setViewMode] = React.useState<"edit" | "create">("edit");
+    const [logoPreviewFailed, setLogoPreviewFailed] = React.useState<boolean>(false);
+    const [bannerPreviewFailed, setBannerPreviewFailed] = React.useState<boolean>(false);
+    const [logoUploadError, setLogoUploadError] = React.useState<string>("");
+    const [bannerUploadError, setBannerUploadError] = React.useState<string>("");
+    const [logoUploadWarning, setLogoUploadWarning] = React.useState<string>("");
+    const [bannerUploadWarning, setBannerUploadWarning] = React.useState<string>("");
+    const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState<boolean>(false);
+    const [mediaPickerTarget, setMediaPickerTarget] = React.useState<"logo" | "banner" | null>(null); // 'logo' or 'banner'
+    const [cropOpen, setCropOpen] = React.useState<boolean>(false);
+    const [cropPurpose, setCropPurpose] = React.useState<"logo" | "banner">("logo");
+    const [cropTargetField, setCropTargetField] = React.useState<"logoUrl" | "bannerUrl" | null>(null);
+    const [cropSource, setCropSource] = React.useState<{ file: File; name: string } | null>(null);
     const logoGuide = React.useMemo(() => getImageUploadGuide("logo"), []);
     const bannerGuide = React.useMemo(() => getImageUploadGuide("banner"), []);
     const filteredTagOptions = React.useMemo(() => {
         const needle = orgTagInput.trim().toLowerCase();
-        const names = (tagOptions || []).map(t => t.name).filter(Boolean);
+        const names = (tagOptions || []).map((tag) => tag.name).filter(Boolean);
         if (!needle) return names;
         return names.filter(n => n.toLowerCase().includes(needle));
     }, [tagOptions, orgTagInput]);
@@ -92,7 +168,7 @@ export function PublisherOrgTab({
     } = usePublisherOrgGuide({
         t,
         viewMode,
-        selectedOrgId,
+        selectedOrgId: selectedOrgId || "",
         canManageOrgMembers,
     });
     const isReadOnlyExistingOrg = viewMode === "edit" && Boolean(selectedOrgId) && !canEditSelectedOrg;
@@ -109,7 +185,7 @@ export function PublisherOrgTab({
     const orgProgress = Math.round((orgDone / orgChecklist.length) * 100);
     const orgNextSteps = orgChecklist.filter((item) => !item.ok).slice(0, 3);
 
-    const applyUploadedImage = React.useCallback(async (file, field) => {
+    const applyUploadedImage = React.useCallback(async (file: File, field: "logoUrl" | "bannerUrl") => {
         const ruleKey = field === "logoUrl" ? "logo" : "banner";
         const optimized = await optimizeImageForUpload(file, ruleKey);
         if (!optimized.ok) {
@@ -139,8 +215,8 @@ export function PublisherOrgTab({
                 setBannerUploadWarning(optimized.warning || "");
                 setBannerPreviewFailed(false);
             }
-        } catch (error) {
-            const errorMessage = error?.message || t("mediaLibrary.uploadFailed");
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : t("mediaLibrary.uploadFailed");
             if (field === "logoUrl") {
                 setLogoUploadError(errorMessage);
                 setLogoUploadWarning("");
@@ -152,7 +228,7 @@ export function PublisherOrgTab({
         }
     }, [t, setOrgDraft]);
 
-    const handleImageUpload = (field) => async (event) => {
+    const handleImageUpload = (field: "logoUrl" | "bannerUrl") => async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
         setCropTargetField(field);
@@ -165,7 +241,7 @@ export function PublisherOrgTab({
     // Reset draft when selecting a new org
     React.useEffect(() => {
         if (selectedOrgId) {
-            const org = orgs.find(o => o.id === selectedOrgId);
+            const org = orgs.find((item) => item.id === selectedOrgId);
             if (org) {
                 setOrgDraft({
                     id: org.id,

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { Loader2, Eye, Edit, FilePenLine, Grid3X3, Rows3 } from "lucide-react";
 import { Button } from "../../ui/button";
@@ -11,29 +10,64 @@ import { parseBasicLicenseFromMeta } from "../../../lib/licenseRights";
 import { PublisherTabHeader } from "./PublisherTabHeader";
 import { PublisherEmptyState } from "./PublisherEntityLayout";
 
-export function PublisherWorksTab({ isLoading, scripts, personas = [], setEditingScript, navigate, formatDate, onContinueEdit }) {
+interface PersonaLike {
+    id: string;
+    defaultLicenseCommercial?: string;
+    defaultLicenseDerivative?: string;
+    defaultLicenseNotify?: string;
+}
+
+interface PublisherScriptItem {
+    id: string;
+    title?: string;
+    status?: string;
+    isPublic?: boolean;
+    coverUrl?: string;
+    lastModified?: number;
+    updatedAt?: number;
+    views?: number;
+    personaId?: string;
+    licenseCommercial?: string;
+    licensecommercial?: string;
+    licenseDerivative?: string;
+    licensederivative?: string;
+    licenseNotify?: string;
+    licensenotify?: string;
+}
+
+interface PublisherWorksTabProps {
+    isLoading: boolean;
+    scripts: PublisherScriptItem[];
+    personas?: PersonaLike[];
+    setEditingScript: (script: PublisherScriptItem) => void;
+    navigate: (to: string) => void;
+    formatDate: (value?: number) => string;
+    onContinueEdit?: (script: PublisherScriptItem) => void;
+}
+
+export function PublisherWorksTab({ isLoading, scripts, personas = [], setEditingScript, navigate, formatDate, onContinueEdit }: PublisherWorksTabProps): React.JSX.Element {
     const { t } = useI18n();
-    const [filter, setFilter] = React.useState("all"); // all, public, private
-    const [coverFilter, setCoverFilter] = React.useState("all"); // all, with, without
-    const [viewMode, setViewMode] = React.useState("list"); // list, grid
-    const [sortKey, setSortKey] = React.useState("updated_desc"); // updated_desc, updated_asc, title_asc, views_desc
-    const [showAdvancedFilters, setShowAdvancedFilters] = React.useState(false);
-    const [failedCoverById, setFailedCoverById] = React.useState({});
+    const [filter, setFilter] = React.useState<"all" | "public" | "private">("all"); // all, public, private
+    const [coverFilter, setCoverFilter] = React.useState<"all" | "with" | "without">("all"); // all, with, without
+    const [viewMode, setViewMode] = React.useState<"list" | "grid">("list"); // list, grid
+    const [sortKey, setSortKey] = React.useState<"updated_desc" | "updated_asc" | "title_asc" | "views_desc">("updated_desc"); // updated_desc, updated_asc, title_asc, views_desc
+    const [showAdvancedFilters, setShowAdvancedFilters] = React.useState<boolean>(false);
+    const [failedCoverById, setFailedCoverById] = React.useState<Record<string, boolean>>({});
     const INITIAL_VISIBLE = 12;
     const PREFETCH_STEP = 24;
     const [visibleCount, setVisibleCount] = React.useState(INITIAL_VISIBLE);
     const hasCover = (value) => Boolean(String(value || "").trim());
-    const parseTopLevelLicense = React.useCallback((script) => {
+    const parseTopLevelLicense = React.useCallback((script: PublisherScriptItem) => {
         return parseBasicLicenseFromMeta({
             licensecommercial: script?.licenseCommercial ?? script?.licensecommercial ?? "",
             licensederivative: script?.licenseDerivative ?? script?.licensederivative ?? "",
             licensenotify: script?.licenseNotify ?? script?.licensenotify ?? "",
         });
     }, []);
-    const isBasicLicenseComplete = React.useCallback((basic) => {
+    const isBasicLicenseComplete = React.useCallback((basic: { commercialUse?: string; derivativeUse?: string; notifyOnModify?: string }) => {
         return Boolean(basic?.commercialUse && basic?.derivativeUse && basic?.notifyOnModify);
     }, []);
-    const getPersonaFallbackLicense = React.useCallback((script) => {
+    const getPersonaFallbackLicense = React.useCallback((script: PublisherScriptItem) => {
         if (!script?.personaId) return { commercialUse: "", derivativeUse: "", notifyOnModify: "" };
         const persona = (personas || []).find((item) => item?.id === script.personaId);
         if (!persona) return { commercialUse: "", derivativeUse: "", notifyOnModify: "" };
@@ -43,7 +77,7 @@ export function PublisherWorksTab({ isLoading, scripts, personas = [], setEditin
             licensenotify: persona.defaultLicenseNotify || "",
         });
     }, [personas]);
-    const hasCompleteLicense = React.useCallback((script) => {
+    const hasCompleteLicense = React.useCallback((script: PublisherScriptItem) => {
         const topLevel = parseTopLevelLicense(script);
         if (isBasicLicenseComplete(topLevel)) return true;
 
@@ -118,8 +152,8 @@ export function PublisherWorksTab({ isLoading, scripts, personas = [], setEditin
         if (visibleCount >= sortedScripts.length) return;
 
         let cancelled = false;
-        let idleId = null;
-        let timerId = null;
+        let idleId: number | null = null;
+        let timerId: number | null = null;
 
         const prefetchNextBatch = () => {
             if (cancelled) return;
@@ -129,7 +163,7 @@ export function PublisherWorksTab({ isLoading, scripts, personas = [], setEditin
         if (typeof window !== "undefined" && "requestIdleCallback" in window) {
             idleId = window.requestIdleCallback(prefetchNextBatch, { timeout: 300 });
         } else {
-            timerId = window.setTimeout(prefetchNextBatch, 120);
+            timerId = globalThis.setTimeout(prefetchNextBatch, 120);
         }
 
         return () => {
@@ -249,7 +283,7 @@ export function PublisherWorksTab({ isLoading, scripts, personas = [], setEditin
                             )}
                         </div>
                         <div className="flex items-center gap-2">
-                            <Select value={sortKey} onValueChange={setSortKey}>
+                            <Select value={sortKey} onValueChange={(value) => setSortKey(value as "updated_desc" | "updated_asc" | "title_asc" | "views_desc")}>
                                 <SelectTrigger className="h-8 w-[180px] text-xs">
                                     <SelectValue placeholder="排序方式" />
                                 </SelectTrigger>
