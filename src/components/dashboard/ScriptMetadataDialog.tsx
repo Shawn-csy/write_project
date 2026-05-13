@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Button } from "../ui/button";
@@ -100,7 +99,7 @@ export function ScriptMetadataDialog({
     const [cropOpen, setCropOpen] = useState(false);
     const [cropPurpose, setCropPurpose] = useState("cover");
     const [cropTarget, setCropTarget] = useState("cover");
-    const [cropSource, setCropSource] = useState(null);
+    const [cropSource, setCropSource] = useState<{ file: File; name: string } | null>(null);
     const [activityBannerPreviewFailed, setActivityBannerPreviewFailed] = useState(false);
     const [activityBannerUploadError, setActivityBannerUploadError] = useState("");
     const [activityBannerUploadWarning, setActivityBannerUploadWarning] = useState("");
@@ -266,35 +265,45 @@ export function ScriptMetadataDialog({
         }
     };
 
-    const handleCustomFieldUpdate = (index, field, value) => {
+    const handleCustomFieldUpdate = (index: number, field: "key" | "value" | "type", value: string) => {
         userEditedRef.current = true;
         setCustomFields((prev) => {
             const next = [...prev];
-            next[index] = { ...next[index], [field]: value };
+            const current = next[index];
+            if (!current) return prev;
+            if (field === "type") {
+                if (value === "text" || value === "divider") {
+                    next[index] = { ...current, type: value };
+                }
+                return next;
+            }
+            next[index] = { ...current, [field]: value };
             return next;
         });
     };
 
-    const handleContactFieldUpdate = (index, field, value) => {
+    const handleContactFieldUpdate = (index: number, field: "key" | "value", value: string) => {
         userEditedRef.current = true;
         setContactFields((prev) => {
             const next = [...prev];
-            next[index] = { ...next[index], [field]: value };
+            const current = next[index];
+            if (!current) return prev;
+            next[index] = { ...current, [field]: value };
             return next;
         });
     };
 
     const addCustomField = (key = "", value = "") => {
         customIdRef.current += 1;
-        setCustomFields((prev) => [...prev, { id: `cf-${customIdRef.current}`, key, value, type: 'text' }]);
+        setCustomFields((prev) => [...prev, { id: `cf-${customIdRef.current}`, key, value, type: "text" }]);
     };
 
     const addDivider = () => {
         customIdRef.current += 1;
-        setCustomFields((prev) => [...prev, { id: `cf-${customIdRef.current}`, key: `_sep_${Date.now()}`, value: 'SECTION', type: 'divider' }]);
+        setCustomFields((prev) => [...prev, { id: `cf-${customIdRef.current}`, key: `_sep_${Date.now()}`, value: "SECTION", type: "divider" }]);
     };
 
-    const handleAddContactField = (preset) => {
+    const handleAddContactField = (preset: string) => {
         customIdRef.current += 1;
         setContactFields((prev) => [...prev, { id: `ct-${customIdRef.current}`, key: preset, value: "" }]);
     };
@@ -317,8 +326,8 @@ export function ScriptMetadataDialog({
     const { currentUser, profile: currentProfile } = useAuth();
     const [identity, setIdentity] = useState(""); // persona:ID only
     const [selectedOrgId, setSelectedOrgId] = useState("");
-    const [personas, setPersonas] = useState([]);
-    const [orgs, setOrgs] = useState([]);
+    const [personas, setPersonas] = useState<Array<{ id: string; displayName?: string; organizationIds?: string[] }>>([]);
+    const [orgs, setOrgs] = useState<Array<{ id: string; name?: string }>>([]);
 
     const setAuthorWithTracking = useCallback((value) => {
         authorEditedRef.current = true;
@@ -466,17 +475,18 @@ export function ScriptMetadataDialog({
                 setCoverPreviewFailed(false);
             }
         } catch (error) {
+            const uploadErrorMessage = error instanceof Error ? error.message : "上傳失敗。";
             if (target === "activityBanner") {
-                setActivityBannerUploadError(error?.message || "上傳失敗。");
+                setActivityBannerUploadError(uploadErrorMessage);
                 setActivityBannerUploadWarning("");
             } else {
-                setCoverUploadError(error?.message || "上傳失敗。");
+                setCoverUploadError(uploadErrorMessage);
                 setCoverUploadWarning("");
             }
         }
     };
 
-    const handleCoverUpload = async (event) => {
+    const handleCoverUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
         setCropSource({ file, name: file.name });
@@ -486,7 +496,7 @@ export function ScriptMetadataDialog({
         event.target.value = "";
     };
 
-    const handleActivityBannerUpload = async (event) => {
+    const handleActivityBannerUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
         setCropSource({ file, name: file.name });
@@ -796,7 +806,7 @@ export function ScriptMetadataDialog({
         setActivityDemoLinks((prev) => [...(prev || []), createEmptyActivityDemoLink(`demo-${Date.now()}`)]);
     };
 
-    const handleUpdateActivityDemoLink = (index, field, value) => {
+    const handleUpdateActivityDemoLink = (index: number, field: string, value: string) => {
         setActivityDemoLinks((prev) => {
             const next = [...(prev || [])];
             next[index] = { ...(next[index] || createEmptyActivityDemoLink(`demo-${index + 1}`)), [field]: value };
@@ -969,7 +979,7 @@ export function ScriptMetadataDialog({
                                     t("scriptMetadataDialog.tabBasic", "基本資料"),
                                     "metadata-section-basic",
                                     <ScriptMetadataBasicSection
-                                        sectionId={null}
+                                        sectionId={undefined}
                                         showTitle={false}
                                         t={t}
                                         title={title}
@@ -1011,7 +1021,7 @@ export function ScriptMetadataDialog({
                                     t("scriptMetadataDialog.tabPublish", "發布設定"),
                                     "metadata-section-publish",
                                     <ScriptMetadataPublishSection
-                                        sectionId={null}
+                                        sectionId={undefined}
                                         showTitle={false}
                                         t={t}
                                         missingRequiredMap={missingRequiredMap}
@@ -1031,8 +1041,6 @@ export function ScriptMetadataDialog({
                                         addLicenseSpecialTerm={addLicenseSpecialTerm}
                                         licenseSpecialTerms={licenseSpecialTerms}
                                         removeLicenseSpecialTerm={removeLicenseSpecialTerm}
-                                        copyright={copyright}
-                                        setCopyright={setCopyright}
                                         renderRowLabel={renderRowLabel}
                                     />
                                 )}
@@ -1042,7 +1050,7 @@ export function ScriptMetadataDialog({
                                     t("scriptMetadataDialog.tabExposure", "曝光資訊"),
                                     "metadata-section-exposure",
                                     <ScriptMetadataExposureSection
-                                        sectionId={null}
+                                        sectionId={undefined}
                                         showTitle={false}
                                         t={t}
                                         title={title}
@@ -1091,7 +1099,7 @@ export function ScriptMetadataDialog({
                                     t("scriptMetadataDialog.tabActivity", "活動宣傳"),
                                     "metadata-section-activity",
                                     <ScriptMetadataActivitySection
-                                        sectionId={null}
+                                        sectionId={undefined}
                                         showTitle={false}
                                         t={t}
                                         getRowLabelClass={getRowLabelClass}
@@ -1120,7 +1128,7 @@ export function ScriptMetadataDialog({
                                     "試聽範例",
                                     "metadata-section-demo",
                                     <ScriptMetadataDemoSection
-                                        sectionId={null}
+                                        sectionId={undefined}
                                         showTitle={false}
                                         getRowLabelClass={getRowLabelClass}
                                         activityDemoLinks={activityDemoLinks}
@@ -1135,7 +1143,7 @@ export function ScriptMetadataDialog({
                                     t("scriptMetadataDialog.tabAdvanced", "進階設定"),
                                     "metadata-section-advanced",
                                     <ScriptMetadataAdvancedSection
-                                        sectionId={null}
+                                        sectionId={undefined}
                                         showTitle={false}
                                         t={t}
                                         getRowLabelClass={getRowLabelClass}

@@ -1,5 +1,3 @@
-// @ts-nocheck
-
 import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -29,7 +27,51 @@ const CHARACTER_COLOR_SEQUENCE = [
   'var(--marker-color-charcoal)',
 ];
 
-export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }) {
+interface StatsLineItem {
+  text?: string;
+  raw?: string;
+  line?: number | null;
+  type?: string;
+}
+
+interface CharacterStatItem {
+  name?: string;
+  lineCount?: number;
+  count?: number;
+  wordCount?: number;
+  speakingScenesCount?: number;
+}
+
+interface MarkerEntry {
+  id: string;
+  label: string;
+  count: number;
+  items: StatsLineItem[];
+}
+
+interface StatisticsPanelProps {
+  rawScript?: string | null;
+  scriptAst?: unknown[] | { children?: unknown[] } | null;
+  onLocateText?: (text: string, line?: number | null) => void;
+  scriptId?: string;
+}
+
+interface ScriptStatsData {
+  durationMinutes?: number;
+  counts?: { dialogueLines?: number; dialogueChars?: number; actionChars?: number; cues?: number };
+  sentences?: { dialogue?: string[] | Record<string, string[]>; action?: string[] };
+  customLayers?: Record<string, StatsLineItem[]>;
+  rangeStats?: Record<string, unknown>;
+  pauseSeconds?: number;
+  pauseItems?: unknown[];
+  characterStats?: CharacterStatItem[];
+  dialogueRatio?: number;
+  actionRatio?: number;
+  customDurationSeconds?: number;
+  estimates?: { pure?: number; all?: number };
+}
+
+export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }: StatisticsPanelProps) {
   const { markerConfigs, statsConfig, setStatsConfig } = useSettings();
   const { t } = useI18n();
   const stats = useScriptStats({ 
@@ -42,10 +84,11 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
           statsConfig // Pass config to hook
       } 
   });
-  const statsAvailable = Boolean(stats);
-  const [collapsedMarkerIds, setCollapsedMarkerIds] = useState(new Set());
-  const [viewMode, setViewMode] = useState("dialogue"); // 'dialogue' | 'characters' | 'cues'
-  const [expandedCharacters, setExpandedCharacters] = useState(new Set());
+  const typedStats = stats as ScriptStatsData | null;
+  const statsAvailable = Boolean(typedStats);
+  const [collapsedMarkerIds, setCollapsedMarkerIds] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<"dialogue" | "characters" | "cues">("dialogue");
+  const [expandedCharacters, setExpandedCharacters] = useState<Set<string>>(new Set());
   const [showReportDialog, setShowReportDialog] = useState(false); // Dialog State
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
 
@@ -61,17 +104,17 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
     characterStats = [], 
     dialogueRatio = 0,
     actionRatio = 0
-  } = stats || {};
+  } = typedStats || {};
   const dialogueByCharacter = (sentences && typeof sentences.dialogue === "object" && !Array.isArray(sentences.dialogue))
-      ? sentences.dialogue
+      ? (sentences.dialogue as Record<string, string[]>)
       : {};
   
   // Backward compatibility mappings
-  const rawDialogue = sentences.dialogue || [];
-  const rawAction = sentences.action || [];
+  const rawDialogue = (sentences.dialogue || []) as Array<string | StatsLineItem>;
+  const rawAction = (sentences.action || []) as Array<string | StatsLineItem>;
   
   // If no dialogue detected (pure marker mode), use action lines as the 'Content' list
-  const dialogueLines = (Array.isArray(rawDialogue) && rawDialogue.length > 0) 
+  const dialogueLines: Array<string | StatsLineItem> = (Array.isArray(rawDialogue) && rawDialogue.length > 0) 
       ? rawDialogue 
       : (Array.isArray(rawAction) ? rawAction : []);
   
@@ -84,7 +127,7 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
   const formattedDuration = useMemo(() => {
     const dialogueChars = Number(counts?.dialogueChars || 0);
     const actionChars = Number(counts?.actionChars || 0);
-    const customSeconds = Number(stats?.customDurationSeconds || 0);
+    const customSeconds = Number(typedStats?.customDurationSeconds || 0);
     const divisor = Number(statsConfig?.wordCountDivisor || 200);
 
     // Prefer deterministic local calculation when we have counts.
@@ -100,11 +143,11 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
 
     let safeMinutes = Number(durationMinutes);
     if (!Number.isFinite(safeMinutes) || safeMinutes === 0) {
-      const preferAll = actionChars > 0 ? Number(stats?.estimates?.all) : Number(stats?.estimates?.pure);
+      const preferAll = actionChars > 0 ? Number(typedStats?.estimates?.all) : Number(typedStats?.estimates?.pure);
       if (Number.isFinite(preferAll)) {
         safeMinutes = preferAll;
       } else {
-        const fallback = Number(stats?.estimates?.pure);
+        const fallback = Number(typedStats?.estimates?.pure);
         safeMinutes = Number.isFinite(fallback) ? fallback : 0;
       }
     }
@@ -114,22 +157,22 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
     return t("statisticsPanel.timeMinutesSeconds")
       .replace("{mins}", String(mins))
       .replace("{secs}", String(secs));
-  }, [counts?.dialogueChars, counts?.actionChars, stats?.customDurationSeconds, statsConfig?.wordCountDivisor, durationMinutes, stats?.estimates?.pure, stats?.estimates?.all, t]);
+  }, [counts?.dialogueChars, counts?.actionChars, typedStats?.customDurationSeconds, statsConfig?.wordCountDivisor, durationMinutes, typedStats?.estimates?.pure, typedStats?.estimates?.all, t]);
 
-  const markerEntries = useMemo(() => {
+  const markerEntries = useMemo<MarkerEntry[]>(() => {
     // Transform customLayers (Object: { ID: [items...] }) to Array of structs
     // needed for UI: { id, label, count, items }
     const rawEntries = Object.entries(customLayers || {});
     const formatedEntries = rawEntries.map(([layerId, items]) => {
          // Lookup label from configs
-         const config = markerConfigs.find(c => c.id === layerId);
+         const config = (markerConfigs as Array<{ id?: string; label?: string; name?: string }>).find((item) => item.id === layerId);
          const label = config ? (config.label || config.name || layerId) : layerId;
 
          return {
              id: layerId,
              label: label, 
              count: Array.isArray(items) ? items.length : 0,
-             items: Array.isArray(items) ? items : []
+             items: Array.isArray(items) ? (items as StatsLineItem[]) : []
          };
     });
     
@@ -137,7 +180,7 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
   }, [customLayers]);
 
   const characterColorByName = useMemo(() => {
-    const map = new Map();
+    const map = new Map<string, string>();
     (characterStats || []).forEach((char) => {
       const key = String(char?.name || "").trim().toLowerCase();
       if (!key || map.has(key)) return;
@@ -146,7 +189,7 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
     return map;
   }, [characterStats]);
   const dialogueByCharacterNormalized = useMemo(() => {
-    const map = new Map();
+    const map = new Map<string, string[]>();
     Object.entries(dialogueByCharacter || {}).forEach(([name, lines]) => {
       const key = String(name || "").trim().toLowerCase();
       if (!key) return;
@@ -161,7 +204,7 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
 
   const showPauses = pauseSeconds > 0;
 
-  const handleLocate = (payload) => {
+  const handleLocate = (payload: string | StatsLineItem) => {
     if (!onLocateText || !payload) return;
     if (typeof payload === "string") {
       onLocateText(payload);
@@ -172,7 +215,7 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
     onLocateText(text, payload.line || null);
   };
 
-  const toggleMarkerSection = (id) => {
+  const toggleMarkerSection = (id: string) => {
     setCollapsedMarkerIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
@@ -183,7 +226,7 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
       return next;
     });
   };
-  const toggleCharacterExpand = (name) => {
+  const toggleCharacterExpand = (name: string) => {
     const key = String(name || "").trim().toLowerCase();
     if (!key) return;
     setExpandedCharacters((prev) => {
@@ -194,17 +237,17 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
     });
   };
 
-  const getCleanText = (text) => {
+  const getCleanText = (text: string) => {
       if (!text) return "";
-      if (typeof text !== 'string') return text; // Should assume string, but safety first
+      if (typeof text !== 'string') return String(text);
       
       // Use parseInline to tokenize, then join only 'text' type nodes
       try {
           // Pass markerConfigs to ensure we identify custom markers
-          const nodes = parseInline(text, markerConfigs);
+          const nodes = parseInline(text, markerConfigs) as Array<{ type?: string; content?: string }>;
           return nodes
-            .filter(n => n.type === 'text')
-            .map(n => n.content)
+            .filter((node) => node.type === 'text')
+            .map((node) => node.content)
             .join("");
       } catch (e) {
           return text;
@@ -238,7 +281,7 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
                 </CardHeader>
                 <CardContent className="p-3 pt-0">
                     <div className="text-2xl font-bold font-sans">
-                        {(counts.dialogueChars + (counts.actionChars || 0)).toLocaleString()}
+                        {((counts.dialogueChars || 0) + (counts.actionChars || 0)).toLocaleString()}
                     </div>
                 </CardContent>
             </Card>
@@ -303,7 +346,7 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
                             ) : (
                                 <ul className="space-y-4 font-serif text-base leading-relaxed">
                                 {dialogueLines.map((line, i) => {
-                                    const rawText = typeof line === "string" ? line : line.text;
+                                    const rawText = typeof line === "string" ? line : String(line.text || "");
                                     const cleanText = getCleanText(rawText);
                                     if (!cleanText.trim()) return null; // Skip empty lines after cleaning
 
@@ -358,7 +401,7 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
                                         <div className="flex flex-col gap-1">
                                             <button
                                                 type="button"
-                                                onClick={() => toggleCharacterExpand(char.name)}
+                                                onClick={() => toggleCharacterExpand(char.name || "")}
                                                 className="inline-flex items-center gap-1 text-left"
                                             >
                                                 {isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
@@ -376,7 +419,7 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
                                             <div className="w-16 h-1 bg-muted rounded-full overflow-hidden">
                                                 <div 
                                                     className="h-full bg-primary/70" 
-                                                    style={{ width: `${Math.min(100, counts.dialogueLines > 0 ? (lineCount / counts.dialogueLines) * 100 : 0)}%` }}
+                                                    style={{ width: `${Math.min(100, (counts.dialogueLines || 0) > 0 ? (lineCount / (counts.dialogueLines || 1)) * 100 : 0)}%` }}
                                                 />
                                             </div>
                                         </div>

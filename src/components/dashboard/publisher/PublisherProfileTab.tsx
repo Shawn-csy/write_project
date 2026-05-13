@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from 'react';
 import { useNavigate } from "react-router-dom";
 import { Loader2, Plus, Trash2, ExternalLink } from "lucide-react";
@@ -27,6 +26,87 @@ import {
     PUBLISHER_CONTENT_STACK_CLASS,
 } from "./PublisherEntityLayout";
 
+interface PersonaLink {
+    label?: string;
+    url?: string;
+}
+
+interface PersonaItem {
+    id: string;
+    displayName?: string;
+    bio?: string;
+    website?: string;
+    links?: PersonaLink[] | string;
+    avatar?: string;
+    bannerUrl?: string;
+    organizationIds?: string[];
+    tags?: string[];
+    defaultLicenseCommercial?: string;
+    defaultLicenseDerivative?: string;
+    defaultLicenseNotify?: string;
+    defaultLicenseSpecialTerms?: string[];
+}
+
+interface PersonaDraft {
+    displayName: string;
+    bio: string;
+    website: string;
+    links: PersonaLink[] | string;
+    avatar: string;
+    bannerUrl: string;
+    organizationIds: string[];
+    tags: string[];
+    defaultLicenseCommercial: string;
+    defaultLicenseDerivative: string;
+    defaultLicenseNotify: string;
+    defaultLicenseSpecialTerms: string[];
+}
+
+interface OrgItem {
+    id: string;
+    name?: string;
+}
+
+interface OrgSearchItem {
+    id: string;
+    name?: string;
+}
+
+interface OrgRequestItem {
+    id: string;
+    organization?: { name?: string };
+    orgName?: string;
+    organizationId?: string;
+    status?: string;
+}
+
+interface TagOption {
+    name: string;
+}
+
+interface PublisherProfileTabProps {
+    selectedPersonaId: string | null;
+    setSelectedPersonaId: (id: string | null) => void;
+    personas: PersonaItem[];
+    selectedPersona: PersonaItem | null;
+    handleCreatePersona: () => void;
+    isCreatingPersona: boolean;
+    handleDeletePersona: () => void;
+    personaDraft: PersonaDraft;
+    setPersonaDraft: React.Dispatch<React.SetStateAction<PersonaDraft>>;
+    orgs: OrgItem[];
+    isLoading?: boolean;
+    personaTagInput: string;
+    setPersonaTagInput: (value: string) => void;
+    handleSaveProfile: () => void;
+    isSavingProfile: boolean;
+    parseTags: (value: string) => string[];
+    addTags: (base: string[], incoming: string[]) => string[];
+    getSuggestions: (value: string) => string[];
+    getTagStyle: (tag: string) => React.CSSProperties;
+    tagOptions?: TagOption[];
+}
+
 export function PublisherProfileTab({
     selectedPersonaId, setSelectedPersonaId,
     personas,
@@ -40,33 +120,33 @@ export function PublisherProfileTab({
     handleSaveProfile, isSavingProfile,
     parseTags, addTags, getSuggestions, getTagStyle,
     tagOptions = []
-}) {
+}: PublisherProfileTabProps): React.JSX.Element {
     const { t } = useI18n();
     const { toast } = useToast();
     const navigate = useNavigate();
-    const [viewMode, setViewMode] = React.useState("edit"); // edit or create
-    const [orgSearchQuery, setOrgSearchQuery] = React.useState("");
-    const [orgSearchResults, setOrgSearchResults] = React.useState([]);
-    const [isOrgSearching, setIsOrgSearching] = React.useState(false);
-    const [myOrgRequests, setMyOrgRequests] = React.useState([]);
-    const [avatarPreviewFailed, setAvatarPreviewFailed] = React.useState(false);
-    const [bannerPreviewFailed, setBannerPreviewFailed] = React.useState(false);
-    const [avatarUploadError, setAvatarUploadError] = React.useState("");
-    const [bannerUploadError, setBannerUploadError] = React.useState("");
-    const [avatarUploadWarning, setAvatarUploadWarning] = React.useState("");
-    const [bannerUploadWarning, setBannerUploadWarning] = React.useState("");
-    const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState(false);
-    const [mediaPickerTarget, setMediaPickerTarget] = React.useState(null); // 'avatar' or 'banner'
-    const [cropOpen, setCropOpen] = React.useState(false);
-    const [cropPurpose, setCropPurpose] = React.useState("avatar");
-    const [cropTargetField, setCropTargetField] = React.useState(null);
-    const [cropSource, setCropSource] = React.useState(null);
+    const [viewMode, setViewMode] = React.useState<"edit" | "create">("edit"); // edit or create
+    const [orgSearchQuery, setOrgSearchQuery] = React.useState<string>("");
+    const [orgSearchResults, setOrgSearchResults] = React.useState<OrgSearchItem[]>([]);
+    const [isOrgSearching, setIsOrgSearching] = React.useState<boolean>(false);
+    const [myOrgRequests, setMyOrgRequests] = React.useState<OrgRequestItem[]>([]);
+    const [avatarPreviewFailed, setAvatarPreviewFailed] = React.useState<boolean>(false);
+    const [bannerPreviewFailed, setBannerPreviewFailed] = React.useState<boolean>(false);
+    const [avatarUploadError, setAvatarUploadError] = React.useState<string>("");
+    const [bannerUploadError, setBannerUploadError] = React.useState<string>("");
+    const [avatarUploadWarning, setAvatarUploadWarning] = React.useState<string>("");
+    const [bannerUploadWarning, setBannerUploadWarning] = React.useState<string>("");
+    const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState<boolean>(false);
+    const [mediaPickerTarget, setMediaPickerTarget] = React.useState<"avatar" | "banner" | null>(null); // 'avatar' or 'banner'
+    const [cropOpen, setCropOpen] = React.useState<boolean>(false);
+    const [cropPurpose, setCropPurpose] = React.useState<"avatar" | "banner">("avatar");
+    const [cropTargetField, setCropTargetField] = React.useState<"avatar" | "bannerUrl" | null>(null);
+    const [cropSource, setCropSource] = React.useState<{ file: File; name: string } | null>(null);
     const avatarGuide = React.useMemo(() => getImageUploadGuide("avatar"), []);
     const bannerGuide = React.useMemo(() => getImageUploadGuide("banner"), []);
     const hasPersona = Array.isArray(personas) && personas.length > 0;
     const filteredTagOptions = React.useMemo(() => {
         const needle = personaTagInput.trim().toLowerCase();
-        const names = (tagOptions || []).map(t => t.name).filter(Boolean);
+        const names = (tagOptions || []).map((tag) => tag.name).filter(Boolean);
         if (!needle) return names;
         return names.filter(n => n.toLowerCase().includes(needle));
     }, [tagOptions, personaTagInput]);
@@ -85,7 +165,7 @@ export function PublisherProfileTab({
         const delay = setTimeout(async () => {
             setIsOrgSearching(true);
             try {
-                const results = await searchOrganizations(orgSearchQuery);
+                const results = await searchOrganizations(orgSearchQuery) as OrgSearchItem[];
                 setOrgSearchResults(results || []);
             } catch (e) {
                 setOrgSearchResults([]);
@@ -100,7 +180,7 @@ export function PublisherProfileTab({
         let alive = true;
         const loadMyOrgRequests = async () => {
             try {
-                const data = await getMyOrganizationRequests();
+                const data = await getMyOrganizationRequests() as { requests?: OrgRequestItem[] };
                 if (!alive) return;
                 setMyOrgRequests(data?.requests || []);
             } catch {
@@ -112,7 +192,7 @@ export function PublisherProfileTab({
         return () => { alive = false; };
     }, []);
 
-    const handleRequestJoinOrg = async (orgId) => {
+    const handleRequestJoinOrg = async (orgId: string) => {
         if (!hasPersona) {
             toast({
                 title: t("publisherProfileTab.needPersonaBeforeOrg", "請先建立作者身份"),
@@ -127,25 +207,25 @@ export function PublisherProfileTab({
             setOrgSearchQuery("");
             setOrgSearchResults([]);
             try {
-                const data = await getMyOrganizationRequests();
+                const data = await getMyOrganizationRequests() as { requests?: OrgRequestItem[] };
                 setMyOrgRequests(data?.requests || []);
             } catch {}
             toast({
                 title: t("publisherProfileTab.requestJoinSuccessTitle", "已送出申請"),
                 description: t("publisherProfileTab.requestJoinSuccessDesc", "已送出加入組織申請，請等待管理者審核。"),
             });
-        } catch (error) {
+        } catch (error: unknown) {
             toast({
                 title: t("publisherProfileTab.requestJoinFailedTitle", "申請送出失敗"),
-                description: String(error?.message || t("publisherProfileTab.requestJoinFailedDesc", "無法送出申請，請稍後再試。")),
+                description: String(error instanceof Error ? error.message : t("publisherProfileTab.requestJoinFailedDesc", "無法送出申請，請稍後再試。")),
                 variant: "destructive",
             });
         }
     };
 
-    const safeLinks = React.useMemo(() => {
+    const safeLinks = React.useMemo<PersonaLink[]>(() => {
         const draftLinks = personaDraft.links;
-        const fallback = selectedPersona?.links || [];
+        const fallback = Array.isArray(selectedPersona?.links) ? selectedPersona.links : [];
         if (Array.isArray(draftLinks) && draftLinks.length > 0) return draftLinks;
         if (Array.isArray(draftLinks) && draftLinks.length === 0 && fallback.length > 0) return fallback;
         if (Array.isArray(draftLinks)) return draftLinks;
@@ -188,7 +268,7 @@ export function PublisherProfileTab({
         () => profileChecklist.filter((item) => item.key !== "displayName" && !item.ok),
         [profileChecklist]
     );
-    const jumpToRequiredField = React.useCallback((fieldKey) => {
+    const jumpToRequiredField = React.useCallback((fieldKey: string) => {
         const targetId = requiredFieldTargets[fieldKey];
         if (!targetId) return;
         const el = document.getElementById(targetId);
@@ -203,7 +283,7 @@ export function PublisherProfileTab({
         }, 240);
     }, [requiredFieldTargets]);
 
-    const applyUploadedImage = React.useCallback(async (file, field) => {
+    const applyUploadedImage = React.useCallback(async (file: File, field: "avatar" | "bannerUrl") => {
         const ruleKey = field === "avatar" ? "avatar" : "banner";
         const optimized = await optimizeImageForUpload(file, ruleKey);
         if (!optimized.ok) {
@@ -233,8 +313,8 @@ export function PublisherProfileTab({
                 setBannerUploadWarning(optimized.warning || "");
                 setBannerPreviewFailed(false);
             }
-        } catch (error) {
-            const errorMessage = error?.message || t("mediaLibrary.uploadFailed");
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : t("mediaLibrary.uploadFailed");
             if (field === "avatar") {
                 setAvatarUploadError(errorMessage);
                 setAvatarUploadWarning("");
@@ -246,7 +326,7 @@ export function PublisherProfileTab({
         }
     }, [t, setPersonaDraft]);
 
-    const handleImageUpload = (field) => async (event) => {
+    const handleImageUpload = (field: "avatar" | "bannerUrl") => async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
         setCropTargetField(field);
@@ -279,6 +359,7 @@ export function PublisherProfileTab({
         <PublisherSplitPanel
             sidebar={(
                 <PublisherEntityListPane
+                    id="publisher-persona-list"
                     title={t("publisherProfileTab.authorList")}
                     onCreate={onStartCreate}
                     createAriaLabel={t("publisherProfileTab.createIdentity")}

@@ -1,5 +1,32 @@
 import { useState } from "react";
 
+interface ContactFieldItem {
+  id: string;
+  key: string;
+  value: string;
+}
+
+interface CustomFieldItem {
+  id: string;
+  key: string;
+  value: string;
+  type?: "text" | "divider";
+}
+
+interface ActivityDemoLinkItem {
+  id: string;
+  name: string;
+  url: string;
+  cast: string;
+  description: string;
+}
+
+interface MarkerThemeItem {
+  id: string;
+  name: string;
+  [key: string]: unknown;
+}
+
 export function useScriptMetadataSupplementalState() {
   const [coverUrl, setCoverUrl] = useState("");
 
@@ -7,12 +34,12 @@ export function useScriptMetadataSupplementalState() {
   const [authorDisplayMode, setAuthorDisplayMode] = useState("badge");
   const [date, setDate] = useState("");
   const [contact, setContact] = useState("");
-  const [contactFields, setContactFields] = useState([]);
+  const [contactFields, setContactFields] = useState<ContactFieldItem[]>([]);
 
   const [licenseCommercial, setLicenseCommercial] = useState("");
   const [licenseDerivative, setLicenseDerivative] = useState("");
   const [licenseNotify, setLicenseNotify] = useState("");
-  const [licenseSpecialTerms, setLicenseSpecialTerms] = useState([]);
+  const [licenseSpecialTerms, setLicenseSpecialTerms] = useState<string[]>([]);
   const [copyright, setCopyright] = useState("");
 
   const [synopsis, setSynopsis] = useState("");
@@ -25,7 +52,7 @@ export function useScriptMetadataSupplementalState() {
   const [activityName, setActivityName] = useState("");
   const [activityBannerUrl, setActivityBannerUrl] = useState("");
   const [activityContent, setActivityContent] = useState("");
-  const [activityDemoLinks, setActivityDemoLinks] = useState([]);
+  const [activityDemoLinks, setActivityDemoLinks] = useState<ActivityDemoLinkItem[]>([]);
   const [activityWorkUrl, setActivityWorkUrl] = useState("");
 
   const [seriesName, setSeriesName] = useState("");
@@ -36,7 +63,7 @@ export function useScriptMetadataSupplementalState() {
   const [quickSeriesName, setQuickSeriesName] = useState("");
   const [isCreatingSeries, setIsCreatingSeries] = useState(false);
 
-  const [customFields, setCustomFields] = useState([]);
+  const [customFields, setCustomFields] = useState<CustomFieldItem[]>([]);
   const [jsonMode, setJsonMode] = useState(false);
   const [jsonText, setJsonText] = useState("");
   const [jsonError, setJsonError] = useState("");
@@ -50,7 +77,7 @@ export function useScriptMetadataSupplementalState() {
   const [targetAudience, setTargetAudience] = useState("");
   const [contentRating, setContentRating] = useState("");
 
-  const [markerThemes, setMarkerThemes] = useState([]);
+  const [markerThemes, setMarkerThemes] = useState<MarkerThemeItem[]>([]);
   const [markerThemeId, setMarkerThemeId] = useState("default");
   const [showMarkerLegend, setShowMarkerLegend] = useState(false);
   const [disableCopy, setDisableCopy] = useState(false);

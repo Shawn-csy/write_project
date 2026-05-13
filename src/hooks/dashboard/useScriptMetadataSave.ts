@@ -5,7 +5,6 @@ import { deriveSimpleLicenseTags } from "../../lib/licenseRights";
 import { AUDIENCE_TAG_GROUP, RATING_TAG_GROUP, syncGroupedTagSelection } from "./tagGroupUtils";
 import { normalizeCustomMetadataEntries } from "../../lib/customMetadata";
 import { normalizeActivityDemoLinks, serializeActivityDemoLinks } from "../../lib/activityDemoLinks";
-
 export function useScriptMetadataSave({
   t,
   toast,
@@ -63,7 +62,7 @@ export function useScriptMetadataSave({
   saveScript,
   syncScriptTags,
   preserveAuthorInternalData = false,
-  authorEditedRef = null,
+  authorEditedRef = { current: false },
 }) {
   const [isSaving, setIsSaving] = useState(false);
 
