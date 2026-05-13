@@ -31,8 +31,6 @@ export function renderWorkspaceRoutes({
   scriptManager,
   nav,
   navProps,
-  searchTerm,
-  setSearchTerm,
   showStats,
   setShowStats,
   scrollProgress,
@@ -47,11 +45,7 @@ export function renderWorkspaceRoutes({
   handleCloudTitleUpdate,
   handleCloudMarkerThemeUpdate,
   accentStyle,
-  fileLabelMode,
-  setFileLabelMode,
-  activeFile,
   activeCloudScript,
-  fileTagsMap,
   isCloudReadMode,
   startCrossModeGuide,
   handleReaderEdit,
@@ -86,9 +80,6 @@ export function renderWorkspaceRoutes({
             setIsDesktopSidebarOpen={nav.setIsDesktopSidebarOpen}
             isMobileDrawerOpen={nav.isMobileDrawerOpen}
             setIsMobileDrawerOpen={nav.setIsMobileDrawerOpen}
-            fileTree={{ children: [], files: [] }}
-            activeFile={null}
-            onSelectFile={(file) => navigate("/file/" + encodeURIComponent(file.name))}
             accentStyle={accentStyle}
             openAbout={nav.openAbout}
             openSettings={nav.openSettings}
@@ -96,21 +87,6 @@ export function renderWorkspaceRoutes({
             openHome={() => {
               nav.openHome();
               navigate("/dashboard");
-            }}
-            files={[]}
-            fileTitleMap={{}}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            openFolders={new Set()}
-            toggleFolder={() => {}}
-            fileTagsMap={fileTagsMap}
-            fileLabelMode={fileLabelMode}
-            setFileLabelMode={setFileLabelMode}
-            sceneList={sceneList}
-            currentSceneId={currentSceneId}
-            onSelectScene={(id) => {
-              setCurrentSceneId(id);
-              setScrollSceneId(id);
             }}
           >
             <main className="flex-1 overflow-hidden flex flex-row h-full relative">
@@ -121,7 +97,7 @@ export function renderWorkspaceRoutes({
                       hasTitle={showReaderHeader && hasTitle}
                       onToggleTitle={() => setShowTitle((v) => !v)}
                       titleName={headerTitle}
-                      activeFile={activeFile}
+                      activeFile={null}
                       fileMeta={fileMeta}
                       isSidebarOpen={nav.isDesktopSidebarOpen}
                       setSidebarOpen={nav.setSidebarOpen}

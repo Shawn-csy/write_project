@@ -14,12 +14,9 @@ export function useScriptManager(initialParamsRef, initialMarkerConfigs = []) {
   // const [files, setFiles] = useState([]);
   // const [activeFile, setActiveFile] = useState(null);
   const [rawScript, setRawScript] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  
+
   // Metadata & Indexing
   const [fileMeta, setFileMeta] = useState({});
-  const [fileTitleMap, setFileTitleMap] = useState({});
-  const [fileTagsMap, setFileTagsMap] = useState({});
 
   // Scoped configs for route-specific parsing (e.g. public reader script theme)
   const [scopedMarkerConfigs, setScopedMarkerConfigs] = useState(null);
@@ -79,43 +76,7 @@ export function useScriptManager(initialParamsRef, initialMarkerConfigs = []) {
   //   setFiles(entries);
   // }, []);
 
-  // 2. Extract Title/Tags Helper
-  const extractTitleMeta = (text) => {
-    const entries = [];
-    const lines = (text || "").split("\n");
-    let current = null;
-    for (const raw of lines) {
-      if (!raw.trim()) break;
-      const match = raw.match(/^(\s*)([^:]+):(.*)$/);
-      if (match) {
-        const [, , key, rest] = match;
-        const val = rest.trim();
-        current = { key: key.trim(), values: val ? [val] : [] };
-        entries.push(current);
-      } else if (current) {
-        const cont = raw.trim();
-        if (cont) current.values.push(cont);
-      }
-    }
-    const titleEntry = entries.find((e) => e.key.toLowerCase() === "title");
-    const title = titleEntry?.values?.[0] || "";
-    const tags = [];
-    entries.forEach((e) => {
-      const key = e.key.toLowerCase();
-      if (!key.includes("tag")) return;
-      e.values
-        ?.flatMap((v) =>
-          v
-            .split(/[，,]/)
-            .map((s) => s.trim())
-            .filter(Boolean)
-        )
-        .forEach((t) => tags.push(t));
-    });
-    return { title, tags };
-  };
-
-  // 4. File Meta (Dates)
+  // File Meta (Dates)
   useEffect(() => {
     if (generatedFileMeta && Object.keys(generatedFileMeta).length) {
       const normalized = {};
@@ -127,23 +88,6 @@ export function useScriptManager(initialParamsRef, initialMarkerConfigs = []) {
     }
   }, []);
 
-  const fetchLastModified = async (file) => {
-    try {
-      const url = file.path.startsWith("./") 
-        ? new URL(file.path.replace("./", "/src/"), window.location.origin)
-        : new URL(file.path, window.location.origin);
-        
-      const res = await fetch(new URL(file.path, import.meta.url).href, { method: "HEAD" });
-      const header = res.headers.get("last-modified");
-      if (header) {
-        setFileMeta((prev) => ({ ...prev, [file.name]: new Date(header) }));
-      }
-    } catch (err) {
-      // console.warn("取得檔案時間失敗", err);
-    }
-  };
-
-
   // 5. Load Script Function (Removed)
   // const loadScript = async (file) => { ... }
 
@@ -154,11 +98,7 @@ export function useScriptManager(initialParamsRef, initialMarkerConfigs = []) {
     // setActiveFile, // Needed for URL sync or manual overrides
     rawScript,
     setRawScript,
-    isLoading,
-    setIsLoading,
     fileMeta,
-    fileTitleMap,
-    fileTagsMap,
     // loadScript,
     // Content States
     sceneList, setSceneList,

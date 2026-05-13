@@ -13,26 +13,11 @@ export function MainLayout({
   setIsDesktopSidebarOpen,
   isMobileDrawerOpen,
   setIsMobileDrawerOpen,
-  fileTree,
-  activeFile,
-  onSelectFile,
   accentStyle,
   openAbout,
   closeAbout,
   openSettings,
   openHome,
-  files,
-  fileTitleMap,
-  searchTerm,
-  setSearchTerm,
-  openFolders,
-  toggleFolder,
-  fileTagsMap,
-  fileLabelMode,
-  setFileLabelMode,
-  sceneList,
-  currentSceneId,
-  onSelectScene, // Add this back
   showSidebar = true
 }) {
   return (
@@ -48,27 +33,12 @@ export function MainLayout({
           <DrawerDescription className="sr-only">Script Navigation</DrawerDescription>
           <Sidebar
             className="h-full bg-background border-r-0"
-            fileTree={fileTree}
-            activeFile={activeFile}
-            onSelectFile={onSelectFile}
             accentStyle={accentStyle}
             openAbout={openAbout}
             closeAbout={closeAbout}
             openSettings={openSettings}
-            files={files}
-            fileTitleMap={fileTitleMap}
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            openFolders={openFolders}
-            toggleFolder={toggleFolder}
             openHome={openHome}
-            fileTagsMap={fileTagsMap}
-            fileLabelMode={fileLabelMode}
-            setFileLabelMode={setFileLabelMode}
             setSidebarOpen={setIsMobileDrawerOpen}
-            sceneList={sceneList}
-            currentSceneId={currentSceneId}
-            onSelectScene={onSelectScene}
           />
         </DrawerContent>
       </Drawer>
@@ -84,27 +54,12 @@ export function MainLayout({
             <Sidebar
               className="bg-transparent"
               collapsed={!isDesktopSidebarOpen}
-              fileTree={fileTree}
-              activeFile={activeFile}
-              onSelectFile={onSelectFile}
               accentStyle={accentStyle}
               openAbout={openAbout}
               closeAbout={closeAbout}
               openSettings={openSettings}
-              files={files}
-              fileTitleMap={fileTitleMap}
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              openFolders={openFolders}
-              toggleFolder={toggleFolder}
               openHome={openHome}
-              fileTagsMap={fileTagsMap}
-              fileLabelMode={fileLabelMode}
-              setFileLabelMode={setFileLabelMode}
               setSidebarOpen={setIsDesktopSidebarOpen}
-              sceneList={sceneList}
-              currentSceneId={currentSceneId}
-              onSelectScene={onSelectScene}
             />
           </div>
         </div>

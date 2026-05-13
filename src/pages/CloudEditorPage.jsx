@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { getScript, updateScript } from "../lib/api/scripts";
+import { getScript } from "../lib/api/scripts";
+import { usePersistMarkerTheme } from "../hooks/usePersistMarkerTheme";
 import LiveEditor from "../components/editor/LiveEditor";
 import { Loader2 } from "lucide-react";
 
@@ -58,25 +59,7 @@ export default function CloudEditorPage({ scriptManager, navProps }) {
       );
   }
 
-  const handlePersistMarkerTheme = async (themeId) => {
-    if (!activeCloudScript?.id) return false;
-    const normalizedThemeId = String(themeId || "default");
-    const prevThemeId = String(activeCloudScript?.markerThemeId || "default");
-    if (normalizedThemeId === prevThemeId) return true;
-    setActiveCloudScript((prev) =>
-      prev ? { ...prev, markerThemeId: normalizedThemeId } : prev
-    );
-    try {
-      await updateScript(activeCloudScript.id, { markerThemeId: normalizedThemeId });
-      return true;
-    } catch (err) {
-      console.error("Failed to update marker theme", err);
-      setActiveCloudScript((prev) =>
-        prev ? { ...prev, markerThemeId: prevThemeId } : prev
-      );
-      return false;
-    }
-  };
+  const handlePersistMarkerTheme = usePersistMarkerTheme(scriptManager);
 
   const guideParams = new URLSearchParams(location.search);
   const crossModeGuideActive = guideParams.get("guide") === "1";
