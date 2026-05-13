@@ -1,6 +1,6 @@
 
 import { describe, it, expect } from 'vitest';
-import { buildAST } from './directASTBuilder.js';
+import { buildAST } from './directASTBuilder';
 
 describe('DirectASTBuilder Edge Cases', () => {
 

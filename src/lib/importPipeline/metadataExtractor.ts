@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Metadata Extractor
  * 負責從文本開頭自動識別 Metadata (Title, Author, Credit, etc.)
@@ -57,11 +56,7 @@ export const KNOWN_KEYS = {
     'Chapter': 'ChapterSettings',
     'Chapters': 'ChapterSettings',
     
-    // Section-like keys
-    '作品資訊': 'Info',
     '作品介紹': 'Info',
-    '人物設定': 'RoleSetting',
-    '角色設定': 'RoleSetting',
     '標記說明': 'Markers',
     '演繹指示': 'PerformanceInstruction',
     '使用規章': 'License',
@@ -176,9 +171,10 @@ const normalizeRoleName = (name = "") => {
         .trim();
 };
 
-const parseRoleSection = (lines, startIndex, limit) => {
-    const items = [];
-    const consumed = [];
+interface RoleItem { name: string; text: string; }
+const parseRoleSection = (lines: string[], startIndex: number, limit: number): { items: RoleItem[]; consumed: number[] } => {
+    const items: RoleItem[] = [];
+    const consumed: number[] = [];
     let i = startIndex;
     while (i < limit) {
         const current = normalizeLine(lines[i] || "");
@@ -234,10 +230,11 @@ const parseRoleSection = (lines, startIndex, limit) => {
     };
 };
 
-export function extractMetadata(text) {
+type ScriptMetadata = Record<string, string>;
+export function extractMetadata(text: string): { metadata: ScriptMetadata; parsedLineIndexes: number[]; strippedText: string } {
     const lines = text.split('\n');
-    const metadata = {};
-    const parsedLineIndexes = new Set();
+    const metadata: ScriptMetadata = {};
+    const parsedLineIndexes = new Set<number>();
     const limit = Math.min(lines.length, 120); // Scan a bit deeper
     let seenAnyKey = false;
 
@@ -304,7 +301,7 @@ export function extractMetadata(text) {
                 }
             } else if (mapped === "ChapterSettings") {
                 let j = i + 1;
-                const chapterLines = [];
+                const chapterLines: string[] = [];
                 while (j < limit) {
                     const nextLine = normalizeLine(lines[j] || "");
                     if (isBlank(nextLine)) {
@@ -353,7 +350,7 @@ export function extractMetadata(text) {
                 }
                 if (mappedKey === "ChapterSettings") {
                     let j = i + 1;
-                    const chapterLines = [];
+                    const chapterLines: string[] = [];
                     while (j < limit) {
                         const nextLine = normalizeLine(lines[j] || "");
                         if (isBlank(nextLine)) {
@@ -382,7 +379,7 @@ export function extractMetadata(text) {
                 }
                 let j = i + 1;
                 while (j < limit && isBlank(normalizeLine(lines[j]))) j++;
-                const valueLines = [];
+                const valueLines: string[] = [];
                 while (j < limit) {
                     const nextLine = normalizeLine(lines[j]);
                     if (isBlank(nextLine)) break;
@@ -436,7 +433,7 @@ export function extractMetadata(text) {
     // AND keep the text as is? 
     // Providing "Option to Strip" or just letting Parser handle valid keys.
     
-    const parsedIndices = Array.from(parsedLineIndexes).sort((a, b) => a - b);
+    const parsedIndices: number[] = Array.from(parsedLineIndexes).sort((a, b) => a - b);
     let strippedText = text;
     if (parsedIndices.length > 0) {
         const cutoff = parsedIndices[parsedIndices.length - 1];
@@ -481,7 +478,7 @@ export function extractMetadata(text) {
     };
 }
 
-function mapKey(key) {
+function mapKey(key: string): string | null {
     // Normalize key
     const nKey = key.replace(/\s/g, ''); // Remove spaces for checking
     if (KNOWN_KEYS[key]) return KNOWN_KEYS[key];

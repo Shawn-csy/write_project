@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useCallback } from "react";
 import { getScript } from "../../lib/api/scripts";
 import { parseBasicLicenseFromMeta } from "../../lib/licenseRights";
@@ -154,7 +153,7 @@ export function useScriptMetadataHydration({
       const nextCommercial = String(sourceScript.licenseCommercial || basicLicense.commercialUse || "").trim();
       const nextDerivative = String(sourceScript.licenseDerivative || basicLicense.derivativeUse || "").trim();
       const nextNotify = String(sourceScript.licenseNotify || basicLicense.notifyOnModify || "").trim();
-      const nextSpecialTerms = ensureList(meta.licensespecialterms || meta.licenseSpecialTerms);
+      const nextSpecialTerms = ensureList(meta.licensespecialterms || meta.licenseSpecialTerms) as string[];
 
       setLicenseCommercial((prev) => nextCommercial || prev || "");
       setLicenseDerivative((prev) => nextDerivative || prev || "");
@@ -166,7 +165,7 @@ export function useScriptMetadataHydration({
       setCopyright(meta.copyright || "");
 
       if (!userEditedRef.current && (customFields || []).length === 0) {
-        setCustomFields(buildCustomFieldsFromRawEntries(rawEntries));
+        setCustomFields(buildCustomFieldsFromRawEntries(rawEntries) as any);
       }
 
       setIsInitializing(false);

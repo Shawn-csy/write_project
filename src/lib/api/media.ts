@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { API_BASE_URL, fetchApi, getAuthHeaders } from "./client";
 
 export const uploadMediaObject = async (file, purpose = "generic") => {
@@ -9,7 +8,7 @@ export const uploadMediaObject = async (file, purpose = "generic") => {
 
   const response = await fetch(`${API_BASE_URL}/media/upload`, {
     method: "POST",
-    headers: authHeaders,
+    headers: authHeaders as HeadersInit,
     body: formData,
   });
 

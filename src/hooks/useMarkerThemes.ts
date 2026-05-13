@@ -1,27 +1,44 @@
-// @ts-nocheck
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { defaultMarkerConfigs } from "../constants/defaultMarkerRules";
-import { apiCall as serviceApiCall } from "../services/settingsApi.js";
-import { normalizeMarkerConfigsSchema } from "../lib/markerThemeCodec.js";
+import { apiCall as serviceApiCall } from "../services/settingsApi";
+import { normalizeMarkerConfigsSchema } from "../lib/markerThemeCodec";
 import { isDefaultLikeTheme } from "../lib/themeNameUtils";
-import { fetchPublic } from "../lib/api/client.js";
+import { fetchPublic } from "../lib/api/client";
 
 // Computed once at module load — defaultMarkerConfigs is a static constant.
 const NORMALIZED_DEFAULT_CONFIGS = normalizeMarkerConfigsSchema(defaultMarkerConfigs);
 const DEFAULT_THEME_ID = 'default';
 
-export function useMarkerThemes(currentUser, isAdmin = false) {
+interface CurrentUserLike {
+  uid: string;
+  getIdToken?: () => Promise<string>;
+}
+
+type MarkerConfig = Record<string, unknown>;
+
+export interface MarkerTheme {
+  id: string;
+  name: string;
+  configs: MarkerConfig[];
+  isPublic?: boolean;
+  description?: string;
+  [key: string]: unknown;
+}
+
+type ThemeCreateOptions = { initialConfigs?: MarkerConfig[]; isPublic?: boolean; description?: string };
+
+export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined, isAdmin = false) {
     const [systemDefaultConfigs, setSystemDefaultConfigs] = useState(NORMALIZED_DEFAULT_CONFIGS);
     const defaultTheme = useMemo(
         () => ({ id: DEFAULT_THEME_ID, name: '預設主題 (Default)', configs: systemDefaultConfigs }),
         [systemDefaultConfigs]
     );
-    const withDefaultTheme = useCallback((themes = []) => {
+    const withDefaultTheme = useCallback((themes: MarkerTheme[] = []) => {
         const normalizedThemes = Array.isArray(themes) ? themes : [];
         const withoutDefault = normalizedThemes.filter(
             (t) => t?.id !== DEFAULT_THEME_ID && !isDefaultLikeTheme(t, { includeDefaultId: false })
         );
-        const dedupById = [];
+        const dedupById: MarkerTheme[] = [];
         const seen = new Set([DEFAULT_THEME_ID]);
         for (const theme of withoutDefault) {
             if (!theme?.id || seen.has(theme.id)) continue;
@@ -30,20 +47,20 @@ export function useMarkerThemes(currentUser, isAdmin = false) {
         }
         return [defaultTheme, ...dedupById];
     }, [defaultTheme]);
-    const normalizeThemeList = useCallback((themes) => withDefaultTheme(
+    const normalizeThemeList = useCallback((themes: MarkerTheme[] | null | undefined) => withDefaultTheme(
         (Array.isArray(themes) ? themes : []).map((theme) => ({
             ...theme,
             id: String(theme?.id || ""),
-            configs: normalizeMarkerConfigsSchema(theme?.configs),
+            configs: normalizeMarkerConfigsSchema(theme?.configs) as MarkerConfig[],
         }))
     ), [withDefaultTheme]);
-    const [markerThemes, setMarkerThemesState] = useState([
+    const [markerThemes, setMarkerThemesState] = useState<MarkerTheme[]>([
         { id: DEFAULT_THEME_ID, name: '預設主題 (Default)', configs: NORMALIZED_DEFAULT_CONFIGS },
     ]);
     const [currentThemeId, setCurrentThemeIdState] = useState(DEFAULT_THEME_ID);
 
     // API Helper
-    const apiCall = (url, method, body) => serviceApiCall(currentUser, url, method, body);
+    const apiCall = (url: string, method: string, body?: unknown) => serviceApiCall(currentUser, url, method, body);
 
     // Derived State: Active Markers
     // Themes already store normalized configs (set via normalizeThemeList), no re-normalization needed.
@@ -72,13 +89,13 @@ export function useMarkerThemes(currentUser, isAdmin = false) {
     }, []);
 
     // Actions
-    const setMarkerThemes = useCallback((val) => {
+    const setMarkerThemes = useCallback((val: MarkerTheme[]) => {
         const merged = normalizeThemeList(val);
         setMarkerThemesState(merged);
         setCurrentThemeIdState((prev) => (merged.some((t) => t.id === prev) ? prev : DEFAULT_THEME_ID));
     }, [normalizeThemeList]);
 
-    const setCurrentThemeId = useCallback((id) => {
+    const setCurrentThemeId = useCallback((id: string) => {
         const nextId = String(id || DEFAULT_THEME_ID);
         setCurrentThemeIdState((prev) =>
             markerThemes.some((theme) => String(theme?.id || "") === nextId)
@@ -98,8 +115,8 @@ export function useMarkerThemes(currentUser, isAdmin = false) {
     }, [markerThemes, currentThemeId]);
 
     // Update CURRENT theme's configs
-    const setMarkerConfigs = async (newConfigs) => {
-        const normalizedConfigs = normalizeMarkerConfigsSchema(newConfigs);
+    const setMarkerConfigs = async (newConfigs: MarkerConfig[]) => {
+        const normalizedConfigs = normalizeMarkerConfigsSchema(newConfigs) as MarkerConfig[];
         if (currentThemeId === DEFAULT_THEME_ID) {
             if (!isAdmin || !currentUser) return;
             setSystemDefaultConfigs(normalizedConfigs);
@@ -116,11 +133,11 @@ export function useMarkerThemes(currentUser, isAdmin = false) {
         }
     };
 
-    const addTheme = async (name, initialOrOptions = null, legacyOptions = null) => {
+    const addTheme = async (name: string, initialOrOptions: MarkerConfig[] | ThemeCreateOptions | null = null, legacyOptions: ThemeCreateOptions | null = null) => {
         const initialConfigs = Array.isArray(initialOrOptions)
             ? initialOrOptions
             : (initialOrOptions?.initialConfigs || null);
-        const options = Array.isArray(initialOrOptions)
+        const options: ThemeCreateOptions = Array.isArray(initialOrOptions)
             ? (legacyOptions || {})
             : (initialOrOptions || {});
         const newId = crypto.randomUUID();
@@ -128,7 +145,7 @@ export function useMarkerThemes(currentUser, isAdmin = false) {
         const newTheme = {
             id: newId,
             name: name,
-            configs: normalizeMarkerConfigsSchema(configsToSave),
+            configs: normalizeMarkerConfigsSchema(configsToSave) as MarkerConfig[],
             isPublic: Boolean(options.isPublic),
             description: options.description || ""
         };
@@ -143,8 +160,8 @@ export function useMarkerThemes(currentUser, isAdmin = false) {
         return newTheme;
     };
 
-    const addThemeFromCurrent = async (name, optionsOrPublic = false) => {
-        const options =
+    const addThemeFromCurrent = async (name: string, optionsOrPublic: ThemeCreateOptions | boolean = false) => {
+        const options: ThemeCreateOptions =
             typeof optionsOrPublic === "boolean"
                 ? { isPublic: optionsOrPublic }
                 : (optionsOrPublic || {});
@@ -152,7 +169,7 @@ export function useMarkerThemes(currentUser, isAdmin = false) {
         const newTheme = {
             id: newId,
             name: name,
-            configs: normalizeMarkerConfigsSchema(markerConfigs),
+            configs: normalizeMarkerConfigsSchema(markerConfigs) as MarkerConfig[],
             isPublic: Boolean(options.isPublic),
             description: options.description || ""
         };
@@ -167,7 +184,7 @@ export function useMarkerThemes(currentUser, isAdmin = false) {
         return newTheme;
     };
 
-    const deleteTheme = async (id) => {
+    const deleteTheme = async (id: string) => {
         if (markerThemes.length <= 1) return; // Prevent deleting last theme
         const newThemes = markerThemes.filter(t => t.id !== id);
         setMarkerThemes(newThemes);
@@ -180,7 +197,7 @@ export function useMarkerThemes(currentUser, isAdmin = false) {
         }
     };
 
-    const renameTheme = (id, newName) => {
+    const renameTheme = (id: string, newName: string) => {
         const newThemes = markerThemes.map(t => 
             t.id === id ? { ...t, name: newName } : t
         );
@@ -191,7 +208,7 @@ export function useMarkerThemes(currentUser, isAdmin = false) {
         }
     };
 
-    const updateThemePublicity = async (id, isPublic) => {
+    const updateThemePublicity = async (id: string, isPublic: boolean) => {
         const newThemes = markerThemes.map(t => 
             t.id === id ? { ...t, isPublic } : t
         );
@@ -202,7 +219,7 @@ export function useMarkerThemes(currentUser, isAdmin = false) {
         }
     };
 
-    const updateThemeDescription = async (id, description) => {
+    const updateThemeDescription = async (id: string, description: string) => {
         const newThemes = markerThemes.map(t => 
           t.id === id ? { ...t, description } : t
         );
@@ -212,9 +229,9 @@ export function useMarkerThemes(currentUser, isAdmin = false) {
         }
     };
     
-    const copyPublicTheme = async (themeId) => {
+    const copyPublicTheme = async (themeId: string) => {
         if (!currentUser) return;
-        const copied = await apiCall(`/themes/${themeId}/copy`, 'POST');
+        const copied = await apiCall(`/themes/${themeId}/copy`, 'POST') as MarkerTheme | null;
         if (copied) {
             const parsed = { ...copied, configs: normalizeMarkerConfigsSchema(copied.configs) };
             setMarkerThemesState((prev) => normalizeThemeList(

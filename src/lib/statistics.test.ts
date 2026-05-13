@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { calculateScriptStats } from './statistics.js';
-import { parseScreenplay } from './screenplayAST.js';
+import { calculateScriptStats } from './statistics';
+import { parseScreenplay } from './screenplayAST';
 
 const testMarkerConfigs = [
     {

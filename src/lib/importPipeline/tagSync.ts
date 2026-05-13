@@ -1,17 +1,21 @@
-// @ts-nocheck
 import { addTagToScript } from "../api/scripts";
 import { createTag, getTags } from "../api/tags";
 
-const normalizeTagKey = (value) => String(value || "").trim().toLowerCase();
+interface TagObject { id: string; name: string; [key: string]: unknown; }
 
-const parseTagText = (raw) =>
+const normalizeTagKey = (value: unknown): string => String(value || "").trim().toLowerCase();
+
+const parseTagText = (raw: unknown): string[] =>
   String(raw || "")
     .split(/[,，、#\n\t;]+/)
     .map((item) => item.trim())
     .filter(Boolean);
 
-export const parseImportTagNames = ({ metadata = {}, customMetadata = [] } = {}) => {
-  const collected = [];
+export const parseImportTagNames = ({
+  metadata = {} as Record<string, string>,
+  customMetadata = [] as Array<{ key: string; value: string }>,
+} = {}): string[] => {
+  const collected: string[] = [];
 
   const metaTagValue = metadata?.Tags ?? metadata?.tags;
   if (metaTagValue) {
@@ -36,14 +40,20 @@ export const parseImportTagNames = ({ metadata = {}, customMetadata = [] } = {})
 
 export const syncImportedTagsToScript = async ({
   scriptId,
-  tagNames = [],
+  tagNames = [] as string[],
   getTagsFn = getTags,
   createTagFn = createTag,
   addTagToScriptFn = addTagToScript,
-}) => {
+}: {
+  scriptId: string;
+  tagNames?: string[];
+  getTagsFn?: () => Promise<TagObject[]>;
+  createTagFn?: (name: string, color: string) => Promise<TagObject>;
+  addTagToScriptFn?: (scriptId: string, tagId: string) => Promise<unknown>;
+}): Promise<number> => {
   if (!scriptId || !Array.isArray(tagNames) || tagNames.length === 0) return 0;
 
-  let availableTags = [];
+  let availableTags: TagObject[] = [];
   try {
     const loaded = await getTagsFn();
     availableTags = Array.isArray(loaded) ? loaded : [];
@@ -51,16 +61,18 @@ export const syncImportedTagsToScript = async ({
     availableTags = [];
   }
 
-  const byName = new Map(
-    availableTags.map((tag) => [normalizeTagKey(tag?.name), tag]).filter(([key]) => key)
+  const byName = new Map<string, TagObject>(
+    availableTags
+      .map((tag): [string, TagObject] => [normalizeTagKey(tag?.name), tag])
+      .filter(([key]) => Boolean(key))
   );
-  const attached = new Set();
+  const attached = new Set<string>();
   let attachedCount = 0;
 
   for (const name of tagNames) {
     const lower = normalizeTagKey(name);
     if (!lower) continue;
-    let resolved = byName.get(lower);
+    let resolved: TagObject | undefined = byName.get(lower);
 
     if (!resolved) {
       try {
@@ -78,7 +90,7 @@ export const syncImportedTagsToScript = async ({
           });
           resolved = byName.get(lower);
         } catch {
-          resolved = null;
+          resolved = undefined;
         }
       }
     }

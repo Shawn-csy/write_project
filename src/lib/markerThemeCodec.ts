@@ -1,4 +1,3 @@
-// @ts-nocheck
 export const normalizeThemeConfigs = (configs) => {
   if (Array.isArray(configs)) return configs;
   if (configs && typeof configs === "object") {
@@ -23,7 +22,7 @@ export const normalizeThemeConfigs = (configs) => {
   return [];
 };
 
-const inferMatchMode = (config = {}) => {
+const inferMatchMode = (config: Record<string, any> = {}) => {
   if (config.matchMode) return config.matchMode;
   if (config.regex) return "regex";
   if (config.start && config.end) return "enclosure";
@@ -71,6 +70,6 @@ export const safeParseThemeConfigsText = (text) => {
     }
     return { value: normalizeMarkerConfigsSchema(parsed), error: "" };
   } catch (error) {
-    return { value: null, error: error?.message || "格式錯誤" };
+    return { value: null, error: (error as any)?.message || "格式錯誤" };
   }
 };

@@ -1,4 +1,3 @@
-// @ts-nocheck
 const MEDIA_LIBRARY_KEY = "media_library_items_v1";
 const DEFAULT_MAX_BYTES = 25 * 1024 * 1024; // 25MB
 const DEFAULT_WEBP_QUALITY = 0.82;
@@ -13,6 +12,28 @@ export const ALLOWED_MEDIA_MIME_TYPES = new Set([
 ]);
 export const MEDIA_FILE_ACCEPT = "image/png,image/jpeg,image/jpg,image/webp,image/gif";
 const MB = 1024 * 1024;
+export interface MediaLibraryItem {
+  id: string;
+  name: string;
+  dataUrl: string;
+  sizeBytes: number;
+  source: string;
+  createdAt: number;
+}
+
+interface ImageValidationOk {
+  ok: true;
+  width: number;
+  height: number;
+  warning?: string;
+}
+
+interface ImageValidationFail {
+  ok: false;
+  error: string;
+}
+
+type ImageValidationResult = ImageValidationOk | ImageValidationFail;
 
 export const IMAGE_UPLOAD_RULES = {
   cover: {
@@ -48,8 +69,9 @@ export const IMAGE_UPLOAD_RULES = {
     recommended: "512 x 512",
   },
 };
+type UploadRuleKey = keyof typeof IMAGE_UPLOAD_RULES;
 
-function safeParse(jsonText, fallback) {
+function safeParse<T>(jsonText: string, fallback: T): T {
   try {
     const parsed = JSON.parse(jsonText);
     return parsed ?? fallback;
@@ -62,7 +84,7 @@ function nowTs() {
   return Date.now();
 }
 
-function readFileAsDataUrl(file) {
+function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
@@ -71,7 +93,7 @@ function readFileAsDataUrl(file) {
   });
 }
 
-function loadImage(dataUrl) {
+function loadImage(dataUrl: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
     image.onload = () => resolve(image);
@@ -80,7 +102,7 @@ function loadImage(dataUrl) {
   });
 }
 
-function canvasToBlob(canvas, quality) {
+function canvasToBlob(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
@@ -96,14 +118,14 @@ function canvasToBlob(canvas, quality) {
   });
 }
 
-function getTargetSize(ruleKey) {
+function getTargetSize(ruleKey?: UploadRuleKey | null) {
   if (ruleKey === "avatar" || ruleKey === "logo") return { maxWidth: 1024, maxHeight: 1024, targetBytes: 450 * 1024 };
   if (ruleKey === "banner") return { maxWidth: 2560, maxHeight: 850, targetBytes: 1400 * 1024 };
   if (ruleKey === "cover") return { maxWidth: 1920, maxHeight: 1080, targetBytes: 900 * 1024 };
   return { maxWidth: 1920, maxHeight: 1080, targetBytes: 1200 * 1024 };
 }
 
-export function isSupportedMediaFile(file) {
+export function isSupportedMediaFile(file?: File | null): boolean {
   if (!file) return false;
   const mime = String(file.type || "").toLowerCase();
   if (ALLOWED_MEDIA_MIME_TYPES.has(mime)) return true;
@@ -111,7 +133,8 @@ export function isSupportedMediaFile(file) {
   return /\.(png|jpe?g|webp|gif)$/.test(name);
 }
 
-export function getImageUploadGuide(ruleKey) {
+export function getImageUploadGuide(ruleKey?: UploadRuleKey | null) {
+  if (!ruleKey) return { supported: "", recommended: "" };
   const rule = IMAGE_UPLOAD_RULES[ruleKey];
   if (!rule) return { supported: "", recommended: "" };
   return {
@@ -120,7 +143,7 @@ export function getImageUploadGuide(ruleKey) {
   };
 }
 
-function readImageDimensions(file) {
+function readImageDimensions(file: File): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {
     if (!file) {
       reject(new Error("檔案不存在。"));
@@ -142,11 +165,11 @@ function readImageDimensions(file) {
   });
 }
 
-export async function validateImageFile(file, ruleKey) {
+export async function validateImageFile(file: File, ruleKey?: UploadRuleKey | null): Promise<ImageValidationResult> {
   if (!isSupportedMediaFile(file)) {
     return { ok: false, error: "僅支援 PNG/JPG/WEBP/GIF 圖片檔案。" };
   }
-  const rule = IMAGE_UPLOAD_RULES[ruleKey];
+  const rule = ruleKey ? IMAGE_UPLOAD_RULES[ruleKey] : undefined;
   if (!rule) return { ok: true, width: 0, height: 0 };
   if (Number(file.size || 0) > rule.maxBytes) {
     return { ok: false, error: `檔案過大，請控制在 ${Math.round(rule.maxBytes / MB)}MB 內。` };
@@ -168,12 +191,12 @@ export async function validateImageFile(file, ruleKey) {
       };
     }
     return { ok: true, width, height };
-  } catch (error) {
-    return { ok: false, error: error?.message || "無法讀取圖片資訊。" };
+  } catch (error: unknown) {
+    return { ok: false, error: error instanceof Error ? error.message : "無法讀取圖片資訊。" };
   }
 }
 
-export async function optimizeImageForUpload(file, ruleKey) {
+export async function optimizeImageForUpload(file: File, ruleKey?: UploadRuleKey | null) {
   const validation = await validateImageFile(file, ruleKey);
   if (!validation.ok) return validation;
 
@@ -219,7 +242,7 @@ export async function optimizeImageForUpload(file, ruleKey) {
   };
 }
 
-export function estimateDataUrlBytes(dataUrl = "") {
+export function estimateDataUrlBytes(dataUrl = ""): number {
   const text = String(dataUrl || "");
   const comma = text.indexOf(",");
   if (comma < 0) return text.length;
@@ -227,17 +250,17 @@ export function estimateDataUrlBytes(dataUrl = "") {
   return Math.floor((b64.length * 3) / 4);
 }
 
-export function readMediaLibrary() {
+export function readMediaLibrary(): MediaLibraryItem[] {
   if (typeof window === "undefined" || !window.localStorage) return [];
   const raw = window.localStorage.getItem(MEDIA_LIBRARY_KEY);
-  const items = safeParse(raw || "[]", []);
+  const items = safeParse<MediaLibraryItem[]>(raw || "[]", []);
   if (!Array.isArray(items)) return [];
   return items
     .filter((it) => it && it.id && it.dataUrl)
     .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 }
 
-function writeMediaLibrary(items) {
+function writeMediaLibrary(items: MediaLibraryItem[]) {
   if (typeof window === "undefined" || !window.localStorage) return;
   window.localStorage.setItem(MEDIA_LIBRARY_KEY, JSON.stringify(items));
   window.dispatchEvent(new CustomEvent("media-library-updated"));
@@ -254,7 +277,7 @@ export function getMediaLibraryStats(maxBytes = DEFAULT_MAX_BYTES) {
   };
 }
 
-function buildItem({ dataUrl, name = "", source = "upload" }) {
+function buildItem({ dataUrl, name = "", source = "upload" }: { dataUrl: string; name?: string; source?: string }): MediaLibraryItem {
   const sizeBytes = estimateDataUrlBytes(dataUrl);
   return {
     id: (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : `media-${nowTs()}`,
@@ -266,7 +289,7 @@ function buildItem({ dataUrl, name = "", source = "upload" }) {
   };
 }
 
-function upsertAndTrim(items, nextItem, maxBytes = DEFAULT_MAX_BYTES) {
+function upsertAndTrim(items: MediaLibraryItem[], nextItem: MediaLibraryItem, maxBytes = DEFAULT_MAX_BYTES): MediaLibraryItem[] {
   const deduped = items.filter((it) => it.dataUrl !== nextItem.dataUrl);
   const next = [nextItem, ...deduped];
   let total = next.reduce((sum, it) => sum + Number(it.sizeBytes || 0), 0);
@@ -280,7 +303,7 @@ function upsertAndTrim(items, nextItem, maxBytes = DEFAULT_MAX_BYTES) {
   return next;
 }
 
-export function addMediaDataUrl(dataUrl, options = {}) {
+export function addMediaDataUrl(dataUrl: string, options: { maxBytes?: number; name?: string; source?: string } = {}): MediaLibraryItem | null {
   const text = String(dataUrl || "").trim();
   if (!text) return null;
   const maxBytes = Number(options.maxBytes || DEFAULT_MAX_BYTES);
@@ -295,7 +318,7 @@ export function addMediaDataUrl(dataUrl, options = {}) {
   return item;
 }
 
-export function addMediaFile(file, options = {}) {
+export function addMediaFile(file: File, options: { name?: string; source?: string; maxBytes?: number } = {}): Promise<MediaLibraryItem | null> {
   return new Promise((resolve, reject) => {
     if (!isSupportedMediaFile(file)) {
       reject(new Error("僅支援 PNG/JPG/WEBP/GIF 圖片檔案。"));
@@ -317,7 +340,7 @@ export function addMediaFile(file, options = {}) {
   });
 }
 
-export function removeMediaItem(itemId) {
+export function removeMediaItem(itemId: string) {
   const current = readMediaLibrary();
   const next = current.filter((it) => it.id !== itemId);
   writeMediaLibrary(next);
@@ -327,7 +350,7 @@ export function clearMediaLibrary() {
   writeMediaLibrary([]);
 }
 
-export function formatBytes(bytes = 0) {
+export function formatBytes(bytes = 0): string {
   const value = Number(bytes || 0);
   if (value < 1024) return `${value} B`;
   if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;

@@ -1,4 +1,3 @@
-// @ts-nocheck
 export const normalizeOrgIds = (value) => {
   if (Array.isArray(value)) return value.filter(Boolean);
   if (!value) return [];
@@ -119,11 +118,12 @@ export const RESERVED_METADATA_KEYS = new Set([
   "seriesorder",
 ]);
 
-export const buildCustomFieldsFromRawEntries = (rawEntries = []) => {
+export const buildCustomFieldsFromRawEntries = (rawEntries: Array<{ key?: string; value?: string }> = []) => {
   return (rawEntries || [])
     .map(({ key, value }, idx) => {
-      const type = key.startsWith("_sep_") ? "divider" : "text";
-      return { id: `${Date.now()}-${idx}`, key, value, type };
+      const normalizedKey = String(key || "");
+      const type = normalizedKey.startsWith("_sep_") ? "divider" : "text";
+      return { id: `${Date.now()}-${idx}`, key: normalizedKey, value: value || "", type };
     })
     .filter((entry) => {
       if (entry.type === "divider") return true;

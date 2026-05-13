@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { Metric } from '../ScriptAnalyzer.js';
+import { Metric } from '../ScriptAnalyzer';
 
 /**
  * 統計 Range 區間相關數據
@@ -7,7 +6,18 @@ import { Metric } from '../ScriptAnalyzer.js';
  * - 區間內的節點數量
  * - 區間內的字數
  */
+interface RangeStat {
+  count: number;
+  nodesInRange: number;
+  charsInRange: number;
+  dialogueChars: number;
+  actionChars: number;
+}
+
 export class RangeStatsMetric extends Metric {
+  rangeStats!: Record<string, RangeStat>;
+  activeRangeStarts!: Record<string, number>;
+
   constructor() {
     super();
     this.reset();

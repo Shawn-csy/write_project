@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useEffect, useMemo, useState } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -9,21 +8,46 @@ import { getImageUploadGuide, MEDIA_FILE_ACCEPT, optimizeImageForUpload } from "
 import { uploadMediaObject } from "../../lib/api/media";
 import { getHomepageBannerAdmin, updateHomepageBannerAdmin } from "../../lib/api/admin";
 
+interface BannerItem {
+  id: string;
+  title: string;
+  content: string;
+  link: string;
+  imageUrl: string;
+}
+
+interface HomepageBannerResponse {
+  title?: string;
+  content?: string;
+  link?: string;
+  imageUrl?: string;
+  items?: BannerItem[];
+}
+
+interface CropSource {
+  file: File;
+  name: string;
+}
+
+interface ErrorWithMessage {
+  message?: string;
+}
+
 export function HomepageBannerSection() {
-  const [homepageBannerItems, setHomepageBannerItems] = useState([]);
-  const [isSavingHomepageBanner, setIsSavingHomepageBanner] = useState(false);
-  const [homepageBannerError, setHomepageBannerError] = useState("");
-  const [homepageBannerStatus, setHomepageBannerStatus] = useState("");
-  const [homepageBannerPickerIndex, setHomepageBannerPickerIndex] = useState(null);
-  const [homepageBannerApiCheckResult, setHomepageBannerApiCheckResult] = useState("");
-  const [homepageBannerCropOpen, setHomepageBannerCropOpen] = useState(false);
-  const [homepageBannerCropSource, setHomepageBannerCropSource] = useState(null);
-  const [homepageBannerCropIndex, setHomepageBannerCropIndex] = useState(null);
+  const [homepageBannerItems, setHomepageBannerItems] = useState<BannerItem[]>([]);
+  const [isSavingHomepageBanner, setIsSavingHomepageBanner] = useState<boolean>(false);
+  const [homepageBannerError, setHomepageBannerError] = useState<string>("");
+  const [homepageBannerStatus, setHomepageBannerStatus] = useState<string>("");
+  const [homepageBannerPickerIndex, setHomepageBannerPickerIndex] = useState<number | null>(null);
+  const [homepageBannerApiCheckResult, setHomepageBannerApiCheckResult] = useState<string>("");
+  const [homepageBannerCropOpen, setHomepageBannerCropOpen] = useState<boolean>(false);
+  const [homepageBannerCropSource, setHomepageBannerCropSource] = useState<CropSource | null>(null);
+  const [homepageBannerCropIndex, setHomepageBannerCropIndex] = useState<number | null>(null);
   const homepageBannerGuide = useMemo(() => getImageUploadGuide("banner"), []);
 
-  const loadHomepageBanner = async () => {
+  const loadHomepageBanner = async (): Promise<void> => {
     try {
-      const payload = await getHomepageBannerAdmin();
+      const payload = await getHomepageBannerAdmin() as HomepageBannerResponse;
       const rows = Array.isArray(payload?.items) ? payload.items : [];
       if (rows.length > 0) {
         setHomepageBannerItems(rows.map((item, idx) => ({
@@ -46,7 +70,7 @@ export function HomepageBannerSection() {
         );
       }
       setHomepageBannerStatus("");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to load homepage banner", error);
       setHomepageBannerStatus("載入首頁 Banner 設定失敗，請確認後端已部署最新版本。");
     }
@@ -54,7 +78,7 @@ export function HomepageBannerSection() {
 
   useEffect(() => { loadHomepageBanner(); }, []);
 
-  const handleSaveHomepageBanner = async () => {
+  const handleSaveHomepageBanner = async (): Promise<void> => {
     setIsSavingHomepageBanner(true);
     setHomepageBannerError("");
     setHomepageBannerStatus("");
@@ -67,7 +91,7 @@ export function HomepageBannerSection() {
         imageUrl: String(item?.imageUrl || "").trim(),
       })).filter((item) => item.title || item.content || item.link || item.imageUrl);
       await updateHomepageBannerAdmin({ items: sanitizedItems });
-      const reloaded = await getHomepageBannerAdmin();
+      const reloaded = await getHomepageBannerAdmin() as HomepageBannerResponse;
       const reloadedItems = Array.isArray(reloaded?.items) ? reloaded.items : [];
       if (sanitizedItems.length > 1 && reloadedItems.length <= 1) {
         setHomepageBannerItems(reloadedItems.length ? reloadedItems : sanitizedItems);
@@ -76,31 +100,32 @@ export function HomepageBannerSection() {
       }
       setHomepageBannerItems(reloadedItems.length > 0 ? reloadedItems : sanitizedItems);
       setHomepageBannerStatus("首頁 Banner 已儲存。");
-    } catch (error) {
-      setHomepageBannerError(error?.message || "儲存首頁 Banner 失敗");
+    } catch (error: unknown) {
+      const typedError = error as ErrorWithMessage;
+      setHomepageBannerError(typedError.message || "儲存首頁 Banner 失敗");
     } finally {
       setIsSavingHomepageBanner(false);
     }
   };
 
-  const addHomepageBannerItem = () => {
-    setHomepageBannerItems((prev) => [
+  const addHomepageBannerItem = (): void => {
+    setHomepageBannerItems((prev: BannerItem[]) => [
       ...prev,
       { id: `slide-${Date.now()}`, title: "", content: "", link: "", imageUrl: "" },
     ]);
   };
 
-  const updateHomepageBannerItem = (index, field, value) => {
-    setHomepageBannerItems((prev) => prev.map((item, idx) => (
+  const updateHomepageBannerItem = (index: number, field: keyof BannerItem, value: string): void => {
+    setHomepageBannerItems((prev: BannerItem[]) => prev.map((item, idx) => (
       idx === index ? { ...item, [field]: value } : item
     )));
   };
 
-  const removeHomepageBannerItem = (index) => {
-    setHomepageBannerItems((prev) => prev.filter((_, idx) => idx !== index));
+  const removeHomepageBannerItem = (index: number): void => {
+    setHomepageBannerItems((prev: BannerItem[]) => prev.filter((_, idx) => idx !== index));
   };
 
-  const applyHomepageBannerUpload = async (index, file) => {
+  const applyHomepageBannerUpload = async (index: number, file: File): Promise<void> => {
     if (!file || index === null || index === undefined) return;
     setHomepageBannerError("");
     setHomepageBannerStatus("");
@@ -108,27 +133,31 @@ export function HomepageBannerSection() {
       const optimized = await optimizeImageForUpload(file, "banner");
       if (!optimized?.ok || !optimized?.file) throw new Error(optimized?.error || "圖片處理失敗");
       const uploaded = await uploadMediaObject(optimized.file, "banner");
-      const url = String(uploaded?.url || "").trim();
+      const url = String((uploaded as { url?: string } | null)?.url || "").trim();
       if (!url) throw new Error("上傳成功但沒有取得圖片網址");
       updateHomepageBannerItem(index, "imageUrl", url);
-    } catch (error) {
-      setHomepageBannerError(error?.message || "Banner 圖片上傳失敗");
+    } catch (error: unknown) {
+      const typedError = error as ErrorWithMessage;
+      setHomepageBannerError(typedError.message || "Banner 圖片上傳失敗");
     }
   };
 
-  const handleHomepageBannerUpload = async (index, event) => {
-    const file = event?.target?.files?.[0];
-    if (event?.target) event.target.value = "";
+  const handleHomepageBannerUpload = async (
+    index: number,
+    event: React.ChangeEvent<HTMLInputElement>
+  ): Promise<void> => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
     if (!file) return;
     setHomepageBannerCropIndex(index);
     setHomepageBannerCropSource({ file, name: file.name });
     setHomepageBannerCropOpen(true);
   };
 
-  const checkHomepageBannerApiVersion = async () => {
+  const checkHomepageBannerApiVersion = async (): Promise<void> => {
     setHomepageBannerApiCheckResult("檢查中...");
     try {
-      const payload = await getHomepageBannerAdmin();
+      const payload = await getHomepageBannerAdmin() as HomepageBannerResponse;
       const items = Array.isArray(payload?.items) ? payload.items : [];
       if (items.length > 1) {
         setHomepageBannerApiCheckResult("目前後端支援多張 Banner（items）。");
@@ -139,8 +168,9 @@ export function HomepageBannerSection() {
       } else {
         setHomepageBannerApiCheckResult("目前後端看起來是舊版（未回傳 items）。");
       }
-    } catch (error) {
-      setHomepageBannerApiCheckResult(error?.message || "檢查失敗");
+    } catch (error: unknown) {
+      const typedError = error as ErrorWithMessage;
+      setHomepageBannerApiCheckResult(typedError.message || "檢查失敗");
     }
   };
 
@@ -180,10 +210,10 @@ export function HomepageBannerSection() {
                   刪除
                 </Button>
               </div>
-              <Input placeholder="標題" value={item.title} onChange={(e) => updateHomepageBannerItem(idx, "title", e.target.value)} />
-              <Textarea placeholder="內容" value={item.content} onChange={(e) => updateHomepageBannerItem(idx, "content", e.target.value)} rows={3} />
-              <Input placeholder="連結（https://...）" value={item.link} onChange={(e) => updateHomepageBannerItem(idx, "link", e.target.value)} />
-              <Input placeholder="圖片網址（可手動貼上）" value={item.imageUrl} onChange={(e) => updateHomepageBannerItem(idx, "imageUrl", e.target.value)} />
+              <Input placeholder="標題" value={item.title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateHomepageBannerItem(idx, "title", e.target.value)} />
+              <Textarea placeholder="內容" value={item.content} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => updateHomepageBannerItem(idx, "content", e.target.value)} rows={3} />
+              <Input placeholder="連結（https://...）" value={item.link} onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateHomepageBannerItem(idx, "link", e.target.value)} />
+              <Input placeholder="圖片網址（可手動貼上）" value={item.imageUrl} onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateHomepageBannerItem(idx, "imageUrl", e.target.value)} />
               <div className="flex flex-wrap items-center gap-2">
                 <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
                   上傳圖片

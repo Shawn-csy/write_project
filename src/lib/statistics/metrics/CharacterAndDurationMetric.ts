@@ -1,13 +1,18 @@
-// @ts-nocheck
-import { Metric } from '../ScriptAnalyzer.js';
+import { Metric } from '../ScriptAnalyzer';
 
 export class CharacterAndDurationMetric extends Metric {
-  constructor(options = {}) {
+  wpm: { dialogue: number; action: number };
+  dialogueByChar!: Record<string, string[]>;
+  sceneSetByChar!: Record<string, Set<string>>;
+  currentCharacterName!: string | null;
+  currentSceneId!: string | null;
+
+  constructor(options: { dialogueSpeed?: number; actionSpeed?: number } = {}) {
     super();
     // Default: 200 chars/min for dialogue, 300 chars/min for action (reading speed)
     this.wpm = {
         dialogue: options.dialogueSpeed || 200,
-        action: options.actionSpeed || 300 
+        action: options.actionSpeed || 300
     };
     this.reset();
   }

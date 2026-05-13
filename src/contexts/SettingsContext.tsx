@@ -9,12 +9,12 @@ import {
 } from "../constants/accent";
 import { STORAGE_KEYS } from "../constants/storageKeys";
 import { writeValue } from "../lib/storage";
-import { apiCall as serviceApiCall, fetchUserSettings, saveUserSettings, fetchUserThemes } from "../services/settingsApi.js";
+import { apiCall as serviceApiCall, fetchUserSettings, saveUserSettings, fetchUserThemes } from "../services/settingsApi";
 import { DEFAULT_READING_FONT, DEFAULT_UI_FONT, normalizeReadingFont, normalizeUiFont, resolveUiFontStack } from "../constants/readingFonts";
 
 import { useMarkerThemes } from "../hooks/useMarkerThemes";
 import { usePersistentState } from "../hooks/usePersistentState";
-import { normalizeThemeConfigs } from "../lib/markerThemeCodec.js";
+import { normalizeThemeConfigs } from "../lib/markerThemeCodec";
 
 const SettingsContext = createContext<any>(undefined);
 

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { Scale, ShieldCheck, FileCheck2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
@@ -11,13 +10,31 @@ const licenseCardStyle = {
   color: "var(--license-card-fg)",
 };
 
+interface TermsSection {
+  id?: string;
+  title?: string;
+  body?: string;
+}
+
+interface RequiredCheck {
+  id?: string;
+  label?: string;
+}
+
+interface TermsConfig {
+  version?: string;
+  title?: string;
+  sections?: TermsSection[];
+  requiredChecks?: RequiredCheck[];
+}
+
 export function LicenseView() {
   const { t } = useI18n();
-  const [termsConfig, setTermsConfig] = React.useState(null);
+  const [termsConfig, setTermsConfig] = React.useState<TermsConfig | null>(null);
 
   React.useEffect(() => {
     getPublicTermsConfig()
-      .then((data) => setTermsConfig(data || null))
+      .then((data) => setTermsConfig((data as TermsConfig | null) || null))
       .catch(() => {});
   }, []);
 

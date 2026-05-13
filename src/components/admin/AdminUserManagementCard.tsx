@@ -1,20 +1,30 @@
-// @ts-nocheck
 import React, { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { getAdminUsers, addAdminUser, removeAdminUser } from "../../lib/api/admin";
 
-export function AdminUserManagementCard() {
-  const [adminUsers, setAdminUsers] = useState([]);
-  const [adminEmailInput, setAdminEmailInput] = useState("");
-  const [adminManageError, setAdminManageError] = useState("");
-  const [isAdminManaging, setIsAdminManaging] = useState(false);
+interface AdminUserRow {
+  id: string;
+  email?: string;
+  userId?: string;
+  createdAt?: string | number | null;
+}
 
-  const loadAdminUsers = async () => {
+interface ErrorWithMessage {
+  message?: string;
+}
+
+export function AdminUserManagementCard() {
+  const [adminUsers, setAdminUsers] = useState<AdminUserRow[]>([]);
+  const [adminEmailInput, setAdminEmailInput] = useState<string>("");
+  const [adminManageError, setAdminManageError] = useState<string>("");
+  const [isAdminManaging, setIsAdminManaging] = useState<boolean>(false);
+
+  const loadAdminUsers = async (): Promise<void> => {
     try {
-      const rows = await getAdminUsers();
+      const rows = await getAdminUsers() as AdminUserRow[];
       setAdminUsers(rows || []);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to load admin users", error);
     }
   };
@@ -30,22 +40,24 @@ export function AdminUserManagementCard() {
       await addAdminUser({ email });
       setAdminEmailInput("");
       await loadAdminUsers();
-    } catch (error) {
-      setAdminManageError(error?.message || "新增超管失敗");
+    } catch (error: unknown) {
+      const typedError = error as ErrorWithMessage;
+      setAdminManageError(typedError.message || "新增超管失敗");
     } finally {
       setIsAdminManaging(false);
     }
   };
 
-  const handleRemoveAdmin = async (adminId) => {
+  const handleRemoveAdmin = async (adminId: string): Promise<void> => {
     if (!adminId) return;
     setIsAdminManaging(true);
     setAdminManageError("");
     try {
       await removeAdminUser(adminId);
       await loadAdminUsers();
-    } catch (error) {
-      setAdminManageError(error?.message || "移除超管失敗");
+    } catch (error: unknown) {
+      const typedError = error as ErrorWithMessage;
+      setAdminManageError(typedError.message || "移除超管失敗");
     } finally {
       setIsAdminManaging(false);
     }
@@ -57,7 +69,7 @@ export function AdminUserManagementCard() {
         <Input
           placeholder="輸入要新增的超管 email"
           value={adminEmailInput}
-          onChange={(e) => setAdminEmailInput(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAdminEmailInput(e.target.value)}
         />
         <Button onClick={handleAddAdmin} disabled={!adminEmailInput.trim() || isAdminManaging}>
           新增超管

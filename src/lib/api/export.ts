@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { getAuthHeaders } from "./client";
 import { downloadBlob, buildFilename } from "../download";
 
@@ -6,7 +5,7 @@ const postExport = async (path, body) => {
   const headers = await getAuthHeaders();
   const res = await fetch(path, {
     method: "POST",
-    headers: { ...headers, "Content-Type": "application/json" },
+    headers: { ...(headers as Record<string, string>), "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   if (!res.ok) {

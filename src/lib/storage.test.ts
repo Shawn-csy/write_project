@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { readString, readNumber, writeValue } from './storage.js';
+import { readString, readNumber, writeValue } from './storage';
 
 describe('storage', () => {
   const originalStorage = globalThis.localStorage;

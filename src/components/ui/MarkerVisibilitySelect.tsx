@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useMemo } from "react";
 import { Eye } from "lucide-react";
 import { Check } from "lucide-react";
@@ -23,6 +22,18 @@ export function MarkerVisibilitySelect({
   compact = false,
   iconOnly = false,
   iconOnlyOnMobile = false,
+}: {
+  markerConfigs?: Array<{ id: string; label?: string; [key: string]: unknown }>;
+  visibleMarkerIds?: string[];
+  hiddenMarkerIds?: string[];
+  onToggleMarker: (id: string) => void;
+  triggerClassName?: string;
+  contentAlign?: "start" | "center" | "end";
+  label?: string;
+  titlePrefix?: string;
+  compact?: boolean;
+  iconOnly?: boolean;
+  iconOnlyOnMobile?: boolean;
 }) {
   const { t } = useI18n();
   const resolvedLabel = label ?? t("markerVisibility.label");

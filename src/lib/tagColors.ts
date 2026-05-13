@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { MARKER_COLORS } from "../constants/markerColors";
 
 const paletteIds = MARKER_COLORS.map((c) => c.id);
@@ -11,7 +10,7 @@ const hashString = (value) => {
   return hash;
 };
 
-export const getMorandiTagStyle = (tag, allTags = []) => {
+export const getMorandiTagStyle = (tag: string, allTags: string[] = []) => {
   const unique = Array.from(new Set(allTags)).sort();
   const index = unique.indexOf(tag);
   if (index >= 0 && index < paletteIds.length) {

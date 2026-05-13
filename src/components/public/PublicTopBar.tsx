@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, ArrowLeft, Settings2, X } from "lucide-react";
@@ -18,6 +17,22 @@ import {
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "../ui/dialog";
 import { AppearanceSettings } from "../settings/AppearanceSettings";
 
+interface PublicTopBarTab {
+  key: string;
+  label: React.ReactNode;
+}
+
+interface PublicTopBarProps {
+  title?: React.ReactNode;
+  showBack?: boolean;
+  onBack?: () => void;
+  tabs?: PublicTopBarTab[];
+  activeTab?: string;
+  onTabChange?: (key: string) => void;
+  actions?: React.ReactNode;
+  fullBleed?: boolean;
+}
+
 export function PublicTopBar({
   title,
   showBack = false,
@@ -27,11 +42,12 @@ export function PublicTopBar({
   onTabChange,
   actions,
   fullBleed = false,
-}) {
+}: PublicTopBarProps): React.JSX.Element {
   const navigate = useNavigate();
   const { t } = useI18n();
   const resolvedTitle = title || t("publicTopbar.title");
-  const [appearanceOpen, setAppearanceOpen] = React.useState(false);
+  const [appearanceOpen, setAppearanceOpen] = React.useState<boolean>(false);
+  const appearanceSectionRef = React.useRef<HTMLDivElement | null>(null);
 
   return (
     <header className={`${TOPBAR_OUTER_CLASS} ${STUDIO_TOPBAR_SURFACE_CLASS}`}>
@@ -140,7 +156,7 @@ export function PublicTopBar({
               </DialogClose>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6">
-              <AppearanceSettings />
+              <AppearanceSettings sectionRef={appearanceSectionRef} />
             </div>
           </div>
         </DialogContent>

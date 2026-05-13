@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 
 const ALLOWED_TAGS = new Set(["DIV", "H1", "P", "BR", "STRONG", "SPAN"]);
@@ -10,9 +9,9 @@ const ALLOWED_CLASSES = new Set([
   "underline",
 ]);
 
-const parseSafeStyle = (styleText) => {
+const parseSafeStyle = (styleText: string | null): Record<string, string> | undefined => {
   if (!styleText) return undefined;
-  const style = {};
+  const style: Record<string, string> = {};
   const parts = styleText.split(";").map((p) => p.trim()).filter(Boolean);
   for (const part of parts) {
     const [rawKey, rawValue] = part.split(":").map((p) => p.trim());
@@ -38,7 +37,7 @@ const sanitizeElement = (node, key) => {
     return node.textContent;
   }
 
-  const props = { key };
+  const props: Record<string, any> = { key };
   const className = node.getAttribute("class");
   if (className) {
     const safeClasses = className
@@ -55,7 +54,7 @@ const sanitizeElement = (node, key) => {
     props.style = safeStyle;
   }
 
-  const children = [];
+  const children: (string | React.ReactElement | null)[] = [];
   node.childNodes.forEach((child, idx) => {
     const sanitized = sanitizeElement(child, `${key}-${idx}`);
     if (sanitized !== null && sanitized !== undefined) {
@@ -73,7 +72,7 @@ export const renderSafeHtml = (html) => {
     return text;
   }
   const doc = new DOMParser().parseFromString(html, "text/html");
-  const nodes = [];
+  const nodes: (string | React.ReactElement | null)[] = [];
   doc.body.childNodes.forEach((child, idx) => {
     const sanitized = sanitizeElement(child, `safe-${idx}`);
     if (sanitized !== null && sanitized !== undefined) {

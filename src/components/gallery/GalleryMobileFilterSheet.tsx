@@ -1,9 +1,42 @@
-// @ts-nocheck
 import React from "react";
 import { Button } from "../ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../ui/sheet";
 import { GalleryFilterBar } from "./GalleryFilterBar";
 import { useI18n } from "../../contexts/I18nContext";
+
+type GalleryView = "scripts" | "authors" | "orgs";
+type ViewMode = "standard" | "compact";
+
+interface UsageOption {
+  value: string;
+  label: string;
+}
+
+interface GalleryMobileFilterSheetProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  view: GalleryView;
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
+  selectedTags: string[];
+  selectedAuthorTags: string[];
+  selectedOrgTags: string[];
+  onSelectScriptTags: (tags: string[]) => void;
+  onSelectAuthorTags: (tags: string[]) => void;
+  onSelectOrgTags: (tags: string[]) => void;
+  allTags: string[];
+  authorTags: string[];
+  orgTags: string[];
+  topTags: string[];
+  licenseTagShortcuts: string[];
+  usageFilter: string;
+  usageOptions: UsageOption[];
+  onSetUsageFilter: (value: string) => void;
+  viewMode: ViewMode;
+  onViewModeChange: (mode: ViewMode) => void;
+  hasScriptFilters: boolean;
+  onResetScriptFilters: () => void;
+}
 
 export function GalleryMobileFilterSheet({
   open,
@@ -29,7 +62,7 @@ export function GalleryMobileFilterSheet({
   onViewModeChange,
   hasScriptFilters,
   onResetScriptFilters,
-}) {
+}: GalleryMobileFilterSheetProps): React.JSX.Element {
   const { t } = useI18n();
 
   const activeTags = view === "scripts" ? selectedTags : view === "authors" ? selectedAuthorTags : selectedOrgTags;
@@ -74,7 +107,7 @@ export function GalleryMobileFilterSheet({
               <div className="space-y-2">
                 <p className="mb-2 text-xs font-medium text-foreground">{t("publicGallery.viewMode", "顯示模式")}</p>
                 <div className="flex items-center gap-2">
-                  {["standard", "compact"].map((mode) => (
+                  {(["standard", "compact"] as ViewMode[]).map((mode) => (
                     <Button
                       key={mode}
                       type="button"
@@ -113,7 +146,7 @@ export function GalleryMobileFilterSheet({
             placeholder={placeholder}
             showViewToggle={false}
             viewValue={viewMode}
-            onViewChange={onViewModeChange}
+            onViewChange={(value) => onViewModeChange(value as ViewMode)}
             viewOptions={[
               { value: "standard", label: t("publicGallery.viewStandard", "圖文排版") },
               { value: "compact", label: t("publicGallery.viewCompact", "緊湊排版") },

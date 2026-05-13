@@ -1,10 +1,9 @@
-// @ts-nocheck
-
 /**
  * Core Analyzer that orchestrates the traversal and execution of metrics.
  */
 export class ScriptAnalyzer {
-  constructor(metrics = []) {
+  metrics: any[];
+  constructor(metrics: any[] = []) {
     this.metrics = metrics;
   }
 

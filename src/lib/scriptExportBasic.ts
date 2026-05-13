@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { buildFilename, downloadBlob, downloadText } from "./download";
 import { getRenderedLines, getRenderedSnapshot } from "./scriptExportShared";
 import { buildPrintHtml } from "./print";
@@ -16,7 +15,7 @@ export const exportScriptAsCsv = (title, payload) => {
   downloadBlob(blob, buildFilename(title || "script", "csv"));
 };
 
-export const exportScriptAsPdf = async (title, payload = {}) => {
+export const exportScriptAsPdf = async (title: string, payload: { renderedHtml?: string; text?: string; headerHtml?: string } = {}) => {
   const snapshot = getRenderedSnapshot(payload);
   const headerHtml = payload?.headerHtml || `<h1>${title || "Script"}</h1>`;
   const exportHtml = buildPrintHtml({
@@ -50,8 +49,8 @@ export const exportScriptAsPdf = async (title, payload = {}) => {
   iframeDoc.close();
   styles.forEach((styleNode) => iframeDoc.head.appendChild(styleNode));
 
-  const waitForImages = (doc, timeoutMs = 2200) =>
-    new Promise((resolve) => {
+  const waitForImages = (doc: Document, timeoutMs = 2200) =>
+    new Promise<void>((resolve) => {
       const images = Array.from(doc.images || []).filter((img) => !img.complete);
       if (images.length === 0) {
         resolve();

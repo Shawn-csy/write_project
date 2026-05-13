@@ -1,9 +1,35 @@
-// @ts-nocheck
 import React, { useMemo, useState } from "react";
 import { Button } from "../ui/button";
 import { Search } from "lucide-react";
 import { Input } from "../ui/input";
 import { useI18n } from "../../contexts/I18nContext";
+
+interface SelectOption {
+  value: string;
+  label: string;
+}
+
+interface GalleryFilterBarProps {
+  selectedTags?: string[];
+  onSelectTags?: (tags: string[]) => void;
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
+  featuredTags?: string[];
+  tags?: string[];
+  placeholder?: string;
+  sortOptions?: SelectOption[];
+  sortValue?: string;
+  onSortChange?: (value: string) => void;
+  showSort?: boolean;
+  viewOptions?: SelectOption[];
+  viewValue?: string;
+  onViewChange?: (value: string) => void;
+  showViewToggle?: boolean;
+  quickFilters?: SelectOption[];
+  quickFilterValue?: string;
+  onQuickFilterChange?: (value: string) => void;
+  quickTagFilters?: SelectOption[];
+}
 
 export function GalleryFilterBar({ 
     selectedTags = [], 
@@ -26,9 +52,9 @@ export function GalleryFilterBar({
     quickFilterValue = "all",
     onQuickFilterChange,
     quickTagFilters = []
-}) {
+}: GalleryFilterBarProps): React.JSX.Element {
   const { t } = useI18n();
-  const [tagQuery, setTagQuery] = useState("");
+  const [tagQuery, setTagQuery] = useState<string>("");
   const searchPlaceholder = placeholder || t("galleryFilterBar.search");
   const filteredTags = useMemo(() => {
       const needle = tagQuery.trim().toLowerCase();
@@ -36,7 +62,7 @@ export function GalleryFilterBar({
       return tags.filter(tag => String(tag).toLowerCase().includes(needle));
   }, [tags, tagQuery]);
 
-  const toggleTag = (tag) => {
+  const toggleTag = (tag: string): void => {
       if (!onSelectTags) return;
       if (selectedTags.includes(tag)) {
           onSelectTags(selectedTags.filter(t => t !== tag));
@@ -69,7 +95,7 @@ export function GalleryFilterBar({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input 
               value={searchTerm}
-              onChange={(e) => onSearchChange(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => onSearchChange(e.target.value)}
               placeholder={searchPlaceholder}
               className="pl-9 bg-muted/30 border-transparent focus:bg-background transition-all"
           />
@@ -172,7 +198,7 @@ export function GalleryFilterBar({
           <div className="relative w-full">
               <Input 
                   value={tagQuery}
-                      onChange={(e) => setTagQuery(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTagQuery(e.target.value)}
                       placeholder={t("galleryFilterBar.searchTags", "搜尋標籤...")}
                   className="h-8 text-xs bg-muted/30 border-transparent focus:bg-background transition-all"
               />

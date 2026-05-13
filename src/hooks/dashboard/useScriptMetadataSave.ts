@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useCallback, useState } from "react";
 import { updateScript, addTagToScript, removeTagFromScript } from "../../lib/api/scripts";
 import { createTag } from "../../lib/api/tags";
@@ -127,6 +126,7 @@ export function useScriptMetadataSave({
           groupNames: AUDIENCE_TAG_GROUP,
           createTag,
           resolveColor: () => "bg-gray-500",
+          onTagCreated: () => {},
         });
       }
       if (contentRating) {
@@ -137,19 +137,20 @@ export function useScriptMetadataSave({
           groupNames: RATING_TAG_GROUP,
           createTag,
           resolveColor: (name) => (name === "成人向" ? "bg-red-500" : "bg-gray-500"),
+          onTagCreated: () => {},
         });
       }
 
       const workingScript = activeScript || script;
       const workingScriptMetadata = Array.isArray(workingScript?.customMetadata) ? workingScript.customMetadata : [];
       const workingAuthorMetadataEntries = normalizeCustomMetadataEntries(workingScriptMetadata).filter((entry) => isAuthorMetaKey(entry?.key));
-      const authorEditedValue = authorEditedRef?.current ?? false;
+      const authorEditedValue = (authorEditedRef as { current?: boolean } | null)?.current ?? false;
       const shouldPreserveAuthor = preserveAuthorInternalData && !authorEditedValue;
       const effectiveAuthorDisplayMode = authorDisplayMode === "override" ? "override" : "badge";
       const effectiveAuthor = String(author || "");
       const persistedAuthor = effectiveAuthorDisplayMode === "override" ? effectiveAuthor : "";
 
-      const orderedEntries = [];
+      const orderedEntries: Array<{ key: string; value: string }> = [];
       if (!shouldPreserveAuthor && effectiveAuthorDisplayMode === "override" && effectiveAuthor) {
         orderedEntries.push({ key: "Author", value: effectiveAuthor });
       }
@@ -221,7 +222,7 @@ export function useScriptMetadataSave({
         ]);
       }
 
-      const updatePayload = {
+      const updatePayload: any = {
         title,
         coverUrl,
         status,

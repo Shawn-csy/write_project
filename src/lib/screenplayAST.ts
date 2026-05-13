@@ -1,14 +1,13 @@
-// @ts-nocheck
 /**
  * screenplayAST.js - 純 Marker 模式
  * 
  * 使用 DirectASTBuilder 直接解析文本，不依賴 fountain-js
  */
 
-import { splitTitleAndBody, extractTitleEntries } from './parsers/titlePageParser.js';
-import { DirectASTBuilder } from './importPipeline/directASTBuilder.js';
-import { defaultMarkerConfigs } from '../constants/defaultMarkerRules.js';
-import { normalizeMarkerConfigsSchema } from './markerThemeCodec.js';
+import { splitTitleAndBody, extractTitleEntries } from './parsers/titlePageParser';
+import { DirectASTBuilder } from './importPipeline/directASTBuilder';
+import { defaultMarkerConfigs } from '../constants/defaultMarkerRules';
+import { normalizeMarkerConfigsSchema } from './markerThemeCodec';
 
 /**
  * 解析劇本文本
@@ -37,9 +36,9 @@ export const parseScreenplay = (text = "", markerConfigs) => {
   }
   
   // 提取場景列表
-  const scenes = ast.children
+  const scenes = (ast.children ?? [])
     .filter(n => n.type === 'scene_heading')
-    .map(n => ({ id: n.id, label: n.text }));
+    .map(n => ({ id: String(n.id ?? ""), label: String(n.text ?? "") }));
 
   return {
     titleLines,

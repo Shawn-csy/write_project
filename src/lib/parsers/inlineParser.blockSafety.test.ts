@@ -1,6 +1,6 @@
 import { describe, it } from "vitest";
 import assert from "node:assert";
-import { parseInline } from "./inlineParser.js";
+import { parseInline } from "./inlineParser";
 
 describe("inlineParser block safety", () => {
   it("should not parse block-like markers as inline highlight", () => {

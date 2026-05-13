@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { splitTitleAndBody, extractTitleEntries } from './titlePageParser.js';
+import { splitTitleAndBody, extractTitleEntries } from './titlePageParser';
 
 describe('TitlePageParser', () => {
     describe('splitTitleAndBody', () => {

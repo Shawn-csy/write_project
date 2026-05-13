@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { useI18n } from "../../contexts/I18nContext";
 import { cn } from "../../lib/utils";
@@ -17,6 +16,12 @@ export function LanguageSwitcher({
   ariaLabel,
   compact = false,
   buttonClassName,
+}: {
+  className?: string;
+  selectClassName?: string;
+  ariaLabel: string;
+  compact?: boolean;
+  buttonClassName: string;
 }) {
   const { t, lang, setLang } = useI18n();
 

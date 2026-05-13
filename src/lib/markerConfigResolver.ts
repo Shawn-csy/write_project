@@ -1,6 +1,5 @@
-// @ts-nocheck
-import { defaultMarkerConfigs } from "../constants/defaultMarkerRules.js";
-import { normalizeMarkerConfigsSchema } from "./markerThemeCodec.js";
+import { defaultMarkerConfigs } from "../constants/defaultMarkerRules";
+import { normalizeMarkerConfigsSchema } from "./markerThemeCodec";
 
 const isNil = (value) => value === null || value === undefined;
 
@@ -12,7 +11,7 @@ export const resolveEffectiveMarkerConfigs = ({
   baseConfigs,
   scopedConfigs,
   fallbackConfigs = defaultMarkerConfigs,
-} = {}) => {
+}: { baseConfigs?: any; scopedConfigs?: any; fallbackConfigs?: any } = {}) => {
   const hasScoped = !isNil(scopedConfigs);
   const selected = hasScoped ? scopedConfigs : baseConfigs;
   const normalized = normalizeMarkerConfigsSchema(selected);

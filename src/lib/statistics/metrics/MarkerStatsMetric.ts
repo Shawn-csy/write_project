@@ -1,7 +1,13 @@
-// @ts-nocheck
-import { Metric } from '../ScriptAnalyzer.js';
+import { Metric } from '../ScriptAnalyzer';
 
 export class MarkerStatsMetric extends Metric {
+  customLayers!: Record<string, Array<{ text: string; line?: number; type?: string }>>;
+  sfxLines!: string[];
+  customDurationSeconds!: number;
+  durationOverrideStack!: boolean[];
+  pauseSeconds!: number;
+  pauseItems!: Array<{ text: string; line?: number; seconds: number }>;
+
   constructor() {
     super();
     this.reset();

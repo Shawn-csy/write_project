@@ -1,30 +1,49 @@
-// @ts-nocheck
 import React, { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { getPublicTermsAcceptances } from "../../lib/api/admin";
 
-export function TermsAcceptanceTable() {
-  const [termsRecords, setTermsRecords] = useState([]);
-  const [termsTotal, setTermsTotal] = useState(0);
-  const [termsQuery, setTermsQuery] = useState("");
-  const [isTermsLoading, setIsTermsLoading] = useState(false);
-  const [termsError, setTermsError] = useState("");
+interface TermsAcceptanceRecord {
+  id: string;
+  termsVersion?: string;
+  acceptedAt?: string | number | null;
+  ipAddress?: string;
+  visitorId?: string;
+  scriptId?: string;
+  userAgent?: string;
+}
 
-  const loadTermsRecords = async (queryText = "") => {
+interface TermsAcceptanceResponse {
+  items?: TermsAcceptanceRecord[];
+  total?: number;
+}
+
+interface HttpError {
+  status?: number;
+}
+
+export function TermsAcceptanceTable() {
+  const [termsRecords, setTermsRecords] = useState<TermsAcceptanceRecord[]>([]);
+  const [termsTotal, setTermsTotal] = useState<number>(0);
+  const [termsQuery, setTermsQuery] = useState<string>("");
+  const [isTermsLoading, setIsTermsLoading] = useState<boolean>(false);
+  const [termsError, setTermsError] = useState<string>("");
+
+  const loadTermsRecords = async (queryText = ""): Promise<void> => {
     setIsTermsLoading(true);
     setTermsError("");
     try {
-      const result = await getPublicTermsAcceptances({ q: queryText, limit: 50, offset: 0 });
+      const result = await getPublicTermsAcceptances({ q: queryText, limit: 50, offset: 0 }) as TermsAcceptanceResponse;
       setTermsRecords(result?.items || []);
       setTermsTotal(result?.total || 0);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to load terms acceptance records", error);
       setTermsRecords([]);
       setTermsTotal(0);
+      const typedError = error as HttpError;
       setTermsError(
-        error?.status === 403
+        typedError.status === 403
           ? "你目前不是管理員帳號（需在後端 ADMIN_USER_IDS 內），所以無法讀取簽署紀錄。"
           : "讀取簽署紀錄失敗，請確認目前連線的 API 是否為同一個環境。"
       );
@@ -41,7 +60,7 @@ export function TermsAcceptanceTable() {
         <Input
           placeholder="搜尋 scriptId / visitorId / IP / UA"
           value={termsQuery}
-          onChange={(e) => setTermsQuery(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTermsQuery(e.target.value)}
           className="h-8 text-sm"
         />
         <Button variant="outline" size="sm" onClick={() => loadTermsRecords(termsQuery.trim())}>
