@@ -1,11 +1,37 @@
 import React from "react";
+import type { Nav } from "../../hooks/useAppNavigation";
+
+// All dependencies are JSX — cast until migrated
+type AC = React.ComponentType<Record<string, unknown>>;
+type ACC = React.ComponentType<{ children?: React.ReactNode; [k: string]: unknown }>;
+
 import {
-  Drawer,
-  DrawerContent,
-  DrawerTitle,
-  DrawerDescription,
+  Drawer as DrawerJs,
+  DrawerContent as DrawerContentJs,
+  DrawerTitle as DrawerTitleJs,
+  DrawerDescription as DrawerDescriptionJs,
 } from "../ui/drawer";
-import Sidebar from "./Sidebar";
+import SidebarJs from "./Sidebar";
+
+const Drawer = DrawerJs as unknown as ACC;
+const DrawerContent = DrawerContentJs as unknown as ACC;
+const DrawerTitle = DrawerTitleJs as unknown as ACC;
+const DrawerDescription = DrawerDescriptionJs as unknown as ACC;
+const Sidebar = SidebarJs as unknown as AC;
+
+interface MainLayoutProps {
+  children: React.ReactNode;
+  isDesktopSidebarOpen: boolean;
+  setIsDesktopSidebarOpen: (open: boolean) => void;
+  isMobileDrawerOpen: boolean;
+  setIsMobileDrawerOpen: (open: boolean) => void;
+  accentStyle: string;
+  openAbout: Nav["openAbout"];
+  closeAbout: () => void;
+  openSettings: Nav["openSettings"];
+  openHome: () => void;
+  showSidebar?: boolean;
+}
 
 export function MainLayout({
   children,
@@ -18,8 +44,8 @@ export function MainLayout({
   closeAbout,
   openSettings,
   openHome,
-  showSidebar = true
-}) {
+  showSidebar = true,
+}: MainLayoutProps) {
   return (
     <div className="relative flex h-[100dvh] w-full bg-background text-foreground overflow-hidden">
       {/* Mobile Drawer */}

@@ -12,8 +12,13 @@ import { normalizeMarkerConfigsSchema } from './markerThemeCodec.js';
 /**
  * 解析劇本文本
  * @param {string} text - 原始文本
- * @param {Array} markerConfigs - marker 設定
- * @returns {{ titleLines: string, titleEntries: Array, ast: Object, scenes: Array }}
+ * @param {import("../hooks/useScriptManager.types").MarkerConfig[]} [markerConfigs] - marker 設定
+ * @returns {{
+ *   titleLines: string;
+ *   titleEntries: import("../hooks/useScriptManager.types").ParsedTitleEntry[];
+ *   ast: import("../hooks/useScriptManager.types").ScriptAst;
+ *   scenes: import("../hooks/useScriptManager.types").ParsedScene[];
+ * }}
  */
 export const parseScreenplay = (text = "", markerConfigs) => {
   const { titleLines, bodyText, bodyStartLine = 1 } = splitTitleAndBody(text);

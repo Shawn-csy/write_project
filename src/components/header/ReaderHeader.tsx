@@ -1,16 +1,67 @@
 import React, { useEffect, useState, useCallback } from "react";
-import {
-  SlidersHorizontal,
-} from "lucide-react";
-import { Card, CardContent } from "../ui/card";
-import { ReaderControls } from "../reader/ReaderControls";
-import { ReaderActions } from "../reader/ReaderActions";
-import { useSettings } from "../../contexts/SettingsContext";
-import { useEditableTitle } from "../../hooks/useEditableTitle";
-import EditableTitle from "./EditableTitle";
-import HeaderTitleBlock from "./HeaderTitleBlock";
-import { useI18n } from "../../contexts/I18nContext";
+import { SlidersHorizontal } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import { useEditableTitle } from "../../hooks/useEditableTitle";
+import { useI18n } from "../../contexts/I18nContext";
+import { useSettings } from "../../contexts/SettingsContext";
+import type { MarkerConfig, ParsedScene, FileMeta } from "../../hooks/useScriptManager.types";
+import type { DownloadOption } from "../../types/routes";
+
+// JS components/hooks pending TS migration
+type AC = React.ComponentType<Record<string, unknown>>;
+type ACC = React.ComponentType<{ children?: React.ReactNode; [k: string]: unknown }>;
+
+import { Card as CardJs, CardContent as CardContentJs } from "../ui/card";
+import { ReaderControls as ReaderControlsJs } from "../reader/ReaderControls";
+import { ReaderActions as ReaderActionsJs } from "../reader/ReaderActions";
+import EditableTitleJs from "./EditableTitle";
+import HeaderTitleBlockJs from "./HeaderTitleBlock";
+const Card = CardJs as unknown as ACC;
+const CardContent = CardContentJs as unknown as ACC;
+const ReaderControls = ReaderControlsJs as unknown as AC;
+const ReaderActions = ReaderActionsJs as unknown as AC;
+const EditableTitle = EditableTitleJs as unknown as AC;
+const HeaderTitleBlock = HeaderTitleBlockJs as unknown as AC;
+
+interface MarkerTheme {
+  id: string;
+  [key: string]: unknown;
+}
+
+interface ReaderHeaderProps {
+  hasTitle?: boolean;
+  onToggleTitle?: () => void;
+  titleName?: string;
+  activeFile?: string | { name: string } | null;
+  fileMeta?: FileMeta;
+  isSidebarOpen?: boolean;
+  setSidebarOpen: (open: boolean) => void;
+  downloadOptions?: DownloadOption[];
+  onShareUrl?: (e?: React.MouseEvent) => void;
+  canShare?: boolean;
+  shareCopied?: boolean;
+  sceneList?: ParsedScene[];
+  currentSceneId?: string;
+  onSelectScene?: (id: string) => void;
+  characterList?: string[];
+  filterCharacter?: string;
+  setFilterCharacter?: (val: string) => void;
+  setFocusMode?: (val: boolean) => void;
+  scrollProgress?: number;
+  totalLines?: number;
+  onEdit?: (() => void) | null;
+  onOpenGuide?: () => void;
+  showReadModeHint?: boolean;
+  extraActions?: React.ReactNode;
+  onBack?: () => void;
+  onToggleStats?: () => void;
+  onTitleChange?: (title: string) => Promise<void>;
+  onSwitchMarkerTheme?: (themeId: string) => Promise<boolean>;
+  markerConfigs?: MarkerConfig[];
+  visibleMarkerIds?: string[];
+  hiddenMarkerIds?: string[];
+  onToggleMarker?: (id: string) => void;
+}
 
 function ReaderHeader({
   hasTitle,
@@ -33,48 +84,57 @@ function ReaderHeader({
   setFocusMode,
   scrollProgress = 0,
   totalLines = 0,
-  onEdit, 
+  onEdit,
   onOpenGuide,
   showReadModeHint = false,
   extraActions,
   onBack,
-  onToggleStats, // New prop
+  onToggleStats,
   onTitleChange,
   onSwitchMarkerTheme,
-  
   markerConfigs,
   visibleMarkerIds: visibleMarkerIdsProp,
   hiddenMarkerIds: hiddenMarkerIdsProp,
-  onToggleMarker: onToggleMarkerProp
-}) {
-  const { t } = useI18n();
+  onToggleMarker: onToggleMarkerProp,
+}: ReaderHeaderProps) {
+  const { t } = useI18n() as { t: (key: string, fallback?: string) => string };
   const location = useLocation();
   const {
     hiddenMarkerIds: ctxHiddenMarkerIds,
     toggleMarkerVisibility,
-    markerThemes = [],
+    markerThemes = [] as MarkerTheme[],
     currentThemeId = "default",
     switchTheme = () => {},
   } = useSettings();
+
   const effectiveHiddenMarkerIds = hiddenMarkerIdsProp ?? ctxHiddenMarkerIds ?? [];
   const effectiveToggleMarker = onToggleMarkerProp ?? toggleMarkerVisibility;
   const persistMarkerTheme = onSwitchMarkerTheme;
-  const effectiveVisibleMarkerIds = visibleMarkerIdsProp ?? (Array.isArray(markerConfigs) ? markerConfigs.filter(c => !effectiveHiddenMarkerIds.includes(c.id)).map(c => c.id) : []);
-  const handleSwitchMarkerTheme = useCallback(async (themeId) => {
-    const nextId = String(themeId || "default");
-    const prevId = String(currentThemeId || "default");
-    if (nextId === prevId) return;
-    switchTheme(nextId);
-    if (!persistMarkerTheme) return;
-    const ok = await persistMarkerTheme(nextId);
-    if (ok === false) {
-      switchTheme(prevId);
-    }
-  }, [currentThemeId, switchTheme, persistMarkerTheme]);
+  const effectiveVisibleMarkerIds =
+    visibleMarkerIdsProp ??
+    (Array.isArray(markerConfigs)
+      ? markerConfigs.filter((c) => !effectiveHiddenMarkerIds.includes(c.id)).map((c) => c.id)
+      : []);
+
+  const handleSwitchMarkerTheme = useCallback(
+    async (themeId: string) => {
+      const nextId = String(themeId || "default");
+      const prevId = String(currentThemeId || "default");
+      if (nextId === prevId) return;
+      switchTheme(nextId);
+      if (!persistMarkerTheme) return;
+      const ok = await persistMarkerTheme(nextId);
+      if (ok === false) {
+        switchTheme(prevId);
+      }
+    },
+    [currentThemeId, switchTheme, persistMarkerTheme]
+  );
+
   const [collapsed, setCollapsed] = useState(true);
   const [autoCollapse, setAutoCollapse] = useState(true);
   const [isLg, setIsLg] = useState(false);
-  
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const media = window.matchMedia("(min-width: 1024px)");
@@ -85,29 +145,28 @@ function ReaderHeader({
       }
     };
     sync();
-    const handler = () => sync();
-    media.addEventListener("change", handler);
-    return () => media.removeEventListener("change", handler);
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
   }, [autoCollapse]);
 
   const progressLabel = `${Math.round(scrollProgress)}%`;
-  const {
-    isEditing,
-    editTitle,
-    setEditTitle,
-    startEditing,
-    submitTitle
-  } = useEditableTitle(titleName || "", onTitleChange);
+  const { isEditing, editTitle, setEditTitle, startEditing, submitTitle } = useEditableTitle(
+    titleName || "",
+    onTitleChange
+  );
 
   const isGuideMode = React.useMemo(() => {
     const params = new URLSearchParams(location.search || "");
     return params.get("guide") === "1";
   }, [location.search]);
+
   const showTools = isGuideMode || isLg || !collapsed;
+
+  const activeFileName =
+    typeof activeFile === "object" && activeFile !== null ? activeFile.name : activeFile;
 
   return (
     <Card id="reader-guide-header" className="border border-border bg-card/80 backdrop-blur rounded-none sm:rounded-xl border-x-0 sm:border-x">
-      {/* ... (unchanged header content) */}
       <CardContent
         className={`flex flex-col ${
           collapsed ? "p-2 sm:p-3" : "p-3 sm:p-4"
@@ -116,7 +175,7 @@ function ReaderHeader({
         <div className="flex w-full flex-col gap-2 min-w-0 max-w-[1000px]">
           <div className="flex items-center gap-2 min-w-0">
             <HeaderTitleBlock
-              onBack={(e) => {
+              onBack={(e: React.MouseEvent) => {
                 e.stopPropagation();
                 onBack?.();
               }}
@@ -135,12 +194,10 @@ function ReaderHeader({
                   <EditableTitle
                     isEditing={isEditing && Boolean(onTitleChange)}
                     editTitle={editTitle}
-                    setEditTitle={(val) => setEditTitle(val)}
+                    setEditTitle={(val: string) => setEditTitle(val)}
                     onSubmit={submitTitle}
                     inputClassName="text-base sm:text-2xl font-semibold border border-primary/50 rounded px-1 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary min-w-[120px] sm:min-w-[200px] w-[45vw] sm:w-auto max-w-[60vw]"
-                    inputProps={{
-                      onClick: (e) => e.stopPropagation(),
-                    }}
+                    inputProps={{ onClick: (e: React.MouseEvent) => e.stopPropagation() }}
                     renderDisplay={() => (
                       <button
                         type="button"
@@ -155,17 +212,11 @@ function ReaderHeader({
                             startEditing();
                           }
                         }}
-                        className={`text-left flex-1 min-w-0 ${
-                          hasTitle ? "cursor-pointer" : "cursor-default"
-                        }`}
+                        className={`text-left flex-1 min-w-0 ${hasTitle ? "cursor-pointer" : "cursor-default"}`}
                         title={onTitleChange ? t("editorHeader.doubleClickRename") : ""}
                       >
                         <h2 className="text-base sm:text-2xl font-semibold truncate flex-1 leading-tight min-w-0">
-                          {titleName ||
-                            (typeof activeFile === "object"
-                              ? activeFile?.name
-                              : activeFile) ||
-                            t("app.selectScript")}
+                          {titleName || activeFileName || t("app.selectScript")}
                         </h2>
                       </button>
                     )}
@@ -177,13 +228,15 @@ function ReaderHeader({
                   <div className="flex items-center gap-2 text-[10px] text-muted-foreground min-w-0">
                     <span className="truncate max-w-[120px]">
                       {typeof activeFile === "string" && fileMeta[activeFile]
-                        ? fileMeta[activeFile].toLocaleDateString()
+                        ? fileMeta[activeFile]?.toLocaleDateString()
                         : ""}
                     </span>
                     {totalLines > 0 && (
                       <>
                         <span className="opacity-50">·</span>
-                        <span className="whitespace-nowrap">{t("readerHeader.linesCount").replace("{count}", String(totalLines))}</span>
+                        <span className="whitespace-nowrap">
+                          {t("readerHeader.linesCount").replace("{count}", String(totalLines))}
+                        </span>
                       </>
                     )}
                     <span className="opacity-50">·</span>
@@ -214,36 +267,37 @@ function ReaderHeader({
             )}
           </div>
         </div>
-        {showTools && (
-          <div id="reader-guide-tools" className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 lg:justify-end lg:ml-auto lg:w-auto w-full mt-2 sm:mt-0">
-            <ReaderControls 
-                sceneList={sceneList} 
-                currentSceneId={currentSceneId} 
-                onSelectScene={onSelectScene} 
-                characterList={characterList} 
-                filterCharacter={filterCharacter} 
-                setFilterCharacter={setFilterCharacter} 
 
-                setFocusMode={setFocusMode} 
- 
-                markerConfigs={markerConfigs}
-                markerThemes={markerThemes}
-                currentThemeId={currentThemeId}
-                onSwitchMarkerTheme={handleSwitchMarkerTheme}
-                visibleMarkerIds={effectiveVisibleMarkerIds}
-                hiddenMarkerIds={effectiveHiddenMarkerIds}
-                onToggleMarker={effectiveToggleMarker}
+        {showTools && (
+          <div
+            id="reader-guide-tools"
+            className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 lg:justify-end lg:ml-auto lg:w-auto w-full mt-2 sm:mt-0"
+          >
+            <ReaderControls
+              sceneList={sceneList}
+              currentSceneId={currentSceneId}
+              onSelectScene={onSelectScene}
+              characterList={characterList}
+              filterCharacter={filterCharacter}
+              setFilterCharacter={setFilterCharacter}
+              setFocusMode={setFocusMode}
+              markerConfigs={markerConfigs}
+              markerThemes={markerThemes}
+              currentThemeId={currentThemeId}
+              onSwitchMarkerTheme={handleSwitchMarkerTheme}
+              visibleMarkerIds={effectiveVisibleMarkerIds}
+              hiddenMarkerIds={effectiveHiddenMarkerIds}
+              onToggleMarker={effectiveToggleMarker}
             />
-            
-            <ReaderActions 
-                canShare={canShare} 
-                onShareUrl={onShareUrl} 
-                shareCopied={shareCopied} 
-                downloadOptions={downloadOptions}
-                onEdit={onEdit} 
-                onOpenGuide={onOpenGuide}
-                extraActions={extraActions}
-                onToggleStats={onToggleStats}
+            <ReaderActions
+              canShare={canShare}
+              onShareUrl={onShareUrl}
+              shareCopied={shareCopied}
+              downloadOptions={downloadOptions}
+              onEdit={onEdit}
+              onOpenGuide={onOpenGuide}
+              extraActions={extraActions}
+              onToggleStats={onToggleStats}
             />
           </div>
         )}

@@ -5,19 +5,65 @@ import { PublicReaderLayout } from "../components/reader/PublicReaderLayout";
 import { getPublicBundle, getPublicScript, getPublicThemes } from "../lib/api/public";
 import { deriveSimpleLicenseTags, parseBasicLicenseFromMeta } from "../lib/licenseRights";
 import { normalizeSeriesName, parseSeriesOrder } from "../lib/series";
-import ScriptViewer from "../components/renderer/ScriptViewer";
 import { useScriptViewerDefaults } from "../hooks/useScriptViewerDefaults";
 import { useI18n } from "../contexts/I18nContext";
 import { normalizeMarkerConfigsSchema } from "../lib/markerThemeCodec.js";
 import { defaultMarkerConfigs } from "../constants/defaultMarkerRules.js";
 import { parseActivityDemoLinks } from "../lib/activityDemoLinks";
-import { Button } from "../components/ui/button";
 import { customMetadataEntriesToMeta, customMetadataEntriesToRawEntries } from "../lib/customMetadata";
 import { usePublicTerms } from "../hooks/public/usePublicTerms";
 import { TermsConsentDialog } from "../components/public/TermsConsentDialog";
+import type { ScriptManager } from "../hooks/useScriptManager.types";
+import type { NavProps } from "../types/nav";
+
+interface Author {
+  id: string;
+  displayName: string;
+  avatarUrl: string;
+}
+
+interface Organization {
+  id: string;
+  name: string;
+  logoUrl?: string;
+}
+
+interface MockMeta {
+  coverUrl: string | null;
+  author: Author | null;
+  organization: Organization | null;
+  tags: string[];
+  synopsis: string;
+  description: string;
+  date: string;
+  contact: unknown;
+  source: string;
+  credit: string;
+  authors: string;
+  headerAuthor: string;
+  license: string;
+  commercialUse: string;
+  derivativeUse: string;
+  notifyOnModify: string;
+  licenseSpecialTerms: unknown[];
+  licenseTags: string[];
+  seriesName: string;
+  seriesOrder: number | null;
+  prefaceItems: { id: string; title: string; value: string }[];
+  activity: {
+    name: string;
+    bannerUrl: string;
+    content: string;
+    demoUrl: string;
+    demoLinks: unknown[];
+    workUrl: string;
+  };
+  customFields: { key: string; value: string }[];
+  showMarkerLegend: boolean;
+}
 
 // Helper for robust list parsing (handles double-encoded JSON strings)
-const ensureList = (val) => {
+const ensureList = (val: unknown): unknown[] => {
     if (!val) return [];
     let parsed = val;
     if (typeof parsed === 'string') {
@@ -53,8 +99,8 @@ const PREFACE_RULES = [
 }));
 
 
-const buildPrefaceItems = (meta = {}) => {
-    const valueByKey = new Map();
+const buildPrefaceItems = (meta: Record<string, string> = {}) => {
+    const valueByKey = new Map<string, string>();
     Object.entries(meta || {}).forEach(([key, value]) => {
         const normalizedKey = normalizePrefaceKey(key);
         const normalizedValue = String(value || "").trim();
@@ -62,8 +108,8 @@ const buildPrefaceItems = (meta = {}) => {
         valueByKey.set(normalizedKey, normalizedValue);
     });
 
-    const items = [];
-    const seen = new Set();
+    const items: { id: string; title: string; value: string }[] = [];
+    const seen = new Set<string>();
     PREFACE_RULES.forEach((rule) => {
         const key = rule.keys.find((k) => valueByKey.has(k));
         if (!key) return;
@@ -80,21 +126,21 @@ const buildPrefaceItems = (meta = {}) => {
     return items;
 };
 
-export default function PublicReaderPage({ scriptManager, navProps }) {
+export default function PublicReaderPage({ scriptManager, navProps }: { scriptManager: ScriptManager; navProps: NavProps }) {
   const { t } = useI18n();
   const { id } = useParams();
   const navigate = useNavigate();
   const {
       setActivePublicScriptId, setRawScript, setTitleName,
       setActiveCloudScript, activeCloudScript,
-      rawScript, filterCharacter, focusMode, focusEffect, focusContentMode,
-      highlightCharacters, highlightSfx, setCharacterList, setTitleHtml, setTitleNote, setTitleSummary, setHasTitle, setSceneList,
-      scrollSceneId, setScrollProgress, setCloudScriptMode
+      rawScript, filterCharacter, focusMode,
+      setCharacterList, setTitleHtml, setTitleNote, setTitleSummary, setHasTitle, setSceneList,
+      scrollSceneId, setCloudScriptMode
   } = scriptManager;
 
   const [isLoading, setIsLoading] = useState(false);
-  const [mockMeta, setMockMeta] = useState(null);
-  const [relatedSeriesScripts, setRelatedSeriesScripts] = useState([]);
+  const [mockMeta, setMockMeta] = useState<MockMeta | null>(null);
+  const [relatedSeriesScripts, setRelatedSeriesScripts] = useState<{ id: string; title: string; coverUrl: string | null; seriesOrder: number | null }[]>([]);
   const [publicMarkerConfigs, setPublicMarkerConfigs] = useState(
     normalizeMarkerConfigsSchema(defaultMarkerConfigs)
   );
@@ -231,7 +277,7 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                     coverUrl: script.coverUrl || null,
                     author: resolvedAuthor,
                     organization: resolvedOrganization,
-                    tags: script.tags ? script.tags.map(tag => tag.name) : [],
+                    tags: script.tags ? script.tags.map((tag: { name: string }) => tag.name) : [],
                     synopsis: meta.synopsis || meta.summary || "",
                     description: meta.description || meta.notes || "",
                     date: script.draftDate || meta.date || meta.draftdate || "",
@@ -262,21 +308,23 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                 if (seriesName) {
                     try {
                         const bundle = await getPublicBundle();
+                        type SeriesItem = { id: string; title: string; coverUrl: string | null; seriesOrder: number | null };
                         const sameSeries = (bundle?.scripts || [])
-                            .filter((item) => item?.id && item.id !== script.id)
-                            .map((item) => {
-                                const parsedMeta = customMetadataEntriesToMeta(item.customMetadata || []);
+                            .filter((item: unknown) => (item as any)?.id && (item as any).id !== script.id)
+                            .map((item: unknown): SeriesItem | null => {
+                                const i = item as any;
+                                const parsedMeta = customMetadataEntriesToMeta(i.customMetadata || []);
                                 const itemSeriesName = normalizeSeriesName(parsedMeta?.series || parsedMeta?.seriesname);
                                 if (itemSeriesName.toLowerCase() !== seriesName.toLowerCase()) return null;
                                 return {
-                                    id: item.id,
-                                    title: item.title || t("publicGallery.unknown"),
-                                    coverUrl: item.coverUrl || null,
-                                    seriesOrder: parseSeriesOrder(item?.seriesOrder ?? parsedMeta?.seriesorder),
+                                    id: i.id,
+                                    title: i.title || t("publicGallery.unknown"),
+                                    coverUrl: i.coverUrl || null,
+                                    seriesOrder: parseSeriesOrder(i?.seriesOrder ?? parsedMeta?.seriesorder),
                                 };
                             })
-                            .filter(Boolean)
-                            .sort((a, b) => {
+                            .filter((item: SeriesItem | null): item is SeriesItem => item !== null)
+                            .sort((a: SeriesItem, b: SeriesItem) => {
                                 const aOrder = a.seriesOrder ?? Number.MAX_SAFE_INTEGER;
                                 const bOrder = b.seriesOrder ?? Number.MAX_SAFE_INTEGER;
                                 if (aOrder !== bOrder) return aOrder - bOrder;
@@ -304,7 +352,7 @@ export default function PublicReaderPage({ scriptManager, navProps }) {
                 } else if (script.markerThemeId && script.markerThemeId !== "default") {
                     try {
                         const themes = await getPublicThemes();
-                        const matched = themes.find((t) => t.id === script.markerThemeId);
+                        const matched = themes.find((theme: { id: string; configs?: unknown }) => theme.id === script.markerThemeId);
                         if (matched?.configs) {
                             const normalized = normalizeMarkerConfigsSchema(matched.configs);
                             if (normalized.length > 0) resolvedPublicConfigs = normalized;
@@ -362,9 +410,15 @@ They discover a glowing artifact.
 	                 setMockMeta({
                     coverUrl: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop",
                     author: { id: "user-1", displayName: "Alex Chen", avatarUrl: "https://github.com/shadcn.png" },
+                    organization: null,
                     tags: ["Sci-Fi", "Thriller"],
-	                    synopsis: "Two astronauts on a distant moon discover a time-bending anomaly."
-	                });
+                    synopsis: "Two astronauts on a distant moon discover a time-bending anomaly.",
+                    description: "", date: "", contact: "", source: "", credit: "", authors: "",
+                    headerAuthor: "", license: "", commercialUse: "", derivativeUse: "", notifyOnModify: "",
+                    licenseSpecialTerms: [], licenseTags: [], seriesName: "", seriesOrder: null,
+                    prefaceItems: [], activity: { name: "", bannerUrl: "", content: "", demoUrl: "", demoLinks: [], workUrl: "" },
+                    customFields: [], showMarkerLegend: false,
+                 });
                     setRelatedSeriesScripts([]);
 	            }
         } finally {
@@ -419,7 +473,7 @@ They discover a glowing artifact.
           }
       }
 
-      const data = {
+      const data: Record<string, unknown> = {
           "@context": "https://schema.org",
           "@type": "CreativeWork",
           name: fullScriptData.title,
@@ -433,19 +487,13 @@ They discover a glowing artifact.
       };
 
       if (authorName) {
-          data.author = {
-              "@type": "Person",
-              name: authorName,
-          };
+          data["author"] = { "@type": "Person", name: authorName };
       }
       if (orgName) {
-          data.publisher = {
-              "@type": "Organization",
-              name: orgName,
-          };
+          data["publisher"] = { "@type": "Organization", name: orgName };
       }
       if (fullScriptData?.coverUrl) {
-          data.image = fullScriptData.coverUrl;
+          data["image"] = fullScriptData.coverUrl;
       }
 
       return data;
@@ -453,8 +501,7 @@ They discover a glowing artifact.
 
   const surfaceProps = useMemo(() => ({
       scrollRef: navProps?.contentScrollRef,
-      onScrollProgress: setScrollProgress,
-  }), [navProps?.contentScrollRef, setScrollProgress]);
+  }), [navProps?.contentScrollRef]);
 
   const mergedViewerProps = useMemo(() => ({
       ...viewerDefaults,
@@ -464,10 +511,6 @@ They discover a glowing artifact.
       externalTitleEntries: scriptManager.parsedTitleEntries,
       filterCharacter,
       focusMode,
-      focusEffect,
-      focusContentMode,
-      highlightCharacters,
-      highlightSfx,
       onCharacters: setCharacterList,
       onTitle: setTitleHtml,
       onTitleNote: setTitleNote,
@@ -483,10 +526,6 @@ They discover a glowing artifact.
       scriptManager.parsedTitleEntries,
       filterCharacter,
       focusMode,
-      focusEffect,
-      focusContentMode,
-      highlightCharacters,
-      highlightSfx,
       setCharacterList,
       setTitleHtml,
       setTitleNote,
@@ -513,9 +552,9 @@ They discover a glowing artifact.
     <PublicReaderLayout
         script={fullScriptData}
         isLoading={isLoading}
-        relatedSeriesScripts={relatedSeriesScripts}
-        onOpenRelatedScript={(scriptId) => navigate(`/read/${scriptId}`)}
-        onOpenSeries={(name) => navigate(`/series/${encodeURIComponent(name)}`)}
+        relatedSeriesScripts={relatedSeriesScripts as any}
+        onOpenRelatedScript={(scriptId: string) => navigate(`/read/${scriptId}`)}
+        onOpenSeries={(name: string) => navigate(`/series/${encodeURIComponent(name)}`)}
         onBack={() => navigate("/")} // Return to library/home
         onShare={async () => {
             const url = window.location.href;
@@ -533,7 +572,7 @@ They discover a glowing artifact.
         }}
         // Marker Props for Header (same source as ScriptViewer)
         validMarkerConfigs={publicMarkerConfigs}
-        hiddenMarkerIds={scriptManager.hiddenMarkerIds}
+        hiddenMarkerIds={scriptManager.hiddenMarkerIds as any}
         onToggleMarker={scriptManager.toggleMarkerVisibility}
         renderedHtml=""
         
@@ -543,7 +582,7 @@ They discover a glowing artifact.
     />
     <TermsConsentDialog
       open={termsDialogOpen}
-      onOpenChange={(open) => { if (!open && !isSubmittingTerms) { setTermsDialogOpen(false); navigate("/"); } }}
+      onOpenChange={(open: boolean) => { if (!open && !isSubmittingTerms) { setTermsDialogOpen(false); navigate("/"); } }}
       termsConfig={termsConfig}
       termsScrollRef={termsScrollRef}
       termsReadToBottom={termsReadToBottom}
@@ -557,6 +596,7 @@ They discover a glowing artifact.
       onConfirm={() => confirmTermsConsent(id)}
       onCancel={() => navigate("/")}
       cancelLabel="返回公開台本"
+      confirmLabel="同意並進入"
     />
     </>
   );

@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 
-export const useEditableTitle = (title, onTitleChange) => {
+export function useEditableTitle(
+  title: string,
+  onTitleChange?: (newTitle: string) => void
+) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(title || "");
 
@@ -34,6 +37,6 @@ export const useEditableTitle = (title, onTitleChange) => {
     setEditTitle,
     startEditing,
     submitTitle,
-    cancelEditing
+    cancelEditing,
   };
-};
+}

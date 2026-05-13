@@ -1,6 +1,7 @@
 import React, { Suspense } from "react";
 import { Navigate, Route } from "react-router-dom";
 import { lazyWithRefreshRetry } from "../lib/lazyWithRefreshRetry";
+import type { PublicRoutesProps } from "../types/routes";
 
 const PublicReaderPage = lazyWithRefreshRetry(() => import("../pages/PublicReaderPage"), "page-public-reader");
 const PublicGalleryPage = lazyWithRefreshRetry(() => import("../pages/PublicGalleryPage"), "page-public-gallery");
@@ -10,7 +11,7 @@ const PublicSeriesPage = lazyWithRefreshRetry(() => import("../pages/PublicSerie
 
 const routeFallback = <div className="p-8 text-center text-muted-foreground">Loading...</div>;
 
-export function renderPublicRoutes({ scriptManager, navProps }) {
+export function renderPublicRoutes({ scriptManager, navProps }: PublicRoutesProps) {
   return (
     <>
       <Route
