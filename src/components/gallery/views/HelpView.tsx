@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import {
   CircleHelp,
@@ -27,14 +26,36 @@ import {
 import { useI18n } from "../../../contexts/I18nContext";
 import { MORANDI_STUDIO_TONE_VARS } from "../../../constants/morandiPanelTones";
 
+interface MarkerRow {
+  marker: string;
+  meaning: string;
+}
+
+interface DetailRow {
+  name: string;
+  desc: string;
+  sample: string;
+  render: string;
+}
+
+type CategoryKey = "publish" | "layout" | "import" | "license";
+
+interface FaqItem {
+  id: string;
+  category: CategoryKey;
+  question: string;
+  answer: string;
+  keywords: string[];
+}
+
 export function HelpView() {
   const { t } = useI18n();
-  const [showImportQuickInfo, setShowImportQuickInfo] = React.useState(false);
-  const [showImportDetails, setShowImportDetails] = React.useState(false);
-  const [query, setQuery] = React.useState("");
-  const [expandedId, setExpandedId] = React.useState(null);
+  const [showImportQuickInfo, setShowImportQuickInfo] = React.useState<boolean>(false);
+  const [showImportDetails, setShowImportDetails] = React.useState<boolean>(false);
+  const [query, setQuery] = React.useState<string>("");
+  const [expandedId, setExpandedId] = React.useState<string | null>(null);
 
-  const markerRows = [
+  const markerRows: MarkerRow[] = [
     { marker: "1. 第一章", meaning: t("importFormat.markerChapter") },
     { marker: "#C 小雨", meaning: t("importFormat.markerCharacter") },
     { marker: "(低聲)", meaning: t("importFormat.markerTone") },
@@ -44,7 +65,7 @@ export function HelpView() {
     { marker: "@舞台左側", meaning: t("importFormat.markerPosition") },
   ];
 
-  const detailRows = [
+  const detailRows: DetailRow[] = [
     { name: t("importFormat.markerChapter"), desc: t("importFormat.usageChapter"), sample: "1. 第一章", render: t("importFormat.markerChapter") },
     { name: t("importFormat.markerCharacter"), desc: t("importFormat.usageCharacter"), sample: "#C 小雨", render: "小雨：" },
     { name: t("importFormat.markerTone"), desc: t("importFormat.usageTone"), sample: "(低聲)", render: "語氣/動作樣式" },
@@ -61,7 +82,7 @@ export function HelpView() {
     license: { label: "授權與條款", icon: ShieldCheck, toneKey: "profile" },
   }), []);
 
-  const faqItems = React.useMemo(() => ([
+  const faqItems = React.useMemo<FaqItem[]>(() => ([
     {
       id: "publish-1",
       category: "publish",
@@ -132,7 +153,7 @@ export function HelpView() {
   }, [faqItems, normalizedQuery]);
 
   const groupedFaq = React.useMemo(() => {
-    return filteredFaq.reduce((acc, item) => {
+    return filteredFaq.reduce<Record<string, FaqItem[]>>((acc, item) => {
       if (!acc[item.category]) acc[item.category] = [];
       acc[item.category].push(item);
       return acc;
@@ -145,7 +166,7 @@ export function HelpView() {
   return (
     <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
       <Card
-        style={MORANDI_STUDIO_TONE_VARS.works}
+        style={MORANDI_STUDIO_TONE_VARS.works as React.CSSProperties}
         className="border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-br from-[var(--morandi-tone-helper-bg)]/45 via-background to-[var(--morandi-tone-panel-bg)]"
       >
         <CardContent className="pt-8 pb-6">
@@ -161,7 +182,7 @@ export function HelpView() {
               <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
               <Input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
                 placeholder="搜尋問題，例如：如何公開、匯入格式、授權條款"
                 className="h-11 pl-9 pr-9 bg-background/90"
               />
@@ -243,7 +264,7 @@ export function HelpView() {
           return (
             <Card
               key={categoryKey}
-              style={MORANDI_STUDIO_TONE_VARS[meta?.toneKey] || MORANDI_STUDIO_TONE_VARS.works}
+              style={(MORANDI_STUDIO_TONE_VARS[meta?.toneKey] || MORANDI_STUDIO_TONE_VARS.works) as React.CSSProperties}
               className="border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)]/65"
             >
               <CardHeader>

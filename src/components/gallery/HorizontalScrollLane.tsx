@@ -1,13 +1,19 @@
-// @ts-nocheck
 import React, { useRef, useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "../ui/button";
 
-export function HorizontalScrollLane({ children, title, actionLabel, onAction }) {
-  const scrollRef = useRef(null);
-  const [showLeft, setShowLeft] = useState(false);
-  const [showRight, setShowRight] = useState(false);
-  const [isLaneHovered, setIsLaneHovered] = useState(false);
+interface HorizontalScrollLaneProps {
+  children: React.ReactNode;
+  title?: React.ReactNode;
+  actionLabel?: React.ReactNode;
+  onAction?: () => void;
+}
+
+export function HorizontalScrollLane({ children, title, actionLabel, onAction }: HorizontalScrollLaneProps): React.JSX.Element {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [showLeft, setShowLeft] = useState<boolean>(false);
+  const [showRight, setShowRight] = useState<boolean>(false);
+  const [isLaneHovered, setIsLaneHovered] = useState<boolean>(false);
 
   const checkScroll = () => {
     if (!scrollRef.current) return;
@@ -28,7 +34,7 @@ export function HorizontalScrollLane({ children, title, actionLabel, onAction })
     };
   }, [children]);
 
-  const scroll = (direction) => {
+  const scroll = (direction: "left" | "right"): void => {
     if (!scrollRef.current) return;
     const { clientWidth } = scrollRef.current;
     // Scroll by ~75% of the visible width so some context remains

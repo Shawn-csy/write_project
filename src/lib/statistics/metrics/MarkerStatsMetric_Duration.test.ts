@@ -1,7 +1,7 @@
 
 import { describe, it } from 'vitest';
 import assert from 'node:assert';
-import { MarkerStatsMetric } from './MarkerStatsMetric.js';
+import { MarkerStatsMetric } from './MarkerStatsMetric';
 
 describe('MarkerStatsMetric Duration Parsing', () => {
     it('should parse seconds identifiers correctly', () => {

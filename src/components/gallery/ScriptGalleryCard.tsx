@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "../ui/badge";
@@ -8,7 +7,33 @@ import { toggleScriptLike, incrementScriptView } from "../../lib/api/scripts";
 import { AuthorBadge } from "../ui/AuthorBadge";
 import { CoverPlaceholder } from "../ui/CoverPlaceholder";
 
-export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
+interface TagLike {
+  name?: string;
+}
+
+interface ScriptGalleryItem {
+  id: string;
+  title: string;
+  author?: string | { id?: string; displayName?: string; avatarUrl?: string; avatar?: string };
+  coverUrl?: string;
+  tags?: Array<string | TagLike>;
+  views?: number;
+  likes?: number;
+  _disableAuthorLink?: boolean;
+  seriesName?: string;
+  _seriesName?: string;
+  seriesOrder?: number | string | null;
+  _seriesOrder?: number | string | null;
+  _derivedLicenseTags?: Array<string | TagLike>;
+}
+
+interface ScriptGalleryCardProps {
+  script: ScriptGalleryItem;
+  onClick?: () => void;
+  variant?: "standard" | "compact";
+}
+
+export function ScriptGalleryCard({ script, onClick, variant = "standard" }: ScriptGalleryCardProps): React.JSX.Element {
   const navigate = useNavigate();
   const { id, title, author, coverUrl, tags = [], views = 0, likes = 0 } = script;
   const authorClickable = !script?._disableAuthorLink;
@@ -20,16 +45,16 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
     !hasSeriesOrder ? "" : Math.floor(parsedSeriesOrder) === 0 ? " · 設定/背景" : ` · 第 ${Math.floor(parsedSeriesOrder)} 作`;
   const normalizedTags = (tags || [])
     .map((tag) => (typeof tag === "string" ? tag : tag?.name))
-    .filter(Boolean);
+    .filter((tag): tag is string => Boolean(tag));
   const licenseTags = ((script?._derivedLicenseTags || []) || [])
     .map((tag) => (typeof tag === "string" ? tag : tag?.name))
-    .filter(Boolean);
+    .filter((tag): tag is string => Boolean(tag));
   const licenseTagSet = new Set(licenseTags);
   const displayTags = normalizedTags.filter((tag) => !licenseTagSet.has(tag));
   const primaryTags = displayTags.slice(0, 2);
   const secondaryTags = displayTags.slice(2, 3);
-  const [isLiked, setIsLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(likes);
+  const [isLiked, setIsLiked] = useState<boolean>(false);
+  const [likeCount, setLikeCount] = useState<number>(likes);
 
   useEffect(() => {
     // Load like state from local storage (mock persistence)
@@ -40,7 +65,7 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
     setLikeCount(likes + (stored === 'true' ? 1 : 0)); 
   }, [id, likes]);
 
-  const handleLike = async (e) => {
+  const handleLike = async (e: React.MouseEvent<HTMLElement>): Promise<void> => {
     e.stopPropagation();
     // Optimistic Update
     const newState = !isLiked;
@@ -50,7 +75,7 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
     // API Call (Fire and forget, or handle error revert)
     try {
         await toggleScriptLike(id);
-        localStorage.setItem(`liked_script_${id}`, newState);
+        localStorage.setItem(`liked_script_${id}`, String(newState));
     } catch (error) {
         console.error("Failed to toggle like:", error);
         // Revert on error
@@ -59,7 +84,7 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }) {
     }
   };
 
-  const handleCardClick = () => {
+  const handleCardClick = (): void => {
      // Increment view count (fire and forget)
      incrementScriptView(id).catch(err => console.error("Failed to count view", err));
      if (onClick) onClick();

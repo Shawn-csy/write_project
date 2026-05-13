@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Stage 3: DirectASTBuilder
  * 
@@ -8,16 +7,16 @@
  * - 整合現有的 parseInline 邏輯
  */
 
-import { parseInline } from '../parsers/inlineParser.js';
-import { toFullWidth } from '../parsers/parserGenerators.js';
-import { isBlockLike, isInlineLike } from '../markerRules.js';
-import { defaultMarkerConfigs } from '../../constants/defaultMarkerRules.js';
-import { normalizeMarkerConfigsSchema } from '../markerThemeCodec.js';
+import { parseInline } from '../parsers/inlineParser';
+import { toFullWidth } from '../parsers/parserGenerators';
+import { isBlockLike, isInlineLike } from '../markerRules';
+import { defaultMarkerConfigs } from '../../constants/defaultMarkerRules';
+import { normalizeMarkerConfigsSchema } from '../markerThemeCodec';
 
 // ... (skip lines)
 
 
-import { isBlankLine } from './constants.js';
+import { isBlankLine } from './constants';
 
 /**
  * AST 節點類型 (純 Marker 模式)
@@ -35,8 +34,21 @@ import { isBlankLine } from './constants.js';
  * @property {string} raw - 原始文本
  */
 
+import type { MarkerConfig, AstNode } from "../../types/script";
+
+interface RangeGroup {
+  startSymbol: string;
+  endSymbol: string;
+  style: Record<string, string> | undefined;
+  marker: MarkerConfig;
+}
+
 export class DirectASTBuilder {
-  constructor(markerConfigs = []) {
+  configs: MarkerConfig[];
+  blockMarkers: MarkerConfig[];
+  inlineMarkers: MarkerConfig[];
+  rangeGroups: Record<string, RangeGroup>;
+  constructor(markerConfigs: MarkerConfig[] = []) {
     this.configs = markerConfigs.map((c) => ({ ...c }));
     
     // 分離 block 和 inline markers（共用規則）
@@ -71,11 +83,11 @@ export class DirectASTBuilder {
    * @param {string} text - 清洗後的文本
    * @returns {ASTNode} 根節點
    */
-  parse(text) {
+  parse(text: string): AstNode {
     const lines = text.split('\n');
-    const ast = { 
-      type: 'root', 
-      children: []
+    const ast: AstNode = {
+      type: 'root',
+      children: [] as AstNode[],
     };
     
     // Range 區間狀態追蹤
@@ -119,12 +131,14 @@ export class DirectASTBuilder {
         if (activeRanges.length > 0 && !rangeInfo) {
           node.inRange = activeRanges;
           // 記錄每個區間的當前深度
-          node.rangeDepths = {};
+          node.rangeDepths = {} as Record<string, number>;
+          const nodeRangeDepths = node.rangeDepths as Record<string, number>;
           activeRanges.forEach(groupId => {
-            node.rangeDepths[groupId] = rangeDepth.get(groupId);
+            nodeRangeDepths[groupId] = rangeDepth.get(groupId);
           });
           // 取得區間樣式
-          const rangeStyles = node.inRange
+          const nodeInRange = node.inRange as string[];
+          const rangeStyles = nodeInRange
             .map(groupId => this.rangeGroups[groupId]?.style)
             .filter(Boolean);
           if (rangeStyles.length > 0) {
@@ -132,12 +146,12 @@ export class DirectASTBuilder {
           }
         }
         
-        ast.children.push(node);
+        (ast.children as AstNode[]).push(node);
       }
     }
-    
+
     // 將扁平的 range 標記轉換為巢狀結構
-    ast.children = this._collapseRanges(ast.children);
+    ast.children = this._collapseRanges(ast.children ?? []);
     
     return ast;
   }
@@ -146,10 +160,10 @@ export class DirectASTBuilder {
    * 將扁平的 range 標記轉換為巢狀結構
    * @private
    */
-  _collapseRanges(nodes) {
-    const rootChildren = [];
+  _collapseRanges(nodes: AstNode[]): AstNode[] {
+    const rootChildren: AstNode[] = [];
     // 堆疊：儲存當前開啟的 range 節點
-    const stack = [];
+    const stack: AstNode[] = [];
     const findTopmostOpenRangeIndex = (groupId) => {
       for (let idx = stack.length - 1; idx >= 0; idx--) {
         if (stack[idx].rangeGroupId === groupId) return idx;
@@ -162,13 +176,12 @@ export class DirectASTBuilder {
       
       // 0. 處理 Range 暫停 (Pause) -> Toggle (Close if open, Open if closed)
       if (node.type === 'layer' && node.rangeRole === 'pause') {
-          const groupId = node.rangeGroupId;
+          const groupId = node.rangeGroupId as string;
           const openIndex = findTopmostOpenRangeIndex(groupId);
           if (openIndex !== -1) {
-              // Pause 是 range 內單行控制點，不切斷區間
-              stack[openIndex].children.push(node);
+              (stack[openIndex].children as AstNode[]).push(node);
           } else if (parent) {
-              parent.children.push(node);
+              (parent.children as AstNode[]).push(node);
           } else {
               rootChildren.push(node);
           }
@@ -177,20 +190,19 @@ export class DirectASTBuilder {
 
       // 1. 處理 Range 開始標記
       if (node.type === 'layer' && node.rangeRole === 'start') {
-        const rangeNode = {
+        const rangeNode: AstNode = {
           type: 'range',
-          layerType: node.layerType, // rangeGroupId
+          layerType: node.layerType,
           rangeGroupId: node.rangeGroupId,
           startNode: node,
-          endNode: null, // 尚未遇到結束標記
-          children: [],
+          endNode: null,
+          children: [] as AstNode[],
           style: node.style,
-          rangeDepth: stack.length + 1 // 記錄深度
+          rangeDepth: stack.length + 1,
         };
         
-        // 加入父節點或根列表
         if (parent) {
-          parent.children.push(rangeNode);
+          (parent.children as AstNode[]).push(rangeNode);
         } else {
           rootChildren.push(rangeNode);
         }
@@ -207,19 +219,18 @@ export class DirectASTBuilder {
           parent.endNode = node;
           stack.pop();
         } else {
-          // 不匹配（可能是交錯或孤立的結束標記），視為普通節點處理
           if (parent) {
-            parent.children.push(node);
+            (parent.children as AstNode[]).push(node);
           } else {
             rootChildren.push(node);
           }
         }
         continue;
       }
-      
+
       // 3. 普通內容節點
       if (parent) {
-        parent.children.push(node);
+        (parent.children as AstNode[]).push(node);
       } else {
         rootChildren.push(node);
       }
@@ -262,7 +273,7 @@ export class DirectASTBuilder {
    * 解析單行
    * @private
    */
-  _parseLine(line, lineNumber) {
+  _parseLine(line: string, lineNumber: number): AstNode | null {
     const trimmed = line.trim();
     
     // 空行處理
@@ -299,8 +310,8 @@ export class DirectASTBuilder {
   _matchBlockMarker(line, lineNumber) {
     const sortedMarkers = [...this.blockMarkers].sort(
       (a, b) => {
-        const pA = Number.isFinite(a?.priority) ? a.priority : 0;
-        const pB = Number.isFinite(b?.priority) ? b.priority : 0;
+        const pA = Number.isFinite(a?.priority) ? (a.priority ?? 0) : 0;
+        const pB = Number.isFinite(b?.priority) ? (b.priority ?? 0) : 0;
         if (pA !== pB) return pB - pA;
         return (b.start?.length || 0) - (a.start?.length || 0);
       }
@@ -552,9 +563,9 @@ export class DirectASTBuilder {
     return value;
   }
 
-  _buildParsedNode(marker, content, rawLine, lineNumber, match) {
+  _buildParsedNode(marker: MarkerConfig & { parseAs?: string; mapFields?: Record<string, unknown>; mapCasts?: Record<string, unknown> }, content: string, rawLine: string, lineNumber: number, match: RegExpMatchArray | null): AstNode | null {
     if (!marker?.parseAs) return null;
-    const node = {
+    const node: AstNode = {
       type: marker.parseAs,
       markerType: marker.type,
       markerId: marker.id,

@@ -1,11 +1,27 @@
-// @ts-nocheck
 import React, { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
 import { useI18n } from "../../contexts/I18nContext";
 
-const DEFAULT_SLIDES = [
+interface PublicHeroSlide {
+  id?: string | number;
+  title?: string;
+  subtitle?: string;
+  content?: string;
+  className?: string;
+  link?: string;
+  imageUrl?: string;
+}
+
+interface PublicHeroMarqueeProps {
+  slides?: PublicHeroSlide[];
+  intervalMs?: number;
+  fallbackToDefault?: boolean;
+  fullBleed?: boolean;
+}
+
+const DEFAULT_SLIDES: PublicHeroSlide[] = [
   {
     id: "placeholder-1",
     title: "Marquee Placeholder A",
@@ -34,14 +50,14 @@ export function PublicHeroMarquee({
   intervalMs = 4500,
   fallbackToDefault = true,
   fullBleed = false,
-}) {
+}: PublicHeroMarqueeProps): React.JSX.Element | null {
   const { t } = useI18n();
   const safeSlides = Array.isArray(slides) && slides.length > 0
     ? slides
     : (fallbackToDefault ? DEFAULT_SLIDES : []);
   if (safeSlides.length === 0) return null;
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
+  const [activeIndex, setActiveIndex] = useState<number>(0);
+  const [isPaused, setIsPaused] = useState<boolean>(false);
 
   useEffect(() => {
     if (safeSlides.length <= 1 || isPaused) return undefined;
@@ -51,7 +67,7 @@ export function PublicHeroMarquee({
     return () => window.clearInterval(timer);
   }, [intervalMs, isPaused, safeSlides.length]);
 
-  const goTo = (nextIndex) => {
+  const goTo = (nextIndex: number): void => {
     const bounded = ((nextIndex % safeSlides.length) + safeSlides.length) % safeSlides.length;
     setActiveIndex(bounded);
   };

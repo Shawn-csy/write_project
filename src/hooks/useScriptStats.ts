@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMemo, useState, useEffect } from 'react';
 import { calculateScriptStats } from '../lib/statistics';
 import { buildAST } from '../lib/importPipeline/directASTBuilder';
@@ -9,11 +8,19 @@ import { buildAST } from '../lib/importPipeline/directASTBuilder';
  * @param {Array} scriptAst - The parsed script AST.
  * @returns {Object} The calculated statistics object.
  */
-export function useScriptStats({ scriptId, rawScript, scriptAst, markerConfigs = [], options = {} }) {
+type UseScriptStatsOptions = {
+  scriptId?: string | null;
+  rawScript?: string | null;
+  scriptAst?: unknown[] | { children?: unknown[] } | null;
+  markerConfigs?: unknown[];
+  options?: Record<string, unknown>;
+};
+
+export function useScriptStats({ scriptId, rawScript, scriptAst, markerConfigs = [], options = {} }: UseScriptStatsOptions) {
   const markerConfigsKey = useMemo(() => JSON.stringify(markerConfigs || []), [markerConfigs]);
-  const [remoteStats, setRemoteStats] = useState(null);
+  const [remoteStats, setRemoteStats] = useState<Record<string, unknown> | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<unknown>(null);
 
   // Local calculation (fallback or realtime)
   const localStats = useMemo(() => {
@@ -21,7 +28,7 @@ export function useScriptStats({ scriptId, rawScript, scriptAst, markerConfigs =
     if (scriptAst) {
         try {
             return calculateScriptStats(scriptAst, markerConfigs, options);
-        } catch (e) {
+        } catch (e: unknown) {
             console.error("Error calculating script stats from AST:", e);
         }
     }
@@ -31,7 +38,7 @@ export function useScriptStats({ scriptId, rawScript, scriptAst, markerConfigs =
         try {
             const ast = buildAST(rawScript || "", markerConfigs);
             return calculateScriptStats(ast, markerConfigs, options);
-        } catch (e) {
+        } catch (e: unknown) {
             console.error("Error calculating script stats from raw text:", e);
         }
     }
@@ -73,7 +80,7 @@ export function useScriptStats({ scriptId, rawScript, scriptAst, markerConfigs =
              if (!res.ok) throw new Error("Failed to fetch stats");
              const data = await res.json();
              setRemoteStats(data);
-         } catch (err) {
+         } catch (err: unknown) {
              console.error(err);
              setError(err);
          } finally {

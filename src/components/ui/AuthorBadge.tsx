@@ -4,16 +4,31 @@ import { useNavigate } from "react-router-dom";
 import { cn } from "../../lib/utils";
 import { useI18n } from "../../contexts/I18nContext";
 
-export function AuthorBadge({ author, className, showAvatar = true, link, clickable = true }) {
+interface AuthorInfo {
+  id?: string;
+  avatarUrl?: string;
+  avatar?: string;
+  displayName?: string;
+}
+
+interface AuthorBadgeProps {
+  author?: AuthorInfo | string;
+  className?: string;
+  showAvatar?: boolean;
+  link?: string;
+  clickable?: boolean;
+}
+
+export function AuthorBadge({ author, className, showAvatar = true, link, clickable = true }: AuthorBadgeProps) {
   const { t } = useI18n();
   const navigate = useNavigate();
 
-  const handleClick = (e) => {
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!clickable) return;
     e.stopPropagation();
     if (link) {
         navigate(link);
-    } else if (author?.id) {
+    } else if (typeof author === "object" && author?.id) {
       navigate(`/author/${author.id}`);
     }
   };
@@ -33,14 +48,14 @@ export function AuthorBadge({ author, className, showAvatar = true, link, clicka
     >
       {showAvatar && (
         <>
-            {author?.avatarUrl || author?.avatar ? (
+            {typeof author === "object" && (author?.avatarUrl || author?.avatar) ? (
                 <img src={author?.avatarUrl || author?.avatar} alt={author.displayName} className="w-4 h-4 rounded-full object-cover" />
             ) : (
                 <User className="w-3.5 h-3.5" />
             )}
         </>
       )}
-      <span className="font-medium">{author?.displayName || t("authorBadge.unknownAuthor")}</span>
+      <span className="font-medium">{(typeof author === "object" ? author?.displayName : author) || t("authorBadge.unknownAuthor")}</span>
     </div>
   );
 }

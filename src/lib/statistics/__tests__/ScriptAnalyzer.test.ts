@@ -1,6 +1,6 @@
 
 import { describe, it, expect } from 'vitest';
-import { calculateScriptStats } from '../index.js';
+import { calculateScriptStats } from '../index';
 
 describe('ScriptAnalyzer', () => {
     it('should correctly count scenes and basic elements', () => {

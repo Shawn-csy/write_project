@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { resolveProfileOrgIds } from "../hooks/dashboard/scriptMetadataUtils";
 
 export async function buildAffiliatedOrganizations({
@@ -6,7 +5,12 @@ export async function buildAffiliatedOrganizations({
   profile = null,
   personas = [],
   fetchOrganizationById,
-}) {
+}: {
+  ownedOrgs?: any[];
+  profile?: any;
+  personas?: any[];
+  fetchOrganizationById?: (id: any) => Promise<any>;
+} = {}) {
   const baseOrgs = Array.isArray(ownedOrgs) ? ownedOrgs.filter(Boolean) : [];
   const baseOrgIds = new Set(baseOrgs.map((org) => org?.id).filter(Boolean));
   const extraOrgIds = new Set();
@@ -23,7 +27,7 @@ export async function buildAffiliatedOrganizations({
 
   let mergedOrgs = baseOrgs;
   if (extraOrgIds.size > 0 && typeof fetchOrganizationById === "function") {
-    const fetched = [];
+    const fetched: any[] = [];
     for (const orgId of extraOrgIds) {
       try {
         const org = await fetchOrganizationById(orgId);
@@ -35,7 +39,7 @@ export async function buildAffiliatedOrganizations({
     mergedOrgs = [...baseOrgs, ...fetched];
   }
 
-  const deduped = [];
+  const deduped: any[] = [];
   const seen = new Set();
   for (const org of mergedOrgs) {
     if (!org || !org.id || seen.has(org.id)) continue;

@@ -1,5 +1,4 @@
-// @ts-nocheck
-export const readString = (key, allowedValues = []) => {
+export const readString = (key: string, allowedValues: string[] = []): string | null => {
   try {
     const val = localStorage.getItem(key);
     if (val === null || val === undefined) return null;
@@ -13,7 +12,7 @@ export const readString = (key, allowedValues = []) => {
   }
 };
 
-export const readNumber = (key) => {
+export const readNumber = (key: string): number | null => {
   try {
     const raw = localStorage.getItem(key);
     if (raw === null || raw === undefined) return null;
@@ -25,7 +24,7 @@ export const readNumber = (key) => {
   }
 };
 
-export const writeValue = (key, value) => {
+export const writeValue = (key: string, value: unknown): void => {
   try {
     localStorage.setItem(key, String(value));
   } catch (err) {

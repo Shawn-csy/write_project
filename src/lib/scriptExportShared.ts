@@ -1,4 +1,3 @@
-// @ts-nocheck
 const normalizeText = (text = "") =>
   String(text ?? "")
     .replace(/\r\n/g, "\n")
@@ -63,22 +62,22 @@ const pickRenderedRoot = () => {
     return rect.width > 0 && rect.height > 0;
   });
   const candidates = visibleNodes.length > 0 ? visibleNodes : nodes;
-  candidates.sort((a, b) => (b.innerText || "").length - (a.innerText || "").length);
-  return candidates[0] || null;
+  candidates.sort((a, b) => ((a as HTMLElement).innerText || "").length - ((b as HTMLElement).innerText || "").length);
+  return (candidates[0] as HTMLElement) || null;
 };
 
 const buildRenderedHtmlFromDom = () => {
   const root = pickRenderedRoot();
   if (!root || typeof document === "undefined") return "";
 
-  const clone = root.cloneNode(true);
+  const clone = root.cloneNode(true) as HTMLElement;
   const origAll = [root, ...Array.from(root.querySelectorAll("*"))];
   const cloneAll = [clone, ...Array.from(clone.querySelectorAll("*"))];
   for (let i = 0; i < Math.min(origAll.length, cloneAll.length); i += 1) {
-    const css = getInlineCss(origAll[i]);
+    const css = getInlineCss(origAll[i] as HTMLElement);
     if (!css) continue;
-    const prev = cloneAll[i].getAttribute("style") || "";
-    cloneAll[i].setAttribute("style", `${prev}${prev ? ";" : ""}${css}`);
+    const prev = (cloneAll[i] as HTMLElement).getAttribute("style") || "";
+    (cloneAll[i] as HTMLElement).setAttribute("style", `${prev}${prev ? ";" : ""}${css}`);
   }
   return clone.outerHTML;
 };
@@ -142,7 +141,7 @@ const getRenderedSnapshot = ({ renderedHtml = "", text = "" } = {}) => {
 
   const lines = dom.lines.map((lineEl, index) => ({
     line: index + 1,
-    text: normalizeText(lineEl.innerText || lineEl.textContent || ""),
+    text: normalizeText((lineEl as HTMLElement).innerText || lineEl.textContent || ""),
     html: lineEl.innerHTML && lineEl.innerHTML.trim().length > 0 ? lineEl.innerHTML : "&nbsp;",
   }));
 
@@ -155,16 +154,17 @@ const getRenderedLines = ({ renderedHtml = "", text = "" } = {}) => {
   return getRenderedSnapshot({ renderedHtml, text }).lines;
 };
 
-const collectStyledRuns = (root, inherited = {}) => {
-  const runs = [];
-  const visit = (node, parentStyle) => {
+interface StyledRun { text: string; style: Record<string, unknown> }
+const collectStyledRuns = (root: HTMLElement, inherited: Record<string, unknown> = {}): StyledRun[] => {
+  const runs: StyledRun[] = [];
+  const visit = (node: Node, parentStyle: Record<string, unknown>) => {
     if (node.nodeType === Node.TEXT_NODE) {
       if (!node.nodeValue) return;
       runs.push({ text: node.nodeValue, style: parentStyle });
       return;
     }
     if (node.nodeType !== Node.ELEMENT_NODE) return;
-    const el = node;
+    const el = node as HTMLElement;
     const cs = window.getComputedStyle(el);
     const nextStyle = {
       color: cssColorToArgb(cs.color) || parentStyle.color || null,

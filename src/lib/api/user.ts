@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { API_BASE_URL, fetchApi, getAuthHeaders } from "./client";
 
 export const getUserProfile = async () => fetchApi("/me");
@@ -13,7 +12,7 @@ export const updateUserProfile = async (updates) => {
 export const exportScripts = async () => {
   const url = `${API_BASE_URL}/export/all`;
   const authHeaders = await getAuthHeaders();
-  const res = await fetch(url, { headers: authHeaders });
+  const res = await fetch(url, { headers: authHeaders as HeadersInit });
   if (!res.ok) throw new Error("Export failed");
   return res.blob();
 };

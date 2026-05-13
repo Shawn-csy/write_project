@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { Palette, ChevronDown, Check } from "lucide-react";
 import { Button } from "./button";
@@ -28,6 +27,22 @@ export function MarkerThemeVisibilityControl({
   iconOnly = false,
   iconOnlyOnMobile = false,
   className = "",
+}: {
+  markerConfigs?: Array<{ id: string; label?: string; [key: string]: unknown }>;
+  hiddenMarkerIds?: string[];
+  visibleMarkerIds?: string[];
+  onToggleMarker: (id: string) => void;
+  markerThemes?: Array<{ id: string; name?: string; [key: string]: unknown }>;
+  currentThemeId?: string;
+  onSwitchMarkerTheme?: (themeId: string) => void;
+  titlePrefix?: string;
+  visibilityTriggerClassName?: string;
+  themeTriggerClassName?: string;
+  contentAlign?: "start" | "center" | "end";
+  compact?: boolean;
+  iconOnly?: boolean;
+  iconOnlyOnMobile?: boolean;
+  className?: string;
 }) {
   const { t } = useI18n();
   if (!markerConfigs?.length || !onToggleMarker) return null;

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { fetchApi } from "./client";
 
 export const searchUsers = async (query) => {
@@ -86,7 +85,7 @@ export const deleteScriptAdmin = async (scriptId) => {
   });
 };
 
-export const updateScriptMetadataAdmin = async (scriptId, payload = {}) => {
+export const updateScriptMetadataAdmin = async (scriptId, payload: Record<string, any> = {}) => {
   const body = {
     title: payload?.title,
     author: payload?.author,
@@ -130,7 +129,7 @@ export const getHomepageBannerAdmin = async () => {
   return fetchApi("/admin/homepage-banner", { cache: "no-store" });
 };
 
-export const updateHomepageBannerAdmin = async (payload = {}) => {
+export const updateHomepageBannerAdmin = async (payload: Record<string, any> = {}) => {
   const normalizedItems = Array.isArray(payload?.items)
     ? payload.items.map((item, idx) => ({
         id: String(item?.id || `slide-${idx + 1}`),

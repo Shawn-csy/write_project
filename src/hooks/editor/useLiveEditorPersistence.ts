@@ -1,11 +1,20 @@
-// @ts-nocheck
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import type React from "react";
 import { getScript, updateScript } from "../../lib/api/scripts";
 import { debounce } from "../../lib/utils";
 
 const getDraftKey = (id) => `draft_script_${id}`;
 
-const readNewerDraft = (scriptId, serverLastModified) => {
+type SaveStatus = "saving" | "local-saved" | "saved" | "error" | "unsaved";
+
+interface ScriptDataLike {
+  id: string;
+  content?: string;
+  title?: string;
+  lastModified?: string | number | Date;
+}
+
+const readNewerDraft = (scriptId: string, serverLastModified: ScriptDataLike["lastModified"]) => {
   try {
     const draftJson = localStorage.getItem(getDraftKey(scriptId));
     if (!draftJson) return null;
@@ -23,7 +32,12 @@ const readNewerDraft = (scriptId, serverLastModified) => {
   return null;
 };
 
-const persistDraft = (scriptId, content, title, setSaveStatus) => {
+const persistDraft = (
+  scriptId: string,
+  content: string,
+  title: string,
+  setSaveStatus: React.Dispatch<React.SetStateAction<SaveStatus>>
+) => {
   try {
     localStorage.setItem(
       getDraftKey(scriptId),
@@ -55,8 +69,24 @@ export function useLiveEditorPersistence({
   setLastSaved,
   lastSavedContentRef,
   lastSavedTitleRef,
+}: {
+  scriptId: string;
+  initialData?: ScriptDataLike | null;
+  readOnly: boolean;
+  content: string;
+  title: string;
+  onClose: () => void;
+  onTitleName?: (title: string) => void;
+  t: (key: string) => string;
+  setContent: (content: string) => void;
+  setTitle: (title: string) => void;
+  setLoading: (loading: boolean) => void;
+  setSaveStatus: React.Dispatch<React.SetStateAction<SaveStatus>>;
+  setLastSaved: (date: Date) => void;
+  lastSavedContentRef: React.MutableRefObject<string>;
+  lastSavedTitleRef: React.MutableRefObject<string>;
 }) {
-  const pendingDraftRef = useRef(null);
+  const pendingDraftRef = useRef<{ scriptId: string; content: string; title: string } | null>(null);
   const flushPendingDraft = useCallback(() => {
     const pending = pendingDraftRef.current;
     if (!pending) return;
@@ -66,7 +96,7 @@ export function useLiveEditorPersistence({
 
   const debouncedPersistDraft = useMemo(
     () =>
-      debounce((scriptId, nextContent, nextTitle) => {
+      debounce((scriptId: string, nextContent: string, nextTitle: string) => {
         pendingDraftRef.current = {
           scriptId,
           content: nextContent,
@@ -140,7 +170,7 @@ export function useLiveEditorPersistence({
   ]);
 
   const performSave = useCallback(
-    async (id, newContent, newTitle) => {
+    async (id: string, newContent: string, newTitle: string) => {
       try {
         setSaveStatus("saving");
         await updateScript(id, {
@@ -161,7 +191,7 @@ export function useLiveEditorPersistence({
 
   const debouncedSave = useMemo(
     () =>
-      debounce((id, newContent, newTitle) => {
+      debounce((id: string, newContent: string, newTitle: string) => {
         performSave(id, newContent, newTitle);
       }, 60000),
     [performSave]
@@ -176,7 +206,7 @@ export function useLiveEditorPersistence({
   }, [debouncedPersistDraft, debouncedSave, flushPendingDraft]);
 
   const handleChange = useCallback(
-    (nextContent) => {
+    (nextContent: string) => {
       setContent(nextContent);
       if (readOnly) return;
       pendingDraftRef.current = {
@@ -191,7 +221,7 @@ export function useLiveEditorPersistence({
   );
 
   const handleTitleUpdate = useCallback(
-    (newTitle) => {
+    (newTitle: string) => {
       if (!newTitle || newTitle === title) return;
       setTitle(newTitle);
       onTitleName?.(newTitle);

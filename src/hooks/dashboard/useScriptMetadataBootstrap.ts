@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useRef } from "react";
 import { getPersonas } from "../../lib/api/personas";
 import { getOrganizations, getOrganization } from "../../lib/api/organizations";
@@ -37,9 +36,10 @@ export function useScriptMetadataBootstrap({
 
     const loadBootstrapData = async () => {
       try {
+        const ownerId = currentUser?.uid;
         const [pData, oData, tData] = await Promise.all([
-          getPersonas(),
-          getOrganizations(),
+          getPersonas(ownerId),
+          getOrganizations(ownerId),
           fetchUserThemes(currentUser),
         ]);
 

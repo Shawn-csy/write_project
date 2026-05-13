@@ -4,7 +4,7 @@
 
 import { describe, it } from 'vitest';
 import assert from 'node:assert';
-import { DirectASTBuilder, buildAST } from './directASTBuilder.js';
+import { DirectASTBuilder, buildAST } from './directASTBuilder';
 
 describe('DirectASTBuilder (Pure Marker Mode)', () => {
   

@@ -1,4 +1,3 @@
-// @ts-nocheck
 function hasAny(text, patterns) {
   return patterns.some((p) => text.includes(p));
 }
@@ -110,8 +109,8 @@ export function deriveUsageRights(licenseRaw, termsRaw, commercialRaw = "") {
   ]);
   const termAllowFree = hasAffirmativeFree(terms);
 
-  let allowCommercial = null;
-  let isFreeToUse = null;
+  let allowCommercial: boolean | null = null;
+  let isFreeToUse: boolean | null = null;
 
   if (normalizedCommercial === "allow") allowCommercial = true;
   else if (normalizedCommercial === "disallow") allowCommercial = false;
@@ -162,7 +161,7 @@ export function deriveSimpleLicenseTags({
   const commercial = normalizeCommercialChoice(commercialUse);
   const derivative = normalizeDerivativeChoice(derivativeUse);
   const notify = normalizeNotifyChoice(notifyOnModify);
-  const tags = [];
+  const tags: string[] = [];
   if (commercial === "allow") tags.push("授權:可商用");
   if (commercial === "disallow") tags.push("授權:不可商用");
   if (derivative === "allow") tags.push("授權:可改作");
@@ -173,7 +172,7 @@ export function deriveSimpleLicenseTags({
   return tags;
 }
 
-export function parseBasicLicenseFromMeta(meta = {}) {
+export function parseBasicLicenseFromMeta(meta: Record<string, any> = {}) {
   const commercialUse = normalizeCommercialChoice(meta.licensecommercial || meta.licenseCommercial);
   const derivativeUse = normalizeDerivativeChoice(meta.licensederivative || meta.licenseDerivative);
   const notifyOnModify = normalizeNotifyChoice(meta.licensenotify || meta.licenseNotify);

@@ -17,9 +17,9 @@ import { ImportStageInput } from "./import/ImportStageInput";
 import { ImportStagePreview } from "./import/ImportStagePreview";
 
 // 三階段處理流程 (純 Marker 模式)
-import { preprocess } from "../../../lib/importPipeline/textPreprocessor.js";
-import { extractMetadata } from "../../../lib/importPipeline/metadataExtractor.js";
-import { stripMarkerGuideBlocks } from "../../../lib/importPipeline/markerGuideStripper.js";
+import { preprocess } from "../../../lib/importPipeline/textPreprocessor";
+import { extractMetadata } from "../../../lib/importPipeline/metadataExtractor";
+import { stripMarkerGuideBlocks } from "../../../lib/importPipeline/markerGuideStripper";
 import { parseScreenplay } from "../../../lib/screenplayAST";
 import { getDefaultMarkerRules } from "../../../constants/defaultMarkerRules";
 

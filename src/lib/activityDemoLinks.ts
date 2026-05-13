@@ -1,4 +1,3 @@
-// @ts-nocheck
 const trimText = (value) => String(value ?? "").trim();
 
 export const createEmptyActivityDemoLink = (id = "") => ({
@@ -33,7 +32,7 @@ export const normalizeActivityDemoLinks = (value) => {
       };
     })
     .filter(Boolean)
-    .filter((entry) => entry.name || entry.url || entry.cast || entry.description);
+    .filter((entry) => (entry as any).name || (entry as any).url || (entry as any).cast || (entry as any).description) as { id: string; name: string; url: string; cast: string; description: string }[];
 };
 
 export const parseActivityDemoLinks = (rawValue) => {

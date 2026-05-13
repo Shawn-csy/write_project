@@ -1,6 +1,6 @@
-// @ts-nocheck
 import Parsimmon from 'parsimmon';
-import { createDynamicParsers, createTextParser, mergeTextNodes } from './parserGenerators.js';
+import { createDynamicParsers, createTextParser, mergeTextNodes } from './parserGenerators';
+import type { MarkerConfig } from '../../types/script';
 
 const P = Parsimmon;
 
@@ -8,7 +8,7 @@ const P = Parsimmon;
  * 純 Marker 模式的 Inline 解析器
  * 所有解析規則都來自 markerConfigs（雲端設定）
  */
-export const parseInline = (text, configs = []) => {
+export const parseInline = (text: string, configs: MarkerConfig[] = []): unknown[] => {
     if (!text) return [];
 
     // 1. Build Dynamic Parsers from configs
@@ -26,7 +26,7 @@ export const parseInline = (text, configs = []) => {
         return 0;
     });
 
-    const dynamicParsers = [];
+    const dynamicParsers: unknown[] = [];
     const customParsers = createDynamicParsers(sortedConfigs);
     Object.values(customParsers).forEach(p => dynamicParsers.push(p));
     

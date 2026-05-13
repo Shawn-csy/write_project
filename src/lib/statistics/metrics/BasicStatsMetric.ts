@@ -1,7 +1,12 @@
-// @ts-nocheck
-import { Metric } from '../ScriptAnalyzer.js';
+import { Metric } from '../ScriptAnalyzer';
 
 export class BasicStatsMetric extends Metric {
+  options: Record<string, any>;
+  counts!: { scenes: number; nodes: number; dialogueChars: number; actionChars: number; totalChars: number; dialogueLines: number };
+  locations!: string[];
+  actionLines!: string[];
+  timeframeDistribution!: { INT: number; EXT: number; OTHER: number };
+
   constructor(options = {}) {
     super();
     this.options = options;
@@ -95,7 +100,6 @@ export class BasicStatsMetric extends Metric {
 
   getResult() {
     return {
-      counts: this.counts,
       counts: this.counts,
       locations: this.locations,
       actionLines: this.actionLines, // Return Collected Lines

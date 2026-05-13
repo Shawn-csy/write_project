@@ -1,6 +1,6 @@
-// @ts-nocheck
 import Parsimmon from 'parsimmon';
-import { isInlineLike } from '../markerRules.js';
+import { isInlineLike } from '../markerRules';
+import type { MarkerConfig } from '../../types/script';
 
 const P = Parsimmon;
 
@@ -50,8 +50,8 @@ const buildFlexibleTokenPattern = (token = "") => {
   }).join("");
 };
 
-export const createDynamicParsers = (configs = []) => {
-    const parsers = {};
+export const createDynamicParsers = (configs: MarkerConfig[] = []): Record<string, unknown> => {
+    const parsers: Record<string, unknown> = {};
     const safeConfigs = Array.isArray(configs) ? configs : [];
     const prefixStarts = safeConfigs
         .filter((c) => isInlineLike(c) && (c.matchMode === 'prefix' || (!c.end && c.start)) && c.start)
@@ -132,7 +132,7 @@ export const createDynamicParsers = (configs = []) => {
 
 // [已移除] DirectionParser
 
-export const createTextParser = (configs = []) => {
+export const createTextParser = (configs: MarkerConfig[] = []) => {
     // 純 Marker 模式：排除 configs 中定義的 start 字元 (含全形)
     const startChars = new Set(); 
     const safeConfigs = Array.isArray(configs) ? configs : [];
@@ -151,11 +151,12 @@ export const createTextParser = (configs = []) => {
     return P.noneOf(excluded).atLeast(1).map(x => ({ type: 'text', content: x.join('') }));
 };
 
-export const mergeTextNodes = (nodes) => {
+interface TextNode { type: string; content: string; [key: string]: unknown }
+export const mergeTextNodes = (nodes: TextNode[]): TextNode[] => {
     if (!nodes || nodes.length === 0) return [];
-    
-    const merged = [];
-    let currentText = null;
+
+    const merged: TextNode[] = [];
+    let currentText: TextNode | null = null;
 
     nodes.forEach(node => {
         if (node.type === 'text') {

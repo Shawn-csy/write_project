@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { stripMarkerGuideBlocks } from "./markerGuideStripper.js";
+import { stripMarkerGuideBlocks } from "./markerGuideStripper";
 
 describe("stripMarkerGuideBlocks", () => {
   it("removes marker guide section and keeps chapter content", () => {

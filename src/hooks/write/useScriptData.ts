@@ -1,31 +1,42 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback, useMemo } from "react";
+import type React from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { getUserScripts } from "../../lib/api/scripts";
 
+interface ScriptItem {
+    id: string;
+    title: string;
+    type?: string;
+    folder: string;
+    sortOrder?: number;
+    lastModified?: number;
+    createdAt?: number;
+    [key: string]: unknown;
+}
+
 export function useScriptData(refreshTrigger = 0) {
     const { currentUser } = useAuth();
-    const [scripts, setScripts] = useState([]);
+    const [scripts, setScripts] = useState<ScriptItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentPath, setCurrentPath] = useState("/");
     const [createPath, setCreatePath] = useState("/");
-    const [expandedPaths, setExpandedPaths] = useState(new Set());
+    const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
 
     const fetchScripts = useCallback(async () => {
         if (!currentUser) return;
         let cancelled = false;
         try {
             setLoading(true);
-            const data = await getUserScripts();
+            const data = await getUserScripts(currentUser.uid);
             if (cancelled) return;
             if (!Array.isArray(data)) {
                 setScripts([]);
                 return;
             }
             // De-dupe folders with same path/title to avoid duplicate tree nodes
-            const folderMap = new Map();
-            const seenIds = new Set();
-            const deduped = [];
+            const folderMap = new Map<string, ScriptItem>();
+            const seenIds = new Set<string>();
+            const deduped: ScriptItem[] = [];
             for (const item of data) {
                 if (!item || !item.id) continue;
                 if (seenIds.has(item.id)) continue;
@@ -40,7 +51,7 @@ export function useScriptData(refreshTrigger = 0) {
                         const existingScore = existing.lastModified || existing.createdAt || 0;
                         const itemScore = item.lastModified || item.createdAt || 0;
                         if (itemScore > existingScore) {
-                            const idx = deduped.findIndex(s => s.id === existing.id);
+                            const idx = deduped.findIndex((s) => s.id === existing.id);
                             if (idx >= 0) deduped[idx] = item;
                             folderMap.set(key, item);
                         }
@@ -59,8 +70,8 @@ export function useScriptData(refreshTrigger = 0) {
     }, [currentUser]);
 
     useEffect(() => {
-        let cancelFn;
-        fetchScripts().then(fn => { cancelFn = fn; });
+        let cancelFn: (() => void) | undefined;
+        fetchScripts().then((fn) => { cancelFn = fn; });
         return () => { cancelFn?.(); };
     }, [fetchScripts, refreshTrigger]);
 
@@ -86,7 +97,7 @@ export function useScriptData(refreshTrigger = 0) {
                     }
                     window.sessionStorage.removeItem("write_tab_return_state_v1");
                 }
-            } catch (e) {
+            } catch (e: unknown) {
                 console.warn("Failed to restore write tab return state", e);
             }
         }
@@ -106,7 +117,7 @@ export function useScriptData(refreshTrigger = 0) {
         return () => window.removeEventListener("popstate", handlePopState);
     }, []);
 
-    const navigateTo = (path) => {
+    const navigateTo = (path: string) => {
         setCurrentPath(path);
         setCreatePath(path);
         setExpandedPaths(new Set());
@@ -128,7 +139,7 @@ export function useScriptData(refreshTrigger = 0) {
     // Derived State (Visible Items)
     // byFolder 只在 scripts 變動時重建，避免 path/expandedPaths 變動時重算整個 map
     const byFolder = useMemo(() => {
-        const map = {};
+        const map: Record<string, ScriptItem[]> = {};
         for (const s of scripts) {
             const f = s.folder || "/";
             if (!map[f]) map[f] = [];
@@ -138,15 +149,15 @@ export function useScriptData(refreshTrigger = 0) {
     }, [scripts]);
 
     const visibleItems = useMemo(() => {
-        const sortFn = (a, b) => {
+        const sortFn = (a: ScriptItem, b: ScriptItem) => {
             const diff = (a.sortOrder || 0) - (b.sortOrder || 0);
             if (Math.abs(diff) > 0.01) return diff;
             return (b.lastModified || 0) - (a.lastModified || 0);
         };
 
-        const buildFlat = (path, depth = 0) => {
+        const buildFlat = (path: string, depth = 0): Array<ScriptItem & { depth: number }> => {
             const items = (byFolder[path] || []).slice().sort(sortFn);
-            let result = [];
+            let result: Array<ScriptItem & { depth: number }> = [];
             for (const item of items) {
                 result.push({ ...item, depth });
                 if (item.type === 'folder') {
@@ -162,7 +173,7 @@ export function useScriptData(refreshTrigger = 0) {
         return buildFlat(currentPath);
     }, [byFolder, currentPath, expandedPaths]);
 
-    const toggleExpand = (path, e) => {
+    const toggleExpand = (path: string, e?: React.MouseEvent) => {
         e?.stopPropagation();
         const isExpanded = expandedPaths.has(path);
         if (isExpanded) {

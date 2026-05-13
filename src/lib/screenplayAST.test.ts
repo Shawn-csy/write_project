@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseScreenplay } from './screenplayAST.js';
+import { parseScreenplay } from './screenplayAST';
 
 describe('ScreenplayAST (Pure Marker Mode)', () => {
     it('should parse a basic script with title and body', () => {

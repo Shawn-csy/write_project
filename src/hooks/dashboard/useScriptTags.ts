@@ -1,10 +1,15 @@
-// @ts-nocheck
 import { useCallback, useState } from "react";
 import { createTag, getTags } from "../../lib/api/tags";
 
-export function useScriptTags({ t, toast, tagOwnerId = "" } = {}) {
-  const [currentTags, setCurrentTags] = useState([]);
-  const [availableTags, setAvailableTags] = useState([]);
+interface TagItem {
+  id: string | number;
+  name: string;
+  color?: string;
+}
+
+export function useScriptTags({ t, toast, tagOwnerId = "" }: { t?: (k: string) => string; toast?: (o: { title?: string; description?: string }) => void; tagOwnerId?: string } = {}) {
+  const [currentTags, setCurrentTags] = useState<TagItem[]>([]);
+  const [availableTags, setAvailableTags] = useState<TagItem[]>([]);
   const [newTagInput, setNewTagInput] = useState("");
 
   const loadTags = useCallback(async () => {
@@ -34,24 +39,26 @@ export function useScriptTags({ t, toast, tagOwnerId = "" } = {}) {
         nameMap.set(lowerName, String(original || "").trim());
       });
 
-      const resolved = [];
+      const resolved: TagItem[] = [];
       for (const lowerName of names) {
         const displayName = nameMap.get(lowerName);
         if (!displayName) continue;
         let existing = availableTags.find((tag) => tag.name.toLowerCase() === lowerName);
         if (!existing) {
           try {
-            existing = await createTag(displayName, "bg-gray-500", tagOwnerId);
+            existing = await createTag(displayName, "bg-gray-500", tagOwnerId) as TagItem;
+            if (!existing) continue;
+            const existingTag = existing;
             setAvailableTags((prev) => {
-              if (prev.some((tag) => tag.id === existing.id || tag.name.toLowerCase() === lowerName)) return prev;
-              return [...prev, existing];
+              if (prev.some((tag) => tag.id === existingTag.id || tag.name.toLowerCase() === lowerName)) return prev;
+              return [...prev, existingTag];
             });
           } catch (error) {
             console.error("Batch add tag failed", error);
             continue;
           }
         }
-        resolved.push(existing);
+        if (existing) resolved.push(existing);
       }
 
       if (resolved.length > 0) {
@@ -101,16 +108,18 @@ export function useScriptTags({ t, toast, tagOwnerId = "" } = {}) {
 
       try {
         if (!tagToAdd) {
-          const newTag = await createTag(tagName, "bg-gray-500", tagOwnerId);
+          const newTag = await createTag(tagName, "bg-gray-500", tagOwnerId) as TagItem;
           tagToAdd = newTag;
           setAvailableTags((prev) => {
             if (prev.some((tag) => tag.id === newTag.id || tag.name.toLowerCase() === newTag.name.toLowerCase())) return prev;
             return [...prev, newTag];
           });
         }
+        if (!tagToAdd) return;
+        const selectedTag = tagToAdd;
         setCurrentTags((prev) => {
-          if (prev.some((tag) => tag.id === tagToAdd.id || tag.name.toLowerCase() === tagToAdd.name.toLowerCase())) return prev;
-          return [...prev, tagToAdd];
+          if (prev.some((tag) => tag.id === selectedTag.id || tag.name.toLowerCase() === selectedTag.name.toLowerCase())) return prev;
+          return [...prev, selectedTag];
         });
         if (isFromInput) setNewTagInput("");
       } catch (error) {

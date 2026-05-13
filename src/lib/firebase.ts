@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
@@ -22,7 +21,7 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-let analyticsInitPromise = null;
+let analyticsInitPromise: null | Promise<any> = null;
 
 export const initAnalytics = async () => {
   if (typeof window === "undefined") return null;
@@ -37,7 +36,7 @@ export const initAnalytics = async () => {
   return analyticsInitPromise;
 };
 
-export const trackPageView = async ({ path, title, location } = {}) => {
+export const trackPageView = async ({ path, title, location }: { path?: string; title?: string; location?: string } = {}) => {
   const analytics = await initAnalytics();
   if (!analytics) return false;
 

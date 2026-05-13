@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { customMetadataEntriesToMeta } from "./customMetadata";
 
 export const normalizeSeriesName = (value) => String(value || "").trim();

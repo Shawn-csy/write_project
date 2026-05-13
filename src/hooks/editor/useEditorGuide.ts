@@ -1,5 +1,16 @@
-// @ts-nocheck
 import { useState, useCallback, useMemo, useEffect } from "react";
+import type React from "react";
+
+type TFunc = (key: string) => string;
+type SpotlightRect = { top: number; left: number; width: number; height: number } | null;
+type GuideTarget = "header" | "editor" | "preview" | "actions";
+
+interface GuideRefs {
+  headerRef: React.RefObject<HTMLElement | null>;
+  editorPaneRef: React.RefObject<HTMLElement | null>;
+  previewRef: React.RefObject<HTMLElement | null>;
+  moreActionsButtonRef: React.RefObject<HTMLElement | null>;
+}
 
 export function useEditorGuide({
   readOnly,
@@ -8,15 +19,22 @@ export function useEditorGuide({
   crossModeGuideActive,
   crossModeGuideStep,
   refs,
+}: {
+  readOnly: boolean;
+  isMobile: boolean;
+  t: TFunc;
+  crossModeGuideActive: boolean;
+  crossModeGuideStep: string | null;
+  refs: GuideRefs;
 }) {
   const { headerRef, editorPaneRef, previewRef, moreActionsButtonRef } = refs;
 
   const [showGuide, setShowGuide] = useState(false);
   const [guideIndex, setGuideIndex] = useState(0);
-  const [guideSpotlightRect, setGuideSpotlightRect] = useState(null);
-  const [crossGuideSpotlightRect, setCrossGuideSpotlightRect] = useState(null);
+  const [guideSpotlightRect, setGuideSpotlightRect] = useState<SpotlightRect>(null);
+  const [crossGuideSpotlightRect, setCrossGuideSpotlightRect] = useState<SpotlightRect>(null);
 
-  const guideSteps = useMemo(() => ([
+  const guideSteps = useMemo<Array<{ title: string; description: string; target: GuideTarget }>>(() => ([
     { title: t("liveEditor.guideEditScriptTitle"), description: t("liveEditor.guideEditScriptDesc"), target: "header" },
     {
       title: isMobile ? t("liveEditor.guideEditorTitleMobile") : t("liveEditor.guideEditorTitle"),
@@ -57,14 +75,14 @@ export function useEditorGuide({
     return "editor";
   })();
 
-  const getGuideTargetElement = useCallback((target) => {
+  const getGuideTargetElement = useCallback((target: GuideTarget): HTMLElement | null => {
     switch (target) {
       case "header": {
         const el = headerRef.current;
         if (!el) return null;
         const rect = el.getBoundingClientRect();
         if (rect.width && rect.height) return el;
-        return el.firstElementChild || el;
+        return (el.firstElementChild as HTMLElement | null) || el;
       }
       case "editor": return editorPaneRef.current;
       case "preview": return previewRef.current;
@@ -130,10 +148,10 @@ export function useEditorGuide({
 
   const startGuide = useCallback(() => { setGuideIndex(0); setShowGuide(true); }, []);
   const finishGuide = useCallback(() => { setShowGuide(false); setGuideSpotlightRect(null); }, []);
-  const handleGuidePrev = useCallback(() => setGuideIndex(prev => Math.max(0, prev - 1)), []);
+  const handleGuidePrev = useCallback(() => setGuideIndex((prev) => Math.max(0, prev - 1)), []);
   const handleGuideNext = useCallback(() => {
     if (guideIndex >= guideSteps.length - 1) { finishGuide(); return; }
-    setGuideIndex(prev => Math.min(guideSteps.length - 1, prev + 1));
+    setGuideIndex((prev) => Math.min(guideSteps.length - 1, prev + 1));
   }, [finishGuide, guideIndex, guideSteps.length]);
 
   return {

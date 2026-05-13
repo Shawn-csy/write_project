@@ -2,20 +2,34 @@ import React from "react";
 import {
   DEFAULT_LANG,
   getMessagesForLang,
+  type I18nMessages,
   isSupportedLang,
   normalizeLang,
+  type SupportedLang,
 } from "../i18n";
 
 const STORAGE_KEY = "app_lang_v1";
 
-function getByPath(obj, path) {
-  return String(path || "")
-    .split(".")
-    .reduce((acc, key) => (acc && acc[key] != null ? acc[key] : undefined), obj);
+type Translator = (key: string, fallback?: string) => string;
+
+interface I18nContextValue {
+  lang: SupportedLang;
+  setLang: (lang: string) => void;
+  t: Translator;
 }
 
-function createTranslator(activeMessages, fallbackMessages) {
-  return (key, fallback = "") => {
+function getByPath(obj: I18nMessages, path: string): string | undefined {
+  return String(path || "")
+    .split(".")
+    .reduce<string | I18nMessages | undefined>((acc, key) => {
+      if (!acc || typeof acc === "string") return undefined;
+      const value = acc[key];
+      return value ?? undefined;
+    }, obj) as string | undefined;
+}
+
+function createTranslator(activeMessages: I18nMessages, fallbackMessages: I18nMessages): Translator {
+  return (key: string, fallback = "") => {
     const value = getByPath(activeMessages, key);
     if (typeof value === "string") return value;
 
@@ -26,9 +40,9 @@ function createTranslator(activeMessages, fallbackMessages) {
   };
 }
 
-const emptyMessages = {};
+const emptyMessages: I18nMessages = {};
 
-const defaultContextValue = {
+const defaultContextValue: I18nContextValue = {
   lang: DEFAULT_LANG,
   setLang: (_lang: string) => {},
   t: (key: string, fallback = "") => fallback || key,
@@ -45,7 +59,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     return DEFAULT_LANG;
   });
 
-  const [activeMessages, setActiveMessages] = React.useState(emptyMessages);
+  const [activeMessages, setActiveMessages] = React.useState<I18nMessages>(emptyMessages);
   const [ready, setReady] = React.useState(false);
 
   React.useEffect(() => {
@@ -67,7 +81,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     };
   }, [lang]);
 
-  const setLang = React.useCallback((next) => {
+  const setLang = React.useCallback((next: string) => {
     const normalized = normalizeLang(next);
     setLangState(normalized);
 

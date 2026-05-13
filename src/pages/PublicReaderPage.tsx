@@ -7,8 +7,8 @@ import { deriveSimpleLicenseTags, parseBasicLicenseFromMeta } from "../lib/licen
 import { normalizeSeriesName, parseSeriesOrder } from "../lib/series";
 import { useScriptViewerDefaults } from "../hooks/useScriptViewerDefaults";
 import { useI18n } from "../contexts/I18nContext";
-import { normalizeMarkerConfigsSchema } from "../lib/markerThemeCodec.js";
-import { defaultMarkerConfigs } from "../constants/defaultMarkerRules.js";
+import { normalizeMarkerConfigsSchema } from "../lib/markerThemeCodec";
+import { defaultMarkerConfigs } from "../constants/defaultMarkerRules";
 import { parseActivityDemoLinks } from "../lib/activityDemoLinks";
 import { customMetadataEntriesToMeta, customMetadataEntriesToRawEntries } from "../lib/customMetadata";
 import { usePublicTerms } from "../hooks/public/usePublicTerms";

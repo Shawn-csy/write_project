@@ -1,11 +1,63 @@
-// @ts-nocheck
+import { ScriptAnalyzer } from './ScriptAnalyzer';
+import { BasicStatsMetric } from './metrics/BasicStatsMetric';
+import { CharacterAndDurationMetric } from './metrics/CharacterAndDurationMetric';
+import { MarkerStatsMetric } from './metrics/MarkerStatsMetric';
+import { RangeStatsMetric } from './metrics/RangeStatsMetric';
 
-import { ScriptAnalyzer } from './ScriptAnalyzer.js';
-import { BasicStatsMetric } from './metrics/BasicStatsMetric.js';
-import { CharacterAndDurationMetric } from './metrics/CharacterAndDurationMetric.js';
-import { MarkerStatsMetric } from './metrics/MarkerStatsMetric.js';
-import { RangeStatsMetric } from './metrics/RangeStatsMetric.js';
- 
+type AstLike = { children?: unknown[] } | unknown[];
+type StatsConfig = { wordCountDivisor?: number };
+type CalculateOptions = {
+  wordCountMode?: string;
+  statsConfig?: StatsConfig;
+};
+
+type CharacterStatItem = {
+  lineCount?: unknown;
+  count?: unknown;
+  wordCount?: unknown;
+  speakingScenesCount?: unknown;
+  [key: string]: unknown;
+};
+
+type StatsResult = {
+  locations?: unknown[];
+  dialogueByCharacter?: unknown[];
+  actionLines?: unknown[];
+  sentences?: { dialogue?: unknown[]; sfx?: unknown[] };
+  customLayers?: Record<string, unknown[]>;
+  characterStats?: CharacterStatItem[];
+  counts?: Record<string, number>;
+  timeframeDistribution?: Record<string, unknown>;
+  dialogueRatio?: number;
+  actionRatio?: number;
+  rangeStats?: Record<string, unknown>;
+  customDurationSeconds?: number;
+  pauseSeconds?: number;
+  pauseItems?: unknown[];
+};
+
+interface ScriptStatsOutput {
+  durationMinutes: number;
+  locations: unknown[];
+  sentences: {
+    dialogue: unknown[];
+    action: unknown[];
+    sceneHeadings: unknown[];
+    sfx: unknown[];
+  };
+  counts: Record<string, number>;
+  characterStats: Array<Record<string, unknown>>;
+  timeframeDistribution: Record<string, unknown>;
+  customLayers: Record<string, unknown>;
+  dialogueRatio: number;
+  actionRatio: number;
+  totalBlocks: number;
+  rangeStats: Record<string, unknown>;
+  customDurationSeconds: number;
+  pauseSeconds: number;
+  pauseItems: unknown[];
+  estimates: { pure: number; all: number };
+}
 
 /**
  * Calculates script statistics based on the AST using the new Analyzer architecture.
@@ -14,7 +66,11 @@ import { RangeStatsMetric } from './metrics/RangeStatsMetric.js';
  * @param {Object} options - { wordCountMode: 'pure' | 'all' }
  * @returns {Object} The calculated statistics.
  */
-export function calculateScriptStats(nodes, markerConfigs = [], options = {}) {
+export function calculateScriptStats(
+  nodes: AstLike,
+  markerConfigs: unknown[] = [],
+  options: CalculateOptions = {}
+): ScriptStatsOutput {
   // 1. Setup Metrics
   const basicMetric = new BasicStatsMetric();
   const charMetric = new CharacterAndDurationMetric({
@@ -27,9 +83,9 @@ export function calculateScriptStats(nodes, markerConfigs = [], options = {}) {
   // 2. Run Analyzer
   const analyzer = new ScriptAnalyzer([basicMetric, charMetric, markerMetric, rangeMetric]);
   const results = analyzer.analyze(
-      { children: Array.isArray(nodes) ? nodes : (nodes.children || []) }, 
+      { children: Array.isArray(nodes) ? nodes : (nodes?.children || []) },
       { markerConfigs, statsConfig: options.statsConfig }
-  );
+  ) as StatsResult;
 
   // 3. Post-Process / Merge for backward compatibility
   const sentences = {
@@ -42,13 +98,13 @@ export function calculateScriptStats(nodes, markerConfigs = [], options = {}) {
   // Calculate Total Cues from Custom Layers
   let totalCues = 0;
   if (results.customLayers) {
-      Object.values(results.customLayers).forEach(items => {
+      Object.values(results.customLayers).forEach((items) => {
           if (Array.isArray(items)) totalCues += items.length;
       });
   }
 
   const normalizedCharacterStats = (results.characterStats || []).map((item) => {
-      const toFiniteNumber = (value, fallback = 0) => {
+      const toFiniteNumber = (value: unknown, fallback = 0) => {
           const n = Number(value);
           return Number.isFinite(n) ? n : fallback;
       };
@@ -64,7 +120,8 @@ export function calculateScriptStats(nodes, markerConfigs = [], options = {}) {
       };
   });
 
-  const finalDefaults = {
+  const finalDefaults: ScriptStatsOutput = {
+      estimates: { pure: 0, all: 0 },
       durationMinutes: 0,
       locations: results.locations || [],
       sentences,
@@ -72,8 +129,8 @@ export function calculateScriptStats(nodes, markerConfigs = [], options = {}) {
           ...(results.counts || {}),
           cues: totalCues, // Inject calculated cue count
           // If 0 dialogue detected, assume action lines are the "lines" (Pure Marker Mode)
-          dialogueLines: (results.counts?.dialogueLines > 0) 
-              ? results.counts.dialogueLines 
+          dialogueLines: ((results.counts?.dialogueLines ?? 0) > 0)
+              ? Number(results.counts?.dialogueLines ?? 0)
               : (sentences.action?.length || 0) 
       },
       characterStats: normalizedCharacterStats,
@@ -95,18 +152,16 @@ export function calculateScriptStats(nodes, markerConfigs = [], options = {}) {
   const customDurationSeconds = results.customDurationSeconds || 0;
   const customMinutes = customDurationSeconds / 60;
   
-  // Use divisor from config or defaults
-  const divisor = (options.statsConfig && options.statsConfig.wordCountDivisor) 
-      ? options.statsConfig.wordCountDivisor 
-      : (options.wordCountMode === 'all' ? 250 : 200);
+  // divisor: explicit config > mode default (all=250, pure=200)
+  const configDivisor = options.statsConfig?.wordCountDivisor;
+  const pureDivisor = configDivisor ?? 200;
+  const allDivisor = configDivisor ?? 250;
 
-  finalDefaults.durationMinutes = (dialogueChars / divisor) + customMinutes;
+  const pureEstimate = (dialogueChars / pureDivisor) + customMinutes;
+  const allEstimate = ((dialogueChars + actionChars) / allDivisor) + customMinutes;
 
-  // Estimates
-  finalDefaults.estimates = {
-      pure: (dialogueChars / divisor) + customMinutes,
-      all: ((dialogueChars + actionChars) / divisor) + customMinutes // consistent divisor for now, or make 'all' configurable if needed
-  };
+  finalDefaults.durationMinutes = options.wordCountMode === "all" ? allEstimate : pureEstimate;
+  finalDefaults.estimates = { pure: pureEstimate, all: allEstimate };
 
   return finalDefaults;
 }

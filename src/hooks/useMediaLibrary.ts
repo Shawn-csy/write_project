@@ -1,12 +1,27 @@
-// @ts-nocheck
 import React from "react";
 import { deleteMediaObject, getMediaObjects, uploadMediaObject } from "../lib/api/media";
 import { optimizeImageForUpload } from "../lib/mediaLibrary";
 
 const DEFAULT_MAX_BYTES = 25 * 1024 * 1024;
 
-export function useMediaLibrary({ t, maxBytes = DEFAULT_MAX_BYTES, autoLoad = false } = {}) {
-  const [items, setItems] = React.useState([]);
+type Translator = (key: string, fallback?: string) => string;
+
+export interface CloudMediaItem {
+  id: string;
+  url: string;
+  name?: string;
+  sizeBytes?: number;
+  [key: string]: unknown;
+}
+
+interface UseMediaLibraryOptions {
+  t?: Translator;
+  maxBytes?: number;
+  autoLoad?: boolean;
+}
+
+export function useMediaLibrary({ t, maxBytes = DEFAULT_MAX_BYTES, autoLoad = false }: UseMediaLibraryOptions = {}) {
+  const [items, setItems] = React.useState<CloudMediaItem[]>([]);
   const [stats, setStats] = React.useState({ count: 0, usedBytes: 0, maxBytes, ratio: 0 });
   const [error, setError] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
@@ -17,7 +32,7 @@ export function useMediaLibrary({ t, maxBytes = DEFAULT_MAX_BYTES, autoLoad = fa
     setIsLoading(true);
     setError("");
     try {
-      const res = await getMediaObjects();
+      const res = await getMediaObjects() as { items?: CloudMediaItem[] } | null;
       const nextItems = Array.isArray(res?.items) ? res.items : [];
       const usedBytes = nextItems.reduce((sum, it) => sum + Number(it?.sizeBytes || 0), 0);
       setItems(nextItems);
@@ -27,8 +42,8 @@ export function useMediaLibrary({ t, maxBytes = DEFAULT_MAX_BYTES, autoLoad = fa
         maxBytes,
         ratio: maxBytes > 0 ? Math.min(1, usedBytes / maxBytes) : 0,
       });
-    } catch (e) {
-      setError(String(e?.message || t?.("mediaLibrary.uploadFailed", "載入失敗")));
+    } catch (e: unknown) {
+      setError(String(e instanceof Error ? e.message : t?.("mediaLibrary.uploadFailed", "載入失敗")));
     } finally {
       setIsLoading(false);
     }
@@ -41,7 +56,7 @@ export function useMediaLibrary({ t, maxBytes = DEFAULT_MAX_BYTES, autoLoad = fa
   }, [autoLoad, refresh]);
 
   const uploadFiles = React.useCallback(
-    async (files, purpose = "library") => {
+    async (files: FileList | File[] | null | undefined, purpose = "library") => {
       const list = Array.from(files || []);
       if (!list.length) return;
       setError("");
@@ -55,8 +70,8 @@ export function useMediaLibrary({ t, maxBytes = DEFAULT_MAX_BYTES, autoLoad = fa
           await uploadMediaObject(optimized.file, purpose);
         }
         await refresh();
-      } catch (e) {
-        setError(String(e?.message || t?.("mediaLibrary.uploadFailed", "上傳失敗")));
+      } catch (e: unknown) {
+        setError(String(e instanceof Error ? e.message : t?.("mediaLibrary.uploadFailed", "上傳失敗")));
       } finally {
         setIsUploading(false);
       }
@@ -65,7 +80,7 @@ export function useMediaLibrary({ t, maxBytes = DEFAULT_MAX_BYTES, autoLoad = fa
   );
 
   const uploadFromInput = React.useCallback(
-    async (event, purpose = "library") => {
+    async (event: React.ChangeEvent<HTMLInputElement>, purpose = "library") => {
       await uploadFiles(event?.target?.files || [], purpose);
       if (event?.target) {
         event.target.value = "";
@@ -75,15 +90,15 @@ export function useMediaLibrary({ t, maxBytes = DEFAULT_MAX_BYTES, autoLoad = fa
   );
 
   const deleteByUrl = React.useCallback(
-    async (url) => {
+    async (url: string) => {
       if (!url) return;
       setError("");
       setDeletingUrl(url);
       try {
         await deleteMediaObject(url);
         await refresh();
-      } catch (e) {
-        setError(String(e?.message || t?.("mediaLibrary.uploadFailed", "刪除失敗")));
+      } catch (e: unknown) {
+        setError(String(e instanceof Error ? e.message : t?.("mediaLibrary.uploadFailed", "刪除失敗")));
       } finally {
         setDeletingUrl("");
       }
@@ -98,8 +113,8 @@ export function useMediaLibrary({ t, maxBytes = DEFAULT_MAX_BYTES, autoLoad = fa
     try {
       await Promise.all(items.map((item) => deleteMediaObject(item.url)));
       await refresh();
-    } catch (e) {
-      setError(String(e?.message || t?.("mediaLibrary.uploadFailed", "刪除失敗")));
+    } catch (e: unknown) {
+      setError(String(e instanceof Error ? e.message : t?.("mediaLibrary.uploadFailed", "刪除失敗")));
     } finally {
       setIsLoading(false);
     }

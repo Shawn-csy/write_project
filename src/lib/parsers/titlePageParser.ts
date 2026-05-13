@@ -1,4 +1,3 @@
-// @ts-nocheck
 export const splitTitleAndBody = (preprocessedText = "") => {
     if (!preprocessedText) return { titleLines: [], bodyText: "", bodyStartLine: 1 };
     const lines = preprocessedText.split('\n');
@@ -26,10 +25,11 @@ export const splitTitleAndBody = (preprocessedText = "") => {
     };
 };
 
-export const extractTitleEntries = (titleLines = []) => {
+interface TitleEntry { key: string; indent: number; values: string[] }
+export const extractTitleEntries = (titleLines: string[] = []): TitleEntry[] => {
     if (!titleLines.length) return [];
-    const entries = [];
-    let current = null;
+    const entries: TitleEntry[] = [];
+    let current: TitleEntry | null = null;
     for (const raw of titleLines) {
         // Match leading indent, key, colon, and rest
         const match = raw.match(/^(\s*)([^:]+):(.*)$/);

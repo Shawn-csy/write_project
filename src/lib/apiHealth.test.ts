@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { isApiOffline, markApiOffline, clearApiOffline } from './apiHealth.js';
+import { isApiOffline, markApiOffline, clearApiOffline } from './apiHealth';
 
 describe('apiHealth', () => {
   let warnSpy;

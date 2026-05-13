@@ -1,10 +1,16 @@
-// @ts-nocheck
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { usePersistentSpotlightGuide } from "../usePersistentSpotlightGuide";
 
 const SCRIPT_METADATA_GUIDE_STORAGE_KEY = "script-metadata-guide-seen-v2";
 
 const SECTION_IDS = ["basic", "publish", "exposure", "activity", "demo", "advanced"];
+
+interface MetadataGuideStep {
+  title: string;
+  description: string;
+  targetId: string;
+  section: string;
+}
 
 function getChecklistTarget(key) {
   if (key === "title") return { section: "basic", fieldId: "metadata-title" };
@@ -28,7 +34,7 @@ export function useScriptMetadataGuide({
 }) {
   const autoScrollLockUntilRef = useRef(0);
 
-  const guideSteps = useMemo(
+  const guideSteps = useMemo<MetadataGuideStep[]>(
     () => ([
       {
         title: t("scriptMetadataDialog.guideChecklistTitle"),
@@ -70,7 +76,7 @@ export function useScriptMetadataGuide({
     [t]
   );
 
-  const scrollToSection = useCallback((section, behavior = "smooth") => {
+  const scrollToSection = useCallback((section, behavior: ScrollBehavior = "smooth") => {
     const el = document.getElementById(`metadata-section-${section}`);
     if (el && typeof el.scrollIntoView === "function") {
       el.scrollIntoView({ block: "start", behavior });
@@ -96,12 +102,12 @@ export function useScriptMetadataGuide({
     handleGuideNext,
     handleGuidePrev,
     finishGuide: baseFinishGuide,
-  } = usePersistentSpotlightGuide({
+  } = usePersistentSpotlightGuide<MetadataGuideStep>({
     steps: guideSteps,
     storageKey: SCRIPT_METADATA_GUIDE_STORAGE_KEY,
-    resolveTarget: (step) => (step?.targetId ? document.getElementById(step.targetId) : null),
+    resolveTarget: (step) => (step.targetId ? document.getElementById(step.targetId) : null),
     onStepEnter: (step) => {
-      if (step?.section) focusSection(step.section);
+      if (step.section) focusSection(step.section);
     },
     onFinish: () => {
       focusSection("basic");
@@ -132,7 +138,7 @@ export function useScriptMetadataGuide({
     if (!open || isInitializing) return;
     const rootEl = contentScrollRef.current;
     if (!rootEl) return;
-    let rafId = null;
+    let rafId: number | null = null;
     const updateActiveSection = () => {
       if (Date.now() < autoScrollLockUntilRef.current) return;
       const rootRect = rootEl.getBoundingClientRect();

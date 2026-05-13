@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useCallback } from "react";
 import { createTag } from "../../lib/api/tags";
 import { normalizeActivityDemoLinks, parseActivityDemoLinks } from "../../lib/activityDemoLinks";
@@ -156,7 +155,7 @@ export function useScriptMetadataJson({
       if (rawTagSource !== undefined) {
         const entries = parseTagCandidates(rawTagSource);
         const byName = new Map((availableTags || []).map((tag) => [tag.name.toLowerCase(), tag]));
-        const resolved = [];
+        const resolved: any[] = [];
         for (const entry of entries) {
           const name = String(entry.name || "").trim();
           if (!name) continue;
@@ -168,7 +167,7 @@ export function useScriptMetadataJson({
             resolved.push(created);
           }
         }
-        setCurrentTags(resolved);
+        setCurrentTags(resolved as any);
       }
     } catch (_error) {
       setJsonError(t("scriptMetadataDialog.jsonError"));

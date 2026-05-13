@@ -1,8 +1,22 @@
-// @ts-nocheck
 import { auth } from "../firebase";
 import { isApiOffline, markApiOffline, clearApiOffline } from "../apiHealth";
 
-const getEnv = (key) => {
+interface FetchApiOptions {
+  method?: string;
+  cache?: string;
+  noCache?: boolean;
+  cacheTtlMs?: number;
+  headers?: Record<string, string>;
+  body?: string;
+  [key: string]: unknown;
+}
+
+interface ApiError extends Error {
+  status?: number;
+  retryable?: boolean;
+}
+
+const getEnv = (key: string): string | undefined => {
   if (typeof window !== "undefined" && window.__ENV__ && window.__ENV__[key]) {
     return window.__ENV__[key];
   }
@@ -25,7 +39,7 @@ const getUserKey = () => {
   return auth.currentUser?.uid || "anon";
 };
 
-export async function getAuthHeaders() {
+export async function getAuthHeaders(): Promise<Record<string, string>> {
   if (localAuthEnabled) {
     return { "X-User-ID": localAuthUserId };
   }
@@ -38,7 +52,7 @@ export async function getAuthHeaders() {
   return {};
 }
 
-export async function fetchApi(endpoint, options = {}, retries = 3, backoff = 500) {
+export async function fetchApi(endpoint: string, options: FetchApiOptions = {}, retries = 3, backoff = 500) {
   if (isApiOffline()) {
     throw new Error("API offline (cooldown)");
   }
@@ -61,25 +75,27 @@ export async function fetchApi(endpoint, options = {}, retries = 3, backoff = 50
   }
 
   const authHeaders = await getAuthHeaders();
-  const headers = {
+  const headers: HeadersInit = {
     "Content-Type": "application/json",
     ...authHeaders,
-    ...options.headers,
+    ...(options.headers ?? {}),
   };
+
+  const { noCache: _noCache, cacheTtlMs: _cacheTtlMs, ...fetchOptions } = options;
 
   try {
     const inflightPromise = (async () => {
       const response = await fetch(url, {
-        ...options,
+        ...fetchOptions,
         headers,
-      });
+      } as RequestInit);
 
       if (!response.ok) {
         const detail = await response.text().catch(() => "");
         const message = detail?.trim()
           ? `API Error ${response.status}: ${detail.trim()}`
           : `API Error ${response.status}: ${response.statusText || "Request failed"}`;
-        const error = new Error(message);
+        const error: ApiError = new Error(message);
         error.status = response.status;
         error.retryable = response.status >= 500 || response.status === 429 || response.status === 408;
         throw error;
@@ -119,11 +135,12 @@ export async function fetchApi(endpoint, options = {}, retries = 3, backoff = 50
     return await inflightPromise;
   } catch (err) {
     privateInflight.delete(cacheKey);
-    if (err?.name === "TypeError") {
-      markApiOffline(err, "api.fetchApi");
+    const apiErr = err as ApiError;
+    if (apiErr?.name === "TypeError") {
+      markApiOffline(apiErr, "api.fetchApi");
       throw err;
     }
-    const retryableHttpError = typeof err?.status === "number" ? err.retryable !== false : true;
+    const retryableHttpError = typeof apiErr?.status === "number" ? apiErr.retryable !== false : true;
     if (retries > 0 && retryableHttpError) {
       await new Promise((r) => setTimeout(r, backoff));
       return fetchApi(endpoint, options, retries - 1, backoff * 1.5);
@@ -132,7 +149,7 @@ export async function fetchApi(endpoint, options = {}, retries = 3, backoff = 50
   }
 }
 
-export async function fetchPublic(endpoint, options = {}) {
+export async function fetchPublic(endpoint: string, options: FetchApiOptions = {}) {
   if (isApiOffline()) {
     throw new Error("API offline (cooldown)");
   }
@@ -155,8 +172,9 @@ export async function fetchPublic(endpoint, options = {}) {
   }
 
   try {
+    const { noCache: _nc, cacheTtlMs: _ct, ...publicFetchOptions } = options;
     const inflightPromise = (async () => {
-      const response = await fetch(url, options);
+      const response = await fetch(url, publicFetchOptions as RequestInit);
       if (!response.ok) {
         throw new Error(`API Error: ${response.statusText}`);
       }
@@ -179,8 +197,9 @@ export async function fetchPublic(endpoint, options = {}) {
     return await inflightPromise;
   } catch (err) {
     publicInflight.delete(cacheKey);
-    if (err?.name === "TypeError") {
-      markApiOffline(err, "api.fetchPublic");
+    const apiErr = err as ApiError;
+    if (apiErr?.name === "TypeError") {
+      markApiOffline(apiErr, "api.fetchPublic");
     }
     throw err;
   }

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Stage 1: TextPreprocessor
  * 
@@ -12,7 +11,7 @@ import {
   JOIN_RULES, 
   SYMBOL_NORMALIZATION, 
   isBlankLine 
-} from './constants.js';
+} from './constants';
 
 /**
  * 預處理結果
@@ -44,7 +43,9 @@ import {
  */
 
 export class TextPreprocessor {
-  constructor(options = {}) {
+  options: Record<string, any>;
+
+  constructor(options: Record<string, any> = {}) {
     this.options = {
       // 是否自動接行
       autoJoin: true,
@@ -68,8 +69,8 @@ export class TextPreprocessor {
   preprocess(text) {
     const originalText = text;
     const lines = text.split('\n');
-    const transformLog = [];
-    const manualReviewNeeded = [];
+    const transformLog: any[] = [];
+    const manualReviewNeeded: any[] = [];
     
     // Step 1: 符號正規化（逐行）
     let normalizedLines = lines;
@@ -111,7 +112,7 @@ export class TextPreprocessor {
    * @private
    */
   _normalizeSymbols(lines) {
-    const log = [];
+    const log: any[] = [];
     const result = lines.map((line, idx) => {
       let normalized = line;
       
@@ -141,9 +142,9 @@ export class TextPreprocessor {
    * @private
    */
   _joinLines(lines) {
-    const log = [];
-    const review = [];
-    const result = [];
+    const log: any[] = [];
+    const review: any[] = [];
+    const result: any[] = [];
     
     // 合併所有規則
     const allRules = [
@@ -231,7 +232,7 @@ export class TextPreprocessor {
    */
   getJoinPreview(text) {
     const lines = text.split('\n');
-    const preview = [];
+    const preview: Array<{ line: number; type: string; originalLines: string[]; preview: string; ruleName?: string; description?: string }> = [];
     
     const allRules = [
       ...JOIN_RULES.HIGH_CONFIDENCE,

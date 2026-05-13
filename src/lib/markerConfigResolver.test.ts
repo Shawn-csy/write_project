@@ -1,6 +1,6 @@
 import { describe, it } from "vitest";
 import assert from "node:assert";
-import { resolveEffectiveMarkerConfigs } from "./markerConfigResolver.js";
+import { resolveEffectiveMarkerConfigs } from "./markerConfigResolver";
 
 describe("resolveEffectiveMarkerConfigs", () => {
   it("should prefer scoped configs when provided", () => {

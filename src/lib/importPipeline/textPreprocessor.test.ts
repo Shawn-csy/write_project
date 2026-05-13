@@ -4,7 +4,7 @@
 
 import { describe, it } from 'vitest';
 import assert from 'node:assert';
-import { TextPreprocessor, preprocess } from './textPreprocessor.js';
+import { TextPreprocessor, preprocess } from './textPreprocessor';
 
 describe('TextPreprocessor', () => {
   

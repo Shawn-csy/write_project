@@ -1,19 +1,19 @@
-// @ts-nocheck
 import { useState, useCallback, useRef, useEffect } from "react";
+import type React from "react";
 
 const STORAGE_KEY = "live_editor_pane_width_percent";
 const MIN = 28;
 const MAX = 72;
 
-function clamp(value) {
+function clamp(value: number) {
   if (!Number.isFinite(value)) return 50;
   return Math.min(MAX, Math.max(MIN, value));
 }
 
-export function useEditorResize({ readOnly, showPreview }) {
-  const editorPreviewContainerRef = useRef(null);
+export function useEditorResize({ readOnly, showPreview }: { readOnly: boolean; showPreview: boolean }) {
+  const editorPreviewContainerRef = useRef<HTMLDivElement | null>(null);
   const editorPaneWidthRef = useRef(50);
-  const resizeFrameRef = useRef(null);
+  const resizeFrameRef = useRef<number | null>(null);
 
   const [editorPaneWidth, setEditorPaneWidth] = useState(() => {
     if (typeof window === "undefined") return 50;
@@ -21,18 +21,18 @@ export function useEditorResize({ readOnly, showPreview }) {
   });
   const [isResizing, setIsResizing] = useState(false);
 
-  const persist = useCallback((value) => {
+  const persist = useCallback((value: number) => {
     try { window.localStorage.setItem(STORAGE_KEY, String(Math.round(value * 10) / 10)); } catch { /* ignore */ }
   }, []);
 
-  const applyWidth = useCallback((next) => {
+  const applyWidth = useCallback((next: number) => {
     const clamped = clamp(next);
     editorPaneWidthRef.current = clamped;
     const el = editorPreviewContainerRef.current;
     if (el) el.style.setProperty("--editor-pane-width", `${clamped}%`);
   }, []);
 
-  const updateFromClientX = useCallback((clientX) => {
+  const updateFromClientX = useCallback((clientX: number) => {
     const el = editorPreviewContainerRef.current;
     if (!el || !Number.isFinite(clientX)) return;
     const rect = el.getBoundingClientRect();
@@ -45,7 +45,7 @@ export function useEditorResize({ readOnly, showPreview }) {
     });
   }, [applyWidth]);
 
-  const handleResizerPointerDown = useCallback((e) => {
+  const handleResizerPointerDown = useCallback((e: React.PointerEvent<HTMLElement>) => {
     if (readOnly || !showPreview) return;
     e.preventDefault();
     e.currentTarget.setPointerCapture?.(e.pointerId);
@@ -53,12 +53,12 @@ export function useEditorResize({ readOnly, showPreview }) {
     updateFromClientX(e.clientX);
   }, [readOnly, showPreview, updateFromClientX]);
 
-  const handleResizerPointerMove = useCallback((e) => {
+  const handleResizerPointerMove = useCallback((e: React.PointerEvent<HTMLElement>) => {
     if (!isResizing) return;
     updateFromClientX(e.clientX);
   }, [isResizing, updateFromClientX]);
 
-  const handleResizerPointerUp = useCallback((e) => {
+  const handleResizerPointerUp = useCallback((e: React.PointerEvent<HTMLElement>) => {
     e.currentTarget.releasePointerCapture?.(e.pointerId);
     const final = editorPaneWidthRef.current;
     setEditorPaneWidth(final);

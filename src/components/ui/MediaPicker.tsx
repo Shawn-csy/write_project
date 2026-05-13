@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./dialog";
 import { Button } from "./button";
@@ -9,7 +8,19 @@ import { useMediaLibrary } from "../../hooks/useMediaLibrary";
 import { ImageCropDialog } from "./ImageCropDialog";
 import { uploadMediaObject } from "../../lib/api/media";
 
-export function MediaPicker({ open, onOpenChange, onSelect, cropPurpose = null }) {
+interface MediaPickerProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    onSelect: (url: string) => void;
+    cropPurpose?: string | null;
+}
+
+interface CropSource {
+    url: string;
+    name: string;
+}
+
+export function MediaPicker({ open, onOpenChange, onSelect, cropPurpose = null }: MediaPickerProps): React.JSX.Element {
     const { t } = useI18n();
     const {
         items,
@@ -22,9 +33,9 @@ export function MediaPicker({ open, onOpenChange, onSelect, cropPurpose = null }
         uploadFromInput,
         deleteByUrl,
     } = useMediaLibrary({ t });
-    const [cropOpen, setCropOpen] = React.useState(false);
-    const [cropSource, setCropSource] = React.useState(null);
-    const [isApplyingCrop, setIsApplyingCrop] = React.useState(false);
+    const [cropOpen, setCropOpen] = React.useState<boolean>(false);
+    const [cropSource, setCropSource] = React.useState<CropSource | null>(null);
+    const [isApplyingCrop, setIsApplyingCrop] = React.useState<boolean>(false);
 
     React.useEffect(() => {
         if (open) {
@@ -32,7 +43,7 @@ export function MediaPicker({ open, onOpenChange, onSelect, cropPurpose = null }
         }
     }, [open, refresh]);
 
-    const handleSelectItem = React.useCallback((item) => {
+    const handleSelectItem = React.useCallback((item: { url?: string; name?: string }) => {
         if (!item?.url) return;
         if (!cropPurpose) {
             onSelect(item.url);
@@ -153,10 +164,10 @@ export function MediaPicker({ open, onOpenChange, onSelect, cropPurpose = null }
             onOpenChange={setCropOpen}
             source={cropSource}
             purpose={cropPurpose || "generic"}
-            onConfirm={async (croppedFile) => {
+            onConfirm={async (croppedFile: File) => {
                 setIsApplyingCrop(true);
                 try {
-                    const uploaded = await uploadMediaObject(croppedFile, cropPurpose || "library");
+                    const uploaded = await uploadMediaObject(croppedFile, cropPurpose || "library") as { url?: string } | null;
                     const url = String(uploaded?.url || "").trim();
                     if (!url) throw new Error(t("mediaLibrary.uploadFailed", "上傳失敗"));
                     onSelect(url);

@@ -1,32 +1,7 @@
 import type { Dispatch, SetStateAction, RefObject } from "react";
+import type { MarkerConfig, ParsedScene, ParsedTitleEntry, ScriptAst, AstNode, CustomMetadataEntry } from "../types/script";
 
-/** AST 解析結果（由 parseScreenplay 產生） */
-export interface ScriptAst {
-  // 保持 opaque，讓消費端不需要知道內部結構
-  [key: string]: unknown;
-}
-
-export interface ParsedScene {
-  id: string;
-  /** 場景標題文字（由 screenplayAST 產生） */
-  label?: string;
-  /** 場景在列表中的序號（由 ScriptViewer 產生） */
-  index?: number;
-  /** 顯示用標頭文字（由 ScriptViewer 產生） */
-  header?: string;
-  lineNumber?: number;
-  [key: string]: unknown;
-}
-
-export interface ParsedTitleEntry {
-  key: string;
-  value: string;
-}
-
-export interface MarkerConfig {
-  id: string;
-  [key: string]: unknown;
-}
+export type { MarkerConfig, ParsedScene, ParsedTitleEntry, ScriptAst, AstNode, CustomMetadataEntry };
 
 export interface FileMeta {
   [path: string]: Date;

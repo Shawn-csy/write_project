@@ -1,5 +1,5 @@
-// @ts-nocheck
 import { useState, useCallback } from "react";
+import type React from "react";
 import { updateScript, reorderScripts } from "../../lib/api/scripts";
 import { useAuth } from "../../contexts/AuthContext";
 import { 
@@ -12,6 +12,17 @@ import {
     arrayMove, 
     sortableKeyboardCoordinates 
 } from '@dnd-kit/sortable';
+import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
+
+interface ScriptItem {
+    id: string;
+    title: string;
+    type?: string;
+    folder: string;
+    sortOrder?: number;
+    isPublic?: boolean;
+    [key: string]: unknown;
+}
 
 export function useScriptDragDrop({
     scripts,
@@ -20,9 +31,16 @@ export function useScriptDragDrop({
     expandedPaths,
     currentPath,
     fetchScripts
+}: {
+    scripts: ScriptItem[];
+    setScripts: React.Dispatch<React.SetStateAction<ScriptItem[]>>;
+    visibleItems: ScriptItem[];
+    expandedPaths: Set<string>;
+    currentPath: string;
+    fetchScripts: () => void;
 }) {
     const { currentUser } = useAuth();
-    const [activeDragId, setActiveDragId] = useState(null);
+    const [activeDragId, setActiveDragId] = useState<string | null>(null);
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -35,17 +53,19 @@ export function useScriptDragDrop({
         })
     );
 
-    const handleDragStart = useCallback((event) => {
-        setActiveDragId(event.active.id);
+    const handleDragStart = useCallback((event: DragStartEvent) => {
+        setActiveDragId(String(event.active.id));
     }, []);
 
-    const handleDragEnd = useCallback(async (event) => {
+    const handleDragEnd = useCallback(async (event: DragEndEvent) => {
         const { active, over } = event;
         setActiveDragId(null);
         if (!over) return;
 
-        const activeItem = scripts.find(s => s.id === active.id);
-        const overItem = scripts.find(s => s.id === over.id);
+        const activeId = String(active.id);
+        const overId = String(over.id);
+        const activeItem = scripts.find((s) => s.id === activeId);
+        const overItem = scripts.find((s) => s.id === overId);
 
         if (!activeItem || !overItem) return;
 
@@ -58,7 +78,7 @@ export function useScriptDragDrop({
              if (activeItem.type !== 'folder') { 
                 const newFolder = (overItem.folder === '/' ? '' : overItem.folder) + '/' + overItem.title;
                 if (activeItem.folder !== newFolder) {
-                     setScripts(prev => prev.map(s => s.id === active.id ? { ...s, folder: newFolder } : s));
+                     setScripts((prev) => prev.map((s) => s.id === activeId ? { ...s, folder: newFolder } : s));
                      try {
                         await updateScript(activeItem.id, { folder: newFolder });
                      } catch (e) { console.error(e); fetchScripts(); }
@@ -68,10 +88,10 @@ export function useScriptDragDrop({
         }
 
         // 2. Reorder / Move
-        if (active.id !== over.id) {
+        if (activeId !== overId) {
             setScripts((items) => {
-                const oldIndex = visibleItems.findIndex((item) => item.id === active.id);
-                const newIndex = visibleItems.findIndex((item) => item.id === over.id);
+                const oldIndex = visibleItems.findIndex((item) => item.id === activeId);
+                const newIndex = visibleItems.findIndex((item) => item.id === overId);
                 
                 if (oldIndex === -1 || newIndex === -1) return items;
 
@@ -102,10 +122,10 @@ export function useScriptDragDrop({
                 
                 const updateMap = new Map(updates.map(u => [u.id, u]));
                 
-                 if (movedItem.id === active.id) {
-                     const originalFolder = scripts.find(s => s.id === active.id)?.folder;
+                 if (movedItem.id === activeId) {
+                     const originalFolder = scripts.find((s) => s.id === activeId)?.folder;
                      if (originalFolder !== newFolder) {
-                         updateScript(active.id, { folder: newFolder }).catch(console.error);
+                         updateScript(activeId, { folder: newFolder }).catch(console.error);
                      }
                  }
                  
@@ -113,11 +133,12 @@ export function useScriptDragDrop({
 
                  return items.map(s => {
                      let newS = s;
-                     if (s.id === active.id) {
+                     if (s.id === activeId) {
                          newS = { ...newS, folder: newFolder };
                      }
                      if (updateMap.has(s.id)) {
-                         newS = { ...newS, sortOrder: updateMap.get(s.id).sortOrder };
+                         const next = updateMap.get(s.id);
+                         if (next) newS = { ...newS, sortOrder: next.sortOrder };
                      }
                      return newS;
                  });

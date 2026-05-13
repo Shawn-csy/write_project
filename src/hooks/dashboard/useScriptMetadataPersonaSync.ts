@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect } from "react";
 
 export function useScriptMetadataPersonaSync({
@@ -33,7 +32,7 @@ export function useScriptMetadataPersonaSync({
     const persona = personas.find((item) => item.id === personaId);
     if (!persona) return;
 
-    const next = [];
+    const next: Array<{ id: string; key: string; value: string }> = [];
     if (persona.website) {
       next.push({ id: `ct-${Date.now()}-web`, key: "Website", value: persona.website });
     }

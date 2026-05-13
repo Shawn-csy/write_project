@@ -1,4 +1,3 @@
-// @ts-nocheck
 const normKey = (key) => String(key || "").trim().toLowerCase().replace(/\s+/g, "");
 
 export const normalizeCustomMetadataEntries = (entries) => {
@@ -13,14 +12,13 @@ export const normalizeCustomMetadataEntries = (entries) => {
         type: entry?.type === "divider" ? "divider" : "text",
       };
     })
-    .filter(Boolean);
+    .filter(Boolean) as { key: string; value: string; type: "text" | "divider" }[];
 };
 
 /** @returns {Record<string, string>} */
-export const customMetadataEntriesToMeta = (entries) => {
+export const customMetadataEntriesToMeta = (entries: unknown[]): Record<string, string> => {
   const normalized = normalizeCustomMetadataEntries(entries);
-  /** @type {Record<string, string>} */
-  const meta = {};
+  const meta: Record<string, string> = {};
   normalized.forEach((entry) => {
     meta[normKey(entry.key)] = entry.value;
   });

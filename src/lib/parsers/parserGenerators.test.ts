@@ -5,8 +5,8 @@ import {
   createDynamicParsers,
   createTextParser,
   mergeTextNodes
-} from './parserGenerators.js';
-import { parseInline } from './inlineParser.js';
+} from './parserGenerators';
+import { parseInline } from './inlineParser';
 
 describe('parserGenerators', () => {
   it('escapeRegExp should escape special characters', () => {
