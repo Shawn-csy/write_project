@@ -251,7 +251,7 @@ export function PublisherProfileTab({
     const profileDone = profileChecklist.filter((item) => item.ok).length;
     const profileProgress = Math.round((profileDone / profileChecklist.length) * 100);
     const profileNextSteps = profileChecklist.filter((item) => !item.ok).slice(0, 3);
-    const requiredFieldTargets = React.useMemo(() => ({
+    const requiredFieldTargets = React.useMemo<Record<string, string>>(() => ({
         displayName: "persona-display-name",
         bio: "persona-bio",
         avatar: "persona-avatar-url",
@@ -293,6 +293,18 @@ export function PublisherProfileTab({
             }
             if (field === "bannerUrl") {
                 setBannerUploadError(optimized.error || t("publisherProfileTab.invalidImage"));
+                setBannerUploadWarning("");
+            }
+            return;
+        }
+        if (!optimized.file) {
+            const fallbackError = t("publisherProfileTab.invalidImage");
+            if (field === "avatar") {
+                setAvatarUploadError(fallbackError);
+                setAvatarUploadWarning("");
+            }
+            if (field === "bannerUrl") {
+                setBannerUploadError(fallbackError);
                 setBannerUploadWarning("");
             }
             return;

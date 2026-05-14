@@ -9,7 +9,7 @@ import {
 import type { OrganizationInvite, OrganizationMember, OrganizationRequest } from "../../types/api";
 import type { CurrentUserLike } from "../../types/user";
 
-interface QueueUser {
+export interface QueueUser {
   id: string;
   displayName?: string;
   handle?: string;
@@ -21,7 +21,7 @@ interface QueueUser {
   [key: string]: unknown;
 }
 
-interface OrgMembersData {
+export interface OrgMembersData {
   users: OrganizationMember[];
   personas: Array<Record<string, unknown>>;
 }

@@ -5,10 +5,11 @@ import { Input } from "../../../ui/input";
 import { Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../../ui/tooltip";
 import { useI18n } from "../../../../contexts/I18nContext";
+import type { MarkerConfigEditorProps } from "../types";
 
-export function MarkerAnalysisSettings({ config, idx, updateMarker }) {
+export function MarkerAnalysisSettings({ config, idx, updateMarker }: MarkerConfigEditorProps): React.JSX.Element {
     const { t } = useI18n();
-    const handleChange = (field, value) => {
+    const handleChange = (field: "fixedDuration", value: number | undefined) => {
         updateMarker(idx, field, value);
     };
 

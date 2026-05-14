@@ -3,14 +3,15 @@ import { Settings } from "lucide-react";
 import { Input } from "../../../ui/input";
 import { ModeSelector } from "./ModeSelector";
 import { useI18n } from "../../../../contexts/I18nContext";
+import type { MarkerConfigEditorProps } from "../types";
 
-export function MarkerLogicSettings({ config, idx, updateMarker, isAdvancedMode = true }) {
+export function MarkerLogicSettings({ config, idx, updateMarker, isAdvancedMode = true }: MarkerConfigEditorProps): React.JSX.Element {
     const { t } = useI18n();
     const isBlock = config.type === 'block' || config.isBlock; 
     const isInline = !isBlock;
 
-    const updateArrayField = (field, valueStr) => {
-        const arr = valueStr.split(',').map(s => s.trim()).filter(Boolean);
+    const updateArrayField = (field: "keywords", valueStr: string) => {
+        const arr = valueStr.split(',').map((s: string) => s.trim()).filter(Boolean);
         updateMarker(idx, field, arr);
     };
 
@@ -25,9 +26,9 @@ export function MarkerLogicSettings({ config, idx, updateMarker, isAdvancedMode 
                  <div className="mb-4">
                     <ModeSelector 
                         value={config.matchMode || 'enclosure'} 
-                        onChange={(mode) => updateMarker(idx, 'matchMode', mode)}
+                        onChange={(mode: "enclosure" | "prefix" | "range" | "regex") => updateMarker(idx, 'matchMode', mode)}
                     />
-                 </div>
+                </div>
              )}
 
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

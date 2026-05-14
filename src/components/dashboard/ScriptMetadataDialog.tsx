@@ -42,6 +42,8 @@ import { ImageCropDialog } from "../ui/ImageCropDialog";
 import { createEmptyActivityDemoLink } from "../../lib/activityDemoLinks";
 import { MetadataSectionBlock } from "./metadata/MetadataSectionBlock";
 import type { BaseScriptApi } from "../../types/api";
+import type { TagLike, LicenseSpecialTerm, ScriptLike } from "../../hooks/dashboard/types";
+import type { SeriesLike } from "../../types/api";
 
 export { buildPublishChecklist };
 
@@ -65,9 +67,13 @@ export const CHECKLIST_ITEM_TO_SECTION = Object.freeze({
     tags: "exposure",
 });
 
-export function getCollapsedSectionsAfterTabSync(collapsedSections, activeTab, shouldExpand) {
+export function getCollapsedSectionsAfterTabSync(
+    collapsedSections: Record<string, boolean>,
+    activeTab: string,
+    shouldExpand: boolean
+) {
     if (!shouldExpand) return collapsedSections;
-    const target = ACTIVE_TAB_TO_SECTION[activeTab];
+    const target = ACTIVE_TAB_TO_SECTION[activeTab as keyof typeof ACTIVE_TAB_TO_SECTION];
     if (!target) return collapsedSections;
     if (!collapsedSections[target]) return collapsedSections;
     return { ...collapsedSections, [target]: false };
@@ -97,15 +103,16 @@ export function ScriptMetadataDialog({
     onOpenChange: (open: boolean) => void;
     onSave: (script: BaseScriptApi) => void;
     seriesOptions?: Array<{ id: string; name: string }>;
-    onSeriesCreated?: (series: { id: string; name: string }) => void;
+    onSeriesCreated?: (series: SeriesLike) => void;
     fetchFullScript?: boolean;
-    saveScript?: ((scriptId: string, updates: Record<string, unknown>, context?: { tagIds?: string[] }) => Promise<unknown>) | null;
-    syncScriptTags?: ((scriptId: string, tagIds: string[]) => Promise<unknown>) | null;
+    saveScript?: ((id: string, payload: Partial<BaseScriptApi> & { author?: string }, extra?: Record<string, unknown>) => Promise<BaseScriptApi>) | null;
+    syncScriptTags?: ((id: string, tags: TagLike[]) => Promise<void>) | null;
     disableAuthorAutofill?: boolean;
     preserveAuthorInternalData?: boolean;
 }) {
     const { t } = useI18n();
     const { toast } = useToast();
+    const toastAdapter = useCallback((opts: { title?: string; description?: string; variant?: string }) => { toast(opts as Parameters<typeof toast>[0]); }, [toast]);
     const navigate = useNavigate();
     const [title, setTitle] = useState("");
     const [status, setStatus] = useState("Private");
@@ -235,7 +242,7 @@ export function ScriptMetadataDialog({
     const userEditedRef = useRef(false);
     const contactAutoFilledRef = useRef(false);
     const authorEditedRef = useRef(false);
-    const publicLoadedRef = useRef(null);
+    const publicLoadedRef = useRef<string | null>(null);
     const [localScript, setLocalScript] = useState<BaseScriptApi | null>(null);
     const activeScript = scriptId ? localScript : (localScript || script);
     const sensors = useSensors(
@@ -243,36 +250,36 @@ export function ScriptMetadataDialog({
         useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
     );
 
-    const applyPublicInfo = (publicScript) => {
+    const applyPublicInfo = (publicScript: Record<string, unknown> | null | undefined) => {
         if (!publicScript) return;
-        setStatus(publicScript.status || (publicScript.isPublic ? "Public" : status));
+        setStatus(String(publicScript.status || (publicScript.isPublic ? "Public" : status)));
         if (publicScript.personaId) {
             setIdentity(`persona:${publicScript.personaId}`);
-            setSelectedOrgId(publicScript.organizationId || "");
+            setSelectedOrgId(String(publicScript.organizationId || ""));
         } else if (publicScript.organizationId) {
-            setSelectedOrgId(publicScript.organizationId || "");
+            setSelectedOrgId(String(publicScript.organizationId || ""));
         }
         if (publicScript.coverUrl) {
-            setCoverUrl(publicScript.coverUrl);
+            setCoverUrl(String(publicScript.coverUrl));
         }
         if (publicScript.markerThemeId) {
-            setMarkerThemeId(publicScript.markerThemeId);
+            setMarkerThemeId(String(publicScript.markerThemeId));
         }
         if (publicScript.disableCopy !== undefined && publicScript.disableCopy !== null) {
             setDisableCopy(Boolean(publicScript.disableCopy));
         }
-        if (publicScript.tags && publicScript.tags.length > 0) {
-            setCurrentTags(publicScript.tags);
+        if (publicScript.tags && Array.isArray(publicScript.tags) && publicScript.tags.length > 0) {
+            setCurrentTags(publicScript.tags as TagLike[]);
         }
     };
 
-    const loadPublicInfoIfNeeded = async (baseScript) => {
+    const loadPublicInfoIfNeeded = async (baseScript: Record<string, unknown> | null | undefined) => {
         if (!baseScript?.id) return;
         if (!(baseScript.isPublic || baseScript.status === "Public")) return;
-        if (publicLoadedRef.current === baseScript.id) return;
+        if (publicLoadedRef.current === String(baseScript.id)) return;
         try {
-            const pub = await getPublicScript(baseScript.id);
-            publicLoadedRef.current = baseScript.id;
+            const pub = await getPublicScript(String(baseScript.id));
+            publicLoadedRef.current = String(baseScript.id);
             applyPublicInfo(pub);
         } catch (e) {
             console.warn("Failed to load public script info", e);
@@ -334,21 +341,21 @@ export function ScriptMetadataDialog({
         handleAddTagsBatch,
         handleRemoveTag,
         handleClearTags,
-    } = useScriptTags({ t, toast, tagOwnerId: typeof activeScript?.ownerId === "string" ? activeScript.ownerId : "" });
+    } = useScriptTags({ t, toast: toastAdapter, tagOwnerId: typeof activeScript?.ownerId === "string" ? activeScript.ownerId : "" });
     
     // Identity Selection
     const { currentUser, profile: currentProfile } = useAuth();
     const [identity, setIdentity] = useState(""); // persona:ID only
-    const [selectedOrgId, setSelectedOrgId] = useState("");
+    const [selectedOrgId, setSelectedOrgId] = useState<string | null>("");
     const [personas, setPersonas] = useState<Array<{ id: string; displayName?: string; organizationIds?: string[] }>>([]);
     const [orgs, setOrgs] = useState<Array<{ id: string; name?: string }>>([]);
 
-    const setAuthorWithTracking = useCallback((value) => {
+    const setAuthorWithTracking = useCallback((value: string) => {
         authorEditedRef.current = true;
         setAuthor(value);
     }, [setAuthor]);
 
-    const setAuthorDisplayModeWithTracking = useCallback((value) => {
+    const setAuthorDisplayModeWithTracking = useCallback((value: string) => {
         authorEditedRef.current = true;
         setAuthorDisplayMode(value);
     }, [setAuthorDisplayMode]);
@@ -364,6 +371,11 @@ export function ScriptMetadataDialog({
         setMarkerThemes,
         setShowPersonaSetupDialog,
     });
+    const setActivityDemoLinksAdapter = useCallback((v: unknown[]) => { setActivityDemoLinks(v as Parameters<typeof setActivityDemoLinks>[0]); }, [setActivityDemoLinks]);
+    const setCurrentTagsAdapter = useCallback((v: TagLike[]) => { setCurrentTags(v); }, [setCurrentTags]);
+    const setSeriesOrderStrAdapter = useCallback((v: string) => { setSeriesOrder(v); }, [setSeriesOrder]);
+    const setSeriesOrderAdapter = useCallback((v: string | number) => { setSeriesOrder(String(v)); }, [setSeriesOrder]);
+
     const applyJson = useScriptMetadataJson({
         jsonText,
         t,
@@ -383,7 +395,7 @@ export function ScriptMetadataDialog({
         setActivityName,
         setActivityBannerUrl,
         setActivityContent,
-        setActivityDemoLinks,
+        setActivityDemoLinks: setActivityDemoLinksAdapter,
         setActivityWorkUrl,
         setContact,
         setContactFields,
@@ -394,13 +406,13 @@ export function ScriptMetadataDialog({
         setCopyright,
         setSeriesName,
         setSeriesId,
-        setSeriesOrder,
+        setSeriesOrder: setSeriesOrderStrAdapter,
         setCoverUrl,
         setStatus,
         setIdentity,
         setSelectedOrgId,
         setCustomFields,
-        setCurrentTags,
+        setCurrentTags: setCurrentTagsAdapter as unknown as (v: { id?: string | number; name?: string }[]) => void,
     });
     const publishChecklist = usePublishChecklist({
         title,
@@ -460,7 +472,7 @@ export function ScriptMetadataDialog({
         contentScrollRef,
     });
 
-    const applyCroppedUpload = async (file, target) => {
+    const applyCroppedUpload = async (file: File, target: string) => {
         const ruleKey = target === "activityBanner" ? "banner" : "cover";
         const optimized = await optimizeImageForUpload(file, ruleKey);
         if (!optimized.ok) {
@@ -474,7 +486,7 @@ export function ScriptMetadataDialog({
             return;
         }
         try {
-            const uploaded = await uploadMediaObject(optimized.file, ruleKey);
+            const uploaded = await uploadMediaObject(optimized.file as File, ruleKey);
             const nextUrl = String(uploaded?.url || "").trim();
             if (!nextUrl) throw new Error("上傳失敗。");
             if (target === "activityBanner") {
@@ -554,11 +566,11 @@ export function ScriptMetadataDialog({
         setActivityName,
         setActivityBannerUrl,
         setActivityContent,
-        setActivityDemoLinks,
+        setActivityDemoLinks: setActivityDemoLinksAdapter,
         setActivityWorkUrl,
         setSeriesName,
         setSeriesId,
-        setSeriesOrder,
+        setSeriesOrder: setSeriesOrderAdapter,
         setLicenseCommercial,
         setLicenseDerivative,
         setLicenseNotify,
@@ -570,7 +582,7 @@ export function ScriptMetadataDialog({
     useScriptMetadataLifecycle({
         open,
         scriptId,
-        script,
+        script: script as ScriptLike | null,
         localScript,
         setLocalScript,
         hydrateScriptState,
@@ -616,7 +628,7 @@ export function ScriptMetadataDialog({
     });
     
     useScriptMetadataJsonPreview({
-        script,
+        script: (script as ScriptLike | null | undefined) ?? null,
         title,
         author,
         authorDisplayMode,
@@ -649,7 +661,7 @@ export function ScriptMetadataDialog({
         currentTags,
         contactFields,
         customFields,
-        jsonMode,
+        jsonMode: String(jsonMode),
         setJsonText,
     });
 
@@ -671,14 +683,14 @@ export function ScriptMetadataDialog({
         setSeriesId,
         setSeriesName,
         setQuickSeriesName,
-        toast,
+        toast: toastAdapter,
     });
 
     const { isSaving, handleSave } = useScriptMetadataSave({
         t,
-        toast,
-        script,
-        activeScript,
+        toast: toastAdapter,
+        script: (script as ScriptLike | null | undefined) ?? null,
+        activeScript: (activeScript as ScriptLike | null | undefined) ?? null,
         title,
         coverUrl,
         status,
@@ -728,8 +740,8 @@ export function ScriptMetadataDialog({
         setActiveTab,
         onSave,
         onOpenChange,
-        saveScript,
-        syncScriptTags,
+        saveScript: saveScript ?? undefined,
+        syncScriptTags: syncScriptTags ?? undefined,
         preserveAuthorInternalData,
         authorEditedRef,
     });
@@ -740,7 +752,7 @@ export function ScriptMetadataDialog({
         navigate("/studio?tab=profile");
     };
 
-    const handlePersonaSetupDialogOpenChange = (nextOpen) => {
+    const handlePersonaSetupDialogOpenChange = (nextOpen: boolean) => {
         setShowPersonaSetupDialog(nextOpen);
         if (!nextOpen) {
             onOpenChange(false);
@@ -755,6 +767,20 @@ export function ScriptMetadataDialog({
         setTargetAudience,
         setContentRating,
     });
+
+    const handleAddContactFieldAdapter = useCallback(() => {
+        handleAddContactField("");
+    }, [handleAddContactField]);
+
+    const handleContactFieldUpdateAdapter = useCallback((id: string, key: string, value: string) => {
+        const index = contactFields.findIndex((f) => f.id === id);
+        if (index !== -1) handleContactFieldUpdate(index, key as "key" | "value", value);
+    }, [contactFields, handleContactFieldUpdate]);
+
+    const handleCustomFieldUpdateAdapter = useCallback((id: string, key: string, value: string) => {
+        const index = customFields.findIndex((f) => f.id === id);
+        if (index !== -1) handleCustomFieldUpdate(index, key as "key" | "value" | "type", value);
+    }, [customFields, handleCustomFieldUpdate]);
 
     const metadataDetailsCommonProps = useScriptMetadataDetailsProps({
         status,
@@ -780,16 +806,16 @@ export function ScriptMetadataDialog({
         handleQuickCreateSeries,
         isCreatingSeries,
         seriesOrder,
-        setSeriesOrder,
-        requiredErrorMap,
+        setSeriesOrder: setSeriesOrderAdapter,
+        requiredErrorMap: requiredErrorMap as unknown as Record<string, string>,
         handleAddTag,
         handleAddTagsBatch,
         handleRemoveTag,
         handleClearTags,
         contactFields,
         setContactFields,
-        handleAddContactField,
-        handleContactFieldUpdate,
+        handleAddContactField: handleAddContactFieldAdapter,
+        handleContactFieldUpdate: handleContactFieldUpdateAdapter,
         sensors,
         dragDisabled,
         setDragDisabled,
@@ -797,18 +823,18 @@ export function ScriptMetadataDialog({
         setCustomFields,
         addCustomField,
         addDivider,
-        handleCustomFieldUpdate,
-        recommendedErrorMap,
+        handleCustomFieldUpdate: handleCustomFieldUpdateAdapter,
+        recommendedErrorMap: recommendedErrorMap as unknown as Record<string, string>,
     });
 
     const addLicenseSpecialTerm = () => {
         const value = String(publishNewTerm || "").trim();
         if (!value) return;
-        setLicenseSpecialTerms((prev) => [...(prev || []), value]);
+        setLicenseSpecialTerms((prev) => [...(prev || []), value as unknown as LicenseSpecialTerm]);
         setPublishNewTerm("");
     };
 
-    const removeLicenseSpecialTerm = (index) => {
+    const removeLicenseSpecialTerm = (index: number) => {
         setLicenseSpecialTerms((prev) => {
             const next = [...(prev || [])];
             next.splice(index, 1);
@@ -828,7 +854,7 @@ export function ScriptMetadataDialog({
         });
     };
 
-    const handleRemoveActivityDemoLink = (index) => {
+    const handleRemoveActivityDemoLink = (index: number) => {
         setActivityDemoLinks((prev) => {
             const next = [...(prev || [])];
             next.splice(index, 1);
@@ -843,8 +869,8 @@ export function ScriptMetadataDialog({
         pendingActiveTabExpandRef.current = false;
     }, [open, scriptId, script?.id]);
 
-    const toggleSection = (key) => {
-        setCollapsedSections((prev) => ({ ...prev, [key]: !prev[key] }));
+    const toggleSection = (key: string) => {
+        setCollapsedSections((prev) => ({ ...prev, [key]: !prev[key as keyof typeof prev] }));
     };
 
     useEffect(() => {
@@ -854,14 +880,14 @@ export function ScriptMetadataDialog({
         if (previous === activeTab) return;
         const shouldExpand = pendingActiveTabExpandRef.current;
         pendingActiveTabExpandRef.current = false;
-        setCollapsedSections((prev) => getCollapsedSectionsAfterTabSync(prev, activeTab, shouldExpand));
+        setCollapsedSections((prev) => getCollapsedSectionsAfterTabSync(prev, activeTab, shouldExpand) as typeof initialCollapsedSections);
     }, [activeTab, open]);
 
-    const handleFocusSection = (section) => {
-        const targetSection = ACTIVE_TAB_TO_SECTION[section] || section;
+    const handleFocusSection = (section: string) => {
+        const targetSection = ACTIVE_TAB_TO_SECTION[section as keyof typeof ACTIVE_TAB_TO_SECTION] || section;
         if (activeTab === targetSection) {
             pendingActiveTabExpandRef.current = false;
-            setCollapsedSections((prev) => getCollapsedSectionsAfterTabSync(prev, targetSection, true));
+            setCollapsedSections((prev) => getCollapsedSectionsAfterTabSync(prev, targetSection, true) as typeof initialCollapsedSections);
             focusSection(section);
             return;
         }
@@ -869,11 +895,11 @@ export function ScriptMetadataDialog({
         focusSection(section);
     };
 
-    const handleJumpToChecklistItem = (key) => {
-        const targetSection = CHECKLIST_ITEM_TO_SECTION[key] || "basic";
+    const handleJumpToChecklistItem = (key: string) => {
+        const targetSection = CHECKLIST_ITEM_TO_SECTION[key as keyof typeof CHECKLIST_ITEM_TO_SECTION] || "basic";
         if (activeTab === targetSection) {
             pendingActiveTabExpandRef.current = false;
-            setCollapsedSections((prev) => getCollapsedSectionsAfterTabSync(prev, targetSection, true));
+            setCollapsedSections((prev) => getCollapsedSectionsAfterTabSync(prev, targetSection, true) as typeof initialCollapsedSections);
             jumpToChecklistItem(key);
             return;
         }
@@ -881,11 +907,11 @@ export function ScriptMetadataDialog({
         jumpToChecklistItem(key);
     };
 
-    const renderSectionBlock = (key, title, sectionId, node) => (
+    const renderSectionBlock = (key: string, title: string, sectionId: string, node: React.ReactNode) => (
         <MetadataSectionBlock
             sectionId={sectionId}
             title={title}
-            collapsed={Boolean(collapsedSections[key])}
+            collapsed={Boolean(collapsedSections[key as keyof typeof collapsedSections])}
             onToggle={() => toggleSection(key)}
         >
             {node}
@@ -1076,7 +1102,7 @@ export function ScriptMetadataDialog({
                                         coverUrl={coverUrl}
                                         setCoverUrl={setCoverUrl}
                                         handleCoverUpload={handleCoverUpload}
-                                        setIsMediaPickerOpen={(open) => {
+                                        setIsMediaPickerOpen={(open: boolean) => {
                                             if (open) setMediaPickerTarget("cover");
                                             setIsMediaPickerOpen(open);
                                         }}

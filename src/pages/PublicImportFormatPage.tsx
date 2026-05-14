@@ -10,6 +10,18 @@ import { parseScreenplay } from "../lib/screenplayAST";
 import { ScriptRenderer } from "../components/renderer/ScriptRenderer";
 import type { MarkerConfigLike } from "../types/renderer";
 
+type RuleId =
+  | "rule-numbered-chapter-title"
+  | "rule-se-performer"
+  | "rule-tone-general"
+  | "rule-post-effect"
+  | "rule-se-single"
+  | "rule-position"
+  | "se-continuous"
+  | "rule-bg-start"
+  | "character"
+  | "action";
+
 export default function PublicImportFormatPage() {
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -63,12 +75,13 @@ export default function PublicImportFormatPage() {
     "character": "#C 小雨",
     "action": "我們到了，先觀察四周。",
   }), []);
-  const astById = React.useMemo(() => {
-    const entries = {};
+  const astById = React.useMemo<Partial<Record<RuleId, ReturnType<typeof parseScreenplay>["ast"]>>>(() => {
+    const entries: Partial<Record<RuleId, ReturnType<typeof parseScreenplay>["ast"]>> = {};
     allRules.forEach((rule) => {
-      const sample = renderTextById[rule.id] || exampleById[rule.id] || "";
+      const ruleId = rule.id as RuleId;
+      const sample = renderTextById[ruleId] || exampleById[ruleId] || "";
       if (!sample) return;
-      entries[rule.id] = parseScreenplay(sample, DEFAULT_MARKER_RULES).ast;
+      entries[ruleId] = parseScreenplay(sample, DEFAULT_MARKER_RULES).ast;
     });
     return entries;
   }, [allRules, renderTextById, exampleById]);
@@ -104,17 +117,20 @@ export default function PublicImportFormatPage() {
                   <div className="px-3 py-2">{t("importFormat.renderCol")}</div>
                 </div>
                 {allRules.map((rule) => (
+                  (() => {
+                    const ruleId = rule.id as RuleId;
+                    return (
                   <div key={rule.id} className="grid grid-cols-[140px_1fr_160px_1fr] border-t text-sm">
                     <div className="px-3 py-2 border-r">
                       <div className="font-medium">{rule.label || rule.id}</div>
                     </div>
-                    <div className="px-3 py-2 border-r text-muted-foreground">{usageById[rule.id] || t("importFormat.usageGeneric")}</div>
-                    <div className="px-3 py-2 border-r font-mono text-xs break-all">{exampleById[rule.id] || "-"}</div>
+                    <div className="px-3 py-2 border-r text-muted-foreground">{usageById[ruleId] || t("importFormat.usageGeneric")}</div>
+                    <div className="px-3 py-2 border-r font-mono text-xs break-all">{exampleById[ruleId] || "-"}</div>
                     <div className="px-3 py-2">
-                      {astById[rule.id] ? (
+                      {astById[ruleId] ? (
                         <div className="rounded border bg-background p-2 text-xs">
                           <ScriptRenderer
-                            ast={astById[rule.id]}
+                            ast={astById[ruleId]}
                             markerConfigs={rendererRules}
                             colorCache={colorCacheRef}
                             fontSize={13}
@@ -125,6 +141,8 @@ export default function PublicImportFormatPage() {
                       )}
                     </div>
                   </div>
+                    );
+                  })()
                 ))}
               </div>
             </CardContent>

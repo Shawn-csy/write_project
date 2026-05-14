@@ -6,6 +6,34 @@ import { cn } from "../../../lib/utils";
 import { PublicThemeDialog } from "./PublicThemeDialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../ui/dialog";
 import { useI18n } from "../../../contexts/I18nContext";
+import type { MarkerThemeApi } from "../../../types/api";
+import type { MarkerConfig } from "../../../types/script";
+
+interface ThemePayload {
+    isPublic?: boolean;
+    description?: string;
+}
+
+interface MarkerThemeHeaderProps {
+    markerThemes: MarkerThemeApi[];
+    currentThemeId: string;
+    switchTheme: (themeId: string) => void;
+    addTheme: (
+        name: string,
+        initialOrOptions?: MarkerConfig[] | { initialConfigs?: MarkerConfig[]; isPublic?: boolean; description?: string } | null,
+        legacyOptions?: { initialConfigs?: MarkerConfig[]; isPublic?: boolean; description?: string } | null
+    ) => Promise<MarkerThemeApi>;
+    addThemeFromCurrent: (
+        name: string,
+        optionsOrPublic?: { initialConfigs?: MarkerConfig[]; isPublic?: boolean; description?: string } | boolean
+    ) => Promise<MarkerThemeApi>;
+    deleteTheme: (id: string) => Promise<void>;
+    renameTheme: (id: string, name: string) => void;
+    updateThemeDescription: (id: string, description: string) => Promise<void>;
+    updateThemePublicity: (id: string, isPublic: boolean) => Promise<void>;
+    currentUser?: { uid?: string } | null;
+    readOnly?: boolean;
+}
 
 export function MarkerThemeHeader({
     markerThemes, 
@@ -19,10 +47,10 @@ export function MarkerThemeHeader({
     updateThemePublicity,
     currentUser,
     readOnly = false,
-}) {
+}: MarkerThemeHeaderProps): React.JSX.Element {
     const { t } = useI18n();
     const DEFAULT_THEME_ALIASES = new Set(["預設", "預設主題", "預設主題 (Default)", "default"]);
-    const formatThemeName = (theme) => {
+    const formatThemeName = (theme: MarkerThemeApi | undefined) => {
         if (!theme) return "";
         if (theme.id === "default") return "系統預設";
         const raw = String(theme.name || "").trim();
@@ -33,7 +61,7 @@ export function MarkerThemeHeader({
         return raw || t("markerThemeHeader.theme");
     };
 
-    const currentTheme = markerThemes.find(t => t.id === currentThemeId);
+    const currentTheme = markerThemes.find((theme: MarkerThemeApi) => theme.id === currentThemeId);
     const [newThemeName, setNewThemeName] = useState("");
     const [newThemeDescription, setNewThemeDescription] = useState("");
     const [newThemeSource, setNewThemeSource] = useState("current");
@@ -57,7 +85,7 @@ export function MarkerThemeHeader({
 
     const handleAddTheme = async () => {
         if (!newThemeName.trim()) return;
-        const payload = {
+        const payload: ThemePayload = {
             isPublic: newThemeIsPublic,
             description: newThemeDescription.trim(),
         };
@@ -75,7 +103,7 @@ export function MarkerThemeHeader({
         setNewThemeIsPublic(false);
     };
 
-    const handleCreateOpenChange = (next) => {
+    const handleCreateOpenChange = (next: boolean) => {
         setCreateOpen(next);
         if (!next) {
             setNewThemeName("");

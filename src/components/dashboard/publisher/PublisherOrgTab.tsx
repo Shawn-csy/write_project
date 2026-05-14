@@ -50,18 +50,29 @@ interface TagOption {
 }
 
 interface OrgMember {
-    id: string;
-    [key: string]: unknown;
+  id: string;
+  displayName?: string;
+  handle?: string;
+  email?: string;
+  organizationRole?: string;
 }
 
 interface OrgInvite {
-    id: string;
-    [key: string]: unknown;
+  id: string;
+  invitedUser?: { email?: string; displayName?: string };
+  invitedUserId?: string;
+  status?: string;
 }
 
 interface OrgRequest {
-    id: string;
-    [key: string]: unknown;
+  id: string;
+  requester?: { email?: string; displayName?: string };
+  requesterUserId?: string;
+}
+
+interface OrgMembersData {
+    users?: OrgMember[];
+    personas?: Array<Record<string, unknown>>;
 }
 
 interface PublisherOrgTabProps {
@@ -83,7 +94,7 @@ interface PublisherOrgTabProps {
     getSuggestions: (value: string) => string[];
     getTagStyle: (tag: string) => React.CSSProperties;
     tagOptions?: TagOption[];
-    orgMembers: OrgMember[];
+    orgMembers: OrgMembersData;
     orgInvites: OrgInvite[];
     orgRequests: OrgRequest[];
     canEditSelectedOrg?: boolean;
@@ -99,7 +110,7 @@ interface PublisherOrgTabProps {
     handleDeclineRequest: (id: string) => void;
     handleRemoveMember: (id: string) => void;
     handleRemovePersonaMember: (id: string) => void;
-    handleChangeMemberRole: (id: string, role: string) => void;
+    handleChangeMemberRole: (id: string, role: "admin" | "member") => void;
 }
 
 export function PublisherOrgTab({
@@ -195,6 +206,18 @@ export function PublisherOrgTab({
             }
             if (field === "bannerUrl") {
                 setBannerUploadError(optimized.error || t("publisherOrgTab.invalidImage"));
+                setBannerUploadWarning("");
+            }
+            return;
+        }
+        if (!optimized.file) {
+            const fallbackError = t("publisherOrgTab.invalidImage");
+            if (field === "logoUrl") {
+                setLogoUploadError(fallbackError);
+                setLogoUploadWarning("");
+            }
+            if (field === "bannerUrl") {
+                setBannerUploadError(fallbackError);
                 setBannerUploadWarning("");
             }
             return;
@@ -677,6 +700,7 @@ export function PublisherOrgTab({
                 purpose={cropPurpose}
                 onConfirm={async (croppedFile) => {
                     if (!cropTargetField) return;
+                    if (!croppedFile) return;
                     await applyUploadedImage(croppedFile, cropTargetField);
                 }}
             />

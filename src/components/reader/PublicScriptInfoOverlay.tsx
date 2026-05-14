@@ -84,9 +84,9 @@ export function PublicScriptInfoOverlay({
 
   const parseMultiTemplate = (rawValue: string | undefined) => {
     try {
-      const parsed = JSON.parse(String(rawValue || ""));
+      const parsed = JSON.parse(String(rawValue || "")) as { mode?: string; items?: Array<{ name?: unknown; text?: unknown }> };
       if (parsed?.mode !== "multi" || !Array.isArray(parsed?.items)) return null;
-      return parsed.items.map((entry) => ({
+      return parsed.items.map((entry: { name?: unknown; text?: unknown }) => ({
         name: String(entry?.name || "").trim(),
         text: String(entry?.text || "").trim(),
       }));
@@ -96,9 +96,9 @@ export function PublicScriptInfoOverlay({
   };
   const parseChapterTemplate = (rawValue: string | undefined) => {
     try {
-      const parsed = JSON.parse(String(rawValue || ""));
+      const parsed = JSON.parse(String(rawValue || "")) as { mode?: string; items?: Array<{ chapter?: unknown; environment?: unknown; situation?: unknown }> };
       if (parsed?.mode !== "chapter_multi" || !Array.isArray(parsed?.items)) return [];
-      return parsed.items.map((entry, idx) => ({
+      return parsed.items.map((entry: { chapter?: unknown; environment?: unknown; situation?: unknown }, idx: number) => ({
         chapter: String(entry?.chapter || `第${idx + 1}章`).trim() || `第${idx + 1}章`,
         environment: String(entry?.environment || "").trim(),
         situation: String(entry?.situation || "").trim(),
@@ -173,7 +173,7 @@ export function PublicScriptInfoOverlay({
         <div key="chapter-settings">
           <div className="text-xs font-semibold text-muted-foreground">章節</div>
           <div className="mt-1 grid gap-2">
-            {chapterMulti.map((entry, idx) => (
+            {chapterMulti.map((entry: { chapter: string; environment: string; situation: string }, idx: number) => (
               <div key={`chapter-${idx}`} className="rounded-md border border-border/70 bg-background/70 px-3 py-2.5 shadow-sm text-left">
                 <div className="text-sm font-semibold text-foreground">{entry.chapter}</div>
                 <div className="mt-1 text-xs font-medium text-muted-foreground">環境</div>
@@ -249,7 +249,7 @@ export function PublicScriptInfoOverlay({
         color: "var(--marker-color-amber)",
       },
     };
-    const normalize = (value) => String(value || "").trim().toLowerCase();
+    const normalize = (value: unknown) => String(value || "").trim().toLowerCase();
     const commercial = normalize(commercialUse);
     const derivative = normalize(derivativeUse);
     const notify = normalize(notifyOnModify);

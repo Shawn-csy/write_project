@@ -2,6 +2,17 @@ import React from "react";
 import { useI18n } from "../../../contexts/I18nContext";
 import { ScriptNameDialog } from "./ScriptNameDialog";
 
+interface CreateScriptDialogProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    newType: string;
+    newTitle: string;
+    setNewTitle: (value: string) => void;
+    handleCreate: () => void;
+    creating: boolean;
+    currentPath: string;
+}
+
 export function CreateScriptDialog({
     open,
     onOpenChange,
@@ -11,7 +22,7 @@ export function CreateScriptDialog({
     handleCreate,
     creating,
     currentPath
-}) {
+}: CreateScriptDialogProps) {
     const { t } = useI18n();
     return (
         <ScriptNameDialog

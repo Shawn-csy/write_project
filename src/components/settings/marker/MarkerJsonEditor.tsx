@@ -2,6 +2,16 @@ import React from "react";
 import { Button } from "../../ui/button";
 import { useI18n } from "../../../contexts/I18nContext";
 
+interface MarkerJsonEditorProps {
+  jsonText: string;
+  setJsonText: (value: string) => void;
+  parseError: string | null;
+  onApplyJson: () => void;
+  isSaving?: boolean;
+  isDirty?: boolean;
+  readOnly?: boolean;
+}
+
 export function MarkerJsonEditor({
   jsonText,
   setJsonText,
@@ -10,7 +20,7 @@ export function MarkerJsonEditor({
   isSaving = false,
   isDirty = false,
   readOnly = false,
-}) {
+}: MarkerJsonEditorProps): React.JSX.Element {
     const { t } = useI18n();
     return (
         <div className="h-full flex flex-col gap-3">

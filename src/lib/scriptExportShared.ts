@@ -4,7 +4,7 @@ const normalizeText = (text = "") =>
     .replace(/\u00a0/g, " ")
     .replace(/[ \t]+\n/g, "\n");
 
-const cssColorToArgb = (color) => {
+const cssColorToArgb = (color: string) => {
   if (!color || color === "transparent") return null;
   const hexMatch = color.trim().match(/^#([0-9a-f]{3,8})$/i);
   if (hexMatch) {
@@ -22,11 +22,11 @@ const cssColorToArgb = (color) => {
     .split(",")
     .slice(0, 3)
     .map((v) => Math.max(0, Math.min(255, Number(v.trim()) || 0)));
-  const toHex = (v) => v.toString(16).padStart(2, "0");
+  const toHex = (v: number) => v.toString(16).padStart(2, "0");
   return `FF${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
 };
 
-const getInlineCss = (el) => {
+const getInlineCss = (el: Element) => {
   const cs = window.getComputedStyle(el);
   const styleKeys = [
     "color",
@@ -122,7 +122,7 @@ const buildExportDom = (renderedHtml = "", fallbackText = "") => {
   return { root, lines };
 };
 
-const getRenderedSnapshot = ({ renderedHtml = "", text = "" } = {}) => {
+const getRenderedSnapshot = ({ renderedHtml = "", text = "" }: { renderedHtml?: string; text?: string } = {}) => {
   const dom = buildExportDom(renderedHtml, text);
   if (!dom) {
     const normalized = normalizeText(text);
@@ -150,11 +150,12 @@ const getRenderedSnapshot = ({ renderedHtml = "", text = "" } = {}) => {
   return { html, lines };
 };
 
-const getRenderedLines = ({ renderedHtml = "", text = "" } = {}) => {
+const getRenderedLines = ({ renderedHtml = "", text = "" }: { renderedHtml?: string; text?: string } = {}) => {
   return getRenderedSnapshot({ renderedHtml, text }).lines;
 };
 
 interface StyledRun { text: string; style: Record<string, unknown> }
+interface StyledTextNode { text: string; line: number; html: string }
 const collectStyledRuns = (root: HTMLElement, inherited: Record<string, unknown> = {}): StyledRun[] => {
   const runs: StyledRun[] = [];
   const visit = (node: Node, parentStyle: Record<string, unknown>) => {
@@ -179,3 +180,4 @@ const collectStyledRuns = (root: HTMLElement, inherited: Record<string, unknown>
 };
 
 export { normalizeText, buildExportDom, getRenderedSnapshot, getRenderedLines, collectStyledRuns };
+export type { StyledTextNode };

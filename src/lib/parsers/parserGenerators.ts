@@ -5,17 +5,17 @@ import type { MarkerConfig } from '../../types/script';
 const P = Parsimmon;
 
 // Helper: Escape Regex special characters
-export const escapeRegExp = (string) => {
+export const escapeRegExp = (string: string): string => {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
 // Helper: Convert ASCII Punctuation to Fullwidth (Keep alphanumeric as is)
-export const toFullWidth = (str) => {
+export const toFullWidth = (str: string): string => {
     return str.replace(/[\x21-\x2F\x3A-\x40\x5B-\x60\x7B-\x7E]/g, (char) => String.fromCharCode(char.charCodeAt(0) + 0xfee0))
               .replace(/ /g, '\u3000');
 };
 
-const toFullWidthAlphaNum = (char) => {
+const toFullWidthAlphaNum = (char: string): string => {
   const code = char.charCodeAt(0);
   if ((code >= 0x30 && code <= 0x39) || (code >= 0x41 && code <= 0x5A) || (code >= 0x61 && code <= 0x7A)) {
     return String.fromCharCode(code + 0xFEE0);
@@ -72,7 +72,7 @@ export const createDynamicParsers = (configs: MarkerConfig[] = []): Record<strin
              try {
                  const re = new RegExp(config.regex);
                  const hasGroup = /\([^?]/.test(config.regex);
-                 parser = (hasGroup ? P.regex(re, 1) : P.regex(re)).map(content => ({ 
+                 parser = (hasGroup ? P.regex(re, 1) : P.regex(re)).map((content: string) => ({ 
                      type: 'highlight', 
                      id, 
                      content: content || "" 
@@ -92,7 +92,7 @@ export const createDynamicParsers = (configs: MarkerConfig[] = []): Record<strin
                 ? new RegExp(`^[\\s\\S]*?(?=${nextPrefixPattern}|$)`)
                 : /^[\s\S]*/;
 
-             parser = startParser.then(P.regex(contentRegex)).map(content => ({ 
+             parser = startParser.then(P.regex(contentRegex)).map((content: string) => ({ 
                  type: 'highlight', 
                  id, 
                  content: content.trim() 
@@ -115,7 +115,7 @@ export const createDynamicParsers = (configs: MarkerConfig[] = []): Record<strin
              
              const safeContent = P.regex(contentRegex);
 
-             parser = startParser.then(safeContent).skip(endParser).map(content => ({
+             parser = startParser.then(safeContent).skip(endParser).map((content: string) => ({
                  type: 'highlight',
                  id,
                  content: content.trim()
@@ -148,7 +148,7 @@ export const createTextParser = (configs: MarkerConfig[] = []) => {
     
     const excluded = Array.from(startChars).join('');
     // Use noneOf to efficiently consume chunks of text that definitely aren't markers
-    return P.noneOf(excluded).atLeast(1).map(x => ({ type: 'text', content: x.join('') }));
+    return P.noneOf(excluded).atLeast(1).map((x: string[]) => ({ type: 'text', content: x.join('') }));
 };
 
 interface TextNode { type: string; content: string; [key: string]: unknown }

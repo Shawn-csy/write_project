@@ -38,11 +38,11 @@ interface ImportStagePreviewProps {
     canApplyParsedMetadataRemoval?: boolean;
 }
 
-const parseChapterSettings = (raw: string) => {
+const parseChapterSettings = (raw: string): ChapterEntry[] => {
     try {
         const parsed = JSON.parse(String(raw || ""));
         if (parsed?.mode !== "chapter_multi" || !Array.isArray(parsed.items)) return [];
-        return parsed.items.map((item, idx) => ({
+        return parsed.items.map((item: { chapter?: unknown; environment?: unknown; situation?: unknown }, idx: number) => ({
             id: `chapter-${idx + 1}`,
             chapter: String(item?.chapter || ""),
             environment: String(item?.environment || ""),
@@ -64,11 +64,11 @@ const serializeChapterSettings = (items: ChapterEntry[] = []) => {
     });
 };
 
-const parseMultiTemplate = (raw: string) => {
+const parseMultiTemplate = (raw: string): Array<{ id: string; name: string; text: string }> | null => {
     try {
         const parsed = JSON.parse(String(raw || ""));
         if (parsed?.mode !== "multi" || !Array.isArray(parsed.items)) return null;
-        return parsed.items.map((item, idx) => ({
+        return parsed.items.map((item: { name?: unknown; text?: unknown }, idx: number) => ({
             id: `role-${idx + 1}`,
             name: String(item?.name || ""),
             text: String(item?.text || ""),
@@ -115,7 +115,7 @@ export function ImportStagePreview({
         const performanceItems = parseMultiTemplate(metadataPreview?.PerformanceInstruction || "");
         if (roleItems || performanceItems) {
             const maxLen = Math.max(roleItems?.length || 0, performanceItems?.length || 0, 1);
-            return Array.from({ length: maxLen }).map((_, idx) => ({
+            return Array.from({ length: maxLen }).map((_: unknown, idx: number) => ({
                 id: `role-${idx + 1}`,
                 name: roleItems?.[idx]?.name || performanceItems?.[idx]?.name || "",
                 role: roleItems?.[idx]?.text || "",
@@ -224,7 +224,7 @@ export function ImportStagePreview({
                                                             size="sm"
                                                             variant="ghost"
                                                             className="h-6 px-2 text-[11px]"
-                                                            onClick={() => commitRoleEntries(roleEntries.filter((_, i) => i !== idx))}
+                                                            onClick={() => commitRoleEntries(roleEntries.filter((_: RoleEntry, i: number) => i !== idx))}
                                                             disabled={roleEntries.length <= 1}
                                                         >
                                                             移除
@@ -235,7 +235,7 @@ export function ImportStagePreview({
                                                         value={entry.name}
                                                         placeholder="角色名稱"
                                                         onChange={(e) => {
-                                                            const next = roleEntries.map((item, i) =>
+                                                            const next = roleEntries.map((item: RoleEntry, i: number) =>
                                                                 i === idx ? { ...item, name: e.target.value } : item
                                                             );
                                                             commitRoleEntries(next);
@@ -246,7 +246,7 @@ export function ImportStagePreview({
                                                         value={entry.role}
                                                         placeholder="角色設定"
                                                         onChange={(e) => {
-                                                            const next = roleEntries.map((item, i) =>
+                                                            const next = roleEntries.map((item: RoleEntry, i: number) =>
                                                                 i === idx ? { ...item, role: e.target.value } : item
                                                             );
                                                             commitRoleEntries(next);
@@ -257,7 +257,7 @@ export function ImportStagePreview({
                                                         value={entry.performance}
                                                         placeholder="演繹指示"
                                                         onChange={(e) => {
-                                                            const next = roleEntries.map((item, i) =>
+                                                            const next = roleEntries.map((item: RoleEntry, i: number) =>
                                                                 i === idx ? { ...item, performance: e.target.value } : item
                                                             );
                                                             commitRoleEntries(next);
@@ -304,7 +304,7 @@ export function ImportStagePreview({
                                                             size="sm"
                                                             variant="ghost"
                                                             className="h-6 px-2 text-[11px]"
-                                                            onClick={() => commitChapterEntries(chapterEntries.filter((_, i) => i !== idx))}
+                                                            onClick={() => commitChapterEntries(chapterEntries.filter((_: ChapterEntry, i: number) => i !== idx))}
                                                             disabled={chapterEntries.length <= 1}
                                                         >
                                                             移除
@@ -315,7 +315,7 @@ export function ImportStagePreview({
                                                         value={entry.chapter}
                                                         placeholder={`例如：第${idx + 1}章`}
                                                         onChange={(e) => {
-                                                            const next = chapterEntries.map((item, i) =>
+                                                            const next = chapterEntries.map((item: ChapterEntry, i: number) =>
                                                                 i === idx ? { ...item, chapter: e.target.value } : item
                                                             );
                                                             commitChapterEntries(next);
@@ -326,7 +326,7 @@ export function ImportStagePreview({
                                                         value={entry.environment}
                                                         placeholder="環境"
                                                         onChange={(e) => {
-                                                            const next = chapterEntries.map((item, i) =>
+                                                            const next = chapterEntries.map((item: ChapterEntry, i: number) =>
                                                                 i === idx ? { ...item, environment: e.target.value } : item
                                                             );
                                                             commitChapterEntries(next);
@@ -337,7 +337,7 @@ export function ImportStagePreview({
                                                         value={entry.situation}
                                                         placeholder="狀況"
                                                         onChange={(e) => {
-                                                            const next = chapterEntries.map((item, i) =>
+                                                            const next = chapterEntries.map((item: ChapterEntry, i: number) =>
                                                                 i === idx ? { ...item, situation: e.target.value } : item
                                                             );
                                                             commitChapterEntries(next);

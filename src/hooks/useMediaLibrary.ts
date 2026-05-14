@@ -64,10 +64,12 @@ export function useMediaLibrary({ t, maxBytes = DEFAULT_MAX_BYTES, autoLoad = fa
       try {
         for (const file of list) {
           const optimized = await optimizeImageForUpload(file);
-          if (!optimized.ok) {
-            throw new Error(optimized.error || t?.("mediaLibrary.uploadFailed", "上傳失敗"));
+          const optimizedFile = "file" in optimized ? optimized.file : undefined;
+          if (!optimized.ok || !optimizedFile) {
+            const message = !optimized.ok ? optimized.error : t?.("mediaLibrary.uploadFailed", "上傳失敗");
+            throw new Error(message || "上傳失敗");
           }
-          await uploadMediaObject(optimized.file, purpose);
+          await uploadMediaObject(optimizedFile, purpose);
         }
         await refresh();
       } catch (e: unknown) {

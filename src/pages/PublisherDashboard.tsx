@@ -228,7 +228,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
       series: seriesList.length,
   }), [scripts.length, personas.length, orgsForPersona.length, seriesList.length]);
   const tabTone = MORANDI_STUDIO_TONE_VARS;
-  const renderTabCount = (count) => (
+  const renderTabCount = (count: number) => (
       count ? <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">{count}</span> : null
   );
 
@@ -238,7 +238,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
       ...(orgDraft.tags || []),
   ]));
 
-  const getTagStyle = (name) => getMorandiTagStyle(name, allTagNames);
+  const getTagStyle = (name: string) => getMorandiTagStyle(name, allTagNames);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -261,7 +261,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
       setEditingScript((prev) => (prev?.id === target.id ? prev : target));
   }, [location.search, scripts]);
 
-  const handleTabChange = useCallback((nextTab) => {
+  const handleTabChange = useCallback((nextTab: string) => {
       setActiveTab(nextTab);
       const params = new URLSearchParams(location.search || "");
       if (!nextTab || nextTab === "works") params.delete("tab");
@@ -731,9 +731,9 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 getTagStyle={getTagStyle}
                 tagOptions={availableTags}
                 isLoading={isMetaLoading || isOrgMembersLoading}
-                orgMembers={(orgMembers.users || []) as Array<{ id: string; [key: string]: unknown }>}
-                orgInvites={orgInvites as Array<{ id: string; [key: string]: unknown }>}
-                orgRequests={orgRequests as Array<{ id: string; [key: string]: unknown }>}
+                orgMembers={orgMembers}
+                orgInvites={orgInvites}
+                orgRequests={orgRequests}
                 canEditSelectedOrg={canManageOrgMembers}
                 currentUserId={currentUserId}
                 currentOrgRole={currentOrgRole}

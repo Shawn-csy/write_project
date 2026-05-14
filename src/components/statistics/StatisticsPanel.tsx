@@ -385,7 +385,7 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
                                 {characterStats.map((char, i) => (
                                     <div key={i} className="p-3 hover:bg-muted/30 transition-colors">
                                         {(() => {
-                                            const toFinite = (v, fallback = 0) => {
+                                            const toFinite = (v: unknown, fallback = 0): number => {
                                                 const n = Number(v);
                                                 return Number.isFinite(n) ? n : fallback;
                                             };
@@ -539,7 +539,7 @@ export function StatisticsPanel({ rawScript, scriptAst, onLocateText, scriptId }
         config={statsConfig}
         onSave={setStatsConfig}
         scriptAst={scriptAst}
-        rawScript={rawScript}
+        rawScript={rawScript ?? undefined}
         markerConfigs={markerConfigs}
       />
     </div>

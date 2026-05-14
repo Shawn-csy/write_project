@@ -3,6 +3,30 @@ import { X } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 
+interface ScriptMetadataPublishSectionProps {
+  sectionId?: string;
+  showTitle?: boolean;
+  t: (key: string, fallback?: string) => string;
+  missingRequiredMap: Record<string, boolean | undefined>;
+  requiredErrorMap: Record<string, string | boolean | undefined>;
+  targetAudience: string;
+  handleSetTargetAudience: (value: string) => void;
+  contentRating: string;
+  handleSetContentRating: (value: string) => void;
+  licenseCommercial: string;
+  setLicenseCommercial: (value: string) => void;
+  licenseDerivative: string;
+  setLicenseDerivative: (value: string) => void;
+  licenseNotify: string;
+  setLicenseNotify: (value: string) => void;
+  publishNewTerm: string;
+  setPublishNewTerm: (value: string) => void;
+  addLicenseSpecialTerm: () => void;
+  licenseSpecialTerms: Array<string | { value?: string; label?: string; term?: string }>;
+  removeLicenseSpecialTerm: (index: number) => void;
+  renderRowLabel: (label: string, tone?: "required" | "recommended" | "advanced", missing?: boolean, note?: string) => React.ReactNode;
+}
+
 export function ScriptMetadataPublishSection({
   sectionId = "metadata-section-publish",
   showTitle = true,
@@ -25,7 +49,7 @@ export function ScriptMetadataPublishSection({
   licenseSpecialTerms,
   removeLicenseSpecialTerm,
   renderRowLabel,
-}) {
+}: ScriptMetadataPublishSectionProps) {
   const selectedPositiveClass = "border-primary bg-primary text-primary-foreground ring-2 ring-primary/40 hover:bg-primary/90";
   const selectedNegativeClass = "border-destructive bg-destructive text-destructive-foreground ring-2 ring-destructive/40 hover:bg-destructive/90";
   const selectedWarningClass = "border-[color:var(--license-term-border)] bg-[color:var(--license-term-bg)] text-[color:var(--license-term-fg)] ring-2 ring-[color:var(--license-term-border)]/60 hover:bg-[color:var(--license-term-bg)]";
@@ -33,7 +57,7 @@ export function ScriptMetadataPublishSection({
   const missingCommercial = !licenseCommercial?.trim();
   const missingDerivative = !licenseDerivative?.trim();
   const missingNotify = !licenseNotify?.trim();
-  const licenseGroupClass = (missing) =>
+  const licenseGroupClass = (missing: boolean) =>
     `rounded-md border p-2 ${showLicenseRequired && missing ? "border-destructive/60 bg-destructive/5" : "border-border/50 bg-background/50"}`;
   return (
     <section id={sectionId || undefined} className="space-y-3 scroll-mt-24">
@@ -174,7 +198,7 @@ export function ScriptMetadataPublishSection({
                     key={`${term}-${idx}`}
                     className="flex items-center justify-between rounded-md border border-border/50 bg-background/50 p-2"
                   >
-                    <span className="text-sm">{term}</span>
+                    <span className="text-sm">{typeof term === "string" ? term : String(term?.value || term?.label || term?.term || "")}</span>
                     <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeLicenseSpecialTerm(idx)}>
                       <X className="h-3.5 w-3.5" />
                     </Button>

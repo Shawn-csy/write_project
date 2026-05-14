@@ -1,7 +1,13 @@
 import React from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
 
-export function R18ConsentDialog({ open, onOpenChange, onConfirm }) {
+interface R18ConsentDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+}
+
+export function R18ConsentDialog({ open, onOpenChange, onConfirm }: R18ConsentDialogProps): React.JSX.Element {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="w-[92vw] max-w-[92vw] sm:max-w-lg rounded-xl p-4 sm:p-6 gap-3 max-h-[90vh] overflow-y-auto">

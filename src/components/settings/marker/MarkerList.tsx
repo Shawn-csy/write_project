@@ -15,11 +15,12 @@ import {
 } from '@dnd-kit/sortable';
 import { SortableMarkerItem } from "./SortableMarkerItem";
 import type { MarkerConfig } from "../../../types/script";
+import type { UpdateMarkerFn } from "./types";
 
 interface MarkerListProps {
     localConfigs: MarkerConfig[];
     setLocalConfigs: React.Dispatch<React.SetStateAction<MarkerConfig[]>>;
-    updateMarker: (idx: number, field: string, value: unknown) => void;
+    updateMarker: UpdateMarkerFn;
     removeMarker: (idx: number) => void;
     selectedId: string | number | null;
     onSelect: (id: string | number) => void;

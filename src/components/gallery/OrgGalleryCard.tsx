@@ -2,8 +2,22 @@ import React from "react";
 import { Badge } from "../ui/badge";
 import { Card } from "../ui/card";
 
-export function OrgGalleryCard({ org, onClick, onTagClick }) {
-  const { id, name, logoUrl, description, tags = [] } = org;
+interface OrgGalleryItem {
+  id: string;
+  name?: string;
+  logoUrl?: string;
+  description?: string;
+  tags?: string[];
+}
+
+interface OrgGalleryCardProps {
+  org: OrgGalleryItem;
+  onClick?: () => void;
+  onTagClick?: (tag: string) => void;
+}
+
+export function OrgGalleryCard({ org, onClick, onTagClick }: OrgGalleryCardProps): React.JSX.Element {
+  const { name, logoUrl, description, tags = [] } = org;
   
   return (
     <Card 
@@ -32,7 +46,7 @@ export function OrgGalleryCard({ org, onClick, onTagClick }) {
       <div className="mt-auto pt-2 border-t border-border/40">
         {tags.length > 0 ? (
           <div className="flex flex-wrap gap-1">
-            {tags.slice(0, 5).map((tag, i) => (
+            {tags.slice(0, 5).map((tag: string, i: number) => (
               <Badge 
                 key={i} 
                 variant="outline" 

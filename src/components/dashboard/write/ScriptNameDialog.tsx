@@ -4,6 +4,21 @@ import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../ui/dialog";
 
+interface ScriptNameDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  placeholder: string;
+  value: string;
+  setValue: (value: string) => void;
+  onConfirm: () => void;
+  cancelText: string;
+  confirmText: string;
+  confirmDisabled: boolean;
+  loading?: boolean;
+  helperText?: string;
+}
+
 export function ScriptNameDialog({
   open,
   onOpenChange,
@@ -17,7 +32,7 @@ export function ScriptNameDialog({
   confirmDisabled,
   loading = false,
   helperText = "",
-}) {
+}: ScriptNameDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>

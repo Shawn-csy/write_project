@@ -13,6 +13,30 @@ import {
   declineOrganizationInvite,
   getMyOrganizationInvites,
 } from "../../lib/api/organizations";
+import type { OrganizationInvite, OrganizationRequest } from "../../types/api";
+import type { PersonaLike } from "../../types/persona";
+import type { OrgMembersData, QueueUser } from "./usePublisherOrgQueues";
+
+interface ToastLike {
+  title?: string;
+  description?: string;
+  variant?: "default" | "destructive";
+}
+
+interface UsePublisherOrgMemberActionsInput {
+  selectedOrgId: string | null;
+  personas: PersonaLike[];
+  t: (key: string, fallback?: string) => string;
+  toast: (options: ToastLike) => void;
+  handleTabChange: (tab: string) => void;
+  refreshOrgChoices: () => Promise<void>;
+  setInviteSearchQuery: (value: string) => void;
+  setInviteSearchResults: (users: QueueUser[]) => void;
+  setOrgInvites: (invites: OrganizationInvite[]) => void;
+  setOrgRequests: (requests: OrganizationRequest[]) => void;
+  setOrgMembers: (members: OrgMembersData) => void;
+  setMyInvites: (invites: OrganizationInvite[]) => void;
+}
 
 export function usePublisherOrgMemberActions({
   selectedOrgId,
@@ -27,13 +51,13 @@ export function usePublisherOrgMemberActions({
   setOrgRequests,
   setOrgMembers,
   setMyInvites,
-}) {
-  const getErrorMessage = (error, fallback) => {
-    const msg = String(error?.message || "").trim();
+}: UsePublisherOrgMemberActionsInput) {
+  const getErrorMessage = (error: unknown, fallback: string) => {
+    const msg = error instanceof Error ? String(error.message || "").trim() : "";
     return msg || fallback;
   };
 
-  const handleInviteMember = useCallback(async (userId) => {
+  const handleInviteMember = useCallback(async (userId: string) => {
     if (!selectedOrgId) return;
     try {
       await inviteOrganizationMember(selectedOrgId, userId);
@@ -54,7 +78,8 @@ export function usePublisherOrgMemberActions({
     }
   }, [selectedOrgId, setInviteSearchQuery, setInviteSearchResults, setOrgInvites, t, toast]);
 
-  const handleAcceptRequest = useCallback(async (requestId) => {
+  const handleAcceptRequest = useCallback(async (requestId: string) => {
+    if (!selectedOrgId) return;
     try {
       await acceptOrganizationRequest(requestId);
       const requests = await getOrganizationRequests(selectedOrgId);
@@ -74,7 +99,8 @@ export function usePublisherOrgMemberActions({
     }
   }, [selectedOrgId, setOrgMembers, setOrgRequests, t, toast]);
 
-  const handleDeclineRequest = useCallback(async (requestId) => {
+  const handleDeclineRequest = useCallback(async (requestId: string) => {
+    if (!selectedOrgId) return;
     try {
       await declineOrganizationRequest(requestId);
       const requests = await getOrganizationRequests(selectedOrgId);
@@ -92,7 +118,7 @@ export function usePublisherOrgMemberActions({
     }
   }, [selectedOrgId, setOrgRequests, t, toast]);
 
-  const handleRemoveMember = useCallback(async (userId) => {
+  const handleRemoveMember = useCallback(async (userId: string) => {
     if (!selectedOrgId || !userId) return;
     try {
       await removeOrganizationMember(selectedOrgId, userId);
@@ -111,7 +137,7 @@ export function usePublisherOrgMemberActions({
     }
   }, [selectedOrgId, setOrgMembers, t, toast]);
 
-  const handleRemovePersonaMember = useCallback(async (personaId) => {
+  const handleRemovePersonaMember = useCallback(async (personaId: string) => {
     if (!selectedOrgId || !personaId) return;
     try {
       await removeOrganizationPersona(selectedOrgId, personaId);
@@ -130,7 +156,7 @@ export function usePublisherOrgMemberActions({
     }
   }, [selectedOrgId, setOrgMembers, t, toast]);
 
-  const handleChangeMemberRole = useCallback(async (userId, role) => {
+  const handleChangeMemberRole = useCallback(async (userId: string, role: "admin" | "member") => {
     if (!selectedOrgId || !userId || !role) return;
     try {
       await updateOrganizationMemberRole(selectedOrgId, userId, role);
@@ -149,7 +175,7 @@ export function usePublisherOrgMemberActions({
     }
   }, [selectedOrgId, setOrgMembers, t, toast]);
 
-  const handleAcceptInvite = useCallback(async (inviteId) => {
+  const handleAcceptInvite = useCallback(async (inviteId: string) => {
     if (!personas.length) {
       toast({
         title: t("publisher.noPersonaBeforeJoinOrg", "請先建立作者身份"),
@@ -177,7 +203,7 @@ export function usePublisherOrgMemberActions({
     }
   }, [handleTabChange, personas.length, refreshOrgChoices, setMyInvites, t, toast]);
 
-  const handleDeclineInvite = useCallback(async (inviteId) => {
+  const handleDeclineInvite = useCallback(async (inviteId: string) => {
     try {
       await declineOrganizationInvite(inviteId);
       const mine = await getMyOrganizationInvites();

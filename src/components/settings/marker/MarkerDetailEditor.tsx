@@ -7,8 +7,18 @@ import { MarkerAnalysisSettings } from "./configs/MarkerAnalysisSettings";
 import { MarkerPreview } from "./configs/MarkerPreview";
 import { AlertCircle } from "lucide-react";
 import { useI18n } from "../../../contexts/I18nContext";
+import type { EditableMarkerConfig, UpdateMarkerFn } from "./types";
 
-export function MarkerDetailEditor({ config, idx, updateMarker, isAdvancedMode, setIsAdvancedMode, readOnly = false }) {
+interface MarkerDetailEditorProps {
+    config: EditableMarkerConfig | null;
+    idx: number;
+    updateMarker: UpdateMarkerFn;
+    isAdvancedMode: boolean;
+    setIsAdvancedMode: (value: boolean) => void;
+    readOnly?: boolean;
+}
+
+export function MarkerDetailEditor({ config, idx, updateMarker, isAdvancedMode, setIsAdvancedMode, readOnly = false }: MarkerDetailEditorProps): React.JSX.Element {
     const { t } = useI18n();
     if (!config) {
         return (

@@ -2,7 +2,14 @@ import React from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../../ui/dialog";
 import { Button } from "../../ui/button";
 
-export function PersonaSetupDialog({ t, open, onOpenChange, onGoProfile }) {
+interface PersonaSetupDialogProps {
+  t: (key: string, fallback?: string) => string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onGoProfile: () => void;
+}
+
+export function PersonaSetupDialog({ t, open, onOpenChange, onGoProfile }: PersonaSetupDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">

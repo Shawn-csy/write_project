@@ -6,29 +6,42 @@ import {
     ChevronDown, ChevronUp, Palette, X, 
     AlignLeft, Square, CircleOff 
 } from 'lucide-react';
+import type { MarkerConfig } from '../../../../types/script';
 
 const IconMap = {
     AlignLeft, Square, CircleOff,
     // Add fallback for others if needed
 };
 
+type StepStyleConfig = Omit<MarkerConfig, "style"> & { style?: Record<string, string | undefined> };
+
+interface StepStylePickerProps {
+    config: StepStyleConfig;
+    onChange: (config: StepStyleConfig) => void;
+}
+
 /**
  * Step 3: 樣式選擇器
  * 提供預設樣式和自訂選項
  */
-export function StepStylePicker({ config, onChange }) {
+export function StepStylePicker({ config, onChange }: StepStylePickerProps): React.JSX.Element {
     const { t } = useI18n();
     const [showAdvanced, setShowAdvanced] = useState(false);
     const [selectedPreset, setSelectedPreset] = useState('solid-line');
 
-    const updateStyle = (styleUpdates) => {
+    const updateStyle = (styleUpdates: Record<string, string | undefined>) => {
+        const nextStyle = { ...(config.style || {}) } as Record<string, string>;
+        Object.entries(styleUpdates).forEach(([key, value]) => {
+            if (value === undefined) delete nextStyle[key];
+            else nextStyle[key] = value;
+        });
         onChange({ 
             ...config, 
-            style: { ...config.style, ...styleUpdates } 
+            style: nextStyle,
         });
     };
 
-    const applyPreset = (preset) => {
+    const applyPreset = (preset: { id: string; style?: Record<string, string | undefined> }) => {
         setSelectedPreset(preset.id);
         if (preset.id === 'none') {
              onChange({ 
@@ -43,8 +56,8 @@ export function StepStylePicker({ config, onChange }) {
         }
     };
 
-    const renderIcon = (iconName) => {
-        const Icon = IconMap[iconName] || CircleOff;
+    const renderIcon = (iconName: string) => {
+        const Icon = IconMap[iconName as keyof typeof IconMap] || CircleOff;
         return <Icon className="w-5 h-5" />;
     };
 
@@ -77,7 +90,7 @@ export function StepStylePicker({ config, onChange }) {
                         className="text-sm font-medium"
                         style={{ color: config.style?.color }}
                     >
-                        {config.start || '>>SE'} {config.label || t("stepStylePicker.sampleMarkerLabel")}
+                        {String(config.start || '>>SE')} {String(config.label || t("stepStylePicker.sampleMarkerLabel"))}
                     </div>
                     <div className="text-sm text-muted-foreground mt-1">
                         {t("stepStylePicker.sampleText")}
@@ -86,7 +99,7 @@ export function StepStylePicker({ config, onChange }) {
                         className="text-sm font-medium mt-1"
                         style={{ color: config.style?.color }}
                     >
-                        {config.end || '<<SE'} {t("stepStylePicker.sampleEnd")}
+                        {String(config.end || '<<SE')} {String(t("stepStylePicker.sampleEnd"))}
                     </div>
                 </div>
             </div>

@@ -2,7 +2,7 @@ import { MARKER_COLORS } from "../constants/markerColors";
 
 const paletteIds = MARKER_COLORS.map((c) => c.id);
 
-const hashString = (value) => {
+const hashString = (value: string): number => {
   let hash = 0;
   for (let i = 0; i < value.length; i += 1) {
     hash = (hash * 31 + value.charCodeAt(i)) % 100000;

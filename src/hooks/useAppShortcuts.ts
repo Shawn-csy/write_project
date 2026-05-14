@@ -8,7 +8,8 @@ export function useAppShortcuts({ adjustFont, nav, filterCharacter, setFocusMode
 }) {
   useEffect(() => {
       const handler = (e: KeyboardEvent) => {
-          if (e.target?.tagName?.match(/INPUT|TEXTAREA/) || e.target?.isContentEditable) return;
+          const target = e.target instanceof HTMLElement ? e.target : null;
+          if (target?.tagName?.match(/INPUT|TEXTAREA/) || target?.isContentEditable) return;
           const meta = e.metaKey || e.ctrlKey;
           const key = e.key.toLowerCase();
           

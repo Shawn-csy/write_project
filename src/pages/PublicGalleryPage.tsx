@@ -153,7 +153,8 @@ export default function PublicGalleryPage() {
     },
   });
   const normalizeViewMode = (value: string | null): GalleryViewMode => (value === "compact" ? "compact" : "standard");
-  const normalizeUsageFilter = (value) => (value === "commercial" ? "commercial" : "all");
+  const normalizeUsageFilter = (value: string | null): "all" | "commercial" =>
+    value === "commercial" ? "commercial" : "all";
 
   const [viewMode, setViewMode] = useState<GalleryViewMode>(() => {
       const fromUrl = searchParams.get("mode");
@@ -996,7 +997,9 @@ export default function PublicGalleryPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
-              {filteredAuthors.map(author => (
+              {filteredAuthors
+                .filter((author): author is PublicGalleryAuthor & { id: string } => typeof author.id === "string" && author.id.length > 0)
+                .map(author => (
                 <AuthorGalleryCard
                   key={author.id}
                   author={author}
@@ -1023,7 +1026,9 @@ export default function PublicGalleryPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
-              {filteredOrgs.map(org => (
+              {filteredOrgs
+                .filter((org): org is PublicGalleryOrg & { id: string } => typeof org.id === "string" && org.id.length > 0)
+                .map(org => (
                 <OrgGalleryCard
                   key={org.id}
                   org={org}
@@ -1098,7 +1103,7 @@ export default function PublicGalleryPage() {
         canConfirmTerms={canConfirmTerms}
         missingRequiredCheckCount={missingRequiredCheckCount}
         handleTermsScroll={handleTermsScroll}
-        toggleRequiredCheck={toggleRequiredCheck}
+        toggleRequiredCheck={(checkId, checked) => toggleRequiredCheck(checkId, checked === true)}
         onConfirm={confirmTermsConsent}
         onCancel={() => { setTermsDialogOpen(false); setPendingScript(null); }}
         confirmLabel={undefined}

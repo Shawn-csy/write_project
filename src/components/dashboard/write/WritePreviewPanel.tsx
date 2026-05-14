@@ -2,12 +2,25 @@ import React from "react";
 import { FileText, Folder } from "lucide-react";
 import { Button } from "../../ui/button";
 import { useI18n } from "../../../contexts/I18nContext";
+import type { WriteScriptItem } from "../../../types/write";
+
+interface WritePreviewContentProps {
+  previewItem: WriteScriptItem | null;
+  previewPath: string;
+  readOnly: boolean;
+  onOpen: (item: WriteScriptItem) => void;
+  onMove: (item: WriteScriptItem) => void;
+  onRename: (item: WriteScriptItem) => void;
+  onDelete: (item: WriteScriptItem) => void;
+  onToggleExpand: (item: WriteScriptItem) => void;
+  onClose?: () => void;
+}
 
 /**
  * Shared preview content for a selected script/folder item.
  * Used in both the desktop sidebar and mobile drawer.
  */
-export function WritePreviewContent({ previewItem, previewPath, readOnly, onOpen, onMove, onRename, onDelete, onToggleExpand, onClose }) {
+export function WritePreviewContent({ previewItem, previewPath, readOnly, onOpen, onMove, onRename, onDelete, onToggleExpand, onClose }: WritePreviewContentProps) {
   const { t } = useI18n();
 
   if (!previewItem) {

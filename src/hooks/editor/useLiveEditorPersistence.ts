@@ -4,7 +4,7 @@ import { getScript, updateScript } from "../../lib/api/scripts";
 import { debounce } from "../../lib/utils";
 import type { BaseScript } from "../../types/script";
 
-const getDraftKey = (id) => `draft_script_${id}`;
+const getDraftKey = (id: string) => `draft_script_${id}`;
 
 type SaveStatus = "saving" | "local-saved" | "saved" | "error" | "unsaved";
 
@@ -92,7 +92,8 @@ export function useLiveEditorPersistence({
 
   const debouncedPersistDraft = useMemo(
     () =>
-      debounce((scriptId: string, nextContent: string, nextTitle: string) => {
+      debounce((...args: unknown[]) => {
+        const [scriptId, nextContent, nextTitle] = args as [string, string, string];
         pendingDraftRef.current = {
           scriptId,
           content: nextContent,
@@ -187,7 +188,8 @@ export function useLiveEditorPersistence({
 
   const debouncedSave = useMemo(
     () =>
-      debounce((id: string, newContent: string, newTitle: string) => {
+      debounce((...args: unknown[]) => {
+        const [id, newContent, newTitle] = args as [string, string, string];
         performSave(id, newContent, newTitle);
       }, 60000),
     [performSave]

@@ -148,7 +148,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger = 0 
         }
     }, [manager, t]);
 
-    const handleOpenScript = useCallback((script, targetMode = "read") => {
+    const handleOpenScript = useCallback((script: WriteScriptItem, targetMode = "read") => {
         if (typeof window !== "undefined") {
             try {
                 window.sessionStorage.setItem(

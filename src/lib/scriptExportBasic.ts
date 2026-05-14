@@ -2,11 +2,14 @@ import { buildFilename, downloadBlob, downloadText } from "./download";
 import { getRenderedLines, getRenderedSnapshot } from "./scriptExportShared";
 import { buildPrintHtml } from "./print";
 
-export const exportScriptAsFountain = (title, content) => {
+export const exportScriptAsFountain = (title: string, content: string) => {
   downloadText(content ?? "", buildFilename(title || "script", "fountain"));
 };
 
-export const exportScriptAsCsv = (title, payload) => {
+export const exportScriptAsCsv = (
+  title: string,
+  payload: { renderedHtml?: string; text?: string } = {}
+) => {
   const rows = getRenderedLines(payload);
   const header = "行號,內容";
   const lines = rows.map((row) => `${row.line},"${String(row.text).replace(/"/g, '""')}"`);

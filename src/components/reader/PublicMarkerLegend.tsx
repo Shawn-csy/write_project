@@ -2,14 +2,20 @@ import React from "react";
 import { ArrowRight } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useI18n } from "../../contexts/I18nContext";
+import type { MarkerConfig } from "../../types/script";
 
-export function PublicMarkerLegend({ markerConfigs, className }) {
+interface PublicMarkerLegendProps {
+  markerConfigs: MarkerConfig[];
+  className?: string;
+}
+
+export function PublicMarkerLegend({ markerConfigs, className }: PublicMarkerLegendProps): React.JSX.Element | null {
   const { t } = useI18n();
   if (!markerConfigs || markerConfigs.length === 0) return null;
 
   return (
     <div className={cn("grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2", className)}>
-      {markerConfigs.map((config) => {
+      {markerConfigs.map((config: MarkerConfig) => {
         // Determine preview text based on type
         const isBlock = config.type === 'block' || config.isBlock;
         const previewText = t("publicMarkerLegend.previewText");

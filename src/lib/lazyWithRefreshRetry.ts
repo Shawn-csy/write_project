@@ -1,7 +1,10 @@
 import React from "react";
 import { extractErrorMessage } from './utils';
 
-export const lazyWithRefreshRetry = (importer: () => Promise<{ default: React.ComponentType }>, key: string) =>
+export const lazyWithRefreshRetry = <P = object>(
+  importer: () => Promise<{ default: React.ComponentType<P> }>,
+  key: string
+): React.LazyExoticComponent<React.ComponentType<P>> =>
   React.lazy(async () => {
     const retryKey = `lazy-retry:${key}`;
     try {

@@ -245,12 +245,12 @@ export function PublicReaderLayout({
   const externalOnRawHtml = viewerProps?.onRawHtml;
   const mergedViewerProps = useMemo(() => ({
     ...(viewerProps || {}),
-    onProcessedHtml: (html) => {
+    onProcessedHtml: (html: string) => {
       const next = html || "";
       setExportRenderedHtml(next);
       externalOnProcessedHtml?.(next);
     },
-    onRawHtml: (html) => {
+    onRawHtml: (html: string) => {
       const next = html || "";
       setExportRawHtml(next);
       externalOnRawHtml?.(next);
@@ -258,7 +258,7 @@ export function PublicReaderLayout({
   }), [viewerProps, externalOnProcessedHtml, externalOnRawHtml]);
 
   const licenseSummary = useMemo(() => {
-    const normalize = (value) => String(value || "").trim().toLowerCase();
+    const normalize = (value: unknown) => String(value || "").trim().toLowerCase();
     const commercial = normalize(commercialUse);
     const derivative = normalize(derivativeUse);
     const notify = normalize(notifyOnModify);

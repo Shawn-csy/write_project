@@ -35,7 +35,7 @@ export function PublisherWorksTab({ isLoading, scripts, personas = [], setEditin
     const INITIAL_VISIBLE = 12;
     const PREFETCH_STEP = 24;
     const [visibleCount, setVisibleCount] = React.useState(INITIAL_VISIBLE);
-    const hasCover = (value) => Boolean(String(value || "").trim());
+    const hasCover = (value: unknown) => Boolean(String(value || "").trim());
     const parseTopLevelLicense = React.useCallback((script: PublisherScriptItem) => {
         return parseBasicLicenseFromMeta({
             licensecommercial: script?.licenseCommercial ?? script?.licensecommercial ?? "",
@@ -63,7 +63,7 @@ export function PublisherWorksTab({ isLoading, scripts, personas = [], setEditin
         const fallback = getPersonaFallbackLicense(script);
         return isBasicLicenseComplete(fallback);
     }, [getPersonaFallbackLicense, isBasicLicenseComplete, parseTopLevelLicense]);
-    const statusBadgeClass = (script) => {
+    const statusBadgeClass = (script: PublisherScriptItem) => {
         const isPublic = script?.status === "Public" || script?.isPublic;
         return isPublic
             ? "border-primary/50 bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/30 hover:bg-primary/90"

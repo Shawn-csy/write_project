@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
+import type { PublicTermsConfig } from "../../types/api";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +16,25 @@ import {
  *
  * 公開授權條款同意對話框，供 PublicGalleryPage 與 PublicReaderPage 共用。
  */
+interface TermsConsentDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  termsConfig: PublicTermsConfig | null;
+  termsScrollRef: React.RefObject<HTMLDivElement | null>;
+  termsReadToBottom: boolean;
+  termsRequireScroll: boolean;
+  acceptedChecks: Record<string, boolean>;
+  isSubmittingTerms: boolean;
+  canConfirmTerms: boolean;
+  missingRequiredCheckCount: number;
+  handleTermsScroll: (event: React.UIEvent<HTMLDivElement>) => void;
+  toggleRequiredCheck: (id: string, checked: boolean | "indeterminate") => void;
+  onConfirm: () => void;
+  onCancel: () => void;
+  cancelLabel?: string;
+  confirmLabel?: string;
+}
+
 export function TermsConsentDialog({
   open,
   onOpenChange,
@@ -32,7 +52,7 @@ export function TermsConsentDialog({
   onCancel,
   cancelLabel = "稍後再看",
   confirmLabel,
-}) {
+}: TermsConsentDialogProps): React.JSX.Element {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent

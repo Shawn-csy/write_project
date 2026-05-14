@@ -2,6 +2,33 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { Button } from "../ui/button";
 
+interface SpotlightRect {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}
+
+interface SpotlightGuideOverlayProps {
+  open: boolean;
+  zIndex?: number;
+  spotlightRect?: SpotlightRect | null;
+  currentStep?: number;
+  totalSteps?: number;
+  title?: string;
+  description?: string;
+  onSkip?: () => void;
+  skipLabel?: string;
+  onPrev?: () => void;
+  prevLabel?: string;
+  prevDisabled?: boolean;
+  onNext?: () => void;
+  nextLabel?: string;
+  showProgress?: boolean;
+  showSkip?: boolean;
+  showPrev?: boolean;
+}
+
 export function SpotlightGuideOverlay({
   open,
   zIndex = 240,
@@ -20,7 +47,7 @@ export function SpotlightGuideOverlay({
   showProgress = true,
   showSkip = true,
   showPrev = true,
-}) {
+}: SpotlightGuideOverlayProps) {
   if (!open || typeof document === "undefined") return null;
 
   return createPortal(

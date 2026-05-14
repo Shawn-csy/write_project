@@ -65,7 +65,7 @@ export function usePreviewLineNavigation({
   );
 
   const handlePreviewLineClick = useCallback(
-    (event: MouseEvent) => {
+    (event: React.MouseEvent<HTMLDivElement>) => {
       if (readOnly) return;
       const target = event.target;
       if (!(target instanceof Element)) return;

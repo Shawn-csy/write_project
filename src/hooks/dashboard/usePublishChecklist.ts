@@ -1,5 +1,19 @@
 import { useMemo } from "react";
 
+interface BuildPublishChecklistOptions {
+  title: string;
+  identity: string;
+  licenseCommercial: string;
+  licenseDerivative: string;
+  licenseNotify: string;
+  coverUrl: string;
+  synopsis: string;
+  tags: unknown[];
+  targetAudience: string;
+  contentRating: string;
+  t?: ((key: string, fallback?: string) => string) | null;
+}
+
 export function buildPublishChecklist({
   title,
   identity,
@@ -12,7 +26,7 @@ export function buildPublishChecklist({
   targetAudience,
   contentRating,
   t,
-}) {
+}: BuildPublishChecklistOptions) {
   const required = [
     { key: "title", label: t ? t("scriptMetadataDialog.checkTitle") : "Title", ok: Boolean(title?.trim()) },
     { key: "identity", label: t ? t("scriptMetadataDialog.checkIdentity") : "Author identity", ok: Boolean(identity?.startsWith("persona:")) },
@@ -37,6 +51,6 @@ export function buildPublishChecklist({
   };
 }
 
-export function usePublishChecklist(input) {
+export function usePublishChecklist(input: BuildPublishChecklistOptions) {
   return useMemo(() => buildPublishChecklist(input), [input]);
 }

@@ -5,18 +5,23 @@ import { useI18n } from "../../../../contexts/I18nContext";
 /**
  * Visual selector for marker matching modes.
  */
-export function ModeSelector({ value, onChange }) {
+interface ModeSelectorProps {
+  value?: string;
+  onChange: (mode: "enclosure" | "prefix" | "range" | "regex") => void;
+}
+
+export function ModeSelector({ value, onChange }: ModeSelectorProps): React.JSX.Element {
     const { t } = useI18n();
     const modes = [
         { id: "enclosure", label: t("modeSelector.enclosure"), icon: Brackets, example: "[...]" },
         { id: "prefix", label: t("modeSelector.prefix"), icon: Hash, example: "#..." },
         { id: "range", label: t("modeSelector.range"), icon: ArrowLeftRight, example: ">>...<<" },
         { id: "regex", label: t("modeSelector.regex"), icon: Regex, example: "/^.+$/" },
-    ];
+    ] as const;
 
     return (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {modes.map(mode => {
+            {modes.map((mode) => {
                 const Icon = mode.icon;
                 const isActive = value === mode.id;
                 

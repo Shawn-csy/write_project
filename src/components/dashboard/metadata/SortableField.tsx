@@ -5,8 +5,19 @@ import { Button } from "../../ui/button";
 import { X } from "lucide-react";
 import { useI18n } from "../../../contexts/I18nContext";
 import { SortableKeyValueRow } from "./SortableKeyValueRow";
+import type { SortableKeyValueItem } from "./SortableKeyValueRow";
 
-export const SortableField = ({ field, index, onUpdate, onRemove, onFocus, onBlur, dragDisabled }) => {
+interface SortableFieldProps {
+  field: SortableKeyValueItem;
+  index: number;
+  onUpdate: (id: string, key: string, value: string) => void;
+  onRemove: (index: number) => void;
+  onFocus: () => void;
+  onBlur: () => void;
+  dragDisabled: boolean;
+}
+
+export const SortableField = ({ field, index, onUpdate, onRemove, onFocus, onBlur, dragDisabled }: SortableFieldProps) => {
     const { t } = useI18n();
     const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } = useSortable({ id: field.id, disabled: dragDisabled });
     const style = {
@@ -34,7 +45,7 @@ export const SortableField = ({ field, index, onUpdate, onRemove, onFocus, onBlu
                         aria-label={t("sortableField.dividerAria")}
                         className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest bg-transparent border-none text-center focus:outline-none focus:text-foreground w-20 hover:text-foreground transition-colors"
                         value={field.value}
-                        onChange={(e) => onUpdate(index, "value", e.target.value)}
+                        onChange={(e) => onUpdate(field.id, "value", e.target.value)}
                         onPointerDown={(e) => e.stopPropagation()} 
                         onMouseDown={(e) => e.stopPropagation()} // Fix for DnD focus
                         placeholder={t("sortableField.sectionPlaceholder")}
@@ -58,7 +69,7 @@ export const SortableField = ({ field, index, onUpdate, onRemove, onFocus, onBlu
         <SortableKeyValueRow
             field={field}
             index={index}
-            onUpdate={onUpdate}
+            onUpdate={(i, key, value) => onUpdate(field.id, key, value)}
             onRemove={onRemove}
             onFocus={onFocus}
             onBlur={onBlur}

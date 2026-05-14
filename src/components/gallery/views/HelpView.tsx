@@ -39,6 +39,7 @@ interface DetailRow {
 }
 
 type CategoryKey = "publish" | "layout" | "import" | "license";
+type ToneKey = keyof typeof MORANDI_STUDIO_TONE_VARS;
 
 interface FaqItem {
   id: string;
@@ -75,7 +76,7 @@ export function HelpView() {
     { name: t("importFormat.markerPosition"), desc: t("importFormat.usagePosition"), sample: "@舞台左側", render: "位置指示樣式" },
   ];
 
-  const categoryMeta = React.useMemo(() => ({
+  const categoryMeta = React.useMemo<Record<CategoryKey, { label: string; icon: React.ComponentType<{ className?: string }>; toneKey: ToneKey }>>(() => ({
     publish: { label: "發佈流程", icon: Rocket, toneKey: "works" },
     layout: { label: "頁面導覽", icon: Compass, toneKey: "series" },
     import: { label: "匯入格式", icon: FileCode2, toneKey: "org" },
@@ -153,14 +154,14 @@ export function HelpView() {
   }, [faqItems, normalizedQuery]);
 
   const groupedFaq = React.useMemo(() => {
-    return filteredFaq.reduce<Record<string, FaqItem[]>>((acc, item) => {
+    return filteredFaq.reduce<Record<CategoryKey, FaqItem[]>>((acc, item) => {
       if (!acc[item.category]) acc[item.category] = [];
       acc[item.category].push(item);
       return acc;
-    }, {});
+    }, { publish: [], layout: [], import: [], license: [] });
   }, [filteredFaq]);
 
-  const categories = Object.keys(categoryMeta).filter((key) => (groupedFaq[key] || []).length > 0);
+  const categories = (Object.keys(categoryMeta) as CategoryKey[]).filter((key) => (groupedFaq[key] || []).length > 0);
   const featuredQuestions = filteredFaq.slice(0, 3);
 
   return (

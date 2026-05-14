@@ -1,6 +1,15 @@
 import React from "react";
 import { Settings } from "lucide-react";
 import { useI18n } from "../../contexts/I18nContext";
+import type { MarkerConfig } from "../../types/script";
+
+interface MarkerRulesPanelProps {
+  show: boolean;
+  onClose: () => void;
+  markerConfigs: MarkerConfig[];
+  readOnly: boolean;
+  onOpenMarkerSettings?: () => void;
+}
 
 export function MarkerRulesPanel({
   show,
@@ -8,8 +17,14 @@ export function MarkerRulesPanel({
   markerConfigs,
   readOnly,
   onOpenMarkerSettings
-}) {
+}: MarkerRulesPanelProps): React.JSX.Element | null {
   const { t } = useI18n();
+  const getRendererTemplate = (config: MarkerConfig): string | undefined => {
+    const renderer = config.renderer;
+    if (!renderer || typeof renderer !== "object") return undefined;
+    const template = (renderer as { template?: unknown }).template;
+    return typeof template === "string" ? template : undefined;
+  };
   if (!show) return null;
 
   return (
@@ -66,8 +81,8 @@ export function MarkerRulesPanel({
                   }}
                 >
                   <div className="text-xs opacity-70 font-mono mb-1">
-                    {config.renderer?.template
-                      ? config.renderer.template.replace(
+                    {getRendererTemplate(config)
+                      ? getRendererTemplate(config)?.replace(
                           /\{\{content\}\}/g,
                           config.label || config.id
                         )
@@ -86,8 +101,8 @@ export function MarkerRulesPanel({
                     }}
                     className="mx-1 px-1 rounded"
                   >
-                    {config.renderer?.template
-                      ? config.renderer.template.replace(
+                    {getRendererTemplate(config)
+                      ? getRendererTemplate(config)?.replace(
                           /\{\{content\}\}/g,
                           t("markerRules.sampleTag")
                         )

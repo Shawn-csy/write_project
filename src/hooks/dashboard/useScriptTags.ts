@@ -1,11 +1,8 @@
 import { useCallback, useState } from "react";
 import { createTag, getTags } from "../../lib/api/tags";
+import type { TagLike } from "./types";
 
-interface TagItem {
-  id: string | number;
-  name: string;
-  color?: string;
-}
+type TagItem = TagLike;
 
 export function useScriptTags({ t, toast, tagOwnerId = "" }: { t?: (k: string) => string; toast?: (o: { title?: string; description?: string }) => void; tagOwnerId?: string } = {}) {
   const [currentTags, setCurrentTags] = useState<TagItem[]>([]);
@@ -15,14 +12,14 @@ export function useScriptTags({ t, toast, tagOwnerId = "" }: { t?: (k: string) =
   const loadTags = useCallback(async () => {
     try {
       const tags = await getTags(tagOwnerId);
-      setAvailableTags(tags || []);
+      setAvailableTags((tags as TagItem[]) || []);
     } catch (error) {
       console.error("Failed to load tags", error);
     }
   }, [tagOwnerId]);
 
   const handleAddTagsBatch = useCallback(
-    async (inputs = []) => {
+    async (inputs: string[] = []) => {
       const names = Array.from(
         new Set(
           (inputs || [])
@@ -43,14 +40,14 @@ export function useScriptTags({ t, toast, tagOwnerId = "" }: { t?: (k: string) =
       for (const lowerName of names) {
         const displayName = nameMap.get(lowerName);
         if (!displayName) continue;
-        let existing = availableTags.find((tag) => tag.name.toLowerCase() === lowerName);
+        let existing = availableTags.find((tag) => (tag.name || "").toLowerCase() === lowerName);
         if (!existing) {
           try {
             existing = await createTag(displayName, "bg-gray-500", tagOwnerId) as TagItem;
             if (!existing) continue;
             const existingTag = existing;
             setAvailableTags((prev) => {
-              if (prev.some((tag) => tag.id === existingTag.id || tag.name.toLowerCase() === lowerName)) return prev;
+              if (prev.some((tag) => tag.id === existingTag.id || (tag.name || "").toLowerCase() === lowerName)) return prev;
               return [...prev, existingTag];
             });
           } catch (error) {
@@ -65,7 +62,7 @@ export function useScriptTags({ t, toast, tagOwnerId = "" }: { t?: (k: string) =
         setCurrentTags((prev) => {
           const next = [...prev];
           for (const tag of resolved) {
-            const exists = next.some((item) => item.id === tag.id || item.name.toLowerCase() === tag.name.toLowerCase());
+            const exists = next.some((item) => item.id === tag.id || (item.name || "").toLowerCase() === (tag.name || "").toLowerCase());
             if (!exists) next.push(tag);
           }
           return next;
@@ -83,7 +80,7 @@ export function useScriptTags({ t, toast, tagOwnerId = "" }: { t?: (k: string) =
   );
 
   const handleAddTag = useCallback(
-    async (inputOverride) => {
+    async (inputOverride?: string | null) => {
       const candidate = (inputOverride ?? newTagInput).trim();
       if (!candidate) return;
 
@@ -99,26 +96,26 @@ export function useScriptTags({ t, toast, tagOwnerId = "" }: { t?: (k: string) =
 
       const isFromInput = !inputOverride || inputOverride === newTagInput || inputOverride === newTagInput.trim();
 
-      if (currentTags.find((tag) => tag.name.toLowerCase() === tagName.toLowerCase())) {
+      if (currentTags.find((tag) => (tag.name || "").toLowerCase() === tagName.toLowerCase())) {
         if (isFromInput) setNewTagInput("");
         return;
       }
 
-      let tagToAdd = availableTags.find((tag) => tag.name.toLowerCase() === tagName.toLowerCase());
+      let tagToAdd = availableTags.find((tag) => (tag.name || "").toLowerCase() === tagName.toLowerCase());
 
       try {
         if (!tagToAdd) {
           const newTag = await createTag(tagName, "bg-gray-500", tagOwnerId) as TagItem;
           tagToAdd = newTag;
           setAvailableTags((prev) => {
-            if (prev.some((tag) => tag.id === newTag.id || tag.name.toLowerCase() === newTag.name.toLowerCase())) return prev;
+            if (prev.some((tag) => tag.id === newTag.id || (tag.name || "").toLowerCase() === (newTag.name || "").toLowerCase())) return prev;
             return [...prev, newTag];
           });
         }
         if (!tagToAdd) return;
         const selectedTag = tagToAdd;
         setCurrentTags((prev) => {
-          if (prev.some((tag) => tag.id === selectedTag.id || tag.name.toLowerCase() === selectedTag.name.toLowerCase())) return prev;
+          if (prev.some((tag) => tag.id === selectedTag.id || (tag.name || "").toLowerCase() === (selectedTag.name || "").toLowerCase())) return prev;
           return [...prev, selectedTag];
         });
         if (isFromInput) setNewTagInput("");
@@ -129,7 +126,7 @@ export function useScriptTags({ t, toast, tagOwnerId = "" }: { t?: (k: string) =
     [availableTags, currentTags, handleAddTagsBatch, newTagInput, tagOwnerId]
   );
 
-  const handleRemoveTag = useCallback((tagId) => {
+  const handleRemoveTag = useCallback((tagId: string | number) => {
     setCurrentTags((prev) => prev.filter((tag) => tag.id !== tagId));
   }, []);
 

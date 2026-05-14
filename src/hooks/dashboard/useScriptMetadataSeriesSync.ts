@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import type { SeriesOption } from "./types";
 
 export function useScriptMetadataSeriesSync({
   seriesId,
@@ -7,6 +8,13 @@ export function useScriptMetadataSeriesSync({
   seriesOptions,
   setSeriesName,
   setSeriesExpanded,
+}: {
+  seriesId: string | null;
+  seriesName: string;
+  seriesOrder: string | number;
+  seriesOptions: SeriesOption[];
+  setSeriesName: (v: string) => void;
+  setSeriesExpanded: (v: boolean) => void;
 }) {
   useEffect(() => {
     if (!seriesId) return;

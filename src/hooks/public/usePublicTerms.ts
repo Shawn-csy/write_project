@@ -19,7 +19,7 @@ export const getOrCreateTermsVisitorId = () => {
   }
 };
 
-export const hasAcceptedTermsVersion = (version) => {
+export const hasAcceptedTermsVersion = (version?: string) => {
   if (!version) return false;
   try {
     return Boolean(localStorage.getItem(`${TERMS_ACCEPTED_PREFIX}${version}`));

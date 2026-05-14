@@ -359,8 +359,9 @@ export class DirectASTBuilder {
           
           // Pause Check
           if (marker.pause) {
-             const fullPause = toFullWidth(marker.pause);
-             const matchedPause = this._matchLeadingToken(line, marker.pause, caseInsensitive);
+             const pauseToken = String(marker.pause);
+             const fullPause = toFullWidth(pauseToken);
+             const matchedPause = this._matchLeadingToken(line, pauseToken, caseInsensitive);
              const matchedFullPause = this._matchLeadingToken(line, fullPause, caseInsensitive);
              const matchedPauseToken = matchedPause || matchedFullPause;
 
@@ -519,7 +520,15 @@ export class DirectASTBuilder {
     }
     if (!castSpec || typeof castSpec !== 'object') return value;
 
-    const cast = String(castSpec.type || '').trim().toLowerCase();
+    const castSpecObj = castSpec as {
+      type?: unknown;
+      separator?: unknown;
+      sep?: unknown;
+      trim?: unknown;
+      filterEmpty?: unknown;
+    };
+
+    const cast = String(castSpecObj.type || '').trim().toLowerCase();
     if (!cast) return value;
 
     if (cast === 'int') {
@@ -546,9 +555,9 @@ export class DirectASTBuilder {
     if (cast === 'split') {
       if (Array.isArray(value)) return value;
       const text = value === null || value === undefined ? '' : String(value);
-      const separator = castSpec.separator ?? castSpec.sep ?? null;
-      const trimItems = castSpec.trim !== false;
-      const filterEmpty = castSpec.filterEmpty !== false;
+      const separator = castSpecObj.separator ?? castSpecObj.sep ?? null;
+      const trimItems = castSpecObj.trim !== false;
+      const filterEmpty = castSpecObj.filterEmpty !== false;
       let items;
       if (typeof separator === 'string' && separator.length > 0) {
         items = text.split(separator);

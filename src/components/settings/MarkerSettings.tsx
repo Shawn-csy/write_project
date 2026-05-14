@@ -8,8 +8,17 @@ import { MarkerSettingsHeader } from "./marker/layout/MarkerSettingsHeader";
 import { MarkerSettingsModeContent } from "./marker/layout/MarkerSettingsModeContent";
 import { useI18n } from "../../contexts/I18nContext";
 import { useAuth } from "../../contexts/AuthContext";
+import type { MarkerConfig } from "../../types/script";
 
-function formatSaveStatus({ isSaving, parseError, isDirty, lastSavedAt, t }) {
+interface FormatSaveStatusArgs {
+  isSaving: boolean;
+  parseError: string | null;
+  isDirty: boolean;
+  lastSavedAt: Date | null;
+  t: (key: string) => string;
+}
+
+function formatSaveStatus({ isSaving, parseError, isDirty, lastSavedAt, t }: FormatSaveStatusArgs): string {
   if (isSaving) return t("markerSettings.saving");
   if (parseError) return t("markerSettings.jsonError");
   if (isDirty) return t("markerSettings.unsaved");
@@ -25,7 +34,11 @@ function formatSaveStatus({ isSaving, parseError, isDirty, lastSavedAt, t }) {
   return t("markerSettings.synced");
 }
 
-export function MarkerSettings({ sectionRef }) {
+interface MarkerSettingsProps {
+  sectionRef?: React.Ref<HTMLDivElement>;
+}
+
+export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.Element {
   const { t } = useI18n();
   const { profile } = useAuth();
   const isAdmin = Boolean(profile?.isAdmin);
@@ -45,7 +58,7 @@ export function MarkerSettings({ sectionRef }) {
   } = useSettings();
   const readOnly = !isAdmin && currentThemeId === "default";
 
-  const [viewMode, setViewMode] = useState("ui");
+  const [viewMode, setViewMode] = useState<"ui" | "json" | "guide">("ui");
   const markerState = useMarkerSettingsState({
     markerConfigs,
     setMarkerConfigs,
@@ -73,8 +86,8 @@ export function MarkerSettings({ sectionRef }) {
     setIsAdvancedMode,
   } = markerState;
 
-  const selectedConfig = useMemo(
-    () => localConfigs.find((c) => (c.id || c._tempId) === expandedId),
+  const selectedConfig = useMemo<MarkerConfig | null>(
+    () => localConfigs.find((c) => (c.id || c._tempId) === expandedId) || null,
     [localConfigs, expandedId]
   );
   const selectedIndex = useMemo(

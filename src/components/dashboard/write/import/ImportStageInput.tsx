@@ -3,15 +3,20 @@ import { FileText } from "lucide-react";
 import { Textarea } from "../../../ui/textarea";
 import { useI18n } from "../../../../contexts/I18nContext";
 
+interface ImportStageInputProps {
+    text: string;
+    setText: (value: string) => void;
+}
+
 export function ImportStageInput({ 
     text, 
     setText, 
-}) {
+}: ImportStageInputProps) {
     const { t } = useI18n();
-    const containerRef = useRef(null);
+    const containerRef = useRef<HTMLDivElement | null>(null);
 
-    const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation(); };
-    const handleDrop = (e) => { e.preventDefault(); e.stopPropagation(); };
+    const handleDragOver = (e: React.DragEvent<HTMLTextAreaElement>) => { e.preventDefault(); e.stopPropagation(); };
+    const handleDrop = (e: React.DragEvent<HTMLTextAreaElement>) => { e.preventDefault(); e.stopPropagation(); };
 
     return (
         <div className="flex flex-col min-h-0">

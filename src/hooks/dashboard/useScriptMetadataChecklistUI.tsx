@@ -1,10 +1,21 @@
 import { useMemo } from "react";
+import type { PublishChecklist } from "./types";
 
 export function useScriptMetadataChecklistUI({
   publishChecklist,
   showValidationHints,
   showAllChecklistChips,
   status,
+}: {
+  publishChecklist: PublishChecklist & {
+    required: Array<{ key: string; label: string }>;
+    recommended: Array<{ key: string; label: string }>;
+    missingRequired: Array<{ key: string; label: string }>;
+    missingRecommended: Array<{ key: string; label: string }>;
+  };
+  showValidationHints: boolean;
+  showAllChecklistChips: boolean;
+  status: string;
 }) {
   const requiredErrorMap = useMemo(
     () => ({
@@ -59,10 +70,10 @@ export function useScriptMetadataChecklistUI({
     advanced: "border-l-[5px] border-fuchsia-600 bg-fuchsia-100/80 text-fuchsia-950 dark:border-fuchsia-500 dark:bg-fuchsia-950/25 dark:text-foreground",
   };
 
-  const getRowLabelClass = (tone = "recommended") => `${rowLabelBaseClass} ${rowLabelToneClass[tone] || rowLabelToneClass.recommended}`;
-  const withRequiredHighlight = (baseClass, missing) =>
+  const getRowLabelClass = (tone = "recommended") => `${rowLabelBaseClass} ${rowLabelToneClass[tone as keyof typeof rowLabelToneClass] || rowLabelToneClass.recommended}`;
+  const withRequiredHighlight = (baseClass: string, missing: boolean) =>
     missing ? `${baseClass} border-l-[6px] border-destructive bg-destructive/20 ring-2 ring-inset ring-destructive/55 dark:bg-destructive/30` : baseClass;
-  const renderRowLabel = (label, tone = "recommended", missing = false, hint = "") => (
+  const renderRowLabel = (label: string, tone = "recommended", missing = false, hint = "") => (
     <div className={withRequiredHighlight(getRowLabelClass(tone), missing)}>
       <div className="flex items-center gap-2">
         <span>{label}</span>

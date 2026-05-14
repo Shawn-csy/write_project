@@ -2,15 +2,35 @@ import { useCallback, useMemo } from "react";
 import { FileSpreadsheet, FileText, Printer } from "lucide-react";
 import { loadBasicScriptExport, loadXlsxScriptExport } from "../../lib/scriptExportLoader";
 
+interface RenderedHtmlRef {
+  current: {
+    processed?: string;
+    raw?: string;
+  };
+}
+
+interface ExportPayload {
+  text: string;
+  renderedHtml: string;
+}
+
+interface UseLiveEditorDownloadOptionsParams {
+  t: (key: string) => string;
+  title: string;
+  content: string;
+  renderedHtmlRef: RenderedHtmlRef;
+  ensureRenderedHtml?: () => Promise<string>;
+}
+
 export function useLiveEditorDownloadOptions({
   t,
   title,
   content,
   renderedHtmlRef,
   ensureRenderedHtml,
-}) {
+}: UseLiveEditorDownloadOptionsParams) {
   const runRenderedExport = useCallback(
-    async (exporter) => {
+    async (exporter: (payload: ExportPayload) => Promise<void>) => {
       let currentHtml = renderedHtmlRef.current.processed || renderedHtmlRef.current.raw;
       if (!currentHtml && ensureRenderedHtml) {
         currentHtml = await ensureRenderedHtml();
@@ -32,7 +52,7 @@ export function useLiveEditorDownloadOptions({
         icon: Printer,
         onClick: async () => {
           const { exportScriptAsPdf } = await loadBasicScriptExport();
-          await runRenderedExport((payload) => exportScriptAsPdf(title, payload));
+          await runRenderedExport((payload: ExportPayload) => exportScriptAsPdf(title, payload));
         },
       },
       {
@@ -41,7 +61,7 @@ export function useLiveEditorDownloadOptions({
         icon: FileText,
         onClick: async () => {
           const { exportScriptAsDocx } = await loadBasicScriptExport();
-          await runRenderedExport((payload) => exportScriptAsDocx(title, payload));
+          await runRenderedExport((payload: ExportPayload) => exportScriptAsDocx(title, payload));
         },
       },
       {
@@ -50,7 +70,7 @@ export function useLiveEditorDownloadOptions({
         icon: FileSpreadsheet,
         onClick: async () => {
           const { exportScriptAsXlsx } = await loadXlsxScriptExport();
-          await runRenderedExport((payload) => exportScriptAsXlsx(title, payload));
+          await runRenderedExport((payload: ExportPayload) => exportScriptAsXlsx(title, payload));
         },
       },
     ],

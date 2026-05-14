@@ -6,6 +6,10 @@ import { fetchUserThemes } from "../../services/settingsApi";
 import { normalizeOrgIds } from "./scriptMetadataUtils";
 import { isDefaultLikeTheme } from "../../lib/themeNameUtils";
 import { buildAffiliatedOrganizations } from "../../lib/orgAffiliation";
+import type { CurrentUserLike } from "../../types/user";
+import type { PersonaLike, OrgData } from "../../types/persona";
+
+interface MarkerTheme { id: string; name: string; [key: string]: unknown }
 
 export function useScriptMetadataBootstrap({
   open,
@@ -17,6 +21,16 @@ export function useScriptMetadataBootstrap({
   setOrgs,
   setMarkerThemes,
   setShowPersonaSetupDialog,
+}: {
+  open: boolean;
+  currentUser: CurrentUserLike | null | undefined;
+  currentProfile: Record<string, unknown> | null | undefined;
+  t: (key: string, fallback?: string) => string;
+  loadTags: () => void;
+  setPersonas: (v: PersonaLike[]) => void;
+  setOrgs: (v: OrgData[]) => void;
+  setMarkerThemes: (v: MarkerTheme[]) => void;
+  setShowPersonaSetupDialog: (v: boolean) => void;
 }) {
   const initializedForOpenRef = useRef(false);
 
@@ -72,7 +86,7 @@ export function useScriptMetadataBootstrap({
 
         const userThemes = tData || [];
         const customThemes = userThemes.filter((theme) => !isDefaultLikeTheme(theme));
-        setMarkerThemes([{ id: "default", name: t("scriptMetadataDialog.defaultTheme") }, ...customThemes]);
+        setMarkerThemes([{ id: "default", name: t("scriptMetadataDialog.defaultTheme") }, ...customThemes] as MarkerTheme[]);
       } catch (error) {
         console.error("Failed to bootstrap script metadata dialog", error);
       }

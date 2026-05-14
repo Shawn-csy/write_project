@@ -2,6 +2,17 @@ import React from "react";
 import { useI18n } from "../../../contexts/I18nContext";
 import { ScriptNameDialog } from "./ScriptNameDialog";
 
+interface RenameScriptDialogProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    type: string;
+    oldName: string;
+    newName: string;
+    setNewName: (value: string) => void;
+    handleRename: () => void;
+    renaming: boolean;
+}
+
 export function RenameScriptDialog({
     open,
     onOpenChange,
@@ -11,7 +22,7 @@ export function RenameScriptDialog({
     setNewName,
     handleRename,
     renaming
-}) {
+}: RenameScriptDialogProps) {
     const { t } = useI18n();
     return (
         <ScriptNameDialog

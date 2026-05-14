@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { getScript } from "../../lib/api/scripts";
+import type { ScriptLike } from "./types";
 
 export function useScriptMetadataLifecycle({
   open,
@@ -24,6 +25,29 @@ export function useScriptMetadataLifecycle({
   setShowSeriesQuickCreate,
   setShowValidationHints,
   setShowPersonaSetupDialog,
+}: {
+  open: boolean;
+  scriptId?: string | null;
+  script?: ScriptLike | null;
+  localScript?: ScriptLike | null;
+  setLocalScript: (v: ScriptLike | null) => void;
+  hydrateScriptState: (script: ScriptLike) => void;
+  initializedRef: { current: boolean };
+  userEditedRef: { current: boolean };
+  authorEditedRef?: { current?: boolean } | null;
+  contactAutoFilledRef: { current: boolean };
+  publicLoadedRef: { current: unknown };
+  setActiveTab: (v: string) => void;
+  setIsInitializing: (v: boolean) => void;
+  setIsMediaPickerOpen: (v: boolean) => void;
+  setCoverPreviewFailed: (v: boolean) => void;
+  setCoverUploadError: (v: string) => void;
+  setCoverUploadWarning: (v: string) => void;
+  setShowAllChecklistChips: (v: boolean) => void;
+  setSeriesExpanded: (v: boolean) => void;
+  setShowSeriesQuickCreate: (v: boolean) => void;
+  setShowValidationHints: (v: boolean) => void;
+  setShowPersonaSetupDialog: (v: boolean) => void;
 }) {
   useEffect(() => {
     if (!open) {

@@ -56,14 +56,14 @@ export default function PublicHelpPage() {
     { name: t("importFormat.markerPosition"), desc: t("importFormat.usagePosition"), sample: "@舞台左側", render: "位置指示樣式" },
   ];
 
-  const categoryMeta = React.useMemo(() => ({
+  const categoryMeta = React.useMemo<Record<FaqCategoryKey, { label: string; icon: typeof CircleHelp; toneKey: keyof typeof MORANDI_STUDIO_TONE_VARS }>>(() => ({
     publish: { label: "發佈流程", icon: Rocket, toneKey: "works" },
     layout: { label: "頁面導覽", icon: Compass, toneKey: "series" },
     import: { label: "匯入格式", icon: FileCode2, toneKey: "org" },
     license: { label: "授權與條款", icon: ShieldCheck, toneKey: "profile" },
   }), []);
 
-  const faqItems = React.useMemo(() => ([
+  const faqItems = React.useMemo<FaqItem[]>(() => ([
     {
       id: "publish-1",
       category: "publish",
@@ -134,14 +134,16 @@ export default function PublicHelpPage() {
   }, [faqItems, normalizedQuery]);
 
   const groupedFaq = React.useMemo(() => {
-    return filteredFaq.reduce<Record<string, typeof filteredFaq>>((acc, item) => {
+    return filteredFaq.reduce<Partial<Record<FaqCategoryKey, FaqItem[]>>>((acc, item) => {
       if (!acc[item.category]) acc[item.category] = [];
-      acc[item.category].push(item);
+      acc[item.category]?.push(item);
       return acc;
     }, {});
   }, [filteredFaq]);
 
-  const categories = Object.keys(categoryMeta).filter((key) => (groupedFaq[key] || []).length > 0);
+  const categories = (Object.keys(categoryMeta) as FaqCategoryKey[]).filter(
+    (key) => (groupedFaq[key] || []).length > 0
+  );
   const featuredQuestions = filteredFaq.slice(0, 3);
 
   return (
@@ -400,3 +402,11 @@ export default function PublicHelpPage() {
     </div>
   );
 }
+  type FaqCategoryKey = "publish" | "layout" | "import" | "license";
+  interface FaqItem {
+    id: string;
+    category: FaqCategoryKey;
+    question: string;
+    answer: string;
+    keywords: string[];
+  }

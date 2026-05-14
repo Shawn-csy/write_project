@@ -64,13 +64,15 @@ export function useImageUpload({ ruleKey, purpose, onSuccess }: UseImageUploadOp
 
   const applyCroppedUpload = useCallback(async (file: File) => {
     const optimized = await optimizeImageForUpload(file, ruleKey);
-    if (!optimized.ok) {
-      setUploadError(optimized.error || "圖片格式不正確。");
+    const optimizedFile = "file" in optimized ? optimized.file : undefined;
+    if (!optimized.ok || !optimizedFile) {
+      const errorMessage = !optimized.ok ? optimized.error : "圖片格式不正確。";
+      setUploadError(errorMessage || "圖片格式不正確。");
       setUploadWarning("");
       return;
     }
     try {
-      const uploaded = await uploadMediaObject(optimized.file, purpose ?? ruleKey ?? "generic");
+      const uploaded = await uploadMediaObject(optimizedFile, purpose ?? ruleKey ?? "generic");
       const url = String(uploaded?.url || "").trim();
       if (!url) throw new Error("上傳失敗。");
       setUploadError("");

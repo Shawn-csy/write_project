@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { createTag } from "../../lib/api/tags";
 import { normalizeActivityDemoLinks, parseActivityDemoLinks } from "../../lib/activityDemoLinks";
+import type { TagLike, ContactField, CustomField, LicenseSpecialTerm, SeriesOption } from "./types";
 
 interface MetadataTagItem {
   id: string | number;
@@ -8,10 +9,52 @@ interface MetadataTagItem {
   color?: string;
 }
 
-const TAG_KEYS = new Set(["tag", "tags", "標籤"]);
-const normalizeKey = (value) => String(value || "").trim().toLowerCase();
+interface UseScriptMetadataJsonOptions {
+  jsonText: string;
+  t: (key: string, fallback?: string) => string;
+  availableTags: TagLike[];
+  setJsonError: (v: string) => void;
+  setTitle: (v: string) => void;
+  setAuthor: (v: string) => void;
+  setAuthorDisplayMode: (v: string) => void;
+  setDate: (v: string) => void;
+  setSynopsis: (v: string) => void;
+  setOutline: (v: string) => void;
+  setRoleSetting: (v: string) => void;
+  setBackgroundInfo: (v: string) => void;
+  setPerformanceInstruction: (v: string) => void;
+  setOpeningIntro: (v: string) => void;
+  setChapterSettings: (v: string) => void;
+  setActivityName: (v: string) => void;
+  setActivityBannerUrl: (v: string) => void;
+  setActivityContent: (v: string) => void;
+  setActivityDemoLinks: (v: unknown[]) => void;
+  setActivityWorkUrl: (v: string) => void;
+  setContact: (v: string) => void;
+  setContactFields: (v: ContactField[]) => void;
+  setLicenseCommercial: (v: string) => void;
+  setLicenseDerivative: (v: string) => void;
+  setLicenseNotify: (v: string) => void;
+  setLicenseSpecialTerms: (v: LicenseSpecialTerm[]) => void;
+  setCopyright: (v: string) => void;
+  setSeriesName: (v: string) => void;
+  setSeriesId: (v: string | null) => void;
+  setSeriesOrder: (v: string) => void;
+  setCoverUrl: (v: string) => void;
+  setStatus: (v: string) => void;
+  setIdentity: (v: string) => void;
+  setSelectedOrgId: (v: string | null) => void;
+  setCustomFields: (v: CustomField[]) => void;
+  setCurrentTags: (v: MetadataTagItem[]) => void;
+}
 
-export const parseTagCandidates = (raw) => {
+// Suppress unused import warning — SeriesOption used via TagLike chain
+type _Unused = SeriesOption;
+
+const TAG_KEYS = new Set(["tag", "tags", "標籤"]);
+const normalizeKey = (value: unknown) => String(value || "").trim().toLowerCase();
+
+export const parseTagCandidates = (raw: unknown) => {
   if (!raw) return [];
   const list = Array.isArray(raw)
     ? raw
@@ -22,7 +65,7 @@ export const parseTagCandidates = (raw) => {
   return list.map((tag) => (typeof tag === "string" ? { name: tag } : tag));
 };
 
-export const sanitizeCustomJsonFields = (raw) => {
+export const sanitizeCustomJsonFields = (raw: unknown) => {
   if (Array.isArray(raw)) {
     return raw.filter((entry) => !TAG_KEYS.has(normalizeKey(entry?.key)));
   }
@@ -34,7 +77,7 @@ export const sanitizeCustomJsonFields = (raw) => {
   return raw;
 };
 
-export const resolveTagSourceFromParsedJson = (parsed) => {
+export const resolveTagSourceFromParsedJson = (parsed: Record<string, unknown>) => {
   if (parsed?.tags !== undefined) return parsed.tags;
   const custom = parsed?.customFields || parsed?.custom;
   if (Array.isArray(custom)) {
@@ -43,7 +86,7 @@ export const resolveTagSourceFromParsedJson = (parsed) => {
   }
   if (custom && typeof custom === "object") {
     const key = Object.keys(custom).find((item) => TAG_KEYS.has(normalizeKey(item)));
-    if (key) return custom[key];
+    if (key) return (custom as Record<string, unknown>)[key];
   }
   return undefined;
 };
@@ -85,7 +128,7 @@ export function useScriptMetadataJson({
   setSelectedOrgId,
   setCustomFields,
   setCurrentTags,
-}) {
+}: UseScriptMetadataJsonOptions) {
   const coerceTagItem = (value: unknown): MetadataTagItem | null => {
     if (!value || typeof value !== "object") return null;
     const tag = value as Record<string, unknown>;
@@ -169,8 +212,8 @@ export function useScriptMetadataJson({
       if (parsed.orgId !== undefined) setSelectedOrgId(parsed.orgId);
       const custom = sanitizeCustomJsonFields(parsed.custom || parsed.customFields || {});
       const next = Array.isArray(custom)
-        ? custom.map((f, idx) => ({ id: `cf-${idx + 1}`, key: f.key || "", value: f.value || "" }))
-        : Object.entries(custom).map(([k, v], idx) => ({ id: `cf-${idx + 1}`, key: k, value: String(v ?? "") }));
+        ? (custom as Array<{ key?: unknown; value?: unknown }>).map((f, idx) => ({ id: `cf-${idx + 1}`, key: String(f.key || ""), value: String(f.value || "") }))
+        : Object.entries(custom as Record<string, unknown>).map(([k, v], idx) => ({ id: `cf-${idx + 1}`, key: k, value: String(v ?? "") }));
       setCustomFields(next);
       const rawTagSource = resolveTagSourceFromParsedJson(parsed);
       if (rawTagSource !== undefined) {

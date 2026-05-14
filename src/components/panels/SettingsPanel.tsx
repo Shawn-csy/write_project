@@ -19,17 +19,25 @@ interface SettingsPanelProps {
   onTabChange?: (tab: string) => void;
 }
 
+type SettingsTabKey = "display" | "transfer" | "media" | "markers" | "profile";
+type ToneKey = keyof typeof MORANDI_STUDIO_TONE_VARS;
+const resolveToneVars = (toneKey: string | undefined) =>
+  MORANDI_STUDIO_TONE_VARS[(toneKey as ToneKey) || "works"] || MORANDI_STUDIO_TONE_VARS.works;
+
 function SettingsPanel({ onClose, activeTab, onTabChange }: SettingsPanelProps): React.JSX.Element {
   const { currentUser, profile } = useAuth();
   const { t } = useI18n();
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  const [internalTab, setInternalTab] = useState<string>("display");
+  const [internalTab, setInternalTab] = useState<SettingsTabKey>("display");
   
-  const currentTab = activeTab || internalTab;
-  const setTab = onTabChange || setInternalTab;
+  const currentTab = (activeTab as SettingsTabKey | undefined) || internalTab;
+  const setTab: (tab: SettingsTabKey) => void = (nextTab) => {
+    if (onTabChange) onTabChange(nextTab);
+    else setInternalTab(nextTab);
+  };
   
   const isAdmin = Boolean(profile?.isAdmin);
-  const allTabs = [
+  const allTabs: Array<{ key: SettingsTabKey; label: string; authRequired?: boolean; adminOnly?: boolean }> = [
     { key: "display", label: t("settings.display") },
     { key: "transfer", label: t("settings.transfer"), authRequired: true, adminOnly: true },
     { key: "media", label: t("settings.media"), authRequired: true },
@@ -42,8 +50,8 @@ function SettingsPanel({ onClose, activeTab, onTabChange }: SettingsPanelProps):
       (!tab.authRequired || currentUser) &&
       (!tab.adminOnly || isAdmin)
   );
-  const activeToneKey = SETTINGS_TAB_MORANDI_TONE[currentTab] || "works";
-  const activeToneVars = MORANDI_STUDIO_TONE_VARS[activeToneKey] || MORANDI_STUDIO_TONE_VARS.works;
+  const activeToneKey = SETTINGS_TAB_MORANDI_TONE[currentTab];
+  const activeToneVars = resolveToneVars(activeToneKey);
   const activeTabLabel = tabs.find((item) => item.key === currentTab)?.label || tabs[0]?.label || "";
 
   React.useEffect(() => {
@@ -80,7 +88,7 @@ function SettingsPanel({ onClose, activeTab, onTabChange }: SettingsPanelProps):
                   <button
                     key={item.key}
                     onClick={() => setTab(item.key)}
-                    style={MORANDI_STUDIO_TONE_VARS[SETTINGS_TAB_MORANDI_TONE[item.key] || "works"]}
+                    style={resolveToneVars(SETTINGS_TAB_MORANDI_TONE[item.key])}
                     className={cn(
                       "px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 text-left border",
                       currentTab === item.key

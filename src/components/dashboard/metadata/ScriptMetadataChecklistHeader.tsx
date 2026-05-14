@@ -1,5 +1,28 @@
 import React from "react";
 
+interface ChecklistChipItem {
+  type: "required" | "recommended" | string;
+  key: string;
+  label: string;
+}
+
+interface ScriptMetadataChecklistHeaderProps {
+  t: (key: string, fallback?: string) => string;
+  completedChecklistItems: number;
+  totalChecklistItems: number;
+  completionPercent: number;
+  hasBlockingIssues: boolean;
+  visibleChecklistChipItems: ChecklistChipItem[];
+  showAllChecklistChips: boolean;
+  hiddenChecklistChipCount: number;
+  checklistChipItems: ChecklistChipItem[];
+  maxVisibleChecklistChips: number;
+  activeTab: string;
+  jumpToChecklistItem: (key: string) => void;
+  setShowAllChecklistChips: (value: boolean) => void;
+  focusSection: (section: string) => void;
+}
+
 export function ScriptMetadataChecklistHeader({
   t,
   completedChecklistItems,
@@ -15,7 +38,7 @@ export function ScriptMetadataChecklistHeader({
   jumpToChecklistItem,
   setShowAllChecklistChips,
   focusSection,
-}) {
+}: ScriptMetadataChecklistHeaderProps) {
   return (
     <div id="metadata-guide-checklist" className="rounded-lg border border-border/70 bg-background p-2.5 shadow-sm">
       <div className="mb-1.5 flex items-center justify-between gap-2">
