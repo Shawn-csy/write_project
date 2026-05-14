@@ -30,13 +30,7 @@ const inferMatchMode = (config: Record<string, unknown> = {}) => {
   return "none";
 };
 
-const extractErrorMessage = (error: unknown): string => {
-  if (error instanceof Error) return error.message;
-  if (typeof error === "object" && error !== null && "message" in error) {
-    return String((error as { message?: unknown }).message || "");
-  }
-  return "";
-};
+import { extractErrorMessage } from './utils';
 
 export const normalizeMarkerConfigsSchema = (configs) => {
   const normalized = normalizeThemeConfigs(configs);
