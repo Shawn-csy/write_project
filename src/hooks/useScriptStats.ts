@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { calculateScriptStats } from '../lib/statistics';
 import { buildAST } from '../lib/importPipeline/directASTBuilder';
+import type { AstNode } from '../lib/statistics/ScriptAnalyzer';
 
 
 /**
@@ -11,7 +12,7 @@ import { buildAST } from '../lib/importPipeline/directASTBuilder';
 type UseScriptStatsOptions = {
   scriptId?: string | null;
   rawScript?: string | null;
-  scriptAst?: unknown[] | { children?: unknown[] } | null;
+  scriptAst?: AstNode | AstNode[] | null;
   markerConfigs?: unknown[];
   options?: Record<string, unknown>;
 };

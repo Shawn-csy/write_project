@@ -1,21 +1,22 @@
 import { ScriptAnalyzer } from './ScriptAnalyzer';
+import type { AstNode } from './ScriptAnalyzer';
 import { BasicStatsMetric } from './metrics/BasicStatsMetric';
 import { CharacterAndDurationMetric } from './metrics/CharacterAndDurationMetric';
 import { MarkerStatsMetric } from './metrics/MarkerStatsMetric';
 import { RangeStatsMetric } from './metrics/RangeStatsMetric';
 
-type AstLike = { children?: unknown[] } | unknown[];
-type StatsConfig = { wordCountDivisor?: number };
+type AstLike = AstNode | AstNode[];
+type StatsConfig = { wordCountDivisor?: number; excludePunctuation?: boolean };
 type CalculateOptions = {
   wordCountMode?: string;
   statsConfig?: StatsConfig;
 };
 
-type CharacterStatItem = {
-  lineCount?: unknown;
-  count?: unknown;
-  wordCount?: unknown;
-  speakingScenesCount?: unknown;
+export type CharacterStatItem = {
+  lineCount: number;
+  count: number;
+  wordCount: number;
+  speakingScenesCount: number;
   [key: string]: unknown;
 };
 
@@ -25,9 +26,9 @@ type StatsResult = {
   actionLines?: unknown[];
   sentences?: { dialogue?: unknown[]; sfx?: unknown[] };
   customLayers?: Record<string, unknown[]>;
-  characterStats?: CharacterStatItem[];
+  characterStats?: Array<{ lineCount?: unknown; count?: unknown; wordCount?: unknown; speakingScenesCount?: unknown; [key: string]: unknown }>;
   counts?: Record<string, number>;
-  timeframeDistribution?: Record<string, unknown>;
+  timeframeDistribution?: Record<string, number>;
   dialogueRatio?: number;
   actionRatio?: number;
   rangeStats?: Record<string, unknown>;
@@ -36,7 +37,7 @@ type StatsResult = {
   pauseItems?: unknown[];
 };
 
-interface ScriptStatsOutput {
+export interface ScriptStatsOutput {
   durationMinutes: number;
   locations: unknown[];
   sentences: {
@@ -46,9 +47,9 @@ interface ScriptStatsOutput {
     sfx: unknown[];
   };
   counts: Record<string, number>;
-  characterStats: Array<Record<string, unknown>>;
-  timeframeDistribution: Record<string, unknown>;
-  customLayers: Record<string, unknown>;
+  characterStats: CharacterStatItem[];
+  timeframeDistribution: Record<string, number>;
+  customLayers: Record<string, unknown[]>;
   dialogueRatio: number;
   actionRatio: number;
   totalBlocks: number;
@@ -82,9 +83,12 @@ export function calculateScriptStats(
 
   // 2. Run Analyzer
   const analyzer = new ScriptAnalyzer([basicMetric, charMetric, markerMetric, rangeMetric]);
+  const astInput: AstNode = Array.isArray(nodes)
+    ? { children: nodes }
+    : { children: (nodes as AstNode).children || [] };
   const results = analyzer.analyze(
-      { children: Array.isArray(nodes) ? nodes : (nodes?.children || []) },
-      { markerConfigs, statsConfig: options.statsConfig }
+      astInput,
+      { markerConfigs, statsConfig: options.statsConfig as Record<string, unknown> }
   ) as StatsResult;
 
   // 3. Post-Process / Merge for backward compatibility
@@ -103,11 +107,11 @@ export function calculateScriptStats(
       });
   }
 
-  const normalizedCharacterStats = (results.characterStats || []).map((item) => {
-      const toFiniteNumber = (value: unknown, fallback = 0) => {
-          const n = Number(value);
-          return Number.isFinite(n) ? n : fallback;
-      };
+  const toFiniteNumber = (value: unknown, fallback = 0): number => {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : fallback;
+  };
+  const normalizedCharacterStats: CharacterStatItem[] = (results.characterStats || []).map((item) => {
       const lineCount = toFiniteNumber(item?.lineCount ?? item?.count, 0);
       const wordCount = toFiniteNumber(item?.wordCount, 0);
       const speakingScenesCount = toFiniteNumber(item?.speakingScenesCount, 0);
@@ -134,7 +138,7 @@ export function calculateScriptStats(
               : (sentences.action?.length || 0) 
       },
       characterStats: normalizedCharacterStats,
-      timeframeDistribution: results.timeframeDistribution || {},
+      timeframeDistribution: (results.timeframeDistribution || {}) as Record<string, number>,
       customLayers: results.customLayers || {},
       dialogueRatio: results.dialogueRatio || 0,
       actionRatio: results.actionRatio || 0,

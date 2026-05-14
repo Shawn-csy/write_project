@@ -42,10 +42,35 @@ import {
  * @property {string} content - 該行內容
  */
 
-export class TextPreprocessor {
-  options: Record<string, any>;
+interface TransformLogEntry {
+  originalLine: number;
+  resultLine: number;
+  type: 'join' | 'normalize' | 'preserve';
+  from: string;
+  to: string;
+  confidence: 'high' | 'medium' | 'low';
+  ruleName?: string;
+}
 
-  constructor(options: Record<string, any> = {}) {
+interface ManualReviewItem {
+  line: number;
+  reason: string;
+  content: string;
+}
+
+interface PreprocessorOptions {
+  autoJoin?: boolean;
+  normalizeSymbols?: boolean;
+  markBlankLines?: boolean;
+  conservativeMode?: boolean;
+  customJoinRules?: Array<{ name?: string; pattern: RegExp; nextLinePattern?: RegExp; description?: string }>;
+  [key: string]: unknown;
+}
+
+export class TextPreprocessor {
+  options: PreprocessorOptions;
+
+  constructor(options: PreprocessorOptions = {}) {
     this.options = {
       // 是否自動接行
       autoJoin: true,
@@ -69,8 +94,8 @@ export class TextPreprocessor {
   preprocess(text) {
     const originalText = text;
     const lines = text.split('\n');
-    const transformLog: any[] = [];
-    const manualReviewNeeded: any[] = [];
+    const transformLog: TransformLogEntry[] = [];
+    const manualReviewNeeded: ManualReviewItem[] = [];
     
     // Step 1: 符號正規化（逐行）
     let normalizedLines = lines;
@@ -111,21 +136,21 @@ export class TextPreprocessor {
    * 符號正規化
    * @private
    */
-  _normalizeSymbols(lines) {
-    const log: any[] = [];
+  _normalizeSymbols(lines: string[]): { lines: string[]; log: TransformLogEntry[] } {
+    const log: TransformLogEntry[] = [];
     const result = lines.map((line, idx) => {
       let normalized = line;
       
       for (const [from, to] of Object.entries(SYMBOL_NORMALIZATION)) {
         if (normalized.includes(from)) {
-          const newLine = normalized.replaceAll(from, to);
+          const newLine = normalized.split(from).join(to);
           log.push({
             originalLine: idx + 1,
             resultLine: idx + 1,
-            type: 'normalize',
+            type: 'normalize' as const,
             from: from,
             to: to,
-            confidence: 'high'
+            confidence: 'high' as const,
           });
           normalized = newLine;
         }
@@ -141,16 +166,16 @@ export class TextPreprocessor {
    * 接行處理
    * @private
    */
-  _joinLines(lines) {
-    const log: any[] = [];
-    const review: any[] = [];
-    const result: any[] = [];
+  _joinLines(lines: string[]): { lines: string[]; log: TransformLogEntry[]; review: ManualReviewItem[] } {
+    const log: TransformLogEntry[] = [];
+    const review: ManualReviewItem[] = [];
+    const result: string[] = [];
     
     // 合併所有規則
     const allRules = [
       ...JOIN_RULES.HIGH_CONFIDENCE,
       ...(this.options.conservativeMode ? [] : JOIN_RULES.MEDIUM_CONFIDENCE),
-      ...this.options.customJoinRules
+      ...(this.options.customJoinRules || [])
     ];
     
     let i = 0;
@@ -173,11 +198,11 @@ export class TextPreprocessor {
             log.push({
               originalLine: i + 1,
               resultLine: resultLineNum + 1,
-              type: 'join',
+              type: 'join' as const,
               from: `${currentLine}\\n${nextLine}`,
               to: joinedLine,
-              confidence: 'high',
-              ruleName: rule.name
+              confidence: 'high' as const,
+              ruleName: rule.name,
             });
             
             joined = true;
@@ -202,7 +227,7 @@ export class TextPreprocessor {
    * 判斷是否應該接行
    * @private
    */
-  _shouldJoin(currentLine, nextLine, rule) {
+  _shouldJoin(currentLine: string, nextLine: string, rule: { pattern: RegExp; nextLinePattern?: RegExp }): boolean {
     const trimmedCurrent = currentLine.trim();
     const trimmedNext = nextLine.trim();
     
@@ -230,7 +255,7 @@ export class TextPreprocessor {
    * @param {string} text - 原始文本
    * @returns {Array<{line: number, type: 'auto'|'suggest'|'preserve', preview: string}>}
    */
-  getJoinPreview(text) {
+  getJoinPreview(text: string): Array<{ line: number; type: string; originalLines: string[]; preview: string; ruleName?: string; description?: string }> {
     const lines = text.split('\n');
     const preview: Array<{ line: number; type: string; originalLines: string[]; preview: string; ruleName?: string; description?: string }> = [];
     
@@ -289,7 +314,7 @@ export class TextPreprocessor {
  * @param {Object} options - 選項
  * @returns {PreprocessResult}
  */
-export const preprocess = (text, options = {}) => {
+export const preprocess = (text: string, options: PreprocessorOptions = {}) => {
   const preprocessor = new TextPreprocessor(options);
   return preprocessor.preprocess(text);
 };
