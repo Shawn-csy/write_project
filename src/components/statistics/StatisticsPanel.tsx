@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import type { AstNode } from '@/lib/statistics/ScriptAnalyzer';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useScriptStats } from '@/hooks/useScriptStats';
@@ -51,7 +52,7 @@ interface MarkerEntry {
 
 interface StatisticsPanelProps {
   rawScript?: string | null;
-  scriptAst?: unknown[] | { children?: unknown[] } | null;
+  scriptAst?: AstNode | AstNode[] | null;
   onLocateText?: (text: string, line?: number | null) => void;
   scriptId?: string;
 }

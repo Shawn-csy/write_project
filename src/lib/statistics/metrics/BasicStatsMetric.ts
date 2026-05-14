@@ -1,7 +1,8 @@
 import { Metric } from '../ScriptAnalyzer';
+import type { AstNode, AnalyzerContext } from '../ScriptAnalyzer';
 
 export class BasicStatsMetric extends Metric {
-  options: Record<string, any>;
+  options: Record<string, unknown>;
   counts!: { scenes: number; nodes: number; dialogueChars: number; actionChars: number; totalChars: number; dialogueLines: number };
   locations!: string[];
   actionLines!: string[];
@@ -27,7 +28,7 @@ export class BasicStatsMetric extends Metric {
     this.timeframeDistribution = { INT: 0, EXT: 0, OTHER: 0 };
   }
 
-  onNode(node, context) {
+  onNode(node: AstNode, context: AnalyzerContext) {
     this.counts.nodes++;
 
     const text = this.getText(node).trim();
