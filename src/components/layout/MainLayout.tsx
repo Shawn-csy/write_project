@@ -1,23 +1,8 @@
 import React from "react";
 import type { Nav } from "../../hooks/useAppNavigation";
 
-// All dependencies are JSX — cast until migrated
-type AC = React.ComponentType<Record<string, unknown>>;
-type ACC = React.ComponentType<{ children?: React.ReactNode; [k: string]: unknown }>;
-
-import {
-  Drawer as DrawerJs,
-  DrawerContent as DrawerContentJs,
-  DrawerTitle as DrawerTitleJs,
-  DrawerDescription as DrawerDescriptionJs,
-} from "../ui/drawer";
-import SidebarJs from "./Sidebar";
-
-const Drawer = DrawerJs as unknown as ACC;
-const DrawerContent = DrawerContentJs as unknown as ACC;
-const DrawerTitle = DrawerTitleJs as unknown as ACC;
-const DrawerDescription = DrawerDescriptionJs as unknown as ACC;
-const Sidebar = SidebarJs as unknown as AC;
+import { Drawer, DrawerContent, DrawerTitle, DrawerDescription } from "../ui/drawer";
+import Sidebar from "./Sidebar";
 
 interface MainLayoutProps {
   children: React.ReactNode;

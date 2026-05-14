@@ -8,9 +8,7 @@ import type { ScriptManager } from "./hooks/useScriptManager.types";
 import type { Nav, NavProps } from "./types/nav";
 import type { DownloadOption } from "./types/routes";
 
-// JS component pending TS migration
-import { ReadGuideOverlay as ReadGuideOverlayJs } from "./components/reader/ReadGuideOverlay";
-const ReadGuideOverlay = ReadGuideOverlayJs as unknown as React.ComponentType<Record<string, unknown>>;
+import { ReadGuideOverlay } from "./components/reader/ReadGuideOverlay";
 
 interface AppRouterProps {
   scriptManager: ScriptManager;
@@ -24,7 +22,7 @@ interface AppRouterProps {
   isPublicReader: boolean;
   showReaderHeader: boolean;
   readerDownloadOptions: DownloadOption[];
-  handleShareUrl: (e?: React.MouseEvent) => void;
+  handleShareUrl: (e?: Event | React.MouseEvent) => void;
   shareCopied: boolean;
   handleReturnHome: () => void;
   handleCloudTitleUpdate: (title: string) => Promise<void>;
