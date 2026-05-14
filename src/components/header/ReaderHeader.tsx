@@ -7,21 +7,11 @@ import { useSettings } from "../../contexts/SettingsContext";
 import type { MarkerConfig, ParsedScene, FileMeta } from "../../hooks/useScriptManager.types";
 import type { DownloadOption } from "../../types/routes";
 
-// JS components/hooks pending TS migration
-type AC = React.ComponentType<Record<string, unknown>>;
-type ACC = React.ComponentType<{ children?: React.ReactNode; [k: string]: unknown }>;
-
-import { Card as CardJs, CardContent as CardContentJs } from "../ui/card";
-import { ReaderControls as ReaderControlsJs } from "../reader/ReaderControls";
-import { ReaderActions as ReaderActionsJs } from "../reader/ReaderActions";
-import EditableTitleJs from "./EditableTitle";
-import HeaderTitleBlockJs from "./HeaderTitleBlock";
-const Card = CardJs as unknown as ACC;
-const CardContent = CardContentJs as unknown as ACC;
-const ReaderControls = ReaderControlsJs as unknown as AC;
-const ReaderActions = ReaderActionsJs as unknown as AC;
-const EditableTitle = EditableTitleJs as unknown as AC;
-const HeaderTitleBlock = HeaderTitleBlockJs as unknown as AC;
+import { Card, CardContent } from "../ui/card";
+import { ReaderControls } from "../reader/ReaderControls";
+import { ReaderActions } from "../reader/ReaderActions";
+import EditableTitle from "./EditableTitle";
+import HeaderTitleBlock from "./HeaderTitleBlock";
 
 interface MarkerTheme {
   id: string;
@@ -37,7 +27,7 @@ interface ReaderHeaderProps {
   isSidebarOpen?: boolean;
   setSidebarOpen: (open: boolean) => void;
   downloadOptions?: DownloadOption[];
-  onShareUrl?: (e?: React.MouseEvent) => void;
+  onShareUrl?: (event?: Event | React.MouseEvent) => void;
   canShare?: boolean;
   shareCopied?: boolean;
   sceneList?: ParsedScene[];
@@ -175,10 +165,7 @@ function ReaderHeader({
         <div className="flex w-full flex-col gap-2 min-w-0 max-w-[1000px]">
           <div className="flex items-center gap-2 min-w-0">
             <HeaderTitleBlock
-              onBack={(e: React.MouseEvent) => {
-                e.stopPropagation();
-                onBack?.();
-              }}
+              onBack={onBack ? () => { onBack(); } : undefined}
               backButtonClassName="h-9 w-9 inline-flex items-center justify-center -ml-1 text-foreground/80 hover:text-foreground transition-colors shrink-0"
               backIconClassName="h-5 w-5"
               backAriaLabel={t("common.back")}
@@ -276,11 +263,11 @@ function ReaderHeader({
             <ReaderControls
               sceneList={sceneList}
               currentSceneId={currentSceneId}
-              onSelectScene={onSelectScene}
+              onSelectScene={onSelectScene ?? (() => {})}
               characterList={characterList}
               filterCharacter={filterCharacter}
-              setFilterCharacter={setFilterCharacter}
-              setFocusMode={setFocusMode}
+              setFilterCharacter={setFilterCharacter ?? (() => {})}
+              setFocusMode={setFocusMode ?? (() => {})}
               markerConfigs={markerConfigs}
               markerThemes={markerThemes}
               currentThemeId={currentThemeId}
@@ -294,7 +281,7 @@ function ReaderHeader({
               onShareUrl={onShareUrl}
               shareCopied={shareCopied}
               downloadOptions={downloadOptions}
-              onEdit={onEdit}
+              onEdit={onEdit ?? undefined}
               onOpenGuide={onOpenGuide}
               extraActions={extraActions}
               onToggleStats={onToggleStats}

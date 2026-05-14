@@ -19,13 +19,9 @@ import { loadBasicScriptExport, loadXlsxScriptExport } from "./lib/scriptExportL
 import type { NavProps } from "./types/nav";
 import type { DownloadOption } from "./types/routes";
 
-// Migrated TS component
 import { AppRouter } from "./AppRouter";
-
-import { MetaTags as MetaTagsJs } from "./components/common/MetaTags";
-import { GlobalListeners as GlobalListenersJs } from "./components/common/GlobalListeners";
-const MetaTags = MetaTagsJs;
-const GlobalListeners = GlobalListenersJs;
+import { MetaTags } from "./components/common/MetaTags";
+import { GlobalListeners } from "./components/common/GlobalListeners";
 
 function App() {
   // 1. Contexts

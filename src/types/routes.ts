@@ -6,9 +6,10 @@ import type { Nav, NavProps } from "./nav";
 export interface DownloadOption {
   id: string;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  onClick: () => void | Promise<void>;
-  disabled: boolean;
+  icon?: React.ComponentType<{ className?: string }>;
+  onClick?: () => void | Promise<void>;
+  disabled?: boolean;
+  hidden?: boolean;
 }
 
 /** Props shared by AppRouter → WorkspaceRoutes render function */
@@ -24,7 +25,7 @@ export interface WorkspaceRoutesProps {
   isPublicReader: boolean;
   showReaderHeader: boolean;
   readerDownloadOptions: DownloadOption[];
-  handleShareUrl: (e?: React.MouseEvent) => void;
+  handleShareUrl: (e?: Event | React.MouseEvent) => void;
   shareCopied: boolean;
   handleReturnHome: () => void;
   handleCloudTitleUpdate: (title: string) => Promise<void>;

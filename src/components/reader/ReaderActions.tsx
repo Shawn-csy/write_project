@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import type { LucideIcon } from "lucide-react";
 import { Share2, PenBox, BarChart, MoreHorizontal, HelpCircle } from "lucide-react";
+import type { DownloadOption } from "../../types/routes";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -11,15 +11,6 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useI18n } from "../../contexts/I18nContext";
-
-interface DownloadOption {
-    id: string;
-    label: string;
-    icon?: LucideIcon;
-    disabled?: boolean;
-    hidden?: boolean;
-    onClick?: (event: Event | React.MouseEvent) => void;
-}
 
 interface ReaderActionsProps {
     canShare?: boolean;
@@ -107,7 +98,7 @@ export function ReaderActions({
                                     disabled={Boolean(opt.disabled)}
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        opt.onClick?.(e);
+                                        opt.onClick?.();
                                     }}
                                 >
                                     {opt.icon ? <opt.icon className="w-4 h-4 mr-2" /> : null}

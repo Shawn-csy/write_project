@@ -5,26 +5,15 @@ import { lazyWithRefreshRetry } from "../lib/lazyWithRefreshRetry";
 
 import { renderSafeHtml } from "../lib/safeHtml";
 import type { WorkspaceRoutesProps } from "../types/routes";
+import type { AstNode } from "../lib/statistics/ScriptAnalyzer";
 
-// Migrated TS components — direct import, no cast needed
 import { MainLayout } from "../components/layout/MainLayout";
 import ReaderHeader from "../components/header/ReaderHeader";
-
-// JS components still pending TS migration
-type AC = React.ComponentType<Record<string, unknown>>;
-type ACC = React.ComponentType<{ children?: React.ReactNode; [k: string]: unknown }>;
-
-import { Card as CardJs, CardContent as CardContentJs } from "../components/ui/card";
-import { Button as ButtonJs } from "../components/ui/button";
-import { LanguageSwitcher as LanguageSwitcherJs } from "../components/common/LanguageSwitcher";
-import { StatisticsPanel as StatisticsPanelJs } from "../components/statistics/StatisticsPanel";
-import { RequireAuth as RequireAuthJs } from "../components/auth/RequireAuth";
-const Card = CardJs as unknown as ACC;
-const CardContent = CardContentJs as unknown as ACC;
-const Button = ButtonJs as unknown as ACC;
-const LanguageSwitcher = LanguageSwitcherJs as unknown as AC;
-const StatisticsPanel = StatisticsPanelJs as unknown as AC;
-const RequireAuth = RequireAuthJs as unknown as ACC;
+import { Card, CardContent } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { LanguageSwitcher } from "../components/common/LanguageSwitcher";
+import { StatisticsPanel } from "../components/statistics/StatisticsPanel";
+import { RequireAuth } from "../components/auth/RequireAuth";
 
 const SettingsPanel = lazyWithRefreshRetry(() => import("../components/panels/SettingsPanel"), "settings-panel");
 const AboutPanelLazy = lazyWithRefreshRetry(() => import("../components/panels/AboutPanel"), "about-panel");
@@ -225,7 +214,7 @@ export function renderWorkspaceRoutes({
                   <div className="flex-1 min-h-0 overflow-hidden">
                     <StatisticsPanel
                       rawScript={rawScript}
-                      scriptAst={ast}
+                      scriptAst={ast as AstNode | null}
                       onLocateText={navProps.handleLocateText ?? navProps.onLocateText}
                     />
                   </div>
