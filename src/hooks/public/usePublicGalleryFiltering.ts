@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { deriveSimpleLicenseTags, parseBasicLicenseFromMeta } from "../../lib/licenseRights";
 import { normalizeSeriesName, parseSeriesOrder } from "../../lib/series";
 import { customMetadataEntriesToMeta } from "../../lib/customMetadata";
+import type { PersonaLike, TagLike } from "../../types/persona";
 
 const SEGMENT_KEYS = {
   all: "all",
@@ -21,12 +22,8 @@ const SEGMENT_TAGS = {
 type SegmentKey = keyof typeof SEGMENT_KEYS;
 type UsageFilter = "all" | "commercial";
 
-interface TagLike {
-  name?: string;
-  [key: string]: unknown;
-}
-
 interface AuthorLike {
+  id?: string;
   displayName?: string;
   avatarUrl?: string;
   tags?: string[];
@@ -34,15 +31,10 @@ interface AuthorLike {
 }
 
 interface OrgLike {
+  id?: string;
   name?: string;
   tags?: string[];
   [key: string]: unknown;
-}
-
-interface PersonaLike {
-  defaultLicenseCommercial?: string;
-  defaultLicenseDerivative?: string;
-  defaultLicenseNotify?: string;
 }
 
 interface SeriesLike {
@@ -54,7 +46,7 @@ interface ScriptLike {
   id: string;
   title?: string;
   customMetadata?: Array<{ key?: string; value?: string; type?: string }>;
-  persona?: PersonaLike | null;
+  persona?: Partial<PersonaLike> | null;
   author?: AuthorLike | string | null;
   series?: SeriesLike | null;
   seriesName?: string;
@@ -300,12 +292,18 @@ export function usePublicGalleryFiltering({
   }, [scriptsWithMeta]);
 
   // 5. Tag lists
-  const allTags = Array.from(
-    new Set(
-      scriptsWithMeta.flatMap((s) => s.tags || []).filter((tag) => !RESERVED_SEGMENT_TAGS.has(String(tag).toLowerCase()))
-    )
+  const allTags = useMemo(
+    () => Array.from(
+      new Set(
+        scriptsWithMeta.flatMap((s) => s.tags || []).filter((tag) => !RESERVED_SEGMENT_TAGS.has(String(tag).toLowerCase()))
+      )
+    ),
+    [scriptsWithMeta]
   );
-  const licenseTagShortcuts = Array.from(new Set(scriptsWithMeta.flatMap((s) => s._derivedLicenseTags || [])));
+  const licenseTagShortcuts = useMemo(
+    () => Array.from(new Set(scriptsWithMeta.flatMap((s) => s._derivedLicenseTags || []))),
+    [scriptsWithMeta]
+  );
 
   // 6. Filter authors / orgs
   const filteredAuthors = useMemo<AuthorLike[]>(() => {

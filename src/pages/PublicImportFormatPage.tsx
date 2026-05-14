@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { BookMarked, FileCode2, ArrowRight } from "lucide-react";
@@ -9,13 +8,25 @@ import { useI18n } from "../contexts/I18nContext";
 import { DEFAULT_MARKER_RULES, DEFAULT_MARKER_RULES_NAME } from "../constants/defaultMarkerRules";
 import { parseScreenplay } from "../lib/screenplayAST";
 import { ScriptRenderer } from "../components/renderer/ScriptRenderer";
+import type { MarkerConfigLike } from "../types/renderer";
 
 export default function PublicImportFormatPage() {
   const { t } = useI18n();
   const navigate = useNavigate();
 
   const allRules = React.useMemo(() => DEFAULT_MARKER_RULES || [], []);
-  const colorCacheRef = React.useRef(new Map());
+  const rendererRules = React.useMemo<MarkerConfigLike[]>(() => {
+    return (DEFAULT_MARKER_RULES || []).map((rule) => {
+      const normalizedStyle = Object.fromEntries(
+        Object.entries((rule.style || {}) as Record<string, unknown>).filter(([, value]) => typeof value === "string")
+      ) as Record<string, string>;
+      return {
+        ...rule,
+        style: normalizedStyle,
+      };
+    });
+  }, []);
+  const colorCacheRef = React.useRef<Map<string, string>>(new Map());
   const usageById = React.useMemo(() => ({
     "rule-numbered-chapter-title": t("importFormat.usageChapter"),
     "rule-se-performer": t("importFormat.usageSePerformer"),
@@ -104,7 +115,7 @@ export default function PublicImportFormatPage() {
                         <div className="rounded border bg-background p-2 text-xs">
                           <ScriptRenderer
                             ast={astById[rule.id]}
-                            markerConfigs={DEFAULT_MARKER_RULES}
+                            markerConfigs={rendererRules}
                             colorCache={colorCacheRef}
                             fontSize={13}
                           />

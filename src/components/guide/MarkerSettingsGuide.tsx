@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState } from "react";
 import { MarkerGeneralSettings } from "../settings/marker/configs/MarkerGeneralSettings";
 import { MarkerLogicSettings } from "../settings/marker/configs/MarkerLogicSettings";
@@ -9,7 +8,25 @@ import { useI18n } from "../../contexts/I18nContext";
 export function MarkerSettingsGuide() {
     const { t } = useI18n();
     // Dummy state for the interactive guide
-    const [demoConfig, setDemoConfig] = useState({
+    const [demoConfig, setDemoConfig] = useState<{
+        id: string;
+        label: string;
+        type: string;
+        priority: number;
+        matchMode: string;
+        start: string;
+        end: string;
+        style: {
+            color?: string;
+            fontWeight?: string;
+            backgroundColor?: string;
+            fontStyle?: string;
+            textDecoration?: string;
+            fontSize?: string;
+            opacity?: string | number;
+        };
+        renderer: { template: string };
+    }>({
         id: "demo-marker",
         label: "sample-marker",
         type: "inline",
@@ -27,10 +44,10 @@ export function MarkerSettingsGuide() {
     });
 
     // Mock update function
-    const updateMarker = (_, field, value) => {
+    const updateMarker = (_id: unknown, field: string | Record<string, unknown>, value?: unknown) => {
         setDemoConfig(prev => {
             if (typeof field === 'object') {
-                return { ...prev, ...field };
+                return { ...prev, ...(field as Record<string, unknown>) };
             }
             return { ...prev, [field]: value };
         });
@@ -52,11 +69,10 @@ export function MarkerSettingsGuide() {
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-2 border rounded-lg p-4 bg-background/50">
-                        <MarkerGeneralSettings 
-                            config={demoConfig} 
-                            idx={0} 
+                        <MarkerGeneralSettings
+                            config={demoConfig}
+                            idx={0}
                             updateMarker={updateMarker}
-                            setExpandedId={() => {}} // No-op
                         />
                     </div>
                     <div className="text-xs text-muted-foreground space-y-2 lg:pt-2">

@@ -6,14 +6,40 @@ import {
   getOrganizationMembers,
   getOrganizationRequests,
 } from "../../lib/api/organizations";
+import type { CurrentUserLike } from "../../types/user";
 
-export function usePublisherOrgQueues({ selectedOrgId, currentUser }) {
-  const [orgMembers, setOrgMembers] = useState({ users: [], personas: [] });
-  const [orgInvites, setOrgInvites] = useState([]);
-  const [orgRequests, setOrgRequests] = useState([]);
-  const [myInvites, setMyInvites] = useState([]);
+interface QueueUser {
+  id: string;
+  displayName?: string;
+  handle?: string;
+  email?: string;
+  organizationRole?: string;
+  [key: string]: unknown;
+}
+
+interface OrgMembersData {
+  users: QueueUser[];
+  personas: Array<Record<string, unknown>>;
+}
+
+interface OrgQueueItem {
+  id?: string;
+  orgId?: string;
+  [key: string]: unknown;
+}
+
+interface UsePublisherOrgQueuesInput {
+  selectedOrgId: string | null;
+  currentUser: CurrentUserLike | null | undefined;
+}
+
+export function usePublisherOrgQueues({ selectedOrgId, currentUser }: UsePublisherOrgQueuesInput) {
+  const [orgMembers, setOrgMembers] = useState<OrgMembersData>({ users: [], personas: [] });
+  const [orgInvites, setOrgInvites] = useState<OrgQueueItem[]>([]);
+  const [orgRequests, setOrgRequests] = useState<Array<Record<string, unknown>>>([]);
+  const [myInvites, setMyInvites] = useState<OrgQueueItem[]>([]);
   const [inviteSearchQuery, setInviteSearchQuery] = useState("");
-  const [inviteSearchResults, setInviteSearchResults] = useState([]);
+  const [inviteSearchResults, setInviteSearchResults] = useState<QueueUser[]>([]);
   const [isInviteSearching, setIsInviteSearching] = useState(false);
   const [isOrgMembersLoading, setIsOrgMembersLoading] = useState(false);
 

@@ -1,9 +1,9 @@
-// @ts-nocheck
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { ScriptGalleryCard } from "../components/gallery/ScriptGalleryCard";
+import type { ScriptGalleryItem } from "../components/gallery/ScriptGalleryCard";
 import { Button } from "../components/ui/button";
 import { getPublicBundle } from "../lib/api/public";
 import { getSeriesInfoFromScript, normalizeSeriesName } from "../lib/series";
@@ -14,9 +14,9 @@ export default function PublicSeriesPage() {
   const { seriesName: seriesNameParam } = useParams();
   const navigate = useNavigate();
   const seriesName = normalizeSeriesName(decodeURIComponent(seriesNameParam || ""));
-  const [scripts, setScripts] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [seriesMeta, setSeriesMeta] = useState({ summary: "", coverUrl: "" });
+  const [scripts, setScripts] = useState<ScriptGalleryItem[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [seriesMeta, setSeriesMeta] = useState<{ summary: string; coverUrl: string }>({ summary: "", coverUrl: "" });
 
   useEffect(() => {
     const load = async () => {
@@ -24,11 +24,12 @@ export default function PublicSeriesPage() {
       try {
         const bundle = await getPublicBundle();
         const normalized = (bundle?.scripts || [])
-          .filter((item) => item?.id)
+          .filter((item): item is typeof item & { id: string } => Boolean(item?.id))
           .map((item) => {
             const series = getSeriesInfoFromScript(item);
             return {
               ...item,
+              id: item.id as string,
               author: item.persona || item.owner || item.author,
               seriesName: series.seriesName,
               seriesOrder: series.seriesOrder,

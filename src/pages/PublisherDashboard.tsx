@@ -1,33 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 
-interface PersonaData {
-  id: string;
-  displayName?: string;
-  bio?: string;
-  website?: string;
-  links?: Array<{ url?: string; label?: string }> | string;
-  avatar?: string;
-  bannerUrl?: string;
-  organizationIds?: string[];
-  tags?: string[];
-  defaultLicenseCommercial?: string;
-  defaultLicenseDerivative?: string;
-  defaultLicenseNotify?: string;
-  defaultLicenseSpecialTerms?: string[];
-  [key: string]: unknown;
-}
-
-interface OrgData {
-  id: string;
-  name?: string;
-  description?: string;
-  website?: string;
-  logoUrl?: string;
-  bannerUrl?: string;
-  tags?: string[];
-  [key: string]: unknown;
-}
-
 interface TagData {
   id: string;
   name: string;
@@ -109,6 +81,7 @@ import {
   STUDIO_TOPBAR_TITLE_WRAP_CLASS,
 } from "../components/layout/studioTopbarTokens";
 import { StudioTopbarQuickActions } from "../components/layout/StudioTopbarQuickActions";
+import type { PersonaLike, OrgData } from "../types/persona";
 
 
 interface PublisherDashboardProps {
@@ -133,7 +106,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
   const [confirmDeleteOrgOpen, setConfirmDeleteOrgOpen] = useState<boolean>(false);
   
   // Data State
-  const [personas, setPersonas] = useState<PersonaData[]>([]);
+  const [personas, setPersonas] = useState<PersonaLike[]>([]);
   const [orgs, setOrgs] = useState<OrgData[]>([]);
   const [orgsForPersona, setOrgsForPersona] = useState<OrgData[]>([]);
   const [scripts, setScripts] = useState<ScriptData[]>([]);
@@ -721,7 +694,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
             onOpenChange={(open) => !open && closePublishDialog()}
             script={editingScript}
             scriptId={typeof editingScript?.id === "string" ? editingScript.id : undefined}
-            seriesOptions={seriesList as never[]}
+            seriesOptions={seriesList.map((item) => ({ id: item.id, name: item.name || "" }))}
             onSeriesCreated={(createdSeries) => {
                 if (!createdSeries?.id) return;
                 setSeriesList((prev) => {

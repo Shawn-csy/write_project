@@ -4,15 +4,11 @@ import { apiCall as serviceApiCall } from "../services/settingsApi";
 import { normalizeMarkerConfigsSchema } from "../lib/markerThemeCodec";
 import { isDefaultLikeTheme } from "../lib/themeNameUtils";
 import { fetchPublic } from "../lib/api/client";
+import type { CurrentUserLike } from "../types/user";
 
 // Computed once at module load — defaultMarkerConfigs is a static constant.
 const NORMALIZED_DEFAULT_CONFIGS = normalizeMarkerConfigsSchema(defaultMarkerConfigs);
 const DEFAULT_THEME_ID = 'default';
-
-interface CurrentUserLike {
-  uid: string;
-  getIdToken?: () => Promise<string>;
-}
 
 type MarkerConfig = Record<string, unknown>;
 

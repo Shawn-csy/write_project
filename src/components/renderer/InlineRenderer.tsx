@@ -1,24 +1,5 @@
 import React from 'react';
-
-interface InlineNode {
-    type: string;
-    id?: string;
-    content?: string;
-}
-
-interface MarkerConfigLike {
-    id?: string;
-    label?: string;
-    style?: Record<string, string>;
-    keywords?: string[];
-    dimIfNotKeyword?: boolean;
-    start?: string;
-    end?: string;
-    showDelimiters?: boolean;
-    renderer?: {
-        template?: string;
-    };
-}
+import type { InlineNodeLike, MarkerConfigLike } from '../../types/renderer';
 
 interface InlineRenderContext {
     hiddenMarkerIds?: string[];
@@ -35,7 +16,7 @@ interface InlineRendererProps {
  * 純 Marker 模式：所有 inline 渲染都來自 markerConfigs
  * 移除硬編碼的 direction/sfx 渲染器
  */
-const renderHighlight = (node: InlineNode, key: string, context: InlineRenderContext) => {
+const renderHighlight = (node: InlineNodeLike, key: string, context: InlineRenderContext) => {
     // Check if hidden
     if (node.id && context.hiddenMarkerIds?.includes(node.id)) return null;
 
@@ -89,7 +70,7 @@ const renderHighlight = (node: InlineNode, key: string, context: InlineRenderCon
 
 // 純 Marker 模式：只保留 text 和 highlight 渲染器
 const renderers = {
-    text: (node: InlineNode, key: string) => <span key={key}>{node.content}</span>,
+    text: (node: InlineNodeLike, key: string) => <span key={key}>{node.content}</span>,
     highlight: renderHighlight
 };
 
@@ -98,7 +79,7 @@ export const InlineRenderer = React.memo(function InlineRenderer({ nodes, contex
     return (
         <>
             {nodes.map((node, i) => {
-                const safeNode = (node && typeof node === "object") ? node as InlineNode : { type: "text", content: String(node ?? "") };
+                const safeNode = (node && typeof node === "object") ? node as InlineNodeLike : { type: "text", content: String(node ?? "") };
                 const key = `${i}-${safeNode.type}`; 
                 const renderFn = renderers[safeNode.type as keyof typeof renderers];
                 // 如果沒有對應的渲染器，顯示為純文字

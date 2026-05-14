@@ -1,10 +1,35 @@
-// @ts-nocheck
 import React, { useState, useEffect, useMemo } from "react";
+
+interface AuthorData {
+  id?: string;
+  displayName?: string;
+  bio?: string;
+  avatar?: string;
+  bannerUrl?: string;
+  website?: string;
+  links?: Array<{ url?: string; label?: string }>;
+  tags?: string[];
+  organizationIds?: string[];
+  ownerId?: string;
+  organizations?: Array<{ id?: string; name?: string }>;
+  [key: string]: unknown;
+}
+
+interface ScriptData extends ScriptGalleryItem {
+  type?: string;
+  isFolder?: boolean;
+  lastModified?: number;
+  updatedAt?: number;
+  persona?: unknown;
+  owner?: unknown;
+  [key: string]: unknown;
+}
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Link as LinkIcon, Building2, Globe, Twitter, Instagram, Youtube, Github } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { ScriptGalleryCard } from "../components/gallery/ScriptGalleryCard";
+import type { ScriptGalleryItem } from "../components/gallery/ScriptGalleryCard";
 import { getPublicPersona, getPublicScripts } from "../lib/api/public";
 import { getSeriesInfoFromScript } from "../lib/series";
 import { PublicTopBar } from "../components/public/PublicTopBar";
@@ -19,9 +44,9 @@ export default function AuthorProfilePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { currentUser, login } = useAuth();
-  const [author, setAuthor] = useState(null);
-  const [scripts, setScripts] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [author, setAuthor] = useState<AuthorData | null>(null);
+  const [scripts, setScripts] = useState<ScriptData[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const loadData = async () => {
@@ -32,12 +57,13 @@ export default function AuthorProfilePage() {
         const isUserProfile = persona?.ownerId === persona?.id;
         const publicScripts = isUserProfile
           ? []
-          : await getPublicScripts(undefined, undefined, id);
+          : await getPublicScripts(undefined, undefined, id, undefined);
         const normalizedScripts = (publicScripts || [])
-          .filter(s => s.type !== "folder" && !s.isFolder)
+          .filter(s => s.type !== "folder" && !s.isFolder && s.id)
           .map((s) => ({
           ...getSeriesInfoFromScript(s),
           ...s,
+          id: s.id as string,
           author: s.persona || s.owner || s.author,
         }));
         setScripts(normalizedScripts);
@@ -53,7 +79,7 @@ export default function AuthorProfilePage() {
     loadData();
   }, [id]);
 
-  const tagStyle = (tag) => getMorandiTagStyle(tag, author?.tags || []);
+  const tagStyle = (tag: string) => getMorandiTagStyle(tag, author?.tags || []);
   const authorSeries = useMemo(() => {
     const map = new Map();
     for (const script of scripts || []) {
@@ -289,9 +315,9 @@ export default function AuthorProfilePage() {
                 <span className="rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground">{scripts.length}</span>
               </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                {scripts.map(script => (
-                    <ScriptGalleryCard 
-                        key={script.id}
+                {scripts.map((script, i) => (
+                    <ScriptGalleryCard
+                        key={script.id ?? i}
                         script={script}
                         onClick={() => navigate(`/read/${script.id}`)}
                     />

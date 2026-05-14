@@ -9,13 +9,7 @@ import { useI18n } from "../../../contexts/I18nContext";
 import { parseBasicLicenseFromMeta } from "../../../lib/licenseRights";
 import { PublisherTabHeader } from "./PublisherTabHeader";
 import { PublisherEmptyState } from "./PublisherEntityLayout";
-
-interface PersonaLike {
-    id: string;
-    defaultLicenseCommercial?: string;
-    defaultLicenseDerivative?: string;
-    defaultLicenseNotify?: string;
-}
+import type { PersonaLike } from "../../../types/persona";
 
 interface PublisherScriptItem {
     id: string;

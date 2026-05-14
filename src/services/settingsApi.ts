@@ -1,13 +1,6 @@
 import { fetchApi, API_BASE_URL } from "../lib/api/client";
 import { isApiOffline } from "../lib/apiHealth";
-
-interface CurrentUserLike {
-  uid: string;
-  email?: string | null;
-  displayName?: string | null;
-  photoURL?: string | null;
-  getIdToken?: () => Promise<string>;
-}
+import type { CurrentUserLike } from "../types/user";
 
 // Generic authenticated API call — thin wrapper over fetchApi for callers
 // that pass a currentUser explicitly rather than relying on auth.currentUser.

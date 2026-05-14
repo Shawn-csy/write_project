@@ -19,9 +19,9 @@ export function LanguageSwitcher({
 }: {
   className?: string;
   selectClassName?: string;
-  ariaLabel: string;
+  ariaLabel?: string;
   compact?: boolean;
-  buttonClassName: string;
+  buttonClassName?: string;
 }) {
   const { t, lang, setLang } = useI18n();
 
