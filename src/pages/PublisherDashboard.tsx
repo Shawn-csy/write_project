@@ -349,8 +349,12 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
             const enriched = await Promise.all(needsEnrich.map(async (p) => {
                 try {
                     const pub = await getPublicPersona(p.id);
-                    if (pub?.links && pub.links.length > 0) {
-                        return { ...p, links: pub.links };
+                    let pubLinks = pub?.links;
+                    if (typeof pubLinks === "string") {
+                      try { pubLinks = JSON.parse(pubLinks); } catch { pubLinks = []; }
+                    }
+                    if (Array.isArray(pubLinks) && pubLinks.length > 0) {
+                        return { ...p, links: pubLinks };
                     }
                 } catch {}
                 return p;

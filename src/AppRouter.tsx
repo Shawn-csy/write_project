@@ -29,7 +29,7 @@ interface AppRouterProps {
   handleReturnHome: () => void;
   handleCloudTitleUpdate: (title: string) => Promise<void>;
   handleCloudMarkerThemeUpdate: (themeId: string) => Promise<boolean>;
-  accentStyle: string;
+  accentStyle: { label?: string; [key: string]: string | undefined };
   activeCloudScript: ScriptManager["activeCloudScript"];
 }
 

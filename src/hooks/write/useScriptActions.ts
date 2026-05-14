@@ -1,15 +1,7 @@
 import { useState } from "react";
 import type React from "react";
 import { createScript, updateScript, deleteScript } from "../../lib/api/scripts";
-
-interface ScriptItem {
-  id: string;
-  title: string;
-  type?: string;
-  folder: string;
-  isPublic?: boolean;
-  [key: string]: unknown;
-}
+import type { WriteScriptItem } from "../../types/write";
 
 export function useWriteScriptActions({
     scripts,
@@ -19,12 +11,12 @@ export function useWriteScriptActions({
     fetchScripts,
     onScriptCreated
 }: {
-    scripts: ScriptItem[];
-    setScripts: React.Dispatch<React.SetStateAction<ScriptItem[]>>;
+    scripts: WriteScriptItem[];
+    setScripts: React.Dispatch<React.SetStateAction<WriteScriptItem[]>>;
     currentPath: string;
     createPath: string;
     fetchScripts: () => void;
-    onScriptCreated?: (script: ScriptItem & { content?: string }) => void;
+    onScriptCreated?: (script: WriteScriptItem) => void;
 }) {
     // Create State
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -43,35 +35,35 @@ export function useWriteScriptActions({
     
     // Delete State
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-    const [deleteItem, setDeleteItem] = useState<ScriptItem | null>(null);
+    const [deleteItem, setDeleteItem] = useState<WriteScriptItem | null>(null);
     const [deleting, setDeleting] = useState(false);
 
     // Move State
     const [isMoveOpen, setIsMoveOpen] = useState(false);
-    const [moveItem, setMoveItem] = useState<ScriptItem | null>(null);
+    const [moveItem, setMoveItem] = useState<WriteScriptItem | null>(null);
     const [moveTargetFolder, setMoveTargetFolder] = useState("/");
     const [moving, setMoving] = useState(false);
 
-    const openRenameDialog = (item: ScriptItem) => {
+    const openRenameDialog = (item: WriteScriptItem) => {
         setRenameId(item.id);
         setRenameTitle(item.title);
         setOldRenameTitle(item.title);
-        setOldRenameFolder(item.folder); // We need this for folder rename logic
+        setOldRenameFolder(item.folder || "/"); // We need this for folder rename logic
         setRenameType(item.type || 'script');
         setIsRenameOpen(true);
     };
 
-    const getFolderPath = (item: ScriptItem) => {
+    const getFolderPath = (item: WriteScriptItem) => {
         const parent = item.folder === "/" ? "" : item.folder;
         return `${parent}/${item.title}`;
     };
 
-    const openDeleteDialog = (item: ScriptItem) => {
+    const openDeleteDialog = (item: WriteScriptItem) => {
         setDeleteItem(item);
         setIsDeleteOpen(true);
     };
 
-    const openMoveDialog = (item: ScriptItem) => {
+    const openMoveDialog = (item: WriteScriptItem) => {
         setMoveItem(item);
         setMoveTargetFolder(item.folder || "/");
         setIsMoveOpen(true);
@@ -120,11 +112,11 @@ export function useWriteScriptActions({
                 const newPrefix = (oldRenameFolder === '/' ? '' : oldRenameFolder) + '/' + renameTitle;
                 
                 // Find all scripts that are in this folder or subfolders
-            const children = scripts.filter((s) => s.folder === oldPrefix || s.folder.startsWith(oldPrefix + '/'));
+            const children = scripts.filter((s) => s.folder === oldPrefix || String(s.folder || "/").startsWith(oldPrefix + '/'));
                 
                 // Update their folder path
                 await Promise.all(children.map(c => {
-                    const newFolder = c.folder.replace(oldPrefix, newPrefix);
+                    const newFolder = String(c.folder || "/").replace(oldPrefix, newPrefix);
                     return updateScript(c.id, { folder: newFolder });
                 }));
             }
@@ -135,8 +127,8 @@ export function useWriteScriptActions({
                 if (renameType === 'folder') {
                     const oldPrefix = (oldRenameFolder === '/' ? '' : oldRenameFolder) + '/' + oldRenameTitle;
                     const newPrefix = (oldRenameFolder === '/' ? '' : oldRenameFolder) + '/' + renameTitle;
-                    if (s.folder === oldPrefix || s.folder.startsWith(oldPrefix + '/')) {
-                        return { ...s, folder: s.folder.replace(oldPrefix, newPrefix) };
+                    if (s.folder === oldPrefix || String(s.folder || "/").startsWith(oldPrefix + '/')) {
+                        return { ...s, folder: String(s.folder || "/").replace(oldPrefix, newPrefix) };
                     }
                 }
                 return s;
@@ -161,7 +153,7 @@ export function useWriteScriptActions({
                     return prev.filter(s => s.id !== deleteItem.id);
                 }
                 const prefix = getFolderPath(deleteItem);
-                return prev.filter(s => s.id !== deleteItem.id && s.folder !== prefix && !s.folder.startsWith(prefix + "/"));
+                return prev.filter(s => s.id !== deleteItem.id && s.folder !== prefix && !String(s.folder || "/").startsWith(prefix + "/"));
             });
             setIsDeleteOpen(false);
             setDeleteItem(null);
@@ -194,7 +186,7 @@ export function useWriteScriptActions({
         }
     };
 
-    const handleTogglePublic = async (e: React.MouseEvent, item: ScriptItem) => {
+    const handleTogglePublic = async (e: React.MouseEvent, item: WriteScriptItem) => {
         e.stopPropagation();
         const newStatus = !item.isPublic;
         // Logic for folder confirmation
@@ -206,7 +198,7 @@ export function useWriteScriptActions({
              if (s.id === item.id) return { ...s, isPublic: newStatus };
              if (item.type === 'folder') {
                   const prefix = (item.folder === '/' ? '' : item.folder) + '/' + item.title;
-                  if (s.folder === prefix || s.folder.startsWith(prefix + '/')) {
+                  if (s.folder === prefix || String(s.folder || "/").startsWith(prefix + '/')) {
                        return { ...s, isPublic: newStatus };
                   }
              }
@@ -217,7 +209,7 @@ export function useWriteScriptActions({
             await updateScript(item.id, { isPublic: newStatus });
              if (item.type === 'folder') {
                   const prefix = (item.folder === '/' ? '' : item.folder) + '/' + item.title;
-                  const children = scripts.filter((s) => s.folder === prefix || s.folder.startsWith(prefix + '/'));
+                  const children = scripts.filter((s) => s.folder === prefix || String(s.folder || "/").startsWith(prefix + '/'));
                   await Promise.all(children.map((c) => updateScript(c.id, { isPublic: newStatus })));
              }
         } catch(err) {

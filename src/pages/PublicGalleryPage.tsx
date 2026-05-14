@@ -253,19 +253,29 @@ export default function PublicGalleryPage() {
           }));
           setScripts(normalized);
 
-          const normalizeEntity = (entity) => ({
-              ...entity,
-              displayName: entity.displayName || entity.name || t("publicGallery.unknown"),
-              avatar: entity.avatar || entity.avatarUrl || entity.logoUrl || null,
-              tags: (entity.tags || []).map(t => typeof t === "string" ? t : t?.name).filter(Boolean)
+          const normalizeEntity = (entity: Record<string, unknown>) => ({
+            ...entity,
+            id: String(entity.id || ""),
+            displayName: String(entity.displayName || entity.name || t("publicGallery.unknown")),
+            avatar: entity.avatar || entity.avatarUrl || entity.logoUrl || null,
+            tags: (Array.isArray(entity.tags) ? entity.tags : [])
+              .map((tag) => (typeof tag === "string" ? tag : String((tag as { name?: unknown })?.name || "")))
+              .filter(Boolean),
           });
 
-          setAuthors(personasData.map(normalizeEntity));
-          setOrgs(orgsData.map(o => ({
-              ...o,
-              tags: (o.tags || []).map(t => typeof t === "string" ? t : t?.name).filter(Boolean)
-          })));
-          setTopTags(hotTags);
+          setAuthors(personasData.map(normalizeEntity).filter((entity) => Boolean(entity.id)));
+          setOrgs(
+            orgsData
+              .map((o: Record<string, unknown>) => ({
+                ...o,
+                id: String(o.id || ""),
+                tags: (Array.isArray(o.tags) ? o.tags : [])
+                  .map((tag) => (typeof tag === "string" ? tag : String((tag as { name?: unknown })?.name || "")))
+                  .filter(Boolean),
+              }))
+              .filter((org) => Boolean(org.id))
+          );
+          setTopTags(Array.isArray(hotTags) ? hotTags.map((tag) => String(tag || "")).filter(Boolean) : []);
       } catch (e) {
           console.error("Failed to load public bundle:", e);
       } finally {

@@ -13,16 +13,7 @@ import {
     sortableKeyboardCoordinates 
 } from '@dnd-kit/sortable';
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
-
-interface ScriptItem {
-    id: string;
-    title: string;
-    type?: string;
-    folder: string;
-    sortOrder?: number;
-    isPublic?: boolean;
-    [key: string]: unknown;
-}
+import type { WriteScriptItem } from "../../types/write";
 
 export function useScriptDragDrop({
     scripts,
@@ -32,9 +23,9 @@ export function useScriptDragDrop({
     currentPath,
     fetchScripts
 }: {
-    scripts: ScriptItem[];
-    setScripts: React.Dispatch<React.SetStateAction<ScriptItem[]>>;
-    visibleItems: ScriptItem[];
+    scripts: WriteScriptItem[];
+    setScripts: React.Dispatch<React.SetStateAction<WriteScriptItem[]>>;
+    visibleItems: Array<WriteScriptItem & { depth?: number }>;
     expandedPaths: Set<string>;
     currentPath: string;
     fetchScripts: () => void;
@@ -70,14 +61,14 @@ export function useScriptDragDrop({
         if (!activeItem || !overItem) return;
 
         // 1. Drag INTO Folder
-        if (overItem.type === 'folder' && overItem.id !== activeItem.id && activeItem.folder !== ((overItem.folder === '/' ? '' : overItem.folder) + '/' + overItem.title)) {
-             if (activeItem.folder === overItem.folder) {
+        if (overItem.type === 'folder' && overItem.id !== activeItem.id && activeItem.folder !== (((overItem.folder || "/") === '/' ? '' : (overItem.folder || "/")) + '/' + overItem.title)) {
+             if ((activeItem.folder || "/") === (overItem.folder || "/")) {
                 // Sibling folder, assume move in
              }
             
              if (activeItem.type !== 'folder') { 
-                const newFolder = (overItem.folder === '/' ? '' : overItem.folder) + '/' + overItem.title;
-                if (activeItem.folder !== newFolder) {
+                const newFolder = ((overItem.folder || "/") === '/' ? '' : (overItem.folder || "/")) + '/' + overItem.title;
+                if ((activeItem.folder || "/") !== newFolder) {
                      setScripts((prev) => prev.map((s) => s.id === activeId ? { ...s, folder: newFolder } : s));
                      try {
                         await updateScript(activeItem.id, { folder: newFolder });
@@ -102,10 +93,10 @@ export function useScriptDragDrop({
                 const prev = newVisible[newIndex - 1];
 
                 if (prev) {
-                    if (prev.type === 'folder' && expandedPaths.has((prev.folder === '/' ? '' : prev.folder) + '/' + prev.title)) {
-                        newFolder = (prev.folder === '/' ? '' : prev.folder) + '/' + prev.title;
+                    if (prev.type === 'folder' && expandedPaths.has(((prev.folder || "/") === '/' ? '' : (prev.folder || "/")) + '/' + prev.title)) {
+                        newFolder = ((prev.folder || "/") === '/' ? '' : (prev.folder || "/")) + '/' + prev.title;
                     } else {
-                        newFolder = prev.folder;
+                        newFolder = prev.folder || "/";
                     }
                 } else {
                     newFolder = currentPath; 

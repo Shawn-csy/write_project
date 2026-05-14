@@ -7,19 +7,18 @@ import { toggleScriptLike, incrementScriptView } from "../../lib/api/scripts";
 import { AuthorBadge } from "../ui/AuthorBadge";
 import { CoverPlaceholder } from "../ui/CoverPlaceholder";
 import type { TagLike } from "../../types/persona";
+import type { BaseScript } from "../../types/script";
 
-export interface ScriptGalleryItem {
-  id: string;
+export interface ScriptGalleryItem extends BaseScript {
   title?: string;
   author?: string | { id?: string; displayName?: string; avatarUrl?: string; avatar?: string } | null;
-  coverUrl?: string;
   tags?: Array<string | TagLike>;
   views?: number;
   likes?: number;
   _disableAuthorLink?: boolean;
   seriesName?: string;
   _seriesName?: string;
-  seriesOrder?: number | string | null;
+  seriesOrder?: BaseScript["seriesOrder"];
   _seriesOrder?: number | string | null;
   _derivedLicenseTags?: Array<string | TagLike>;
 }

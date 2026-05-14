@@ -21,6 +21,24 @@ export interface CustomMetadataEntry {
   type?: "text" | "divider";
 }
 
+export interface BaseScript {
+  id: string;
+  title?: string;
+  content?: string;
+  folder?: string;
+  ownerId?: string;
+  lastModified?: number | string | Date;
+  updatedAt?: number | string;
+  markerThemeId?: string;
+  draftDate?: string;
+  coverUrl?: string | null;
+  seriesId?: string | null;
+  seriesOrder?: number | string | null;
+  organizationId?: string | null;
+  personaId?: string | null;
+  [key: string]: unknown;
+}
+
 /** screenplayAST 解析後的場景 */
 export interface ParsedScene {
   id: string;

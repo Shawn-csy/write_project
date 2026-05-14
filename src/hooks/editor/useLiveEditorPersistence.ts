@@ -2,17 +2,13 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import type React from "react";
 import { getScript, updateScript } from "../../lib/api/scripts";
 import { debounce } from "../../lib/utils";
+import type { BaseScript } from "../../types/script";
 
 const getDraftKey = (id) => `draft_script_${id}`;
 
 type SaveStatus = "saving" | "local-saved" | "saved" | "error" | "unsaved";
 
-interface ScriptDataLike {
-  id: string;
-  content?: string;
-  title?: string;
-  lastModified?: string | number | Date;
-}
+interface ScriptDataLike extends BaseScript {}
 
 const readNewerDraft = (scriptId: string, serverLastModified: ScriptDataLike["lastModified"]) => {
   try {

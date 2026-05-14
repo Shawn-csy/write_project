@@ -32,11 +32,18 @@ export default function OrganizationPage() {
 
   useEffect(() => {
     const loadData = async () => {
+      if (!id) {
+        setOrg(null);
+        setMembers([]);
+        setScripts([]);
+        setIsLoading(false);
+        return;
+      }
       setIsLoading(true);
       try {
         const orgData = await getPublicOrganization(id);
         setOrg(orgData);
-        setMembers(orgData.members || []);
+        setMembers(Array.isArray(orgData.members) ? (orgData.members as MemberData[]) : []);
         const publicScripts = await getPublicScripts(undefined, undefined, undefined, id);
         const normalizedScripts = (publicScripts || []).map((s) => ({
           ...s,

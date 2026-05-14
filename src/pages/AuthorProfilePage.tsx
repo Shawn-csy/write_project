@@ -7,7 +7,7 @@ interface AuthorData {
   avatar?: string;
   bannerUrl?: string;
   website?: string;
-  links?: Array<{ url?: string; label?: string }>;
+  links?: string | Array<{ url?: string; label?: string }>;
   tags?: string[];
   organizationIds?: string[];
   ownerId?: string;
@@ -18,8 +18,8 @@ interface AuthorData {
 interface ScriptData extends ScriptGalleryItem {
   type?: string;
   isFolder?: boolean;
-  lastModified?: number;
-  updatedAt?: number;
+  lastModified?: number | string;
+  updatedAt?: number | string;
   persona?: unknown;
   owner?: unknown;
   [key: string]: unknown;
@@ -50,6 +50,12 @@ export default function AuthorProfilePage() {
 
   useEffect(() => {
     const loadData = async () => {
+      if (!id) {
+        setAuthor(null);
+        setScripts([]);
+        setIsLoading(false);
+        return;
+      }
       setIsLoading(true);
       try {
         const persona = await getPublicPersona(id);
@@ -90,7 +96,7 @@ export default function AuthorProfilePage() {
       }
       const bucket = map.get(key);
       bucket.count += 1;
-      bucket.latestAt = Math.max(bucket.latestAt, script.lastModified || script.updatedAt || 0);
+      bucket.latestAt = Math.max(bucket.latestAt, Number(script.lastModified || script.updatedAt || 0));
       if (!bucket.coverUrl && script.coverUrl) bucket.coverUrl = script.coverUrl;
     }
     return Array.from(map.values()).sort((a, b) => b.latestAt - a.latestAt);
@@ -118,9 +124,20 @@ export default function AuthorProfilePage() {
   const pageTitle = `${author.displayName || t("authorPage.fallbackAuthor")}｜${t("authorPage.siteName")}`;
   const pageDescription = (author.bio || t("authorPage.descriptionFallback").replace("{name}", author.displayName || t("authorPage.fallbackAuthor"))).slice(0, 200);
   const primaryImage = author.avatar || author.bannerUrl || "";
+  const authorLinks = Array.isArray(author.links)
+    ? author.links
+    : (() => {
+        if (typeof author.links !== "string") return [];
+        try {
+          const parsed = JSON.parse(author.links);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      })();
   const sameAs = [
     ...(author.website ? [author.website] : []),
-    ...((author.links || []).map((l) => l?.url).filter(Boolean)),
+    ...(authorLinks.map((l) => l?.url).filter(Boolean)),
   ];
   const personSchema = {
     "@context": "https://schema.org",
@@ -257,7 +274,7 @@ export default function AuthorProfilePage() {
                               {t("authorPage.website")}
                           </a>
                       )}
-                      {(author.links || []).filter(l => l && l.url).map((link, idx) => {
+                      {authorLinks.filter(l => l && l.url).map((link, idx) => {
                           const Icon = getLinkIcon(link.url || "");
                           const label = link.label || link.url || t("authorPage.link");
                           return (
