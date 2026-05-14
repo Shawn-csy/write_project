@@ -33,13 +33,13 @@ export const READING_FONT_OPTIONS = [
 
 export const DEFAULT_READING_FONT = READING_FONT_OPTIONS[0].value;
 
-export const normalizeReadingFont = (value) => {
+export const normalizeReadingFont = (value: unknown) => {
   const key = String(value || "").trim();
   if (READING_FONT_OPTIONS.some((item) => item.value === key)) return key;
   return DEFAULT_READING_FONT;
 };
 
-export const resolveReadingFontStack = (value) => {
+export const resolveReadingFontStack = (value: unknown) => {
   const normalized = normalizeReadingFont(value);
   const matched = READING_FONT_OPTIONS.find((item) => item.value === normalized);
   return matched?.stack || READING_FONT_OPTIONS[0].stack;
@@ -70,13 +70,13 @@ export const UI_FONT_OPTIONS = [
 
 export const DEFAULT_UI_FONT = UI_FONT_OPTIONS[0].value;
 
-export const normalizeUiFont = (value) => {
+export const normalizeUiFont = (value: unknown) => {
   const key = String(value || "").trim();
   if (UI_FONT_OPTIONS.some((item) => item.value === key)) return key;
   return DEFAULT_UI_FONT;
 };
 
-export const resolveUiFontStack = (value) => {
+export const resolveUiFontStack = (value: unknown) => {
   const normalized = normalizeUiFont(value);
   const matched = UI_FONT_OPTIONS.find((item) => item.value === normalized);
   return matched?.stack || UI_FONT_OPTIONS[0].stack;

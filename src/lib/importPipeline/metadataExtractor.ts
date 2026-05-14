@@ -107,26 +107,26 @@ const SECTION_HEADERS = new Set([
 const SECTION_HEADER_RE = /^(作品資訊|作品介紹|人物設定\d*|角色設定\d*|角色資料\d*|角色名單\d*|章節目錄|章節資訊|章節|chapters?|標記說明|演繹指示|使用規章|故事背景|劇情開始)$/i;
 const SUBSECTION_HEADER_RE = /^(基本資料|性格(?:、設定)?|外表|演繹指示|狀況|環境|台詞)$/i;
 
-const isBlank = (line) => !line || line === '<blank>' || line.trim() === '';
+const isBlank = (line: string) => !line || line === '<blank>' || line.trim() === '';
 
-const normalizeLine = (line) => line.trim();
+const normalizeLine = (line: string) => line.trim();
 
-const isStopHeader = (line) => STOP_HEADERS.has(line);
+const isStopHeader = (line: string) => STOP_HEADERS.has(line);
 
-const isSectionHeader = (line) => SECTION_HEADERS.has(line) || SECTION_HEADER_RE.test(String(line || "").trim());
+const isSectionHeader = (line: string) => SECTION_HEADERS.has(line) || SECTION_HEADER_RE.test(String(line || "").trim());
 
-const isKnownKey = (line) => {
+const isKnownKey = (line: string) => {
     const nKey = line.replace(/\s/g, '');
     return Object.prototype.hasOwnProperty.call(KNOWN_KEYS, line) ||
         Object.prototype.hasOwnProperty.call(KNOWN_KEYS, nKey);
 };
 
-const isKeyValueLine = (line) => {
+const isKeyValueLine = (line: string) => {
     return /^([^:：]+?)[:：]\s*(.+)$/.test(line) ||
         /^【(.+?)】\s*(.*)$/.test(line) ||
         /^\[(.+?)\]\s*(.*)$/.test(line);
 };
-const isValueBoundaryLine = (line) => {
+const isValueBoundaryLine = (line: string) => {
     const normalized = normalizeLine(line || "");
     if (!normalized) return false;
     return isStopHeader(normalized) ||
@@ -135,7 +135,7 @@ const isValueBoundaryLine = (line) => {
         isKnownKey(normalized);
 };
 
-const isSceneOrChapterLine = (line) => {
+const isSceneOrChapterLine = (line: string) => {
     const trimmed = String(line || "").trim();
     if (!trimmed) return false;
     return /^\d+\.\s+.+$/.test(trimmed) ||
@@ -143,7 +143,7 @@ const isSceneOrChapterLine = (line) => {
         /^(INT|EXT)\./i.test(trimmed);
 };
 
-const isLikelyScriptContentLine = (line) => {
+const isLikelyScriptContentLine = (line: string) => {
     const trimmed = String(line || "").trim();
     if (!trimmed) return false;
     if (/^(#|\/\/|@)/.test(trimmed)) return true;
@@ -153,7 +153,7 @@ const isLikelyScriptContentLine = (line) => {
     return false;
 };
 
-const isFallbackTitleCandidate = (line) => {
+const isFallbackTitleCandidate = (line: string) => {
     const trimmed = String(line || "").trim();
     if (!trimmed) return false;
     if (trimmed.length > 60) return false;
@@ -275,7 +275,7 @@ export function extractMetadata(text: string): { metadata: ScriptMetadata; parse
                 if (metadata[mappedKey]) {
                     metadata[mappedKey] += `; ${value}`;
                 } else {
-                    metadata[mappedKey] = value;
+                    metadata[mappedKey] = value ?? "";
                 }
             } else {
                 // Unknown key-value most likely belongs to body content; stop scanning.
@@ -481,7 +481,8 @@ export function extractMetadata(text: string): { metadata: ScriptMetadata; parse
 function mapKey(key: string): string | null {
     // Normalize key
     const nKey = key.replace(/\s/g, ''); // Remove spaces for checking
-    if (KNOWN_KEYS[key]) return KNOWN_KEYS[key];
-    if (KNOWN_KEYS[nKey]) return KNOWN_KEYS[nKey];
+    const knownKeysMap = KNOWN_KEYS as Record<string, string>;
+    if (knownKeysMap[key]) return knownKeysMap[key];
+    if (knownKeysMap[nKey]) return knownKeysMap[nKey];
     return null;
 }

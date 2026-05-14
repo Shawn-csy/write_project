@@ -5,6 +5,11 @@ export function buildPrintHtml({
   activeFile,
   titleHtml,
   rawScriptHtml,
+}: {
+  titleName?: string;
+  activeFile?: string;
+  titleHtml?: string;
+  rawScriptHtml?: string;
 }) {
   // ScriptRenderer generates HTML with classes that match our Tailwind/Global CSS.
   // Since we clone all styles into the print iframe, we don't need to redefine them here.

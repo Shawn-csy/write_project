@@ -3,7 +3,7 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import type { Analytics } from "firebase/analytics";
 
 // Your web app's Firebase configuration
-const getEnv = (key) => {
+const getEnv = (key: string) => {
   if (typeof window !== "undefined" && window.__ENV__ && window.__ENV__[key]) {
       return window.__ENV__[key];
   }

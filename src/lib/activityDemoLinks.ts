@@ -1,4 +1,4 @@
-const trimText = (value) => String(value ?? "").trim();
+const trimText = (value: unknown) => String(value ?? "").trim();
 
 interface ActivityDemoLink {
   id: string;
@@ -19,7 +19,7 @@ export const createEmptyActivityDemoLink = (id = "") => ({
 const isNonEmptyDemoLink = (entry: ActivityDemoLink) =>
   Boolean(entry.name || entry.url || entry.cast || entry.description);
 
-export const normalizeActivityDemoLinks = (value): ActivityDemoLink[] => {
+export const normalizeActivityDemoLinks = (value: unknown): ActivityDemoLink[] => {
   if (!Array.isArray(value)) return [];
   return value
     .map((entry, idx) => {
@@ -46,7 +46,7 @@ export const normalizeActivityDemoLinks = (value): ActivityDemoLink[] => {
     .filter(isNonEmptyDemoLink);
 };
 
-export const parseActivityDemoLinks = (rawValue) => {
+export const parseActivityDemoLinks = (rawValue: unknown) => {
   if (rawValue === undefined || rawValue === null || rawValue === "") return [];
   let parsed = rawValue;
   for (let i = 0; i < 2; i += 1) {
@@ -67,7 +67,7 @@ export const parseActivityDemoLinks = (rawValue) => {
   return [];
 };
 
-export const serializeActivityDemoLinks = (links) => {
+export const serializeActivityDemoLinks = (links: unknown) => {
   const normalized = normalizeActivityDemoLinks(links).map(({ name, url, cast, description }) => ({
     name,
     url,

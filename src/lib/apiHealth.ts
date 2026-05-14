@@ -5,7 +5,7 @@ let lastLogAt = 0;
 
 export const isApiOffline = () => Date.now() < offlineUntil;
 
-export const markApiOffline = (error, source = "api") => {
+export const markApiOffline = (error: unknown, source = "api") => {
   offlineUntil = Date.now() + OFFLINE_COOLDOWN_MS;
   const now = Date.now();
   if (now - lastLogAt > 5000) {

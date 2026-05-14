@@ -1,6 +1,6 @@
 const INVALID_FILENAME_CHARS = /[^a-z0-9-_]/gi;
 
-export const sanitizeBaseFilename = (rawName, fallback = "file") => {
+export const sanitizeBaseFilename = (rawName: unknown, fallback = "file") => {
   const normalized = String(rawName || "")
     .trim()
     .toLowerCase()
@@ -12,13 +12,13 @@ export const sanitizeBaseFilename = (rawName, fallback = "file") => {
   return normalized || fallback;
 };
 
-export const buildFilename = (baseName, extension) => {
+export const buildFilename = (baseName: string, extension: string) => {
   const safeBaseName = sanitizeBaseFilename(baseName);
   const safeExtension = String(extension || "").replace(/^\.+/, "");
   return safeExtension ? `${safeBaseName}.${safeExtension}` : safeBaseName;
 };
 
-export const downloadBlob = (blob, filename) => {
+export const downloadBlob = (blob: Blob, filename: string) => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -32,7 +32,7 @@ export const downloadBlob = (blob, filename) => {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 
-export const downloadText = (content, filename, mimeType = "text/plain;charset=utf-8;") => {
+export const downloadText = (content: string, filename: string, mimeType = "text/plain;charset=utf-8;") => {
   const blob = new Blob([content ?? ""], { type: mimeType });
   downloadBlob(blob, filename);
 };

@@ -20,7 +20,7 @@ import { normalizeMarkerConfigsSchema } from './markerThemeCodec';
  *   scenes: import("../hooks/useScriptManager.types").ParsedScene[];
  * }}
  */
-export const parseScreenplay = (text = "", markerConfigs) => {
+export const parseScreenplay = (text = "", markerConfigs?: unknown) => {
   const { titleLines, bodyText, bodyStartLine = 1 } = splitTitleAndBody(text);
   const hasExplicitConfigs = markerConfigs !== undefined && markerConfigs !== null;
   const effectiveConfigs = hasExplicitConfigs
@@ -48,26 +48,26 @@ export const parseScreenplay = (text = "", markerConfigs) => {
   };
 };
 
-const applyLineOffset = (node, offset) => {
+const applyLineOffset = (node: Record<string, unknown>, offset: number): void => {
   if (!node || typeof node !== 'object') return;
 
-  if (Number.isFinite(node.lineStart)) node.lineStart += offset;
-  if (Number.isFinite(node.lineEnd)) node.lineEnd += offset;
-  if (Number.isFinite(node.endLine)) node.endLine += offset;
+  if (Number.isFinite(node.lineStart)) node.lineStart = (node.lineStart as number) + offset;
+  if (Number.isFinite(node.lineEnd)) node.lineEnd = (node.lineEnd as number) + offset;
+  if (Number.isFinite(node.endLine)) node.endLine = (node.endLine as number) + offset;
 
   if (Array.isArray(node.children)) {
-    node.children.forEach((child) => applyLineOffset(child, offset));
+    node.children.forEach((child) => applyLineOffset(child as Record<string, unknown>, offset));
   }
   if (Array.isArray(node.left)) {
-    node.left.forEach((child) => applyLineOffset(child, offset));
+    node.left.forEach((child) => applyLineOffset(child as Record<string, unknown>, offset));
   }
   if (Array.isArray(node.right)) {
-    node.right.forEach((child) => applyLineOffset(child, offset));
+    node.right.forEach((child) => applyLineOffset(child as Record<string, unknown>, offset));
   }
 };
 
 // 保留舊的 export 名稱以維持相容性（如果有其他地方使用）
-export const buildScriptAST = (tokens, markerConfigs = []) => {
+export const buildScriptAST = (tokens: unknown, markerConfigs: unknown[] = []) => {
   console.warn('buildScriptAST is deprecated in pure marker mode. Use parseScreenplay instead.');
   return { type: 'root', children: [] };
 };

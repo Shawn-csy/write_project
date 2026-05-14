@@ -1,6 +1,6 @@
-const normKey = (key) => String(key || "").trim().toLowerCase().replace(/\s+/g, "");
+const normKey = (key: unknown) => String(key || "").trim().toLowerCase().replace(/\s+/g, "");
 
-export const normalizeCustomMetadataEntries = (entries) => {
+export const normalizeCustomMetadataEntries = (entries: unknown) => {
   if (!Array.isArray(entries)) return [];
   return entries
     .map((entry) => {
@@ -25,7 +25,7 @@ export const customMetadataEntriesToMeta = (entries: unknown[]): Record<string, 
   return meta;
 };
 
-export const customMetadataEntriesToRawEntries = (entries) => {
+export const customMetadataEntriesToRawEntries = (entries: unknown) => {
   return normalizeCustomMetadataEntries(entries).map((entry) => ({
     key: entry.key,
     value: entry.value,

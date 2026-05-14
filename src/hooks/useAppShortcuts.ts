@@ -1,8 +1,13 @@
 import { useEffect } from "react";
 
-export function useAppShortcuts({ adjustFont, nav, filterCharacter, setFocusMode }) {
+export function useAppShortcuts({ adjustFont, nav, filterCharacter, setFocusMode }: {
+  adjustFont: (delta: number) => void;
+  nav: { setSidebarOpen: (open: boolean) => void; isDesktopSidebarOpen: boolean };
+  filterCharacter?: string | null;
+  setFocusMode: (updater: (v: boolean) => boolean) => void;
+}) {
   useEffect(() => {
-      const handler = (e) => {
+      const handler = (e: KeyboardEvent) => {
           if (e.target?.tagName?.match(/INPUT|TEXTAREA/) || e.target?.isContentEditable) return;
           const meta = e.metaKey || e.ctrlKey;
           const key = e.key.toLowerCase();
@@ -10,9 +15,9 @@ export function useAppShortcuts({ adjustFont, nav, filterCharacter, setFocusMode
           if (meta && (key === "[" || key === "{")) { e.preventDefault(); adjustFont(-1); }
           else if (meta && (key === "]" || key === "}")) { e.preventDefault(); adjustFont(1); }
           else if (meta && key === "b") { e.preventDefault(); nav.setSidebarOpen(!nav.isDesktopSidebarOpen); }
-          else if (meta && key === "g") { 
+          else if (meta && key === "g") {
               if (filterCharacter && filterCharacter !== "__ALL__") {
-                  e.preventDefault(); setFocusMode(v => !v);
+                  e.preventDefault(); setFocusMode((v: boolean) => !v);
               }
           }
       };

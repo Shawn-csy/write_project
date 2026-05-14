@@ -2,7 +2,7 @@ import { defaultMarkerConfigs } from "../constants/defaultMarkerRules";
 import { normalizeMarkerConfigsSchema } from "./markerThemeCodec";
 import type { MarkerConfig } from "../hooks/useScriptManager.types";
 
-const isNil = (value) => value === null || value === undefined;
+const isNil = (value: unknown) => value === null || value === undefined;
 
 /**
  * @param {{ baseConfigs?: import("../hooks/useScriptManager.types").MarkerConfig[] | null, scopedConfigs?: import("../hooks/useScriptManager.types").MarkerConfig[] | null, fallbackConfigs?: import("../hooks/useScriptManager.types").MarkerConfig[] }} [options]

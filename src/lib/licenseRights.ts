@@ -1,19 +1,19 @@
-function hasAny(text, patterns) {
+function hasAny(text: string, patterns: string[]) {
   return patterns.some((p) => text.includes(p));
 }
 
-function normalizeLicense(text) {
+function normalizeLicense(text: unknown) {
   return String(text || "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 }
 
-function isCcLicense(license) {
+function isCcLicense(license: string) {
   return /\bcc\b/.test(license) || license.includes("creative commons");
 }
 
-function isCcNonCommercial(license) {
+function isCcNonCommercial(license: string) {
   return (
     /\bnc\b/.test(license) ||
     license.includes("non commercial") ||
@@ -21,7 +21,7 @@ function isCcNonCommercial(license) {
   );
 }
 
-function parseCcFlags(licenseRaw) {
+function parseCcFlags(licenseRaw: unknown) {
   const license = normalizeLicense(licenseRaw);
   const cc0 = license.includes("cc0");
   const isCc = isCcLicense(license) || cc0;
@@ -32,7 +32,7 @@ function parseCcFlags(licenseRaw) {
   return { isCc, cc0, hasBy, hasNc, hasNd, hasSa, normalized: license };
 }
 
-function hasAffirmativeCommercial(text) {
+function hasAffirmativeCommercial(text: string) {
   if (/(?<!不)可商用/.test(text)) return true;
   return hasAny(text, [
     "可用於商業",
@@ -44,7 +44,7 @@ function hasAffirmativeCommercial(text) {
   ]);
 }
 
-function hasAffirmativeFree(text) {
+function hasAffirmativeFree(text: string) {
   if (/(?<!不)可免費使用/.test(text)) return true;
   if (/(?<!不)免費使用/.test(text)) return true;
   return hasAny(text, [
@@ -55,7 +55,7 @@ function hasAffirmativeFree(text) {
   ]);
 }
 
-function normalizeCommercialChoice(value) {
+function normalizeCommercialChoice(value: unknown) {
   const raw = String(value || "").toLowerCase().trim();
   if (!raw) return "";
   if (["allow", "yes", "true", "可商用", "允許", "commercial"].includes(raw)) return "allow";
@@ -63,7 +63,7 @@ function normalizeCommercialChoice(value) {
   return "";
 }
 
-function normalizeDerivativeChoice(value) {
+function normalizeDerivativeChoice(value: unknown) {
   const raw = String(value || "").toLowerCase().trim();
   if (!raw) return "";
   if (["allow", "yes", "true", "可改作", "允許", "derivative"].includes(raw)) return "allow";
@@ -72,7 +72,7 @@ function normalizeDerivativeChoice(value) {
   return "";
 }
 
-function normalizeNotifyChoice(value) {
+function normalizeNotifyChoice(value: unknown) {
   const raw = String(value || "").toLowerCase().trim();
   if (!raw) return "";
   if (["true", "yes", "required", "需要", "需告知", "must-notify"].includes(raw)) return "required";
@@ -80,7 +80,7 @@ function normalizeNotifyChoice(value) {
   return "";
 }
 
-export function deriveUsageRights(licenseRaw, termsRaw, commercialRaw = "") {
+export function deriveUsageRights(licenseRaw: unknown, termsRaw: unknown, commercialRaw: unknown = "") {
   const { isCc, cc0, hasNc, normalized: license } = parseCcFlags(licenseRaw);
   const terms = String(termsRaw || "").toLowerCase();
   const normalizedCommercial = normalizeCommercialChoice(commercialRaw);
@@ -138,7 +138,7 @@ export function deriveUsageRights(licenseRaw, termsRaw, commercialRaw = "") {
   return { allowCommercial, isFreeToUse };
 }
 
-export function deriveCcLicenseTags(licenseRaw) {
+export function deriveCcLicenseTags(licenseRaw: unknown) {
   const { isCc, cc0, hasBy, hasNc, hasNd, hasSa } = parseCcFlags(licenseRaw);
   if (!isCc) return [];
 

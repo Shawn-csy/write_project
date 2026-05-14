@@ -115,4 +115,4 @@ export const CHARACTER_PATTERNS = [
 /**
  * 空行判斷
  */
-export const isBlankLine = (line) => line.trim() === '';
+export const isBlankLine = (line: string) => line.trim() === '';

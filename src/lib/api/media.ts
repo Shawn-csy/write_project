@@ -1,6 +1,6 @@
 import { API_BASE_URL, fetchApi, getAuthHeaders } from "./client";
 
-export const uploadMediaObject = async (file, purpose = "generic") => {
+export const uploadMediaObject = async (file: File, purpose = "generic") => {
   const authHeaders = await getAuthHeaders();
   const formData = new FormData();
   formData.append("file", file);
@@ -28,7 +28,7 @@ export const getMediaObjects = async () => {
   return fetchApi("/media/items", { cache: "no-store" });
 };
 
-export const deleteMediaObject = async (url) => {
+export const deleteMediaObject = async (url: string) => {
   return fetchApi("/media/items", {
     method: "DELETE",
     body: JSON.stringify({ url }),

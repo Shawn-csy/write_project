@@ -1,13 +1,16 @@
-export const normalizeThemeConfigs = (configs) => {
+import { extractErrorMessage } from './utils';
+
+export const normalizeThemeConfigs = (configs: unknown): unknown[] => {
   if (Array.isArray(configs)) return configs;
   if (configs && typeof configs === "object") {
-    if (Array.isArray(configs.configs)) return configs.configs;
-    if (Array.isArray(configs.markerConfigs)) return configs.markerConfigs;
-    if (Array.isArray(configs.markers)) return configs.markers;
-    if (typeof configs.configs === "string") return normalizeThemeConfigs(configs.configs);
-    if (typeof configs.markerConfigs === "string") return normalizeThemeConfigs(configs.markerConfigs);
-    if (typeof configs.markers === "string") return normalizeThemeConfigs(configs.markers);
-    const values = Object.values(configs);
+    const obj = configs as Record<string, unknown>;
+    if (Array.isArray(obj.configs)) return obj.configs;
+    if (Array.isArray(obj.markerConfigs)) return obj.markerConfigs;
+    if (Array.isArray(obj.markers)) return obj.markers;
+    if (typeof obj.configs === "string") return normalizeThemeConfigs(obj.configs);
+    if (typeof obj.markerConfigs === "string") return normalizeThemeConfigs(obj.markerConfigs);
+    if (typeof obj.markers === "string") return normalizeThemeConfigs(obj.markers);
+    const values = Object.values(obj);
     if (values.length === 1 && Array.isArray(values[0])) return values[0];
     return values;
   }
@@ -30,14 +33,12 @@ const inferMatchMode = (config: Record<string, unknown> = {}) => {
   return "none";
 };
 
-import { extractErrorMessage } from './utils';
-
-export const normalizeMarkerConfigsSchema = (configs) => {
+export const normalizeMarkerConfigsSchema = (configs: unknown) => {
   const normalized = normalizeThemeConfigs(configs);
   return normalized
     .filter((config) => config && typeof config === "object")
     .map((config) => {
-      const matchMode = inferMatchMode(config);
+      const matchMode = inferMatchMode(config as Record<string, unknown>);
       const parseAs = String(config.parseAs || "").trim();
       const isMappedNode = Boolean(parseAs);
       const isBlock = Boolean(config.isBlock) || config.type === "block" || matchMode === "range" || isMappedNode;
@@ -59,12 +60,12 @@ export const normalizeMarkerConfigsSchema = (configs) => {
     });
 };
 
-export const serializeThemeConfigs = (configs) => {
+export const serializeThemeConfigs = (configs: unknown) => {
   const normalized = normalizeMarkerConfigsSchema(configs);
   return JSON.stringify(normalized);
 };
 
-export const safeParseThemeConfigsText = (text) => {
+export const safeParseThemeConfigsText = (text: string) => {
   try {
     const parsed = JSON.parse(text);
     if (!Array.isArray(parsed)) {
