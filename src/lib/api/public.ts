@@ -25,26 +25,26 @@ export const getPublicScripts = async (
   if (params.toString()) {
     url += `?${params.toString()}`;
   }
-  return fetchPublic(url) as Promise<BaseScriptApi[]>;
+  return fetchPublic<BaseScriptApi[]>(url);
 };
 
-export const getPublicScript = async (id: string): Promise<BaseScriptApi> => fetchPublic(`/public-scripts/${id}`) as Promise<BaseScriptApi>;
-export const getPublicThemes = async (): Promise<Array<Record<string, unknown>>> => fetchPublic("/themes/public") as Promise<Array<Record<string, unknown>>>;
+export const getPublicScript = async (id: string): Promise<BaseScriptApi> => fetchPublic<BaseScriptApi>(`/public-scripts/${id}`);
+export const getPublicThemes = async (): Promise<Array<Record<string, unknown>>> => fetchPublic<Array<Record<string, unknown>>>("/themes/public");
 export const getPublicTermsConfig = async (): Promise<PublicTermsConfig | null> =>
-  fetchPublic("/public-terms-config", { cacheTtlMs: 60000 }) as Promise<PublicTermsConfig | null>;
+  fetchPublic<PublicTermsConfig | null>("/public-terms-config", { cacheTtlMs: 60000 });
 export const getPublicHomepageBanner = async (): Promise<HomepageBanner | null> =>
-  fetchPublic("/public-homepage-banner", { cacheTtlMs: 60000 }) as Promise<HomepageBanner | null>;
+  fetchPublic<HomepageBanner | null>("/public-homepage-banner", { cacheTtlMs: 60000 });
 export const acceptPublicTerms = async (payload: PublicTermsAcceptancePayload): Promise<Record<string, unknown>> =>
   fetchPublic("/public-terms-acceptances", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload || {}),
     noCache: true,
-  }) as Promise<Record<string, unknown>>;
+  });
 
-export const getPublicPersona = async (id: string): Promise<PersonaLike> => fetchPublic(`/public-personas/${id}`) as Promise<PersonaLike>;
-export const getPublicOrganization = async (id: string): Promise<OrgData> => fetchPublic(`/public-organizations/${id}`) as Promise<OrgData>;
-export const getPublicPersonas = async (): Promise<PersonaLike[]> => fetchPublic("/public-personas") as Promise<PersonaLike[]>;
-export const getPublicOrganizations = async (): Promise<OrgData[]> => fetchPublic("/public-organizations") as Promise<OrgData[]>;
+export const getPublicPersona = async (id: string): Promise<PersonaLike> => fetchPublic<PersonaLike>(`/public-personas/${id}`);
+export const getPublicOrganization = async (id: string): Promise<OrgData> => fetchPublic<OrgData>(`/public-organizations/${id}`);
+export const getPublicPersonas = async (): Promise<PersonaLike[]> => fetchPublic<PersonaLike[]>("/public-personas");
+export const getPublicOrganizations = async (): Promise<OrgData[]> => fetchPublic<OrgData[]>("/public-organizations");
 export const getPublicBundle = async (): Promise<PublicBundleResponse> =>
-  fetchPublic("/public-bundle", { cacheTtlMs: 15000 }) as Promise<PublicBundleResponse>;
+  fetchPublic<PublicBundleResponse>("/public-bundle", { cacheTtlMs: 15000 });
