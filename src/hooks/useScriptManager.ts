@@ -37,7 +37,7 @@ export function useScriptManager(
 
   // Effective Configs
   const { configs: effectiveMarkerConfigs } = useMemo(() => {
-    return (resolveEffectiveMarkerConfigs as any)({
+    return resolveEffectiveMarkerConfigs({
       baseConfigs: initialMarkerConfigs,
       scopedConfigs: scopedMarkerConfigs,
     });

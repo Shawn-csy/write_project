@@ -18,7 +18,6 @@ export interface ScriptOwnerLike {
   displayName?: string;
   avatar?: string;
   avatarUrl?: string;
-  [key: string]: unknown;
 }
 
 export interface ScriptSeriesLike {
@@ -26,7 +25,6 @@ export interface ScriptSeriesLike {
   name?: string;
   summary?: string;
   coverUrl?: string;
-  [key: string]: unknown;
 }
 
 export interface BaseScriptApi {
@@ -42,7 +40,7 @@ export interface BaseScriptApi {
   type?: string;
   coverUrl?: string | null;
   markerThemeId?: string;
-  markerTheme?: { configs?: MarkerConfig[]; [key: string]: unknown };
+  markerTheme?: { configs?: MarkerConfig[] };
   customMetadata?: Array<{ key?: string; value?: string; type?: string }>;
   tags?: Array<{ id?: string; name: string }>;
   views?: number;
@@ -67,7 +65,6 @@ export interface ScriptCreatePayload {
 
 export interface ScriptCreateResponse {
   id: string;
-  [key: string]: unknown;
 }
 
 export type ScriptUpdatePayload = Partial<BaseScriptApi>;
@@ -83,7 +80,6 @@ export interface ScriptMutationResponse {
   ok?: boolean;
   success?: boolean;
   newOwnerId?: string;
-  [key: string]: unknown;
 }
 
 export interface OrganizationMember {
@@ -93,7 +89,6 @@ export interface OrganizationMember {
   displayName?: string;
   email?: string;
   role?: string;
-  [key: string]: unknown;
 }
 
 export interface OrganizationInvite {
@@ -103,7 +98,6 @@ export interface OrganizationInvite {
   displayName?: string;
   email?: string;
   role?: string;
-  [key: string]: unknown;
 }
 
 export interface OrganizationRequest {
@@ -113,7 +107,6 @@ export interface OrganizationRequest {
   displayName?: string;
   email?: string;
   message?: string;
-  [key: string]: unknown;
 }
 
 export interface OrganizationMembersResponse {
@@ -142,13 +135,13 @@ export interface SeriesLike {
   id: string;
   name?: string;
   description?: string;
-  [key: string]: unknown;
 }
 
 export interface SeriesPayload {
   name?: string;
   description?: string;
-  [key: string]: unknown;
+  summary?: string;
+  coverUrl?: string;
 }
 
 export interface PublicTermsConfig {
@@ -173,7 +166,6 @@ export interface HomepageBanner {
   link?: string;
   imageUrl?: string;
   items?: HomepageBannerItem[];
-  [key: string]: unknown;
 }
 
 export interface PublicBundleResponse {
@@ -190,14 +182,32 @@ export interface TagApi {
   id: string;
   name: string;
   color?: string;
-  [key: string]: unknown;
 }
 
 export interface PublicTermsAcceptancePayload {
+  termsVersion?: string;
   scriptId?: string;
   version?: string;
   acceptedAt?: string | number;
-  [key: string]: unknown;
+  visitorId?: string;
+  locale?: string;
+  timezone?: string;
+  timezoneOffsetMinutes?: number;
+  userAgent?: string;
+  platform?: string;
+  screen?: {
+    width?: number;
+    height?: number;
+    colorDepth?: number;
+    pixelRatio?: number;
+  };
+  viewport?: {
+    width?: number;
+    height?: number;
+  };
+  pagePath?: string;
+  referrer?: string;
+  acceptedChecks?: string[];
 }
 
 export interface SearchUser {
@@ -206,7 +216,6 @@ export interface SearchUser {
   displayName?: string;
   email?: string;
   photoURL?: string;
-  [key: string]: unknown;
 }
 
 export interface AdminPaginationQuery {
@@ -223,7 +232,6 @@ export interface PublicTermsAcceptanceRecord {
   scriptId?: string;
   version?: string;
   acceptedAt?: string | number;
-  [key: string]: unknown;
 }
 
 export interface ScriptMetadataUpdatePayload {
@@ -250,7 +258,6 @@ export interface UserSettingsResponse {
   displayName?: string | null;
   avatar?: string | null;
   handle?: string | null;
-  [key: string]: unknown;
 }
 
 export interface MarkerThemeApi {
@@ -259,7 +266,6 @@ export interface MarkerThemeApi {
   configs: MarkerConfig[];
   isPublic?: boolean;
   description?: string;
-  [key: string]: unknown;
 }
 
 export interface SaveUserSettingsPayload {

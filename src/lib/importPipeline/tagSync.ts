@@ -1,7 +1,11 @@
 import { addTagToScript } from "../api/scripts";
 import { createTag, getTags } from "../api/tags";
 
-interface TagObject { id: string; name: string; [key: string]: unknown; }
+interface TagObject {
+  id: string;
+  name: string;
+  color?: string;
+}
 
 const normalizeTagKey = (value: unknown): string => String(value || "").trim().toLowerCase();
 

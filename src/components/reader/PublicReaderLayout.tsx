@@ -48,8 +48,8 @@ interface ViewerProps {
 interface RelatedSeriesScriptItem {
   id: string;
   title: string;
-  coverUrl?: string;
-  seriesOrder?: string | number;
+  coverUrl?: string | null;
+  seriesOrder?: string | number | null;
 }
 
 interface PublicReaderScriptData {

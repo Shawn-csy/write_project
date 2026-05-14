@@ -1,10 +1,11 @@
 import React, { useEffect } from "react";
-import HybridDashboardJs from "../components/dashboard/HybridDashboard";
-// HybridDashboard is a JS component pending TS migration; cast to bypass prop checking
-const HybridDashboard = HybridDashboardJs as unknown as React.ComponentType<Record<string, unknown>>;
+import HybridDashboard from "../components/dashboard/HybridDashboard";
 import { useNavigate } from "react-router-dom";
 import type { ScriptManager, CloudScript } from "../hooks/useScriptManager.types";
 import type { NavProps } from "../types/nav";
+
+const isCloudScript = (value: unknown): value is CloudScript =>
+  typeof value === "object" && value !== null && typeof (value as { id?: unknown }).id === "string";
 
 export default function DashboardPage({ scriptManager, navProps }: { scriptManager: ScriptManager; navProps: NavProps }) {
   const navigate = useNavigate();
@@ -25,7 +26,8 @@ export default function DashboardPage({ scriptManager, navProps }: { scriptManag
     document.title = "Screenplay Reader";
   }, []);
 
-  const handleSelectCloud = (script: CloudScript, mode: "read" | "edit" = "read") => {
+  const handleSelectCloud = (script: unknown, mode: string = "read") => {
+    if (!isCloudScript(script)) return;
     const resolvedMode = mode === "edit" ? "edit" : "read";
     // Pre-populate scriptManager: title/mode are immediately available from list data;
     // rawScript is only set when content is defined (list API omits content via ScriptSummary)
@@ -43,12 +45,7 @@ export default function DashboardPage({ scriptManager, navProps }: { scriptManag
 
   return (
     <HybridDashboard
-      localFiles={[]}
-      onSelectLocalFile={() => {}}
-      onSelectCloudScript={handleSelectCloud as any}
-      enableLocalFiles={false}
-      openSettings={nav.openSettings}
-      openAbout={nav.openAbout}
+      onSelectCloudScript={handleSelectCloud}
       openMobileMenu={() => nav.setIsMobileDrawerOpen(true)}
       isSidebarOpen={nav.isDesktopSidebarOpen}
       setSidebarOpen={nav.setIsDesktopSidebarOpen}

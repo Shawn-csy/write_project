@@ -25,7 +25,6 @@ export interface CloudScript extends BaseScript {
   organization?: { id: string; name?: string; displayName?: string; logoUrl?: string; avatar?: string; avatarUrl?: string };
   persona?: { id?: string; displayName?: string; name?: string; avatar?: string; avatarUrl?: string; defaultLicenseCommercial?: string; defaultLicenseDerivative?: string; defaultLicenseNotify?: string };
   owner?: { id?: string; displayName?: string; name?: string; avatar?: string; avatarUrl?: string };
-  [key: string]: unknown;
 }
 
 export type CloudScriptMode = "read" | "edit";
