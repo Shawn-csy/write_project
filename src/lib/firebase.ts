@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import type { Analytics } from "firebase/analytics";
 
 // Your web app's Firebase configuration
 const getEnv = (key) => {
@@ -21,7 +22,7 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-let analyticsInitPromise: null | Promise<any> = null;
+let analyticsInitPromise: null | Promise<Analytics | null> = null;
 
 export const initAnalytics = async () => {
   if (typeof window === "undefined") return null;

@@ -22,7 +22,7 @@ export const normalizeThemeConfigs = (configs) => {
   return [];
 };
 
-const inferMatchMode = (config: Record<string, any> = {}) => {
+const inferMatchMode = (config: Record<string, unknown> = {}) => {
   if (config.matchMode) return config.matchMode;
   if (config.regex) return "regex";
   if (config.start && config.end) return "enclosure";

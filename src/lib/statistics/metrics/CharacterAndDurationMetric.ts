@@ -1,4 +1,4 @@
-import { Metric } from '../ScriptAnalyzer';
+import { Metric, AstNode, AnalyzerContext } from '../ScriptAnalyzer';
 
 export class CharacterAndDurationMetric extends Metric {
   wpm: { dialogue: number; action: number };
@@ -24,7 +24,7 @@ export class CharacterAndDurationMetric extends Metric {
     this.currentSceneId = null;
   }
 
-  onNode(node, context) {
+  onNode(node: AstNode, _context: AnalyzerContext) {
     if (node.type === 'scene_heading') {
       this.currentSceneId = (node.id || node.text || `scene-${node.lineStart || ""}`).toString();
       return;

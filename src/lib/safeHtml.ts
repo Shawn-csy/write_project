@@ -37,7 +37,7 @@ const sanitizeElement = (node, key) => {
     return node.textContent;
   }
 
-  const props: Record<string, any> = { key };
+  const props: Record<string, unknown> = { key };
   const className = node.getAttribute("class");
   if (className) {
     const safeClasses = className

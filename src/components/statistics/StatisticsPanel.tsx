@@ -52,7 +52,7 @@ interface MarkerEntry {
 
 interface StatisticsPanelProps {
   rawScript?: string | null;
-  scriptAst?: AstNode | AstNode[] | null;
+  scriptAst?: AstNode | null;
   onLocateText?: (text: string, line?: number | null) => void;
   scriptId?: string;
 }

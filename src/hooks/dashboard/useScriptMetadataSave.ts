@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { updateScript, addTagToScript, removeTagFromScript } from "../../lib/api/scripts";
 import { createTag } from "../../lib/api/tags";
+import type { ScriptUpdatePayload } from "../../types/api";
 import { deriveSimpleLicenseTags } from "../../lib/licenseRights";
 import { AUDIENCE_TAG_GROUP, RATING_TAG_GROUP, syncGroupedTagSelection } from "./tagGroupUtils";
 import { normalizeCustomMetadataEntries } from "../../lib/customMetadata";
@@ -221,7 +222,7 @@ export function useScriptMetadataSave({
         ]);
       }
 
-      const updatePayload: any = {
+      const updatePayload: ScriptUpdatePayload & { author?: string } = {
         title,
         coverUrl,
         status,
