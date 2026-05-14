@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import type { OrgData } from "../types/persona";
+import type { BaseScriptApi } from "../types/api";
 
 interface MemberData {
   id?: string;
@@ -26,7 +27,7 @@ export default function OrganizationPage() {
   const navigate = useNavigate();
   const { currentUser, login } = useAuth();
   const [org, setOrg] = useState<OrgData | null>(null);
-  const [scripts, setScripts] = useState<Array<Record<string, unknown> & { id: string }>>([]);
+  const [scripts, setScripts] = useState<BaseScriptApi[]>([]);
   const [members, setMembers] = useState<MemberData[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 

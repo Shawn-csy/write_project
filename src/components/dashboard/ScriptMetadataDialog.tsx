@@ -41,6 +41,7 @@ import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
 import { ImageCropDialog } from "../ui/ImageCropDialog";
 import { createEmptyActivityDemoLink } from "../../lib/activityDemoLinks";
 import { MetadataSectionBlock } from "./metadata/MetadataSectionBlock";
+import type { BaseScriptApi } from "../../types/api";
 
 export { buildPublishChecklist };
 
@@ -90,11 +91,11 @@ export function ScriptMetadataDialog({
     disableAuthorAutofill = false,
     preserveAuthorInternalData = false,
 }: {
-    script?: Record<string, unknown> | null;
+    script?: Partial<BaseScriptApi> | null;
     scriptId?: string;
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onSave: (script: Record<string, unknown>) => void;
+    onSave: (script: BaseScriptApi) => void;
     seriesOptions?: Array<{ id: string; name: string }>;
     onSeriesCreated?: (series: { id: string; name: string }) => void;
     fetchFullScript?: boolean;
@@ -235,7 +236,7 @@ export function ScriptMetadataDialog({
     const contactAutoFilledRef = useRef(false);
     const authorEditedRef = useRef(false);
     const publicLoadedRef = useRef(null);
-    const [localScript, setLocalScript] = useState(null);
+    const [localScript, setLocalScript] = useState<BaseScriptApi | null>(null);
     const activeScript = scriptId ? localScript : (localScript || script);
     const sensors = useSensors(
         useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),

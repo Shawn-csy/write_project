@@ -5,12 +5,11 @@ import { normalizeMarkerConfigsSchema } from "../lib/markerThemeCodec";
 import { isDefaultLikeTheme } from "../lib/themeNameUtils";
 import { fetchPublic } from "../lib/api/client";
 import type { CurrentUserLike } from "../types/user";
+import type { MarkerConfig } from "../types/script";
 
 // Computed once at module load — defaultMarkerConfigs is a static constant.
 const NORMALIZED_DEFAULT_CONFIGS = normalizeMarkerConfigsSchema(defaultMarkerConfigs);
 const DEFAULT_THEME_ID = 'default';
-
-type MarkerConfig = Record<string, unknown>;
 
 export interface MarkerTheme {
   id: string;

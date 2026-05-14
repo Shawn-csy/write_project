@@ -41,7 +41,7 @@ interface SettingsContextValue {
   isDark: boolean;
   setTheme: (theme: ThemeMode) => void;
   accent: AccentName;
-  setAccent: (accent: string) => void;
+  setAccent: (accent: AccentName) => void;
   accentOptions: typeof accentOptions;
   accentStyle: typeof accentClasses;
   accentConfig: (typeof accentThemes)[AccentName];
@@ -81,12 +81,12 @@ interface SettingsContextValue {
   setMarkerConfigs: (configs: MarkerConfig[]) => Promise<void>;
   addTheme: (
     name: string,
-    initialOrOptions?: Record<string, unknown>[] | { initialConfigs?: Record<string, unknown>[]; isPublic?: boolean; description?: string } | null,
-    legacyOptions?: { initialConfigs?: Record<string, unknown>[]; isPublic?: boolean; description?: string } | null
+    initialOrOptions?: MarkerConfig[] | { initialConfigs?: MarkerConfig[]; isPublic?: boolean; description?: string } | null,
+    legacyOptions?: { initialConfigs?: MarkerConfig[]; isPublic?: boolean; description?: string } | null
   ) => Promise<MarkerTheme>;
   addThemeFromCurrent: (
     name: string,
-    optionsOrPublic?: { initialConfigs?: Record<string, unknown>[]; isPublic?: boolean; description?: string } | boolean
+    optionsOrPublic?: { initialConfigs?: MarkerConfig[]; isPublic?: boolean; description?: string } | boolean
   ) => Promise<MarkerTheme>;
   deleteTheme: (id: string) => Promise<void>;
   renameTheme: (id: string, name: string) => void;
@@ -108,7 +108,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const hydratedUserIdRef = useRef<string | null>(null);
 
   // --- Persistent State ---
-  const [accent, setAccent] = usePersistentState(STORAGE_KEYS.ACCENT, defaultAccent);
+  const [accentRaw, setAccentRaw] = usePersistentState<AccentName>(STORAGE_KEYS.ACCENT, defaultAccent as AccentName);
+  const accent: AccentName = accentRaw in accentThemes ? accentRaw : (defaultAccent as AccentName);
+  const setAccent = (next: AccentName) => setAccentRaw(next);
   
   // Font Sizes
   const [fontSize, setFontSize] = usePersistentState(STORAGE_KEYS.FONT_SIZE, 14, 'number');
@@ -271,7 +273,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                       const s = (data.settings || {}) as Record<string, unknown>;
 
                       // Batch Updates
-                      if (typeof s.accent === "string") setAccent(s.accent);
+                      if (typeof s.accent === "string" && s.accent in accentThemes) {
+                        setAccent(s.accent as AccentName);
+                      }
                       if (typeof s.fontSize === "number") setFontSize(s.fontSize);
                       if (typeof s.editorFontSize === "number") setBodyFontSize(s.editorFontSize);
                       if (typeof s.bodyFontSize === "number") setBodyFontSize(s.bodyFontSize);
