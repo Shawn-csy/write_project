@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useEffect, useMemo, useState } from "react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
@@ -29,8 +28,48 @@ import { AdminUserManagementCard } from "../components/admin/AdminUserManagement
 import { TermsAcceptanceTable } from "../components/admin/TermsAcceptanceTable";
 import { HomepageBannerSection } from "../components/admin/HomepageBannerSection";
 
-function CollapsibleSection({ title, description, defaultOpen = false, children }) {
-  const [open, setOpen] = useState(defaultOpen);
+interface AdminUser {
+  id: string;
+  displayName?: string;
+  email?: string;
+  handle?: string;
+}
+
+interface AdminOrg {
+  id: string;
+  name?: string;
+  ownerId?: string;
+}
+
+interface AdminPersona {
+  id: string;
+  displayName?: string;
+  ownerId?: string;
+  avatar?: string;
+}
+
+interface AdminScript {
+  id: string;
+  title?: string;
+  ownerId?: string;
+  status?: string;
+  type?: string;
+  [key: string]: unknown;
+}
+
+interface SaveScriptContext {
+  tagIds?: string[];
+}
+
+interface CollapsibleSectionProps {
+  title: React.ReactNode;
+  description?: React.ReactNode;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}
+
+function CollapsibleSection({ title, description, defaultOpen = false, children }: CollapsibleSectionProps): React.JSX.Element {
+  const [open, setOpen] = useState<boolean>(defaultOpen);
   return (
     <div className="rounded-xl border border-border/70 bg-background shadow-sm mb-4">
       <button
@@ -53,27 +92,27 @@ export default function SuperAdminPage() {
   const { t } = useI18n();
   const { currentUser, profile } = useAuth();
 
-  const [orgs, setOrgs] = useState([]);
-  const [scripts, setScripts] = useState([]);
-  const [personas, setPersonas] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [listQuery, setListQuery] = useState("");
+  const [orgs, setOrgs] = useState<AdminOrg[]>([]);
+  const [scripts, setScripts] = useState<AdminScript[]>([]);
+  const [personas, setPersonas] = useState<AdminPersona[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [listQuery, setListQuery] = useState<string>("");
 
-  const [transferType, setTransferType] = useState(null);
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [targetUser, setTargetUser] = useState(null);
-  const [showTransferModal, setShowTransferModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchError, setSearchError] = useState("");
-  const [isTransferring, setIsTransferring] = useState(false);
+  const [transferType, setTransferType] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<AdminOrg | AdminPersona | AdminScript | null>(null);
+  const [targetUser, setTargetUser] = useState<AdminUser | null>(null);
+  const [showTransferModal, setShowTransferModal] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchResults, setSearchResults] = useState<AdminUser[]>([]);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [searchError, setSearchError] = useState<string>("");
+  const [isTransferring, setIsTransferring] = useState<boolean>(false);
 
-  const [newOrgName, setNewOrgName] = useState("");
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [showScriptSettingsModal, setShowScriptSettingsModal] = useState(false);
-  const [selectedScriptSettings, setSelectedScriptSettings] = useState(null);
+  const [newOrgName, setNewOrgName] = useState<string>("");
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [showScriptSettingsModal, setShowScriptSettingsModal] = useState<boolean>(false);
+  const [selectedScriptSettings, setSelectedScriptSettings] = useState<AdminScript | null>(null);
 
   // per-tab filter state
   const [scriptFilter, setScriptFilter] = useState("");
@@ -88,6 +127,14 @@ export default function SuperAdminPage() {
       : transferType === "persona"
         ? t("transferAdmin.typePersona")
         : t("transferAdmin.typeScript");
+  const toText = (value: unknown): string => (typeof value === "string" ? value : "");
+  const selectedItemLabel =
+    selectedItem
+      ? (("name" in selectedItem && toText(selectedItem.name)) ||
+        ("displayName" in selectedItem && toText(selectedItem.displayName)) ||
+        ("title" in selectedItem && toText(selectedItem.title)) ||
+        selectedItem.id)
+      : "";
 
   const loadAllData = async (queryText = "") => {
     setIsLoading(true);
@@ -98,10 +145,10 @@ export default function SuperAdminPage() {
         getAllScriptsAdmin({ q: queryText, limit: 600 }),
         getAllPersonasAdmin({ q: queryText, limit: 300 }),
       ]);
-      setUsers(uData || []);
-      setOrgs(oData || []);
-      setScripts(sData || []);
-      setPersonas(pData || []);
+      setUsers((uData || []) as AdminUser[]);
+      setOrgs((oData || []) as AdminOrg[]);
+      setScripts((sData || []) as AdminScript[]);
+      setPersonas((pData || []) as AdminPersona[]);
     } catch (e) {
       console.error("Failed to load admin data", e);
     } finally {
@@ -136,11 +183,11 @@ export default function SuperAdminPage() {
       try {
         const results = await searchUsers(normalizedQuery);
         setSearchResults(results || []);
-      } catch (e) {
+      } catch (e: unknown) {
         console.error(e);
         setSearchResults([]);
         setSearchError(
-          e?.status === 403
+          (e as { status?: number })?.status === 403
             ? t("transferAdmin.searchPermissionDenied")
             : t("transferAdmin.searchFailed")
         );
@@ -163,7 +210,7 @@ export default function SuperAdminPage() {
     }
   };
 
-  const handleOpenTransfer = (type, item) => {
+  const handleOpenTransfer = (type: "org" | "script" | "persona", item: AdminOrg | AdminPersona | AdminScript) => {
     setTransferType(type);
     setSelectedItem(item);
     setSearchQuery("");
@@ -176,7 +223,7 @@ export default function SuperAdminPage() {
     if (!selectedItem || !targetUser) return;
     setIsTransferring(true);
     try {
-      let res = null;
+      let res: { newOwnerId?: unknown } | null = null;
       if (transferType === "org") res = await transferOrganizationOwnership(selectedItem.id, targetUser.id);
       else if (transferType === "script") res = await transferScriptOwnership(selectedItem.id, targetUser.id);
       else if (transferType === "persona") res = await transferPersonaOwnership(selectedItem.id, targetUser.id);
@@ -196,7 +243,7 @@ export default function SuperAdminPage() {
     }
   };
 
-  const handleDeleteOrg = async (org) => {
+  const handleDeleteOrg = async (org: AdminOrg) => {
     if (!org?.id) return;
     if (!window.confirm(`確定刪除組織「${org.name || org.id}」？`)) return;
     setIsDeleting(true);
@@ -204,13 +251,13 @@ export default function SuperAdminPage() {
       await deleteOrganizationAdmin(org.id);
       loadAllData(listQuery.trim());
     } catch (error) {
-      alert(error?.message || "刪除組織失敗");
+      alert((error as { message?: string })?.message || "刪除組織失敗");
     } finally {
       setIsDeleting(false);
     }
   };
 
-  const handleDeleteUser = async (user) => {
+  const handleDeleteUser = async (user: AdminUser) => {
     if (!user?.id) return;
     if (user.id === currentUser?.uid) {
       alert("不能刪除目前登入中的超管帳號");
@@ -222,13 +269,13 @@ export default function SuperAdminPage() {
       await deleteUserAdmin(user.id);
       loadAllData(listQuery.trim());
     } catch (error) {
-      alert(error?.message || "刪除使用者失敗");
+      alert((error as { message?: string })?.message || "刪除使用者失敗");
     } finally {
       setIsDeleting(false);
     }
   };
 
-  const handleDeletePersona = async (persona) => {
+  const handleDeletePersona = async (persona: AdminPersona) => {
     if (!persona?.id) return;
     if (!window.confirm(`確定刪除作者「${persona.displayName || persona.id}」？`)) return;
     setIsDeleting(true);
@@ -236,13 +283,13 @@ export default function SuperAdminPage() {
       await deletePersonaAdmin(persona.id);
       loadAllData(listQuery.trim());
     } catch (error) {
-      alert(error?.message || "刪除作者失敗");
+      alert((error as { message?: string })?.message || "刪除作者失敗");
     } finally {
       setIsDeleting(false);
     }
   };
 
-  const handleDeleteScript = async (script) => {
+  const handleDeleteScript = async (script: AdminScript) => {
     if (!script?.id) return;
     if (!window.confirm(`確定刪除劇本「${script.title || script.id}」？`)) return;
     setIsDeleting(true);
@@ -250,13 +297,13 @@ export default function SuperAdminPage() {
       await deleteScriptAdmin(script.id);
       loadAllData(listQuery.trim());
     } catch (error) {
-      alert(error?.message || "刪除劇本失敗");
+      alert((error as { message?: string })?.message || "刪除劇本失敗");
     } finally {
       setIsDeleting(false);
     }
   };
 
-  const handleOpenScriptSettings = async (script) => {
+  const handleOpenScriptSettings = async (script: AdminScript) => {
     if (!script?.id) return;
     try {
       const latest = await getScriptMetadataAdmin(script.id);
@@ -270,12 +317,12 @@ export default function SuperAdminPage() {
   };
 
   const userById = useMemo(() => {
-    const map = new Map();
+    const map = new Map<string, AdminUser>();
     users.forEach((u) => map.set(u.id, u));
     return map;
   }, [users]);
 
-  const getOwnerLabel = (ownerId) => {
+  const getOwnerLabel = (ownerId?: string) => {
     if (!ownerId) return "-";
     const owner = userById.get(ownerId);
     if (!owner) return ownerId;
@@ -287,22 +334,22 @@ export default function SuperAdminPage() {
     return scripts
       .filter((s) => s.type !== "folder")
       .filter((s) => scriptStatusFilter === "all" || s.status === scriptStatusFilter)
-      .filter((s) => !q || (s.title || "").toLowerCase().includes(q) || getOwnerLabel(s.ownerId).toLowerCase().includes(q));
+      .filter((s) => !q || toText(s.title).toLowerCase().includes(q) || getOwnerLabel(s.ownerId).toLowerCase().includes(q));
   }, [scripts, scriptFilter, scriptStatusFilter, userById]);
 
   const filteredOrgs = useMemo(() => {
     const q = orgFilter.toLowerCase();
-    return !q ? orgs : orgs.filter((o) => (o.name || "").toLowerCase().includes(q) || getOwnerLabel(o.ownerId).toLowerCase().includes(q));
+    return !q ? orgs : orgs.filter((o) => toText(o.name).toLowerCase().includes(q) || getOwnerLabel(o.ownerId).toLowerCase().includes(q));
   }, [orgs, orgFilter, userById]);
 
   const filteredPersonas = useMemo(() => {
     const q = personaFilter.toLowerCase();
-    return !q ? personas : personas.filter((p) => (p.displayName || "").toLowerCase().includes(q) || getOwnerLabel(p.ownerId).toLowerCase().includes(q));
+    return !q ? personas : personas.filter((p) => toText(p.displayName).toLowerCase().includes(q) || getOwnerLabel(p.ownerId).toLowerCase().includes(q));
   }, [personas, personaFilter, userById]);
 
   const filteredUsers = useMemo(() => {
     const q = userFilter.toLowerCase();
-    return !q ? users : users.filter((u) => (u.displayName || "").toLowerCase().includes(q) || (u.email || "").toLowerCase().includes(q) || u.id.toLowerCase().includes(q));
+    return !q ? users : users.filter((u) => toText(u.displayName).toLowerCase().includes(q) || toText(u.email).toLowerCase().includes(q) || u.id.toLowerCase().includes(q));
   }, [users, userFilter]);
 
   if (!profile?.isAdmin) {
@@ -542,7 +589,7 @@ export default function SuperAdminPage() {
                     <div key={p.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/40 transition-colors">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center overflow-hidden shrink-0">
-                          {p.avatar ? <img src={p.avatar} alt={p.displayName} className="w-full h-full object-cover" /> : <UserCircle className="w-5 h-5" />}
+                          {p.avatar ? <img src={p.avatar} alt={p.displayName || p.id} className="w-full h-full object-cover" /> : <UserCircle className="w-5 h-5" />}
                         </div>
                         <div className="min-w-0">
                           <div className="font-medium text-sm truncate">{p.displayName}</div>
@@ -617,7 +664,7 @@ export default function SuperAdminPage() {
               <CardTitle>{t("transferAdmin.modalTitle")}</CardTitle>
               <CardDescription>
                 {t("transferAdmin.transferring")}{" "}
-                <span className="font-bold text-foreground mx-1">{selectedItem.name || selectedItem.displayName || selectedItem.title}</span>
+                <span className="font-bold text-foreground mx-1">{selectedItemLabel}</span>
                 ({transferTypeLabel})
               </CardDescription>
             </CardHeader>
@@ -693,7 +740,7 @@ export default function SuperAdminPage() {
           script={selectedScriptSettings}
           fetchFullScript={false}
           preserveAuthorInternalData
-          saveScript={async (scriptId, updates, context = {}) => {
+          saveScript={async (scriptId, updates, context?: SaveScriptContext) => {
             return updateScriptMetadataAdmin(scriptId, {
               ...updates,
               tags: Array.isArray(context?.tagIds) ? context.tagIds : [],

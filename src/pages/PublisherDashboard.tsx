@@ -1,5 +1,70 @@
-// @ts-nocheck
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+
+interface PersonaData {
+  id: string;
+  displayName?: string;
+  bio?: string;
+  website?: string;
+  links?: Array<{ url?: string; label?: string }> | string;
+  avatar?: string;
+  bannerUrl?: string;
+  organizationIds?: string[];
+  tags?: string[];
+  defaultLicenseCommercial?: string;
+  defaultLicenseDerivative?: string;
+  defaultLicenseNotify?: string;
+  defaultLicenseSpecialTerms?: string[];
+  [key: string]: unknown;
+}
+
+interface OrgData {
+  id: string;
+  name?: string;
+  description?: string;
+  website?: string;
+  logoUrl?: string;
+  bannerUrl?: string;
+  tags?: string[];
+  [key: string]: unknown;
+}
+
+interface TagData {
+  id: string;
+  name: string;
+  [key: string]: unknown;
+}
+
+interface SeriesData {
+  id: string;
+  name?: string;
+  summary?: string;
+  coverUrl?: string;
+  [key: string]: unknown;
+}
+
+interface OrgMemberUser {
+  id: string;
+  displayName?: string;
+  organizationRole?: string;
+  [key: string]: unknown;
+}
+
+interface OrgMembersData {
+  users?: OrgMemberUser[];
+  [key: string]: unknown;
+}
+
+interface InviteData {
+  id: string;
+  orgId?: string;
+  [key: string]: unknown;
+}
+
+interface ScriptData {
+  id: string;
+  title?: string;
+  [key: string]: unknown;
+}
 import { useLocation, useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
 import { Button } from "../components/ui/button";
@@ -46,30 +111,49 @@ import {
 import { StudioTopbarQuickActions } from "../components/layout/StudioTopbarQuickActions";
 
 
-export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMenu }) {
+interface PublisherDashboardProps {
+  isSidebarOpen?: boolean;
+  setSidebarOpen?: (open: boolean) => void;
+  openMobileMenu?: () => void;
+}
+
+export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMenu }: PublisherDashboardProps): React.JSX.Element {
   const { t } = useI18n();
   const { currentUser, profile: currentProfile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const resolveTabFromSearch = React.useCallback((search) => {
+  const resolveTabFromSearch = React.useCallback((search: string) => {
       const raw = new URLSearchParams(search || "").get("tab");
-      return ["works", "profile", "org", "series"].includes(raw) ? raw : "works";
+      return ["works", "profile", "org", "series"].includes(raw ?? "") ? (raw as string) : "works";
   }, []);
   const [activeTab, setActiveTab] = useState(() => resolveTabFromSearch(location.search));
-  const [editingScript, setEditingScript] = useState(null);
-  const [confirmDeletePersonaOpen, setConfirmDeletePersonaOpen] = useState(false);
-  const [confirmDeleteOrgOpen, setConfirmDeleteOrgOpen] = useState(false);
+  const [editingScript, setEditingScript] = useState<Record<string, unknown> | null>(null);
+  const [confirmDeletePersonaOpen, setConfirmDeletePersonaOpen] = useState<boolean>(false);
+  const [confirmDeleteOrgOpen, setConfirmDeleteOrgOpen] = useState<boolean>(false);
   
   // Data State
-  const [personas, setPersonas] = useState([]);
-  const [orgs, setOrgs] = useState([]);
-  const [orgsForPersona, setOrgsForPersona] = useState([]);
-  const [scripts, setScripts] = useState([]);
-  const [availableTags, setAvailableTags] = useState([]);
-  const [selectedPersonaId, setSelectedPersonaId] = useState(null);
-  const [selectedOrgId, setSelectedOrgId] = useState(null);
-  const [personaDraft, setPersonaDraft] = useState({
+  const [personas, setPersonas] = useState<PersonaData[]>([]);
+  const [orgs, setOrgs] = useState<OrgData[]>([]);
+  const [orgsForPersona, setOrgsForPersona] = useState<OrgData[]>([]);
+  const [scripts, setScripts] = useState<ScriptData[]>([]);
+  const [availableTags, setAvailableTags] = useState<TagData[]>([]);
+  const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(null);
+  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
+  const [personaDraft, setPersonaDraft] = useState<{
+    displayName: string;
+    bio: string;
+    website: string;
+    links: Array<{ url?: string; label?: string }> | string;
+    avatar: string;
+    bannerUrl: string;
+    organizationIds: string[];
+    tags: string[];
+    defaultLicenseCommercial: string;
+    defaultLicenseDerivative: string;
+    defaultLicenseNotify: string;
+    defaultLicenseSpecialTerms: string[];
+  }>({
     displayName: "",
     bio: "",
     website: "",
@@ -83,17 +167,17 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
     defaultLicenseNotify: "",
     defaultLicenseSpecialTerms: [],
   });
-  const [personasLoadedAt, setPersonasLoadedAt] = useState(0);
-  const [orgDraft, setOrgDraft] = useState({ id: "", name: "", description: "", website: "", logoUrl: "", bannerUrl: "", tags: [] });
-  const [personaTagInput, setPersonaTagInput] = useState("");
-  const [orgTagInput, setOrgTagInput] = useState("");
-  const [isWorksLoading, setIsWorksLoading] = useState(true);
-  const [isMetaLoading, setIsMetaLoading] = useState(true);
-  const [seriesList, setSeriesList] = useState([]);
-  const [selectedSeriesId, setSelectedSeriesId] = useState("");
-  const [seriesDraft, setSeriesDraft] = useState({ name: "", summary: "", coverUrl: "" });
-  const [isSavingSeries, setIsSavingSeries] = useState(false);
-  const tabsGuideRef = useRef(null);
+  const [personasLoadedAt, setPersonasLoadedAt] = useState<number>(0);
+  const [orgDraft, setOrgDraft] = useState<{ id: string; name: string; description: string; website: string; logoUrl: string; bannerUrl: string; tags: string[] }>({ id: "", name: "", description: "", website: "", logoUrl: "", bannerUrl: "", tags: [] });
+  const [personaTagInput, setPersonaTagInput] = useState<string>("");
+  const [orgTagInput, setOrgTagInput] = useState<string>("");
+  const [isWorksLoading, setIsWorksLoading] = useState<boolean>(true);
+  const [isMetaLoading, setIsMetaLoading] = useState<boolean>(true);
+  const [seriesList, setSeriesList] = useState<SeriesData[]>([]);
+  const [selectedSeriesId, setSelectedSeriesId] = useState<string>("");
+  const [seriesDraft, setSeriesDraft] = useState<{ name: string; summary: string; coverUrl: string }>({ name: "", summary: "", coverUrl: "" });
+  const [isSavingSeries, setIsSavingSeries] = useState<boolean>(false);
+  const tabsGuideRef = useRef<HTMLDivElement | null>(null);
 
   const {
       orgMembers,
@@ -115,60 +199,59 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
       currentUser,
   });
 
-  const formatDate = (ts) => {
+  const formatDate = (ts: number | string | null | undefined): string => {
       if (!ts) return "-";
       const d = new Date(ts);
       if (Number.isNaN(d.getTime())) return "-";
       return d.toISOString().slice(0, 10);
   };
 
-  const parseTags = (value) => value
+  const parseTags = (value: string): string[] => value
       .split(/,|，|、|#|\n|\t|;/)
-      .map(t => t.trim())
+      .map((tag) => tag.trim())
       .filter(Boolean);
 
-  const addTags = (existing, incoming) => {
+  const addTags = (existing: string[], incoming: string[]): string[] => {
       const merged = [...existing];
-      incoming.forEach(t => {
-          if (!merged.includes(t)) merged.push(t);
+      incoming.forEach((tag) => {
+          if (!merged.includes(tag)) merged.push(tag);
       });
       return merged;
   };
 
-  const getSuggestions = (input, existing) => {
+  const getSuggestions = (input: string, existing: string[]): string[] => {
       const needle = input.trim().toLowerCase();
       return (availableTags || [])
-          .filter(t => t.name.toLowerCase().includes(needle))
-          .filter(t => !existing.includes(t.name))
-          .slice(0, 6);
+          .filter((tag) => tag.name?.toLowerCase().includes(needle))
+          .filter((tag) => tag.name && !existing.includes(tag.name))
+          .slice(0, 6)
+          .map((tag) => tag.name as string);
   };
 
 
-  const currentUserIds = React.useMemo(() => {
+  const currentUserIds = React.useMemo((): string[] => {
       return Array.from(new Set([
           currentUser?.uid,
-          currentProfile?.id,
-          currentProfile?.uid,
-          currentProfile?.userId,
-      ].filter(Boolean)));
+          (currentProfile as { id?: string } | null)?.id,
+          (currentProfile as { uid?: string } | null)?.uid,
+          (currentProfile as { userId?: string } | null)?.userId,
+      ].filter((v): v is string => typeof v === "string")));
   }, [currentProfile?.id, currentProfile?.uid, currentProfile?.userId, currentUser?.uid]);
-  const currentUserId = currentUserIds[0] || null;
-  const currentOrgRole = React.useMemo(() => {
-      if (!selectedOrgId) return null;
-      const me = (orgMembers?.users || []).find((u) => currentUserIds.includes(u.id));
-      const memberRole = me?.organizationRole || null;
+  const currentUserId: string | undefined = currentUserIds[0];
+  const currentOrgRole = React.useMemo((): string | undefined => {
+      if (!selectedOrgId) return undefined;
+      const me = (orgMembers?.users || []).find((u) => u.id && currentUserIds.includes(u.id));
+      const memberRole = (me?.organizationRole as string | undefined) || undefined;
       if (memberRole) return memberRole;
       const selectedOrg = (orgsForPersona || []).find((o) => o.id === selectedOrgId);
-      const fallbackRole =
-          selectedOrg?.organizationRole ||
-          selectedOrg?.myRole ||
-          selectedOrg?.memberRole ||
-          selectedOrg?.role ||
-          null;
+      if (!selectedOrg) return undefined;
+      const rawRole = selectedOrg.organizationRole ?? selectedOrg.myRole ?? selectedOrg.memberRole ?? selectedOrg.role;
+      const fallbackRole = typeof rawRole === "string" ? rawRole : undefined;
       if (fallbackRole) return fallbackRole;
-      const ownerId = selectedOrg?.ownerId || selectedOrg?.ownerUid || selectedOrg?.ownerUserId || null;
+      const rawOwner = selectedOrg.ownerId ?? selectedOrg.ownerUid ?? selectedOrg.ownerUserId;
+      const ownerId = typeof rawOwner === "string" ? rawOwner : undefined;
       if (ownerId && currentUserIds.includes(ownerId)) return "owner";
-      return null;
+      return undefined;
   }, [selectedOrgId, orgMembers, currentUserIds, orgsForPersona]);
   const canManageOrgMembers = currentOrgRole === "owner" || currentOrgRole === "admin";
   const tabCounts = React.useMemo(() => ({
@@ -183,7 +266,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
   );
 
   const allTagNames = Array.from(new Set([
-      ...(availableTags || []).map(t => t.name),
+      ...(availableTags || []).map(t => t.name).filter((n): n is string => Boolean(n)),
       ...(personaDraft.tags || []),
       ...(orgDraft.tags || []),
   ]));
@@ -254,14 +337,14 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
     if (!isBackground) setIsWorksLoading(true);
 
     try {
-        const scriptData = await getUserScripts();
+        const scriptData = await getUserScripts(undefined);
         const sortedScripts = (scriptData || [])
             .filter(s => s.type !== "folder" && !s.isFolder)
             .sort((a, b) => {
                 const aPublic = a.status === "Public" || a.isPublic;
                 const bPublic = b.status === "Public" || b.isPublic;
                 if (aPublic !== bPublic) return aPublic ? -1 : 1;
-                return (b.lastModified || 0) - (a.lastModified || 0);
+                return Number(b.lastModified || 0) - Number(a.lastModified || 0);
             });
         setScripts(sortedScripts);
     } catch (e) {
@@ -273,8 +356,8 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
     try {
         setIsMetaLoading(true);
         const [personaData, orgData, tagData, seriesData] = await Promise.all([
-            getPersonas(),
-            getOrganizations(),
+            getPersonas(undefined),
+            getOrganizations(undefined),
             getTags(),
             getSeries(),
         ]);
@@ -389,7 +472,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
               displayName: persona.displayName || "",
               bio: persona.bio || "",
               website: persona.website || "",
-              links,
+              links: links ?? [],
               avatar: persona.avatar || "",
               bannerUrl: persona.bannerUrl || "",
               organizationIds: persona.organizationIds || [],
@@ -400,7 +483,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
               defaultLicenseSpecialTerms: persona.defaultLicenseSpecialTerms || []
           });
           if ((persona.organizationIds || []).length > 0) {
-              setSelectedOrgId(persona.organizationIds[0]);
+              setSelectedOrgId((persona.organizationIds ?? [])[0] ?? null);
           }
       };
       run();
@@ -527,11 +610,11 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
           <div className="text-sm font-medium mb-2">{t("publisher.myOrgInvites")}</div>
           <div className="space-y-2">
             {myInvites.map(inv => (
-              <div key={inv.id} className="flex items-center justify-between text-sm">
-                <span>{t("publisher.inviteJoinOrg").replace("{orgId}", inv.orgId)}</span>
+              <div key={inv.id ?? ""} className="flex items-center justify-between text-sm">
+                <span>{t("publisher.inviteJoinOrg").replace("{orgId}", inv.orgId || "")}</span>
                 <div className="flex gap-2">
-                  <Button size="sm" onClick={() => handleAcceptInvite(inv.id)}>{t("publisher.accept")}</Button>
-                  <Button size="sm" variant="ghost" onClick={() => handleDeclineInvite(inv.id)}>{t("publisher.decline")}</Button>
+                  <Button size="sm" onClick={() => handleAcceptInvite(inv.id ?? "")}>{t("publisher.accept")}</Button>
+                  <Button size="sm" variant="ghost" onClick={() => handleDeclineInvite(inv.id ?? "")}>{t("publisher.decline")}</Button>
                 </div>
               </div>
             ))}
@@ -596,14 +679,14 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
           className="space-y-4 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3"
           data-guide-id="studio-works-panel"
         >
-             <PublisherWorksTab 
-                isLoading={isWorksLoading} 
-                scripts={scripts} 
-                personas={personas}
-                setEditingScript={setEditingScript} 
-                navigate={navigate} 
-                formatDate={formatDate} 
-                onContinueEdit={(script) => navigate(`/edit/${script.id}?mode=edit`)}
+             <PublisherWorksTab
+                isLoading={isWorksLoading}
+                scripts={scripts as unknown as Array<{ id: string; [key: string]: unknown }>}
+                personas={personas as unknown as Array<{ id: string; [key: string]: unknown }>}
+                setEditingScript={(s) => setEditingScript(s as unknown as Record<string, unknown>)}
+                navigate={navigate}
+                formatDate={formatDate}
+                onContinueEdit={(script) => navigate(`/edit/${(script as { id: string }).id}?mode=edit`)}
              />
         </TabsContent>
 
@@ -617,7 +700,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
             <PublisherProfileTab
                 selectedPersonaId={selectedPersonaId} setSelectedPersonaId={setSelectedPersonaId}
                 personas={personas}
-                selectedPersona={personas.find(p => p.id === selectedPersonaId)}
+                selectedPersona={personas.find(p => p.id === selectedPersonaId) ?? null}
                 handleCreatePersona={handleCreatePersona} isCreatingPersona={isCreatingPersona}
                 handleDeletePersona={() => setConfirmDeletePersonaOpen(true)}
                 personaDraft={personaDraft} setPersonaDraft={setPersonaDraft}
@@ -625,16 +708,20 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 isLoading={isMetaLoading}
                 personaTagInput={personaTagInput} setPersonaTagInput={setPersonaTagInput}
                 handleSaveProfile={handleSaveProfile} isSavingProfile={isSavingProfile}
-                parseTags={parseTags} addTags={addTags} getSuggestions={getSuggestions} getTagStyle={getTagStyle}
+                parseTags={parseTags}
+                addTags={addTags}
+                getSuggestions={(input: string) => getSuggestions(input, personaDraft.tags || [])}
+                getTagStyle={getTagStyle}
                 tagOptions={availableTags}
             />
         </TabsContent>
 
-        <ScriptMetadataDialog 
-            open={!!editingScript} 
-            onOpenChange={(open) => !open && closePublishDialog()} 
+        <ScriptMetadataDialog
+            open={!!editingScript}
+            onOpenChange={(open) => !open && closePublishDialog()}
             script={editingScript}
-            seriesOptions={seriesList}
+            scriptId={typeof editingScript?.id === "string" ? editingScript.id : undefined}
+            seriesOptions={seriesList as never[]}
             onSeriesCreated={(createdSeries) => {
                 if (!createdSeries?.id) return;
                 setSeriesList((prev) => {
@@ -664,12 +751,18 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 orgDraft={orgDraft} setOrgDraft={setOrgDraft}
                 handleSaveOrg={handleSaveOrg} isSavingOrg={isSavingOrg}
                 orgTagInput={orgTagInput} setOrgTagInput={setOrgTagInput}
-                parseTags={parseTags} addTags={addTags} getSuggestions={getSuggestions} getTagStyle={getTagStyle}
+                parseTags={parseTags}
+                addTags={(next: string | string[]) => {
+                    const incoming = Array.isArray(next) ? next : parseTags(next);
+                    return addTags(orgDraft.tags || [], incoming);
+                }}
+                getSuggestions={(input: string) => getSuggestions(input, orgDraft.tags || [])}
+                getTagStyle={getTagStyle}
                 tagOptions={availableTags}
                 isLoading={isMetaLoading || isOrgMembersLoading}
-                orgMembers={orgMembers}
-                orgInvites={orgInvites}
-                orgRequests={orgRequests}
+                orgMembers={(orgMembers.users || []) as Array<{ id: string; [key: string]: unknown }>}
+                orgInvites={orgInvites as Array<{ id: string; [key: string]: unknown }>}
+                orgRequests={orgRequests as Array<{ id: string; [key: string]: unknown }>}
                 canEditSelectedOrg={canManageOrgMembers}
                 currentUserId={currentUserId}
                 currentOrgRole={currentOrgRole}
@@ -704,7 +797,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                       const aOrder = Number.isFinite(Number(a.seriesOrder)) ? Number(a.seriesOrder) : Number.MAX_SAFE_INTEGER;
                       const bOrder = Number.isFinite(Number(b.seriesOrder)) ? Number(b.seriesOrder) : Number.MAX_SAFE_INTEGER;
                       if (aOrder !== bOrder) return aOrder - bOrder;
-                      return (b.lastModified || 0) - (a.lastModified || 0);
+                      return Number(b.lastModified || 0) - Number(a.lastModified || 0);
                   })}
               onDetachScript={handleDetachScriptFromSeries}
               onCreateSeries={handleCreateSeries}
