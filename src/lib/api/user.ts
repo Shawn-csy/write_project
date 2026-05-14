@@ -1,9 +1,18 @@
 import { API_BASE_URL, fetchApi, getAuthHeaders } from "./client";
 
-export const getUserProfile = async () => fetchApi("/me");
+export interface UserProfileApi {
+  displayName?: string;
+  email?: string;
+  avatar?: string;
+  handle?: string;
+  isAdmin?: boolean;
+  [key: string]: unknown;
+}
 
-export const updateUserProfile = async (updates) => {
-  return fetchApi("/me", {
+export const getUserProfile = async (): Promise<UserProfileApi | null> => fetchApi<UserProfileApi | null>("/me");
+
+export const updateUserProfile = async (updates: Partial<UserProfileApi>): Promise<UserProfileApi | null> => {
+  return fetchApi<UserProfileApi | null>("/me", {
     method: "PUT",
     body: JSON.stringify(updates),
   });

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { auth, googleProvider, initAnalytics } from "../lib/firebase";
-import { signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
+import { signInWithPopup, signOut, onAuthStateChanged, type User } from "firebase/auth";
 import { getUserProfile, updateUserProfile } from "../lib/api/user";
 
 interface LocalUser {
@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return signOut(auth);
   }
 
-  const syncUserProfile = async (user) => {
+  const syncUserProfile = async (user: User | LocalUser) => {
     if (!user) return;
     const desired = {
       email: user.email || undefined,
@@ -113,7 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const saveProfile = async (updates) => {
+  const saveProfile = async (updates: Partial<UserProfile>) => {
     const updated = await updateUserProfile(updates || {});
     setProfile((prev) => ({ ...(prev || {}), ...(updated || updates || {}) }));
     return updated;

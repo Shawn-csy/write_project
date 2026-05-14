@@ -392,7 +392,10 @@ export default function PublicGalleryPage() {
     openTermsDialog();
   };
 
-  const confirmTermsConsent = () => confirmTermsConsentBase(pendingScript?.id);
+  const confirmTermsConsent = () => {
+    const pendingId = pendingScript?.id;
+    confirmTermsConsentBase(typeof pendingId === "string" ? pendingId : undefined);
+  };
 
   const confirmR18Consent = () => {
     if (pendingR18Route) {

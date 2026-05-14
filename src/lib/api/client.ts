@@ -29,10 +29,10 @@ const localAuthUserId = getEnv("VITE_LOCAL_AUTH_UID") || "local-test-user";
 
 const DEFAULT_CACHE_TTL_MS = 60000;
 const DEFAULT_PUBLIC_CACHE_TTL_MS = 60000;
-const privateCache = new Map();
-const privateInflight = new Map();
-const publicCache = new Map();
-const publicInflight = new Map();
+const privateCache = new Map<string, { value: unknown; expiresAt: number }>();
+const privateInflight = new Map<string, Promise<unknown>>();
+const publicCache = new Map<string, { value: unknown; expiresAt: number }>();
+const publicInflight = new Map<string, Promise<unknown>>();
 
 const getUserKey = () => {
   if (localAuthEnabled) return localAuthUserId;
@@ -52,7 +52,7 @@ export async function getAuthHeaders(): Promise<Record<string, string>> {
   return {};
 }
 
-export async function fetchApi(endpoint: string, options: FetchApiOptions = {}, retries = 3, backoff = 500) {
+export async function fetchApi<T = unknown>(endpoint: string, options: FetchApiOptions = {}, retries = 3, backoff = 500): Promise<T> {
   if (isApiOffline()) {
     throw new Error("API offline (cooldown)");
   }
@@ -66,11 +66,11 @@ export async function fetchApi(endpoint: string, options: FetchApiOptions = {}, 
   if (method === "GET" && !noCache) {
     const cached = privateCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
-      return cached.value;
+      return cached.value as T;
     }
     const inflight = privateInflight.get(cacheKey);
     if (inflight) {
-      return inflight;
+      return inflight as Promise<T>;
     }
   }
 
@@ -125,7 +125,7 @@ export async function fetchApi(endpoint: string, options: FetchApiOptions = {}, 
         }
         privateInflight.clear();
       }
-      return data;
+      return data as T;
     })();
 
     if (method === "GET" && !noCache) {
@@ -143,13 +143,13 @@ export async function fetchApi(endpoint: string, options: FetchApiOptions = {}, 
     const retryableHttpError = typeof apiErr?.status === "number" ? apiErr.retryable !== false : true;
     if (retries > 0 && retryableHttpError) {
       await new Promise((r) => setTimeout(r, backoff));
-      return fetchApi(endpoint, options, retries - 1, backoff * 1.5);
+      return fetchApi<T>(endpoint, options, retries - 1, backoff * 1.5);
     }
     throw err;
   }
 }
 
-export async function fetchPublic(endpoint: string, options: FetchApiOptions = {}) {
+export async function fetchPublic<T = unknown>(endpoint: string, options: FetchApiOptions = {}): Promise<T> {
   if (isApiOffline()) {
     throw new Error("API offline (cooldown)");
   }
@@ -163,11 +163,11 @@ export async function fetchPublic(endpoint: string, options: FetchApiOptions = {
   if (method === "GET" && !noCache) {
     const cached = publicCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
-      return cached.value;
+      return cached.value as T;
     }
     const inflight = publicInflight.get(cacheKey);
     if (inflight) {
-      return inflight;
+      return inflight as Promise<T>;
     }
   }
 
@@ -187,7 +187,7 @@ export async function fetchPublic(endpoint: string, options: FetchApiOptions = {
         publicCache.clear();
         publicInflight.clear();
       }
-      return data;
+      return data as T;
     })();
 
     if (method === "GET" && !noCache) {
