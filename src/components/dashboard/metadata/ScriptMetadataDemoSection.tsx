@@ -4,6 +4,28 @@ import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Textarea } from "../../ui/textarea";
 
+interface ActivityDemoLinkItem {
+  id: string;
+  name: string;
+  url: string;
+  cast: string;
+  description: string;
+}
+
+interface ScriptMetadataDemoSectionProps {
+  sectionId?: string;
+  showTitle?: boolean;
+  getRowLabelClass: (tone: "required" | "recommended" | "advanced") => string;
+  activityDemoLinks: ActivityDemoLinkItem[];
+  onAddActivityDemoLink: () => void;
+  onUpdateActivityDemoLink: (
+    index: number,
+    field: "name" | "cast" | "url" | "description",
+    value: string
+  ) => void;
+  onRemoveActivityDemoLink: (index: number) => void;
+}
+
 export function ScriptMetadataDemoSection({
   sectionId = "metadata-section-demo",
   showTitle = true,
@@ -12,7 +34,7 @@ export function ScriptMetadataDemoSection({
   onAddActivityDemoLink,
   onUpdateActivityDemoLink,
   onRemoveActivityDemoLink,
-}) {
+}: ScriptMetadataDemoSectionProps) {
   return (
     <section id={sectionId || undefined} className="space-y-3 scroll-mt-24">
       {showTitle && <h3 className="text-base font-semibold">試聽範例</h3>}

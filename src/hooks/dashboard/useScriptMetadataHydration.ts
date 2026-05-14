@@ -4,6 +4,54 @@ import { parseBasicLicenseFromMeta } from "../../lib/licenseRights";
 import { buildCustomFieldsFromRawEntries } from "./scriptMetadataUtils";
 import { customMetadataEntriesToMeta, customMetadataEntriesToRawEntries } from "../../lib/customMetadata";
 import { parseActivityDemoLinks } from "../../lib/activityDemoLinks";
+import type { ScriptLike, TagLike, CustomField, LicenseSpecialTerm } from "./types";
+
+interface UseScriptMetadataHydrationOptions {
+  fetchFullScript?: boolean;
+  disableAuthorAutofill?: boolean;
+  disablePersonaAutofill?: boolean;
+  customFields?: CustomField[];
+  ensureList: (v: unknown) => unknown[];
+  loadPublicInfoIfNeeded: (script: ScriptLike) => Promise<void>;
+  userEditedRef: { current: boolean };
+  setIsInitializing: (v: boolean) => void;
+  setTitle: (v: string | ((prev: string) => string)) => void;
+  setCoverUrl: (v: string) => void;
+  setStatus: (v: string) => void;
+  setCurrentTags: (v: TagLike[]) => void;
+  setMarkerThemeId: (v: string) => void;
+  setShowMarkerLegend: (v: boolean) => void;
+  setDisableCopy: (v: boolean) => void;
+  setTargetAudience: (v: string) => void;
+  setContentRating: (v: string) => void;
+  setIdentity: (v: string) => void;
+  setSelectedOrgId: (v: string | null) => void;
+  setAuthor: (v: string) => void;
+  setAuthorDisplayMode: (v: string) => void;
+  setDate: (v: string) => void;
+  setContact: (v: string) => void;
+  setSynopsis: (v: string) => void;
+  setOutline: (v: string) => void;
+  setRoleSetting: (v: string) => void;
+  setBackgroundInfo: (v: string) => void;
+  setPerformanceInstruction: (v: string) => void;
+  setOpeningIntro: (v: string) => void;
+  setChapterSettings: (v: string) => void;
+  setActivityName: (v: string) => void;
+  setActivityBannerUrl: (v: string) => void;
+  setActivityContent: (v: string) => void;
+  setActivityDemoLinks: (v: unknown[]) => void;
+  setActivityWorkUrl: (v: string) => void;
+  setSeriesName: (v: string) => void;
+  setSeriesId: (v: string | null) => void;
+  setSeriesOrder: (v: string | number) => void;
+  setLicenseCommercial: (v: string | ((prev: string) => string)) => void;
+  setLicenseDerivative: (v: string | ((prev: string) => string)) => void;
+  setLicenseNotify: (v: string | ((prev: string) => string)) => void;
+  setLicenseSpecialTerms: (v: LicenseSpecialTerm[] | ((prev: LicenseSpecialTerm[]) => LicenseSpecialTerm[])) => void;
+  setCopyright: (v: string) => void;
+  setCustomFields: (v: CustomField[]) => void;
+}
 
 export function useScriptMetadataHydration({
   fetchFullScript = true,
@@ -50,9 +98,9 @@ export function useScriptMetadataHydration({
   setLicenseSpecialTerms,
   setCopyright,
   setCustomFields,
-}) {
+}: UseScriptMetadataHydrationOptions) {
   return useCallback(
-    async (baseScript) => {
+    async (baseScript: ScriptLike) => {
       if (!baseScript) return;
 
       setTitle(baseScript.title || "");
@@ -61,7 +109,7 @@ export function useScriptMetadataHydration({
       setCurrentTags(baseScript.tags || []);
       setMarkerThemeId(baseScript.markerThemeId || "default");
       setShowMarkerLegend(false);
-      setDisableCopy(baseScript.disableCopy || false);
+      setDisableCopy(Boolean(baseScript.disableCopy));
 
       if (baseScript.tags) {
         const tagNames = baseScript.tags.map((tag) => String(tag.name || "").toLowerCase());
@@ -96,7 +144,7 @@ export function useScriptMetadataHydration({
             setCoverUrl(full.coverUrl || "");
             setStatus(full.status || (full.isPublic ? "Public" : "Private"));
             setMarkerThemeId(full.markerThemeId || "default");
-            setDisableCopy(full.disableCopy || false);
+            setDisableCopy(Boolean(full.disableCopy));
             await loadPublicInfoIfNeeded(full);
           }
         } catch (error) {
@@ -119,7 +167,7 @@ export function useScriptMetadataHydration({
         setAuthor("");
         setAuthorDisplayMode("badge");
       } else {
-        setAuthor(resolvedAuthor);
+        setAuthor(String(resolvedAuthor));
         setAuthorDisplayMode(resolvedAuthorDisplayMode);
       }
       setDate(sourceScript.draftDate || "");
@@ -159,7 +207,7 @@ export function useScriptMetadataHydration({
       setLicenseDerivative((prev) => nextDerivative || prev || "");
       setLicenseNotify((prev) => nextNotify || prev || "");
       setLicenseSpecialTerms((prev) => {
-        if (Array.isArray(nextSpecialTerms) && nextSpecialTerms.length > 0) return nextSpecialTerms;
+        if (Array.isArray(nextSpecialTerms) && nextSpecialTerms.length > 0) return nextSpecialTerms as unknown as LicenseSpecialTerm[];
         return Array.isArray(prev) ? prev : [];
       });
       setCopyright(meta.copyright || "");

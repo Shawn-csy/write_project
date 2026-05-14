@@ -1,17 +1,5 @@
 import { useState } from "react";
-
-interface ContactFieldItem {
-  id: string;
-  key: string;
-  value: string;
-}
-
-interface CustomFieldItem {
-  id: string;
-  key: string;
-  value: string;
-  type?: "text" | "divider";
-}
+import type { ContactField, CustomField, LicenseSpecialTerm } from "./types";
 
 interface ActivityDemoLinkItem {
   id: string;
@@ -34,12 +22,12 @@ export function useScriptMetadataSupplementalState() {
   const [authorDisplayMode, setAuthorDisplayMode] = useState("badge");
   const [date, setDate] = useState("");
   const [contact, setContact] = useState("");
-  const [contactFields, setContactFields] = useState<ContactFieldItem[]>([]);
+  const [contactFields, setContactFields] = useState<ContactField[]>([]);
 
   const [licenseCommercial, setLicenseCommercial] = useState("");
   const [licenseDerivative, setLicenseDerivative] = useState("");
   const [licenseNotify, setLicenseNotify] = useState("");
-  const [licenseSpecialTerms, setLicenseSpecialTerms] = useState<string[]>([]);
+  const [licenseSpecialTerms, setLicenseSpecialTerms] = useState<LicenseSpecialTerm[]>([]);
   const [copyright, setCopyright] = useState("");
 
   const [synopsis, setSynopsis] = useState("");
@@ -56,14 +44,14 @@ export function useScriptMetadataSupplementalState() {
   const [activityWorkUrl, setActivityWorkUrl] = useState("");
 
   const [seriesName, setSeriesName] = useState("");
-  const [seriesId, setSeriesId] = useState("");
+  const [seriesId, setSeriesId] = useState<string | null>("");
   const [seriesOrder, setSeriesOrder] = useState("");
   const [seriesExpanded, setSeriesExpanded] = useState(false);
   const [showSeriesQuickCreate, setShowSeriesQuickCreate] = useState(false);
   const [quickSeriesName, setQuickSeriesName] = useState("");
   const [isCreatingSeries, setIsCreatingSeries] = useState(false);
 
-  const [customFields, setCustomFields] = useState<CustomFieldItem[]>([]);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [jsonMode, setJsonMode] = useState(false);
   const [jsonText, setJsonText] = useState("");
   const [jsonError, setJsonError] = useState("");

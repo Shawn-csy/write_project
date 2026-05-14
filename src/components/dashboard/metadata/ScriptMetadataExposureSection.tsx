@@ -7,6 +7,58 @@ import { Input } from "../../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
 
+interface SeriesOption {
+  id: string;
+  name: string;
+}
+
+interface TagItem {
+  id?: string | number;
+  name?: string;
+  color?: string;
+}
+
+interface ScriptMetadataExposureSectionProps {
+  sectionId?: string;
+  showTitle?: boolean;
+  t: (key: string, fallback?: string) => string;
+  title: string;
+  author: string;
+  setAuthor: (value: string) => void;
+  authorDisplayMode: "badge" | "override" | string;
+  setAuthorDisplayMode: (value: "badge" | "override") => void;
+  getRowLabelClass: (tone: "required" | "recommended" | "advanced") => string;
+  coverUrl: string;
+  setCoverUrl: (value: string) => void;
+  handleCoverUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  setIsMediaPickerOpen: (open: boolean) => void;
+  coverUploadError: string;
+  coverUploadWarning: string;
+  coverPreviewFailed: boolean;
+  setCoverPreviewFailed: (failed: boolean) => void;
+  recommendedErrorMap: Record<string, string | boolean | undefined>;
+  seriesExpanded: boolean;
+  setSeriesExpanded: React.Dispatch<React.SetStateAction<boolean>>;
+  setSeriesId: (value: string) => void;
+  setSeriesName: (value: string) => void;
+  setSeriesOrder: (value: string) => void;
+  setQuickSeriesName: (value: string) => void;
+  setShowSeriesQuickCreate: React.Dispatch<React.SetStateAction<boolean>>;
+  focusSeriesSelect: () => void;
+  seriesId: string | null;
+  seriesOptions: SeriesOption[];
+  showSeriesQuickCreate: boolean;
+  quickSeriesName: string | null;
+  handleQuickCreateSeries: () => void;
+  isCreatingSeries: boolean;
+  seriesOrder: string;
+  newTagInput: string;
+  setNewTagInput: (value: string) => void;
+  handleAddTag: () => void;
+  currentTags: TagItem[];
+  handleRemoveTag: (id: string | number) => void;
+}
+
 export function ScriptMetadataExposureSection({
   sectionId = "metadata-section-exposure",
   showTitle = true,
@@ -48,9 +100,9 @@ export function ScriptMetadataExposureSection({
   handleAddTag,
   currentTags,
   handleRemoveTag,
-}) {
+}: ScriptMetadataExposureSectionProps) {
   const coverGuide = React.useMemo(() => getImageUploadGuide("cover"), []);
-  const resolveTagSwatch = React.useCallback((rawColor) => {
+  const resolveTagSwatch = React.useCallback((rawColor: string | undefined) => {
     const value = String(rawColor || "").trim();
     if (!value) return { className: "bg-primary/60", style: undefined };
     if (value.startsWith("#") || value.startsWith("rgb") || value.startsWith("hsl") || value.startsWith("var(")) {
@@ -188,7 +240,7 @@ export function ScriptMetadataExposureSection({
                     type="button"
                     variant={showSeriesQuickCreate ? "outline" : "secondary"}
                     size="sm"
-                    onClick={() => setShowSeriesQuickCreate((prev) => !prev)}
+                    onClick={() => setShowSeriesQuickCreate((prev: boolean) => !prev)}
                   >
                     {showSeriesQuickCreate ? "收合建立區" : "建立新系列"}
                   </Button>
@@ -197,7 +249,7 @@ export function ScriptMetadataExposureSection({
                   <div className="flex gap-2">
                     <Input
                       id="metadata-quick-series-name"
-                      value={quickSeriesName}
+                      value={quickSeriesName || ""}
                       onChange={(e) => setQuickSeriesNameInput(e.target.value)}
                       placeholder="輸入新系列名稱"
                       onKeyDown={(e) => {
@@ -259,7 +311,14 @@ export function ScriptMetadataExposureSection({
                     return <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${swatch.className}`} style={swatch.style} />;
                   })()}
                   <span>{tag.name}</span>
-                  <button type="button" className="ml-1.5 rounded-full p-0.5 hover:bg-foreground/15" onClick={() => handleRemoveTag(tag.id)}>
+                  <button
+                    type="button"
+                    className="ml-1.5 rounded-full p-0.5 hover:bg-foreground/15"
+                    onClick={() => {
+                      if (tag.id === undefined) return;
+                      handleRemoveTag(tag.id);
+                    }}
+                  >
                     <X className="h-3 w-3 opacity-70" />
                   </button>
                 </Badge>

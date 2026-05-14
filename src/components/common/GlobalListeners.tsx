@@ -1,8 +1,17 @@
 import React, { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useAppShortcuts } from "../../hooks/useAppShortcuts";
+import type { Nav } from "../../types/nav";
 
-export function GlobalListeners({ nav, adjustFont, filterCharacter, setFocusMode, setShowTitle }) {
+interface GlobalListenersProps {
+  nav: Nav;
+  adjustFont: (delta: number) => void;
+  filterCharacter: string;
+  setFocusMode: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowTitle: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+export function GlobalListeners({ nav, adjustFont, filterCharacter, setFocusMode, setShowTitle }: GlobalListenersProps) {
     const location = useLocation();
 
     // 1. Keyboard Shortcuts

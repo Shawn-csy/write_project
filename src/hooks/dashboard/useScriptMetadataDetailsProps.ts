@@ -1,4 +1,51 @@
 import { useMemo } from "react";
+import type { TagLike, ContactField, CustomField, SeriesOption } from "./types";
+import type { SensorDescriptor } from "@dnd-kit/core";
+
+interface UseScriptMetadataDetailsPropsOptions {
+  status: string;
+  coverUrl: string;
+  setCoverUrl: (v: string) => void;
+  currentTags: TagLike[];
+  author: string;
+  setAuthor: (v: string) => void;
+  availableTags: TagLike[];
+  newTagInput: string;
+  setNewTagInput: (v: string) => void;
+  targetAudience: string;
+  handleSetTargetAudience: (v: string) => void;
+  contentRating: string;
+  handleSetContentRating: (v: string) => void;
+  seriesName: string;
+  setSeriesName: (v: string) => void;
+  seriesId: string | null;
+  setSeriesId: (v: string | null) => void;
+  seriesOptions: SeriesOption[];
+  quickSeriesName: string;
+  setQuickSeriesName: (v: string) => void;
+  handleQuickCreateSeries: () => void;
+  isCreatingSeries: boolean;
+  seriesOrder: string | number;
+  setSeriesOrder: (v: string | number) => void;
+  requiredErrorMap: Record<string, string>;
+  handleAddTag: (tagName?: string) => void;
+  handleAddTagsBatch: (tags: string[]) => void;
+  handleRemoveTag: (id: string | number) => void;
+  handleClearTags: () => void;
+  contactFields: ContactField[];
+  setContactFields: (v: ContactField[]) => void;
+  handleAddContactField: () => void;
+  handleContactFieldUpdate: (id: string, key: string, value: string) => void;
+  sensors: SensorDescriptor<object>[] | undefined;
+  dragDisabled: boolean;
+  setDragDisabled: (v: boolean) => void;
+  customFields: CustomField[];
+  setCustomFields: (v: CustomField[]) => void;
+  addCustomField: () => void;
+  addDivider: () => void;
+  handleCustomFieldUpdate: (id: string, key: string, value: string) => void;
+  recommendedErrorMap: Record<string, string>;
+}
 
 export function useScriptMetadataDetailsProps({
   status,
@@ -43,7 +90,7 @@ export function useScriptMetadataDetailsProps({
   addDivider,
   handleCustomFieldUpdate,
   recommendedErrorMap,
-}) {
+}: UseScriptMetadataDetailsPropsOptions) {
   return useMemo(
     () => ({
       status,
@@ -93,7 +140,7 @@ export function useScriptMetadataDetailsProps({
       showAudienceRating: false,
       showSeries: false,
       showTags: false,
-      layout: "stack",
+      layout: "stack" as const,
     }),
     [
       status,

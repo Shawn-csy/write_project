@@ -292,8 +292,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                       if (realThemes && realThemes.length > 0) {
                           const parsedThemes = realThemes.map((t) => ({
                               ...t,
-                              configs: normalizeThemeConfigs(t.configs),
-                          }));
+                              configs: normalizeThemeConfigs(t.configs) as MarkerConfig[],
+                          })) as MarkerTheme[];
                           themes.setMarkerThemes(parsedThemes);
                           
                           // Validate currentThemeId

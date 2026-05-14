@@ -17,7 +17,7 @@ const systemPrefersDark = () =>
   window.matchMedia &&
   window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-const applyThemeClass = (theme) => {
+const applyThemeClass = (theme: string) => {
   const root = document.documentElement;
   root.classList.remove('light', 'dark');
   root.classList.add(theme);
@@ -50,7 +50,7 @@ export function ThemeProvider({ children, defaultTheme = 'system', storageKey = 
     if (theme !== 'system') return undefined;
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = (event) => {
+    const handler = (event: MediaQueryListEvent) => {
       const next = event.matches ? 'dark' : 'light';
       setResolvedTheme(next);
       applyThemeClass(next);

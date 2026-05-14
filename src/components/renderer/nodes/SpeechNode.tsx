@@ -1,7 +1,19 @@
 import React from 'react';
 import { InlineRenderer } from '../InlineRenderer'; // Need to import this or just rely on child renderer filtering
 
-export const SpeechNode = ({ node, context, isDual, NodeRenderer }) => {
+interface SpeechNodeData {
+    character?: string;
+    children?: Array<{ type?: string } & Record<string, unknown>>;
+}
+
+interface SpeechNodeProps {
+    node: SpeechNodeData;
+    context: unknown;
+    isDual?: boolean;
+    NodeRenderer: React.ComponentType<{ node: any; context: any; isDual?: boolean }>;
+}
+
+export const SpeechNode = ({ node, context, isDual, NodeRenderer }: SpeechNodeProps): React.JSX.Element => {
     // Non-marker visual controls are disabled.
     const hideMeta = false;
 
@@ -17,7 +29,7 @@ export const SpeechNode = ({ node, context, isDual, NodeRenderer }) => {
              )}
              
              {/* Children: Dialogue and Parentheticals */}
-             {node.children.map((child, i) => {
+             {(node.children || []).map((child: { type?: string } & Record<string, unknown>, i: number) => {
                  // specific filtering for children
                  if (hideMeta && child.type === 'parenthetical') return null;
                  // Note: Previously SpeechNode just mapped children. 

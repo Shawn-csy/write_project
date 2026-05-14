@@ -19,6 +19,29 @@ interface OrgOption {
 }
 
 type RowTone = "required" | "recommended" | "advanced";
+interface HeroMultiItem {
+    id: string;
+    name: string;
+    text: string;
+}
+interface ChapterMultiItem {
+    id: string;
+    chapter: string;
+    environment: string;
+    situation: string;
+}
+interface HeroEntry {
+    id: string;
+    name: string;
+    role: string;
+    performance: string;
+}
+interface ChapterEntry {
+    id: string;
+    chapter: string;
+    environment: string;
+    situation: string;
+}
 
 interface MetadataBasicTabProps {
     title: string;
@@ -88,7 +111,7 @@ export function MetadataBasicTab({
         recommended: "border-l-[5px] border-[color:var(--license-term-border)] bg-[color:var(--license-term-bg)] text-[color:var(--license-term-fg)]",
         advanced: "border-l-[5px] border-muted-foreground/50 bg-muted/35 text-foreground dark:bg-muted/45 dark:text-foreground",
     };
-    const getRowLabelClass = (tone = "recommended", missing = false) =>
+    const getRowLabelClass = (tone: RowTone = "recommended", missing = false) =>
         `${rowLabelBaseClass} ${rowLabelToneClass[tone] || rowLabelToneClass.recommended} ${
             missing ? "border-l-[6px] border-destructive bg-destructive/20 ring-2 ring-inset ring-destructive/55 dark:bg-destructive/30" : ""
         }`;
@@ -128,7 +151,7 @@ export function MetadataBasicTab({
             ...safePersonas,
         ];
     }, [identityDisplayName, identityPersonaId, selectedPersona, safePersonas, t]);
-    const statusButtonClass = (active, type) =>
+    const statusButtonClass = (active: boolean, type: "public" | "private") =>
         `flex items-center gap-2 rounded-md border px-3 py-2 text-left text-sm transition-all ${
             active
                 ? type === "public"
@@ -137,11 +160,11 @@ export function MetadataBasicTab({
                 : "border-border bg-background text-muted-foreground hover:bg-muted"
         }`;
 
-    const parseMulti = React.useCallback((raw: string) => {
+    const parseMulti = React.useCallback((raw: string): HeroMultiItem[] | null => {
         try {
             const parsed = JSON.parse(String(raw || ""));
             if (parsed?.mode !== "multi" || !Array.isArray(parsed.items)) return null;
-            return parsed.items.map((item, idx) => ({
+            return parsed.items.map((item: { name?: unknown; text?: unknown }, idx: number) => ({
                 id: `hero-${idx + 1}`,
                 name: String(item?.name || ""),
                 text: String(item?.text || ""),
@@ -151,11 +174,11 @@ export function MetadataBasicTab({
         }
     }, []);
 
-    const parseChapterMulti = React.useCallback((raw: string) => {
+    const parseChapterMulti = React.useCallback((raw: string): ChapterMultiItem[] | null => {
         try {
             const parsed = JSON.parse(String(raw || ""));
             if (parsed?.mode !== "chapter_multi" || !Array.isArray(parsed.items)) return null;
-            return parsed.items.map((item, idx) => ({
+            return parsed.items.map((item: { chapter?: unknown; environment?: unknown; situation?: unknown }, idx: number) => ({
                 id: `chapter-${idx + 1}`,
                 chapter: String(item?.chapter || ""),
                 environment: String(item?.environment || ""),
@@ -166,11 +189,11 @@ export function MetadataBasicTab({
         }
     }, []);
 
-    const heroEntries = React.useMemo(() => {
+    const heroEntries = React.useMemo<HeroEntry[]>(() => {
         const roleItems = parseMulti(roleSetting);
         const performanceItems = parseMulti(performanceInstruction);
         return roleItems || performanceItems
-            ? Array.from({ length: Math.max(1, roleItems?.length || 0, performanceItems?.length || 0) }).map((_, idx) => ({
+            ? Array.from({ length: Math.max(1, roleItems?.length || 0, performanceItems?.length || 0) }).map((_: unknown, idx: number) => ({
                 id: `hero-${idx + 1}`,
                 name: roleItems?.[idx]?.name || performanceItems?.[idx]?.name || "",
                 role: roleItems?.[idx]?.text || "",
@@ -217,15 +240,15 @@ export function MetadataBasicTab({
     };
 
     const updateHeroEntry = (idx: number, field: "name" | "role" | "performance", value: string) => {
-        commitHeroEntries(heroEntries.map((item, i) => (i === idx ? { ...item, [field]: value } : item)));
+        commitHeroEntries(heroEntries.map((item, i: number) => (i === idx ? { ...item, [field]: value } : item)));
     };
 
     const removeHeroEntry = (idx: number) => {
         if (heroEntries.length <= 1) return;
-        commitHeroEntries(heroEntries.filter((_, i) => i !== idx));
+        commitHeroEntries(heroEntries.filter((_: unknown, i: number) => i !== idx));
     };
 
-    const chapterEntries = React.useMemo(() => {
+    const chapterEntries = React.useMemo<ChapterEntry[]>(() => {
         const parsed = parseChapterMulti(chapterSettings);
         if (parsed && parsed.length > 0) return parsed;
         return [{
@@ -262,12 +285,12 @@ export function MetadataBasicTab({
     };
 
     const updateChapterEntry = (idx: number, field: "chapter" | "environment" | "situation", value: string) => {
-        commitChapterEntries(chapterEntries.map((item, i) => (i === idx ? { ...item, [field]: value } : item)));
+        commitChapterEntries(chapterEntries.map((item, i: number) => (i === idx ? { ...item, [field]: value } : item)));
     };
 
     const removeChapterEntry = (idx: number) => {
         if (chapterEntries.length <= 1) return;
-        commitChapterEntries(chapterEntries.filter((_, i) => i !== idx));
+        commitChapterEntries(chapterEntries.filter((_: unknown, i: number) => i !== idx));
     };
 
     return (

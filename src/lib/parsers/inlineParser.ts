@@ -28,7 +28,7 @@ export const parseInline = (text: string, configs: MarkerConfig[] = []): unknown
 
     const dynamicParsers: unknown[] = [];
     const customParsers = createDynamicParsers(sortedConfigs);
-    Object.values(customParsers).forEach(p => dynamicParsers.push(p));
+    Object.values(customParsers).forEach((p: unknown) => dynamicParsers.push(p));
     
     // 2. Build Dynamic Text Parser
     const DynamicText = createTextParser(safeConfigs);
@@ -38,7 +38,7 @@ export const parseInline = (text: string, configs: MarkerConfig[] = []): unknown
         ...dynamicParsers,
         DynamicText,
         // Fallback: consume any unmatched char as plain text
-        P.any.map(c => ({ type: 'text', content: c }))
+        P.any.map((c: string) => ({ type: 'text', content: c }))
     ];
 
     const Parser = P.alt(...AllParsers).many();

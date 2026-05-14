@@ -33,18 +33,19 @@ const inferMatchMode = (config: Record<string, unknown> = {}) => {
   return "none";
 };
 
-export const normalizeMarkerConfigsSchema = (configs: unknown) => {
+export const normalizeMarkerConfigsSchema = (configs: unknown): import("../types/script").MarkerConfig[] => {
   const normalized = normalizeThemeConfigs(configs);
   return normalized
     .filter((config) => config && typeof config === "object")
     .map((config) => {
-      const matchMode = inferMatchMode(config as Record<string, unknown>);
-      const parseAs = String(config.parseAs || "").trim();
+      const cfg = config as Record<string, unknown>;
+      const matchMode = inferMatchMode(cfg);
+      const parseAs = String(cfg.parseAs || "").trim();
       const isMappedNode = Boolean(parseAs);
-      const isBlock = Boolean(config.isBlock) || config.type === "block" || matchMode === "range" || isMappedNode;
-      const type = config.type || (isBlock ? "block" : "inline");
-      const next = {
-        ...config,
+      const isBlock = Boolean(cfg.isBlock) || cfg.type === "block" || matchMode === "range" || isMappedNode;
+      const type = cfg.type || (isBlock ? "block" : "inline");
+      const next: Record<string, unknown> = {
+        ...cfg,
         matchMode,
         isBlock,
         type,
@@ -57,7 +58,7 @@ export const normalizeMarkerConfigsSchema = (configs: unknown) => {
         delete next.mapCasts;
       }
       return next;
-    });
+    }) as import("../types/script").MarkerConfig[];
 };
 
 export const serializeThemeConfigs = (configs: unknown) => {

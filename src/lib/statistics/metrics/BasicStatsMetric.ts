@@ -33,7 +33,7 @@ export class BasicStatsMetric extends Metric {
 
     const text = this.getText(node).trim();
 
-    const normalizeCountText = (input) => {
+    const normalizeCountText = (input: unknown): string => {
       if (!input) return "";
       let out = String(input);
       if (context?.statsConfig?.excludePunctuation) {

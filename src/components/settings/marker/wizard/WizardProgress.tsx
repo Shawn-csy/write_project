@@ -3,11 +3,23 @@ import { Check } from 'lucide-react';
 import { cn } from '../../../../lib/utils';
 import { useI18n } from '../../../../contexts/I18nContext';
 
+type WizardStepId = "type" | "symbol" | "style";
+
+interface WizardStep {
+    id: WizardStepId | string;
+    label: string;
+}
+
+interface WizardProgressProps {
+    currentStep: number;
+    steps: readonly WizardStep[];
+}
+
 /**
  * Wizard 進度指示器
  * 顯示當前步驟與整體進度
  */
-export function WizardProgress({ currentStep, steps }) {
+export function WizardProgress({ currentStep, steps }: WizardProgressProps): React.JSX.Element {
     const { t } = useI18n();
     const labelMap = {
         type: t("markerWizardProgress.type"),
@@ -17,7 +29,7 @@ export function WizardProgress({ currentStep, steps }) {
 
     return (
         <div className="flex items-center justify-center gap-2 py-4">
-            {steps.map((step, index) => {
+            {steps.map((step: WizardStep, index: number) => {
                 const stepNum = index + 1;
                 const isActive = stepNum === currentStep;
                 const isCompleted = stepNum < currentStep;
@@ -44,7 +56,7 @@ export function WizardProgress({ currentStep, steps }) {
                                 "text-[10px] font-medium",
                                 isActive ? "text-primary" : "text-muted-foreground"
                             )}>
-                                {labelMap[step.id] || step.label}
+                                {labelMap[step.id as WizardStepId] || step.label}
                             </span>
                         </div>
                         
@@ -68,4 +80,4 @@ export const WIZARD_STEPS = [
     { id: 'type', label: 'type' },
     { id: 'symbol', label: 'symbol' },
     { id: 'style', label: 'style' }
-];
+] as const;

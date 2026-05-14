@@ -2,6 +2,7 @@ import React from 'react';
 import { cn } from '../../../../lib/utils';
 import { MARKER_TYPES, MARKER_PRESETS } from '../presets/markerPresets';
 import { useI18n } from '../../../../contexts/I18nContext';
+import type { MarkerConfig } from '../../../../types/script';
 import { 
     Volume2, Music, MessageSquare, Clapperboard, Film, Edit3, 
     FileText, Package, Highlighter 
@@ -11,6 +12,22 @@ const IconMap = {
     Volume2, Music, MessageSquare, Clapperboard, Film, Edit3,
     FileText, Package, Highlighter
 };
+
+type StepTypeValue = "single" | "range" | "inline" | null;
+type ScenarioId = "audio" | "dialogue" | "action" | "post";
+
+interface ScenarioPick {
+    id: ScenarioId;
+    presetId: string;
+    title: string;
+}
+
+interface StepTypeSelectorProps {
+    value: StepTypeValue;
+    onChange: (value: "single" | "range" | "inline") => void;
+    onPresetSelect: (preset: { name?: string; config: MarkerConfig }) => void;
+    onScenarioSelect?: (scenario: ScenarioPick) => void;
+}
 
 const CREATOR_SCENARIOS = [
     {
@@ -35,10 +52,10 @@ const CREATOR_SCENARIOS = [
  * Step 1: 類型選擇器
  * 讓用戶選擇要建立的標記類型
  */
-export function StepTypeSelector({ value, onChange, onPresetSelect, onScenarioSelect }) {
+export function StepTypeSelector({ value, onChange, onPresetSelect, onScenarioSelect }: StepTypeSelectorProps): React.JSX.Element {
     const { t } = useI18n();
-    const [entryMode, setEntryMode] = React.useState("scenario"); // scenario | manual
-    const scenarioText = {
+    const [entryMode, setEntryMode] = React.useState<"scenario" | "manual">("scenario");
+    const scenarioText: Record<ScenarioId, { title: string; description: string }> = {
         audio: {
             title: t("stepTypeSelector.scenario.audio.title"),
             description: t("stepTypeSelector.scenario.audio.description"),
@@ -57,8 +74,8 @@ export function StepTypeSelector({ value, onChange, onPresetSelect, onScenarioSe
         },
     };
 
-    const renderIcon = (iconName) => {
-        const Icon = IconMap[iconName];
+    const renderIcon = (iconName: string) => {
+        const Icon = IconMap[iconName as keyof typeof IconMap];
         return Icon ? <Icon className="w-5 h-5" /> : null;
     };
 
@@ -97,14 +114,15 @@ export function StepTypeSelector({ value, onChange, onPresetSelect, onScenarioSe
                                 type="button"
                                 onClick={() =>
                                   onScenarioSelect?.({
-                                    ...scenario,
-                                    title: scenarioText[scenario.id]?.title || scenario.id,
+                                    id: scenario.id as ScenarioId,
+                                    presetId: scenario.presetId,
+                                    title: scenarioText[scenario.id as ScenarioId]?.title || scenario.id,
                                   })
                                 }
                                 className="rounded-lg border border-border/60 bg-card/60 p-3 text-left transition-all hover:border-primary/40 hover:bg-primary/5"
                             >
-                                <div className="text-sm font-medium text-foreground">{scenarioText[scenario.id]?.title || scenario.id}</div>
-                                <div className="mt-1 text-xs text-muted-foreground">{scenarioText[scenario.id]?.description || ""}</div>
+                                <div className="text-sm font-medium text-foreground">{scenarioText[scenario.id as ScenarioId]?.title || scenario.id}</div>
+                                <div className="mt-1 text-xs text-muted-foreground">{scenarioText[scenario.id as ScenarioId]?.description || ""}</div>
                             </button>
                         ))}
                     </div>
@@ -121,7 +139,7 @@ export function StepTypeSelector({ value, onChange, onPresetSelect, onScenarioSe
                                 <button
                                     key={preset.id}
                                     type="button"
-                                    onClick={() => onPresetSelect(preset)}
+                                    onClick={() => onPresetSelect({ name: preset.name, config: preset.config as MarkerConfig })}
                                     className={cn(
                                         "flex flex-col items-start p-3 rounded-lg border text-left transition-all",
                                         "hover:border-primary/50 hover:bg-primary/5",
@@ -147,7 +165,7 @@ export function StepTypeSelector({ value, onChange, onPresetSelect, onScenarioSe
                                 <button
                                     key={type.id}
                                     type="button"
-                                    onClick={() => onChange(type.id)}
+                                    onClick={() => onChange(type.id as "single" | "range" | "inline")}
                                     className={cn(
                                         "flex flex-col p-4 rounded-xl border-2 text-left transition-all group",
                                         isSelected 

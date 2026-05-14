@@ -1,6 +1,21 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 
+interface ActiveFileLike {
+  name?: string;
+}
+
+interface MetaTagsProps {
+  titleName?: string;
+  titleSummary?: string;
+  titleNote?: string;
+  activeFile?: string | ActiveFileLike | null;
+  currentSceneId?: string;
+  indexable?: boolean;
+  canonicalPath?: string;
+  forceArticle?: boolean;
+}
+
 export function MetaTags({
   titleName,
   titleSummary,
@@ -10,7 +25,7 @@ export function MetaTags({
   indexable = true,
   canonicalPath = "",
   forceArticle = false,
-}) {
+}: MetaTagsProps) {
   const cleanText = (text = "") => text.replace(/\s+/g, " ").trim();
   
   const summary =

@@ -4,7 +4,24 @@ import { Button } from "../../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../ui/dialog";
 import { useI18n } from "../../../contexts/I18nContext";
 
-function normalizePath(path) {
+interface WriteItem {
+    id: string;
+    title: string;
+    type?: string;
+}
+
+interface MoveScriptDialogProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    item: WriteItem | null;
+    availableFolders: string[];
+    targetFolder: string;
+    setTargetFolder: (path: string) => void;
+    moving: boolean;
+    onConfirm: () => void;
+}
+
+function normalizePath(path: string) {
     return path === "/" ? "/" : (path || "/");
 }
 
@@ -17,7 +34,7 @@ export function MoveScriptDialog({
     setTargetFolder,
     moving,
     onConfirm
-}) {
+}: MoveScriptDialogProps) {
     const { t } = useI18n();
     const disabled = !item || item.type === "folder";
 

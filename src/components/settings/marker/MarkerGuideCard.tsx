@@ -3,8 +3,15 @@ import { Copy } from "lucide-react";
 import { cn } from "../../../lib/utils";
 import { Button } from "../../ui/button";
 import { useI18n } from "../../../contexts/I18nContext";
+import type { EditableMarkerConfig } from "./types";
 
-export function MarkerGuideCard({ config, onCopy, minimal = false }) {
+interface MarkerGuideCardProps {
+    config: EditableMarkerConfig;
+    onCopy?: (text: string) => void;
+    minimal?: boolean;
+}
+
+export function MarkerGuideCard({ config, onCopy, minimal = false }: MarkerGuideCardProps): React.JSX.Element {
     const { t } = useI18n();
     // Helper property compatibility
     const isBlock = config.type === 'block' || config.isBlock;
@@ -24,7 +31,7 @@ export function MarkerGuideCard({ config, onCopy, minimal = false }) {
         exampleText = t("markerGuideCard.regexMatchedText");
     }
 
-    const handleCopy = (e) => {
+    const handleCopy = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation();
         onCopy?.(exampleText);
     };
@@ -73,8 +80,8 @@ export function MarkerGuideCard({ config, onCopy, minimal = false }) {
                   className="relative my-0.5 border-l-2 pl-2"
                   style={{
                     ...config.style,
-                    borderColor: config.style?.color || "var(--muted)",
-                    backgroundColor: config.style?.backgroundColor,
+                    borderColor: String(config.style?.color || "var(--muted)"),
+                    backgroundColor: config.style?.backgroundColor ? String(config.style.backgroundColor) : undefined,
                     // Limit height
                     maxHeight: '40px',
                     overflow: 'hidden'

@@ -10,9 +10,34 @@ import { Plus, Trash2 } from "lucide-react";
 import { calculateScriptStats } from '@/lib/statistics';
 import { buildAST } from '@/lib/importPipeline/directASTBuilder';
 import { useI18n } from "@/contexts/I18nContext";
+import type { MarkerConfig } from "@/types/script";
+import type { CheckedState } from "@radix-ui/react-checkbox";
 
+interface StatsKeywordRule {
+    factor: number;
+    keywords: string;
+}
 
-export function StatisticsSettingsDialog({ open, onOpenChange, config, onSave, scriptAst, rawScript, markerConfigs }) {
+interface StatisticsSettingsConfig {
+    wordCountDivisor: number;
+    excludeNestedDuration: boolean;
+    excludePunctuation: boolean;
+    customKeywords: StatsKeywordRule[];
+}
+
+interface StatisticsSettingsDialogProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    config: StatisticsSettingsConfig | null;
+    onSave: (config: StatisticsSettingsConfig) => void;
+    scriptAst?: unknown;
+    rawScript?: string;
+    markerConfigs?: MarkerConfig[];
+}
+
+type StatsAst = Parameters<typeof calculateScriptStats>[0];
+
+export function StatisticsSettingsDialog({ open, onOpenChange, config, onSave, scriptAst, rawScript, markerConfigs }: StatisticsSettingsDialogProps): React.JSX.Element | null {
     const { t } = useI18n();
     const defaultConfig = {
         wordCountDivisor: 200,
@@ -24,7 +49,7 @@ export function StatisticsSettingsDialog({ open, onOpenChange, config, onSave, s
         ]
     };
 
-    const [localConfig, setLocalConfig] = useState(config || defaultConfig);
+    const [localConfig, setLocalConfig] = useState<StatisticsSettingsConfig>(config || defaultConfig);
 
     useEffect(() => {
         if (open) {
@@ -53,8 +78,8 @@ export function StatisticsSettingsDialog({ open, onOpenChange, config, onSave, s
                 statsConfig: localConfig 
             };
 
-            if (scriptAst) {
-                stats = calculateScriptStats(scriptAst, markerConfigs, options);
+            if (scriptAst && typeof scriptAst === "object") {
+                stats = calculateScriptStats(scriptAst as StatsAst, markerConfigs, options);
             } else if (rawScript) {
                 const ast = buildAST(rawScript || "", markerConfigs || []);
                 stats = calculateScriptStats(ast, markerConfigs || [], options);
@@ -76,7 +101,7 @@ export function StatisticsSettingsDialog({ open, onOpenChange, config, onSave, s
                 
                 const totalMin = readingMin + markerMin;
 
-                const formatTime = (totalMinutes) => {
+                const formatTime = (totalMinutes: number) => {
                     const m = Math.floor(totalMinutes);
                     const s = Math.round((totalMinutes - m) * 60);
                     return t("statisticsSettings.timeMinutesSeconds")
@@ -105,7 +130,7 @@ export function StatisticsSettingsDialog({ open, onOpenChange, config, onSave, s
         onOpenChange(false);
     };
 
-    const updateKeyword = (index, field, value) => {
+    const updateKeyword = (index: number, field: "factor" | "keywords", value: number | string) => {
         const newKeywords = [...(localConfig.customKeywords || [])];
         newKeywords[index] = { ...newKeywords[index], [field]: value };
         setLocalConfig({ ...localConfig, customKeywords: newKeywords });
@@ -118,7 +143,7 @@ export function StatisticsSettingsDialog({ open, onOpenChange, config, onSave, s
         });
     };
 
-    const removeKeyword = (index) => {
+    const removeKeyword = (index: number) => {
         const newKeywords = [...(localConfig.customKeywords || [])];
         newKeywords.splice(index, 1);
         setLocalConfig({ ...localConfig, customKeywords: newKeywords });
@@ -139,7 +164,7 @@ export function StatisticsSettingsDialog({ open, onOpenChange, config, onSave, s
                             <Checkbox 
                                 id="nested-exclusion"
                                 checked={localConfig.excludeNestedDuration}
-                                onCheckedChange={(c) => setLocalConfig({...localConfig, excludeNestedDuration: c})}
+                                onCheckedChange={(c: CheckedState) => setLocalConfig({...localConfig, excludeNestedDuration: c === true})}
                             />
                             <Label htmlFor="nested-exclusion">{t("statisticsSettings.excludeNestedDuration")}</Label>
                         </div>
@@ -150,7 +175,7 @@ export function StatisticsSettingsDialog({ open, onOpenChange, config, onSave, s
                             <Checkbox 
                                 id="exclude-punctuation"
                                 checked={localConfig.excludePunctuation}
-                                onCheckedChange={(c) => setLocalConfig({...localConfig, excludePunctuation: c})}
+                                onCheckedChange={(c: CheckedState) => setLocalConfig({...localConfig, excludePunctuation: c === true})}
                             />
                             <Label htmlFor="exclude-punctuation">{t("statisticsSettings.excludePunctuation")}</Label>
                         </div>
@@ -190,7 +215,7 @@ export function StatisticsSettingsDialog({ open, onOpenChange, config, onSave, s
                                 <div className="w-10"></div>
                             </div>
 
-                            {(localConfig.customKeywords || []).map((k, i) => (
+                            {(localConfig.customKeywords || []).map((k: StatsKeywordRule, i: number) => (
                                 <div key={i} className="p-2 flex flex-col sm:flex-row gap-2 items-start sm:items-center group hover:bg-muted/10">
                                     <div className="flex items-center gap-2 w-full sm:w-auto">
                                         <label className="sm:hidden text-xs text-muted-foreground w-12">{t("statisticsSettings.factorLabel")}</label>

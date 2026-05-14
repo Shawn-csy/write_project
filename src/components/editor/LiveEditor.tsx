@@ -102,7 +102,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   });
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 639px)");
-    const handler = (e) => setIsMobile(e.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, []);
@@ -118,7 +118,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return undefined;
     const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = (event) => {
+    const handleChange = (event: MediaQueryListEvent) => {
       setSystemPrefersDark(event.matches);
     };
 
@@ -151,7 +151,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     setProcessedRenderedHtml("");
   }, [content, markerConfigs, hiddenMarkerIds]);
 
-  const ensureRenderedHtml = useCallback(() => {
+  const ensureRenderedHtml = useCallback((): Promise<string> => {
     const existing = renderedHtmlRef.current.processed || renderedHtmlRef.current.raw;
     if (existing) return Promise.resolve(existing);
 
@@ -161,7 +161,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
     // Scale timeout with content size: +200ms per 5KB over the first 5KB, capped at 5s.
     const timeout = Math.min(800 + Math.floor((content?.length || 0) / 5000) * 200, 5000);
 
-    return new Promise((resolve) => {
+    return new Promise<string>((resolve) => {
       htmlResolverRef.current = resolve;
       htmlTimeoutRef.current = window.setTimeout(() => {
         htmlTimeoutRef.current = null;
@@ -245,7 +245,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
 
   // BeforeUnload Warning — 只要與雲端版本有 diff 就警告
   useEffect(() => {
-      const handleBeforeUnload = (e) => {
+      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
           if (content !== lastSavedContent.current || title !== lastSavedTitle.current) {
               e.preventDefault();
               e.returnValue = t("liveEditor.leaveWarning");
@@ -286,7 +286,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   useEffect(() => {
     if (readOnly) return undefined;
 
-    const onKeyDown = (event) => {
+    const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;
       if (event.altKey) return;
       if (!(event.metaKey || event.ctrlKey)) return;
@@ -331,13 +331,13 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
   }, [scrollSyncExtension, highlightExtension]);
 
   // Memoized handlers
-  const handleEditorCreate = useCallback((view) => {
+  const handleEditorCreate = useCallback((view: EditorView) => {
       editorViewRef.current = view;
       setEditorReady(true);
       handleEditorScroll();
   }, [setEditorReady, handleEditorScroll]);
 
-  const handleSwitchMarkerTheme = useCallback(async (themeId) => {
+  const handleSwitchMarkerTheme = useCallback(async (themeId: string) => {
     const nextId = String(themeId || "default");
     const prevId = String(currentThemeId || "default");
     if (nextId === prevId) return;

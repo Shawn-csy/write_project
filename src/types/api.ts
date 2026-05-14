@@ -147,7 +147,18 @@ export interface SeriesPayload {
 export interface PublicTermsConfig {
   required?: boolean;
   version?: string;
+  title?: string;
+  intro?: string;
   content?: string;
+  sections?: Array<{
+    id?: string;
+    title?: string;
+    body?: string;
+  }>;
+  requiredChecks?: Array<{
+    id: string;
+    label?: string;
+  }>;
   updatedAt?: string | number;
   [key: string]: unknown;
 }

@@ -1,6 +1,11 @@
 import React from "react";
 
-export default function ControlsRow({ className, children }) {
+interface ControlsRowProps {
+  className?: string;
+  children?: React.ReactNode;
+}
+
+export default function ControlsRow({ className, children }: ControlsRowProps): React.JSX.Element {
   return (
     <div
       className={

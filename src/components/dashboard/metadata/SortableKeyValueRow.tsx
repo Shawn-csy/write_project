@@ -6,6 +6,35 @@ import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Textarea } from "../../ui/textarea";
 
+export interface SortableKeyValueItem {
+  id: string;
+  key?: string;
+  value?: string;
+  type?: string;
+}
+
+interface SortableKeyValueRowProps {
+  field: SortableKeyValueItem;
+  index: number;
+  onUpdate: (index: number, field: "key" | "value", value: string) => void;
+  onRemove: (index: number) => void;
+  onFocus: () => void;
+  onBlur: () => void;
+  dragDisabled: boolean;
+  dragSortAriaLabel: string;
+  keyAriaLabel: string;
+  keyPlaceholder: string;
+  valueAriaLabel: string;
+  valuePlaceholder: string;
+  valueAs?: "input" | "textarea";
+  wrapperClassName?: string;
+  dragButtonClassName?: string;
+  keyContainerClassName?: string;
+  valueContainerClassName?: string;
+  keyClassName?: string;
+  valueClassName?: string;
+}
+
 export function SortableKeyValueRow({
   field,
   index,
@@ -26,7 +55,7 @@ export function SortableKeyValueRow({
   valueContainerClassName = "",
   keyClassName = "w-1/3",
   valueClassName = "w-2/3",
-}) {
+}: SortableKeyValueRowProps) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } = useSortable({
     id: field.id,
     disabled: dragDisabled,

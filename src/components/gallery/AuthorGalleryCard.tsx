@@ -3,8 +3,28 @@ import { Badge } from "../ui/badge";
 import { Card } from "../ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
 
-export function AuthorGalleryCard({ author, onClick, onTagClick }) {
-  const { id, displayName, avatar, bio, tags = [], organizations = [] } = author;
+interface AuthorOrg {
+  id: string;
+  name?: string;
+}
+
+interface AuthorGalleryItem {
+  id: string;
+  displayName?: string;
+  avatar?: string;
+  bio?: string;
+  tags?: string[];
+  organizations?: AuthorOrg[];
+}
+
+interface AuthorGalleryCardProps {
+  author: AuthorGalleryItem;
+  onClick?: () => void;
+  onTagClick?: (tag: string) => void;
+}
+
+export function AuthorGalleryCard({ author, onClick, onTagClick }: AuthorGalleryCardProps): React.JSX.Element {
+  const { displayName, avatar, bio, tags = [], organizations = [] } = author;
   
   return (
     <Card 
@@ -29,7 +49,7 @@ export function AuthorGalleryCard({ author, onClick, onTagClick }) {
       {/* Orgs */}
       {organizations.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-2">
-            {organizations.map(org => (
+            {organizations.map((org: AuthorOrg) => (
                 <Badge key={org.id} variant="secondary" className="px-1.5 py-0 text-[10px] h-5 font-normal">
                     {org.name}
                 </Badge>
@@ -41,7 +61,7 @@ export function AuthorGalleryCard({ author, onClick, onTagClick }) {
       <div className="mt-auto pt-2 border-t border-border/40">
         {tags.length > 0 ? (
           <div className="flex flex-wrap gap-1">
-            {tags.slice(0, 5).map((tag, i) => (
+            {tags.slice(0, 5).map((tag: string, i: number) => (
               <Badge 
                 key={i} 
                 variant="outline" 

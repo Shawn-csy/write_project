@@ -1,4 +1,6 @@
 import { useEffect } from "react";
+import type { PersonaLike } from "../../types/persona";
+import type { ContactField, LicenseSpecialTerm } from "./types";
 
 export function useScriptMetadataPersonaSync({
   open,
@@ -21,6 +23,27 @@ export function useScriptMetadataPersonaSync({
   setLicenseSpecialTerms,
   setIdentity,
   setSelectedOrgId,
+}: {
+  open: boolean;
+  disablePersonaAutofill?: boolean;
+  identity: string;
+  personas: PersonaLike[];
+  contact: string;
+  contactFields: ContactField[];
+  contactAutoFilledRef: { current: boolean };
+  selectedOrgId: string | null;
+  licenseCommercial: string;
+  licenseDerivative: string;
+  licenseNotify: string;
+  licenseSpecialTerms: LicenseSpecialTerm[];
+  ensureList: (v: unknown) => unknown[];
+  setContactFields: (v: ContactField[]) => void;
+  setLicenseCommercial: (v: string) => void;
+  setLicenseDerivative: (v: string) => void;
+  setLicenseNotify: (v: string) => void;
+  setLicenseSpecialTerms: (v: LicenseSpecialTerm[]) => void;
+  setIdentity: (v: string) => void;
+  setSelectedOrgId: (v: string | null) => void;
 }) {
   useEffect(() => {
     if (disablePersonaAutofill) return;
@@ -36,7 +59,7 @@ export function useScriptMetadataPersonaSync({
     if (persona.website) {
       next.push({ id: `ct-${Date.now()}-web`, key: "Website", value: persona.website });
     }
-    (persona.links || []).forEach((link, index) => {
+    (Array.isArray(persona.links) ? persona.links : []).forEach((link, index) => {
       if (!link?.url) return;
       next.push({
         id: `ct-${Date.now()}-${index}`,
@@ -60,7 +83,7 @@ export function useScriptMetadataPersonaSync({
     if (!licenseDerivative?.trim() && persona.defaultLicenseDerivative) setLicenseDerivative(persona.defaultLicenseDerivative);
     if (!licenseNotify?.trim() && persona.defaultLicenseNotify) setLicenseNotify(persona.defaultLicenseNotify);
     if ((licenseSpecialTerms || []).length === 0 && Array.isArray(persona.defaultLicenseSpecialTerms) && persona.defaultLicenseSpecialTerms.length > 0) {
-      setLicenseSpecialTerms(ensureList(persona.defaultLicenseSpecialTerms));
+      setLicenseSpecialTerms(ensureList(persona.defaultLicenseSpecialTerms) as LicenseSpecialTerm[]);
     }
   }, [
     disablePersonaAutofill,
@@ -94,7 +117,7 @@ export function useScriptMetadataPersonaSync({
       setSelectedOrgId("");
       return;
     }
-    if (!orgIds.includes(selectedOrgId)) {
+    if (!orgIds.includes(selectedOrgId || "")) {
       setSelectedOrgId(orgIds[0]);
     }
   }, [disablePersonaAutofill, identity, personas, selectedOrgId, setIdentity, setSelectedOrgId]);

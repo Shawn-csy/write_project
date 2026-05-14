@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import type { RefObject } from "react";
 import { usePersistentSpotlightGuide } from "../usePersistentSpotlightGuide";
 
 const SCRIPT_METADATA_GUIDE_STORAGE_KEY = "script-metadata-guide-seen-v2";
@@ -12,7 +13,7 @@ interface MetadataGuideStep {
   section: string;
 }
 
-function getChecklistTarget(key) {
+function getChecklistTarget(key: string) {
   if (key === "title") return { section: "basic", fieldId: "metadata-title" };
   if (key === "identity") return { section: "basic", fieldId: "metadata-identity-trigger" };
   if (key === "audience") return { section: "publish", fieldId: "metadata-audience" };
@@ -31,6 +32,13 @@ export function useScriptMetadataGuide({
   activeTab,
   setActiveTab,
   contentScrollRef,
+}: {
+  t: (key: string, fallback?: string) => string;
+  open: boolean;
+  isInitializing: boolean;
+  activeTab: string;
+  setActiveTab: (v: string | ((prev: string) => string)) => void;
+  contentScrollRef: RefObject<HTMLElement | null>;
 }) {
   const autoScrollLockUntilRef = useRef(0);
 
@@ -76,7 +84,7 @@ export function useScriptMetadataGuide({
     [t]
   );
 
-  const scrollToSection = useCallback((section, behavior: ScrollBehavior = "smooth") => {
+  const scrollToSection = useCallback((section: string, behavior: ScrollBehavior = "smooth") => {
     const el = document.getElementById(`metadata-section-${section}`);
     if (el && typeof el.scrollIntoView === "function") {
       el.scrollIntoView({ block: "start", behavior });
@@ -84,7 +92,7 @@ export function useScriptMetadataGuide({
   }, []);
 
   const focusSection = useCallback(
-    (section) => {
+    (section: string) => {
       autoScrollLockUntilRef.current = Date.now() + 900;
       setActiveTab(section);
       scrollToSection(section);
@@ -117,7 +125,7 @@ export function useScriptMetadataGuide({
   });
 
   const jumpToChecklistItem = useCallback(
-    (key) => {
+    (key: string) => {
       const target = getChecklistTarget(key);
       focusSection(target.section);
       window.setTimeout(() => {

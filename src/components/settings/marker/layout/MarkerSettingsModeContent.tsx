@@ -2,6 +2,31 @@ import React from "react";
 import { MarkerJsonEditor } from "../MarkerJsonEditor";
 import { MarkerUsageGuide } from "../MarkerUsageGuide";
 import { MarkerVisualEditorPane } from "./MarkerVisualEditorPane";
+import type { MarkerConfig } from "../../../../types/script";
+import type { EditableMarkerConfig, UpdateMarkerFn } from "../types";
+
+interface MarkerSettingsModeContentProps {
+  viewMode: "ui" | "json" | "guide";
+  localConfigs: MarkerConfig[];
+  setLocalConfigs: React.Dispatch<React.SetStateAction<MarkerConfig[]>>;
+  updateMarker: UpdateMarkerFn;
+  removeMarker: (idx: number) => void;
+  expandedId: string | null;
+  setExpandedId: React.Dispatch<React.SetStateAction<string | null>>;
+  selectedConfig: EditableMarkerConfig | null;
+  selectedIndex: number;
+  existingIds: string[];
+  onAddMarker: () => void;
+  jsonText: string;
+  setJsonText: (value: string) => void;
+  parseError: string | null;
+  applyJson: () => void;
+  isDirty: boolean;
+  isSaving: boolean;
+  isAdvancedMode: boolean;
+  setIsAdvancedMode: (value: boolean) => void;
+  readOnly?: boolean;
+}
 
 export function MarkerSettingsModeContent({
   viewMode,
@@ -24,7 +49,7 @@ export function MarkerSettingsModeContent({
   isAdvancedMode,
   setIsAdvancedMode,
   readOnly = false,
-}) {
+}: MarkerSettingsModeContentProps): React.JSX.Element {
   if (viewMode === "guide") {
     return (
       <div className="h-full overflow-hidden p-6 text-sm">
@@ -57,7 +82,7 @@ export function MarkerSettingsModeContent({
         updateMarker={updateMarker}
         removeMarker={removeMarker}
         expandedId={expandedId}
-        setExpandedId={setExpandedId}
+        setExpandedId={(id) => setExpandedId(String(id))}
         selectedConfig={selectedConfig}
         selectedIndex={selectedIndex}
         existingIds={existingIds}

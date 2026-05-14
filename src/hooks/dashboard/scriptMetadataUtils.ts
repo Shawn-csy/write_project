@@ -1,4 +1,4 @@
-export const normalizeOrgIds = (value) => {
+export const normalizeOrgIds = (value: unknown) => {
   if (Array.isArray(value)) return value.filter(Boolean);
   if (!value) return [];
   if (typeof value === "string") {
@@ -12,13 +12,13 @@ export const normalizeOrgIds = (value) => {
   return [];
 };
 
-export const resolveProfileOrgIds = (profile) => {
+export const resolveProfileOrgIds = (profile: Record<string, unknown> | null | undefined) => {
   const fromIds = normalizeOrgIds(profile?.organizationIds);
   const fromSingle = profile?.organizationId ? [profile.organizationId] : [];
   return Array.from(new Set([...fromIds, ...fromSingle].filter(Boolean)));
 };
 
-export const ensureList = (val) => {
+export const ensureList = (val: unknown): unknown[] => {
   if (!val) return [];
   let parsed = val;
 

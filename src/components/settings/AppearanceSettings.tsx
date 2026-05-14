@@ -12,7 +12,11 @@ import { cn } from "../../lib/utils";
 import { PublisherFormRow } from "../dashboard/publisher/PublisherFormRow";
 import { READING_FONT_OPTIONS, UI_FONT_OPTIONS, resolveReadingFontStack } from "../../constants/readingFonts";
 
-export function AppearanceSettings({ sectionRef }) {
+interface AppearanceSettingsProps {
+  sectionRef?: React.Ref<HTMLDivElement>;
+}
+
+export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): React.JSX.Element {
   const { t } = useI18n();
   const {
       // Theme
@@ -102,7 +106,7 @@ export function AppearanceSettings({ sectionRef }) {
                 <div className="flex items-center gap-1.5 flex-wrap">
                     {accentOptions.map((opt) => {
                         const active = accent === opt.value;
-                        const swatch = accentThemes[opt.value]?.accent;
+                        const swatch = accentThemes[opt.value as keyof typeof accentThemes]?.accent;
                         return (
                             <button
                                 key={opt.value}

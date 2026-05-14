@@ -598,7 +598,7 @@ They discover a glowing artifact.
       canConfirmTerms={canConfirmTerms}
       missingRequiredCheckCount={missingRequiredCheckCount}
       handleTermsScroll={handleTermsScroll}
-      toggleRequiredCheck={toggleRequiredCheck}
+      toggleRequiredCheck={(checkId, checked) => toggleRequiredCheck(checkId, checked === true)}
       onConfirm={() => confirmTermsConsent(id)}
       onCancel={() => navigate("/")}
       cancelLabel="返回公開台本"

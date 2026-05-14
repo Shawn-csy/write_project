@@ -2,7 +2,12 @@ export function normalizeThemeName(name = "") {
   return String(name).toLowerCase().replace(/[\s_()（）\-[\]{}]/g, "");
 }
 
-export function isDefaultLikeTheme(theme, { includeDefaultId = true } = {}) {
+interface ThemeLike {
+  id?: string;
+  name?: string;
+}
+
+export function isDefaultLikeTheme(theme: ThemeLike | null | undefined, { includeDefaultId = true }: { includeDefaultId?: boolean } = {}) {
   if (!theme) return false;
   if (includeDefaultId && theme.id === "default") return true;
   const normalized = normalizeThemeName(theme.name || "");

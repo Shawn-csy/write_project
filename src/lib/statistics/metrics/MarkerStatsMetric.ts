@@ -53,7 +53,7 @@ export class MarkerStatsMetric extends Metric {
       const textPattern = new RegExp(`[<\\[(\\s][\\s]*(?:約|approx)?\\s*(\\d*\\.?\\d+)\\s*(${unitPattern})\\s*[>\\])\\s]`, 'gi');
 
       // Helper to process and mask matches
-      const processPattern = (pattern) => {
+      const processPattern = (pattern: RegExp) => {
           let match;
           // We must loop on the original text but "mask" what we found in a separate buffer if we wanted to be pure,
           // but simpler is to use a temp string that we modify? No, modifying string messes up indices for subsequent regexes if length changes.
@@ -67,7 +67,7 @@ export class MarkerStatsMetric extends Metric {
       // We replace matches with equal length spaces to preserve positions if needed, or just spaces.
       // Since we don't care about positions for the next passes (just existence), simple space replacement is fine.
       
-      const parseAndMask = (pattern) => {
+      const parseAndMask = (pattern: RegExp) => {
           remainingText = remainingText.replace(pattern, (match, valStr, unitStr) => {
               const value = parseFloat(valStr);
               const unitDef = units.find(u => u.keywords.some(k => k.toLowerCase() === unitStr.toLowerCase()));

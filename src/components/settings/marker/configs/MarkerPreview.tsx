@@ -1,14 +1,20 @@
 import React, { useMemo } from "react";
 import { useI18n } from "../../../../contexts/I18nContext";
+import type { EditableMarkerConfig } from "../types";
 
 /**
  * Live preview for marker rendering output.
  */
-export function MarkerPreview({ config }) {
+interface MarkerPreviewProps {
+    config: EditableMarkerConfig;
+}
+
+export function MarkerPreview({ config }: MarkerPreviewProps): React.JSX.Element {
     const { t } = useI18n();
     // Build sample content
-    const example = useMemo(() => {
-        const sampleContent = config.label || t("markerPreview.sampleContent");
+    const example = useMemo<{ raw: string; rendered: string }>(() => {
+        const sampleContent = String(config.label || t("markerPreview.sampleContent"));
+        const template = typeof config.renderer?.template === "string" ? config.renderer.template : "";
         
         if (config.matchMode === 'range') {
             return {
@@ -20,8 +26,8 @@ export function MarkerPreview({ config }) {
         if (config.matchMode === 'prefix') {
             return {
                 raw: `${config.start || '/tag'} ${sampleContent}`,
-                rendered: config.renderer?.template 
-                    ? config.renderer.template.replace('{{content}}', sampleContent)
+                rendered: template
+                    ? template.replace('{{content}}', sampleContent)
                     : sampleContent
             };
         }
@@ -36,8 +42,8 @@ export function MarkerPreview({ config }) {
         // enclosure (default)
         return {
             raw: `${config.start || '('}${sampleContent}${config.end || ')'}`,
-            rendered: config.renderer?.template 
-                ? config.renderer.template.replace('{{content}}', sampleContent)
+            rendered: template
+                ? template.replace('{{content}}', sampleContent)
                 : (config.showDelimiters !== false 
                     ? `${config.start || '('}${sampleContent}${config.end || ')'}`
                     : sampleContent)
@@ -46,12 +52,12 @@ export function MarkerPreview({ config }) {
 
     // Compute preview style
     const previewStyle = useMemo(() => ({
-        color: config.style?.color || 'inherit',
-        fontWeight: config.style?.fontWeight || 'normal',
-        fontStyle: config.style?.fontStyle || 'normal',
-        fontFamily: config.style?.fontFamily || 'inherit',
-        fontSize: config.style?.fontSize || 'inherit',
-        backgroundColor: config.style?.backgroundColor || 'transparent',
+        color: String(config.style?.color || 'inherit'),
+        fontWeight: String(config.style?.fontWeight || 'normal'),
+        fontStyle: String(config.style?.fontStyle || 'normal'),
+        fontFamily: String(config.style?.fontFamily || 'inherit'),
+        fontSize: String(config.style?.fontSize || 'inherit'),
+        backgroundColor: String(config.style?.backgroundColor || 'transparent'),
         borderRadius: '2px',
         padding: '0 4px'
     }), [config.style]);

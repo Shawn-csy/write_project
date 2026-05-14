@@ -1,11 +1,75 @@
 import { useCallback, useState } from "react";
 import { updateScript, addTagToScript, removeTagFromScript } from "../../lib/api/scripts";
 import { createTag } from "../../lib/api/tags";
-import type { ScriptUpdatePayload } from "../../types/api";
+import type { ScriptUpdatePayload, BaseScriptApi } from "../../types/api";
 import { deriveSimpleLicenseTags } from "../../lib/licenseRights";
 import { AUDIENCE_TAG_GROUP, RATING_TAG_GROUP, syncGroupedTagSelection } from "./tagGroupUtils";
 import { normalizeCustomMetadataEntries } from "../../lib/customMetadata";
 import { normalizeActivityDemoLinks, serializeActivityDemoLinks } from "../../lib/activityDemoLinks";
+import type {
+  ScriptLike, TagLike, ContactField, CustomField, SeriesOption,
+  PublishChecklist, LicenseSpecialTerm,
+} from "./types";
+
+interface UseScriptMetadataSaveOptions {
+  t: (key: string, fallback?: string) => string;
+  toast: (opts: { title?: string; description?: string; variant?: string }) => void;
+  script: ScriptLike | null;
+  activeScript?: ScriptLike | null;
+  title: string;
+  coverUrl: string;
+  status: string;
+  author: string;
+  authorDisplayMode: string;
+  date: string;
+  outline: string;
+  roleSetting: string;
+  backgroundInfo: string;
+  performanceInstruction: string;
+  openingIntro: string;
+  chapterSettings: string;
+  activityName: string;
+  activityBannerUrl: string;
+  activityContent: string;
+  activityDemoLinks: unknown[];
+  activityWorkUrl: string;
+  licenseCommercial: string;
+  licenseDerivative: string;
+  licenseNotify: string;
+  licenseSpecialTerms: LicenseSpecialTerm[];
+  copyright: string;
+  synopsis: string;
+  contact: string;
+  contactFields: ContactField[];
+  customFields: CustomField[];
+  seriesOptions: SeriesOption[];
+  seriesId: string | null;
+  seriesName: string;
+  seriesOrder: string | number;
+  currentTags: TagLike[];
+  setCurrentTags: (tags: TagLike[]) => void;
+  availableTags: TagLike[];
+  markerThemeId: string;
+  showMarkerLegend: boolean;
+  disableCopy: boolean;
+  identity: string;
+  selectedOrgId: string | null;
+  targetAudience: string;
+  contentRating: string;
+  publishChecklist: PublishChecklist;
+  needsPersonaBeforePublish: boolean;
+  hasAnyPersona: boolean;
+  jumpToChecklistItem: (key: string) => void;
+  setShowValidationHints: (v: boolean) => void;
+  setShowPersonaSetupDialog: (v: boolean) => void;
+  setActiveTab: (v: string) => void;
+  onSave: (script: ScriptLike) => void;
+  onOpenChange: (open: boolean) => void;
+  saveScript?: (id: string, payload: ScriptUpdatePayload & { author?: string }, extra?: Record<string, unknown>) => Promise<BaseScriptApi>;
+  syncScriptTags?: (id: string, tags: TagLike[]) => Promise<void>;
+  preserveAuthorInternalData?: boolean;
+  authorEditedRef?: { current?: boolean } | null;
+}
 export function useScriptMetadataSave({
   t,
   toast,
@@ -64,12 +128,12 @@ export function useScriptMetadataSave({
   syncScriptTags,
   preserveAuthorInternalData = false,
   authorEditedRef = { current: false },
-}) {
+}: UseScriptMetadataSaveOptions) {
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = useCallback(async () => {
-    const normalizeMetaKey = (key) => String(key || "").trim().toLowerCase().replace(/\s+/g, "");
-    const isAuthorMetaKey = (key) => {
+    const normalizeMetaKey = (key: unknown) => String(key || "").trim().toLowerCase().replace(/\s+/g, "");
+    const isAuthorMetaKey = (key: unknown) => {
       const normalized = normalizeMetaKey(key);
       return normalized === "author" || normalized === "authors" || normalized === "authordisplaymode";
     };
@@ -124,7 +188,7 @@ export function useScriptMetadataSave({
           availableTags,
           selectedName: targetAudience,
           groupNames: AUDIENCE_TAG_GROUP,
-          createTag,
+          createTag: createTag as (name: string, color: string, ownerIdQuery?: string) => Promise<TagLike>,
           resolveColor: () => "bg-gray-500",
           onTagCreated: () => {},
         });
@@ -135,13 +199,14 @@ export function useScriptMetadataSave({
           availableTags,
           selectedName: contentRating,
           groupNames: RATING_TAG_GROUP,
-          createTag,
+          createTag: createTag as (name: string, color: string, ownerIdQuery?: string) => Promise<TagLike>,
           resolveColor: (name) => (name === "成人向" ? "bg-red-500" : "bg-gray-500"),
           onTagCreated: () => {},
         });
       }
 
       const workingScript = activeScript || script;
+      if (!workingScript) return;
       const workingScriptMetadata = Array.isArray(workingScript?.customMetadata) ? workingScript.customMetadata : [];
       const workingAuthorMetadataEntries = normalizeCustomMetadataEntries(workingScriptMetadata).filter((entry) => isAuthorMetaKey(entry?.key));
       const authorEditedValue = (authorEditedRef as { current?: boolean } | null)?.current ?? false;
@@ -243,23 +308,24 @@ export function useScriptMetadataSave({
         updatePayload.author = persistedAuthor;
       }
 
-      const persistScript = saveScript || updateScript;
-      const persisted = await persistScript(workingScript.id, updatePayload, {
-        script: workingScript,
-        tagIds: tagsToSave.map((tag) => Number(tag?.id)).filter((id) => Number.isFinite(id)),
-      });
+      const persisted = saveScript
+        ? await saveScript(workingScript.id, updatePayload, {
+            script: workingScript,
+            tagIds: tagsToSave.map((tag) => Number(tag?.id)).filter((id) => Number.isFinite(id)),
+          })
+        : await updateScript(workingScript.id, updatePayload);
 
-      const originalTagIds = new Set(((workingScript && workingScript.tags) || []).map((tag) => tag.id));
-      const finalTagIds = new Set(tagsToSave.map((tag) => tag.id));
-      const addedTags = tagsToSave.filter((tag) => !originalTagIds.has(tag.id));
-      const removedTags = ((workingScript && workingScript.tags) || []).filter((tag) => !finalTagIds.has(tag.id));
+      const originalTagIds = new Set(((workingScript && workingScript.tags) || []).map((tag) => String(tag.id)));
+      const finalTagIds = new Set(tagsToSave.map((tag) => String(tag.id)));
+      const addedTags = tagsToSave.filter((tag) => !originalTagIds.has(String(tag.id)));
+      const removedTags = ((workingScript && workingScript.tags) || []).filter((tag) => !finalTagIds.has(String(tag.id)));
 
       if (typeof syncScriptTags === "function") {
         await syncScriptTags(workingScript.id, tagsToSave);
       } else {
         await Promise.all([
-          ...addedTags.map((tag) => addTagToScript(workingScript.id, tag.id)),
-          ...removedTags.map((tag) => removeTagFromScript(workingScript.id, tag.id)),
+          ...addedTags.map((tag) => addTagToScript(workingScript.id, String(tag.id))),
+          ...removedTags.map((tag) => removeTagFromScript(workingScript.id, String(tag.id))),
         ]);
       }
 
@@ -275,7 +341,7 @@ export function useScriptMetadataSave({
         licenseCommercial: licenseCommercial || "",
         licenseDerivative: licenseDerivative || "",
         licenseNotify: licenseNotify || "",
-        tags: tagsToSave,
+        tags: tagsToSave as Array<{ id?: string; name: string }>,
         markerThemeId,
         seriesId: updatePayload.seriesId,
         seriesOrder: updatePayload.seriesOrder,

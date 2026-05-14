@@ -5,14 +5,66 @@ import { Input } from "../../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { Loader2 } from "lucide-react";
 import { PublisherFormRow } from "./PublisherFormRow";
+interface OrgMemberUser {
+  id: string;
+  displayName?: string;
+  handle?: string;
+  email?: string;
+  organizationRole?: string;
+}
 
-const roleBadgeClass = (role) => {
+interface OrgMembersData {
+  users?: OrgMemberUser[];
+  personas?: Array<Record<string, unknown>>;
+}
+
+interface InviteSearchUser {
+  id: string;
+  displayName?: string;
+  handle?: string;
+  email?: string;
+}
+
+interface OrgRequestItem {
+  id: string;
+  requester?: { email?: string; displayName?: string };
+  requesterUserId?: string;
+}
+
+interface OrgInviteItem {
+  id: string;
+  invitedUser?: { email?: string; displayName?: string };
+  invitedUserId?: string;
+  status?: string;
+}
+
+interface PublisherOrgMembershipPanelProps {
+  t: (key: string, fallback?: string) => string;
+  isLoading: boolean;
+  orgMembers: OrgMembersData;
+  canManageOrgMembers: boolean;
+  currentUserId?: string;
+  handleChangeMemberRole?: (id: string, role: "admin" | "member") => void;
+  handleRemoveMember?: (id: string) => void;
+  handleRemovePersonaMember?: (id: string) => void;
+  inviteSearchQuery: string;
+  setInviteSearchQuery: (value: string) => void;
+  inviteSearchResults: InviteSearchUser[];
+  isInviteSearching: boolean;
+  handleInviteMember: (id: string) => void;
+  orgRequests: OrgRequestItem[];
+  handleAcceptRequest: (id: string) => void;
+  handleDeclineRequest: (id: string) => void;
+  orgInvites: OrgInviteItem[];
+}
+
+const roleBadgeClass = (role?: string) => {
   if (role === "owner") return "border-[color:var(--license-term-border)] bg-[color:var(--license-term-bg)] text-[color:var(--license-term-fg)]";
   if (role === "admin") return "border-primary/35 bg-primary/12 text-primary";
   return "border-muted-foreground/30 bg-muted text-muted-foreground";
 };
 
-const roleLabel = (role) => {
+const roleLabel = (role?: string) => {
   if (role === "owner") return "擁有者";
   if (role === "admin") return "管理員";
   return "一般成員";
@@ -36,7 +88,7 @@ export function PublisherOrgMembershipPanel({
   handleAcceptRequest,
   handleDeclineRequest,
   orgInvites,
-}) {
+}: PublisherOrgMembershipPanelProps) {
   return (
     <>
       <div id="org-guide-members">
@@ -77,7 +129,7 @@ export function PublisherOrgMembershipPanel({
                             <>
                               <Select
                                 value={u.organizationRole === "admin" ? "admin" : "member"}
-                                onValueChange={(value) => handleChangeMemberRole?.(u.id, value)}
+                                onValueChange={(value) => handleChangeMemberRole?.(u.id, value as "admin" | "member")}
                               >
                                 <SelectTrigger className="h-7 w-[104px] text-xs">
                                   <SelectValue />
@@ -108,30 +160,35 @@ export function PublisherOrgMembershipPanel({
                   {(orgMembers?.personas || []).length === 0 ? (
                     <div className="text-xs text-muted-foreground">目前沒有作者身份</div>
                   ) : (
-                    (orgMembers?.personas || []).map((p) => (
-                      <div key={`p-${p.id}`} className="flex items-center justify-between text-sm">
+                    (orgMembers?.personas || []).map((p, index) => {
+                      const personaId = typeof p.id === "string" ? p.id : `persona-${index}`;
+                      const displayName = typeof p.displayName === "string" ? p.displayName : undefined;
+                      const organizationRole = typeof p.organizationRole === "string" ? p.organizationRole : undefined;
+                      return (
+                      <div key={`p-${personaId}`} className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold">
-                            {(p.displayName || "?")[0]?.toUpperCase?.() || "?"}
+                            {(displayName || "?")[0]?.toUpperCase?.() || "?"}
                           </div>
-                          <span>{p.displayName || t("publisherOrgTab.persona")}</span>
+                          <span>{displayName || t("publisherOrgTab.persona")}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <Badge variant="secondary">{t("publisherOrgTab.author")}</Badge>
-                          <Badge className={roleBadgeClass(p.organizationRole)}>{roleLabel(p.organizationRole)}</Badge>
+                          <Badge className={roleBadgeClass(organizationRole)}>{roleLabel(organizationRole)}</Badge>
                           {canManageOrgMembers && (
                             <Button
                               size="sm"
                               variant="ghost"
                               className="h-7 px-2 text-destructive hover:bg-destructive/10"
-                              onClick={() => handleRemovePersonaMember?.(p.id)}
+                              onClick={() => handleRemovePersonaMember?.(personaId)}
                             >
                               移除
                             </Button>
                           )}
                         </div>
                       </div>
-                    ))
+                    );
+                    })
                   )}
                 </div>
               </div>
@@ -178,7 +235,7 @@ export function PublisherOrgMembershipPanel({
                 <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
                   {(orgRequests || []).map((req) => (
                     <div key={req.id} className="flex items-center justify-between text-sm">
-                      <span>{t("publisherOrgTab.requester").replace("{value}", req.requester?.email || req.requester?.displayName || req.requesterUserId)}</span>
+                      <span>{t("publisherOrgTab.requester").replace("{value}", req.requester?.email || req.requester?.displayName || req.requesterUserId || "")}</span>
                       <div className="flex gap-2">
                         <Button size="sm" onClick={() => handleAcceptRequest(req.id)}>
                           {t("publisherOrgTab.accept")}
@@ -202,7 +259,7 @@ export function PublisherOrgMembershipPanel({
                 <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
                   {(orgInvites || []).map((inv) => (
                     <div key={inv.id} className="flex items-center justify-between text-sm">
-                      <span>{t("publisherOrgTab.inviteLabel").replace("{value}", inv.invitedUser?.email || inv.invitedUser?.displayName || inv.invitedUserId)}</span>
+                      <span>{t("publisherOrgTab.inviteLabel").replace("{value}", inv.invitedUser?.email || inv.invitedUser?.displayName || inv.invitedUserId || "")}</span>
                       <Badge variant="outline">{inv.status}</Badge>
                     </div>
                   ))}

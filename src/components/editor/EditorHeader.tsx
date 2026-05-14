@@ -144,7 +144,7 @@ export function EditorHeader({
               <EditableTitle
                 isEditing={isEditing}
                 editTitle={editTitle}
-                setEditTitle={(val) => setEditTitle(val)}
+                setEditTitle={(val: string) => setEditTitle(val)}
                 onSubmit={submitTitle}
                 inputClassName="font-semibold text-sm border border-primary/50 rounded px-1 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary min-w-[80px] w-[30vw] max-w-[200px]"
                 inputProps={{}}

@@ -17,24 +17,22 @@ import { CoverPlaceholder } from "../../ui/CoverPlaceholder";
 import { ImageCropDialog } from "../../ui/ImageCropDialog";
 
 interface TagOption {
-    id: string;
-    name: string;
+    id?: string | number;
+    name?: string;
     color?: string;
 }
 
 interface ContactFieldItem {
-    id: string;
-    label?: string;
-    value?: string;
-    [key: string]: unknown;
+    id?: string;
+    key: string;
+    value: string;
 }
 
 interface CustomFieldItem {
-    id: string;
+    id?: string;
     type?: string;
-    key?: string;
-    value?: string;
-    [key: string]: unknown;
+    key: string;
+    value: string;
 }
 
 interface SeriesOption {
@@ -42,9 +40,9 @@ interface SeriesOption {
     name: string;
 }
 
-interface MetadataDetailsTabProps {
+export interface MetadataDetailsTabProps {
     status: string;
-    coverUrl: string;
+    coverUrl: string | null;
     setCoverUrl: (value: string) => void;
     currentTags: TagOption[];
     author: string;
@@ -54,17 +52,17 @@ interface MetadataDetailsTabProps {
     setNewTagInput: (value: string) => void;
     handleAddTag: (tagName?: string) => void;
     handleAddTagsBatch?: (tags: string[]) => void;
-    handleRemoveTag: (tagId: string) => void;
+    handleRemoveTag: (tagId: string | number) => void;
     handleClearTags: () => void;
     contactFields: ContactFieldItem[];
-    setContactFields: React.Dispatch<React.SetStateAction<ContactFieldItem[]>>;
+    setContactFields: (value: ContactFieldItem[]) => void;
     onAddContactField: (preset?: string) => void;
     handleContactFieldUpdate: (id: string, key: string, value: string) => void;
     activeSensors: SensorDescriptor<object>[] | undefined;
     dragDisabled: boolean;
     setDragDisabled: (value: boolean) => void;
     customFields: CustomFieldItem[];
-    setCustomFields: React.Dispatch<React.SetStateAction<CustomFieldItem[]>>;
+    setCustomFields: (value: CustomFieldItem[]) => void;
     addCustomField: (key?: string, value?: string) => void;
     addDivider: () => void;
     handleCustomFieldUpdate: (id: string, key: string, value: string) => void;
@@ -76,15 +74,15 @@ interface MetadataDetailsTabProps {
     setContentRating: (value: string) => void;
     seriesName: string;
     setSeriesName: (value: string) => void;
-    seriesId: string;
-    setSeriesId: (value: string) => void;
+    seriesId: string | null;
+    setSeriesId: (value: string | null) => void;
     seriesOptions?: SeriesOption[];
     quickSeriesName?: string;
     setQuickSeriesName?: (value: string) => void;
     onQuickCreateSeries?: () => void;
     isCreatingSeries?: boolean;
-    seriesOrder?: string;
-    setSeriesOrder?: (value: string) => void;
+    seriesOrder?: string | number;
+    setSeriesOrder?: (value: string | number) => void;
     showStatusAlert?: boolean;
     showAuthorCover?: boolean;
     showAudienceRating?: boolean;
@@ -136,7 +134,7 @@ export function MetadataDetailsTab({
     showCustom = true,
     layout = "stack"
 }: MetadataDetailsTabProps): React.JSX.Element {
-    const resolveTagSwatch = React.useCallback((rawColor) => {
+    const resolveTagSwatch = React.useCallback((rawColor: string | undefined) => {
         const value = String(rawColor || "").trim();
         if (!value) return { className: "bg-primary/60", style: undefined };
         if (value.startsWith("#") || value.startsWith("rgb") || value.startsWith("hsl") || value.startsWith("var(")) {
@@ -145,7 +143,8 @@ export function MetadataDetailsTab({
         return { className: value, style: undefined };
     }, []);
     const { t } = useI18n();
-    const hasInvalidCoverUrl = Boolean(coverUrl?.trim()) && !/^(https?:\/\/|\/)/i.test(coverUrl.trim());
+    const normalizedCoverUrl = String(coverUrl || "");
+    const hasInvalidCoverUrl = Boolean(normalizedCoverUrl.trim()) && !/^(https?:\/\/|\/)/i.test(normalizedCoverUrl.trim());
     const [coverPreviewFailed, setCoverPreviewFailed] = React.useState<boolean>(false);
     const [coverUploadError, setCoverUploadError] = React.useState<string>("");
     const [coverUploadWarning, setCoverUploadWarning] = React.useState<string>("");
@@ -153,11 +152,24 @@ export function MetadataDetailsTab({
     const [cropOpen, setCropOpen] = React.useState<boolean>(false);
     const [cropSource, setCropSource] = React.useState<{ file: File; name: string } | null>(null);
     const coverGuide = React.useMemo(() => getImageUploadGuide("cover"), []);
+    const normalizedContactFields = React.useMemo(
+        () => contactFields.map((field, index) => ({ ...field, id: field.id || `contact-${index}` })),
+        [contactFields]
+    );
+    const normalizedCustomFields = React.useMemo(
+        () => customFields.map((field, index) => ({ ...field, id: field.id || `custom-${index}` })),
+        [customFields]
+    );
 
     const applyCoverUpload = async (file: File): Promise<void> => {
         const optimized = await optimizeImageForUpload(file, "cover");
         if (!optimized.ok) {
             setCoverUploadError(optimized.error || "圖片格式不正確。");
+            setCoverUploadWarning("");
+            return;
+        }
+        if (!optimized.file) {
+            setCoverUploadError("圖片格式不正確。");
             setCoverUploadWarning("");
             return;
         }
@@ -240,7 +252,7 @@ export function MetadataDetailsTab({
                 </div>
                 <div className="grid gap-2">
                     <label className="text-sm font-medium" htmlFor="metadata-cover-url">{t("metadataDetails.coverUrl")}</label>
-                    <Input id="metadata-cover-url" name="metadataCoverUrl" value={coverUrl} onChange={e => setCoverUrl(e.target.value)} placeholder="https://..." />
+                    <Input id="metadata-cover-url" name="metadataCoverUrl" value={coverUrl || ""} onChange={e => setCoverUrl(e.target.value)} placeholder="https://..." />
                     <div className="flex items-center gap-2 flex-wrap">
                         <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
                             {t("metadataDetails.uploadImage")}
@@ -480,7 +492,7 @@ export function MetadataDetailsTab({
 
                     <div className="max-h-48 overflow-y-auto border rounded-md bg-background flex flex-wrap gap-1.5 p-2">
                          {availableTags
-                                .filter((tag) => tag.name.toLowerCase().includes(newTagInput.toLowerCase()))
+                                .filter((tag) => String(tag.name || "").toLowerCase().includes(newTagInput.toLowerCase()))
                             .filter((tag) => !currentTags.some((currentTag) => currentTag.id === tag.id))
                             .map((tag) => (
                                 <button
@@ -489,14 +501,14 @@ export function MetadataDetailsTab({
                                     className="px-2.5 py-1 text-xs rounded-full border bg-muted/30 hover:bg-accent hover:text-accent-foreground transition-colors flex items-center"
                                     onClick={(e) => {
                                         e.preventDefault();
-                                        handleAddTag(tag.name);
+                                        handleAddTag(tag.name || "");
                                     }}
                                 >
                                     <Plus className="w-3 h-3 mr-1 opacity-60" /> {tag.name}
                                 </button>
                             ))
                          }
-                         {newTagInput.trim() && !availableTags.find((tag) => tag.name.toLowerCase() === newTagInput.trim().toLowerCase()) && !currentTags.find((tag) => tag.name.toLowerCase() === newTagInput.trim().toLowerCase()) && (
+                         {newTagInput.trim() && !availableTags.find((tag) => String(tag.name || "").toLowerCase() === newTagInput.trim().toLowerCase()) && !currentTags.find((tag) => String(tag.name || "").toLowerCase() === newTagInput.trim().toLowerCase()) && (
                              <button
                                  type="button"
                                  className="px-2.5 py-1 text-xs rounded-full border border-primary/30 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors flex items-center"
@@ -517,7 +529,8 @@ export function MetadataDetailsTab({
                 {currentTags.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-2 p-3 bg-background border rounded-md">
                         {currentTags.map((tag) => {
-                            const isManagedOption = ["男性向", "女性向", "全性向", "一般", "一般內容", "r-18", "r18", "18+", "全年齡向", "成人向"].includes(tag.name);
+                            const tagName = String(tag.name || "");
+                            const isManagedOption = ["男性向", "女性向", "全性向", "一般", "一般內容", "r-18", "r18", "18+", "全年齡向", "成人向"].includes(tagName);
                             return (
                                 <Badge 
                                     key={tag.id} 
@@ -528,12 +541,15 @@ export function MetadataDetailsTab({
                                         const swatch = resolveTagSwatch(tag.color);
                                         return <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${swatch.className}`} style={swatch.style} />;
                                     })()}
-                                    <span>{tag.name}</span>
+                                    <span>{tagName}</span>
                                     {!isManagedOption && (
                                         <button 
                                             type="button"
                                             className="ml-1.5 hover:bg-black/20 dark:hover:bg-white/20 rounded-full p-0.5 transition-colors focus:outline-none flex items-center justify-center"
-                                            onClick={() => handleRemoveTag(tag.id)}
+                                            onClick={() => {
+                                                if (tag.id === undefined) return;
+                                                handleRemoveTag(tag.id);
+                                            }}
                                             title={t("common.remove", "移除")}
                                         >
                                             <X className="w-3 h-3 opacity-70 hover:opacity-100" />
@@ -576,24 +592,24 @@ export function MetadataDetailsTab({
                     collisionDetection={closestCenter}
                     onDragEnd={({ active, over }: { active: { id: UniqueIdentifier }; over: { id: UniqueIdentifier } | null }) => {
                         if (!over || active.id === over.id) return;
-                        const items = contactFields.map((f) => f.id);
+                        const items = normalizedContactFields.map((f) => f.id);
                         const oldIndex = items.indexOf(String(active.id));
                         const newIndex = items.indexOf(String(over.id));
-                        setContactFields(arrayMove(contactFields, oldIndex, newIndex));
+                        setContactFields(arrayMove(normalizedContactFields, oldIndex, newIndex));
                     }}
                 >
                     <SortableContext
-                        items={contactFields.map((f) => f.id)}
+                        items={normalizedContactFields.map((f) => f.id)}
                         strategy={verticalListSortingStrategy}
                     >
                         <div className="space-y-2">
-                            {contactFields.map((field, idx) => (
+                            {normalizedContactFields.map((field, idx) => (
                                 <SortableContactField 
                                     key={field.id} 
                                     field={field} 
                                     index={idx}
                                     onUpdate={handleContactFieldUpdate}
-                                    onRemove={(i) => setContactFields(prev => prev.filter((_, idx) => idx !== i))}
+                                    onRemove={(i: number) => setContactFields(normalizedContactFields.filter((_, idx: number) => idx !== i))}
                                     onFocus={() => setDragDisabled(true)}
                                     onBlur={() => setDragDisabled(false)}
                                     dragDisabled={dragDisabled}
@@ -647,24 +663,24 @@ export function MetadataDetailsTab({
                     collisionDetection={closestCenter}
                     onDragEnd={({ active, over }: { active: { id: UniqueIdentifier }; over: { id: UniqueIdentifier } | null }) => {
                         if (!over || active.id === over.id) return;
-                        const items = customFields.map((f) => f.id);
+                        const items = normalizedCustomFields.map((f) => f.id);
                         const oldIndex = items.indexOf(String(active.id));
                         const newIndex = items.indexOf(String(over.id));
-                        setCustomFields(arrayMove(customFields, oldIndex, newIndex));
+                        setCustomFields(arrayMove(normalizedCustomFields, oldIndex, newIndex));
                     }}
                 >
                     <SortableContext
-                        items={customFields.map((f) => f.id)}
+                        items={normalizedCustomFields.map((f) => f.id)}
                         strategy={verticalListSortingStrategy}
                     >
                         <div className="space-y-2">
-                            {customFields.map((field, idx) => (
+                            {normalizedCustomFields.map((field, idx) => (
                                 <SortableField 
                                     key={field.id} 
                                     field={field} 
                                     index={idx}
                                     onUpdate={handleCustomFieldUpdate}
-                                    onRemove={(i) => setCustomFields(prev => prev.filter((_, idx) => idx !== i))}
+                                    onRemove={(i: number) => setCustomFields(normalizedCustomFields.filter((_, idx: number) => idx !== i))}
                                     onFocus={() => setDragDisabled(true)}
                                     onBlur={() => setDragDisabled(false)}
                                     dragDisabled={dragDisabled}

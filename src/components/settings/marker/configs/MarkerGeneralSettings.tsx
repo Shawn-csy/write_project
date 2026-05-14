@@ -1,8 +1,9 @@
 import React from "react";
 import { Input } from "../../../ui/input";
 import { useI18n } from "../../../../contexts/I18nContext";
+import type { MarkerConfigEditorProps } from "../types";
 
-export function MarkerGeneralSettings({ config, idx, updateMarker, isAdvancedMode = true }) {
+export function MarkerGeneralSettings({ config, idx, updateMarker, isAdvancedMode = true }: MarkerConfigEditorProps): React.JSX.Element {
     const { t } = useI18n();
     return (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 items-end">

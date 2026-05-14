@@ -4,7 +4,23 @@ import { Button } from "../../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../ui/dialog";
 import { useI18n } from "../../../contexts/I18nContext";
 
-function buildPath(item) {
+interface WriteItem {
+    id: string;
+    title: string;
+    type?: string;
+    folder?: string;
+}
+
+interface DeleteScriptDialogProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    item: WriteItem | null;
+    scripts: WriteItem[];
+    deleting: boolean;
+    onConfirm: () => void;
+}
+
+function buildPath(item: WriteItem | null) {
     if (!item) return "/";
     const parent = item.folder === "/" ? "" : item.folder;
     return `${parent}/${item.title}`;
@@ -17,12 +33,12 @@ export function DeleteScriptDialog({
     scripts,
     deleting,
     onConfirm
-}) {
+}: DeleteScriptDialogProps) {
     const { t } = useI18n();
     const childCount = useMemo(() => {
         if (!item || item.type !== "folder") return 0;
         const prefix = buildPath(item);
-        return scripts.filter(s => s.folder === prefix || s.folder.startsWith(prefix + "/")).length;
+        return scripts.filter((s) => s.folder === prefix || String(s.folder || "").startsWith(prefix + "/")).length;
     }, [item, scripts]);
 
     return (

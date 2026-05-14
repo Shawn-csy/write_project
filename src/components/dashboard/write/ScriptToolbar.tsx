@@ -7,12 +7,24 @@ import {
 import { Button } from "../../ui/button";
 import { useI18n } from "../../../contexts/I18nContext";
 
+interface BreadcrumbItem {
+    name: string;
+    path: string;
+}
+
+interface ScriptToolbarProps {
+    currentPath: string;
+    breadcrumbs: BreadcrumbItem[];
+    goUp: () => void;
+    navigateTo: (path: string) => void;
+}
+
 export function ScriptToolbar({
     currentPath,
     breadcrumbs,
     goUp,
     navigateTo,
-}) {
+}: ScriptToolbarProps) {
     const { t } = useI18n();
 
     return (
@@ -32,7 +44,7 @@ export function ScriptToolbar({
                         >
                             <Home className="w-4 h-4" />
                         </button>
-                        {breadcrumbs.map((crumb, i) => (
+                        {breadcrumbs.map((crumb, i: number) => (
                             <React.Fragment key={crumb.path}>
                                 <ChevronRight className="w-3 h-3 opacity-50" />
                                 <div

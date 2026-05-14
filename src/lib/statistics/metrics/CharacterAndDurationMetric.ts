@@ -30,7 +30,7 @@ export class CharacterAndDurationMetric extends Metric {
       return;
     }
 
-    const touchCharacterScene = (charName) => {
+    const touchCharacterScene = (charName: string | null) => {
       if (!charName) return;
       if (!this.sceneSetByChar[charName]) {
         this.sceneSetByChar[charName] = new Set();

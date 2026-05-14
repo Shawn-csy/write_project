@@ -5,13 +5,19 @@ import { Button } from "../../../ui/button";
 import { cn } from "../../../../lib/utils";
 import { useI18n } from "../../../../contexts/I18nContext";
 
-export function MarkerSettingsHeader({ viewMode, setViewMode, statusText }) {
+interface MarkerSettingsHeaderProps {
+  viewMode: "ui" | "json" | "guide";
+  setViewMode: React.Dispatch<React.SetStateAction<"ui" | "json" | "guide">>;
+  statusText: string;
+}
+
+export function MarkerSettingsHeader({ viewMode, setViewMode, statusText }: MarkerSettingsHeaderProps): React.JSX.Element {
   const { t } = useI18n();
   const VIEW_MODES = [
     { id: "ui", label: t("markerSettingsHeader.viewUi"), icon: FileText },
     { id: "json", label: "JSON", icon: FileCode2 },
     { id: "guide", label: t("markerSettingsHeader.viewGuide"), icon: BookOpen },
-  ];
+  ] as const;
 
   return (
     <CardHeader className="pb-3 px-5 py-4 border-b bg-muted/20 shrink-0">

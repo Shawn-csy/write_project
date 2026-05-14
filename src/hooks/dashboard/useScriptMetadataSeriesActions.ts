@@ -1,5 +1,7 @@
 import { useCallback } from "react";
 import { createSeries } from "../../lib/api/series";
+import type { SeriesLike } from "../../types/api";
+import type { SeriesOption } from "./types";
 
 export function useScriptMetadataSeriesActions({
   quickSeriesName,
@@ -11,6 +13,16 @@ export function useScriptMetadataSeriesActions({
   setSeriesName,
   setQuickSeriesName,
   toast,
+}: {
+  quickSeriesName: string;
+  isCreatingSeries: boolean;
+  seriesOptions: SeriesOption[];
+  onSeriesCreated?: (series: SeriesLike) => void;
+  setIsCreatingSeries: (v: boolean) => void;
+  setSeriesId: (v: string | null) => void;
+  setSeriesName: (v: string) => void;
+  setQuickSeriesName: (v: string) => void;
+  toast: (opts: { title?: string; variant?: string }) => void;
 }) {
   const handleQuickCreateSeries = useCallback(async () => {
     const name = quickSeriesName.trim();

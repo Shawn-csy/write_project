@@ -59,7 +59,7 @@ export function MetadataLicenseTab({
         Boolean(licenseCommercial?.trim()) &&
         Boolean(licenseDerivative?.trim()) &&
         Boolean(licenseNotify?.trim());
-    const optionClass = (active) =>
+    const optionClass = (active: boolean) =>
         `h-auto min-h-8 w-full px-2 py-2 text-xs leading-tight transition ${
             active
                 ? "border-primary bg-primary text-primary-foreground ring-2 ring-primary/40"

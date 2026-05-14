@@ -5,24 +5,30 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../../ui/tabs";
 import { MARKER_COLORS } from "../../../../constants/markerColors";
 import { cn } from "../../../../lib/utils";
 import { useI18n } from "../../../../contexts/I18nContext";
+import type { MarkerConfigEditorProps } from "../types";
 
-export function MarkerStyleSettings({ config, idx, updateMarker }) {
+export function MarkerStyleSettings({ config, idx, updateMarker }: MarkerConfigEditorProps): React.JSX.Element {
     const { t } = useI18n();
     
     // Helper to update specific style fields
-    const updateStyle = (styleField, value) => {
+    const updateStyle = (styleField: string, value: string | undefined) => {
         const currentStyle = config.style || {};
-        const newStyle = { ...currentStyle, [styleField]: value };
+        const newStyle = { ...currentStyle } as Record<string, string>;
+        if (value === undefined) {
+            delete newStyle[styleField];
+        } else {
+            newStyle[styleField] = value;
+        }
         updateMarker(idx, 'style', newStyle);
     };
 
     // Helper for Font Button Variants
-    const getFontVariant = (field, checkValue) => {
+    const getFontVariant = (field: string, checkValue: string) => {
         return config.style?.[field] === checkValue ? "secondary" : "ghost";
     };
 
     // Helper to toggle Font Style
-    const toggleFontStyle = (field, onValue, offValue = 'normal') => {
+    const toggleFontStyle = (field: string, onValue: string, offValue = 'normal') => {
         const current = config.style?.[field];
         updateStyle(field, current === onValue ? offValue : onValue);
     };
@@ -40,9 +46,9 @@ export function MarkerStyleSettings({ config, idx, updateMarker }) {
     };
 
     // Determine active tab based on current color value
-    const isCustomColor = (color) => {
+    const isCustomColor = (color: string | number | undefined) => {
         if (!color) return false;
-        return !color.startsWith('var(--marker-color-');
+        return !String(color).startsWith('var(--marker-color-');
     };
 
     const [activeColorTab, setActiveColorTab] = useState(isCustomColor(config.style?.color) ? 'custom' : 'preset');
@@ -171,11 +177,11 @@ export function MarkerStyleSettings({ config, idx, updateMarker }) {
                                 {/* Text Color */}
                                 <div className="flex items-center gap-2 group">
                                     <div className="relative w-8 h-8 rounded-full border shadow-sm overflow-hidden">
-                                        <div className="w-full h-full" style={{ backgroundColor: config.style?.color || '#000000' }} />
+                                        <div className="w-full h-full" style={{ backgroundColor: String(config.style?.color || '#000000') }} />
                                         <input 
                                             type="color" 
                                             className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" 
-                                            value={config.style?.color && !config.style.color.startsWith('var(--') ? config.style.color : '#000000'}
+                                            value={config.style?.color && !String(config.style.color).startsWith('var(--') ? String(config.style.color) : '#000000'}
                                             onChange={(e) => updateStyle('color', e.target.value)} 
                                         />
                                     </div>
@@ -189,13 +195,13 @@ export function MarkerStyleSettings({ config, idx, updateMarker }) {
                                 {/* Background Color */}
                                 <div className="flex items-center gap-2 group">
                                      <div className="relative w-8 h-8 rounded border shadow-sm overflow-hidden bg-checkboard">
-                                        <div className="w-full h-full flex items-center justify-center text-[9px] text-muted-foreground/50" style={{ backgroundColor: config.style?.backgroundColor || 'transparent' }}>
+                                        <div className="w-full h-full flex items-center justify-center text-[9px] text-muted-foreground/50" style={{ backgroundColor: String(config.style?.backgroundColor || 'transparent') }}>
                                             {!config.style?.backgroundColor && 'BG'}
                                         </div>
                                         <input 
                                             type="color" 
                                             className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" 
-                                            value={config.style?.backgroundColor || '#ffffff'} 
+                                            value={String(config.style?.backgroundColor || '#ffffff')} 
                                             onChange={(e) => updateStyle('backgroundColor', e.target.value)} 
                                         />
                                     </div>

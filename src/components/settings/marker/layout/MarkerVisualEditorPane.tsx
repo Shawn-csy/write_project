@@ -5,15 +5,16 @@ import { MarkerList } from "../MarkerList";
 import { MarkerDetailEditor } from "../MarkerDetailEditor";
 import { useI18n } from "../../../../contexts/I18nContext";
 import type { MarkerConfig } from "../../../../types/script";
+import type { EditableMarkerConfig, UpdateMarkerFn } from "../types";
 
 interface MarkerVisualEditorPaneProps {
   localConfigs: MarkerConfig[];
   setLocalConfigs: React.Dispatch<React.SetStateAction<MarkerConfig[]>>;
-  updateMarker: (idx: number, field: string, value: unknown) => void;
+  updateMarker: UpdateMarkerFn;
   removeMarker: (idx: number) => void;
   expandedId: string | number | null;
   setExpandedId: (id: string | number) => void;
-  selectedConfig: MarkerConfig | null;
+  selectedConfig: EditableMarkerConfig | null;
   selectedIndex: number;
   existingIds: string[];
   onAddMarker: () => void;

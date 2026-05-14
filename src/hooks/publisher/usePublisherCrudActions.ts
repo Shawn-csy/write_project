@@ -1,6 +1,51 @@
 import { useState } from "react";
 import { createOrganization, deleteOrganization, updateOrganization } from "../../lib/api/organizations";
 import { createPersona, deletePersona, updatePersona } from "../../lib/api/personas";
+import type { PersonaLike } from "../../types/persona";
+
+interface PersonaDraft extends Partial<PersonaLike> {
+  displayName: string;
+  bio: string;
+  website: string;
+  links: Array<{ url?: string; label?: string }> | string;
+  avatar: string;
+  bannerUrl: string;
+  organizationIds: string[];
+  tags: string[];
+  defaultLicenseCommercial: string;
+  defaultLicenseDerivative: string;
+  defaultLicenseNotify: string;
+  defaultLicenseSpecialTerms: string[];
+}
+
+interface OrgDraft {
+  id: string;
+  name: string;
+  description: string;
+  website: string;
+  logoUrl: string;
+  bannerUrl: string;
+  tags: string[];
+}
+
+interface ToastLike {
+  title?: string;
+  description?: string;
+  variant?: "default" | "destructive";
+}
+
+interface UsePublisherCrudActionsInput {
+  selectedPersonaId: string | null;
+  personaDraft: PersonaDraft;
+  setSelectedPersonaId: (id: string | null) => void;
+  setConfirmDeletePersonaOpen: (open: boolean) => void;
+  orgDraft: OrgDraft;
+  setSelectedOrgId: (id: string | null) => void;
+  setConfirmDeleteOrgOpen: (open: boolean) => void;
+  loadData: (silent?: boolean) => Promise<void>;
+  t: (key: string, fallback?: string) => string;
+  toast: (options: ToastLike) => void;
+}
 
 export function usePublisherCrudActions({
   selectedPersonaId,
@@ -13,7 +58,7 @@ export function usePublisherCrudActions({
   loadData,
   t,
   toast,
-}) {
+}: UsePublisherCrudActionsInput) {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingOrg, setIsSavingOrg] = useState(false);
   const [isCreatingPersona, setIsCreatingPersona] = useState(false);

@@ -6,7 +6,15 @@ import { ChevronDown, ChevronRight } from "lucide-react";
  *
  * 可折疊的 section 區塊，用於 ScriptMetadataDialog 的各個資料區段。
  */
-export function MetadataSectionBlock({ sectionId, title, collapsed, onToggle, children }) {
+interface MetadataSectionBlockProps {
+  sectionId: string;
+  title: string;
+  collapsed: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}
+
+export function MetadataSectionBlock({ sectionId, title, collapsed, onToggle, children }: MetadataSectionBlockProps) {
   return (
     <div id={sectionId} className="rounded-xl border border-border/70 bg-background shadow-sm">
       <button

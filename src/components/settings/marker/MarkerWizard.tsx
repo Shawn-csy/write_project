@@ -139,13 +139,13 @@ export function MarkerWizard({ open, onClose, onComplete, initialConfig = null }
             },
         };
 
-        const selected = presetMap[scenario.presetId];
+        const selected = presetMap[scenario.presetId as keyof typeof presetMap];
         if (!selected) return;
-        setMarkerType(selected.markerType);
+        setMarkerType(selected.markerType as MarkerType);
         setConfig((prev) => ({
             ...prev,
             ...selected.config,
-            id: generateId(selected.config.label || scenario.title),
+            id: generateId(String(selected.config.label || scenario.title || "marker")),
         }));
         setCurrentStep(2);
     };
@@ -259,7 +259,7 @@ export function MarkerWizard({ open, onClose, onComplete, initialConfig = null }
                     {currentStep === 3 && (
                         <StepStylePicker
                             config={config}
-                            onChange={setConfig}
+                            onChange={(next) => setConfig(next as MarkerConfig)}
                         />
                     )}
                 </div>
