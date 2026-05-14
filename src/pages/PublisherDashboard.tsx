@@ -1,67 +1,13 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-
-interface TagData {
-  id: string;
-  name: string;
-}
-
-interface SeriesData {
-  id: string;
-  name?: string;
-  summary?: string;
-  coverUrl?: string;
-}
-
-interface OrgMemberUser {
-  id: string;
-  displayName?: string;
-  organizationRole?: string;
-  [key: string]: unknown;
-}
-
-interface OrgMembersData {
-  users?: OrgMemberUser[];
-  [key: string]: unknown;
-}
-
-interface InviteData {
-  id: string;
-  orgId?: string;
-  [key: string]: unknown;
-}
-
-import { useLocation, useNavigate } from "react-router-dom";
+import React from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
 import { Button } from "../components/ui/button";
 import { PanelLeftOpen, FileText, UserRound, Building2, Layers3 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { ScriptMetadataDialog } from "../components/dashboard/ScriptMetadataDialog";
-import { getMorandiTagStyle } from "../lib/tagColors";
-import { MORANDI_STUDIO_TONE_VARS } from "../constants/morandiPanelTones";
-import { getUserScripts } from "../lib/api/scripts";
-import { getTags } from "../lib/api/tags";
-import { getSeries } from "../lib/api/series";
-import {
-  getOrganizations,
-  getOrganization,
-} from "../lib/api/organizations";
-import { getPersonas } from "../lib/api/personas";
-import { getUserProfile } from "../lib/api/user";
-import { getPublicPersona } from "../lib/api/public";
 import { PublisherWorksTab } from "../components/dashboard/publisher/PublisherWorksTab";
 import { PublisherProfileTab } from "../components/dashboard/publisher/PublisherProfileTab";
 import { PublisherOrgTab } from "../components/dashboard/publisher/PublisherOrgTab";
 import { PublisherSeriesTab } from "../components/dashboard/publisher/PublisherSeriesTab";
-import { useAuth } from "../contexts/AuthContext";
-import { useToast } from "../components/ui/toast";
-import { useI18n } from "../contexts/I18nContext";
-import { normalizeOrgIds } from "../hooks/dashboard/scriptMetadataUtils";
-import { useStudioGuide } from "../hooks/publisher/useStudioGuide";
-import { usePublisherSeriesActions } from "../hooks/publisher/usePublisherSeriesActions";
-import { usePublisherOrgMemberActions } from "../hooks/publisher/usePublisherOrgMemberActions";
-import { usePublisherOrgQueues } from "../hooks/publisher/usePublisherOrgQueues";
-import { usePublisherCrudActions } from "../hooks/publisher/usePublisherCrudActions";
-import { buildAffiliatedOrganizations } from "../lib/orgAffiliation";
 import { SpotlightGuideOverlay } from "../components/common/SpotlightGuideOverlay";
 import { TOPBAR_OUTER_CLASS } from "../components/layout/topbarLayout";
 import {
@@ -74,9 +20,7 @@ import {
   STUDIO_TOPBAR_TITLE_WRAP_CLASS,
 } from "../components/layout/studioTopbarTokens";
 import { StudioTopbarQuickActions } from "../components/layout/StudioTopbarQuickActions";
-import type { PersonaLike, OrgData } from "../types/persona";
-import type { BaseScriptApi } from "../types/api";
-
+import { usePublisherDashboardState } from "../hooks/publisher/usePublisherDashboardState";
 
 interface PublisherDashboardProps {
   isSidebarOpen?: boolean;
@@ -85,748 +29,265 @@ interface PublisherDashboardProps {
 }
 
 export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMenu }: PublisherDashboardProps): React.JSX.Element {
-  const { t } = useI18n();
-  const { currentUser, profile: currentProfile } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { toast } = useToast();
-  const resolveTabFromSearch = React.useCallback((search: string) => {
-      const raw = new URLSearchParams(search || "").get("tab");
-      return ["works", "profile", "org", "series"].includes(raw ?? "") ? (raw as string) : "works";
-  }, []);
-  const [activeTab, setActiveTab] = useState(() => resolveTabFromSearch(location.search));
-  const [editingScript, setEditingScript] = useState<Partial<BaseScriptApi> | null>(null);
-  const [confirmDeletePersonaOpen, setConfirmDeletePersonaOpen] = useState<boolean>(false);
-  const [confirmDeleteOrgOpen, setConfirmDeleteOrgOpen] = useState<boolean>(false);
-  
-  // Data State
-  const [personas, setPersonas] = useState<PersonaLike[]>([]);
-  const [orgs, setOrgs] = useState<OrgData[]>([]);
-  const [orgsForPersona, setOrgsForPersona] = useState<OrgData[]>([]);
-  const [scripts, setScripts] = useState<BaseScriptApi[]>([]);
-  const [availableTags, setAvailableTags] = useState<TagData[]>([]);
-  const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(null);
-  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
-  const [personaDraft, setPersonaDraft] = useState<{
-    displayName: string;
-    bio: string;
-    website: string;
-    links: Array<{ url?: string; label?: string }> | string;
-    avatar: string;
-    bannerUrl: string;
-    organizationIds: string[];
-    tags: string[];
-    defaultLicenseCommercial: string;
-    defaultLicenseDerivative: string;
-    defaultLicenseNotify: string;
-    defaultLicenseSpecialTerms: string[];
-  }>({
-    displayName: "",
-    bio: "",
-    website: "",
-    links: [],
-    avatar: "",
-    bannerUrl: "",
-    organizationIds: [],
-    tags: [],
-    defaultLicenseCommercial: "",
-    defaultLicenseDerivative: "",
-    defaultLicenseNotify: "",
-    defaultLicenseSpecialTerms: [],
-  });
-  const [personasLoadedAt, setPersonasLoadedAt] = useState<number>(0);
-  const [orgDraft, setOrgDraft] = useState<{ id: string; name: string; description: string; website: string; logoUrl: string; bannerUrl: string; tags: string[] }>({ id: "", name: "", description: "", website: "", logoUrl: "", bannerUrl: "", tags: [] });
-  const [personaTagInput, setPersonaTagInput] = useState<string>("");
-  const [orgTagInput, setOrgTagInput] = useState<string>("");
-  const [isWorksLoading, setIsWorksLoading] = useState<boolean>(true);
-  const [isMetaLoading, setIsMetaLoading] = useState<boolean>(true);
-  const [seriesList, setSeriesList] = useState<SeriesData[]>([]);
-  const [selectedSeriesId, setSelectedSeriesId] = useState<string>("");
-  const [seriesDraft, setSeriesDraft] = useState<{ name: string; summary: string; coverUrl: string }>({ name: "", summary: "", coverUrl: "" });
-  const [isSavingSeries, setIsSavingSeries] = useState<boolean>(false);
-  const tabsGuideRef = useRef<HTMLDivElement | null>(null);
-
-  const {
-      orgMembers,
-      setOrgMembers,
-      isOrgMembersLoading,
-      orgInvites,
-      setOrgInvites,
-      orgRequests,
-      setOrgRequests,
-      myInvites,
-      setMyInvites,
-      inviteSearchQuery,
-      setInviteSearchQuery,
-      inviteSearchResults,
-      setInviteSearchResults,
-      isInviteSearching,
-  } = usePublisherOrgQueues({
-      selectedOrgId,
-      currentUser,
-  });
-
-  const formatDate = (ts: number | string | null | undefined): string => {
-      if (!ts) return "-";
-      const d = new Date(ts);
-      if (Number.isNaN(d.getTime())) return "-";
-      return d.toISOString().slice(0, 10);
-  };
-
-  const parseTags = (value: string): string[] => value
-      .split(/,|，|、|#|\n|\t|;/)
-      .map((tag) => tag.trim())
-      .filter(Boolean);
-
-  const addTags = (existing: string[], incoming: string[]): string[] => {
-      const merged = [...existing];
-      incoming.forEach((tag) => {
-          if (!merged.includes(tag)) merged.push(tag);
-      });
-      return merged;
-  };
-
-  const getSuggestions = (input: string, existing: string[]): string[] => {
-      const needle = input.trim().toLowerCase();
-      return (availableTags || [])
-          .filter((tag) => tag.name?.toLowerCase().includes(needle))
-          .filter((tag) => tag.name && !existing.includes(tag.name))
-          .slice(0, 6)
-          .map((tag) => tag.name as string);
-  };
-
-
-  const currentUserIds = React.useMemo((): string[] => {
-      return Array.from(new Set([
-          currentUser?.uid,
-          (currentProfile as { id?: string } | null)?.id,
-          (currentProfile as { uid?: string } | null)?.uid,
-          (currentProfile as { userId?: string } | null)?.userId,
-      ].filter((v): v is string => typeof v === "string")));
-  }, [currentProfile?.id, currentProfile?.uid, currentProfile?.userId, currentUser?.uid]);
-  const currentUserId: string | undefined = currentUserIds[0];
-  const currentOrgRole = React.useMemo((): string | undefined => {
-      if (!selectedOrgId) return undefined;
-      const me = (orgMembers?.users || []).find((u) => u.id && currentUserIds.includes(u.id));
-      const memberRole = (me?.role as string | undefined) || undefined;
-      if (memberRole) return memberRole;
-      const selectedOrg = (orgsForPersona || []).find((o) => o.id === selectedOrgId);
-      if (!selectedOrg) return undefined;
-      const rawRole = selectedOrg.organizationRole ?? selectedOrg.myRole ?? selectedOrg.memberRole ?? selectedOrg.role;
-      const fallbackRole = typeof rawRole === "string" ? rawRole : undefined;
-      if (fallbackRole) return fallbackRole;
-      const rawOwner = selectedOrg.ownerId ?? selectedOrg.ownerUid ?? selectedOrg.ownerUserId;
-      const ownerId = typeof rawOwner === "string" ? rawOwner : undefined;
-      if (ownerId && currentUserIds.includes(ownerId)) return "owner";
-      return undefined;
-  }, [selectedOrgId, orgMembers, currentUserIds, orgsForPersona]);
-  const canManageOrgMembers = currentOrgRole === "owner" || currentOrgRole === "admin";
-  const tabCounts = React.useMemo(() => ({
-      works: scripts.length,
-      profile: personas.length,
-      org: orgsForPersona.length,
-      series: seriesList.length,
-  }), [scripts.length, personas.length, orgsForPersona.length, seriesList.length]);
-  const tabTone = MORANDI_STUDIO_TONE_VARS;
-  const renderTabCount = (count: number) => (
-      count ? <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">{count}</span> : null
-  );
-
-  const allTagNames = Array.from(new Set([
-      ...(availableTags || []).map(t => t.name).filter((n): n is string => Boolean(n)),
-      ...(personaDraft.tags || []),
-      ...(orgDraft.tags || []),
-  ]));
-
-  const getTagStyle = (name: string) => getMorandiTagStyle(name, allTagNames);
-
-  useEffect(() => {
-    if (!currentUser) return;
-    loadData();
-  }, [currentUser]);
-
-  useEffect(() => {
-      const nextTab = resolveTabFromSearch(location.search);
-      setActiveTab((prev) => (prev === nextTab ? prev : nextTab));
-  }, [location.search, resolveTabFromSearch]);
-
-  useEffect(() => {
-      const params = new URLSearchParams(location.search || "");
-      const requestedScriptId = params.get("scriptId");
-      const shouldOpenPublish = params.get("open") === "publish";
-      if (!requestedScriptId || !shouldOpenPublish) return;
-      const target = (scripts || []).find((s) => s.id === requestedScriptId);
-      if (!target) return;
-      setActiveTab("works");
-      setEditingScript((prev) => (prev?.id === target.id ? prev : target));
-  }, [location.search, scripts]);
-
-  const handleTabChange = useCallback((nextTab: string) => {
-      setActiveTab(nextTab);
-      const params = new URLSearchParams(location.search || "");
-      if (!nextTab || nextTab === "works") params.delete("tab");
-      else params.set("tab", nextTab);
-      const query = params.toString();
-      navigate(`/studio${query ? `?${query}` : ""}`, { replace: true });
-  }, [location.search, navigate]);
-
-  const closePublishDialog = useCallback(() => {
-      setEditingScript(null);
-      const params = new URLSearchParams(location.search || "");
-      params.delete("scriptId");
-      params.delete("open");
-      const query = params.toString();
-      navigate(`/studio${query ? `?${query}` : ""}`, { replace: true });
-  }, [location.search, navigate]);
-
-  const {
-      showStudioGuide,
-      studioGuideIndex,
-      studioGuideSteps,
-      currentStudioGuide,
-      studioSpotlightRect,
-      finishStudioGuide,
-      handleStudioGuideNext,
-      handleStudioGuidePrev,
-      handleStartStudioGuide,
-  } = useStudioGuide({
-      t,
-      currentUser,
-      activeTab,
-      handleTabChange,
-      tabsGuideRef,
-  });
-
-  // personaDraft is fully driven by selectedPersonaId effect above
-
-  const loadData = async (isBackground = false) => {
-    if (!currentUser) return;
-    if (!isBackground) setIsWorksLoading(true);
-
-    try {
-        const scriptData = await getUserScripts(undefined);
-        const sortedScripts = (scriptData || [])
-            .filter(s => s.type !== "folder" && !s.isFolder)
-            .sort((a, b) => {
-                const aPublic = a.status === "Public" || a.isPublic;
-                const bPublic = b.status === "Public" || b.isPublic;
-                if (aPublic !== bPublic) return aPublic ? -1 : 1;
-                return Number(b.lastModified || 0) - Number(a.lastModified || 0);
-            });
-        setScripts(sortedScripts);
-    } catch (e) {
-        console.error("Failed to load scripts", e);
-    } finally {
-        if (!isBackground) setIsWorksLoading(false);
-    }
-
-    try {
-        setIsMetaLoading(true);
-        const [personaData, orgData, tagData, seriesData] = await Promise.all([
-            getPersonas(undefined),
-            getOrganizations(undefined),
-            getTags(),
-            getSeries(),
-        ]);
-        let normalizedPersonas = (personaData || []).map(p => {
-            let links = p?.links;
-            if (typeof links === "string") {
-                try { links = JSON.parse(links); } catch { links = []; }
-            }
-            if (!Array.isArray(links)) links = [];
-            const organizationIds = normalizeOrgIds(p?.organizationIds);
-            return { ...p, links, organizationIds };
-        });
-        // Enrich missing links from public persona as fallback
-        const needsEnrich = normalizedPersonas.filter(p => (p.links || []).length === 0);
-        if (needsEnrich.length > 0) {
-            const enriched = await Promise.all(needsEnrich.map(async (p) => {
-                try {
-                    const pub = await getPublicPersona(p.id);
-                    let pubLinks = pub?.links;
-                    if (typeof pubLinks === "string") {
-                      try { pubLinks = JSON.parse(pubLinks); } catch { pubLinks = []; }
-                    }
-                    if (Array.isArray(pubLinks) && pubLinks.length > 0) {
-                        return { ...p, links: pubLinks };
-                    }
-                } catch {}
-                return p;
-            }));
-            const enrichMap = new Map(enriched.map(p => [p.id, p]));
-            normalizedPersonas = normalizedPersonas.map(p => enrichMap.get(p.id) || p);
-        }
-        setPersonas(normalizedPersonas);
-        setPersonasLoadedAt(Date.now());
-        setOrgs(orgData || []);
-        const deduped = await buildAffiliatedOrganizations({
-          ownedOrgs: orgData || [],
-          profile: currentProfile,
-          personas: normalizedPersonas,
-          fetchOrganizationById: getOrganization,
-        });
-        setOrgsForPersona(deduped);
-        setAvailableTags(tagData || []);
-        setSeriesList(seriesData || []);
-        const preferredPersonaId = localStorage.getItem("preferredPersonaId");
-        const personasForSelection = normalizedPersonas;
-        const nextPersona =
-            (preferredPersonaId && personasForSelection.find(p => p.id === preferredPersonaId)) ||
-            personasForSelection[0];
-        if (nextPersona) {
-            setSelectedPersonaId(nextPersona.id);
-        }
-        if (deduped.length > 0) {
-            setSelectedOrgId((prev) => (prev && deduped.some((o) => o.id === prev) ? prev : deduped[0].id));
-        }
-    } catch (e) {
-        console.error("Failed to load studio data", e);
-    } finally {
-        setIsMetaLoading(false);
-    }
-  };
-
-  const {
-      handleCreateSeries,
-      handleUpdateSeries,
-      handleDeleteSeries,
-      handleDetachScriptFromSeries,
-  } = usePublisherSeriesActions({
-      selectedSeriesId,
-      seriesDraft,
-      setIsSavingSeries,
-      setSeriesList,
-      setSelectedSeriesId,
-      setSeriesDraft,
-      setScripts,
-      toast,
-  });
-
-  const refreshOrgChoices = async () => {
-      if (!currentUser) return;
-      try {
-          const profile = currentProfile || await getUserProfile();
-          const mergedOrgs = await buildAffiliatedOrganizations({
-            ownedOrgs: orgs || [],
-            profile,
-            personas: personas || [],
-            fetchOrganizationById: getOrganization,
-          });
-          setOrgsForPersona(mergedOrgs);
-      } catch {
-          // ignore
-      }
-  };
-
-  useEffect(() => {
-      if (!selectedPersonaId || personasLoadedAt === 0) return;
-      localStorage.setItem("preferredPersonaId", selectedPersonaId);
-      let ignore = false;
-      const run = async () => {
-          const persona = personas.find(p => p.id === selectedPersonaId);
-          if (!persona) return;
-          let links = persona.links;
-          if (typeof links === "string") {
-              try { links = JSON.parse(links); } catch { links = []; }
-          }
-          if (!Array.isArray(links)) links = [];
-          if (links.length === 0) {
-              try {
-                  const publicPersona = await getPublicPersona(selectedPersonaId);
-                  if (publicPersona?.links && publicPersona.links.length > 0) {
-                      links = publicPersona.links;
-                  }
-              } catch {}
-          }
-          if (ignore) return;
-          setPersonaDraft({
-              displayName: persona.displayName || "",
-              bio: persona.bio || "",
-              website: persona.website || "",
-              links: links ?? [],
-              avatar: persona.avatar || "",
-              bannerUrl: persona.bannerUrl || "",
-              organizationIds: persona.organizationIds || [],
-              tags: persona.tags || [],
-              defaultLicenseCommercial: persona.defaultLicenseCommercial || "",
-              defaultLicenseDerivative: persona.defaultLicenseDerivative || "",
-              defaultLicenseNotify: persona.defaultLicenseNotify || "",
-              defaultLicenseSpecialTerms: persona.defaultLicenseSpecialTerms || []
-          });
-          if ((persona.organizationIds || []).length > 0) {
-              setSelectedOrgId((persona.organizationIds ?? [])[0] ?? null);
-          }
-      };
-      run();
-      return () => { ignore = true; };
-  }, [selectedPersonaId, personasLoadedAt, personas]);
-
-  const {
-      handleInviteMember,
-      handleAcceptRequest,
-      handleDeclineRequest,
-      handleRemoveMember,
-      handleRemovePersonaMember,
-      handleChangeMemberRole,
-      handleAcceptInvite,
-      handleDeclineInvite,
-  } = usePublisherOrgMemberActions({
-      selectedOrgId,
-      personas,
-      t,
-      toast,
-      handleTabChange,
-      refreshOrgChoices,
-      setInviteSearchQuery,
-      setInviteSearchResults,
-      setOrgInvites,
-      setOrgRequests,
-      setOrgMembers,
-      setMyInvites,
-  });
-
-  useEffect(() => {
-      if (!selectedOrgId) return;
-      const org = orgs.find(o => o.id === selectedOrgId);
-      if (org) {
-          setOrgDraft({
-              id: org.id,
-              name: org.name || "",
-              description: org.description || "",
-              website: org.website || "",
-              logoUrl: org.logoUrl || "",
-              bannerUrl: org.bannerUrl || "",
-              tags: org.tags || []
-          });
-      }
-  }, [selectedOrgId, orgs]);
-  const {
-      isSavingProfile,
-      isSavingOrg,
-      isCreatingPersona,
-      isCreatingOrg,
-      handleSaveProfile,
-      handleSaveOrg,
-      handleCreatePersona,
-      handleDeletePersona,
-      handleCreateOrg,
-      handleDeleteOrg,
-  } = usePublisherCrudActions({
-      selectedPersonaId,
-      personaDraft,
-      setSelectedPersonaId,
-      setConfirmDeletePersonaOpen,
-      orgDraft,
-      setSelectedOrgId,
-      setConfirmDeleteOrgOpen,
-      loadData,
-      t,
-      toast,
-  });
+  const s = usePublisherDashboardState({ isSidebarOpen, setSidebarOpen, openMobileMenu });
 
   return (
     <div className="flex h-full flex-col bg-background">
+      {/* Topbar */}
       <div className={`${TOPBAR_OUTER_CLASS} ${STUDIO_TOPBAR_SURFACE_CLASS}`}>
         <div className={STUDIO_TOPBAR_INNER_CLASS}>
-        <div className={STUDIO_TOPBAR_ROW_CLASS}>
-          <div className="lg:hidden">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => openMobileMenu?.()}
-              title={t("publisher.expandMenu")}
-            >
-              <PanelLeftOpen className="w-5 h-5 text-muted-foreground" />
-            </Button>
-          </div>
-          <div className={`hidden lg:block ${isSidebarOpen ? "lg:hidden" : ""}`}>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSidebarOpen && setSidebarOpen(true)}
-              title={t("publisher.expandSidebar")}
-            >
-              <PanelLeftOpen className="w-5 h-5 text-muted-foreground" />
-            </Button>
-          </div>
-          <div className={`hidden sm:block ${STUDIO_TOPBAR_TITLE_WRAP_CLASS}`}>
-            <div className="flex items-center gap-2">
-              <span className="hidden rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary sm:inline-flex">
-                Studio
-              </span>
-              <h1 className="truncate font-serif text-lg font-semibold text-primary">{t("publisher.title")}</h1>
+          <div className={STUDIO_TOPBAR_ROW_CLASS}>
+            <div className="lg:hidden">
+              <Button variant="ghost" size="icon" onClick={() => s.openMobileMenu?.()} title={s.t("publisher.expandMenu")}>
+                <PanelLeftOpen className="w-5 h-5 text-muted-foreground" />
+              </Button>
             </div>
-            <p className="mt-0.5 hidden truncate text-[11px] text-muted-foreground sm:block">
-              作品、作者、組織與系列的發佈資料集中管理
-            </p>
+            <div className={`hidden lg:block ${s.isSidebarOpen ? "lg:hidden" : ""}`}>
+              <Button variant="ghost" size="icon" onClick={() => s.setSidebarOpen?.(true)} title={s.t("publisher.expandSidebar")}>
+                <PanelLeftOpen className="w-5 h-5 text-muted-foreground" />
+              </Button>
+            </div>
+            <div className={`hidden sm:block ${STUDIO_TOPBAR_TITLE_WRAP_CLASS}`}>
+              <div className="flex items-center gap-2">
+                <span className="hidden rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary sm:inline-flex">
+                  Studio
+                </span>
+                <h1 className="truncate font-serif text-lg font-semibold text-primary">{s.t("publisher.title")}</h1>
+              </div>
+              <p className="mt-0.5 hidden truncate text-[11px] text-muted-foreground sm:block">
+                作品、作者、組織與系列的發佈資料集中管理
+              </p>
+            </div>
+            <div className={STUDIO_TOPBAR_ACTIONS_CLASS}>
+              <StudioTopbarQuickActions
+                onOpenGuide={s.handleStartStudioGuide}
+                onOpenGallery={() => s.navigate("/")}
+                guideLabel={s.t("publisher.guide")}
+                galleryLabel={s.t("nav.gallery", "公開台本")}
+                languageLabel={s.t("settings.language")}
+              />
+            </div>
           </div>
-          <div className={STUDIO_TOPBAR_ACTIONS_CLASS}>
-            <StudioTopbarQuickActions
-              onOpenGuide={handleStartStudioGuide}
-              onOpenGallery={() => navigate("/")}
-              guideLabel={t("publisher.guide")}
-              galleryLabel={t("nav.gallery", "公開台本")}
-              languageLabel={t("settings.language")}
-            />
-          </div>
-        </div>
         </div>
       </div>
 
       <div className={`flex-1 min-h-0 overflow-y-auto ${STUDIO_PAGE_PADDING_CLASS}`}>
-      <div className={STUDIO_PAGE_CONTENT_CLASS}>
+        <div className={STUDIO_PAGE_CONTENT_CLASS}>
 
-      {myInvites.length > 0 && (
-        <div className="border rounded-lg p-4 bg-muted/20 mb-6">
-          <div className="text-sm font-medium mb-2">{t("publisher.myOrgInvites")}</div>
-          <div className="space-y-2">
-            {myInvites.map(inv => (
-              <div key={inv.id ?? ""} className="flex items-center justify-between text-sm">
-                <span>{t("publisher.inviteJoinOrg").replace("{orgId}", inv.orgId || "")}</span>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => handleAcceptInvite(inv.id ?? "")}>{t("publisher.accept")}</Button>
-                  <Button size="sm" variant="ghost" onClick={() => handleDeclineInvite(inv.id ?? "")}>{t("publisher.decline")}</Button>
-                </div>
+          {/* Invites banner */}
+          {s.myInvites.length > 0 && (
+            <div className="border rounded-lg p-4 bg-muted/20 mb-6">
+              <div className="text-sm font-medium mb-2">{s.t("publisher.myOrgInvites")}</div>
+              <div className="space-y-2">
+                {s.myInvites.map(inv => (
+                  <div key={inv.id ?? ""} className="flex items-center justify-between text-sm">
+                    <span>{s.t("publisher.inviteJoinOrg").replace("{orgId}", inv.orgId || "")}</span>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => s.handleAcceptInvite(inv.id ?? "")}>{s.t("publisher.accept")}</Button>
+                      <Button size="sm" variant="ghost" onClick={() => s.handleDeclineInvite(inv.id ?? "")}>{s.t("publisher.decline")}</Button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+            </div>
+          )}
 
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
-        <div className="sticky top-0 z-20 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-r from-[var(--morandi-tone-helper-bg)]/85 via-[var(--morandi-tone-helper-bg)]/45 to-background p-2.5 shadow-sm backdrop-blur">
-            <TabsList ref={tabsGuideRef} className="grid h-auto w-full grid-cols-2 gap-1.5 bg-transparent p-0 md:grid-cols-4">
-                <TabsTrigger
-                  value="works"
-                  style={tabTone.works}
-                  className="h-11 justify-start rounded-lg border border-transparent bg-background/75 px-3 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/55 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]"
-                >
-                    <span className="flex items-center gap-2 text-xs sm:text-sm">
-                        <FileText className="h-4 w-4" />
-                        <span>{t("publisher.myWorks")}</span>
-                        {renderTabCount(tabCounts.works)}
-                    </span>
+          {/* Tabs */}
+          <Tabs value={s.activeTab} onValueChange={s.handleTabChange} className="space-y-4">
+            <div className="sticky top-0 z-20 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-r from-[var(--morandi-tone-helper-bg)]/85 via-[var(--morandi-tone-helper-bg)]/45 to-background p-2.5 shadow-sm backdrop-blur">
+              <TabsList ref={s.tabsGuideRef} className="grid h-auto w-full grid-cols-2 gap-1.5 bg-transparent p-0 md:grid-cols-4">
+                <TabsTrigger value="works" style={s.tabTone.works} className="h-11 justify-start rounded-lg border border-transparent bg-background/75 px-3 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/55 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]">
+                  <span className="flex items-center gap-2 text-xs sm:text-sm">
+                    <FileText className="h-4 w-4" />
+                    <span>{s.t("publisher.myWorks")}</span>
+                    {s.renderTabCount(s.tabCounts.works)}
+                  </span>
                 </TabsTrigger>
-                <TabsTrigger
-                  value="profile"
-                  style={tabTone.profile}
-                  className="h-11 justify-start rounded-lg border border-transparent bg-background/75 px-3 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/55 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]"
-                >
-                    <span className="flex items-center gap-2 text-xs sm:text-sm">
-                        <UserRound className="h-4 w-4" />
-                        <span>{t("publisher.authorIdentity")}</span>
-                        {renderTabCount(tabCounts.profile)}
-                    </span>
+                <TabsTrigger value="profile" style={s.tabTone.profile} className="h-11 justify-start rounded-lg border border-transparent bg-background/75 px-3 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/55 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]">
+                  <span className="flex items-center gap-2 text-xs sm:text-sm">
+                    <UserRound className="h-4 w-4" />
+                    <span>{s.t("publisher.authorIdentity")}</span>
+                    {s.renderTabCount(s.tabCounts.profile)}
+                  </span>
                 </TabsTrigger>
-                <TabsTrigger
-                  value="org"
-                  style={tabTone.org}
-                  className="h-11 justify-start rounded-lg border border-transparent bg-background/75 px-3 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/55 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]"
-                >
-                    <span className="flex items-center gap-2 text-xs sm:text-sm">
-                        <Building2 className="h-4 w-4" />
-                        <span>{t("publisher.organization")}</span>
-                        {renderTabCount(tabCounts.org)}
-                    </span>
+                <TabsTrigger value="org" style={s.tabTone.org} className="h-11 justify-start rounded-lg border border-transparent bg-background/75 px-3 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/55 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]">
+                  <span className="flex items-center gap-2 text-xs sm:text-sm">
+                    <Building2 className="h-4 w-4" />
+                    <span>{s.t("publisher.organization")}</span>
+                    {s.renderTabCount(s.tabCounts.org)}
+                  </span>
                 </TabsTrigger>
-                <TabsTrigger
-                  value="series"
-                  style={tabTone.series}
-                  className="h-11 justify-start rounded-lg border border-transparent bg-background/75 px-3 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/55 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]"
-                >
-                    <span className="flex items-center gap-2 text-xs sm:text-sm">
-                        <Layers3 className="h-4 w-4" />
-                        <span>系列管理</span>
-                        {renderTabCount(tabCounts.series)}
-                    </span>
+                <TabsTrigger value="series" style={s.tabTone.series} className="h-11 justify-start rounded-lg border border-transparent bg-background/75 px-3 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/55 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]">
+                  <span className="flex items-center gap-2 text-xs sm:text-sm">
+                    <Layers3 className="h-4 w-4" />
+                    <span>系列管理</span>
+                    {s.renderTabCount(s.tabCounts.series)}
+                  </span>
                 </TabsTrigger>
-            </TabsList>
-        </div>
+              </TabsList>
+            </div>
 
-        {/* 1. My Works Tab */}
-        <TabsContent
-          value="works"
-          style={tabTone.works}
-          className="space-y-4 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3"
-          data-guide-id="studio-works-panel"
-        >
-             <PublisherWorksTab
-                isLoading={isWorksLoading}
-                scripts={scripts}
-                personas={personas}
-                setEditingScript={setEditingScript}
-                navigate={navigate}
-                formatDate={formatDate}
-                onContinueEdit={(script) => navigate(`/edit/${script.id}?mode=edit`)}
-             />
-        </TabsContent>
+            <TabsContent value="works" style={s.tabTone.works} className="space-y-4 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3" data-guide-id="studio-works-panel">
+              <PublisherWorksTab
+                isLoading={s.isWorksLoading}
+                scripts={s.scripts}
+                personas={s.personas}
+                setEditingScript={s.setEditingScript}
+                navigate={s.navigate}
+                formatDate={s.formatDate}
+                onContinueEdit={(script) => s.navigate(`/edit/${script.id}?mode=edit`)}
+              />
+            </TabsContent>
 
-        {/* 2. Profile Tab (Inline Editor) */}
-        <TabsContent
-          value="profile"
-          style={tabTone.profile}
-          className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3"
-          data-guide-id="studio-profile-panel"
-        >
-            <PublisherProfileTab
-                selectedPersonaId={selectedPersonaId} setSelectedPersonaId={setSelectedPersonaId}
-                personas={personas}
-                selectedPersona={personas.find(p => p.id === selectedPersonaId) ?? null}
-                handleCreatePersona={handleCreatePersona} isCreatingPersona={isCreatingPersona}
-                handleDeletePersona={() => setConfirmDeletePersonaOpen(true)}
-                personaDraft={personaDraft} setPersonaDraft={setPersonaDraft}
-                orgs={orgsForPersona}
-                isLoading={isMetaLoading}
-                personaTagInput={personaTagInput} setPersonaTagInput={setPersonaTagInput}
-                handleSaveProfile={handleSaveProfile} isSavingProfile={isSavingProfile}
-                parseTags={parseTags}
-                addTags={addTags}
-                getSuggestions={(input: string) => getSuggestions(input, personaDraft.tags || [])}
-                getTagStyle={getTagStyle}
-                tagOptions={availableTags}
-            />
-        </TabsContent>
+            <TabsContent value="profile" style={s.tabTone.profile} className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3" data-guide-id="studio-profile-panel">
+              <PublisherProfileTab
+                selectedPersonaId={s.selectedPersonaId} setSelectedPersonaId={s.setSelectedPersonaId}
+                personas={s.personas}
+                selectedPersona={s.personas.find(p => p.id === s.selectedPersonaId) ?? null}
+                handleCreatePersona={s.handleCreatePersona} isCreatingPersona={s.isCreatingPersona}
+                handleDeletePersona={() => s.setConfirmDeletePersonaOpen(true)}
+                personaDraft={s.personaDraft} setPersonaDraft={s.setPersonaDraft}
+                orgs={s.orgsForPersona}
+                isLoading={s.isMetaLoading}
+                personaTagInput={s.personaTagInput} setPersonaTagInput={s.setPersonaTagInput}
+                handleSaveProfile={s.handleSaveProfile} isSavingProfile={s.isSavingProfile}
+                parseTags={s.parseTags}
+                addTags={s.addTags}
+                getSuggestions={(input: string) => s.getSuggestions(input, s.personaDraft.tags || [])}
+                getTagStyle={s.getTagStyle}
+                tagOptions={s.availableTags}
+              />
+            </TabsContent>
 
-        <ScriptMetadataDialog
-            open={!!editingScript}
-            onOpenChange={(open) => !open && closePublishDialog()}
-            script={editingScript}
-            scriptId={typeof editingScript?.id === "string" ? editingScript.id : undefined}
-            seriesOptions={seriesList.map((item) => ({ id: item.id, name: item.name || "" }))}
-            onSeriesCreated={(createdSeries) => {
+            <ScriptMetadataDialog
+              open={!!s.editingScript}
+              onOpenChange={(open) => !open && s.closePublishDialog()}
+              script={s.editingScript}
+              scriptId={typeof s.editingScript?.id === "string" ? s.editingScript.id : undefined}
+              seriesOptions={s.seriesList.map((item) => ({ id: item.id, name: item.name || "" }))}
+              onSeriesCreated={(createdSeries) => {
                 if (!createdSeries?.id) return;
-                setSeriesList((prev) => {
-                    const exists = prev.some((item) => item.id === createdSeries.id);
-                    return exists ? prev : [createdSeries, ...prev];
+                s.setSeriesList((prev) => {
+                  const exists = prev.some((item) => item.id === createdSeries.id);
+                  return exists ? prev : [createdSeries, ...prev];
                 });
-                setSelectedSeriesId(createdSeries.id);
-            }}
-            onSave={(updatedScript) => {
-                closePublishDialog();
-                setScripts(prev => prev.map(s => s.id === updatedScript.id ? { ...s, ...updatedScript } : s));
-            }}
-        />
-
-        {/* 3. Organization Tab */}
-        <TabsContent
-          value="org"
-          style={tabTone.org}
-          className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3"
-          data-guide-id="studio-org-panel"
-        >
-                <PublisherOrgTab 
-                orgs={orgsForPersona} 
-                selectedOrgId={selectedOrgId} setSelectedOrgId={setSelectedOrgId}
-                handleCreateOrg={handleCreateOrg} isCreatingOrg={isCreatingOrg}
-                handleDeleteOrg={() => setConfirmDeleteOrgOpen(true)}
-                orgDraft={orgDraft} setOrgDraft={setOrgDraft}
-                handleSaveOrg={handleSaveOrg} isSavingOrg={isSavingOrg}
-                orgTagInput={orgTagInput} setOrgTagInput={setOrgTagInput}
-                parseTags={parseTags}
-                addTags={(next: string | string[]) => {
-                    const incoming = Array.isArray(next) ? next : parseTags(next);
-                    return addTags(orgDraft.tags || [], incoming);
-                }}
-                getSuggestions={(input: string) => getSuggestions(input, orgDraft.tags || [])}
-                getTagStyle={getTagStyle}
-                tagOptions={availableTags}
-                isLoading={isMetaLoading || isOrgMembersLoading}
-                orgMembers={orgMembers}
-                orgInvites={orgInvites}
-                orgRequests={orgRequests}
-                canEditSelectedOrg={canManageOrgMembers}
-                currentUserId={currentUserId}
-                currentOrgRole={currentOrgRole}
-                canManageOrgMembers={canManageOrgMembers}
-                inviteSearchQuery={inviteSearchQuery}
-                setInviteSearchQuery={setInviteSearchQuery}
-                inviteSearchResults={inviteSearchResults}
-                isInviteSearching={isInviteSearching}
-                handleInviteMember={handleInviteMember}
-                handleAcceptRequest={handleAcceptRequest}
-                handleDeclineRequest={handleDeclineRequest}
-                handleRemoveMember={handleRemoveMember}
-                handleRemovePersonaMember={handleRemovePersonaMember}
-                handleChangeMemberRole={handleChangeMemberRole}
-                />
-        </TabsContent>
-
-        <TabsContent
-          value="series"
-          style={tabTone.series}
-          className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3"
-        >
-            <PublisherSeriesTab
-              seriesList={seriesList}
-              selectedSeriesId={selectedSeriesId}
-              setSelectedSeriesId={setSelectedSeriesId}
-              seriesDraft={seriesDraft}
-              setSeriesDraft={setSeriesDraft}
-              seriesScripts={(scripts || [])
-                  .filter((script) => script.seriesId === selectedSeriesId)
-                  .map((script) => ({
-                      ...script,
-                      seriesOrder: script.seriesOrder ?? undefined,
-                  }))
-                  .sort((a, b) => {
-                      const aOrder = Number.isFinite(Number(a.seriesOrder)) ? Number(a.seriesOrder) : Number.MAX_SAFE_INTEGER;
-                      const bOrder = Number.isFinite(Number(b.seriesOrder)) ? Number(b.seriesOrder) : Number.MAX_SAFE_INTEGER;
-                      if (aOrder !== bOrder) return aOrder - bOrder;
-                      return Number(b.lastModified || 0) - Number(a.lastModified || 0);
-                  })}
-              onDetachScript={handleDetachScriptFromSeries}
-              onCreateSeries={handleCreateSeries}
-              onUpdateSeries={handleUpdateSeries}
-              onDeleteSeries={handleDeleteSeries}
-              isSaving={isSavingSeries}
+                s.setSelectedSeriesId(createdSeries.id);
+              }}
+              onSave={(updatedScript) => {
+                s.closePublishDialog();
+                s.setScripts(prev => prev.map(sc => sc.id === updatedScript.id ? { ...sc, ...updatedScript } : sc));
+              }}
             />
-        </TabsContent>
 
-      </Tabs>
+            <TabsContent value="org" style={s.tabTone.org} className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3" data-guide-id="studio-org-panel">
+              <PublisherOrgTab
+                orgs={s.orgsForPersona}
+                selectedOrgId={s.selectedOrgId} setSelectedOrgId={s.setSelectedOrgId}
+                handleCreateOrg={s.handleCreateOrg} isCreatingOrg={s.isCreatingOrg}
+                handleDeleteOrg={() => s.setConfirmDeleteOrgOpen(true)}
+                orgDraft={s.orgDraft} setOrgDraft={s.setOrgDraft}
+                handleSaveOrg={s.handleSaveOrg} isSavingOrg={s.isSavingOrg}
+                orgTagInput={s.orgTagInput} setOrgTagInput={s.setOrgTagInput}
+                parseTags={s.parseTags}
+                addTags={(next: string | string[]) => {
+                  const incoming = Array.isArray(next) ? next : s.parseTags(next);
+                  return s.addTags(s.orgDraft.tags || [], incoming);
+                }}
+                getSuggestions={(input: string) => s.getSuggestions(input, s.orgDraft.tags || [])}
+                getTagStyle={s.getTagStyle}
+                tagOptions={s.availableTags}
+                isLoading={s.isMetaLoading || s.isOrgMembersLoading}
+                orgMembers={s.orgMembers}
+                orgInvites={s.orgInvites}
+                orgRequests={s.orgRequests}
+                canEditSelectedOrg={s.canManageOrgMembers}
+                currentUserId={s.currentUserId}
+                currentOrgRole={s.currentOrgRole}
+                canManageOrgMembers={s.canManageOrgMembers}
+                inviteSearchQuery={s.inviteSearchQuery}
+                setInviteSearchQuery={s.setInviteSearchQuery}
+                inviteSearchResults={s.inviteSearchResults}
+                isInviteSearching={s.isInviteSearching}
+                handleInviteMember={s.handleInviteMember}
+                handleAcceptRequest={s.handleAcceptRequest}
+                handleDeclineRequest={s.handleDeclineRequest}
+                handleRemoveMember={s.handleRemoveMember}
+                handleRemovePersonaMember={s.handleRemovePersonaMember}
+                handleChangeMemberRole={s.handleChangeMemberRole}
+              />
+            </TabsContent>
 
-      <Dialog open={confirmDeletePersonaOpen} onOpenChange={setConfirmDeletePersonaOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("publisher.deletePersonaTitle")}</DialogTitle>
-            <DialogDescription>{t("publisher.deletePersonaDesc")}</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDeletePersonaOpen(false)}>{t("publisher.cancel")}</Button>
-            <Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDeletePersona}>{t("publisher.confirmDelete")}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <TabsContent value="series" style={s.tabTone.series} className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3">
+              <PublisherSeriesTab
+                seriesList={s.seriesList}
+                selectedSeriesId={s.selectedSeriesId}
+                setSelectedSeriesId={s.setSelectedSeriesId}
+                seriesDraft={s.seriesDraft}
+                setSeriesDraft={s.setSeriesDraft}
+                seriesScripts={(s.scripts || [])
+                  .filter((script) => script.seriesId === s.selectedSeriesId)
+                  .map((script) => ({ ...script, seriesOrder: script.seriesOrder ?? undefined }))
+                  .sort((a, b) => {
+                    const aOrder = Number.isFinite(Number(a.seriesOrder)) ? Number(a.seriesOrder) : Number.MAX_SAFE_INTEGER;
+                    const bOrder = Number.isFinite(Number(b.seriesOrder)) ? Number(b.seriesOrder) : Number.MAX_SAFE_INTEGER;
+                    if (aOrder !== bOrder) return aOrder - bOrder;
+                    return Number(b.lastModified || 0) - Number(a.lastModified || 0);
+                  })}
+                onDetachScript={s.handleDetachScriptFromSeries}
+                onCreateSeries={s.handleCreateSeries}
+                onUpdateSeries={s.handleUpdateSeries}
+                onDeleteSeries={s.handleDeleteSeries}
+                isSaving={s.isSavingSeries}
+              />
+            </TabsContent>
+          </Tabs>
 
-      <Dialog open={confirmDeleteOrgOpen} onOpenChange={setConfirmDeleteOrgOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("publisher.deleteOrgTitle")}</DialogTitle>
-            <DialogDescription>{t("publisher.deleteOrgDesc")}</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDeleteOrgOpen(false)}>{t("publisher.cancel")}</Button>
-            <Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDeleteOrg}>{t("publisher.confirmDelete")}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <SpotlightGuideOverlay
-        open={showStudioGuide && Boolean(currentStudioGuide)}
-        zIndex={220}
-        spotlightRect={studioSpotlightRect}
-        currentStep={studioGuideIndex + 1}
-        totalSteps={studioGuideSteps.length}
-        title={currentStudioGuide?.title}
-        description={currentStudioGuide?.description}
-        onSkip={finishStudioGuide}
-        skipLabel={t("publisher.guideSkip")}
-        onPrev={handleStudioGuidePrev}
-        prevLabel={t("publisher.guidePrev")}
-        prevDisabled={studioGuideIndex === 0}
-        onNext={handleStudioGuideNext}
-        nextLabel={studioGuideIndex === studioGuideSteps.length - 1 ? t("publisher.guideDone") : t("publisher.guideNext")}
-      />
+          {/* Delete persona dialog */}
+          <Dialog open={s.confirmDeletePersonaOpen} onOpenChange={s.setConfirmDeletePersonaOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{s.t("publisher.deletePersonaTitle")}</DialogTitle>
+                <DialogDescription>{s.t("publisher.deletePersonaDesc")}</DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => s.setConfirmDeletePersonaOpen(false)}>{s.t("publisher.cancel")}</Button>
+                <Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={s.handleDeletePersona}>{s.t("publisher.confirmDelete")}</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Delete org dialog */}
+          <Dialog open={s.confirmDeleteOrgOpen} onOpenChange={s.setConfirmDeleteOrgOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{s.t("publisher.deleteOrgTitle")}</DialogTitle>
+                <DialogDescription>{s.t("publisher.deleteOrgDesc")}</DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => s.setConfirmDeleteOrgOpen(false)}>{s.t("publisher.cancel")}</Button>
+                <Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={s.handleDeleteOrg}>{s.t("publisher.confirmDelete")}</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <SpotlightGuideOverlay
+            open={s.showStudioGuide && Boolean(s.currentStudioGuide)}
+            zIndex={220}
+            spotlightRect={s.studioSpotlightRect}
+            currentStep={s.studioGuideIndex + 1}
+            totalSteps={s.studioGuideSteps.length}
+            title={s.currentStudioGuide?.title}
+            description={s.currentStudioGuide?.description}
+            onSkip={s.finishStudioGuide}
+            skipLabel={s.t("publisher.guideSkip")}
+            onPrev={s.handleStudioGuidePrev}
+            prevLabel={s.t("publisher.guidePrev")}
+            prevDisabled={s.studioGuideIndex === 0}
+            onNext={s.handleStudioGuideNext}
+            nextLabel={s.studioGuideIndex === s.studioGuideSteps.length - 1 ? s.t("publisher.guideDone") : s.t("publisher.guideNext")}
+          />
+        </div>
       </div>
-    </div>
     </div>
   );
 }
