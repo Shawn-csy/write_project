@@ -25,6 +25,7 @@ import { usePublicTerms } from "../hooks/public/usePublicTerms";
 import { useDebouncedSearch } from "../hooks/useDebouncedSearch";
 import { TermsConsentDialog } from "../components/public/TermsConsentDialog";
 import { usePublicGalleryFiltering } from "../hooks/public/usePublicGalleryFiltering";
+import type { BaseScriptApi } from "../types/api";
 
 const SEGMENT_KEYS = {
   all: "all",
@@ -44,6 +45,29 @@ const FEATURED_TAB_KEYS = {
 type GalleryView = "scripts" | "authors" | "orgs" | "help" | "license" | "about";
 type FilterableGalleryView = "scripts" | "authors" | "orgs";
 type GalleryViewMode = "standard" | "compact";
+
+interface PublicGalleryAuthor {
+  id?: string;
+  displayName?: string;
+  avatar?: string;
+  avatarUrl?: string;
+  tags?: string[];
+  [key: string]: unknown;
+}
+
+interface PublicGalleryOrg {
+  id: string;
+  name?: string;
+  tags?: string[];
+  [key: string]: unknown;
+}
+
+type PublicGalleryScript = Omit<BaseScriptApi, "tags" | "author" | "coverUrl"> & {
+  id: string;
+  coverUrl?: string;
+  tags: string[];
+  author?: string | PublicGalleryAuthor | null;
+};
 
 interface HomepageBannerItem {
   id?: string;
@@ -95,9 +119,9 @@ export default function PublicGalleryPage() {
       if (next !== "scripts") params.delete("segment");
       setSearchParams(params);
   };
-  const [scripts, setScripts] = useState<Array<Record<string, unknown> & { id: string }>>([]);
-  const [authors, setAuthors] = useState<Array<Record<string, unknown> & { id: string }>>([]);
-  const [orgs, setOrgs] = useState<Array<Record<string, unknown> & { id: string }>>([]);
+  const [scripts, setScripts] = useState<PublicGalleryScript[]>([]);
+  const [authors, setAuthors] = useState<PublicGalleryAuthor[]>([]);
+  const [orgs, setOrgs] = useState<PublicGalleryOrg[]>([]);
   const [topTags, setTopTags] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [featuredLaneMode, setFeaturedLaneMode] = useState<string | boolean>(false);
@@ -244,20 +268,39 @@ export default function PublicGalleryPage() {
           const orgsData = data?.organizations || [];
           const hotTags = data?.topTags || [];
 
-          const normalized = scriptsData.map((script) => ({
+          const normalized: PublicGalleryScript[] = scriptsData.map((script) => {
+              const rawAuthor = script.persona || script.owner || script.author;
+              const normalizedAuthor: string | PublicGalleryAuthor | null =
+                typeof rawAuthor === "string"
+                  ? rawAuthor
+                  : rawAuthor && typeof rawAuthor === "object"
+                    ? {
+                        id: typeof rawAuthor.id === "string" ? rawAuthor.id : undefined,
+                        displayName: String(rawAuthor.displayName || rawAuthor.name || ""),
+                        avatarUrl:
+                          typeof rawAuthor.avatarUrl === "string"
+                            ? rawAuthor.avatarUrl
+                            : typeof rawAuthor.avatar === "string"
+                              ? rawAuthor.avatar
+                              : undefined,
+                      }
+                    : null;
+
+              return {
               ...script,
-              author: script.persona || script.owner || script.author,
+              author: normalizedAuthor,
+              coverUrl: typeof script.coverUrl === "string" ? script.coverUrl : undefined,
               tags: (script.tags || []).map((tag) =>
                 typeof tag === "string" ? tag : tag?.name
               ).filter(Boolean),
-          }));
+          };});
           setScripts(normalized);
 
-          const normalizeEntity = (entity: Record<string, unknown>) => ({
+          const normalizeEntity = (entity: Record<string, unknown>): PublicGalleryAuthor => ({
             ...entity,
             id: String(entity.id || ""),
             displayName: String(entity.displayName || entity.name || t("publicGallery.unknown")),
-            avatar: entity.avatar || entity.avatarUrl || entity.logoUrl || null,
+            avatar: String(entity.avatar || entity.avatarUrl || entity.logoUrl || "") || undefined,
             tags: (Array.isArray(entity.tags) ? entity.tags : [])
               .map((tag) => (typeof tag === "string" ? tag : String((tag as { name?: unknown })?.name || "")))
               .filter(Boolean),
@@ -266,7 +309,7 @@ export default function PublicGalleryPage() {
           setAuthors(personasData.map(normalizeEntity).filter((entity) => Boolean(entity.id)));
           setOrgs(
             orgsData
-              .map((o: Record<string, unknown>) => ({
+              .map((o: Record<string, unknown>): PublicGalleryOrg => ({
                 ...o,
                 id: String(o.id || ""),
                 tags: (Array.isArray(o.tags) ? o.tags : [])

@@ -10,24 +10,9 @@ import { parseBasicLicenseFromMeta } from "../../../lib/licenseRights";
 import { PublisherTabHeader } from "./PublisherTabHeader";
 import { PublisherEmptyState } from "./PublisherEntityLayout";
 import type { PersonaLike } from "../../../types/persona";
+import type { BaseScriptApi } from "../../../types/api";
 
-interface PublisherScriptItem {
-    id: string;
-    title?: string;
-    status?: string;
-    isPublic?: boolean;
-    coverUrl?: string;
-    lastModified?: number;
-    updatedAt?: number;
-    views?: number;
-    personaId?: string;
-    licenseCommercial?: string;
-    licensecommercial?: string;
-    licenseDerivative?: string;
-    licensederivative?: string;
-    licenseNotify?: string;
-    licensenotify?: string;
-}
+type PublisherScriptItem = BaseScriptApi;
 
 interface PublisherWorksTabProps {
     isLoading: boolean;
@@ -383,8 +368,8 @@ export function PublisherWorksTab({ isLoading, scripts, personas = [], setEditin
                                     <div className="aspect-[2/3] w-full bg-muted/30">
                                         {hasCover(script.coverUrl) && !failedCoverById[script.id] ? (
                                             <img
-                                                src={script.coverUrl}
-                                                alt={script.title}
+                                                src={script.coverUrl || undefined}
+                                                alt={script.title || "cover"}
                                                 className="h-full w-full object-cover"
                                                 loading="lazy"
                                                 onError={() => setFailedCoverById((prev) => ({ ...prev, [script.id]: true }))}
@@ -454,8 +439,8 @@ export function PublisherWorksTab({ isLoading, scripts, personas = [], setEditin
                                     <div className="relative h-32 w-full shrink-0 bg-muted sm:w-32">
                                         {hasCover(script.coverUrl) && !failedCoverById[script.id] ? (
                                             <img
-                                                src={script.coverUrl}
-                                                alt={script.title}
+                                                src={script.coverUrl || undefined}
+                                                alt={script.title || "cover"}
                                                 className="h-full w-full object-cover"
                                                 loading="lazy"
                                                 onError={() => setFailedCoverById((prev) => ({ ...prev, [script.id]: true }))}

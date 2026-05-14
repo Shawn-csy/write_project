@@ -30,11 +30,6 @@ interface InviteData {
   [key: string]: unknown;
 }
 
-interface ScriptData {
-  id: string;
-  title?: string;
-  [key: string]: unknown;
-}
 import { useLocation, useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
 import { Button } from "../components/ui/button";
@@ -80,6 +75,7 @@ import {
 } from "../components/layout/studioTopbarTokens";
 import { StudioTopbarQuickActions } from "../components/layout/StudioTopbarQuickActions";
 import type { PersonaLike, OrgData } from "../types/persona";
+import type { BaseScriptApi } from "../types/api";
 
 
 interface PublisherDashboardProps {
@@ -99,7 +95,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
       return ["works", "profile", "org", "series"].includes(raw ?? "") ? (raw as string) : "works";
   }, []);
   const [activeTab, setActiveTab] = useState(() => resolveTabFromSearch(location.search));
-  const [editingScript, setEditingScript] = useState<Record<string, unknown> | null>(null);
+  const [editingScript, setEditingScript] = useState<Partial<BaseScriptApi> | null>(null);
   const [confirmDeletePersonaOpen, setConfirmDeletePersonaOpen] = useState<boolean>(false);
   const [confirmDeleteOrgOpen, setConfirmDeleteOrgOpen] = useState<boolean>(false);
   
@@ -107,7 +103,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
   const [personas, setPersonas] = useState<PersonaLike[]>([]);
   const [orgs, setOrgs] = useState<OrgData[]>([]);
   const [orgsForPersona, setOrgsForPersona] = useState<OrgData[]>([]);
-  const [scripts, setScripts] = useState<ScriptData[]>([]);
+  const [scripts, setScripts] = useState<BaseScriptApi[]>([]);
   const [availableTags, setAvailableTags] = useState<TagData[]>([]);
   const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(null);
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
@@ -656,12 +652,12 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
         >
              <PublisherWorksTab
                 isLoading={isWorksLoading}
-                scripts={scripts as unknown as Array<{ id: string; [key: string]: unknown }>}
-                personas={personas as unknown as Array<{ id: string; [key: string]: unknown }>}
-                setEditingScript={(s) => setEditingScript(s as unknown as Record<string, unknown>)}
+                scripts={scripts}
+                personas={personas}
+                setEditingScript={setEditingScript}
                 navigate={navigate}
                 formatDate={formatDate}
-                onContinueEdit={(script) => navigate(`/edit/${(script as { id: string }).id}?mode=edit`)}
+                onContinueEdit={(script) => navigate(`/edit/${script.id}?mode=edit`)}
              />
         </TabsContent>
 
@@ -768,6 +764,10 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
               setSeriesDraft={setSeriesDraft}
               seriesScripts={(scripts || [])
                   .filter((script) => script.seriesId === selectedSeriesId)
+                  .map((script) => ({
+                      ...script,
+                      seriesOrder: script.seriesOrder ?? undefined,
+                  }))
                   .sort((a, b) => {
                       const aOrder = Number.isFinite(Number(a.seriesOrder)) ? Number(a.seriesOrder) : Number.MAX_SAFE_INTEGER;
                       const bOrder = Number.isFinite(Number(b.seriesOrder)) ? Number(b.seriesOrder) : Number.MAX_SAFE_INTEGER;

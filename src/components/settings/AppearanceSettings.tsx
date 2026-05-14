@@ -106,7 +106,7 @@ export function AppearanceSettings({ sectionRef }) {
                         return (
                             <button
                                 key={opt.value}
-                                onClick={() => setAccent(opt.value)}
+                                onClick={() => setAccent(opt.value as "emerald" | "indigo" | "amber")}
                                 className={cn(
                                     "w-7 h-7 rounded-full flex items-center justify-center transition-all ring-offset-2 ring-offset-card",
                                     active ? "ring-2 ring-primary scale-110" : "hover:scale-110 opacity-70 hover:opacity-100"
