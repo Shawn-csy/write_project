@@ -23,10 +23,10 @@ import type { MarkerConfig } from "../../types/script";
 
 interface LiveEditorScriptData {
   id: string;
+  type?: string;
   title?: string;
   content?: string;
   lastModified?: string | number | Date;
-  [key: string]: unknown;
 }
 
 interface LiveEditorProps {
@@ -385,7 +385,7 @@ export default function LiveEditor({ scriptId, initialData, onClose, initialScen
             onSwitchMarkerTheme={handleSwitchMarkerTheme}
             hiddenMarkerIds={hiddenMarkerIds}
             onToggleMarker={toggleMarkerVisibility}
-            script={initialData || undefined}
+            script={initialData ? { ...initialData } : undefined}
             onScriptUpdate={(updated) => {
                 const nextTitle = String((updated as { title?: unknown }).title || "");
                 if (nextTitle && nextTitle !== title) setTitle(nextTitle);

@@ -2,6 +2,12 @@ import { useCallback } from "react";
 import { createTag } from "../../lib/api/tags";
 import { normalizeActivityDemoLinks, parseActivityDemoLinks } from "../../lib/activityDemoLinks";
 
+interface MetadataTagItem {
+  id: string | number;
+  name: string;
+  color?: string;
+}
+
 const TAG_KEYS = new Set(["tag", "tags", "標籤"]);
 const normalizeKey = (value) => String(value || "").trim().toLowerCase();
 
@@ -80,6 +86,21 @@ export function useScriptMetadataJson({
   setCustomFields,
   setCurrentTags,
 }) {
+  const coerceTagItem = (value: unknown): MetadataTagItem | null => {
+    if (!value || typeof value !== "object") return null;
+    const tag = value as Record<string, unknown>;
+    const rawName = tag.name;
+    if (typeof rawName !== "string" || !rawName.trim()) return null;
+    const rawId = tag.id;
+    const resolvedId = typeof rawId === "string" || typeof rawId === "number" ? rawId : rawName;
+    const rawColor = tag.color;
+    return {
+      id: resolvedId,
+      name: rawName,
+      color: typeof rawColor === "string" ? rawColor : undefined,
+    };
+  };
+
   return useCallback(async () => {
     try {
       const parsed = JSON.parse(jsonText);
@@ -154,8 +175,13 @@ export function useScriptMetadataJson({
       const rawTagSource = resolveTagSourceFromParsedJson(parsed);
       if (rawTagSource !== undefined) {
         const entries = parseTagCandidates(rawTagSource);
-        const byName = new Map((availableTags || []).map((tag) => [tag.name.toLowerCase(), tag]));
-        const resolved: any[] = [];
+        const byName = new Map<string, MetadataTagItem>(
+          (availableTags || [])
+            .map((tag) => coerceTagItem(tag))
+            .filter((tag): tag is MetadataTagItem => tag !== null)
+            .map((tag) => [tag.name.toLowerCase(), tag] as const)
+        );
+        const resolved: MetadataTagItem[] = [];
         for (const entry of entries) {
           const name = String(entry.name || "").trim();
           if (!name) continue;
@@ -163,11 +189,11 @@ export function useScriptMetadataJson({
           if (existing) {
             resolved.push(existing);
           } else {
-            const created = await createTag(name, entry.color || "bg-slate-500");
-            resolved.push(created);
+            const created = coerceTagItem(await createTag(name, entry.color || "bg-slate-500"));
+            if (created) resolved.push(created);
           }
         }
-        setCurrentTags(resolved as any);
+        setCurrentTags(resolved);
       }
     } catch (_error) {
       setJsonError(t("scriptMetadataDialog.jsonError"));

@@ -1,14 +1,15 @@
 import React, { createContext, useContext, useMemo } from "react";
+import type { ScriptManager, MarkerConfig } from "../hooks/useScriptManager.types";
 
 interface ScriptViewContextValue {
-  markerConfigs: any[];
-  setOverrideMarkerConfigs: ((configs: any[]) => void) | undefined;
-  setScopedMarkerConfigs: ((configs: any[]) => void) | undefined;
+  markerConfigs: MarkerConfig[];
+  setOverrideMarkerConfigs: ScriptManager["setOverrideMarkerConfigs"];
+  setScopedMarkerConfigs: ScriptManager["setScopedMarkerConfigs"];
 }
 
 const ScriptViewContext = createContext<ScriptViewContextValue | null>(null);
 
-export function ScriptViewProvider({ scriptManager, children }: { scriptManager: any; children: React.ReactNode }) {
+export function ScriptViewProvider({ scriptManager, children }: { scriptManager: ScriptManager; children: React.ReactNode }) {
   const value = useMemo(() => {
     return {
       markerConfigs: scriptManager?.effectiveMarkerConfigs || [],

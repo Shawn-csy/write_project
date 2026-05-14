@@ -3,7 +3,6 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 interface TagData {
   id: string;
   name: string;
-  [key: string]: unknown;
 }
 
 interface SeriesData {
@@ -11,7 +10,6 @@ interface SeriesData {
   name?: string;
   summary?: string;
   coverUrl?: string;
-  [key: string]: unknown;
 }
 
 interface OrgMemberUser {
@@ -214,7 +212,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
   const currentOrgRole = React.useMemo((): string | undefined => {
       if (!selectedOrgId) return undefined;
       const me = (orgMembers?.users || []).find((u) => u.id && currentUserIds.includes(u.id));
-      const memberRole = (me?.organizationRole as string | undefined) || undefined;
+      const memberRole = (me?.role as string | undefined) || undefined;
       if (memberRole) return memberRole;
       const selectedOrg = (orgsForPersona || []).find((o) => o.id === selectedOrgId);
       if (!selectedOrg) return undefined;

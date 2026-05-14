@@ -187,7 +187,7 @@ function App() {
       id: "pdf",
       label: t("publicReader.exportPdf"),
       icon: Printer,
-      onClick: () => (handleExportPdf as any)(),
+      onClick: () => handleExportPdf(),
       disabled: !exportContent && !scriptManager.titleHtml,
     },
     {
@@ -246,7 +246,7 @@ function App() {
         setShowTitle={scriptManager.setShowTitle}
       />
 
-      <ScriptViewProvider scriptManager={scriptManager as any}>
+      <ScriptViewProvider scriptManager={scriptManager}>
         <AppRouter
           scriptManager={scriptManager}
           nav={nav}

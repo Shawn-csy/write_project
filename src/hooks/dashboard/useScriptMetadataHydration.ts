@@ -165,7 +165,7 @@ export function useScriptMetadataHydration({
       setCopyright(meta.copyright || "");
 
       if (!userEditedRef.current && (customFields || []).length === 0) {
-        setCustomFields(buildCustomFieldsFromRawEntries(rawEntries) as any);
+        setCustomFields(buildCustomFieldsFromRawEntries(rawEntries));
       }
 
       setIsInitializing(false);

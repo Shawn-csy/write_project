@@ -6,6 +6,7 @@ import {
   getOrganizationMembers,
   getOrganizationRequests,
 } from "../../lib/api/organizations";
+import type { OrganizationInvite, OrganizationMember, OrganizationRequest } from "../../types/api";
 import type { CurrentUserLike } from "../../types/user";
 
 interface QueueUser {
@@ -14,18 +15,15 @@ interface QueueUser {
   handle?: string;
   email?: string;
   organizationRole?: string;
+  role?: string;
+  uid?: string;
+  userId?: string;
   [key: string]: unknown;
 }
 
 interface OrgMembersData {
-  users: QueueUser[];
+  users: OrganizationMember[];
   personas: Array<Record<string, unknown>>;
-}
-
-interface OrgQueueItem {
-  id?: string;
-  orgId?: string;
-  [key: string]: unknown;
 }
 
 interface UsePublisherOrgQueuesInput {
@@ -35,9 +33,9 @@ interface UsePublisherOrgQueuesInput {
 
 export function usePublisherOrgQueues({ selectedOrgId, currentUser }: UsePublisherOrgQueuesInput) {
   const [orgMembers, setOrgMembers] = useState<OrgMembersData>({ users: [], personas: [] });
-  const [orgInvites, setOrgInvites] = useState<OrgQueueItem[]>([]);
-  const [orgRequests, setOrgRequests] = useState<Array<Record<string, unknown>>>([]);
-  const [myInvites, setMyInvites] = useState<OrgQueueItem[]>([]);
+  const [orgInvites, setOrgInvites] = useState<OrganizationInvite[]>([]);
+  const [orgRequests, setOrgRequests] = useState<OrganizationRequest[]>([]);
+  const [myInvites, setMyInvites] = useState<OrganizationInvite[]>([]);
   const [inviteSearchQuery, setInviteSearchQuery] = useState("");
   const [inviteSearchResults, setInviteSearchResults] = useState<QueueUser[]>([]);
   const [isInviteSearching, setIsInviteSearching] = useState(false);
@@ -50,7 +48,18 @@ export function usePublisherOrgQueues({ selectedOrgId, currentUser }: UsePublish
       setOrgMembers({ users: [], personas: [] });
       try {
         const data = await getOrganizationMembers(selectedOrgId);
-        setOrgMembers(data || { users: [], personas: [] });
+        setOrgMembers({
+          users: (data?.users || []).map((user) => ({
+            id: String(user.id || ""),
+            uid: user.uid,
+            userId: user.userId,
+            displayName: user.displayName,
+            email: user.email,
+            role: user.role,
+            organizationRole: user.role,
+          })),
+          personas: Array.isArray(data?.personas) ? data.personas : [],
+        });
       } catch (error) {
         console.error("Failed to load organization members", error);
         setOrgMembers({ users: [], personas: [] });
@@ -110,7 +119,11 @@ export function usePublisherOrgQueues({ selectedOrgId, currentUser }: UsePublish
       setIsInviteSearching(true);
       try {
         const results = await searchUsers(inviteSearchQuery);
-        setInviteSearchResults(results || []);
+        setInviteSearchResults((results || []).map((item) => ({
+          id: String(item.id || ""),
+          displayName: item.displayName,
+          email: item.email,
+        })));
       } catch {
         setInviteSearchResults([]);
       } finally {

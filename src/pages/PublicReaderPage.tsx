@@ -15,6 +15,7 @@ import { usePublicTerms } from "../hooks/public/usePublicTerms";
 import { TermsConsentDialog } from "../components/public/TermsConsentDialog";
 import type { ScriptManager } from "../hooks/useScriptManager.types";
 import type { NavProps } from "../types/nav";
+import type { BaseScriptApi } from "../types/api";
 
 interface Author {
   id: string;
@@ -158,7 +159,7 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
     handleTermsScroll,
     toggleRequiredCheck,
     confirmTermsConsent,
-  } = (usePublicTerms as any)({ autoOpen: true, onAccepted: () => {} });
+  } = usePublicTerms({ autoOpen: true, onAccepted: () => {} });
 
   useEffect(() => {
     // Reset override on mount/unmount or id change
@@ -316,17 +317,16 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
                         const bundle = await getPublicBundle();
                         type SeriesItem = { id: string; title: string; coverUrl: string | null; seriesOrder: number | null };
                         const sameSeries = (bundle?.scripts || [])
-                            .filter((item: unknown) => (item as any)?.id && (item as any).id !== script.id)
-                            .map((item: unknown): SeriesItem | null => {
-                                const i = item as any;
+                            .filter((item): item is BaseScriptApi => Boolean(item?.id) && item.id !== script.id)
+                            .map((i): SeriesItem | null => {
                                 const parsedMeta = customMetadataEntriesToMeta(i.customMetadata || []) as Record<string, string>;
                                 const itemSeriesName = normalizeSeriesName(parsedMeta?.series || parsedMeta?.seriesname);
                                 if (itemSeriesName.toLowerCase() !== seriesName.toLowerCase()) return null;
                                 return {
-                                    id: i.id,
-                                    title: i.title || t("publicGallery.unknown"),
-                                    coverUrl: i.coverUrl || null,
-                                    seriesOrder: parseSeriesOrder(i?.seriesOrder ?? parsedMeta?.seriesorder),
+                                  id: i.id,
+                                  title: i.title || t("publicGallery.unknown"),
+                                  coverUrl: i.coverUrl || null,
+                                    seriesOrder: parseSeriesOrder(i.seriesOrder ?? parsedMeta?.seriesorder),
                                 };
                             })
                             .filter((item: SeriesItem | null): item is SeriesItem => item !== null)
@@ -558,7 +558,7 @@ They discover a glowing artifact.
     <PublicReaderLayout
         script={fullScriptData}
         isLoading={isLoading}
-        relatedSeriesScripts={relatedSeriesScripts as any}
+        relatedSeriesScripts={relatedSeriesScripts}
         onOpenRelatedScript={(scriptId: string) => navigate(`/read/${scriptId}`)}
         onOpenSeries={(name: string) => navigate(`/series/${encodeURIComponent(name)}`)}
         onBack={() => navigate("/")} // Return to library/home
@@ -578,7 +578,7 @@ They discover a glowing artifact.
         }}
         // Marker Props for Header (same source as ScriptViewer)
         validMarkerConfigs={publicMarkerConfigs}
-        hiddenMarkerIds={scriptManager.hiddenMarkerIds as any}
+        hiddenMarkerIds={scriptManager.hiddenMarkerIds}
         onToggleMarker={scriptManager.toggleMarkerVisibility}
         renderedHtml=""
         

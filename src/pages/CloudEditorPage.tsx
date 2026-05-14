@@ -111,7 +111,7 @@ export default function CloudEditorPage({ scriptManager, navProps }: { scriptMan
   return (
     <LiveEditor
       scriptId={activeCloudScript.id}
-      initialData={activeCloudScript as any}
+      initialData={activeCloudScript}
       readOnly={isReadMode}
       onRequestEdit={() => {
         const params = new URLSearchParams();

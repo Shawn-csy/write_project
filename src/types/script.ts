@@ -36,7 +36,6 @@ export interface BaseScript {
   seriesOrder?: number | string | null;
   organizationId?: string | null;
   personaId?: string | null;
-  [key: string]: unknown;
 }
 
 /** screenplayAST 解析後的場景 */

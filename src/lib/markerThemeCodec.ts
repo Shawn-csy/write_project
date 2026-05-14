@@ -30,6 +30,14 @@ const inferMatchMode = (config: Record<string, any> = {}) => {
   return "none";
 };
 
+const extractErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "object" && error !== null && "message" in error) {
+    return String((error as { message?: unknown }).message || "");
+  }
+  return "";
+};
+
 export const normalizeMarkerConfigsSchema = (configs) => {
   const normalized = normalizeThemeConfigs(configs);
   return normalized
@@ -70,6 +78,6 @@ export const safeParseThemeConfigsText = (text) => {
     }
     return { value: normalizeMarkerConfigsSchema(parsed), error: "" };
   } catch (error) {
-    return { value: null, error: (error as any)?.message || "格式錯誤" };
+    return { value: null, error: extractErrorMessage(error) || "格式錯誤" };
   }
 };
