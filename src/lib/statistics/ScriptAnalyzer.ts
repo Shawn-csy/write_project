@@ -1,15 +1,32 @@
+import type { MarkerConfig } from '../../types/script';
+export type { MarkerConfig };
+
 export interface AstNode {
-  type?: string;
+  type: string;
   text?: string;
   content?: string;
+  raw?: string;
   children?: AstNode[];
   left?: AstNode;
   right?: AstNode;
+  // scene / range / layer / range fields
+  id?: string;
+  lineStart?: number;
+  lineEnd?: number;
+  layerType?: string;
+  rangeRole?: string;
+  rangeGroupId?: string;
+  inRange?: string[];
+  startNode?: AstNode;
+  label?: string;
+  inline?: unknown[];
+  // character fields
+  character?: string;
   [key: string]: unknown;
 }
 
 export interface AnalyzerContext {
-  markerConfigs?: unknown[];
+  markerConfigs?: MarkerConfig[];
   statsConfig?: Record<string, unknown>;
   [key: string]: unknown;
 }

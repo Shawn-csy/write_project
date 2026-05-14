@@ -172,7 +172,7 @@ export function deriveSimpleLicenseTags({
   return tags;
 }
 
-export function parseBasicLicenseFromMeta(meta: Record<string, any> = {}) {
+export function parseBasicLicenseFromMeta(meta: Record<string, unknown> = {}) {
   const commercialUse = normalizeCommercialChoice(meta.licensecommercial || meta.licenseCommercial);
   const derivativeUse = normalizeDerivativeChoice(meta.licensederivative || meta.licenseDerivative);
   const notifyOnModify = normalizeNotifyChoice(meta.licensenotify || meta.licenseNotify);

@@ -1,4 +1,4 @@
-import { Metric } from '../ScriptAnalyzer';
+import { Metric, AstNode, AnalyzerContext } from '../ScriptAnalyzer';
 
 export class MarkerStatsMetric extends Metric {
   customLayers!: Record<string, Array<{ text: string; line?: number; type?: string }>>;
@@ -22,7 +22,7 @@ export class MarkerStatsMetric extends Metric {
     this.pauseItems = [];
   }
 
-  _parseDurationFromText(text, statsConfig) {
+  _parseDurationFromText(text: string, statsConfig: Record<string, unknown> | undefined) {
       if (!text) return 0;
       let totalSeconds = 0;
 
@@ -35,7 +35,7 @@ export class MarkerStatsMetric extends Metric {
       // Parse config keywords if available
       let units = defaultUnits;
       if (statsConfig && Array.isArray(statsConfig.customKeywords) && statsConfig.customKeywords.length > 0) {
-          units = statsConfig.customKeywords.map(k => ({
+          units = (statsConfig.customKeywords as Array<{ factor: number; keywords: string | string[] }>).map(k => ({
               factor: k.factor,
               keywords: typeof k.keywords === 'string' ? k.keywords.split(',').map(s => s.trim()) : k.keywords
           }));
@@ -124,7 +124,7 @@ export class MarkerStatsMetric extends Metric {
       return totalSeconds;
   }
 
-  _addDuration(seconds, statsConfig) {
+  _addDuration(seconds: number, statsConfig: Record<string, unknown> | undefined) {
       const shouldExclude = statsConfig?.excludeNestedDuration;
       // Only check stack if exclusion is enabled
       if (shouldExclude && this.durationOverrideStack.length > 0 && this.durationOverrideStack[this.durationOverrideStack.length - 1] === true) {
@@ -133,15 +133,15 @@ export class MarkerStatsMetric extends Metric {
       this.customDurationSeconds += seconds;
   }
 
-  onNode(node, context) {
+  onNode(node: AstNode, context: AnalyzerContext) {
     const { markerConfigs, statsConfig } = context;
 
     if (node.type === 'layer') {
-      const layerId = node.layerType; 
+      const layerId = node.layerType ?? '';
       const config = markerConfigs ? markerConfigs.find(c => c.id === layerId) : null;
       const isPause = node.rangeRole === 'pause';
       const content = this._getRecursiveText(node);
-      
+
       if (!this.customLayers[layerId]) {
         this.customLayers[layerId] = [];
       }
@@ -160,10 +160,10 @@ export class MarkerStatsMetric extends Metric {
           pauseDuration = this._parseDurationFromText(node.label, statsConfig);
         }
         if (!pauseDuration && config?.pauseLabel) {
-          pauseDuration = this._parseDurationFromText(config.pauseLabel, statsConfig);
+          pauseDuration = this._parseDurationFromText(String(config.pauseLabel), statsConfig);
         }
         if (!pauseDuration && config?.fixedDuration !== undefined) {
-          const fixed = parseFloat(config.fixedDuration);
+          const fixed = parseFloat(String(config.fixedDuration));
           if (!isNaN(fixed)) pauseDuration = fixed;
         }
         if (!pauseDuration) pauseDuration = 1;
@@ -180,15 +180,15 @@ export class MarkerStatsMetric extends Metric {
         }
         // Fixed Duration (non-pause)
         if (config && config.fixedDuration !== undefined) {
-          const duration = parseFloat(config.fixedDuration);
+          const duration = parseFloat(String(config.fixedDuration));
           if (!isNaN(duration)) {
             this._addDuration(duration, statsConfig);
           }
         }
       }
-    } 
+    }
     else if (node.type === 'range') {
-        const layerId = node.layerType;
+        const layerId = node.layerType ?? '';
         const startNode = node.startNode;
         let rangeHasDuration = false;
 
@@ -196,7 +196,7 @@ export class MarkerStatsMetric extends Metric {
             if (!this.customLayers[layerId]) {
                 this.customLayers[layerId] = [];
             }
-            
+
             const content = this._getRecursiveText(startNode);
             this.customLayers[layerId].push({
                 text: content || "(區間開始)",
@@ -213,13 +213,13 @@ export class MarkerStatsMetric extends Metric {
                 }
             }
 
-             // Fixed Duration check for the range marker itself
+            // Fixed Duration check for the range marker itself
             const config = markerConfigs ? markerConfigs.find(c => c.id === layerId) : null;
             if (config && config.fixedDuration) {
-                const duration = parseFloat(config.fixedDuration);
+                const duration = parseFloat(String(config.fixedDuration));
                 if (!isNaN(duration)) {
                     this._addDuration(duration, statsConfig);
-                    rangeHasDuration = true; // If fixed duration is set, we also treat it as having duration
+                    rangeHasDuration = true;
                 }
             }
         }
@@ -249,37 +249,30 @@ export class MarkerStatsMetric extends Metric {
 
     // Process Inline Markers
     if (node.inline && Array.isArray(node.inline)) {
-        node.inline.forEach(item => {
+        node.inline.forEach(rawItem => {
+            const item = rawItem as { type?: string; id?: string; content?: string; text?: string };
             if (item.type === 'highlight' && item.id) {
                 const layerId = item.id;
-                
+
                 if (!this.customLayers[layerId]) {
                     this.customLayers[layerId] = [];
                 }
-                
+
                 const content = item.content || item.text || "";
-                
+
                 this.customLayers[layerId].push({
                     text: content,
                     line: node.lineStart
                 });
-                
-                // Note: We might double count IF the keyword is inside a marker AND we scanned the parent text.
-                // However, likely the user uses EITHER a duration keyword OR a specific marker layer.
-                // If they use both, it might be ambiguous. 
-                // Given the user request, they treat "(ASMR)" as a duration token, not necessarily a layer.
-                // We keep layer logic for fixedDuration configs.
-                
-                // If content parses to duration via Regex (requiring brackets), it likely won't match "content" stripped of brackets.
-                // So this is relatively safe.
+
                 if (content) {
                      this._addDuration(this._parseDurationFromText(content, statsConfig), statsConfig);
                 }
 
-                 // Fixed Duration for inline
+                // Fixed Duration for inline
                 const config = markerConfigs ? markerConfigs.find(c => c.id === layerId) : null;
                 if (config && config.fixedDuration) {
-                    const duration = parseFloat(config.fixedDuration);
+                    const duration = parseFloat(String(config.fixedDuration));
                     if (!isNaN(duration)) {
                         this._addDuration(duration, statsConfig);
                     }
@@ -289,13 +282,13 @@ export class MarkerStatsMetric extends Metric {
     }
   }
 
-  onExitNode(node, context) {
+  onExitNode(node: AstNode, _context: AnalyzerContext) {
       if (node.type === 'range') {
           this.durationOverrideStack.pop();
       }
   }
   
-  _getRecursiveText(node) {
+  _getRecursiveText(node: AstNode): string {
       let text = this.getText(node).trim();
       if (node.children && node.children.length) {
           text += "\n" + node.children.map(c => this._getRecursiveText(c)).join("\n");

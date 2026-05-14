@@ -1,4 +1,4 @@
-import { Metric } from '../ScriptAnalyzer';
+import { Metric, AstNode, AnalyzerContext } from '../ScriptAnalyzer';
 
 /**
  * 統計 Range 區間相關數據
@@ -30,7 +30,7 @@ export class RangeStatsMetric extends Metric {
     this.activeRangeStarts = {}; // { groupId: startCount }
   }
 
-  onNode(node, context) {
+  onNode(node: AstNode, _context: AnalyzerContext) {
     // 處理 range 開始/結束標記
     if (node.rangeRole === 'start' && node.rangeGroupId) {
       const groupId = node.rangeGroupId;

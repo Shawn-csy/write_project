@@ -1,5 +1,5 @@
 import { ScriptAnalyzer } from './ScriptAnalyzer';
-import type { AstNode } from './ScriptAnalyzer';
+import type { AstNode, MarkerConfig } from './ScriptAnalyzer';
 import { BasicStatsMetric } from './metrics/BasicStatsMetric';
 import { CharacterAndDurationMetric } from './metrics/CharacterAndDurationMetric';
 import { MarkerStatsMetric } from './metrics/MarkerStatsMetric';
@@ -69,7 +69,7 @@ export interface ScriptStatsOutput {
  */
 export function calculateScriptStats(
   nodes: AstLike,
-  markerConfigs: unknown[] = [],
+  markerConfigs: MarkerConfig[] = [],
   options: CalculateOptions = {}
 ): ScriptStatsOutput {
   // 1. Setup Metrics
@@ -84,8 +84,8 @@ export function calculateScriptStats(
   // 2. Run Analyzer
   const analyzer = new ScriptAnalyzer([basicMetric, charMetric, markerMetric, rangeMetric]);
   const astInput: AstNode = Array.isArray(nodes)
-    ? { children: nodes }
-    : { children: (nodes as AstNode).children || [] };
+    ? { type: 'root', children: nodes }
+    : { type: 'root', children: (nodes as AstNode).children || [] };
   const results = analyzer.analyze(
       astInput,
       { markerConfigs, statsConfig: options.statsConfig as Record<string, unknown> }
