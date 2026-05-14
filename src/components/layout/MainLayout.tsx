@@ -25,7 +25,7 @@ interface MainLayoutProps {
   setIsDesktopSidebarOpen: (open: boolean) => void;
   isMobileDrawerOpen: boolean;
   setIsMobileDrawerOpen: (open: boolean) => void;
-  accentStyle: string;
+  accentStyle: { label?: string; [key: string]: string | undefined };
   openAbout: Nav["openAbout"];
   closeAbout: () => void;
   openSettings: Nav["openSettings"];

@@ -1,11 +1,12 @@
 import { fetchApi, API_BASE_URL } from "../lib/api/client";
 import { isApiOffline } from "../lib/apiHealth";
 import type { CurrentUserLike } from "../types/user";
+import type { AuthUser, MarkerThemeApi, SaveUserSettingsPayload, UserSettingsResponse } from "../types/api";
 
 // Generic authenticated API call — thin wrapper over fetchApi for callers
 // that pass a currentUser explicitly rather than relying on auth.currentUser.
 export const apiCall = async (
-  currentUser: CurrentUserLike | null | undefined,
+  currentUser: AuthUser,
   url: string,
   method: string,
   body?: unknown
@@ -32,7 +33,7 @@ export const fetchUserSettings = async (currentUser: CurrentUserLike | null | un
   if (!currentUser) return null;
   if (isApiOffline()) return null;
   try {
-    return await fetchApi("/me");
+    return await fetchApi("/me") as UserSettingsResponse;
   } catch (e) {
     console.error("Cloud load failed", e);
     return null;
@@ -44,7 +45,7 @@ export const fetchUserThemes = async (currentUser: CurrentUserLike | null | unde
   if (!currentUser) return null;
   if (isApiOffline()) return null;
   try {
-    return await fetchApi("/themes");
+    return await fetchApi("/themes") as MarkerThemeApi[];
   } catch (e) {
     console.error("Fetch themes failed", e);
     return null;
@@ -52,19 +53,20 @@ export const fetchUserThemes = async (currentUser: CurrentUserLike | null | unde
 };
 
 // PUT /me — bypasses cache (noCache: true handled by fetchApi on non-GET).
-export const saveUserSettings = async (currentUser: CurrentUserLike | null | undefined, payload: unknown) => {
+export const saveUserSettings = async (currentUser: AuthUser, payload: Record<string, unknown>) => {
   if (!currentUser) return;
   if (isApiOffline()) return;
   try {
+    const requestBody: SaveUserSettingsPayload = {
+      settings: payload,
+      displayName: currentUser.displayName,
+      avatar: currentUser.photoURL,
+      handle: currentUser.email?.split("@")[0],
+    };
     await fetchApi("/me", {
       method: "PUT",
       noCache: true,
-      body: JSON.stringify({
-        settings: payload,
-        displayName: currentUser.displayName,
-        avatar: currentUser.photoURL,
-        handle: currentUser.email?.split("@")[0],
-      }),
+      body: JSON.stringify(requestBody),
     });
   } catch (e) {
     console.error("Cloud save failed", e);

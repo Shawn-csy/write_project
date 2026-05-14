@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction, RefObject } from "react";
-import type { MarkerConfig, ParsedScene, ParsedTitleEntry, ScriptAst, AstNode, CustomMetadataEntry } from "../types/script";
+import type { MarkerConfig, ParsedScene, ParsedTitleEntry, ScriptAst, AstNode, CustomMetadataEntry, BaseScript } from "../types/script";
 
 export type { MarkerConfig, ParsedScene, ParsedTitleEntry, ScriptAst, AstNode, CustomMetadataEntry };
 
@@ -7,15 +7,11 @@ export interface FileMeta {
   [path: string]: Date;
 }
 
-export interface CloudScript {
-  id: string;
+export interface CloudScript extends BaseScript {
   title?: string;
   content?: string;
-  folder?: string;
-  ownerId?: string;
   markerThemeId?: string;
   markerTheme?: { configs?: MarkerConfig[] };
-  lastModified?: number | string;
   updatedAt?: number | string;
   draftDate?: string;
   licenseCommercial?: string;

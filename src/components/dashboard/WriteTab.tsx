@@ -32,24 +32,10 @@ import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
 import { WritePreviewContent } from "./write/WritePreviewPanel";
 import { MORANDI_STUDIO_TONE_VARS } from "../../constants/morandiPanelTones";
 import { useDebouncedSearch } from "../../hooks/useDebouncedSearch";
-
-interface WriteTabScriptItem {
-    id: string;
-    title: string;
-    type?: string;
-    folder: string;
-    content?: string;
-    isPublic?: boolean;
-    markerThemeId?: string;
-    draftDate?: string;
-    lastModified?: number;
-    createdAt?: number;
-    author?: string;
-    [key: string]: unknown;
-}
+import type { WriteScriptItem } from "../../types/write";
 
 interface WriteTabProps {
-    onSelectScript: (script: WriteTabScriptItem, mode?: string) => void;
+    onSelectScript: (script: WriteScriptItem, mode?: string) => void;
     readOnly?: boolean;
     refreshTrigger?: number;
 }
@@ -110,7 +96,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger = 0 
         customMetadata: Array<{ key: string; value: string; type: string }>;
         author: string;
         draftDate: string;
-    }) => {
+    }): Promise<void> => {
         try {
             // 1. Create Script Shell
             const id = await createScript(title, 'script', folder || manager.currentPath);
@@ -155,7 +141,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger = 0 
             await manager.fetchScripts?.();
 
             // 5. Return new script
-            return importedScript;
+            return;
         } catch (err) {
             console.error(t("writeTab.importFailedLog"), err);
             throw err;
@@ -276,11 +262,12 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger = 0 
 
     const previewPath = useMemo(() => {
         if (!previewItem) return "/";
-        const parent = previewItem.folder === "/" ? "" : previewItem.folder;
+        const folder = previewItem.folder || "/";
+        const parent = folder === "/" ? "" : folder;
         return `${parent}/${previewItem.title}`;
     }, [previewItem]);
 
-    const handlePreviewItemSelect = useCallback((item: WriteTabScriptItem, options: { openMobileDrawer?: boolean } = {}) => {
+    const handlePreviewItemSelect = useCallback((item: WriteScriptItem, options: { openMobileDrawer?: boolean } = {}) => {
         if (!item?.id) return;
         const { openMobileDrawer = true } = options;
         setPreviewItemId(item.id);
@@ -395,8 +382,9 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger = 0 
         }
     }, [sortKey]);
 
-    const handleToggleExpandItem = useCallback((item: WriteTabScriptItem) => {
-        const fullPath = (item.folder === "/" ? "" : item.folder) + "/" + item.title;
+    const handleToggleExpandItem = useCallback((item: WriteScriptItem) => {
+        const folder = item.folder || "/";
+        const fullPath = (folder === "/" ? "" : folder) + "/" + item.title;
         manager.toggleExpand(fullPath);
     }, [manager.toggleExpand]);
 

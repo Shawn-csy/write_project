@@ -9,12 +9,18 @@ import { getPublicBundle } from "../lib/api/public";
 import { getSeriesInfoFromScript, normalizeSeriesName } from "../lib/series";
 import { useI18n } from "../contexts/I18nContext";
 
+interface SeriesScript extends ScriptGalleryItem {
+  series?: { name?: string; summary?: string; coverUrl?: string } | null;
+  lastModified?: number;
+  updatedAt?: number | string;
+}
+
 export default function PublicSeriesPage() {
   const { t } = useI18n();
   const { seriesName: seriesNameParam } = useParams();
   const navigate = useNavigate();
   const seriesName = normalizeSeriesName(decodeURIComponent(seriesNameParam || ""));
-  const [scripts, setScripts] = useState<ScriptGalleryItem[]>([]);
+  const [scripts, setScripts] = useState<SeriesScript[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [seriesMeta, setSeriesMeta] = useState<{ summary: string; coverUrl: string }>({ summary: "", coverUrl: "" });
 
@@ -37,10 +43,10 @@ export default function PublicSeriesPage() {
           })
           .filter((item) => item.seriesName.toLowerCase() === seriesName.toLowerCase())
           .sort((a, b) => {
-            const aOrder = a.seriesOrder ?? Number.MAX_SAFE_INTEGER;
-            const bOrder = b.seriesOrder ?? Number.MAX_SAFE_INTEGER;
+            const aOrder = Number(a.seriesOrder ?? Number.MAX_SAFE_INTEGER);
+            const bOrder = Number(b.seriesOrder ?? Number.MAX_SAFE_INTEGER);
             if (aOrder !== bOrder) return aOrder - bOrder;
-            return (b.lastModified || b.updatedAt || 0) - (a.lastModified || a.updatedAt || 0);
+            return Number(b.lastModified || b.updatedAt || 0) - Number(a.lastModified || a.updatedAt || 0);
           });
         setScripts(normalized);
         const withMeta = normalized.find((item) => item?.series);

@@ -2,17 +2,10 @@ import { useSettings } from "../contexts/SettingsContext";
 import { useScriptData } from "./write/useScriptData";
 import { useWriteScriptActions } from "./write/useScriptActions";
 import { useScriptDragDrop } from "./write/useScriptDragDrop";
+import type { WriteScriptItem } from "../types/write";
 
 interface UseWriteTabOptions {
-    onScriptCreated?: (script: {
-        id: string;
-        title: string;
-        type?: string;
-        folder: string;
-        content?: string;
-        isPublic?: boolean;
-        [key: string]: unknown;
-    }) => void;
+    onScriptCreated?: (script: WriteScriptItem) => void;
 }
 
 type UseScriptDataReturn = ReturnType<typeof useScriptData>;

@@ -2,21 +2,11 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import type React from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { getUserScripts } from "../../lib/api/scripts";
-
-interface ScriptItem {
-    id: string;
-    title: string;
-    type?: string;
-    folder: string;
-    sortOrder?: number;
-    lastModified?: number;
-    createdAt?: number;
-    [key: string]: unknown;
-}
+import type { WriteScriptItem } from "../../types/write";
 
 export function useScriptData(refreshTrigger = 0) {
     const { currentUser } = useAuth();
-    const [scripts, setScripts] = useState<ScriptItem[]>([]);
+    const [scripts, setScripts] = useState<WriteScriptItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentPath, setCurrentPath] = useState("/");
     const [createPath, setCreatePath] = useState("/");
@@ -34,22 +24,22 @@ export function useScriptData(refreshTrigger = 0) {
                 return;
             }
             // De-dupe folders with same path/title to avoid duplicate tree nodes
-            const folderMap = new Map<string, ScriptItem>();
+            const folderMap = new Map<string, WriteScriptItem>();
             const seenIds = new Set<string>();
-            const deduped: ScriptItem[] = [];
+            const deduped: WriteScriptItem[] = [];
             for (const item of data) {
                 if (!item || !item.id) continue;
                 if (seenIds.has(item.id)) continue;
                 seenIds.add(item.id);
                 if (item.type === "folder") {
-                    const key = `${item.folder || "/"}::${item.title || ""}`;
+                        const key = `${item.folder || "/"}::${item.title || ""}`;
                     const existing = folderMap.get(key);
                     if (!existing) {
                         folderMap.set(key, item);
                         deduped.push(item);
                     } else {
-                        const existingScore = existing.lastModified || existing.createdAt || 0;
-                        const itemScore = item.lastModified || item.createdAt || 0;
+                        const existingScore = Number(existing.lastModified || existing.createdAt || 0);
+                        const itemScore = Number(item.lastModified || item.createdAt || 0);
                         if (itemScore > existingScore) {
                             const idx = deduped.findIndex((s) => s.id === existing.id);
                             if (idx >= 0) deduped[idx] = item;
@@ -139,7 +129,7 @@ export function useScriptData(refreshTrigger = 0) {
     // Derived State (Visible Items)
     // byFolder 只在 scripts 變動時重建，避免 path/expandedPaths 變動時重算整個 map
     const byFolder = useMemo(() => {
-        const map: Record<string, ScriptItem[]> = {};
+        const map: Record<string, WriteScriptItem[]> = {};
         for (const s of scripts) {
             const f = s.folder || "/";
             if (!map[f]) map[f] = [];
@@ -149,15 +139,15 @@ export function useScriptData(refreshTrigger = 0) {
     }, [scripts]);
 
     const visibleItems = useMemo(() => {
-        const sortFn = (a: ScriptItem, b: ScriptItem) => {
+        const sortFn = (a: WriteScriptItem, b: WriteScriptItem) => {
             const diff = (a.sortOrder || 0) - (b.sortOrder || 0);
             if (Math.abs(diff) > 0.01) return diff;
             return (b.lastModified || 0) - (a.lastModified || 0);
         };
 
-        const buildFlat = (path: string, depth = 0): Array<ScriptItem & { depth: number }> => {
+        const buildFlat = (path: string, depth = 0): Array<WriteScriptItem & { depth: number }> => {
             const items = (byFolder[path] || []).slice().sort(sortFn);
-            let result: Array<ScriptItem & { depth: number }> = [];
+            let result: Array<WriteScriptItem & { depth: number }> = [];
             for (const item of items) {
                 result.push({ ...item, depth });
                 if (item.type === 'folder') {

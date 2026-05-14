@@ -17,7 +17,6 @@ import { useTextLocator } from "./hooks/useTextLocator";
 import { loadBasicScriptExport, loadXlsxScriptExport } from "./lib/scriptExportLoader";
 
 import type { NavProps } from "./types/nav";
-import type { MarkerConfig } from "./hooks/useScriptManager.types";
 import type { DownloadOption } from "./types/routes";
 
 // Migrated TS component
@@ -38,16 +37,7 @@ function App() {
     markerThemes,
     markerConfigs,
     setCurrentThemeId,
-  } = useSettings() as {
-    accentConfig: unknown;
-    accentStyle: string;
-    exportMode: string | undefined;
-    adjustFont: (delta: number) => void;
-    markerThemes: { id: string; [key: string]: unknown }[];
-    markerConfigs: MarkerConfig[];
-    setCurrentThemeId: (id: string) => void;
-    [key: string]: unknown;
-  };
+  } = useSettings();
 
   // 2. Refs
   const initialParamsRef = useRef<{ char: string | null; scene: string | null }>({ char: null, scene: null });

@@ -15,8 +15,88 @@ import { DEFAULT_READING_FONT, DEFAULT_UI_FONT, normalizeReadingFont, normalizeU
 import { useMarkerThemes } from "../hooks/useMarkerThemes";
 import { usePersistentState } from "../hooks/usePersistentState";
 import { normalizeThemeConfigs } from "../lib/markerThemeCodec";
+import type { MarkerTheme } from "../hooks/useMarkerThemes";
+import type { MarkerConfig } from "../types/script";
 
-const SettingsContext = createContext<any>(undefined);
+interface StatsKeywordRule {
+  factor: number;
+  keywords: string;
+}
+
+interface StatsConfig {
+  wordCountDivisor: number;
+  excludeNestedDuration: boolean;
+  excludePunctuation: boolean;
+  customKeywords: StatsKeywordRule[];
+}
+
+type ThemeMode = string;
+type AccentName = keyof typeof accentThemes;
+
+interface SettingsContextValue {
+  currentUser: ReturnType<typeof useAuth>["currentUser"];
+  theme: string | undefined;
+  themeMode: ThemeMode;
+  exportMode?: string;
+  isDark: boolean;
+  setTheme: (theme: ThemeMode) => void;
+  accent: AccentName;
+  setAccent: (accent: string) => void;
+  accentOptions: typeof accentOptions;
+  accentStyle: typeof accentClasses;
+  accentConfig: (typeof accentThemes)[AccentName];
+  accentThemes: typeof accentThemes;
+  fontSize: number;
+  setFontSize: (size: number) => void;
+  bodyFontSize: number;
+  setBodyFontSize: (size: number) => void;
+  dialogueFontSize: number;
+  setDialogueFontSize: (size: number) => void;
+  readingFontFamily: string;
+  setReadingFontFamily: (font: string) => void;
+  uiFontFamily: string;
+  setUiFontFamily: (font: string) => void;
+  lineHeight: number;
+  setLineHeight: (height: number) => void;
+  desktopUiScale: number;
+  setDesktopUiScale: (scale: number) => void;
+  adjustFont: (delta: number) => void;
+  hideWhitespace: boolean;
+  setHideWhitespace: (value: boolean) => void;
+  transparentBg: boolean;
+  setTransparentBg: (value: boolean) => void;
+  showLineUnderline: boolean;
+  setShowLineUnderline: (value: boolean) => void;
+  hiddenMarkerIds: string[];
+  setHiddenMarkerIds: React.Dispatch<React.SetStateAction<string[]>>;
+  toggleMarkerVisibility: (id: string) => void;
+  statsConfig: StatsConfig;
+  setStatsConfig: (value: StatsConfig) => void;
+  markerThemes: MarkerTheme[];
+  setMarkerThemes: (themes: MarkerTheme[]) => void;
+  currentThemeId: string;
+  setCurrentThemeId: (id: string) => void;
+  markerConfigs: MarkerConfig[];
+  systemDefaultConfigs: MarkerConfig[];
+  setMarkerConfigs: (configs: MarkerConfig[]) => Promise<void>;
+  addTheme: (
+    name: string,
+    initialOrOptions?: Record<string, unknown>[] | { initialConfigs?: Record<string, unknown>[]; isPublic?: boolean; description?: string } | null,
+    legacyOptions?: { initialConfigs?: Record<string, unknown>[]; isPublic?: boolean; description?: string } | null
+  ) => Promise<MarkerTheme>;
+  addThemeFromCurrent: (
+    name: string,
+    optionsOrPublic?: { initialConfigs?: Record<string, unknown>[]; isPublic?: boolean; description?: string } | boolean
+  ) => Promise<MarkerTheme>;
+  deleteTheme: (id: string) => Promise<void>;
+  renameTheme: (id: string, name: string) => void;
+  updateThemePublicity: (id: string, isPublic: boolean) => Promise<void>;
+  updateThemeDescription: (id: string, description: string) => Promise<void>;
+  copyPublicTheme: (themeId: string) => Promise<void>;
+  switchTheme: (id: string) => void;
+}
+
+const SettingsContext = createContext<SettingsContextValue | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   // --- Theme (Wrapped) ---
@@ -36,10 +116,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [dialogueFontSize, setDialogueFontSize] = usePersistentState(STORAGE_KEYS.DIALOGUE_FONT, 14, 'number');
   const [readingFontFamilyRaw, setReadingFontFamilyRaw] = usePersistentState(STORAGE_KEYS.READING_FONT, DEFAULT_READING_FONT);
   const readingFontFamily = normalizeReadingFont(readingFontFamilyRaw);
-  const setReadingFontFamily = (next) => setReadingFontFamilyRaw(normalizeReadingFont(next));
+  const setReadingFontFamily = (next: string) => setReadingFontFamilyRaw(normalizeReadingFont(next));
   const [uiFontFamilyRaw, setUiFontFamilyRaw] = usePersistentState(STORAGE_KEYS.UI_FONT, DEFAULT_UI_FONT);
   const uiFontFamily = normalizeUiFont(uiFontFamilyRaw);
-  const setUiFontFamily = (next) => setUiFontFamilyRaw(normalizeUiFont(next));
+  const setUiFontFamily = (next: string) => setUiFontFamilyRaw(normalizeUiFont(next));
   
   // Line Height (1.2 ~ 2.0, default 1.4)
   const [lineHeight, setLineHeight] = usePersistentState(STORAGE_KEYS.LINE_HEIGHT, 1.4, 'number');
@@ -47,7 +127,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const desktopUiScale = Number.isFinite(Number(desktopUiScaleRaw))
     ? Math.min(1.2, Math.max(1, Number(desktopUiScaleRaw)))
     : 1;
-  const setDesktopUiScale = (next) => {
+  const setDesktopUiScale = (next: number) => {
     const numeric = Number(next);
     if (!Number.isFinite(numeric)) return;
     const clamped = Math.min(1.2, Math.max(1, numeric));
@@ -56,14 +136,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   const [transparentBgStr, setTransparentBgStr] = usePersistentState(STORAGE_KEYS.TRANSPARENT_BG, "off");
   const transparentBg = transparentBgStr === "on";
-  const setTransparentBg = (val) => setTransparentBgStr(val ? "on" : "off");
+  const setTransparentBg = (val: boolean) => setTransparentBgStr(val ? "on" : "off");
 
   const [showLineUnderlineStr, setShowLineUnderlineStr] = usePersistentState(STORAGE_KEYS.SHOW_UNDERLINE, "off");
   const showLineUnderline = showLineUnderlineStr === "on";
-  const setShowLineUnderline = (val) => setShowLineUnderlineStr(val ? "on" : "off");
+  const setShowLineUnderline = (val: boolean) => setShowLineUnderlineStr(val ? "on" : "off");
 
   const fontSteps = [12, 14, 16, 24, 36, 72];
-  const adjustFont = (delta) => {
+  const adjustFont = (delta: number) => {
     const idx = fontSteps.findIndex((v) => v === fontSize);
     if (idx === -1) {
       setFontSize(fontSteps[0]);
@@ -96,13 +176,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   
   const [hideWhitespaceStr, setHideWhitespaceStr] = usePersistentState("hideWhitespace", "off");
   const hideWhitespace = hideWhitespaceStr === "on";
-  const setHideWhitespace = (val) => setHideWhitespaceStr(val ? "on" : "off");
+  const setHideWhitespace = (val: boolean) => setHideWhitespaceStr(val ? "on" : "off");
 
 
 
   // Marker visibility (session-level)
   const [hiddenMarkerIds, setHiddenMarkerIds] = useState<string[]>([]);
-  const toggleMarkerVisibility = (id) => {
+  const toggleMarkerVisibility = (id: string) => {
     setHiddenMarkerIds((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id);
       return [...prev, id];
@@ -110,7 +190,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Stats Configuration
-  const defaultStatsConfig = {
+  const defaultStatsConfig: StatsConfig = {
       wordCountDivisor: 200, 
       excludeNestedDuration: false,
       excludePunctuation: false,
@@ -125,10 +205,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const themes = useMarkerThemes(currentUser, Boolean(profile?.isAdmin));
 
   // API Helper
-  const apiCall = (url, method, body) => serviceApiCall(currentUser, url, method, body);
+  const apiCall = (url: string, method: string, body?: unknown) => serviceApiCall(currentUser, url, method, body);
   
   // Update CSS variables when accent changes
-  const accentConfig = accentThemes[accent] || accentThemes[defaultAccent];
+  const accentConfig = accentThemes[accent as AccentName] || accentThemes[defaultAccent];
   useEffect(() => {
     document.documentElement.dataset.accent = accent;
   }, [accent]);
@@ -188,23 +268,22 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
               ]);
               if (data) {
                   if (data.settings && Object.keys(data.settings).length > 0) {
-                      const s = data.settings;
+                      const s = (data.settings || {}) as Record<string, unknown>;
 
                       // Batch Updates
-                      if(s.accent) setAccent(s.accent);
-                      if(s.fontSize) setFontSize(s.fontSize);
-                      if(s.editorFontSize) setBodyFontSize(s.editorFontSize);
-                      if(s.bodyFontSize) setBodyFontSize(s.bodyFontSize);
-                      if(s.dialogueFontSize) setDialogueFontSize(s.dialogueFontSize);
-                      if(s.readingFontFamily) setReadingFontFamily(s.readingFontFamily);
-                      if(s.uiFontFamily) setUiFontFamily(s.uiFontFamily);
-                      if(s.hideWhitespace !== undefined) setHideWhitespace(s.hideWhitespace);
-
-                      if(s.lineHeight) setLineHeight(s.lineHeight);
-                      if (s.desktopUiScale !== undefined && s.desktopUiScale !== null) setDesktopUiScale(s.desktopUiScale);
-                      if(s.transparentBg !== undefined) setTransparentBg(s.transparentBg);
-                      if(s.showLineUnderline !== undefined) setShowLineUnderline(s.showLineUnderline);
-                      if(s.statsConfig) setStatsConfig(s.statsConfig);
+                      if (typeof s.accent === "string") setAccent(s.accent);
+                      if (typeof s.fontSize === "number") setFontSize(s.fontSize);
+                      if (typeof s.editorFontSize === "number") setBodyFontSize(s.editorFontSize);
+                      if (typeof s.bodyFontSize === "number") setBodyFontSize(s.bodyFontSize);
+                      if (typeof s.dialogueFontSize === "number") setDialogueFontSize(s.dialogueFontSize);
+                      if (typeof s.readingFontFamily === "string") setReadingFontFamily(s.readingFontFamily);
+                      if (typeof s.uiFontFamily === "string") setUiFontFamily(s.uiFontFamily);
+                      if (typeof s.hideWhitespace === "boolean") setHideWhitespace(s.hideWhitespace);
+                      if (typeof s.lineHeight === "number") setLineHeight(s.lineHeight);
+                      if (typeof s.desktopUiScale === "number") setDesktopUiScale(s.desktopUiScale);
+                      if (typeof s.transparentBg === "boolean") setTransparentBg(s.transparentBg);
+                      if (typeof s.showLineUnderline === "boolean") setShowLineUnderline(s.showLineUnderline);
+                      if (s.statsConfig && typeof s.statsConfig === "object") setStatsConfig(s.statsConfig as StatsConfig);
 
                       if (realThemes && realThemes.length > 0) {
                           const parsedThemes = realThemes.map((t) => ({
@@ -214,17 +293,17 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                           themes.setMarkerThemes(parsedThemes);
                           
                           // Validate currentThemeId
-                          const targetId = s.currentThemeId || 'default';
+                          const targetId = typeof s.currentThemeId === "string" ? s.currentThemeId : "default";
                           const themeExists = realThemes.find(t => t.id === targetId);
                           if (themeExists) {
                               themes.setCurrentThemeId(targetId);
                           } else {
                               themes.setCurrentThemeId('default');
                           }
-                      } else if (s.markerThemes) {
+                      } else if (Array.isArray(s.markerThemes)) {
                           // Fallback to settings bundle if API returned nothing (rare)
-                          themes.setMarkerThemes(s.markerThemes);
-                          if(s.currentThemeId) themes.setCurrentThemeId(s.currentThemeId);
+                          themes.setMarkerThemes(s.markerThemes as MarkerTheme[]);
+                          if (typeof s.currentThemeId === "string") themes.setCurrentThemeId(s.currentThemeId);
                       }
                   } else {
                       // CLOUD IS EMPTY: Push current local settings to cloud
@@ -312,7 +391,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   ]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const value = useMemo(() => ({
+  const value = useMemo<SettingsContextValue>(() => ({
     // Theme
     currentUser,
     theme: resolvedTheme,

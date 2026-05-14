@@ -245,9 +245,9 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
                         avatarUrl: "",
                     }
                     : (person ? {
-                        id: person.id,
-                        displayName: person.displayName || person.name || "Unknown",
-                        avatarUrl: person.avatar || person.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${person.displayName || person.name || "U"}`
+                        id: person.id || "unknown",
+                        displayName: String(person.displayName || person.name || "Unknown"),
+                        avatarUrl: String(person.avatar || person.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${person.displayName || person.name || "U"}`)
                     } : (authorOverride ? {
                         id: "header-author-fallback",
                         displayName: authorOverride,
@@ -257,8 +257,10 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
                     ? null
                     : (organization ? {
                         id: organization.id,
-                        name: organization.name || organization.displayName,
+                        name: String(organization.name || organization.displayName || ""),
                         logoUrl: organization.logoUrl || organization.avatar || organization.avatarUrl
+                          ? String(organization.logoUrl || organization.avatar || organization.avatarUrl)
+                          : undefined
                     } : null);
 
                 const basicLicenseFromMeta = parseBasicLicenseFromMeta(meta);
@@ -277,7 +279,11 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
                     coverUrl: script.coverUrl || null,
                     author: resolvedAuthor,
                     organization: resolvedOrganization,
-                    tags: script.tags ? script.tags.map((tag: { name: string }) => tag.name) : [],
+                    tags: Array.isArray(script.tags)
+                      ? script.tags
+                          .map((tag) => (typeof tag === "string" ? tag : String(tag?.name || "")))
+                          .filter((tag) => Boolean(tag))
+                      : [],
                     synopsis: meta.synopsis || meta.summary || "",
                     description: meta.description || meta.notes || "",
                     date: script.draftDate || meta.date || meta.draftdate || "",
@@ -352,7 +358,7 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
                 } else if (script.markerThemeId && script.markerThemeId !== "default") {
                     try {
                         const themes = await getPublicThemes();
-                        const matched = themes.find((theme: { id: string; configs?: unknown }) => theme.id === script.markerThemeId);
+                        const matched = themes.find((theme) => String((theme as { id?: unknown })?.id || "") === script.markerThemeId);
                         if (matched?.configs) {
                             const normalized = normalizeMarkerConfigsSchema(matched.configs);
                             if (normalized.length > 0) resolvedPublicConfigs = normalized;

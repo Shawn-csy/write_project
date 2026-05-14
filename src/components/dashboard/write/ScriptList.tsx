@@ -30,6 +30,7 @@ import { updateScript } from "../../../lib/api/scripts";
 import { isDefaultLikeTheme } from "../../../lib/themeNameUtils";
 import { useI18n } from "../../../contexts/I18nContext";
 import { StudioEmptyStateCard } from "../../common/StudioEmptyStateCard";
+import type { WriteScriptItem } from "../../../types/write";
 
 interface MarkerThemeOption {
     id: string;
@@ -37,32 +38,7 @@ interface MarkerThemeOption {
     [key: string]: unknown;
 }
 
-interface ScriptTag {
-    id: string;
-    name: string;
-    color?: string;
-}
-
-interface ScriptListItem {
-    id: string;
-    type?: string;
-    title: string;
-    folder: string;
-    depth?: number;
-    draftDate?: string;
-    lastModified?: number;
-    createdAt?: number;
-    author?: string;
-    markerThemeId?: string;
-    isPublic?: boolean;
-    contentLength?: number;
-    content?: string;
-    tags?: ScriptTag[];
-    _displayDate?: string;
-    _displayAuthor?: string;
-    _themeName?: string;
-    [key: string]: unknown;
-}
+type ScriptListItem = WriteScriptItem;
 
 interface ScriptListRowProps {
     item: ScriptListItem;
@@ -153,7 +129,7 @@ const ScriptListRow = memo(function ScriptListRow({
                         <div className="flex items-center gap-2 text-xs text-muted-foreground w-full flex-wrap">
                             <span className="hidden md:inline">{item._displayDate}</span>
                             <span className="hidden md:inline">·</span>
-                            <span className="truncate max-w-[100px] hidden md:inline">{item._displayAuthor}</span>
+                            <span className="truncate max-w-[100px] hidden md:inline">{String(item._displayAuthor || "")}</span>
 
                             {/* Mobile: Show theme and public status */}
                             <div className="flex items-center gap-1 sm:hidden">

@@ -39,6 +39,8 @@ export interface OrgData {
 }
 
 export interface TagLike {
+  id?: string | number;
   name?: string;
+  color?: string;
   [key: string]: unknown;
 }
