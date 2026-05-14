@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Scale, ShieldCheck, FileCheck2 } from "lucide-react";
@@ -8,10 +7,24 @@ import { Button } from "../components/ui/button";
 import { useI18n } from "../contexts/I18nContext";
 import { getPublicTermsConfig } from "../lib/api/public";
 
+interface TermsSection {
+  id?: string;
+  title?: string;
+  body?: string;
+}
+
+interface TermsConfig {
+  title?: string;
+  version?: string;
+  sections?: TermsSection[];
+  requiredChecks?: unknown[];
+  [key: string]: unknown;
+}
+
 export default function PublicLicensePage() {
   const { t } = useI18n();
   const navigate = useNavigate();
-  const [termsConfig, setTermsConfig] = React.useState(null);
+  const [termsConfig, setTermsConfig] = React.useState<TermsConfig | null>(null);
 
   React.useEffect(() => {
     const loadTermsConfig = async () => {
@@ -26,7 +39,7 @@ export default function PublicLicensePage() {
   }, []);
 
   const termsVersion = String(termsConfig?.version || "").trim();
-  const termsSections = Array.isArray(termsConfig?.sections) ? termsConfig.sections : [];
+  const termsSections: TermsSection[] = Array.isArray(termsConfig?.sections) ? (termsConfig?.sections ?? []) : [];
   const requiredChecks = Array.isArray(termsConfig?.requiredChecks) ? termsConfig.requiredChecks : [];
   const effectiveDate = /^\d{4}-\d{2}-\d{2}$/.test(termsVersion) ? termsVersion : "";
   const licenseCardStyle = {
@@ -125,8 +138,8 @@ export default function PublicLicensePage() {
               <CardContent className="space-y-2 text-sm sm:text-base text-muted-foreground">
                 <p>{t("publicLicense.requiredChecksDesc")}</p>
                 <ul className="list-disc pl-5 space-y-1 text-foreground/90">
-                  {requiredChecks.map((item) => (
-                    <li key={item?.id || item?.label}>{item?.label}</li>
+                  {(requiredChecks as Array<{ id?: string; label?: string }>).map((item, index) => (
+                    <li key={item?.id || item?.label || `required-${index}`}>{item?.label || "-"}</li>
                   ))}
                 </ul>
               </CardContent>

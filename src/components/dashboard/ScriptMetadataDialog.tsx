@@ -89,6 +89,19 @@ export function ScriptMetadataDialog({
     syncScriptTags = null,
     disableAuthorAutofill = false,
     preserveAuthorInternalData = false,
+}: {
+    script?: Record<string, unknown> | null;
+    scriptId?: string;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    onSave: (script: Record<string, unknown>) => void;
+    seriesOptions?: Array<{ id: string; name: string }>;
+    onSeriesCreated?: (series: { id: string; name: string }) => void;
+    fetchFullScript?: boolean;
+    saveScript?: ((scriptId: string, updates: Record<string, unknown>, context?: { tagIds?: string[] }) => Promise<unknown>) | null;
+    syncScriptTags?: ((scriptId: string, tagIds: string[]) => Promise<unknown>) | null;
+    disableAuthorAutofill?: boolean;
+    preserveAuthorInternalData?: boolean;
 }) {
     const { t } = useI18n();
     const { toast } = useToast();
@@ -96,9 +109,9 @@ export function ScriptMetadataDialog({
     const [title, setTitle] = useState("");
     const [status, setStatus] = useState("Private");
     const [mediaPickerTarget, setMediaPickerTarget] = useState("cover");
-    const [cropOpen, setCropOpen] = useState(false);
-    const [cropPurpose, setCropPurpose] = useState("cover");
-    const [cropTarget, setCropTarget] = useState("cover");
+    const [cropOpen, setCropOpen] = useState<boolean>(false);
+    const [cropPurpose, setCropPurpose] = useState<"avatar" | "logo" | "cover" | "banner" | "generic">("cover");
+    const [cropTarget, setCropTarget] = useState<string>("cover");
     const [cropSource, setCropSource] = useState<{ file: File; name: string } | null>(null);
     const [activityBannerPreviewFailed, setActivityBannerPreviewFailed] = useState(false);
     const [activityBannerUploadError, setActivityBannerUploadError] = useState("");
@@ -320,7 +333,7 @@ export function ScriptMetadataDialog({
         handleAddTagsBatch,
         handleRemoveTag,
         handleClearTags,
-    } = useScriptTags({ t, toast, tagOwnerId: activeScript?.ownerId || "" });
+    } = useScriptTags({ t, toast, tagOwnerId: typeof activeScript?.ownerId === "string" ? activeScript.ownerId : "" });
     
     // Identity Selection
     const { currentUser, profile: currentProfile } = useAuth();

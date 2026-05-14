@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -35,7 +34,7 @@ export default function PublicHelpPage() {
   const [showImportQuickInfo, setShowImportQuickInfo] = React.useState(false);
   const [showImportDetails, setShowImportDetails] = React.useState(false);
   const [query, setQuery] = React.useState("");
-  const [expandedId, setExpandedId] = React.useState(null);
+  const [expandedId, setExpandedId] = React.useState<string | null>(null);
 
   const markerRows = [
     { marker: "1. 第一章", meaning: t("importFormat.markerChapter") },
@@ -135,7 +134,7 @@ export default function PublicHelpPage() {
   }, [faqItems, normalizedQuery]);
 
   const groupedFaq = React.useMemo(() => {
-    return filteredFaq.reduce((acc, item) => {
+    return filteredFaq.reduce<Record<string, typeof filteredFaq>>((acc, item) => {
       if (!acc[item.category]) acc[item.category] = [];
       acc[item.category].push(item);
       return acc;

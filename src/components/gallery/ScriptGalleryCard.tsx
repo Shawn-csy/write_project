@@ -13,8 +13,8 @@ interface TagLike {
 
 interface ScriptGalleryItem {
   id: string;
-  title: string;
-  author?: string | { id?: string; displayName?: string; avatarUrl?: string; avatar?: string };
+  title?: string;
+  author?: string | { id?: string; displayName?: string; avatarUrl?: string; avatar?: string } | null;
   coverUrl?: string;
   tags?: Array<string | TagLike>;
   views?: number;
@@ -36,6 +36,7 @@ interface ScriptGalleryCardProps {
 export function ScriptGalleryCard({ script, onClick, variant = "standard" }: ScriptGalleryCardProps): React.JSX.Element {
   const navigate = useNavigate();
   const { id, title, author, coverUrl, tags = [], views = 0, likes = 0 } = script;
+  const authorForBadge = author ?? undefined;
   const authorClickable = !script?._disableAuthorLink;
   const seriesName = String(script?.seriesName || script?._seriesName || "").trim();
   const seriesOrderRaw = script?.seriesOrder ?? script?._seriesOrder;
@@ -124,7 +125,7 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }: Scr
               </div>
             </div>
             <div className="min-w-0 flex items-center gap-2">
-              <AuthorBadge author={author} clickable={authorClickable} />
+              <AuthorBadge author={authorForBadge} clickable={authorClickable} />
               {seriesName && (
                 <button
                   type="button"
@@ -181,7 +182,7 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }: Scr
 
         {/* Author */}
         <div className="pt-1">
-            <AuthorBadge author={author} clickable={authorClickable} />
+            <AuthorBadge author={authorForBadge} clickable={authorClickable} />
         </div>
         {seriesName && (
           <button
