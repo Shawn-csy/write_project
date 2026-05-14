@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from 'react';
 import { User, Mail } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -38,10 +37,10 @@ export function ProfileSettings() {
         try {
             await saveProfile({ displayName: normalizedDisplayName });
             toast({ title: t("profile.saved") });
-        } catch (error) {
+        } catch (error: unknown) {
             toast({
                 title: t("profile.saveFailed"),
-                description: error?.message || t("profile.saveFailed"),
+                description: error instanceof Error ? error.message : t("profile.saveFailed"),
                 variant: "destructive",
             });
         } finally {

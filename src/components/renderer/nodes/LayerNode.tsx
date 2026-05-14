@@ -1,5 +1,6 @@
 import React from 'react';
 import { InlineRenderer } from '../InlineRenderer';
+import type { InlineNodeLike, MarkerConfigLike } from '../../../types/renderer';
 
 interface LayerNodeData {
     layerType?: string;
@@ -16,20 +17,8 @@ interface LayerNodeData {
 
 interface LayerNodeContext {
     hiddenMarkerIds?: string[];
-    markerConfigs?: Array<{
-        id?: string;
-        label?: string;
-        style?: Record<string, string>;
-        renderer?: { template?: string };
-        showEndLabel?: boolean;
-    }>;
+    markerConfigs?: MarkerConfigLike[];
     markerTooltipPrefix?: string;
-}
-
-interface InlineNodeLike {
-    type: string;
-    id?: string;
-    content?: string;
 }
 
 interface LayerNodeProps {

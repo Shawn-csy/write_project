@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
@@ -11,7 +10,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './components/ui/toast';
 import { I18nProvider } from './contexts/I18nContext';
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
       <HelmetProvider>

@@ -8,6 +8,7 @@ import { isInlineLike } from '../../lib/markerRules';
 import { useI18n } from '../../contexts/I18nContext';
 import { resolveReadingFontStack } from '../../constants/readingFonts';
 import type { MarkerConfig } from '../../types/script';
+import type { MarkerConfigLike, InlineNodeLike } from '../../types/renderer';
 
 const TOOLTIP_OFFSET = 14;
 const TOOLTIP_MAX_WIDTH = 280;
@@ -59,31 +60,6 @@ interface TooltipState {
     text: string;
     x: number;
     y: number;
-}
-
-interface MarkerConfigLike {
-    id?: string;
-    label?: string;
-    name?: string;
-    displayName?: string;
-    type?: string;
-    matchMode?: string;
-    start?: string;
-    end?: string;
-    regex?: string;
-    priority?: number;
-    parseAs?: string;
-    showEndLabel?: boolean;
-    style?: Record<string, string>;
-    rangeStyle?: Record<string, string>;
-    renderer?: { template?: string };
-    [key: string]: unknown;
-}
-
-interface InlineNodeLike {
-    type: string;
-    id?: string;
-    content?: string;
 }
 
 interface ScriptRendererProps {

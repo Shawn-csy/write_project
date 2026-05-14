@@ -23,12 +23,10 @@ import type { DownloadOption } from "./types/routes";
 // Migrated TS component
 import { AppRouter } from "./AppRouter";
 
-// JS components pending TS migration
-type AC = React.ComponentType<Record<string, unknown>>;
 import { MetaTags as MetaTagsJs } from "./components/common/MetaTags";
 import { GlobalListeners as GlobalListenersJs } from "./components/common/GlobalListeners";
-const MetaTags = MetaTagsJs as unknown as AC;
-const GlobalListeners = GlobalListenersJs as unknown as AC;
+const MetaTags = MetaTagsJs;
+const GlobalListeners = GlobalListenersJs;
 
 function App() {
   // 1. Contexts

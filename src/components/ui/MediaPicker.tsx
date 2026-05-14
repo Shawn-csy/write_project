@@ -12,7 +12,7 @@ interface MediaPickerProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onSelect: (url: string) => void;
-    cropPurpose?: string | null;
+    cropPurpose?: "avatar" | "logo" | "cover" | "banner" | "generic" | null;
 }
 
 interface CropSource {

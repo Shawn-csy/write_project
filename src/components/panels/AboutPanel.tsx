@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 // import { aboutContent } from "../../constants/aboutContent";
 // import { aboutContent } from "../../constants/aboutContent";
@@ -12,6 +11,16 @@ import { useSettings } from "../../contexts/SettingsContext";
 import { useI18n } from "../../contexts/I18nContext";
 
 // Internal Reusable Demo Component
+interface DemoEditorProps {
+    initialText: string;
+    accentStyle?: { accent?: string };
+    title: React.ReactNode;
+    showMarkers?: boolean;
+    description?: React.ReactNode;
+    sourceLabel?: string;
+    previewLabel?: string;
+}
+
 function DemoEditor({
     initialText,
     accentStyle,
@@ -20,7 +29,7 @@ function DemoEditor({
     description,
     sourceLabel = "Source Input",
     previewLabel = "Preview Result"
-}) {
+}: DemoEditorProps): React.JSX.Element {
     const { markerConfigs } = useSettings();
     const [text, setText] = React.useState(initialText || "");
 
@@ -69,7 +78,12 @@ function DemoEditor({
     );
 }
 
-function AboutPanel({ accentStyle, onClose }) {
+interface AboutPanelProps {
+    accentStyle?: { accent?: string };
+    onClose: () => void;
+}
+
+function AboutPanel({ accentStyle, onClose }: AboutPanelProps): React.JSX.Element {
   const { t } = useI18n();
   const markerDemoText = t("aboutPanel.markerDemoText");
   

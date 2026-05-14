@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { useNavigate } from "react-router-dom";

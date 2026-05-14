@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./dialog";
 import { Button } from "./button";
@@ -22,9 +21,25 @@ const SAFE_AREA_PRESETS = {
   generic: { width: 82, height: 60 },
 };
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+type PurposeKey = "avatar" | "logo" | "cover" | "banner" | "generic";
 
-function loadImageFromSource(source) {
+interface ImageSource {
+  file?: File;
+  url?: string;
+  name?: string;
+}
+
+interface ImageCropDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  source: ImageSource | null;
+  purpose?: PurposeKey;
+  onConfirm: (file: File) => Promise<void> | void;
+}
+
+const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
+
+function loadImageFromSource(source: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     if (!source) {
       reject(new Error("No image source"));
@@ -32,13 +47,13 @@ function loadImageFromSource(source) {
     }
     const img = new Image();
     img.crossOrigin = "anonymous";
-    img.onload = () => resolve(img);
+    img.onload = () => resolve(img as HTMLImageElement);
     img.onerror = () => reject(new Error("Failed to load image"));
     img.src = source;
   });
 }
 
-function blobToFile(blob, name = "cropped-image.webp") {
+function blobToFile(blob: Blob, name = "cropped-image.webp"): File {
   return new File([blob], name, { type: "image/webp" });
 }
 
@@ -48,22 +63,22 @@ export function ImageCropDialog({
   source,
   purpose = "generic",
   onConfirm,
-}) {
+}: ImageCropDialogProps): React.JSX.Element {
   const { t } = useI18n();
   const preset = PURPOSE_PRESETS[purpose] || PURPOSE_PRESETS.generic;
   const safeArea = SAFE_AREA_PRESETS[purpose] || SAFE_AREA_PRESETS.generic;
-  const [sourceUrl, setSourceUrl] = React.useState("");
-  const [imgEl, setImgEl] = React.useState(null);
-  const [zoom, setZoom] = React.useState(1);
-  const [offset, setOffset] = React.useState({ x: 0, y: 0 });
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [dragging, setDragging] = React.useState(false);
-  const [errorText, setErrorText] = React.useState("");
-  const [backgroundMode, setBackgroundMode] = React.useState("transparent");
-  const [showSafeArea, setShowSafeArea] = React.useState(true);
-  const dragStartRef = React.useRef({ x: 0, y: 0, ox: 0, oy: 0 });
-  const frameRef = React.useRef(null);
+  const [sourceUrl, setSourceUrl] = React.useState<string>("");
+  const [imgEl, setImgEl] = React.useState<HTMLImageElement | null>(null);
+  const [zoom, setZoom] = React.useState<number>(1);
+  const [offset, setOffset] = React.useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false);
+  const [dragging, setDragging] = React.useState<boolean>(false);
+  const [errorText, setErrorText] = React.useState<string>("");
+  const [backgroundMode, setBackgroundMode] = React.useState<"transparent" | "solid">("transparent");
+  const [showSafeArea, setShowSafeArea] = React.useState<boolean>(true);
+  const dragStartRef = React.useRef<{ x: number; y: number; ox: number; oy: number }>({ x: 0, y: 0, ox: 0, oy: 0 });
+  const frameRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
     if (!open || !source) return undefined;
@@ -78,16 +93,16 @@ export function ImageCropDialog({
     setImgEl(null);
     const resolveSource = async () => {
       try {
-        const url = source.file ? URL.createObjectURL(source.file) : String(source.url || "");
+        const url = source?.file ? URL.createObjectURL(source.file) : String(source?.url || "");
         revoked = source.file ? url : "";
         if (!url) throw new Error("Missing source url");
         const loaded = await loadImageFromSource(url);
         if (cancelled) return;
         setSourceUrl(url);
-        setImgEl(loaded);
-      } catch (error) {
+        setImgEl(loaded as HTMLImageElement);
+      } catch (error: unknown) {
         if (!cancelled) {
-          setErrorText(error?.message || "Image load failed");
+          setErrorText(error instanceof Error ? error.message : "Image load failed");
         }
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -141,7 +156,7 @@ export function ImageCropDialog({
     }
   }, [computed, offset.x, offset.y]);
 
-  const startDrag = (clientX, clientY) => {
+  const startDrag = (clientX: number, clientY: number) => {
     if (!computed) return;
     setDragging(true);
     dragStartRef.current = {
@@ -152,7 +167,7 @@ export function ImageCropDialog({
     };
   };
 
-  const moveDrag = (clientX, clientY) => {
+  const moveDrag = (clientX: number, clientY: number) => {
     if (!dragging || !computed) return;
     const dx = clientX - dragStartRef.current.x;
     const dy = clientY - dragStartRef.current.y;
@@ -165,9 +180,9 @@ export function ImageCropDialog({
 
   React.useEffect(() => {
     if (!dragging) return undefined;
-    const onMouseMove = (e) => moveDrag(e.clientX, e.clientY);
+    const onMouseMove = (e: MouseEvent) => moveDrag(e.clientX, e.clientY);
     const onMouseUp = () => endDrag();
-    const onTouchMove = (e) => {
+    const onTouchMove = (e: TouchEvent) => {
       const touch = e.touches?.[0];
       if (!touch) return;
       moveDrag(touch.clientX, touch.clientY);
@@ -206,21 +221,22 @@ export function ImageCropDialog({
       const srcW = frameSize.width / computed.scale;
       const srcH = frameSize.height / computed.scale;
       ctx.drawImage(imgEl, srcX, srcY, srcW, srcH, 0, 0, preset.outputWidth, preset.outputHeight);
-      const blob = await new Promise((resolve, reject) => {
+      const blob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob((b) => {
           if (!b) {
             reject(new Error("Failed to create image"));
             return;
           }
-          resolve(b);
+          resolve(b as Blob);
         }, "image/webp", 0.88);
       });
       const fileNameBase = source?.name ? String(source.name).replace(/\.[^/.]+$/, "") : "cropped-image";
+
       const file = blobToFile(blob, `${fileNameBase}-${purpose}.webp`);
       await onConfirm(file);
       onOpenChange(false);
-    } catch (error) {
-      setErrorText(error?.message || t("mediaLibrary.uploadFailed", "上傳失敗"));
+    } catch (error: unknown) {
+      setErrorText(error instanceof Error ? error.message : t("mediaLibrary.uploadFailed", "上傳失敗"));
     } finally {
       setIsSubmitting(false);
     }

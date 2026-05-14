@@ -1,4 +1,6 @@
-const buildToneVars = (toneKey) => ({
+import type React from "react";
+
+const buildToneVars = (toneKey: string): React.CSSProperties & Record<string, string> => ({
   "--morandi-tone-trigger-bg": `var(--morandi-tone-${toneKey}-trigger-bg)`,
   "--morandi-tone-trigger-fg": `var(--morandi-tone-${toneKey}-trigger-fg)`,
   "--morandi-tone-helper-border": `var(--morandi-tone-${toneKey}-helper-border)`,

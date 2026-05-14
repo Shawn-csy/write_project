@@ -6,12 +6,9 @@ import { ChevronRight, Eye, Heart } from "lucide-react";
 import { toggleScriptLike, incrementScriptView } from "../../lib/api/scripts";
 import { AuthorBadge } from "../ui/AuthorBadge";
 import { CoverPlaceholder } from "../ui/CoverPlaceholder";
+import type { TagLike } from "../../types/persona";
 
-interface TagLike {
-  name?: string;
-}
-
-interface ScriptGalleryItem {
+export interface ScriptGalleryItem {
   id: string;
   title?: string;
   author?: string | { id?: string; displayName?: string; avatarUrl?: string; avatar?: string } | null;

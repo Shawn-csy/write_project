@@ -1,5 +1,12 @@
-// @ts-nocheck
 import React, { useState, useEffect } from "react";
+import type { OrgData } from "../types/persona";
+
+interface MemberData {
+  id?: string;
+  displayName?: string;
+  avatar?: string;
+  [key: string]: unknown;
+}
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Globe, Users } from "lucide-react";
@@ -18,10 +25,10 @@ export default function OrganizationPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { currentUser, login } = useAuth();
-  const [org, setOrg] = useState(null);
-  const [scripts, setScripts] = useState([]);
-  const [members, setMembers] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [org, setOrg] = useState<OrgData | null>(null);
+  const [scripts, setScripts] = useState<Array<Record<string, unknown> & { id: string }>>([]);
+  const [members, setMembers] = useState<MemberData[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const loadData = async () => {
@@ -49,7 +56,7 @@ export default function OrganizationPage() {
     loadData();
   }, [id, currentUser]);
 
-  const tagStyle = (tag) => getMorandiTagStyle(tag, org?.tags || []);
+  const tagStyle = (tag: string) => getMorandiTagStyle(tag, org?.tags || []);
 
   if (isLoading) return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">{t("orgPage.loading")}</div>;
   if (!org) return <div className="min-h-screen flex items-center justify-center">{t("orgPage.notFound")}</div>;

@@ -1,5 +1,6 @@
-// @ts-nocheck
 import React, { useState, useEffect, useMemo } from "react";
+
+declare const __APP_VERSION__: string;
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { GalleryFilterBar } from "../components/gallery/GalleryFilterBar";
@@ -40,7 +41,27 @@ const FEATURED_TAB_KEYS = {
   series: "series",
 };
 
-let studioPreloadPromise = null;
+type GalleryView = "scripts" | "authors" | "orgs" | "help" | "license" | "about";
+type FilterableGalleryView = "scripts" | "authors" | "orgs";
+type GalleryViewMode = "standard" | "compact";
+
+interface HomepageBannerItem {
+  id?: string;
+  title?: string;
+  content?: string;
+  link?: string;
+  imageUrl?: string;
+}
+
+interface HomepageBanner {
+  title?: string;
+  content?: string;
+  link?: string;
+  imageUrl?: string;
+  items?: HomepageBannerItem[];
+}
+
+let studioPreloadPromise: Promise<unknown> | null = null;
 const preloadStudioEntry = () => {
   if (!studioPreloadPromise) {
     studioPreloadPromise = Promise.all([
@@ -53,14 +74,18 @@ const preloadStudioEntry = () => {
 
 export default function PublicGalleryPage() {
   const { t } = useI18n();
-  const appVersion = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev";
+  const appVersion = __APP_VERSION__ ?? "dev";
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { currentUser, login } = useAuth();
-  const view = searchParams.get("view") || "scripts";
+  const normalizeView = (value: string | null): GalleryView => {
+    if (value === "authors" || value === "orgs" || value === "help" || value === "license" || value === "about") return value;
+    return "scripts";
+  };
+  const view = normalizeView(searchParams.get("view"));
   const authorTag = searchParams.get("authorTag");
   const orgTag = searchParams.get("orgTag");
-  const setView = (next) => {
+  const setView = (next: GalleryView) => {
       const params = new URLSearchParams(searchParams);
       params.set("view", next);
       if (next !== "scripts") params.delete("tag");
@@ -70,14 +95,14 @@ export default function PublicGalleryPage() {
       if (next !== "scripts") params.delete("segment");
       setSearchParams(params);
   };
-  const [scripts, setScripts] = useState([]);
-  const [authors, setAuthors] = useState([]);
-  const [orgs, setOrgs] = useState([]);
-  const [topTags, setTopTags] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [featuredLaneMode, setFeaturedLaneMode] = useState(null);
-  const [pendingR18Route, setPendingR18Route] = useState(null);
-  const [pendingScript, setPendingScript] = useState(null);
+  const [scripts, setScripts] = useState<Array<Record<string, unknown> & { id: string }>>([]);
+  const [authors, setAuthors] = useState<Array<Record<string, unknown> & { id: string }>>([]);
+  const [orgs, setOrgs] = useState<Array<Record<string, unknown> & { id: string }>>([]);
+  const [topTags, setTopTags] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [featuredLaneMode, setFeaturedLaneMode] = useState<string | boolean>(false);
+  const [pendingR18Route, setPendingR18Route] = useState<string | null>(null);
+  const [pendingScript, setPendingScript] = useState<{ id: string; tags?: unknown[] } | null>(null);
 
   const {
     termsConfig,
@@ -103,10 +128,10 @@ export default function PublicGalleryPage() {
       if (script) continueToScript(script);
     },
   });
-  const normalizeViewMode = (value) => (value === "compact" ? "compact" : "standard");
+  const normalizeViewMode = (value: string | null): GalleryViewMode => (value === "compact" ? "compact" : "standard");
   const normalizeUsageFilter = (value) => (value === "commercial" ? "commercial" : "all");
 
-  const [viewMode, setViewMode] = useState(() => {
+  const [viewMode, setViewMode] = useState<GalleryViewMode>(() => {
       const fromUrl = searchParams.get("mode");
       if (fromUrl) return normalizeViewMode(fromUrl);
       if (typeof window !== "undefined") {
@@ -116,7 +141,7 @@ export default function PublicGalleryPage() {
       }
       return "standard";
   });
-  const parseTagParam = (value) => {
+  const parseTagParam = (value: string | null): string[] => {
       if (!value) return [];
       return value.split(",").map(v => v.trim()).filter(Boolean);
   };
@@ -127,7 +152,7 @@ export default function PublicGalleryPage() {
   const usageFilter = normalizeUsageFilter(searchParams.get("usage"));
   const segmentFilter = searchParams.get("segment") || SEGMENT_KEYS.all;
 
-  const setSelectedTags = (tags) => {
+  const setSelectedTags = (tags: string[]) => {
       const params = new URLSearchParams(searchParams);
       if (tags.length > 0) {
           params.set("tag", tags.join(","));
@@ -137,7 +162,7 @@ export default function PublicGalleryPage() {
       }
       setSearchParams(params);
   };
-  const setAuthorTags = (tags) => {
+  const setAuthorTags = (tags: string[]) => {
       const params = new URLSearchParams(searchParams);
       params.set("view", "authors");
       if (tags.length > 0) {
@@ -147,7 +172,7 @@ export default function PublicGalleryPage() {
       }
       setSearchParams(params);
   };
-  const setOrgTags = (tags) => {
+  const setOrgTags = (tags: string[]) => {
       const params = new URLSearchParams(searchParams);
       params.set("view", "orgs");
       if (tags.length > 0) {
@@ -157,14 +182,14 @@ export default function PublicGalleryPage() {
       }
       setSearchParams(params);
   };
-  const setUsageFilter = (usage) => {
+  const setUsageFilter = (usage: string) => {
       const params = new URLSearchParams(searchParams);
       if (usage === "all") params.delete("usage");
       else params.set("usage", usage);
       params.set("view", "scripts");
       setSearchParams(params);
   };
-  const setSegmentFilter = (segment) => {
+  const setSegmentFilter = (segment: string) => {
       const params = new URLSearchParams(searchParams);
       if (segment === SEGMENT_KEYS.all) params.delete("segment");
       else params.set("segment", segment);
@@ -180,7 +205,7 @@ export default function PublicGalleryPage() {
       setSearchParams(params);
       setSearchTerm("");
   };
-  const handleViewModeChange = (mode) => {
+  const handleViewModeChange = (mode: GalleryViewMode) => {
       const normalized = normalizeViewMode(mode);
       const params = new URLSearchParams(searchParams);
       params.set("mode", normalized);
@@ -191,7 +216,7 @@ export default function PublicGalleryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingPeople, setIsLoadingPeople] = useState(true);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
-  const [homepageBanner, setHomepageBanner] = useState(null);
+  const [homepageBanner, setHomepageBanner] = useState<HomepageBanner | null>(null);
 
 
   useEffect(() => {
@@ -311,10 +336,10 @@ export default function PublicGalleryPage() {
   ]), [t]);
   const hasScriptFilters = searchNeedle !== "" || selectedTags.length > 0 || usageFilter !== "all" || segmentFilter !== SEGMENT_KEYS.all;
   useEffect(() => {
-    if (!isDefaultView && featuredLaneMode) setFeaturedLaneMode(null);
+    if (!isDefaultView && featuredLaneMode) setFeaturedLaneMode(false);
   }, [isDefaultView, featuredLaneMode]);
   useEffect(() => {
-    if (view !== "scripts" && featuredLaneMode) setFeaturedLaneMode(null);
+    if (view !== "scripts" && featuredLaneMode) setFeaturedLaneMode(false);
   }, [view, featuredLaneMode]);
   const activeTagFilterCount =
     view === "scripts" ? selectedTags.length :
@@ -327,7 +352,7 @@ export default function PublicGalleryPage() {
   const authorTags = hookAuthorTags;
   const orgTags = hookOrgTags;
 
-  const continueToScript = (script) => {
+  const continueToScript = (script: { id?: string; tags?: unknown[] }) => {
     if (!script?.id) return;
     const isAdult = script.tags?.some((tag) => {
       const normalized = String(tag).toLowerCase();
@@ -345,14 +370,15 @@ export default function PublicGalleryPage() {
     navigate(`/read/${script.id}`);
   };
 
-  const handleScriptClick = (script) => {
+  const handleScriptClick = (script: { id?: string; tags?: unknown[] }) => {
     if (isTermsConfigLoading) return;
     const version = termsConfig?.version;
     if (!version || hasAcceptedTermsVersion(version)) {
       continueToScript(script);
       return;
     }
-    setPendingScript(script);
+    if (!script.id) return;
+    setPendingScript({ id: script.id, tags: script.tags });
     openTermsDialog();
   };
 
@@ -372,7 +398,7 @@ export default function PublicGalleryPage() {
         fullBleed
         tabs={tabs}
         activeTab={view}
-        onTabChange={setView}
+        onTabChange={(next) => setView(normalizeView(next))}
         actions={
           <div className="flex shrink-0 items-center gap-2">
             <Button
@@ -513,7 +539,7 @@ export default function PublicGalleryPage() {
                         ? "border border-primary bg-primary text-primary-foreground shadow ring-1 ring-primary/35"
                         : "border-border/60 bg-background text-muted-foreground"
                     }`}
-                    onClick={() => setFeaturedLaneMode(tab.key === FEATURED_TAB_KEYS.featured ? null : tab.key)}
+                    onClick={() => setFeaturedLaneMode(tab.key === FEATURED_TAB_KEYS.featured ? false : tab.key)}
                   >
                     {tab.label}
                   </Button>
@@ -615,7 +641,7 @@ export default function PublicGalleryPage() {
                 }
                 showViewToggle={false}
                 viewValue={viewMode}
-                onViewChange={handleViewModeChange}
+                onViewChange={(value) => handleViewModeChange(normalizeViewMode(value))}
                 viewOptions={[
                   { value: "standard", label: t("publicGallery.viewStandard", "圖文排版") },
                   { value: "compact", label: t("publicGallery.viewCompact", "緊湊排版") }
@@ -821,7 +847,7 @@ export default function PublicGalleryPage() {
                       size="sm"
                       variant="ghost"
                       className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                      onClick={() => setFeaturedLaneMode(null)}
+                      onClick={() => setFeaturedLaneMode(false)}
                     >
                       {t("publicGallery.backToFeatured", "返回精選")}
                     </Button>
@@ -871,7 +897,7 @@ export default function PublicGalleryPage() {
                         size="sm"
                         variant="ghost"
                         className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                        onClick={() => setFeaturedLaneMode(null)}
+                        onClick={() => setFeaturedLaneMode(false)}
                       >
                         {t("publicGallery.backToFeatured", "返回精選")}
                       </Button>
@@ -981,7 +1007,7 @@ export default function PublicGalleryPage() {
       <GalleryMobileFilterSheet
         open={isMobileFilterOpen}
         onOpenChange={setIsMobileFilterOpen}
-        view={view}
+        view={view === "authors" || view === "orgs" ? view : "scripts"}
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
         selectedTags={selectedTags}
@@ -1019,6 +1045,7 @@ export default function PublicGalleryPage() {
         toggleRequiredCheck={toggleRequiredCheck}
         onConfirm={confirmTermsConsent}
         onCancel={() => { setTermsDialogOpen(false); setPendingScript(null); }}
+        confirmLabel={undefined}
       />
 
       <R18ConsentDialog

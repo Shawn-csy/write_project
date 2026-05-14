@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useRef, useState } from "react";
 import { AppearanceSettings } from "../settings/AppearanceSettings";
 import { ProfileSettings } from "../settings/ProfileSettings";
@@ -14,11 +13,17 @@ import { X } from "lucide-react";
 
 import { useAuth } from "../../contexts/AuthContext";
 
-function SettingsPanel({ onClose, activeTab, onTabChange }) {
+interface SettingsPanelProps {
+  onClose: () => void;
+  activeTab?: string;
+  onTabChange?: (tab: string) => void;
+}
+
+function SettingsPanel({ onClose, activeTab, onTabChange }: SettingsPanelProps): React.JSX.Element {
   const { currentUser, profile } = useAuth();
   const { t } = useI18n();
-  const scrollContainerRef = useRef(null);
-  const [internalTab, setInternalTab] = useState("display");
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const [internalTab, setInternalTab] = useState<string>("display");
   
   const currentTab = activeTab || internalTab;
   const setTab = onTabChange || setInternalTab;
@@ -114,7 +119,7 @@ function SettingsPanel({ onClose, activeTab, onTabChange }) {
 
             {currentTab === "display" && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <AppearanceSettings />
+                <AppearanceSettings sectionRef={scrollContainerRef} />
               </div>
             )}
 
@@ -123,7 +128,7 @@ function SettingsPanel({ onClose, activeTab, onTabChange }) {
                 <div className="flex items-center gap-2 pb-2 border-b border-border/40">
                   <h3 className="text-lg font-semibold tracking-tight text-foreground/90">{t("settings.markers")}</h3>
                 </div>
-                <MarkerSettings />
+                <MarkerSettings sectionRef={scrollContainerRef} />
               </div>
             )}
 
