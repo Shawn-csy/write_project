@@ -23,7 +23,7 @@ const parseSafeStyle = (styleText: string | null): Record<string, string> | unde
   return Object.keys(style).length ? style : undefined;
 };
 
-const sanitizeElement = (node, key) => {
+const sanitizeElement = (node: Node, key: string) => {
   if (node.nodeType === Node.TEXT_NODE) {
     return node.textContent;
   }
@@ -32,13 +32,14 @@ const sanitizeElement = (node, key) => {
     return null;
   }
 
-  const tag = node.tagName;
+  const el = node as Element;
+  const tag = el.tagName;
   if (!ALLOWED_TAGS.has(tag)) {
     return node.textContent;
   }
 
   const props: Record<string, unknown> = { key };
-  const className = node.getAttribute("class");
+  const className = el.getAttribute("class");
   if (className) {
     const safeClasses = className
       .split(/\s+/)
@@ -48,7 +49,7 @@ const sanitizeElement = (node, key) => {
     }
   }
 
-  const styleAttr = node.getAttribute("style");
+  const styleAttr = el.getAttribute("style");
   const safeStyle = parseSafeStyle(styleAttr);
   if (safeStyle) {
     props.style = safeStyle;
@@ -62,10 +63,10 @@ const sanitizeElement = (node, key) => {
     }
   });
 
-  return React.createElement(tag.toLowerCase(), props, children.length ? children : null);
+  return React.createElement(el.tagName.toLowerCase(), props, children.length ? children : null);
 };
 
-export const renderSafeHtml = (html) => {
+export const renderSafeHtml = (html: string | null | undefined) => {
   if (!html) return null;
   if (typeof DOMParser === "undefined") {
     const text = html.replace(/<[^>]*>/g, "");

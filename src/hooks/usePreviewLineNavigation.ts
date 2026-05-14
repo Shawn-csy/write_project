@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import type React from "react";
 
 export function usePreviewLineNavigation({
   content,
@@ -7,9 +8,16 @@ export function usePreviewLineNavigation({
   scrollEditorToLine,
   highlightEditorLine,
   clearHighlightLine,
+}: {
+  content: string;
+  readOnly?: boolean;
+  previewRef: React.RefObject<HTMLElement | null>;
+  scrollEditorToLine: (line: number, opts?: Record<string, unknown>) => void;
+  highlightEditorLine: (line: number) => void;
+  clearHighlightLine: () => void;
 }) {
   const highlightTargetLine = useCallback(
-    (lineNumber) => {
+    (lineNumber: number) => {
       if (!Number.isFinite(lineNumber) || lineNumber < 1) return;
       scrollEditorToLine(lineNumber, { behavior: "smooth", center: true, select: true });
       highlightEditorLine(lineNumber);
@@ -21,7 +29,7 @@ export function usePreviewLineNavigation({
   );
 
   const findLineIndex = useCallback(
-    (text) => {
+    (text: string) => {
       if (!text) return -1;
       const lines = (content || "").split("\n");
       let idx = lines.findIndex((line) => line.includes(text));
@@ -35,8 +43,8 @@ export function usePreviewLineNavigation({
   );
 
   const handleLocateText = useCallback(
-    (text, lineNumber) => {
-      if (!text && !lineNumber) return;
+    (text: string, lineNumber?: number | null) => {
+      if (!text && lineNumber == null) return;
       if (readOnly) {
         const container = previewRef.current;
         if (!container) return;
@@ -57,7 +65,7 @@ export function usePreviewLineNavigation({
   );
 
   const handlePreviewLineClick = useCallback(
-    (event) => {
+    (event: MouseEvent) => {
       if (readOnly) return;
       const target = event.target;
       if (!(target instanceof Element)) return;

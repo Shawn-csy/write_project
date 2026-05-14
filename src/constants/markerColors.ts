@@ -30,7 +30,7 @@ export const MARKER_COLORS = [
     // Legacy mapping support kept in index.css but hidden from UI default list
 ];
 
-export const getCssDetails = (colorId) => {
+export const getCssDetails = (colorId: string) => {
     const color = MARKER_COLORS.find(c => c.id === colorId);
     if (!color) return null;
     return `var(--marker-color-${colorId})`;

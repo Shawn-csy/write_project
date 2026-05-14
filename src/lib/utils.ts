@@ -1,7 +1,7 @@
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-export function cn(...inputs) {
+export function cn(...inputs: Parameters<typeof clsx>) {
   return twMerge(clsx(inputs));
 }
 
@@ -13,9 +13,9 @@ export function extractErrorMessage(error: unknown): string {
   return "";
 }
 
-export function debounce(func, wait) {
-  let timeout;
-  const debounced = function(...args) {
+export function debounce<T extends (...args: unknown[]) => void>(func: T, wait: number) {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const debounced = function(...args: Parameters<T>) {
     const later = () => {
       clearTimeout(timeout);
       func(...args);

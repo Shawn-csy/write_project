@@ -54,8 +54,8 @@ export const accentClasses = {
 
 export const defaultAccent = "emerald";
 
-export const buildAccentPalette = (hsl) => {
-  const parse = (val) => {
+export const buildAccentPalette = (hsl: string | null | undefined) => {
+  const parse = (val: string | null | undefined) => {
     const parts = (val || "").trim().split(/\s+/);
     if (parts.length < 3) return null;
     const [h, s, l] = parts;
@@ -65,7 +65,7 @@ export const buildAccentPalette = (hsl) => {
       l: Number(String(l).replace("%", "")),
     };
   };
-  const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
+  const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
   const parsed = parse(hsl);
   if (!parsed) {
     return [

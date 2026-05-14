@@ -14,7 +14,7 @@ import { useState, useEffect } from "react";
  * const debouncedSearch = useDebouncedSearch(searchTerm, 200);
  * // 用 debouncedSearch 做過濾或 API 呼叫
  */
-export function useDebouncedSearch(value, delay = 250) {
+export function useDebouncedSearch(value: string, delay = 250) {
   const [debounced, setDebounced] = useState(value);
 
   useEffect(() => {

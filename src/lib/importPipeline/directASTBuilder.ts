@@ -70,7 +70,7 @@ export class DirectASTBuilder {
     }
   }
 
-  _normalizeWidthAndCase(value) {
+  _normalizeWidthAndCase(value: unknown) {
     // Fold fullwidth ASCII symbols/letters/numbers to halfwidth, then lowercase.
     return String(value ?? "")
       .replace(/[\uFF01-\uFF5E]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xFEE0))
@@ -164,7 +164,7 @@ export class DirectASTBuilder {
     const rootChildren: AstNode[] = [];
     // 堆疊：儲存當前開啟的 range 節點
     const stack: AstNode[] = [];
-    const findTopmostOpenRangeIndex = (groupId) => {
+    const findTopmostOpenRangeIndex = (groupId: string) => {
       for (let idx = stack.length - 1; idx >= 0; idx--) {
         if (stack[idx].rangeGroupId === groupId) return idx;
       }
@@ -245,7 +245,7 @@ export class DirectASTBuilder {
    * 檢查是否為 range 標記
    * @private
    */
-  _checkRangeMarker(node, line) {
+  _checkRangeMarker(node: AstNode, line: string) {
     // 1. 優先檢查節點本身是否已經識別出 range 屬性 (由 _matchBlockMarker 解析)
     if (node.rangeGroupId && node.rangeRole) {
       return { 
@@ -307,7 +307,7 @@ export class DirectASTBuilder {
    * 嘗試將當前行匹配為任意類型的 Block Marker
    * @private
    */
-  _matchBlockMarker(line, lineNumber) {
+  _matchBlockMarker(line: string, lineNumber: number) {
     const sortedMarkers = [...this.blockMarkers].sort(
       (a, b) => {
         const pA = Number.isFinite(a?.priority) ? (a.priority ?? 0) : 0;
@@ -451,25 +451,25 @@ export class DirectASTBuilder {
     return null;
   }
 
-  _startsWithToken(text, token, caseInsensitive = false) {
+  _startsWithToken(text: string, token: string, caseInsensitive = false) {
     if (!token) return false;
     const head = String(text).slice(0, token.length);
     return this._normalizeWidthAndCase(head) === this._normalizeWidthAndCase(token);
   }
 
-  _endsWithToken(text, token, caseInsensitive = false) {
+  _endsWithToken(text: string, token: string, caseInsensitive = false) {
     if (!token) return false;
     const tail = String(text).slice(-token.length);
     return this._normalizeWidthAndCase(tail) === this._normalizeWidthAndCase(token);
   }
 
-  _matchLeadingToken(text, token, caseInsensitive = false) {
+  _matchLeadingToken(text: string, token: string, caseInsensitive = false) {
     if (!token) return null;
     const head = String(text).slice(0, token.length);
     return this._normalizeWidthAndCase(head) === this._normalizeWidthAndCase(token) ? head : null;
   }
 
-  _toRegex(pattern) {
+  _toRegex(pattern: unknown) {
     if (!pattern) return null;
     if (pattern instanceof RegExp) return pattern;
     const raw = String(pattern).trim();
@@ -490,7 +490,7 @@ export class DirectASTBuilder {
     }
   }
 
-  _resolveMapField(template, content, match, fallback = '') {
+  _resolveMapField(template: unknown, content: string, match: RegExpMatchArray | null, fallback = '') {
     if (template === undefined || template === null || template === '') return fallback;
     const raw = String(template);
     if (raw === '$text') return content;
@@ -503,7 +503,7 @@ export class DirectASTBuilder {
     return raw;
   }
 
-  _applyMappedCast(value, castType) {
+  _applyMappedCast(value: unknown, castType: unknown) {
     if (!castType) return value;
     if (Array.isArray(castType)) {
       return castType.reduce((acc, item) => this._applyMappedCast(acc, item), value);
@@ -593,7 +593,7 @@ export class DirectASTBuilder {
     return node;
   }
 
-  _buildLayerNode(marker, content, rawLine, lineNumber) {
+  _buildLayerNode(marker: MarkerConfig, content: string, rawLine: string, lineNumber: number) {
     return {
       type: 'layer',
       layerType: marker.id,
@@ -615,7 +615,7 @@ export class DirectASTBuilder {
    * 解析行內內容
    * @private
    */
-  _parseInlineContent(text) {
+  _parseInlineContent(text: string) {
     if (!text) return [];
     return parseInline(text, this.inlineMarkers);
   }
@@ -640,7 +640,7 @@ export class DirectASTBuilder {
  * @param {Array} markerConfigs - marker 設定
  * @returns {ASTNode} AST 根節點
  */
-export const buildAST = (text, markerConfigs) => {
+export const buildAST = (text: string, markerConfigs?: unknown) => {
   const hasExplicitConfigs = markerConfigs !== undefined && markerConfigs !== null;
   const effectiveConfigs = hasExplicitConfigs
     ? normalizeMarkerConfigsSchema(markerConfigs)

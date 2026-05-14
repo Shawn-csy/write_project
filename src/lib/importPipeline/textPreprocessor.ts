@@ -91,7 +91,7 @@ export class TextPreprocessor {
    * @param {string} text - 原始文本
    * @returns {PreprocessResult}
    */
-  preprocess(text) {
+  preprocess(text: string) {
     const originalText = text;
     const lines = text.split('\n');
     const transformLog: TransformLogEntry[] = [];
