@@ -5,6 +5,8 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   test: {
+    pool: 'forks',
+    maxWorkers: '50%',
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
