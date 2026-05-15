@@ -176,38 +176,6 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
     );
 
-    const applyPublicInfo = (publicScript: Record<string, unknown> | null | undefined) => {
-        if (!publicScript) return;
-        setStatus(String(publicScript.status || (publicScript.isPublic ? "Public" : status)));
-        if (publicScript.personaId) {
-            setIdentity(`persona:${publicScript.personaId}`);
-            setSelectedOrgId(String(publicScript.organizationId || ""));
-        } else if (publicScript.organizationId) {
-            setSelectedOrgId(String(publicScript.organizationId || ""));
-        }
-        if (publicScript.coverUrl) setCoverUrl(String(publicScript.coverUrl));
-        if (publicScript.markerThemeId) setMarkerThemeId(String(publicScript.markerThemeId));
-        if (publicScript.disableCopy !== undefined && publicScript.disableCopy !== null) {
-            setDisableCopy(Boolean(publicScript.disableCopy));
-        }
-        if (publicScript.tags && Array.isArray(publicScript.tags) && publicScript.tags.length > 0) {
-            setCurrentTags(publicScript.tags as TagLike[]);
-        }
-    };
-
-    const loadPublicInfoIfNeeded = async (baseScript: Record<string, unknown> | null | undefined) => {
-        if (!baseScript?.id) return;
-        if (!(baseScript.isPublic || baseScript.status === "Public")) return;
-        if (publicLoadedRef.current === String(baseScript.id)) return;
-        try {
-            const pub = await getPublicScript(String(baseScript.id));
-            publicLoadedRef.current = String(baseScript.id);
-            applyPublicInfo(pub);
-        } catch (e) {
-            console.warn("Failed to load public script info", e);
-        }
-    };
-
     const { currentUser, profile: currentProfile } = useAuth();
     const [identity, setIdentity] = useState("");
     const [selectedOrgId, setSelectedOrgId] = useState<string | null>("");
@@ -280,6 +248,39 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
     });
 
     const setCurrentTagsAdapter = useCallback((v: TagLike[]) => { setCurrentTags(v); }, [setCurrentTags]);
+
+    const applyPublicInfo = useCallback((publicScript: Record<string, unknown> | null | undefined) => {
+        if (!publicScript) return;
+        setStatus(prev => String(publicScript.status || (publicScript.isPublic ? "Public" : prev)));
+        if (publicScript.personaId) {
+            setIdentity(`persona:${publicScript.personaId}`);
+            setSelectedOrgId(String(publicScript.organizationId || ""));
+        } else if (publicScript.organizationId) {
+            setSelectedOrgId(String(publicScript.organizationId || ""));
+        }
+        if (publicScript.coverUrl) setCoverUrl(String(publicScript.coverUrl));
+        if (publicScript.markerThemeId) setMarkerThemeId(String(publicScript.markerThemeId));
+        if (publicScript.disableCopy !== undefined && publicScript.disableCopy !== null) {
+            setDisableCopy(Boolean(publicScript.disableCopy));
+        }
+        if (publicScript.tags && Array.isArray(publicScript.tags) && publicScript.tags.length > 0) {
+            setCurrentTags(publicScript.tags as TagLike[]);
+        }
+    }, [setStatus, setIdentity, setSelectedOrgId, setCoverUrl, setMarkerThemeId, setDisableCopy, setCurrentTags]);
+
+    const loadPublicInfoIfNeeded = useCallback(async (baseScript: Record<string, unknown> | null | undefined) => {
+        if (!baseScript?.id) return;
+        if (!(baseScript.isPublic || baseScript.status === "Public")) return;
+        if (publicLoadedRef.current === String(baseScript.id)) return;
+        try {
+            const pub = await getPublicScript(String(baseScript.id));
+            publicLoadedRef.current = String(baseScript.id);
+            applyPublicInfo(pub);
+        } catch (e) {
+            console.warn("Failed to load public script info", e);
+        }
+    }, [publicLoadedRef, applyPublicInfo]);
+
     const setSeriesOrderStrAdapter = useCallback((v: string) => { setSeriesOrder(v); }, [setSeriesOrder]);
     const setSeriesOrderAdapter = useCallback((v: string | number) => { setSeriesOrder(String(v)); }, [setSeriesOrder]);
 
