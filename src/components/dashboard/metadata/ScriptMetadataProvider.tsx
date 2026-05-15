@@ -124,13 +124,23 @@ export type ExposureContextValue = Pick<AllState,
     "quickSeriesName" | "setQuickSeriesName" | "setShowSeriesQuickCreate" | "showSeriesQuickCreate" |
     "focusSeriesSelect" | "handleQuickCreateSeries" | "isCreatingSeries" | "newTagInput" | "setNewTagInput" |
     "handleAddTag" | "currentTags" | "handleRemoveTag" | "markerThemeId" | "setMarkerThemeId" | "markerThemes" |
-    "showMarkerLegend" | "setShowMarkerLegend" | "disableCopy" | "setDisableCopy" | "jsonMode" | "setJsonMode" |
-    "jsonText" | "setJsonText" | "jsonError" | "applyJson"
+    "showMarkerLegend" | "setShowMarkerLegend" | "disableCopy" | "setDisableCopy"
 >;
 const ExposureContext = React.createContext<ExposureContextValue | null>(null);
 export function useExposureContext() {
     const ctx = React.useContext(ExposureContext);
     if (!ctx) throw new Error("useExposureContext must be used within ScriptMetadataDialogProvider");
+    return ctx;
+}
+
+/** JSON editor state. Changes only when user toggles json mode or edits json text. */
+export type JsonEditorContextValue = Pick<AllState,
+    "jsonMode" | "setJsonMode" | "jsonText" | "setJsonText" | "jsonError" | "applyJson"
+>;
+const JsonEditorContext = React.createContext<JsonEditorContextValue | null>(null);
+export function useJsonEditorContext() {
+    const ctx = React.useContext(JsonEditorContext);
+    if (!ctx) throw new Error("useJsonEditorContext must be used within ScriptMetadataDialogProvider");
     return ctx;
 }
 
@@ -270,7 +280,8 @@ export function ScriptMetadataDialogProvider({
         seriesExpanded, setSeriesExpanded, seriesId, setSeriesId, seriesName, setSeriesName, seriesOrder, setSeriesOrder,
         quickSeriesName, setQuickSeriesName, setShowSeriesQuickCreate, showSeriesQuickCreate, focusSeriesSelect, handleQuickCreateSeries,
         isCreatingSeries, newTagInput, setNewTagInput, handleAddTag, currentTags, handleRemoveTag, markerThemeId, setMarkerThemeId,
-        markerThemes, showMarkerLegend, setShowMarkerLegend, disableCopy, setDisableCopy, jsonMode, setJsonMode, jsonText, setJsonText, jsonError, applyJson,
+        markerThemes, showMarkerLegend, setShowMarkerLegend, disableCopy, setDisableCopy,
+        jsonMode, setJsonMode, jsonText, setJsonText, jsonError, applyJson,
         activityName, setActivityName, activityBannerUrl, setActivityBannerUrl, handleActivityBannerUpload, openActivityBannerMediaPicker,
         activityBannerPreviewFailed, setActivityBannerPreviewFailed, activityBannerUploadError, activityBannerUploadWarning,
         activityContent, setActivityContent, activityWorkUrl, setActivityWorkUrl, activityDemoLinks,
@@ -324,17 +335,19 @@ export function ScriptMetadataDialogProvider({
         seriesName, setSeriesName, seriesOrder, setSeriesOrder, quickSeriesName, setQuickSeriesName,
         setShowSeriesQuickCreate, showSeriesQuickCreate, focusSeriesSelect, handleQuickCreateSeries,
         isCreatingSeries, newTagInput, setNewTagInput, handleAddTag, currentTags, handleRemoveTag, markerThemeId, setMarkerThemeId,
-        markerThemes, showMarkerLegend, setShowMarkerLegend, disableCopy, setDisableCopy, jsonMode, setJsonMode,
-        jsonText, setJsonText, jsonError, applyJson,
+        markerThemes, showMarkerLegend, setShowMarkerLegend, disableCopy, setDisableCopy,
     }), [
         coverUrl, setCoverUrl, handleCoverUpload, openCoverMediaPicker, coverUploadError, coverUploadWarning,
         coverPreviewFailed, setCoverPreviewFailed, seriesExpanded, setSeriesExpanded, seriesId, setSeriesId,
         seriesName, setSeriesName, seriesOrder, setSeriesOrder, quickSeriesName, setQuickSeriesName,
         setShowSeriesQuickCreate, showSeriesQuickCreate, focusSeriesSelect, handleQuickCreateSeries,
         isCreatingSeries, newTagInput, setNewTagInput, handleAddTag, currentTags, handleRemoveTag, markerThemeId, setMarkerThemeId,
-        markerThemes, showMarkerLegend, setShowMarkerLegend, disableCopy, setDisableCopy, jsonMode, setJsonMode,
-        jsonText, setJsonText, jsonError, applyJson,
+        markerThemes, showMarkerLegend, setShowMarkerLegend, disableCopy, setDisableCopy,
     ]);
+
+    const jsonEditor: JsonEditorContextValue = useMemo(() => ({
+        jsonMode, setJsonMode, jsonText, setJsonText, jsonError, applyJson,
+    }), [jsonMode, setJsonMode, jsonText, setJsonText, jsonError, applyJson]);
 
     const activity: ActivityContextValue = useMemo(() => ({
         activityName, setActivityName, activityBannerUrl, setActivityBannerUrl, handleActivityBannerUpload, openActivityBannerMediaPicker,
@@ -358,11 +371,13 @@ export function ScriptMetadataDialogProvider({
                                 <ContentContext.Provider value={content}>
                                     <LicenseContext.Provider value={license}>
                                         <ExposureContext.Provider value={exposure}>
-                                            <ActivityContext.Provider value={activity}>
-                                                <ScriptMetadataDialogContext.Provider value={all}>
-                                                    {children}
-                                                </ScriptMetadataDialogContext.Provider>
-                                            </ActivityContext.Provider>
+                                            <JsonEditorContext.Provider value={jsonEditor}>
+                                                <ActivityContext.Provider value={activity}>
+                                                    <ScriptMetadataDialogContext.Provider value={all}>
+                                                        {children}
+                                                    </ScriptMetadataDialogContext.Provider>
+                                                </ActivityContext.Provider>
+                                            </JsonEditorContext.Provider>
                                         </ExposureContext.Provider>
                                     </LicenseContext.Provider>
                                 </ContentContext.Provider>

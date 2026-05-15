@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { Loader2 } from "lucide-react";
 import { useLiveEditorState } from "../../hooks/editor/useLiveEditorState";
@@ -58,6 +58,17 @@ export default function LiveEditor({
     onPersistMarkerTheme, t,
   });
 
+  const handleToggleRules = useCallback(() => s.setShowRules(prev => !prev), [s.setShowRules]);
+  const handleToggleStats = useCallback(() => s.setShowStats(true), [s.setShowStats]);
+  const handleTogglePreview = useCallback(() => s.setShowPreview(prev => !prev), [s.setShowPreview]);
+  const handleScriptUpdate = useCallback((updated: { title?: unknown; [key: string]: unknown }) => {
+    const nextTitle = String(updated.title || "");
+    if (nextTitle && nextTitle !== s.title) s.handleTitleUpdate(nextTitle);
+  }, [s.title, s.handleTitleUpdate]);
+  const handleCrossGuideSkip = useCallback(() => onCrossGuideExit?.(), [onCrossGuideExit]);
+  const handleCrossGuidePrev = useCallback(() => onCrossGuidePrev?.(), [onCrossGuidePrev]);
+  const handleCrossGuideNext = useCallback(() => onCrossGuideNext?.(), [onCrossGuideNext]);
+
   if (s.loading) {
     return (
       <div className="h-full flex items-center justify-center bg-background">
@@ -78,11 +89,11 @@ export default function LiveEditor({
             saveStatus={s.saveStatus}
             lastSaved={s.lastSaved}
             showRules={s.showRules}
-            onToggleRules={() => s.setShowRules(prev => !prev)}
+            onToggleRules={handleToggleRules}
             downloadOptions={s.normalizedDownloadOptions}
-            onToggleStats={() => s.setShowStats(true)}
+            onToggleStats={handleToggleStats}
             showPreview={s.showPreview}
-            onTogglePreview={() => s.setShowPreview(!s.showPreview)}
+            onTogglePreview={handleTogglePreview}
             onOpenGuide={s.startGuide}
             moreActionsRef={s.moreActionsButtonRef}
             isSidebarOpen={isSidebarOpen}
@@ -95,10 +106,7 @@ export default function LiveEditor({
             hiddenMarkerIds={s.hiddenMarkerIds}
             onToggleMarker={s.toggleMarkerVisibility}
             script={initialData ? { ...initialData } : undefined}
-            onScriptUpdate={(updated) => {
-              const nextTitle = String((updated as { title?: unknown }).title || "");
-              if (nextTitle && nextTitle !== s.title) s.handleTitleUpdate(nextTitle);
-            }}
+            onScriptUpdate={handleScriptUpdate}
           />
         </div>
       )}
@@ -219,12 +227,12 @@ export default function LiveEditor({
         spotlightRect={s.crossGuideSpotlightRect}
         title={s.crossGuideTitle}
         description={s.crossGuideDesc}
-        onSkip={() => onCrossGuideExit?.()}
+        onSkip={handleCrossGuideSkip}
         skipLabel={t("liveEditor.crossGuideExit")}
-        onPrev={() => onCrossGuidePrev?.()}
+        onPrev={handleCrossGuidePrev}
         prevLabel={t("liveEditor.crossGuidePrev")}
         prevDisabled={crossModeGuideStep === "editIntro"}
-        onNext={() => onCrossGuideNext?.()}
+        onNext={handleCrossGuideNext}
         nextLabel={crossModeGuideStep === "editActions" ? t("liveEditor.crossGuideBackToRead") : t("liveEditor.crossGuideNext")}
         showProgress={false}
       />

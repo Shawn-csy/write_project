@@ -43,6 +43,33 @@ interface PublicScriptInfoOverlayProps {
   licenseSpecialTerms?: string[];
 }
 
+function parseMultiTemplate(rawValue: string | undefined) {
+  try {
+    const parsed = JSON.parse(String(rawValue || "")) as { mode?: string; items?: Array<{ name?: unknown; text?: unknown }> };
+    if (parsed?.mode !== "multi" || !Array.isArray(parsed?.items)) return null;
+    return parsed.items.map((entry: { name?: unknown; text?: unknown }) => ({
+      name: String(entry?.name || "").trim(),
+      text: String(entry?.text || "").trim(),
+    }));
+  } catch {
+    return null;
+  }
+}
+
+function parseChapterTemplate(rawValue: string | undefined) {
+  try {
+    const parsed = JSON.parse(String(rawValue || "")) as { mode?: string; items?: Array<{ chapter?: unknown; environment?: unknown; situation?: unknown }> };
+    if (parsed?.mode !== "chapter_multi" || !Array.isArray(parsed?.items)) return [];
+    return parsed.items.map((entry: { chapter?: unknown; environment?: unknown; situation?: unknown }, idx: number) => ({
+      chapter: String(entry?.chapter || `第${idx + 1}章`).trim() || `第${idx + 1}章`,
+      environment: String(entry?.environment || "").trim(),
+      situation: String(entry?.situation || "").trim(),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export function PublicScriptInfoOverlay({
   title,
   synopsis,
@@ -81,32 +108,6 @@ export function PublicScriptInfoOverlay({
     });
     return map;
   }, [prefaceItems]);
-
-  const parseMultiTemplate = (rawValue: string | undefined) => {
-    try {
-      const parsed = JSON.parse(String(rawValue || "")) as { mode?: string; items?: Array<{ name?: unknown; text?: unknown }> };
-      if (parsed?.mode !== "multi" || !Array.isArray(parsed?.items)) return null;
-      return parsed.items.map((entry: { name?: unknown; text?: unknown }) => ({
-        name: String(entry?.name || "").trim(),
-        text: String(entry?.text || "").trim(),
-      }));
-    } catch {
-      return null;
-    }
-  };
-  const parseChapterTemplate = (rawValue: string | undefined) => {
-    try {
-      const parsed = JSON.parse(String(rawValue || "")) as { mode?: string; items?: Array<{ chapter?: unknown; environment?: unknown; situation?: unknown }> };
-      if (parsed?.mode !== "chapter_multi" || !Array.isArray(parsed?.items)) return [];
-      return parsed.items.map((entry: { chapter?: unknown; environment?: unknown; situation?: unknown }, idx: number) => ({
-        chapter: String(entry?.chapter || `第${idx + 1}章`).trim() || `第${idx + 1}章`,
-        environment: String(entry?.environment || "").trim(),
-        situation: String(entry?.situation || "").trim(),
-      }));
-    } catch {
-      return [];
-    }
-  };
 
   const roleSettingItem = itemById.get("rolesetting");
   const performanceItem = itemById.get("performanceinstruction");
