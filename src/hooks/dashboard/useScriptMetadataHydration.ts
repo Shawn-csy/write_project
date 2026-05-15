@@ -102,117 +102,121 @@ export function useScriptMetadataHydration({
   return useCallback(
     async (baseScript: ScriptLike) => {
       if (!baseScript) return;
+      try {
+        // Resolve the authoritative source: fetch full script first if needed,
+        // then apply all state in one pass to avoid a double-render wave.
+        let sourceScript = baseScript;
 
-      // Resolve the authoritative source: fetch full script first if needed,
-      // then apply all state in one pass to avoid a double-render wave.
-      let sourceScript = baseScript;
-
-      if (fetchFullScript && baseScript.id) {
-        try {
-          const full = await getScript(baseScript.id);
-          if (full) sourceScript = full;
-        } catch (error) {
-          console.error(error);
+        if (fetchFullScript && baseScript.id) {
+          try {
+            const full = await getScript(baseScript.id);
+            if (full) sourceScript = full;
+          } catch (error) {
+            console.error(error);
+          }
         }
-      }
 
-      setTitle(sourceScript.title || "");
-      setCoverUrl(sourceScript.coverUrl || "");
-      setStatus(sourceScript.status || (sourceScript.isPublic ? "Public" : "Private"));
-      setCurrentTags(sourceScript.tags || baseScript.tags || []);
-      setMarkerThemeId(sourceScript.markerThemeId || "default");
-      setShowMarkerLegend(false);
-      setDisableCopy(Boolean(sourceScript.disableCopy));
+        setTitle(sourceScript.title || "");
+        setCoverUrl(sourceScript.coverUrl || "");
+        setStatus(sourceScript.status || (sourceScript.isPublic ? "Public" : "Private"));
+        setCurrentTags(sourceScript.tags || baseScript.tags || []);
+        setMarkerThemeId(sourceScript.markerThemeId || "default");
+        setShowMarkerLegend(false);
+        setDisableCopy(Boolean(sourceScript.disableCopy));
 
-      const tagsForAudience = sourceScript.tags || baseScript.tags;
-      if (tagsForAudience) {
-        const tagNames = tagsForAudience.map((tag) => String(tag.name || "").toLowerCase());
-        if (tagNames.includes("男性向")) setTargetAudience("男性向");
-        else if (tagNames.includes("女性向")) setTargetAudience("女性向");
-        else if (tagNames.includes("全性向")) setTargetAudience("全性向");
+        const rawTagsForAudience = sourceScript.tags || baseScript.tags;
+        const tagsForAudience = Array.isArray(rawTagsForAudience) ? rawTagsForAudience : [];
+        if (tagsForAudience.length > 0) {
+          const tagNames = tagsForAudience.map((tag) => String(tag.name || "").toLowerCase());
+          if (tagNames.includes("男性向")) setTargetAudience("男性向");
+          else if (tagNames.includes("女性向")) setTargetAudience("女性向");
+          else if (tagNames.includes("全性向")) setTargetAudience("全性向");
 
-        if (tagNames.includes("r-18") || tagNames.includes("r18") || tagNames.includes("18+") || tagNames.includes("成人向")) {
-          setContentRating("成人向");
-        } else if (tagNames.includes("一般") || tagNames.includes("一般內容") || tagNames.includes("全年齡向")) {
-          setContentRating("全年齡向");
+          if (tagNames.includes("r-18") || tagNames.includes("r18") || tagNames.includes("18+") || tagNames.includes("成人向")) {
+            setContentRating("成人向");
+          } else if (tagNames.includes("一般") || tagNames.includes("一般內容") || tagNames.includes("全年齡向")) {
+            setContentRating("全年齡向");
+          }
         }
+
+        const personaSource = sourceScript.personaId ? sourceScript : baseScript;
+        if (personaSource.personaId) {
+          setIdentity(`persona:${personaSource.personaId}`);
+          setSelectedOrgId(personaSource.organizationId || "");
+        } else {
+          const preferredPersonaId = disablePersonaAutofill ? "" : localStorage.getItem("preferredPersonaId");
+          setIdentity(preferredPersonaId ? `persona:${preferredPersonaId}` : "");
+          setSelectedOrgId("");
+        }
+
+        await loadPublicInfoIfNeeded(sourceScript);
+
+        const rawEntries = customMetadataEntriesToRawEntries(sourceScript.customMetadata || []);
+        const meta = customMetadataEntriesToMeta(sourceScript.customMetadata || []);
+        setTitle((prev) => prev || sourceScript.title || meta.title || "");
+        const resolvedAuthor = sourceScript.author || meta.author || meta.authors || "";
+        const rawAuthorDisplayMode = String(meta.authordisplaymode || meta.authorDisplayMode || "").trim().toLowerCase();
+        const resolvedAuthorDisplayMode =
+          rawAuthorDisplayMode === "override" || rawAuthorDisplayMode === "badge"
+            ? rawAuthorDisplayMode
+            : (String(resolvedAuthor || "").trim() ? "override" : "badge");
+        if (disableAuthorAutofill) {
+          setAuthor("");
+          setAuthorDisplayMode("badge");
+        } else {
+          setAuthor(String(resolvedAuthor));
+          setAuthorDisplayMode(resolvedAuthorDisplayMode);
+        }
+        setDate(sourceScript.draftDate || "");
+        setContact(meta.contact || "");
+        setSynopsis(meta.synopsis || meta.summary || meta.description || meta.notes || "");
+        setOutline(meta.outline || "");
+        setRoleSetting(meta.rolesetting || "");
+        setBackgroundInfo(meta.backgroundinfo || "");
+        setPerformanceInstruction(meta.performanceinstruction || "");
+        setOpeningIntro(meta.openingintro || meta.setting || meta.settingintro || "");
+        setChapterSettings(meta.chaptersettings || "");
+        setActivityName(String(meta.activityname || meta.eventname || ""));
+        setActivityBannerUrl(String(meta.activitybanner || meta.eventbanner || ""));
+        setActivityContent(String(meta.activitycontent || meta.eventcontent || ""));
+        const parsedDemoLinks = parseActivityDemoLinks(meta.activitydemolinks || meta.eventdemolinks);
+        if (parsedDemoLinks.length > 0) {
+          setActivityDemoLinks(parsedDemoLinks);
+        } else {
+          const legacyDemoUrl = String(meta.activitydemourl || meta.eventdemolink || "").trim();
+          setActivityDemoLinks(legacyDemoUrl ? [{ id: "demo-1", name: "", url: legacyDemoUrl, cast: "", description: "" }] : []);
+        }
+        setActivityWorkUrl(String(meta.activityworkurl || meta.eventworklink || ""));
+        setSeriesName(String(meta.series || meta.seriesname || sourceScript?.series?.name || ""));
+        setSeriesId(sourceScript?.seriesId || "");
+        setSeriesOrder(String(meta.seriesorder ?? sourceScript?.seriesOrder ?? ""));
+
+        if (meta.marker_legend !== undefined) setShowMarkerLegend(String(meta.marker_legend) === "true");
+        else if (meta.show_legend !== undefined) setShowMarkerLegend(String(meta.show_legend) === "true");
+
+        const basicLicense = parseBasicLicenseFromMeta(meta);
+        const nextCommercial = String(sourceScript.licenseCommercial || basicLicense.commercialUse || "").trim();
+        const nextDerivative = String(sourceScript.licenseDerivative || basicLicense.derivativeUse || "").trim();
+        const nextNotify = String(sourceScript.licenseNotify || basicLicense.notifyOnModify || "").trim();
+        const nextSpecialTerms = ensureList(meta.licensespecialterms || meta.licenseSpecialTerms) as string[];
+
+        setLicenseCommercial((prev) => nextCommercial || prev || "");
+        setLicenseDerivative((prev) => nextDerivative || prev || "");
+        setLicenseNotify((prev) => nextNotify || prev || "");
+        setLicenseSpecialTerms((prev) => {
+          if (Array.isArray(nextSpecialTerms) && nextSpecialTerms.length > 0) return nextSpecialTerms as unknown as LicenseSpecialTerm[];
+          return Array.isArray(prev) ? prev : [];
+        });
+        setCopyright(meta.copyright || "");
+
+        if (!userEditedRef.current && (customFields || []).length === 0) {
+          setCustomFields(buildCustomFieldsFromRawEntries(rawEntries));
+        }
+      } catch (error) {
+        console.error("Failed to hydrate script metadata", error);
+      } finally {
+        setIsInitializing(false);
       }
-
-      const personaSource = sourceScript.personaId ? sourceScript : baseScript;
-      if (personaSource.personaId) {
-        setIdentity(`persona:${personaSource.personaId}`);
-        setSelectedOrgId(personaSource.organizationId || "");
-      } else {
-        const preferredPersonaId = disablePersonaAutofill ? "" : localStorage.getItem("preferredPersonaId");
-        setIdentity(preferredPersonaId ? `persona:${preferredPersonaId}` : "");
-        setSelectedOrgId("");
-      }
-
-      await loadPublicInfoIfNeeded(sourceScript);
-
-      const rawEntries = customMetadataEntriesToRawEntries(sourceScript.customMetadata || []);
-      const meta = customMetadataEntriesToMeta(sourceScript.customMetadata || []);
-      setTitle((prev) => prev || sourceScript.title || meta.title || "");
-      const resolvedAuthor = sourceScript.author || meta.author || meta.authors || "";
-      const rawAuthorDisplayMode = String(meta.authordisplaymode || meta.authorDisplayMode || "").trim().toLowerCase();
-      const resolvedAuthorDisplayMode =
-        rawAuthorDisplayMode === "override" || rawAuthorDisplayMode === "badge"
-          ? rawAuthorDisplayMode
-          : (String(resolvedAuthor || "").trim() ? "override" : "badge");
-      if (disableAuthorAutofill) {
-        setAuthor("");
-        setAuthorDisplayMode("badge");
-      } else {
-        setAuthor(String(resolvedAuthor));
-        setAuthorDisplayMode(resolvedAuthorDisplayMode);
-      }
-      setDate(sourceScript.draftDate || "");
-      setContact(meta.contact || "");
-      setSynopsis(meta.synopsis || meta.summary || meta.description || meta.notes || "");
-      setOutline(meta.outline || "");
-      setRoleSetting(meta.rolesetting || "");
-      setBackgroundInfo(meta.backgroundinfo || "");
-      setPerformanceInstruction(meta.performanceinstruction || "");
-      setOpeningIntro(meta.openingintro || meta.setting || meta.settingintro || "");
-      setChapterSettings(meta.chaptersettings || "");
-      setActivityName(String(meta.activityname || meta.eventname || ""));
-      setActivityBannerUrl(String(meta.activitybanner || meta.eventbanner || ""));
-      setActivityContent(String(meta.activitycontent || meta.eventcontent || ""));
-      const parsedDemoLinks = parseActivityDemoLinks(meta.activitydemolinks || meta.eventdemolinks);
-      if (parsedDemoLinks.length > 0) {
-        setActivityDemoLinks(parsedDemoLinks);
-      } else {
-        const legacyDemoUrl = String(meta.activitydemourl || meta.eventdemolink || "").trim();
-        setActivityDemoLinks(legacyDemoUrl ? [{ id: "demo-1", name: "", url: legacyDemoUrl, cast: "", description: "" }] : []);
-      }
-      setActivityWorkUrl(String(meta.activityworkurl || meta.eventworklink || ""));
-      setSeriesName(String(meta.series || meta.seriesname || sourceScript?.series?.name || ""));
-      setSeriesId(sourceScript?.seriesId || "");
-      setSeriesOrder(String(meta.seriesorder ?? sourceScript?.seriesOrder ?? ""));
-
-      if (meta.marker_legend !== undefined) setShowMarkerLegend(String(meta.marker_legend) === "true");
-      else if (meta.show_legend !== undefined) setShowMarkerLegend(String(meta.show_legend) === "true");
-
-      const basicLicense = parseBasicLicenseFromMeta(meta);
-      const nextCommercial = String(sourceScript.licenseCommercial || basicLicense.commercialUse || "").trim();
-      const nextDerivative = String(sourceScript.licenseDerivative || basicLicense.derivativeUse || "").trim();
-      const nextNotify = String(sourceScript.licenseNotify || basicLicense.notifyOnModify || "").trim();
-      const nextSpecialTerms = ensureList(meta.licensespecialterms || meta.licenseSpecialTerms) as string[];
-
-      setLicenseCommercial((prev) => nextCommercial || prev || "");
-      setLicenseDerivative((prev) => nextDerivative || prev || "");
-      setLicenseNotify((prev) => nextNotify || prev || "");
-      setLicenseSpecialTerms((prev) => {
-        if (Array.isArray(nextSpecialTerms) && nextSpecialTerms.length > 0) return nextSpecialTerms as unknown as LicenseSpecialTerm[];
-        return Array.isArray(prev) ? prev : [];
-      });
-      setCopyright(meta.copyright || "");
-
-      if (!userEditedRef.current && (customFields || []).length === 0) {
-        setCustomFields(buildCustomFieldsFromRawEntries(rawEntries));
-      }
-
-      setIsInitializing(false);
     },
     [
       customFields,
