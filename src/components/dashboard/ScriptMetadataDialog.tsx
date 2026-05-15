@@ -170,7 +170,20 @@ function ScriptMetadataPreviewDialog({ open, onOpenChange }: { open: boolean; on
                     <p className="mt-1 text-xs text-muted-foreground">預覽使用目前尚未儲存的填寫內容，正式公開以實際儲存資料為準。</p>
                 </div>
 
-                <div className="bg-muted/20 px-4 py-5 sm:px-6">
+                <div className="relative overflow-hidden bg-background">
+                    {/* Background layer — mirrors PublicReaderLayout */}
+                    <div
+                        className="absolute inset-0 z-0 opacity-30 dark:opacity-20 pointer-events-none"
+                        style={
+                            coverUrl
+                                ? { backgroundImage: `url(${coverUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
+                                : { background: "linear-gradient(to bottom, hsl(var(--background)), hsl(var(--muted)))" }
+                        }
+                    >
+                        <div className="absolute inset-0 backdrop-blur-[60px] bg-background/50" />
+                        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-background to-transparent" />
+                    </div>
+                    <div className="relative z-10 px-4 py-5 sm:px-6">
                     <div className={`mx-auto ${viewport === "mobile" ? "max-w-[390px]" : "max-w-[860px]"}`}>
                         <div className="mb-3 flex items-center justify-between rounded-lg border bg-background px-3 py-2 text-xs">
                             <span className="text-muted-foreground">公開狀態</span>
@@ -239,6 +252,7 @@ function ScriptMetadataPreviewDialog({ open, onOpenChange }: { open: boolean; on
                                 </div>
                             ) : null}
                         </section>
+                    </div>
                     </div>
                 </div>
             </DialogContent>
