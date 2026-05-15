@@ -3,20 +3,19 @@ import { Button } from "../../ui/button";
 import { Badge } from "../../ui/badge";
 import { DialogHeader, DialogTitle } from "../../ui/dialog";
 import { ScriptMetadataChecklistHeader } from "./ScriptMetadataChecklistHeader";
-import { useScriptMetadataDialogContext } from "./ScriptMetadataDialogContext";
+import { useUIContext, useStatusContext, useChecklistContext } from "./ScriptMetadataDialogContext";
 
 export function ScriptMetadataDialogHeader() {
+    const { t } = useUIContext();
+    const { status, setStatus, activeTab } = useStatusContext();
     const {
-        t,
-        status, setStatus,
         startGuide,
         completedChecklistItems, totalChecklistItems, completionPercent,
         hasBlockingIssues, visibleChecklistChipItems, showAllChecklistChips,
         hiddenChecklistChipCount, checklistChipItems, maxVisibleChecklistChips,
-        activeTab,
         handleJumpToChecklistItem, setShowAllChecklistChips,
         handleFocusSection,
-    } = useScriptMetadataDialogContext();
+    } = useChecklistContext();
 
     return (
         <DialogHeader className="border-b bg-background px-4 py-3 sm:px-5 sm:py-4">

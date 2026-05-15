@@ -22,7 +22,7 @@ export interface PublishChecklist {
   [key: string]: unknown;
 }
 
-export interface LicenseSpecialTerm { [key: string]: unknown }
+export type LicenseSpecialTerm = string;
 
 /** Common state setters shared across metadata hooks */
 export interface ScriptMetadataSetters {

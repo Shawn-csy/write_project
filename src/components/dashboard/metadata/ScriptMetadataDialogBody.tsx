@@ -6,7 +6,7 @@ import { ScriptMetadataExposureSection } from "./ScriptMetadataExposureSection";
 import { ScriptMetadataActivitySection } from "./ScriptMetadataActivitySection";
 import { ScriptMetadataDemoSection } from "./ScriptMetadataDemoSection";
 import { ScriptMetadataAdvancedSection } from "./ScriptMetadataAdvancedSection";
-import { useScriptMetadataDialogContext } from "./ScriptMetadataDialogContext";
+import { useUIContext, useStatusContext, useFormContext, useOverlayContext } from "./ScriptMetadataDialogContext";
 import type React from "react";
 
 function SectionBlock({ sectionKey, title, sectionId, children }: {
@@ -15,7 +15,7 @@ function SectionBlock({ sectionKey, title, sectionId, children }: {
     sectionId: string;
     children: React.ReactNode;
 }) {
-    const { collapsedSections, toggleSection } = useScriptMetadataDialogContext();
+    const { collapsedSections, toggleSection } = useStatusContext();
     return (
         <MetadataSectionBlock
             sectionId={sectionId}
@@ -29,10 +29,10 @@ function SectionBlock({ sectionKey, title, sectionId, children }: {
 }
 
 export function ScriptMetadataDialogBody() {
+    const { t } = useUIContext();
+    const { isInitializing, contentScrollRef, status } = useStatusContext();
+    const { setIsMediaPickerOpen } = useOverlayContext();
     const {
-        t,
-        isInitializing,
-        contentScrollRef,
         // basic
         title, setTitle,
         identity, setIdentity,
@@ -40,7 +40,6 @@ export function ScriptMetadataDialogBody() {
         authorDisplayMode, setAuthorDisplayModeWithTracking,
         currentUser, personas, orgs,
         selectedOrgId, setSelectedOrgId,
-        status,
         date, setDate,
         synopsis, setSynopsis,
         outline, setOutline,
@@ -94,8 +93,7 @@ export function ScriptMetadataDialogBody() {
         jsonText, setJsonText,
         jsonError,
         applyJson,
-        setIsMediaPickerOpen,
-    } = useScriptMetadataDialogContext();
+    } = useFormContext();
 
     return (
         <div

@@ -101,3 +101,5 @@ examples
 server/bandit_report.csv
 
 skills
+# E2E tests (local only)
+tests-e2e/

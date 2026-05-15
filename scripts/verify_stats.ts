@@ -1,5 +1,5 @@
 
-import { calculateScriptStats } from './src/lib/statistics/index.js';
+import { calculateScriptStats } from '../src/lib/statistics';
 
 // Mock AST
 const mockAST = {

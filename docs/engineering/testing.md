@@ -23,10 +23,10 @@ npx vitest
 
 ### 關鍵測試檔案
 
-- `src/lib/importPipeline/metadataExtractor.test.js`: 驗證匯入 metadata 解析與邊界條件。
-- `src/lib/importPipeline/tagSync.test.js`: 驗證匯入標籤同步到 script tags。
-- `src/lib/importPipeline/directASTBuilder.test.js`: 驗證原始 Fountain 到 AST 的轉換邏輯。
-- `src/components/dashboard/ScriptMetadataDialog.test.jsx`: 驗證 metadata checklist/區塊同步邏輯。
+- `src/lib/importPipeline/metadataExtractor.test.ts`: 驗證匯入 metadata 解析與邊界條件。
+- `src/lib/importPipeline/tagSync.test.ts`: 驗證匯入標籤同步到 script tags。
+- `src/lib/importPipeline/directASTBuilder.test.ts`: 驗證原始 Fountain 到 AST 的轉換邏輯。
+- `src/components/dashboard/ScriptMetadataDialog.test.tsx`: 驗證 metadata checklist/區塊同步邏輯。
 - `src/lib/statistics/`: 包含各項統計指標 (Duration, Dialogue Count) 的測試。
 
 > **注意**: 專案已從 Node Native Test (`node:test`) 遷移至 Vitest。請勿使用 `node --test` 執行測試。
@@ -51,18 +51,18 @@ npx playwright test --ui
 npx playwright show-report
 ```
 
-> 預設會自動啟動前端 `http://127.0.0.1:1090`（由 `playwright.config.js` 的 `webServer` 啟動 `vite dev`）。  
+> 預設會自動啟動前端 `http://127.0.0.1:1090`（由 `playwright.config.ts` 的 `webServer` 啟動 `vite dev`）。  
 > 若自行指定 `PLAYWRIGHT_BASE_URL`，請指向可提供前端頁面的服務（例如 `1090`），不要指向僅後端 API 的位址（例如 `1091`），否則會看到 `Frontend not built`。
 
 ### 測試場景 (Scenarios)
 
-1. **Main Flow (`main-flow.spec.js`)**: 
+1. **Main Flow (`main-flow.spec.ts`)**: 
    - 驗證 Dashboard 標題與 Tabs (作品/作者/組織) 是否正確顯示。
-2. **Reader Flow (`reader-flow.spec.js`)**:
+2. **Reader Flow (`reader-flow.spec.ts`)**:
    - 驗證從首頁進入閱讀器的流程。
    - 驗證閱讀器 Header 與 Back Button 的可訪問性與功能。
    - 使用 Mock API 模擬後端回傳，不依賴真實資料庫。
-3. **Gallery Flow (`gallery-flow.spec.js`)**:
+3. **Gallery Flow (`gallery-flow.spec.ts`)**:
    - 驗證公開藝廊的搜尋功能。
    - 驗證 "找不到劇本" 的空狀態顯示。
 

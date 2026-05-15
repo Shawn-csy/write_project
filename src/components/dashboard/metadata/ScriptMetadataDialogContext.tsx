@@ -337,7 +337,7 @@ function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         setIdentity,
         setSelectedOrgId,
         setCustomFields,
-        setCurrentTags: setCurrentTagsAdapter as unknown as (v: { id?: string | number; name?: string }[]) => void,
+        setCurrentTags: setCurrentTagsAdapter,
     });
 
     const publishChecklist = usePublishChecklist({
@@ -529,20 +529,20 @@ function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         contentRating, handleSetContentRating, seriesName, setSeriesName, seriesId, setSeriesId,
         seriesOptions, quickSeriesName, setQuickSeriesName, handleQuickCreateSeries,
         isCreatingSeries, seriesOrder, setSeriesOrder: setSeriesOrderAdapter,
-        requiredErrorMap: requiredErrorMap as unknown as Record<string, string>,
+        requiredErrorMap,
         handleAddTag, handleAddTagsBatch, handleRemoveTag, handleClearTags,
         contactFields, setContactFields, handleAddContactField: handleAddContactFieldAdapter,
         handleContactFieldUpdate: handleContactFieldUpdateAdapter,
         sensors, dragDisabled, setDragDisabled, customFields, setCustomFields,
         addCustomField, addDivider,
         handleCustomFieldUpdate: handleCustomFieldUpdateAdapter,
-        recommendedErrorMap: recommendedErrorMap as unknown as Record<string, string>,
+        recommendedErrorMap,
     });
 
     const addLicenseSpecialTerm = () => {
         const value = String(publishNewTerm || "").trim();
         if (!value) return;
-        setLicenseSpecialTerms((prev) => [...(prev || []), value as unknown as LicenseSpecialTerm]);
+        setLicenseSpecialTerms((prev) => [...(prev || []), value]);
         setPublishNewTerm("");
     };
 
@@ -739,15 +739,173 @@ function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
     };
 }
 
+// ---------------------------------------------------------------------------
+// Sliced sub-contexts — each holds only the fields that change together,
+// so consumers don't re-render when unrelated state updates.
+// ---------------------------------------------------------------------------
+
+type AllState = ReturnType<typeof useScriptMetadataDialogState>;
+
+/** Stable shell: open/close, i18n, save action. Changes only on dialog open/close or save. */
+export type UIContextValue = Pick<AllState,
+    "open" | "onOpenChange" | "t" | "isSaving" | "handleSave" | "showGuide"
+>;
+const UIContext = React.createContext<UIContextValue | null>(null);
+export function useUIContext() {
+    const ctx = React.useContext(UIContext);
+    if (!ctx) throw new Error("useUIContext must be used within ScriptMetadataDialogProvider");
+    return ctx;
+}
+
+/** Status + tab + sections collapse. Changes on tab switch or section toggle. */
+export type StatusContextValue = Pick<AllState,
+    "status" | "setStatus" | "activeTab" | "setActiveTab" |
+    "collapsedSections" | "toggleSection" | "contentScrollRef" | "isInitializing"
+>;
+const StatusContext = React.createContext<StatusContextValue | null>(null);
+export function useStatusContext() {
+    const ctx = React.useContext(StatusContext);
+    if (!ctx) throw new Error("useStatusContext must be used within ScriptMetadataDialogProvider");
+    return ctx;
+}
+
+/** Checklist + guide. Changes on every form field edit (for checklist progress). */
+export type ChecklistContextValue = Pick<AllState,
+    "completedChecklistItems" | "totalChecklistItems" | "completionPercent" |
+    "hasBlockingIssues" | "checklistChipItems" | "maxVisibleChecklistChips" |
+    "hiddenChecklistChipCount" | "visibleChecklistChipItems" |
+    "showAllChecklistChips" | "setShowAllChecklistChips" |
+    "handleFocusSection" | "handleJumpToChecklistItem" |
+    "startGuide" | "handleGuideNext" | "handleGuidePrev" | "finishGuide" |
+    "guideIndex" | "guideSteps" | "guideSpotlightRect" | "currentGuide"
+>;
+const ChecklistContext = React.createContext<ChecklistContextValue | null>(null);
+export function useChecklistContext() {
+    const ctx = React.useContext(ChecklistContext);
+    if (!ctx) throw new Error("useChecklistContext must be used within ScriptMetadataDialogProvider");
+    return ctx;
+}
+
+/** Overlay state: media picker, crop, persona dialog. Nearly static during editing. */
+export type OverlayContextValue = Pick<AllState,
+    "isMediaPickerOpen" | "setIsMediaPickerOpen" | "mediaPickerTarget" | "handleMediaPickerSelect" |
+    "cropOpen" | "setCropOpen" | "cropSource" | "cropPurpose" | "cropTarget" | "applyCroppedUpload" |
+    "showPersonaSetupDialog" | "handlePersonaSetupDialogOpenChange" | "handleGoToAuthorProfile"
+>;
+const OverlayContext = React.createContext<OverlayContextValue | null>(null);
+export function useOverlayContext() {
+    const ctx = React.useContext(OverlayContext);
+    if (!ctx) throw new Error("useOverlayContext must be used within ScriptMetadataDialogProvider");
+    return ctx;
+}
+
+/** All form state. ScriptMetadataDialogBody is the primary consumer. */
+export type FormContextValue = Omit<AllState,
+    keyof UIContextValue | keyof StatusContextValue | keyof ChecklistContextValue | keyof OverlayContextValue
+>;
+const FormContext = React.createContext<FormContextValue | null>(null);
+export function useFormContext() {
+    const ctx = React.useContext(FormContext);
+    if (!ctx) throw new Error("useFormContext must be used within ScriptMetadataDialogProvider");
+    return ctx;
+}
+
+// ---------------------------------------------------------------------------
+// Provider — computes all state once, distributes into sliced contexts.
+// ---------------------------------------------------------------------------
+
 export function ScriptMetadataDialogProvider({
     children,
     ...props
 }: ScriptMetadataDialogProps & { children: React.ReactNode }) {
-    const value = useScriptMetadataDialogState(props);
+    const all = useScriptMetadataDialogState(props);
+
+    const ui: UIContextValue = {
+        open: all.open, onOpenChange: all.onOpenChange, t: all.t,
+        isSaving: all.isSaving, handleSave: all.handleSave, showGuide: all.showGuide,
+    };
+
+    const status: StatusContextValue = {
+        status: all.status, setStatus: all.setStatus,
+        activeTab: all.activeTab, setActiveTab: all.setActiveTab,
+        collapsedSections: all.collapsedSections, toggleSection: all.toggleSection,
+        contentScrollRef: all.contentScrollRef, isInitializing: all.isInitializing,
+    };
+
+    const checklist: ChecklistContextValue = {
+        completedChecklistItems: all.completedChecklistItems,
+        totalChecklistItems: all.totalChecklistItems,
+        completionPercent: all.completionPercent,
+        hasBlockingIssues: all.hasBlockingIssues,
+        checklistChipItems: all.checklistChipItems,
+        maxVisibleChecklistChips: all.maxVisibleChecklistChips,
+        hiddenChecklistChipCount: all.hiddenChecklistChipCount,
+        visibleChecklistChipItems: all.visibleChecklistChipItems,
+        showAllChecklistChips: all.showAllChecklistChips,
+        setShowAllChecklistChips: all.setShowAllChecklistChips,
+        handleFocusSection: all.handleFocusSection,
+        handleJumpToChecklistItem: all.handleJumpToChecklistItem,
+        startGuide: all.startGuide,
+        handleGuideNext: all.handleGuideNext,
+        handleGuidePrev: all.handleGuidePrev,
+        finishGuide: all.finishGuide,
+        guideIndex: all.guideIndex,
+        guideSteps: all.guideSteps,
+        guideSpotlightRect: all.guideSpotlightRect,
+        currentGuide: all.currentGuide,
+    };
+
+    const overlay: OverlayContextValue = {
+        isMediaPickerOpen: all.isMediaPickerOpen, setIsMediaPickerOpen: all.setIsMediaPickerOpen,
+        mediaPickerTarget: all.mediaPickerTarget, handleMediaPickerSelect: all.handleMediaPickerSelect,
+        cropOpen: all.cropOpen, setCropOpen: all.setCropOpen,
+        cropSource: all.cropSource, cropPurpose: all.cropPurpose,
+        cropTarget: all.cropTarget, applyCroppedUpload: all.applyCroppedUpload,
+        showPersonaSetupDialog: all.showPersonaSetupDialog,
+        handlePersonaSetupDialogOpenChange: all.handlePersonaSetupDialogOpenChange,
+        handleGoToAuthorProfile: all.handleGoToAuthorProfile,
+    };
+
+    const {
+        open: _open, onOpenChange: _onOpenChange, t: _t, isSaving: _isSaving,
+        handleSave: _handleSave, showGuide: _showGuide,
+        status: _status, setStatus: _setStatus, activeTab: _activeTab, setActiveTab: _setActiveTab,
+        collapsedSections: _collapsedSections, toggleSection: _toggleSection,
+        contentScrollRef: _contentScrollRef, isInitializing: _isInitializing,
+        completedChecklistItems: _completedChecklistItems, totalChecklistItems: _totalChecklistItems,
+        completionPercent: _completionPercent, hasBlockingIssues: _hasBlockingIssues,
+        checklistChipItems: _checklistChipItems, maxVisibleChecklistChips: _maxVisibleChecklistChips,
+        hiddenChecklistChipCount: _hiddenChecklistChipCount, visibleChecklistChipItems: _visibleChecklistChipItems,
+        showAllChecklistChips: _showAllChecklistChips, setShowAllChecklistChips: _setShowAllChecklistChips,
+        handleFocusSection: _handleFocusSection, handleJumpToChecklistItem: _handleJumpToChecklistItem,
+        startGuide: _startGuide, handleGuideNext: _handleGuideNext,
+        handleGuidePrev: _handleGuidePrev, finishGuide: _finishGuide,
+        guideIndex: _guideIndex, guideSteps: _guideSteps,
+        guideSpotlightRect: _guideSpotlightRect, currentGuide: _currentGuide,
+        isMediaPickerOpen: _isMediaPickerOpen, setIsMediaPickerOpen: _setIsMediaPickerOpen,
+        mediaPickerTarget: _mediaPickerTarget, handleMediaPickerSelect: _handleMediaPickerSelect,
+        cropOpen: _cropOpen, setCropOpen: _setCropOpen, cropSource: _cropSource,
+        cropPurpose: _cropPurpose, cropTarget: _cropTarget, applyCroppedUpload: _applyCroppedUpload,
+        showPersonaSetupDialog: _showPersonaSetupDialog,
+        handlePersonaSetupDialogOpenChange: _handlePersonaSetupDialogOpenChange,
+        handleGoToAuthorProfile: _handleGoToAuthorProfile,
+        ...form
+    } = all;
+
     return (
-        <ScriptMetadataDialogContext.Provider value={value}>
-            {children}
-        </ScriptMetadataDialogContext.Provider>
+        <UIContext.Provider value={ui}>
+            <StatusContext.Provider value={status}>
+                <ChecklistContext.Provider value={checklist}>
+                    <OverlayContext.Provider value={overlay}>
+                        <FormContext.Provider value={form as FormContextValue}>
+                            <ScriptMetadataDialogContext.Provider value={all}>
+                                {children}
+                            </ScriptMetadataDialogContext.Provider>
+                        </FormContext.Provider>
+                    </OverlayContext.Provider>
+                </ChecklistContext.Provider>
+            </StatusContext.Provider>
+        </UIContext.Provider>
     );
 }
 

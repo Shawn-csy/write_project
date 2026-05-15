@@ -7,8 +7,8 @@
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
 
-    /* 漸進式遷移：允許 JS 檔共存，但不強制 checkJs */
-    "allowJs": true,
+    /* TS-only */
+    "allowJs": false,
     "checkJs": false,
 
     /* 嚴格模式 */

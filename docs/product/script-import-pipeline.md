@@ -6,7 +6,7 @@
 ## 流程總覽
 ```mermaid
 flowchart TD
-  A["ImportScriptDialog.jsx\n貼入 / 上傳文本"] --> B["textPreprocessor.preprocess\n行清理與標準化"]
+  A["ImportScriptDialog.tsx\n貼入 / 上傳文本"] --> B["textPreprocessor.preprocess\n行清理與標準化"]
   B --> C["metadataExtractor.extractMetadata\n抽取標題/作者/標籤等"]
   C --> D["markerGuideStripper.stripMarkerGuideBlocks\n移除標記說明區塊"]
   D --> E["ImportStagePreview\n預覽與欄位調整"]
@@ -16,13 +16,13 @@ flowchart TD
 ```
 
 ## 主要檔案
-- `src/components/dashboard/write/ImportScriptDialog.jsx`
-- `src/components/dashboard/write/import/ImportStagePreview.jsx`
-- `src/lib/importPipeline/textPreprocessor.js`
-- `src/lib/importPipeline/metadataExtractor.js`
-- `src/lib/importPipeline/markerGuideStripper.js`
-- `src/lib/importPipeline/tagSync.js`
-- `src/components/dashboard/WriteTab.jsx`
+- `src/components/dashboard/write/ImportScriptDialog.tsx`
+- `src/components/dashboard/write/import/ImportStagePreview.tsx`
+- `src/lib/importPipeline/textPreprocessor.ts`
+- `src/lib/importPipeline/metadataExtractor.ts`
+- `src/lib/importPipeline/markerGuideStripper.ts`
+- `src/lib/importPipeline/tagSync.ts`
+- `src/components/dashboard/WriteTab.tsx`
 
 ## 階段說明
 1. 輸入與預處理
@@ -45,12 +45,12 @@ flowchart TD
 - `tagSync` 解析匯入標籤並同步到「實體 tag 關聯」
 
 ## 與舊版流程差異
-- 不再使用 `src/lib/metadataParser.js`
-- 匯入流程不使用 `markerDiscoverer.js`（該規劃稿未採用）
+- 不再使用 `src/lib/metadataParser.ts`
+- 匯入流程不使用 `markerDiscoverer.ts`（該規劃稿未採用）
 - `Tags` 匯入後優先同步為 script tags，不再混入 custom metadata
 
 ## 相關測試
-- `src/lib/importPipeline/metadataExtractor.test.js`
-- `src/lib/importPipeline/tagSync.test.js`
-- `src/components/dashboard/write/ImportScriptDialog.metadata.test.js`
-- `src/components/dashboard/WriteTab.test.jsx`
+- `src/lib/importPipeline/metadataExtractor.test.ts`
+- `src/lib/importPipeline/tagSync.test.ts`
+- `src/components/dashboard/write/ImportScriptDialog.metadata.test.ts`
+- `src/components/dashboard/WriteTab.test.tsx`
