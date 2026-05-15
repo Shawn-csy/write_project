@@ -94,7 +94,7 @@ describe("PublicReaderLayout", () => {
     expect(lastCall.licenseSpecialTerms).toEqual(["署名", "非商用"]);
   });
 
-  it("passes undefined licenseSpecialTerms gracefully when not provided", () => {
+  it("passes empty licenseSpecialTerms list gracefully when not provided", () => {
     render(
       <PublicReaderLayout
         script={{ title: "作品", content: "#C 角色\n台詞" }}
@@ -103,7 +103,7 @@ describe("PublicReaderLayout", () => {
     );
 
     const lastCall = overlayPropsSpy.mock.calls[overlayPropsSpy.mock.calls.length - 1]?.[0];
-    expect(lastCall.licenseSpecialTerms).toBeUndefined();
+    expect(lastCall.licenseSpecialTerms).toEqual([]);
   });
 
   it("passes pre-computed commercialUse/derivativeUse/notifyOnModify to the info overlay", () => {
