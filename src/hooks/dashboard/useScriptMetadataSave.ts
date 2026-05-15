@@ -131,6 +131,12 @@ export function useScriptMetadataSave({
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = useCallback(async () => {
+    const normalizedIdentity = String(identity || "").trim();
+    const personaId = normalizedIdentity.startsWith("persona:")
+      ? normalizedIdentity.slice("persona:".length).trim()
+      : "";
+    const hasValidPersonaSelection = Boolean(personaId);
+
     setShowValidationHints(true);
     if (needsPersonaBeforePublish) {
       toast({
@@ -144,7 +150,7 @@ export function useScriptMetadataSave({
       }
       return;
     }
-    if (!identity || !identity.startsWith("persona:")) {
+    if (!hasValidPersonaSelection) {
       toast({
         title: !hasAnyPersona
           ? t("scriptMetadataDialog.noPersonaYet", "尚未建立作者身份")
@@ -177,26 +183,34 @@ export function useScriptMetadataSave({
     try {
       let tagsToSave = [...currentTags];
       if (targetAudience) {
-        tagsToSave = await syncGroupedTagSelection({
-          currentTags: tagsToSave,
-          availableTags,
-          selectedName: targetAudience,
-          groupNames: AUDIENCE_TAG_GROUP,
-          createTag: createTag as (name: string, color: string, ownerIdQuery?: string) => Promise<TagLike>,
-          resolveColor: () => "bg-gray-500",
-          onTagCreated: () => {},
-        });
+        try {
+          tagsToSave = await syncGroupedTagSelection({
+            currentTags: tagsToSave,
+            availableTags,
+            selectedName: targetAudience,
+            groupNames: AUDIENCE_TAG_GROUP,
+            createTag: createTag as (name: string, color: string, ownerIdQuery?: string) => Promise<TagLike>,
+            resolveColor: () => "bg-gray-500",
+            onTagCreated: () => {},
+          });
+        } catch (error) {
+          console.warn("Failed to sync audience tag, continue saving without blocking", error);
+        }
       }
       if (contentRating) {
-        tagsToSave = await syncGroupedTagSelection({
-          currentTags: tagsToSave,
-          availableTags,
-          selectedName: contentRating,
-          groupNames: RATING_TAG_GROUP,
-          createTag: createTag as (name: string, color: string, ownerIdQuery?: string) => Promise<TagLike>,
-          resolveColor: (name) => (name === "成人向" ? "bg-red-500" : "bg-gray-500"),
-          onTagCreated: () => {},
-        });
+        try {
+          tagsToSave = await syncGroupedTagSelection({
+            currentTags: tagsToSave,
+            availableTags,
+            selectedName: contentRating,
+            groupNames: RATING_TAG_GROUP,
+            createTag: createTag as (name: string, color: string, ownerIdQuery?: string) => Promise<TagLike>,
+            resolveColor: (name) => (name === "成人向" ? "bg-red-500" : "bg-gray-500"),
+            onTagCreated: () => {},
+          });
+        } catch (error) {
+          console.warn("Failed to sync content rating tag, continue saving without blocking", error);
+        }
       }
 
       const workingScript = activeScript || script;
@@ -266,7 +280,7 @@ export function useScriptMetadataSave({
         status,
         customMetadata,
         draftDate: date,
-        personaId: identity.split(":")[1],
+        personaId,
         organizationId: selectedOrgId || null,
         licenseCommercial: licenseCommercial || "",
         licenseDerivative: licenseDerivative || "",
@@ -320,7 +334,14 @@ export function useScriptMetadataSave({
         seriesOrder: updatePayload.seriesOrder,
       });
       setCurrentTags(tagsToSave);
-      toast({ title: t("scriptMetadataDialog.saved") });
+      if ((targetAudience || contentRating) && tagsToSave.length === currentTags.length) {
+        toast({
+          title: t("scriptMetadataDialog.saved"),
+          description: "內容已儲存；分級/取向標籤同步失敗，請稍後重試或手動補上。",
+        });
+      } else {
+        toast({ title: t("scriptMetadataDialog.saved") });
+      }
       setShowValidationHints(false);
       onOpenChange(false);
     } catch (error) {

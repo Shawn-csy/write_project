@@ -279,13 +279,13 @@ function ScriptMetadataDialogInner() {
                     <ScriptMetadataDialogHeader />
                     <ScriptMetadataDialogBody />
                     <DialogFooter className="border-t bg-background px-4 py-3 sm:px-6">
-                        <Button variant="outline" onClick={() => onOpenChange(false)}>
+                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                             {t("common.cancel")}
                         </Button>
-                        <Button variant="outline" onClick={() => setPreviewOpen(true)}>
+                        <Button type="button" variant="outline" onClick={() => setPreviewOpen(true)}>
                             預覽
                         </Button>
-                        <Button onClick={handleSave} disabled={isSaving} className="min-w-[120px]">
+                        <Button type="button" onClick={handleSave} disabled={isSaving} className="min-w-[120px]">
                             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {t("scriptMetadataDialog.confirmSave")}
                         </Button>
