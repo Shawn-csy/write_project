@@ -1,5 +1,5 @@
 
-import { parseScreenplay } from './src/lib/screenplayAST.js';
+import { parseScreenplay } from "../src/lib/screenplayAST";
 
 // Mock Configs
 const markerConfigs = [
@@ -69,7 +69,7 @@ console.log("--- Testing Parse (Forced Prefix) ---");
 const { ast } = parseScreenplay(text, markerConfigs);
 
 // Dig into AST
-const layer = ast.children.find(n => n.type === 'layer');
+const layer = ast.children.find((n) => n.type === "layer");
 if (layer) {
     console.log("Layer Found:", layer.layerType);
     console.log("Label Raw:", layer.label);

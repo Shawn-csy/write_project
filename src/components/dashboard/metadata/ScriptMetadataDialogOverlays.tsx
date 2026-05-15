@@ -2,24 +2,22 @@ import { MediaPicker } from "../../ui/MediaPicker";
 import { ImageCropDialog } from "../../ui/ImageCropDialog";
 import { SpotlightGuideOverlay } from "../../common/SpotlightGuideOverlay";
 import { PersonaSetupDialog } from "./PersonaSetupDialog";
-import { useScriptMetadataDialogContext } from "./ScriptMetadataDialogContext";
+import { useUIContext, useChecklistContext, useOverlayContext } from "./ScriptMetadataDialogContext";
 
 export function ScriptMetadataDialogOverlays() {
+    const { t, showGuide } = useUIContext();
+    const { currentGuide, guideSpotlightRect, guideIndex, guideSteps, finishGuide, handleGuidePrev, handleGuideNext } = useChecklistContext();
     const {
-        t,
         isMediaPickerOpen, setIsMediaPickerOpen,
         mediaPickerTarget,
         handleMediaPickerSelect,
         cropOpen, setCropOpen,
         cropSource, cropPurpose, cropTarget,
         applyCroppedUpload,
-        showGuide, currentGuide,
-        guideSpotlightRect, guideIndex, guideSteps,
-        finishGuide, handleGuidePrev, handleGuideNext,
         showPersonaSetupDialog,
         handlePersonaSetupDialogOpenChange,
         handleGoToAuthorProfile,
-    } = useScriptMetadataDialogContext();
+    } = useOverlayContext();
 
     return (
         <>

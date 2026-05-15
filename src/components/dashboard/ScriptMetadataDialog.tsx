@@ -1,11 +1,10 @@
 import { Dialog, DialogContent, DialogFooter } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Loader2 } from "lucide-react";
-import { ScriptMetadataDialogProvider, ScriptMetadataDialogProps } from "./metadata/ScriptMetadataDialogContext";
+import { ScriptMetadataDialogProvider, ScriptMetadataDialogProps, useUIContext } from "./metadata/ScriptMetadataDialogContext";
 import { ScriptMetadataDialogHeader } from "./metadata/ScriptMetadataDialogHeader";
 import { ScriptMetadataDialogBody } from "./metadata/ScriptMetadataDialogBody";
 import { ScriptMetadataDialogOverlays } from "./metadata/ScriptMetadataDialogOverlays";
-import { useScriptMetadataDialogContext } from "./metadata/ScriptMetadataDialogContext";
 
 export { buildPublishChecklist } from "./metadata/ScriptMetadataDialogContext";
 
@@ -42,7 +41,7 @@ export function getCollapsedSectionsAfterTabSync(
 }
 
 function ScriptMetadataDialogInner() {
-    const { open, onOpenChange, showGuide, isSaving, handleSave, t } = useScriptMetadataDialogContext();
+    const { open, onOpenChange, showGuide, isSaving, handleSave, t } = useUIContext();
 
     return (
         <>

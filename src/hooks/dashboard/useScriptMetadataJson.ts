@@ -7,6 +7,7 @@ interface MetadataTagItem {
   id: string | number;
   name: string;
   color?: string;
+  [key: string]: unknown;
 }
 
 interface UseScriptMetadataJsonOptions {
@@ -45,7 +46,7 @@ interface UseScriptMetadataJsonOptions {
   setIdentity: (v: string) => void;
   setSelectedOrgId: (v: string | null) => void;
   setCustomFields: (v: CustomField[]) => void;
-  setCurrentTags: (v: MetadataTagItem[]) => void;
+  setCurrentTags: (v: TagLike[]) => void;
 }
 
 // Suppress unused import warning — SeriesOption used via TagLike chain

@@ -35,7 +35,7 @@ CSP 現況：
 ### 2.4 XSS / 輸出安全
 - 前端有安全 HTML 渲染策略（白名單清洗）。
 - SEO JSON-LD 注入時，已對 `< > &` 做 escaping，避免 `</script>` break-out。
-- 參考：`src/lib/safeHtml.js`, `server/services/seo.py`
+- 參考：`src/lib/safeHtml.ts`, `server/services/seo.py`
 
 ### 2.5 上傳與檔案處理
 - 媒體上傳限制圖片型別，並做簽章驗證與路徑隔離。

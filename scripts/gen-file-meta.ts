@@ -1,19 +1,15 @@
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
 import {
   splitTitleAndBody,
   extractTitleEntries,
-} from "../src/lib/parsers/titlePageParser.js";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+} from "../src/lib/parsers/titlePageParser";
 
 // Adjust paths based on where the script is run from (usually root)
 const scriptsDir = path.resolve(process.cwd(), "src/scripts_file");
 const outputFile = path.resolve(process.cwd(), "src/constants/fileMeta.generated.json");
 
-const entries = {};
+const entries: Record<string, { mtime: string; title: string; summary: string }> = {};
 
 // Summary keys to look for (case-insensitive)
 const summaryKeys = [
@@ -27,7 +23,7 @@ const summaryKeys = [
   "說明",
 ];
 
-const walk = (dir) => {
+const walk = (dir: string) => {
   const children = fs.readdirSync(dir, { withFileTypes: true });
   children.forEach((child) => {
     const full = path.join(dir, child.name);
@@ -52,13 +48,13 @@ const walk = (dir) => {
       const titleEntries = extractTitleEntries(titleLines);
       
       // Find Title
-      const titleEntry = titleEntries.find(e => e.key.toLowerCase() === "title");
+      const titleEntry = titleEntries.find((e) => e.key.toLowerCase() === "title");
       if (titleEntry && titleEntry.values.length) {
         title = titleEntry.values.join(" ");
       }
       
       // Find Summary
-      const summaryEntry = titleEntries.find(e => {
+      const summaryEntry = titleEntries.find((e) => {
         const k = e.key.toLowerCase();
         return summaryKeys.some(sk => k === sk || k.includes(sk));
       });
@@ -67,7 +63,7 @@ const walk = (dir) => {
         summary = summaryEntry.values.join(" ");
       } else {
         // Fallback to Note if no summary
-        const noteEntry = titleEntries.find(e => e.key.toLowerCase() === "note");
+        const noteEntry = titleEntries.find((e) => e.key.toLowerCase() === "note");
         if (noteEntry && noteEntry.values.length) {
           summary = noteEntry.values.join(" ");
         }

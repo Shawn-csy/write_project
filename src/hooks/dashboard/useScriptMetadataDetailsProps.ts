@@ -27,7 +27,7 @@ interface UseScriptMetadataDetailsPropsOptions {
   isCreatingSeries: boolean;
   seriesOrder: string | number;
   setSeriesOrder: (v: string | number) => void;
-  requiredErrorMap: Record<string, string>;
+  requiredErrorMap: Record<string, boolean | string>;
   handleAddTag: (tagName?: string) => void;
   handleAddTagsBatch: (tags: string[]) => void;
   handleRemoveTag: (id: string | number) => void;
@@ -44,7 +44,7 @@ interface UseScriptMetadataDetailsPropsOptions {
   addCustomField: () => void;
   addDivider: () => void;
   handleCustomFieldUpdate: (id: string, key: string, value: string) => void;
-  recommendedErrorMap: Record<string, string>;
+  recommendedErrorMap: Record<string, boolean | string>;
 }
 
 export function useScriptMetadataDetailsProps({
