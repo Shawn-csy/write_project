@@ -3,54 +3,21 @@ import { Button } from "../../ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { Textarea } from "../../ui/textarea";
 import { MetadataDetailsTab } from "./MetadataDetailsTab";
-import type { MetadataDetailsTabProps } from "./MetadataDetailsTab";
-
-interface MarkerThemeOption {
-  id: string;
-  name?: string;
-}
-
-interface ScriptMetadataAdvancedSectionProps {
-  sectionId?: string;
-  showTitle?: boolean;
-  t: (key: string, fallback?: string) => string;
-  getRowLabelClass: (tone: "required" | "recommended" | "advanced") => string;
-  markerThemeId: string;
-  setMarkerThemeId: (id: string) => void;
-  markerThemes: MarkerThemeOption[];
-  showMarkerLegend: boolean;
-  setShowMarkerLegend: (value: boolean) => void;
-  disableCopy: boolean;
-  setDisableCopy: (value: boolean) => void;
-  metadataDetailsCommonProps: MetadataDetailsTabProps;
-  jsonMode: boolean;
-  setJsonMode: React.Dispatch<React.SetStateAction<boolean>>;
-  jsonText: string;
-  setJsonText: (value: string) => void;
-  jsonError: string;
-  applyJson: () => void;
-}
+import { useContentContext, useExposureContext, useUIContext } from "./ScriptMetadataDialogContext";
 
 export function ScriptMetadataAdvancedSection({
   sectionId = "metadata-section-advanced",
   showTitle = true,
-  t,
-  getRowLabelClass,
-  markerThemeId,
-  setMarkerThemeId,
-  markerThemes,
-  showMarkerLegend,
-  setShowMarkerLegend,
-  disableCopy,
-  setDisableCopy,
-  metadataDetailsCommonProps,
-  jsonMode,
-  setJsonMode,
-  jsonText,
-  setJsonText,
-  jsonError,
-  applyJson,
-}: ScriptMetadataAdvancedSectionProps) {
+}: {
+  sectionId?: string;
+  showTitle?: boolean;
+}) {
+  const { t } = useUIContext();
+  const { getRowLabelClass, metadataDetailsCommonProps } = useContentContext();
+  const {
+    markerThemeId, setMarkerThemeId, markerThemes, showMarkerLegend, setShowMarkerLegend, disableCopy, setDisableCopy,
+    jsonMode, setJsonMode, jsonText, setJsonText, jsonError, applyJson,
+  } = useExposureContext();
   return (
     <section id={sectionId || undefined} className="space-y-3 scroll-mt-24">
       {showTitle && <h3 className="text-base font-semibold">{t("scriptMetadataDialog.tabAdvanced", "進階設定")}</h3>}

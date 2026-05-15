@@ -6,11 +6,7 @@ import { CoverPlaceholder } from "../../ui/CoverPlaceholder";
 import { Input } from "../../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
-
-interface SeriesOption {
-  id: string;
-  name: string;
-}
+import { useContentContext, useExposureContext, useUIContext } from "./ScriptMetadataDialogContext";
 
 interface TagItem {
   id?: string | number;
@@ -18,89 +14,28 @@ interface TagItem {
   color?: string;
 }
 
-interface ScriptMetadataExposureSectionProps {
-  sectionId?: string;
-  showTitle?: boolean;
-  t: (key: string, fallback?: string) => string;
-  title: string;
-  author: string;
-  setAuthor: (value: string) => void;
-  authorDisplayMode: "badge" | "override" | string;
-  setAuthorDisplayMode: (value: "badge" | "override") => void;
-  getRowLabelClass: (tone: "required" | "recommended" | "advanced") => string;
-  coverUrl: string;
-  setCoverUrl: (value: string) => void;
-  handleCoverUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  setIsMediaPickerOpen: (open: boolean) => void;
-  coverUploadError: string;
-  coverUploadWarning: string;
-  coverPreviewFailed: boolean;
-  setCoverPreviewFailed: (failed: boolean) => void;
-  recommendedErrorMap: Record<string, string | boolean | undefined>;
-  seriesExpanded: boolean;
-  setSeriesExpanded: React.Dispatch<React.SetStateAction<boolean>>;
-  setSeriesId: (value: string) => void;
-  setSeriesName: (value: string) => void;
-  setSeriesOrder: (value: string) => void;
-  setQuickSeriesName: (value: string) => void;
-  setShowSeriesQuickCreate: React.Dispatch<React.SetStateAction<boolean>>;
-  focusSeriesSelect: () => void;
-  seriesId: string | null;
-  seriesOptions: SeriesOption[];
-  showSeriesQuickCreate: boolean;
-  quickSeriesName: string | null;
-  handleQuickCreateSeries: () => void;
-  isCreatingSeries: boolean;
-  seriesOrder: string;
-  newTagInput: string;
-  setNewTagInput: (value: string) => void;
-  handleAddTag: () => void;
-  currentTags: TagItem[];
-  handleRemoveTag: (id: string | number) => void;
-}
-
 export function ScriptMetadataExposureSection({
   sectionId = "metadata-section-exposure",
   showTitle = true,
-  t,
-  title,
-  author,
-  setAuthor,
-  authorDisplayMode,
-  setAuthorDisplayMode,
-  getRowLabelClass,
-  coverUrl,
-  setCoverUrl,
-  handleCoverUpload,
-  setIsMediaPickerOpen,
-  coverUploadError,
-  coverUploadWarning,
-  coverPreviewFailed,
-  setCoverPreviewFailed,
-  recommendedErrorMap,
-  seriesExpanded,
-  setSeriesExpanded,
-  setSeriesId,
-  setSeriesName,
-  setSeriesOrder,
-  setQuickSeriesName,
-  setShowSeriesQuickCreate,
-  focusSeriesSelect,
-  seriesId,
-  seriesOptions,
-  showSeriesQuickCreate,
-  quickSeriesName,
-  setQuickSeriesName: setQuickSeriesNameInput,
-  handleQuickCreateSeries,
-  isCreatingSeries,
-  seriesOrder,
-  setSeriesOrder: setSeriesOrderInput,
-  newTagInput,
-  setNewTagInput,
-  handleAddTag,
-  currentTags,
-  handleRemoveTag,
-}: ScriptMetadataExposureSectionProps) {
+}: {
+  sectionId?: string;
+  showTitle?: boolean;
+}) {
+  const { t } = useUIContext();
+  const {
+    author, setAuthorWithTracking: setAuthor, authorDisplayMode, setAuthorDisplayModeWithTracking: setAuthorDisplayMode,
+    getRowLabelClass, recommendedErrorMap, title,
+  } = useContentContext();
+  const {
+    coverUrl, setCoverUrl, handleCoverUpload, openCoverMediaPicker, coverUploadError, coverUploadWarning,
+    coverPreviewFailed, setCoverPreviewFailed, seriesExpanded, setSeriesExpanded, setSeriesId, setSeriesName,
+    seriesOrder, setSeriesOrder, quickSeriesName, setQuickSeriesName, setShowSeriesQuickCreate, focusSeriesSelect, seriesId,
+    showSeriesQuickCreate, handleQuickCreateSeries, isCreatingSeries, newTagInput, setNewTagInput, handleAddTag,
+    currentTags, handleRemoveTag,
+  } = useExposureContext();
+  const seriesOptions: Array<{ id: string; name: string }> = [];
+  const setQuickSeriesNameInput = setQuickSeriesName;
+  const setSeriesOrderInput = setSeriesOrder;
   const coverGuide = React.useMemo(() => getImageUploadGuide("cover"), []);
   const resolveTagSwatch = React.useCallback((rawColor: string | undefined) => {
     const value = String(rawColor || "").trim();
@@ -151,7 +86,7 @@ export function ScriptMetadataExposureSection({
                 上傳圖片
                 <input type="file" accept={MEDIA_FILE_ACCEPT} className="hidden" onChange={handleCoverUpload} />
               </label>
-              <Button type="button" variant="secondary" size="sm" className="h-8 text-xs" onClick={() => setIsMediaPickerOpen(true)}>
+              <Button type="button" variant="secondary" size="sm" className="h-8 text-xs" onClick={openCoverMediaPicker}>
                 從媒體庫選擇
               </Button>
             </div>

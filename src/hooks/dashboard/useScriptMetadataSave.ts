@@ -2,10 +2,9 @@ import { useCallback, useState } from "react";
 import { updateScript, addTagToScript, removeTagFromScript } from "../../lib/api/scripts";
 import { createTag } from "../../lib/api/tags";
 import type { ScriptUpdatePayload, BaseScriptApi } from "../../types/api";
-import { deriveSimpleLicenseTags } from "../../lib/licenseRights";
 import { AUDIENCE_TAG_GROUP, RATING_TAG_GROUP, syncGroupedTagSelection } from "./tagGroupUtils";
 import { normalizeCustomMetadataEntries } from "../../lib/customMetadata";
-import { normalizeActivityDemoLinks, serializeActivityDemoLinks } from "../../lib/activityDemoLinks";
+import { applyPreservedAuthorEntries, buildCustomMetadataEntries } from "../../lib/scriptMetadataPayload";
 import type {
   ScriptLike, TagLike, ContactField, CustomField, SeriesOption,
   PublishChecklist, LicenseSpecialTerm,
@@ -132,11 +131,6 @@ export function useScriptMetadataSave({
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = useCallback(async () => {
-    const normalizeMetaKey = (key: unknown) => String(key || "").trim().toLowerCase().replace(/\s+/g, "");
-    const isAuthorMetaKey = (key: unknown) => {
-      const normalized = normalizeMetaKey(key);
-      return normalized === "author" || normalized === "authors" || normalized === "authordisplaymode";
-    };
     setShowValidationHints(true);
     if (needsPersonaBeforePublish) {
       toast({
@@ -208,83 +202,62 @@ export function useScriptMetadataSave({
       const workingScript = activeScript || script;
       if (!workingScript) return;
       const workingScriptMetadata = Array.isArray(workingScript?.customMetadata) ? workingScript.customMetadata : [];
-      const workingAuthorMetadataEntries = normalizeCustomMetadataEntries(workingScriptMetadata).filter((entry) => isAuthorMetaKey(entry?.key));
+      const workingAuthorMetadataEntries = normalizeCustomMetadataEntries(workingScriptMetadata).filter((entry) => {
+        const normalized = String(entry?.key || "").trim().toLowerCase().replace(/\s+/g, "");
+        return normalized === "author" || normalized === "authors" || normalized === "authordisplaymode";
+      });
       const authorEditedValue = (authorEditedRef as { current?: boolean } | null)?.current ?? false;
       const shouldPreserveAuthor = preserveAuthorInternalData && !authorEditedValue;
       const effectiveAuthorDisplayMode = authorDisplayMode === "override" ? "override" : "badge";
       const effectiveAuthor = String(author || "");
       const persistedAuthor = effectiveAuthorDisplayMode === "override" ? effectiveAuthor : "";
 
-      const orderedEntries: Array<{ key: string; value: string }> = [];
-      if (!shouldPreserveAuthor && effectiveAuthorDisplayMode === "override" && effectiveAuthor) {
-        orderedEntries.push({ key: "Author", value: effectiveAuthor });
-      }
-      if (!shouldPreserveAuthor) {
-        orderedEntries.push({ key: "AuthorDisplayMode", value: effectiveAuthorDisplayMode });
-      }
-      if (outline) orderedEntries.push({ key: "Outline", value: outline });
-      if (roleSetting) orderedEntries.push({ key: "RoleSetting", value: roleSetting });
-      if (backgroundInfo) orderedEntries.push({ key: "BackgroundInfo", value: backgroundInfo });
-      if (performanceInstruction) orderedEntries.push({ key: "PerformanceInstruction", value: performanceInstruction });
-      if (openingIntro) orderedEntries.push({ key: "OpeningIntro", value: openingIntro });
-      if (chapterSettings) orderedEntries.push({ key: "ChapterSettings", value: chapterSettings });
-      if (activityName) orderedEntries.push({ key: "ActivityName", value: activityName });
-      if (activityBannerUrl) orderedEntries.push({ key: "ActivityBanner", value: activityBannerUrl });
-      if (activityContent) orderedEntries.push({ key: "ActivityContent", value: activityContent });
-      const serializedDemoLinks = serializeActivityDemoLinks(activityDemoLinks);
-      const normalizedDemoLinks = normalizeActivityDemoLinks(activityDemoLinks);
-      if (serializedDemoLinks) {
-        orderedEntries.push({ key: "ActivityDemoLinks", value: serializedDemoLinks });
-      }
-      if (normalizedDemoLinks[0]?.url) {
-        orderedEntries.push({ key: "ActivityDemoUrl", value: normalizedDemoLinks[0].url });
-      }
-      if (activityWorkUrl) orderedEntries.push({ key: "ActivityWorkUrl", value: activityWorkUrl });
-      orderedEntries.push({ key: "LicenseCommercial", value: licenseCommercial });
-      orderedEntries.push({ key: "LicenseDerivative", value: licenseDerivative });
-      orderedEntries.push({ key: "LicenseNotify", value: licenseNotify });
-      if (licenseSpecialTerms && licenseSpecialTerms.length > 0) {
-        orderedEntries.push({ key: "LicenseSpecialTerms", value: JSON.stringify(licenseSpecialTerms) });
-      }
-      const basicTags = deriveSimpleLicenseTags({
-        commercialUse: licenseCommercial,
-        derivativeUse: licenseDerivative,
-        notifyOnModify: licenseNotify,
+      let customMetadata = buildCustomMetadataEntries({
+        title,
+        author,
+        authorDisplayMode,
+        date,
+        synopsis,
+        outline,
+        roleSetting,
+        backgroundInfo,
+        performanceInstruction,
+        openingIntro,
+        chapterSettings,
+        activityName,
+        activityBannerUrl,
+        activityContent,
+        activityDemoLinks,
+        activityWorkUrl,
+        contact,
+        contactFields,
+        seriesName,
+        seriesId,
+        seriesOrder,
+        coverUrl,
+        status,
+        licenseCommercial,
+        licenseDerivative,
+        licenseNotify,
+        licenseSpecialTerms,
+        copyright,
+        identity,
+        selectedOrgId,
+        currentTags: tagsToSave,
+        customFields,
+      }, {
+        preserveAuthor: shouldPreserveAuthor,
+        existingAuthorEntries: workingAuthorMetadataEntries,
+        seriesOptions,
       });
-      if (basicTags.length > 0) orderedEntries.push({ key: "LicenseTags", value: JSON.stringify(basicTags) });
-      if (contact || (contactFields && contactFields.length > 0)) {
-        const contactVal = contactFields && contactFields.length > 0
-          ? JSON.stringify(Object.fromEntries(contactFields.filter((field) => field.key).map((field) => [field.key, field.value])))
-          : contact;
-        orderedEntries.push({ key: "Contact", value: contactVal });
-      }
-      if (synopsis) orderedEntries.push({ key: "Synopsis", value: synopsis });
-      const selectedSeries = seriesOptions.find((item) => item.id === seriesId);
-      const selectedSeriesName = selectedSeries?.name || seriesName;
-      if (selectedSeriesName?.trim()) orderedEntries.push({ key: "Series", value: selectedSeriesName.trim() });
-      const parsedSeriesOrder = Number(seriesOrder);
-      if (Number.isFinite(parsedSeriesOrder) && parsedSeriesOrder >= 0) {
-        orderedEntries.push({ key: "SeriesOrder", value: String(Math.floor(parsedSeriesOrder)) });
-      }
-
-      (customFields || []).forEach(({ key, value, type }) => {
-        if (type === "divider") {
-          orderedEntries.push({ key, value: value || "SECTION" });
-        } else if (key && value) {
-          orderedEntries.push({ key, value });
-        }
-      });
-
       if (showMarkerLegend) {
-        orderedEntries.push({ key: "marker_legend", value: "true" });
-      }
-      let customMetadata = normalizeCustomMetadataEntries(orderedEntries);
-      if (shouldPreserveAuthor) {
-        const preservedAuthorEntries = workingAuthorMetadataEntries;
         customMetadata = normalizeCustomMetadataEntries([
-          ...customMetadata.filter((entry) => !isAuthorMetaKey(entry?.key)),
-          ...preservedAuthorEntries,
+          ...customMetadata,
+          { key: "marker_legend", value: "true" },
         ]);
+      }
+      if (shouldPreserveAuthor) {
+        customMetadata = applyPreservedAuthorEntries(customMetadata, workingAuthorMetadataEntries);
       }
 
       const updatePayload: ScriptUpdatePayload & { author?: string } = {
