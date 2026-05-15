@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { getScript } from "../../lib/api/scripts";
 import type { ScriptLike } from "./types";
 
@@ -49,8 +49,11 @@ export function useScriptMetadataLifecycle({
   setShowValidationHints: (v: boolean) => void;
   setShowPersonaSetupDialog: (v: boolean) => void;
 }) {
+  const lastHydratedScriptIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (!open) {
+      lastHydratedScriptIdRef.current = null;
       initializedRef.current = false;
       userEditedRef.current = false;
       if (authorEditedRef) authorEditedRef.current = false;
@@ -77,7 +80,14 @@ export function useScriptMetadataLifecycle({
       userEditedRef.current = false;
       if (authorEditedRef) authorEditedRef.current = false;
       getScript(scriptId)
-        .then((full) => setLocalScript(full))
+        .then((full) => {
+          if (!full) {
+            console.error("Failed to load script: empty response", { scriptId });
+            setIsInitializing(false);
+            return;
+          }
+          setLocalScript(full);
+        })
         .catch((error) => {
           console.error("Failed to load script", error);
           setIsInitializing(false);
@@ -117,6 +127,10 @@ export function useScriptMetadataLifecycle({
   useEffect(() => {
     if (!open) return;
     if (!scriptId || !localScript || userEditedRef.current) return;
+    const nextScriptId = String(localScript.id || "");
+    if (!nextScriptId) return;
+    if (lastHydratedScriptIdRef.current === nextScriptId) return;
+    lastHydratedScriptIdRef.current = nextScriptId;
     setIsInitializing(true);
     hydrateScriptState(localScript);
   }, [open, scriptId, localScript, hydrateScriptState, setIsInitializing, userEditedRef]);
