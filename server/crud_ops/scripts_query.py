@@ -19,7 +19,10 @@ def _normalize_persona_for_public(db: Session, persona):
 def get_scripts(db: Session, ownerId: str):
     results = (
         db.query(models.Script, func.length(models.Script.content).label("contentLength"))
-        .options(orm.defer(models.Script.content))
+        .options(
+            orm.defer(models.Script.content),
+            orm.selectinload(models.Script.tags),
+        )
         .filter(models.Script.ownerId == ownerId)
         .order_by(models.Script.sortOrder.asc(), models.Script.lastModified.desc())
         .all()
