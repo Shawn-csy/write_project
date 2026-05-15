@@ -6,7 +6,7 @@ import { CoverPlaceholder } from "../../ui/CoverPlaceholder";
 import { Input } from "../../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
-import { useContentContext, useExposureContext, useUIContext } from "./ScriptMetadataDialogContext";
+import { useChecklistContext, useContentContext, useExposureContext, useUIContext } from "./ScriptMetadataDialogContext";
 
 interface TagItem {
   id?: string | number;
@@ -22,9 +22,10 @@ export function ScriptMetadataExposureSection({
   showTitle?: boolean;
 }) {
   const { t } = useUIContext();
+  const { getRowLabelClass, recommendedErrorMap } = useChecklistContext();
   const {
     author, setAuthorWithTracking: setAuthor, authorDisplayMode, setAuthorDisplayModeWithTracking: setAuthorDisplayMode,
-    getRowLabelClass, recommendedErrorMap, title,
+    title,
   } = useContentContext();
   const {
     coverUrl, setCoverUrl, handleCoverUpload, openCoverMediaPicker, coverUploadError, coverUploadWarning,

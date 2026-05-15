@@ -3,7 +3,7 @@ import { Button } from "../../ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { Textarea } from "../../ui/textarea";
 import { MetadataDetailsTab } from "./MetadataDetailsTab";
-import { useContentContext, useExposureContext, useUIContext } from "./ScriptMetadataDialogContext";
+import { useChecklistContext, useContentContext, useExposureContext, useUIContext } from "./ScriptMetadataDialogContext";
 
 export function ScriptMetadataAdvancedSection({
   sectionId = "metadata-section-advanced",
@@ -13,7 +13,8 @@ export function ScriptMetadataAdvancedSection({
   showTitle?: boolean;
 }) {
   const { t } = useUIContext();
-  const { getRowLabelClass, metadataDetailsCommonProps } = useContentContext();
+  const { getRowLabelClass } = useChecklistContext();
+  const { metadataDetailsCommonProps } = useContentContext();
   const {
     markerThemeId, setMarkerThemeId, markerThemes, showMarkerLegend, setShowMarkerLegend, disableCopy, setDisableCopy,
     jsonMode, setJsonMode, jsonText, setJsonText, jsonError, applyJson,
