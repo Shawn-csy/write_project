@@ -3,7 +3,7 @@ import { Plus, X } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Textarea } from "../../ui/textarea";
-import { useActivityContext, useContentContext } from "./ScriptMetadataDialogContext";
+import { useActivityContext, useChecklistContext } from "./ScriptMetadataDialogContext";
 
 interface ActivityDemoLinkItem {
   id: string;
@@ -20,7 +20,7 @@ export function ScriptMetadataDemoSection({
   sectionId?: string;
   showTitle?: boolean;
 }) {
-  const { getRowLabelClass } = useContentContext();
+  const { getRowLabelClass } = useChecklistContext();
   const {
     activityDemoLinks,
     handleAddActivityDemoLink: onAddActivityDemoLink,

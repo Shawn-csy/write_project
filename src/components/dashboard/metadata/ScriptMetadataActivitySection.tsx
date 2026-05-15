@@ -3,7 +3,7 @@ import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Textarea } from "../../ui/textarea";
 import { getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
-import { useActivityContext, useContentContext, useUIContext } from "./ScriptMetadataDialogContext";
+import { useActivityContext, useChecklistContext, useUIContext } from "./ScriptMetadataDialogContext";
 
 export function ScriptMetadataActivitySection({
   sectionId = "metadata-section-activity",
@@ -13,7 +13,7 @@ export function ScriptMetadataActivitySection({
   showTitle?: boolean;
 }) {
   const { t } = useUIContext();
-  const { getRowLabelClass } = useContentContext();
+  const { getRowLabelClass } = useChecklistContext();
   const {
     activityName, setActivityName, activityBannerUrl, setActivityBannerUrl, handleActivityBannerUpload,
     openActivityBannerMediaPicker, activityBannerPreviewFailed, setActivityBannerPreviewFailed,

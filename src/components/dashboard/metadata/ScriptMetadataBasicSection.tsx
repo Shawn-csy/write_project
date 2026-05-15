@@ -1,6 +1,6 @@
 import React from "react";
 import { MetadataBasicTab } from "./MetadataBasicTab";
-import { useContentContext, usePublicationContext, useUIContext } from "./ScriptMetadataDialogContext";
+import { useChecklistContext, useContentContext, usePublicationContext, useUIContext } from "./ScriptMetadataDialogContext";
 
 export function ScriptMetadataBasicSection({
   sectionId = "metadata-section-basic",
@@ -10,10 +10,11 @@ export function ScriptMetadataBasicSection({
   showTitle?: boolean;
 }) {
   const { t } = useUIContext();
+  const { requiredErrorMap, recommendedErrorMap, missingRequiredMap } = useChecklistContext();
   const {
     title, setTitle, author, currentUser, personas, orgs, date, setDate, synopsis, setSynopsis, outline, setOutline,
     roleSetting, setRoleSetting, backgroundInfo, setBackgroundInfo, performanceInstruction, setPerformanceInstruction,
-    openingIntro, setOpeningIntro, chapterSettings, setChapterSettings, requiredErrorMap, recommendedErrorMap, missingRequiredMap,
+    openingIntro, setOpeningIntro, chapterSettings, setChapterSettings,
   } = useContentContext();
   const { identity, setIdentity, selectedOrgId, setSelectedOrgId, status } = usePublicationContext();
 

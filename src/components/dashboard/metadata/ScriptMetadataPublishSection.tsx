@@ -2,7 +2,7 @@ import React from "react";
 import { X } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
-import { useContentContext, useLicenseContext, usePublicationContext, useUIContext } from "./ScriptMetadataDialogContext";
+import { useChecklistContext, useLicenseContext, usePublicationContext, useUIContext } from "./ScriptMetadataDialogContext";
 
 export function ScriptMetadataPublishSection({
   sectionId = "metadata-section-publish",
@@ -12,7 +12,7 @@ export function ScriptMetadataPublishSection({
   showTitle?: boolean;
 }) {
   const { t } = useUIContext();
-  const { missingRequiredMap, requiredErrorMap, renderRowLabel } = useContentContext();
+  const { missingRequiredMap, requiredErrorMap, renderRowLabel } = useChecklistContext();
   const { targetAudience, handleSetTargetAudience, contentRating, handleSetContentRating } = usePublicationContext();
   const {
     licenseCommercial, setLicenseCommercial, licenseDerivative, setLicenseDerivative,
