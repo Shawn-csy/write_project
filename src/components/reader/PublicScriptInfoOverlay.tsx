@@ -195,7 +195,7 @@ export function PublicScriptInfoOverlay({
       </div>
     );
   };
-  const compactIds = ["outline", "openingintro", "chaptersettings"];
+  const compactIds = ["openingintro", "chaptersettings"];
   const expandedTopIds = ["outline", "rolesetting", "backgroundinfo", "performanceinstruction"];
   const expandedBottomIds = ["openingintro", "chaptersettings"];
   const compactItems = compactIds.map(renderItem).filter(Boolean);
@@ -339,9 +339,6 @@ export function PublicScriptInfoOverlay({
             <div className="relative max-w-[85%] rounded-xl border border-white/25 bg-black/25 px-5 py-4 backdrop-blur-sm shadow-lg">
               <div className="absolute -right-6 -top-6 h-12 w-12 rounded-full border border-white/40" style={{ backgroundColor: placeholderTheme.accent }} />
               <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-foreground/80">No Cover</div>
-              <div className="mt-2 line-clamp-3 text-2xl font-extrabold leading-tight text-primary-foreground drop-shadow md:text-3xl">
-                {title || "Untitled"}
-              </div>
             </div>
           </div>
         )}
@@ -362,7 +359,7 @@ export function PublicScriptInfoOverlay({
       )}
 
       {synopsis && (
-        <div className="max-w-2xl font-serif text-lg leading-relaxed text-foreground/80 opacity-90 md:text-xl italic">
+        <div className="max-w-2xl font-serif text-lg leading-relaxed text-foreground/80 md:text-xl italic">
           {synopsis}
         </div>
       )}
@@ -430,7 +427,7 @@ export function PublicScriptInfoOverlay({
           {(expandedTopItems.length + expandedBottomItems.length + (demoLinksBlock ? 1 : 0)) > compactItems.length && (
             <button
               type="button"
-              className="mt-2 text-xs font-medium text-primary hover:underline"
+              className="mt-2 block w-full py-2 text-xs font-medium text-primary hover:underline"
               onClick={() => setPrefaceExpanded((prev) => !prev)}
             >
               {prefaceExpanded ? "收起前置資訊" : "展開完整前置資訊"}
