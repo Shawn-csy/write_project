@@ -103,16 +103,30 @@ export function useScriptMetadataHydration({
     async (baseScript: ScriptLike) => {
       if (!baseScript) return;
 
-      setTitle(baseScript.title || "");
-      setCoverUrl(baseScript.coverUrl || "");
-      setStatus(baseScript.status || (baseScript.isPublic ? "Public" : "Private"));
-      setCurrentTags(baseScript.tags || []);
-      setMarkerThemeId(baseScript.markerThemeId || "default");
-      setShowMarkerLegend(false);
-      setDisableCopy(Boolean(baseScript.disableCopy));
+      // Resolve the authoritative source: fetch full script first if needed,
+      // then apply all state in one pass to avoid a double-render wave.
+      let sourceScript = baseScript;
 
-      if (baseScript.tags) {
-        const tagNames = baseScript.tags.map((tag) => String(tag.name || "").toLowerCase());
+      if (fetchFullScript && baseScript.id) {
+        try {
+          const full = await getScript(baseScript.id);
+          if (full) sourceScript = full;
+        } catch (error) {
+          console.error(error);
+        }
+      }
+
+      setTitle(sourceScript.title || "");
+      setCoverUrl(sourceScript.coverUrl || "");
+      setStatus(sourceScript.status || (sourceScript.isPublic ? "Public" : "Private"));
+      setCurrentTags(sourceScript.tags || baseScript.tags || []);
+      setMarkerThemeId(sourceScript.markerThemeId || "default");
+      setShowMarkerLegend(false);
+      setDisableCopy(Boolean(sourceScript.disableCopy));
+
+      const tagsForAudience = sourceScript.tags || baseScript.tags;
+      if (tagsForAudience) {
+        const tagNames = tagsForAudience.map((tag) => String(tag.name || "").toLowerCase());
         if (tagNames.includes("男性向")) setTargetAudience("男性向");
         else if (tagNames.includes("女性向")) setTargetAudience("女性向");
         else if (tagNames.includes("全性向")) setTargetAudience("全性向");
@@ -124,32 +138,14 @@ export function useScriptMetadataHydration({
         }
       }
 
-      if (baseScript.personaId) {
-        setIdentity(`persona:${baseScript.personaId}`);
-        setSelectedOrgId(baseScript.organizationId || "");
+      const personaSource = sourceScript.personaId ? sourceScript : baseScript;
+      if (personaSource.personaId) {
+        setIdentity(`persona:${personaSource.personaId}`);
+        setSelectedOrgId(personaSource.organizationId || "");
       } else {
         const preferredPersonaId = disablePersonaAutofill ? "" : localStorage.getItem("preferredPersonaId");
         setIdentity(preferredPersonaId ? `persona:${preferredPersonaId}` : "");
         setSelectedOrgId("");
-      }
-
-      let sourceScript = baseScript;
-
-      if (fetchFullScript && baseScript.id) {
-        try {
-          const full = await getScript(baseScript.id);
-          if (full) {
-            sourceScript = full;
-            setTitle(full.title || "");
-            setCoverUrl(full.coverUrl || "");
-            setStatus(full.status || (full.isPublic ? "Public" : "Private"));
-            setMarkerThemeId(full.markerThemeId || "default");
-            setDisableCopy(Boolean(full.disableCopy));
-            await loadPublicInfoIfNeeded(full);
-          }
-        } catch (error) {
-          console.error(error);
-        }
       }
 
       await loadPublicInfoIfNeeded(sourceScript);

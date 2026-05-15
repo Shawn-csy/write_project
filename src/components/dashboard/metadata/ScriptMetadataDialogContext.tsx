@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { getPublicScript } from "../../../lib/api/public";
@@ -820,75 +820,83 @@ export function ScriptMetadataDialogProvider({
 }: ScriptMetadataDialogProps & { children: React.ReactNode }) {
     const all = useScriptMetadataDialogState(props);
 
-    const ui: UIContextValue = {
-        open: all.open, onOpenChange: all.onOpenChange, t: all.t,
-        isSaving: all.isSaving, handleSave: all.handleSave, showGuide: all.showGuide,
-    };
-
-    const status: StatusContextValue = {
-        status: all.status, setStatus: all.setStatus,
-        activeTab: all.activeTab, setActiveTab: all.setActiveTab,
-        collapsedSections: all.collapsedSections, toggleSection: all.toggleSection,
-        contentScrollRef: all.contentScrollRef, isInitializing: all.isInitializing,
-    };
-
-    const checklist: ChecklistContextValue = {
-        completedChecklistItems: all.completedChecklistItems,
-        totalChecklistItems: all.totalChecklistItems,
-        completionPercent: all.completionPercent,
-        hasBlockingIssues: all.hasBlockingIssues,
-        checklistChipItems: all.checklistChipItems,
-        maxVisibleChecklistChips: all.maxVisibleChecklistChips,
-        hiddenChecklistChipCount: all.hiddenChecklistChipCount,
-        visibleChecklistChipItems: all.visibleChecklistChipItems,
-        showAllChecklistChips: all.showAllChecklistChips,
-        setShowAllChecklistChips: all.setShowAllChecklistChips,
-        handleFocusSection: all.handleFocusSection,
-        handleJumpToChecklistItem: all.handleJumpToChecklistItem,
-        startGuide: all.startGuide,
-        handleGuideNext: all.handleGuideNext,
-        handleGuidePrev: all.handleGuidePrev,
-        finishGuide: all.finishGuide,
-        guideIndex: all.guideIndex,
-        guideSteps: all.guideSteps,
-        guideSpotlightRect: all.guideSpotlightRect,
-        currentGuide: all.currentGuide,
-    };
-
-    const overlay: OverlayContextValue = {
-        isMediaPickerOpen: all.isMediaPickerOpen, setIsMediaPickerOpen: all.setIsMediaPickerOpen,
-        mediaPickerTarget: all.mediaPickerTarget, handleMediaPickerSelect: all.handleMediaPickerSelect,
-        cropOpen: all.cropOpen, setCropOpen: all.setCropOpen,
-        cropSource: all.cropSource, cropPurpose: all.cropPurpose,
-        cropTarget: all.cropTarget, applyCroppedUpload: all.applyCroppedUpload,
-        showPersonaSetupDialog: all.showPersonaSetupDialog,
-        handlePersonaSetupDialogOpenChange: all.handlePersonaSetupDialogOpenChange,
-        handleGoToAuthorProfile: all.handleGoToAuthorProfile,
-    };
-
+    // Destructure first so useMemo deps are direct stable references,
+    // which satisfies react-hooks/exhaustive-deps without disable comments.
     const {
-        open: _open, onOpenChange: _onOpenChange, t: _t, isSaving: _isSaving,
-        handleSave: _handleSave, showGuide: _showGuide,
-        status: _status, setStatus: _setStatus, activeTab: _activeTab, setActiveTab: _setActiveTab,
-        collapsedSections: _collapsedSections, toggleSection: _toggleSection,
-        contentScrollRef: _contentScrollRef, isInitializing: _isInitializing,
-        completedChecklistItems: _completedChecklistItems, totalChecklistItems: _totalChecklistItems,
-        completionPercent: _completionPercent, hasBlockingIssues: _hasBlockingIssues,
-        checklistChipItems: _checklistChipItems, maxVisibleChecklistChips: _maxVisibleChecklistChips,
-        hiddenChecklistChipCount: _hiddenChecklistChipCount, visibleChecklistChipItems: _visibleChecklistChipItems,
-        showAllChecklistChips: _showAllChecklistChips, setShowAllChecklistChips: _setShowAllChecklistChips,
-        handleFocusSection: _handleFocusSection, handleJumpToChecklistItem: _handleJumpToChecklistItem,
-        startGuide: _startGuide, handleGuideNext: _handleGuideNext,
-        handleGuidePrev: _handleGuidePrev, finishGuide: _finishGuide,
-        guideIndex: _guideIndex, guideSteps: _guideSteps,
-        guideSpotlightRect: _guideSpotlightRect, currentGuide: _currentGuide,
-        isMediaPickerOpen: _isMediaPickerOpen, setIsMediaPickerOpen: _setIsMediaPickerOpen,
-        mediaPickerTarget: _mediaPickerTarget, handleMediaPickerSelect: _handleMediaPickerSelect,
-        cropOpen: _cropOpen, setCropOpen: _setCropOpen, cropSource: _cropSource,
-        cropPurpose: _cropPurpose, cropTarget: _cropTarget, applyCroppedUpload: _applyCroppedUpload,
-        showPersonaSetupDialog: _showPersonaSetupDialog,
-        handlePersonaSetupDialogOpenChange: _handlePersonaSetupDialogOpenChange,
-        handleGoToAuthorProfile: _handleGoToAuthorProfile,
+        open, onOpenChange, t, isSaving, handleSave, showGuide,
+        status: allStatus, setStatus, activeTab, setActiveTab,
+        collapsedSections, toggleSection, contentScrollRef, isInitializing,
+        completedChecklistItems, totalChecklistItems, completionPercent,
+        hasBlockingIssues, checklistChipItems, maxVisibleChecklistChips,
+        hiddenChecklistChipCount, visibleChecklistChipItems,
+        showAllChecklistChips, setShowAllChecklistChips,
+        handleFocusSection, handleJumpToChecklistItem,
+        startGuide, handleGuideNext, handleGuidePrev, finishGuide,
+        guideIndex, guideSteps, guideSpotlightRect, currentGuide,
+        isMediaPickerOpen, setIsMediaPickerOpen, mediaPickerTarget, handleMediaPickerSelect,
+        cropOpen, setCropOpen, cropSource, cropPurpose, cropTarget, applyCroppedUpload,
+        showPersonaSetupDialog, handlePersonaSetupDialogOpenChange, handleGoToAuthorProfile,
+    } = all;
+
+    const ui: UIContextValue = useMemo(() => ({
+        open, onOpenChange, t, isSaving, handleSave, showGuide,
+    }), [open, onOpenChange, t, isSaving, handleSave, showGuide]);
+
+    const status: StatusContextValue = useMemo(() => ({
+        status: allStatus, setStatus,
+        activeTab, setActiveTab,
+        collapsedSections, toggleSection,
+        contentScrollRef, isInitializing,
+    }), [allStatus, setStatus, activeTab, setActiveTab, collapsedSections, toggleSection, contentScrollRef, isInitializing]);
+
+    const checklist: ChecklistContextValue = useMemo(() => ({
+        completedChecklistItems, totalChecklistItems, completionPercent,
+        hasBlockingIssues, checklistChipItems, maxVisibleChecklistChips,
+        hiddenChecklistChipCount, visibleChecklistChipItems,
+        showAllChecklistChips, setShowAllChecklistChips,
+        handleFocusSection, handleJumpToChecklistItem,
+        startGuide, handleGuideNext, handleGuidePrev, finishGuide,
+        guideIndex, guideSteps, guideSpotlightRect, currentGuide,
+    }), [
+        completedChecklistItems, totalChecklistItems, completionPercent,
+        hasBlockingIssues, checklistChipItems, maxVisibleChecklistChips,
+        hiddenChecklistChipCount, visibleChecklistChipItems,
+        showAllChecklistChips, setShowAllChecklistChips,
+        handleFocusSection, handleJumpToChecklistItem,
+        startGuide, handleGuideNext, handleGuidePrev, finishGuide,
+        guideIndex, guideSteps, guideSpotlightRect, currentGuide,
+    ]);
+
+    const overlay: OverlayContextValue = useMemo(() => ({
+        isMediaPickerOpen, setIsMediaPickerOpen, mediaPickerTarget, handleMediaPickerSelect,
+        cropOpen, setCropOpen, cropSource, cropPurpose, cropTarget, applyCroppedUpload,
+        showPersonaSetupDialog, handlePersonaSetupDialogOpenChange, handleGoToAuthorProfile,
+    }), [
+        isMediaPickerOpen, setIsMediaPickerOpen, mediaPickerTarget, handleMediaPickerSelect,
+        cropOpen, setCropOpen, cropSource, cropPurpose, cropTarget, applyCroppedUpload,
+        showPersonaSetupDialog, handlePersonaSetupDialogOpenChange, handleGoToAuthorProfile,
+    ]);
+
+    // Strip all slice-allocated fields from `all` to obtain the remaining form state.
+    // We already have the individual names from the destructure above, so just rest-spread.
+    const {
+        open: _o, onOpenChange: _oc, t: _t, isSaving: _is, handleSave: _hs, showGuide: _sg,
+        status: _st, setStatus: _ss, activeTab: _at, setActiveTab: _sat,
+        collapsedSections: _cs, toggleSection: _ts, contentScrollRef: _csr, isInitializing: _ii,
+        completedChecklistItems: _cci, totalChecklistItems: _tci, completionPercent: _cp,
+        hasBlockingIssues: _hbi, checklistChipItems: _chci, maxVisibleChecklistChips: _mvcc,
+        hiddenChecklistChipCount: _hccc, visibleChecklistChipItems: _vcci,
+        showAllChecklistChips: _sacc, setShowAllChecklistChips: _ssacc,
+        handleFocusSection: _hfs, handleJumpToChecklistItem: _hjtci,
+        startGuide: _sgu, handleGuideNext: _hgn, handleGuidePrev: _hgp, finishGuide: _fg,
+        guideIndex: _gi, guideSteps: _gst, guideSpotlightRect: _gsr, currentGuide: _cg,
+        isMediaPickerOpen: _impo, setIsMediaPickerOpen: _simpo,
+        mediaPickerTarget: _mpt, handleMediaPickerSelect: _hmps,
+        cropOpen: _co, setCropOpen: _sco, cropSource: _cso, cropPurpose: _cpu,
+        cropTarget: _ct, applyCroppedUpload: _acu,
+        showPersonaSetupDialog: _spsd,
+        handlePersonaSetupDialogOpenChange: _hpsdoc,
+        handleGoToAuthorProfile: _hgtap,
         ...form
     } = all;
 
