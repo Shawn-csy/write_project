@@ -163,6 +163,17 @@ def update_script(db: Session, script_id: str, script: schemas.ScriptUpdate, own
     update_data = script.model_dump(exclude_unset=True)
     if "customMetadata" in update_data:
         update_data["customMetadata"] = _normalize_custom_metadata(update_data.get("customMetadata"))
+    if "personaId" in update_data and not str(update_data.get("personaId") or "").strip():
+        update_data["personaId"] = None
+    if "organizationId" in update_data and not str(update_data.get("organizationId") or "").strip():
+        update_data["organizationId"] = None
+    if "markerThemeId" in update_data:
+        theme_id = str(update_data.get("markerThemeId") or "").strip()
+        if theme_id:
+            exists = db.query(models.MarkerTheme).filter(models.MarkerTheme.id == theme_id).first()
+            update_data["markerThemeId"] = theme_id if exists else None
+        else:
+            update_data["markerThemeId"] = None
     _resolve_license_fields(update_data)
     if "seriesId" in update_data:
         new_series_id = update_data.get("seriesId")
