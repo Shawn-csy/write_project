@@ -1,194 +1,119 @@
-# 系統架構圖（Mermaid）
-最後更新：2026-03-20
+# 系統架構
+最後更新：2026-05-15
 
-以下架構圖提供給新加入成員快速理解系統組成與資料走向。
+本文件描述目前專案的實際程式架構，對齊 `src/`、`server/`、Docker 與現行 API 路徑。
 
-## 1. 高階架構（前端 / 後端 / DB）
+## 1. 高階架構
+```mermaid
+flowchart LR
+  subgraph FE[Frontend - Vite React TS]
+    PAGES[src/pages/*]
+    ROUTES[src/routes/*]
+    COMPONENTS[src/components/*]
+    HOOKS[src/hooks/*]
+    API[src/lib/api/*]
+    PAGES --> ROUTES
+    ROUTES --> COMPONENTS
+    COMPONENTS --> HOOKS
+    HOOKS --> API
+  end
+
+  subgraph BE[Backend - FastAPI]
+    MAIN[server/main.py]
+    ROUTERS[server/routers/*.py]
+    CRUD[server/crud_ops/*.py]
+    SCHEMAS[server/schemas.py]
+    MODELS[server/models.py]
+    DB[server/database.py]
+    MAIN --> ROUTERS
+    ROUTERS --> CRUD
+    ROUTERS --> SCHEMAS
+    CRUD --> MODELS
+    MODELS --> DB
+  end
+
+  subgraph DATA[Data]
+    POSTGRES[(PostgreSQL - primary)]
+    SQLITE[(SQLite - fallback/migration only)]
+  end
+
+  API --> ROUTERS
+  DB --> POSTGRES
+  DB --> SQLITE
+```
+
+## 2. 前端結構
+- 入口：`src/main.tsx`
+- 主應用：`src/App.tsx`、`src/AppRouter.tsx`
+- 路由切分：`src/routes/PublicRoutes.tsx`、`src/routes/WorkspaceRoutes.tsx`
+- 頁面層：`src/pages/`
+- UI 與功能元件：`src/components/`
+- 狀態與行為：`src/hooks/`、`src/contexts/`
+- API 封裝：`src/lib/api/`（`client.ts` + domain APIs）
+- 匯入/解析：`src/lib/importPipeline/`、`src/lib/screenplayAST.ts`
+- 統計：`src/lib/statistics/`
+
+## 3. 後端結構
+- 入口與中介層：`server/main.py`
+- 驗證/授權依賴：`server/dependencies.py`
+- 路由層：`server/routers/`
+  - 主要包含：`public.py`、`public_bundle.py`、`scripts.py`、`personas.py`、`orgs.py`、`series.py`、`tags.py`、`analysis.py`、`media.py`、`admin.py`
+- 業務邏輯與資料操作：`server/crud_ops/`
+- 資料模型：`server/models.py`
+- 回傳結構：`server/schemas.py`
+- 分析服務：`server/analysis/analyzer.py`
+
+## 4. 主要請求路徑
 ```mermaid
 flowchart TB
-  subgraph Client["Frontend (Vite/React)"]
-    UI[src/pages + components]
-    API[src/lib/api/*.js\nAPI 模組層]
-    AUTH[src/lib/firebase.js\nFirebase Auth]
-    UI --> API
-    UI --> AUTH
-  end
+  A[PublicGalleryPage / PublicReaderPage] --> B[src/lib/api/public.ts]
+  B --> C[server/routers/public.py + public_bundle.py]
+  C --> D[server/crud_ops/*]
+  D --> E[server/models.py]
 
-  subgraph Server["Backend (FastAPI)"]
-    ROUTER[server/routers/*.py]
-    CRUD[server/crud_ops/*.py]
-    MODELS[server/models.py]
-    SCHEMA[server/schemas.py]
-    ROUTER --> CRUD
-    ROUTER --> SCHEMA
-    CRUD --> MODELS
-  end
-
-  subgraph DB["PostgreSQL"]
-    SQLITE[(write_project DB)]
-  end
-
-  API --> ROUTER
-  AUTH --> API
-  MODELS --> SQLITE
+  F[PublisherDashboard / ScriptMetadataDialog] --> G[src/lib/api/scripts.ts personas.ts organizations.ts]
+  G --> H[server/routers/scripts.py personas.py orgs.py]
+  H --> D
 ```
 
-## 4. 完整架構圖（Mermaid）
+## 5. 認證與 API Base
+- 前端 API Base：`src/lib/api/client.ts` 讀取 `VITE_API_URL`，未設定時預設 `/api`。
+- 正式/同源場景：由 Nginx 反向代理 `/api` 至後端。
+- 認證：
+  - 正式：`Authorization: Bearer <Firebase ID Token>`
+  - 本機選用：`X-User-ID`（由環境變數控制）
+- 後端驗證入口：`server/dependencies.py:get_current_user_id`
+
+## 6. 資料庫與遷移策略
+- 正式主用資料庫：PostgreSQL
+- SQLite 僅保留於：
+  - 歷史資料轉移來源
+  - 本機臨時除錯
+- 啟動開關：
+  - `DB_AUTO_CREATE_TABLES`
+  - `DB_RUN_LEGACY_MIGRATIONS`
+- 轉移腳本：`server/migrate_sqlite_to_postgres.py`
+
+## 7. 部署拓樸
 ```mermaid
 flowchart LR
-  subgraph Frontend["Frontend (Vite/React)"]
-    FE_PAGES[src/pages/*]
-    FE_COMP[src/components/*]
-    FE_API[src/lib/api/*.js\nAPI 模組層]
-    FE_AUTH[src/lib/firebase.js\nFirebase Auth]
-    FE_IMPORT[src/lib/importPipeline/*]
-    FE_META[src/components/dashboard/ScriptMetadataDialog.jsx + hooks/dashboard/*]
-    FE_STATS[src/lib/statistics/*]
-    FE_CTX[src/contexts/SettingsContext.jsx]
-  end
-
-  subgraph Backend["Backend (FastAPI)"]
-    BE_MAIN[server/main.py]
-    BE_DEP[server/dependencies.py]
-    BE_ROUTERS[server/routers/*.py]
-    BE_CRUD[server/crud_ops/*.py]
-    BE_MODELS[server/models.py]
-    BE_SCHEMA[server/schemas.py]
-    BE_MIG[server/migration.py]
-  end
-
-  subgraph DB["PostgreSQL"]
-    DB_SQL[(write_project DB)]
-  end
-
-  subgraph Services["External"]
-    FB[Firebase Auth]
-  end
-
-  FE_PAGES --> FE_API
-  FE_COMP --> FE_API
-  FE_PAGES --> FE_IMPORT
-  FE_PAGES --> FE_META
-  FE_COMP --> FE_STATS
-  FE_CTX --> FE_STATS
-  FE_AUTH --> FE_API
-  FE_AUTH --> FB
-
-  FE_API --> BE_ROUTERS
-  BE_MAIN --> BE_ROUTERS
-  BE_ROUTERS --> BE_DEP
-  BE_ROUTERS --> BE_SCHEMA
-  BE_ROUTERS --> BE_CRUD
-  BE_CRUD --> BE_MODELS
-  BE_MIG --> BE_MODELS
-  BE_MODELS --> DB_SQL
+  U[User Browser] --> N[Nginx Frontend :1090]
+  N -->|/api| B[FastAPI Backend :1091]
+  B --> P[(PostgreSQL :5432 / host 1092)]
 ```
 
-## 1-a. 高階架構（ASCII）
-```
-┌──────────────────────────────┐
-│ Frontend (Vite/React)         │
-│ - src/pages + components      │
-│ - src/lib/api/*.js (API modules) │
-│ - src/lib/firebase.js (Auth + lazy analytics) │
-└───────────────┬──────────────┘
-                │ HTTP (Authorization: Bearer)
-                │ Local fallback: X-User-ID
-                ▼
-┌──────────────────────────────┐
-│ Backend (FastAPI)             │
-│ - server/routers/*.py         │
-│ - server/crud_ops/*.py              │
-│ - server/models.py            │
-│ - server/schemas.py           │
-└───────────────┬──────────────┘
-                │ SQLAlchemy
-                ▼
-┌──────────────────────────────┐
-│ PostgreSQL (write_project DB) │
-└──────────────────────────────┘
-```
+對應檔案：
+- 開發：`docker-compose.dev.yml`
+- 正式：`docker-compose.prod.yml`
+- 反代規則：`nginx.conf`
 
-## 2. Public vs Studio 路徑
-```mermaid
-flowchart LR
-  subgraph Public
-    PG[src/pages/PublicGalleryPage.jsx]
-    PR[src/pages/PublicReaderPage.jsx]
-    PG -->|getPublicBundle/getPublicScripts| API[src/lib/api/public.js]
-    PR -->|getPublicScript| API
-    API -->|/api/public-*| PUB[server/routers/public.py]
-  end
-
-  subgraph Studio
-    DASH[src/pages/PublisherDashboard.jsx]
-    META[src/components/dashboard/ScriptMetadataDialog.jsx]
-    DASH -->|getPersonas/getOrganizations|get| API
-    META -->|getScript/updateScript| API
-    API -->|/api/scripts| SCRIPTS[server/routers/scripts.py]
-    API -->|/api/personas| PERSONAS[server/routers/personas.py]
-    API -->|/api/organizations| ORGS[server/routers/orgs.py]
-  end
-```
-
-## 2-a. Public vs Studio 路徑（ASCII）
-```
-Public:
-  PublicGalleryPage.jsx
-      └─ api/public.js:getPublicBundle (or getPublicScripts/getPublicPersonas/getPublicOrganizations)
-          └─ public.py (/api/public-*)
-
-  PublicReaderPage.jsx
-      └─ api/public.js:getPublicScript
-          └─ public.py (/api/public-scripts/{id})
-
-Studio:
-  PublisherDashboard.jsx
-      └─ api/personas.js + organizations.js + scripts.js
-          └─ personas.py / orgs.py / scripts.py
-
-  ScriptMetadataDialog.jsx
-      └─ api/scripts.js:getScript/updateScript
-          └─ scripts.py
-```
-
-## 3. 資料模型關聯（簡化）
-```mermaid
-erDiagram
-  USER ||--o{ SCRIPT : owns
-  USER ||--o{ PERSONA : owns
-  USER ||--o{ ORGANIZATION : owns
-  ORGANIZATION ||--o{ SCRIPT : contains
-  PERSONA ||--o{ SCRIPT : publishes
-
-  USER {
-    string id
-    string email
-  }
-  SCRIPT {
-    string id
-    string ownerId
-    string personaId
-    string organizationId
-    string content
-  }
-  PERSONA {
-    string id
-    string ownerId
-    string displayName
-  }
-  ORGANIZATION {
-    string id
-    string ownerId
-    string name
-  }
-```
-
-## 3-a. 資料模型關聯（ASCII）
-```
-User ── owns ── Script
-User ── owns ── Persona
-User ── owns ── Organization
-Organization ── contains ── Script
-Persona ── publishes ── Script
-```
+## 8. 維護規則
+- 新增 API 時，需同步更新：
+  - `src/lib/api/*`
+  - `server/routers/*`
+  - `server/crud_ops/*`（如需資料存取）
+  - 本文件第 4 節（主要請求路徑）
+- 新增資料欄位時，需同步更新：
+  - `server/models.py`
+  - `server/schemas.py`
+  - 對應前端表單與顯示元件
