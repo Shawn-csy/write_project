@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "../ui/badge";
 import { Card } from "../ui/card";
@@ -26,66 +26,80 @@ export interface ScriptGalleryItem extends BaseScript {
 interface ScriptGalleryCardProps {
   script: ScriptGalleryItem;
   onClick?: () => void;
+  onScriptClick?: (script: ScriptGalleryItem) => void;
   variant?: "standard" | "compact";
 }
 
-export function ScriptGalleryCard({ script, onClick, variant = "standard" }: ScriptGalleryCardProps): React.JSX.Element {
+function ScriptGalleryCardInner({ script, onClick, onScriptClick, variant = "standard" }: ScriptGalleryCardProps): React.JSX.Element {
   const navigate = useNavigate();
   const { id, title, author, coverUrl, tags = [], views = 0, likes = 0 } = script;
   const authorForBadge = author ?? undefined;
   const authorClickable = !script?._disableAuthorLink;
-  const seriesName = String(script?.seriesName || script?._seriesName || "").trim();
-  const seriesOrderRaw = script?.seriesOrder ?? script?._seriesOrder;
-  const parsedSeriesOrder = Number(seriesOrderRaw);
-  const hasSeriesOrder = Number.isFinite(parsedSeriesOrder) && parsedSeriesOrder >= 0;
-  const seriesOrderText =
-    !hasSeriesOrder ? "" : Math.floor(parsedSeriesOrder) === 0 ? " · 設定/背景" : ` · 第 ${Math.floor(parsedSeriesOrder)} 作`;
-  const normalizedTags = (tags || [])
-    .map((tag) => (typeof tag === "string" ? tag : tag?.name))
-    .filter((tag): tag is string => Boolean(tag));
-  const licenseTags = ((script?._derivedLicenseTags || []) || [])
-    .map((tag) => (typeof tag === "string" ? tag : tag?.name))
-    .filter((tag): tag is string => Boolean(tag));
-  const licenseTagSet = new Set(licenseTags);
-  const displayTags = normalizedTags.filter((tag) => !licenseTagSet.has(tag));
-  const primaryTags = displayTags.slice(0, 2);
-  const secondaryTags = displayTags.slice(2, 3);
+
+  const { seriesName, seriesOrderText, displayTags, primaryTags, secondaryTags } = useMemo(() => {
+    const sName = String(script?.seriesName || script?._seriesName || "").trim();
+    const seriesOrderRaw = script?.seriesOrder ?? script?._seriesOrder;
+    const parsedSeriesOrder = Number(seriesOrderRaw);
+    const hasSeriesOrder = Number.isFinite(parsedSeriesOrder) && parsedSeriesOrder >= 0;
+    const sOrderText = !hasSeriesOrder ? "" : Math.floor(parsedSeriesOrder) === 0 ? " · 設定/背景" : ` · 第 ${Math.floor(parsedSeriesOrder)} 作`;
+    const normalizedTags = (tags || [])
+      .map((tag) => (typeof tag === "string" ? tag : tag?.name))
+      .filter((tag): tag is string => Boolean(tag));
+    const licenseTags = (script?._derivedLicenseTags || [])
+      .map((tag) => (typeof tag === "string" ? tag : tag?.name))
+      .filter((tag): tag is string => Boolean(tag));
+    const licenseTagSet = new Set(licenseTags);
+    const dTags = normalizedTags.filter((tag) => !licenseTagSet.has(tag));
+    return {
+      seriesName: sName,
+      seriesOrderText: sOrderText,
+      displayTags: dTags,
+      primaryTags: dTags.slice(0, 2),
+      secondaryTags: dTags.slice(2, 3),
+    };
+  }, [tags, script?._derivedLicenseTags, script?.seriesName, script?._seriesName, script?.seriesOrder, script?._seriesOrder]);
+
   const [isLiked, setIsLiked] = useState<boolean>(false);
   const [likeCount, setLikeCount] = useState<number>(likes);
 
   useEffect(() => {
-    // Load like state from local storage (mock persistence)
     const stored = localStorage.getItem(`liked_script_${id}`);
     if (stored === 'true') {
-        setIsLiked(true);
+      setIsLiked(true);
     }
-    setLikeCount(likes + (stored === 'true' ? 1 : 0)); 
+    setLikeCount(likes + (stored === 'true' ? 1 : 0));
   }, [id, likes]);
 
-  const handleLike = async (e: React.MouseEvent<HTMLElement>): Promise<void> => {
+  const handleLike = useCallback(async (e: React.MouseEvent<HTMLElement>): Promise<void> => {
     e.stopPropagation();
-    // Optimistic Update
     const newState = !isLiked;
     setIsLiked(newState);
     setLikeCount(prev => newState ? prev + 1 : prev - 1);
-    
-    // API Call (Fire and forget, or handle error revert)
     try {
-        await toggleScriptLike(id);
-        localStorage.setItem(`liked_script_${id}`, String(newState));
+      await toggleScriptLike(id);
+      localStorage.setItem(`liked_script_${id}`, String(newState));
     } catch (error) {
-        console.error("Failed to toggle like:", error);
-        // Revert on error
-        setIsLiked(!newState);
-        setLikeCount(prev => !newState ? prev + 1 : prev - 1);
+      console.error("Failed to toggle like:", error);
+      setIsLiked(!newState);
+      setLikeCount(prev => !newState ? prev + 1 : prev - 1);
     }
-  };
+  }, [id, isLiked]);
 
-  const handleCardClick = (): void => {
-     // Increment view count (fire and forget)
-     incrementScriptView(id).catch(err => console.error("Failed to count view", err));
-     if (onClick) onClick();
-  };
+  const handleCardClick = useCallback((): void => {
+    incrementScriptView(id).catch(err => console.error("Failed to count view", err));
+    if (onScriptClick) onScriptClick(script);
+    else if (onClick) onClick();
+  }, [id, onClick, onScriptClick, script]);
+
+  const handleSeriesClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/series/${encodeURIComponent(seriesName)}`);
+  }, [navigate, seriesName]);
+
+  const handleTagClick = useCallback((e: React.MouseEvent, tag: string) => {
+    e.stopPropagation();
+    navigate(`/?tag=${encodeURIComponent(tag)}`);
+  }, [navigate]);
 
   if (variant === "compact") {
     return (
@@ -126,10 +140,7 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }: Scr
                 <button
                   type="button"
                   className="min-w-0 text-[10px] text-muted-foreground line-clamp-1 hover:text-primary"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/series/${encodeURIComponent(seriesName)}`);
-                  }}
+                  onClick={handleSeriesClick}
                 >
                   {seriesName}{seriesOrderText}
                 </button>
@@ -184,10 +195,7 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }: Scr
           <button
             type="button"
             className="text-[11px] text-muted-foreground line-clamp-1 hover:text-primary"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/series/${encodeURIComponent(seriesName)}`);
-            }}
+            onClick={handleSeriesClick}
           >
             {seriesName}{seriesOrderText}
           </button>
@@ -197,14 +205,11 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }: Scr
         {displayTags.length > 0 && (
           <div className="flex flex-wrap gap-1 pt-1">
             {primaryTags.map((tag, i) => (
-              <Badge 
-                key={i} 
-                variant="outline" 
+              <Badge
+                key={i}
+                variant="outline"
                 className="max-w-[110px] px-1.5 py-0 h-5 text-[10px] font-normal hover:bg-secondary cursor-pointer border-primary/20 text-muted-foreground"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/?tag=${encodeURIComponent(tag)}`);
-                }}
+                onClick={(e) => handleTagClick(e, tag)}
                 title={tag}
               >
                 <span className="truncate">{tag}</span>
@@ -215,10 +220,7 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }: Scr
                 key={`secondary-${i}`}
                 variant="outline"
                 className="hidden sm:inline-flex max-w-[110px] px-1.5 py-0 h-5 text-[10px] font-normal hover:bg-secondary cursor-pointer border-primary/20 text-muted-foreground"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/?tag=${encodeURIComponent(tag)}`);
-                }}
+                onClick={(e) => handleTagClick(e, tag)}
                 title={tag}
               >
                 <span className="truncate">{tag}</span>
@@ -254,3 +256,5 @@ export function ScriptGalleryCard({ script, onClick, variant = "standard" }: Scr
     </Card>
   );
 }
+
+export const ScriptGalleryCard = React.memo(ScriptGalleryCardInner);

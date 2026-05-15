@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "../ui/button";
 
@@ -9,30 +9,39 @@ interface HorizontalScrollLaneProps {
   onAction?: () => void;
 }
 
-export function HorizontalScrollLane({ children, title, actionLabel, onAction }: HorizontalScrollLaneProps): React.JSX.Element {
+function HorizontalScrollLaneInner({ children, title, actionLabel, onAction }: HorizontalScrollLaneProps): React.JSX.Element {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [showLeft, setShowLeft] = useState<boolean>(false);
   const [showRight, setShowRight] = useState<boolean>(false);
   const [isLaneHovered, setIsLaneHovered] = useState<boolean>(false);
 
-  const checkScroll = () => {
+  const checkScroll = useCallback(() => {
     if (!scrollRef.current) return;
     const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
     setShowLeft(scrollLeft > 0);
-    // Use a small threshold (e.g. 5px) to account for fractional pixels
     setShowRight(scrollLeft < scrollWidth - clientWidth - 5);
-  };
+  }, []);
 
   useEffect(() => {
     checkScroll();
-    // Re-check after a brief delay to ensure children have rendered their widths
     const timer = setTimeout(checkScroll, 100);
     window.addEventListener("resize", checkScroll);
     return () => {
       clearTimeout(timer);
       window.removeEventListener("resize", checkScroll);
     };
-  }, [children]);
+    // children removed from deps: scroll state depends on DOM dimensions, not children identity.
+    // ResizeObserver on scrollRef handles content-size changes without referencing children.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkScroll]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(checkScroll);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [checkScroll]);
 
   const scroll = (direction: "left" | "right"): void => {
     if (!scrollRef.current) return;
@@ -42,6 +51,11 @@ export function HorizontalScrollLane({ children, title, actionLabel, onAction }:
     scrollRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
     // checkScroll will fire on the onScroll event automatically
   };
+
+  const handleMouseEnter = useCallback(() => setIsLaneHovered(true), []);
+  const handleMouseLeave = useCallback(() => setIsLaneHovered(false), []);
+  const handleScrollLeft = useCallback(() => scroll("left"), []);
+  const handleScrollRight = useCallback(() => scroll("right"), []);
 
   return (
     <section className="relative w-full flex flex-col">
@@ -65,8 +79,8 @@ export function HorizontalScrollLane({ children, title, actionLabel, onAction }:
       )}
       <div
         className="relative w-full"
-        onMouseEnter={() => setIsLaneHovered(true)}
-        onMouseLeave={() => setIsLaneHovered(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         {/* Left Scroll Button */}
         {showLeft && (
@@ -79,7 +93,7 @@ export function HorizontalScrollLane({ children, title, actionLabel, onAction }:
               variant="secondary"
               size="icon"
               className="pointer-events-auto rounded-full shadow-md border border-border w-10 h-10 hover:scale-105 active:scale-95 transition-transform bg-background/95 hover:bg-background"
-              onClick={() => scroll("left")}
+              onClick={handleScrollLeft}
               aria-label="向左滑動"
             >
               <ChevronLeft className="w-5 h-5 text-foreground" />
@@ -107,7 +121,7 @@ export function HorizontalScrollLane({ children, title, actionLabel, onAction }:
               variant="secondary"
               size="icon"
               className="pointer-events-auto rounded-full shadow-md border border-border w-10 h-10 hover:scale-105 active:scale-95 transition-transform bg-background/95 hover:bg-background"
-              onClick={() => scroll("right")}
+              onClick={handleScrollRight}
               aria-label="向右滑動"
             >
               <ChevronRight className="w-5 h-5 text-foreground" />
@@ -118,3 +132,5 @@ export function HorizontalScrollLane({ children, title, actionLabel, onAction }:
     </section>
   );
 }
+
+export const HorizontalScrollLane = React.memo(HorizontalScrollLaneInner);

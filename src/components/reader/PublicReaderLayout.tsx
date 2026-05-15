@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { SimplifiedReaderHeader } from "./SimplifiedReaderHeader";
 import { PublicScriptInfoOverlay } from "./PublicScriptInfoOverlay";
 import { PublicMarkerLegend } from "./PublicMarkerLegend";
@@ -49,7 +49,7 @@ export function PublicReaderLayout({
 }: PublicReaderLayoutProps) {
   const s = usePublicReaderLayoutState({ script, isLoading, viewerProps, scriptSurfaceProps, renderedHtml });
 
-  const contactRender = s.contactLines.length > 0 ? (
+  const contactRender = useMemo(() => s.contactLines.length > 0 ? (
     <div className="space-y-1.5">
       {s.contactLines.map((line, idx) => (
         <div key={`${line.key || "line"}-${idx}`} className="leading-5">
@@ -64,9 +64,9 @@ export function PublicReaderLayout({
         </div>
       ))}
     </div>
-  ) : null;
+  ) : null, [s.contactLines]);
 
-  const metaItems = [
+  const metaItems = useMemo(() => [
     { label: s.t("publicScriptInfo.contact"), render: contactRender },
     script?.showMarkerLegend && validMarkerConfigs?.length > 0
       ? {
@@ -79,7 +79,8 @@ export function PublicReaderLayout({
           ),
         }
       : null,
-  ].filter((item) => Boolean(item && item.render));
+  ].filter((item) => Boolean(item && item.render)),
+  [s.t, contactRender, script?.showMarkerLegend, validMarkerConfigs]);
 
   const safeScrollRef = scriptSurfaceProps?.scrollRef as React.RefObject<HTMLDivElement | null> | undefined;
 

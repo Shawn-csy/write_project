@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FileSpreadsheet, FileText, Printer } from "lucide-react";
 import { useSettings } from "../../contexts/SettingsContext";
@@ -134,12 +134,13 @@ export function EditorShell() {
 
   const handleCloudMarkerThemeUpdate = usePersistMarkerTheme(scriptManager);
 
-  const handleReturnHome = () => {
-    if (activeCloudScript) {
+  const handleReturnHome = useCallback(() => {
+    const script = activeCloudScriptRef.current;
+    if (script) {
       if (location.pathname.startsWith("/read/")) {
         // Visitor Mode
-        if (activeCloudScript.folder && activeCloudScript.folder !== "/") {
-          const targetExpand = `${activeCloudScript.ownerId}:${activeCloudScript.folder}`;
+        if (script.folder && script.folder !== "/") {
+          const targetExpand = `${script.ownerId}:${script.folder}`;
           navigate(`/?tab=read&public_expand=${encodeURIComponent(targetExpand)}`);
           return;
         } else {
@@ -148,8 +149,8 @@ export function EditorShell() {
         }
       } else {
         // Editor Mode
-        if (activeCloudScript.folder) {
-          navigate(`/dashboard?tab=write&folder=${encodeURIComponent(activeCloudScript.folder)}`);
+        if (script.folder) {
+          navigate(`/dashboard?tab=write&folder=${encodeURIComponent(script.folder)}`);
           return;
         }
       }
@@ -157,13 +158,13 @@ export function EditorShell() {
     // Default Fallback
     nav.openHome();
     navigate("/dashboard");
-  };
+  }, [location.pathname, navigate, nav]);
 
-  const navProps: NavProps = {
+  const navProps: NavProps = useMemo(() => ({
     nav,
     contentScrollRef,
     handleLocateText,
-  };
+  }), [nav, contentScrollRef, handleLocateText]);
 
   const headerTitle = nav.homeOpen
     ? t("app.homeTitle")
@@ -178,7 +179,7 @@ export function EditorShell() {
   const exportContent = rawScript || "";
   const renderedExportHtml = scriptManager.processedScriptHtml || scriptManager.rawScriptHtml || "";
 
-  const readerDownloadOptions: DownloadOption[] = [
+  const readerDownloadOptions: DownloadOption[] = useMemo(() => [
     {
       id: "pdf",
       label: t("publicReader.exportPdf"),
@@ -206,7 +207,7 @@ export function EditorShell() {
       },
       disabled: !exportContent,
     },
-  ];
+  ], [t, handleExportPdf, exportContent, exportTitle, renderedExportHtml, scriptManager.titleHtml]);
 
   const isPublicReader = location.pathname.startsWith("/read/");
   const isPublicGallery = location.pathname === "/";

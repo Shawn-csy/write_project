@@ -1,3 +1,4 @@
+import React, { useCallback } from "react";
 import { Button } from "../ui/button";
 import { CoverPlaceholder } from "../ui/CoverPlaceholder";
 import { HorizontalScrollLane } from "./HorizontalScrollLane";
@@ -28,12 +29,16 @@ interface Props {
   onNavigateSeries: (name: string) => void;
 }
 
-export function GalleryScriptsView({
+function GalleryScriptsViewInner({
   t, isLoading, viewMode, isDefaultView, featuredLaneMode, setFeaturedLaneMode,
   filteredScripts, topViewedScriptsPreview, latestScriptsPreview,
   featuredLaneScripts, featuredSeries, hasScriptFilters, resetScriptFilters,
   handleScriptClick, onNavigateSeries,
 }: Props) {
+  const onActionTop = useCallback(() => setFeaturedLaneMode("top"), [setFeaturedLaneMode]);
+  const onActionLatest = useCallback(() => setFeaturedLaneMode("latest"), [setFeaturedLaneMode]);
+  const onActionSeries = useCallback(() => setFeaturedLaneMode("series"), [setFeaturedLaneMode]);
+  const onActionBack = useCallback(() => setFeaturedLaneMode(false), [setFeaturedLaneMode]);
   if (isLoading) {
     return (
       <div className="grid gap-4 sm:gap-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}>
@@ -55,7 +60,7 @@ export function GalleryScriptsView({
         </div>
         <div className="overflow-hidden rounded-xl border border-border/65 bg-background/55 divide-y divide-border/55">
           {filteredScripts.map(script => (
-            <ScriptGalleryCard key={script.id} script={script} variant="compact" onClick={() => handleScriptClick(script)} />
+            <ScriptGalleryCard key={script.id} script={script} variant="compact" onScriptClick={handleScriptClick} />
           ))}
         </div>
       </div>
@@ -69,11 +74,11 @@ export function GalleryScriptsView({
           <HorizontalScrollLane
             title={t("publicGallery.categoryTopViewed", "點閱排行")}
             actionLabel={t("publicGallery.viewAll", "查看全部")}
-            onAction={() => setFeaturedLaneMode("top")}
+            onAction={onActionTop}
           >
             {topViewedScriptsPreview.map(script => (
               <div key={script.id} className="w-[145px] sm:w-[178px] shrink-0 snap-start">
-                <ScriptGalleryCard script={script} variant="standard" onClick={() => handleScriptClick(script)} />
+                <ScriptGalleryCard script={script} variant="standard" onScriptClick={handleScriptClick} />
               </div>
             ))}
           </HorizontalScrollLane>
@@ -82,11 +87,11 @@ export function GalleryScriptsView({
           <HorizontalScrollLane
             title={t("publicGallery.categoryLatest", "最新發布")}
             actionLabel={t("publicGallery.viewAll", "查看全部")}
-            onAction={() => setFeaturedLaneMode("latest")}
+            onAction={onActionLatest}
           >
             {latestScriptsPreview.map(script => (
               <div key={script.id} className="w-[145px] sm:w-[178px] shrink-0 snap-start">
-                <ScriptGalleryCard script={script} variant="standard" onClick={() => handleScriptClick(script)} />
+                <ScriptGalleryCard script={script} variant="standard" onScriptClick={handleScriptClick} />
               </div>
             ))}
           </HorizontalScrollLane>
@@ -95,10 +100,10 @@ export function GalleryScriptsView({
           <HorizontalScrollLane
             title={t("publicGallery.categorySeries", "熱門系列")}
             actionLabel={t("publicGallery.viewAll", "查看全部")}
-            onAction={() => setFeaturedLaneMode("series")}
+            onAction={onActionSeries}
           >
             {featuredSeries.map(series => (
-              <SeriesCard key={series.name} series={series} t={t} onClick={() => onNavigateSeries(series.name)} />
+              <SeriesCard key={series.name} series={series} t={t} onNavigate={onNavigateSeries} />
             ))}
           </HorizontalScrollLane>
         )}
@@ -114,13 +119,13 @@ export function GalleryScriptsView({
             {t("publicGallery.categorySeries", "熱門系列")}
             <span className="text-muted-foreground text-sm font-normal"> ({featuredSeries.length})</span>
           </h2>
-          <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground" onClick={() => setFeaturedLaneMode(false)}>
+          <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground" onClick={onActionBack}>
             {t("publicGallery.backToFeatured", "返回精選")}
           </Button>
         </div>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {featuredSeries.map(series => (
-            <SeriesCard key={series.name} series={series} t={t} onClick={() => onNavigateSeries(series.name)} grid />
+            <SeriesCard key={series.name} series={series} t={t} onNavigate={onNavigateSeries} grid />
           ))}
         </div>
       </div>
@@ -140,14 +145,14 @@ export function GalleryScriptsView({
           <span className="text-muted-foreground text-sm font-normal">({featuredLaneScripts.length})</span>
         </h2>
         {featuredLaneMode ? (
-          <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground" onClick={() => setFeaturedLaneMode(false)}>
+          <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground" onClick={onActionBack}>
             {t("publicGallery.backToFeatured", "返回精選")}
           </Button>
         ) : null}
       </div>
       <div className="grid gap-4 sm:gap-5 animate-in fade-in duration-500" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(165px, 1fr))" }}>
         {featuredLaneScripts.map(script => (
-          <ScriptGalleryCard key={script.id} script={script} variant="standard" onClick={() => handleScriptClick(script)} />
+          <ScriptGalleryCard key={script.id} script={script} variant="standard" onScriptClick={handleScriptClick} />
         ))}
       </div>
       {!featuredLaneMode && filteredScripts.length === 0 && (
@@ -160,12 +165,15 @@ export function GalleryScriptsView({
   );
 }
 
-function SeriesCard({ series, t, onClick, grid }: { series: FeaturedSeries; t: (k: string, f?: string) => string; onClick: () => void; grid?: boolean }) {
+export const GalleryScriptsView = React.memo(GalleryScriptsViewInner);
+
+const SeriesCard = React.memo(function SeriesCard({ series, t, onNavigate, grid }: { series: FeaturedSeries; t: (k: string, f?: string) => string; onNavigate: (name: string) => void; grid?: boolean }) {
+  const handleClick = useCallback(() => onNavigate(series.name), [onNavigate, series.name]);
   return (
     <button
       type="button"
       className={`${grid ? "" : "w-[145px] sm:w-[178px] shrink-0 snap-start "}text-left group`}
-      onClick={onClick}
+      onClick={handleClick}
     >
       <div className="aspect-[2/3] overflow-hidden rounded-lg border border-border/60 bg-muted/25">
         {series.coverUrl ? (
@@ -180,4 +188,4 @@ function SeriesCard({ series, t, onClick, grid }: { series: FeaturedSeries; t: (
       </div>
     </button>
   );
-}
+});

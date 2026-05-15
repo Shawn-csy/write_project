@@ -190,7 +190,7 @@ export function useLiveEditorState({
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [content, title]);
+  }, [content, title, t]);
 
   const normalizedDownloadOptions = useLiveEditorDownloadOptions({
     t, title, content, renderedHtmlRef, ensureRenderedHtml,

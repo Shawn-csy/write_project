@@ -3,7 +3,7 @@ import { Button } from "../../ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { Textarea } from "../../ui/textarea";
 import { MetadataDetailsTab } from "./MetadataDetailsTab";
-import { useChecklistContext, useContentContext, useExposureContext, useUIContext } from "./ScriptMetadataDialogContext";
+import { useChecklistContext, useContentContext, useExposureContext, useJsonEditorContext, useUIContext } from "./ScriptMetadataDialogContext";
 
 export function ScriptMetadataAdvancedSection({
   sectionId = "metadata-section-advanced",
@@ -17,8 +17,8 @@ export function ScriptMetadataAdvancedSection({
   const { metadataDetailsCommonProps } = useContentContext();
   const {
     markerThemeId, setMarkerThemeId, markerThemes, showMarkerLegend, setShowMarkerLegend, disableCopy, setDisableCopy,
-    jsonMode, setJsonMode, jsonText, setJsonText, jsonError, applyJson,
   } = useExposureContext();
+  const { jsonMode, setJsonMode, jsonText, setJsonText, jsonError, applyJson } = useJsonEditorContext();
   return (
     <section id={sectionId || undefined} className="space-y-3 scroll-mt-24">
       {showTitle && <h3 className="text-base font-semibold">{t("scriptMetadataDialog.tabAdvanced", "進階設定")}</h3>}

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { useTheme } from "../components/theme-provider";
 import {
@@ -17,6 +17,11 @@ import { usePersistentState } from "../hooks/usePersistentState";
 import { normalizeThemeConfigs } from "../lib/markerThemeCodec";
 import type { MarkerTheme } from "../hooks/useMarkerThemes";
 import type { MarkerConfig } from "../types/script";
+
+import { AppearanceProvider } from "./AppearanceContext";
+import { MarkerThemeProvider } from "./MarkerThemeContext";
+import { MarkerVisibilityProvider } from "./MarkerVisibilityContext";
+import { StatsConfigProvider } from "./StatsConfigContext";
 
 interface StatsKeywordRule {
   factor: number;
@@ -96,6 +101,8 @@ interface SettingsContextValue {
   switchTheme: (id: string) => void;
 }
 
+const FONT_STEPS = [12, 14, 16, 24, 36, 72] as const;
+
 const SettingsContext = createContext<SettingsContextValue | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
@@ -110,50 +117,62 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   // --- Persistent State ---
   const [accentRaw, setAccentRaw] = usePersistentState<AccentName>(STORAGE_KEYS.ACCENT, defaultAccent as AccentName);
   const accent: AccentName = accentRaw in accentThemes ? accentRaw : (defaultAccent as AccentName);
-  const setAccent = (next: AccentName) => setAccentRaw(next);
-  
+  // setAccentRaw is already stable from usePersistentState; expose directly as setAccent
+  const setAccent = setAccentRaw;
+
   // Font Sizes
   const [fontSize, setFontSize] = usePersistentState(STORAGE_KEYS.FONT_SIZE, 14, 'number');
   const [bodyFontSize, setBodyFontSize] = usePersistentState(STORAGE_KEYS.BODY_FONT, 14, 'number');
   const [dialogueFontSize, setDialogueFontSize] = usePersistentState(STORAGE_KEYS.DIALOGUE_FONT, 14, 'number');
   const [readingFontFamilyRaw, setReadingFontFamilyRaw] = usePersistentState(STORAGE_KEYS.READING_FONT, DEFAULT_READING_FONT);
   const readingFontFamily = normalizeReadingFont(readingFontFamilyRaw);
-  const setReadingFontFamily = (next: string) => setReadingFontFamilyRaw(normalizeReadingFont(next));
+  const setReadingFontFamily = useCallback(
+    (next: string) => setReadingFontFamilyRaw(normalizeReadingFont(next)),
+    [setReadingFontFamilyRaw]
+  );
   const [uiFontFamilyRaw, setUiFontFamilyRaw] = usePersistentState(STORAGE_KEYS.UI_FONT, DEFAULT_UI_FONT);
   const uiFontFamily = normalizeUiFont(uiFontFamilyRaw);
-  const setUiFontFamily = (next: string) => setUiFontFamilyRaw(normalizeUiFont(next));
-  
+  const setUiFontFamily = useCallback(
+    (next: string) => setUiFontFamilyRaw(normalizeUiFont(next)),
+    [setUiFontFamilyRaw]
+  );
+
   // Line Height (1.2 ~ 2.0, default 1.4)
   const [lineHeight, setLineHeight] = usePersistentState(STORAGE_KEYS.LINE_HEIGHT, 1.4, 'number');
   const [desktopUiScaleRaw, setDesktopUiScaleRaw] = usePersistentState(STORAGE_KEYS.DESKTOP_UI_SCALE, 1, 'number');
   const desktopUiScale = Number.isFinite(Number(desktopUiScaleRaw))
     ? Math.min(1.2, Math.max(1, Number(desktopUiScaleRaw)))
     : 1;
-  const setDesktopUiScale = (next: number) => {
+  const setDesktopUiScale = useCallback((next: number) => {
     const numeric = Number(next);
     if (!Number.isFinite(numeric)) return;
     const clamped = Math.min(1.2, Math.max(1, numeric));
     setDesktopUiScaleRaw(Number(clamped.toFixed(2)));
-  };
+  }, [setDesktopUiScaleRaw]);
 
   const [transparentBgStr, setTransparentBgStr] = usePersistentState(STORAGE_KEYS.TRANSPARENT_BG, "off");
   const transparentBg = transparentBgStr === "on";
-  const setTransparentBg = (val: boolean) => setTransparentBgStr(val ? "on" : "off");
+  const setTransparentBg = useCallback(
+    (val: boolean) => setTransparentBgStr(val ? "on" : "off"),
+    [setTransparentBgStr]
+  );
 
   const [showLineUnderlineStr, setShowLineUnderlineStr] = usePersistentState(STORAGE_KEYS.SHOW_UNDERLINE, "off");
   const showLineUnderline = showLineUnderlineStr === "on";
-  const setShowLineUnderline = (val: boolean) => setShowLineUnderlineStr(val ? "on" : "off");
+  const setShowLineUnderline = useCallback(
+    (val: boolean) => setShowLineUnderlineStr(val ? "on" : "off"),
+    [setShowLineUnderlineStr]
+  );
 
-  const fontSteps = [12, 14, 16, 24, 36, 72];
-  const adjustFont = (delta: number) => {
-    const idx = fontSteps.findIndex((v) => v === fontSize);
+  const adjustFont = useCallback((delta: number) => {
+    const idx = FONT_STEPS.findIndex((v) => v === fontSize);
     if (idx === -1) {
-      setFontSize(fontSteps[0]);
+      setFontSize(FONT_STEPS[0]);
       return;
     }
-    const next = fontSteps[idx + delta];
+    const next = FONT_STEPS[idx + delta];
     if (next) setFontSize(next);
-  };
+  }, [fontSize, setFontSize]);
 
   // Display Modes
 
@@ -178,18 +197,21 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   
   const [hideWhitespaceStr, setHideWhitespaceStr] = usePersistentState("hideWhitespace", "off");
   const hideWhitespace = hideWhitespaceStr === "on";
-  const setHideWhitespace = (val: boolean) => setHideWhitespaceStr(val ? "on" : "off");
+  const setHideWhitespace = useCallback(
+    (val: boolean) => setHideWhitespaceStr(val ? "on" : "off"),
+    [setHideWhitespaceStr]
+  );
 
 
 
   // Marker visibility (session-level)
   const [hiddenMarkerIds, setHiddenMarkerIds] = useState<string[]>([]);
-  const toggleMarkerVisibility = (id: string) => {
+  const toggleMarkerVisibility = useCallback((id: string) => {
     setHiddenMarkerIds((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id);
       return [...prev, id];
     });
-  };
+  }, []);
 
   // Stats Configuration
   const defaultStatsConfig: StatsConfig = {
@@ -207,7 +229,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const themes = useMarkerThemes(currentUser, Boolean(profile?.isAdmin));
 
   // API Helper
-  const apiCall = (url: string, method: string, body?: unknown) => serviceApiCall(currentUser, url, method, body);
+  const apiCall = useCallback(
+    (url: string, method: string, body?: unknown) => serviceApiCall(currentUser, url, method, body),
+    [currentUser]
+  );
   
   // Update CSS variables when accent changes
   const accentConfig = accentThemes[accent as AccentName] || accentThemes[defaultAccent];
@@ -394,7 +419,55 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       themes.currentThemeId
   ]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const appearanceValue = useMemo(() => ({
+    theme: resolvedTheme,
+    themeMode,
+    isDark,
+    setTheme,
+    accent,
+    setAccent,
+    accentOptions,
+    accentStyle: accentClasses,
+    accentConfig,
+    accentThemes,
+    fontSize, setFontSize,
+    bodyFontSize, setBodyFontSize,
+    dialogueFontSize, setDialogueFontSize,
+    readingFontFamily, setReadingFontFamily,
+    uiFontFamily, setUiFontFamily,
+    lineHeight, setLineHeight,
+    desktopUiScale, setDesktopUiScale,
+    adjustFont,
+    hideWhitespace, setHideWhitespace,
+    transparentBg, setTransparentBg,
+    showLineUnderline, setShowLineUnderline,
+  }), [
+    resolvedTheme, themeMode, isDark, setTheme,
+    accent, setAccent, accentConfig,
+    fontSize, setFontSize,
+    bodyFontSize, setBodyFontSize,
+    dialogueFontSize, setDialogueFontSize,
+    readingFontFamily, setReadingFontFamily,
+    uiFontFamily, setUiFontFamily,
+    lineHeight, setLineHeight,
+    desktopUiScale, setDesktopUiScale,
+    adjustFont,
+    hideWhitespace, setHideWhitespace,
+    transparentBg, setTransparentBg,
+    showLineUnderline, setShowLineUnderline,
+  ]);
+
+  const markerVisibilityValue = useMemo(() => ({
+    hiddenMarkerIds,
+    setHiddenMarkerIds,
+    toggleMarkerVisibility,
+  }), [hiddenMarkerIds, toggleMarkerVisibility]);
+
+  const statsConfigValue = useMemo(() => ({
+    statsConfig,
+    setStatsConfig,
+  }), [statsConfig, setStatsConfig]);
+
   const value = useMemo<SettingsContextValue>(() => ({
     // Theme
     currentUser,
@@ -439,17 +512,35 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     ...themes,
   }), [
     currentUser, resolvedTheme, themeMode, isDark, setTheme,
-    accent, accentConfig,
-    fontSize, bodyFontSize, dialogueFontSize, readingFontFamily, uiFontFamily, lineHeight, desktopUiScale,
-    hideWhitespace, transparentBg, showLineUnderline,
-    hiddenMarkerIds, statsConfig,
+    accent, setAccent, accentConfig,
+    fontSize, setFontSize,
+    bodyFontSize, setBodyFontSize,
+    dialogueFontSize, setDialogueFontSize,
+    readingFontFamily, setReadingFontFamily,
+    uiFontFamily, setUiFontFamily,
+    lineHeight, setLineHeight,
+    desktopUiScale, setDesktopUiScale,
+    adjustFont,
+    hideWhitespace, setHideWhitespace,
+    transparentBg, setTransparentBg,
+    showLineUnderline, setShowLineUnderline,
+    hiddenMarkerIds, toggleMarkerVisibility,
+    statsConfig, setStatsConfig,
     themes,
   ]);
 
   return (
-    <SettingsContext.Provider value={value}>
-      {children}
-    </SettingsContext.Provider>
+    <AppearanceProvider value={appearanceValue}>
+      <MarkerThemeProvider value={themes}>
+        <MarkerVisibilityProvider value={markerVisibilityValue}>
+          <StatsConfigProvider value={statsConfigValue}>
+            <SettingsContext.Provider value={value}>
+              {children}
+            </SettingsContext.Provider>
+          </StatsConfigProvider>
+        </MarkerVisibilityProvider>
+      </MarkerThemeProvider>
+    </AppearanceProvider>
   );
 }
 

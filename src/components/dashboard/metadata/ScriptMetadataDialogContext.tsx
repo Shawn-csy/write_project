@@ -609,12 +609,12 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
 export {
     useUIContext, useStatusContext, useChecklistContext, useOverlayContext,
     usePublicationContext, useContentContext, useLicenseContext, useExposureContext,
-    useActivityContext, useFormContext,
+    useJsonEditorContext, useActivityContext, useFormContext,
     ScriptMetadataDialogProvider,
     buildPublishChecklist,
 } from "./ScriptMetadataProvider";
 export type {
     UIContextValue, StatusContextValue, ChecklistContextValue, OverlayContextValue,
     PublicationContextValue, ContentContextValue, LicenseContextValue, ExposureContextValue,
-    ActivityContextValue, FormContextValue,
+    JsonEditorContextValue, ActivityContextValue, FormContextValue,
 } from "./ScriptMetadataProvider";

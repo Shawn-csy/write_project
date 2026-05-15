@@ -1,7 +1,7 @@
 # Frontend Architecture & Performance Refactor Plan v2
 
 > Branch: `dev-export`
-> Status: In Progress
+> Status: ✅ All Tasks Complete
 > Last updated: 2026-05-15
 
 ---
@@ -37,7 +37,21 @@
 
 ---
 
-## 待修復清單（v2 優先順序）
+## 已完成 Task（v2 驗證，2026-05-15）
+
+所有 Task 1–5 已在 `dev-export` branch 完成並驗證。
+
+| Task | 說明 | 狀態 |
+|------|------|------|
+| T1 | AuthContext: login/logout/saveProfile → useCallback([]) | ✅ 完成 |
+| T2 | useScriptMetadataJsonPreview: jsonMode/script early-return guard | ✅ 完成 |
+| T3 | 抽出 buildScriptPayload 純函式 → src/lib/scriptMetadataPayload.ts | ✅ 完成 |
+| T4 | FormContext 拆成 Publication/Content/License/Exposure/Activity domain contexts | ✅ 完成 |
+| T5 | App.tsx slim → EditorShell.tsx 承接 orchestration | ✅ 完成 |
+
+---
+
+## 原始待修復清單（v2 優先順序，供參考）
 
 ### Task 1 — AuthContext 函式穩定化【極低難度 · 高收益】
 
