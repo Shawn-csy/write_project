@@ -14,7 +14,6 @@ import { ImportFormatGuideDialog } from "./import/ImportFormatGuideDialog";
 import type { ControlledMetadataField } from "./import/ImportStagePreview";
 
 import { useImportScriptDialogState, STEPS, type ImportPayload } from "../../../hooks/dashboard/useImportScriptDialogState";
-import { autoRemoveWhitespace } from "../../../hooks/dashboard/useImportScriptDialogState";
 
 export { metadataToCustomEntries } from "../../../hooks/dashboard/useImportScriptDialogState";
 
@@ -125,10 +124,8 @@ export function ImportScriptDialog({ open, onOpenChange, onImport, currentPath }
               <div ref={s.guidePreviewRef} className="h-full">
                 <ImportStagePreview
                   previewText={s.preprocessResult.cleanedText}
-                  setPreviewText={(val) => s.setPreprocessResult(prev => ({ ...prev, cleanedText: val }))}
-                  onAutoRemoveWhitespace={() =>
-                    s.setPreprocessResult(prev => ({ ...prev, cleanedText: autoRemoveWhitespace(prev?.cleanedText || "") }))
-                  }
+                  setPreviewText={s.handleSetPreviewText}
+                  onAutoRemoveWhitespace={s.handleAutoRemoveWhitespace}
                   metadataPreview={s.metadata}
                   controlledMetadataFields={CONTROLLED_METADATA_FIELDS}
                   onMetadataChange={(key, value) => s.setMetadata(prev => ({ ...prev, [key]: String(value ?? "") }))}

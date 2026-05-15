@@ -44,6 +44,7 @@ export interface ImportPayload {
 }
 
 const MAX_IMPORT_FILE_MB = 5;
+const PREVIEW_MARKER_CONFIGS = getDefaultMarkerRules();
 const SCRIPT_INFO_FIELDS = ["Title", "Author", "Draft date", "Description", "Tags", "Rating", "Duration", "Source", "RoleSetting", "PerformanceInstruction", "ChapterSettings"];
 
 const buildEditableMetadata = (input: Record<string, unknown> = {}): EditableMetadata => {
@@ -122,10 +123,8 @@ export function useImportScriptDialogState({ open, onOpenChange, onImport, curre
   const guidePreviewRef = useRef<HTMLDivElement | null>(null);
   const guideResultRef = useRef<HTMLDivElement | null>(null);
 
-  const previewMarkerConfigs = getDefaultMarkerRules();
-  const previewAst = preprocessResult?.cleanedText
-    ? parseScreenplay(preprocessResult.cleanedText, previewMarkerConfigs).ast
-    : null;
+  const previewMarkerConfigs = PREVIEW_MARKER_CONFIGS;
+  const [previewAst, setPreviewAst] = useState<ReturnType<typeof parseScreenplay>["ast"] | null>(null);
 
   const guideSteps: ImportGuideStep[] = [
     { title: t("importDialog.guideStepPasteTitle"), description: t("importDialog.guideStepPasteDesc"), step: STEPS.INPUT, focus: "paste" },
@@ -168,7 +167,7 @@ export function useImportScriptDialogState({ open, onOpenChange, onImport, curre
     setStep(STEPS.INPUT); setRawInput(""); setTitle(""); setCharacterNamesInput("");
     setPreprocessResult(null); setMetadataParseResult({ metadata: {}, strippedText: "", autoCleanedText: "" });
     setMetadata(buildEditableMetadata()); setShowGuide(false); setShowFormatQuickInfo(false);
-    setShowFormatDetails(false); setGuideIndex(0); setSpotlightRect(null);
+    setShowFormatDetails(false); setGuideIndex(0); setSpotlightRect(null); setPreviewAst(null);
   }, []);
 
   const handleOpenChange = useCallback((isOpen: boolean) => {
@@ -228,8 +227,21 @@ export function useImportScriptDialogState({ open, onOpenChange, onImport, curre
       setPreprocessResult(prev => ({ ...prev, cleanedText: autoCleanedText }));
   }, [preprocessResult]);
 
+  const handleSetPreviewText = useCallback((val: string) => {
+    setPreprocessResult(prev => prev ? { ...prev, cleanedText: val } : prev);
+  }, []);
+
+  const handleAutoRemoveWhitespace = useCallback(() => {
+    setPreprocessResult(prev => prev ? { ...prev, cleanedText: autoRemoveWhitespace(prev.cleanedText || "") } : prev);
+  }, []);
+
   const handlePreprocess = useCallback(() => { runPreprocess(rawInput); }, [rawInput, runPreprocess]);
-  const handleToResult = useCallback(() => { if (!preprocessResult) return; setStep(STEPS.RESULT); }, [preprocessResult]);
+  const handleToResult = useCallback(() => {
+    if (!preprocessResult?.cleanedText) return;
+    const ast = parseScreenplay(preprocessResult.cleanedText, PREVIEW_MARKER_CONFIGS).ast;
+    setPreviewAst(ast);
+    setStep(STEPS.RESULT);
+  }, [preprocessResult]);
 
   const finishGuide = useCallback(() => {
     setShowGuide(false); setSpotlightRect(null);
@@ -307,6 +319,7 @@ export function useImportScriptDialogState({ open, onOpenChange, onImport, curre
     metadataParseResult, previewMarkerConfigs, previewAst,
     guidePasteRef, guideCharacterRef, guidePreviewRef, guideResultRef,
     handleOpenChange, handlePaste, handlePreprocess, handleToResult,
+    handleSetPreviewText, handleAutoRemoveWhitespace,
     handleApplyParsedMetadataRemoval, handleConfirmImport,
     handleGuideStart, handleGuideNext, handleGuidePrev, finishGuide,
     markerRows, detailRows,
