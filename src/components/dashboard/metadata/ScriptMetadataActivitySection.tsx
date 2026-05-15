@@ -3,48 +3,23 @@ import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Textarea } from "../../ui/textarea";
 import { getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
-
-interface ScriptMetadataActivitySectionProps {
-  sectionId?: string;
-  showTitle?: boolean;
-  t: (key: string, fallback?: string) => string;
-  getRowLabelClass: (tone: "required" | "recommended" | "advanced") => string;
-  activityName: string;
-  setActivityName: (value: string) => void;
-  activityBannerUrl: string;
-  setActivityBannerUrl: (value: string) => void;
-  handleActivityBannerUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onOpenActivityBannerMediaPicker: () => void;
-  activityBannerPreviewFailed: boolean;
-  setActivityBannerPreviewFailed: (failed: boolean) => void;
-  activityBannerUploadError: string;
-  activityBannerUploadWarning: string;
-  activityContent: string;
-  setActivityContent: (value: string) => void;
-  activityWorkUrl: string;
-  setActivityWorkUrl: (value: string) => void;
-}
+import { useActivityContext, useContentContext, useUIContext } from "./ScriptMetadataDialogContext";
 
 export function ScriptMetadataActivitySection({
   sectionId = "metadata-section-activity",
   showTitle = true,
-  t,
-  getRowLabelClass,
-  activityName,
-  setActivityName,
-  activityBannerUrl,
-  setActivityBannerUrl,
-  handleActivityBannerUpload,
-  onOpenActivityBannerMediaPicker,
-  activityBannerPreviewFailed,
-  setActivityBannerPreviewFailed,
-  activityBannerUploadError,
-  activityBannerUploadWarning,
-  activityContent,
-  setActivityContent,
-  activityWorkUrl,
-  setActivityWorkUrl,
-}: ScriptMetadataActivitySectionProps) {
+}: {
+  sectionId?: string;
+  showTitle?: boolean;
+}) {
+  const { t } = useUIContext();
+  const { getRowLabelClass } = useContentContext();
+  const {
+    activityName, setActivityName, activityBannerUrl, setActivityBannerUrl, handleActivityBannerUpload,
+    openActivityBannerMediaPicker, activityBannerPreviewFailed, setActivityBannerPreviewFailed,
+    activityBannerUploadError, activityBannerUploadWarning, activityContent, setActivityContent,
+    activityWorkUrl, setActivityWorkUrl,
+  } = useActivityContext();
   const bannerGuide = React.useMemo(() => getImageUploadGuide("banner"), []);
   return (
     <section id={sectionId || undefined} className="space-y-3 scroll-mt-24">
@@ -77,7 +52,7 @@ export function ScriptMetadataActivitySection({
                 上傳圖片
                 <input type="file" accept={MEDIA_FILE_ACCEPT} className="hidden" onChange={handleActivityBannerUpload} />
               </label>
-              <Button type="button" variant="secondary" size="sm" className="h-8 text-xs" onClick={onOpenActivityBannerMediaPicker}>
+              <Button type="button" variant="secondary" size="sm" className="h-8 text-xs" onClick={openActivityBannerMediaPicker}>
                 從媒體庫選擇
               </Button>
             </div>

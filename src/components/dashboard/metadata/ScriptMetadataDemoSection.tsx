@@ -3,6 +3,7 @@ import { Plus, X } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Textarea } from "../../ui/textarea";
+import { useActivityContext, useContentContext } from "./ScriptMetadataDialogContext";
 
 interface ActivityDemoLinkItem {
   id: string;
@@ -12,29 +13,20 @@ interface ActivityDemoLinkItem {
   description: string;
 }
 
-interface ScriptMetadataDemoSectionProps {
-  sectionId?: string;
-  showTitle?: boolean;
-  getRowLabelClass: (tone: "required" | "recommended" | "advanced") => string;
-  activityDemoLinks: ActivityDemoLinkItem[];
-  onAddActivityDemoLink: () => void;
-  onUpdateActivityDemoLink: (
-    index: number,
-    field: "name" | "cast" | "url" | "description",
-    value: string
-  ) => void;
-  onRemoveActivityDemoLink: (index: number) => void;
-}
-
 export function ScriptMetadataDemoSection({
   sectionId = "metadata-section-demo",
   showTitle = true,
-  getRowLabelClass,
-  activityDemoLinks,
-  onAddActivityDemoLink,
-  onUpdateActivityDemoLink,
-  onRemoveActivityDemoLink,
-}: ScriptMetadataDemoSectionProps) {
+}: {
+  sectionId?: string;
+  showTitle?: boolean;
+}) {
+  const { getRowLabelClass } = useContentContext();
+  const {
+    activityDemoLinks,
+    handleAddActivityDemoLink: onAddActivityDemoLink,
+    handleUpdateActivityDemoLink: onUpdateActivityDemoLink,
+    handleRemoveActivityDemoLink: onRemoveActivityDemoLink,
+  } = useActivityContext();
   return (
     <section id={sectionId || undefined} className="space-y-3 scroll-mt-24">
       {showTitle && <h3 className="text-base font-semibold">試聽範例</h3>}

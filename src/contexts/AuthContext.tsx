@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { auth, googleProvider, initAnalytics } from "../lib/firebase";
 import { signInWithPopup, signOut, onAuthStateChanged, type User } from "firebase/auth";
 import { getUserProfile, updateUserProfile } from "../lib/api/user";
@@ -63,21 +63,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  function login() {
+  // Safe with [] today: this callback only uses stable module-level references.
+  // Revisit deps if login starts reading mutable local state or runtime env values.
+  const login = useCallback(() => {
     if (localAuthEnabled) {
       setCurrentUser(getLocalUser());
       return Promise.resolve();
     }
     return signInWithPopup(auth, googleProvider);
-  }
+  }, []);
 
-  function logout() {
+  // Safe with [] today: this callback only uses stable module-level references.
+  // Revisit deps if logout starts reading mutable local state or runtime env values.
+  const logout = useCallback(() => {
     if (localAuthEnabled) {
       setCurrentUser(null);
       return Promise.resolve();
     }
     return signOut(auth);
-  }
+  }, []);
 
   const syncUserProfile = async (user: User | LocalUser) => {
     if (!user) return;
@@ -113,11 +117,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const saveProfile = async (updates: Partial<UserProfile>) => {
+  // Safe with [] today: state updates are functional and do not depend on profile snapshot.
+  // Revisit deps if saveProfile starts reading mutable local state.
+  const saveProfile = useCallback(async (updates: Partial<UserProfile>) => {
     const updated = await updateUserProfile(updates || {});
     setProfile((prev) => ({ ...(prev || {}), ...(updated || updates || {}) }));
     return updated;
-  };
+  }, []);
 
   useEffect(() => {
     initAnalytics();

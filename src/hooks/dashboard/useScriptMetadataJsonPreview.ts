@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { normalizeActivityDemoLinks } from "../../lib/activityDemoLinks";
+import { buildJsonPreviewPayload } from "../../lib/scriptMetadataPayload";
 import type { ScriptLike, TagLike, ContactField, CustomField, LicenseSpecialTerm } from "./types";
 
 interface UseScriptMetadataJsonPreviewOptions {
@@ -76,24 +76,15 @@ export function useScriptMetadataJsonPreview({
   customFields,
   jsonMode,
   setJsonText,
-}: UseScriptMetadataJsonPreviewOptions) {
+  }: UseScriptMetadataJsonPreviewOptions) {
   useEffect(() => {
+    if (jsonMode !== "true") return;
     if (!script) return;
-    const customObject: Record<string, unknown> = {};
-    (customFields || []).forEach(({ key, value }) => {
-      if (key) customObject[key] = value;
-    });
-    const contactObject: Record<string, unknown> = {};
-    (contactFields || []).forEach(({ key, value }) => {
-      if (key) contactObject[key] = value;
-    });
-    const payload = {
+    const payload = buildJsonPreviewPayload({
       title,
-      credit: "",
       author,
       authorDisplayMode,
-      authors: "",
-      draftDate: date,
+      date,
       synopsis,
       outline,
       roleSetting,
@@ -104,30 +95,25 @@ export function useScriptMetadataJsonPreview({
       activityName,
       activityBannerUrl,
       activityContent,
-      activityDemoLinks: normalizeActivityDemoLinks(activityDemoLinks).map(({ name, url, cast, description }) => ({
-        name,
-        url,
-        cast,
-        description,
-      })),
+      activityDemoLinks,
       activityWorkUrl,
       contact,
-      series: seriesName,
+      contactFields,
+      seriesName,
       seriesId,
       seriesOrder,
-      cover: coverUrl,
+      coverUrl,
       status,
       licenseCommercial,
       licenseDerivative,
       licenseNotify,
       licenseSpecialTerms,
       copyright,
-      publishAs: identity,
-      selectedOrgId: selectedOrgId || "",
-      tags: (currentTags || []).map((tag) => ({ name: tag.name, color: tag.color })),
-      contactFields: contactObject,
-      custom: customObject,
-    };
+      identity,
+      selectedOrgId,
+      currentTags,
+      customFields,
+    });
     setJsonText(JSON.stringify(payload, null, 2));
   }, [
     script,

@@ -680,6 +680,8 @@ function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         performanceInstruction, setPerformanceInstruction,
         openingIntro, setOpeningIntro,
         chapterSettings, setChapterSettings,
+        contactFields, setContactFields,
+        customFields, setCustomFields,
         requiredErrorMap, recommendedErrorMap, missingRequiredMap,
         getRowLabelClass, renderRowLabel,
         // publish section
@@ -799,6 +801,76 @@ export function useOverlayContext() {
     return ctx;
 }
 
+export type PublicationContextValue = Pick<AllState,
+    "status" | "setStatus" | "identity" | "setIdentity" | "selectedOrgId" | "setSelectedOrgId" |
+    "targetAudience" | "handleSetTargetAudience" | "contentRating" | "handleSetContentRating"
+>;
+const PublicationContext = React.createContext<PublicationContextValue | null>(null);
+export function usePublicationContext() {
+    const ctx = React.useContext(PublicationContext);
+    if (!ctx) throw new Error("usePublicationContext must be used within ScriptMetadataDialogProvider");
+    return ctx;
+}
+
+export type ContentContextValue = Pick<AllState,
+    "title" | "setTitle" | "author" | "setAuthorWithTracking" | "authorDisplayMode" | "setAuthorDisplayModeWithTracking" |
+    "date" | "setDate" | "synopsis" | "setSynopsis" | "outline" | "setOutline" | "roleSetting" | "setRoleSetting" |
+    "backgroundInfo" | "setBackgroundInfo" | "performanceInstruction" | "setPerformanceInstruction" |
+    "openingIntro" | "setOpeningIntro" | "chapterSettings" | "setChapterSettings" |
+    "contactFields" | "setContactFields" | "customFields" | "setCustomFields" | "metadataDetailsCommonProps" |
+    "currentUser" | "personas" | "orgs" | "requiredErrorMap" | "recommendedErrorMap" | "missingRequiredMap" |
+    "renderRowLabel" | "getRowLabelClass"
+>;
+const ContentContext = React.createContext<ContentContextValue | null>(null);
+export function useContentContext() {
+    const ctx = React.useContext(ContentContext);
+    if (!ctx) throw new Error("useContentContext must be used within ScriptMetadataDialogProvider");
+    return ctx;
+}
+
+export type LicenseContextValue = Pick<AllState,
+    "licenseCommercial" | "setLicenseCommercial" | "licenseDerivative" | "setLicenseDerivative" |
+    "licenseNotify" | "setLicenseNotify" | "publishNewTerm" | "setPublishNewTerm" |
+    "addLicenseSpecialTerm" | "licenseSpecialTerms" | "removeLicenseSpecialTerm"
+>;
+const LicenseContext = React.createContext<LicenseContextValue | null>(null);
+export function useLicenseContext() {
+    const ctx = React.useContext(LicenseContext);
+    if (!ctx) throw new Error("useLicenseContext must be used within ScriptMetadataDialogProvider");
+    return ctx;
+}
+
+export type ExposureContextValue = Pick<AllState,
+    "coverUrl" | "setCoverUrl" | "handleCoverUpload" | "openCoverMediaPicker" | "coverUploadError" |
+    "coverUploadWarning" | "coverPreviewFailed" | "setCoverPreviewFailed" | "seriesExpanded" | "setSeriesExpanded" |
+    "seriesId" | "setSeriesId" | "seriesName" | "setSeriesName" | "seriesOrder" | "setSeriesOrder" |
+    "quickSeriesName" | "setQuickSeriesName" | "setShowSeriesQuickCreate" | "showSeriesQuickCreate" |
+    "focusSeriesSelect" | "handleQuickCreateSeries" | "isCreatingSeries" | "newTagInput" | "setNewTagInput" |
+    "handleAddTag" | "currentTags" | "handleRemoveTag" | "markerThemeId" | "setMarkerThemeId" | "markerThemes" |
+    "showMarkerLegend" | "setShowMarkerLegend" | "disableCopy" | "setDisableCopy" | "jsonMode" | "setJsonMode" |
+    "jsonText" | "setJsonText" | "jsonError" | "applyJson"
+>;
+const ExposureContext = React.createContext<ExposureContextValue | null>(null);
+export function useExposureContext() {
+    const ctx = React.useContext(ExposureContext);
+    if (!ctx) throw new Error("useExposureContext must be used within ScriptMetadataDialogProvider");
+    return ctx;
+}
+
+export type ActivityContextValue = Pick<AllState,
+    "activityName" | "setActivityName" | "activityBannerUrl" | "setActivityBannerUrl" |
+    "handleActivityBannerUpload" | "openActivityBannerMediaPicker" | "activityBannerPreviewFailed" |
+    "setActivityBannerPreviewFailed" | "activityBannerUploadError" | "activityBannerUploadWarning" |
+    "activityContent" | "setActivityContent" | "activityWorkUrl" | "setActivityWorkUrl" |
+    "activityDemoLinks" | "handleAddActivityDemoLink" | "handleUpdateActivityDemoLink" | "handleRemoveActivityDemoLink"
+>;
+const ActivityContext = React.createContext<ActivityContextValue | null>(null);
+export function useActivityContext() {
+    const ctx = React.useContext(ActivityContext);
+    if (!ctx) throw new Error("useActivityContext must be used within ScriptMetadataDialogProvider");
+    return ctx;
+}
+
 /** All form state. ScriptMetadataDialogBody is the primary consumer. */
 export type FormContextValue = Omit<AllState,
     keyof UIContextValue | keyof StatusContextValue | keyof ChecklistContextValue | keyof OverlayContextValue
@@ -900,15 +972,129 @@ export function ScriptMetadataDialogProvider({
         ...form
     } = all;
 
+    const {
+        identity, setIdentity, selectedOrgId, setSelectedOrgId, targetAudience, handleSetTargetAudience, contentRating, handleSetContentRating,
+        title, setTitle, author, setAuthorWithTracking, authorDisplayMode, setAuthorDisplayModeWithTracking, date, setDate,
+        synopsis, setSynopsis, outline, setOutline, roleSetting, setRoleSetting, backgroundInfo, setBackgroundInfo,
+        performanceInstruction, setPerformanceInstruction, openingIntro, setOpeningIntro, chapterSettings, setChapterSettings,
+        contactFields, setContactFields, customFields, setCustomFields,
+        metadataDetailsCommonProps, currentUser, personas, orgs, requiredErrorMap, recommendedErrorMap, missingRequiredMap,
+        renderRowLabel, getRowLabelClass,
+        licenseCommercial, setLicenseCommercial, licenseDerivative, setLicenseDerivative, licenseNotify, setLicenseNotify,
+        publishNewTerm, setPublishNewTerm, addLicenseSpecialTerm, licenseSpecialTerms, removeLicenseSpecialTerm,
+        coverUrl, setCoverUrl, handleCoverUpload, openCoverMediaPicker, coverUploadError, coverUploadWarning, coverPreviewFailed, setCoverPreviewFailed,
+        seriesExpanded, setSeriesExpanded, seriesId, setSeriesId, seriesName, setSeriesName, seriesOrder, setSeriesOrder,
+        quickSeriesName, setQuickSeriesName, setShowSeriesQuickCreate, showSeriesQuickCreate, focusSeriesSelect, handleQuickCreateSeries,
+        isCreatingSeries, newTagInput, setNewTagInput, handleAddTag, currentTags, handleRemoveTag, markerThemeId, setMarkerThemeId,
+        markerThemes, showMarkerLegend, setShowMarkerLegend, disableCopy, setDisableCopy, jsonMode, setJsonMode, jsonText, setJsonText, jsonError, applyJson,
+        activityName, setActivityName, activityBannerUrl, setActivityBannerUrl, handleActivityBannerUpload, openActivityBannerMediaPicker,
+        activityBannerPreviewFailed, setActivityBannerPreviewFailed, activityBannerUploadError, activityBannerUploadWarning,
+        activityContent, setActivityContent, activityWorkUrl, setActivityWorkUrl, activityDemoLinks,
+        handleAddActivityDemoLink, handleUpdateActivityDemoLink, handleRemoveActivityDemoLink,
+    } = form;
+
+    const publication: PublicationContextValue = useMemo(() => ({
+        status: allStatus,
+        setStatus,
+        identity,
+        setIdentity,
+        selectedOrgId,
+        setSelectedOrgId,
+        targetAudience,
+        handleSetTargetAudience,
+        contentRating,
+        handleSetContentRating,
+    }), [
+        allStatus, setStatus, identity, setIdentity, selectedOrgId, setSelectedOrgId,
+        targetAudience, handleSetTargetAudience, contentRating, handleSetContentRating,
+    ]);
+
+    const content: ContentContextValue = useMemo(() => ({
+        title, setTitle, author, setAuthorWithTracking, authorDisplayMode, setAuthorDisplayModeWithTracking,
+        date, setDate, synopsis, setSynopsis, outline, setOutline, roleSetting, setRoleSetting,
+        backgroundInfo, setBackgroundInfo, performanceInstruction, setPerformanceInstruction,
+        openingIntro, setOpeningIntro, chapterSettings, setChapterSettings,
+        contactFields,
+        setContactFields,
+        customFields,
+        setCustomFields,
+        metadataDetailsCommonProps,
+        currentUser,
+        personas,
+        orgs,
+        requiredErrorMap,
+        recommendedErrorMap,
+        missingRequiredMap,
+        renderRowLabel,
+        getRowLabelClass,
+    }), [
+        title, setTitle, author, setAuthorWithTracking, authorDisplayMode, setAuthorDisplayModeWithTracking,
+        date, setDate, synopsis, setSynopsis, outline, setOutline, roleSetting, setRoleSetting, backgroundInfo,
+        setBackgroundInfo, performanceInstruction, setPerformanceInstruction, openingIntro, setOpeningIntro,
+        chapterSettings, setChapterSettings, contactFields, setContactFields, customFields, setCustomFields,
+        metadataDetailsCommonProps, currentUser, personas, orgs, requiredErrorMap, recommendedErrorMap, missingRequiredMap,
+        renderRowLabel, getRowLabelClass,
+    ]);
+
+    const license: LicenseContextValue = useMemo(() => ({
+        licenseCommercial, setLicenseCommercial, licenseDerivative, setLicenseDerivative,
+        licenseNotify, setLicenseNotify, publishNewTerm, setPublishNewTerm,
+        addLicenseSpecialTerm, licenseSpecialTerms, removeLicenseSpecialTerm,
+    }), [
+        licenseCommercial, setLicenseCommercial, licenseDerivative, setLicenseDerivative,
+        licenseNotify, setLicenseNotify, publishNewTerm, setPublishNewTerm,
+        addLicenseSpecialTerm, licenseSpecialTerms, removeLicenseSpecialTerm,
+    ]);
+
+    const exposure: ExposureContextValue = useMemo(() => ({
+        coverUrl, setCoverUrl, handleCoverUpload, openCoverMediaPicker, coverUploadError, coverUploadWarning,
+        coverPreviewFailed, setCoverPreviewFailed, seriesExpanded, setSeriesExpanded, seriesId, setSeriesId,
+        seriesName, setSeriesName, seriesOrder, setSeriesOrder, quickSeriesName, setQuickSeriesName,
+        setShowSeriesQuickCreate, showSeriesQuickCreate, focusSeriesSelect, handleQuickCreateSeries,
+        isCreatingSeries, newTagInput, setNewTagInput, handleAddTag, currentTags, handleRemoveTag, markerThemeId, setMarkerThemeId,
+        markerThemes, showMarkerLegend, setShowMarkerLegend, disableCopy, setDisableCopy, jsonMode, setJsonMode,
+        jsonText, setJsonText, jsonError, applyJson,
+    }), [
+        coverUrl, setCoverUrl, handleCoverUpload, openCoverMediaPicker, coverUploadError, coverUploadWarning,
+        coverPreviewFailed, setCoverPreviewFailed, seriesExpanded, setSeriesExpanded, seriesId, setSeriesId,
+        seriesName, setSeriesName, seriesOrder, setSeriesOrder, quickSeriesName, setQuickSeriesName,
+        setShowSeriesQuickCreate, showSeriesQuickCreate, focusSeriesSelect, handleQuickCreateSeries,
+        isCreatingSeries, newTagInput, setNewTagInput, handleAddTag, currentTags, handleRemoveTag, markerThemeId, setMarkerThemeId,
+        markerThemes, showMarkerLegend, setShowMarkerLegend, disableCopy, setDisableCopy, jsonMode, setJsonMode,
+        jsonText, setJsonText, jsonError, applyJson,
+    ]);
+
+    const activity: ActivityContextValue = useMemo(() => ({
+        activityName, setActivityName, activityBannerUrl, setActivityBannerUrl, handleActivityBannerUpload, openActivityBannerMediaPicker,
+        activityBannerPreviewFailed, setActivityBannerPreviewFailed, activityBannerUploadError, activityBannerUploadWarning,
+        activityContent, setActivityContent, activityWorkUrl, setActivityWorkUrl, activityDemoLinks,
+        handleAddActivityDemoLink, handleUpdateActivityDemoLink, handleRemoveActivityDemoLink,
+    }), [
+        activityName, setActivityName, activityBannerUrl, setActivityBannerUrl, handleActivityBannerUpload, openActivityBannerMediaPicker,
+        activityBannerPreviewFailed, setActivityBannerPreviewFailed, activityBannerUploadError, activityBannerUploadWarning,
+        activityContent, setActivityContent, activityWorkUrl, setActivityWorkUrl, activityDemoLinks,
+        handleAddActivityDemoLink, handleUpdateActivityDemoLink, handleRemoveActivityDemoLink,
+    ]);
+
     return (
         <UIContext.Provider value={ui}>
             <StatusContext.Provider value={status}>
                 <ChecklistContext.Provider value={checklist}>
                     <OverlayContext.Provider value={overlay}>
                         <FormContext.Provider value={form as FormContextValue}>
-                            <ScriptMetadataDialogContext.Provider value={all}>
-                                {children}
-                            </ScriptMetadataDialogContext.Provider>
+                            <PublicationContext.Provider value={publication}>
+                                <ContentContext.Provider value={content}>
+                                    <LicenseContext.Provider value={license}>
+                                        <ExposureContext.Provider value={exposure}>
+                                            <ActivityContext.Provider value={activity}>
+                                                <ScriptMetadataDialogContext.Provider value={all}>
+                                                    {children}
+                                                </ScriptMetadataDialogContext.Provider>
+                                            </ActivityContext.Provider>
+                                        </ExposureContext.Provider>
+                                    </LicenseContext.Provider>
+                                </ContentContext.Provider>
+                            </PublicationContext.Provider>
                         </FormContext.Provider>
                     </OverlayContext.Provider>
                 </ChecklistContext.Provider>
