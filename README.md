@@ -1,30 +1,29 @@
 # 公開台本平台
 
-這是一個面向「公開閱讀」與「創作工作室」的台本平台。使用者可以瀏覽公開作品、建立作者/組織頁面、管理作品並編輯劇本。
+這是一個面向「公開閱讀」與「創作工作室」的台本平台。使用者可瀏覽公開作品、管理作者/組織頁面、編輯與發布劇本。
 
-## 主要功能
+## 功能範圍
 - 公開作品瀏覽、搜尋、排序
-- 作者與組織頁面（含橫幅與標籤）
-- 創作工作室：作品管理、授權與 Metadata
-- 線上編輯與閱讀（雙欄預覽）
-- 多語系支援 (i18n) 包含繁體中文、英文與日文
+- 作者與組織公開頁（含橫幅與標籤）
+- 工作室 Dashboard（作品/作者/組織/系列管理）
+- 劇本編輯與閱讀（支援 metadata、匯出）
+- 多語系（繁中 / 英文 / 日文）
 
-## 主要模組
-- **公開平台**：公開作品列表、搜尋/排序、作者/組織頁面  
-- **工作室**：作品管理、作者身份與組織管理、授權設定  
-- **閱讀/編輯器**：雙欄預覽、場景/角色解析、Metadata 編輯  
+## 系統組成
+- 前端：`Vite + React + TypeScript`（`src/`）
+- 後端：`FastAPI + SQLAlchemy`（`server/`）
+- 資料庫：`PostgreSQL` 為正式主用（SQLite 僅備援/遷移）
 
-## 部署方式（非技術說明）
-- **正式環境**：前端由靜態網站提供，API 由後端服務提供  
-- **反向代理**：前端同源轉發 `/api` 到後端  
-- **入口網域**：使用 `open-scripts` 作為前端入口，`scripts-api` 作為 API（或僅單一入口）  
-- **資料庫模式**：正式環境全面使用 PostgreSQL；SQLite 僅作為備用/歷史遷移來源
+## 快速開始
+請先看操作手冊：`docs/engineering/operations.md`
 
-## 文件與說明
-- 入口文件：`docs/README.md`
-  - 架構與資料流
-  - 部署與環境設定
-  - CI / 測試流程
+常用入口：
+- 文件索引：`docs/README.md`
+- 架構文件：`docs/product/architecture.md`
+- 資料流：`docs/product/data-flows.md`
+- 測試流程：`docs/engineering/testing.md`
 
-## 常用連結（可自行補充）
-- 前端：`https://open-scripts.shawnup.com`
+## 部署概念
+- 開發：`docker-compose.dev.yml`（前端 1090、後端 1091）
+- 正式：`docker-compose.prod.yml`（前端 Nginx + 後端 + Postgres）
+- API 可走同源 `/api` 反代，或跨網域直連（由 `VITE_API_URL` 控制）
