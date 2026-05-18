@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FileSpreadsheet, FileText, Printer } from "lucide-react";
+import { FileSpreadsheet, FileText, FileUp, Printer } from "lucide-react";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useI18n } from "../../contexts/I18nContext";
 import { loadBasicScriptExport, loadXlsxScriptExport } from "../../lib/scriptExportLoader";
 import { normalizeActivityDemoLinks } from "../../lib/activityDemoLinks";
 import type { DownloadOption } from "../../types/routes";
+import { exportScriptToGoogleDocs } from "../../lib/api/export";
+import { getGoogleDocsAccessToken } from "../../lib/firebase";
+import { pickGoogleDriveFolder } from "../../lib/googleDrivePicker";
+import { buildGoogleDocsBlocksFromScript } from "../../lib/googleDocsExportModel";
 
 const PUBLIC_READER_GUIDE_STORAGE_KEY = "public-reader-guide-seen-v1";
 const PUBLIC_READER_TOC_OPEN_STORAGE_KEY = "public-reader-toc-open-v1";
@@ -51,9 +55,10 @@ interface Props {
   viewerProps?: ViewerProps;
   scriptSurfaceProps?: { scrollRef?: React.RefObject<HTMLElement | null>; [key: string]: unknown };
   renderedHtml?: string;
+  exportMarkerConfigs?: Array<Record<string, unknown>>;
 }
 
-export function usePublicReaderLayoutState({ script, isLoading, viewerProps, scriptSurfaceProps, renderedHtml = "" }: Props) {
+export function usePublicReaderLayoutState({ script, isLoading, viewerProps, scriptSurfaceProps, renderedHtml = "", exportMarkerConfigs = [] }: Props) {
   const { t } = useI18n();
   const { hideWhitespace } = useSettings();
 
@@ -199,7 +204,10 @@ export function usePublicReaderLayoutState({ script, isLoading, viewerProps, scr
       icon: FileText,
       onClick: async () => {
         const { exportScriptAsDocx } = await loadBasicScriptExport();
-        await exportScriptAsDocx(exportBaseName, { text: rawScript || "", renderedHtml });
+        await exportScriptAsDocx(exportBaseName, {
+          text: rawScript || "",
+          renderedHtml: exportRenderedHtml || exportRawHtml || renderedHtml || "",
+        });
       },
       disabled: !rawScript,
     },
@@ -209,7 +217,36 @@ export function usePublicReaderLayoutState({ script, isLoading, viewerProps, scr
       icon: FileSpreadsheet,
       onClick: async () => {
         const { exportScriptAsXlsx } = await loadXlsxScriptExport();
-        await exportScriptAsXlsx(exportBaseName, { text: rawScript || "", renderedHtml });
+        await exportScriptAsXlsx(exportBaseName, {
+          text: rawScript || "",
+          renderedHtml: exportRenderedHtml || exportRawHtml || renderedHtml || "",
+        });
+      },
+      disabled: !rawScript,
+    },
+    {
+      id: "google-docs",
+      label: t("publicReader.exportGoogleDocs"),
+      icon: FileUp,
+      onClick: async () => {
+        const token = await getGoogleDocsAccessToken();
+        const folderId = await pickGoogleDriveFolder(token);
+        if (!folderId) return;
+        const effectiveRenderedHtml = exportRenderedHtml || exportRawHtml || renderedHtml || "";
+        const docsBlocks = buildGoogleDocsBlocksFromScript(rawScript || "", exportMarkerConfigs as any);
+        if (docsBlocks.length === 0) {
+          throw new Error("Google Docs export failed: rendered output is empty, cannot build export blocks.");
+        }
+        const result = await exportScriptToGoogleDocs(exportBaseName, {
+          text: rawScript || "",
+          renderedHtml: effectiveRenderedHtml,
+          googleAccessToken: token,
+          folderId,
+          docsBlocks,
+        });
+        if (result?.documentUrl) {
+          window.open(result.documentUrl, "_blank", "noopener,noreferrer");
+        }
       },
       disabled: !rawScript,
     },

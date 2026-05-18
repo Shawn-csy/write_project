@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { defaultMarkerConfigs } from "../constants/defaultMarkerRules";
 import { apiCall as serviceApiCall } from "../services/settingsApi";
 import { normalizeMarkerConfigsSchema } from "../lib/markerThemeCodec";
+import { validateMarkerConfigs } from "../lib/markerConfigValidation";
 import { isDefaultLikeTheme } from "../lib/themeNameUtils";
 import { fetchPublic } from "../lib/api/client";
 import type { CurrentUserLike } from "../types/user";
@@ -112,6 +113,8 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
     // Update CURRENT theme's configs
     const setMarkerConfigs = async (newConfigs: MarkerConfig[]) => {
         const normalizedConfigs = normalizeMarkerConfigsSchema(newConfigs) as MarkerConfig[];
+        const errors = validateMarkerConfigs(normalizedConfigs);
+        if (errors.length > 0) throw new Error(errors.join("\n"));
         if (currentThemeId === DEFAULT_THEME_ID) {
             if (!isAdmin || !currentUser) return;
             setSystemDefaultConfigs(normalizedConfigs);
@@ -137,10 +140,13 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
             : (initialOrOptions || {});
         const newId = crypto.randomUUID();
         const configsToSave = initialConfigs || systemDefaultConfigs;
+        const normalized = normalizeMarkerConfigsSchema(configsToSave) as MarkerConfig[];
+        const errors = validateMarkerConfigs(normalized);
+        if (errors.length > 0) throw new Error(errors.join("\n"));
         const newTheme = {
             id: newId,
             name: name,
-            configs: normalizeMarkerConfigsSchema(configsToSave) as MarkerConfig[],
+            configs: normalized,
             isPublic: Boolean(options.isPublic),
             description: options.description || ""
         };
@@ -164,7 +170,12 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
         const newTheme = {
             id: newId,
             name: name,
-            configs: normalizeMarkerConfigsSchema(markerConfigs) as MarkerConfig[],
+            configs: (() => {
+                const normalized = normalizeMarkerConfigsSchema(markerConfigs) as MarkerConfig[];
+                const errors = validateMarkerConfigs(normalized);
+                if (errors.length > 0) throw new Error(errors.join("\n"));
+                return normalized;
+            })(),
             isPublic: Boolean(options.isPublic),
             description: options.description || ""
         };

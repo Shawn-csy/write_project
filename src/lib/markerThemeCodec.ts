@@ -1,4 +1,5 @@
 import { extractErrorMessage } from './utils';
+import { validateMarkerConfigs } from './markerConfigValidation';
 
 export const normalizeThemeConfigs = (configs: unknown): unknown[] => {
   if (Array.isArray(configs)) return configs;
@@ -72,7 +73,12 @@ export const safeParseThemeConfigsText = (text: string) => {
     if (!Array.isArray(parsed)) {
       return { value: null, error: "根節點必須是陣列" };
     }
-    return { value: normalizeMarkerConfigsSchema(parsed), error: "" };
+    const normalized = normalizeMarkerConfigsSchema(parsed);
+    const validationErrors = validateMarkerConfigs(normalized as import("../types/script").MarkerConfig[]);
+    if (validationErrors.length > 0) {
+      return { value: null, error: validationErrors.join("\n") };
+    }
+    return { value: normalized, error: "" };
   } catch (error) {
     return { value: null, error: extractErrorMessage(error) || "格式錯誤" };
   }

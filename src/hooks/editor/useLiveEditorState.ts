@@ -4,6 +4,7 @@ import { EditorView } from "@codemirror/view";
 import { parseScreenplay } from "../../lib/screenplayAST";
 import type { AstNode } from "../../lib/statistics/ScriptAnalyzer";
 import { useSettings } from "../../contexts/SettingsContext";
+import { useScriptView } from "../../contexts/ScriptViewContext";
 import { useEditorSync } from "../useEditorSync";
 import { useEditorResize } from "./useEditorResize";
 import { useEditorGuide } from "./useEditorGuide";
@@ -56,6 +57,10 @@ export function useLiveEditorState({
     accentConfig, markerConfigs, markerThemes = [], currentThemeId = "default",
     switchTheme = () => {}, hiddenMarkerIds, toggleMarkerVisibility,
   } = useSettings();
+  const scriptView = useScriptView();
+  const activeMarkerConfigs = (scriptView?.markerConfigs && scriptView.markerConfigs.length > 0)
+    ? scriptView.markerConfigs
+    : markerConfigs;
 
   const [content, setContent] = useState(initialData?.content || "");
   const deferredContent = useDeferredValue(content);
@@ -126,7 +131,7 @@ export function useLiveEditorState({
     renderedHtmlRef.current = { raw: "", processed: "" };
     setRawRenderedHtml("");
     setProcessedRenderedHtml("");
-  }, [content, markerConfigs, hiddenMarkerIds]);
+  }, [content, activeMarkerConfigs, hiddenMarkerIds]);
 
   const ensureRenderedHtml = useCallback((): Promise<string> => {
     const existing = renderedHtmlRef.current.processed || renderedHtmlRef.current.raw;
@@ -149,8 +154,8 @@ export function useLiveEditorState({
 
   const { ast } = useMemo<{ ast: AstNode | null }>(() => {
     if (!showStats) return { ast: null };
-    return parseScreenplay(deferredContent || "", markerConfigs) as { ast: AstNode | null };
-  }, [deferredContent, markerConfigs, showStats]);
+    return parseScreenplay(deferredContent || "", activeMarkerConfigs) as { ast: AstNode | null };
+  }, [deferredContent, activeMarkerConfigs, showStats]);
 
   const {
     previewRef, editorViewRef, scrollSyncExtension, highlightExtension,
@@ -193,7 +198,7 @@ export function useLiveEditorState({
   }, [content, title, t]);
 
   const normalizedDownloadOptions = useLiveEditorDownloadOptions({
-    t, title, content, renderedHtmlRef, ensureRenderedHtml,
+    t, title, content, renderedHtmlRef, ensureRenderedHtml, markerConfigs: activeMarkerConfigs as any,
   });
 
   const { handleLocateText, handlePreviewLineClick } = usePreviewLineNavigation({
@@ -258,7 +263,7 @@ export function useLiveEditorState({
   return {
     // settings
     theme, fontSize, bodyFontSize, dialogueFontSize, lineHeight, accentConfig,
-    markerConfigs, markerThemes, currentThemeId, hiddenMarkerIds, toggleMarkerVisibility,
+    markerConfigs: activeMarkerConfigs, markerThemes, currentThemeId, hiddenMarkerIds, toggleMarkerVisibility,
     // state
     content, title, loading, saveStatus, lastSaved,
     showPreview, setShowPreview, showStats, setShowStats, showRules, setShowRules,
