@@ -47,7 +47,14 @@ export function PublicReaderLayout({
   hiddenMarkerIds = [],
   onToggleMarker,
 }: PublicReaderLayoutProps) {
-  const s = usePublicReaderLayoutState({ script, isLoading, viewerProps, scriptSurfaceProps, renderedHtml });
+  const s = usePublicReaderLayoutState({
+    script,
+    isLoading,
+    viewerProps,
+    scriptSurfaceProps,
+    renderedHtml,
+    exportMarkerConfigs: validMarkerConfigs as Array<Record<string, unknown>>,
+  });
 
   const contactRender = useMemo(() => s.contactLines.length > 0 ? (
     <div className="space-y-1.5">

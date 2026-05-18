@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FileSpreadsheet, FileText, Printer } from "lucide-react";
+import { FileSpreadsheet, FileText, FileUp, Printer } from "lucide-react";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useScriptManager } from "../../hooks/useScriptManager";
 import { useAppNavigation } from "../../hooks/useAppNavigation";
@@ -15,6 +15,10 @@ import { trackPageView } from "../../lib/firebase";
 import { ScriptViewProvider } from "../../contexts/ScriptViewContext";
 import { useTextLocator } from "../../hooks/useTextLocator";
 import { loadBasicScriptExport, loadXlsxScriptExport } from "../../lib/scriptExportLoader";
+import { exportScriptToGoogleDocs } from "../../lib/api/export";
+import { getGoogleDocsAccessToken } from "../../lib/firebase";
+import { pickGoogleDriveFolder } from "../../lib/googleDrivePicker";
+import { buildGoogleDocsBlocksFromScript } from "../../lib/googleDocsExportModel";
 
 import type { NavProps } from "../../types/nav";
 import type { DownloadOption } from "../../types/routes";
@@ -65,6 +69,8 @@ export function EditorShell() {
     sceneList,
     rawScript,
   } = scriptManager;
+  const effectiveMarkerConfigs = (scriptManager as unknown as { effectiveMarkerConfigs?: unknown[] }).effectiveMarkerConfigs
+    || (markerConfigs as unknown[]);
 
   // Keep ref in sync so callbacks don't need activeCloudScript in deps
   activeCloudScriptRef.current = activeCloudScript;
@@ -207,7 +213,32 @@ export function EditorShell() {
       },
       disabled: !exportContent,
     },
-  ], [t, handleExportPdf, exportContent, exportTitle, renderedExportHtml, scriptManager.titleHtml]);
+    {
+      id: "google-docs",
+      label: t("publicReader.exportGoogleDocs"),
+      icon: FileUp,
+      onClick: async () => {
+        const token = await getGoogleDocsAccessToken();
+        const folderId = await pickGoogleDriveFolder(token);
+        if (!folderId) return;
+        const docsBlocks = buildGoogleDocsBlocksFromScript(exportContent, effectiveMarkerConfigs as any);
+        if (docsBlocks.length === 0) {
+          throw new Error("Google Docs export failed: rendered output is empty, cannot build export blocks.");
+        }
+        const result = await exportScriptToGoogleDocs(exportTitle, {
+          text: exportContent,
+          renderedHtml: renderedExportHtml,
+          googleAccessToken: token,
+          folderId,
+          docsBlocks,
+        });
+        if (result?.documentUrl) {
+          window.open(result.documentUrl, "_blank", "noopener,noreferrer");
+        }
+      },
+      disabled: !exportContent,
+    },
+  ], [t, handleExportPdf, exportContent, exportTitle, renderedExportHtml, scriptManager.titleHtml, effectiveMarkerConfigs]);
 
   const isPublicReader = location.pathname.startsWith("/read/");
   const isPublicGallery = location.pathname === "/";

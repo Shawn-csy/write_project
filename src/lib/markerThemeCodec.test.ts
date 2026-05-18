@@ -144,4 +144,20 @@ describe("safeParseThemeConfigsText", () => {
     expect(error).toBe("");
     expect(value).toEqual([]);
   });
+
+  it("returns validation error for unknown marker color token", () => {
+    const { value, error } = safeParseThemeConfigsText(
+      '[{"id":"a","matchMode":"prefix","start":">>","style":{"color":"var(--marker-color-gray)"}}]'
+    );
+    expect(value).toBeNull();
+    expect(error).toMatch(/未知色彩 token/);
+  });
+
+  it("returns validation error for range without end", () => {
+    const { value, error } = safeParseThemeConfigsText(
+      '[{"id":"r","matchMode":"range","start":"<s>"}]'
+    );
+    expect(value).toBeNull();
+    expect(error).toMatch(/range 模式必須同時有 start 與 end/);
+  });
 });

@@ -6,6 +6,20 @@ interface ScriptExportPayload {
   renderedHtml?: string;
 }
 
+interface GoogleDocsExportPayload extends ScriptExportPayload {
+  googleAccessToken: string;
+  folderId?: string;
+  docsBlocks?: Array<{
+    runs: Array<{
+      text: string;
+      bold?: boolean;
+      italic?: boolean;
+      underline?: boolean;
+      color?: string;
+    }>;
+  }>;
+}
+
 interface ReportExportPayload {
   columns: string[];
   rows: unknown[];
@@ -40,6 +54,44 @@ export const exportScriptAsDocx = async (title: string, payload: ScriptExportPay
   const text = String(payload?.text || "");
   const blob = await postExport("/api/export/docx", { title, text });
   downloadBlob(blob, buildFilename(title || "script", "docx"));
+};
+
+export const exportScriptToGoogleDocs = async (
+  title: string,
+  payload: GoogleDocsExportPayload
+): Promise<{ documentId: string; documentUrl: string }> => {
+  const headers = await getAuthHeaders();
+  if (import.meta.env.DEV && Array.isArray(payload?.docsBlocks)) {
+    const preview = payload.docsBlocks.slice(0, 10).map((b, i) => ({
+      i,
+      runs: (b?.runs || []).map((r) => ({
+        text: String(r?.text || "").slice(0, 60),
+        bold: !!r?.bold,
+        italic: !!r?.italic,
+        underline: !!r?.underline,
+        color: r?.color || "",
+      })),
+    }));
+    // eslint-disable-next-line no-console
+    console.log("[gdocs-export][docs_blocks preview]", preview);
+  }
+  const res = await fetch("/api/export/google-docs", {
+    method: "POST",
+    headers: { ...(headers as Record<string, string>), "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title,
+      text: String(payload?.text || ""),
+      rendered_html: String(payload?.renderedHtml || ""),
+      google_access_token: payload.googleAccessToken,
+      folder_id: payload.folderId || null,
+      docs_blocks: payload.docsBlocks || null,
+    }),
+  });
+  if (!res.ok) {
+    const msg = await res.text().catch(() => res.statusText);
+    throw new Error(`Google Docs export failed (${res.status}): ${msg}`);
+  }
+  return res.json();
 };
 
 export const exportReportAsXlsx = async (title: string, { columns, rows }: ReportExportPayload): Promise<void> => {

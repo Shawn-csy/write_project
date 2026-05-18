@@ -1,6 +1,11 @@
 import { useCallback, useMemo } from "react";
-import { FileSpreadsheet, FileText, Printer } from "lucide-react";
+import { FileSpreadsheet, FileText, FileUp, Printer } from "lucide-react";
 import { loadBasicScriptExport, loadXlsxScriptExport } from "../../lib/scriptExportLoader";
+import { exportScriptToGoogleDocs } from "../../lib/api/export";
+import { getGoogleDocsAccessToken } from "../../lib/firebase";
+import { pickGoogleDriveFolder } from "../../lib/googleDrivePicker";
+import { buildGoogleDocsBlocksFromScript } from "../../lib/googleDocsExportModel";
+import type { MarkerConfig } from "../../types/script";
 
 interface RenderedHtmlRef {
   current: {
@@ -20,6 +25,7 @@ interface UseLiveEditorDownloadOptionsParams {
   content: string;
   renderedHtmlRef: RenderedHtmlRef;
   ensureRenderedHtml?: () => Promise<string>;
+  markerConfigs?: MarkerConfig[];
 }
 
 export function useLiveEditorDownloadOptions({
@@ -28,6 +34,7 @@ export function useLiveEditorDownloadOptions({
   content,
   renderedHtmlRef,
   ensureRenderedHtml,
+  markerConfigs = [],
 }: UseLiveEditorDownloadOptionsParams) {
   const runRenderedExport = useCallback(
     async (exporter: (payload: ExportPayload) => Promise<void>) => {
@@ -73,7 +80,32 @@ export function useLiveEditorDownloadOptions({
           await runRenderedExport((payload: ExportPayload) => exportScriptAsXlsx(title, payload));
         },
       },
+      {
+        id: "google-docs",
+        label: t("publicReader.exportGoogleDocs"),
+        icon: FileUp,
+        onClick: async () => {
+          const token = await getGoogleDocsAccessToken();
+          const folderId = await pickGoogleDriveFolder(token);
+          if (!folderId) return;
+          await runRenderedExport(async (payload: ExportPayload) => {
+            const docsBlocks = buildGoogleDocsBlocksFromScript(content, markerConfigs);
+            if (docsBlocks.length === 0) {
+              throw new Error("Google Docs export failed: rendered output is empty, cannot build export blocks.");
+            }
+            const result = await exportScriptToGoogleDocs(title, {
+              ...payload,
+              googleAccessToken: token,
+              folderId,
+              docsBlocks,
+            });
+            if (result?.documentUrl) {
+              window.open(result.documentUrl, "_blank", "noopener,noreferrer");
+            }
+          });
+        },
+      },
     ],
-    [content, runRenderedExport, t, title]
+    [content, runRenderedExport, t, title, markerConfigs]
   );
 }

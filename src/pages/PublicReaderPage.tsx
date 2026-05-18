@@ -149,7 +149,7 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
           }
           window.prompt("請複製目前網址", url);
         }}
-        validMarkerConfigs={publicMarkerConfigs}
+        validMarkerConfigs={scriptManager.effectiveMarkerConfigs as Array<{ id: string; label?: string }>}
         hiddenMarkerIds={scriptManager.hiddenMarkerIds}
         onToggleMarker={scriptManager.toggleMarkerVisibility}
         renderedHtml=""

@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, reauthenticateWithPopup, signInWithPopup } from "firebase/auth";
 import type { Analytics } from "firebase/analytics";
 
 // Your web app's Firebase configuration
@@ -59,6 +59,21 @@ export const trackPageView = async ({ path, title, location }: { path?: string; 
 // Initialize Auth
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+
+export const getGoogleDocsAccessToken = async (): Promise<string> => {
+  const provider = new GoogleAuthProvider();
+  provider.addScope("https://www.googleapis.com/auth/documents");
+  provider.addScope("https://www.googleapis.com/auth/drive.file");
+  provider.setCustomParameters({ prompt: "consent" });
+
+  const currentUser = auth.currentUser;
+  const result = currentUser
+    ? await reauthenticateWithPopup(currentUser, provider)
+    : await signInWithPopup(auth, provider);
+  const token = GoogleAuthProvider.credentialFromResult(result)?.accessToken;
+  if (!token) throw new Error("Unable to obtain Google access token");
+  return token;
+};
 // db removed as we use custom backend now
 
 export default app;
