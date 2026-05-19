@@ -86,6 +86,7 @@ class MarkerTheme(Base):
     ownerId = Column(String, ForeignKey("users.id", ondelete="CASCADE"), index=True)
     name = Column(String)
     configs = Column(String, default="[]")  # JSON string of configs
+    layoutConfig = Column(Text, default=None, nullable=True)  # JSON string of LayoutConfig
     isPublic = Column(Boolean, default=False, index=True)
     description = Column(Text, default="")
     createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
