@@ -5,6 +5,7 @@ import { MarkerList } from "../MarkerList";
 import { MarkerDetailEditor } from "../MarkerDetailEditor";
 import { useI18n } from "../../../../contexts/I18nContext";
 import type { MarkerConfig } from "../../../../types/script";
+import type { TrackConfig } from "../../../../lib/v2";
 import type { EditableMarkerConfig, UpdateMarkerFn } from "../types";
 
 interface MarkerVisualEditorPaneProps {
@@ -21,6 +22,7 @@ interface MarkerVisualEditorPaneProps {
   isAdvancedMode: boolean;
   setIsAdvancedMode: (value: boolean) => void;
   readOnly?: boolean;
+  tracks?: TrackConfig[];
 }
 
 export function MarkerVisualEditorPane({
@@ -37,6 +39,7 @@ export function MarkerVisualEditorPane({
   isAdvancedMode,
   setIsAdvancedMode,
   readOnly = false,
+  tracks = [],
 }: MarkerVisualEditorPaneProps): React.JSX.Element {
   const { t } = useI18n();
   return (
@@ -70,6 +73,7 @@ export function MarkerVisualEditorPane({
             isAdvancedMode={isAdvancedMode}
             setIsAdvancedMode={setIsAdvancedMode}
             readOnly={readOnly}
+            tracks={tracks}
           />
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-60 space-y-3">

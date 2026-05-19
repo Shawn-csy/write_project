@@ -33,20 +33,40 @@ interface MarkerThemeHeaderProps {
     updateThemePublicity: (id: string, isPublic: boolean) => Promise<void>;
     currentUser?: { uid?: string } | null;
     readOnly?: boolean;
+    /** If true, render only dialogs (no visible card UI) */
+    dialogsOnly?: boolean;
+    /** External dialog open state control */
+    createOpen?: boolean;
+    setCreateOpen?: (v: boolean) => void;
+    deleteOpen?: boolean;
+    setDeleteOpen?: (v: boolean) => void;
+    publicityOpen?: boolean;
+    setPublicityOpen?: (v: boolean) => void;
+    moreOpen?: boolean;
+    setMoreOpen?: (v: boolean) => void;
 }
 
 export function MarkerThemeHeader({
-    markerThemes, 
-    currentThemeId, 
-    switchTheme, 
-    addTheme, 
-    addThemeFromCurrent, 
-    deleteTheme, 
-    renameTheme, 
-    updateThemeDescription, 
+    markerThemes,
+    currentThemeId,
+    switchTheme,
+    addTheme,
+    addThemeFromCurrent,
+    deleteTheme,
+    renameTheme,
+    updateThemeDescription,
     updateThemePublicity,
     currentUser,
     readOnly = false,
+    dialogsOnly = false,
+    createOpen: externalCreateOpen,
+    setCreateOpen: externalSetCreateOpen,
+    deleteOpen: externalDeleteOpen,
+    setDeleteOpen: externalSetDeleteOpen,
+    publicityOpen: externalPublicityOpen,
+    setPublicityOpen: externalSetPublicityOpen,
+    moreOpen: externalMoreOpen,
+    setMoreOpen: externalSetMoreOpen,
 }: MarkerThemeHeaderProps): React.JSX.Element {
     const { t } = useI18n();
     const DEFAULT_THEME_ALIASES = new Set(["預設", "預設主題", "預設主題 (Default)", "default"]);
@@ -67,11 +87,20 @@ export function MarkerThemeHeader({
     const [newThemeSource, setNewThemeSource] = useState("current");
     const [newThemeIsPublic, setNewThemeIsPublic] = useState(false);
     const [renameName, setRenameName] = useState("");
-    const [createOpen, setCreateOpen] = useState(false);
+    const [internalCreateOpen, setInternalCreateOpen] = useState(false);
     const [renameOpen, setRenameOpen] = useState(false);
-    const [deleteOpen, setDeleteOpen] = useState(false);
-    const [publicityOpen, setPublicityOpen] = useState(false);
-    const [moreOpen, setMoreOpen] = useState(false);
+    const [internalDeleteOpen, setInternalDeleteOpen] = useState(false);
+    const [internalPublicityOpen, setInternalPublicityOpen] = useState(false);
+    const [internalMoreOpen, setInternalMoreOpen] = useState(false);
+
+    const createOpen = externalCreateOpen ?? internalCreateOpen;
+    const setCreateOpen = externalSetCreateOpen ?? setInternalCreateOpen;
+    const deleteOpen = externalDeleteOpen ?? internalDeleteOpen;
+    const setDeleteOpen = externalSetDeleteOpen ?? setInternalDeleteOpen;
+    const publicityOpen = externalPublicityOpen ?? internalPublicityOpen;
+    const setPublicityOpen = externalSetPublicityOpen ?? setInternalPublicityOpen;
+    const moreOpen = externalMoreOpen ?? internalMoreOpen;
+    const setMoreOpen = externalSetMoreOpen ?? setInternalMoreOpen;
     const canDelete = markerThemes.length > 1 && currentTheme?.id !== "default";
     const publicityPrompt = useMemo(() => {
         if (!currentTheme) return "";
@@ -138,6 +167,7 @@ export function MarkerThemeHeader({
 
     return (
         <>
+        {!dialogsOnly && (
         <div className="p-3 bg-muted/40 rounded-lg border border-border/50">
             <div className="flex flex-col gap-3">
                 <div className="flex flex-col lg:flex-row gap-3 items-start lg:items-center justify-between">
@@ -199,6 +229,7 @@ export function MarkerThemeHeader({
                 </div>
             </div>
         </div>
+        )}
 
         <Dialog open={moreOpen} onOpenChange={setMoreOpen}>
             <DialogContent className="sm:max-w-md">

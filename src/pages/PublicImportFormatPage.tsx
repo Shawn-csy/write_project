@@ -20,6 +20,7 @@ type RuleId =
   | "se-continuous"
   | "rule-bg-start"
   | "character"
+  | "dialogue"
   | "action";
 
 export default function PublicImportFormatPage() {
@@ -49,6 +50,7 @@ export default function PublicImportFormatPage() {
     "se-continuous": t("importFormat.usageSeRange"),
     "rule-bg-start": t("importFormat.usageBg"),
     "character": t("importFormat.usageCharacter"),
+    "dialogue": t("importFormat.usageDialogue"),
     "action": t("importFormat.usageAction"),
   }), [t]);
   const exampleById = React.useMemo(() => ({
@@ -61,6 +63,7 @@ export default function PublicImportFormatPage() {
     "se-continuous": ">>SE 雨聲持續... <<SE",
     "rule-bg-start": "//BG 夜晚街景",
     "character": "#C 小雨",
+    "dialogue": "#D 你好。",
     "action": "我們到了，先觀察四周。",
   }), []);
   const renderTextById = React.useMemo(() => ({
@@ -73,6 +76,7 @@ export default function PublicImportFormatPage() {
     "se-continuous": ">>SE 雨聲持續\n雨越下越大\n><SE 轉小聲\n雨聲回到背景\n<<SE",
     "rule-bg-start": "//BG 夜晚街景",
     "character": "#C 小雨",
+    "dialogue": "#C 小雨\n#D 你好。",
     "action": "我們到了，先觀察四周。",
   }), []);
   const astById = React.useMemo<Partial<Record<RuleId, ReturnType<typeof parseScreenplay>["ast"]>>>(() => {

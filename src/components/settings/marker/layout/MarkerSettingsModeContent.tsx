@@ -3,6 +3,7 @@ import { MarkerJsonEditor } from "../MarkerJsonEditor";
 import { MarkerUsageGuide } from "../MarkerUsageGuide";
 import { MarkerVisualEditorPane } from "./MarkerVisualEditorPane";
 import type { MarkerConfig } from "../../../../types/script";
+import type { TrackConfig } from "../../../../lib/v2";
 import type { EditableMarkerConfig, UpdateMarkerFn } from "../types";
 
 interface MarkerSettingsModeContentProps {
@@ -26,6 +27,7 @@ interface MarkerSettingsModeContentProps {
   isAdvancedMode: boolean;
   setIsAdvancedMode: (value: boolean) => void;
   readOnly?: boolean;
+  tracks?: TrackConfig[];
 }
 
 export function MarkerSettingsModeContent({
@@ -49,6 +51,7 @@ export function MarkerSettingsModeContent({
   isAdvancedMode,
   setIsAdvancedMode,
   readOnly = false,
+  tracks = [],
 }: MarkerSettingsModeContentProps): React.JSX.Element {
   if (viewMode === "guide") {
     return (
@@ -90,6 +93,7 @@ export function MarkerSettingsModeContent({
         isAdvancedMode={isAdvancedMode}
         setIsAdvancedMode={setIsAdvancedMode}
         readOnly={readOnly}
+        tracks={tracks}
       />
     </fieldset>
   );

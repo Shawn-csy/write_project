@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import {
-  Sun, Moon, Palette, Check, AlignJustify
+  Sun, Moon, Palette, Check, AlignJustify, Columns3
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { Separator } from "../ui/separator";
@@ -30,7 +30,8 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
       readingFontFamily, setReadingFontFamily,
       uiFontFamily, setUiFontFamily,
       // Display
-      showLineUnderline, setShowLineUnderline
+      showLineUnderline, setShowLineUnderline,
+      useV2Renderer, setUseV2Renderer,
   } = useSettings();
 
   const [showAdvancedFont, setShowAdvancedFont] = useState(false);
@@ -54,6 +55,7 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
     { label: "120%", value: 1.2 },
   ];
   const readingFontStack = resolveReadingFontStack(readingFontFamily);
+
 
   return (
     <Card className="border border-border/60 bg-card/50 shadow-sm" ref={sectionRef}>
@@ -327,6 +329,29 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
                         <div className={cn(
                             "absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-200",
                             showLineUnderline ? "left-[18px]" : "left-0.5"
+                        )} />
+                    </div>
+                </button>
+                <button
+                    onClick={() => setUseV2Renderer(!useV2Renderer)}
+                    className={cn(
+                        "flex items-center justify-between p-3 rounded-lg border text-xs font-medium transition-all group",
+                        useV2Renderer
+                          ? "bg-primary/5 border-primary/40 text-primary"
+                          : "bg-background border-border/60 text-muted-foreground hover:border-border hover:bg-muted/10"
+                    )}
+                >
+                    <span className="flex items-center gap-2">
+                        <Columns3 className="w-4 h-4 opacity-70" />
+                        {t("appearance.multiTrackRenderer")}
+                    </span>
+                    <div className={cn(
+                        "w-8 h-4 rounded-full relative transition-colors",
+                         useV2Renderer ? "bg-primary" : "bg-muted-foreground/30"
+                    )}>
+                        <div className={cn(
+                            "absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-200",
+                            useV2Renderer ? "left-[18px]" : "left-0.5"
                         )} />
                     </div>
                 </button>

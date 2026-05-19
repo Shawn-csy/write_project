@@ -61,7 +61,7 @@ function SettingsPanel({ onClose, activeTab, onTabChange }: SettingsPanelProps):
   }, [tabs, currentTab, setTab]);
 
   return (
-    <div className="flex-1 min-h-0 overflow-hidden border border-border/40 bg-background/60 backdrop-blur-xl rounded-2xl shadow-sm data-[state=open]:animate-in data-[state=closed]:animate-out fade-in-0 zoom-in-95 flex flex-col">
+    <div className="w-full h-full overflow-hidden border border-border/40 bg-background/60 backdrop-blur-xl shadow-sm flex flex-col">
         {/* Main Header with Close Button (Mobile Friendly) */}
         {/* Main Header with Close Button (Mobile Friendly) */}
         <div className="flex items-center gap-4 px-6 py-4 border-b border-border/50 bg-background/80 backdrop-blur-md shrink-0">
@@ -76,9 +76,9 @@ function SettingsPanel({ onClose, activeTab, onTabChange }: SettingsPanelProps):
             <LanguageSwitcher />
         </div>
 
-        <div className="flex-1 min-h-0 p-3 sm:p-4">
-        <div className="h-full grid grid-cols-1 md:grid-cols-[240px_1fr] gap-3 sm:gap-4">
-          <aside
+        <div className={cn("flex-1 min-h-0", currentTab === "markers" ? "overflow-hidden" : "p-3 sm:p-4")}>
+        <div className={cn("h-full gap-3 sm:gap-4", currentTab !== "markers" && "grid grid-cols-1 md:grid-cols-[240px_1fr]")}>
+          {currentTab !== "markers" && <aside
             style={activeToneVars}
             className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-helper-bg)]/45 backdrop-blur-sm"
           >
@@ -107,11 +107,16 @@ function SettingsPanel({ onClose, activeTab, onTabChange }: SettingsPanelProps):
                 {activeTabLabel}
               </p>
             </div>
-          </aside>
+          </aside>}
 
           <div
             style={activeToneVars}
-            className="flex-1 min-h-0 overflow-y-auto scrollbar-hide rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-4 sm:p-6 space-y-6"
+            className={cn(
+              "min-h-0 overflow-y-auto scrollbar-hide",
+              currentTab === "markers"
+                ? "flex-1 h-full"
+                : "flex-1 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-4 sm:p-6 space-y-6"
+            )}
             ref={scrollContainerRef}
           >
             {currentTab === "transfer" && (
@@ -132,11 +137,27 @@ function SettingsPanel({ onClose, activeTab, onTabChange }: SettingsPanelProps):
             )}
 
             {currentTab === "markers" && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="flex items-center gap-2 pb-2 border-b border-border/40">
-                  <h3 className="text-lg font-semibold tracking-tight text-foreground/90">{t("settings.markers")}</h3>
+              <div className="h-full flex flex-col min-h-0">
+                {/* Slim tab bar — visible only in markers full-width mode */}
+                <div className="flex items-center gap-1 px-3 py-1.5 border-b border-border/40 bg-background/60 shrink-0">
+                  {tabs.map((item) => (
+                    <button
+                      key={item.key}
+                      onClick={() => setTab(item.key)}
+                      className={cn(
+                        "px-3 py-1 rounded text-xs font-medium transition-colors",
+                        currentTab === item.key
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                      )}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
                 </div>
-                <MarkerSettings sectionRef={scrollContainerRef} />
+                <div className="flex-1 min-h-0 overflow-hidden">
+                  <MarkerSettings />
+                </div>
               </div>
             )}
 

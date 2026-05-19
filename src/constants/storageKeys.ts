@@ -15,4 +15,6 @@ export const STORAGE_KEYS = {
   LINE_HEIGHT: "screenplay-reader-line-height",
   TRANSPARENT_BG: "screenplay-reader-transparent-bg",
   SHOW_UNDERLINE: "screenplay-reader-show-underline",
+  USE_V2_RENDERER: "screenplay-reader-use-v2-renderer",
+  V2_LAYOUT_CONFIG: "screenplay-reader-v2-layout-config",
 };
