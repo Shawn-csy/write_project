@@ -77,6 +77,15 @@ def _run_postgres_migrations():
         if inserted:
             print(f"Migrating: backfilled {inserted} persona_organization_membership rows from organizationIds JSON")
 
+        # Add layoutConfig column to marker_themes if missing
+        result = conn.execute(text(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name = 'marker_themes' AND column_name = 'layoutConfig'"
+        )).fetchone()
+        if not result:
+            print("Migrating: Adding 'layoutConfig' column to marker_themes (PostgreSQL)")
+            conn.execute(text('ALTER TABLE marker_themes ADD COLUMN "layoutConfig" TEXT DEFAULT NULL'))
+
         conn.commit()
 
 
@@ -167,6 +176,14 @@ def run_migrations():
                 conn.execute(text("ALTER TABLE scripts ADD COLUMN customMetadata TEXT DEFAULT '[]'"))
             conn.execute(text("UPDATE scripts SET customMetadata = '[]' WHERE customMetadata IS NULL OR TRIM(customMetadata) = ''"))
             
+            # marker_themes columns
+            result_themes = conn.execute(text("PRAGMA table_info(marker_themes)"))
+            theme_columns = [row.name for row in result_themes.fetchall()]
+
+            if 'layoutConfig' not in theme_columns:
+                print("Migrating: Adding 'layoutConfig' column to marker_themes")
+                conn.execute(text("ALTER TABLE marker_themes ADD COLUMN layoutConfig TEXT DEFAULT NULL"))
+
             # Check users columns
             result_users = conn.execute(text("PRAGMA table_info(users)"))
             user_columns = [row.name for row in result_users.fetchall()]

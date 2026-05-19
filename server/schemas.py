@@ -1,4 +1,5 @@
-from pydantic import BaseModel, ConfigDict
+import json
+from pydantic import BaseModel, ConfigDict, field_validator
 from typing import List, Literal, Optional, Any, Dict, Union
 
 # Tag Schemas
@@ -126,6 +127,7 @@ class User(UserBase):
 class MarkerThemeBase(BaseModel):
     name: str
     configs: Union[List[Dict[str, Any]], Dict[str, Any], str] = []
+    layoutConfig: Optional[Any] = None  # JSON object stored as TEXT in DB
     isPublic: bool = False
     description: Optional[str] = ""
 
@@ -135,6 +137,7 @@ class MarkerThemeCreate(MarkerThemeBase):
 class MarkerThemeUpdate(BaseModel):
     name: Optional[str] = None
     configs: Optional[Union[List[Dict[str, Any]], Dict[str, Any], str]] = None
+    layoutConfig: Optional[Any] = None  # JSON object stored as TEXT in DB
     isPublic: Optional[bool] = None
     description: Optional[str] = None
 
@@ -189,6 +192,16 @@ class MarkerTheme(MarkerThemeBase):
     updatedAt: int
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("layoutConfig", mode="before")
+    @classmethod
+    def parse_layout_config(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return None
+        return v
 
 class SeriesBase(BaseModel):
     name: str

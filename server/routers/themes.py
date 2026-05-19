@@ -44,6 +44,7 @@ def copy_theme(theme_id: str, db: Session = Depends(get_db), ownerId: str = Depe
     new_theme = schemas.MarkerThemeCreate(
         name=f"{original.name} (Copy)",
         configs=original.configs,
+        layoutConfig=original.layoutConfig,
         isPublic=False,
         description=original.description
     )
