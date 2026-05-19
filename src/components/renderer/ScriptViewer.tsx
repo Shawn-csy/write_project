@@ -263,6 +263,13 @@ function ScriptViewer({
     onScenes(sceneList);
   }, [sceneList, onScenes]);
 
+  const effectiveBodyFontSize = Number.isFinite(Number(bodyFontSize))
+    ? Number(bodyFontSize)
+    : Number(fontSize) || 14;
+  const effectiveDialogueFontSize = Number.isFinite(Number(dialogueFontSize))
+    ? Number(dialogueFontSize)
+    : effectiveBodyFontSize;
+
   const renderScriptNode = (
     currentAst: { children?: AstNode[] } | null,
     options?: { filterCharacterValue?: string | null; focusModeValue?: boolean }
@@ -274,7 +281,7 @@ function ScriptViewer({
           ast={currentAst}
           layoutConfig={v2LayoutConfig || cloneDefaultLayoutConfig()}
           markerConfigs={markerConfigs as any}
-          fontSize={fontSize || bodyFontSize}
+          fontSize={effectiveBodyFontSize}
           lineHeight={lineHeight}
           readingFontFamily={readingFontFamily}
           hiddenMarkerIds={hiddenMarkerIds}
@@ -286,7 +293,9 @@ function ScriptViewer({
     return (
       <ScriptRenderer
         ast={currentAst}
-        fontSize={fontSize || bodyFontSize}
+        fontSize={effectiveBodyFontSize}
+        dialogueFontSize={effectiveDialogueFontSize}
+        lineHeight={lineHeight}
         readingFontFamily={readingFontFamily}
         filterCharacter={options?.filterCharacterValue ?? filterCharacter}
         focusMode={options?.focusModeValue ?? focusMode}
@@ -306,7 +315,7 @@ function ScriptViewer({
     if (!onProcessedHtml || !ast) return '';
     const rendered = renderScriptNode(ast);
     return rendered ? renderToStaticMarkup(rendered) : '';
-  }, [ast, onProcessedHtml, useV2Renderer, v2LayoutConfig, fontSize, bodyFontSize, readingFontFamily, filterCharacter, focusMode, focusEffect, focusContentMode, theme, colorCache, markerConfigs, hiddenMarkerIds, showLineUnderline]);
+  }, [ast, onProcessedHtml, useV2Renderer, v2LayoutConfig, effectiveBodyFontSize, effectiveDialogueFontSize, lineHeight, readingFontFamily, filterCharacter, focusMode, focusEffect, focusContentMode, theme, colorCache, markerConfigs, hiddenMarkerIds, showLineUnderline]);
 
   // Generate RAW HTML (No Filters) for fallback
   const rawHtml = useMemo(() => {
@@ -318,7 +327,7 @@ function ScriptViewer({
 
       const rendered = renderScriptNode(ast, { filterCharacterValue: null, focusModeValue: false });
       return rendered ? renderToStaticMarkup(rendered) : '';
-  }, [ast, onRawHtml, filterCharacter, focusMode, filteredHtml, useV2Renderer, v2LayoutConfig, fontSize, bodyFontSize, readingFontFamily, focusEffect, focusContentMode, theme, colorCache, markerConfigs, hiddenMarkerIds, showLineUnderline]);
+  }, [ast, onRawHtml, filterCharacter, focusMode, filteredHtml, useV2Renderer, v2LayoutConfig, effectiveBodyFontSize, effectiveDialogueFontSize, lineHeight, readingFontFamily, focusEffect, focusContentMode, theme, colorCache, markerConfigs, hiddenMarkerIds, showLineUnderline]);
 
 
   useEffect(() => {
