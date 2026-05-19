@@ -163,9 +163,6 @@ function SettingsPanel({ onClose, activeTab, onTabChange }: SettingsPanelProps):
 
             {currentTab === "media" && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="flex items-center gap-2 pb-2 border-b border-border/40">
-                  <h3 className="text-lg font-semibold tracking-tight text-foreground/90">{t("settings.media")}</h3>
-                </div>
                 <MediaLibrarySettings />
               </div>
             )}

@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Sun, Moon, Palette, Check, AlignJustify, Type, Monitor } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { Separator } from "../ui/separator";
 import { Slider } from "../ui/slider";
 import { Input } from "../ui/input";
@@ -10,6 +9,7 @@ import { useI18n } from "../../contexts/I18nContext";
 import { cn } from "../../lib/utils";
 import { PublisherFormRow } from "../dashboard/publisher/PublisherFormRow";
 import { READING_FONT_OPTIONS, UI_FONT_OPTIONS, resolveReadingFontStack } from "../../constants/readingFonts";
+import { SettingsSectionCard } from "./SettingsSectionCard";
 
 interface AppearanceSettingsProps {
   sectionRef?: React.Ref<HTMLDivElement>;
@@ -67,20 +67,11 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
 
   return (
     <div ref={sectionRef} className="space-y-5">
-      <Card className="border border-border/60 bg-card/50 shadow-sm">
-        <CardHeader className="pb-3 px-5 pt-5">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-md bg-primary/10 text-primary">
-              <Type className="w-4 h-4" />
-            </div>
-            <div>
-              <CardTitle className="text-base">{t("appearance.readingAppearance")}</CardTitle>
-              <CardDescription className="text-xs mt-0.5">{t("appearance.readingAppearanceDesc")}</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-
-        <CardContent className="px-5 pb-5">
+      <SettingsSectionCard
+        icon={<Type className="w-4 h-4" />}
+        title={t("appearance.readingAppearance")}
+        description={t("appearance.readingAppearanceDesc")}
+      >
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
             <div className="space-y-5">
               <PublisherFormRow
@@ -266,23 +257,14 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+      </SettingsSectionCard>
 
-      <Card className="border border-border/60 bg-card/50 shadow-sm">
-        <CardHeader className="pb-3 px-5 pt-5">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-md bg-primary/10 text-primary">
-              <Monitor className="w-4 h-4" />
-            </div>
-            <div>
-              <CardTitle className="text-base">{t("appearance.interfaceAppearance")}</CardTitle>
-              <CardDescription className="text-xs mt-0.5">{t("appearance.interfaceAppearanceDesc")}</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-
-        <CardContent className="px-5 pb-5 space-y-5">
+      <SettingsSectionCard
+        icon={<Monitor className="w-4 h-4" />}
+        title={t("appearance.interfaceAppearance")}
+        description={t("appearance.interfaceAppearanceDesc")}
+        contentClassName="space-y-5"
+      >
           <PublisherFormRow
             label={t("appearance.theme")}
             hint={t("appearance.subtitle")}
@@ -403,8 +385,7 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
               </div>
             </div>
           </PublisherFormRow>
-        </CardContent>
-      </Card>
+      </SettingsSectionCard>
     </div>
   );
 }
