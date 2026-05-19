@@ -103,7 +103,7 @@ interface SettingsContextValue {
   updateThemeDescription: (id: string, description: string) => Promise<void>;
   copyPublicTheme: (themeId: string) => Promise<void>;
   switchTheme: (id: string) => void;
-  updateThemeLayoutConfig: (id: string, config: LayoutConfig) => Promise<void>;
+  updateThemeLayoutConfig: (id: string, config: LayoutConfig) => void;
 }
 
 const FONT_STEPS = [12, 14, 16, 24, 36, 72] as const;
@@ -146,12 +146,12 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [lineHeight, setLineHeight] = usePersistentState(STORAGE_KEYS.LINE_HEIGHT, 1.4, 'number');
   const [desktopUiScaleRaw, setDesktopUiScaleRaw] = usePersistentState(STORAGE_KEYS.DESKTOP_UI_SCALE, 1, 'number');
   const desktopUiScale = Number.isFinite(Number(desktopUiScaleRaw))
-    ? Math.min(1.2, Math.max(1, Number(desktopUiScaleRaw)))
+    ? Math.min(1.5, Math.max(0.75, Number(desktopUiScaleRaw)))
     : 1;
   const setDesktopUiScale = useCallback((next: number) => {
     const numeric = Number(next);
     if (!Number.isFinite(numeric)) return;
-    const clamped = Math.min(1.2, Math.max(1, numeric));
+    const clamped = Math.min(1.5, Math.max(0.75, numeric));
     setDesktopUiScaleRaw(Number(clamped.toFixed(2)));
   }, [setDesktopUiScaleRaw]);
 
@@ -244,7 +244,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const v2LayoutConfig = themes.activeLayoutConfig;
   const setV2LayoutConfig = useCallback((config: LayoutConfig) => {
     themes.updateThemeLayoutConfig(themes.currentThemeId, config);
-  }, [themes]);
+  }, [themes.updateThemeLayoutConfig, themes.currentThemeId]);
 
   // API Helper
   const apiCall = useCallback(

@@ -5,6 +5,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { Separator } from "../ui/separator";
 import { Slider } from "../ui/slider";
+import { Input } from "../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useI18n } from "../../contexts/I18nContext";
@@ -37,22 +38,36 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
   const [showAdvancedFont, setShowAdvancedFont] = useState(false);
 
   // Helper for quick font presets
+  const clampNumber = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+  const setReadingSize = (value: number) => {
+    const next = clampNumber(Number(value), 8, 72);
+    setBodyFontSize(next);
+    setDialogueFontSize(next);
+    setFontSize(next);
+  };
+  const setBodyReadingSize = (value: number) => setBodyFontSize(clampNumber(Number(value), 8, 72));
+  const setDialogueReadingSize = (value: number) => setDialogueFontSize(clampNumber(Number(value), 8, 72));
+  const setReadingLineHeight = (value: number) => setLineHeight(Number(clampNumber(Number(value), 0.9, 2.4).toFixed(2)));
+
   const fontPresets = [
+    { label: "XS", value: 10 },
     { label: "S", value: 14 },
-    { label: "M", value: 16 },
-    { label: "L", value: 18 },
-    { label: "XL", value: 24 },
+    { label: "M", value: 18 },
+    { label: "L", value: 28 },
+    { label: "XXL", value: 48 },
   ];
 
   const lineHeightOptions = [
-    { label: t("appearance.compact"), value: 1.2 },
+    { label: t("appearance.compact"), value: 1.05 },
     { label: t("appearance.standard"), value: 1.5 },
-    { label: t("appearance.relaxed"), value: 1.8 },
+    { label: t("appearance.relaxed"), value: 2.1 },
   ];
   const desktopScaleOptions = [
+    { label: "75%", value: 0.75 },
+    { label: "90%", value: 0.9 },
     { label: "100%", value: 1 },
-    { label: "110%", value: 1.1 },
-    { label: "120%", value: 1.2 },
+    { label: "125%", value: 1.25 },
+    { label: "150%", value: 1.5 },
   ];
   const readingFontStack = resolveReadingFontStack(readingFontFamily);
 
@@ -172,11 +187,7 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
                              return (
                                  <button
                                      key={opt.value}
-                                     onClick={() => {
-                                         setBodyFontSize(opt.value);
-                                         setDialogueFontSize(opt.value);
-                                         setFontSize(opt.value);
-                                     }}
+                                     onClick={() => setReadingSize(opt.value)}
                                      className={cn(
                                          "flex-1 py-1.5 text-xs font-medium rounded-md transition-all",
                                          isActive ? "bg-background shadow-sm text-primary font-bold" : "text-muted-foreground hover:bg-background/50 hover:text-foreground"
@@ -198,7 +209,7 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
                              return (
                                  <button
                                      key={opt.value}
-                                     onClick={() => setLineHeight(opt.value)}
+                                     onClick={() => setReadingLineHeight(opt.value)}
                                      className={cn(
                                          "flex-1 py-1.5 text-xs font-medium rounded-md transition-all",
                                           isActive ? "bg-background shadow-sm text-primary font-bold" : "text-muted-foreground hover:bg-background/50 hover:text-foreground"
@@ -218,22 +229,60 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
                    <div className="space-y-1.5">
                        <div className="flex justify-between px-1">
                           <span className="text-[10px] text-muted-foreground">{t("appearance.body")}: {bodyFontSize}px</span>
+                          <Input
+                            type="number"
+                            value={bodyFontSize}
+                            onChange={(event) => setBodyReadingSize(Number(event.target.value))}
+                            min={8}
+                            max={72}
+                            step={1}
+                            className="h-6 w-16 px-2 text-[10px]"
+                          />
                        </div>
                        <Slider 
                           value={[bodyFontSize]} 
-                          onValueChange={([v]) => setBodyFontSize(v)} 
-                          min={12} max={36} step={2} 
+                          onValueChange={([v]) => setBodyReadingSize(v)} 
+                          min={8} max={72} step={1} 
                           className="py-1"
                        />
                    </div>
                    <div className="space-y-1.5">
                        <div className="flex justify-between px-1">
                           <span className="text-[10px] text-muted-foreground">{t("appearance.dialogue")}: {dialogueFontSize}px</span>
+                          <Input
+                            type="number"
+                            value={dialogueFontSize}
+                            onChange={(event) => setDialogueReadingSize(Number(event.target.value))}
+                            min={8}
+                            max={72}
+                            step={1}
+                            className="h-6 w-16 px-2 text-[10px]"
+                          />
                        </div>
                        <Slider 
                           value={[dialogueFontSize]} 
-                          onValueChange={([v]) => setDialogueFontSize(v)} 
-                          min={12} max={36} step={2} 
+                          onValueChange={([v]) => setDialogueReadingSize(v)} 
+                          min={8} max={72} step={1} 
+                          className="py-1"
+                       />
+                   </div>
+                   <div className="space-y-1.5 sm:col-span-2">
+                       <div className="flex justify-between px-1">
+                          <span className="text-[10px] text-muted-foreground">{t("appearance.lineHeight")}: {lineHeight.toFixed(2)}</span>
+                          <Input
+                            type="number"
+                            value={lineHeight}
+                            onChange={(event) => setReadingLineHeight(Number(event.target.value))}
+                            min={0.9}
+                            max={2.4}
+                            step={0.05}
+                            className="h-6 w-16 px-2 text-[10px]"
+                          />
+                       </div>
+                       <Slider
+                          value={[lineHeight]}
+                          onValueChange={([v]) => setReadingLineHeight(v)}
+                          min={0.9} max={2.4} step={0.05}
                           className="py-1"
                        />
                    </div>
@@ -287,7 +336,7 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
             <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
                 <div className="mb-2 text-xs font-medium text-foreground/90">{t("appearance.desktopScale")}</div>
                 <div className="mb-2 text-[11px] text-muted-foreground">{t("appearance.desktopScaleDesc")}</div>
-                <div className="flex items-center gap-1 rounded-lg border border-border/40 bg-background/70 p-1">
+                <div className="grid grid-cols-5 gap-1 rounded-lg border border-border/40 bg-background/70 p-1">
                     {desktopScaleOptions.map((opt) => {
                         const active = Math.abs(Number(desktopUiScale || 1) - opt.value) < 0.01;
                         return (
@@ -306,6 +355,24 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
                             </button>
                         );
                     })}
+                </div>
+                <div className="mt-3 grid grid-cols-[minmax(0,1fr)_72px] items-center gap-3">
+                    <Slider
+                        value={[desktopUiScale]}
+                        onValueChange={([v]) => setDesktopUiScale(v)}
+                        min={0.75}
+                        max={1.5}
+                        step={0.01}
+                    />
+                    <Input
+                        type="number"
+                        value={desktopUiScale}
+                        onChange={(event) => setDesktopUiScale(Number(event.target.value))}
+                        min={0.75}
+                        max={1.5}
+                        step={0.01}
+                        className="h-8 px-2 text-xs"
+                    />
                 </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

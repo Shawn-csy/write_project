@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, Plus, Share2, Settings2, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, GripVertical, Plus, Share2, Settings2, Trash2 } from "lucide-react";
 import { Input } from "../../ui/input";
 import { Switch } from "../../ui/switch";
 import { EventTextV2 } from "../../renderer/v2/EventTextV2";
@@ -100,6 +100,7 @@ export function V2LayoutPreviewEditor({
   themeBar,
 }: V2LayoutPreviewEditorProps): React.JSX.Element {
   const [collapsed, setCollapsed] = useState(false);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const config = useMemo(() => normalizeLayoutConfig(layoutConfig), [layoutConfig]);
@@ -276,6 +277,47 @@ export function V2LayoutPreviewEditor({
     window.addEventListener("pointerup", onUp);
   }, [widths, enabledTracks, config, emit]);
 
+  // Drag-reorder handler: drags header left/right to swap column order
+  const handleReorderDragStart = useCallback((dragIdx: number, startX: number) => {
+    let currentOver = dragIdx;
+    setDragOverIdx(dragIdx);
+
+    const onMove = (e: PointerEvent) => {
+      const dx = e.clientX - startX;
+      const colWidth = (containerRef.current?.getBoundingClientRect().width ?? 400) / (enabledTracks.length + 1);
+      const offset = Math.round(dx / colWidth);
+      const targetIdx = Math.max(0, Math.min(enabledTracks.length - 1, dragIdx + offset));
+      if (targetIdx !== currentOver) {
+        currentOver = targetIdx;
+        setDragOverIdx(targetIdx);
+      }
+    };
+
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      setDragOverIdx(null);
+      if (currentOver !== dragIdx) {
+        // Swap orders of the two tracks
+        const a = enabledTracks[dragIdx];
+        const b = enabledTracks[currentOver];
+        if (a && b) {
+          emit({
+            ...config,
+            tracks: config.tracks.map((t) => {
+              if (t.id === a.id) return { ...t, order: b.order };
+              if (t.id === b.id) return { ...t, order: a.order };
+              return t;
+            }),
+          });
+        }
+      }
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }, [enabledTracks, config, emit]);
+
   // Track colors for visual distinction
   const TRACK_COLORS = [
     "bg-blue-500/8 border-blue-500/20",
@@ -356,12 +398,24 @@ export function V2LayoutPreviewEditor({
                   <div
                     key={track.id}
                     className={cn(
-                      "relative px-2 pt-2 pb-1.5 border-r last:border-r-0 border-border/30",
-                      TRACK_HEADER_COLORS[idx % TRACK_HEADER_COLORS.length]
+                      "relative px-2 pt-2 pb-1.5 border-r last:border-r-0 border-border/30 transition-opacity",
+                      TRACK_HEADER_COLORS[idx % TRACK_HEADER_COLORS.length],
+                      dragOverIdx !== null && dragOverIdx === idx && dragOverIdx !== enabledTracks.findIndex((t) => t.id === track.id) && "ring-2 ring-primary/60"
                     )}
                   >
                     {/* Name + controls row */}
                     <div className="flex items-center gap-1 mb-1">
+                      {/* Grip for reorder drag */}
+                      <div
+                        className="shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground"
+                        onPointerDown={(e) => {
+                          // Only start reorder if not on resize handle
+                          e.preventDefault();
+                          handleReorderDragStart(idx, e.clientX);
+                        }}
+                      >
+                        <GripVertical className="h-3 w-3" />
+                      </div>
                       <Input
                         value={track.name}
                         onChange={(e) => updateTrack(track.id, { name: e.target.value })}
@@ -388,9 +442,10 @@ export function V2LayoutPreviewEditor({
                     {/* Resize handle on right edge (not last) */}
                     {idx < enabledTracks.length - 1 && (
                       <div
-                        className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/40 active:bg-primary/60 z-10 translate-x-px"
+                        className="absolute top-0 right-0 w-1.5 h-full cursor-col-resize hover:bg-primary/40 active:bg-primary/60 z-10"
                         onPointerDown={(e) => {
                           e.preventDefault();
+                          e.stopPropagation();
                           handleResizeDragStart(idx, e.clientX);
                         }}
                       />
@@ -403,46 +458,68 @@ export function V2LayoutPreviewEditor({
             <div className="divide-y divide-border/20">
               {lineRows.map((row) => {
                 const isRange = selectedConfig?.matchMode === "range";
-                // range: lines 2 and 4 are the marker rows; line 3 is the "inside" content
+                // range: lines 2 and 4 are marker rows; line 3 is inside the range
                 const isMarkerRow = selectedLine !== null && (
                   isRange ? (row.line === 2 || row.line === 4) : row.line === selectedLine
                 );
                 const isRangeInside = isRange && row.line === 3;
+                const isRangeStart = isRange && row.line === 2;
+                const isRangeEnd = isRange && row.line === 4;
                 return (
                 <div
                   key={row.line}
-                  className={cn(
-                    "grid",
-                    isMarkerRow && "ring-1 ring-inset ring-primary/50 bg-primary/5",
-                    isRangeInside && "bg-primary/3"
-                  )}
+                  className={cn("grid", isMarkerRow && "bg-primary/5")}
                   style={{ gridTemplateColumns: templateColumns }}
                 >
                   {/* Line number gutter */}
-                  <div className={cn("border-r border-border/20 bg-muted/5 flex items-start justify-center pt-2 min-h-[2rem]", isMarkerRow && "bg-primary/10")}>
+                  <div className={cn(
+                    "border-r border-border/20 bg-muted/5 flex items-start justify-center pt-2 min-h-[2rem]",
+                    isMarkerRow && "bg-primary/10",
+                    isRangeInside && "bg-primary/5"
+                  )}>
                     <span className={cn("text-[10px] font-mono", isMarkerRow ? "text-primary font-bold" : "text-muted-foreground/50")}>
                       {isMarkerRow ? "▶" : `L${row.line}`}
                     </span>
                   </div>
                   {enabledTracks.map((track, idx) => {
                     const events = row.eventsByTrackId.get(track.id) ?? [];
+                    // Identify which track the selected range marker belongs to
+                    const selectedMarkerTrackId = selectedConfig?.v2TrackId;
+                    const isRangeMarkerTrack = isRange && selectedMarkerTrackId
+                      ? track.id === selectedMarkerTrackId
+                      : isRange && events.some((e) => e.markerId === selectedConfig?.id);
+                    const rangeInsideFill = isRangeInside && isRangeMarkerTrack;
+                    const selectedMarkerStyle = selectedConfig?.style && typeof selectedConfig.style === "object"
+                      ? selectedConfig.style as React.CSSProperties
+                      : undefined;
                     return (
                       <div
                         key={`${row.line}-${track.id}`}
                         className={cn(
                           "px-2 py-1.5 border-r last:border-r-0 border-border/20 min-h-[2rem]",
-                          TRACK_COLORS[idx % TRACK_COLORS.length],
-                          events.length === 0 && "opacity-0"
+                          !isRangeMarkerTrack && TRACK_COLORS[idx % TRACK_COLORS.length],
+                          events.length === 0 && !rangeInsideFill && "opacity-0"
                         )}
+                        style={rangeInsideFill && selectedMarkerStyle?.backgroundColor
+                          ? { backgroundColor: selectedMarkerStyle.backgroundColor, opacity: 0.4 }
+                          : undefined
+                        }
                       >
                         {events.map((event) => {
                           const mCfg = event.markerId ? markerConfigById.get(String(event.markerId)) : undefined;
-                          const mStyle = mCfg?.style && typeof mCfg.style === "object" ? mCfg.style as React.CSSProperties : undefined;
+                          const rawStyle = mCfg?.style && typeof mCfg.style === "object" ? mCfg.style as React.CSSProperties : undefined;
+                          // Range: start row rounds top, end row rounds bottom, inside has no rounding and no top/bottom border
+                          const rangeStyle: React.CSSProperties | undefined = rawStyle && isRange && event.markerId === selectedConfig?.id ? {
+                            ...rawStyle,
+                            borderRadius: isRangeStart ? "4px 4px 0 0" : isRangeEnd ? "0 0 4px 4px" : "0",
+                            marginBottom: isRangeStart ? 0 : undefined,
+                            marginTop: isRangeEnd ? 0 : undefined,
+                          } : rawStyle;
                           return (
                             <div
                               key={event.id}
-                              className="text-xs leading-relaxed rounded px-1"
-                              style={mStyle}
+                              className="text-xs leading-relaxed px-1 min-w-0 break-words"
+                              style={rangeStyle}
                             >
                               {event.speakerId
                                 ? <span className="text-muted-foreground text-[10px] mr-1">{event.speakerId}</span>
