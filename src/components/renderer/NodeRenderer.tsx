@@ -36,6 +36,8 @@ export interface RendererNode {
 
 export interface NodeRenderContext {
   fontSize?: number;
+  dialogueFontSize?: number;
+  lineHeight?: number;
   filterCharacter?: string | null;
   focusMode?: boolean;
   focusEffect?: string;
@@ -264,14 +266,14 @@ export const NodeRenderer = React.memo(function NodeRenderer({
 
     case 'parenthetical':
       return (
-        <div className={`script-parenthetical ${isDual ? 'max-w-full' : ''}`} style={{ whiteSpace: 'pre-wrap' }}>
+        <div className={`script-parenthetical ${isDual ? 'max-w-full' : ''}`} style={{ whiteSpace: 'pre-wrap', fontSize: context.dialogueFontSize }}>
           {renderInlineLines(node, context)}
         </div>
       );
 
     case 'dialogue':
       return (
-        <p className={`script-dialogue ${isDual ? 'max-w-full' : ''}`} style={{ whiteSpace: 'pre-wrap' }}>
+        <p className={`script-dialogue ${isDual ? 'max-w-full' : ''}`} style={{ whiteSpace: 'pre-wrap', fontSize: context.dialogueFontSize }}>
           {renderInlineLines(node, context)}
         </p>
       );
