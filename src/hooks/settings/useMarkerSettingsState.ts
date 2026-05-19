@@ -28,6 +28,7 @@ interface UseMarkerSettingsStateResult {
   addMarker: () => void;
   removeMarker: (index: number) => void;
   applyJson: () => void;
+  save: () => Promise<void>;
 }
 
 export function useMarkerSettingsState({
@@ -87,43 +88,22 @@ export function useMarkerSettingsState({
     }
   }, [jsonText, viewMode]);
 
-  useEffect(() => {
-    if (readOnly) {
-      setIsDirty(false);
-      setIsSaving(false);
-      return;
-    }
-    if (!isDirty || isSaving) return;
+  // No auto-save — save() must be called explicitly
+  const save = useCallback(async () => {
+    if (readOnly || isSaving) return;
     if (viewMode === "json" && parseError) return;
-
-    const timer = setTimeout(() => {
-      const current = JSON.stringify(markerConfigs || []);
-      const next = JSON.stringify(localConfigs || []);
-      if (current === next) {
-        setIsDirty(false);
-        return;
-      }
-
-      setIsSaving(true);
-      Promise.resolve(setMarkerConfigs(localConfigs))
-        .then(() => {
-          setLastSavedAt(new Date());
-          setIsDirty(false);
-        })
-        .finally(() => setIsSaving(false));
-    }, 180);
-
-    return () => clearTimeout(timer);
-  }, [
-    readOnly,
-    isDirty,
-    isSaving,
-    viewMode,
-    parseError,
-    markerConfigs,
-    localConfigs,
-    setMarkerConfigs,
-  ]);
+    const current = JSON.stringify(markerConfigs || []);
+    const next = JSON.stringify(localConfigs || []);
+    if (current === next) { setIsDirty(false); return; }
+    setIsSaving(true);
+    try {
+      await Promise.resolve(setMarkerConfigs(localConfigs));
+      setLastSavedAt(new Date());
+      setIsDirty(false);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [readOnly, isSaving, viewMode, parseError, markerConfigs, localConfigs, setMarkerConfigs]);
 
   const updateMarker = useCallback((index: number, field: keyof MarkerConfig | Partial<MarkerConfig>, value?: unknown) => {
     if (readOnly) return;
@@ -223,5 +203,6 @@ export function useMarkerSettingsState({
     addMarker,
     removeMarker,
     applyJson,
+    save,
   };
 }

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { defaultMarkerConfigs } from "../constants/defaultMarkerRules";
 import { apiCall as serviceApiCall } from "../services/settingsApi";
 import { normalizeMarkerConfigsSchema } from "../lib/markerThemeCodec";
@@ -258,17 +258,23 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
         return normalizeLayoutConfig(theme?.layoutConfig ?? null);
     }, [markerThemes, currentThemeId]);
 
-    const updateThemeLayoutConfig = useCallback(async (id: string, config: LayoutConfig) => {
+    const layoutConfigApiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const updateThemeLayoutConfig = useCallback((id: string, config: LayoutConfig) => {
         const normalized = normalizeLayoutConfig(config);
         const stripped = { ...normalized, routingRules: [] };
-        const newThemes = markerThemes.map((t) =>
-            t.id === id ? { ...t, layoutConfig: stripped } : t
-        );
-        setMarkerThemesState(normalizeThemeList(newThemes));
+        // Immediate state update so UI is responsive
+        setMarkerThemesState((prev) => normalizeThemeList(
+            prev.map((t) => t.id === id ? { ...t, layoutConfig: stripped } : t)
+        ));
+        // Debounced API persist — only fires 800ms after the last call
+        if (layoutConfigApiTimerRef.current) clearTimeout(layoutConfigApiTimerRef.current);
         if (currentUser && id !== 'default') {
-            await apiCall(`/themes/${id}`, 'PUT', { layoutConfig: stripped });
+            layoutConfigApiTimerRef.current = setTimeout(() => {
+                apiCall(`/themes/${id}`, 'PUT', { layoutConfig: stripped });
+            }, 800);
         }
-    }, [markerThemes, currentUser, normalizeThemeList, apiCall]);
+    }, [currentUser, normalizeThemeList, apiCall]);
 
     return {
         markerThemes,
