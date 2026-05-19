@@ -28,6 +28,8 @@ interface MarkerSettingsModeContentProps {
   setIsAdvancedMode: (value: boolean) => void;
   readOnly?: boolean;
   tracks?: TrackConfig[];
+  showLayoutContext?: boolean;
+  onOpenFullLayoutEditor?: () => void;
 }
 
 export function MarkerSettingsModeContent({
@@ -52,6 +54,8 @@ export function MarkerSettingsModeContent({
   setIsAdvancedMode,
   readOnly = false,
   tracks = [],
+  showLayoutContext = false,
+  onOpenFullLayoutEditor,
 }: MarkerSettingsModeContentProps): React.JSX.Element {
   if (viewMode === "guide") {
     return (
@@ -94,6 +98,8 @@ export function MarkerSettingsModeContent({
         setIsAdvancedMode={setIsAdvancedMode}
         readOnly={readOnly}
         tracks={tracks}
+        showLayoutContext={showLayoutContext}
+        onOpenFullLayoutEditor={onOpenFullLayoutEditor}
       />
     </fieldset>
   );

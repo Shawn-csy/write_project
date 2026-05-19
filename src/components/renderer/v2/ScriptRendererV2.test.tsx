@@ -17,8 +17,8 @@ describe('ScriptRendererV2', () => {
 
     expect(screen.getAllByText('音效').length).toBeGreaterThan(0);
     expect(screen.getAllByText('主對白').length).toBeGreaterThan(0);
-    expect(screen.getByText('關門聲')).toBeInTheDocument();
-    expect(screen.getByText('你來了。')).toBeInTheDocument();
+    expect(screen.getAllByText('關門聲').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('你來了。').length).toBeGreaterThan(0);
   });
 
   it('renders timeline mode rows', () => {
@@ -33,6 +33,38 @@ describe('ScriptRendererV2', () => {
 
     expect(screen.getAllByText('主對白').length).toBeGreaterThan(0);
     expect(screen.getByText('收到。')).toBeInTheDocument();
+  });
+
+  it('renders linear mode for mobile auto presentation', () => {
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: query === '(max-width: 767px)',
+      media: query,
+      onchange: null,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+      addListener: () => undefined,
+      removeListener: () => undefined,
+      dispatchEvent: () => false,
+    })) as typeof window.matchMedia;
+
+    try {
+      const ast = {
+        children: [
+          { type: 'layer', layerType: 'rule-se-single', text: '門聲', lineStart: 1, lineEnd: 1 },
+          { type: 'dialogue', text: '收到。', lineStart: 2, lineEnd: 2 },
+        ],
+      };
+
+      const { container } = render(<ScriptRendererV2 ast={ast} mode="auto" />);
+
+      expect(container.querySelector('[data-v2-presentation="linear"]')).toBeTruthy();
+      expect(container.querySelector('[data-v2-presentation="columns"]')).toBeNull();
+      expect(screen.getByText('門聲')).toBeInTheDocument();
+      expect(screen.getByText('收到。')).toBeInTheDocument();
+    } finally {
+      window.matchMedia = originalMatchMedia;
+    }
   });
 
   it('renders inline marker styling inside v2 event text', () => {
@@ -75,6 +107,6 @@ describe('ScriptRendererV2', () => {
     const { container } = render(<ScriptRendererV2 ast={ast} markerConfigs={markerConfigs} mode="columns" />);
 
     expect(container.querySelector('[data-marker-id="dialogue"]')).toBeNull();
-    expect(screen.getByText('#D 仍然是台詞內容。')).toBeInTheDocument();
+    expect(screen.getAllByText('#D 仍然是台詞內容。').length).toBeGreaterThan(0);
   });
 });

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Card } from "../ui/card";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useMarkerSettingsState } from "../../hooks/settings/useMarkerSettingsState";
@@ -7,9 +7,11 @@ import { MarkerThemeHeader } from "./marker/MarkerThemeHeader";
 import { MarkerSettingsHeader } from "./marker/layout/MarkerSettingsHeader";
 import { MarkerSettingsModeContent } from "./marker/layout/MarkerSettingsModeContent";
 import { V2LayoutPreviewEditor } from "./marker/V2LayoutPreviewEditor";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../ui/sheet";
 import { useI18n } from "../../contexts/I18nContext";
 import { useAuth } from "../../contexts/AuthContext";
 import type { MarkerConfig } from "../../types/script";
+import type { LayoutConfig } from "../../lib/v2";
 
 interface FormatSaveStatusArgs {
   isSaving: boolean;
@@ -88,7 +90,37 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
     applyJson,
     isAdvancedMode,
     setIsAdvancedMode,
+    save: saveMarkerConfigs,
   } = markerState;
+
+  // Pending layout config — only pushed to API on save
+  const [pendingLayoutConfig, setPendingLayoutConfig] = useState<LayoutConfig>(v2LayoutConfig);
+  const [layoutDirty, setLayoutDirty] = useState(false);
+
+  // Sync pending when theme switches (v2LayoutConfig changes from outside)
+  useEffect(() => {
+    setPendingLayoutConfig(v2LayoutConfig);
+    setLayoutDirty(false);
+  }, [v2LayoutConfig]);
+
+  const handleLayoutChange = useCallback((config: LayoutConfig) => {
+    setPendingLayoutConfig(config);
+    setLayoutDirty(true);
+  }, []);
+
+  const anyDirty = isDirty || layoutDirty;
+  const canSave = anyDirty && !isSaving && !readOnly && !parseError;
+
+  const handleSave = useCallback(async () => {
+    if (!canSave) return;
+    if (layoutDirty) {
+      setV2LayoutConfig(pendingLayoutConfig);
+      setLayoutDirty(false);
+    }
+    if (isDirty) {
+      await saveMarkerConfigs();
+    }
+  }, [canSave, layoutDirty, isDirty, pendingLayoutConfig, setV2LayoutConfig, saveMarkerConfigs]);
 
   const selectedConfig = useMemo<MarkerConfig | null>(
     () => localConfigs.find((c) => (c.id || c._tempId) === expandedId) || null,
@@ -98,7 +130,7 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
     () => localConfigs.findIndex((c) => (c.id || c._tempId) === expandedId),
     [localConfigs, expandedId]
   );
-  const statusText = formatSaveStatus({ isSaving, parseError, isDirty, lastSavedAt, t });
+  const statusText = formatSaveStatus({ isSaving, parseError, isDirty: anyDirty, lastSavedAt, t });
   const readonlyStatusText = readOnly ? "預設主題為唯讀，請先建立或切換到自訂主題再編輯" : statusText;
 
   // Dialog open states lifted here so V2LayoutPreviewEditor header buttons can trigger them
@@ -106,22 +138,7 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
   const [themeDeleteOpen, setThemeDeleteOpen] = useState(false);
   const [themePublicityOpen, setThemePublicityOpen] = useState(false);
   const [themeMoreOpen, setThemeMoreOpen] = useState(false);
-
-  const currentTheme = markerThemes.find((theme) => theme.id === currentThemeId);
-  const canDelete = markerThemes.length > 1 && currentTheme?.id !== "default";
-
-  const themeBar = useV2Renderer ? {
-    markerThemes,
-    currentThemeId,
-    switchTheme,
-    onNew: () => setThemeCreateOpen(true),
-    onDelete: () => setThemeDeleteOpen(true),
-    onShare: () => setThemePublicityOpen(true),
-    onMore: () => setThemeMoreOpen(true),
-    canDelete,
-    isPublic: currentTheme?.isPublic,
-    currentUser,
-  } : undefined;
+  const [layoutEditorOpen, setLayoutEditorOpen] = useState(false);
 
   return (
     <div ref={sectionRef} className="h-full flex flex-col">
@@ -130,10 +147,12 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
           viewMode={viewMode}
           setViewMode={setViewMode}
           statusText={readonlyStatusText}
+          isDirty={canSave}
+          onSave={handleSave}
+          isSaving={isSaving}
         />
 
-        {/* MarkerThemeHeader: dialogs-only when v2 (theme bar is in V2LayoutPreviewEditor header) */}
-        {useV2Renderer ? (
+        <div className="px-5 py-2 border-b bg-background/50 shrink-0">
           <MarkerThemeHeader
             markerThemes={markerThemes}
             currentThemeId={currentThemeId}
@@ -146,7 +165,6 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
             updateThemePublicity={updateThemePublicity}
             currentUser={currentUser}
             readOnly={false}
-            dialogsOnly
             createOpen={themeCreateOpen}
             setCreateOpen={setThemeCreateOpen}
             deleteOpen={themeDeleteOpen}
@@ -156,34 +174,7 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
             moreOpen={themeMoreOpen}
             setMoreOpen={setThemeMoreOpen}
           />
-        ) : (
-          <div className="px-5 py-2 border-b bg-background/50 shrink-0">
-            <MarkerThemeHeader
-              markerThemes={markerThemes}
-              currentThemeId={currentThemeId}
-              switchTheme={switchTheme}
-              addTheme={addTheme}
-              addThemeFromCurrent={addThemeFromCurrent}
-              deleteTheme={deleteTheme}
-              renameTheme={renameTheme}
-              updateThemeDescription={updateThemeDescription}
-              updateThemePublicity={updateThemePublicity}
-              currentUser={currentUser}
-              readOnly={false}
-            />
-          </div>
-        )}
-
-        {useV2Renderer ? (
-          <V2LayoutPreviewEditor
-            layoutConfig={v2LayoutConfig}
-            onChange={setV2LayoutConfig}
-            markerConfigs={localConfigs}
-            selectedConfig={selectedConfig}
-            t={t}
-            themeBar={themeBar}
-          />
-        ) : null}
+        </div>
 
         <div className="flex-1 min-h-0 bg-background/40">
           <MarkerSettingsModeContent
@@ -207,10 +198,30 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
             isAdvancedMode={isAdvancedMode}
             setIsAdvancedMode={setIsAdvancedMode}
             readOnly={readOnly}
-            tracks={v2LayoutConfig.tracks}
+            tracks={pendingLayoutConfig.tracks}
+            showLayoutContext={useV2Renderer && viewMode === "ui"}
+            onOpenFullLayoutEditor={() => setLayoutEditorOpen(true)}
           />
         </div>
       </Card>
+
+      <Sheet open={layoutEditorOpen} onOpenChange={setLayoutEditorOpen}>
+        <SheetContent side="right" className="flex w-[min(96vw,1040px)] flex-col p-0 sm:max-w-none">
+          <SheetHeader className="border-b px-5 py-4">
+            <SheetTitle>{t("markerSettingsHeader.viewLayout")}</SheetTitle>
+            <SheetDescription>{t("markerLayoutContext.fullEditorDescription")}</SheetDescription>
+          </SheetHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <V2LayoutPreviewEditor
+              layoutConfig={pendingLayoutConfig}
+              onChange={handleLayoutChange}
+              markerConfigs={localConfigs}
+              selectedConfig={selectedConfig}
+              t={t}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

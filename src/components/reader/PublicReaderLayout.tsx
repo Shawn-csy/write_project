@@ -179,7 +179,10 @@ export function PublicReaderLayout({
           }
           outerClassName="h-full min-h-0 relative z-10"
           scrollClassName="h-full min-h-0 overflow-y-auto overflow-x-hidden touch-pan-y overscroll-y-contain scrollbar-hide perspective-1000"
-          contentClassName="max-w-4xl mx-auto px-5 sm:px-8 pb-32 pt-16 min-h-[100dvh]"
+          contentClassName={isV2Renderer
+            ? "public-reader-content mx-auto w-full px-3 pb-32 pt-16 sm:w-[92vw] sm:px-4 lg:w-[80vw] lg:max-w-7xl min-h-[100dvh]"
+            : "public-reader-content mx-auto w-full px-5 pb-32 pt-16 sm:w-[92vw] sm:px-8 lg:w-[80vw] lg:max-w-5xl min-h-[100dvh]"
+          }
         />
       </div>
 

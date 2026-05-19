@@ -32,6 +32,7 @@ const messages = {
     "select": "選択",
     "enabled": "有効",
     "disabled": "無効",
+    "save": "保存",
     "cancel": "キャンセル",
     "close": "閉じる",
     "back": "前のページへ戻る",
@@ -799,6 +800,8 @@ const messages = {
     "title": "カスタムマーカールール",
     "subtitle": "マーカールール、表示スタイル、統計挙動を一括管理",
     "viewUi": "ビジュアルエディター",
+    "viewRules": "ルール",
+    "viewLayout": "レイアウト",
     "viewGuide": "ガイド"
   },
   "markerJsonEditor": {
@@ -809,7 +812,22 @@ const messages = {
   },
   "markerVisualEditor": {
     "addMarker": "マーカーを追加",
-    "emptyHint": "左側からマーカーを選択するか、新しく作成してください"
+    "emptyHint": "左側からマーカーを選択するか、新しく作成してください",
+    "searchPlaceholder": "名前、記号、トラックを検索",
+    "filterAll": "すべて",
+    "filterBlock": "段落",
+    "filterInline": "行内",
+    "filterRange": "範囲",
+    "noResults": "一致するマーカーがありません"
+  },
+  "markerLayoutContext": {
+    "title": "トラックルーティング",
+    "routeLabel": "このルールの送信先",
+    "routeAuto": "自動",
+    "previewLabel": "トラックプレビュー",
+    "autoHint": "トラック未指定の場合は、イベント種別と既定ルールで決まります。",
+    "openFullEditor": "レイアウト設定を開く",
+    "fullEditorDescription": "デスクトップのトラック、順序、幅、有効状態を調整します。"
   },
   "markerWizardProgress": {
     "type": "種類",

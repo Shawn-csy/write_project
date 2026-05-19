@@ -19,6 +19,7 @@ import type { UpdateMarkerFn } from "./types";
 
 interface MarkerListProps {
     localConfigs: MarkerConfig[];
+    visibleEntries?: Array<{ config: MarkerConfig; idx: number }>;
     setLocalConfigs: React.Dispatch<React.SetStateAction<MarkerConfig[]>>;
     updateMarker: UpdateMarkerFn;
     removeMarker: (idx: number) => void;
@@ -29,6 +30,7 @@ interface MarkerListProps {
 
 export function MarkerList({
     localConfigs,
+    visibleEntries,
     setLocalConfigs,
     updateMarker,
     removeMarker,
@@ -63,6 +65,8 @@ export function MarkerList({
         }
     };
 
+    const entries = visibleEntries ?? localConfigs.map((config, idx) => ({ config, idx }));
+
     return (
         <DndContext 
             sensors={readOnly ? undefined : sensors}
@@ -70,11 +74,11 @@ export function MarkerList({
             onDragEnd={handleDragEnd}
         >
             <SortableContext 
-                items={localConfigs.map((c, i) => c.id || `marker-${i}`)}
+                items={entries.map(({ config, idx }) => config.id || `marker-${idx}`)}
                 strategy={verticalListSortingStrategy}
             >
                 <div className="space-y-2">
-                    {localConfigs.map((config, idx) => (
+                    {entries.map(({ config, idx }) => (
                         <SortableMarkerItem 
                             key={config.id || `marker-${idx}`}
                             id={config.id || `marker-${idx}`}
