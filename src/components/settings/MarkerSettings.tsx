@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Columns3 } from "lucide-react";
 import { Card } from "../ui/card";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useMarkerSettingsState } from "../../hooks/settings/useMarkerSettingsState";
@@ -10,6 +11,7 @@ import { V2LayoutPreviewEditor } from "./marker/V2LayoutPreviewEditor";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../ui/sheet";
 import { useI18n } from "../../contexts/I18nContext";
 import { useAuth } from "../../contexts/AuthContext";
+import { cn } from "../../lib/utils";
 import type { MarkerConfig } from "../../types/script";
 import type { LayoutConfig } from "../../lib/v2";
 
@@ -59,6 +61,7 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
     updateThemeDescription,
     updateThemePublicity,
     useV2Renderer,
+    setUseV2Renderer,
     v2LayoutConfig,
     setV2LayoutConfig,
   } = useSettings();
@@ -174,6 +177,24 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
             moreOpen={themeMoreOpen}
             setMoreOpen={setThemeMoreOpen}
           />
+          <button
+            type="button"
+            onClick={() => setUseV2Renderer(!useV2Renderer)}
+            className={cn(
+              "mt-2 flex w-full items-center justify-between rounded-lg border px-3 py-2 text-xs font-medium transition-all",
+              useV2Renderer
+                ? "border-primary/40 bg-primary/5 text-primary"
+                : "border-border/60 bg-background text-muted-foreground hover:border-border hover:bg-muted/10"
+            )}
+          >
+            <span className="flex items-center gap-2">
+              <Columns3 className="h-4 w-4 opacity-70" />
+              {t("appearance.multiTrackRenderer")}
+            </span>
+            <span className={cn("relative h-4 w-8 rounded-full transition-colors", useV2Renderer ? "bg-primary" : "bg-muted-foreground/30")}>
+              <span className={cn("absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform", useV2Renderer ? "left-[18px]" : "left-0.5")} />
+            </span>
+          </button>
         </div>
 
         <div className="flex-1 min-h-0 bg-background/40">

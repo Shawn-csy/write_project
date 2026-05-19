@@ -1560,6 +1560,10 @@ const messages = {
   "appearance": {
     "title": "Appearance & Reading",
     "subtitle": "Customize theme, font size, and layout styles",
+    "readingAppearance": "Reading Appearance",
+    "readingAppearanceDesc": "Tune screenplay text, spacing, and reading guides.",
+    "interfaceAppearance": "Interface Appearance",
+    "interfaceAppearanceDesc": "Tune workspace theme, UI font, and desktop scaling.",
     "theme": "Theme",
     "light": "Light",
     "dark": "Dark",
