@@ -22,6 +22,8 @@ interface TooltipState {
 interface ScriptRendererProps {
   ast: RendererNode | { children?: RendererNode[] } | null;
   fontSize?: number;
+  dialogueFontSize?: number;
+  lineHeight?: number;
   readingFontFamily?: string;
   filterCharacter?: string | null;
   focusMode?: boolean;
@@ -38,6 +40,8 @@ interface ScriptRendererProps {
 export const ScriptRenderer = React.memo(({
   ast,
   fontSize = 16,
+  dialogueFontSize,
+  lineHeight,
   readingFontFamily = "serif",
   filterCharacter,
   focusMode,
@@ -112,6 +116,8 @@ export const ScriptRenderer = React.memo(({
 
   const context = useMemo(() => ({
     fontSize,
+    dialogueFontSize,
+    lineHeight,
     filterCharacter,
     focusMode,
     focusEffect,
@@ -123,7 +129,7 @@ export const ScriptRenderer = React.memo(({
     hiddenMarkerIds,
     whitespaceLabels,
     markerTooltipPrefix: t("scriptRenderer.markerTooltipPrefix", "標記"),
-  }), [fontSize, filterCharacter, focusMode, focusEffect, focusContentMode, colorCache, markerConfigs, normalizedInlineMarkerConfigs, parseInlineLine, hiddenMarkerIds, whitespaceLabels, t]);
+  }), [fontSize, dialogueFontSize, lineHeight, filterCharacter, focusMode, focusEffect, focusContentMode, colorCache, markerConfigs, normalizedInlineMarkerConfigs, parseInlineLine, hiddenMarkerIds, whitespaceLabels, t]);
 
   const markerLabelById = useMemo(() => {
     const map = new Map();
@@ -174,7 +180,7 @@ export const ScriptRenderer = React.memo(({
   return (
     <article
       className={`script-renderer relative${showLineUnderline ? " show-line-underline" : ""}`}
-      style={{ fontFamily: readingFontStack }}
+      style={{ fontFamily: readingFontStack, fontSize, lineHeight }}
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
     >
