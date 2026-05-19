@@ -63,12 +63,10 @@ export function MarkerDetailEditor({ config, idx, updateMarker, isAdvancedMode, 
                 </div>
             </div>
             
-            {/* Live preview */}
-            <div className="p-3 border-b bg-muted/10">
-                <MarkerPreview config={config} />
-            </div>
-
             <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">
+                <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-4 border-b bg-background/95 p-4 backdrop-blur">
+                    <MarkerPreview config={config} />
+                </div>
                 {!isAdvancedMode ? (
                     <div className="space-y-6">
                         <div className="space-y-2">

@@ -38,6 +38,13 @@ export function SortableMarkerItem({ id, config, idx, updateMarker, removeMarker
 
     const isSelected = selectedId === (config.id || idx);
     const isBlock = config.type === 'block' || config.isBlock; 
+    const typeLabel = config.matchMode === 'range' ? 'Range' : config.matchMode === 'regex' ? 'Regex' : isBlock ? 'Block' : 'Inline';
+    const symbolText = config.matchMode === 'regex'
+        ? String(config.regex || 'regex')
+        : [config.start, config.end].filter(Boolean).join(' ... ') || String(config.id || '');
+    const routeText = typeof config.v2TrackId === 'string' && config.v2TrackId.trim()
+        ? config.v2TrackId.trim()
+        : '';
     
     return (
         <div ref={setNodeRef} style={style} className={cn("mb-2 group relative", isDragging && "opacity-50")}>
@@ -71,11 +78,15 @@ export function SortableMarkerItem({ id, config, idx, updateMarker, removeMarker
 
                 <div className="flex-1 min-w-0">
                     <div className="font-semibold truncate text-xs">{config.label || '未命名'}</div>
+                    <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[10px] text-muted-foreground/70">
+                        <span className="truncate font-mono">{symbolText}</span>
+                        {routeText ? <span className="shrink-0 rounded bg-muted px-1 font-mono">{routeText}</span> : null}
+                    </div>
                 </div>
 
                 {/* Type Badge */}
                 <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium flex-shrink-0">
-                   {config.matchMode === 'regex' ? 'Regex' : (isBlock ? 'Block' : 'Inline')}
+                   {typeLabel}
                 </span>
 
                 <Button 

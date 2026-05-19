@@ -32,6 +32,7 @@ const messages = {
     "select": "選擇",
     "enabled": "開啟",
     "disabled": "關閉",
+    "save": "儲存",
     "cancel": "取消",
     "close": "關閉",
     "back": "返回上一頁",
@@ -799,6 +800,8 @@ const messages = {
     "title": "自訂標記規則",
     "subtitle": "統一管理標記規則、樣式與統計行為",
     "viewUi": "可視化編輯",
+    "viewRules": "規則",
+    "viewLayout": "欄位佈局",
     "viewGuide": "使用說明"
   },
   "markerJsonEditor": {
@@ -809,7 +812,22 @@ const messages = {
   },
   "markerVisualEditor": {
     "addMarker": "新增標記",
-    "emptyHint": "從左側選擇標記，或建立新標記"
+    "emptyHint": "從左側選擇標記，或建立新標記",
+    "searchPlaceholder": "搜尋名稱、符號或欄位",
+    "filterAll": "全部",
+    "filterBlock": "段落",
+    "filterInline": "行內",
+    "filterRange": "區間",
+    "noResults": "沒有符合條件的標記"
+  },
+  "markerLayoutContext": {
+    "title": "欄位路由",
+    "routeLabel": "這條規則送往",
+    "routeAuto": "自動判斷",
+    "previewLabel": "欄位預覽",
+    "autoHint": "未指定欄位時，會依事件類型與預設路由決定。",
+    "openFullEditor": "展開欄位設定",
+    "fullEditorDescription": "調整桌面欄位、順序、寬度與啟用狀態。"
   },
   "markerWizardProgress": {
     "type": "選擇類型",

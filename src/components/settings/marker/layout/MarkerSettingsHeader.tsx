@@ -1,5 +1,5 @@
 import React from "react";
-import { FileCode2, FileText, BookOpen } from "lucide-react";
+import { FileCode2, FileText, BookOpen, Save, Loader2 } from "lucide-react";
 import { CardHeader } from "../../../ui/card";
 import { Button } from "../../../ui/button";
 import { cn } from "../../../../lib/utils";
@@ -9,12 +9,15 @@ interface MarkerSettingsHeaderProps {
   viewMode: "ui" | "json" | "guide";
   setViewMode: React.Dispatch<React.SetStateAction<"ui" | "json" | "guide">>;
   statusText: string;
+  isDirty?: boolean;
+  isSaving?: boolean;
+  onSave?: () => void;
 }
 
-export function MarkerSettingsHeader({ viewMode, setViewMode, statusText }: MarkerSettingsHeaderProps): React.JSX.Element {
+export function MarkerSettingsHeader({ viewMode, setViewMode, statusText, isDirty, isSaving, onSave }: MarkerSettingsHeaderProps): React.JSX.Element {
   const { t } = useI18n();
   const VIEW_MODES = [
-    { id: "ui", label: t("markerSettingsHeader.viewUi"), icon: FileText },
+    { id: "ui", label: t("markerSettingsHeader.viewRules"), icon: FileText },
     { id: "json", label: "JSON", icon: FileCode2 },
     { id: "guide", label: t("markerSettingsHeader.viewGuide"), icon: BookOpen },
   ] as const;
@@ -39,7 +42,24 @@ export function MarkerSettingsHeader({ viewMode, setViewMode, statusText }: Mark
             );
           })}
         </div>
-        <div className="text-xs text-muted-foreground">{statusText}</div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">{statusText}</span>
+          {onSave && (
+            <Button
+              size="sm"
+              variant={isDirty ? "default" : "ghost"}
+              onClick={onSave}
+              disabled={!isDirty || isSaving}
+              className="h-7 px-2 gap-1.5 text-xs"
+            >
+              {isSaving
+                ? <Loader2 className="w-3 h-3 animate-spin" />
+                : <Save className="w-3 h-3" />
+              }
+              {t("common.save")}
+            </Button>
+          )}
+        </div>
       </div>
     </CardHeader>
   );

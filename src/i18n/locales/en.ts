@@ -32,6 +32,7 @@ const messages = {
     "select": "Select",
     "enabled": "Enabled",
     "disabled": "Disabled",
+    "save": "Save",
     "cancel": "Cancel",
     "close": "Close",
     "back": "Go back",
@@ -799,6 +800,8 @@ const messages = {
     "title": "Custom Marker Rules",
     "subtitle": "Manage marker rules, styles, and statistic behavior in one place",
     "viewUi": "Visual Editor",
+    "viewRules": "Rules",
+    "viewLayout": "Layout",
     "viewGuide": "Guide"
   },
   "markerJsonEditor": {
@@ -809,7 +812,22 @@ const messages = {
   },
   "markerVisualEditor": {
     "addMarker": "Add Marker",
-    "emptyHint": "Select a marker from the left, or create a new one"
+    "emptyHint": "Select a marker from the left, or create a new one",
+    "searchPlaceholder": "Search name, symbol, or track",
+    "filterAll": "All",
+    "filterBlock": "Block",
+    "filterInline": "Inline",
+    "filterRange": "Range",
+    "noResults": "No matching markers"
+  },
+  "markerLayoutContext": {
+    "title": "Track Routing",
+    "routeLabel": "Route this rule to",
+    "routeAuto": "Auto",
+    "previewLabel": "Track Preview",
+    "autoHint": "When no track is set, routing follows event kind and fallback rules.",
+    "openFullEditor": "Open Layout Settings",
+    "fullEditorDescription": "Adjust desktop tracks, order, width, and enabled state."
   },
   "markerWizardProgress": {
     "type": "Type",
