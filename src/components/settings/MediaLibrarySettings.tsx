@@ -1,10 +1,12 @@
 import React from "react";
+import { Image } from "lucide-react";
 import { Button } from "../ui/button";
 import { MEDIA_FILE_ACCEPT, formatBytes } from "../../lib/mediaLibrary";
 import { useI18n } from "../../contexts/I18nContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { PublisherFormRow } from "../dashboard/publisher/PublisherFormRow";
 import { useMediaLibrary } from "../../hooks/useMediaLibrary";
+import { SettingsSectionCard } from "./SettingsSectionCard";
 
 export function MediaLibrarySettings() {
   const { t } = useI18n();
@@ -27,10 +29,15 @@ export function MediaLibrarySettings() {
   }, [refresh]);
 
   return (
-    <div className="space-y-4">
+    <SettingsSectionCard
+      icon={<Image className="w-4 h-4" />}
+      title={t("settings.media")}
+      description={t("mediaLibrary.itemCountDesc").replace("{count}", String(stats.count))}
+      contentClassName="space-y-4"
+    >
       <PublisherFormRow
         label={t("mediaLibrary.usage")}
-        className="rounded-lg border bg-muted/20 p-4 md:grid-cols-[180px_minmax(0,1fr)]"
+        className="md:grid-cols-[180px_minmax(0,1fr)]"
       >
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
@@ -46,7 +53,7 @@ export function MediaLibrarySettings() {
 
       <PublisherFormRow
         label={t("common.actions")}
-        className="rounded-lg border bg-background/50 p-4 md:grid-cols-[180px_minmax(0,1fr)]"
+        className="md:grid-cols-[180px_minmax(0,1fr)]"
       >
         <div className="flex flex-wrap items-center gap-2">
           <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
@@ -89,6 +96,6 @@ export function MediaLibrarySettings() {
           ))}
         </div>
       )}
-    </div>
+    </SettingsSectionCard>
   );
 }

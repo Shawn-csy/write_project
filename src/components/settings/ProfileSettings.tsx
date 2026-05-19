@@ -6,6 +6,7 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { useToast } from '../ui/toast';
 import { PublisherFormRow } from "../dashboard/publisher/PublisherFormRow";
+import { SettingsSectionCard } from "./SettingsSectionCard";
 
 export function ProfileSettings() {
     const { currentUser, profile, saveProfile } = useAuth();
@@ -49,13 +50,12 @@ export function ProfileSettings() {
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center gap-2 pb-2 border-b border-border/40">
-                <User className="w-5 h-5 text-primary" />
-                <h3 className="text-lg font-semibold tracking-tight text-foreground/90">{t("profile.title")}</h3>
-            </div>
-
-            <div className="space-y-6">
+        <SettingsSectionCard
+            icon={<User className="w-4 h-4" />}
+            title={t("profile.title")}
+            description={t("profile.accountSource")}
+            contentClassName="space-y-6"
+        >
                 <div className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg border border-border/50">
                     {currentUser.photoURL ? (
                         <img 
@@ -115,7 +115,6 @@ export function ProfileSettings() {
                         </div>
                     </PublisherFormRow>
                 </div>
-            </div>
-        </div>
+        </SettingsSectionCard>
     );
 }
