@@ -40,14 +40,10 @@ const readLineSpan = (node: AstNodeLike): { start: number; end: number } => {
   };
 };
 
-const classifyLayerKind = (markerId?: string): ScriptEvent['kind'] => {
-  const id = String(markerId || '').toLowerCase();
-  if (!id) return 'meta';
-  if (id.includes('se') || id.includes('sfx')) return 'sfx';
-  if (id.includes('bg')) return 'bgm';
-  if (id.includes('position') || id.includes('pos')) return 'stage_direction';
-  return 'meta';
-};
+// When a layer node has no explicit v2EventKind on its marker config, fall back
+// to 'meta' rather than guessing from the markerId string. Callers that need a
+// specific kind should set v2EventKind on the marker config.
+const layerKindFallback = (): ScriptEvent['kind'] => 'meta';
 
 const resolveDialogueTrackIds = (layoutConfig: LayoutConfig): [string | undefined, string | undefined] => {
   const dialogueTracks = [...layoutConfig.tracks]
@@ -159,15 +155,10 @@ export const buildScriptDocumentV2FromAst = (
 
     switch (node.type) {
       case 'character': {
+        // Character cues are speaker-state transitions, not renderable content events.
+        // The speaker identity propagates to subsequent events via activeSpeakerId /
+        // speakerId on each dialogue or layer event. No event is emitted here.
         activeSpeakerId = text || activeSpeakerId;
-        pushEvent({
-          kind: semanticKind || 'meta',
-          text,
-          speakerId: activeSpeakerId || undefined,
-          markerId: node.markerId || 'character',
-          lineSpan: span,
-          attrs: { role: 'character_cue' },
-        });
         return;
       }
       case 'dialogue': {
@@ -184,6 +175,27 @@ export const buildScriptDocumentV2FromAst = (
       case 'parenthetical':
       case 'transition':
       case 'centered': {
+        // V1 inline markers (e.g. rule-se-single with matchMode:'prefix') can match a
+        // whole line when the user writes a standalone SFX/BGM cue using an inline-typed
+        // marker config. In that case the V1 parser emits an 'action' node whose entire
+        // content is captured as a single inline span with a v2TrackId.
+        //
+        // If the inline array contains at least one span routed to a dedicated track
+        // AND there is no remaining plain-text content, the line is purely a layer cue.
+        // Emit only the routed inline layer events; suppress the action event so the cue
+        // does not also appear in the fallback (main) track.
+        const inlineSpans = node.inline || [];
+        const hasPlainText = inlineSpans.some(
+          (s) => s.type === 'text' && String(s.content || '').trim()
+        );
+        const hasInlineLayers = inlineSpans.some((s) => {
+          const cfg = s.id ? markerConfigById.get(String(s.id)) : undefined;
+          return Boolean(cfg?.v2TrackId);
+        });
+        if (!hasPlainText && hasInlineLayers) {
+          pushInlineLayerEvents(inlineSpans, span);
+          return;
+        }
         pushEvent({
           kind: semanticKind || 'narration',
           text,
@@ -191,7 +203,7 @@ export const buildScriptDocumentV2FromAst = (
           lineSpan: span,
           attrs: { sourceType: node.type },
         });
-        pushInlineLayerEvents(node.inline, span);
+        pushInlineLayerEvents(inlineSpans, span);
         return;
       }
       case 'layer': {
@@ -199,7 +211,7 @@ export const buildScriptDocumentV2FromAst = (
         const markerConfig = markerId ? markerConfigById.get(String(markerId)) : undefined;
         const speakerSource = String(markerConfig?.v2SpeakerSource || '').trim();
         pushEvent({
-          kind: getMarkerEventKind(markerConfig) || classifyLayerKind(markerId),
+          kind: getMarkerEventKind(markerConfig) || layerKindFallback(),
           text,
           markerId,
           speakerId: speakerSource === 'active'
@@ -218,7 +230,7 @@ export const buildScriptDocumentV2FromAst = (
           const markerId = node.startNode.layerType || node.startNode.markerId;
           const markerConfig = markerId ? markerConfigById.get(String(markerId)) : undefined;
           pushEvent({
-            kind: getMarkerEventKind(markerConfig) || classifyLayerKind(markerId),
+            kind: getMarkerEventKind(markerConfig) || layerKindFallback(),
             text: String(node.startNode.text || '').trim(),
             markerId,
             lineSpan: startSpan,
@@ -231,7 +243,7 @@ export const buildScriptDocumentV2FromAst = (
           const markerId = node.endNode.layerType || node.endNode.markerId;
           const markerConfig = markerId ? markerConfigById.get(String(markerId)) : undefined;
           pushEvent({
-            kind: getMarkerEventKind(markerConfig) || classifyLayerKind(markerId),
+            kind: getMarkerEventKind(markerConfig) || layerKindFallback(),
             text: String(node.endNode.text || '').trim(),
             markerId,
             lineSpan: endSpan,

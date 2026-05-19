@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import type { OrchestratedDocument, ScriptEvent } from '../../../lib/v2';
 import type { MarkerConfig } from '../../../types/script';
-import { EventTextV2 } from './EventTextV2';
+import { EventTextV2, applyDisplayTemplate } from './EventTextV2';
 
 interface TimelineRendererV2Props {
   doc: OrchestratedDocument;
@@ -32,6 +32,11 @@ export const TimelineRendererV2 = ({
     return map;
   }, [doc.layoutConfig.tracks]);
 
+  const markerConfigById = useMemo(
+    () => new Map(markerConfigs.filter((m) => m.id).map((m) => [m.id, m])),
+    [markerConfigs]
+  );
+
   const rows = useMemo<TimelineRow[]>(() => {
     const list: TimelineRow[] = [];
     doc.lanes.forEach((lane) => {
@@ -57,7 +62,7 @@ export const TimelineRendererV2 = ({
           </div>
           <p className="whitespace-pre-wrap" style={{ fontSize, lineHeight }}>
             <EventTextV2
-              text={row.event.text}
+              text={applyDisplayTemplate(row.event.text, row.event.markerId ? markerConfigById.get(row.event.markerId) : undefined)}
               markerConfigs={markerConfigs}
               hiddenMarkerIds={hiddenMarkerIds}
               markerTooltipPrefix={markerTooltipPrefix}

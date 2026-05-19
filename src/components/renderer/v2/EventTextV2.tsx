@@ -4,6 +4,13 @@ import { isInlineLike } from '../../../lib/markerRules';
 import { InlineRenderer } from '../InlineRenderer';
 import type { MarkerConfig } from '../../../types/script';
 
+// Apply renderer.template to raw event text. Keeps event.text as semantic data;
+// the formatted display string is only produced at render time.
+export const applyDisplayTemplate = (text: string, cfg: MarkerConfig | undefined): string => {
+  const tpl = String((cfg as any)?.renderer?.template ?? '');
+  return tpl ? tpl.replace('{{content}}', text) : text;
+};
+
 interface EventTextV2Props {
   text: string;
   markerConfigs?: MarkerConfig[];
