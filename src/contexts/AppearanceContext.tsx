@@ -6,6 +6,7 @@
  */
 import React, { createContext, useContext } from "react";
 import type { accentThemes, accentOptions, accentClasses } from "../constants/accent";
+import type { LayoutConfig } from "../lib/v2";
 
 type AccentName = keyof typeof accentThemes;
 
@@ -41,6 +42,10 @@ export interface AppearanceContextValue {
   setTransparentBg: (value: boolean) => void;
   showLineUnderline: boolean;
   setShowLineUnderline: (value: boolean) => void;
+  useV2Renderer: boolean;
+  setUseV2Renderer: (value: boolean) => void;
+  v2LayoutConfig: LayoutConfig;
+  setV2LayoutConfig: (config: LayoutConfig) => void;
   exportMode?: string;
 }
 

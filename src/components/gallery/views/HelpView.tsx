@@ -59,6 +59,7 @@ export function HelpView() {
   const markerRows: MarkerRow[] = [
     { marker: "1. 第一章", meaning: t("importFormat.markerChapter") },
     { marker: "#C 小雨", meaning: t("importFormat.markerCharacter") },
+    { marker: "#D 你好。", meaning: t("importFormat.markerDialogue") },
     { marker: "(低聲)", meaning: t("importFormat.markerTone") },
     { marker: "【殘響】", meaning: t("importFormat.markerPostFx") },
     { marker: "#SE 關門聲", meaning: t("importFormat.markerSeSingle") },
@@ -69,6 +70,7 @@ export function HelpView() {
   const detailRows: DetailRow[] = [
     { name: t("importFormat.markerChapter"), desc: t("importFormat.usageChapter"), sample: "1. 第一章", render: t("importFormat.markerChapter") },
     { name: t("importFormat.markerCharacter"), desc: t("importFormat.usageCharacter"), sample: "#C 小雨", render: "小雨：" },
+    { name: t("importFormat.markerDialogue"), desc: t("importFormat.usageDialogue"), sample: "#D 你好。", render: "角色對白" },
     { name: t("importFormat.markerTone"), desc: t("importFormat.usageTone"), sample: "(低聲)", render: "語氣/動作樣式" },
     { name: t("importFormat.markerPostFx"), desc: t("importFormat.usagePostFx"), sample: "【殘響】", render: "後製註記樣式" },
     { name: t("importFormat.markerSeSingle"), desc: t("importFormat.usageSeSingle"), sample: "#SE 關門聲", render: "單行音效樣式" },

@@ -6,6 +6,7 @@ import { useMarkerSettingsState } from "../../hooks/settings/useMarkerSettingsSt
 import { MarkerThemeHeader } from "./marker/MarkerThemeHeader";
 import { MarkerSettingsHeader } from "./marker/layout/MarkerSettingsHeader";
 import { MarkerSettingsModeContent } from "./marker/layout/MarkerSettingsModeContent";
+import { V2LayoutPreviewEditor } from "./marker/V2LayoutPreviewEditor";
 import { useI18n } from "../../contexts/I18nContext";
 import { useAuth } from "../../contexts/AuthContext";
 import type { MarkerConfig } from "../../types/script";
@@ -55,6 +56,9 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
     renameTheme,
     updateThemeDescription,
     updateThemePublicity,
+    useV2Renderer,
+    v2LayoutConfig,
+    setV2LayoutConfig,
   } = useSettings();
   const readOnly = !isAdmin && currentThemeId === "default";
 
@@ -97,57 +101,116 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
   const statusText = formatSaveStatus({ isSaving, parseError, isDirty, lastSavedAt, t });
   const readonlyStatusText = readOnly ? "預設主題為唯讀，請先建立或切換到自訂主題再編輯" : statusText;
 
+  // Dialog open states lifted here so V2LayoutPreviewEditor header buttons can trigger them
+  const [themeCreateOpen, setThemeCreateOpen] = useState(false);
+  const [themeDeleteOpen, setThemeDeleteOpen] = useState(false);
+  const [themePublicityOpen, setThemePublicityOpen] = useState(false);
+  const [themeMoreOpen, setThemeMoreOpen] = useState(false);
+
+  const currentTheme = markerThemes.find((theme) => theme.id === currentThemeId);
+  const canDelete = markerThemes.length > 1 && currentTheme?.id !== "default";
+
+  const themeBar = useV2Renderer ? {
+    markerThemes,
+    currentThemeId,
+    switchTheme,
+    onNew: () => setThemeCreateOpen(true),
+    onDelete: () => setThemeDeleteOpen(true),
+    onShare: () => setThemePublicityOpen(true),
+    onMore: () => setThemeMoreOpen(true),
+    canDelete,
+    isPublic: currentTheme?.isPublic,
+    currentUser,
+  } : undefined;
+
   return (
-    <Card
-      className="border border-border/60 bg-card/50 shadow-sm overflow-hidden flex flex-col h-auto md:h-[760px]"
-      ref={sectionRef}
-    >
-      <MarkerSettingsHeader
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        statusText={readonlyStatusText}
-      />
-
-      <div className="px-5 py-2 border-b bg-background/50 shrink-0">
-        <MarkerThemeHeader
-          markerThemes={markerThemes}
-          currentThemeId={currentThemeId}
-          switchTheme={switchTheme}
-          addTheme={addTheme}
-          addThemeFromCurrent={addThemeFromCurrent}
-          deleteTheme={deleteTheme}
-          renameTheme={renameTheme}
-          updateThemeDescription={updateThemeDescription}
-          updateThemePublicity={updateThemePublicity}
-          currentUser={currentUser}
-          readOnly={false}
-        />
-      </div>
-
-      <div className="flex-1 min-h-0 bg-background/40">
-        <MarkerSettingsModeContent
+    <div ref={sectionRef} className="h-full flex flex-col">
+      <Card className="flex-1 min-h-0 border border-border/60 bg-card/50 shadow-sm overflow-hidden flex flex-col">
+        <MarkerSettingsHeader
           viewMode={viewMode}
-          localConfigs={localConfigs}
-          setLocalConfigs={setLocalConfigs}
-          updateMarker={updateMarker}
-          removeMarker={removeMarker}
-          expandedId={expandedId}
-          setExpandedId={setExpandedId}
-          selectedConfig={selectedConfig}
-          selectedIndex={selectedIndex}
-          existingIds={existingIds}
-          onAddMarker={addMarker}
-          jsonText={jsonText}
-          setJsonText={setJsonText}
-          parseError={parseError}
-          applyJson={applyJson}
-          isDirty={isDirty}
-          isSaving={isSaving}
-          isAdvancedMode={isAdvancedMode}
-          setIsAdvancedMode={setIsAdvancedMode}
-          readOnly={readOnly}
+          setViewMode={setViewMode}
+          statusText={readonlyStatusText}
         />
-      </div>
-    </Card>
+
+        {/* MarkerThemeHeader: dialogs-only when v2 (theme bar is in V2LayoutPreviewEditor header) */}
+        {useV2Renderer ? (
+          <MarkerThemeHeader
+            markerThemes={markerThemes}
+            currentThemeId={currentThemeId}
+            switchTheme={switchTheme}
+            addTheme={addTheme}
+            addThemeFromCurrent={addThemeFromCurrent}
+            deleteTheme={deleteTheme}
+            renameTheme={renameTheme}
+            updateThemeDescription={updateThemeDescription}
+            updateThemePublicity={updateThemePublicity}
+            currentUser={currentUser}
+            readOnly={false}
+            dialogsOnly
+            createOpen={themeCreateOpen}
+            setCreateOpen={setThemeCreateOpen}
+            deleteOpen={themeDeleteOpen}
+            setDeleteOpen={setThemeDeleteOpen}
+            publicityOpen={themePublicityOpen}
+            setPublicityOpen={setThemePublicityOpen}
+            moreOpen={themeMoreOpen}
+            setMoreOpen={setThemeMoreOpen}
+          />
+        ) : (
+          <div className="px-5 py-2 border-b bg-background/50 shrink-0">
+            <MarkerThemeHeader
+              markerThemes={markerThemes}
+              currentThemeId={currentThemeId}
+              switchTheme={switchTheme}
+              addTheme={addTheme}
+              addThemeFromCurrent={addThemeFromCurrent}
+              deleteTheme={deleteTheme}
+              renameTheme={renameTheme}
+              updateThemeDescription={updateThemeDescription}
+              updateThemePublicity={updateThemePublicity}
+              currentUser={currentUser}
+              readOnly={false}
+            />
+          </div>
+        )}
+
+        {useV2Renderer ? (
+          <V2LayoutPreviewEditor
+            layoutConfig={v2LayoutConfig}
+            onChange={setV2LayoutConfig}
+            markerConfigs={localConfigs}
+            selectedConfig={selectedConfig}
+            t={t}
+            themeBar={themeBar}
+          />
+        ) : null}
+
+        <div className="flex-1 min-h-0 bg-background/40">
+          <MarkerSettingsModeContent
+            viewMode={viewMode}
+            localConfigs={localConfigs}
+            setLocalConfigs={setLocalConfigs}
+            updateMarker={updateMarker}
+            removeMarker={removeMarker}
+            expandedId={expandedId}
+            setExpandedId={setExpandedId}
+            selectedConfig={selectedConfig}
+            selectedIndex={selectedIndex}
+            existingIds={existingIds}
+            onAddMarker={addMarker}
+            jsonText={jsonText}
+            setJsonText={setJsonText}
+            parseError={parseError}
+            applyJson={applyJson}
+            isDirty={isDirty}
+            isSaving={isSaving}
+            isAdvancedMode={isAdvancedMode}
+            setIsAdvancedMode={setIsAdvancedMode}
+            readOnly={readOnly}
+            tracks={v2LayoutConfig.tracks}
+          />
+        </div>
+      </Card>
+    </div>
   );
 }

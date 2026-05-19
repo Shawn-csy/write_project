@@ -5,10 +5,13 @@ import { ModeSelector } from "./ModeSelector";
 import { useI18n } from "../../../../contexts/I18nContext";
 import type { MarkerConfigEditorProps } from "../types";
 
-export function MarkerLogicSettings({ config, idx, updateMarker, isAdvancedMode = true }: MarkerConfigEditorProps): React.JSX.Element {
+export function MarkerLogicSettings({ config, idx, updateMarker, isAdvancedMode = true, tracks = [] }: MarkerConfigEditorProps): React.JSX.Element {
     const { t } = useI18n();
-    const isBlock = config.type === 'block' || config.isBlock; 
+const isBlock = config.type === 'block' || config.isBlock;
     const isInline = !isBlock;
+    const eventKindOptions = ["", "speech", "sfx", "bgm", "stage_direction", "narration", "meta", "custom"];
+    const speakerSourceOptions = ["none", "active", "self"];
+    const enabledTracks = tracks.filter((tr) => tr.enabled);
 
     const updateArrayField = (field: "keywords", valueStr: string) => {
         const arr = valueStr.split(',').map((s: string) => s.trim()).filter(Boolean);
@@ -30,6 +33,64 @@ export function MarkerLogicSettings({ config, idx, updateMarker, isAdvancedMode 
                     />
                 </div>
              )}
+
+             <div className="rounded-md border border-border/50 bg-background/60 p-3 space-y-3">
+                    <div className="text-[11px] font-bold text-muted-foreground">{t("markerLogic.semanticTitle")}</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="space-y-1">
+                            <label className="text-[10px] text-muted-foreground block">{t("markerLogic.defaultTrack")}</label>
+                            {enabledTracks.length > 0 ? (
+                                <select
+                                    className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
+                                    value={String(config.v2TrackId || "")}
+                                    onChange={(event) => updateMarker(idx, 'v2TrackId', event.target.value || undefined)}
+                                >
+                                    <option value="">{t("markerLogic.trackAuto")}</option>
+                                    {enabledTracks.map((tr) => (
+                                        <option key={tr.id} value={tr.id}>{tr.name} ({tr.id})</option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <Input
+                                    value={String(config.v2TrackId || "")}
+                                    onChange={(event) => updateMarker(idx, 'v2TrackId', event.target.value || undefined)}
+                                    className="h-8 text-xs font-mono"
+                                    placeholder="main / sfx / secondary"
+                                />
+                            )}
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] text-muted-foreground block">{t("markerLogic.eventKind")}</label>
+                            <select
+                                className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
+                                value={String(config.v2EventKind || "")}
+                                onChange={(event) => updateMarker(idx, 'v2EventKind', event.target.value || undefined)}
+                            >
+                                {eventKindOptions.map((kind) => (
+                                    <option key={kind || "auto"} value={kind}>
+                                        {kind || t("markerLogic.eventKindAuto")}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        {isAdvancedMode && (
+                            <div className="space-y-1">
+                                <label className="text-[10px] text-muted-foreground block">{t("markerLogic.speakerSource")}</label>
+                                <select
+                                    className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
+                                    value={String(config.v2SpeakerSource || "none")}
+                                    onChange={(event) => updateMarker(idx, 'v2SpeakerSource', event.target.value === "none" ? undefined : event.target.value)}
+                                >
+                                    {speakerSourceOptions.map((source) => (
+                                        <option key={source} value={source}>
+                                            {t(`markerLogic.speakerSource_${source}`)}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                    </div>
+                </div>
 
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 

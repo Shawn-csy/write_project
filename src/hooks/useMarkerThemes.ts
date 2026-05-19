@@ -5,6 +5,7 @@ import { normalizeMarkerConfigsSchema } from "../lib/markerThemeCodec";
 import { validateMarkerConfigs } from "../lib/markerConfigValidation";
 import { isDefaultLikeTheme } from "../lib/themeNameUtils";
 import { fetchPublic } from "../lib/api/client";
+import { cloneDefaultLayoutConfig, normalizeLayoutConfig, type LayoutConfig } from "../lib/v2";
 import type { CurrentUserLike } from "../types/user";
 import type { MarkerConfig } from "../types/script";
 
@@ -16,6 +17,7 @@ export interface MarkerTheme {
   id: string;
   name: string;
   configs: MarkerConfig[];
+  layoutConfig?: LayoutConfig;
   isPublic?: boolean;
   description?: string;
   [key: string]: unknown;
@@ -167,6 +169,7 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
                 ? { isPublic: optionsOrPublic }
                 : (optionsOrPublic || {});
         const newId = crypto.randomUUID();
+        const currentTheme = markerThemes.find((t) => t.id === currentThemeId);
         const newTheme = {
             id: newId,
             name: name,
@@ -176,6 +179,9 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
                 if (errors.length > 0) throw new Error(errors.join("\n"));
                 return normalized;
             })(),
+            layoutConfig: currentTheme?.layoutConfig
+                ? normalizeLayoutConfig(currentTheme.layoutConfig)
+                : cloneDefaultLayoutConfig(),
             isPublic: Boolean(options.isPublic),
             description: options.description || ""
         };
@@ -247,6 +253,23 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
         }
     };
 
+    const activeLayoutConfig = useMemo<LayoutConfig>(() => {
+        const theme = markerThemes.find((t) => t.id === currentThemeId);
+        return normalizeLayoutConfig(theme?.layoutConfig ?? null);
+    }, [markerThemes, currentThemeId]);
+
+    const updateThemeLayoutConfig = useCallback(async (id: string, config: LayoutConfig) => {
+        const normalized = normalizeLayoutConfig(config);
+        const stripped = { ...normalized, routingRules: [] };
+        const newThemes = markerThemes.map((t) =>
+            t.id === id ? { ...t, layoutConfig: stripped } : t
+        );
+        setMarkerThemesState(normalizeThemeList(newThemes));
+        if (currentUser && id !== 'default') {
+            await apiCall(`/themes/${id}`, 'PUT', { layoutConfig: stripped });
+        }
+    }, [markerThemes, currentUser, normalizeThemeList, apiCall]);
+
     return {
         markerThemes,
         setMarkerThemes, // Exposed for external sync
@@ -254,7 +277,8 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
         setCurrentThemeId,
         markerConfigs,
         systemDefaultConfigs,
-        
+        activeLayoutConfig,
+
         // Actions
         setMarkerConfigs,
         addTheme,
@@ -263,6 +287,7 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
         renameTheme,
         updateThemePublicity,
         updateThemeDescription,
+        updateThemeLayoutConfig,
         copyPublicTheme,
         switchTheme: setCurrentThemeId
     };

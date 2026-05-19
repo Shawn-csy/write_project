@@ -20,10 +20,14 @@ export interface EditableMarkerConfig {
   renderer?: {
     template?: string;
   };
+  v2EventKind?: "speech" | "sfx" | "bgm" | "stage_direction" | "narration" | "meta" | "custom" | string;
+  v2TrackId?: string;
+  v2SpeakerSource?: "active" | "self" | "none" | string;
   [key: string]: unknown;
 }
 
 import type { MarkerConfig } from "../../../types/script";
+import type { TrackConfig } from "../../../lib/v2";
 
 export type MarkerFieldUpdate = string;
 
@@ -38,4 +42,5 @@ export interface MarkerConfigEditorProps {
   idx: number;
   updateMarker: UpdateMarkerFn;
   isAdvancedMode?: boolean;
+  tracks?: TrackConfig[];
 }

@@ -80,6 +80,8 @@ export const DEFAULT_MARKER_RULES = [
       fontWeight: "normal",
     },
     showEndLabel: false,
+    v2EventKind: "sfx",
+    v2TrackId: "sfx",
     renderer: { template: "({{content}})" },
   },
   {
@@ -93,6 +95,8 @@ export const DEFAULT_MARKER_RULES = [
       backgroundColor: "#999999",
       fontWeight: "bold",
     },
+    v2EventKind: "stage_direction",
+    v2TrackId: "sfx",
     renderer: { template: "@{{content}}" },
   },
   {
@@ -115,6 +119,8 @@ export const DEFAULT_MARKER_RULES = [
     showDelimiters: false,
     renderer: { template: "" },
     pauseLabel: "中途指示",
+    v2EventKind: "sfx",
+    v2TrackId: "sfx",
   },
   {
     id: "rule-bg-start",
@@ -131,6 +137,8 @@ export const DEFAULT_MARKER_RULES = [
       fontStyle: "italic",
     },
     renderer: { template: "({{content}})" },
+    v2EventKind: "bgm",
+    v2TrackId: "sfx",
   },
   {
     id: "rule-bg-mid",
@@ -147,6 +155,8 @@ export const DEFAULT_MARKER_RULES = [
       fontStyle: "italic",
     },
     renderer: { template: "({{content}})" },
+    v2EventKind: "bgm",
+    v2TrackId: "sfx",
   },
   {
     id: "rule-bg-end",
@@ -163,6 +173,8 @@ export const DEFAULT_MARKER_RULES = [
       fontStyle: "italic",
     },
     renderer: { template: "({{content}})" },
+    v2EventKind: "bgm",
+    v2TrackId: "sfx",
   },
   {
     id: "character",
@@ -178,9 +190,32 @@ export const DEFAULT_MARKER_RULES = [
     mapCasts: {
       text: "trim_colon_suffix",
     },
+    v2EventKind: "meta",
+    v2TrackId: "main",
+    v2SpeakerSource: "self",
     style: {
       color: "#D32F2F",
       fontWeight: "bold",
+    },
+  },
+  {
+    id: "dialogue",
+    label: "對白",
+    start: "#D",
+    isBlock: true,
+    matchMode: "prefix",
+    type: "block",
+    parseAs: "dialogue",
+    mapFields: {
+      text: "$text",
+    },
+    v2EventKind: "speech",
+    v2TrackId: "main",
+    v2SpeakerSource: "active",
+    priority: 895,
+    style: {
+      color: "#111827",
+      fontWeight: "normal",
     },
   },
   {

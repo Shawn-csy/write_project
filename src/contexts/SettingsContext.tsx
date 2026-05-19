@@ -8,7 +8,6 @@ import {
   defaultAccent,
 } from "../constants/accent";
 import { STORAGE_KEYS } from "../constants/storageKeys";
-import { writeValue } from "../lib/storage";
 import { apiCall as serviceApiCall, fetchUserSettings, saveUserSettings, fetchUserThemes } from "../services/settingsApi";
 import { DEFAULT_READING_FONT, DEFAULT_UI_FONT, normalizeReadingFont, normalizeUiFont, resolveUiFontStack } from "../constants/readingFonts";
 
@@ -17,6 +16,7 @@ import { usePersistentState } from "../hooks/usePersistentState";
 import { normalizeThemeConfigs } from "../lib/markerThemeCodec";
 import type { MarkerTheme } from "../hooks/useMarkerThemes";
 import type { MarkerConfig } from "../types/script";
+import type { LayoutConfig } from "../lib/v2";
 
 import { AppearanceProvider } from "./AppearanceContext";
 import { MarkerThemeProvider } from "./MarkerThemeContext";
@@ -72,6 +72,10 @@ interface SettingsContextValue {
   setTransparentBg: (value: boolean) => void;
   showLineUnderline: boolean;
   setShowLineUnderline: (value: boolean) => void;
+  useV2Renderer: boolean;
+  setUseV2Renderer: (value: boolean) => void;
+  v2LayoutConfig: LayoutConfig;
+  setV2LayoutConfig: (config: LayoutConfig) => void;
   hiddenMarkerIds: string[];
   setHiddenMarkerIds: React.Dispatch<React.SetStateAction<string[]>>;
   toggleMarkerVisibility: (id: string) => void;
@@ -99,6 +103,7 @@ interface SettingsContextValue {
   updateThemeDescription: (id: string, description: string) => Promise<void>;
   copyPublicTheme: (themeId: string) => Promise<void>;
   switchTheme: (id: string) => void;
+  updateThemeLayoutConfig: (id: string, config: LayoutConfig) => Promise<void>;
 }
 
 const FONT_STEPS = [12, 14, 16, 24, 36, 72] as const;
@@ -164,6 +169,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     [setShowLineUnderlineStr]
   );
 
+  const [useV2RendererStr, setUseV2RendererStr] = usePersistentState(STORAGE_KEYS.USE_V2_RENDERER, "off");
+  const useV2Renderer = useV2RendererStr === "on";
+  const setUseV2Renderer = useCallback(
+    (val: boolean) => setUseV2RendererStr(val ? "on" : "off"),
+    [setUseV2RendererStr]
+  );
+
   const adjustFont = useCallback((delta: number) => {
     const idx = FONT_STEPS.findIndex((v) => v === fontSize);
     if (idx === -1) {
@@ -227,6 +239,12 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   // --- Theme Hook ---
   const themes = useMarkerThemes(currentUser, Boolean(profile?.isAdmin));
+
+  // v2LayoutConfig lives in the active marker theme, not in global settings
+  const v2LayoutConfig = themes.activeLayoutConfig;
+  const setV2LayoutConfig = useCallback((config: LayoutConfig) => {
+    themes.updateThemeLayoutConfig(themes.currentThemeId, config);
+  }, [themes]);
 
   // API Helper
   const apiCall = useCallback(
@@ -312,6 +330,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                       if (typeof s.desktopUiScale === "number") setDesktopUiScale(s.desktopUiScale);
                       if (typeof s.transparentBg === "boolean") setTransparentBg(s.transparentBg);
                       if (typeof s.showLineUnderline === "boolean") setShowLineUnderline(s.showLineUnderline);
+                      if (typeof s.useV2Renderer === "boolean") setUseV2Renderer(s.useV2Renderer);
                       if (s.statsConfig && typeof s.statsConfig === "object") setStatsConfig(s.statsConfig as StatsConfig);
 
                       if (realThemes && realThemes.length > 0) {
@@ -350,12 +369,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                           lineHeight,
                           desktopUiScale,
                           transparentBg,
-                          showLineUnderline: showLineUnderline, // Use boolean for API? Or string? saveUserSettings payload usually mirrors state. 
-                          // API payload reconstruction:
-                          // wait, saveUserSettings takes payload.
-                          // lines 191-206 constructs payload.
-                          // I should add showLineUnderline there too.
-
+                          showLineUnderline,
+                          useV2Renderer,
                           currentThemeId: themes.currentThemeId
                       };
                       await saveUserSettings(currentUser, payload);
@@ -391,6 +406,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           desktopUiScale,
           transparentBg,
           showLineUnderline,
+          useV2Renderer,
           statsConfig,
           currentThemeId: themes.currentThemeId
       };
@@ -408,13 +424,12 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       dialogueFontSize,
       readingFontFamily,
       uiFontFamily,
-
       hideWhitespace,
-
       lineHeight,
       desktopUiScale,
       transparentBg,
       showLineUnderline,
+      useV2Renderer,
       statsConfig,
       themes.currentThemeId
   ]);
@@ -441,6 +456,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     hideWhitespace, setHideWhitespace,
     transparentBg, setTransparentBg,
     showLineUnderline, setShowLineUnderline,
+    useV2Renderer, setUseV2Renderer,
+    v2LayoutConfig, setV2LayoutConfig,
   }), [
     resolvedTheme, themeMode, isDark, setTheme,
     accent, setAccent, accentConfig,
@@ -455,6 +472,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     hideWhitespace, setHideWhitespace,
     transparentBg, setTransparentBg,
     showLineUnderline, setShowLineUnderline,
+    useV2Renderer, setUseV2Renderer,
+    v2LayoutConfig, setV2LayoutConfig,
   ]);
 
   const markerVisibilityValue = useMemo(() => ({
@@ -498,6 +517,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     hideWhitespace, setHideWhitespace,
     transparentBg, setTransparentBg,
     showLineUnderline, setShowLineUnderline,
+    useV2Renderer, setUseV2Renderer,
+    v2LayoutConfig, setV2LayoutConfig,
 
     // Marker visibility
     hiddenMarkerIds,
@@ -524,6 +545,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     hideWhitespace, setHideWhitespace,
     transparentBg, setTransparentBg,
     showLineUnderline, setShowLineUnderline,
+    useV2Renderer, setUseV2Renderer,
+    v2LayoutConfig, setV2LayoutConfig,
     hiddenMarkerIds, toggleMarkerVisibility,
     statsConfig, setStatsConfig,
     themes,

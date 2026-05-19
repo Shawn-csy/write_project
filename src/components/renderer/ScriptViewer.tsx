@@ -2,8 +2,10 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { parseScreenplay } from '../../lib/screenplayAST';
 import { ScriptRenderer } from './ScriptRenderer';
+import { ScriptRendererV2 } from './v2/ScriptRendererV2';
 import { useI18n } from '../../contexts/I18nContext';
 import { resolveReadingFontStack } from '../../constants/readingFonts';
+import { cloneDefaultLayoutConfig, type LayoutConfig } from '../../lib/v2';
 
 interface TitleEntry {
   key: string;
@@ -61,6 +63,8 @@ interface ScriptViewerProps {
   hiddenMarkerIds?: string[];
   lineHeight?: number;
   showLineUnderline?: boolean;
+  useV2Renderer?: boolean;
+  v2LayoutConfig?: LayoutConfig;
 }
 
 function ScriptViewer({
@@ -97,6 +101,8 @@ function ScriptViewer({
   hiddenMarkerIds = [],
   lineHeight = 1.4,
   showLineUnderline = false,
+  useV2Renderer = false,
+  v2LayoutConfig,
 }: ScriptViewerProps) {
   const { t } = useI18n();
   const readingFontStack = resolveReadingFontStack(readingFontFamily);
@@ -257,26 +263,50 @@ function ScriptViewer({
     onScenes(sceneList);
   }, [sceneList, onScenes]);
 
+  const renderScriptNode = (
+    currentAst: { children?: AstNode[] } | null,
+    options?: { filterCharacterValue?: string | null; focusModeValue?: boolean }
+  ) => {
+    if (!currentAst) return null;
+    if (useV2Renderer) {
+      return (
+        <ScriptRendererV2
+          ast={currentAst}
+          layoutConfig={v2LayoutConfig || cloneDefaultLayoutConfig()}
+          markerConfigs={markerConfigs as any}
+          fontSize={fontSize || bodyFontSize}
+          lineHeight={lineHeight}
+          readingFontFamily={readingFontFamily}
+          hiddenMarkerIds={hiddenMarkerIds}
+          markerTooltipPrefix={t("scriptRenderer.markerTooltipPrefix", "標記")}
+          mode="auto"
+        />
+      );
+    }
+    return (
+      <ScriptRenderer
+        ast={currentAst}
+        fontSize={fontSize || bodyFontSize}
+        readingFontFamily={readingFontFamily}
+        filterCharacter={options?.filterCharacterValue ?? filterCharacter}
+        focusMode={options?.focusModeValue ?? focusMode}
+        focusEffect={focusEffect}
+        focusContentMode={focusContentMode}
+        theme={theme}
+        colorCache={colorCache}
+        markerConfigs={markerConfigs}
+        hiddenMarkerIds={hiddenMarkerIds}
+        showLineUnderline={showLineUnderline}
+      />
+    );
+  };
+
   // Render filtered HTML for processed output / print
   const filteredHtml = useMemo(() => {
     if (!onProcessedHtml || !ast) return '';
-      return renderToStaticMarkup(
-       <ScriptRenderer 
-         ast={ast} 
-         fontSize={fontSize || bodyFontSize}
-         readingFontFamily={readingFontFamily}
-         filterCharacter={filterCharacter}
-         focusMode={focusMode}
-         focusEffect={focusEffect}
-         focusContentMode={focusContentMode}
-         theme={theme}
-         colorCache={colorCache}
-         markerConfigs={markerConfigs}
-         hiddenMarkerIds={hiddenMarkerIds} // Pass to renderer for print
-         showLineUnderline={showLineUnderline}
-       />
-     );
-  }, [ast, filterCharacter, focusMode, focusEffect, bodyFontSize, fontSize, readingFontFamily, theme, colorCache, markerConfigs, onProcessedHtml, hiddenMarkerIds]);
+    const rendered = renderScriptNode(ast);
+    return rendered ? renderToStaticMarkup(rendered) : '';
+  }, [ast, onProcessedHtml, useV2Renderer, v2LayoutConfig, fontSize, bodyFontSize, readingFontFamily, filterCharacter, focusMode, focusEffect, focusContentMode, theme, colorCache, markerConfigs, hiddenMarkerIds, showLineUnderline]);
 
   // Generate RAW HTML (No Filters) for fallback
   const rawHtml = useMemo(() => {
@@ -285,24 +315,10 @@ function ScriptViewer({
       if (!ast) return '';
       // If no filters are active, rawHtml === filteredHtml
       if (!filterCharacter && !focusMode && filterCharacter !== "__ALL__") return filteredHtml;
-      
-      return renderToStaticMarkup(
-          <ScriptRenderer 
-            ast={ast} 
-            fontSize={fontSize || bodyFontSize}
-            readingFontFamily={readingFontFamily}
-            filterCharacter={null}
-            focusMode={false}
-            focusEffect={focusEffect}
-            focusContentMode={focusContentMode}
-            theme={theme}
-            colorCache={colorCache}
-            markerConfigs={markerConfigs}
-            hiddenMarkerIds={hiddenMarkerIds} // Pass to renderer
-            showLineUnderline={showLineUnderline}
-          />
-      );
-  }, [ast, onRawHtml, bodyFontSize, fontSize, readingFontFamily, theme, colorCache, markerConfigs, filterCharacter, focusMode, filteredHtml, hiddenMarkerIds]);
+
+      const rendered = renderScriptNode(ast, { filterCharacterValue: null, focusModeValue: false });
+      return rendered ? renderToStaticMarkup(rendered) : '';
+  }, [ast, onRawHtml, filterCharacter, focusMode, filteredHtml, useV2Renderer, v2LayoutConfig, fontSize, bodyFontSize, readingFontFamily, focusEffect, focusContentMode, theme, colorCache, markerConfigs, hiddenMarkerIds, showLineUnderline]);
 
 
   useEffect(() => {
@@ -345,20 +361,7 @@ function ScriptViewer({
     <article
       className="script-view-root"
     >
-      <ScriptRenderer 
-        ast={ast}
-        fontSize={fontSize || bodyFontSize}
-        readingFontFamily={readingFontFamily}
-        filterCharacter={filterCharacter}
-        focusMode={focusMode}
-        focusEffect={focusEffect}
-        focusContentMode={focusContentMode} // Pass this
-        theme={theme}
-        colorCache={colorCache}
-        markerConfigs={markerConfigs}
-        hiddenMarkerIds={hiddenMarkerIds} // Pass here too
-        showLineUnderline={showLineUnderline}
-      />
+      {renderScriptNode(ast)}
     </article>
   );
 }

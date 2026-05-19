@@ -153,13 +153,17 @@ export function renderWorkspaceRoutes({
                 )}
 
                 {nav.aboutOpen ? (
-                  <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
-                    <AboutPanelLazy accentStyle={{ accent: accentStyle?.accent }} onClose={() => nav.setAboutOpen(false)} />
-                  </Suspense>
+                  <div className="absolute inset-0 z-50 flex">
+                    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
+                      <AboutPanelLazy accentStyle={{ accent: accentStyle?.accent }} onClose={() => nav.setAboutOpen(false)} />
+                    </Suspense>
+                  </div>
                 ) : nav.settingsOpen ? (
-                  <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
-                    <SettingsPanel onClose={() => nav.setSettingsOpen(false)} activeTab={nav.settingsTab} onTabChange={nav.setSettingsTab} />
-                  </Suspense>
+                  <div className="absolute inset-0 z-50 flex">
+                    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
+                      <SettingsPanel onClose={() => nav.setSettingsOpen(false)} activeTab={nav.settingsTab} onTabChange={nav.setSettingsTab} />
+                    </Suspense>
+                  </div>
                 ) : (
                   <Routes>
                     <Route

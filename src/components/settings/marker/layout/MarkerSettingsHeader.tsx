@@ -1,6 +1,6 @@
 import React from "react";
-import { BookOpen, FileCode2, FileText } from "lucide-react";
-import { CardDescription, CardHeader, CardTitle } from "../../../ui/card";
+import { FileCode2, FileText, BookOpen } from "lucide-react";
+import { CardHeader } from "../../../ui/card";
 import { Button } from "../../../ui/button";
 import { cn } from "../../../../lib/utils";
 import { useI18n } from "../../../../contexts/I18nContext";
@@ -20,43 +20,26 @@ export function MarkerSettingsHeader({ viewMode, setViewMode, statusText }: Mark
   ] as const;
 
   return (
-    <CardHeader className="pb-3 px-5 py-4 border-b bg-muted/20 shrink-0">
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-md bg-primary/10 text-primary">
-              <FileText className="w-4 h-4" />
-            </div>
-            <div>
-              <CardTitle className="text-base">{t("markerSettingsHeader.title")}</CardTitle>
-              <CardDescription className="text-xs mt-0.5">
-                {t("markerSettingsHeader.subtitle")}
-              </CardDescription>
-            </div>
-          </div>
-          <div className="hidden md:inline text-xs text-muted-foreground">{statusText}</div>
+    <CardHeader className="px-4 py-2 border-b bg-muted/20 shrink-0">
+      <div className="flex items-center justify-between gap-3">
+        <div className="inline-flex items-center gap-1 p-0.5 rounded-lg bg-muted/50 border border-border/50">
+          {VIEW_MODES.map((mode) => {
+            const Icon = mode.icon;
+            return (
+              <Button
+                key={mode.id}
+                variant={viewMode === mode.id ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode(mode.id)}
+                className={cn("h-7 text-xs gap-1.5", viewMode === mode.id && "shadow-sm")}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {mode.label}
+              </Button>
+            );
+          })}
         </div>
-
-        <div className="flex items-center justify-between gap-2">
-          <div className="inline-flex items-center gap-1 p-1 rounded-lg bg-muted/50 border border-border/50">
-            {VIEW_MODES.map((mode) => {
-              const Icon = mode.icon;
-              return (
-                <Button
-                  key={mode.id}
-                  variant={viewMode === mode.id ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewMode(mode.id)}
-                  className={cn("h-7 text-xs gap-1.5", viewMode === mode.id && "shadow-sm")}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {mode.label}
-                </Button>
-              );
-            })}
-          </div>
-          <div className="md:hidden text-[11px] text-muted-foreground">{statusText}</div>
-        </div>
+        <div className="text-xs text-muted-foreground">{statusText}</div>
       </div>
     </CardHeader>
   );

@@ -90,6 +90,7 @@ export function PublicReaderLayout({
   [s.t, contactRender, script?.showMarkerLegend, validMarkerConfigs]);
 
   const safeScrollRef = scriptSurfaceProps?.scrollRef as React.RefObject<HTMLDivElement | null> | undefined;
+  const isV2Renderer = Boolean(viewerProps?.useV2Renderer);
 
   return (
     <div className={`relative w-full h-[100dvh] overflow-hidden flex flex-col bg-background ${s.hideWhitespace ? 'hide-whitespace' : ''} ${s.protectionClass}`}>
@@ -124,6 +125,15 @@ export function PublicReaderLayout({
 
       {/* Main Scrollable Area */}
       <div data-guide-id="public-guide-script" className="relative z-10 flex-1 min-h-0 h-full">
+        {isV2Renderer && (
+        <div className="pointer-events-none absolute right-4 top-4 z-20">
+          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold backdrop-blur ${
+            "border-primary/40 bg-primary/10 text-primary"
+          }`}>
+            Renderer V2
+          </span>
+        </div>
+        )}
         <ScriptSurface
           {...scriptSurfaceProps}
           scrollRef={safeScrollRef}

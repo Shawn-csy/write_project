@@ -8,6 +8,7 @@ import { MarkerPreview } from "./configs/MarkerPreview";
 import { AlertCircle } from "lucide-react";
 import { useI18n } from "../../../contexts/I18nContext";
 import type { EditableMarkerConfig, UpdateMarkerFn } from "./types";
+import type { TrackConfig } from "../../../lib/v2";
 
 interface MarkerDetailEditorProps {
     config: EditableMarkerConfig | null;
@@ -16,9 +17,10 @@ interface MarkerDetailEditorProps {
     isAdvancedMode: boolean;
     setIsAdvancedMode: (value: boolean) => void;
     readOnly?: boolean;
+    tracks?: TrackConfig[];
 }
 
-export function MarkerDetailEditor({ config, idx, updateMarker, isAdvancedMode, setIsAdvancedMode, readOnly = false }: MarkerDetailEditorProps): React.JSX.Element {
+export function MarkerDetailEditor({ config, idx, updateMarker, isAdvancedMode, setIsAdvancedMode, readOnly = false, tracks = [] }: MarkerDetailEditorProps): React.JSX.Element {
     const { t } = useI18n();
     if (!config) {
         return (
@@ -80,11 +82,12 @@ export function MarkerDetailEditor({ config, idx, updateMarker, isAdvancedMode, 
                         </div>
                         <div className="space-y-2 pt-4 border-t border-border/50">
                             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t("markerDetailEditor.matchLogic")}</h3>
-                            <MarkerLogicSettings 
-                                config={config} 
-                                idx={idx} 
-                                updateMarker={updateMarker} 
+                            <MarkerLogicSettings
+                                config={config}
+                                idx={idx}
+                                updateMarker={updateMarker}
                                 isAdvancedMode={false}
+                                tracks={tracks}
                             />
                         </div>
                         <div className="space-y-2 pt-4 border-t border-border/50">
@@ -115,11 +118,12 @@ export function MarkerDetailEditor({ config, idx, updateMarker, isAdvancedMode, 
                         </TabsContent>
                         
                         <TabsContent value="logic" className="mt-0 space-y-4">
-                            <MarkerLogicSettings 
-                                config={config} 
-                                idx={idx} 
-                                updateMarker={updateMarker} 
+                            <MarkerLogicSettings
+                                config={config}
+                                idx={idx}
+                                updateMarker={updateMarker}
                                 isAdvancedMode={true}
+                                tracks={tracks}
                             />
                         </TabsContent>
                         

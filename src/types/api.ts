@@ -275,6 +275,7 @@ export interface MarkerThemeApi {
   id: string;
   name: string;
   configs: MarkerConfig[];
+  layoutConfig?: import('../lib/v2').LayoutConfig;
   isPublic?: boolean;
   description?: string;
 }
