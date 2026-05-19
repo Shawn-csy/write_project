@@ -1563,6 +1563,10 @@ const messages = {
   "appearance": {
     "title": "外観と閲覧",
     "subtitle": "テーマ、文字サイズ、レイアウトを調整",
+    "readingAppearance": "閲覧表示",
+    "readingAppearanceDesc": "台本文字、行間、閲覧補助を調整します。",
+    "interfaceAppearance": "インターフェース表示",
+    "interfaceAppearanceDesc": "ワークスペースのテーマ、UIフォント、デスクトップ倍率を調整します。",
     "theme": "テーマ",
     "light": "ライト",
     "dark": "ダーク",

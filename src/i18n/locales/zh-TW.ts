@@ -1560,6 +1560,10 @@ const messages = {
   "appearance": {
     "title": "外觀與閱讀",
     "subtitle": "自訂介面主題、字體大小與排版樣式",
+    "readingAppearance": "閱讀外觀",
+    "readingAppearanceDesc": "調整台本文字、行距與閱讀輔助。",
+    "interfaceAppearance": "介面外觀",
+    "interfaceAppearanceDesc": "調整工作區主題、介面字型與桌面縮放。",
     "theme": "主題配色",
     "light": "亮色",
     "dark": "暗色",
