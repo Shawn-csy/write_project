@@ -66,4 +66,20 @@ describe('ColumnsRendererV2', () => {
     expect(rows[2].querySelector('[data-track-id="main"]')?.getAttribute('data-has-events')).toBe('false');
     expect(rows[3].querySelector('[data-track-id="main"]')?.getAttribute('data-has-events')).toBe('true');
   });
+
+  it('can group adjacent dialogue tracks into the same row', () => {
+    const doc = makeDoc();
+    doc.layoutConfig.rowGrouping = 'adjacent_dialogue';
+    doc.lanes[0].events = [];
+    doc.lanes[1].events = [{ id: 'a', kind: 'speech', text: '你好', lineSpan: { start: 1, end: 1 } }];
+    doc.lanes[2].events = [{ id: 'b', kind: 'speech', text: '我在', lineSpan: { start: 2, end: 2 } }];
+
+    const { container } = render(<ColumnsRendererV2 doc={doc} />);
+
+    const rows = container.querySelectorAll('[data-v2-line-row]');
+    expect(rows.length).toBe(1);
+    expect(rows[0].getAttribute('data-v2-line-row')).toBe('1');
+    expect(rows[0].querySelector('[data-track-id="main"]')?.textContent).toContain('你好');
+    expect(rows[0].querySelector('[data-track-id="secondary"]')?.textContent).toContain('我在');
+  });
 });

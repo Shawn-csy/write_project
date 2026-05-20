@@ -3,6 +3,7 @@ import type { LayoutConfig } from './types';
 export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
   version: 1,
   renderMode: 'columns',
+  rowGrouping: 'line',
   fallbackTrackId: 'main',
   tracks: [
     {

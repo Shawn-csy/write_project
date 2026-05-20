@@ -5,7 +5,7 @@ import { ModeSelector } from "./ModeSelector";
 import { useI18n } from "../../../../contexts/I18nContext";
 import type { MarkerConfigEditorProps } from "../types";
 
-export function MarkerLogicSettings({ config, idx, updateMarker, isAdvancedMode = true, tracks = [] }: MarkerConfigEditorProps): React.JSX.Element {
+export function MarkerLogicSettings({ config, idx, updateMarker, isAdvancedMode = true, tracks = [], showLayoutRouting = true }: MarkerConfigEditorProps): React.JSX.Element {
     const { t } = useI18n();
 const isBlock = config.type === 'block' || config.isBlock;
     const isInline = !isBlock;
@@ -19,8 +19,8 @@ const isBlock = config.type === 'block' || config.isBlock;
     };
 
     return (
-        <div className="p-3 rounded-md bg-muted/20 space-y-3">
-             <div className="flex items-center gap-2 mb-2">
+        <div className="space-y-4">
+             <div className="hidden items-center gap-2 mb-2">
                 <Settings className="w-3 h-3 text-muted-foreground" />
                 <span className="text-[11px] font-bold text-muted-foreground">{t("markerLogic.title")}</span>
              </div>
@@ -34,6 +34,7 @@ const isBlock = config.type === 'block' || config.isBlock;
                 </div>
              )}
 
+             {showLayoutRouting ? (
              <div className="rounded-md border border-border/50 bg-background/60 p-3 space-y-3">
                     <div className="text-[11px] font-bold text-muted-foreground">{t("markerLogic.semanticTitle")}</div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -41,7 +42,7 @@ const isBlock = config.type === 'block' || config.isBlock;
                             <label className="text-[10px] text-muted-foreground block">{t("markerLogic.defaultTrack")}</label>
                             {enabledTracks.length > 0 ? (
                                 <select
-                                    className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
+                                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                                     value={String(config.v2TrackId || "")}
                                     onChange={(event) => updateMarker(idx, 'v2TrackId', event.target.value || undefined)}
                                 >
@@ -54,7 +55,7 @@ const isBlock = config.type === 'block' || config.isBlock;
                                 <Input
                                     value={String(config.v2TrackId || "")}
                                     onChange={(event) => updateMarker(idx, 'v2TrackId', event.target.value || undefined)}
-                                    className="h-8 text-xs font-mono"
+                                    className="h-10 text-sm font-mono"
                                     placeholder="main / sfx / secondary"
                                 />
                             )}
@@ -62,7 +63,7 @@ const isBlock = config.type === 'block' || config.isBlock;
                         <div className="space-y-1">
                             <label className="text-[10px] text-muted-foreground block">{t("markerLogic.eventKind")}</label>
                             <select
-                                className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
+                                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                                 value={String(config.v2EventKind || "")}
                                 onChange={(event) => updateMarker(idx, 'v2EventKind', event.target.value || undefined)}
                             >
@@ -77,7 +78,7 @@ const isBlock = config.type === 'block' || config.isBlock;
                             <div className="space-y-1">
                                 <label className="text-[10px] text-muted-foreground block">{t("markerLogic.speakerSource")}</label>
                                 <select
-                                    className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
+                                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                                     value={String(config.v2SpeakerSource || "none")}
                                     onChange={(event) => updateMarker(idx, 'v2SpeakerSource', event.target.value === "none" ? undefined : event.target.value)}
                                 >
@@ -91,8 +92,9 @@ const isBlock = config.type === 'block' || config.isBlock;
                         )}
                     </div>
                 </div>
+             ) : null}
 
-             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 
                 {/* Range 模式專用設定 - 成對設定開始/結束 */}
                 {config.matchMode === 'range' && (
@@ -105,20 +107,20 @@ const isBlock = config.type === 'block' || config.isBlock;
                             {/* 開始/結束符號 */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div className="space-y-1">
-                                    <label className="text-[10px] text-muted-foreground block">{t("markerLogic.rangeStartLabel")} <span className="text-destructive">*</span></label>
+                                    <label className="text-sm font-medium text-foreground block">{t("markerLogic.rangeStartLabel")} <span className="text-destructive">*</span></label>
                                     <Input 
                                         value={config.start || ''} 
                                         onChange={(e) => updateMarker(idx, 'start', e.target.value)}
-                                        className={`h-8 font-mono text-xs text-center ${!config.start ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                                        className={`h-10 font-mono text-base text-center ${!config.start ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                                         placeholder={t("markerLogic.rangeStartPlaceholder")}
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] text-muted-foreground block">{t("markerLogic.rangeEndLabel")} <span className="text-destructive">*</span></label>
+                                    <label className="text-sm font-medium text-foreground block">{t("markerLogic.rangeEndLabel")} <span className="text-destructive">*</span></label>
                                     <Input 
                                         value={config.end || ''} 
                                         onChange={(e) => updateMarker(idx, 'end', e.target.value)}
-                                        className={`h-8 font-mono text-xs text-center ${!config.end ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                                        className={`h-10 font-mono text-base text-center ${!config.end ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                                         placeholder={t("markerLogic.rangeEndPlaceholder")}
                                     />
                                 </div>
@@ -134,7 +136,7 @@ const isBlock = config.type === 'block' || config.isBlock;
                                         <Input 
                                             value={config.pause || ''} 
                                             onChange={(e) => updateMarker(idx, 'pause', e.target.value)}
-                                            className="h-8 font-mono text-xs text-center border-dashed"
+                                            className="h-10 font-mono text-sm text-center border-dashed"
                                             placeholder="><SE"
                                         />
                                     </div>
@@ -145,13 +147,32 @@ const isBlock = config.type === 'block' || config.isBlock;
                                         <Input 
                                             value={config.pauseLabel !== undefined ? config.pauseLabel : t("markerLogic.pauseDefault")}
                                             onChange={(e) => updateMarker(idx, 'pauseLabel', e.target.value)}
-                                            className="h-8 text-xs text-center"
+                                            className="h-10 text-sm text-center"
                                             placeholder={t("markerLogic.pausePlaceholder")}
                                         />
                                     </div>
                                 </div>
                             )}
                             
+                            {/* 欄位並排設定 */}
+                            <div className="col-span-1 sm:col-span-2 pt-1 border-t border-dashed border-border/30">
+                                <label className="flex items-start gap-2 cursor-pointer select-none group" title={t("markerLogic.enableColumnGroupingDesc")}>
+                                    <input
+                                        type="checkbox"
+                                        checked={!!config.enableColumnGrouping}
+                                        onChange={(e) => updateMarker(idx, 'enableColumnGrouping', e.target.checked || undefined)}
+                                        className="mt-0.5 h-3.5 w-3.5 rounded border-input text-primary focus:ring-ring shrink-0"
+                                    />
+                                    <span className="text-xs text-foreground leading-snug">
+                                        {t("markerLogic.enableColumnGrouping")}
+                                        <span className="ml-1 text-[10px] text-muted-foreground/60 group-hover:text-muted-foreground transition-colors">ⓘ</span>
+                                    </span>
+                                </label>
+                                <p className="mt-1 ml-5 text-[10px] text-muted-foreground/70 leading-relaxed">
+                                    {t("markerLogic.enableColumnGroupingDesc")}
+                                </p>
+                            </div>
+
                             {/* 區間樣式選擇器 */}
                             <div className="space-y-2">
                                 <label className="text-[10px] text-muted-foreground block">{t("markerLogic.rangeStyleLabel")}</label>
@@ -203,41 +224,41 @@ const isBlock = config.type === 'block' || config.isBlock;
                 
                 {config.matchMode === 'regex' ? (
                     <div className="sm:col-span-2 space-y-1">
-                        <label className="text-[10px] text-muted-foreground block mb-1">{t("markerLogic.regexLabel")} <span className="text-destructive">*</span></label>
+                        <label className="text-sm font-medium text-foreground block mb-2">{t("markerLogic.regexLabel")} <span className="text-destructive">*</span></label>
                         <Input 
                             value={config.regex || ''}
                             onChange={(e) => updateMarker(idx, 'regex', e.target.value)}
-                            className={`h-8 font-mono text-xs ${!config.regex ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                            className={`h-10 font-mono text-sm ${!config.regex ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                             placeholder={t("markerLogic.regexPlaceholder")}
                         />
                         {!config.regex && (
-                             <p className="text-[10px] text-destructive font-medium">{t("markerLogic.regexRequired")}</p>
+                             <p className="text-sm text-destructive font-medium">{t("markerLogic.regexRequired")}</p>
                         )}
                     </div>
                 ) : config.matchMode !== 'range' && (
                     <>
-                        <div className="flex flex-col sm:flex-row gap-2">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                 <div className="flex-1 space-y-1">
-                                    <label className="text-[10px] text-muted-foreground block mb-1">{t("markerLogic.startLabel")} <span className="text-destructive">*</span></label>
+                                    <label className="text-sm font-medium text-foreground block mb-2">{t("markerLogic.startLabel")} <span className="text-destructive">*</span></label>
                                     <Input 
                                         value={config.start || ''} 
                                         onChange={(e) => updateMarker(idx, 'start', e.target.value)}
-                                        className={`h-8 font-mono text-xs text-center ${!config.start ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                                        className={`h-10 font-mono text-base text-center ${!config.start ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                                     />
                                     {!config.start && (
-                                        <p className="text-[10px] text-destructive font-medium">{t("markerLogic.startRequired")}</p>
+                                        <p className="text-sm text-destructive font-medium">{t("markerLogic.startRequired")}</p>
                                     )}
                                 </div>
                             {(isBlock || config.matchMode !== 'prefix') && (
                                 <div className="flex-1 space-y-1">
-                                    <label className="text-[10px] text-muted-foreground block mb-1">{t("markerLogic.endLabel")} <span className="text-destructive">*</span></label>
+                                    <label className="text-sm font-medium text-foreground block mb-2">{t("markerLogic.endLabel")} <span className="text-destructive">*</span></label>
                                     <Input 
                                         value={config.end || ''} 
                                         onChange={(e) => updateMarker(idx, 'end', e.target.value)}
-                                        className={`h-8 font-mono text-xs text-center ${!config.end ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                                        className={`h-10 font-mono text-base text-center ${!config.end ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                                     />
                                     {!config.end && (
-                                        <p className="text-[10px] text-destructive font-medium">{t("markerLogic.startRequired")}</p>
+                                        <p className="text-sm text-destructive font-medium">{t("markerLogic.startRequired")}</p>
                                     )}
                                 </div>
                             )}

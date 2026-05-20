@@ -1,7 +1,6 @@
 import React, { useState } from "react";
-import { Bold, Italic, AlignLeft, AlignCenter, AlignRight, Check } from "lucide-react";
+import { AlignCenter, AlignLeft, AlignRight, Bold, Check, Italic, SlidersHorizontal } from "lucide-react";
 import { Button } from "../../../ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../../ui/tabs";
 import { MARKER_COLORS } from "../../../../constants/markerColors";
 import { cn } from "../../../../lib/utils";
 import { useI18n } from "../../../../contexts/I18nContext";
@@ -9,12 +8,12 @@ import type { MarkerConfigEditorProps } from "../types";
 
 export function MarkerStyleSettings({ config, idx, updateMarker }: MarkerConfigEditorProps): React.JSX.Element {
     const { t } = useI18n();
-    
-    // Helper to update specific style fields
+    const [advancedOpen, setAdvancedOpen] = useState(false);
+
     const updateStyle = (styleField: string, value: string | undefined) => {
         const currentStyle = config.style || {};
         const newStyle = { ...currentStyle } as Record<string, string>;
-        if (value === undefined) {
+        if (value === undefined || value === "") {
             delete newStyle[styleField];
         } else {
             newStyle[styleField] = value;
@@ -22,232 +21,219 @@ export function MarkerStyleSettings({ config, idx, updateMarker }: MarkerConfigE
         updateMarker(idx, 'style', newStyle);
     };
 
-    // Helper for Font Button Variants
-    const getFontVariant = (field: string, checkValue: string) => {
-        return config.style?.[field] === checkValue ? "secondary" : "ghost";
-    };
-
-    // Helper to toggle Font Style
     const toggleFontStyle = (field: string, onValue: string, offValue = 'normal') => {
         const current = config.style?.[field];
         updateStyle(field, current === onValue ? offValue : onValue);
     };
 
-    const toggleTextAlign = () => {
-        const currentAlign = config.style?.textAlign;
-        // Cycle: undefined -> left -> center -> right -> undefined
-        let next;
-        if (!currentAlign) next = 'left';
-        else if (currentAlign === 'left') next = 'center';
-        else if (currentAlign === 'center') next = 'right';
-        else next = undefined; // Reset to none (inline)
-        
-        updateStyle('textAlign', next);
-    };
+    const setAlign = (value: string | undefined) => updateStyle('textAlign', value);
 
-    // Determine active tab based on current color value
-    const isCustomColor = (color: string | number | undefined) => {
-        if (!color) return false;
-        return !String(color).startsWith('var(--marker-color-');
-    };
-
-    const [activeColorTab, setActiveColorTab] = useState(isCustomColor(config.style?.color) ? 'custom' : 'preset');
+    const textColor = String(config.style?.color || "");
+    const backgroundColor = String(config.style?.backgroundColor || "");
+    const selectedPreset = MARKER_COLORS.find((color) => textColor === `var(--marker-color-${color.id})`);
 
     return (
-        <div className="space-y-2">
-            <span className="text-[10px] uppercase text-muted-foreground font-semibold">{t("markerStyle.title")}</span>
-            <div className="flex flex-col gap-3 p-3 bg-muted/30 rounded-md border border-border/50">
-                
-                {/* Top Row: Font Controls & Alignment */}
-                <div className="flex items-center gap-2 flex-wrap">
-                     {/* Font Style Toggles */}
-                    <div className="flex gap-1 border-r border-border/50 pr-2">
-                        <Button size="icon" variant={getFontVariant('fontWeight', 'bold')} className="h-7 w-7" onClick={() => toggleFontStyle('fontWeight', 'bold')}>
-                            <Bold className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button size="icon" variant={getFontVariant('fontStyle', 'italic')} className="h-7 w-7" onClick={() => toggleFontStyle('fontStyle', 'italic')}>
-                            <Italic className="w-3.5 h-3.5" />
-                        </Button>
-                    </div>
-
-                    {/* Alignment */}
-                    <div className="border-r border-border/50 pr-2">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={toggleTextAlign} title={t("markerStyle.align")}>
-                            {!config.style?.textAlign && <span className="opacity-30">{t("markerStyle.noAlign")}</span>}
-                            {config.style?.textAlign === 'left' && <AlignLeft className="w-3.5 h-3.5" />}
-                            {config.style?.textAlign === 'center' && <AlignCenter className="w-3.5 h-3.5" />}
-                            {config.style?.textAlign === 'right' && <AlignRight className="w-3.5 h-3.5" />}
-                        </Button>
-                    </div>
-
-                    {/* Font Family & Size */}
-                     <select 
-                        className="h-7 w-20 rounded-md border border-input bg-background/50 px-1 text-[10px]"
-                        value={config.style?.fontFamily || ''} 
-                        onChange={(e) => updateStyle('fontFamily', e.target.value)}
-                    >
-                        <option value="">{t("markerStyle.fontDefault")}</option>
-                        <option value="'Courier New', 'Songti TC', 'SimSun', serif">{t("markerStyle.scriptFont")}</option>
-                        <option value="serif">{t("markerStyle.serif")}</option>
-                        <option value="sans-serif">{t("markerStyle.sans")}</option>
-                        <option value="monospace">{t("markerStyle.mono")}</option>
-                        <option value="cursive">{t("markerStyle.cursive")}</option>
-                    </select>
-
-                    <select 
-                        className="h-7 w-16 rounded-md border border-input bg-background/50 px-1 text-[10px]"
-                        value={config.style?.fontSize || ''} 
-                        onChange={(e) => updateStyle('fontSize', e.target.value)}
-                    >
-                        <option value="">{t("markerStyle.size")}</option>
-                        <option value="0.8em">0.8x</option>
-                        <option value="0.9em">0.9x</option>
-                        <option value="1em">1.0x</option>
-                        <option value="1.2em">1.2x</option>
-                        <option value="1.5em">1.5x</option>
-                        <option value="2em">2.0x</option>
-                    </select>
-                     <select 
-                        className="h-7 w-14 rounded-md border border-input bg-background/50 px-1 text-[10px]"
-                        value={config.style?.lineHeight || ''} 
-                        onChange={(e) => updateStyle('lineHeight', e.target.value)}
-                    >
-                        <option value="">{t("markerStyle.lineHeight")}</option>
-                        <option value="1">1.0</option>
-                        <option value="1.2">1.2</option>
-                        <option value="1.5">1.5</option>
-                        <option value="2">2.0</option>
-                    </select>
-
+        <div className="space-y-3">
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+                <div className="mb-2.5 flex items-center justify-between gap-3">
+                    <span className="text-xs font-medium text-foreground">{t("markerStyle.quickStyle")}</span>
+                    {selectedPreset ? (
+                        <span className="rounded-full bg-background px-2 py-0.5 text-[10px] text-muted-foreground">
+                            {selectedPreset.name}
+                        </span>
+                    ) : null}
                 </div>
 
-                {/* Color Selection Section */}
-                <div className="pt-2 border-t border-border/40">
-                    <Tabs value={activeColorTab} onValueChange={setActiveColorTab} className="w-full">
-                        <div className="flex items-center justify-between mb-2">
-                             <span className="text-[10px] font-medium text-muted-foreground">{t("markerStyle.color")}</span>
-                             <TabsList className="h-6 p-0 bg-muted/40">
-                                <TabsTrigger value="preset" className="h-full px-3 text-[10px] data-[state=active]:bg-background data-[state=active]:shadow-sm">{t("markerStyle.preset")}</TabsTrigger>
-                                <TabsTrigger value="custom" className="h-full px-3 text-[10px] data-[state=active]:bg-background data-[state=active]:shadow-sm">{t("markerStyle.custom")}</TabsTrigger>
-                            </TabsList>
-                        </div>
-                        
-                        <TabsContent value="preset" className="mt-0">
-                            <div className="grid grid-cols-2 gap-2 p-1 max-h-[220px] overflow-y-auto custom-scrollbar">
-                                {MARKER_COLORS.map((color) => {
-                                    const variable = `var(--marker-color-${color.id})`;
-                                    const isSelected = config.style?.color === variable;
-                                    
-                                    return (
-                                        <button
-                                            key={color.id}
-                                            type="button"
-                                            onClick={() => updateStyle('color', variable)}
-                                            className={cn(
-                                                "relative flex flex-col h-14 rounded-lg overflow-hidden border transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 text-left group",
-                                                isSelected 
-                                                    ? "ring-2 ring-primary ring-offset-2 border-primary/50 shadow-md transform scale-[1.02]" 
-                                                    : "border-border/40 hover:border-border"
-                                            )}
-                                        >
-                                            {/* Color Swaych Area */}
-                                            <div 
-                                                className="flex-1 w-full relative transition-all"
-                                                style={{ backgroundColor: variable }}
-                                            >
-                                                {isSelected && (
-                                                    <div className="absolute inset-0 flex items-center justify-center bg-black/10">
-                                                       <Check className="w-4 h-4 text-white drop-shadow-md" strokeWidth={3} />
-                                                    </div>
-                                                )}
-                                            </div>
-                                            
-                                            {/* Label Area */}
-                                            <div className="h-6 w-full bg-card flex items-center px-2 text-[10px] font-medium text-muted-foreground group-hover:text-foreground">
-                                                <span className="truncate w-full">{color.name}</span>
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </TabsContent>
-                        
-                        <TabsContent value="custom" className="mt-0">
-                            <div className="flex items-center gap-4 p-1">
-                                {/* Text Color */}
-                                <div className="flex items-center gap-2 group">
-                                    <div className="relative w-8 h-8 rounded-full border shadow-sm overflow-hidden">
-                                        <div className="w-full h-full" style={{ backgroundColor: String(config.style?.color || '#000000') }} />
-                                        <input 
-                                            type="color" 
-                                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" 
-                                            value={config.style?.color && !String(config.style.color).startsWith('var(--') ? String(config.style.color) : '#000000'}
-                                            onChange={(e) => updateStyle('color', e.target.value)} 
-                                        />
-                                    </div>
-                                    <div className="text-xs font-mono text-muted-foreground">
-                                            {t("markerStyle.textColor")}
-                                    </div>
-                                </div>
+                <div className="mb-3 flex flex-wrap gap-1.5">
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant={config.style?.fontWeight === 'bold' ? "secondary" : "outline"}
+                        className="h-7 gap-1.5 text-xs px-2"
+                        onClick={() => toggleFontStyle('fontWeight', 'bold')}
+                    >
+                        <Bold className="h-3 w-3" />
+                        {t("markerStyle.bold")}
+                    </Button>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant={config.style?.fontStyle === 'italic' ? "secondary" : "outline"}
+                        className="h-7 gap-1.5 text-xs px-2"
+                        onClick={() => toggleFontStyle('fontStyle', 'italic')}
+                    >
+                        <Italic className="h-3 w-3" />
+                        {t("markerStyle.italic")}
+                    </Button>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant={backgroundColor && backgroundColor !== 'transparent' ? "secondary" : "outline"}
+                        className="h-7 text-xs px-2"
+                        onClick={() => updateStyle('backgroundColor', backgroundColor && backgroundColor !== 'transparent' ? undefined : 'rgba(250, 204, 21, 0.22)')}
+                    >
+                        {t("markerStyle.highlight")}
+                    </Button>
+                </div>
 
-                                <div className="w-px h-6 bg-border/50 mx-2" />
-
-                                {/* Background Color */}
-                                <div className="flex items-center gap-2 group">
-                                     <div className="relative w-8 h-8 rounded border shadow-sm overflow-hidden bg-checkboard">
-                                        <div className="w-full h-full flex items-center justify-center text-[9px] text-muted-foreground/50" style={{ backgroundColor: String(config.style?.backgroundColor || 'transparent') }}>
-                                            {!config.style?.backgroundColor && 'BG'}
-                                        </div>
-                                        <input 
-                                            type="color" 
-                                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" 
-                                            value={String(config.style?.backgroundColor || '#ffffff')} 
-                                            onChange={(e) => updateStyle('backgroundColor', e.target.value)} 
-                                        />
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <div className="text-xs font-mono text-muted-foreground">
-                                            {t("markerStyle.bgColor")}
-                                        </div>
-                                        <button 
-                                            type="button"
-                                            className="text-[10px] text-muted-foreground/60 hover:text-destructive text-left underline decoration-dotted transition-colors"
-                                            onClick={() => updateStyle('backgroundColor', 'transparent')}
-                                            title={t("markerStyle.removeBg")}
-                                        >
-                                            {t("markerStyle.transparent")}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </TabsContent>
-                    </Tabs>
-
-                    <div className="mt-3 space-y-2">
-                        <div className="text-[10px] font-medium text-muted-foreground">
-                            {t("markerStyle.themePreviewTitle")}
-                        </div>
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                            <div className="rounded-md border border-border/60 bg-white px-3 py-2 shadow-sm">
-                                <div className="mb-1 text-[10px] uppercase tracking-wide text-slate-500">
-                                    {t("markerStyle.previewLight")}
-                                </div>
-                                <div className="rounded-sm px-2 py-1 text-sm text-slate-900" style={{ ...(config.style || {}) }}>
-                                    {t("markerStyle.previewSample")}
-                                </div>
-                            </div>
-                            <div className="rounded-md border border-slate-700/70 bg-slate-900 px-3 py-2 shadow-sm">
-                                <div className="mb-1 text-[10px] uppercase tracking-wide text-slate-400">
-                                    {t("markerStyle.previewDark")}
-                                </div>
-                                <div className="rounded-sm px-2 py-1 text-sm text-slate-100" style={{ ...(config.style || {}) }}>
-                                    {t("markerStyle.previewSample")}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div className="flex flex-wrap gap-1.5 items-center">
+                    <button
+                        type="button"
+                        onClick={() => updateStyle('color', undefined)}
+                        className={cn(
+                            "flex h-6 items-center justify-center rounded border px-2 text-[10px] font-medium transition-all",
+                            !textColor ? "border-primary bg-primary/10 text-primary" : "border-border/60 bg-background text-muted-foreground hover:border-border"
+                        )}
+                    >
+                        {t("markerStyle.defaultColor")}
+                    </button>
+                    {MARKER_COLORS.slice(0, 11).map((color) => {
+                        const variable = `var(--marker-color-${color.id})`;
+                        const isSelected = textColor === variable;
+                        return (
+                            <button
+                                key={color.id}
+                                type="button"
+                                onClick={() => updateStyle('color', variable)}
+                                className={cn(
+                                    "relative h-6 w-6 rounded-full border-2 transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
+                                    isSelected ? "border-primary ring-2 ring-primary ring-offset-1 scale-110" : "border-border/50 hover:border-border hover:scale-105"
+                                )}
+                                style={{ backgroundColor: variable }}
+                                title={color.name}
+                            >
+                                {isSelected ? (
+                                    <span className="absolute inset-0 flex items-center justify-center">
+                                        <Check className="h-3 w-3 text-white drop-shadow" strokeWidth={3} />
+                                    </span>
+                                ) : null}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
+
+            <details
+                className="rounded-lg border border-dashed border-border/60 bg-background/60"
+                open={advancedOpen}
+                onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}
+            >
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-foreground">
+                    <span className="flex items-center gap-2">
+                        <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+                        {t("markerStyle.advancedStyle")}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{advancedOpen ? t("markerStyle.collapse") : t("markerStyle.expand")}</span>
+                </summary>
+
+                <div className="grid gap-4 border-t border-border/50 p-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-foreground">{t("markerStyle.textColor")}</label>
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="color"
+                                className="h-10 w-12 rounded border border-input bg-background p-1"
+                                value={textColor && !textColor.startsWith('var(--') ? textColor : '#000000'}
+                                onChange={(event) => updateStyle('color', event.target.value)}
+                            />
+                            <Button type="button" variant="outline" size="sm" onClick={() => updateStyle('color', undefined)}>
+                                {t("markerStyle.defaultColor")}
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-foreground">{t("markerStyle.bgColor")}</label>
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="color"
+                                className="h-10 w-12 rounded border border-input bg-background p-1"
+                                value={backgroundColor && backgroundColor !== 'transparent' ? backgroundColor : '#ffffff'}
+                                onChange={(event) => updateStyle('backgroundColor', event.target.value)}
+                            />
+                            <Button type="button" variant="outline" size="sm" onClick={() => updateStyle('backgroundColor', undefined)}>
+                                {t("markerStyle.transparent")}
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-foreground">{t("markerStyle.fontDefault")}</label>
+                        <select
+                            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                            value={config.style?.fontFamily || ''}
+                            onChange={(event) => updateStyle('fontFamily', event.target.value)}
+                        >
+                            <option value="">{t("markerStyle.fontDefault")}</option>
+                            <option value="'Courier New', 'Songti TC', 'SimSun', serif">{t("markerStyle.scriptFont")}</option>
+                            <option value="serif">{t("markerStyle.serif")}</option>
+                            <option value="sans-serif">{t("markerStyle.sans")}</option>
+                            <option value="monospace">{t("markerStyle.mono")}</option>
+                            <option value="cursive">{t("markerStyle.cursive")}</option>
+                        </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-foreground">{t("markerStyle.size")}</label>
+                            <select
+                                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                                value={config.style?.fontSize || ''}
+                                onChange={(event) => updateStyle('fontSize', event.target.value)}
+                            >
+                                <option value="">{t("markerStyle.size")}</option>
+                                <option value="0.9em">0.9x</option>
+                                <option value="1em">1.0x</option>
+                                <option value="1.2em">1.2x</option>
+                                <option value="1.5em">1.5x</option>
+                                <option value="2em">2.0x</option>
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-foreground">{t("markerStyle.lineHeight")}</label>
+                            <select
+                                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                                value={config.style?.lineHeight || ''}
+                                onChange={(event) => updateStyle('lineHeight', event.target.value)}
+                            >
+                                <option value="">{t("markerStyle.lineHeight")}</option>
+                                <option value="1">1.0</option>
+                                <option value="1.2">1.2</option>
+                                <option value="1.5">1.5</option>
+                                <option value="2">2.0</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                        <label className="text-sm font-medium text-foreground">{t("markerStyle.align")}</label>
+                        <div className="flex flex-wrap gap-2">
+                            {[
+                                { value: undefined, label: t("markerStyle.noAlign"), icon: null },
+                                { value: 'left', label: t("markerStyle.alignLeft"), icon: AlignLeft },
+                                { value: 'center', label: t("markerStyle.alignCenter"), icon: AlignCenter },
+                                { value: 'right', label: t("markerStyle.alignRight"), icon: AlignRight },
+                            ].map((option) => {
+                                const Icon = option.icon;
+                                const active = (config.style?.textAlign || undefined) === option.value;
+                                return (
+                                    <Button
+                                        key={option.value || 'none'}
+                                        type="button"
+                                        variant={active ? "secondary" : "outline"}
+                                        size="sm"
+                                        className="h-9 gap-2"
+                                        onClick={() => setAlign(option.value)}
+                                    >
+                                        {Icon ? <Icon className="h-4 w-4" /> : null}
+                                        {option.label}
+                                    </Button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            </details>
         </div>
     );
 }

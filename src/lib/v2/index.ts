@@ -5,3 +5,4 @@ export * from './markerSemantics';
 export * from './orchestrator';
 export * from './astAdapter';
 export * from './exportAdapter';
+export * from './rowGrouping';

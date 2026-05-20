@@ -43,4 +43,5 @@ export interface MarkerConfigEditorProps {
   updateMarker: UpdateMarkerFn;
   isAdvancedMode?: boolean;
   tracks?: TrackConfig[];
+  showLayoutRouting?: boolean;
 }

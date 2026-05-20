@@ -47,6 +47,37 @@ describe('buildV2TableExport', () => {
     expect(out.cellStyles).toBeUndefined();
   });
 
+  it('uses adjacent dialogue grouping in fallback table export', () => {
+    const layoutConfig = cloneDefaultLayoutConfig();
+    layoutConfig.rowGrouping = 'adjacent_dialogue';
+    const doc: OrchestratedDocument = {
+      version: 2,
+      layoutConfig,
+      lanes: [
+        { trackId: 'sfx', events: [] },
+        {
+          trackId: 'main',
+          events: [{ id: 'a', kind: 'speech', text: '你好', lineSpan: { start: 1, end: 1 } }],
+        },
+        {
+          trackId: 'secondary',
+          events: [{ id: 'b', kind: 'speech', text: '我在', lineSpan: { start: 2, end: 2 } }],
+        },
+      ],
+      unassignedEvents: [],
+    };
+
+    const out = buildV2TableExport(doc);
+    const mainTrackName = layoutConfig.tracks.find((track) => track.id === 'main')?.name || '';
+    const secondaryTrackName = layoutConfig.tracks.find((track) => track.id === 'secondary')?.name || '';
+    const rowRecord = Object.fromEntries(out.columns.map((col, idx) => [col, out.rows[0][idx]]));
+
+    expect(out.rows).toHaveLength(1);
+    expect(rowRecord['行號']).toBe('1');
+    expect(rowRecord[mainTrackName]).toBe('你好');
+    expect(rowRecord[secondaryTrackName]).toBe('我在');
+  });
+
   it('builds styled table cells from rendered v2 HTML', () => {
     const out = buildV2TableExportFromRenderedHtml(`
       <div data-v2-presentation="columns">
@@ -58,7 +89,7 @@ describe('buildV2TableExport', () => {
         <div data-v2-line-row="7">
           <div>7</div>
           <div data-track-id="main">
-            <article style="background-color:#ffeeaa;">
+            <article style="background-color:#ffeeaa;padding:6px 12px;">
               <p><span style="color:#123456;font-weight:700;">台詞</span><span style="font-style:italic;">補充</span></p>
             </article>
           </div>
@@ -69,7 +100,20 @@ describe('buildV2TableExport', () => {
 
     expect(out?.columns).toEqual(['行號', '主對白', '音效']);
     expect(out?.rows).toEqual([['7', '台詞補充', '']]);
-    expect(out?.cellStyles?.[0][1]).toEqual({ backgroundColor: '#FFEEAA' });
+    expect(out?.tableLayout?.columnWidths).toEqual([28, 1, 1]);
+    expect(out?.tableLayout?.defaultCellStyle).toEqual({
+      paddingTop: 6,
+      paddingRight: 12,
+      paddingBottom: 6,
+      paddingLeft: 12,
+    });
+    expect(out?.cellStyles?.[0][1]).toEqual({
+      backgroundColor: '#FFEEAA',
+      paddingTop: 6,
+      paddingRight: 12,
+      paddingBottom: 6,
+      paddingLeft: 12,
+    });
     expect(out?.cellRuns?.[0][1]).toEqual([
       { text: '台詞', bold: true, italic: false, underline: false, color: '#123456' },
       { text: '補充', bold: false, italic: true, underline: false, color: '#000000' },

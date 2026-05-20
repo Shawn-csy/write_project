@@ -1,3 +1,4 @@
+import { ROUTE_PRIORITY } from './routing';
 import { normalizeLayoutConfig } from './layoutConfig';
 import type { EventKind, LayoutConfig, RoutingRule, TrackRole } from './types';
 import type { MarkerConfig } from '../../types/script';
@@ -19,7 +20,7 @@ export const makeMarkerSemanticRoute = (marker: MarkerConfig): RoutingRule | nul
   if (!markerId || !targetTrackId) return null;
   return {
     id: `route-marker-semantic-${markerId.replace(/[^a-z0-9_-]/gi, '-')}`,
-    priority: 875,
+    priority: ROUTE_PRIORITY.markerSemantic,
     match: { markerId },
     targetTrackId,
   };
@@ -36,16 +37,16 @@ const makeKindFallbackRoutes = (layoutConfig: LayoutConfig): RoutingRule[] => {
   const narrationTrackId = firstTrackByRole(layoutConfig, 'narration') ?? dialogueTrackId;
   const rules: RoutingRule[] = [];
   if (dialogueTrackId) {
-    rules.push({ id: 'route-kind-speech', priority: 100, match: { kind: 'speech' }, targetTrackId: dialogueTrackId });
-    rules.push({ id: 'route-kind-meta', priority: 50, match: { kind: 'meta' }, targetTrackId: dialogueTrackId });
+    rules.push({ id: 'route-kind-speech', priority: ROUTE_PRIORITY.kindFallback.speech, match: { kind: 'speech' }, targetTrackId: dialogueTrackId });
+    rules.push({ id: 'route-kind-meta', priority: ROUTE_PRIORITY.kindFallback.meta, match: { kind: 'meta' }, targetTrackId: dialogueTrackId });
   }
   if (narrationTrackId) {
-    rules.push({ id: 'route-kind-narration', priority: 90, match: { kind: 'narration' }, targetTrackId: narrationTrackId });
-    rules.push({ id: 'route-kind-stage', priority: 80, match: { kind: 'stage_direction' }, targetTrackId: narrationTrackId });
+    rules.push({ id: 'route-kind-narration', priority: ROUTE_PRIORITY.kindFallback.narration, match: { kind: 'narration' }, targetTrackId: narrationTrackId });
+    rules.push({ id: 'route-kind-stage', priority: ROUTE_PRIORITY.kindFallback.stageDirection, match: { kind: 'stage_direction' }, targetTrackId: narrationTrackId });
   }
   if (sfxTrackId) {
-    rules.push({ id: 'route-kind-sfx', priority: 100, match: { kind: 'sfx' }, targetTrackId: sfxTrackId });
-    rules.push({ id: 'route-kind-bgm', priority: 100, match: { kind: 'bgm' }, targetTrackId: sfxTrackId });
+    rules.push({ id: 'route-kind-sfx', priority: ROUTE_PRIORITY.kindFallback.sfx, match: { kind: 'sfx' }, targetTrackId: sfxTrackId });
+    rules.push({ id: 'route-kind-bgm', priority: ROUTE_PRIORITY.kindFallback.bgm, match: { kind: 'bgm' }, targetTrackId: sfxTrackId });
   }
   return rules;
 };

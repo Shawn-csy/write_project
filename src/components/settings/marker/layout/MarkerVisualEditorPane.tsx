@@ -4,10 +4,9 @@ import { Button } from "../../../ui/button";
 import { Input } from "../../../ui/input";
 import { MarkerList } from "../MarkerList";
 import { MarkerDetailEditor } from "../MarkerDetailEditor";
-import { MarkerLayoutContextPanel } from "../MarkerLayoutContextPanel";
 import { useI18n } from "../../../../contexts/I18nContext";
 import type { MarkerConfig } from "../../../../types/script";
-import type { TrackConfig } from "../../../../lib/v2";
+import type { LayoutConfig, TrackConfig } from "../../../../lib/v2";
 import type { EditableMarkerConfig, UpdateMarkerFn } from "../types";
 
 interface MarkerVisualEditorPaneProps {
@@ -21,11 +20,10 @@ interface MarkerVisualEditorPaneProps {
   selectedIndex: number;
   existingIds: string[];
   onAddMarker: () => void;
-  isAdvancedMode: boolean;
-  setIsAdvancedMode: (value: boolean) => void;
   readOnly?: boolean;
   tracks?: TrackConfig[];
-  showLayoutContext?: boolean;
+  layoutConfig?: LayoutConfig;
+  onLayoutChange?: (config: LayoutConfig) => void;
   onOpenFullLayoutEditor?: () => void;
 }
 
@@ -40,11 +38,10 @@ export function MarkerVisualEditorPane({
   selectedIndex,
   existingIds,
   onAddMarker,
-  isAdvancedMode,
-  setIsAdvancedMode,
   readOnly = false,
   tracks = [],
-  showLayoutContext = false,
+  layoutConfig,
+  onLayoutChange,
   onOpenFullLayoutEditor,
 }: MarkerVisualEditorPaneProps): React.JSX.Element {
   const { t } = useI18n();
@@ -73,7 +70,7 @@ export function MarkerVisualEditorPane({
   }, [localConfigs, query, typeFilter]);
 
   return (
-    <div className={`grid h-full grid-cols-1 divide-x divide-border/40 ${showLayoutContext ? "lg:grid-cols-[300px_1fr] xl:grid-cols-[300px_minmax(0,1fr)_280px]" : "lg:grid-cols-[300px_1fr]"}`}>
+    <div className="grid h-full grid-cols-1 divide-x divide-border/40 lg:grid-cols-[280px_1fr]">
       <div className="h-full min-h-0 flex flex-col bg-muted/10">
         <div className="space-y-2 p-3 border-b bg-background/30 shrink-0">
           <Button onClick={onAddMarker} className="w-full gap-1.5 h-8 text-xs font-medium shadow-sm" disabled={readOnly}>
@@ -137,10 +134,10 @@ export function MarkerVisualEditorPane({
             config={selectedConfig}
             idx={selectedIndex}
             updateMarker={updateMarker}
-            isAdvancedMode={isAdvancedMode}
-            setIsAdvancedMode={setIsAdvancedMode}
             readOnly={readOnly}
             tracks={tracks}
+            layoutConfig={layoutConfig}
+            onOpenFullLayoutEditor={onOpenFullLayoutEditor}
           />
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-60 space-y-3">
@@ -150,16 +147,6 @@ export function MarkerVisualEditorPane({
         )}
       </div>
 
-      {showLayoutContext && onOpenFullLayoutEditor ? (
-        <MarkerLayoutContextPanel
-          selectedConfig={selectedConfig}
-          selectedIndex={selectedIndex}
-          tracks={tracks}
-          updateMarker={updateMarker}
-          onOpenFullLayoutEditor={onOpenFullLayoutEditor}
-          readOnly={readOnly}
-        />
-      ) : null}
     </div>
   );
 }

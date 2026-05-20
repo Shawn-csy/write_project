@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type React from "react";
 import { safeParseThemeConfigsText } from "../../lib/markerThemeCodec";
 import type { MarkerConfig } from "../../types/script";
+import { useDebouncedAutosave } from "../useDebouncedAutosave";
 
 interface MarkerSettingsStateProps {
   markerConfigs: MarkerConfig[];
@@ -15,8 +16,6 @@ interface UseMarkerSettingsStateResult {
   setLocalConfigs: React.Dispatch<React.SetStateAction<MarkerConfig[]>>;
   expandedId: string | null;
   setExpandedId: React.Dispatch<React.SetStateAction<string | null>>;
-  isAdvancedMode: boolean;
-  setIsAdvancedMode: React.Dispatch<React.SetStateAction<boolean>>;
   jsonText: string;
   setJsonText: React.Dispatch<React.SetStateAction<string>>;
   parseError: string;
@@ -39,7 +38,6 @@ export function useMarkerSettingsState({
 }: MarkerSettingsStateProps): UseMarkerSettingsStateResult {
   const [localConfigs, setLocalConfigs] = useState<MarkerConfig[]>(markerConfigs || []);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [isAdvancedMode, setIsAdvancedMode] = useState<boolean>(false);
   const [jsonText, setJsonText] = useState<string>("");
   const [parseError, setParseError] = useState<string>("");
   const [isDirty, setIsDirty] = useState<boolean>(false);
@@ -104,6 +102,13 @@ export function useMarkerSettingsState({
       setIsSaving(false);
     }
   }, [readOnly, isSaving, viewMode, parseError, markerConfigs, localConfigs, setMarkerConfigs]);
+
+  useDebouncedAutosave({
+    enabled: isDirty && !readOnly && !isSaving && !(viewMode === "json" && Boolean(parseError)),
+    delayMs: 900,
+    save,
+    deps: [isDirty, readOnly, isSaving, viewMode, parseError, save],
+  });
 
   const updateMarker = useCallback((index: number, field: keyof MarkerConfig | Partial<MarkerConfig>, value?: unknown) => {
     if (readOnly) return;
@@ -190,8 +195,6 @@ export function useMarkerSettingsState({
     setLocalConfigs,
     expandedId,
     setExpandedId,
-    isAdvancedMode,
-    setIsAdvancedMode,
     jsonText,
     setJsonText,
     parseError,

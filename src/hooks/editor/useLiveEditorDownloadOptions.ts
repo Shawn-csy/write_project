@@ -121,7 +121,7 @@ export function useLiveEditorDownloadOptions({
                 if (!folderId) return;
                 await runRenderedExport(async (payload: ExportPayload) => {
                   const tableExport = buildV2TableExportFromRenderedHtml(payload.renderedHtml)
-                    || buildV2TableExport(orchestratedDoc);
+                    || buildV2TableExport(orchestratedDoc, markerConfigs);
                   const result = await exportTableV2ToGoogleDocs(title, {
                     ...tableExport,
                     googleAccessToken: token,

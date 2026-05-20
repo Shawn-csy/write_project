@@ -196,7 +196,7 @@ def test_create_google_doc_from_blocks_builds_text_styles(monkeypatch):
 
 
 def test_create_google_doc_table_uses_table_range_cell_location(monkeypatch):
-    captured = {"style_requests": []}
+    captured = {"style_requests": [], "column_requests": []}
 
     class FakeDocsCreate:
         def execute(self):
@@ -222,6 +222,8 @@ def test_create_google_doc_table_uses_table_range_cell_location(monkeypatch):
             for request in self.body.get("requests", []):
                 if "updateTableCellStyle" in request:
                     captured["style_requests"].append(request["updateTableCellStyle"])
+                if "updateTableColumnProperties" in request:
+                    captured["column_requests"].append(request["updateTableColumnProperties"])
             return {}
 
     class FakeDocsDocuments:
@@ -276,18 +278,30 @@ def test_create_google_doc_table_uses_table_range_cell_location(monkeypatch):
         title="Table",
         columns=["行號", "主對白"],
         rows=[["1", "內容"]],
-        cell_styles=[[None, {"backgroundColor": "#ffeeaa"}]],
+        cell_styles=[[None, {"backgroundColor": "#ffeeaa", "paddingTop": 6, "paddingRight": 12, "paddingBottom": 6, "paddingLeft": 12}]],
         cell_runs=[[[{"text": "1"}], [{"text": "內容", "bold": True}]]],
+        table_layout={
+            "columnWidths": [28, 72],
+            "defaultCellStyle": {"paddingTop": 4, "paddingRight": 8, "paddingBottom": 4, "paddingLeft": 8},
+        },
         google_access_token="tok",
         folder_id=None,
     )
 
     assert result["exportMode"] == "table_v2"
-    assert len(captured["style_requests"]) == 1
-    style_request = captured["style_requests"][0]
+    assert len(captured["column_requests"]) == 2
+    assert captured["column_requests"][0]["tableStartLocation"] == {"index": 5}
+    assert captured["column_requests"][0]["columnIndices"] == [0]
+    assert captured["column_requests"][0]["tableColumnProperties"]["widthType"] == "FIXED_WIDTH"
+    assert len(captured["style_requests"]) == 2
+    default_style_request = next(req for req in captured["style_requests"] if "tableStartLocation" in req)
+    assert default_style_request["tableStartLocation"] == {"index": 5}
+    assert default_style_request["tableCellStyle"]["paddingLeft"] == {"magnitude": 6.0, "unit": "PT"}
+    style_request = next(req for req in captured["style_requests"] if "tableRange" in req)
     assert "tableStartLocation" not in style_request
     assert style_request["tableRange"]["tableCellLocation"] == {
         "tableStartLocation": {"index": 5},
         "rowIndex": 1,
         "columnIndex": 1,
     }
+    assert style_request["tableCellStyle"]["paddingLeft"] == {"magnitude": 9.0, "unit": "PT"}

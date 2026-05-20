@@ -1,13 +1,14 @@
+import { ROUTE_PRIORITY } from './routing';
 import type {
   LayoutConfig,
   OrchestratedDocument,
+  RangeSpan,
   RoutingRule,
   ScriptDocumentV2,
   ScriptEvent,
   TrackLane,
 } from './types';
 
-const PREFERRED_TRACK_PRIORITY_FLOOR = 500;
 
 const isRuleMatch = (event: ScriptEvent, rule: RoutingRule): boolean => {
   const { match } = rule;
@@ -20,7 +21,7 @@ const isRuleMatch = (event: ScriptEvent, rule: RoutingRule): boolean => {
 const resolveTrackId = (event: ScriptEvent, config: LayoutConfig): string | null => {
   const sortedRules = [...config.routingRules].sort((a, b) => b.priority - a.priority);
   const highPriorityRule = sortedRules.find((rule) => (
-    rule.priority >= PREFERRED_TRACK_PRIORITY_FLOOR && isRuleMatch(event, rule)
+    rule.priority >= ROUTE_PRIORITY.preferredFloor && isRuleMatch(event, rule)
   ));
   if (highPriorityRule?.targetTrackId) return highPriorityRule.targetTrackId;
 
@@ -47,7 +48,15 @@ export const orchestrateDocument = (doc: ScriptDocumentV2): OrchestratedDocument
     });
 
   const unassignedEvents: ScriptEvent[] = [];
-  const sourceEvents = [...doc.events].sort((a, b) => a.lineSpan.start - b.lineSpan.start);
+  // Filter out any range boundary events that may have leaked into the event stream
+  // (e.g. from older adapters). Structural range information lives in doc.metadata.rangeSpans.
+  const sourceEvents = [...doc.events]
+    .filter((e) => e.attrs?.role !== 'range_start' && e.attrs?.role !== 'range_end')
+    .sort((a, b) => a.lineSpan.start - b.lineSpan.start);
+
+  const rangeSpans: RangeSpan[] = Array.isArray(doc.metadata?.rangeSpans)
+    ? (doc.metadata.rangeSpans as RangeSpan[])
+    : [];
 
   sourceEvents.forEach((event) => {
     const trackId = resolveTrackId(event, doc.layoutConfig);
@@ -70,5 +79,6 @@ export const orchestrateDocument = (doc: ScriptDocumentV2): OrchestratedDocument
     layoutConfig: doc.layoutConfig,
     lanes: Array.from(laneMap.values()),
     unassignedEvents,
+    rangeSpans,
   };
 };

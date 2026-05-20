@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { defaultMarkerConfigs } from "../constants/defaultMarkerRules";
 import { apiCall as serviceApiCall } from "../services/settingsApi";
 import { normalizeMarkerConfigsSchema } from "../lib/markerThemeCodec";
@@ -6,6 +6,7 @@ import { validateMarkerConfigs } from "../lib/markerConfigValidation";
 import { isDefaultLikeTheme } from "../lib/themeNameUtils";
 import { fetchPublic } from "../lib/api/client";
 import { cloneDefaultLayoutConfig, normalizeLayoutConfig, type LayoutConfig } from "../lib/v2";
+import { useDebouncedAutosave } from "./useDebouncedAutosave";
 import type { CurrentUserLike } from "../types/user";
 import type { MarkerConfig } from "../types/script";
 
@@ -56,9 +57,13 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
         { id: DEFAULT_THEME_ID, name: '預設主題 (Default)', configs: NORMALIZED_DEFAULT_CONFIGS },
     ]);
     const [currentThemeId, setCurrentThemeIdState] = useState(DEFAULT_THEME_ID);
+    const [pendingLayoutPersist, setPendingLayoutPersist] = useState<{ id: string; layoutConfig: LayoutConfig } | null>(null);
 
     // API Helper
-    const apiCall = (url: string, method: string, body?: unknown) => serviceApiCall(currentUser, url, method, body);
+    const apiCall = useCallback(
+        (url: string, method: string, body?: unknown) => serviceApiCall(currentUser, url, method, body),
+        [currentUser]
+    );
 
     // Derived State: Active Markers
     // Themes already store normalized configs (set via normalizeThemeList), no re-normalization needed.
@@ -258,8 +263,6 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
         return normalizeLayoutConfig(theme?.layoutConfig ?? null);
     }, [markerThemes, currentThemeId]);
 
-    const layoutConfigApiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
     const updateThemeLayoutConfig = useCallback((id: string, config: LayoutConfig) => {
         const normalized = normalizeLayoutConfig(config);
         const stripped = { ...normalized, routingRules: [] };
@@ -267,14 +270,33 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
         setMarkerThemesState((prev) => normalizeThemeList(
             prev.map((t) => t.id === id ? { ...t, layoutConfig: stripped } : t)
         ));
-        // Debounced API persist — only fires 800ms after the last call
-        if (layoutConfigApiTimerRef.current) clearTimeout(layoutConfigApiTimerRef.current);
         if (currentUser && id !== 'default') {
-            layoutConfigApiTimerRef.current = setTimeout(() => {
-                apiCall(`/themes/${id}`, 'PUT', { layoutConfig: stripped });
-            }, 800);
+            setPendingLayoutPersist({ id, layoutConfig: stripped });
+        } else {
+            setPendingLayoutPersist(null);
         }
-    }, [currentUser, normalizeThemeList, apiCall]);
+    }, [currentUser, normalizeThemeList]);
+
+    const persistPendingLayout = useCallback(async () => {
+        if (!pendingLayoutPersist) return;
+        await apiCall(`/themes/${pendingLayoutPersist.id}`, 'PUT', {
+            layoutConfig: pendingLayoutPersist.layoutConfig,
+        });
+        setPendingLayoutPersist((current) =>
+            current &&
+            current.id === pendingLayoutPersist.id &&
+            JSON.stringify(current.layoutConfig) === JSON.stringify(pendingLayoutPersist.layoutConfig)
+                ? null
+                : current
+        );
+    }, [apiCall, pendingLayoutPersist]);
+
+    useDebouncedAutosave({
+        enabled: Boolean(currentUser && pendingLayoutPersist && pendingLayoutPersist.id !== DEFAULT_THEME_ID),
+        delayMs: 800,
+        save: persistPendingLayout,
+        deps: [currentUser, pendingLayoutPersist, persistPendingLayout],
+    });
 
     return {
         markerThemes,

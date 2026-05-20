@@ -99,6 +99,10 @@ interface TableV2ExportPayload {
   rows: string[][];
   cellStyles?: Array<Array<{
     backgroundColor?: string;
+    paddingTop?: number;
+    paddingRight?: number;
+    paddingBottom?: number;
+    paddingLeft?: number;
   } | null>>;
   cellRuns?: Array<Array<Array<{
     text: string;
@@ -107,6 +111,15 @@ interface TableV2ExportPayload {
     underline?: boolean;
     color?: string;
   }>>>;
+  tableLayout?: {
+    columnWidths?: number[];
+    defaultCellStyle?: {
+      paddingTop?: number;
+      paddingRight?: number;
+      paddingBottom?: number;
+      paddingLeft?: number;
+    };
+  };
   docTitle?: string;
 }
 
@@ -117,6 +130,7 @@ export const exportTableV2ToGoogleDocs = async (
     rows,
     cellStyles,
     cellRuns,
+    tableLayout,
     googleAccessToken,
     folderId,
   }: TableV2ExportPayload & { googleAccessToken: string; folderId?: string }
@@ -131,6 +145,7 @@ export const exportTableV2ToGoogleDocs = async (
       rows,
       cell_styles: Array.isArray(cellStyles) ? cellStyles : null,
       cell_runs: Array.isArray(cellRuns) ? cellRuns : null,
+      table_layout: tableLayout && typeof tableLayout === "object" ? tableLayout : null,
       google_access_token: googleAccessToken,
       folder_id: folderId || null,
     }),

@@ -12,9 +12,10 @@ interface MarkerSettingsHeaderProps {
   isDirty?: boolean;
   isSaving?: boolean;
   onSave?: () => void;
+  controls?: React.ReactNode;
 }
 
-export function MarkerSettingsHeader({ viewMode, setViewMode, statusText, isDirty, isSaving, onSave }: MarkerSettingsHeaderProps): React.JSX.Element {
+export function MarkerSettingsHeader({ viewMode, setViewMode, statusText, isDirty, isSaving, onSave, controls }: MarkerSettingsHeaderProps): React.JSX.Element {
   const { t } = useI18n();
   const secondaryModes = [
     { id: "json", label: "JSON", icon: FileCode2 },
@@ -23,8 +24,8 @@ export function MarkerSettingsHeader({ viewMode, setViewMode, statusText, isDirt
 
   return (
     <CardHeader className="px-4 py-2 border-b bg-muted/20 shrink-0">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-center gap-2">
+      <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <div className={cn(
             "flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-semibold",
             viewMode === "ui" ? "bg-primary/10 text-primary" : "bg-muted/60 text-muted-foreground"
@@ -42,8 +43,9 @@ export function MarkerSettingsHeader({ viewMode, setViewMode, statusText, isDirt
               {t("markerSettingsHeader.viewRules")}
             </Button>
           )}
+          {controls ? <div className="min-w-0 flex-1">{controls}</div> : null}
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+        <div className="flex flex-wrap items-center gap-2 xl:justify-end">
           <div className="inline-flex items-center gap-1 rounded-lg border border-border/50 bg-muted/40 p-0.5">
             {secondaryModes.map((mode) => {
               const Icon = mode.icon;
