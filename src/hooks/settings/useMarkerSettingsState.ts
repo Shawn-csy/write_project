@@ -30,6 +30,23 @@ interface UseMarkerSettingsStateResult {
   save: () => Promise<void>;
 }
 
+const normalizeMarkerConfigForEditor = (cfg: MarkerConfig): MarkerConfig => {
+  const mode = String(cfg?.matchMode || "").trim().toLowerCase();
+  if (mode === "range") {
+    return { ...cfg, type: "block", isBlock: true };
+  }
+  if (cfg?.type === "inline" && cfg?.isBlock === true) {
+    return { ...cfg, isBlock: false };
+  }
+  if (cfg?.type === "block" && cfg?.isBlock === false) {
+    return { ...cfg, isBlock: true };
+  }
+  return cfg;
+};
+
+const normalizeMarkerConfigsForEditor = (configs: MarkerConfig[] = []): MarkerConfig[] =>
+  (Array.isArray(configs) ? configs : []).map(normalizeMarkerConfigForEditor);
+
 export function useMarkerSettingsState({
   markerConfigs,
   setMarkerConfigs,
@@ -51,8 +68,9 @@ export function useMarkerSettingsState({
 
   useEffect(() => {
     const incoming = markerConfigs || [];
-    setLocalConfigs(incoming);
-    setJsonText(JSON.stringify(incoming, null, 2));
+    const normalizedIncoming = normalizeMarkerConfigsForEditor(incoming);
+    setLocalConfigs(normalizedIncoming);
+    setJsonText(JSON.stringify(normalizedIncoming, null, 2));
     setParseError("");
     setIsDirty(false);
   }, [markerConfigs]);
@@ -117,17 +135,17 @@ export function useMarkerSettingsState({
       if (!next[index]) return prev;
 
       if (typeof field === "object" && field !== null) {
-        next[index] = { ...next[index], ...field };
+        next[index] = normalizeMarkerConfigForEditor({ ...next[index], ...field });
       } else if (field === "style") {
         if (value && typeof value === "object" && !Array.isArray(value)) {
           const styleRecord: Record<string, string> = {};
           for (const [k, v] of Object.entries(value)) {
             styleRecord[k] = String(v ?? "");
           }
-          next[index] = { ...next[index], style: styleRecord };
+          next[index] = normalizeMarkerConfigForEditor({ ...next[index], style: styleRecord });
         }
       } else {
-        next[index] = { ...next[index], [field]: value };
+        next[index] = normalizeMarkerConfigForEditor({ ...next[index], [field]: value });
       }
       return next;
     });
@@ -186,7 +204,7 @@ export function useMarkerSettingsState({
     if (parseError) return;
     const { value, error } = safeParseThemeConfigsText(jsonText);
     if (error || !value) return;
-    setLocalConfigs(value);
+    setLocalConfigs(normalizeMarkerConfigsForEditor(value));
     setIsDirty(true);
   }, [jsonText, parseError, readOnly]);
 

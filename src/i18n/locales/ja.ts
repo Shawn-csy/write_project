@@ -795,7 +795,9 @@ const messages = {
     "jsonError": "JSON 形式が無効です",
     "unsaved": "未保存",
     "savedAt": "{time} に保存",
-    "synced": "同期済み"
+    "synced": "同期済み",
+    "v2RendererOffWarning": "マルチトラック用マーカー設定が検出されましたが、現在マルチトラック表示（V2）がオフです。欄位ルーティングや同行同期のプレビューが正しく表示されない可能性があります。",
+    "enableV2RendererNow": "今すぐマルチトラック表示を有効化"
   },
   "markerSettingsHeader": {
     "title": "カスタムマーカールール",

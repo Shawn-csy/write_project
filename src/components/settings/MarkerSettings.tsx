@@ -116,6 +116,13 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
     () => localConfigs.findIndex((c) => (c.id || c._tempId) === expandedId),
     [localConfigs, expandedId]
   );
+  const hasMultiTrackMarkers = useMemo(
+    () => localConfigs.some((cfg) => {
+      const trackId = String(cfg?.v2TrackId || "").trim();
+      return Boolean(trackId) || Boolean(cfg?.enableColumnGrouping);
+    }),
+    [localConfigs]
+  );
   const statusText = formatSaveStatus({ isSaving, parseError, isDirty: anyDirty, lastSavedAt, t });
   const readonlyStatusText = readOnly ? "預設主題為唯讀，請先建立或切換到自訂主題再編輯" : statusText;
   const currentTheme = markerThemes.find((theme) => theme.id === currentThemeId);
@@ -235,6 +242,19 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
           moreOpen={themeMoreOpen}
           setMoreOpen={setThemeMoreOpen}
         />
+
+        {hasMultiTrackMarkers && !useV2Renderer && (
+          <div className="mx-3 mb-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            <div>{t("markerSettings.v2RendererOffWarning")}</div>
+            <button
+              type="button"
+              onClick={() => setUseV2Renderer(true)}
+              className="mt-1 font-medium underline decoration-destructive/70 underline-offset-2 hover:decoration-destructive"
+            >
+              {t("markerSettings.enableV2RendererNow")}
+            </button>
+          </div>
+        )}
 
         <div className="flex-1 min-h-0 bg-background/40">
           <MarkerSettingsModeContent

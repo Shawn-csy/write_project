@@ -169,7 +169,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     [setShowLineUnderlineStr]
   );
 
-  const [useV2RendererStr, setUseV2RendererStr] = usePersistentState(STORAGE_KEYS.USE_V2_RENDERER, "off");
+  const [useV2RendererStr, setUseV2RendererStr] = usePersistentState(STORAGE_KEYS.USE_V2_RENDERER, "on");
   const useV2Renderer = useV2RendererStr === "on";
   const setUseV2Renderer = useCallback(
     (val: boolean) => setUseV2RendererStr(val ? "on" : "off"),

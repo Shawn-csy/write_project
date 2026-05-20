@@ -52,6 +52,19 @@ const resolveDialogueTrackIds = (layoutConfig: LayoutConfig): [string | undefine
   return [dialogueTracks[0]?.id, dialogueTracks[1]?.id || dialogueTracks[0]?.id];
 };
 
+const readRangeMarkerId = (node: AstNodeLike): string => (
+  String(
+    (node.startNode?.layerType ||
+      node.startNode?.markerId ||
+      node.endNode?.layerType ||
+      node.endNode?.markerId ||
+      node.markerId ||
+      '')
+  ).trim()
+);
+
+const readNodeText = (node: AstNodeLike | null | undefined): string => String(node?.text || '').trim();
+
 export const buildScriptDocumentV2FromAst = (
   ast: { children?: AstNodeLike[] } | null | undefined,
   options: AdaptOptions = {}
@@ -104,6 +117,31 @@ export const buildScriptDocumentV2FromAst = (
     } finally {
       preferredTrackId = previousTrackId;
     }
+  };
+
+  const resolveMarkerTrackId = (markerId: string | undefined): string | undefined => {
+    if (!markerId) return undefined;
+    const config = markerConfigById.get(String(markerId).trim());
+    const targetTrackId = String(config?.v2TrackId || '').trim();
+    return targetTrackId || undefined;
+  };
+
+  const pushRangeBoundaryContentIfPresent = (
+    boundaryNode: AstNodeLike | null | undefined,
+    markerId: string,
+  ) => {
+    if (!boundaryNode) return;
+    const text = readNodeText(boundaryNode);
+    if (!text) return;
+    const span = readLineSpan(boundaryNode);
+    const markerConfig = markerId ? markerConfigById.get(markerId) : undefined;
+    pushEvent({
+      kind: getMarkerEventKind(markerConfig) || 'narration',
+      text,
+      markerId: markerId || undefined,
+      lineSpan: span,
+      attrs: { sourceType: 'range_boundary_content' },
+    });
   };
 
   const walk = (node: AstNodeLike | null | undefined) => {
@@ -230,13 +268,18 @@ export const buildScriptDocumentV2FromAst = (
         // the content stream. Renderers and row grouping read doc.rangeSpans instead.
         const startSpan = node.startNode ? readLineSpan(node.startNode) : null;
         const endSpan = node.endNode ? readLineSpan(node.endNode) : null;
-        const rangeMarkerId = String(
-          (node.startNode?.layerType || node.startNode?.markerId || node.endNode?.layerType || node.endNode?.markerId || node.markerId || '')
-        ).trim();
+        const rangeMarkerId = readRangeMarkerId(node);
         if (rangeMarkerId && startSpan && endSpan) {
           rangeSpans.push({ markerId: rangeMarkerId, startLine: startSpan.start, endLine: endSpan.end });
         }
-        (node.children || []).forEach(walk);
+        const rangeTrackId = resolveMarkerTrackId(rangeMarkerId);
+        withPreferredTrack(rangeTrackId, () => {
+          // Keep boundary line content visible when users write:
+          // @1 some text ... /@1 some text
+          pushRangeBoundaryContentIfPresent(node.startNode, rangeMarkerId);
+          (node.children || []).forEach(walk);
+          pushRangeBoundaryContentIfPresent(node.endNode, rangeMarkerId);
+        });
         return;
       }
       default: {

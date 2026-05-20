@@ -795,7 +795,9 @@ const messages = {
     "jsonError": "Invalid JSON format",
     "unsaved": "Unsaved",
     "savedAt": "Saved {time}",
-    "synced": "Synced"
+    "synced": "Synced",
+    "v2RendererOffWarning": "Multi-track marker settings were detected, but the multi-track renderer is currently off. Column routing and same-row synchronization may not preview correctly.",
+    "enableV2RendererNow": "Enable Multi-track Renderer Now"
   },
   "markerSettingsHeader": {
     "title": "Custom Marker Rules",
