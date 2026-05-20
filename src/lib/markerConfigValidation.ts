@@ -8,6 +8,9 @@ export const validateMarkerConfigs = (configs: MarkerConfig[]): string[] => {
   configs.forEach((cfg, idx) => {
     const id = String(cfg?.id || `#${idx}`);
     const mode = String(cfg?.matchMode || "").trim().toLowerCase();
+    const type = String(cfg?.type || "").trim().toLowerCase();
+    const hasIsBlock = Object.prototype.hasOwnProperty.call(cfg || {}, "isBlock");
+    const isBlockValue = hasIsBlock ? Boolean((cfg as any)?.isBlock) : null;
     const start = String((cfg as any)?.start || "");
     const end = String((cfg as any)?.end || "");
 
@@ -16,6 +19,12 @@ export const validateMarkerConfigs = (configs: MarkerConfig[]): string[] => {
     }
     if (mode === "range" && (!start || !end)) {
       errors.push(`${id}: range 模式必須同時有 start 與 end`);
+    }
+    if (mode === "range" && type === "inline") {
+      errors.push(`${id}: range 模式不可設定為 inline，請改為 block`);
+    }
+    if (mode === "range" && hasIsBlock && isBlockValue === false) {
+      errors.push(`${id}: range 模式不可設定 isBlock=false`);
     }
     if (mode === "prefix" && !start) {
       errors.push(`${id}: prefix 模式必須有 start`);
@@ -40,4 +49,3 @@ export const validateMarkerConfigs = (configs: MarkerConfig[]): string[] => {
 
   return errors;
 };
-

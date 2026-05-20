@@ -99,6 +99,7 @@ export const buildGroupedRows = (
 
   const rows: V2GroupedRow[] = [];
   const rowByLine = new Map<number, V2GroupedRow>();
+  const rangeRowsByKey = new Map<string, V2GroupedRow[]>();
   const mode = doc.layoutConfig.rowGrouping || 'line';
 
   const columnGroupingLines = mode === 'marker_dialogue'
@@ -133,8 +134,14 @@ export const buildGroupedRows = (
         }
       } else if (mode === 'marker_dialogue') {
         const currentRangeKey = columnGroupingRangeKeys?.get(line);
+        if (currentRangeKey) {
+          // In synchronized range mode, align events by sequence across tracks:
+          // place into the earliest row in the same range that does not yet have this track.
+          const syncedRows = rangeRowsByKey.get(currentRangeKey) || [];
+          row = syncedRows.find((candidate) => !candidate.eventsByTrackId.get(item.track.id)?.length);
+        }
         const prevRangeKey = prev ? columnGroupingRangeKeys?.get(prev.line) : undefined;
-        if (prev && currentRangeKey && currentRangeKey === prevRangeKey && !prevHasSameTrack) {
+        if (!row && prev && currentRangeKey && currentRangeKey === prevRangeKey && !prevHasSameTrack) {
           row = prev;
         }
       }
@@ -145,6 +152,12 @@ export const buildGroupedRows = (
       row = { line, eventsByTrackId: new Map() };
       rows.push(row);
       rowByLine.set(line, row);
+      if (mode === 'marker_dialogue') {
+        const currentRangeKey = columnGroupingRangeKeys?.get(line);
+        if (currentRangeKey) {
+          rangeRowsByKey.set(currentRangeKey, [...(rangeRowsByKey.get(currentRangeKey) || []), row]);
+        }
+      }
     }
     pushEvent(row, item.track.id, item.event);
   });

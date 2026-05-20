@@ -143,4 +143,28 @@ describe('buildScriptDocumentV2FromAst', () => {
     expect(doc.events.find((event) => event.text === '左邊。')?.attrs?.preferredTrackId).toBe('main');
     expect(doc.events.find((event) => event.text === '右邊。')?.attrs?.preferredTrackId).toBe('secondary');
   });
+
+  it('inherits preferred track from range marker v2TrackId for inner content events', () => {
+    const ast = {
+      children: [
+        {
+          type: 'range',
+          startNode: { type: 'layer', layerType: 'angle-2', lineStart: 1, lineEnd: 1 },
+          endNode: { type: 'layer', layerType: 'angle-2', lineStart: 3, lineEnd: 3 },
+          children: [
+            { type: 'action', text: 'BB', lineStart: 2, lineEnd: 2 },
+          ],
+        },
+      ],
+    };
+
+    const doc = buildScriptDocumentV2FromAst(ast, {
+      markerConfigs: [
+        { id: 'angle-2', v2TrackId: 'secondary' },
+      ],
+    });
+
+    const contentEvent = doc.events.find((event) => event.text === 'BB');
+    expect(contentEvent?.attrs?.preferredTrackId).toBe('secondary');
+  });
 });

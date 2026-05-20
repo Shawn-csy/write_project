@@ -73,6 +73,8 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
     const availableTypeOptions = matchMode === "prefix"
         ? TYPE_OPTIONS.filter((opt) => opt.value === "inline")
         : TYPE_OPTIONS;
+    const groupingEnabled = Boolean(config.enableColumnGrouping && config.matchMode === "range");
+    const isMarkerDialogueGrouping = layoutConfig?.rowGrouping === "marker_dialogue";
 
 
     const updateStyle = (field: string, value: string | undefined) => {
@@ -215,6 +217,11 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                             );
                         })}
                     </div>
+                    {matchMode === "range" && (
+                        <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
+                            range 為區塊模式，內容會以跨行區段呈現，無法與原句同一行內嵌。
+                        </p>
+                    )}
                 </Row>
 
                 {/* 符號輸入：依 matchMode 顯示不同欄位 */}
@@ -347,6 +354,23 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
 
                 {/* ── 輸出位置（V2 欄位設定）── */}
                 <SectionLabel label={t("markerDetailEditor.sectionOutput")} />
+
+                {groupingEnabled && !isMarkerDialogueGrouping && (
+                    <div className="mb-2 rounded-md border border-destructive/40 bg-destructive/10 px-2.5 py-2 text-[10px] leading-relaxed text-destructive">
+                        <div>
+                            已啟用同步區間，但目前欄位分組模式不是 <span className="font-mono">marker_dialogue</span>，不會同列對齊。
+                        </div>
+                        {onOpenFullLayoutEditor && (
+                            <button
+                                type="button"
+                                onClick={onOpenFullLayoutEditor}
+                                className="mt-1 inline-flex items-center gap-1 underline decoration-destructive/60 underline-offset-2 hover:decoration-destructive"
+                            >
+                                前往版面設定修正
+                            </button>
+                        )}
+                    </div>
+                )}
 
                 <div className="py-2 border-b border-border/20">
                     {enabledTracks.length > 0 ? (

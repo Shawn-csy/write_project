@@ -795,7 +795,9 @@ const messages = {
     "jsonError": "JSON 格式錯誤",
     "unsaved": "尚未儲存",
     "savedAt": "已儲存 {time}",
-    "synced": "已同步"
+    "synced": "已同步",
+    "v2RendererOffWarning": "已偵測到多欄標記設定，但目前多軌分欄渲染為關閉，可能無法正確預覽欄位落點與同行同步。",
+    "enableV2RendererNow": "立即啟用多軌分欄渲染"
   },
   "markerSettingsHeader": {
     "title": "自訂標記規則",
