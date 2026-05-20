@@ -3,6 +3,13 @@ import { oneDark } from "@codemirror/theme-one-dark";
 import { EditorView } from "@codemirror/view";
 import { parseScreenplay } from "../../lib/screenplayAST";
 import type { AstNode } from "../../lib/statistics/ScriptAnalyzer";
+import {
+  buildScriptDocumentV2FromAst,
+  applyMarkerSemanticRoutes,
+  cloneDefaultLayoutConfig,
+  normalizeLayoutConfig,
+  orchestrateDocument,
+} from "../../lib/v2";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useScriptView } from "../../contexts/ScriptViewContext";
 import { useEditorSync } from "../useEditorSync";
@@ -54,7 +61,7 @@ export function useLiveEditorState({
 }: Props) {
   const {
     theme = "system", fontSize, bodyFontSize, dialogueFontSize, lineHeight,
-    accentConfig, markerConfigs, markerThemes = [], currentThemeId = "default",
+    accentConfig, markerConfigs, markerThemes = [], currentThemeId = "default", v2LayoutConfig,
     switchTheme = () => {}, hiddenMarkerIds, toggleMarkerVisibility,
   } = useSettings();
   const scriptView = useScriptView();
@@ -197,8 +204,19 @@ export function useLiveEditorState({
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [content, title, t]);
 
+  const orchestratedDoc = useMemo(() => {
+    const layoutConfig = applyMarkerSemanticRoutes(
+      normalizeLayoutConfig(v2LayoutConfig || cloneDefaultLayoutConfig()),
+      activeMarkerConfigs as any
+    );
+    const parsed = parseScreenplay(deferredContent || "", activeMarkerConfigs) as { ast?: { children?: Array<Record<string, unknown>> } };
+    const v2doc = buildScriptDocumentV2FromAst(parsed.ast, { layoutConfig, markerConfigs: activeMarkerConfigs as any });
+    return orchestrateDocument(v2doc);
+  }, [deferredContent, activeMarkerConfigs, v2LayoutConfig]);
+
   const normalizedDownloadOptions = useLiveEditorDownloadOptions({
     t, title, content, renderedHtmlRef, ensureRenderedHtml, markerConfigs: activeMarkerConfigs as any,
+    orchestratedDoc,
   });
 
   const { handleLocateText, handlePreviewLineClick } = usePreviewLineNavigation({

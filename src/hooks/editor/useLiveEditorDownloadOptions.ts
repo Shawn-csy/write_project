@@ -1,10 +1,12 @@
 import { useCallback, useMemo } from "react";
-import { FileSpreadsheet, FileText, FileUp, Printer } from "lucide-react";
+import { FileSpreadsheet, FileText, FileUp, Printer, Table } from "lucide-react";
 import { loadBasicScriptExport, loadXlsxScriptExport } from "../../lib/scriptExportLoader";
-import { exportScriptToGoogleDocs } from "../../lib/api/export";
+import { exportScriptToGoogleDocs, exportTableV2ToGoogleDocs } from "../../lib/api/export";
 import { getGoogleDocsAccessToken } from "../../lib/firebase";
 import { pickGoogleDriveFolder } from "../../lib/googleDrivePicker";
 import { buildGoogleDocsBlocksFromScript } from "../../lib/googleDocsExportModel";
+import { buildV2TableExport, buildV2TableExportFromRenderedHtml } from "../../lib/v2/exportAdapter";
+import type { OrchestratedDocument } from "../../lib/v2/types";
 import type { MarkerConfig } from "../../types/script";
 
 interface RenderedHtmlRef {
@@ -26,6 +28,7 @@ interface UseLiveEditorDownloadOptionsParams {
   renderedHtmlRef: RenderedHtmlRef;
   ensureRenderedHtml?: () => Promise<string>;
   markerConfigs?: MarkerConfig[];
+  orchestratedDoc?: OrchestratedDocument | null;
 }
 
 export function useLiveEditorDownloadOptions({
@@ -35,6 +38,7 @@ export function useLiveEditorDownloadOptions({
   renderedHtmlRef,
   ensureRenderedHtml,
   markerConfigs = [],
+  orchestratedDoc,
 }: UseLiveEditorDownloadOptionsParams) {
   const runRenderedExport = useCallback(
     async (exporter: (payload: ExportPayload) => Promise<void>) => {
@@ -105,7 +109,33 @@ export function useLiveEditorDownloadOptions({
           });
         },
       },
+      ...(orchestratedDoc
+        ? [
+            {
+              id: "google-docs-table",
+              label: t("publicReader.exportGoogleDocsTable"),
+              icon: Table,
+              onClick: async () => {
+                const token = await getGoogleDocsAccessToken();
+                const folderId = await pickGoogleDriveFolder(token);
+                if (!folderId) return;
+                await runRenderedExport(async (payload: ExportPayload) => {
+                  const tableExport = buildV2TableExportFromRenderedHtml(payload.renderedHtml)
+                    || buildV2TableExport(orchestratedDoc);
+                  const result = await exportTableV2ToGoogleDocs(title, {
+                    ...tableExport,
+                    googleAccessToken: token,
+                    folderId,
+                  });
+                  if (result?.documentUrl) {
+                    window.open(result.documentUrl, "_blank", "noopener,noreferrer");
+                  }
+                });
+              },
+            },
+          ]
+        : []),
     ],
-    [content, runRenderedExport, t, title, markerConfigs]
+    [content, runRenderedExport, t, title, markerConfigs, orchestratedDoc]
   );
 }

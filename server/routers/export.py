@@ -263,6 +263,29 @@ def _hex_to_rgb(color_hex: str) -> Optional[dict]:
         return None
 
 
+def _css_color_to_rgb(raw_color: str) -> Optional[dict]:
+    raw = str(raw_color or "").strip()
+    if not raw:
+        return None
+    if raw.startswith("#"):
+        short = raw.lstrip("#")
+        if len(short) == 3:
+            raw = f"#{short[0]}{short[0]}{short[1]}{short[1]}{short[2]}{short[2]}"
+        return _hex_to_rgb(raw)
+    if raw.lower().startswith("rgb(") and raw.endswith(")"):
+        try:
+            chunks = [part.strip() for part in raw[4:-1].split(",")]
+            if len(chunks) != 3:
+                return None
+            r = max(0, min(255, int(float(chunks[0])))) / 255.0
+            g = max(0, min(255, int(float(chunks[1])))) / 255.0
+            b = max(0, min(255, int(float(chunks[2])))) / 255.0
+            return {"red": r, "green": g, "blue": b}
+        except Exception:
+            return None
+    return None
+
+
 def _create_google_doc_from_blocks(
     title: str,
     docs_blocks: List[dict],
@@ -448,6 +471,289 @@ async def export_script_google_docs(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Google Docs export failed: {e}")
+
+
+def _create_google_doc_table(
+    title: str,
+    columns: List[str],
+    rows: List[List[str]],
+    cell_styles: Optional[List[List[Optional[dict]]]],
+    cell_runs: Optional[List[List[List[dict]]]],
+    google_access_token: str,
+    folder_id: Optional[str],
+) -> dict:
+    """Create a Google Doc with a multi-column table using the Docs API."""
+    try:
+        from googleapiclient.discovery import build
+        from google.oauth2.credentials import Credentials
+    except ImportError:
+        raise HTTPException(status_code=500, detail="google-api-python-client not installed")
+
+    creds = Credentials(token=google_access_token)
+    docs_service = build("docs", "v1", credentials=creds)
+    drive_service = build("drive", "v3", credentials=creds)
+
+    doc = docs_service.documents().create(body={"title": title or "Script"}).execute()
+    document_id = doc.get("documentId")
+    if not document_id:
+        raise HTTPException(status_code=500, detail="Failed to create Google Doc")
+
+    n_cols = len(columns)
+    n_data_rows = len(rows)
+    total_rows = 1 + n_data_rows  # header + data
+
+    # Step 1: insert table at index 1
+    docs_service.documents().batchUpdate(
+        documentId=document_id,
+        body={"requests": [
+            {"insertTable": {"rows": total_rows, "columns": n_cols, "location": {"index": 1}}}
+        ]},
+    ).execute()
+
+    # Step 2: re-fetch doc to get accurate cell indices
+    doc_state = docs_service.documents().get(documentId=document_id).execute()
+    body_content = doc_state.get("body", {}).get("content", [])
+
+    # Collect all table cell startIndex values (paragraph inside each cell)
+    cell_indices: List[int] = []
+    table_start_index = 1
+    for elem in body_content:
+        table = elem.get("table")
+        if not table:
+            continue
+        table_start_index = elem.get("startIndex") or table_start_index
+        for table_row in table.get("tableRows", []):
+            for cell in table_row.get("tableCells", []):
+                for content_item in cell.get("content", []):
+                    if "paragraph" in content_item:
+                        cell_indices.append(content_item["startIndex"])
+                        break  # only first paragraph per cell
+
+    # Step 3: build insertText + bold-header requests
+    # Must insert in REVERSE order to preserve indices
+    all_cells = [columns[i] for i in range(n_cols)]  # header row
+    for row in rows:
+        for col_idx in range(n_cols):
+            all_cells.append(row[col_idx] if col_idx < len(row) else "")
+
+    text_requests = []
+    cell_style_requests = []
+    for i, (idx, text) in enumerate(zip(cell_indices, all_cells)):
+        row_idx = i // n_cols
+        col_idx = i % n_cols
+
+        source_runs = None
+        if row_idx > 0 and isinstance(cell_runs, list) and (row_idx - 1) < len(cell_runs):
+            run_row = cell_runs[row_idx - 1]
+            if isinstance(run_row, list) and col_idx < len(run_row):
+                source_runs = run_row[col_idx]
+
+        if row_idx == 0:
+            normalized_runs = [{"text": str(text or ""), "bold": True}]
+        elif isinstance(source_runs, list) and len(source_runs) > 0:
+            normalized_runs = [run for run in source_runs if isinstance(run, dict)]
+        else:
+            normalized_runs = [{"text": str(text or "")}]
+
+        safe_text = "".join(str(run.get("text", "")) for run in normalized_runs)
+        if safe_text:
+            text_requests.append({
+                "insertText": {"location": {"index": idx}, "text": safe_text}
+            })
+            offset = 0
+            for run in normalized_runs:
+                run_text = str(run.get("text", ""))
+                if not run_text:
+                    continue
+                text_fields: List[str] = []
+                text_style: dict = {}
+                if run.get("bold") is True:
+                    text_style["bold"] = True
+                    text_fields.append("bold")
+                if run.get("italic") is True:
+                    text_style["italic"] = True
+                    text_fields.append("italic")
+                if run.get("underline") is True:
+                    text_style["underline"] = True
+                    text_fields.append("underline")
+                text_rgb = _css_color_to_rgb(str(run.get("color", "")))
+                if text_rgb:
+                    text_style["foregroundColor"] = {"color": {"rgbColor": text_rgb}}
+                    text_fields.append("foregroundColor")
+                if text_fields:
+                    text_requests.append({
+                        "updateTextStyle": {
+                            "range": {"startIndex": idx + offset, "endIndex": idx + offset + len(run_text)},
+                            "textStyle": text_style,
+                            "fields": ",".join(text_fields),
+                        }
+                    })
+                offset += len(run_text)
+
+        style_obj = None
+        if row_idx > 0 and isinstance(cell_styles, list) and (row_idx - 1) < len(cell_styles):
+            style_row = cell_styles[row_idx - 1]
+            if isinstance(style_row, list) and col_idx < len(style_row):
+                style_obj = style_row[col_idx]
+
+        if isinstance(style_obj, dict):
+            bg_rgb = _css_color_to_rgb(str(style_obj.get("backgroundColor", "")))
+            if bg_rgb:
+                cell_style_requests.append({
+                    "updateTableCellStyle": {
+                        "tableRange": {
+                            "tableCellLocation": {
+                                "tableStartLocation": {"index": table_start_index},
+                                "rowIndex": row_idx,
+                                "columnIndex": col_idx,
+                            },
+                            "rowSpan": 1,
+                            "columnSpan": 1,
+                        },
+                        "tableCellStyle": {
+                            "backgroundColor": {"color": {"rgbColor": bg_rgb}},
+                        },
+                        "fields": "backgroundColor",
+                    }
+                })
+
+    # Apply per-cell text requests from the end of the document toward the start
+    # so each cell's insertion index remains valid while its style requests stay
+    # adjacent to the inserted text.
+    grouped_text_requests = []
+    current_group = []
+    for request in text_requests:
+        if "insertText" in request and current_group:
+            grouped_text_requests.append(current_group)
+            current_group = [request]
+        else:
+            current_group.append(request)
+    if current_group:
+        grouped_text_requests.append(current_group)
+    text_requests = [request for group in reversed(grouped_text_requests) for request in group]
+    cell_style_requests.reverse()
+
+    if text_requests or cell_style_requests:
+        docs_service.documents().batchUpdate(
+            documentId=document_id,
+            body={"requests": text_requests + cell_style_requests},
+        ).execute()
+
+    clean_folder_id = (folder_id or "").strip()
+    if clean_folder_id:
+        file_meta = drive_service.files().get(fileId=document_id, fields="parents").execute()
+        previous_parents = ",".join(file_meta.get("parents", []))
+        drive_service.files().update(
+            fileId=document_id,
+            addParents=clean_folder_id,
+            removeParents=previous_parents or None,
+            fields="id, parents",
+            supportsAllDrives=True,
+        ).execute()
+
+    return {
+        "documentId": document_id,
+        "documentUrl": f"https://docs.google.com/document/d/{document_id}/edit",
+        "exportMode": "table_v2",
+    }
+
+
+class GoogleDocsTableV2Request(BaseModel):
+    title: Optional[str] = "script"
+    google_access_token: str
+    folder_id: Optional[str] = None
+    columns: List[str]
+    rows: List[List[str]]
+    cell_styles: Optional[List[List[Optional[dict]]]] = None
+    cell_runs: Optional[List[List[List[dict]]]] = None
+
+
+@router.post("/google-docs/v2")
+async def export_google_docs_table_v2(
+    req: GoogleDocsTableV2Request,
+    _uid: str = Depends(get_current_user_id),
+):
+    try:
+        return _create_google_doc_table(
+            title=req.title or "Script",
+            columns=req.columns,
+            rows=req.rows,
+            cell_styles=req.cell_styles,
+            cell_runs=req.cell_runs,
+            google_access_token=req.google_access_token,
+            folder_id=req.folder_id,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Google Docs table export failed: {e}")
+
+
+class TableV2Request(BaseModel):
+    title: Optional[str] = "script"
+    doc_title: Optional[str] = None
+    columns: List[str]
+    rows: List[List[str]]
+
+
+def _build_table_v2_docx(doc_title: str, columns: List[str], rows: List[List[str]]) -> bytes:
+    try:
+        from docx import Document
+        from docx.shared import Pt
+    except ImportError:
+        raise HTTPException(status_code=500, detail="python-docx not installed")
+
+    doc = Document()
+    doc.add_heading(doc_title, level=1)
+    doc.add_paragraph(f"共 {len(rows)} 筆資料")
+
+    n_cols = len(columns)
+    table = doc.add_table(rows=1 + len(rows), cols=n_cols)
+    table.style = "Table Grid"
+
+    hdr_cells = table.rows[0].cells
+    for i, col in enumerate(columns):
+        hdr_cells[i].text = col
+        run = hdr_cells[i].paragraphs[0].runs[0]
+        run.bold = True
+
+    for row_idx, row in enumerate(rows, start=1):
+        cells = table.rows[row_idx].cells
+        for col_idx in range(n_cols):
+            cells[col_idx].text = str(row[col_idx]) if col_idx < len(row) else ""
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf.read()
+
+
+@router.post("/report/v2/xlsx")
+async def export_report_v2_xlsx(
+    req: TableV2Request,
+    _uid: str = Depends(get_current_user_id),
+):
+    xlsx_bytes = _build_xlsx(req.columns, req.rows)
+    filename = _safe_filename(req.title, "xlsx")
+    return StreamingResponse(
+        io.BytesIO(xlsx_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.post("/report/v2/docx")
+async def export_report_v2_docx(
+    req: TableV2Request,
+    _uid: str = Depends(get_current_user_id),
+):
+    docx_bytes = _build_table_v2_docx(req.doc_title or req.title or "劇本", req.columns, req.rows)
+    filename = _safe_filename(req.title, "docx")
+    return StreamingResponse(
+        io.BytesIO(docx_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.post("/report/xlsx")
