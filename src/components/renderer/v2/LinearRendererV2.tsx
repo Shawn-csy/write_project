@@ -19,6 +19,11 @@ interface LinearRow {
   event: ScriptEvent;
 }
 
+const shouldShowTrackBadge = (track: TrackConfig, event: ScriptEvent): boolean => {
+  if (track.mobileBehavior !== 'badge') return false;
+  return track.role !== 'sfx' && event.kind !== 'sfx';
+};
+
 export const LinearRendererV2 = ({
   doc,
   fontSize = 14,
@@ -52,16 +57,29 @@ export const LinearRendererV2 = ({
         });
       });
     });
+    doc.unassignedEvents.forEach((event) => {
+      list.push({
+        line: Number.isFinite(event.lineSpan?.start) ? Number(event.lineSpan.start) : 1,
+        track: {
+          id: '__unassigned__',
+          name: '未分配',
+          role: 'custom',
+          order: Number.MAX_SAFE_INTEGER,
+          enabled: true,
+        },
+        event,
+      });
+    });
 
     return list.sort((a, b) => a.line - b.line || a.event.id.localeCompare(b.event.id));
-  }, [doc.lanes, trackById]);
+  }, [doc.lanes, doc.unassignedEvents, trackById]);
 
   return (
     <div className="space-y-1 px-3 py-2" data-v2-presentation="linear">
       {rows.map(({ line, track, event }) => {
         const mCfg = event.markerId ? markerConfigById.get(event.markerId) : undefined;
         const mStyle = mCfg?.style && typeof mCfg.style === 'object' ? mCfg.style as React.CSSProperties : undefined;
-        const showTrackBadge = track.mobileBehavior === 'badge';
+        const showTrackBadge = shouldShowTrackBadge(track, event);
 
         return (
           <div

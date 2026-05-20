@@ -122,6 +122,7 @@ const messages = {
     "downloadDoc": "Download Word (.doc)",
     "downloadXlsx": "Download Excel (.xlsx)",
     "exportGoogleDocs": "Export to Google Docs",
+    "exportGoogleDocsTable": "Export multi-column table to Google Docs",
     "googleDriveFolderPrompt": "Enter Google Drive target folder ID (leave empty for root)",
     "downloadCsv": "Download CSV",
     "markerLegend": "Marker Legend",

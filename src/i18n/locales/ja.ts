@@ -122,6 +122,7 @@ const messages = {
     "downloadDoc": "Word (.doc) をダウンロード",
     "downloadXlsx": "Excel (.xlsx) をダウンロード",
     "exportGoogleDocs": "Google Docs に書き出す",
+    "exportGoogleDocsTable": "複数列テーブルを Google Docs に書き出す",
     "googleDriveFolderPrompt": "Google Drive の保存先フォルダ ID を入力（空欄でルート）",
     "downloadCsv": "CSV をダウンロード",
     "markerLegend": "マーカー凡例",

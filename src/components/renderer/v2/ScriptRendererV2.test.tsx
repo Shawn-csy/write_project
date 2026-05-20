@@ -60,6 +60,7 @@ describe('ScriptRendererV2', () => {
 
       expect(container.querySelector('[data-v2-presentation="linear"]')).toBeTruthy();
       expect(container.querySelector('[data-v2-presentation="columns"]')).toBeNull();
+      expect(screen.queryByText('音效')).not.toBeInTheDocument();
       expect(screen.getByText('門聲')).toBeInTheDocument();
       expect(screen.getByText('收到。')).toBeInTheDocument();
     } finally {

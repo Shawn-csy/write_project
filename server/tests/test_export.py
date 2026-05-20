@@ -193,3 +193,101 @@ def test_create_google_doc_from_blocks_builds_text_styles(monkeypatch):
         and req["textStyle"].get("foregroundColor", {}).get("color", {}).get("rgbColor") is not None
         for req in style_reqs
     )
+
+
+def test_create_google_doc_table_uses_table_range_cell_location(monkeypatch):
+    captured = {"style_requests": []}
+
+    class FakeDocsCreate:
+        def execute(self):
+            return {"documentId": "doc_table"}
+
+    class FakeDocsGet:
+        def execute(self):
+            idx = 2
+            rows = []
+            for _row in range(2):
+                cells = []
+                for _col in range(2):
+                    cells.append({"content": [{"startIndex": idx, "paragraph": {}}]})
+                    idx += 10
+                rows.append({"tableCells": cells})
+            return {"body": {"content": [{"startIndex": 5, "table": {"tableRows": rows}}]}}
+
+    class FakeDocsBatchUpdate:
+        def __init__(self, body):
+            self.body = body
+
+        def execute(self):
+            for request in self.body.get("requests", []):
+                if "updateTableCellStyle" in request:
+                    captured["style_requests"].append(request["updateTableCellStyle"])
+            return {}
+
+    class FakeDocsDocuments:
+        def create(self, body):
+            return FakeDocsCreate()
+
+        def get(self, documentId):
+            assert documentId == "doc_table"
+            return FakeDocsGet()
+
+        def batchUpdate(self, documentId, body):
+            assert documentId == "doc_table"
+            return FakeDocsBatchUpdate(body)
+
+    class FakeDocsService:
+        def documents(self):
+            return FakeDocsDocuments()
+
+    class FakeDriveService:
+        def files(self):
+            raise AssertionError("drive should not be used without folder")
+
+    def fake_build(service_name, version, credentials):
+        if service_name == "docs":
+            return FakeDocsService()
+        if service_name == "drive":
+            return FakeDriveService()
+        raise AssertionError("unexpected service")
+
+    class FakeCredentials:
+        def __init__(self, token):
+            assert token == "tok"
+
+    fake_googleapiclient = types.ModuleType("googleapiclient")
+    fake_discovery = types.ModuleType("googleapiclient.discovery")
+    fake_discovery.build = fake_build
+    fake_googleapiclient.discovery = fake_discovery
+    monkeypatch.setitem(sys.modules, "googleapiclient", fake_googleapiclient)
+    monkeypatch.setitem(sys.modules, "googleapiclient.discovery", fake_discovery)
+
+    fake_google = types.ModuleType("google")
+    fake_google_oauth2 = types.ModuleType("google.oauth2")
+    fake_google_oauth2_credentials = types.ModuleType("google.oauth2.credentials")
+    fake_google_oauth2_credentials.Credentials = FakeCredentials
+    fake_google.oauth2 = fake_google_oauth2
+    fake_google_oauth2.credentials = fake_google_oauth2_credentials
+    monkeypatch.setitem(sys.modules, "google", fake_google)
+    monkeypatch.setitem(sys.modules, "google.oauth2", fake_google_oauth2)
+    monkeypatch.setitem(sys.modules, "google.oauth2.credentials", fake_google_oauth2_credentials)
+
+    result = export_router._create_google_doc_table(
+        title="Table",
+        columns=["行號", "主對白"],
+        rows=[["1", "內容"]],
+        cell_styles=[[None, {"backgroundColor": "#ffeeaa"}]],
+        cell_runs=[[[{"text": "1"}], [{"text": "內容", "bold": True}]]],
+        google_access_token="tok",
+        folder_id=None,
+    )
+
+    assert result["exportMode"] == "table_v2"
+    assert len(captured["style_requests"]) == 1
+    style_request = captured["style_requests"][0]
+    assert "tableStartLocation" not in style_request
+    assert style_request["tableRange"]["tableCellLocation"] == {
+        "tableStartLocation": {"index": 5},
+        "rowIndex": 1,
+        "columnIndex": 1,
+    }

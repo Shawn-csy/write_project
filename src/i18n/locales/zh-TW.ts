@@ -122,6 +122,7 @@ const messages = {
     "downloadDoc": "下載 Word (.doc)",
     "downloadXlsx": "下載 Excel (.xlsx)",
     "exportGoogleDocs": "匯出到 Google Docs",
+    "exportGoogleDocsTable": "匯出多欄表格到 Google Docs",
     "googleDriveFolderPrompt": "請輸入 Google Drive 目標資料夾 ID（留空代表根目錄）",
     "downloadCsv": "下載 CSV",
     "markerLegend": "標記說明",

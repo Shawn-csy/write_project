@@ -48,8 +48,15 @@ export const TimelineRendererV2 = ({
         });
       });
     });
+    doc.unassignedEvents.forEach((event) => {
+      list.push({
+        event,
+        trackId: '__unassigned__',
+        trackName: '未分配',
+      });
+    });
     return list.sort((a, b) => a.event.lineSpan.start - b.event.lineSpan.start);
-  }, [doc.lanes, trackNameById]);
+  }, [doc.lanes, doc.unassignedEvents, trackNameById]);
 
   return (
     <div className="space-y-2">

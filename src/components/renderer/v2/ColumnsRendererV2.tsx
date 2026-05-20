@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import type { OrchestratedDocument } from '../../../lib/v2';
+import type { OrchestratedDocument, TrackConfig } from '../../../lib/v2';
 import type { MarkerConfig } from '../../../types/script';
 import { cn } from '../../../lib/utils';
 import { EventTextV2, applyDisplayTemplate } from './EventTextV2';
@@ -27,8 +27,19 @@ export const ColumnsRendererV2 = ({
   markerTooltipPrefix = '標記',
 }: ColumnsRendererV2Props): React.JSX.Element => {
   const tracks = useMemo(
-    () => doc.layoutConfig.tracks.filter((track) => track.enabled).sort((a, b) => a.order - b.order),
-    [doc.layoutConfig.tracks]
+    () => {
+      const enabledTracks = doc.layoutConfig.tracks.filter((track) => track.enabled).sort((a, b) => a.order - b.order);
+      if (!doc.unassignedEvents?.length) return enabledTracks;
+      const unassignedTrack: TrackConfig = {
+        id: '__unassigned__',
+        name: '未分配',
+        role: 'custom',
+        order: Number.MAX_SAFE_INTEGER,
+        enabled: true,
+      };
+      return [...enabledTracks, unassignedTrack];
+    },
+    [doc.layoutConfig.tracks, doc.unassignedEvents]
   );
   const desktopTemplateColumns = useMemo(() => {
     if (tracks.length === 0) return 'minmax(0, 1fr)';
@@ -63,6 +74,16 @@ export const ColumnsRendererV2 = ({
         row.set(lane.trackId, [...existing, event]);
       });
     });
+    doc.unassignedEvents.forEach((event) => {
+      const line = Number.isFinite(event.lineSpan?.start) ? Number(event.lineSpan.start) : 1;
+      minLine = Math.min(minLine, line);
+      maxLine = Math.max(maxLine, line);
+      if (!rows.has(line)) rows.set(line, new Map());
+      const row = rows.get(line);
+      if (!row) return;
+      const existing = row.get('__unassigned__') || [];
+      row.set('__unassigned__', [...existing, event]);
+    });
 
     if (!Number.isFinite(minLine) || maxLine <= 0) return [];
 
@@ -71,7 +92,7 @@ export const ColumnsRendererV2 = ({
       const line = minLine + index;
       return { line, eventsByTrackId: rows.get(line) || new Map() };
     });
-  }, [doc.lanes]);
+  }, [doc.lanes, doc.unassignedEvents]);
 
   const rowMinHeight = `${Math.max(1, fontSize * lineHeight)}px`;
   // Full grid template: gutter + track columns
