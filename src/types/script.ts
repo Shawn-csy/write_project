@@ -15,6 +15,7 @@ export interface MarkerConfig {
   v2EventKind?: "speech" | "sfx" | "bgm" | "stage_direction" | "narration" | "meta" | "custom" | string;
   v2TrackId?: string;
   v2SpeakerSource?: "active" | "self" | "none" | string;
+  enableColumnGrouping?: boolean;
   [key: string]: unknown;
 }
 

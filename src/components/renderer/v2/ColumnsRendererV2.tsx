@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import type { OrchestratedDocument, TrackConfig } from '../../../lib/v2';
+import { buildGroupedRows, type OrchestratedDocument, type TrackConfig } from '../../../lib/v2';
 import type { MarkerConfig } from '../../../types/script';
 import { cn } from '../../../lib/utils';
 import { EventTextV2, applyDisplayTemplate } from './EventTextV2';
@@ -11,11 +11,6 @@ interface ColumnsRendererV2Props {
   markerConfigs?: MarkerConfig[];
   hiddenMarkerIds?: string[];
   markerTooltipPrefix?: string;
-}
-
-interface LineRow {
-  line: number;
-  eventsByTrackId: Map<string, OrchestratedDocument['lanes'][number]['events']>;
 }
 
 export const ColumnsRendererV2 = ({
@@ -57,42 +52,7 @@ export const ColumnsRendererV2 = ({
       .join(' ');
   }, [tracks]);
 
-  const lineRows = useMemo<LineRow[]>(() => {
-    const rows = new Map<number, Map<string, OrchestratedDocument['lanes'][number]['events']>>();
-    let minLine = Number.POSITIVE_INFINITY;
-    let maxLine = 0;
-
-    doc.lanes.forEach((lane) => {
-      lane.events.forEach((event) => {
-        const line = Number.isFinite(event.lineSpan?.start) ? Number(event.lineSpan.start) : 1;
-        minLine = Math.min(minLine, line);
-        maxLine = Math.max(maxLine, line);
-        if (!rows.has(line)) rows.set(line, new Map());
-        const row = rows.get(line);
-        if (!row) return;
-        const existing = row.get(lane.trackId) || [];
-        row.set(lane.trackId, [...existing, event]);
-      });
-    });
-    doc.unassignedEvents.forEach((event) => {
-      const line = Number.isFinite(event.lineSpan?.start) ? Number(event.lineSpan.start) : 1;
-      minLine = Math.min(minLine, line);
-      maxLine = Math.max(maxLine, line);
-      if (!rows.has(line)) rows.set(line, new Map());
-      const row = rows.get(line);
-      if (!row) return;
-      const existing = row.get('__unassigned__') || [];
-      row.set('__unassigned__', [...existing, event]);
-    });
-
-    if (!Number.isFinite(minLine) || maxLine <= 0) return [];
-
-    const lineCount = maxLine - minLine + 1;
-    return Array.from({ length: lineCount }, (_, index) => {
-      const line = minLine + index;
-      return { line, eventsByTrackId: rows.get(line) || new Map() };
-    });
-  }, [doc.lanes, doc.unassignedEvents]);
+  const lineRows = useMemo(() => buildGroupedRows(doc, tracks, markerConfigs), [doc, tracks, markerConfigs]);
 
   const rowMinHeight = `${Math.max(1, fontSize * lineHeight)}px`;
   // Full grid template: gutter + track columns
@@ -104,30 +64,27 @@ export const ColumnsRendererV2 = ({
     [markerConfigs]
   );
 
-  // Build range spans per track: { trackId -> [{ markerId, startLine, endLine, style }] }
+  // Build range spans per track from doc.rangeSpans (structured metadata).
+  // Prefer the marker's explicit track route; fall back to the document fallback track.
   const rangeSpansByTrack = useMemo(() => {
     const result = new Map<string, Array<{ markerId: string; startLine: number; endLine: number; style?: React.CSSProperties }>>();
-    doc.lanes.forEach((lane) => {
-      const pending = new Map<string, number>(); // markerId -> startLine
-      lane.events.forEach((event) => {
-        if (!event.markerId) return;
-        const role = event.attrs?.role as string | undefined;
-        if (role === 'range_start') {
-          pending.set(event.markerId, event.lineSpan.start);
-        } else if (role === 'range_end') {
-          const startLine = pending.get(event.markerId);
-          if (startLine !== undefined) {
-            const mCfg = markerConfigById.get(event.markerId);
-            const style = mCfg?.style && typeof mCfg.style === 'object' ? mCfg.style as React.CSSProperties : undefined;
-            if (!result.has(lane.trackId)) result.set(lane.trackId, []);
-            result.get(lane.trackId)!.push({ markerId: event.markerId, startLine, endLine: event.lineSpan.end, style });
-            pending.delete(event.markerId);
-          }
-        }
-      });
-    });
+    const enabledTrackIds = new Set(doc.lanes.map((lane) => lane.trackId));
+    for (const span of doc.rangeSpans ?? []) {
+      const mCfg = markerConfigById.get(span.markerId);
+      const style = mCfg?.style && typeof mCfg.style === 'object' ? mCfg.style as React.CSSProperties : undefined;
+      const configuredTrackId = typeof mCfg?.v2TrackId === 'string' ? mCfg.v2TrackId.trim() : '';
+      const fallbackTrackId = doc.layoutConfig.fallbackTrackId;
+      const targetTrackId = enabledTrackIds.has(configuredTrackId)
+        ? configuredTrackId
+        : enabledTrackIds.has(fallbackTrackId)
+          ? fallbackTrackId
+          : '';
+      if (!targetTrackId) continue;
+      if (!result.has(targetTrackId)) result.set(targetTrackId, []);
+      result.get(targetTrackId)!.push({ markerId: span.markerId, startLine: span.startLine, endLine: span.endLine, style });
+    }
     return result;
-  }, [doc.lanes, markerConfigById]);
+  }, [doc.rangeSpans, doc.lanes, doc.layoutConfig.fallbackTrackId, markerConfigById]);
 
   return (
     <div className="w-full" style={{ ['--v2-track-columns' as string]: desktopTemplateColumns }} data-v2-presentation="columns">

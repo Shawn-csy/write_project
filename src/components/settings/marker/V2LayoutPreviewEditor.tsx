@@ -199,6 +199,10 @@ export function V2LayoutPreviewEditor({
 
   const emit = useCallback((next: LayoutConfig) => onChange(normalizeLayoutConfig(next)), [onChange]);
 
+  const updateRowGrouping = useCallback((rowGrouping: LayoutConfig["rowGrouping"]) => {
+    emit({ ...config, rowGrouping });
+  }, [config, emit]);
+
   const updateTrack = useCallback((id: string, patch: Partial<TrackConfig>) => {
     emit({
       ...config,
@@ -338,13 +342,12 @@ export function V2LayoutPreviewEditor({
 
   return (
     <div className="border-b border-border/40 bg-background/30 shrink-0">
-      {/* Combined header: theme bar + collapse toggle */}
-      <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-muted/10 transition-colors">
+      <div className="flex flex-wrap items-center gap-2 border-b border-border/30 px-3 py-1.5">
         {themeBar ? (
-          <div className="flex items-center gap-1.5 flex-1 min-w-0">
-            <span className="text-xs text-muted-foreground shrink-0">{t("markerThemeHeader.currentTheme")}</span>
+          <div className="flex min-w-[220px] flex-1 items-center gap-1.5">
+            <span className="shrink-0 text-xs text-muted-foreground">{t("markerThemeHeader.currentTheme")}</span>
             <select
-              className="h-7 flex-1 min-w-0 rounded border border-input bg-background px-2 text-xs"
+              className="h-7 min-w-0 flex-1 rounded border border-input bg-background px-2 text-xs"
               value={themeBar.currentThemeId}
               onChange={(e) => themeBar.switchTheme(e.target.value)}
             >
@@ -352,28 +355,79 @@ export function V2LayoutPreviewEditor({
                 <option key={theme.id} value={theme.id}>{theme.id === "default" ? "系統預設" : (theme.name || theme.id)}</option>
               ))}
             </select>
-            <button type="button" onClick={themeBar.onNew} className="shrink-0 grid h-6 w-6 place-items-center rounded text-muted-foreground hover:bg-muted/60 hover:text-foreground" title={t("markerThemeHeader.newTheme")}>
-              <Plus className="h-3 w-3" />
+            <button type="button" onClick={themeBar.onNew} className="shrink-0 grid h-7 w-7 place-items-center rounded text-muted-foreground hover:bg-muted/60 hover:text-foreground" title={t("markerThemeHeader.newTheme")}>
+              <Plus className="h-3.5 w-3.5" />
             </button>
             {themeBar.currentUser && (
-              <button type="button" onClick={themeBar.onShare} className={cn("shrink-0 grid h-6 w-6 place-items-center rounded hover:bg-muted/60", themeBar.isPublic ? "text-sky-500" : "text-muted-foreground hover:text-foreground")} title={themeBar.isPublic ? t("markerThemeHeader.publicTitleOn") : t("markerThemeHeader.publicTitleOff")}>
-                <Share2 className="h-3 w-3" />
+              <button type="button" onClick={themeBar.onShare} className={cn("shrink-0 grid h-7 w-7 place-items-center rounded hover:bg-muted/60", themeBar.isPublic ? "text-sky-500" : "text-muted-foreground hover:text-foreground")} title={themeBar.isPublic ? t("markerThemeHeader.publicTitleOn") : t("markerThemeHeader.publicTitleOff")}>
+                <Share2 className="h-3.5 w-3.5" />
               </button>
             )}
-            <button type="button" onClick={themeBar.onMore} className="shrink-0 grid h-6 w-6 place-items-center rounded text-muted-foreground hover:bg-muted/60 hover:text-foreground" title={t("markerThemeHeader.moreSettings")}>
-              <Settings2 className="h-3 w-3" />
+            <button type="button" onClick={themeBar.onMore} className="shrink-0 grid h-7 w-7 place-items-center rounded text-muted-foreground hover:bg-muted/60 hover:text-foreground" title={t("markerThemeHeader.moreSettings")}>
+              <Settings2 className="h-3.5 w-3.5" />
             </button>
             {themeBar.canDelete && (
-              <button type="button" onClick={themeBar.onDelete} className="shrink-0 grid h-6 w-6 place-items-center rounded text-muted-foreground/60 hover:bg-destructive/10 hover:text-destructive" title={t("markerThemeHeader.delete")}>
-                <Trash2 className="h-3 w-3" />
+              <button type="button" onClick={themeBar.onDelete} className="shrink-0 grid h-7 w-7 place-items-center rounded text-muted-foreground/60 hover:bg-destructive/10 hover:text-destructive" title={t("markerThemeHeader.delete")}>
+                <Trash2 className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
-        ) : <div className="flex-1" />}
+        ) : (
+          <div className="min-w-[120px] flex-1 text-xs font-medium text-foreground/80">
+            {t("markerSettingsHeader.viewLayout")}
+          </div>
+        )}
+
+        <div className="inline-flex rounded-md border border-border/60 bg-muted/30 p-0.5">
+          <button
+            type="button"
+            onClick={() => updateRowGrouping('line')}
+            className={cn(
+              "h-7 rounded px-2.5 text-xs transition-colors",
+              config.rowGrouping !== 'adjacent_dialogue' && config.rowGrouping !== 'marker_dialogue' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+            title={t("appearance.dialogueRowLayoutDesc")}
+          >
+            {t("appearance.dialogueRowNormal")}
+          </button>
+          <button
+            type="button"
+            onClick={() => updateRowGrouping('adjacent_dialogue')}
+            className={cn(
+              "h-7 rounded px-2.5 text-xs transition-colors",
+              config.rowGrouping === 'adjacent_dialogue' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+            title={t("appearance.dialogueRowLayoutDesc")}
+          >
+            {t("appearance.dialogueRowSideBySide")}
+          </button>
+          <button
+            type="button"
+            onClick={() => updateRowGrouping('marker_dialogue')}
+            className={cn(
+              "h-7 rounded px-2.5 text-xs transition-colors",
+              config.rowGrouping === 'marker_dialogue' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+            title={t("appearance.dialogueRowMarkerBasedDesc")}
+          >
+            {t("appearance.dialogueRowMarkerBased")}
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={addTrack}
+          className="flex h-7 items-center gap-1.5 rounded border border-dashed border-border/50 px-2 text-xs text-muted-foreground transition-colors hover:border-border hover:bg-muted/30 hover:text-foreground"
+          aria-label={t("appearance.addTrack")}
+        >
+          <Plus className="h-3 w-3" />
+          <span>{t("appearance.addTrack")}</span>
+        </button>
+
         <button
           type="button"
           onClick={() => setCollapsed((p) => !p)}
-          className="shrink-0 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+          className="ml-auto flex h-7 shrink-0 items-center gap-1 rounded px-2 text-xs text-muted-foreground hover:bg-muted/40 hover:text-foreground"
         >
           <span>{collapsed ? t("appearance.trackPreviewExpand") : t("appearance.trackPreviewCollapse")}</span>
           {collapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
@@ -381,7 +435,7 @@ export function V2LayoutPreviewEditor({
       </div>
 
       {!collapsed && (
-        <div className="px-4 pb-4 space-y-2">
+        <div className="space-y-2 px-3 pb-3 pt-2">
           {/* Main preview+edit grid */}
           <div
             ref={containerRef}
@@ -574,16 +628,6 @@ export function V2LayoutPreviewEditor({
             </div>
           )}
 
-          {/* Add track button */}
-          <button
-            type="button"
-            onClick={addTrack}
-            className="flex items-center gap-1.5 h-7 px-2 rounded border border-dashed border-border/50 text-xs text-muted-foreground hover:border-border hover:text-foreground hover:bg-muted/30 transition-colors w-full justify-center"
-            aria-label={t("appearance.addTrack")}
-          >
-            <Plus className="h-3 w-3" />
-            <span>{t("appearance.addTrack")}</span>
-          </button>
         </div>
       )}
     </div>

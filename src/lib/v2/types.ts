@@ -20,6 +20,8 @@ export type LayoutRenderMode = 'columns' | 'timeline';
 
 export type MobileTrackBehavior = 'inline' | 'badge' | 'collapse';
 
+export type RowGroupingMode = 'line' | 'adjacent_dialogue' | 'marker_dialogue';
+
 export interface LineSpan {
   start: number;
   end: number;
@@ -62,6 +64,7 @@ export interface RoutingRule {
 export interface LayoutConfig {
   version: 1;
   renderMode: LayoutRenderMode;
+  rowGrouping?: RowGroupingMode;
   fallbackTrackId: string;
   tracks: TrackConfig[];
   routingRules: RoutingRule[];
@@ -72,11 +75,18 @@ export interface TrackLane {
   events: ScriptEvent[];
 }
 
+export interface RangeSpan {
+  markerId: string;
+  startLine: number;
+  endLine: number;
+}
+
 export interface OrchestratedDocument {
   version: ScriptDocumentVersion;
   layoutConfig: LayoutConfig;
   lanes: TrackLane[];
   unassignedEvents: ScriptEvent[];
+  rangeSpans?: RangeSpan[];
 }
 
 export interface ScriptDocumentV2 {

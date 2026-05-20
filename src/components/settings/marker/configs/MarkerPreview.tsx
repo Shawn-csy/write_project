@@ -7,22 +7,24 @@ import type { EditableMarkerConfig } from "../types";
  */
 interface MarkerPreviewProps {
     config: EditableMarkerConfig;
+    compact?: boolean;
+    expanded?: boolean;
 }
 
-export function MarkerPreview({ config }: MarkerPreviewProps): React.JSX.Element {
+export function MarkerPreview({ config, compact = false, expanded = false }: MarkerPreviewProps): React.JSX.Element {
     const { t } = useI18n();
     // Build sample content
     const example = useMemo<{ raw: string; rendered: string }>(() => {
         const sampleContent = String(config.label || t("markerPreview.sampleContent"));
         const template = typeof config.renderer?.template === "string" ? config.renderer.template : "";
-        
+
         if (config.matchMode === 'range') {
             return {
                 raw: `${config.start || '<start>'} ${sampleContent}`,
                 rendered: sampleContent
             };
         }
-        
+
         if (config.matchMode === 'prefix') {
             return {
                 raw: `${config.start || '/tag'} ${sampleContent}`,
@@ -31,20 +33,20 @@ export function MarkerPreview({ config }: MarkerPreviewProps): React.JSX.Element
                     : sampleContent
             };
         }
-        
+
         if (config.matchMode === 'regex') {
             return {
                 raw: config.regex ? `[regex match]` : '[pattern]',
                 rendered: sampleContent
             };
         }
-        
+
         // enclosure (default)
         return {
             raw: `${config.start || '('}${sampleContent}${config.end || ')'}`,
             rendered: template
                 ? template.replace('{{content}}', sampleContent)
-                : (config.showDelimiters !== false 
+                : (config.showDelimiters !== false
                     ? `${config.start || '('}${sampleContent}${config.end || ')'}`
                     : sampleContent)
         };
@@ -62,13 +64,45 @@ export function MarkerPreview({ config }: MarkerPreviewProps): React.JSX.Element
         padding: '0 4px'
     }), [config.style]);
 
+    if (compact) {
+        return (
+            <div className="flex items-center gap-2 min-w-0">
+                <span className="text-[10px] text-muted-foreground/50 shrink-0">{t("markerPreview.livePreview")}</span>
+                <span className="rounded border border-border/30 bg-background/60 px-2 py-0.5 text-sm font-mono truncate">
+                    <span style={previewStyle}>{example.rendered}</span>
+                </span>
+                <span className="text-[10px] font-mono text-muted-foreground/40 truncate hidden xl:block">{example.raw}</span>
+            </div>
+        );
+    }
+
+    if (expanded) {
+        return (
+            <div className="space-y-2">
+                <div className="text-[10px] font-mono text-muted-foreground/50 truncate">{example.raw}</div>
+                {/* Light bg */}
+                <div className="rounded-md border border-border/30 bg-white px-3 py-2 text-sm leading-relaxed">
+                    <span className="text-gray-300 select-none">… </span>
+                    <span style={previewStyle}>{example.rendered}</span>
+                    <span className="text-gray-300 select-none"> …</span>
+                </div>
+                {/* Dark bg */}
+                <div className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm leading-relaxed">
+                    <span className="text-zinc-700 select-none">… </span>
+                    <span style={previewStyle}>{example.rendered}</span>
+                    <span className="text-zinc-700 select-none"> …</span>
+                </div>
+            </div>
+        );
+    }
+
   return (
-    <div className="rounded-lg border border-border/40 bg-background/60 p-3 space-y-2">
-      <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">{t("markerPreview.livePreview")}</div>
-      <div className="text-sm rounded border border-border/30 bg-background px-2 py-1.5">
+    <div className="rounded-lg border border-border/40 bg-background/60 p-4 space-y-2">
+      <div className="text-sm font-medium text-muted-foreground">{t("markerPreview.livePreview")}</div>
+      <div className="text-base rounded border border-border/30 bg-background px-3 py-2">
         <span style={previewStyle}>{example.rendered}</span>
       </div>
-      <div className="text-[11px] font-mono text-muted-foreground truncate">
+      <div className="text-sm font-mono text-muted-foreground truncate">
         {example.raw}
       </div>
     </div>

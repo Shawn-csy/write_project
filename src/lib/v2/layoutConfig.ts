@@ -1,5 +1,5 @@
 import { cloneDefaultLayoutConfig } from './defaultLayoutConfig';
-import type { EventKind, LayoutConfig, LayoutRenderMode, RoutingRule, TrackConfig, TrackRole } from './types';
+import type { EventKind, LayoutConfig, LayoutRenderMode, RowGroupingMode, RoutingRule, TrackConfig, TrackRole } from './types';
 
 const EVENT_KINDS = new Set<EventKind>(['speech', 'sfx', 'bgm', 'stage_direction', 'narration', 'meta', 'custom']);
 const TRACK_ROLES = new Set<TrackRole>(['dialogue', 'sfx', 'narration', 'meta', 'custom']);
@@ -85,6 +85,7 @@ export const normalizeLayoutConfig = (value: unknown): LayoutConfig => {
   return {
     version: 1,
     renderMode: (raw.renderMode === 'timeline' ? 'timeline' : 'columns') as LayoutRenderMode,
+    rowGrouping: (raw.rowGrouping === 'adjacent_dialogue' ? 'adjacent_dialogue' : raw.rowGrouping === 'marker_dialogue' ? 'marker_dialogue' : 'line') as RowGroupingMode,
     fallbackTrackId,
     tracks: safeTracks,
     routingRules,

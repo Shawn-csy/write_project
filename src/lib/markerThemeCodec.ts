@@ -1,5 +1,6 @@
 import { extractErrorMessage } from './utils';
 import { validateMarkerConfigs } from './markerConfigValidation';
+import { normalizeLegacyMarkerType } from './markerRules';
 
 export const normalizeThemeConfigs = (configs: unknown): unknown[] => {
   if (Array.isArray(configs)) return configs;
@@ -58,7 +59,7 @@ export const normalizeMarkerConfigsSchema = (configs: unknown): import("../types
       if (next.mapCasts && typeof next.mapCasts !== "object") {
         delete next.mapCasts;
       }
-      return next;
+      return normalizeLegacyMarkerType(next as import("../types/script").MarkerConfig);
     }) as import("../types/script").MarkerConfig[];
 };
 

@@ -1,6 +1,6 @@
 import { cloneDefaultLayoutConfig } from './defaultLayoutConfig';
 import { getMarkerEventKind } from './markerSemantics';
-import type { LayoutConfig, ScriptDocumentV2, ScriptEvent } from './types';
+import type { LayoutConfig, RangeSpan, ScriptDocumentV2, ScriptEvent } from './types';
 import type { MarkerConfig } from '../../types/script';
 
 interface InlineSpan {
@@ -64,6 +64,7 @@ export const buildScriptDocumentV2FromAst = (
   );
   const events: ScriptEvent[] = [];
   let eventCounter = 0;
+  const rangeSpans: RangeSpan[] = [];
   let activeSpeakerId = '';
   let preferredTrackId: string | undefined;
   const [primaryDialogueTrackId, secondaryDialogueTrackId] = resolveDialogueTrackIds(layoutConfig);
@@ -225,31 +226,17 @@ export const buildScriptDocumentV2FromAst = (
         return;
       }
       case 'range': {
-        if (node.startNode) {
-          const startSpan = readLineSpan(node.startNode);
-          const markerId = node.startNode.layerType || node.startNode.markerId;
-          const markerConfig = markerId ? markerConfigById.get(String(markerId)) : undefined;
-          pushEvent({
-            kind: getMarkerEventKind(markerConfig) || layerKindFallback(),
-            text: String(node.startNode.text || '').trim(),
-            markerId,
-            lineSpan: startSpan,
-            attrs: { role: 'range_start' },
-          });
+        // Collect the span as structured metadata; do NOT push boundary events into
+        // the content stream. Renderers and row grouping read doc.rangeSpans instead.
+        const startSpan = node.startNode ? readLineSpan(node.startNode) : null;
+        const endSpan = node.endNode ? readLineSpan(node.endNode) : null;
+        const rangeMarkerId = String(
+          (node.startNode?.layerType || node.startNode?.markerId || node.endNode?.layerType || node.endNode?.markerId || node.markerId || '')
+        ).trim();
+        if (rangeMarkerId && startSpan && endSpan) {
+          rangeSpans.push({ markerId: rangeMarkerId, startLine: startSpan.start, endLine: endSpan.end });
         }
         (node.children || []).forEach(walk);
-        if (node.endNode) {
-          const endSpan = readLineSpan(node.endNode);
-          const markerId = node.endNode.layerType || node.endNode.markerId;
-          const markerConfig = markerId ? markerConfigById.get(String(markerId)) : undefined;
-          pushEvent({
-            kind: getMarkerEventKind(markerConfig) || layerKindFallback(),
-            text: String(node.endNode.text || '').trim(),
-            markerId,
-            lineSpan: endSpan,
-            attrs: { role: 'range_end' },
-          });
-        }
         return;
       }
       default: {
@@ -262,7 +249,7 @@ export const buildScriptDocumentV2FromAst = (
 
   return {
     version: 2,
-    metadata: options.metadata,
+    metadata: { ...options.metadata, rangeSpans },
     layoutConfig,
     events,
   };

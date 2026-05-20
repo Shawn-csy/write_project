@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import Any, List, Optional
 import io
 
 from dependencies import get_current_user_id
@@ -286,6 +286,67 @@ def _css_color_to_rgb(raw_color: str) -> Optional[dict]:
     return None
 
 
+def _css_px_to_pt_dimension(value: Any) -> Optional[dict]:
+    try:
+        px = float(value)
+    except Exception:
+        return None
+    if px < 0:
+        return None
+    return {"magnitude": round(px * 0.75, 2), "unit": "PT"}
+
+
+def _build_padding_style(style_obj: dict) -> tuple[dict, List[str]]:
+    style: dict = {}
+    fields: List[str] = []
+    for source_key, docs_key in [
+        ("paddingTop", "paddingTop"),
+        ("paddingRight", "paddingRight"),
+        ("paddingBottom", "paddingBottom"),
+        ("paddingLeft", "paddingLeft"),
+    ]:
+        dim = _css_px_to_pt_dimension(style_obj.get(source_key))
+        if dim:
+            style[docs_key] = dim
+            fields.append(docs_key)
+    return style, fields
+
+
+def _build_column_width_requests(table_start_index: int, table_layout: Optional[dict], n_cols: int) -> List[dict]:
+    if not isinstance(table_layout, dict):
+        return []
+    widths = table_layout.get("columnWidths")
+    if not isinstance(widths, list) or len(widths) < n_cols:
+        return []
+    numeric_widths = []
+    for raw in widths[:n_cols]:
+        try:
+            width = float(raw)
+        except Exception:
+            width = 0
+        numeric_widths.append(width if width > 0 else 0)
+    total = sum(numeric_widths)
+    if total <= 0:
+        return []
+
+    target_table_width_pt = 468.0
+    requests = []
+    for col_idx, width in enumerate(numeric_widths):
+        width_pt = max(5.0, round((width / total) * target_table_width_pt, 2))
+        requests.append({
+            "updateTableColumnProperties": {
+                "tableStartLocation": {"index": table_start_index},
+                "columnIndices": [col_idx],
+                "tableColumnProperties": {
+                    "widthType": "FIXED_WIDTH",
+                    "width": {"magnitude": width_pt, "unit": "PT"},
+                },
+                "fields": "width,widthType",
+            }
+        })
+    return requests
+
+
 def _create_google_doc_from_blocks(
     title: str,
     docs_blocks: List[dict],
@@ -479,6 +540,7 @@ def _create_google_doc_table(
     rows: List[List[str]],
     cell_styles: Optional[List[List[Optional[dict]]]],
     cell_runs: Optional[List[List[List[dict]]]],
+    table_layout: Optional[dict],
     google_access_token: str,
     folder_id: Optional[str],
 ) -> dict:
@@ -537,7 +599,19 @@ def _create_google_doc_table(
             all_cells.append(row[col_idx] if col_idx < len(row) else "")
 
     text_requests = []
+    table_layout_requests = _build_column_width_requests(table_start_index, table_layout, n_cols)
     cell_style_requests = []
+    if isinstance(table_layout, dict) and isinstance(table_layout.get("defaultCellStyle"), dict):
+        default_cell_style, default_cell_fields = _build_padding_style(table_layout["defaultCellStyle"])
+        if default_cell_fields:
+            cell_style_requests.append({
+                "updateTableCellStyle": {
+                    "tableStartLocation": {"index": table_start_index},
+                    "tableCellStyle": default_cell_style,
+                    "fields": ",".join(default_cell_fields),
+                }
+            })
+
     for i, (idx, text) in enumerate(zip(cell_indices, all_cells)):
         row_idx = i // n_cols
         col_idx = i % n_cols
@@ -597,8 +671,12 @@ def _create_google_doc_table(
                 style_obj = style_row[col_idx]
 
         if isinstance(style_obj, dict):
+            table_cell_style, table_cell_fields = _build_padding_style(style_obj)
             bg_rgb = _css_color_to_rgb(str(style_obj.get("backgroundColor", "")))
             if bg_rgb:
+                table_cell_style["backgroundColor"] = {"color": {"rgbColor": bg_rgb}}
+                table_cell_fields.append("backgroundColor")
+            if table_cell_fields:
                 cell_style_requests.append({
                     "updateTableCellStyle": {
                         "tableRange": {
@@ -610,10 +688,8 @@ def _create_google_doc_table(
                             "rowSpan": 1,
                             "columnSpan": 1,
                         },
-                        "tableCellStyle": {
-                            "backgroundColor": {"color": {"rgbColor": bg_rgb}},
-                        },
-                        "fields": "backgroundColor",
+                        "tableCellStyle": table_cell_style,
+                        "fields": ",".join(table_cell_fields),
                     }
                 })
 
@@ -633,10 +709,10 @@ def _create_google_doc_table(
     text_requests = [request for group in reversed(grouped_text_requests) for request in group]
     cell_style_requests.reverse()
 
-    if text_requests or cell_style_requests:
+    if table_layout_requests or text_requests or cell_style_requests:
         docs_service.documents().batchUpdate(
             documentId=document_id,
-            body={"requests": text_requests + cell_style_requests},
+            body={"requests": table_layout_requests + text_requests + cell_style_requests},
         ).execute()
 
     clean_folder_id = (folder_id or "").strip()
@@ -666,6 +742,7 @@ class GoogleDocsTableV2Request(BaseModel):
     rows: List[List[str]]
     cell_styles: Optional[List[List[Optional[dict]]]] = None
     cell_runs: Optional[List[List[List[dict]]]] = None
+    table_layout: Optional[dict] = None
 
 
 @router.post("/google-docs/v2")
@@ -680,6 +757,7 @@ async def export_google_docs_table_v2(
             rows=req.rows,
             cell_styles=req.cell_styles,
             cell_runs=req.cell_runs,
+            table_layout=req.table_layout,
             google_access_token=req.google_access_token,
             folder_id=req.folder_id,
         )

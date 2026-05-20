@@ -3,7 +3,7 @@ import { MarkerJsonEditor } from "../MarkerJsonEditor";
 import { MarkerUsageGuide } from "../MarkerUsageGuide";
 import { MarkerVisualEditorPane } from "./MarkerVisualEditorPane";
 import type { MarkerConfig } from "../../../../types/script";
-import type { TrackConfig } from "../../../../lib/v2";
+import type { LayoutConfig, TrackConfig } from "../../../../lib/v2";
 import type { EditableMarkerConfig, UpdateMarkerFn } from "../types";
 
 interface MarkerSettingsModeContentProps {
@@ -24,11 +24,10 @@ interface MarkerSettingsModeContentProps {
   applyJson: () => void;
   isDirty: boolean;
   isSaving: boolean;
-  isAdvancedMode: boolean;
-  setIsAdvancedMode: (value: boolean) => void;
   readOnly?: boolean;
   tracks?: TrackConfig[];
-  showLayoutContext?: boolean;
+  layoutConfig?: LayoutConfig;
+  onLayoutChange?: (config: LayoutConfig) => void;
   onOpenFullLayoutEditor?: () => void;
 }
 
@@ -50,11 +49,10 @@ export function MarkerSettingsModeContent({
   applyJson,
   isDirty,
   isSaving,
-  isAdvancedMode,
-  setIsAdvancedMode,
   readOnly = false,
   tracks = [],
-  showLayoutContext = false,
+  layoutConfig,
+  onLayoutChange,
   onOpenFullLayoutEditor,
 }: MarkerSettingsModeContentProps): React.JSX.Element {
   if (viewMode === "guide") {
@@ -94,11 +92,10 @@ export function MarkerSettingsModeContent({
         selectedIndex={selectedIndex}
         existingIds={existingIds}
         onAddMarker={onAddMarker}
-        isAdvancedMode={isAdvancedMode}
-        setIsAdvancedMode={setIsAdvancedMode}
         readOnly={readOnly}
         tracks={tracks}
-        showLayoutContext={showLayoutContext}
+        layoutConfig={layoutConfig}
+        onLayoutChange={onLayoutChange}
         onOpenFullLayoutEditor={onOpenFullLayoutEditor}
       />
     </fieldset>

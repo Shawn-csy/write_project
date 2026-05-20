@@ -1,4 +1,6 @@
+import type { MarkerConfig } from '../../types/script';
 import type { OrchestratedDocument, TrackConfig } from './types';
+import { buildGroupedRows } from './rowGrouping';
 
 export interface V2TableCellRun {
   text: string;
@@ -10,6 +12,15 @@ export interface V2TableCellRun {
 
 export interface V2TableCellStyle {
   backgroundColor?: string;
+  paddingTop?: number;
+  paddingRight?: number;
+  paddingBottom?: number;
+  paddingLeft?: number;
+}
+
+export interface V2TableLayout {
+  columnWidths?: number[];
+  defaultCellStyle?: V2TableCellStyle;
 }
 
 export interface V2TableExport {
@@ -17,6 +28,7 @@ export interface V2TableExport {
   rows: string[][];
   cellStyles?: Array<Array<V2TableCellStyle | null>>;
   cellRuns?: Array<Array<V2TableCellRun[]>>;
+  tableLayout?: V2TableLayout;
 }
 
 /**
@@ -36,6 +48,11 @@ const normalizeColor = (value: string): string | undefined => {
   if (parts.length >= 4 && Number(parts[3]) === 0) return undefined;
   const nums = parts.slice(0, 3).map((part) => Math.max(0, Math.min(255, Number.parseInt(part, 10) || 0)));
   return `#${nums.map((num) => num.toString(16).padStart(2, '0')).join('')}`.toUpperCase();
+};
+
+const parsePixelValue = (value: string): number | undefined => {
+  const num = Number.parseFloat(String(value || ''));
+  return Number.isFinite(num) && num >= 0 ? num : undefined;
 };
 
 const runStyleFromElement = (element: Element): Omit<V2TableCellRun, 'text'> => {
@@ -98,7 +115,31 @@ const cellStyleFromElement = (element: Element): V2TableCellStyle | null => {
   const styledElement = element.querySelector('article, [style]') || element;
   const computed = window.getComputedStyle(styledElement);
   const backgroundColor = normalizeColor(computed.backgroundColor);
-  return backgroundColor ? { backgroundColor } : null;
+  const style: V2TableCellStyle = {
+    ...(backgroundColor ? { backgroundColor } : {}),
+    ...(parsePixelValue(computed.paddingTop) !== undefined ? { paddingTop: parsePixelValue(computed.paddingTop) } : {}),
+    ...(parsePixelValue(computed.paddingRight) !== undefined ? { paddingRight: parsePixelValue(computed.paddingRight) } : {}),
+    ...(parsePixelValue(computed.paddingBottom) !== undefined ? { paddingBottom: parsePixelValue(computed.paddingBottom) } : {}),
+    ...(parsePixelValue(computed.paddingLeft) !== undefined ? { paddingLeft: parsePixelValue(computed.paddingLeft) } : {}),
+  };
+  return Object.keys(style).length > 0 ? style : null;
+};
+
+const resolveColumnWidths = (headerCells: Element[]): number[] | undefined => {
+  const widths = headerCells
+    .map((cell) => cell.getBoundingClientRect().width)
+    .map((width) => (Number.isFinite(width) && width > 0 ? width : 0));
+  if (widths.some((width) => width > 0)) return widths;
+  return headerCells.length > 0 ? headerCells.map(() => 1) : undefined;
+};
+
+const resolveDefaultCellStyle = (root: Element): V2TableCellStyle | undefined => {
+  const sampleCell = root.querySelector('[data-v2-line-row] [data-track-id]');
+  if (!sampleCell) return undefined;
+  const style = cellStyleFromElement(sampleCell);
+  if (!style) return undefined;
+  const { paddingTop, paddingRight, paddingBottom, paddingLeft } = style;
+  return { paddingTop, paddingRight, paddingBottom, paddingLeft };
 };
 
 const escapeAttributeValue = (value: string): string => {
@@ -132,6 +173,10 @@ export const buildV2TableExportFromRenderedHtml = (renderedHtml = ''): V2TableEx
 
     const trackNames = headerCells.map((cell, index) => String(cell.textContent || trackIds[index] || '').trim());
     const columns = ['行號', ...trackNames];
+    const tableLayout: V2TableLayout = {
+      columnWidths: [28, ...(resolveColumnWidths(headerCells) || [])],
+      defaultCellStyle: resolveDefaultCellStyle(root),
+    };
     const rows: string[][] = [];
     const cellRuns: V2TableCellRun[][][] = [];
     const cellStyles: Array<Array<V2TableCellStyle | null>> = [];
@@ -165,13 +210,13 @@ export const buildV2TableExportFromRenderedHtml = (renderedHtml = ''): V2TableEx
       }
     });
 
-    return rows.length > 0 ? { columns, rows, cellRuns, cellStyles } : null;
+    return rows.length > 0 ? { columns, rows, cellRuns, cellStyles, tableLayout } : null;
   } finally {
     document.body.removeChild(host);
   }
 };
 
-export const buildV2TableExport = (doc: OrchestratedDocument): V2TableExport => {
+export const buildV2TableExport = (doc: OrchestratedDocument, markerConfigs: MarkerConfig[] = []): V2TableExport => {
   const tracks: TrackConfig[] = [...doc.layoutConfig.tracks]
     .filter((t) => t.enabled)
     .sort((a, b) => a.order - b.order);
@@ -179,55 +224,15 @@ export const buildV2TableExport = (doc: OrchestratedDocument): V2TableExport => 
   const unassignedTrackId = "__unassigned__";
   const unassignedTrackName = "未分配";
 
-  // Collect all line numbers across all lanes
-  const lineSet = new Set<number>();
-  doc.lanes.forEach((lane) => {
-    lane.events.forEach((event) => {
-      lineSet.add(Number.isFinite(event.lineSpan?.start) ? event.lineSpan.start : 0);
-    });
-  });
-  (doc.unassignedEvents || []).forEach((event) => {
-    lineSet.add(Number.isFinite(event.lineSpan?.start) ? event.lineSpan.start : 0);
-  });
-  const lines = Array.from(lineSet).sort((a, b) => a - b);
-
-  // Build lookup: trackId -> lineNum -> event texts[]
-  const cellMap = new Map<string, Map<number, string[]>>();
-  tracks.forEach((t) => cellMap.set(t.id, new Map()));
-  if (hasUnassignedEvents) {
-    cellMap.set(unassignedTrackId, new Map());
-  }
-
-  doc.lanes.forEach((lane) => {
-    const trackCells = cellMap.get(lane.trackId);
-    if (!trackCells) return;
-    lane.events.forEach((event) => {
-      const ln = Number.isFinite(event.lineSpan?.start) ? event.lineSpan.start : 0;
-      const existing = trackCells.get(ln) ?? [];
-      existing.push(event.text);
-      trackCells.set(ln, existing);
-    });
-  });
-  if (hasUnassignedEvents) {
-    const unassignedCells = cellMap.get(unassignedTrackId);
-    if (unassignedCells) {
-      (doc.unassignedEvents || []).forEach((event) => {
-        const ln = Number.isFinite(event.lineSpan?.start) ? event.lineSpan.start : 0;
-        const existing = unassignedCells.get(ln) ?? [];
-        existing.push(event.text);
-        unassignedCells.set(ln, existing);
-      });
-    }
-  }
-
   const tableTracks = hasUnassignedEvents
     ? [...tracks, { id: unassignedTrackId, name: unassignedTrackName } as TrackConfig]
     : tracks;
   const columns = ['行號', ...tableTracks.map((t) => t.name)];
-  const rows = lines.map((ln) => {
-    const row: string[] = [String(ln)];
+  const groupedRows = buildGroupedRows(doc, tableTracks, markerConfigs);
+  const rows = groupedRows.map((groupedRow) => {
+    const row: string[] = [String(groupedRow.line)];
     tableTracks.forEach((t) => {
-      const texts = cellMap.get(t.id)?.get(ln) ?? [];
+      const texts = (groupedRow.eventsByTrackId.get(t.id) ?? []).map((event) => event.text);
       row.push(texts.join(' / '));
     });
     return row;
