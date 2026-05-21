@@ -1,4 +1,4 @@
-import { renderHook } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { usePublicGalleryFiltering } from "./usePublicGalleryFiltering";
 
@@ -152,5 +152,25 @@ describe("usePublicGalleryFiltering – persona license fallback", () => {
     expect(ids).toContain("s1");
     expect(ids).not.toContain("s2");
     expect(ids).toContain("s3");
+  });
+
+  it("processes large script lists in background and eventually returns full enrichment", async () => {
+    const scripts = Array.from({ length: 130 }, (_, i) =>
+      makeScript({
+        id: `s${i}`,
+        title: `Script ${i}`,
+        persona: { defaultLicenseCommercial: i % 2 === 0 ? "allow" : "disallow" },
+      })
+    );
+    const { result } = renderHook(() =>
+      usePublicGalleryFiltering({ ...baseProps, scripts, usageFilter: "commercial" })
+    );
+
+    expect(result.current.scriptsWithMeta.length).toBe(0);
+
+    await waitFor(() => {
+      expect(result.current.scriptsWithMeta.length).toBe(130);
+      expect(result.current.filteredScripts.length).toBe(65);
+    });
   });
 });

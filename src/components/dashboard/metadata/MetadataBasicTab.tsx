@@ -188,6 +188,10 @@ export function MetadataBasicTab({
 
     return (
         <div className="space-y-5 h-full">
+            <div>
+                <div className="text-sm font-semibold text-foreground">公開頁主資訊</div>
+                <p className="mt-1 text-xs text-muted-foreground">這些內容會影響公開頁標題、作者身分、簡介與發布狀態。</p>
+            </div>
             {isRowLayout ? (
                 <div className="rounded-xl border border-border/70 bg-background shadow-sm">
                     <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
@@ -264,6 +268,10 @@ export function MetadataBasicTab({
                 </div>
             )}
 
+            <div className="border-t border-border/70 pt-4">
+                <div className="text-sm font-semibold text-foreground">劇本前置內容</div>
+                <p className="mt-1 text-xs text-muted-foreground">選填內容，公開頁會收合在前置資訊區，讀者可展開查看。</p>
+            </div>
             <MetadataExtendedFields
                 layout={layout}
                 outline={outline} setOutline={setOutline}
