@@ -567,6 +567,7 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         quickSeriesName, setQuickSeriesName,
         setShowSeriesQuickCreate, showSeriesQuickCreate,
         focusSeriesSelect, handleQuickCreateSeries, isCreatingSeries,
+        seriesOptions,
         newTagInput, setNewTagInput,
         handleAddTag, currentTags, handleRemoveTag,
         // activity section

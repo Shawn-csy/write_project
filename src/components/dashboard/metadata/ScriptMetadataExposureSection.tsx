@@ -31,10 +31,9 @@ export function ScriptMetadataExposureSection({
     coverUrl, setCoverUrl, handleCoverUpload, openCoverMediaPicker, coverUploadError, coverUploadWarning,
     coverPreviewFailed, setCoverPreviewFailed, seriesExpanded, setSeriesExpanded, setSeriesId, setSeriesName,
     seriesOrder, setSeriesOrder, quickSeriesName, setQuickSeriesName, setShowSeriesQuickCreate, focusSeriesSelect, seriesId,
-    showSeriesQuickCreate, handleQuickCreateSeries, isCreatingSeries, newTagInput, setNewTagInput, handleAddTag,
+    showSeriesQuickCreate, handleQuickCreateSeries, isCreatingSeries, seriesOptions, newTagInput, setNewTagInput, handleAddTag,
     currentTags, handleRemoveTag,
   } = useExposureContext();
-  const seriesOptions: Array<{ id: string; name: string }> = [];
   const setQuickSeriesNameInput = setQuickSeriesName;
   const setSeriesOrderInput = setSeriesOrder;
   const coverGuide = React.useMemo(() => getImageUploadGuide("cover"), []);
@@ -48,7 +47,7 @@ export function ScriptMetadataExposureSection({
   }, []);
   return (
     <section id={sectionId || undefined} className="space-y-3 scroll-mt-24">
-      {showTitle && <h3 className="text-base font-semibold">{t("scriptMetadataDialog.tabExposure", "曝光資訊")}</h3>}
+      {showTitle && <h3 className="text-base font-semibold">{t("scriptMetadataDialog.tabExposure", "展示與分類")}</h3>}
       <div className="rounded-xl border border-border/70 bg-background shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("recommended")}>顯示作者</div>
@@ -61,7 +60,7 @@ export function ScriptMetadataExposureSection({
                 className={`h-8 px-3 text-xs font-medium ${authorDisplayMode === "badge" ? "border-primary bg-primary text-primary-foreground ring-2 ring-primary/40" : "border-border bg-background text-muted-foreground hover:bg-muted"}`}
                 onClick={() => setAuthorDisplayMode("badge")}
               >
-                顯示 Badge
+                使用發布身分
               </Button>
               <Button
                 type="button"
@@ -70,9 +69,12 @@ export function ScriptMetadataExposureSection({
                 className={`h-8 px-3 text-xs font-medium ${authorDisplayMode === "override" ? "border-primary bg-primary text-primary-foreground ring-2 ring-primary/40" : "border-border bg-background text-muted-foreground hover:bg-muted"}`}
                 onClick={() => setAuthorDisplayMode("override")}
               >
-                覆蓋作者
+                自訂顯示名稱
               </Button>
             </div>
+            <p className="text-xs text-muted-foreground">
+              使用發布身分時，公開頁作者可連到作者頁；自訂顯示名稱只顯示文字，不會連到作者頁。
+            </p>
             <Input id="metadata-author" value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="覆蓋顯示的作者名稱..." />
           </div>
         </div>

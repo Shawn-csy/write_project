@@ -118,7 +118,7 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
     }, [markerThemes, currentThemeId]);
 
     // Update CURRENT theme's configs
-    const setMarkerConfigs = async (newConfigs: MarkerConfig[]) => {
+    const setMarkerConfigs = useCallback(async (newConfigs: MarkerConfig[]) => {
         const normalizedConfigs = normalizeMarkerConfigsSchema(newConfigs) as MarkerConfig[];
         const errors = validateMarkerConfigs(normalizedConfigs);
         if (errors.length > 0) throw new Error(errors.join("\n"));
@@ -136,9 +136,9 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
         if (currentUser && currentThemeId !== 'default') {
             await apiCall(`/themes/${currentThemeId}`, 'PUT', { configs: normalizedConfigs });
         }
-    };
+    }, [apiCall, currentThemeId, currentUser, isAdmin, markerThemes, setMarkerThemes]);
 
-    const addTheme = async (name: string, initialOrOptions: MarkerConfig[] | ThemeCreateOptions | null = null, legacyOptions: ThemeCreateOptions | null = null) => {
+    const addTheme = useCallback(async (name: string, initialOrOptions: MarkerConfig[] | ThemeCreateOptions | null = null, legacyOptions: ThemeCreateOptions | null = null) => {
         const initialConfigs = Array.isArray(initialOrOptions)
             ? initialOrOptions
             : (initialOrOptions?.initialConfigs || null);
@@ -166,9 +166,9 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
             await apiCall('/themes', 'POST', newTheme);
         }
         return newTheme;
-    };
+    }, [apiCall, currentUser, normalizeThemeList, systemDefaultConfigs]);
 
-    const addThemeFromCurrent = async (name: string, optionsOrPublic: ThemeCreateOptions | boolean = false) => {
+    const addThemeFromCurrent = useCallback(async (name: string, optionsOrPublic: ThemeCreateOptions | boolean = false) => {
         const options: ThemeCreateOptions =
             typeof optionsOrPublic === "boolean"
                 ? { isPublic: optionsOrPublic }
@@ -199,9 +199,9 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
                 await apiCall('/themes', 'POST', newTheme);
         }
         return newTheme;
-    };
+    }, [apiCall, currentThemeId, currentUser, markerConfigs, markerThemes, normalizeThemeList]);
 
-    const deleteTheme = async (id: string) => {
+    const deleteTheme = useCallback(async (id: string) => {
         if (markerThemes.length <= 1) return; // Prevent deleting last theme
         const newThemes = markerThemes.filter(t => t.id !== id);
         setMarkerThemes(newThemes);
@@ -212,9 +212,9 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
         if (currentUser && id !== 'default') {
             await apiCall(`/themes/${id}`, 'DELETE');
         }
-    };
+    }, [apiCall, currentThemeId, currentUser, markerThemes, setCurrentThemeId, setMarkerThemes]);
 
-    const renameTheme = (id: string, newName: string) => {
+    const renameTheme = useCallback((id: string, newName: string) => {
         const newThemes = markerThemes.map(t => 
             t.id === id ? { ...t, name: newName } : t
         );
@@ -223,9 +223,9 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
         if (currentUser && id !== 'default') {
             apiCall(`/themes/${id}`, 'PUT', { name: newName });
         }
-    };
+    }, [apiCall, currentUser, markerThemes, setMarkerThemes]);
 
-    const updateThemePublicity = async (id: string, isPublic: boolean) => {
+    const updateThemePublicity = useCallback(async (id: string, isPublic: boolean) => {
         const newThemes = markerThemes.map(t => 
             t.id === id ? { ...t, isPublic } : t
         );
@@ -234,9 +234,9 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
         if (currentUser) {
             await apiCall(`/themes/${id}`, 'PUT', { isPublic });
         }
-    };
+    }, [apiCall, currentUser, markerThemes, normalizeThemeList]);
 
-    const updateThemeDescription = async (id: string, description: string) => {
+    const updateThemeDescription = useCallback(async (id: string, description: string) => {
         const newThemes = markerThemes.map(t => 
           t.id === id ? { ...t, description } : t
         );
@@ -244,9 +244,9 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
         if (currentUser) {
            await apiCall(`/themes/${id}`, 'PUT', { description });
         }
-    };
+    }, [apiCall, currentUser, markerThemes, normalizeThemeList]);
     
-    const copyPublicTheme = async (themeId: string) => {
+    const copyPublicTheme = useCallback(async (themeId: string) => {
         if (!currentUser) return;
         const copied = await apiCall(`/themes/${themeId}/copy`, 'POST') as MarkerTheme | null;
         if (copied) {
@@ -256,7 +256,7 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
             ));
             setCurrentThemeIdState(parsed.id);
         }
-    };
+    }, [apiCall, currentUser, normalizeThemeList]);
 
     const activeLayoutConfig = useMemo<LayoutConfig>(() => {
         const theme = markerThemes.find((t) => t.id === currentThemeId);
@@ -279,13 +279,14 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
 
     const persistPendingLayout = useCallback(async () => {
         if (!pendingLayoutPersist) return;
+        const pendingAtSave = pendingLayoutPersist;
         await apiCall(`/themes/${pendingLayoutPersist.id}`, 'PUT', {
             layoutConfig: pendingLayoutPersist.layoutConfig,
         });
         setPendingLayoutPersist((current) =>
             current &&
-            current.id === pendingLayoutPersist.id &&
-            JSON.stringify(current.layoutConfig) === JSON.stringify(pendingLayoutPersist.layoutConfig)
+            current.id === pendingAtSave.id &&
+            current.layoutConfig === pendingAtSave.layoutConfig
                 ? null
                 : current
         );
@@ -295,10 +296,9 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
         enabled: Boolean(currentUser && pendingLayoutPersist && pendingLayoutPersist.id !== DEFAULT_THEME_ID),
         delayMs: 800,
         save: persistPendingLayout,
-        deps: [currentUser, pendingLayoutPersist, persistPendingLayout],
     });
 
-    return {
+    return useMemo(() => ({
         markerThemes,
         setMarkerThemes, // Exposed for external sync
         currentThemeId,
@@ -318,5 +318,22 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
         updateThemeLayoutConfig,
         copyPublicTheme,
         switchTheme: setCurrentThemeId
-    };
+    }), [
+        markerThemes,
+        setMarkerThemes,
+        currentThemeId,
+        setCurrentThemeId,
+        markerConfigs,
+        systemDefaultConfigs,
+        activeLayoutConfig,
+        setMarkerConfigs,
+        addTheme,
+        addThemeFromCurrent,
+        deleteTheme,
+        renameTheme,
+        updateThemePublicity,
+        updateThemeDescription,
+        updateThemeLayoutConfig,
+        copyPublicTheme,
+    ]);
 }

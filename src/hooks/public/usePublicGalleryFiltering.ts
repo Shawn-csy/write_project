@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { deriveSimpleLicenseTags, parseBasicLicenseFromMeta } from "../../lib/licenseRights";
 import { normalizeSeriesName, parseSeriesOrder } from "../../lib/series";
 import { customMetadataEntriesToMeta } from "../../lib/customMetadata";
@@ -119,9 +119,86 @@ interface UsePublicGalleryFilteringResult {
   orgTags: string[];
 }
 
+const BACKGROUND_ENRICH_THRESHOLD = 120;
+const ENRICH_BATCH_SIZE = 60;
+
 export const RESERVED_SEGMENT_TAGS = new Set(
   Object.values(SEGMENT_TAGS).flat().map((tag) => String(tag).toLowerCase())
 );
+
+function parseStringArrayLike(input: unknown, fallbackSplitByComma = true): string[] {
+  if (Array.isArray(input)) {
+    return input.map((item) => String(item)).map((item) => item.trim()).filter(Boolean);
+  }
+  const raw = String(input || "").trim();
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed.map((item) => String(item)).map((item) => item.trim()).filter(Boolean);
+    }
+  } catch {
+    // Fallback to comma-separated parsing.
+  }
+  if (!fallbackSplitByComma) return [raw];
+  return raw.split(/,|，/).map((item) => item.trim()).filter(Boolean);
+}
+
+function enrichScript(script: ScriptLike): EnrichedScript {
+  const meta = customMetadataEntriesToMeta(script.customMetadata || []);
+  const authorOverride = String(meta.author || "").trim();
+  const rawAuthorDisplayMode = String(meta.authordisplaymode || meta.authorDisplayMode || "").trim().toLowerCase();
+  const useOverrideAuthor = rawAuthorDisplayMode === "override" && Boolean(authorOverride);
+  const basicLicenseFromMeta = parseBasicLicenseFromMeta(meta);
+  const personaLicense = parseBasicLicenseFromMeta({
+    licensecommercial: script.persona?.defaultLicenseCommercial || "",
+    licensederivative: script.persona?.defaultLicenseDerivative || "",
+    licensenotify: script.persona?.defaultLicenseNotify || "",
+  });
+  const basicLicense = {
+    commercialUse: basicLicenseFromMeta.commercialUse || String(script.licenseCommercial || "").toLowerCase() || personaLicense.commercialUse,
+    derivativeUse: basicLicenseFromMeta.derivativeUse || String(script.licenseDerivative || "").toLowerCase() || personaLicense.derivativeUse,
+    notifyOnModify: basicLicenseFromMeta.notifyOnModify || String(script.licenseNotify || "").toLowerCase() || personaLicense.notifyOnModify,
+  };
+  const license = meta.license || meta.licenseName || "";
+  const seriesName = normalizeSeriesName(script.series?.name || meta.series || meta.seriesname);
+  const seriesOrder = parseSeriesOrder(script.seriesOrder ?? meta.seriesorder ?? meta.episode);
+
+  const terms = parseStringArrayLike(meta.licensespecialterms || meta.licenseSpecialTerms || "", false);
+  const normalizedLicenseTags = parseStringArrayLike(meta.licensetags || meta.licenseTags || [], true);
+  const termsText = terms.join(" ");
+  const licenseTags = Array.from(new Set([...deriveSimpleLicenseTags(basicLicense), ...normalizedLicenseTags]));
+  const mergedTags = Array.from(
+    new Set(
+      ([...(script.tags || []), ...licenseTags] as Array<string | TagLike>)
+        .map((tag) => (typeof tag === "string" ? tag : String(tag?.name || "")))
+        .filter(Boolean)
+    )
+  );
+  const resolvedAuthor = useOverrideAuthor
+    ? { displayName: authorOverride, avatarUrl: "" }
+    : (script.author || null);
+
+  return {
+    ...script,
+    author: resolvedAuthor,
+    tags: mergedTags,
+    _licenseText: [license, ...licenseTags].filter(Boolean).join(" "),
+    _licenseTermsText: termsText,
+    _derivedLicenseTags: licenseTags,
+    _allowCommercial: basicLicense.commercialUse === "allow",
+    _disableAuthorLink: useOverrideAuthor,
+    _seriesName: seriesName,
+    _seriesOrder: seriesOrder,
+    seriesName,
+    seriesOrder,
+    _searchTitle: String(script.title || "").toLowerCase(),
+    _searchAuthor: (typeof resolvedAuthor === "string" ? resolvedAuthor : String(resolvedAuthor?.displayName || "")).toLowerCase(),
+    _searchLicenseText: [license, ...licenseTags].filter(Boolean).join(" ").toLowerCase(),
+    _searchLicenseTermsText: termsText.toLowerCase(),
+    _tagSetLower: new Set(mergedTags.map((tag) => String(tag).toLowerCase())),
+  };
+}
 
 /**
  * usePublicGalleryFiltering
@@ -141,80 +218,45 @@ export function usePublicGalleryFiltering({
   usageFilter,
   featuredLaneMode,
 }: UsePublicGalleryFilteringInput): UsePublicGalleryFilteringResult {
-  // 1. Enrich scripts with computed metadata fields
-  const scriptsWithMeta = useMemo(() => {
-    return (scripts || []).map((script) => {
-      const meta = customMetadataEntriesToMeta(script.customMetadata || []);
-      const authorOverride = String(meta.author || "").trim();
-      const rawAuthorDisplayMode = String(meta.authordisplaymode || meta.authorDisplayMode || "").trim().toLowerCase();
-      const useOverrideAuthor = rawAuthorDisplayMode === "override" && Boolean(authorOverride);
-      const basicLicenseFromMeta = parseBasicLicenseFromMeta(meta);
-      const personaLicense = parseBasicLicenseFromMeta({
-        licensecommercial: script.persona?.defaultLicenseCommercial || "",
-        licensederivative: script.persona?.defaultLicenseDerivative || "",
-        licensenotify: script.persona?.defaultLicenseNotify || "",
-      });
-      const basicLicense = {
-        commercialUse: basicLicenseFromMeta.commercialUse || String(script.licenseCommercial || "").toLowerCase() || personaLicense.commercialUse,
-        derivativeUse: basicLicenseFromMeta.derivativeUse || String(script.licenseDerivative || "").toLowerCase() || personaLicense.derivativeUse,
-        notifyOnModify: basicLicenseFromMeta.notifyOnModify || String(script.licenseNotify || "").toLowerCase() || personaLicense.notifyOnModify,
-      };
-      const license = meta.license || meta.licenseName || "";
-      const seriesName = normalizeSeriesName(script.series?.name || meta.series || meta.seriesname);
-      const seriesOrder = parseSeriesOrder(script.seriesOrder ?? meta.seriesorder ?? meta.episode);
+  const sourceScripts = scripts || [];
+  const [backgroundEnriched, setBackgroundEnriched] = useState<EnrichedScript[]>([]);
 
-      let terms: string | string[] = (meta.licensespecialterms || meta.licenseSpecialTerms || "") as string | string[];
-      let licenseTagsFromMeta: string[] | string = (meta.licensetags || meta.licenseTags || []) as string[] | string;
-      if (typeof terms === "string") {
-        try { const p = JSON.parse(terms); if (Array.isArray(p)) terms = p; } catch {}
+  const syncEnriched = useMemo(
+    () => (sourceScripts.length <= BACKGROUND_ENRICH_THRESHOLD ? sourceScripts.map(enrichScript) : []),
+    [sourceScripts]
+  );
+
+  useEffect(() => {
+    if (sourceScripts.length <= BACKGROUND_ENRICH_THRESHOLD) {
+      setBackgroundEnriched([]);
+      return;
+    }
+    let cancelled = false;
+    const next: EnrichedScript[] = new Array(sourceScripts.length);
+    let index = 0;
+    const runBatch = () => {
+      if (cancelled) return;
+      const end = Math.min(index + ENRICH_BATCH_SIZE, sourceScripts.length);
+      for (let i = index; i < end; i += 1) {
+        next[i] = enrichScript(sourceScripts[i]);
       }
-      if (typeof licenseTagsFromMeta === "string") {
-        try {
-          const p = JSON.parse(licenseTagsFromMeta);
-          if (Array.isArray(p)) licenseTagsFromMeta = p;
-        } catch {
-          licenseTagsFromMeta = String(licenseTagsFromMeta).split(/,|，/).map((t) => t.trim()).filter(Boolean);
-        }
+      index = end;
+      if (index < sourceScripts.length) {
+        setTimeout(runBatch, 0);
+        return;
       }
-      if (!Array.isArray(licenseTagsFromMeta)) licenseTagsFromMeta = [];
+      if (!cancelled) setBackgroundEnriched(next);
+    };
+    setBackgroundEnriched([]);
+    runBatch();
+    return () => {
+      cancelled = true;
+    };
+  }, [sourceScripts]);
 
-      const termsText = Array.isArray(terms) ? terms.map((t) => String(t)).join(" ") : String(terms || "");
-      const normalizedLicenseTags = Array.isArray(licenseTagsFromMeta)
-        ? licenseTagsFromMeta.map((tag) => String(tag)).filter(Boolean)
-        : [];
-      const licenseTags = Array.from(new Set([...deriveSimpleLicenseTags(basicLicense), ...normalizedLicenseTags]));
-      const mergedTags = Array.from(
-        new Set(
-          ([...(script.tags || []), ...licenseTags] as Array<string | TagLike>)
-            .map((tag) => (typeof tag === "string" ? tag : String(tag?.name || "")))
-            .filter(Boolean)
-        )
-      );
-      const resolvedAuthor = useOverrideAuthor
-        ? { displayName: authorOverride, avatarUrl: "" }
-        : (script.author || null);
-
-      return {
-        ...script,
-        author: resolvedAuthor,
-        tags: mergedTags,
-        _licenseText: [license, ...licenseTags].filter(Boolean).join(" "),
-        _licenseTermsText: termsText,
-        _derivedLicenseTags: licenseTags,
-        _allowCommercial: basicLicense.commercialUse === "allow",
-        _disableAuthorLink: useOverrideAuthor,
-        _seriesName: seriesName,
-        _seriesOrder: seriesOrder,
-        seriesName,
-        seriesOrder,
-        _searchTitle: String(script.title || "").toLowerCase(),
-        _searchAuthor: (typeof resolvedAuthor === "string" ? resolvedAuthor : String(resolvedAuthor?.displayName || "")).toLowerCase(),
-        _searchLicenseText: [license, ...licenseTags].filter(Boolean).join(" ").toLowerCase(),
-        _searchLicenseTermsText: termsText.toLowerCase(),
-        _tagSetLower: new Set(mergedTags.map((tag) => String(tag).toLowerCase())),
-      };
-    });
-  }, [scripts]);
+  const scriptsWithMeta = sourceScripts.length <= BACKGROUND_ENRICH_THRESHOLD
+    ? syncEnriched
+    : backgroundEnriched;
 
   // 2. Filter scripts
   const filteredScripts = useMemo(() => {
@@ -291,19 +333,28 @@ export function usePublicGalleryFiltering({
       .slice(0, 10);
   }, [scriptsWithMeta]);
 
-  // 5. Tag lists
-  const allTags = useMemo(
-    () => Array.from(
-      new Set(
-        scriptsWithMeta.flatMap((s) => s.tags || []).filter((tag) => !RESERVED_SEGMENT_TAGS.has(String(tag).toLowerCase()))
-      )
-    ),
-    [scriptsWithMeta]
-  );
-  const licenseTagShortcuts = useMemo(
-    () => Array.from(new Set(scriptsWithMeta.flatMap((s) => s._derivedLicenseTags || []))),
-    [scriptsWithMeta]
-  );
+  // 5. Tag lists (single pass to avoid repeated flatMap/Set allocation)
+  const { allTags, licenseTagShortcuts } = useMemo(() => {
+    const allTagsSet = new Set<string>();
+    const licenseTagSet = new Set<string>();
+    for (const script of scriptsWithMeta) {
+      for (const tag of script.tags || []) {
+        const normalizedTag = String(tag || "");
+        if (!normalizedTag) continue;
+        if (!RESERVED_SEGMENT_TAGS.has(normalizedTag.toLowerCase())) {
+          allTagsSet.add(normalizedTag);
+        }
+      }
+      for (const licenseTag of script._derivedLicenseTags || []) {
+        const normalizedTag = String(licenseTag || "");
+        if (normalizedTag) licenseTagSet.add(normalizedTag);
+      }
+    }
+    return {
+      allTags: Array.from(allTagsSet),
+      licenseTagShortcuts: Array.from(licenseTagSet),
+    };
+  }, [scriptsWithMeta]);
 
   // 6. Filter authors / orgs
   const filteredAuthors = useMemo<AuthorLike[]>(() => {

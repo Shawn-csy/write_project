@@ -92,7 +92,7 @@ describe("PublisherWorksTab", () => {
       />
     );
 
-    expect(screen.getAllByText("缺授權")).toHaveLength(2);
+    expect(screen.getAllByText(/必要：.*授權/)).toHaveLength(2);
   });
 
   it("treats persona default license as valid when script metadata has no license fields", () => {
@@ -129,5 +129,41 @@ describe("PublisherWorksTab", () => {
     );
 
     expect(screen.queryByText("缺授權")).not.toBeInTheDocument();
+  });
+
+  it("filters by publish readiness instead of cover-only attributes", () => {
+    render(
+      <PublisherWorksTab
+        isLoading={false}
+        scripts={[
+          {
+            id: "blocked",
+            title: "Blocked Draft",
+            status: "Private",
+            lastModified: Date.now(),
+          },
+          {
+            id: "ready",
+            title: "Ready Script",
+            status: "Private",
+            personaId: "p1",
+            licenseCommercial: "allow",
+            licenseDerivative: "allow",
+            licenseNotify: "required",
+            tags: [{ name: "男性向" }, { name: "一般" }],
+            lastModified: Date.now(),
+          },
+        ]}
+        setEditingScript={vi.fn()}
+        navigate={vi.fn()}
+        formatDate={() => "2026-02-15"}
+        onContinueEdit={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /可公開 \(1\)/i }));
+
+    expect(screen.getAllByText("Ready Script").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Blocked Draft")).not.toBeInTheDocument();
   });
 });

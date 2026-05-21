@@ -16,6 +16,8 @@ export function ScriptMetadataDialogHeader() {
         handleJumpToChecklistItem, setShowAllChecklistChips,
         handleFocusSection,
     } = useChecklistContext();
+    const missingRequiredCount = checklistChipItems.filter((item) => item.type === "required").length;
+    const canSetPublic = missingRequiredCount === 0;
 
     return (
         <DialogHeader className="border-b bg-background px-4 py-3 sm:px-5 sm:py-4">
@@ -50,6 +52,8 @@ export function ScriptMetadataDialogHeader() {
                                 type="button"
                                 size="sm"
                                 variant="outline"
+                                disabled={!canSetPublic && status !== "Public"}
+                                title={!canSetPublic && status !== "Public" ? `還缺 ${missingRequiredCount} 個必要項目` : undefined}
                                 className={`h-7 px-2 text-xs ${
                                     status === "Public"
                                         ? "border-emerald-600/60 bg-emerald-500/15 text-emerald-800 ring-2 ring-emerald-500/40 dark:text-emerald-300"
@@ -76,6 +80,18 @@ export function ScriptMetadataDialogHeader() {
                         </Badge>
                     </div>
                 </div>
+                {!canSetPublic && status !== "Public" && (
+                    <button
+                        type="button"
+                        className="w-fit text-xs font-medium text-destructive hover:underline"
+                        onClick={() => {
+                            const firstRequired = checklistChipItems.find((item) => item.type === "required");
+                            if (firstRequired?.key) handleJumpToChecklistItem(firstRequired.key);
+                        }}
+                    >
+                        還缺 {missingRequiredCount} 個必要項目，完成後才能設定公開
+                    </button>
+                )}
                 <ScriptMetadataChecklistHeader
                     t={t}
                     completedChecklistItems={completedChecklistItems}

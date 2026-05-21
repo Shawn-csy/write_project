@@ -1,8 +1,9 @@
 import React from "react";
-import { Loader2, Grid3X3, Rows3 } from "lucide-react";
+import { Loader2, Grid3X3, Rows3, Search } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Card } from "../../ui/card";
 import { Badge } from "../../ui/badge";
+import { Input } from "../../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { CoverPlaceholder } from "../../ui/CoverPlaceholder";
 import { useI18n } from "../../../contexts/I18nContext";
@@ -27,6 +28,12 @@ interface PublisherWorksTabProps {
 
 const warningBadgeClass = "h-5 border-[color:var(--license-term-border)] bg-[color:var(--license-term-bg)] text-[10px] font-semibold text-[color:var(--license-term-fg)]";
 const errorBadgeClass = "h-5 border-destructive/40 bg-destructive/10 text-[10px] font-semibold text-destructive";
+const filterOptions = [
+    { key: "all", label: "全部" },
+    { key: "needs_work", label: "待處理" },
+    { key: "ready", label: "可公開" },
+    { key: "published", label: "已公開" },
+] as const;
 
 export function PublisherWorksTab({ isLoading, scripts, personas = [], setEditingScript, navigate, formatDate, onContinueEdit }: PublisherWorksTabProps): React.JSX.Element {
     const { t } = useI18n();
@@ -43,85 +50,74 @@ export function PublisherWorksTab({ isLoading, scripts, personas = [], setEditin
     };
 
     return (
-        <Card className="flex flex-col overflow-hidden border">
-            <div className="border-b bg-background/50 p-4 backdrop-blur-sm">
-                <PublisherTabHeader
-                    title="作品管理"
-                    description="快速檢視公開狀態、封面與授權缺漏，並直接編輯作品資訊。"
-                    className="border-0 bg-transparent px-0 py-0"
-                />
-            </div>
-            <div className="space-y-4 p-4 md:p-5">
-            <div className="space-y-2 rounded-lg border bg-card p-2" data-guide-id="studio-works-filters">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                    <Button variant={s.filter === "all" ? "secondary" : "ghost"} size="sm" onClick={() => s.setFilter("all")} className="h-8 rounded-full text-xs">
-                        {t("publisherWorksTab.filterAll")} ({s.stats.total})
-                    </Button>
-                    <Button variant={s.filter === "public" ? "secondary" : "ghost"} size="sm" onClick={() => s.setFilter("public")} className="h-8 rounded-full text-xs">
-                        {t("publisherWorksTab.filterPublic")} ({s.stats.publicCount})
-                    </Button>
-                    <Button variant={s.filter === "private" ? "secondary" : "ghost"} size="sm" onClick={() => s.setFilter("private")} className="h-8 rounded-full text-xs">
-                        {t("publisherWorksTab.filterPrivate")} ({s.stats.privateCount})
-                    </Button>
-                    <Button variant={s.coverFilter === "without" ? "secondary" : "ghost"} size="sm" onClick={() => s.setCoverFilter("without")} className="h-8 rounded-full text-xs">
-                        缺封面
-                    </Button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant={s.showAdvancedFilters ? "secondary" : "outline"}
-                            size="sm"
-                            onClick={() => s.setShowAdvancedFilters((prev) => !prev)}
-                            className="h-8 rounded-full text-xs"
+        <div className="flex flex-col gap-4">
+            <PublisherTabHeader
+                title="發布工作台"
+                description="依發布準備度檢視作品，快速補齊必要資料或檢查已公開內容。"
+            />
+            <div className="space-y-4">
+            {/* 工具列：篩選 pill + 搜尋 + 排序 + 檢視切換 */}
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between" data-guide-id="studio-works-filters">
+                {/* 左：篩選 pills */}
+                <div className="flex flex-wrap items-center gap-1">
+                    {filterOptions.map((item) => (
+                        <button
+                            key={item.key}
+                            type="button"
+                            onClick={() => s.setFilter(item.key)}
+                            className={`inline-flex h-7 items-center gap-1.5 rounded-md px-3 text-xs font-medium transition-colors ${
+                                s.filter === item.key
+                                    ? "bg-foreground text-background"
+                                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                            }`}
                         >
-                            {s.showAdvancedFilters ? "收合進階" : "進階篩選"}
+                            {item.label}
+                            <span className={`font-mono text-[10px] tabular-nums ${s.filter === item.key ? "opacity-60" : "opacity-50"}`}>
+                                {s.filteredStatusCounts[item.key]}
+                            </span>
+                        </button>
+                    ))}
+                    {s.hasActiveFilters && (
+                        <button
+                            type="button"
+                            onClick={s.clearFilters}
+                            className="inline-flex h-7 items-center rounded-md px-2 text-[11px] text-muted-foreground/50 hover:text-muted-foreground"
+                        >
+                            ✕
+                        </button>
+                    )}
+                </div>
+                {/* 右：搜尋 + 排序 + 檢視 */}
+                <div className="flex items-center gap-2">
+                    <div className="relative">
+                        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/40" />
+                        <Input
+                            value={s.query}
+                            onChange={(event) => s.setQuery(event.target.value)}
+                            placeholder="搜尋作品..."
+                            className="h-8 w-[180px] border-border/50 bg-transparent pl-8 text-xs placeholder:text-muted-foreground/40 focus-visible:border-border focus-visible:w-[240px] transition-all duration-200"
+                        />
+                    </div>
+                    <Select value={s.sortKey} onValueChange={(value) => s.setSortKey(value as "updated_desc" | "updated_asc" | "title_asc" | "views_desc")}>
+                        <SelectTrigger className="h-8 w-[120px] border-border/50 bg-transparent text-xs">
+                            <SelectValue placeholder="排序" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="updated_desc">最近更新</SelectItem>
+                            <SelectItem value="views_desc">最多觀看</SelectItem>
+                            <SelectItem value="title_asc">標題 A-Z</SelectItem>
+                            <SelectItem value="updated_asc">最早更新</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <div className="inline-flex items-center rounded-md border border-border/50 p-0.5">
+                        <Button type="button" size="sm" variant={s.viewMode === "list" ? "secondary" : "ghost"} className="h-7 px-2" onClick={() => s.setViewMode("list")} title={t("publisherWorksTab.viewList", "列表檢視")}>
+                            <Rows3 className="h-3.5 w-3.5" />
                         </Button>
-                        {s.hasActiveFilters && (
-                            <Button variant="ghost" size="sm" onClick={() => { s.setFilter("all"); s.setCoverFilter("all"); }} className="h-8 rounded-full text-xs">
-                                清除全部篩選
-                            </Button>
-                        )}
+                        <Button type="button" size="sm" variant={s.viewMode === "grid" ? "secondary" : "ghost"} className="h-7 px-2" onClick={() => s.setViewMode("grid")} title={t("publisherWorksTab.viewGrid", "卡片檢視")}>
+                            <Grid3X3 className="h-3.5 w-3.5" />
+                        </Button>
                     </div>
                 </div>
-                {s.showAdvancedFilters && (
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-2">
-                        <div className="flex items-center gap-2">
-                            <Button variant={s.coverFilter === "with" ? "secondary" : "ghost"} size="sm" onClick={() => s.setCoverFilter("with")} className="h-8 rounded-full text-xs">
-                                有封面
-                            </Button>
-                            <Button variant={s.coverFilter === "without" ? "secondary" : "ghost"} size="sm" onClick={() => s.setCoverFilter("without")} className="h-8 rounded-full text-xs">
-                                缺封面
-                            </Button>
-                            {s.coverFilter !== "all" && (
-                                <Button variant="ghost" size="sm" onClick={() => s.setCoverFilter("all")} className="h-8 rounded-full text-xs">
-                                    清除封面篩選
-                                </Button>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Select value={s.sortKey} onValueChange={(value) => s.setSortKey(value as "updated_desc" | "updated_asc" | "title_asc" | "views_desc")}>
-                                <SelectTrigger className="h-8 w-[180px] text-xs">
-                                    <SelectValue placeholder="排序方式" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="updated_desc">最近更新</SelectItem>
-                                    <SelectItem value="updated_asc">最早更新</SelectItem>
-                                    <SelectItem value="views_desc">最多觀看</SelectItem>
-                                    <SelectItem value="title_asc">標題 A-Z</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <div className="inline-flex items-center gap-1 rounded-md border bg-background p-1">
-                                <Button type="button" size="sm" variant={s.viewMode === "list" ? "secondary" : "ghost"} className="h-7 px-2" onClick={() => s.setViewMode("list")} title={t("publisherWorksTab.viewList", "列表檢視")}>
-                                    <Rows3 className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button type="button" size="sm" variant={s.viewMode === "grid" ? "secondary" : "ghost"} className="h-7 px-2" onClick={() => s.setViewMode("grid")} title={t("publisherWorksTab.viewGrid", "卡片檢視")}>
-                                    <Grid3X3 className="h-3.5 w-3.5" />
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                )}
             </div>
 
             {isLoading ? (
@@ -170,15 +166,13 @@ export function PublisherWorksTab({ isLoading, scripts, personas = [], setEditin
                 </Card>
             ) : s.sortedScripts.length === 0 ? (
                 <PublisherEmptyState
-                    title={s.coverFilter === "with"
-                        ? "沒有符合條件的有封面作品"
-                        : s.coverFilter === "without"
-                            ? "沒有符合條件的缺封面作品"
-                            : s.filter === "all"
-                                ? t("publisherWorksTab.emptyAll")
-                                : s.filter === "public"
-                                    ? t("publisherWorksTab.emptyPublic")
-                                    : t("publisherWorksTab.emptyPrivate")}
+                    title={s.filter === "all"
+                        ? t("publisherWorksTab.emptyAll")
+                        : s.filter === "needs_work"
+                            ? "沒有待處理作品"
+                            : s.filter === "ready"
+                                ? "沒有可公開作品"
+                                : "沒有已公開作品"}
                     description="調整篩選條件後再試一次。"
                 />
             ) : (
@@ -189,6 +183,7 @@ export function PublisherWorksTab({ isLoading, scripts, personas = [], setEditin
                                 <WorkScriptGridCard
                                     key={script.id}
                                     script={script}
+                                    readiness={s.readinessById[script.id] || s.getReadiness(script)}
                                     failedCover={!!s.failedCoverById[script.id]}
                                     onCoverError={s.onCoverError}
                                     {...sharedCardProps}
@@ -201,6 +196,7 @@ export function PublisherWorksTab({ isLoading, scripts, personas = [], setEditin
                                 <WorkScriptListCard
                                     key={script.id}
                                     script={script}
+                                    readiness={s.readinessById[script.id] || s.getReadiness(script)}
                                     failedCover={!!s.failedCoverById[script.id]}
                                     onCoverError={s.onCoverError}
                                     {...sharedCardProps}
@@ -209,15 +205,15 @@ export function PublisherWorksTab({ isLoading, scripts, personas = [], setEditin
                         </div>
                     )}
                     {s.hasMore && (
-                        <div className="pt-2 text-center">
-                            <Button variant="outline" size="sm" onClick={s.loadMore}>
-                                {t("publisherWorksTab.loadMore")}
+                        <div className="pt-3 text-center">
+                            <Button variant="ghost" size="sm" onClick={s.loadMore} className="h-8 px-6 text-xs text-muted-foreground hover:text-foreground">
+                                {t("publisherWorksTab.loadMore")} ↓
                             </Button>
                         </div>
                     )}
                 </>
             )}
             </div>
-        </Card>
+        </div>
     );
 }

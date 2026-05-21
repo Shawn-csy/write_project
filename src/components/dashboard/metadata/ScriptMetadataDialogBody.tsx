@@ -55,7 +55,7 @@ export function ScriptMetadataDialogBody() {
                             <ScriptMetadataPublishSection sectionId={undefined} showTitle={false} />
                         </SectionBlock>
 
-                        <SectionBlock sectionKey="exposure" title={t("scriptMetadataDialog.tabExposure", "曝光資訊")} sectionId="metadata-section-exposure">
+                        <SectionBlock sectionKey="exposure" title={t("scriptMetadataDialog.tabExposure", "展示與分類")} sectionId="metadata-section-exposure">
                             <ScriptMetadataExposureSection sectionId={undefined} showTitle={false} />
                         </SectionBlock>
 

@@ -122,7 +122,8 @@ export type ExposureContextValue = Pick<AllState,
     "coverUploadWarning" | "coverPreviewFailed" | "setCoverPreviewFailed" | "seriesExpanded" | "setSeriesExpanded" |
     "seriesId" | "setSeriesId" | "seriesName" | "setSeriesName" | "seriesOrder" | "setSeriesOrder" |
     "quickSeriesName" | "setQuickSeriesName" | "setShowSeriesQuickCreate" | "showSeriesQuickCreate" |
-    "focusSeriesSelect" | "handleQuickCreateSeries" | "isCreatingSeries" | "newTagInput" | "setNewTagInput" |
+    "focusSeriesSelect" | "handleQuickCreateSeries" | "isCreatingSeries" | "seriesOptions" |
+    "newTagInput" | "setNewTagInput" |
     "handleAddTag" | "currentTags" | "handleRemoveTag" | "markerThemeId" | "setMarkerThemeId" | "markerThemes" |
     "showMarkerLegend" | "setShowMarkerLegend" | "disableCopy" | "setDisableCopy"
 >;
@@ -279,7 +280,7 @@ export function ScriptMetadataDialogProvider({
         coverUrl, setCoverUrl, handleCoverUpload, openCoverMediaPicker, coverUploadError, coverUploadWarning, coverPreviewFailed, setCoverPreviewFailed,
         seriesExpanded, setSeriesExpanded, seriesId, setSeriesId, seriesName, setSeriesName, seriesOrder, setSeriesOrder,
         quickSeriesName, setQuickSeriesName, setShowSeriesQuickCreate, showSeriesQuickCreate, focusSeriesSelect, handleQuickCreateSeries,
-        isCreatingSeries, newTagInput, setNewTagInput, handleAddTag, currentTags, handleRemoveTag, markerThemeId, setMarkerThemeId,
+        isCreatingSeries, seriesOptions, newTagInput, setNewTagInput, handleAddTag, currentTags, handleRemoveTag, markerThemeId, setMarkerThemeId,
         markerThemes, showMarkerLegend, setShowMarkerLegend, disableCopy, setDisableCopy,
         jsonMode, setJsonMode, jsonText, setJsonText, jsonError, applyJson,
         activityName, setActivityName, activityBannerUrl, setActivityBannerUrl, handleActivityBannerUpload, openActivityBannerMediaPicker,
@@ -334,14 +335,14 @@ export function ScriptMetadataDialogProvider({
         coverPreviewFailed, setCoverPreviewFailed, seriesExpanded, setSeriesExpanded, seriesId, setSeriesId,
         seriesName, setSeriesName, seriesOrder, setSeriesOrder, quickSeriesName, setQuickSeriesName,
         setShowSeriesQuickCreate, showSeriesQuickCreate, focusSeriesSelect, handleQuickCreateSeries,
-        isCreatingSeries, newTagInput, setNewTagInput, handleAddTag, currentTags, handleRemoveTag, markerThemeId, setMarkerThemeId,
+        isCreatingSeries, seriesOptions, newTagInput, setNewTagInput, handleAddTag, currentTags, handleRemoveTag, markerThemeId, setMarkerThemeId,
         markerThemes, showMarkerLegend, setShowMarkerLegend, disableCopy, setDisableCopy,
     }), [
         coverUrl, setCoverUrl, handleCoverUpload, openCoverMediaPicker, coverUploadError, coverUploadWarning,
         coverPreviewFailed, setCoverPreviewFailed, seriesExpanded, setSeriesExpanded, seriesId, setSeriesId,
         seriesName, setSeriesName, seriesOrder, setSeriesOrder, quickSeriesName, setQuickSeriesName,
         setShowSeriesQuickCreate, showSeriesQuickCreate, focusSeriesSelect, handleQuickCreateSeries,
-        isCreatingSeries, newTagInput, setNewTagInput, handleAddTag, currentTags, handleRemoveTag, markerThemeId, setMarkerThemeId,
+        isCreatingSeries, seriesOptions, newTagInput, setNewTagInput, handleAddTag, currentTags, handleRemoveTag, markerThemeId, setMarkerThemeId,
         markerThemes, showMarkerLegend, setShowMarkerLegend, disableCopy, setDisableCopy,
     ]);
 

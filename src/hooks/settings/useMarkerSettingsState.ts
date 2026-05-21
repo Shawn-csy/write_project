@@ -65,6 +65,14 @@ export function useMarkerSettingsState({
     () => localConfigs.map((c) => c.id).filter(Boolean) as string[],
     [localConfigs]
   );
+  const markerConfigsSignature = useMemo(
+    () => JSON.stringify(markerConfigs || []),
+    [markerConfigs]
+  );
+  const localConfigsSignature = useMemo(
+    () => JSON.stringify(localConfigs || []),
+    [localConfigs]
+  );
 
   useEffect(() => {
     const incoming = markerConfigs || [];
@@ -82,14 +90,12 @@ export function useMarkerSettingsState({
   }, [localConfigs, viewMode]);
 
   useEffect(() => {
-    const current = JSON.stringify(markerConfigs || []);
-    const next = JSON.stringify(localConfigs || []);
-    if (current !== next) {
+    if (markerConfigsSignature !== localConfigsSignature) {
       setIsDirty(true);
     } else if (!isSaving) {
       setIsDirty(false);
     }
-  }, [markerConfigs, localConfigs, isSaving]);
+  }, [markerConfigsSignature, localConfigsSignature, isSaving]);
 
   useEffect(() => {
     if (viewMode !== "json") return;
@@ -108,9 +114,7 @@ export function useMarkerSettingsState({
   const save = useCallback(async () => {
     if (readOnly || isSaving) return;
     if (viewMode === "json" && parseError) return;
-    const current = JSON.stringify(markerConfigs || []);
-    const next = JSON.stringify(localConfigs || []);
-    if (current === next) { setIsDirty(false); return; }
+    if (markerConfigsSignature === localConfigsSignature) { setIsDirty(false); return; }
     setIsSaving(true);
     try {
       await Promise.resolve(setMarkerConfigs(localConfigs));
@@ -119,13 +123,12 @@ export function useMarkerSettingsState({
     } finally {
       setIsSaving(false);
     }
-  }, [readOnly, isSaving, viewMode, parseError, markerConfigs, localConfigs, setMarkerConfigs]);
+  }, [readOnly, isSaving, viewMode, parseError, markerConfigsSignature, localConfigsSignature, localConfigs, setMarkerConfigs]);
 
   useDebouncedAutosave({
     enabled: isDirty && !readOnly && !isSaving && !(viewMode === "json" && Boolean(parseError)),
     delayMs: 900,
     save,
-    deps: [isDirty, readOnly, isSaving, viewMode, parseError, save],
   });
 
   const updateMarker = useCallback((index: number, field: keyof MarkerConfig | Partial<MarkerConfig>, value?: unknown) => {

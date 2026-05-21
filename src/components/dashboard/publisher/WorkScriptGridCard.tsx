@@ -5,7 +5,7 @@ import { Card } from "../../ui/card";
 import { Badge } from "../../ui/badge";
 import { CoverPlaceholder } from "../../ui/CoverPlaceholder";
 import { useI18n } from "../../../contexts/I18nContext";
-import type { PublisherScriptItem } from "../../../hooks/publisher/usePublisherWorksTabState";
+import type { PublishReadiness, PublisherScriptItem } from "../../../hooks/publisher/usePublisherWorksTabState";
 
 const warningBadgeClass = "h-5 border-[color:var(--license-term-border)] bg-[color:var(--license-term-bg)] text-[10px] font-semibold text-[color:var(--license-term-fg)]";
 const errorBadgeClass = "h-5 border-destructive/40 bg-destructive/10 text-[10px] font-semibold text-destructive";
@@ -17,6 +17,7 @@ interface WorkScriptGridCardProps {
   hasCover: (value: unknown) => boolean;
   hasCompleteLicense: (script: PublisherScriptItem) => boolean;
   statusBadgeClass: (script: PublisherScriptItem) => string;
+  readiness: PublishReadiness;
   formatDate: (value?: number) => string;
   onContinueEdit?: (script: PublisherScriptItem) => void;
   setEditingScript: (script: PublisherScriptItem) => void;
@@ -30,6 +31,7 @@ export function WorkScriptGridCard({
   hasCover,
   hasCompleteLicense,
   statusBadgeClass,
+  readiness,
   formatDate,
   onContinueEdit,
   setEditingScript,
@@ -38,62 +40,72 @@ export function WorkScriptGridCard({
   const { t } = useI18n();
 
   return (
-    <Card className="overflow-hidden p-0">
-      <div className="aspect-[2/3] w-full bg-muted/30">
+    <Card className="group overflow-hidden border border-border/60 bg-card p-0 transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:shadow-lg">
+      {/* 封面主體 */}
+      <div className="relative aspect-[2/3] w-full overflow-hidden bg-muted/40">
         {hasCover(script.coverUrl) && !failedCover ? (
           <img
             src={script.coverUrl || undefined}
             alt={script.title || "cover"}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
             loading="lazy"
             onError={() => onCoverError(script.id)}
           />
         ) : (
           <CoverPlaceholder title={script.title || t("publisherWorksTab.noCover")} compact />
         )}
-      </div>
-      <div className="space-y-3 p-3">
-        <div className="space-y-1">
-          <h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-5">{script.title || "Untitled"}</h3>
-          <div className="flex items-center justify-between">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <Badge variant="outline" className={`h-5 text-[10px] font-semibold ${statusBadgeClass(script)}`}>
-                {script.status === "Public" ? t("publisherWorksTab.statusPublic") : t("publisherWorksTab.statusPrivate")}
-              </Badge>
-              {!hasCover(script.coverUrl) && (
-                <Badge variant="outline" className={warningBadgeClass}>缺封面</Badge>
-              )}
-              {!hasCompleteLicense(script) && (
-                <Badge variant="outline" className={errorBadgeClass}>缺授權</Badge>
-              )}
-            </div>
-            {script.status === "Public" && (
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                <Eye className="h-3 w-3" />
-                {script.views || 0}
-              </span>
-            )}
+        {/* 頂部狀態條 */}
+        <div className="absolute left-0 right-0 top-0 flex items-center justify-between px-2 pt-2">
+          <Badge
+            variant="outline"
+            className={`h-5 border-0 text-[10px] font-semibold backdrop-blur-sm ${statusBadgeClass(script)} bg-background/80`}
+          >
+            {readiness.label}
+          </Badge>
+          {readiness.status === "published" && (
+            <span className="inline-flex items-center gap-0.5 rounded-md bg-background/70 px-1.5 py-0.5 text-[10px] text-muted-foreground backdrop-blur-sm">
+              <Eye className="h-2.5 w-2.5" />
+              <span className="font-mono">{script.views || 0}</span>
+            </span>
+          )}
+        </div>
+        {/* 缺失警示條 */}
+        {(readiness.missingRequired.length > 0 || readiness.missingRecommended.length > 0) && (
+          <div className={`absolute bottom-0 left-0 right-0 px-2 py-1.5 backdrop-blur-sm ${readiness.missingRequired.length > 0 ? "bg-destructive/80" : "bg-[color:var(--license-term-bg)]/90"}`}>
+            <p className={`text-[10px] font-medium leading-tight ${readiness.missingRequired.length > 0 ? "text-destructive-foreground" : "text-[color:var(--license-term-fg)]"}`}>
+              {readiness.missingRequired.length > 0
+                ? `缺：${readiness.missingRequired.slice(0, 2).join("、")}`
+                : `建議補：${readiness.missingRecommended.slice(0, 2).join("、")}`}
+            </p>
           </div>
-          <p className="text-[11px] text-muted-foreground">
-            {t("publisherWorksTab.updatedAt")}：{formatDate(script.lastModified)}
+        )}
+      </div>
+
+      {/* 資訊 + 操作區 */}
+      <div className="space-y-2.5 p-3">
+        <div>
+          <h3 className="line-clamp-2 min-h-[2.4rem] text-sm font-semibold leading-tight">{script.title || "Untitled"}</h3>
+          <p className="mt-1 text-[11px] text-muted-foreground/60">
+            {formatDate(script.lastModified)}
           </p>
         </div>
-        <div className="grid grid-cols-1 gap-1.5">
-          <Button size="sm" className="h-8 justify-start" onClick={() => onContinueEdit?.(script)}>
-            <FilePenLine className="mr-1.5 h-3.5 w-3.5" /> {t("publisherWorksTab.continueWriting")}
+        <div className="grid grid-cols-1 gap-1">
+          <Button size="sm" className="h-7 justify-start px-3 text-xs" onClick={() => onContinueEdit?.(script)}>
+            <FilePenLine className="mr-1.5 h-3 w-3" /> {t("publisherWorksTab.continueWriting")}
           </Button>
-          <div className="flex gap-1.5">
-            <Button variant="outline" size="sm" className="h-8 flex-1 justify-start" onClick={() => setEditingScript(script)} data-guide-id="studio-works-edit-info">
-              <Edit className="mr-1.5 h-3.5 w-3.5" /> {t("publisherWorksTab.editInfo")}
+          <div className="flex gap-1">
+            <Button variant="outline" size="sm" className="h-7 flex-1 justify-start px-2 text-xs" onClick={() => setEditingScript(script)} data-guide-id="studio-works-edit-info">
+              <Edit className="mr-1 h-3 w-3" /> {readiness.primaryActionLabel}
             </Button>
-            {script.status === "Public" && (
+            {readiness.status === "published" && (
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 flex-1 justify-start text-muted-foreground hover:text-foreground"
+                className="h-7 px-2 text-muted-foreground/60 hover:text-foreground"
                 onClick={() => navigate(`/read/${script.id}`)}
+                title={t("publisherWorksTab.viewPublicPage")}
               >
-                <Eye className="mr-1.5 h-3.5 w-3.5" /> {t("publisherWorksTab.viewPublicPage")}
+                <Eye className="h-3 w-3" />
               </Button>
             )}
           </div>

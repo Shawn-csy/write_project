@@ -98,7 +98,7 @@ export function ScriptMetadataChecklistHeader({
         {[
           { key: "basic", label: t("scriptMetadataDialog.tabBasic", "基本資料") },
           { key: "publish", label: t("scriptMetadataDialog.tabPublish", "發布設定") },
-          { key: "exposure", label: t("scriptMetadataDialog.tabExposure", "曝光資訊") },
+          { key: "exposure", label: t("scriptMetadataDialog.tabExposure", "展示與分類") },
           { key: "activity", label: t("scriptMetadataDialog.tabActivity", "活動宣傳") },
           { key: "demo", label: "試聽範例" },
           { key: "advanced", label: t("scriptMetadataDialog.tabAdvanced", "進階設定") },

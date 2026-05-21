@@ -1,18 +1,15 @@
 import { useEffect, useRef } from "react";
-import type { DependencyList } from "react";
 
 interface UseDebouncedAutosaveOptions {
   enabled: boolean;
   delayMs?: number;
   save: () => Promise<void> | void;
-  deps: DependencyList;
 }
 
 export function useDebouncedAutosave({
   enabled,
   delayMs = 800,
   save,
-  deps,
 }: UseDebouncedAutosaveOptions): void {
   const saveRef = useRef(save);
 
@@ -27,5 +24,5 @@ export function useDebouncedAutosave({
     }, delayMs);
 
     return () => clearTimeout(timer);
-  }, [enabled, delayMs, ...deps]);
+  }, [enabled, delayMs]);
 }

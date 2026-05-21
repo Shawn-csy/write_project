@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FileSpreadsheet, FileText, FileUp, Printer } from "lucide-react";
-import { useSettings } from "../../contexts/SettingsContext";
+import { useAppearance } from "../../contexts/AppearanceContext";
+import { useMarkerThemeContext } from "../../contexts/MarkerThemeContext";
 import { useScriptManager } from "../../hooks/useScriptManager";
 import { useAppNavigation } from "../../hooks/useAppNavigation";
 import { useI18n } from "../../contexts/I18nContext";
@@ -29,15 +30,12 @@ import { GlobalListeners } from "../common/GlobalListeners";
 
 export function EditorShell() {
   // 1. Contexts
+  const { accentConfig, accentStyle, adjustFont } = useAppearance();
   const {
-    accentConfig,
-    accentStyle,
-    exportMode,
-    adjustFont,
     markerThemes,
     markerConfigs,
     setCurrentThemeId,
-  } = useSettings();
+  } = useMarkerThemeContext();
 
   // 2. Refs
   const initialParamsRef = useRef<{ char: string | null; scene: string | null }>({ char: null, scene: null });
