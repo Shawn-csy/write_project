@@ -208,7 +208,7 @@ class ScriptLike(Base):
     __tablename__ = "script_likes"
 
     userId = Column(String, ForeignKey("users.id"), primary_key=True)
-    scriptId = Column(String, ForeignKey("scripts.id"), primary_key=True)
+    scriptId = Column(String, ForeignKey("scripts.id", ondelete="CASCADE"), primary_key=True)
     createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
 
 
@@ -218,8 +218,8 @@ class PublicTermsAcceptance(Base):
     id = Column(String, primary_key=True, index=True)
     termsKey = Column(String, index=True, default="public_reader_terms")
     termsVersion = Column(String, index=True)
-    scriptId = Column(String, ForeignKey("scripts.id"), nullable=True, index=True)
-    userId = Column(String, ForeignKey("users.id"), nullable=True, index=True)
+    scriptId = Column(String, ForeignKey("scripts.id", ondelete="SET NULL"), nullable=True, index=True)
+    userId = Column(String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     visitorId = Column(String, nullable=True, index=True)
     acceptedAt = Column(BigInteger, default=lambda: int(time.time() * 1000), index=True)
     ipAddress = Column(String, default="")
