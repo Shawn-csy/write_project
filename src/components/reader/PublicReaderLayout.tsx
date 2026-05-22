@@ -31,6 +31,13 @@ interface PublicReaderLayoutProps {
   hiddenMarkerIds?: string[];
   onToggleMarker?: (markerId: string) => void;
   embeddedPreview?: boolean;
+  likes?: number;
+  views?: number;
+  isLiked?: boolean;
+  likeCount?: number;
+  onLike?: () => void;
+  durationMinutes?: number;
+  dialogueChars?: number;
 }
 
 export function PublicReaderLayout({
@@ -48,6 +55,13 @@ export function PublicReaderLayout({
   hiddenMarkerIds = [],
   onToggleMarker,
   embeddedPreview = false,
+  likes,
+  views,
+  isLiked,
+  likeCount,
+  onLike,
+  durationMinutes,
+  dialogueChars,
 }: PublicReaderLayoutProps) {
   const s = usePublicReaderLayoutState({
     script,
@@ -164,6 +178,13 @@ export function PublicReaderLayout({
                     licenseSpecialTerms={s.normalizedLicenseSpecialTerms}
                     prefaceItems={(s.prefaceItems || []) as Array<{ id?: string; title?: string; value?: string }>}
                     demoLinks={s.normalizedDemoLinks}
+                    views={views}
+                    likes={likes}
+                    isLiked={isLiked}
+                    likeCount={likeCount}
+                    onLike={onLike}
+                    durationMinutes={durationMinutes}
+                    dialogueChars={dialogueChars}
                   />
                 </div>
                 {s.normalizedActivity && (

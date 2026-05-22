@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel
 from typing import List, Optional
 from sqlalchemy import orm
 from sqlalchemy.orm import Session
@@ -486,6 +487,61 @@ def list_public_organizations(db: Session = Depends(get_db)):
 @router.get("/themes/public", response_model=List[schemas.MarkerTheme])
 def read_public_themes(db: Session = Depends(get_db)):
     return crud.get_public_themes(db)
+
+
+class PublicLikePayload(BaseModel):
+    visitorId: str
+
+
+@router.post("/public-scripts/{script_id}/like")
+def public_toggle_like(script_id: str, payload: PublicLikePayload, db: Session = Depends(get_db)):
+    if not payload.visitorId or len(payload.visitorId) > 128:
+        raise HTTPException(status_code=400, detail="Invalid visitorId")
+    script = db.query(models.Script).filter(
+        models.Script.id == script_id, models.Script.isPublic == 1
+    ).first()
+    if not script:
+        raise HTTPException(status_code=404, detail="Script not found")
+    result = crud.toggle_script_like(db, script_id, visitor_id=payload.visitorId)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Script not found")
+    liked, likes = result
+    return {"liked": liked, "likes": likes}
+
+
+@router.get("/public-scripts/{script_id}/like-status")
+def public_like_status(script_id: str, visitorId: str, db: Session = Depends(get_db)):
+    script = db.query(models.Script).filter(
+        models.Script.id == script_id, models.Script.isPublic == 1
+    ).first()
+    if not script:
+        raise HTTPException(status_code=404, detail="Script not found")
+    liked = crud.get_script_like_status(db, script_id, visitor_id=visitorId)
+    like_count = crud.get_visitor_like_count(db, script_id, visitorId)
+    return {"liked": liked, "likes": script.likes or 0, "likeCount": like_count}
+
+
+@router.get("/public-scripts/{script_id}/stats")
+def public_script_stats(script_id: str, db: Session = Depends(get_db)):
+    script = db.query(models.Script).filter(
+        models.Script.id == script_id, models.Script.isPublic == 1
+    ).with_entities(
+        models.Script.content,
+        models.Script.views,
+        models.Script.likes,
+    ).first()
+    if not script:
+        raise HTTPException(status_code=404, detail="Script not found")
+    content = script.content or ""
+    content_length = len(content)
+    # Estimate: CJK scripts are ~half dialogue, at 200 chars/min
+    estimated_minutes = round(content_length / 2 / 200, 1) if content_length > 0 else 0
+    return {
+        "contentLength": content_length,
+        "estimatedMinutes": estimated_minutes,
+        "views": script.views or 0,
+        "likes": script.likes or 0,
+    }
 
 
 @router.get("/default-marker-configs", response_model=List[dict])

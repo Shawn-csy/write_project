@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { PublicReaderLayout } from "../components/reader/PublicReaderLayout";
@@ -7,6 +7,7 @@ import { useI18n } from "../contexts/I18nContext";
 import { usePublicTerms } from "../hooks/public/usePublicTerms";
 import { usePublicReaderScript } from "../hooks/public/usePublicReaderScript";
 import { TermsConsentDialog } from "../components/public/TermsConsentDialog";
+import { incrementScriptView, publicToggleScriptLike, getPublicScriptLikeStatus, getPublicScriptStats, getVisitorId } from "../lib/api/scripts";
 import type { ScriptManager } from "../hooks/useScriptManager.types";
 import type { NavProps } from "../types/nav";
 
@@ -26,6 +27,50 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
     acceptedChecks, isSubmittingTerms, canConfirmTerms, missingRequiredCheckCount,
     handleTermsScroll, toggleRequiredCheck, confirmTermsConsent,
   } = usePublicTerms({ autoOpen: true, onAccepted: () => {} });
+
+  const scriptId = id;
+  const [likeState, setLikeState] = useState<{ liked: boolean; likes: number; likeCount: number } | null>(null);
+  const [scriptStats, setScriptStats] = useState<{ estimatedMinutes: number; contentLength: number } | null>(null);
+
+  // Increment view once on mount
+  useEffect(() => {
+    if (!scriptId) return;
+    incrementScriptView(scriptId).catch(() => {});
+  }, [scriptId]);
+
+  // Fetch like status and script stats on mount
+  useEffect(() => {
+    if (!scriptId) return;
+    getPublicScriptLikeStatus(scriptId)
+      .then((res) => setLikeState({ liked: res.liked, likes: res.likes, likeCount: res.likeCount ?? 0 }))
+      .catch(() => {
+        const visitorId = getVisitorId();
+        const stored = localStorage.getItem(`liked_script_${visitorId}_${scriptId}`);
+        setLikeState({ liked: stored === "true", likes: 0, likeCount: 0 });
+      });
+    getPublicScriptStats(scriptId)
+      .then((res) => setScriptStats({ estimatedMinutes: res.estimatedMinutes, contentLength: res.contentLength }))
+      .catch(() => {});
+  }, [scriptId]);
+
+  const handleLike = useCallback(async () => {
+    if (!scriptId) return;
+    const prev = likeState;
+    const atCap = (likeState?.likeCount ?? 0) >= 10;
+    setLikeState((s) => s ? {
+      liked: atCap ? s.likeCount - 1 > 0 : true,
+      likes: atCap ? s.likes - 1 : s.likes + 1,
+      likeCount: atCap ? s.likeCount - 1 : s.likeCount + 1,
+    } : s);
+    try {
+      const res = await publicToggleScriptLike(scriptId);
+      setLikeState({ liked: res.liked, likes: res.likes, likeCount: res.likeCount ?? 0 });
+      const visitorId = getVisitorId();
+      localStorage.setItem(`liked_script_${visitorId}_${scriptId}`, String(res.liked));
+    } catch {
+      setLikeState(prev);
+    }
+  }, [scriptId, likeState]);
 
   const viewerDefaults = useScriptViewerDefaults({
     theme: scriptManager.activeCloudScript?.markerThemeId,
@@ -141,9 +186,16 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
         script={fullScriptData}
         isLoading={isLoading}
         relatedSeriesScripts={relatedSeriesScripts}
-        onOpenRelatedScript={(scriptId: string) => navigate(`/read/${scriptId}`)}
+        onOpenRelatedScript={(sid: string) => navigate(`/read/${sid}`)}
         onOpenSeries={(name: string) => navigate(`/series/${encodeURIComponent(name)}`)}
         onBack={() => navigate("/")}
+        views={(fullScriptData as { views?: number })?.views}
+        likes={likeState?.likes}
+        isLiked={likeState?.liked}
+        likeCount={likeState?.likeCount}
+        onLike={handleLike}
+        durationMinutes={scriptStats?.estimatedMinutes}
+        dialogueChars={undefined}
         onShare={async () => {
           const url = window.location.href;
           try {

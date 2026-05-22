@@ -263,6 +263,7 @@ class ScriptUpdate(BaseModel):
     type: Optional[str] = None
     markerThemeId: Optional[str] = None
     coverUrl: Optional[str] = None
+    coverIsAiGenerated: Optional[bool] = None
     organizationId: Optional[str] = None
     personaId: Optional[str] = None
     disableCopy: Optional[bool] = None
@@ -293,6 +294,7 @@ class Script(BaseModel):
     isPublic: int
     status: Optional[str] = "Private"
     coverUrl: Optional[str] = None
+    coverIsAiGenerated: bool = False
     views: int = 0
     likes: int = 0
     type: str # 'script' or 'folder'
@@ -330,6 +332,7 @@ class ScriptSummary(BaseModel):
     isPublic: int
     status: Optional[str] = "Private"
     coverUrl: Optional[str] = None
+    coverIsAiGenerated: bool = False
     views: int = 0
     likes: int = 0
     type: str
@@ -355,6 +358,7 @@ class ScriptAdminMetadataUpdate(BaseModel):
     status: Optional[str] = None
     markerThemeId: Optional[str] = None
     coverUrl: Optional[str] = None
+    coverIsAiGenerated: Optional[bool] = None
     organizationId: Optional[str] = None
     personaId: Optional[str] = None
     disableCopy: Optional[bool] = None

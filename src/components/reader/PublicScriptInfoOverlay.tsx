@@ -1,4 +1,5 @@
 import React from "react";
+import { Heart, Eye } from "lucide-react";
 import { AuthorBadge } from "../ui/AuthorBadge";
 import { Badge } from "../ui/badge";
 
@@ -46,6 +47,13 @@ interface PublicScriptInfoOverlayProps {
   derivativeUse?: string;
   notifyOnModify?: string;
   licenseSpecialTerms?: string[];
+  views?: number;
+  likes?: number;
+  isLiked?: boolean;
+  likeCount?: number;
+  onLike?: () => void;
+  durationMinutes?: number;
+  dialogueChars?: number;
 }
 
 function parseMultiTemplate(rawValue: string | undefined) {
@@ -92,6 +100,13 @@ export function PublicScriptInfoOverlay({
   derivativeUse = "",
   notifyOnModify = "",
   licenseSpecialTerms = [],
+  views,
+  likes,
+  isLiked = false,
+  likeCount = 0,
+  onLike,
+  durationMinutes,
+  dialogueChars,
 }: PublicScriptInfoOverlayProps) {
   const [coverLoadFailed, setCoverLoadFailed] = React.useState(false);
   const [prefaceExpanded, setPrefaceExpanded] = React.useState(false);
@@ -368,6 +383,44 @@ export function PublicScriptInfoOverlay({
               }`}
             />
           )}
+        </div>
+      )}
+
+      {(typeof views === "number" || typeof likes === "number" || onLike || typeof durationMinutes === "number" || typeof dialogueChars === "number") && (
+        <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-muted-foreground">
+          {typeof durationMinutes === "number" && durationMinutes > 0 && (
+            <span className="flex items-center gap-1.5 rounded-full border border-border/60 bg-background/50 px-3 py-1 text-xs font-medium backdrop-blur-sm">
+              ⏱ {durationMinutes < 1 ? "< 1 分鐘" : `約 ${Math.round(durationMinutes)} 分鐘`}
+            </span>
+          )}
+          {typeof dialogueChars === "number" && dialogueChars > 0 && (
+            <span className="flex items-center gap-1.5 rounded-full border border-border/60 bg-background/50 px-3 py-1 text-xs font-medium backdrop-blur-sm">
+              📝 {dialogueChars.toLocaleString()} 字
+            </span>
+          )}
+          {typeof views === "number" && (
+            <span className="flex items-center gap-1.5">
+              <Eye className="h-4 w-4" />
+              {views.toLocaleString()}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={onLike}
+            className={`flex items-center gap-1.5 transition-colors ${
+              isLiked
+                ? "text-rose-500 hover:text-rose-400"
+                : "hover:text-rose-400"
+            }`}
+            aria-label={likeCount >= 10 ? "取消喜歡" : "喜歡"}
+            title={likeCount > 0 ? `你已按讚 ${likeCount} 次` : undefined}
+          >
+            <Heart className={`h-4 w-4 ${isLiked ? "fill-rose-500" : ""}`} />
+            {typeof likes === "number" && likes.toLocaleString()}
+            {likeCount > 0 && (
+              <span className="text-[10px] opacity-70">×{likeCount}</span>
+            )}
+          </button>
         </div>
       )}
 

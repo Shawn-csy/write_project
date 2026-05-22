@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Badge } from "../ui/badge";
 import { Card } from "../ui/card";
 import { ChevronRight, Eye, Heart } from "lucide-react";
-import { toggleScriptLike, incrementScriptView } from "../../lib/api/scripts";
+import { publicToggleScriptLike, getVisitorId, incrementScriptView } from "../../lib/api/scripts";
 import { AuthorBadge } from "../ui/AuthorBadge";
 import { CoverPlaceholder } from "../ui/CoverPlaceholder";
 import type { TagLike } from "../../types/persona";
@@ -15,6 +15,7 @@ export interface ScriptGalleryItem extends BaseScript {
   tags?: Array<string | TagLike>;
   views?: number;
   likes?: number;
+  contentLength?: number;
   _disableAuthorLink?: boolean;
   seriesName?: string;
   _seriesName?: string;
@@ -32,7 +33,10 @@ interface ScriptGalleryCardProps {
 
 function ScriptGalleryCardInner({ script, onClick, onScriptClick, variant = "standard" }: ScriptGalleryCardProps): React.JSX.Element {
   const navigate = useNavigate();
-  const { id, title, author, coverUrl, tags = [], views = 0, likes = 0 } = script;
+  const { id, title, author, coverUrl, tags = [], views = 0, likes = 0, contentLength } = script;
+  const estDurationMinutes = contentLength && contentLength > 0
+    ? Math.round(contentLength / 2 / 200)  // chars/2 = CJK chars, /200 = chars per min
+    : null;
   const authorForBadge = author ?? undefined;
   const authorClickable = !script?._disableAuthorLink;
 
@@ -63,11 +67,14 @@ function ScriptGalleryCardInner({ script, onClick, onScriptClick, variant = "sta
   const [likeCount, setLikeCount] = useState<number>(likes);
 
   useEffect(() => {
-    const stored = localStorage.getItem(`liked_script_${id}`);
+    const visitorId = getVisitorId();
+    const stored = localStorage.getItem(`liked_script_${visitorId}_${id}`);
     if (stored === 'true') {
       setIsLiked(true);
+      setLikeCount(likes + 1);
+    } else {
+      setLikeCount(likes);
     }
-    setLikeCount(likes + (stored === 'true' ? 1 : 0));
   }, [id, likes]);
 
   const handleLike = useCallback(async (e: React.MouseEvent<HTMLElement>): Promise<void> => {
@@ -76,8 +83,11 @@ function ScriptGalleryCardInner({ script, onClick, onScriptClick, variant = "sta
     setIsLiked(newState);
     setLikeCount(prev => newState ? prev + 1 : prev - 1);
     try {
-      await toggleScriptLike(id);
-      localStorage.setItem(`liked_script_${id}`, String(newState));
+      const res = await publicToggleScriptLike(id);
+      setIsLiked(res.liked);
+      setLikeCount(res.likes);
+      const visitorId = getVisitorId();
+      localStorage.setItem(`liked_script_${visitorId}_${id}`, String(res.liked));
     } catch (error) {
       console.error("Failed to toggle like:", error);
       setIsLiked(!newState);
@@ -242,7 +252,7 @@ function ScriptGalleryCardInner({ script, onClick, onScriptClick, variant = "sta
                     <Eye className="w-3.5 h-3.5" />
                     <span>{views.toLocaleString()}</span>
                 </div>
-                <div 
+                <div
                     className={`flex items-center gap-1 cursor-pointer transition-colors ${isLiked ? "text-destructive" : "hover:text-foreground"}`}
                     onClick={handleLike}
                     title="Like"
@@ -251,6 +261,11 @@ function ScriptGalleryCardInner({ script, onClick, onScriptClick, variant = "sta
                     <span>{likeCount.toLocaleString()}</span>
                 </div>
              </div>
+             {estDurationMinutes !== null && estDurationMinutes > 0 && (
+               <span className="text-[10px] text-muted-foreground/70">
+                 ⏱ {estDurationMinutes < 1 ? "< 1 分" : `約 ${estDurationMinutes} 分`}
+               </span>
+             )}
         </div>
       </div>
     </Card>
