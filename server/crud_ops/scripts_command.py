@@ -259,7 +259,8 @@ def toggle_script_like(db: Session, script_id: str, *, user_id: str = None, visi
             {models.Script.likes: models.Script.likes - 1}
         )
         db.commit()
-        return False, max(0, (script.likes or 0) - 1)
+        db.refresh(script)
+        return False, max(0, script.likes or 0)
 
     like = models.ScriptLike(
         id=str(uuid.uuid4()),
@@ -272,7 +273,8 @@ def toggle_script_like(db: Session, script_id: str, *, user_id: str = None, visi
         {models.Script.likes: models.Script.likes + 1}
     )
     db.commit()
-    return True, (script.likes or 0) + 1
+    db.refresh(script)
+    return True, script.likes or 0
 
 
 def get_script_like_status(db: Session, script_id: str, *, user_id: str = None, visitor_id: str = None) -> bool:

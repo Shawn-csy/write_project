@@ -32,6 +32,7 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
   const [likeState, setLikeState] = useState<{ liked: boolean; likes: number } | null>(null);
   const [scriptStats, setScriptStats] = useState<{ estimatedMinutes: number; contentLength: number } | null>(null);
   const likeInFlight = React.useRef(false);
+  const likeStateRef = React.useRef<{ liked: boolean; likes: number } | null>(null);
 
   // Increment view once on mount
   useEffect(() => {
@@ -54,10 +55,13 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
       .catch(() => {});
   }, [scriptId]);
 
+  // Keep ref in sync with state so handleLike closure doesn't go stale
+  likeStateRef.current = likeState;
+
   const handleLike = useCallback(async () => {
     if (!scriptId || likeInFlight.current) return;
     likeInFlight.current = true;
-    const prev = likeState;
+    const prev = likeStateRef.current;
     setLikeState((s) => s ? { liked: !s.liked, likes: s.liked ? Math.max(0, s.likes - 1) : s.likes + 1 } : s);
     try {
       const res = await publicToggleScriptLike(scriptId);
@@ -69,7 +73,7 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
     } finally {
       likeInFlight.current = false;
     }
-  }, [scriptId, likeState]);
+  }, [scriptId]);
 
   const viewerDefaults = useScriptViewerDefaults({
     theme: scriptManager.activeCloudScript?.markerThemeId,
