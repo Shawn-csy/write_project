@@ -1594,7 +1594,7 @@ const messages = {
     "desktopScale": "Desktop UI Scale",
     "desktopScaleDesc": "Desktop-only. Increase overall interface text size.",
     "lineGuide": "Line Guide",
-    "multiTrackRenderer": "Column Display",
+    "multiTrackRenderer": "Multi-Column Mode",
     "trackConfigTitle": "Column layout",
     "trackConfigDesc": "Define column order and width ratios for multi-column rendering.",
     "trackPreviewTitle": "Column layout & preview",

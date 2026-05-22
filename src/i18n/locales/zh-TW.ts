@@ -1594,7 +1594,7 @@ const messages = {
     "desktopScale": "桌面字體倍率",
     "desktopScaleDesc": "僅在桌面版生效，用於放大整體介面文字。",
     "lineGuide": "行底線輔助",
-    "multiTrackRenderer": "分欄位顯示",
+    "multiTrackRenderer": "多欄模式",
     "trackConfigTitle": "欄位版面配置",
     "trackConfigDesc": "定義分欄渲染的欄位順序與寬度比例。",
     "trackPreviewTitle": "欄位配置與預覽",
