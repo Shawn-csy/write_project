@@ -323,7 +323,8 @@ If you send the `Accept: text/markdown` header, or if you identify as an AI bot 
             with open(INDEX_PATH, "r", encoding="utf-8") as f:
                 html_template = f.read()
 
-            seo_html = inject_seo_for_route(full_path, db, html_template, public_base_url())
+            user_agent = request.headers.get("user-agent", "").lower()
+            seo_html = inject_seo_for_route(full_path, db, html_template, public_base_url(), user_agent=user_agent)
             if seo_html is not None:
                 return HTMLResponse(content=seo_html)
 

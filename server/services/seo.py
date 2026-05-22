@@ -134,7 +134,28 @@ def _script_description(script) -> str:
     return ""
 
 
-def inject_seo_for_route(full_path: str, db, html_template: str, public_base_url: str):
+_CRAWLER_AGENTS = ("googlebot", "bingbot", "yandex", "duckduckbot", "facebot", "ia_archiver")
+
+
+def _inject_body_content(html_text: str, title: str, content: str) -> str:
+    """Inject plain-text script body into <div id="root"> for crawler rendering."""
+    safe_title = html.escape(str(title or ""))
+    safe_content = html.escape(str(content or ""))
+    article = (
+        '<article style="max-width:800px;margin:0 auto;padding:2rem;'
+        'font-family:serif;white-space:pre-wrap;line-height:1.6;">'
+        f"<h1>{safe_title}</h1>"
+        f'<pre style="white-space:pre-wrap;font-family:inherit;">{safe_content}</pre>'
+        "</article>"
+    )
+    if '<div id="root"></div>' in html_text:
+        return html_text.replace('<div id="root"></div>', f'<div id="root">{article}</div>')
+    if '<div id="root">' in html_text:
+        return html_text.replace('<div id="root">', f'<div id="root">{article}', 1)
+    return html_text
+
+
+def inject_seo_for_route(full_path: str, db, html_template: str, public_base_url: str, *, user_agent: str = ""):
     if full_path.strip("/") == "":
         canonical_url = public_base_url + "/"
         return inject_seo_html(
@@ -206,7 +227,7 @@ def inject_seo_for_route(full_path: str, db, html_template: str, public_base_url
             }
             if image_url:
                 structured["image"] = image_url
-            return inject_seo_html(
+            result = inject_seo_html(
                 html_template,
                 title=title,
                 description=desc,
@@ -215,6 +236,11 @@ def inject_seo_for_route(full_path: str, db, html_template: str, public_base_url
                 image_url=image_url,
                 structured_data=structured,
             )
+            # Inject full script body for crawlers so Google indexes content without JS
+            is_crawler = any(bot in user_agent for bot in _CRAWLER_AGENTS)
+            if is_crawler and script.content:
+                result = _inject_body_content(result, script.title or "", script.content)
+            return result
 
     if full_path.startswith("author/"):
         author_id = full_path.strip("/").split("/")[-1]
