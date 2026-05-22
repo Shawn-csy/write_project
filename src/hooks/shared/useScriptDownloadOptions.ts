@@ -60,6 +60,7 @@ interface UseScriptDownloadOptionsParams {
   fallbackToClassicWhenTableMissing?: boolean;
   enableGoogleDocsTable?: boolean;
   showGoogleDocsTableOption?: boolean;
+  allowBothGoogleDocsOptions?: boolean;
   resolveTableExport?: (renderedHtml: string) => TableExportPayload | null;
 }
 
@@ -82,6 +83,7 @@ export function useScriptDownloadOptions({
   fallbackToClassicWhenTableMissing = true,
   enableGoogleDocsTable = false,
   showGoogleDocsTableOption = true,
+  allowBothGoogleDocsOptions = false,
   resolveTableExport,
 }: UseScriptDownloadOptionsParams): DownloadOption[] {
   const runRenderedExport = useCallback(
@@ -94,6 +96,24 @@ export function useScriptDownloadOptions({
 
   return useMemo(() => {
     const options: DownloadOption[] = [];
+    const showDedicatedTableOption = enableGoogleDocsTable && showGoogleDocsTableOption;
+    const showClassicGoogleDocsOption = showGoogleDocs && (allowBothGoogleDocsOptions || !showDedicatedTableOption);
+
+    const runClassicGoogleDocsExport = async (payload: ExportPayload, token: string, folderId: string) => {
+      const docsBlocks = buildGoogleDocsBlocksFromScript(content, markerConfigs);
+      if (docsBlocks.length === 0) {
+        throw new Error("Google Docs export failed: rendered output is empty, cannot build export blocks.");
+      }
+      const result = await exportScriptToGoogleDocs(title, {
+        ...payload,
+        googleAccessToken: token,
+        folderId,
+        docsBlocks,
+      });
+      if (result?.documentUrl) {
+        window.open(result.documentUrl, "_blank", "noopener,noreferrer");
+      }
+    };
 
     if (showPdf) {
       options.push({
@@ -134,7 +154,7 @@ export function useScriptDownloadOptions({
       });
     }
 
-    if (showGoogleDocs) {
+    if (showClassicGoogleDocsOption) {
       options.push({
         id: "google-docs",
         label: t("publicReader.exportGoogleDocs"),
@@ -157,30 +177,19 @@ export function useScriptDownloadOptions({
                 }
                 return;
               }
-              if (!fallbackToClassicWhenTableMissing) {
-                throw new Error("Google Docs table export failed: V2 table structure not found.");
+              if (fallbackToClassicWhenTableMissing) {
+                await runClassicGoogleDocsExport(payload, token, folderId);
+                return;
               }
             }
-            const docsBlocks = buildGoogleDocsBlocksFromScript(content, markerConfigs);
-            if (docsBlocks.length === 0) {
-              throw new Error("Google Docs export failed: rendered output is empty, cannot build export blocks.");
-            }
-            const result = await exportScriptToGoogleDocs(title, {
-              ...payload,
-              googleAccessToken: token,
-              folderId,
-              docsBlocks,
-            });
-            if (result?.documentUrl) {
-              window.open(result.documentUrl, "_blank", "noopener,noreferrer");
-            }
+            await runClassicGoogleDocsExport(payload, token, folderId);
           });
         },
         disabled: disableGoogleDocs,
       });
     }
 
-    if (enableGoogleDocsTable && showGoogleDocsTableOption) {
+    if (showDedicatedTableOption) {
       options.push({
         id: "google-docs-table",
         label: t("publicReader.exportGoogleDocsTable"),
@@ -192,7 +201,11 @@ export function useScriptDownloadOptions({
           await runRenderedExport(async (payload) => {
             const tableExport = resolveTableExport?.(payload.renderedHtml);
             if (!tableExport) {
-              throw new Error("Google Docs table export failed: V2 table structure not found.");
+              if (!fallbackToClassicWhenTableMissing) {
+                throw new Error("Google Docs table export failed: V2 table structure not found.");
+              }
+              await runClassicGoogleDocsExport(payload, token, folderId);
+              return;
             }
             const result = await exportTableV2ToGoogleDocs(title, {
               ...tableExport,
@@ -228,6 +241,7 @@ export function useScriptDownloadOptions({
     markerConfigs,
     enableGoogleDocsTable,
     showGoogleDocsTableOption,
+    allowBothGoogleDocsOptions,
     resolveTableExport,
   ]);
 }

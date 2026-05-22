@@ -56,7 +56,7 @@ export function useLiveEditorDownloadOptions({
     getRenderedHtml,
     preferTableForGoogleDocs: !!orchestratedDoc,
     enableGoogleDocsTable: isV2RendererEnabled && !!orchestratedDoc,
-    fallbackToClassicWhenTableMissing: !isV2RendererEnabled,
+    fallbackToClassicWhenTableMissing: true,
     showGoogleDocsTableOption: true,
     resolveTableExport,
   });
