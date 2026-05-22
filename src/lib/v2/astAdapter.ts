@@ -273,13 +273,20 @@ export const buildScriptDocumentV2FromAst = (
           rangeSpans.push({ markerId: rangeMarkerId, startLine: startSpan.start, endLine: endSpan.end });
         }
         const rangeTrackId = resolveMarkerTrackId(rangeMarkerId);
-        withPreferredTrack(rangeTrackId, () => {
-          // Keep boundary line content visible when users write:
-          // @1 some text ... /@1 some text
-          pushRangeBoundaryContentIfPresent(node.startNode, rangeMarkerId);
+        const rangeMarkerConfig = rangeMarkerId ? markerConfigById.get(rangeMarkerId) : undefined;
+        // Infer child routing from v2EventKind — no user-facing config needed:
+        // sfx/bgm ranges are background colour blocks; their children route independently
+        // by each event's own marker/kind rules (e.g. <cs> continuous-sfx ranges).
+        // All other ranges (e.g. @1/@2 character splits) inherit the range's track so the
+        // whole block is treated as belonging to that track.
+        const isSoundRange = rangeMarkerConfig?.v2EventKind === 'sfx' || rangeMarkerConfig?.v2EventKind === 'bgm';
+        withPreferredTrack(rangeTrackId, () => pushRangeBoundaryContentIfPresent(node.startNode, rangeMarkerId));
+        if (isSoundRange) {
           (node.children || []).forEach(walk);
-          pushRangeBoundaryContentIfPresent(node.endNode, rangeMarkerId);
-        });
+        } else {
+          withPreferredTrack(rangeTrackId, () => (node.children || []).forEach(walk));
+        }
+        withPreferredTrack(rangeTrackId, () => pushRangeBoundaryContentIfPresent(node.endNode, rangeMarkerId));
         return;
       }
       default: {
