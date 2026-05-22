@@ -122,7 +122,9 @@ export function PublicHeroMarquee({
                       loading={index === 0 ? "eager" : "lazy"}
                       fetchPriority={index === 0 ? "high" : "auto"}
                     />
-                    <div className="absolute inset-0 bg-black/30" />
+                    {(String(slide.title || "").trim() || String(slide.subtitle || slide.content || "").trim()) && (
+                      <div className="absolute inset-0 bg-black/30" />
+                    )}
                   </>
                 )}
                 {(String(slide.title || "").trim() || String(slide.subtitle || slide.content || "").trim()) ? (
