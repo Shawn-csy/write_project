@@ -139,8 +139,8 @@ def inject_seo_for_route(full_path: str, db, html_template: str, public_base_url
         canonical_url = public_base_url + "/"
         return inject_seo_html(
             html_template,
-            title="Screenplay Reader",
-            description="線上閱讀、瀏覽與分享 Fountain 劇本的平台。探索公開劇本、作者頁面與組織作品。",
+            title="免費台本 · 劇本線上閱讀｜Screenplay Reader",
+            description="免費瀏覽、閱讀與分享創作台本。支援 Fountain 格式劇本，探索公開作品、配音台本與作者頁面。",
             canonical_url=canonical_url,
             og_type="website",
             structured_data={
@@ -148,7 +148,7 @@ def inject_seo_for_route(full_path: str, db, html_template: str, public_base_url
                 "@type": "WebSite",
                 "name": "Screenplay Reader",
                 "url": public_base_url,
-                "description": "線上閱讀、瀏覽與分享 Fountain 劇本的平台。",
+                "description": "免費瀏覽、閱讀與分享創作台本。支援 Fountain 格式劇本。",
                 "inLanguage": "zh-Hant",
                 "potentialAction": {
                     "@type": "SearchAction",

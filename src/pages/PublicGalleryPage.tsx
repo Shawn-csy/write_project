@@ -80,8 +80,8 @@ export default function PublicGalleryPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <MetaTags
-        titleName="Screenplay Reader"
-        titleSummary="線上閱讀、瀏覽與分享 Fountain 劇本的平台。探索公開劇本、作者頁面與組織作品。"
+        titleName="免費台本 · 劇本線上閱讀｜Screenplay Reader"
+        titleSummary="免費瀏覽、閱讀與分享創作台本。支援 Fountain 格式劇本，探索公開作品、配音台本與作者頁面。"
         indexable={true}
         canonicalPath="/"
       />
