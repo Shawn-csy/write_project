@@ -1,4 +1,5 @@
 import React from "react";
+import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
 import { Scale, ShieldCheck, FileCheck2 } from "lucide-react";
 import { PublicTopBar } from "../components/public/PublicTopBar";
@@ -50,6 +51,14 @@ export default function PublicLicensePage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Helmet>
+        <title>授權條款｜Screenplay Reader</title>
+        <meta name="description" content="Screenplay Reader 台本授權政策說明，了解公開台本的使用規範與著作權條款。" />
+        <meta name="robots" content="index,follow" />
+        <meta property="og:title" content="授權條款｜Screenplay Reader" />
+        <meta property="og:description" content="Screenplay Reader 台本授權政策說明，了解公開台本的使用規範與著作權條款。" />
+        <meta property="og:site_name" content="Screenplay Reader" />
+      </Helmet>
       <PublicTopBar
         title={t("publicLicense.topbarTitle")}
         showBack={true}

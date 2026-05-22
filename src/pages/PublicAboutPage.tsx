@@ -1,4 +1,5 @@
 import React from "react";
+import { Helmet } from "react-helmet-async";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, Mail, MessageSquare, Heart, History } from "lucide-react";
@@ -18,7 +19,16 @@ export default function PublicAboutPage() {
             />
             
             <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
-                <div className="flex flex-col items-center text-center space-y-4 mb-10">
+                <Helmet>
+          <title>關於｜Screenplay Reader</title>
+          <meta name="description" content="Screenplay Reader 是免費的台本線上閱讀平台，支援 Fountain 格式，讓創作者輕鬆發布與分享劇本作品。" />
+          <meta name="robots" content="index,follow" />
+          <link rel="canonical" href="https://open-scripts.shawnup.com/about" />
+          <meta property="og:title" content="關於｜Screenplay Reader" />
+          <meta property="og:description" content="Screenplay Reader 是免費的台本線上閱讀平台，支援 Fountain 格式，讓創作者輕鬆發布與分享劇本作品。" />
+          <meta property="og:site_name" content="Screenplay Reader" />
+        </Helmet>
+        <div className="flex flex-col items-center text-center space-y-4 mb-10">
                     <div className="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-2 shadow-sm border border-primary/20">
                         <BookOpen className="w-8 h-8" />
                     </div>

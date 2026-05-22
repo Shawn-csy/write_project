@@ -67,13 +67,36 @@ export default function PublicSeriesPage() {
 
   const pageTitle = useMemo(() => {
     if (!seriesName) return t("publicSeries.titleFallback", "系列");
-    return `${seriesName}｜${t("publicSeries.pageTitle", "系列作品")}`;
+    return `${seriesName}｜Screenplay Reader`;
   }, [seriesName, t]);
+
+  const pageDescription = useMemo(() => {
+    if (seriesMeta.summary) return seriesMeta.summary.slice(0, 200);
+    if (seriesName) return `${seriesName} 系列共 ${scripts.length} 部台本，免費線上閱讀。`;
+    return "免費瀏覽、閱讀與分享創作台本。";
+  }, [seriesName, seriesMeta.summary, scripts.length]);
+
+  const canonicalUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/series/${encodeURIComponent(seriesNameParam || "")}`
+    : `/series/${encodeURIComponent(seriesNameParam || "")}`;
 
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
         <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+        <link rel="canonical" href={canonicalUrl} />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:site_name" content="Screenplay Reader" />
+        {seriesMeta.coverUrl && <meta property="og:image" content={seriesMeta.coverUrl} />}
+        <meta name="twitter:card" content={seriesMeta.coverUrl ? "summary_large_image" : "summary"} />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        {seriesMeta.coverUrl && <meta name="twitter:image" content={seriesMeta.coverUrl} />}
       </Helmet>
       <PublicTopBar
         showBack
