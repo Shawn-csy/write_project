@@ -111,14 +111,70 @@ def ensure_list(value):
     return []
 
 
+_SYNOPSIS_KEYS = {"synopsis", "summary", "摘要", "outline", "大綱"}
+
+
+def _script_description(script) -> str:
+    """Extract synopsis from customMetadata; fall back to first non-empty content line."""
+    if script.customMetadata and isinstance(script.customMetadata, list):
+        meta_map = {
+            str(e.get("key") or "").strip().lower().replace(" ", ""): str(e.get("value") or "").strip()
+            for e in script.customMetadata
+            if isinstance(e, dict)
+        }
+        for key in _SYNOPSIS_KEYS:
+            value = meta_map.get(key, "")
+            if value:
+                return value[:300]
+    if script.content:
+        for line in script.content.splitlines():
+            line = line.strip()
+            if line:
+                return line[:200] + ("..." if len(line) > 200 else "")
+    return ""
+
+
 def inject_seo_for_route(full_path: str, db, html_template: str, public_base_url: str):
+    if full_path.strip("/") == "":
+        canonical_url = public_base_url + "/"
+        return inject_seo_html(
+            html_template,
+            title="Screenplay Reader",
+            description="線上閱讀、瀏覽與分享 Fountain 劇本的平台。探索公開劇本、作者頁面與組織作品。",
+            canonical_url=canonical_url,
+            og_type="website",
+            structured_data={
+                "@context": "https://schema.org",
+                "@type": "WebSite",
+                "name": "Screenplay Reader",
+                "url": public_base_url,
+                "description": "線上閱讀、瀏覽與分享 Fountain 劇本的平台。",
+                "inLanguage": "zh-Hant",
+                "potentialAction": {
+                    "@type": "SearchAction",
+                    "target": f"{public_base_url}/?q={{search_term_string}}",
+                    "query-input": "required name=search_term_string",
+                },
+            },
+        )
+
+    if full_path.startswith("gallery"):
+        canonical_url = f"{public_base_url}/gallery"
+        return inject_seo_html(
+            html_template,
+            title="劇本庫｜Screenplay Reader",
+            description="瀏覽所有公開劇本、作者與組織，發現精選台本作品。",
+            canonical_url=canonical_url,
+            og_type="website",
+        )
+
     if full_path.startswith("read/"):
         script_id = full_path.strip("/").split("/")[-1]
         script = db.query(models.Script).filter(models.Script.id == script_id).first()
         if script and script.isPublic == 1:
             canonical_url = f"{public_base_url}/read/{script_id}"
             title = f"{script.title or 'Untitled'}｜Screenplay Reader"
-            desc = ((script.content or "").strip().replace("\n", " ")[:200] or "公開劇本閱讀頁")
+            desc = _script_description(script) or "公開劇本閱讀頁"
             image_url = script.coverUrl or ""
             structured = {
                 "@context": "https://schema.org",
