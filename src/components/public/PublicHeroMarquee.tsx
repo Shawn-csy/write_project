@@ -12,6 +12,8 @@ interface PublicHeroSlide {
   className?: string;
   link?: string;
   imageUrl?: string;
+  /** 0–100. Undefined = auto (show overlay only when text present). 0 = no overlay. */
+  overlayOpacity?: number;
 }
 
 interface PublicHeroMarqueeProps {
@@ -122,9 +124,16 @@ export function PublicHeroMarquee({
                       loading={index === 0 ? "eager" : "lazy"}
                       fetchPriority={index === 0 ? "high" : "auto"}
                     />
-                    {(String(slide.title || "").trim() || String(slide.subtitle || slide.content || "").trim()) && (
-                      <div className="absolute inset-0 bg-black/30" />
-                    )}
+                    {(() => {
+                      const hasText = String(slide.title || "").trim() || String(slide.subtitle || slide.content || "").trim();
+                      const opacity = slide.overlayOpacity;
+                      // explicit 0 → no overlay; explicit number → use it; undefined → auto (only if text)
+                      if (opacity === 0) return null;
+                      if (typeof opacity === "number") {
+                        return <div className="absolute inset-0 bg-black" style={{ opacity: opacity / 100 }} />;
+                      }
+                      return hasText ? <div className="absolute inset-0 bg-black/30" /> : null;
+                    })()}
                   </>
                 )}
                 {(String(slide.title || "").trim() || String(slide.subtitle || slide.content || "").trim()) ? (
