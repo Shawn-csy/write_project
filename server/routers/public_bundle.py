@@ -1,4 +1,6 @@
+import time
 from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 import crud_ops as crud
 import schemas
@@ -6,6 +8,10 @@ from dependencies import get_db
 from routers import public as public_router
 
 router = APIRouter(prefix="/api", tags=["public"])
+
+# In-memory cache: (payload, expires_at)
+_bundle_cache: tuple[dict, float] | None = None
+_BUNDLE_TTL = 60  # seconds
 
 
 def _serialize_bundle_script(script):
@@ -33,15 +39,12 @@ def _serialize_bundle_script(script):
     return data
 
 
-@router.get("/public-bundle")
-def public_bundle(db: Session = Depends(get_db)):
-    # Reuse existing public endpoints for consistency
+def _build_bundle(db: Session) -> dict:
     scripts = [public_router.sanitize_public_script(s) for s in crud.get_public_scripts(db)]
     serialized_scripts = [_serialize_bundle_script(s) for s in scripts]
     personas = public_router.list_public_personas(db)
     orgs = public_router.list_public_organizations(db)
-    # Compute top tags by total views (descending), fallback to count if views missing.
-    tag_scores = {}
+    tag_scores: dict[str, int] = {}
     for script in scripts or []:
         views = getattr(script, "views", 0) or 0
         tags = getattr(script, "tags", []) or []
@@ -57,3 +60,18 @@ def public_bundle(db: Session = Depends(get_db)):
         "organizations": orgs,
         "topTags": top_tags,
     }
+
+
+@router.get("/public-bundle")
+def public_bundle(db: Session = Depends(get_db)):
+    global _bundle_cache
+    now = time.monotonic()
+    if _bundle_cache is None or now >= _bundle_cache[1]:
+        payload = _build_bundle(db)
+        _bundle_cache = (payload, now + _BUNDLE_TTL)
+    else:
+        payload = _bundle_cache[0]
+    return JSONResponse(
+        content=payload,
+        headers={"Cache-Control": f"public, max-age={_BUNDLE_TTL}, stale-while-revalidate=120"},
+    )
