@@ -1,6 +1,7 @@
 import React from "react";
 
 declare const __APP_VERSION__: string;
+import { MetaTags } from "../components/common/MetaTags";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { PublicTopBar } from "../components/public/PublicTopBar";
@@ -78,6 +79,12 @@ export default function PublicGalleryPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <MetaTags
+        titleName="Screenplay Reader"
+        titleSummary="線上閱讀、瀏覽與分享 Fountain 劇本的平台。探索公開劇本、作者頁面與組織作品。"
+        indexable={true}
+        canonicalPath="/"
+      />
       {/* Top bar */}
       <PublicTopBar
         fullBleed
