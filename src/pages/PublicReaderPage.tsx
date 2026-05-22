@@ -31,6 +31,7 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
   const scriptId = id;
   const [likeState, setLikeState] = useState<{ liked: boolean; likes: number; likeCount: number } | null>(null);
   const [scriptStats, setScriptStats] = useState<{ estimatedMinutes: number; contentLength: number } | null>(null);
+  const likeInFlight = React.useRef(false);
 
   // Increment view once on mount
   useEffect(() => {
@@ -54,7 +55,8 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
   }, [scriptId]);
 
   const handleLike = useCallback(async () => {
-    if (!scriptId) return;
+    if (!scriptId || likeInFlight.current) return;
+    likeInFlight.current = true;
     const prev = likeState;
     // Optimistic update
     setLikeState((s) => {
@@ -73,6 +75,8 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
       localStorage.setItem(`liked_script_${visitorId}_${scriptId}`, String(res.liked));
     } catch {
       setLikeState(prev);
+    } finally {
+      likeInFlight.current = false;
     }
   }, [scriptId, likeState]);
 
