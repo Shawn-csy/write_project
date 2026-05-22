@@ -15,6 +15,9 @@ from utils import normalize_homepage_banner_value, safe_json_list
 router = APIRouter(prefix="/api", tags=["public"])
 HOMEPAGE_BANNER_SETTING_KEY = "homepage_banner"
 
+_banner_cache: tuple[dict, float] | None = None
+_BANNER_TTL = 120  # seconds
+
 
 def _load_public_terms_config() -> dict:
     default_config = {
@@ -184,18 +187,26 @@ def user_to_persona_public(user: models.User, db: Session) -> schemas.PersonaPub
     )
 
 
-@router.get("/public-terms-config", response_model=schemas.PublicTermsConfigResponse)
+@router.get("/public-terms-config")
 def read_public_terms_config():
+    from fastapi.responses import JSONResponse
     config = _load_public_terms_config()
-    return config
+    return JSONResponse(content=config, headers={"Cache-Control": "public, max-age=300, stale-while-revalidate=600"})
 
 
 @router.get("/public-homepage-banner", response_model=schemas.HomepageBannerSetting)
 def read_public_homepage_banner(db: Session = Depends(get_db)):
+    global _banner_cache
+    now = time.monotonic()
+    if _banner_cache is not None and now < _banner_cache[1]:
+        return schemas.HomepageBannerSetting(**_banner_cache[0])
     row = db.query(models.SiteSetting).filter(models.SiteSetting.key == HOMEPAGE_BANNER_SETTING_KEY).first()
     if not row or not str(getattr(row, "value", "") or "").strip():
-        return schemas.HomepageBannerSetting(items=[])
-    return schemas.HomepageBannerSetting(**normalize_homepage_banner_value(row.value))
+        result = schemas.HomepageBannerSetting(items=[])
+    else:
+        result = schemas.HomepageBannerSetting(**normalize_homepage_banner_value(row.value))
+    _banner_cache = (result.model_dump(), now + _BANNER_TTL)
+    return result
 
 
 @router.post("/public-terms-acceptances", response_model=schemas.PublicTermsAcceptanceResponse)
