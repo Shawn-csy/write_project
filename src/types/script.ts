@@ -15,6 +15,18 @@ export interface MarkerConfig {
   v2EventKind?: "speech" | "sfx" | "bgm" | "stage_direction" | "narration" | "meta" | "custom" | string;
   v2TrackId?: string;
   v2SpeakerSource?: "active" | "self" | "none" | string;
+  /**
+   * Whether events inside this range belong to the range's track (v2TrackId).
+   * true  → children inherit the range's preferredTrackId (e.g. @1/@2 character splits).
+   * false → children route independently by their own marker/kind rules (default).
+   */
+  v2RangeOwnsContent?: boolean;
+  /**
+   * Whether rows inside this range are synchronised side-by-side across tracks.
+   * Replaces enableColumnGrouping; both are read for backwards compatibility.
+   */
+  v2SyncRows?: boolean;
+  /** @deprecated Use v2SyncRows instead. Kept for backwards compatibility. */
   enableColumnGrouping?: boolean;
   [key: string]: unknown;
 }

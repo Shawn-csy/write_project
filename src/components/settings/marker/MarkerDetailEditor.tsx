@@ -73,7 +73,7 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
     const availableTypeOptions = matchMode === "prefix"
         ? TYPE_OPTIONS.filter((opt) => opt.value === "inline")
         : TYPE_OPTIONS;
-    const groupingEnabled = Boolean(config.enableColumnGrouping && config.matchMode === "range");
+    const groupingEnabled = Boolean((config.v2SyncRows || config.enableColumnGrouping) && config.matchMode === "range");
     const isMarkerDialogueGrouping = layoutConfig?.rowGrouping === "marker_dialogue";
 
 
@@ -265,15 +265,29 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                                 </div>
                             </div>
                         </Row>
-                        <Row label={t("markerLogic.enableColumnGrouping")}>
+                        <Row label={t("markerLogic.v2SyncRows")}>
                             <label className="flex items-center gap-2 cursor-pointer">
                                 <input
                                     type="checkbox"
-                                    checked={!!config.enableColumnGrouping}
-                                    onChange={(e) => updateMarker(idx, "enableColumnGrouping", e.target.checked || undefined)}
+                                    checked={!!(config.v2SyncRows || config.enableColumnGrouping)}
+                                    onChange={(e) => {
+                                        updateMarker(idx, "v2SyncRows", e.target.checked || undefined);
+                                        updateMarker(idx, "enableColumnGrouping", undefined);
+                                    }}
                                     className="h-3.5 w-3.5 rounded border-input text-primary"
                                 />
-                                <span className="text-xs text-muted-foreground">{t("markerLogic.enableColumnGroupingDesc")}</span>
+                                <span className="text-xs text-muted-foreground">{t("markerLogic.v2SyncRowsDesc")}</span>
+                            </label>
+                        </Row>
+                        <Row label={t("markerLogic.v2RangeOwnsContent")}>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={!!config.v2RangeOwnsContent}
+                                    onChange={(e) => updateMarker(idx, "v2RangeOwnsContent", e.target.checked || undefined)}
+                                    className="h-3.5 w-3.5 rounded border-input text-primary"
+                                />
+                                <span className="text-xs text-muted-foreground">{t("markerLogic.v2RangeOwnsContentDesc")}</span>
                             </label>
                         </Row>
                     </>

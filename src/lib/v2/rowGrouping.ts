@@ -35,7 +35,7 @@ const buildColumnGroupingLines = (
 ): Set<number> => {
   const groupingMarkerIds = new Set(
     markerConfigs
-      .filter((m) => m.enableColumnGrouping && m.matchMode === 'range')
+      .filter((m) => (m.v2SyncRows || m.enableColumnGrouping) && m.matchMode === 'range')
       .map((m) => m.id),
   );
   if (groupingMarkerIds.size === 0) return new Set();
@@ -54,7 +54,7 @@ const buildColumnGroupingRangeKeys = (
 ): Map<number, string> => {
   const groupingMarkerIds = new Set(
     markerConfigs
-      .filter((m) => m.enableColumnGrouping && m.matchMode === 'range')
+      .filter((m) => (m.v2SyncRows || m.enableColumnGrouping) && m.matchMode === 'range')
       .map((m) => m.id),
   );
   const lineToRangeKey = new Map<number, string>();

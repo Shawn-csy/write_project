@@ -27,6 +27,7 @@ const markerConfigs: MarkerConfig[] = [
     start: '@1',
     end: '/@1',
     v2TrackId: 'main',
+    v2RangeOwnsContent: true,
   },
   {
     id: 'angle-2',
@@ -37,6 +38,7 @@ const markerConfigs: MarkerConfig[] = [
     start: '@2',
     end: '/@2',
     v2TrackId: 'secondary',
+    v2RangeOwnsContent: true,
   },
 ];
 
