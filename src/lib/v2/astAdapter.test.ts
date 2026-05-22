@@ -160,7 +160,7 @@ describe('buildScriptDocumentV2FromAst', () => {
 
     const doc = buildScriptDocumentV2FromAst(ast, {
       markerConfigs: [
-        { id: 'angle-2', v2TrackId: 'secondary' },
+        { id: 'angle-2', v2TrackId: 'secondary', v2RangeOwnsContent: true },
       ],
     });
 

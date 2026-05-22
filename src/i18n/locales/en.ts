@@ -513,7 +513,7 @@ const messages = {
     "sampleMarker": "Sample Marker",
     "introPrefix": "This is an",
     "introStrong": "interactive guide",
-    "introSuffix": ". The controls below are identical to the real settings, so you can try them and see how changes affect rendering in real time.",
+    "introSuffix": ". The controls below are identical to the real settings, so you can try them and see how changes affect rendering in real time. To preview column routing and same-row sync, turn on Column Display and use Marker-scoped side-by-side grouping.",
     "section1Title": "Basic Settings",
     "nameLabel": "Marker Name",
     "nameDesc": "An internal label for your own identification.",
@@ -796,8 +796,8 @@ const messages = {
     "unsaved": "Unsaved",
     "savedAt": "Saved {time}",
     "synced": "Synced",
-    "v2RendererOffWarning": "Multi-track marker settings were detected, but the multi-track renderer is currently off. Column routing and same-row synchronization may not preview correctly.",
-    "enableV2RendererNow": "Enable Multi-track Renderer Now"
+    "v2RendererOffWarning": "Multi-column marker settings were detected, but Column Display is currently off. Column routing and same-row synchronization may not preview correctly.",
+    "enableV2RendererNow": "Enable Column Display Now"
   },
   "markerSettingsHeader": {
     "title": "Custom Marker Rules",
@@ -1594,7 +1594,7 @@ const messages = {
     "desktopScale": "Desktop UI Scale",
     "desktopScaleDesc": "Desktop-only. Increase overall interface text size.",
     "lineGuide": "Line Guide",
-    "multiTrackRenderer": "Multi-track renderer",
+    "multiTrackRenderer": "Column Display",
     "trackConfigTitle": "Column layout",
     "trackConfigDesc": "Define column order and width ratios for multi-column rendering.",
     "trackPreviewTitle": "Column layout & preview",
@@ -1605,7 +1605,7 @@ const messages = {
     "dialogueRowNormal": "Standard script",
     "dialogueRowSideBySide": "Side-by-side dialogue",
     "dialogueRowMarkerBased": "Marker-scoped side-by-side",
-    "dialogueRowMarkerBasedDesc": "Side-by-side grouping is applied only within ranges of markers that have \"Enable column grouping\" turned on. Configure this in the marker's settings.",
+    "dialogueRowMarkerBasedDesc": "Same-row alignment is applied only inside sync-range markers (enableColumnGrouping=true). Use this together with Column Display and this row-grouping mode.",
     "showConfigEditor": "Show config editor",
     "hideConfigEditor": "Hide config editor",
     "applyTrackConfig": "Apply config",
@@ -1883,7 +1883,11 @@ const messages = {
     "showDelimiters": "Show Delimiters",
     "showEnd": "Show end label",
     "enableColumnGrouping": "Enable column grouping in this range",
-    "enableColumnGroupingDesc": "When the layout uses \"Marker-scoped side-by-side\", consecutive dialogue lines inside this range will be placed side by side."
+    "enableColumnGroupingDesc": "When the layout uses \"Marker-scoped side-by-side\", consecutive dialogue lines inside this range will be placed side by side.",
+    "v2SyncRows": "Sync rows across columns",
+    "v2SyncRowsDesc": "When enabled with Marker-scoped row grouping, events in different columns inside this range are aligned to the same row.",
+    "v2RangeOwnsContent": "Range owns content",
+    "v2RangeOwnsContentDesc": "When enabled, all events inside this range are assigned to the range's column. Use for character-split ranges (e.g. @1/@2). Leave off for background ranges like continuous SFX."
   }
 };
 

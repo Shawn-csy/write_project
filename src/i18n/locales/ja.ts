@@ -513,7 +513,7 @@ const messages = {
     "sampleMarker": "サンプルマーカー",
     "introPrefix": "これは",
     "introStrong": "インタラクティブガイド",
-    "introSuffix": "です。下のコントロールは本設定と同一なので、操作しながら結果を確認できます。",
+    "introSuffix": "です。下のコントロールは本設定と同一なので、操作しながら結果を確認できます。欄位ルーティングと同行同期を確認するには「分欄表示」を有効にし、「マーカー範囲内で左右並べ」を使用してください。",
     "section1Title": "基本設定",
     "nameLabel": "マーカー名",
     "nameDesc": "管理しやすい識別名を設定します。",
@@ -796,8 +796,8 @@ const messages = {
     "unsaved": "未保存",
     "savedAt": "{time} に保存",
     "synced": "同期済み",
-    "v2RendererOffWarning": "マルチトラック用マーカー設定が検出されましたが、現在マルチトラック表示（V2）がオフです。欄位ルーティングや同行同期のプレビューが正しく表示されない可能性があります。",
-    "enableV2RendererNow": "今すぐマルチトラック表示を有効化"
+    "v2RendererOffWarning": "複数欄マーカー設定が検出されましたが、現在は分欄表示がオフです。欄位ルーティングや同行同期のプレビューが正しく表示されない可能性があります。",
+    "enableV2RendererNow": "今すぐ分欄表示を有効化"
   },
   "markerSettingsHeader": {
     "title": "カスタムマーカールール",
@@ -1597,7 +1597,7 @@ const messages = {
     "desktopScale": "デスクトップ文字倍率",
     "desktopScaleDesc": "デスクトップ版のみ適用。UI全体の文字を拡大します。",
     "lineGuide": "行ガイド",
-    "multiTrackRenderer": "マルチトラック表示（V2）",
+    "multiTrackRenderer": "分欄表示",
     "trackConfigTitle": "欄レイアウト",
     "trackConfigDesc": "V2分欄レンダリングの欄順序と幅の比率を定義します。",
     "trackPreviewTitle": "欄レイアウトとプレビュー",
@@ -1608,7 +1608,7 @@ const messages = {
     "dialogueRowNormal": "通常の台本",
     "dialogueRowSideBySide": "台詞を左右に並べる",
     "dialogueRowMarkerBased": "マーカー範囲内で左右並べ",
-    "dialogueRowMarkerBasedDesc": "「欄グループ化を有効にする」をオンにしたマーカーの範囲内でのみ、連続する台詞を左右に並べます。マーカーの設定で有効にしてください。",
+    "dialogueRowMarkerBasedDesc": "同行揃えは、同期範囲マーカー（enableColumnGrouping=true）内でのみ有効です。分欄表示とこの行グループモードを併用してください。",
     "showConfigEditor": "設定エディタを表示",
     "hideConfigEditor": "設定エディタを隠す",
     "applyTrackConfig": "設定を適用",
@@ -1885,7 +1885,11 @@ const messages = {
     "showDelimiters": "区切り記号を表示",
     "showEnd": "終了ラベルを表示",
     "enableColumnGrouping": "この範囲内で欄グループ化を有効にする",
-    "enableColumnGroupingDesc": "レイアウトが「マーカー範囲内で左右並べ」の場合、この範囲内の連続する台詞が左右の欄に並んで表示されます。"
+    "enableColumnGroupingDesc": "レイアウトが「マーカー範囲内で左右並べ」の場合、この範囲内の連続する台詞が左右の欄に並んで表示されます。",
+    "v2SyncRows": "行を同期整列",
+    "v2SyncRowsDesc": "有効にすると、マーカー範囲並べモードと組み合わせて、この範囲内の異なる欄のイベントが同じ行に整列されます。",
+    "v2RangeOwnsContent": "範囲がコンテンツを所有",
+    "v2RangeOwnsContentDesc": "有効にすると、この範囲内のすべてのイベントが指定した欄に割り当てられます。キャラクター分割範囲（@1/@2 など）に使用し、効果音などの背景範囲には使用しないでください。"
   }
 };
 

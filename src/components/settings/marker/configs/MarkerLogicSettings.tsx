@@ -155,21 +155,39 @@ const isBlock = config.type === 'block' || config.isBlock;
                             )}
                             
                             {/* 欄位並排設定 */}
-                            <div className="col-span-1 sm:col-span-2 pt-1 border-t border-dashed border-border/30">
-                                <label className="flex items-start gap-2 cursor-pointer select-none group" title={t("markerLogic.enableColumnGroupingDesc")}>
+                            <div className="col-span-1 sm:col-span-2 pt-1 border-t border-dashed border-border/30 space-y-2">
+                                <label className="flex items-start gap-2 cursor-pointer select-none group" title={t("markerLogic.v2SyncRowsDesc")}>
                                     <input
                                         type="checkbox"
-                                        checked={!!config.enableColumnGrouping}
-                                        onChange={(e) => updateMarker(idx, 'enableColumnGrouping', e.target.checked || undefined)}
+                                        checked={!!(config.v2SyncRows || config.enableColumnGrouping)}
+                                        onChange={(e) => {
+                                            updateMarker(idx, 'v2SyncRows', e.target.checked || undefined);
+                                            updateMarker(idx, 'enableColumnGrouping', undefined);
+                                        }}
                                         className="mt-0.5 h-3.5 w-3.5 rounded border-input text-primary focus:ring-ring shrink-0"
                                     />
                                     <span className="text-xs text-foreground leading-snug">
-                                        {t("markerLogic.enableColumnGrouping")}
+                                        {t("markerLogic.v2SyncRows")}
                                         <span className="ml-1 text-[10px] text-muted-foreground/60 group-hover:text-muted-foreground transition-colors">ⓘ</span>
                                     </span>
                                 </label>
-                                <p className="mt-1 ml-5 text-[10px] text-muted-foreground/70 leading-relaxed">
-                                    {t("markerLogic.enableColumnGroupingDesc")}
+                                <p className="mt-0 ml-5 text-[10px] text-muted-foreground/70 leading-relaxed">
+                                    {t("markerLogic.v2SyncRowsDesc")}
+                                </p>
+                                <label className="flex items-start gap-2 cursor-pointer select-none group" title={t("markerLogic.v2RangeOwnsContentDesc")}>
+                                    <input
+                                        type="checkbox"
+                                        checked={!!config.v2RangeOwnsContent}
+                                        onChange={(e) => updateMarker(idx, 'v2RangeOwnsContent', e.target.checked || undefined)}
+                                        className="mt-0.5 h-3.5 w-3.5 rounded border-input text-primary focus:ring-ring shrink-0"
+                                    />
+                                    <span className="text-xs text-foreground leading-snug">
+                                        {t("markerLogic.v2RangeOwnsContent")}
+                                        <span className="ml-1 text-[10px] text-muted-foreground/60 group-hover:text-muted-foreground transition-colors">ⓘ</span>
+                                    </span>
+                                </label>
+                                <p className="mt-0 ml-5 text-[10px] text-muted-foreground/70 leading-relaxed">
+                                    {t("markerLogic.v2RangeOwnsContentDesc")}
                                 </p>
                             </div>
 
