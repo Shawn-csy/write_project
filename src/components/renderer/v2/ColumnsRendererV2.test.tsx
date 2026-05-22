@@ -46,10 +46,15 @@ describe('ColumnsRendererV2', () => {
     expect(rows.length).toBe(2);
     expect(rows[0].getAttribute('data-v2-line-row')).toBe('1');
     expect(rows[1].getAttribute('data-v2-line-row')).toBe('2');
+    // Row 1: sfx has content and spans the empty main+secondary cols, so those divs are absorbed
     expect(rows[0].querySelector('[data-track-id="sfx"]')?.getAttribute('data-has-events')).toBe('true');
-    expect(rows[0].querySelector('[data-track-id="main"]')?.getAttribute('data-has-events')).toBe('false');
+    expect(rows[0].querySelector('[data-track-id="main"]')).toBeNull();
+    expect(rows[0].querySelector('[data-track-id="secondary"]')).toBeNull();
+    // Row 2: main has content; sfx is empty and rendered (no content to its left to absorb it)
     expect(rows[1].querySelector('[data-track-id="sfx"]')?.getAttribute('data-has-events')).toBe('false');
     expect(rows[1].querySelector('[data-track-id="main"]')?.getAttribute('data-has-events')).toBe('true');
+    // secondary is absorbed into main's span (empty to the right of main)
+    expect(rows[1].querySelector('[data-track-id="secondary"]')).toBeNull();
   });
 
   it('preserves empty source lines between routed events', () => {

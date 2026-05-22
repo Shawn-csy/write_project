@@ -115,60 +115,101 @@ export const ColumnsRendererV2 = ({
                 {row.line}
               </div>
 
-              {tracks.map((track) => {
-                const events = row.eventsByTrackId.get(track.id) || [];
-                const spans = rangeSpansByTrack.get(track.id) || [];
-                const activeRangeSpan = spans.find((s) => row.line >= s.startLine && row.line <= s.endLine);
-                const isRangeStart = activeRangeSpan && row.line === activeRangeSpan.startLine;
-                const isRangeEnd = activeRangeSpan && row.line === activeRangeSpan.endLine;
-                const rangeStyle = activeRangeSpan?.style;
-                const hasContent = events.length > 0 || Boolean(activeRangeSpan);
-                return (
-                  <div
-                    key={`${row.line}-${track.id}`}
-                    className={cn("border-r last:border-r-0 border-border/20 min-w-0", !hasContent && "min-h-[2rem]")}
-                    data-track-id={track.id}
-                    data-has-events={events.length > 0 ? "true" : "false"}
-                    aria-hidden={!hasContent}
-                  >
-                    {events.length > 0 ? events.map((event) => {
-                      const mCfg = event.markerId ? markerConfigById.get(event.markerId) : undefined;
-                      const mStyle = mCfg?.style && typeof mCfg.style === 'object' ? mCfg.style as React.CSSProperties : undefined;
-                      const role = event.attrs?.role as string | undefined;
-                      const shapeStyle: React.CSSProperties | undefined = mStyle && (role === 'range_start' || role === 'range_end')
-                        ? { ...mStyle, borderRadius: role === 'range_start' ? '4px 4px 0 0' : '0 0 4px 4px' }
-                        : mStyle;
-                      return (
-                        <article
-                          key={event.id}
-                          className={cn("px-3 py-1.5 break-words", !mStyle && "bg-card/50")}
-                          style={shapeStyle}
-                        >
-                          {event.speakerId && (
-                            <div className="mb-0.5 text-[11px] text-muted-foreground/70">{event.speakerId}</div>
-                          )}
-                          <p className="whitespace-pre-wrap" style={{ fontSize, lineHeight }}>
-                            <EventTextV2
-                              text={applyDisplayTemplate(event.text, mCfg)}
-                              markerConfigs={markerConfigs}
-                              hiddenMarkerIds={hiddenMarkerIds}
-                              markerTooltipPrefix={markerTooltipPrefix}
-                            />
-                          </p>
-                        </article>
-                      );
-                    }) : activeRangeSpan ? (
-                      <div
-                        className="h-full min-h-[2rem]"
-                        style={rangeStyle?.backgroundColor
-                          ? { backgroundColor: rangeStyle.backgroundColor, opacity: 0.3,
-                              borderRadius: isRangeStart ? '0 4px 0 0' : isRangeEnd ? '0 0 4px 0' : '0' }
-                          : undefined}
-                      />
-                    ) : null}
-                  </div>
-                );
-              })}
+              {(() => {
+                // Pre-compute per-track cell info for this row
+                const cellInfos = tracks.map((track) => {
+                  const events = row.eventsByTrackId.get(track.id) || [];
+                  const spans = rangeSpansByTrack.get(track.id) || [];
+                  const activeRangeSpan = spans.find((s) => row.line >= s.startLine && row.line <= s.endLine);
+                  return { track, events, activeRangeSpan };
+                });
+
+                // Compute colspan for each cell: span right over consecutive empty cells.
+                // Only cells with actual events may span; a cell with only a rangeSpan (background
+                // colour block) must occupy exactly its own column and never absorb neighbours.
+                // A right-side cell is "absorbable" only if it has no events AND no activeRangeSpan.
+                const colspans = cellInfos.map((cell, i) => {
+                  if (cell.events.length === 0) return 1; // no events: never span (rangeSpan or empty)
+                  let span = 1;
+                  for (let j = i + 1; j < cellInfos.length; j++) {
+                    const right = cellInfos[j];
+                    if (right.events.length === 0 && !right.activeRangeSpan) {
+                      span++;
+                    } else {
+                      break;
+                    }
+                  }
+                  return span;
+                });
+
+                // Track which indices are absorbed by a previous cell's colspan
+                const absorbed = new Set<number>();
+                colspans.forEach((span, i) => {
+                  if (absorbed.has(i)) return;
+                  for (let j = i + 1; j < i + span; j++) absorbed.add(j);
+                });
+
+                return cellInfos.map((cell, i) => {
+                  if (absorbed.has(i)) return null;
+                  const { track, events, activeRangeSpan } = cell;
+                  const span = colspans[i];
+                  const isRangeStart = activeRangeSpan && row.line === activeRangeSpan.startLine;
+                  const isRangeEnd = activeRangeSpan && row.line === activeRangeSpan.endLine;
+                  const rangeStyle = activeRangeSpan?.style;
+                  const hasContent = events.length > 0 || Boolean(activeRangeSpan);
+                  const isLastVisible = i + span === tracks.length;
+                  return (
+                    <div
+                      key={`${row.line}-${track.id}`}
+                      className={cn(
+                        "border-r border-border/20 min-w-0",
+                        isLastVisible && "border-r-0",
+                        !hasContent && "min-h-[2rem]",
+                      )}
+                      style={span > 1 ? { gridColumn: `span ${span}` } : undefined}
+                      data-track-id={track.id}
+                      data-has-events={events.length > 0 ? "true" : "false"}
+                      aria-hidden={!hasContent}
+                    >
+                      {events.length > 0 ? events.map((event) => {
+                        const mCfg = event.markerId ? markerConfigById.get(event.markerId) : undefined;
+                        const mStyle = mCfg?.style && typeof mCfg.style === 'object' ? mCfg.style as React.CSSProperties : undefined;
+                        const role = event.attrs?.role as string | undefined;
+                        const shapeStyle: React.CSSProperties | undefined = mStyle && (role === 'range_start' || role === 'range_end')
+                          ? { ...mStyle, borderRadius: role === 'range_start' ? '4px 4px 0 0' : '0 0 4px 4px' }
+                          : mStyle;
+                        return (
+                          <article
+                            key={event.id}
+                            className={cn("px-3 py-1.5 break-words", !mStyle && "bg-card/50")}
+                            style={shapeStyle}
+                          >
+                            {event.speakerId && (
+                              <div className="mb-0.5 text-[11px] text-muted-foreground/70">{event.speakerId}</div>
+                            )}
+                            <p className="whitespace-pre-wrap" style={{ fontSize, lineHeight }}>
+                              <EventTextV2
+                                text={applyDisplayTemplate(event.text, mCfg)}
+                                markerConfigs={markerConfigs}
+                                hiddenMarkerIds={hiddenMarkerIds}
+                                markerTooltipPrefix={markerTooltipPrefix}
+                              />
+                            </p>
+                          </article>
+                        );
+                      }) : activeRangeSpan ? (
+                        <div
+                          className="h-full min-h-[2rem]"
+                          style={rangeStyle?.backgroundColor
+                            ? { backgroundColor: rangeStyle.backgroundColor, opacity: 0.3,
+                                borderRadius: isRangeStart ? '0 4px 0 0' : isRangeEnd ? '0 0 4px 0' : '0' }
+                            : undefined}
+                        />
+                      ) : null}
+                    </div>
+                  );
+                });
+              })()}
             </div>
           ))}
         </div>
