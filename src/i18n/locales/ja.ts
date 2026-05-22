@@ -1597,7 +1597,7 @@ const messages = {
     "desktopScale": "デスクトップ文字倍率",
     "desktopScaleDesc": "デスクトップ版のみ適用。UI全体の文字を拡大します。",
     "lineGuide": "行ガイド",
-    "multiTrackRenderer": "分欄表示",
+    "multiTrackRenderer": "複数欄モード",
     "trackConfigTitle": "欄レイアウト",
     "trackConfigDesc": "V2分欄レンダリングの欄順序と幅の比率を定義します。",
     "trackPreviewTitle": "欄レイアウトとプレビュー",
