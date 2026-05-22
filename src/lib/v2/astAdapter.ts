@@ -274,12 +274,18 @@ export const buildScriptDocumentV2FromAst = (
         }
         const rangeTrackId = resolveMarkerTrackId(rangeMarkerId);
         const rangeMarkerConfig = rangeMarkerId ? markerConfigById.get(rangeMarkerId) : undefined;
-        // Infer child routing from v2EventKind — no user-facing config needed:
-        // sfx/bgm ranges are background colour blocks; their children route independently
-        // by each event's own marker/kind rules (e.g. <cs> continuous-sfx ranges).
-        // All other ranges (e.g. @1/@2 character splits) inherit the range's track so the
-        // whole block is treated as belonging to that track.
-        const isSoundRange = rangeMarkerConfig?.v2EventKind === 'sfx' || rangeMarkerConfig?.v2EventKind === 'bgm';
+        // Infer child routing — no user-facing config needed:
+        // A range is a "sound range" (background colour block) when its v2EventKind is sfx/bgm,
+        // OR when its v2TrackId resolves to a track whose role is sfx or bgm.
+        // Sound range children route independently by their own marker/kind rules.
+        // All other ranges (e.g. @1/@2 character splits) inherit the range's track.
+        const rangeTrackRole = rangeTrackId
+          ? layoutConfig.tracks.find((t) => t.id === rangeTrackId)?.role
+          : undefined;
+        const isSoundRange =
+          rangeMarkerConfig?.v2EventKind === 'sfx' ||
+          rangeMarkerConfig?.v2EventKind === 'bgm' ||
+          rangeTrackRole === 'sfx';
         withPreferredTrack(rangeTrackId, () => pushRangeBoundaryContentIfPresent(node.startNode, rangeMarkerId));
         if (isSoundRange) {
           (node.children || []).forEach(walk);
