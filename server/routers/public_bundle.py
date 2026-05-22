@@ -37,6 +37,8 @@ def _serialize_bundle_script(script):
     if owner:
         owner["email"] = None
         data["owner"] = owner
+    # contentLength is not a DB column; compute from content so gallery cards can show duration estimate
+    data["contentLength"] = getattr(script, "contentLength", None) or len(getattr(script, "content", "") or "")
     return data
 
 

@@ -108,6 +108,7 @@ def get_public_scripts(
             ).order_by(models.Script.sortOrder.asc(), models.Script.title.asc()).all()
 
         for s in results:
+            s.contentLength = len(s.content or "")
             if s.persona:
                 _normalize_persona_for_public(db, s.persona)
             if s.organization:
@@ -117,6 +118,7 @@ def get_public_scripts(
     if ownerId and folder is None:
         results = base_q.filter(models.Script.ownerId == ownerId).order_by(models.Script.lastModified.desc()).all()
         for s in results:
+            s.contentLength = len(s.content or "")
             if s.persona:
                 _normalize_persona_for_public(db, s.persona)
             if s.organization:
@@ -136,6 +138,7 @@ def get_public_scripts(
         if (s.ownerId, s.folder) in public_paths:
             continue
 
+        s.contentLength = len(s.content or "")
         if s.persona:
             _normalize_persona_for_public(db, s.persona)
         if s.organization:
