@@ -77,6 +77,47 @@ def _run_postgres_migrations():
         if inserted:
             print(f"Migrating: backfilled {inserted} persona_organization_membership rows from organizationIds JSON")
 
+        # Migrate script_likes: add id/visitorId columns, drop old composite PK
+        likes_cols = {
+            row[0] for row in conn.execute(text(
+                "SELECT column_name FROM information_schema.columns WHERE table_name = 'script_likes'"
+            )).fetchall()
+        }
+        if "id" not in likes_cols:
+            print("Migrating: Restructuring script_likes table (add id, visitorId, drop composite PK)")
+            # Rename old table
+            conn.execute(text('ALTER TABLE script_likes RENAME TO script_likes_old'))
+            # Create new table
+            conn.execute(text("""
+                CREATE TABLE script_likes (
+                    id TEXT PRIMARY KEY,
+                    "scriptId" TEXT NOT NULL REFERENCES scripts(id) ON DELETE CASCADE,
+                    "userId" TEXT REFERENCES users(id) ON DELETE CASCADE,
+                    "visitorId" TEXT,
+                    "createdAt" BIGINT NOT NULL DEFAULT 0,
+                    CONSTRAINT uq_script_likes_script_actor UNIQUE ("scriptId", "userId", "visitorId")
+                )
+            """))
+            conn.execute(text('CREATE INDEX ix_script_likes_scriptId ON script_likes ("scriptId")'))
+            conn.execute(text('CREATE INDEX ix_script_likes_userId ON script_likes ("userId")'))
+            conn.execute(text('CREATE INDEX ix_script_likes_visitorId ON script_likes ("visitorId")'))
+            # Migrate existing data
+            conn.execute(text("""
+                INSERT INTO script_likes (id, "scriptId", "userId", "createdAt")
+                SELECT gen_random_uuid()::text, "scriptId", "userId", "createdAt"
+                FROM script_likes_old
+            """))
+            conn.execute(text('DROP TABLE script_likes_old'))
+
+        # Add coverIsAiGenerated column to scripts if missing
+        result = conn.execute(text(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name = 'scripts' AND column_name = 'coverIsAiGenerated'"
+        )).fetchone()
+        if not result:
+            print("Migrating: Adding 'coverIsAiGenerated' column to scripts (PostgreSQL)")
+            conn.execute(text('ALTER TABLE scripts ADD COLUMN "coverIsAiGenerated" BOOLEAN DEFAULT FALSE'))
+
         # Fix script_likes.scriptId FK: add ON DELETE CASCADE
         fk_rows = conn.execute(text("""
             SELECT tc.constraint_name
@@ -96,6 +137,12 @@ def _run_postgres_migrations():
             """), {"cname": cname}).fetchone()
             if rule and rule[0].upper() != "CASCADE":
                 print(f"Migrating: script_likes.scriptId FK -> ON DELETE CASCADE")
+                # Delete dangling likes before adding FK constraint
+                conn.execute(text("""
+                    DELETE FROM script_likes
+                    WHERE "scriptId" IS NOT NULL
+                      AND "scriptId" NOT IN (SELECT id FROM scripts)
+                """))
                 conn.execute(text(f'ALTER TABLE script_likes DROP CONSTRAINT "{cname}"'))
                 conn.execute(text(
                     'ALTER TABLE script_likes ADD CONSTRAINT "script_likes_scriptId_fkey" '
@@ -120,6 +167,13 @@ def _run_postgres_migrations():
             """), {"cname": cname}).fetchone()
             if rule and rule[0].upper() != "SET NULL":
                 print(f"Migrating: public_terms_acceptances.scriptId FK -> ON DELETE SET NULL")
+                # Nullify dangling scriptId references before adding FK constraint
+                conn.execute(text("""
+                    UPDATE public_terms_acceptances
+                    SET "scriptId" = NULL
+                    WHERE "scriptId" IS NOT NULL
+                      AND "scriptId" NOT IN (SELECT id FROM scripts)
+                """))
                 conn.execute(text(f'ALTER TABLE public_terms_acceptances DROP CONSTRAINT "{cname}"'))
                 conn.execute(text(
                     'ALTER TABLE public_terms_acceptances ADD CONSTRAINT "public_terms_acceptances_scriptId_fkey" '
@@ -207,6 +261,10 @@ def run_migrations():
             if 'seriesOrder' not in columns:
                 print("Migrating: Adding 'seriesOrder' column")
                 conn.execute(text("ALTER TABLE scripts ADD COLUMN seriesOrder INTEGER DEFAULT NULL"))
+
+            if 'coverIsAiGenerated' not in columns:
+                print("Migrating: Adding 'coverIsAiGenerated' column to scripts")
+                conn.execute(text("ALTER TABLE scripts ADD COLUMN coverIsAiGenerated BOOLEAN DEFAULT 0"))
 
             if 'licenseCommercial' not in columns:
                 print("Migrating: Adding 'licenseCommercial' column")
