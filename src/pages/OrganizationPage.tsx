@@ -101,7 +101,7 @@ export default function OrganizationPage() {
         <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={pageDescription} />
         <meta property="og:url" content={canonicalUrl} />
-        <meta property="og:site_name" content={t("orgPage.siteName")} />
+        <meta property="og:site_name" content="Screenplay Reader" />
         {primaryImage && <meta property="og:image" content={primaryImage} />}
         <meta name="twitter:card" content={primaryImage ? "summary_large_image" : "summary"} />
         <meta name="twitter:title" content={pageTitle} />

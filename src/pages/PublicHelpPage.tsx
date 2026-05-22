@@ -1,4 +1,5 @@
 import React from "react";
+import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
 import {
   CircleHelp,
@@ -148,6 +149,14 @@ export default function PublicHelpPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Helmet>
+        <title>使用說明｜Screenplay Reader</title>
+        <meta name="description" content="了解如何使用 Screenplay Reader 閱讀台本、匯入 Fountain 格式劇本，以及台本標記符號說明。" />
+        <meta name="robots" content="index,follow" />
+        <meta property="og:title" content="使用說明｜Screenplay Reader" />
+        <meta property="og:description" content="了解如何使用 Screenplay Reader 閱讀台本、匯入 Fountain 格式劇本，以及台本標記符號說明。" />
+        <meta property="og:site_name" content="Screenplay Reader" />
+      </Helmet>
       <PublicTopBar title={t("publicHelp.topbarTitle")} showBack={true} onBack={() => navigate("/")} />
 
       <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">

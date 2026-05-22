@@ -168,6 +168,24 @@ def inject_seo_for_route(full_path: str, db, html_template: str, public_base_url
             og_type="website",
         )
 
+    if full_path.startswith("series/"):
+        series_name = full_path.strip("/").split("/", 1)[-1]
+        try:
+            from urllib.parse import unquote
+            series_name = unquote(series_name)
+        except Exception:
+            pass
+        canonical_url = f"{public_base_url}/series/{series_name}"
+        title = f"{series_name}｜Screenplay Reader" if series_name else "系列作品｜Screenplay Reader"
+        desc = f"{series_name} 系列台本，免費線上閱讀。" if series_name else "免費瀏覽系列台本作品。"
+        return inject_seo_html(
+            html_template,
+            title=title,
+            description=desc,
+            canonical_url=canonical_url,
+            og_type="website",
+        )
+
     if full_path.startswith("read/"):
         script_id = full_path.strip("/").split("/")[-1]
         script = db.query(models.Script).filter(models.Script.id == script_id).first()
