@@ -194,7 +194,7 @@ export function EditorShell() {
     preferTableForGoogleDocs: !!useV2Renderer,
     enableGoogleDocsTable: !!useV2Renderer,
     showGoogleDocsTableOption: true,
-    fallbackToClassicWhenTableMissing: !useV2Renderer,
+    fallbackToClassicWhenTableMissing: true,
     resolveTableExport: (html) => buildV2TableExportFromRenderedHtml(html),
   });
 
