@@ -56,12 +56,16 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
   const handleLike = useCallback(async () => {
     if (!scriptId) return;
     const prev = likeState;
-    const atCap = (likeState?.likeCount ?? 0) >= 10;
-    setLikeState((s) => s ? {
-      liked: atCap ? s.likeCount - 1 > 0 : true,
-      likes: atCap ? s.likes - 1 : s.likes + 1,
-      likeCount: atCap ? s.likeCount - 1 : s.likeCount + 1,
-    } : s);
+    // Optimistic update
+    setLikeState((s) => {
+      if (!s) return s;
+      const atCap = s.likeCount >= 10;
+      return {
+        liked: atCap ? s.likeCount - 1 > 0 : true,
+        likes: atCap ? Math.max(0, s.likes - 1) : s.likes + 1,
+        likeCount: atCap ? s.likeCount - 1 : s.likeCount + 1,
+      };
+    });
     try {
       const res = await publicToggleScriptLike(scriptId);
       setLikeState({ liked: res.liked, likes: res.likes, likeCount: res.likeCount ?? 0 });
