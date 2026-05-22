@@ -21,6 +21,10 @@ export const ColumnsRendererV2 = ({
   hiddenMarkerIds = [],
   markerTooltipPrefix = '標記',
 }: ColumnsRendererV2Props): React.JSX.Element => {
+  const hiddenMarkerIdSet = useMemo(
+    () => new Set((hiddenMarkerIds || []).map((id) => String(id || "").trim()).filter(Boolean)),
+    [hiddenMarkerIds]
+  );
   const tracks = useMemo(
     () => {
       const enabledTracks = doc.layoutConfig.tracks.filter((track) => track.enabled).sort((a, b) => a.order - b.order);
@@ -70,6 +74,7 @@ export const ColumnsRendererV2 = ({
     const result = new Map<string, Array<{ markerId: string; startLine: number; endLine: number; style?: React.CSSProperties }>>();
     const enabledTrackIds = new Set(doc.lanes.map((lane) => lane.trackId));
     for (const span of doc.rangeSpans ?? []) {
+      if (hiddenMarkerIdSet.has(String(span.markerId || ""))) continue;
       const mCfg = markerConfigById.get(span.markerId);
       const style = mCfg?.style && typeof mCfg.style === 'object' ? mCfg.style as React.CSSProperties : undefined;
       const configuredTrackId = typeof mCfg?.v2TrackId === 'string' ? mCfg.v2TrackId.trim() : '';
@@ -84,7 +89,7 @@ export const ColumnsRendererV2 = ({
       result.get(targetTrackId)!.push({ markerId: span.markerId, startLine: span.startLine, endLine: span.endLine, style });
     }
     return result;
-  }, [doc.rangeSpans, doc.lanes, doc.layoutConfig.fallbackTrackId, markerConfigById]);
+  }, [doc.rangeSpans, doc.lanes, doc.layoutConfig.fallbackTrackId, markerConfigById, hiddenMarkerIdSet]);
 
   return (
     <div className="w-full" style={{ ['--v2-track-columns' as string]: desktopTemplateColumns }} data-v2-presentation="columns">
@@ -118,7 +123,10 @@ export const ColumnsRendererV2 = ({
               {(() => {
                 // Pre-compute per-track cell info for this row
                 const cellInfos = tracks.map((track) => {
-                  const events = row.eventsByTrackId.get(track.id) || [];
+                  const events = (row.eventsByTrackId.get(track.id) || []).filter((event) => {
+                    if (!event?.markerId) return true;
+                    return !hiddenMarkerIdSet.has(String(event.markerId));
+                  });
                   const spans = rangeSpansByTrack.get(track.id) || [];
                   const activeRangeSpan = spans.find((s) => row.line >= s.startLine && row.line <= s.endLine);
                   return { track, events, activeRangeSpan };

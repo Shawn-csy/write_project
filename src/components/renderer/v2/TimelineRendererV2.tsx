@@ -26,6 +26,10 @@ export const TimelineRendererV2 = ({
   hiddenMarkerIds = [],
   markerTooltipPrefix = '標記',
 }: TimelineRendererV2Props): React.JSX.Element => {
+  const hiddenMarkerIdSet = useMemo(
+    () => new Set((hiddenMarkerIds || []).map((id) => String(id || "").trim()).filter(Boolean)),
+    [hiddenMarkerIds]
+  );
   const trackNameById = useMemo(() => {
     const map = new Map<string, string>();
     doc.layoutConfig.tracks.forEach((track) => map.set(track.id, track.name));
@@ -41,6 +45,7 @@ export const TimelineRendererV2 = ({
     const list: TimelineRow[] = [];
     doc.lanes.forEach((lane) => {
       lane.events.forEach((event) => {
+        if (event.markerId && hiddenMarkerIdSet.has(String(event.markerId))) return;
         list.push({
           event,
           trackId: lane.trackId,
@@ -49,6 +54,7 @@ export const TimelineRendererV2 = ({
       });
     });
     doc.unassignedEvents.forEach((event) => {
+      if (event.markerId && hiddenMarkerIdSet.has(String(event.markerId))) return;
       list.push({
         event,
         trackId: '__unassigned__',
@@ -56,7 +62,7 @@ export const TimelineRendererV2 = ({
       });
     });
     return list.sort((a, b) => a.event.lineSpan.start - b.event.lineSpan.start);
-  }, [doc.lanes, doc.unassignedEvents, trackNameById]);
+  }, [doc.lanes, doc.unassignedEvents, trackNameById, hiddenMarkerIdSet]);
 
   return (
     <div className="space-y-2">

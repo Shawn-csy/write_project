@@ -62,7 +62,7 @@ export function useLiveEditorState({
   const {
     theme = "system", fontSize, bodyFontSize, dialogueFontSize, lineHeight,
     accentConfig, markerConfigs, markerThemes = [], currentThemeId = "default", v2LayoutConfig,
-    switchTheme = () => {}, hiddenMarkerIds, toggleMarkerVisibility,
+    switchTheme = () => {}, hiddenMarkerIds, toggleMarkerVisibility, useV2Renderer,
   } = useSettings();
   const scriptView = useScriptView();
   const activeMarkerConfigs = (scriptView?.markerConfigs && scriptView.markerConfigs.length > 0)
@@ -217,6 +217,7 @@ export function useLiveEditorState({
   const normalizedDownloadOptions = useLiveEditorDownloadOptions({
     t, title, content, renderedHtmlRef, ensureRenderedHtml, markerConfigs: activeMarkerConfigs as any,
     orchestratedDoc,
+    isV2RendererEnabled: !!useV2Renderer,
   });
 
   const { handleLocateText, handlePreviewLineClick } = usePreviewLineNavigation({

@@ -35,6 +35,11 @@ interface PublicScriptInfoOverlayProps {
   coverUrl?: string;
   author?: AuthorInfo | null;
   organization?: OrganizationInfo | null;
+  license?: string;
+  tags?: string[];
+  targetAudience?: string;
+  contentRating?: string;
+  customFields?: Array<{ key?: string; value?: string }>;
   prefaceItems?: PrefaceItem[];
   demoLinks?: DemoLinkItem[];
   commercialUse?: string;
@@ -76,6 +81,11 @@ export function PublicScriptInfoOverlay({
   coverUrl,
   author = null,
   organization = null,
+  license = "",
+  tags = [],
+  targetAudience = "",
+  contentRating = "",
+  customFields = [],
   prefaceItems = [],
   demoLinks = [],
   commercialUse = "",
@@ -86,18 +96,6 @@ export function PublicScriptInfoOverlay({
   const [coverLoadFailed, setCoverLoadFailed] = React.useState(false);
   const [prefaceExpanded, setPrefaceExpanded] = React.useState(false);
   const hasCover = Boolean(String(coverUrl || "").trim()) && !coverLoadFailed;
-  const placeholderTheme = React.useMemo(() => {
-    const seed = String(title || "Script").trim() || "Script";
-    const hash = Array.from(seed).reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-    const hue = hash % 360;
-    return {
-      hash,
-      bgA: `hsl(${hue} 24% 66%)`,
-      bgB: `hsl(${(hue + 32) % 360} 20% 58%)`,
-      bgC: `hsl(${(hue + 76) % 360} 18% 50%)`,
-      accent: `hsl(${(hue + 150) % 360} 24% 82%)`,
-    };
-  }, [title]);
   const itemById = React.useMemo(() => {
     const map = new Map<string, PrefaceItem & { value: string }>();
     (prefaceItems || []).forEach((item) => {
@@ -204,6 +202,24 @@ export function PublicScriptInfoOverlay({
   const hasPrefaceItems = compactItems.length > 0 || expandedTopItems.length > 0 || expandedBottomItems.length > 0;
   const hasDemoLinks = Array.isArray(demoLinks) && demoLinks.length > 0;
   const hasSpecialTerms = Array.isArray(licenseSpecialTerms) && licenseSpecialTerms.length > 0;
+  const normalizedTags = React.useMemo(
+    () => (Array.isArray(tags) ? tags.map((tag) => String(tag || "").trim()).filter(Boolean) : []),
+    [tags]
+  );
+  const normalizedCustomFields = React.useMemo(
+    () => (Array.isArray(customFields) ? customFields
+      .map((field) => ({
+        key: String(field?.key || "").trim(),
+        value: String(field?.value || "").trim(),
+      }))
+      .filter((field) => field.key && field.value) : []),
+    [customFields]
+  );
+  const hasMetaSummary = Boolean(String(targetAudience || "").trim())
+    || Boolean(String(contentRating || "").trim())
+    || Boolean(String(license || "").trim())
+    || normalizedTags.length > 0
+    || normalizedCustomFields.length > 0;
   const demoLinksBlock = hasDemoLinks ? (
     <div key="demo-links">
       <div className="text-xs font-semibold text-muted-foreground">試聽範例</div>
@@ -233,22 +249,10 @@ export function PublicScriptInfoOverlay({
   ) : null;
 
   const usageBadges = React.useMemo(() => {
-    const toneStyle = {
-      positive: {
-        borderColor: "color-mix(in srgb, var(--marker-color-green) 42%, transparent)",
-        backgroundColor: "color-mix(in srgb, var(--marker-color-green) 14%, transparent)",
-        color: "var(--marker-color-green)",
-      },
-      negative: {
-        borderColor: "color-mix(in srgb, var(--marker-color-red) 44%, transparent)",
-        backgroundColor: "color-mix(in srgb, var(--marker-color-red) 14%, transparent)",
-        color: "var(--marker-color-red)",
-      },
-      caution: {
-        borderColor: "color-mix(in srgb, var(--marker-color-amber) 46%, transparent)",
-        backgroundColor: "color-mix(in srgb, var(--marker-color-amber) 16%, transparent)",
-        color: "var(--marker-color-amber)",
-      },
+    const toneClass = {
+      positive: "border-emerald-500/55 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+      negative: "border-rose-500/55 bg-rose-500/15 text-rose-700 dark:text-rose-300",
+      caution: "border-amber-500/55 bg-amber-500/15 text-amber-700 dark:text-amber-300",
     };
     const normalize = (value: unknown) => String(value || "").trim().toLowerCase();
     const commercial = normalize(commercialUse);
@@ -259,14 +263,14 @@ export function PublicScriptInfoOverlay({
       key: string;
       label: string;
       value: string;
-      style: { borderColor: string; backgroundColor: string; color: string };
+      toneClass: string;
     }> = [];
     if (commercial) {
       items.push({
         key: "commercial",
         label: "商業使用",
         value: commercial === "allow" ? "可" : "不可",
-        style: commercial === "allow" ? toneStyle.positive : toneStyle.negative,
+        toneClass: commercial === "allow" ? toneClass.positive : toneClass.negative,
       });
     }
     if (derivative) {
@@ -276,11 +280,11 @@ export function PublicScriptInfoOverlay({
         key: "derivative",
         label: "改作許可",
         value: isAllow ? "可" : isDisallow ? "不可" : "需同意",
-        style: isAllow
-          ? toneStyle.positive
+        toneClass: isAllow
+          ? toneClass.positive
           : isDisallow
-            ? toneStyle.negative
-            : toneStyle.caution,
+            ? toneClass.negative
+            : toneClass.caution,
       });
     }
     if (notify) {
@@ -289,7 +293,7 @@ export function PublicScriptInfoOverlay({
         key: "notify",
         label: "修改須通知作者",
         value: required ? "需要" : "不需要",
-        style: required ? toneStyle.positive : toneStyle.negative,
+        toneClass: required ? toneClass.positive : toneClass.negative,
       });
     }
     return items;
@@ -309,35 +313,14 @@ export function PublicScriptInfoOverlay({
         ) : (
           <div
             className="relative flex min-h-[260px] w-full items-center justify-center px-6 py-10 text-center md:min-h-[320px]"
-            style={{
-              background: `linear-gradient(130deg, ${placeholderTheme.bgA}, ${placeholderTheme.bgB} 48%, ${placeholderTheme.bgC})`,
-            }}
           >
-            {placeholderTheme.hash % 3 === 0 && (
-              <>
-                <div className="absolute -left-8 -top-10 h-40 w-40 rounded-full border border-white/35 bg-white/10" />
-                <div className="absolute right-8 top-12 h-24 w-24 rotate-12 border border-white/40 bg-white/10" />
-                <div className="absolute bottom-10 left-1/2 h-16 w-44 -translate-x-1/2 rounded-full border border-white/30 bg-black/10" />
-              </>
-            )}
-            {placeholderTheme.hash % 3 === 1 && (
-              <>
-                <div className="absolute inset-0 opacity-25" style={{ backgroundImage: "linear-gradient(0deg, rgba(255,255,255,0.28) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.24) 1px, transparent 1px)", backgroundSize: "26px 26px" }} />
-                <div className="absolute -right-10 top-8 h-44 w-44 rotate-45 border border-white/40 bg-white/10" />
-                <div className="absolute left-10 bottom-8 h-20 w-20 rounded-full border border-white/35 bg-black/10" />
-              </>
-            )}
-            {placeholderTheme.hash % 3 === 2 && (
-              <>
-                <div className="absolute -left-12 bottom-6 h-52 w-52 rounded-full border border-white/35 bg-white/10" />
-                <div className="absolute right-4 top-6 h-28 w-56 -skew-x-12 border border-white/35 bg-black/10" />
-                <div className="absolute bottom-3 right-10 h-28 w-28 rotate-12 rounded-2xl border border-white/30 bg-white/10" />
-              </>
-            )}
-            <div className="absolute inset-0 opacity-30" style={{ background: "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.45), transparent 45%)" }} />
-            <div className="absolute inset-0 opacity-20" style={{ background: "radial-gradient(circle at 80% 85%, rgba(0,0,0,0.35), transparent 40%)" }} />
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-500 via-slate-600 to-slate-700" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.35),transparent_45%),radial-gradient(circle_at_80%_85%,rgba(0,0,0,0.35),transparent_40%)]" />
+            <div className="absolute -left-8 -top-10 h-40 w-40 rounded-full border border-white/35 bg-white/10" />
+            <div className="absolute right-8 top-12 h-24 w-24 rotate-12 border border-white/40 bg-white/10" />
+            <div className="absolute bottom-10 left-1/2 h-16 w-44 -translate-x-1/2 rounded-full border border-white/30 bg-black/10" />
             <div className="relative max-w-[85%] rounded-xl border border-white/25 bg-black/25 px-5 py-4 backdrop-blur-sm shadow-lg">
-              <div className="absolute -right-6 -top-6 h-12 w-12 rounded-full border border-white/40" style={{ backgroundColor: placeholderTheme.accent }} />
+              <div className="absolute -right-6 -top-6 h-12 w-12 rounded-full border border-white/40 bg-amber-200/80" />
               <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-foreground/80">No Cover</div>
             </div>
           </div>
@@ -351,7 +334,7 @@ export function PublicScriptInfoOverlay({
       {usageBadges.length > 0 && (
         <div className="flex max-w-2xl flex-wrap items-center justify-center gap-2">
           {usageBadges.map((item) => (
-            <Badge key={item.key} variant="outline" className="px-2.5 py-1 text-xs font-semibold" style={item.style}>
+            <Badge key={item.key} variant="outline" className={`px-2.5 py-1 text-xs font-semibold ${item.toneClass}`}>
               {item.label}：{item.value}
             </Badge>
           ))}
@@ -386,6 +369,47 @@ export function PublicScriptInfoOverlay({
             />
           )}
         </div>
+      )}
+
+      {hasMetaSummary && (
+        <section className="w-full max-w-2xl rounded-xl border border-border/60 bg-background/55 px-4 py-3 text-left backdrop-blur-sm">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="rounded-md border border-border/60 bg-background/70 px-3 py-2">
+              <div className="text-xs text-muted-foreground">觀眾取向</div>
+              <div className="text-sm font-medium text-foreground">{String(targetAudience || "").trim() || "未設定"}</div>
+            </div>
+            <div className="rounded-md border border-border/60 bg-background/70 px-3 py-2">
+              <div className="text-xs text-muted-foreground">內容分級</div>
+              <div className="text-sm font-medium text-foreground">{String(contentRating || "").trim() || "未設定"}</div>
+            </div>
+          </div>
+          {String(license || "").trim() && (
+            <div className="mt-2 rounded-md border border-border/60 bg-background/70 px-3 py-2">
+              <div className="text-xs text-muted-foreground">授權名稱</div>
+              <div className="text-sm font-medium text-foreground whitespace-pre-wrap">{String(license || "").trim()}</div>
+            </div>
+          )}
+          {normalizedTags.length > 0 && (
+            <div className="mt-2">
+              <div className="text-xs text-muted-foreground">標籤</div>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {normalizedTags.map((tag) => (
+                  <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+          {normalizedCustomFields.length > 0 && (
+            <div className="mt-2 space-y-1.5">
+              {normalizedCustomFields.map((field, idx) => (
+                <div key={`${field.key}-${idx}`} className="text-sm leading-6 text-foreground/90">
+                  <span className="font-medium">{field.key}：</span>
+                  <span className="whitespace-pre-wrap">{field.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       )}
 
       {(hasPrefaceItems || hasDemoLinks || hasSpecialTerms) && (

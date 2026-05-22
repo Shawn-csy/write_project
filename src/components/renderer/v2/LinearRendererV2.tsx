@@ -32,6 +32,10 @@ export const LinearRendererV2 = ({
   hiddenMarkerIds = [],
   markerTooltipPrefix = '標記',
 }: LinearRendererV2Props): React.JSX.Element => {
+  const hiddenMarkerIdSet = useMemo(
+    () => new Set((hiddenMarkerIds || []).map((id) => String(id || "").trim()).filter(Boolean)),
+    [hiddenMarkerIds]
+  );
   const trackById = useMemo(() => {
     const map = new Map<string, TrackConfig>();
     doc.layoutConfig.tracks.forEach((track) => map.set(track.id, track));
@@ -50,6 +54,7 @@ export const LinearRendererV2 = ({
       const track = trackById.get(lane.trackId);
       if (!track || track.mobileBehavior === 'collapse') return;
       lane.events.forEach((event) => {
+        if (event.markerId && hiddenMarkerIdSet.has(String(event.markerId))) return;
         list.push({
           line: Number.isFinite(event.lineSpan?.start) ? Number(event.lineSpan.start) : 1,
           track,
@@ -58,6 +63,7 @@ export const LinearRendererV2 = ({
       });
     });
     doc.unassignedEvents.forEach((event) => {
+      if (event.markerId && hiddenMarkerIdSet.has(String(event.markerId))) return;
       list.push({
         line: Number.isFinite(event.lineSpan?.start) ? Number(event.lineSpan.start) : 1,
         track: {
@@ -72,7 +78,7 @@ export const LinearRendererV2 = ({
     });
 
     return list.sort((a, b) => a.line - b.line || a.event.id.localeCompare(b.event.id));
-  }, [doc.lanes, doc.unassignedEvents, trackById]);
+  }, [doc.lanes, doc.unassignedEvents, trackById, hiddenMarkerIdSet]);
 
   return (
     <div className="space-y-1 px-3 py-2" data-v2-presentation="linear">
