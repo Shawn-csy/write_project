@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Columns3, Plus, Settings2, Share2, Trash2 } from "lucide-react";
 import { Card } from "../ui/card";
 import { useSettings } from "../../contexts/SettingsContext";
@@ -94,19 +94,39 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
     save: saveMarkerConfigs,
   } = markerState;
 
-  const handleLayoutChange = useCallback((config: LayoutConfig) => {
-    setV2LayoutConfig(config);
-  }, [setV2LayoutConfig]);
+  // Layout config draft — mirrors marker configs' draft pattern.
+  // Changes are local until the shared Save button is pressed.
+  const [localLayoutConfig, setLocalLayoutConfig] = useState<LayoutConfig>(v2LayoutConfig);
+  const committedThemeIdRef = useRef(currentThemeId);
+  useEffect(() => {
+    // Reset draft whenever the active theme changes (switchTheme / initial load)
+    if (committedThemeIdRef.current !== currentThemeId) {
+      committedThemeIdRef.current = currentThemeId;
+      setLocalLayoutConfig(v2LayoutConfig);
+    }
+  }, [currentThemeId, v2LayoutConfig]);
 
-  const anyDirty = isDirty;
+  const handleLayoutChange = useCallback((config: LayoutConfig) => {
+    setLocalLayoutConfig(config);
+  }, []);
+
+  const layoutDirty = useMemo(
+    () => JSON.stringify(localLayoutConfig) !== JSON.stringify(v2LayoutConfig),
+    [localLayoutConfig, v2LayoutConfig]
+  );
+
+  const anyDirty = isDirty || layoutDirty;
   const canSave = anyDirty && !isSaving && !readOnly && !parseError;
 
   const handleSave = useCallback(async () => {
     if (!canSave) return;
+    if (layoutDirty) {
+      setV2LayoutConfig(localLayoutConfig);
+    }
     if (isDirty) {
       await saveMarkerConfigs();
     }
-  }, [canSave, isDirty, saveMarkerConfigs]);
+  }, [canSave, layoutDirty, isDirty, localLayoutConfig, setV2LayoutConfig, saveMarkerConfigs]);
 
   const selectedConfig = useMemo<MarkerConfig | null>(
     () => localConfigs.find((c) => (c.id || c._tempId) === expandedId) || null,
@@ -276,8 +296,8 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
             isDirty={isDirty}
             isSaving={isSaving}
             readOnly={readOnly}
-            tracks={v2LayoutConfig.tracks}
-            layoutConfig={v2LayoutConfig}
+            tracks={localLayoutConfig.tracks}
+            layoutConfig={localLayoutConfig}
             onLayoutChange={handleLayoutChange}
             onOpenFullLayoutEditor={() => setLayoutEditorOpen(true)}
           />
@@ -292,7 +312,7 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
           </SheetHeader>
           <div className="min-h-0 flex-1 overflow-y-auto">
             <V2LayoutPreviewEditor
-              layoutConfig={v2LayoutConfig}
+              layoutConfig={localLayoutConfig}
               onChange={handleLayoutChange}
               markerConfigs={localConfigs}
               selectedConfig={selectedConfig}
