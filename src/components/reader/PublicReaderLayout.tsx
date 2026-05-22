@@ -34,7 +34,6 @@ interface PublicReaderLayoutProps {
   likes?: number;
   views?: number;
   isLiked?: boolean;
-  likeCount?: number;
   onLike?: () => void;
   durationMinutes?: number;
   dialogueChars?: number;
@@ -58,7 +57,6 @@ export function PublicReaderLayout({
   likes,
   views,
   isLiked,
-  likeCount,
   onLike,
   durationMinutes,
   dialogueChars,
@@ -181,7 +179,6 @@ export function PublicReaderLayout({
                     views={views}
                     likes={likes}
                     isLiked={isLiked}
-                    likeCount={likeCount}
                     onLike={onLike}
                     durationMinutes={durationMinutes}
                     dialogueChars={dialogueChars}

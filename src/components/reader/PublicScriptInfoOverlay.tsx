@@ -50,7 +50,6 @@ interface PublicScriptInfoOverlayProps {
   views?: number;
   likes?: number;
   isLiked?: boolean;
-  likeCount?: number;
   onLike?: () => void;
   durationMinutes?: number;
   dialogueChars?: number;
@@ -103,7 +102,6 @@ export function PublicScriptInfoOverlay({
   views,
   likes,
   isLiked = false,
-  likeCount = 0,
   onLike,
   durationMinutes,
   dialogueChars,
@@ -412,14 +410,10 @@ export function PublicScriptInfoOverlay({
                 ? "text-rose-500 hover:text-rose-400"
                 : "hover:text-rose-400"
             }`}
-            aria-label={likeCount >= 10 ? "取消喜歡" : "喜歡"}
-            title={likeCount > 0 ? `你已按讚 ${likeCount} 次` : undefined}
+            aria-label={isLiked ? "取消喜歡" : "喜歡"}
           >
             <Heart className={`h-4 w-4 ${isLiked ? "fill-rose-500" : ""}`} />
             {typeof likes === "number" && likes.toLocaleString()}
-            {likeCount > 0 && (
-              <span className="text-[10px] opacity-70">×{likeCount}</span>
-            )}
           </button>
         </div>
       )}
