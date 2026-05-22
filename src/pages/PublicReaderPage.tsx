@@ -29,7 +29,7 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
   } = usePublicTerms({ autoOpen: true, onAccepted: () => {} });
 
   const scriptId = id;
-  const [likeState, setLikeState] = useState<{ liked: boolean; likes: number; likeCount: number } | null>(null);
+  const [likeState, setLikeState] = useState<{ liked: boolean; likes: number } | null>(null);
   const [scriptStats, setScriptStats] = useState<{ estimatedMinutes: number; contentLength: number } | null>(null);
   const likeInFlight = React.useRef(false);
 
@@ -43,11 +43,11 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
   useEffect(() => {
     if (!scriptId) return;
     getPublicScriptLikeStatus(scriptId)
-      .then((res) => setLikeState({ liked: res.liked, likes: res.likes, likeCount: res.likeCount ?? 0 }))
+      .then((res) => setLikeState({ liked: res.liked, likes: res.likes }))
       .catch(() => {
         const visitorId = getVisitorId();
         const stored = localStorage.getItem(`liked_script_${visitorId}_${scriptId}`);
-        setLikeState({ liked: stored === "true", likes: 0, likeCount: 0 });
+        setLikeState({ liked: stored === "true", likes: 0 });
       });
     getPublicScriptStats(scriptId)
       .then((res) => setScriptStats({ estimatedMinutes: res.estimatedMinutes, contentLength: res.contentLength }))
@@ -58,19 +58,10 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
     if (!scriptId || likeInFlight.current) return;
     likeInFlight.current = true;
     const prev = likeState;
-    // Optimistic update
-    setLikeState((s) => {
-      if (!s) return s;
-      const atCap = s.likeCount >= 10;
-      return {
-        liked: atCap ? s.likeCount - 1 > 0 : true,
-        likes: atCap ? Math.max(0, s.likes - 1) : s.likes + 1,
-        likeCount: atCap ? s.likeCount - 1 : s.likeCount + 1,
-      };
-    });
+    setLikeState((s) => s ? { liked: !s.liked, likes: s.liked ? Math.max(0, s.likes - 1) : s.likes + 1 } : s);
     try {
       const res = await publicToggleScriptLike(scriptId);
-      setLikeState({ liked: res.liked, likes: res.likes, likeCount: res.likeCount ?? 0 });
+      setLikeState({ liked: res.liked, likes: res.likes });
       const visitorId = getVisitorId();
       localStorage.setItem(`liked_script_${visitorId}_${scriptId}`, String(res.liked));
     } catch {
@@ -200,7 +191,6 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
         views={(fullScriptData as { views?: number })?.views}
         likes={likeState?.likes}
         isLiked={likeState?.liked}
-        likeCount={likeState?.likeCount}
         onLike={handleLike}
         durationMinutes={scriptStats?.estimatedMinutes}
         dialogueChars={undefined}

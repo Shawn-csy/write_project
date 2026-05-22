@@ -517,8 +517,7 @@ def public_like_status(script_id: str, visitorId: str, db: Session = Depends(get
     if not script:
         raise HTTPException(status_code=404, detail="Script not found")
     liked = crud.get_script_like_status(db, script_id, visitor_id=visitorId)
-    like_count = crud.get_visitor_like_count(db, script_id, visitorId)
-    return {"liked": liked, "likes": script.likes or 0, "likeCount": like_count}
+    return {"liked": liked, "likes": script.likes or 0}
 
 
 @router.get("/public-scripts/{script_id}/stats")

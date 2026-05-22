@@ -237,14 +237,8 @@ def increment_script_view(db: Session, script_id: str):
     db.commit()
 
 
-_MAX_VISITOR_LIKES_PER_SCRIPT = 10
-
-
 def toggle_script_like(db: Session, script_id: str, *, user_id: str = None, visitor_id: str = None):
-    """Toggle like for a script. Requires either user_id or visitor_id.
-    Visitors may like a script up to _MAX_VISITOR_LIKES_PER_SCRIPT times.
-    Calling again at the cap removes one like (the most recent).
-    """
+    """Toggle like for a script. One like per user/visitor."""
     if not user_id and not visitor_id:
         return None
 
@@ -252,41 +246,12 @@ def toggle_script_like(db: Session, script_id: str, *, user_id: str = None, visi
     if not script:
         return None
 
-    if visitor_id and not user_id:
-        q = db.query(models.ScriptLike).filter(
-            models.ScriptLike.scriptId == script_id,
-            models.ScriptLike.visitorId == visitor_id,
-        )
-        like_count = q.count()
-        if like_count >= _MAX_VISITOR_LIKES_PER_SCRIPT:
-            # At cap — remove the most recent like
-            most_recent = q.order_by(models.ScriptLike.createdAt.desc()).first()
-            if most_recent:
-                db.delete(most_recent)
-                db.query(models.Script).filter(models.Script.id == script_id).update(
-                    {models.Script.likes: models.Script.likes - 1}
-                )
-                db.commit()
-            return like_count - 1 > 0, max(0, (script.likes or 0) - 1)
-        # Add a new like
-        like = models.ScriptLike(
-            id=str(uuid.uuid4()),
-            scriptId=script_id,
-            userId=None,
-            visitorId=visitor_id,
-        )
-        db.add(like)
-        db.query(models.Script).filter(models.Script.id == script_id).update(
-            {models.Script.likes: models.Script.likes + 1}
-        )
-        db.commit()
-        return True, (script.likes or 0) + 1
+    q = db.query(models.ScriptLike).filter(models.ScriptLike.scriptId == script_id)
+    if user_id:
+        q = q.filter(models.ScriptLike.userId == user_id)
+    else:
+        q = q.filter(models.ScriptLike.visitorId == visitor_id)
 
-    # Logged-in users: simple toggle (1 like max)
-    q = db.query(models.ScriptLike).filter(
-        models.ScriptLike.scriptId == script_id,
-        models.ScriptLike.userId == user_id,
-    )
     existing = q.first()
     if existing:
         db.delete(existing)
@@ -299,8 +264,8 @@ def toggle_script_like(db: Session, script_id: str, *, user_id: str = None, visi
     like = models.ScriptLike(
         id=str(uuid.uuid4()),
         scriptId=script_id,
-        userId=user_id,
-        visitorId=None,
+        userId=user_id if user_id else None,
+        visitorId=visitor_id if not user_id else None,
     )
     db.add(like)
     db.query(models.Script).filter(models.Script.id == script_id).update(
@@ -322,12 +287,6 @@ def get_script_like_status(db: Session, script_id: str, *, user_id: str = None, 
     return q.first() is not None
 
 
-def get_visitor_like_count(db: Session, script_id: str, visitor_id: str) -> int:
-    """Return how many times this visitor has liked the script (0–10)."""
-    return db.query(models.ScriptLike).filter(
-        models.ScriptLike.scriptId == script_id,
-        models.ScriptLike.visitorId == visitor_id,
-    ).count()
 
 
 __all__ = [
@@ -338,5 +297,4 @@ __all__ = [
     "increment_script_view",
     "toggle_script_like",
     "get_script_like_status",
-    "get_visitor_like_count",
 ]
