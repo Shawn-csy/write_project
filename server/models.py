@@ -136,6 +136,7 @@ class Script(Base):
     organizationId = Column(String, ForeignKey("organizations.id"), nullable=True)
     personaId = Column(String, ForeignKey("personas.id"), nullable=True)
     disableCopy = Column(Boolean, default=False)  # Content protection: disable copy on public page
+    coverIsAiGenerated = Column(Boolean, default=False)
     licenseCommercial = Column(String, default="")
     licenseDerivative = Column(String, default="")
     licenseNotify = Column(String, default="")
@@ -206,9 +207,14 @@ class OrganizationRequest(Base):
 
 class ScriptLike(Base):
     __tablename__ = "script_likes"
+    __table_args__ = (
+        UniqueConstraint("scriptId", "userId", "visitorId", name="uq_script_likes_script_actor"),
+    )
 
-    userId = Column(String, ForeignKey("users.id"), primary_key=True)
-    scriptId = Column(String, ForeignKey("scripts.id", ondelete="CASCADE"), primary_key=True)
+    id = Column(String, primary_key=True, default=lambda: str(__import__("uuid").uuid4()))
+    scriptId = Column(String, ForeignKey("scripts.id", ondelete="CASCADE"), nullable=False, index=True)
+    userId = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+    visitorId = Column(String, nullable=True, index=True)
     createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
 
 

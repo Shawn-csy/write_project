@@ -65,6 +65,48 @@ export const incrementScriptView = async (scriptId: string): Promise<ScriptMutat
   return fetchApi<ScriptMutationResponse>(`/scripts/${scriptId}/view`, { method: "POST" });
 };
 
+export interface LikeStatusResponse {
+  liked: boolean;
+  likes: number;
+  likeCount?: number;
+}
+
+export interface PublicScriptStatsResponse {
+  contentLength: number;
+  estimatedMinutes: number;
+  views: number;
+  likes: number;
+}
+
+export const getVisitorId = (): string => {
+  const key = "visitor_id";
+  let id = localStorage.getItem(key);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(key, id);
+  }
+  return id;
+};
+
+export const publicToggleScriptLike = async (scriptId: string): Promise<LikeStatusResponse> => {
+  const visitorId = getVisitorId();
+  return fetchApi<LikeStatusResponse>(`/public-scripts/${scriptId}/like`, {
+    method: "POST",
+    body: JSON.stringify({ visitorId }),
+  });
+};
+
+export const getPublicScriptLikeStatus = async (scriptId: string): Promise<LikeStatusResponse> => {
+  const visitorId = getVisitorId();
+  return fetchApi<LikeStatusResponse>(
+    `/public-scripts/${scriptId}/like-status?visitorId=${encodeURIComponent(visitorId)}`
+  );
+};
+
+export const getPublicScriptStats = async (scriptId: string): Promise<PublicScriptStatsResponse> => {
+  return fetchApi<PublicScriptStatsResponse>(`/public-scripts/${scriptId}/stats`);
+};
+
 export const transferScriptOwnership = async (scriptId: string, targetUserId: string): Promise<ScriptMutationResponse> => {
   return fetchApi<ScriptMutationResponse>(`/scripts/${scriptId}/transfer`, {
     method: "POST",
