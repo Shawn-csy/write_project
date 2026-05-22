@@ -77,6 +77,55 @@ def _run_postgres_migrations():
         if inserted:
             print(f"Migrating: backfilled {inserted} persona_organization_membership rows from organizationIds JSON")
 
+        # Fix script_likes.scriptId FK: add ON DELETE CASCADE
+        fk_rows = conn.execute(text("""
+            SELECT tc.constraint_name
+            FROM information_schema.table_constraints tc
+            JOIN information_schema.key_column_usage kcu
+                ON tc.constraint_name = kcu.constraint_name
+            WHERE tc.table_name = 'script_likes'
+              AND tc.constraint_type = 'FOREIGN KEY'
+              AND kcu.column_name = 'scriptId'
+        """)).fetchall()
+        for row in fk_rows:
+            cname = row[0]
+            # Check if it already has CASCADE
+            rule = conn.execute(text("""
+                SELECT delete_rule FROM information_schema.referential_constraints
+                WHERE constraint_name = :cname
+            """), {"cname": cname}).fetchone()
+            if rule and rule[0].upper() != "CASCADE":
+                print(f"Migrating: script_likes.scriptId FK -> ON DELETE CASCADE")
+                conn.execute(text(f'ALTER TABLE script_likes DROP CONSTRAINT "{cname}"'))
+                conn.execute(text(
+                    'ALTER TABLE script_likes ADD CONSTRAINT "script_likes_scriptId_fkey" '
+                    'FOREIGN KEY ("scriptId") REFERENCES scripts(id) ON DELETE CASCADE'
+                ))
+
+        # Fix public_terms_acceptances.scriptId FK: add ON DELETE SET NULL
+        fk_rows = conn.execute(text("""
+            SELECT tc.constraint_name
+            FROM information_schema.table_constraints tc
+            JOIN information_schema.key_column_usage kcu
+                ON tc.constraint_name = kcu.constraint_name
+            WHERE tc.table_name = 'public_terms_acceptances'
+              AND tc.constraint_type = 'FOREIGN KEY'
+              AND kcu.column_name = 'scriptId'
+        """)).fetchall()
+        for row in fk_rows:
+            cname = row[0]
+            rule = conn.execute(text("""
+                SELECT delete_rule FROM information_schema.referential_constraints
+                WHERE constraint_name = :cname
+            """), {"cname": cname}).fetchone()
+            if rule and rule[0].upper() != "SET NULL":
+                print(f"Migrating: public_terms_acceptances.scriptId FK -> ON DELETE SET NULL")
+                conn.execute(text(f'ALTER TABLE public_terms_acceptances DROP CONSTRAINT "{cname}"'))
+                conn.execute(text(
+                    'ALTER TABLE public_terms_acceptances ADD CONSTRAINT "public_terms_acceptances_scriptId_fkey" '
+                    'FOREIGN KEY ("scriptId") REFERENCES scripts(id) ON DELETE SET NULL'
+                ))
+
         # Add layoutConfig column to marker_themes if missing
         result = conn.execute(text(
             "SELECT column_name FROM information_schema.columns "
