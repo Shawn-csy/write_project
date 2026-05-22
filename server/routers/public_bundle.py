@@ -1,5 +1,6 @@
 import time
 from fastapi import APIRouter, Depends
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 import crud_ops as crud
@@ -42,8 +43,8 @@ def _serialize_bundle_script(script):
 def _build_bundle(db: Session) -> dict:
     scripts = [public_router.sanitize_public_script(s) for s in crud.get_public_scripts(db)]
     serialized_scripts = [_serialize_bundle_script(s) for s in scripts]
-    personas = public_router.list_public_personas(db)
-    orgs = public_router.list_public_organizations(db)
+    personas = jsonable_encoder(public_router.list_public_personas(db))
+    orgs = jsonable_encoder(public_router.list_public_organizations(db))
     tag_scores: dict[str, int] = {}
     for script in scripts or []:
         views = getattr(script, "views", 0) or 0
@@ -54,12 +55,12 @@ def _build_bundle(db: Session) -> dict:
                 continue
             tag_scores[name] = tag_scores.get(name, 0) + (views if views > 0 else 1)
     top_tags = [name for name, _ in sorted(tag_scores.items(), key=lambda kv: kv[1], reverse=True)[:5]]
-    return {
+    return jsonable_encoder({
         "scripts": serialized_scripts,
         "personas": personas,
         "organizations": orgs,
         "topTags": top_tags,
-    }
+    })
 
 
 @router.get("/public-bundle")
