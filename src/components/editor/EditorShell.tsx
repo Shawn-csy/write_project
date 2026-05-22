@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FileSpreadsheet, FileText, FileUp, Printer } from "lucide-react";
 import { useAppearance } from "../../contexts/AppearanceContext";
 import { useMarkerThemeContext } from "../../contexts/MarkerThemeContext";
+import { useSettings } from "../../contexts/SettingsContext";
 import { useScriptManager } from "../../hooks/useScriptManager";
 import { useAppNavigation } from "../../hooks/useAppNavigation";
 import { useI18n } from "../../contexts/I18nContext";
@@ -15,11 +15,8 @@ import { trackPageView } from "../../lib/firebase";
 
 import { ScriptViewProvider } from "../../contexts/ScriptViewContext";
 import { useTextLocator } from "../../hooks/useTextLocator";
-import { loadBasicScriptExport, loadXlsxScriptExport } from "../../lib/scriptExportLoader";
-import { exportScriptToGoogleDocs } from "../../lib/api/export";
-import { getGoogleDocsAccessToken } from "../../lib/firebase";
-import { pickGoogleDriveFolder } from "../../lib/googleDrivePicker";
-import { buildGoogleDocsBlocksFromScript } from "../../lib/googleDocsExportModel";
+import { buildV2TableExportFromRenderedHtml } from "../../lib/v2/exportAdapter";
+import { useScriptDownloadOptions } from "../../hooks/shared/useScriptDownloadOptions";
 
 import type { NavProps } from "../../types/nav";
 import type { DownloadOption } from "../../types/routes";
@@ -57,6 +54,7 @@ export function EditorShell() {
   const scriptManager = useScriptManager(initialParamsRef, markerConfigs);
   const nav = useAppNavigation();
   const { t } = useI18n();
+  const { useV2Renderer } = useSettings();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -183,60 +181,31 @@ export function EditorShell() {
   const exportContent = rawScript || "";
   const renderedExportHtml = scriptManager.processedScriptHtml || scriptManager.rawScriptHtml || "";
 
-  const readerDownloadOptions: DownloadOption[] = useMemo(() => [
-    {
-      id: "pdf",
-      label: t("publicReader.exportPdf"),
-      icon: Printer,
-      onClick: () => handleExportPdf(),
-      disabled: !exportContent && !scriptManager.titleHtml,
-    },
-    {
-      id: "docx",
-      label: t("publicReader.downloadDoc"),
-      icon: FileText,
-      onClick: async () => {
-        const { exportScriptAsDocx } = await loadBasicScriptExport();
-        await exportScriptAsDocx(exportTitle, { text: exportContent, renderedHtml: renderedExportHtml });
-      },
-      disabled: !exportContent,
-    },
-    {
-      id: "xlsx",
-      label: t("publicReader.downloadXlsx"),
-      icon: FileSpreadsheet,
-      onClick: async () => {
-        const { exportScriptAsXlsx } = await loadXlsxScriptExport();
-        await exportScriptAsXlsx(exportTitle, { text: exportContent, renderedHtml: renderedExportHtml });
-      },
-      disabled: !exportContent,
-    },
-    {
-      id: "google-docs",
-      label: t("publicReader.exportGoogleDocs"),
-      icon: FileUp,
-      onClick: async () => {
-        const token = await getGoogleDocsAccessToken();
-        const folderId = await pickGoogleDriveFolder(token);
-        if (!folderId) return;
-        const docsBlocks = buildGoogleDocsBlocksFromScript(exportContent, effectiveMarkerConfigs as any);
-        if (docsBlocks.length === 0) {
-          throw new Error("Google Docs export failed: rendered output is empty, cannot build export blocks.");
-        }
-        const result = await exportScriptToGoogleDocs(exportTitle, {
-          text: exportContent,
-          renderedHtml: renderedExportHtml,
-          googleAccessToken: token,
-          folderId,
-          docsBlocks,
-        });
-        if (result?.documentUrl) {
-          window.open(result.documentUrl, "_blank", "noopener,noreferrer");
-        }
-      },
-      disabled: !exportContent,
-    },
-  ], [t, handleExportPdf, exportContent, exportTitle, renderedExportHtml, scriptManager.titleHtml, effectiveMarkerConfigs]);
+  const sharedReaderDownloadOptions: DownloadOption[] = useScriptDownloadOptions({
+    t,
+    title: exportTitle,
+    content: exportContent,
+    markerConfigs: effectiveMarkerConfigs as any,
+    getRenderedHtml: () => renderedExportHtml,
+    disablePdf: !exportContent && !scriptManager.titleHtml,
+    disableDocx: !exportContent,
+    disableXlsx: !exportContent,
+    disableGoogleDocs: !exportContent,
+    preferTableForGoogleDocs: !!useV2Renderer,
+    enableGoogleDocsTable: !!useV2Renderer,
+    showGoogleDocsTableOption: true,
+    fallbackToClassicWhenTableMissing: !useV2Renderer,
+    resolveTableExport: (html) => buildV2TableExportFromRenderedHtml(html),
+  });
+
+  const readerDownloadOptions: DownloadOption[] = useMemo(
+    () => sharedReaderDownloadOptions.map((opt) => (
+      opt.id === "pdf"
+        ? { ...opt, onClick: () => handleExportPdf() }
+        : opt
+    )),
+    [sharedReaderDownloadOptions, handleExportPdf]
+  );
 
   const isPublicReader = location.pathname.startsWith("/read/");
   const isPublicGallery = location.pathname === "/";

@@ -5,23 +5,37 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, Di
 import { AppearanceSettings } from "../settings/AppearanceSettings";
 import { useI18n } from "../../contexts/I18nContext";
 
-export function ReaderAppearanceMenu() {
+interface ReaderAppearanceMenuProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
+}
+
+export function ReaderAppearanceMenu({ open, onOpenChange, hideTrigger = false }: ReaderAppearanceMenuProps) {
   const { t } = useI18n();
-  const [open, setOpen] = React.useState(false);
+  const [internalOpen, setInternalOpen] = React.useState(false);
   const sectionRef = React.useRef<HTMLDivElement | null>(null);
+  const isControlled = typeof open === "boolean";
+  const resolvedOpen = isControlled ? Boolean(open) : internalOpen;
+  const setOpen = (next: boolean) => {
+    if (!isControlled) setInternalOpen(next);
+    onOpenChange?.(next);
+  };
 
   return (
     <>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md"
-        aria-label={t("readerAppearance.title")}
-        onClick={() => setOpen(true)}
-      >
-        <Settings2 className="h-5 w-5" />
-      </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
+      {!hideTrigger && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md"
+          aria-label={t("readerAppearance.title")}
+          onClick={() => setOpen(true)}
+        >
+          <Settings2 className="h-5 w-5" />
+        </Button>
+      )}
+      <Dialog open={resolvedOpen} onOpenChange={setOpen}>
         <DialogContent className="w-[min(96vw,980px)] max-w-none p-0 overflow-hidden flex max-h-[92vh] flex-col [&>button]:hidden">
           <DialogHeader className="border-b px-4 py-3 pr-14">
             <div className="flex items-center justify-between gap-3">

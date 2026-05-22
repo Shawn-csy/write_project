@@ -531,6 +531,7 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         isSaving, handleSave,
         // section data / setters exposed for sub-sections
         title, setTitle,
+        previewContent: String((activeScript as { content?: unknown } | null | undefined)?.content || ""),
         identity, setIdentity,
         author, setAuthorWithTracking,
         authorDisplayMode, setAuthorDisplayModeWithTracking,

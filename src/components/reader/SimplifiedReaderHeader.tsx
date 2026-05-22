@@ -1,12 +1,22 @@
 import React from "react";
-import { ArrowLeft, Share2, HelpCircle } from "lucide-react";
+import { ArrowLeft, Share2, Moon, Sun, MoreHorizontal, Globe, Eye, Download, HelpCircle, Palette } from "lucide-react";
 import { Button } from "../ui/button";
 import { ReaderAppearanceMenu } from "./ReaderAppearanceMenu";
 import { ReaderTOC } from "./ReaderTOC";
-import { MarkerVisibilitySelect } from "../ui/MarkerVisibilitySelect";
-import { DownloadMenu } from "../common/DownloadMenu";
-import { LanguageSwitcher } from "../common/LanguageSwitcher";
 import { useI18n } from "../../contexts/I18nContext";
+import { useTheme } from "../theme-provider";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuCheckboxItem,
+} from "../ui/dropdown-menu";
 
 interface DownloadOption {
   id: string;
@@ -72,12 +82,24 @@ export function SimplifiedReaderHeader({
   onToggleMarker,
   className = "",
 }: SimplifiedReaderHeaderProps) {
-  const { t } = useI18n();
+  const { t, lang, setLang } = useI18n();
+  const { resolvedTheme, setTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+  const [appearanceOpen, setAppearanceOpen] = React.useState(false);
+  const visibleMarkerIds = React.useMemo(() => {
+    if (!Array.isArray(markerConfigs) || markerConfigs.length === 0) return [];
+    const hidden = Array.isArray(hiddenMarkerIds) ? hiddenMarkerIds : [];
+    return markerConfigs.filter((c) => !hidden.includes(c.id)).map((c) => c.id);
+  }, [markerConfigs, hiddenMarkerIds]);
+  const activeDownloadOptions = React.useMemo(
+    () => (downloadOptions || []).filter((opt) => !opt?.hidden),
+    [downloadOptions]
+  );
 
   return (
     <header
       data-guide-id="public-guide-header"
-      className={`fixed top-0 left-0 right-0 h-14 md:h-16 px-4 z-50 flex items-center justify-between transition-all duration-300 ${className}`}
+      className={`fixed top-0 left-0 right-0 h-14 md:h-16 px-4 z-40 flex items-center justify-between transition-all duration-300 ${className}`}
     >
       {/* Left: Back */}
       <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -117,47 +139,16 @@ export function SimplifiedReaderHeader({
 
       {/* Right: Actions */}
       <div data-guide-id="public-guide-actions" className="flex items-center gap-2 shrink-0">
-        {onOpenGuide ? (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onOpenGuide}
-            className="rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md"
-            title={t("publicReader.guide")}
-            aria-label={t("publicReader.guide")}
-          >
-            <HelpCircle className="w-4 h-4" />
-          </Button>
-        ) : null}
-        <LanguageSwitcher
-          ariaLabel={t("settings.language")}
-          buttonClassName="bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md border-0"
-          selectClassName="bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md border-0"
-        />
-        
-        {/* Marker Visibility Select (Desktop) */}
-         <div className="hidden sm:block w-[84px]">
-          <MarkerVisibilitySelect
-            markerConfigs={markerConfigs}
-            hiddenMarkerIds={hiddenMarkerIds}
-            onToggleMarker={onToggleMarker}
-            compact
-            iconOnly
-            triggerClassName="h-8 px-2 text-xs w-full rounded-md bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md border-0 transition-all font-medium"
-            contentAlign="end"
-            titlePrefix={t("editorHeader.markerPrefix")}
-          />
-         </div>
-
-        {/* Appearance Settings */}
-        <ReaderAppearanceMenu />
-
-        <DownloadMenu
-          options={downloadOptions}
-          title={t("common.download")}
-          triggerClassName="rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md hidden sm:inline-flex"
-        />
-        
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setTheme(isDark ? "light" : "dark")}
+          className="rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md"
+          title={isDark ? t("appearance.light") : t("appearance.dark")}
+          aria-label={isDark ? t("appearance.light") : t("appearance.dark")}
+        >
+          {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </Button>
         {onShare && (
              <Button
                 variant="ghost"
@@ -169,6 +160,81 @@ export function SimplifiedReaderHeader({
                 <Share2 className="w-4 h-4" />
               </Button>
         )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md"
+              title={t("common.more", "更多")}
+              aria-label={t("common.more", "更多")}
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>{t("common.settings", "設定")}</DropdownMenuLabel>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <Globe className="mr-2 h-4 w-4" />
+                {t("settings.language")}
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                <DropdownMenuItem onClick={() => setLang("zh-TW")} disabled={lang === "zh-TW"}>{t("settings.languageZh")}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLang("en")} disabled={lang === "en"}>{t("settings.languageEn")}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLang("ja")} disabled={lang === "ja"}>{t("settings.languageJa")}</DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <Eye className="mr-2 h-4 w-4" />
+                {t("markerVisibility.label")}
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="w-56">
+                {markerConfigs.map((config) => {
+                  const id = String(config.id || "");
+                  const checked = visibleMarkerIds.includes(id);
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={id}
+                      checked={checked}
+                      onCheckedChange={() => onToggleMarker(id)}
+                    >
+                      {config.label || id}
+                    </DropdownMenuCheckboxItem>
+                  );
+                })}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            <DropdownMenuItem onClick={() => setAppearanceOpen(true)}>
+              <Palette className="mr-2 h-4 w-4" />
+              {t("readerAppearance.title")}
+            </DropdownMenuItem>
+            {onOpenGuide ? (
+              <DropdownMenuItem onClick={onOpenGuide}>
+                <HelpCircle className="mr-2 h-4 w-4" />
+                {t("publicReader.guide")}
+              </DropdownMenuItem>
+            ) : null}
+            {activeDownloadOptions.length > 0 && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>{t("common.download")}</DropdownMenuLabel>
+                {activeDownloadOptions.map((opt) => (
+                  <DropdownMenuItem
+                    key={opt.id}
+                    disabled={Boolean(opt.disabled)}
+                    onClick={(e) => opt.onClick?.(e)}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    {opt.label}
+                  </DropdownMenuItem>
+                ))}
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <ReaderAppearanceMenu open={appearanceOpen} onOpenChange={setAppearanceOpen} hideTrigger />
       </div>
     </header>
   );

@@ -45,6 +45,31 @@ export function buildPrintHtml({
       .no-print {
         display: none !important;
       }
+      /* V2 multi-column print overrides */
+      [data-v2-presentation="columns"] {
+        font-size: 9pt !important;
+      }
+      [data-v2-presentation="columns"] p {
+        font-size: 9pt !important;
+        line-height: 1.3 !important;
+      }
+      /* Hide line-number gutter */
+      [data-v2-presentation="columns"] .grid > div:first-child:not([data-track-id]) {
+        display: none !important;
+      }
+      /* Collapse gutter column from grid template */
+      [data-v2-presentation="columns"] .grid {
+        grid-template-columns: var(--v2-track-columns) !important;
+      }
+      /* Shrink cell padding */
+      [data-v2-presentation="columns"] article {
+        padding: 2pt 4pt !important;
+      }
+      /* Hide sticky header backdrop blur (print doesn't need it) */
+      [data-v2-presentation="columns"] .sticky {
+        position: static !important;
+        backdrop-filter: none !important;
+      }
     }
 
     /* Base Layout for the Print View (before printing) */

@@ -36,6 +36,8 @@ export interface MockMeta {
   authors: string;
   headerAuthor: string;
   license: string;
+  targetAudience: string;
+  contentRating: string;
   commercialUse: string;
   derivativeUse: string;
   notifyOnModify: string;
@@ -55,6 +57,12 @@ export interface MockMeta {
   customFields: { key: string; value: string }[];
   showMarkerLegend: boolean;
 }
+
+const AUDIENCE_TAGS = new Set(["男性向", "女性向", "全性向"]);
+const RATING_TAGS = new Set(["一般", "R-18", "r18", "一般內容", "全年齡向", "成人向", "18+"]);
+
+const pickTagByGroup = (tags: string[], group: Set<string>) =>
+  tags.find((tag) => group.has(String(tag || "").trim()));
 
 // Helper for robust list parsing (handles double-encoded JSON strings)
 const ensureList = (val: unknown): unknown[] => {
@@ -218,6 +226,9 @@ export function usePublicReaderScript({ id, scriptManager }: Props) {
                   : undefined,
               } : null);
 
+          const normalizedTags = Array.isArray(script.tags)
+            ? script.tags.map((tag) => (typeof tag === "string" ? tag : String(tag?.name || ""))).filter(Boolean)
+            : [];
           const basicLicenseFromMeta = parseBasicLicenseFromMeta(meta);
           const personaLicense = parseBasicLicenseFromMeta({
             licensecommercial: script.persona?.defaultLicenseCommercial || "",
@@ -234,9 +245,7 @@ export function usePublicReaderScript({ id, scriptManager }: Props) {
             coverUrl: script.coverUrl || null,
             author: resolvedAuthor,
             organization: resolvedOrganization,
-            tags: Array.isArray(script.tags)
-              ? script.tags.map((tag) => (typeof tag === "string" ? tag : String(tag?.name || ""))).filter(Boolean)
-              : [],
+            tags: normalizedTags,
             synopsis: meta.synopsis || meta.summary || "",
             description: meta.description || meta.notes || "",
             date: script.draftDate || meta.date || meta.draftdate || "",
@@ -246,6 +255,8 @@ export function usePublicReaderScript({ id, scriptManager }: Props) {
             authors: meta.authors || "",
             headerAuthor: meta.author || "",
             license: meta.license || "",
+            targetAudience: pickTagByGroup(normalizedTags, AUDIENCE_TAGS) || "",
+            contentRating: pickTagByGroup(normalizedTags, RATING_TAGS) || "",
             ...basicLicense,
             licenseSpecialTerms: ensureList(meta.licensespecialterms || meta.licenseSpecialTerms),
             licenseTags: deriveSimpleLicenseTags(basicLicense),
@@ -366,7 +377,7 @@ They discover a glowing artifact.
             tags: ["Sci-Fi", "Thriller"],
             synopsis: "Two astronauts on a distant moon discover a time-bending anomaly.",
             description: "", date: "", contact: "", source: "", credit: "", authors: "",
-            headerAuthor: "", license: "", commercialUse: "", derivativeUse: "", notifyOnModify: "",
+            headerAuthor: "", license: "", targetAudience: "", contentRating: "", commercialUse: "", derivativeUse: "", notifyOnModify: "",
             licenseSpecialTerms: [], licenseTags: [], seriesName: "", seriesOrder: null,
             prefaceItems: [], activity: { name: "", bannerUrl: "", content: "", demoUrl: "", demoLinks: [], workUrl: "" },
             customFields: [], showMarkerLegend: false,

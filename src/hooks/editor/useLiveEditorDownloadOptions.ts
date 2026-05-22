@@ -1,24 +1,14 @@
-import { useCallback, useMemo } from "react";
-import { FileSpreadsheet, FileText, FileUp, Printer, Table } from "lucide-react";
-import { loadBasicScriptExport, loadXlsxScriptExport } from "../../lib/scriptExportLoader";
-import { exportScriptToGoogleDocs, exportTableV2ToGoogleDocs } from "../../lib/api/export";
-import { getGoogleDocsAccessToken } from "../../lib/firebase";
-import { pickGoogleDriveFolder } from "../../lib/googleDrivePicker";
-import { buildGoogleDocsBlocksFromScript } from "../../lib/googleDocsExportModel";
+import { useCallback } from "react";
 import { buildV2TableExport, buildV2TableExportFromRenderedHtml } from "../../lib/v2/exportAdapter";
 import type { OrchestratedDocument } from "../../lib/v2/types";
 import type { MarkerConfig } from "../../types/script";
+import { useScriptDownloadOptions } from "../shared/useScriptDownloadOptions";
 
 interface RenderedHtmlRef {
   current: {
     processed?: string;
     raw?: string;
   };
-}
-
-interface ExportPayload {
-  text: string;
-  renderedHtml: string;
 }
 
 interface UseLiveEditorDownloadOptionsParams {
@@ -29,6 +19,7 @@ interface UseLiveEditorDownloadOptionsParams {
   ensureRenderedHtml?: () => Promise<string>;
   markerConfigs?: MarkerConfig[];
   orchestratedDoc?: OrchestratedDocument | null;
+  isV2RendererEnabled?: boolean;
 }
 
 export function useLiveEditorDownloadOptions({
@@ -39,103 +30,34 @@ export function useLiveEditorDownloadOptions({
   ensureRenderedHtml,
   markerConfigs = [],
   orchestratedDoc,
+  isV2RendererEnabled = false,
 }: UseLiveEditorDownloadOptionsParams) {
-  const runRenderedExport = useCallback(
-    async (exporter: (payload: ExportPayload) => Promise<void>) => {
-      let currentHtml = renderedHtmlRef.current.processed || renderedHtmlRef.current.raw;
-      if (!currentHtml && ensureRenderedHtml) {
-        currentHtml = await ensureRenderedHtml();
-      }
-      if (currentHtml) {
-        await exporter({ text: content, renderedHtml: currentHtml });
-        return;
-      }
-      await exporter({ text: content, renderedHtml: "" });
-    },
-    [content, ensureRenderedHtml, renderedHtmlRef]
+  const getRenderedHtml = useCallback(async () => {
+    let currentHtml = renderedHtmlRef.current.processed || renderedHtmlRef.current.raw;
+    if (!currentHtml && ensureRenderedHtml) {
+      currentHtml = await ensureRenderedHtml();
+    }
+    return currentHtml || "";
+  }, [ensureRenderedHtml, renderedHtmlRef]);
+
+  const resolveTableExport = useCallback(
+    (renderedHtml: string) => (
+      buildV2TableExportFromRenderedHtml(renderedHtml)
+      || (orchestratedDoc ? buildV2TableExport(orchestratedDoc, markerConfigs) : null)
+    ),
+    [orchestratedDoc, markerConfigs]
   );
 
-  return useMemo(
-    () => [
-      {
-        id: "pdf",
-        label: t("publicReader.exportPdf"),
-        icon: Printer,
-        onClick: async () => {
-          const { exportScriptAsPdf } = await loadBasicScriptExport();
-          await runRenderedExport((payload: ExportPayload) => exportScriptAsPdf(title, payload));
-        },
-      },
-      {
-        id: "docx",
-        label: t("publicReader.downloadDoc"),
-        icon: FileText,
-        onClick: async () => {
-          const { exportScriptAsDocx } = await loadBasicScriptExport();
-          await runRenderedExport((payload: ExportPayload) => exportScriptAsDocx(title, payload));
-        },
-      },
-      {
-        id: "xlsx",
-        label: t("publicReader.downloadXlsx"),
-        icon: FileSpreadsheet,
-        onClick: async () => {
-          const { exportScriptAsXlsx } = await loadXlsxScriptExport();
-          await runRenderedExport((payload: ExportPayload) => exportScriptAsXlsx(title, payload));
-        },
-      },
-      {
-        id: "google-docs",
-        label: t("publicReader.exportGoogleDocs"),
-        icon: FileUp,
-        onClick: async () => {
-          const token = await getGoogleDocsAccessToken();
-          const folderId = await pickGoogleDriveFolder(token);
-          if (!folderId) return;
-          await runRenderedExport(async (payload: ExportPayload) => {
-            const docsBlocks = buildGoogleDocsBlocksFromScript(content, markerConfigs);
-            if (docsBlocks.length === 0) {
-              throw new Error("Google Docs export failed: rendered output is empty, cannot build export blocks.");
-            }
-            const result = await exportScriptToGoogleDocs(title, {
-              ...payload,
-              googleAccessToken: token,
-              folderId,
-              docsBlocks,
-            });
-            if (result?.documentUrl) {
-              window.open(result.documentUrl, "_blank", "noopener,noreferrer");
-            }
-          });
-        },
-      },
-      ...(orchestratedDoc
-        ? [
-            {
-              id: "google-docs-table",
-              label: t("publicReader.exportGoogleDocsTable"),
-              icon: Table,
-              onClick: async () => {
-                const token = await getGoogleDocsAccessToken();
-                const folderId = await pickGoogleDriveFolder(token);
-                if (!folderId) return;
-                await runRenderedExport(async (payload: ExportPayload) => {
-                  const tableExport = buildV2TableExportFromRenderedHtml(payload.renderedHtml)
-                    || buildV2TableExport(orchestratedDoc, markerConfigs);
-                  const result = await exportTableV2ToGoogleDocs(title, {
-                    ...tableExport,
-                    googleAccessToken: token,
-                    folderId,
-                  });
-                  if (result?.documentUrl) {
-                    window.open(result.documentUrl, "_blank", "noopener,noreferrer");
-                  }
-                });
-              },
-            },
-          ]
-        : []),
-    ],
-    [content, runRenderedExport, t, title, markerConfigs, orchestratedDoc]
-  );
+  return useScriptDownloadOptions({
+    t,
+    title,
+    content,
+    markerConfigs,
+    getRenderedHtml,
+    preferTableForGoogleDocs: !!orchestratedDoc,
+    enableGoogleDocsTable: isV2RendererEnabled && !!orchestratedDoc,
+    fallbackToClassicWhenTableMissing: !isV2RendererEnabled,
+    showGoogleDocsTableOption: true,
+    resolveTableExport,
+  });
 }

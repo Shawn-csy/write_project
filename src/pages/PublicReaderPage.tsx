@@ -32,12 +32,21 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
     markerConfigs: publicMarkerConfigs,
   });
 
-  const fullScriptData = useMemo(() => ({
-    ...scriptManager.activeCloudScript,
-    content: scriptManager.rawScript,
-    title: scriptManager.titleName,
-    ...mockMeta,
-  }), [scriptManager.activeCloudScript, scriptManager.rawScript, scriptManager.titleName, mockMeta]);
+  const fullScriptData = useMemo(() => {
+    const merged = {
+      ...scriptManager.activeCloudScript,
+      content: scriptManager.rawScript,
+      title: scriptManager.titleName,
+      ...mockMeta,
+    };
+    const normalizedTags = Array.isArray(merged?.tags)
+      ? merged.tags.map((tag) => (typeof tag === "string" ? tag : String(tag?.name || ""))).filter(Boolean)
+      : [];
+    return {
+      ...merged,
+      tags: normalizedTags,
+    };
+  }, [scriptManager.activeCloudScript, scriptManager.rawScript, scriptManager.titleName, mockMeta]);
 
   const structuredData = useMemo(() => {
     if (!fullScriptData?.id || !fullScriptData?.title) return null;

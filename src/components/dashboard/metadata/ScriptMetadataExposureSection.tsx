@@ -75,7 +75,9 @@ export function ScriptMetadataExposureSection({
             <p className="text-xs text-muted-foreground">
               使用發布身分時，公開頁作者可連到作者頁；自訂顯示名稱只顯示文字，不會連到作者頁。
             </p>
-            <Input id="metadata-author" value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="覆蓋顯示的作者名稱..." />
+            {authorDisplayMode === "override" && (
+              <Input id="metadata-author" value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="自訂作者顯示名稱..." />
+            )}
           </div>
         </div>
         <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">

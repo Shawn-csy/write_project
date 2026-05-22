@@ -1,14 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FileSpreadsheet, FileText, FileUp, Printer } from "lucide-react";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useI18n } from "../../contexts/I18nContext";
-import { loadBasicScriptExport, loadXlsxScriptExport } from "../../lib/scriptExportLoader";
 import { normalizeActivityDemoLinks } from "../../lib/activityDemoLinks";
 import type { DownloadOption } from "../../types/routes";
-import { exportScriptToGoogleDocs } from "../../lib/api/export";
-import { getGoogleDocsAccessToken } from "../../lib/firebase";
-import { pickGoogleDriveFolder } from "../../lib/googleDrivePicker";
-import { buildGoogleDocsBlocksFromScript } from "../../lib/googleDocsExportModel";
+import type { MarkerConfig } from "../../types/script";
+import { buildV2TableExportFromRenderedHtml } from "../../lib/v2/exportAdapter";
+import { useScriptDownloadOptions } from "../shared/useScriptDownloadOptions";
 
 const PUBLIC_READER_GUIDE_STORAGE_KEY = "public-reader-guide-seen-v1";
 const PUBLIC_READER_TOC_OPEN_STORAGE_KEY = "public-reader-toc-open-v1";
@@ -25,6 +22,11 @@ interface PublicReaderScriptData {
   author?: { id?: string; displayName?: string; name?: string } | null;
   organization?: { id?: string; name?: string; displayName?: string; logoUrl?: string; avatar?: string; avatarUrl?: string } | null;
   synopsis?: string;
+  license?: string;
+  tags?: string[];
+  targetAudience?: string;
+  contentRating?: string;
+  customFields?: Array<{ key?: string; value?: string }>;
   commercialUse?: string;
   derivativeUse?: string;
   notifyOnModify?: string;
@@ -42,6 +44,7 @@ interface PublicReaderScriptData {
 interface ViewerProps {
   onProcessedHtml?: (html: string) => void;
   onRawHtml?: (html: string) => void;
+  useV2Renderer?: boolean;
   sceneList?: Array<{ id: string; label: string }>;
   scenes?: Array<{ id: string; label: string }>;
   activeSceneId?: string;
@@ -67,6 +70,11 @@ export function usePublicReaderLayoutState({ script, isLoading, viewerProps, scr
     author,
     organization,
     synopsis,
+    license,
+    tags,
+    targetAudience,
+    contentRating,
+    customFields,
     commercialUse,
     derivativeUse,
     notifyOnModify,
@@ -183,74 +191,25 @@ export function usePublicReaderLayoutState({ script, isLoading, viewerProps, scr
     },
   }), [viewerProps, externalOnProcessedHtml, externalOnRawHtml]);
 
-  const downloadOptions: DownloadOption[] = [
-    {
-      id: "pdf",
-      label: t("publicReader.exportPdf"),
-      icon: Printer,
-      onClick: async () => {
-        const { exportScriptAsPdf } = await loadBasicScriptExport();
-        await exportScriptAsPdf(exportBaseName, {
-          text: rawScript || "",
-          renderedHtml: exportRenderedHtml || exportRawHtml || renderedHtml || "",
-          headerHtml: pdfHeaderHtml,
-        });
-      },
-      disabled: !rawScript && !title,
-    },
-    {
-      id: "docx",
-      label: t("publicReader.downloadDoc"),
-      icon: FileText,
-      onClick: async () => {
-        const { exportScriptAsDocx } = await loadBasicScriptExport();
-        await exportScriptAsDocx(exportBaseName, {
-          text: rawScript || "",
-          renderedHtml: exportRenderedHtml || exportRawHtml || renderedHtml || "",
-        });
-      },
-      disabled: !rawScript,
-    },
-    {
-      id: "xlsx",
-      label: t("publicReader.downloadXlsx"),
-      icon: FileSpreadsheet,
-      onClick: async () => {
-        const { exportScriptAsXlsx } = await loadXlsxScriptExport();
-        await exportScriptAsXlsx(exportBaseName, {
-          text: rawScript || "",
-          renderedHtml: exportRenderedHtml || exportRawHtml || renderedHtml || "",
-        });
-      },
-      disabled: !rawScript,
-    },
-    {
-      id: "google-docs",
-      label: t("publicReader.exportGoogleDocs"),
-      icon: FileUp,
-      onClick: async () => {
-        const token = await getGoogleDocsAccessToken();
-        const folderId = await pickGoogleDriveFolder(token);
-        if (!folderId) return;
-        const effectiveRenderedHtml = exportRenderedHtml || exportRawHtml || renderedHtml || "";
-        const docsBlocks = buildGoogleDocsBlocksFromScript(rawScript || "", exportMarkerConfigs as any);
-        if (docsBlocks.length === 0) {
-          throw new Error("Google Docs export failed: rendered output is empty, cannot build export blocks.");
-        }
-        const result = await exportScriptToGoogleDocs(exportBaseName, {
-          text: rawScript || "",
-          renderedHtml: effectiveRenderedHtml,
-          googleAccessToken: token,
-          folderId,
-          docsBlocks,
-        });
-        if (result?.documentUrl) {
-          window.open(result.documentUrl, "_blank", "noopener,noreferrer");
-        }
-      },
-      disabled: !rawScript,
-    },
-  ];
+  const downloadOptions: DownloadOption[] = useScriptDownloadOptions({
+    t,
+    title: exportBaseName,
+    content: rawScript || "",
+    markerConfigs: exportMarkerConfigs as MarkerConfig[],
+    getRenderedHtml: () => exportRenderedHtml || exportRawHtml || renderedHtml || "",
+    pdfHeaderHtml,
+    disablePdf: !rawScript && !title,
+    disableDocx: !rawScript,
+    disableXlsx: !rawScript,
+    disableGoogleDocs: !rawScript,
+    showPdf: true,
+    showDocx: false,
+    showXlsx: false,
+    showGoogleDocs: false,
+    enableGoogleDocsTable: !!mergedViewerProps?.useV2Renderer,
+    showGoogleDocsTableOption: false,
+    resolveTableExport: (html) => buildV2TableExportFromRenderedHtml(html),
+  });
 
   // Guide state
   const [titleVisible, setTitleVisible] = useState(false);
@@ -457,7 +416,7 @@ export function usePublicReaderLayoutState({ script, isLoading, viewerProps, scr
     t,
     hideWhitespace,
     // script data
-    title, author, organization, synopsis,
+    title, author, organization, synopsis, license, tags, targetAudience, contentRating, customFields,
     commercialUse, derivativeUse, notifyOnModify,
     seriesName, prefaceItems, coverUrl, rawScript, disableCopy,
     // computed

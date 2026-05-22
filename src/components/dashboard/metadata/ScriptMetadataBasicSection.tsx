@@ -16,7 +16,7 @@ export function ScriptMetadataBasicSection({
     roleSetting, setRoleSetting, backgroundInfo, setBackgroundInfo, performanceInstruction, setPerformanceInstruction,
     openingIntro, setOpeningIntro, chapterSettings, setChapterSettings,
   } = useContentContext();
-  const { identity, setIdentity, selectedOrgId, setSelectedOrgId, status } = usePublicationContext();
+  const { identity, setIdentity, selectedOrgId, setSelectedOrgId, status, setStatus } = usePublicationContext();
 
   return (
     <section id={sectionId || undefined} className="space-y-3 scroll-mt-24">
@@ -33,7 +33,7 @@ export function ScriptMetadataBasicSection({
         selectedOrgId={selectedOrgId || ""}
         setSelectedOrgId={setSelectedOrgId}
         status={String(status || "")}
-        setStatus={() => {}}
+        setStatus={setStatus}
         date={date}
         setDate={setDate}
         synopsis={synopsis}
