@@ -1,7 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { getPublicScript } from "../../../lib/api/public";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useToast } from "../../ui/toast";
 import { useI18n } from "../../../contexts/I18nContext";
@@ -12,6 +11,7 @@ import { useScriptTags } from "../../../hooks/dashboard/useScriptTags";
 import { useScriptMetadataSave } from "../../../hooks/dashboard/useScriptMetadataSave";
 import { useScriptMetadataGuide } from "../../../hooks/dashboard/useScriptMetadataGuide";
 import { useScriptMetadataBootstrap } from "../../../hooks/dashboard/useScriptMetadataBootstrap";
+import type { BootstrapPreloadedData } from "../../../hooks/dashboard/useScriptMetadataBootstrap";
 import { useScriptMetadataHydration } from "../../../hooks/dashboard/useScriptMetadataHydration";
 import { useScriptMetadataLifecycle } from "../../../hooks/dashboard/useScriptMetadataLifecycle";
 import { useScriptMetadataPersonaSync } from "../../../hooks/dashboard/useScriptMetadataPersonaSync";
@@ -36,12 +36,20 @@ export interface ScriptMetadataDialogProps {
     onSave: (script: BaseScriptApi) => void;
     seriesOptions?: Array<{ id: string; name: string }>;
     onSeriesCreated?: (series: SeriesLike) => void;
+    /** @deprecated No longer used. Will be removed in a future version. */
     fetchFullScript?: boolean;
     saveScript?: ((id: string, payload: Partial<BaseScriptApi> & { author?: string }, extra?: Record<string, unknown>) => Promise<BaseScriptApi>) | null;
     syncScriptTags?: ((id: string, tags: TagLike[]) => Promise<void>) | null;
     disableAuthorAutofill?: boolean;
     preserveAuthorInternalData?: boolean;
+    /**
+     * Pre-loaded bootstrap data from the caller (personas, orgs, markerThemes).
+     * When provided, the dialog skips fetching these on open — zero extra API calls.
+     */
+    preloadedData?: BootstrapPreloadedData;
 }
+
+export type { BootstrapPreloadedData };
 
 // The context value type is inferred from useScriptMetadataDialogState return
 // We use ReturnType trick to keep it in sync automatically
@@ -64,11 +72,11 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         onSave,
         seriesOptions = [],
         onSeriesCreated,
-        fetchFullScript = true,
         saveScript = null,
         syncScriptTags = null,
         disableAuthorAutofill = false,
         preserveAuthorInternalData = false,
+        preloadedData,
     } = props;
 
     const { t } = useI18n();
@@ -166,7 +174,6 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
     const userEditedRef = useRef(false);
     const contactAutoFilledRef = useRef(false);
     const authorEditedRef = useRef(false);
-    const publicLoadedRef = useRef<string | null>(null);
 
     const [localScript, setLocalScript] = useState<BaseScriptApi | null>(null);
     const activeScript = scriptId ? localScript : (localScript || script);
@@ -215,6 +222,7 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         setOrgs,
         setMarkerThemes,
         setShowPersonaSetupDialog,
+        preloadedData,
     });
 
     const setActivityDemoLinksAdapter = useCallback(
@@ -248,38 +256,6 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
     });
 
     const setCurrentTagsAdapter = useCallback((v: TagLike[]) => { setCurrentTags(v); }, [setCurrentTags]);
-
-    const applyPublicInfo = useCallback((publicScript: Record<string, unknown> | null | undefined) => {
-        if (!publicScript) return;
-        setStatus(prev => String(publicScript.status || (publicScript.isPublic ? "Public" : prev)));
-        if (publicScript.personaId) {
-            setIdentity(`persona:${publicScript.personaId}`);
-            setSelectedOrgId(String(publicScript.organizationId || ""));
-        } else if (publicScript.organizationId) {
-            setSelectedOrgId(String(publicScript.organizationId || ""));
-        }
-        if (publicScript.coverUrl) setCoverUrl(String(publicScript.coverUrl));
-        if (publicScript.markerThemeId) setMarkerThemeId(String(publicScript.markerThemeId));
-        if (publicScript.disableCopy !== undefined && publicScript.disableCopy !== null) {
-            setDisableCopy(Boolean(publicScript.disableCopy));
-        }
-        if (publicScript.tags && Array.isArray(publicScript.tags) && publicScript.tags.length > 0) {
-            setCurrentTags(publicScript.tags as TagLike[]);
-        }
-    }, [setStatus, setIdentity, setSelectedOrgId, setCoverUrl, setMarkerThemeId, setDisableCopy, setCurrentTags]);
-
-    const loadPublicInfoIfNeeded = useCallback(async (baseScript: Record<string, unknown> | null | undefined) => {
-        if (!baseScript?.id) return;
-        if (!(baseScript.isPublic || baseScript.status === "Public")) return;
-        if (publicLoadedRef.current === String(baseScript.id)) return;
-        try {
-            const pub = await getPublicScript(String(baseScript.id));
-            publicLoadedRef.current = String(baseScript.id);
-            applyPublicInfo(pub);
-        } catch (e) {
-            console.warn("Failed to load public script info", e);
-        }
-    }, [publicLoadedRef, applyPublicInfo]);
 
     const setSeriesOrderStrAdapter = useCallback((v: string) => { setSeriesOrder(v); }, [setSeriesOrder]);
     const setSeriesOrderAdapter = useCallback((v: string | number) => { setSeriesOrder(String(v)); }, [setSeriesOrder]);
@@ -361,9 +337,9 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
     });
 
     const hydrateScriptState = useScriptMetadataHydration({
-        fetchFullScript, disableAuthorAutofill,
+        disableAuthorAutofill,
         disablePersonaAutofill: preserveAuthorInternalData,
-        customFields, ensureList, loadPublicInfoIfNeeded, userEditedRef,
+        customFields, ensureList, userEditedRef,
         setIsInitializing, setTitle, setCoverUrl, setStatus, setCurrentTags,
         setMarkerThemeId, setShowMarkerLegend, setDisableCopy, setTargetAudience,
         setContentRating, setIdentity, setSelectedOrgId, setAuthor, setAuthorDisplayMode,
@@ -380,7 +356,7 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         open, scriptId,
         script: script as ScriptLike | null,
         localScript, setLocalScript, hydrateScriptState,
-        initializedRef, userEditedRef, authorEditedRef, contactAutoFilledRef, publicLoadedRef,
+        initializedRef, userEditedRef, authorEditedRef, contactAutoFilledRef,
         setActiveTab, setIsInitializing, setIsMediaPickerOpen, setCoverPreviewFailed,
         setCoverUploadError, setCoverUploadWarning, setShowAllChecklistChips,
         setSeriesExpanded, setShowSeriesQuickCreate, setShowValidationHints, setShowPersonaSetupDialog,
@@ -532,6 +508,7 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         // section data / setters exposed for sub-sections
         title, setTitle,
         previewContent: String((activeScript as { content?: unknown } | null | undefined)?.content || ""),
+        previewScriptId: String((activeScript as { id?: unknown } | null | undefined)?.id || ""),
         identity, setIdentity,
         author, setAuthorWithTracking,
         authorDisplayMode, setAuthorDisplayModeWithTracking,

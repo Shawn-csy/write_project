@@ -13,7 +13,6 @@ export function useScriptMetadataLifecycle({
   userEditedRef,
   authorEditedRef,
   contactAutoFilledRef,
-  publicLoadedRef,
   setActiveTab,
   setIsInitializing,
   setIsMediaPickerOpen,
@@ -36,7 +35,6 @@ export function useScriptMetadataLifecycle({
   userEditedRef: { current: boolean };
   authorEditedRef?: { current?: boolean } | null;
   contactAutoFilledRef: { current: boolean };
-  publicLoadedRef: { current: unknown };
   setActiveTab: (v: string) => void;
   setIsInitializing: (v: boolean) => void;
   setIsMediaPickerOpen: (v: boolean) => void;
@@ -58,7 +56,6 @@ export function useScriptMetadataLifecycle({
       userEditedRef.current = false;
       if (authorEditedRef) authorEditedRef.current = false;
       contactAutoFilledRef.current = false;
-      publicLoadedRef.current = null;
       setLocalScript(null);
       setActiveTab("basic");
       setIsInitializing(false);
@@ -109,7 +106,6 @@ export function useScriptMetadataLifecycle({
     userEditedRef,
     authorEditedRef,
     contactAutoFilledRef,
-    publicLoadedRef,
     setLocalScript,
     setActiveTab,
     setIsInitializing,

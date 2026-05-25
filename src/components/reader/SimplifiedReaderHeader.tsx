@@ -108,7 +108,7 @@ export function SimplifiedReaderHeader({
           variant="ghost"
           size="icon"
           onClick={onBack}
-          className="rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md shrink-0"
+          className="h-11 w-11 rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md shrink-0"
           title={t("common.back")}
           aria-label={t("common.back")}
         >
@@ -143,7 +143,7 @@ export function SimplifiedReaderHeader({
           variant="ghost"
           size="icon"
           onClick={() => setTheme(isDark ? "light" : "dark")}
-          className="rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md"
+          className="h-11 w-11 rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md"
           title={isDark ? t("appearance.light") : t("appearance.dark")}
           aria-label={isDark ? t("appearance.light") : t("appearance.dark")}
         >
@@ -154,7 +154,7 @@ export function SimplifiedReaderHeader({
                 variant="ghost"
                 size="icon"
                 onClick={onShare}
-                className="rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md"
+                className="h-11 w-11 rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md"
                 title={t("readerActions.share")}
               >
                 <Share2 className="w-4 h-4" />
@@ -165,7 +165,7 @@ export function SimplifiedReaderHeader({
             <Button
               variant="ghost"
               size="icon"
-              className="rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md"
+              className="h-11 w-11 rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md"
               title={t("common.more", "更多")}
               aria-label={t("common.more", "更多")}
             >

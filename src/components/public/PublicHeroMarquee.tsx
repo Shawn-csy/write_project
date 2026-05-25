@@ -57,7 +57,7 @@ export function PublicHeroMarquee({
   const safeSlides = Array.isArray(slides) && slides.length > 0
     ? slides
     : (fallbackToDefault ? DEFAULT_SLIDES : []);
-  if (safeSlides.length === 0) return null;
+
   const [activeIndex, setActiveIndex] = useState<number>(0);
   const [isPaused, setIsPaused] = useState<boolean>(false);
 
@@ -68,6 +68,8 @@ export function PublicHeroMarquee({
     }, intervalMs);
     return () => window.clearInterval(timer);
   }, [intervalMs, isPaused, safeSlides.length]);
+
+  if (safeSlides.length === 0) return null;
 
   const goTo = (nextIndex: number): void => {
     const bounded = ((nextIndex % safeSlides.length) + safeSlides.length) % safeSlides.length;
@@ -162,7 +164,7 @@ export function PublicHeroMarquee({
               type="button"
               variant="secondary"
               size="icon"
-              className="h-8 w-8 rounded-full bg-background/70"
+              className="h-11 w-11 rounded-full bg-background/70"
               onClick={() => goTo(activeIndex - 1)}
               aria-label={t("publicGallery.marqueePrev", "上一張")}
             >
@@ -174,7 +176,7 @@ export function PublicHeroMarquee({
               type="button"
               variant="secondary"
               size="icon"
-              className="h-8 w-8 rounded-full bg-background/70"
+              className="h-11 w-11 rounded-full bg-background/70"
               onClick={() => goTo(activeIndex + 1)}
               aria-label={t("publicGallery.marqueeNext", "下一張")}
             >
@@ -188,12 +190,19 @@ export function PublicHeroMarquee({
                 key={`dot-${slide.id || index}`}
                 type="button"
                 className={cn(
-                  "h-1.5 rounded-full bg-white/80 transition-all",
-                  activeIndex === index ? "w-5" : "w-2.5 opacity-60"
+                  "inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-white/20",
+                  activeIndex === index ? "bg-white/15" : "bg-transparent"
                 )}
                 onClick={() => goTo(index)}
                 aria-label={t("publicGallery.marqueeJump", "切換到第 {index} 張").replace("{index}", String(index + 1))}
-              />
+              >
+                <span
+                  className={cn(
+                    "h-1.5 rounded-full bg-white/80 transition-all",
+                    activeIndex === index ? "w-5" : "w-2.5 opacity-60"
+                  )}
+                />
+              </button>
             ))}
           </div>
         </div>

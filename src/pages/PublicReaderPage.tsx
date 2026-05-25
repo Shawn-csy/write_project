@@ -8,6 +8,7 @@ import { usePublicTerms } from "../hooks/public/usePublicTerms";
 import { usePublicReaderScript } from "../hooks/public/usePublicReaderScript";
 import { TermsConsentDialog } from "../components/public/TermsConsentDialog";
 import { incrementScriptView, publicToggleScriptLike, getPublicScriptLikeStatus, getPublicScriptStats, getVisitorId } from "../lib/api/scripts";
+import { buildPublicReaderProjection } from "../lib/publicReaderProjection";
 import type { ScriptManager } from "../hooks/useScriptManager.types";
 import type { NavProps } from "../types/nav";
 
@@ -86,12 +87,33 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
       title: scriptManager.titleName,
       ...mockMeta,
     };
-    const normalizedTags = Array.isArray(merged?.tags)
-      ? merged.tags.map((tag) => (typeof tag === "string" ? tag : String(tag?.name || ""))).filter(Boolean)
-      : [];
+    const projection = buildPublicReaderProjection({
+      title: String(merged?.title || ""),
+      synopsis: String(merged?.synopsis || merged?.description || ""),
+      coverUrl: merged?.coverUrl || null,
+      author: merged?.author || null,
+      organization: merged?.organization || null,
+      tags: Array.isArray(merged?.tags)
+        ? merged.tags.map((tag) => (typeof tag === "string" ? tag : String(tag?.name || ""))).filter(Boolean)
+        : [],
+      targetAudience: String(merged?.targetAudience || ""),
+      contentRating: String(merged?.contentRating || ""),
+      customFields: Array.isArray(merged?.customFields) ? merged.customFields : [],
+      prefaceItems: Array.isArray(merged?.prefaceItems) ? merged.prefaceItems : [],
+      contact: merged?.contact || "",
+      license: String(merged?.license || ""),
+      commercialUse: String(merged?.commercialUse || ""),
+      derivativeUse: String(merged?.derivativeUse || ""),
+      notifyOnModify: String(merged?.notifyOnModify || ""),
+      licenseSpecialTerms: Array.isArray(merged?.licenseSpecialTerms) ? merged.licenseSpecialTerms : [],
+      activity: merged?.activity || {},
+      showMarkerLegend: Boolean(merged?.showMarkerLegend),
+      content: String(merged?.content || ""),
+    });
+
     return {
       ...merged,
-      tags: normalizedTags,
+      ...projection,
     };
   }, [scriptManager.activeCloudScript, scriptManager.rawScript, scriptManager.titleName, mockMeta]);
 

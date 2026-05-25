@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 interface ThemeContextValue {
   theme: string;
@@ -24,28 +24,44 @@ const applyThemeClass = (theme: string) => {
   root.dataset.theme = theme;
 };
 
+const readStoredTheme = (storageKey: string, defaultTheme: string): string => {
+  if (typeof window === 'undefined') return defaultTheme;
+  try {
+    const stored = localStorage.getItem(storageKey);
+    if (stored === 'light' || stored === 'dark' || stored === 'system') return stored;
+  } catch {
+    // localStorage unavailable
+  }
+  return defaultTheme;
+};
+
+const resolveTheme = (theme: string): string =>
+  theme === 'system' ? (systemPrefersDark() ? 'dark' : 'light') : theme;
+
 export function ThemeProvider({ children, defaultTheme = 'system', storageKey = 'vite-ui-theme' }: { children: React.ReactNode; defaultTheme?: string; storageKey?: string }) {
-  const [theme, setTheme] = useState(defaultTheme);
-  const [resolvedTheme, setResolvedTheme] = useState(
-    defaultTheme === 'system' ? 'light' : defaultTheme,
-  );
+  const [theme, setThemeState] = useState<string>(() => readStoredTheme(storageKey, defaultTheme));
 
-  useEffect(() => {
-    const storedTheme = localStorage.getItem(storageKey);
-    if (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system') {
-      setTheme(storedTheme);
-    } else {
-      setTheme(defaultTheme);
+  const [resolvedTheme, setResolvedTheme] = useState<string>(() => {
+    const initial = readStoredTheme(storageKey, defaultTheme);
+    const resolved = resolveTheme(initial);
+    // Synchronously apply on first paint — eliminates FOUC
+    if (typeof document !== 'undefined') applyThemeClass(resolved);
+    return resolved;
+  });
+
+  const setTheme = useCallback((next: string) => {
+    setThemeState(next);
+    try {
+      localStorage.setItem(storageKey, next);
+    } catch {
+      // localStorage unavailable
     }
-  }, [defaultTheme, storageKey]);
+    const resolved = resolveTheme(next);
+    setResolvedTheme(resolved);
+    applyThemeClass(resolved);
+  }, [storageKey]);
 
-  useEffect(() => {
-    const current = theme === 'system' ? (systemPrefersDark() ? 'dark' : 'light') : theme;
-    setResolvedTheme(current);
-    applyThemeClass(current);
-    localStorage.setItem(storageKey, theme);
-  }, [theme, storageKey]);
-
+  // Keep DOM in sync when system colour scheme changes (only relevant in 'system' mode)
   useEffect(() => {
     if (theme !== 'system') return undefined;
 
@@ -61,12 +77,8 @@ export function ThemeProvider({ children, defaultTheme = 'system', storageKey = 
   }, [theme]);
 
   const value = useMemo(
-    () => ({
-      theme,
-      resolvedTheme,
-      setTheme,
-    }),
-    [theme, resolvedTheme],
+    () => ({ theme, resolvedTheme, setTheme }),
+    [theme, resolvedTheme, setTheme],
   );
 
   return <ThemeProviderContext.Provider value={value}>{children}</ThemeProviderContext.Provider>;

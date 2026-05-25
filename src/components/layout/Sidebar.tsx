@@ -14,6 +14,7 @@ import { Button } from "../ui/button";
 import UserMenu from "../auth/UserMenu";
 import { useI18n } from "../../contexts/I18nContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import { AppLogo } from "../common/AppLogo";
 
 interface AccentStyle {
   label?: string;
@@ -129,8 +130,8 @@ function Sidebar({
             aria-label={t("sidebar.backHome")}
             title={t("sidebar.backHome")}
           >
-            <div className={`w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors`}>
-                <span className={`text-[10px] font-bold ${accentStyle.label}`}>SR</span>
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                <AppLogo className="w-5 h-5 text-primary" />
             </div>
             {collapsed ? null : (
               <div className="flex flex-col overflow-hidden">

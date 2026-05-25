@@ -10,7 +10,11 @@ const APP_VERSION = packageJson.version || "0.0.0";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const apiUrl = env.VITE_API_URL || "http://localhost:1091";
+  const apiUrl = env.VITE_API_URL || "/api";
+  const isAbsoluteApiUrl = /^https?:\/\//i.test(apiUrl);
+  const proxyTarget =
+    env.VITE_DEV_PROXY_TARGET ||
+    (isAbsoluteApiUrl ? apiUrl : "http://localhost:1091");
 
   return {
     plugins: [react()],
@@ -28,19 +32,19 @@ export default defineConfig(({ mode }) => {
       ],
       proxy: {
         "/api": {
-          target: apiUrl,
+          target: proxyTarget,
           changeOrigin: true,
           rewrite: (path) => {
-             // If the API URL already ends with /api, strip /api from the request path
+             // If proxy target already ends with /api, strip /api from request path
              // so we don't end up with /api/api/...
-             if (apiUrl.endsWith('/api')) {
+             if (proxyTarget.endsWith('/api')) {
                  return path.replace(/^\/api/, '');
              }
              return path;
           }
         },
         "/media": {
-          target: apiUrl,
+          target: proxyTarget,
           changeOrigin: true,
         },
       },

@@ -198,7 +198,7 @@ export default function PublicHelpPage() {
                     key={tag}
                     type="button"
                     onClick={() => setQuery(tag)}
-                    className="rounded-full border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-helper-bg)]/20 px-3 py-1 text-xs text-[color:var(--morandi-tone-helper-fg)] hover:bg-[color:var(--morandi-tone-helper-bg)]/40"
+                    className="min-h-11 rounded-full border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-helper-bg)]/20 px-3 py-2 text-sm text-[color:var(--morandi-tone-helper-fg)] hover:bg-[color:var(--morandi-tone-helper-bg)]/40"
                   >
                     #{tag}
                   </button>

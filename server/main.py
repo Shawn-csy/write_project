@@ -308,7 +308,9 @@ If you send the `Accept: text/markdown` header, or if you identify as an AI bot 
             accept_header = request.headers.get("accept", "")
             user_agent = request.headers.get("user-agent", "").lower()
             is_ai_bot = any(bot in user_agent for bot in ["gptbot", "claudebot", "google-extended", "anthropic", "perplexitybot"])
-            wants_markdown = "text/markdown" in accept_header or "text/plain" in accept_header
+            # Keep markdown negotiation explicit to avoid browsers/webviews that
+            # include text/plain from accidentally receiving raw script text.
+            wants_markdown = "text/markdown" in accept_header
 
             if is_ai_bot or wants_markdown:
                 try:

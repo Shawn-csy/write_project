@@ -165,6 +165,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
               script={s.editingScript}
               scriptId={typeof s.editingScript?.id === "string" ? s.editingScript.id : undefined}
               seriesOptions={s.seriesList.map((item) => ({ id: item.id, name: item.name || "" }))}
+              preloadedData={{ personas: s.personas, orgs: s.orgsForPersona }}
               onSeriesCreated={(createdSeries) => {
                 if (!createdSeries?.id) return;
                 s.setSeriesList((prev) => {
