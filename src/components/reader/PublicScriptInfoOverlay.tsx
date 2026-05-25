@@ -155,7 +155,7 @@ export function PublicScriptInfoOverlay({
         <div className="mt-1 grid gap-2">
           {characterTemplateItems.map((entry, idx) => (
             <div key={`char-${idx}`} className="rounded-md border border-primary/25 bg-background/75 px-3 py-2.5 shadow-sm">
-              <div className="mb-1 inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-primary">
+              <div className="mb-1 inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2 py-1 text-xs font-semibold tracking-wide text-primary">
                 角色 {idx + 1}
               </div>
               <div className="text-base font-bold leading-tight text-foreground md:text-lg">{entry.name}</div>
@@ -340,7 +340,10 @@ export function PublicScriptInfoOverlay({
         )}
       </div>
 
-      <h1 className="font-serif text-4xl font-bold leading-tight tracking-tight text-foreground drop-shadow-sm md:text-6xl lg:text-7xl">
+      <h1
+        className="font-serif font-bold leading-tight tracking-tight text-foreground drop-shadow-sm"
+        style={{ fontSize: "clamp(1.5rem, 5vw + 0.5rem, 4.5rem)" }}
+      >
         {title}
       </h1>
 
@@ -405,7 +408,7 @@ export function PublicScriptInfoOverlay({
           <button
             type="button"
             onClick={onLike}
-            className={`flex items-center gap-1.5 transition-colors ${
+            className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full px-2 transition-colors ${
               isLiked
                 ? "text-rose-500 hover:text-rose-400"
                 : "hover:text-rose-400"

@@ -154,67 +154,80 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
 
   const getTagStyle = (name: string) => getMorandiTagStyle(name, allTagNames);
 
-  const loadData = async (isBackground = false) => {
+  const loadData = useCallback(async (isBackground = false) => {
     if (!currentUser) return;
-    if (!isBackground) setIsWorksLoading(true);
-    try {
-      const scriptData = await getUserScripts(undefined);
-      const sortedScripts = (scriptData || [])
-        .filter(s => s.type !== "folder" && !s.isFolder)
-        .sort((a, b) => {
-          const aPublic = a.status === "Public" || a.isPublic;
-          const bPublic = b.status === "Public" || b.isPublic;
-          if (aPublic !== bPublic) return aPublic ? -1 : 1;
-          return Number(b.lastModified || 0) - Number(a.lastModified || 0);
+    if (!isBackground) { setIsWorksLoading(true); setIsMetaLoading(true); }
+
+    const scriptsPromise = getUserScripts(undefined)
+      .then(scriptData => {
+        const sorted = (scriptData || [])
+          .filter(s => s.type !== "folder" && !s.isFolder)
+          .sort((a, b) => {
+            const aPublic = a.status === "Public" || a.isPublic;
+            const bPublic = b.status === "Public" || b.isPublic;
+            if (aPublic !== bPublic) return aPublic ? -1 : 1;
+            return Number(b.lastModified || 0) - Number(a.lastModified || 0);
+          });
+        setScripts(sorted);
+      })
+      .catch(e => console.error("Failed to load scripts", e))
+      .finally(() => { if (!isBackground) setIsWorksLoading(false); });
+
+    const metaPromise = (async () => {
+      try {
+        const [personaData, orgData, tagData, seriesData] = await Promise.all([
+          getPersonas(undefined), getOrganizations(undefined), getTags(), getSeries(),
+        ]);
+
+        let normalizedPersonas = (personaData || []).map(p => {
+          let links = p?.links;
+          if (typeof links === "string") { try { links = JSON.parse(links); } catch { links = []; } }
+          if (!Array.isArray(links)) links = [];
+          return { ...p, links, organizationIds: normalizeOrgIds(p?.organizationIds) };
         });
-      setScripts(sortedScripts);
-    } catch (e) { console.error("Failed to load scripts", e); }
-    finally { if (!isBackground) setIsWorksLoading(false); }
 
-    try {
-      setIsMetaLoading(true);
-      const [personaData, orgData, tagData, seriesData] = await Promise.all([
-        getPersonas(undefined), getOrganizations(undefined), getTags(), getSeries(),
-      ]);
-      let normalizedPersonas = (personaData || []).map(p => {
-        let links = p?.links;
-        if (typeof links === "string") { try { links = JSON.parse(links); } catch { links = []; } }
-        if (!Array.isArray(links)) links = [];
-        return { ...p, links, organizationIds: normalizeOrgIds(p?.organizationIds) };
-      });
-      const needsEnrich = normalizedPersonas.filter(p => (p.links || []).length === 0);
-      if (needsEnrich.length > 0) {
-        const enriched = await Promise.all(needsEnrich.map(async p => {
-          try {
-            const pub = await getPublicPersona(p.id);
-            let pubLinks = pub?.links;
-            if (typeof pubLinks === "string") { try { pubLinks = JSON.parse(pubLinks); } catch { pubLinks = []; } }
-            if (Array.isArray(pubLinks) && pubLinks.length > 0) return { ...p, links: pubLinks };
-          } catch {}
-          return p;
-        }));
-        const enrichMap = new Map(enriched.map(p => [p.id, p]));
-        normalizedPersonas = normalizedPersonas.map(p => enrichMap.get(p.id) || p);
-      }
-      setPersonas(normalizedPersonas);
-      setPersonasLoadedAt(Date.now());
-      setOrgs(orgData || []);
-      const deduped = await buildAffiliatedOrganizations({
-        ownedOrgs: orgData || [], profile: currentProfile,
-        personas: normalizedPersonas, fetchOrganizationById: getOrganization,
-      });
-      setOrgsForPersona(deduped);
-      setAvailableTags(tagData || []);
-      setSeriesList(seriesData || []);
-      const preferredPersonaId = localStorage.getItem("preferredPersonaId");
-      const nextPersona = (preferredPersonaId && normalizedPersonas.find(p => p.id === preferredPersonaId)) || normalizedPersonas[0];
-      if (nextPersona) setSelectedPersonaId(nextPersona.id);
-      if (deduped.length > 0) setSelectedOrgId(prev => (prev && deduped.some(o => o.id === prev) ? prev : deduped[0].id));
-    } catch (e) { console.error("Failed to load studio data", e); }
-    finally { setIsMetaLoading(false); }
-  };
+        const needsEnrich = normalizedPersonas.filter(p => (p.links || []).length === 0);
+        const [enriched, deduped] = await Promise.all([
+          needsEnrich.length > 0
+            ? Promise.all(needsEnrich.map(async p => {
+                try {
+                  const pub = await getPublicPersona(p.id);
+                  let pubLinks = pub?.links;
+                  if (typeof pubLinks === "string") { try { pubLinks = JSON.parse(pubLinks); } catch { pubLinks = []; } }
+                  if (Array.isArray(pubLinks) && pubLinks.length > 0) return { ...p, links: pubLinks };
+                } catch {}
+                return p;
+              }))
+            : Promise.resolve([] as typeof normalizedPersonas),
+          buildAffiliatedOrganizations({
+            ownedOrgs: orgData || [], profile: currentProfile,
+            personas: normalizedPersonas, fetchOrganizationById: getOrganization,
+          }),
+        ]);
 
-  useEffect(() => { if (currentUser) loadData(); }, [currentUser]);
+        if (enriched.length > 0) {
+          const enrichMap = new Map(enriched.map(p => [p.id, p]));
+          normalizedPersonas = normalizedPersonas.map(p => enrichMap.get(p.id) || p);
+        }
+
+        setPersonas(normalizedPersonas);
+        setPersonasLoadedAt(Date.now());
+        setOrgs(orgData || []);
+        setOrgsForPersona(deduped);
+        setAvailableTags(tagData || []);
+        setSeriesList(seriesData || []);
+        const preferredPersonaId = localStorage.getItem("preferredPersonaId");
+        const nextPersona = (preferredPersonaId && normalizedPersonas.find(p => p.id === preferredPersonaId)) || normalizedPersonas[0];
+        if (nextPersona) setSelectedPersonaId(nextPersona.id);
+        if (deduped.length > 0) setSelectedOrgId(prev => (prev && deduped.some(o => o.id === prev) ? prev : deduped[0].id));
+      } catch (e) { console.error("Failed to load studio data", e); }
+      finally { setIsMetaLoading(false); }
+    })();
+
+    await Promise.all([scriptsPromise, metaPromise]);
+  }, [currentUser, currentProfile]);
+
+  useEffect(() => { if (currentUser) loadData(); }, [currentUser, loadData]);
 
   useEffect(() => {
     const nextTab = resolveTabFromSearch(location.search);

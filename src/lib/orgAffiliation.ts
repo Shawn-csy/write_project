@@ -29,15 +29,13 @@ export async function buildAffiliatedOrganizations({
 
   let mergedOrgs = baseOrgs;
   if (extraOrgIds.size > 0 && typeof fetchOrganizationById === "function") {
-    const fetched: OrgData[] = [];
-    for (const orgId of extraOrgIds) {
-      try {
-        const org = await fetchOrganizationById(orgId);
-        if (org) fetched.push(org);
-      } catch {
-        // ignore forbidden/not-found orgs
-      }
-    }
+    const fetched = (
+      await Promise.all(
+        [...extraOrgIds].map((orgId) =>
+          fetchOrganizationById(orgId).catch(() => null)
+        )
+      )
+    ).filter((org): org is OrgData => Boolean(org));
     mergedOrgs = [...baseOrgs, ...fetched];
   }
 
