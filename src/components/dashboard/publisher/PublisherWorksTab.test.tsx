@@ -56,11 +56,21 @@ describe("PublisherWorksTab", () => {
     render(
       <PublisherWorksTab
         isLoading={false}
+        personas={[
+          {
+            id: "p1",
+            defaultLicenseCommercial: "",
+            defaultLicenseDerivative: "",
+            defaultLicenseNotify: "",
+          },
+        ]}
         scripts={[
           {
             id: "legacy-only",
             title: "Legacy License",
             status: "Private",
+            personaId: "p1",
+            tags: [{ name: "男性向" }, { name: "一般" }],
             lastModified: Date.now(),
             content: [
               "Title: Legacy License",
@@ -74,6 +84,8 @@ describe("PublisherWorksTab", () => {
             id: "metadata-license",
             title: "Metadata License",
             status: "Private",
+            personaId: "p1",
+            tags: [{ name: "男性向" }, { name: "一般" }],
             lastModified: Date.now(),
             content: [
               "Title: Metadata License",
@@ -92,7 +104,7 @@ describe("PublisherWorksTab", () => {
       />
     );
 
-    expect(screen.getAllByText(/必要：.*授權/)).toHaveLength(2);
+    expect(screen.getAllByText(/缺：授權/)).toHaveLength(2);
   });
 
   it("treats persona default license as valid when script metadata has no license fields", () => {
@@ -161,7 +173,7 @@ describe("PublisherWorksTab", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /可公開 \(1\)/i }));
+    fireEvent.click(screen.getByRole("button", { name: /可公開\s*1/i }));
 
     expect(screen.getAllByText("Ready Script").length).toBeGreaterThan(0);
     expect(screen.queryByText("Blocked Draft")).not.toBeInTheDocument();
