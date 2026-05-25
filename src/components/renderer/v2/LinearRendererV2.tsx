@@ -103,6 +103,8 @@ export const LinearRendererV2 = ({
               style={mStyle}
               data-marker-id={event.markerId || undefined}
               data-marker-label={markerLabel || undefined}
+              data-line-start={event.lineSpan?.start ?? line}
+              data-line-end={event.lineSpan?.end ?? event.lineSpan?.start ?? line}
             >
               {(showTrackBadge || event.speakerId) ? (
                 <div className="mb-0.5 flex items-center gap-2 text-[10px] text-muted-foreground/60">

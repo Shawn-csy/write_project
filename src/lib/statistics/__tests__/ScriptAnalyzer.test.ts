@@ -45,7 +45,13 @@ describe('ScriptAnalyzer', () => {
         const stats = calculateScriptStats(mockAST);
 
         expect(stats.characterStats).toHaveLength(1);
-        expect(stats.sentences.dialogue).toEqual({
+        // sentences.dialogue is now ordered { text, line }[] (document order)
+        expect(stats.sentences.dialogue).toEqual([
+            { text: 'First line.', line: null },
+            { text: 'Second line.', line: null },
+        ]);
+        // dialogueByCharacter retains the per-character Record
+        expect(stats.dialogueByCharacter).toEqual({
             ALICE: ['First line.', 'Second line.']
         });
         expect(stats.sentences.sfx).toContain('Door knock.');

@@ -695,7 +695,10 @@ const messages = {
     "itemTypeRange": "區間",
     "itemTypeBlock": "區塊",
     "itemTypeInline": "行內",
-    "pauseSummary": "偵測到 {count} 個停頓點，共 {seconds} 秒"
+    "pauseSummary": "偵測到 {count} 個停頓點，共 {seconds} 秒",
+    "dialogueEffectiveLines": "{count} 行",
+    "dialogueTotalChars": "{count} 字",
+    "dialogueAvgCharsPerLine": "均 {count} 字/行"
   },
   "statisticsSettings": {
     "timeMinutesSeconds": "{mins}分 {secs}秒",
