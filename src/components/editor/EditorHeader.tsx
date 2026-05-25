@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Loader2, Save, Eye, Columns, BarChart2, HelpCircle, Globe, Lock, MoreHorizontal } from "lucide-react";
+import { Loader2, Save, PanelRight, PanelRightClose, ChartNoAxesColumn, CircleHelp, Globe, Lock, Ellipsis } from "lucide-react";
 import { useEditableTitle } from "../../hooks/useEditableTitle";
 import EditableTitle from "../header/EditableTitle";
 import HeaderTitleBlock from "../header/HeaderTitleBlock";
@@ -202,75 +202,45 @@ export function EditorHeader({
           </div>
         }
       />
-      <div className="flex items-center gap-1.5 shrink-0">
-        {/* 存檔：小螢幕隱藏 */}
+      <div className="flex items-center gap-1 shrink-0">
+
+        {/* 儲存：icon only */}
         <Button
           variant="default"
-          size="sm"
+          size="icon"
           onClick={onManualSave}
           disabled={saveStatus === "saving"}
-          className="hidden sm:flex h-8 rounded-md items-center gap-1.5 text-sm shrink-0"
+          className="h-8 w-8 rounded-md shrink-0"
           title={t("editorHeader.manualSave")}
+          aria-label={t("editorHeader.manualSave")}
         >
-          {saveStatus === "saving" ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
-          <span className="hidden lg:inline">{t("editorHeader.manualSave")}</span>
+          {saveStatus === "saving" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
         </Button>
 
-        {/* 預覽切換：所有尺寸都顯示 */}
+        {/* 預覽切換：icon only，tooltip */}
         <Button
           variant="ghost"
-          size="sm"
+          size="icon"
           onClick={onTogglePreview}
-          className={`h-8 rounded-md transition-colors flex items-center gap-2 text-sm ${
-            showPreview
-              ? "bg-primary/10 text-primary"
-              : "hover:bg-muted text-muted-foreground"
+          className={`h-8 w-8 rounded-md transition-colors ${
+            showPreview ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted"
           }`}
           title={showPreview ? t("editorHeader.switchToEditOnly") : t("editorHeader.switchToSplit")}
+          aria-label={showPreview ? t("editorHeader.switchToEditOnly") : t("editorHeader.switchToSplit")}
         >
-          {showPreview ? (
-            <Columns className="w-4 h-4" />
-          ) : (
-            <Eye className="w-4 h-4" />
-          )}
-          <span className="hidden lg:inline">
-            {showPreview ? t("editorHeader.editAndPreview") : t("editorHeader.editOnly")}
-          </span>
+          {showPreview ? <PanelRightClose className="w-4 h-4" /> : <PanelRight className="w-4 h-4" />}
         </Button>
 
-        {/* 語法規則：小螢幕隱藏 */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onToggleRules}
-          className={`hidden sm:flex h-8 rounded-md transition-colors items-center gap-2 text-sm ${
-            showRules
-              ? "bg-primary/10 text-primary"
-              : "hover:bg-muted text-muted-foreground"
-          }`}
-          title={t("editorHeader.syntaxRules")}
-        >
-          <HelpCircle className="w-4 h-4" />
-          <span className="hidden lg:inline">{t("editorHeader.syntaxRules")}</span>
-        </Button>
-
-        {/* Marker 控制：小螢幕隱藏 */}
-          <MarkerThemeVisibilityControl
+        {/* Marker 控制 */}
+        <MarkerThemeVisibilityControl
           markerConfigs={markerConfigs}
           hiddenMarkerIds={hiddenMarkerIds}
           onToggleMarker={onToggleMarker}
           markerThemes={markerThemes}
           currentThemeId={currentThemeId}
           onSwitchMarkerTheme={onSwitchMarkerTheme}
-          compact
-          iconOnlyOnMobile
-          className="hidden sm:flex shrink-0"
-          visibilityTriggerClassName="h-8 px-2 text-xs rounded-r-none bg-background border border-r-0 hover:bg-muted/50 transition-all"
-          themeTriggerClassName="h-8 px-2 rounded-l-none rounded-r-md bg-background border text-muted-foreground hover:bg-muted/50 transition-all"
+          className="shrink-0"
+          visibilityTriggerClassName="h-8 w-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           contentAlign="end"
           titlePrefix={t("editorHeader.markerPrefix")}
         />
@@ -286,40 +256,33 @@ export function EditorHeader({
               title={t("editorHeader.moreActions")}
               aria-label={t("editorHeader.moreActions")}
             >
-              <MoreHorizontal className="w-4 h-4" />
+              <Ellipsis className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64">
-            <DropdownMenuLabel>{t("editorHeader.moreActions")}</DropdownMenuLabel>
-
-            {/* 小螢幕才顯示的快捷項目 */}
-            <div className="sm:hidden">
-              <DropdownMenuItem onClick={onManualSave} disabled={saveStatus === "saving"}>
-                {saveStatus === "saving" ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                {t("editorHeader.manualSave")}
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem onClick={onManualSave} disabled={saveStatus === "saving"}>
+              {saveStatus === "saving" ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+              {t("editorHeader.manualSave")}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onToggleRules} className={showRules ? "text-primary" : ""}>
+              <CircleHelp className="w-4 h-4 mr-2" />
+              {t("editorHeader.syntaxRules")}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onToggleStats}>
+              <ChartNoAxesColumn className="w-4 h-4 mr-2" />
+              {t("editorHeader.stats")}
+            </DropdownMenuItem>
+            {onOpenGuide && (
+              <DropdownMenuItem ref={guideButtonRef} onClick={onOpenGuide}>
+                <CircleHelp className="w-4 h-4 mr-2" />
+                {t("editorHeader.guide")}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={onToggleRules}>
-                <HelpCircle className="w-4 h-4 mr-2" />
-                {t("editorHeader.syntaxRules")}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-            </div>
-
+            )}
+            <DropdownMenuSeparator />
             <div className="px-2 py-1.5">
               <div className="text-[11px] text-muted-foreground mb-1">{t("settings.language")}</div>
               <LanguageSwitcher className="w-full" selectClassName="w-full" ariaLabel={t("settings.language")} buttonClassName="" />
             </div>
-            <DropdownMenuSeparator />
-            {onOpenGuide && (
-              <DropdownMenuItem ref={guideButtonRef} onClick={onOpenGuide}>
-                <HelpCircle className="w-4 h-4 mr-2" />
-                {t("editorHeader.guide")}
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem onClick={onToggleStats}>
-              <BarChart2 className="w-4 h-4 mr-2" />
-              {t("editorHeader.stats")}
-            </DropdownMenuItem>
             {enabledDownloadOptions.length > 0 && (
               <>
                 <DropdownMenuSeparator />

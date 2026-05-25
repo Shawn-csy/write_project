@@ -110,13 +110,8 @@ function ScriptViewer({
     t,
   });
   const effectiveHiddenMarkerIds = useMemo(() => {
-    const explicitHidden = (hiddenMarkerIds || []).map((id) => String(id || "").trim()).filter(Boolean);
-    if (showMarkers) return explicitHidden;
-    const allMarkerIds = (markerConfigs || [])
-      .map((cfg) => String(cfg?.id || "").trim())
-      .filter(Boolean);
-    return Array.from(new Set([...explicitHidden, ...allMarkerIds]));
-  }, [hiddenMarkerIds, markerConfigs, showMarkers]);
+    return (hiddenMarkerIds || []).map((id) => String(id || "").trim()).filter(Boolean);
+  }, [hiddenMarkerIds]);
 
   useEffect(() => {
     onCharacters?.(characterList);
@@ -173,7 +168,7 @@ function ScriptViewer({
           lineHeight={lineHeight}
           readingFontFamily={readingFontFamily}
           hiddenMarkerIds={effectiveHiddenMarkerIds}
-          markerTooltipPrefix={t("scriptRenderer.markerTooltipPrefix", "標記")}
+          markerTooltipPrefix={showMarkers ? t("scriptRenderer.markerTooltipPrefix", "標記") : null}
           mode="auto"
         />
       );
@@ -193,6 +188,7 @@ function ScriptViewer({
         colorCache={colorCache}
         markerConfigs={markerConfigs}
         hiddenMarkerIds={effectiveHiddenMarkerIds}
+        showMarkerTooltip={showMarkers}
         showLineUnderline={showLineUnderline}
       />
     );
@@ -219,7 +215,10 @@ function ScriptViewer({
   };
 
   const handleV2PointerMove = (event: React.PointerEvent<HTMLElement>) => {
-    if (!useV2Renderer) return;
+    if (!useV2Renderer || !showMarkers) {
+      if (markerTooltip) setMarkerTooltip(null);
+      return;
+    }
     const resolved = resolveMarkerTooltip(event.target);
     if (!resolved) { if (markerTooltip) setMarkerTooltip(null); return; }
     const text = `${t("scriptRenderer.markerTooltipPrefix", "標記")}: ${resolved.markerLabel}`;

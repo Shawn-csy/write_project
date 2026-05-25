@@ -12,7 +12,7 @@ interface RangeNodeData {
 interface RangeNodeContext {
     hiddenMarkerIds?: string[];
     markerConfigs?: Array<{ id?: string; label?: string }>;
-    markerTooltipPrefix?: string;
+    markerTooltipPrefix?: string | null;
 }
 
 interface RangeNodeProps {
@@ -74,10 +74,12 @@ export const RangeNode = ({ node, context, NodeRenderer }: RangeNodeProps) => {
         if (!text) return null;
         const markerConfig = context?.markerConfigs?.find?.((cfg) => cfg?.id === String(pauseNode?.layerType || ""));
         const markerName = String(markerConfig?.label || String(pauseNode?.layerType || "") || "").trim();
-        const tooltipPrefix = context?.markerTooltipPrefix || "標記";
-        const pauseTooltip = markerName
-            ? `${tooltipPrefix}: ${markerName}暫停`
-            : `${tooltipPrefix}: 暫停`;
+        const tooltipPrefix = context?.markerTooltipPrefix;
+        const pauseTooltip = tooltipPrefix === null
+            ? undefined
+            : markerName
+                ? `${tooltipPrefix ?? "標記"}: ${markerName}暫停`
+                : `${tooltipPrefix ?? "標記"}: 暫停`;
         const actionLikeNode = {
             type: "action",
             text,
