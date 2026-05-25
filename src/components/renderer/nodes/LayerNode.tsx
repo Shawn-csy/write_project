@@ -18,7 +18,7 @@ interface LayerNodeData {
 interface LayerNodeContext {
     hiddenMarkerIds?: string[];
     markerConfigs?: MarkerConfigLike[];
-    markerTooltipPrefix?: string;
+    markerTooltipPrefix?: string | null;
 }
 
 interface LayerNodeProps {
@@ -42,8 +42,9 @@ export const LayerNode = ({ node, context, NodeRenderer, styleOverride }: LayerN
     const bgColor = style.backgroundColor || undefined;
     const template = config?.renderer?.template;
     const markerName = String(config?.label || node.layerType || "").trim();
-    const tooltip = markerName
-        ? `${context.markerTooltipPrefix || "標記"}: ${markerName}`
+    const tooltipPrefix = context.markerTooltipPrefix;
+    const tooltip = markerName && tooltipPrefix !== null
+        ? `${tooltipPrefix ?? "標記"}: ${markerName}`
         : undefined;
 
     const lineProps = (lineValue?: number) => {

@@ -4,7 +4,7 @@ import type { InlineNodeLike, MarkerConfigLike } from '../../types/renderer';
 interface InlineRenderContext {
     hiddenMarkerIds?: string[];
     markerConfigs?: MarkerConfigLike[];
-    markerTooltipPrefix?: string;
+    markerTooltipPrefix?: string | null;
 }
 
 interface InlineRendererProps {
@@ -50,8 +50,9 @@ const renderHighlight = (node: InlineNodeLike, key: string, context: InlineRende
         style.width = '100%'; 
     }
     const markerName = String(config.label || node.id || "").trim();
-    const tooltip = markerName
-        ? `${context.markerTooltipPrefix || "標記"}: ${markerName}`
+    const tooltipPrefix = context.markerTooltipPrefix;
+    const tooltip = markerName && tooltipPrefix !== null
+        ? `${tooltipPrefix ?? "標記"}: ${markerName}`
         : undefined;
 
     return (

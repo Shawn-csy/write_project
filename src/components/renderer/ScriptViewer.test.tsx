@@ -106,7 +106,7 @@ describe("ScriptViewer", () => {
     expect(onSummary).toHaveBeenCalledWith(expect.stringContaining("A short summary"));
   });
 
-  it("hides all markers when showMarkers is false", () => {
+  it("keeps marker visibility and only disables marker tooltip when showMarkers is false", () => {
     scriptRendererSpy.mockClear();
     render(
       <ScriptViewer
@@ -116,7 +116,8 @@ describe("ScriptViewer", () => {
         showMarkers={false}
       />
     );
-    const props = scriptRendererSpy.mock.calls.at(-1)?.[0] as { hiddenMarkerIds?: string[] } | undefined;
-    expect(props?.hiddenMarkerIds).toEqual(expect.arrayContaining(["a", "b", "x"]));
+    const props = scriptRendererSpy.mock.calls.at(-1)?.[0] as { hiddenMarkerIds?: string[]; showMarkerTooltip?: boolean } | undefined;
+    expect(props?.hiddenMarkerIds).toEqual(["x"]);
+    expect(props?.showMarkerTooltip).toBe(false);
   });
 });

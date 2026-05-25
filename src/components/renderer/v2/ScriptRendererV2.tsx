@@ -45,7 +45,7 @@ interface ScriptRendererV2Props {
   lineHeight?: number;
   readingFontFamily?: string;
   hiddenMarkerIds?: string[];
-  markerTooltipPrefix?: string;
+  markerTooltipPrefix?: string | null;
   mode?: V2PresentationMode;
 }
 

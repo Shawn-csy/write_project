@@ -150,7 +150,12 @@ export function useEditorSync({ readOnly, showPreview }: { readOnly: boolean; sh
     const view = editorViewRef.current;
     if (!view) return;
     const safeLine = Math.max(1, Math.min(lineNumber, view.state.doc.lines));
-    view.dispatch({ effects: setHighlightLine.of(safeLine) });
+    // Clear first so the DOM class is removed, then re-add in next frame to
+    // restart the CSS animation even when targeting the same line twice.
+    view.dispatch({ effects: setHighlightLine.of(null) });
+    requestAnimationFrame(() => {
+      view.dispatch({ effects: setHighlightLine.of(safeLine) });
+    });
   }, [setHighlightLine]);
 
   const clearHighlightLine = useCallback(() => {

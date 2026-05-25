@@ -15,7 +15,7 @@ interface EventTextV2Props {
   text: string;
   markerConfigs?: MarkerConfig[];
   hiddenMarkerIds?: string[];
-  markerTooltipPrefix?: string;
+  markerTooltipPrefix?: string | null;
 }
 
 export function EventTextV2({

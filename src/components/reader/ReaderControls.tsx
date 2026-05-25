@@ -106,10 +106,8 @@ export function ReaderControls({
                   visibleMarkerIds={visibleMarkerIds}
                   hiddenMarkerIds={hiddenMarkerIds}
                   onToggleMarker={onToggleMarker}
-                  iconOnlyOnMobile
                   className="w-full"
-                  visibilityTriggerClassName="h-10 px-3 text-sm w-full rounded-r-none bg-muted/40 hover:bg-muted/60 border-transparent hover:border-border transition-all font-medium"
-                  themeTriggerClassName="h-10 px-2 rounded-l-none rounded-r-md bg-muted/40 hover:bg-muted/60 border-transparent hover:border-border transition-all text-foreground"
+                  visibilityTriggerClassName="h-10 px-3 text-sm w-full rounded-md bg-muted/40 hover:bg-muted/60 border border-transparent hover:border-border transition-all font-medium justify-start gap-2"
                   contentAlign="start"
                   titlePrefix={t("readerControls.markerVisibility")}
                 />

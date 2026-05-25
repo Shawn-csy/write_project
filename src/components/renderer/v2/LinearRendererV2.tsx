@@ -10,7 +10,7 @@ interface LinearRendererV2Props {
   lineHeight?: number;
   markerConfigs?: MarkerConfig[];
   hiddenMarkerIds?: string[];
-  markerTooltipPrefix?: string;
+  markerTooltipPrefix?: string | null;
 }
 
 interface LinearRow {

@@ -35,6 +35,7 @@ interface ScriptRendererProps {
   theme?: string;
   markerConfigs?: MarkerConfigLike[];
   hiddenMarkerIds?: string[];
+  showMarkerTooltip?: boolean;
   showLineUnderline?: boolean;
 }
 
@@ -53,6 +54,7 @@ export const ScriptRenderer = React.memo(({
   theme = "light",
   markerConfigs = [],
   hiddenMarkerIds = [],
+  showMarkerTooltip = true,
   showLineUnderline = false,
 }: ScriptRendererProps) => {
   const { t } = useI18n();
@@ -129,8 +131,8 @@ export const ScriptRenderer = React.memo(({
     parseInlineLine,
     hiddenMarkerIds,
     whitespaceLabels,
-    markerTooltipPrefix: t("scriptRenderer.markerTooltipPrefix", "標記"),
-  }), [fontSize, dialogueFontSize, lineHeight, filterCharacter, focusMode, focusEffect, focusContentMode, colorCache, markerConfigs, normalizedInlineMarkerConfigs, parseInlineLine, hiddenMarkerIds, whitespaceLabels, t]);
+    markerTooltipPrefix: showMarkerTooltip ? t("scriptRenderer.markerTooltipPrefix", "標記") : null,
+  }), [fontSize, dialogueFontSize, lineHeight, filterCharacter, focusMode, focusEffect, focusContentMode, colorCache, markerConfigs, normalizedInlineMarkerConfigs, parseInlineLine, hiddenMarkerIds, whitespaceLabels, showMarkerTooltip, t]);
 
   const markerLabelById = useMemo(() => {
     const map = new Map();
@@ -153,6 +155,10 @@ export const ScriptRenderer = React.memo(({
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
+    if (!showMarkerTooltip) {
+      if (markerTooltip) setMarkerTooltip(null);
+      return;
+    }
     const resolved = resolveMarkerTooltip(event.target);
     if (!resolved) { if (markerTooltip) setMarkerTooltip(null); return; }
     const text = `${t("scriptRenderer.markerTooltipPrefix", "標記")}: ${resolved.markerLabel}`;

@@ -10,7 +10,7 @@ interface ColumnsRendererV2Props {
   lineHeight?: number;
   markerConfigs?: MarkerConfig[];
   hiddenMarkerIds?: string[];
-  markerTooltipPrefix?: string;
+  markerTooltipPrefix?: string | null;
 }
 
 export const ColumnsRendererV2 = ({

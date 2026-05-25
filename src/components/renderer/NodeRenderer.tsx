@@ -48,7 +48,7 @@ export interface NodeRenderContext {
   parseInlineLine: (line: string) => Array<{ type: string; content?: string; id?: string }>;
   hiddenMarkerIds: string[];
   whitespaceLabels: Record<string, string>;
-  markerTooltipPrefix: string;
+  markerTooltipPrefix: string | null;
 }
 
 const CHARACTER_COLOR_SEQUENCE = [

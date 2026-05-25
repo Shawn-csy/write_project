@@ -1,9 +1,4 @@
 import React from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { FileText } from "lucide-react";
 import { useI18n } from "@/contexts/I18nContext";
 import type { MarkerEntry, StatsLineItem } from "@/hooks/useStatisticsPanelState";
 
@@ -17,58 +12,76 @@ interface Props {
 
 export function StatsCuesView({ markerEntries, collapsedMarkerIds, toggleMarkerSection, onLocate, onGenerateReport }: Props): React.JSX.Element {
   const { t } = useI18n();
+
   return (
-    <Card className="h-full border-0 shadow-none flex flex-col absolute inset-0">
-      <CardHeader className="px-0 py-2 shrink-0 flex flex-row items-center justify-between">
-        <CardDescription>{t("statisticsPanel.cuesDescription")}</CardDescription>
-        <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={onGenerateReport}>
-          <FileText className="w-3 h-3" />
-          {t("statisticsPanel.generateReport")}
-        </Button>
-      </CardHeader>
-      <CardContent className="px-0 flex-1 min-h-0 overflow-hidden relative">
-        <ScrollArea className="h-full w-full rounded-md border p-4">
-          {markerEntries.length === 0 ? (
-            <div className="text-center text-muted-foreground py-8">{t("statisticsPanel.noCueData")}</div>
-          ) : (
-            <div className="space-y-6">
-              {markerEntries.map((entry) => (
-                <div key={entry.id}>
-                  <button
-                    type="button"
-                    onClick={() => toggleMarkerSection(entry.id)}
-                    className="w-full text-left group"
-                    aria-expanded={!collapsedMarkerIds.has(entry.id)}
-                  >
-                    <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                      <Badge variant="outline" className="group-hover:bg-muted">{entry.label}</Badge>
-                      <span className="text-[10px] text-muted-foreground font-mono opacity-50">{entry.id}</span>
-                      <span className="ml-auto text-xs text-muted-foreground">{t("statisticsPanel.recordsCount").replace("{count}", String(entry.count))}</span>
-                    </h3>
-                  </button>
-                  {!collapsedMarkerIds.has(entry.id) && (
-                    <div className="bg-muted/30 rounded-lg p-3 space-y-2">
-                      {entry.items.map((item, idx) => (
+    <div className="flex flex-col h-full absolute inset-0">
+      {/* scrollable cue list */}
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin divide-y divide-border/60">
+        {markerEntries.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/50">
+              {t("statisticsPanel.noCueData")}
+            </span>
+          </div>
+        ) : (
+          markerEntries.map((entry) => {
+            const isOpen = !collapsedMarkerIds.has(entry.id);
+            return (
+              <div key={entry.id}>
+                {/* section header */}
+                <button
+                  type="button"
+                  onClick={() => toggleMarkerSection(entry.id)}
+                  className="w-full flex items-center gap-2 px-3.5 py-2.5 hover:bg-muted/30 transition-colors text-left"
+                  aria-expanded={isOpen}
+                >
+                  <span className="font-mono text-[9px] text-muted-foreground/50 w-2.5 shrink-0 transition-transform duration-150"
+                    style={{ display: "inline-block", transform: isOpen ? "rotate(90deg)" : "none" }}>
+                    ▶
+                  </span>
+                  <span className="flex-1 text-xs font-medium text-foreground tracking-wide truncate">{entry.label}</span>
+                  <span className="sp-cue-badge">{entry.count}</span>
+                </button>
+
+                {/* items */}
+                {isOpen && entry.items.length > 0 && (
+                  <div className="pb-2 pt-0.5 bg-muted/15 border-t border-border/40">
+                    {entry.items.map((item, idx) => {
+                      const typeLabel = item.type === "block-range"
+                        ? t("statisticsPanel.itemTypeRange")
+                        : item.type === "block"
+                          ? t("statisticsPanel.itemTypeBlock")
+                          : t("statisticsPanel.itemTypeInline");
+                      return (
                         <button
                           key={idx}
                           type="button"
                           onClick={() => onLocate(item)}
-                          className="w-full text-left text-sm border-l-2 border-primary/20 pl-2 whitespace-pre-wrap hover:text-foreground hover:border-primary transition-colors py-1"
+                          className="sp-script-line text-[11px] flex items-baseline gap-2 pl-7"
                         >
-                          <span className="mr-2 text-[10px] text-muted-foreground opacity-50 select-none">
-                            {item.type === "block-range" ? t("statisticsPanel.itemTypeRange") : (item.type === "block" ? t("statisticsPanel.itemTypeBlock") : t("statisticsPanel.itemTypeInline"))}
-                          </span>
-                          {typeof item === "string" ? item : item.text}
+                          <span className="font-mono text-[8px] text-muted-foreground/40 uppercase tracking-wider shrink-0">{typeLabel}</span>
+                          <span className="truncate">{typeof item === "string" ? item : item.text}</span>
                         </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </ScrollArea>
-      </CardContent>
-    </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* generate report footer */}
+      <div className="shrink-0 border-t border-border px-3.5 py-2.5 bg-muted/20">
+        <button
+          type="button"
+          onClick={onGenerateReport}
+          className="w-full font-mono text-[10px] font-semibold uppercase tracking-widest text-primary border border-primary/30 hover:border-primary/60 hover:bg-primary/5 transition-colors py-2"
+        >
+          {t("statisticsPanel.generateReport")}
+        </button>
+      </div>
+    </div>
   );
 }
