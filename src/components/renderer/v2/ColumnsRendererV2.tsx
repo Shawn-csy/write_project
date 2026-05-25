@@ -182,6 +182,7 @@ export const ColumnsRendererV2 = ({
                       {events.length > 0 ? events.map((event) => {
                         const mCfg = event.markerId ? markerConfigById.get(event.markerId) : undefined;
                         const mStyle = mCfg?.style && typeof mCfg.style === 'object' ? mCfg.style as React.CSSProperties : undefined;
+                        const markerLabel = String(mCfg?.label || mCfg?.name || mCfg?.id || event.markerId || '').trim();
                         const role = event.attrs?.role as string | undefined;
                         const shapeStyle: React.CSSProperties | undefined = mStyle && (role === 'range_start' || role === 'range_end')
                           ? { ...mStyle, borderRadius: role === 'range_start' ? '4px 4px 0 0' : '0 0 4px 4px' }
@@ -191,6 +192,8 @@ export const ColumnsRendererV2 = ({
                             key={event.id}
                             className={cn("px-3 py-1.5 break-words", !mStyle && "bg-card/50")}
                             style={shapeStyle}
+                            data-marker-id={event.markerId || undefined}
+                            data-marker-label={markerLabel || undefined}
                           >
                             {event.speakerId && (
                               <div className="mb-0.5 text-[11px] text-muted-foreground/70">{event.speakerId}</div>

@@ -4,6 +4,7 @@ import { Separator } from "../ui/separator";
 import { Slider } from "../ui/slider";
 import { Input } from "../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Switch } from "../ui/switch";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useI18n } from "../../contexts/I18nContext";
 import { cn } from "../../lib/utils";
@@ -28,6 +29,7 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
     desktopUiScale, setDesktopUiScale,
     readingFontFamily, setReadingFontFamily,
     uiFontFamily, setUiFontFamily,
+    showMarkers, setShowMarkers,
     showLineUnderline, setShowLineUnderline,
   } = useSettings();
 
@@ -225,23 +227,29 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
                 label={t("appearance.display")}
                 className="md:grid-cols-[160px_minmax(0,1fr)]"
               >
-                <button
-                  onClick={() => setShowLineUnderline(!showLineUnderline)}
-                  className={cn(
-                    "flex items-center justify-between p-3 rounded-lg border text-xs font-medium transition-all group",
-                    showLineUnderline
-                      ? "bg-primary/5 border-primary/40 text-primary"
-                      : "bg-background border-border/60 text-muted-foreground hover:border-border hover:bg-muted/10"
-                  )}
-                >
-                  <span className="flex items-center gap-2">
-                    <AlignJustify className="w-4 h-4 opacity-70" />
-                    {t("appearance.lineGuide")}
-                  </span>
-                  <div className={cn("w-8 h-4 rounded-full relative transition-colors", showLineUnderline ? "bg-primary" : "bg-muted-foreground/30")}>
-                    <div className={cn("absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-200", showLineUnderline ? "left-[18px]" : "left-0.5")} />
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between rounded-lg border border-border/60 bg-background px-3 py-2">
+                    <span className="text-xs font-medium text-foreground">{t("appearance.showMarkers")}</span>
+                    <Switch checked={showMarkers} onCheckedChange={setShowMarkers} />
                   </div>
-                </button>
+                  <button
+                    onClick={() => setShowLineUnderline(!showLineUnderline)}
+                    className={cn(
+                      "flex w-full items-center justify-between p-3 rounded-lg border text-xs font-medium transition-all group",
+                      showLineUnderline
+                        ? "bg-primary/5 border-primary/40 text-primary"
+                        : "bg-background border-border/60 text-muted-foreground hover:border-border hover:bg-muted/10"
+                    )}
+                  >
+                    <span className="flex items-center gap-2">
+                      <AlignJustify className="w-4 h-4 opacity-70" />
+                      {t("appearance.lineGuide")}
+                    </span>
+                    <div className={cn("w-8 h-4 rounded-full relative transition-colors", showLineUnderline ? "bg-primary" : "bg-muted-foreground/30")}>
+                      <div className={cn("absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-200", showLineUnderline ? "left-[18px]" : "left-0.5")} />
+                    </div>
+                  </button>
+                </div>
               </PublisherFormRow>
             </div>
 

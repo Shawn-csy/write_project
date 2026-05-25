@@ -38,6 +38,8 @@ export interface AppearanceContextValue {
   adjustFont: (delta: number) => void;
   hideWhitespace: boolean;
   setHideWhitespace: (value: boolean) => void;
+  showMarkers: boolean;
+  setShowMarkers: (value: boolean) => void;
   transparentBg: boolean;
   setTransparentBg: (value: boolean) => void;
   showLineUnderline: boolean;

@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { PublicReaderLayout } from "../components/reader/PublicReaderLayout";
-import { useScriptViewerDefaults } from "../hooks/useScriptViewerDefaults";
+import { useReaderPreferences } from "../hooks/useReaderPreferences";
 import { useI18n } from "../contexts/I18nContext";
 import { usePublicTerms } from "../hooks/public/usePublicTerms";
 import { usePublicReaderScript } from "../hooks/public/usePublicReaderScript";
@@ -75,9 +75,8 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
     }
   }, [scriptId]);
 
-  const viewerDefaults = useScriptViewerDefaults({
+  const readerPreferences = useReaderPreferences({
     theme: scriptManager.activeCloudScript?.markerThemeId,
-    markerConfigs: publicMarkerConfigs,
   });
 
   const fullScriptData = useMemo(() => {
@@ -141,7 +140,7 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
   }), [navProps?.contentScrollRef]);
 
   const mergedViewerProps = useMemo(() => ({
-    ...viewerDefaults,
+    ...readerPreferences,
     externalAst: scriptManager.ast,
     externalScenes: scriptManager.parsedScenes,
     externalTitleEntries: scriptManager.parsedTitleEntries,
@@ -154,9 +153,10 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
     onHasTitle: scriptManager.setHasTitle,
     onScenes: scriptManager.setSceneList,
     scrollToScene: scriptManager.scrollSceneId,
+    markerConfigs: publicMarkerConfigs,
     hiddenMarkerIds: scriptManager.hiddenMarkerIds,
   }), [
-    viewerDefaults,
+    readerPreferences,
     scriptManager.ast,
     scriptManager.parsedScenes,
     scriptManager.parsedTitleEntries,
@@ -169,6 +169,7 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
     scriptManager.setHasTitle,
     scriptManager.setSceneList,
     scriptManager.scrollSceneId,
+    publicMarkerConfigs,
     scriptManager.hiddenMarkerIds,
   ]);
 

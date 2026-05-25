@@ -50,6 +50,8 @@ interface Props {
   onCrossGuidePrev?: () => void;
   onCrossGuideExit?: () => void;
   onPersistMarkerTheme?: (themeId: string) => Promise<boolean | void>;
+  hiddenMarkerIds?: string[];
+  toggleMarkerVisibility?: (id: string) => void;
   t: (key: string) => string;
 }
 
@@ -57,12 +59,12 @@ export function useLiveEditorState({
   scriptId, initialData, onClose, initialSceneId, defaultShowPreview = false,
   readOnly = false, contentScrollRef,
   onTitleName, crossModeGuideActive = false, crossModeGuideStep = "",
-  onPersistMarkerTheme, t,
+  onPersistMarkerTheme, hiddenMarkerIds = [], toggleMarkerVisibility = () => {}, t,
 }: Props) {
   const {
     theme = "system", fontSize, bodyFontSize, dialogueFontSize, lineHeight,
     accentConfig, markerConfigs, markerThemes = [], currentThemeId = "default", v2LayoutConfig,
-    switchTheme = () => {}, hiddenMarkerIds, toggleMarkerVisibility, useV2Renderer,
+    switchTheme = () => {}, useV2Renderer,
   } = useSettings();
   const scriptView = useScriptView();
   const activeMarkerConfigs = (scriptView?.markerConfigs && scriptView.markerConfigs.length > 0)

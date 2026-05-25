@@ -42,6 +42,8 @@ interface LiveEditorProps {
   onCrossGuidePrev?: () => void;
   onCrossGuideExit?: () => void;
   onPersistMarkerTheme?: (themeId: string) => Promise<boolean | void>;
+  hiddenMarkerIds?: string[];
+  onToggleMarkerVisibility?: (id: string) => void;
 }
 
 export default function LiveEditor({
@@ -50,12 +52,13 @@ export default function LiveEditor({
   isSidebarOpen, onSetSidebarOpen, onTitleHtml, onHasTitle, onTitleNote, onTitleSummary, onTitleName,
   showHeader = true, crossModeGuideActive = false, crossModeGuideStep = "",
   onCrossGuideNext, onCrossGuidePrev, onCrossGuideExit, onPersistMarkerTheme,
+  hiddenMarkerIds = [], onToggleMarkerVisibility = () => {},
 }: LiveEditorProps) {
   const { t } = useI18n();
   const s = useLiveEditorState({
     scriptId, initialData, onClose, initialSceneId, defaultShowPreview,
     readOnly, contentScrollRef, onTitleName, crossModeGuideActive, crossModeGuideStep,
-    onPersistMarkerTheme, t,
+    onPersistMarkerTheme, hiddenMarkerIds, toggleMarkerVisibility: onToggleMarkerVisibility, t,
   });
 
   const handleToggleRules = useCallback(() => s.setShowRules(prev => !prev), [s.setShowRules]);

@@ -66,8 +66,17 @@ export const TimelineRendererV2 = ({
 
   return (
     <div className="space-y-2">
-      {rows.map((row) => (
-        <div key={row.event.id} className="rounded border border-border/60 bg-background p-2" data-track-id={row.trackId}>
+      {rows.map((row) => {
+        const mCfg = row.event.markerId ? markerConfigById.get(row.event.markerId) : undefined;
+        const markerLabel = String(mCfg?.label || mCfg?.name || mCfg?.id || row.event.markerId || '').trim();
+        return (
+        <div
+          key={row.event.id}
+          className="rounded border border-border/60 bg-background p-2"
+          data-track-id={row.trackId}
+          data-marker-id={row.event.markerId || undefined}
+          data-marker-label={markerLabel || undefined}
+        >
           <div className="mb-1 flex items-center gap-2 text-xs text-muted-foreground">
             <span className="rounded bg-muted px-1.5 py-0.5">{row.trackName}</span>
             <span>L{row.event.lineSpan.start}</span>
@@ -75,14 +84,15 @@ export const TimelineRendererV2 = ({
           </div>
           <p className="whitespace-pre-wrap" style={{ fontSize, lineHeight }}>
             <EventTextV2
-              text={applyDisplayTemplate(row.event.text, row.event.markerId ? markerConfigById.get(row.event.markerId) : undefined)}
+              text={applyDisplayTemplate(row.event.text, mCfg)}
               markerConfigs={markerConfigs}
               hiddenMarkerIds={hiddenMarkerIds}
               markerTooltipPrefix={markerTooltipPrefix}
             />
           </p>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 };

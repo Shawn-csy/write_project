@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "./AuthContext";
 import { useTheme } from "../components/theme-provider";
 import {
@@ -20,7 +20,6 @@ import type { LayoutConfig } from "../lib/v2";
 
 import { AppearanceProvider } from "./AppearanceContext";
 import { MarkerThemeProvider } from "./MarkerThemeContext";
-import { MarkerVisibilityProvider } from "./MarkerVisibilityContext";
 import { StatsConfigProvider } from "./StatsConfigContext";
 
 interface StatsKeywordRule {
@@ -68,6 +67,8 @@ interface SettingsContextValue {
   adjustFont: (delta: number) => void;
   hideWhitespace: boolean;
   setHideWhitespace: (value: boolean) => void;
+  showMarkers: boolean;
+  setShowMarkers: (value: boolean) => void;
   transparentBg: boolean;
   setTransparentBg: (value: boolean) => void;
   showLineUnderline: boolean;
@@ -76,9 +77,6 @@ interface SettingsContextValue {
   setUseV2Renderer: (value: boolean) => void;
   v2LayoutConfig: LayoutConfig;
   setV2LayoutConfig: (config: LayoutConfig) => void;
-  hiddenMarkerIds: string[];
-  setHiddenMarkerIds: React.Dispatch<React.SetStateAction<string[]>>;
-  toggleMarkerVisibility: (id: string) => void;
   statsConfig: StatsConfig;
   setStatsConfig: (value: StatsConfig) => void;
   markerThemes: MarkerTheme[];
@@ -213,17 +211,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     (val: boolean) => setHideWhitespaceStr(val ? "on" : "off"),
     [setHideWhitespaceStr]
   );
+  const [showMarkersStr, setShowMarkersStr] = usePersistentState(STORAGE_KEYS.SHOW_MARKERS, "on");
+  const showMarkers = showMarkersStr !== "off";
+  const setShowMarkers = useCallback(
+    (val: boolean) => setShowMarkersStr(val ? "on" : "off"),
+    [setShowMarkersStr]
+  );
 
 
-
-  // Marker visibility (session-level)
-  const [hiddenMarkerIds, setHiddenMarkerIds] = useState<string[]>([]);
-  const toggleMarkerVisibility = useCallback((id: string) => {
-    setHiddenMarkerIds((prev) => {
-      if (prev.includes(id)) return prev.filter((x) => x !== id);
-      return [...prev, id];
-    });
-  }, []);
 
   // Stats Configuration
   const defaultStatsConfig: StatsConfig = {
@@ -326,6 +321,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                       if (typeof s.readingFontFamily === "string") setReadingFontFamily(s.readingFontFamily);
                       if (typeof s.uiFontFamily === "string") setUiFontFamily(s.uiFontFamily);
                       if (typeof s.hideWhitespace === "boolean") setHideWhitespace(s.hideWhitespace);
+                      if (typeof s.showMarkers === "boolean") setShowMarkers(s.showMarkers);
                       if (typeof s.lineHeight === "number") setLineHeight(s.lineHeight);
                       if (typeof s.desktopUiScale === "number") setDesktopUiScale(s.desktopUiScale);
                       if (typeof s.transparentBg === "boolean") setTransparentBg(s.transparentBg);
@@ -365,6 +361,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                           uiFontFamily,
 
                           hideWhitespace,
+                          showMarkers,
 
                           lineHeight,
                           desktopUiScale,
@@ -401,6 +398,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           uiFontFamily,
 
           hideWhitespace,
+          showMarkers,
 
           lineHeight,
           desktopUiScale,
@@ -454,6 +452,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     desktopUiScale, setDesktopUiScale,
     adjustFont,
     hideWhitespace, setHideWhitespace,
+    showMarkers, setShowMarkers,
     transparentBg, setTransparentBg,
     showLineUnderline, setShowLineUnderline,
     useV2Renderer, setUseV2Renderer,
@@ -470,17 +469,12 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     desktopUiScale, setDesktopUiScale,
     adjustFont,
     hideWhitespace, setHideWhitespace,
+    showMarkers, setShowMarkers,
     transparentBg, setTransparentBg,
     showLineUnderline, setShowLineUnderline,
     useV2Renderer, setUseV2Renderer,
     v2LayoutConfig, setV2LayoutConfig,
   ]);
-
-  const markerVisibilityValue = useMemo(() => ({
-    hiddenMarkerIds,
-    setHiddenMarkerIds,
-    toggleMarkerVisibility,
-  }), [hiddenMarkerIds, toggleMarkerVisibility]);
 
   const statsConfigValue = useMemo(() => ({
     statsConfig,
@@ -515,15 +509,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
     // Modes
     hideWhitespace, setHideWhitespace,
+    showMarkers, setShowMarkers,
     transparentBg, setTransparentBg,
     showLineUnderline, setShowLineUnderline,
     useV2Renderer, setUseV2Renderer,
     v2LayoutConfig, setV2LayoutConfig,
-
-    // Marker visibility
-    hiddenMarkerIds,
-    setHiddenMarkerIds,
-    toggleMarkerVisibility,
 
     // Stats Config
     statsConfig,
@@ -543,11 +533,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     desktopUiScale, setDesktopUiScale,
     adjustFont,
     hideWhitespace, setHideWhitespace,
+    showMarkers, setShowMarkers,
     transparentBg, setTransparentBg,
     showLineUnderline, setShowLineUnderline,
     useV2Renderer, setUseV2Renderer,
     v2LayoutConfig, setV2LayoutConfig,
-    hiddenMarkerIds, toggleMarkerVisibility,
     statsConfig, setStatsConfig,
     themes,
   ]);
@@ -555,13 +545,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppearanceProvider value={appearanceValue}>
       <MarkerThemeProvider value={themes}>
-        <MarkerVisibilityProvider value={markerVisibilityValue}>
-          <StatsConfigProvider value={statsConfigValue}>
-            <SettingsContext.Provider value={value}>
-              {children}
-            </SettingsContext.Provider>
-          </StatsConfigProvider>
-        </MarkerVisibilityProvider>
+        <StatsConfigProvider value={statsConfigValue}>
+          <SettingsContext.Provider value={value}>
+            {children}
+          </SettingsContext.Provider>
+        </StatsConfigProvider>
       </MarkerThemeProvider>
     </AppearanceProvider>
   );

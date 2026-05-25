@@ -141,6 +141,8 @@ export function renderWorkspaceRoutes({
                       onTitleChange={activeCloudScript && !isPublicReader ? handleCloudTitleUpdate : undefined}
                       onSwitchMarkerTheme={activeCloudScript && !isPublicReader ? handleCloudMarkerThemeUpdate : undefined}
                       markerConfigs={scriptManager.effectiveMarkerConfigs}
+                      hiddenMarkerIds={scriptManager.hiddenMarkerIds}
+                      onToggleMarker={scriptManager.toggleMarkerVisibility}
                     />
                     {!nav.homeOpen && !nav.aboutOpen && !nav.settingsOpen && hasTitle && showTitle && (
                       <Card className="border border-border border-t-0 rounded-t-none">

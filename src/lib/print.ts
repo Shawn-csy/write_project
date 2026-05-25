@@ -33,6 +33,12 @@ export function buildPrintHtml({
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
+      /* Force plain text background in PDF export */
+      .script-renderer,
+      .script-renderer * {
+        background: transparent !important;
+        background-color: transparent !important;
+      }
       /* Ensure container spans full width without scrollbars */
       .script-renderer {
         max-width: 100% !important;

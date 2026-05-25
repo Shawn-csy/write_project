@@ -85,6 +85,7 @@ export const LinearRendererV2 = ({
       {rows.map(({ line, track, event }) => {
         const mCfg = event.markerId ? markerConfigById.get(event.markerId) : undefined;
         const mStyle = mCfg?.style && typeof mCfg.style === 'object' ? mCfg.style as React.CSSProperties : undefined;
+        const markerLabel = String(mCfg?.label || mCfg?.name || mCfg?.id || event.markerId || '').trim();
         const showTrackBadge = shouldShowTrackBadge(track, event);
 
         return (
@@ -100,6 +101,8 @@ export const LinearRendererV2 = ({
             <article
               className={cn("min-w-0 px-3 py-1.5 rounded break-words", !mStyle && "bg-card/50 border border-border/30")}
               style={mStyle}
+              data-marker-id={event.markerId || undefined}
+              data-marker-label={markerLabel || undefined}
             >
               {(showTrackBadge || event.speakerId) ? (
                 <div className="mb-0.5 flex items-center gap-2 text-[10px] text-muted-foreground/60">
