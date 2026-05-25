@@ -2,6 +2,7 @@ import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
 import PublicHelpPage from "./PublicHelpPage";
 
 vi.mock("../contexts/I18nContext", () => ({
@@ -17,9 +18,11 @@ vi.mock("../components/public/PublicTopBar", () => ({
 describe("PublicHelpPage", () => {
   const renderPage = () =>
     render(
-      <MemoryRouter>
-        <PublicHelpPage />
-      </MemoryRouter>
+      <HelmetProvider>
+        <MemoryRouter>
+          <PublicHelpPage />
+        </MemoryRouter>
+      </HelmetProvider>
     );
 
   it("renders faq search with default result count", () => {
