@@ -1590,6 +1590,7 @@ const messages = {
     "standard": "Standard",
     "relaxed": "Relaxed",
     "display": "Display",
+    "showMarkers": "Show markers",
     "uiFont": "System Font",
     "desktopScale": "Desktop UI Scale",
     "desktopScaleDesc": "Desktop-only. Increase overall interface text size.",

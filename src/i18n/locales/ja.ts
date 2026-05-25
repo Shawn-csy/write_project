@@ -1593,6 +1593,7 @@ const messages = {
     "standard": "標準",
     "relaxed": "広い",
     "display": "表示",
+    "showMarkers": "マーカーを表示",
     "uiFont": "システムフォント",
     "desktopScale": "デスクトップ文字倍率",
     "desktopScaleDesc": "デスクトップ版のみ適用。UI全体の文字を拡大します。",

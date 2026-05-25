@@ -90,15 +90,13 @@ function ReaderHeader({
   const { t } = useI18n() as { t: (key: string, fallback?: string) => string };
   const location = useLocation();
   const {
-    hiddenMarkerIds: ctxHiddenMarkerIds,
-    toggleMarkerVisibility,
     markerThemes = [] as MarkerTheme[],
     currentThemeId = "default",
     switchTheme = () => {},
   } = useSettings();
 
-  const effectiveHiddenMarkerIds = hiddenMarkerIdsProp ?? ctxHiddenMarkerIds ?? [];
-  const effectiveToggleMarker = onToggleMarkerProp ?? toggleMarkerVisibility;
+  const effectiveHiddenMarkerIds = hiddenMarkerIdsProp ?? [];
+  const effectiveToggleMarker = onToggleMarkerProp ?? (() => {});
   const persistMarkerTheme = onSwitchMarkerTheme;
   const effectiveVisibleMarkerIds =
     visibleMarkerIdsProp ??

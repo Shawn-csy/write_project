@@ -152,6 +152,8 @@ export default function CloudEditorPage({ scriptManager, navProps }: { scriptMan
       onCrossGuidePrev={handleCrossGuidePrev}
       onCrossGuideExit={handleCrossGuideExit}
       onPersistMarkerTheme={!isReadMode ? handlePersistMarkerTheme : undefined}
+      hiddenMarkerIds={scriptManager.hiddenMarkerIds}
+      onToggleMarkerVisibility={scriptManager.toggleMarkerVisibility}
     />
   );
 }

@@ -1,6 +1,6 @@
 import React, { forwardRef } from "react";
 import ScriptSurface from "./ScriptSurface";
-import { useScriptViewerDefaults } from "../../hooks/useScriptViewerDefaults";
+import { useReaderPreferences } from "../../hooks/useReaderPreferences";
 import { useI18n } from "../../contexts/I18nContext";
 import type { MarkerConfig } from "../../types/script";
 
@@ -60,15 +60,13 @@ export const PreviewPanel = forwardRef(function PreviewPanel({
   scrollClassName
 }: PreviewPanelProps, ref: React.ForwardedRef<HTMLDivElement>) {
   const { t } = useI18n();
-  const viewerDefaults = useScriptViewerDefaults({
+  const readerPreferences = useReaderPreferences({
     theme,
     fontSize,
     bodyFontSize,
     dialogueFontSize,
     lineHeight,
     accentColor,
-    markerConfigs,
-    hiddenMarkerIds
   });
 
   return (
@@ -100,7 +98,9 @@ export const PreviewPanel = forwardRef(function PreviewPanel({
         onProcessedHtml,
         scrollToScene: initialSceneId,
         onScenes,
-        ...viewerDefaults
+        ...readerPreferences,
+        markerConfigs,
+        hiddenMarkerIds: hiddenMarkerIds || [],
       }}
     />
   );

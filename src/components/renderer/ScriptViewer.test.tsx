@@ -4,6 +4,8 @@ import { render } from "@testing-library/react";
 import ScriptViewer from "./ScriptViewer";
 import { parseScreenplay } from "../../lib/screenplayAST";
 
+const scriptRendererSpy = vi.fn(() => <div data-testid="script-renderer-mock" />);
+
 vi.mock("../../contexts/I18nContext", () => ({
   useI18n: () => ({ t: (k) => k }),
 }));
@@ -15,6 +17,10 @@ vi.mock("../../constants/readingFonts", () => ({
 // renderToStaticMarkup used inside ScriptViewer for HTML export
 vi.mock("react-dom/server", () => ({
   renderToStaticMarkup: vi.fn(() => "<div>rendered</div>"),
+}));
+
+vi.mock("./ScriptRenderer", () => ({
+  ScriptRenderer: (props: unknown) => scriptRendererSpy(props),
 }));
 
 const sample = `Title: Test Script
@@ -98,5 +104,19 @@ describe("ScriptViewer", () => {
     const textWithSummary = `Title: My Script\nSummary: A short summary.\n\nINT. ROOM - DAY\n\nAction.\n`;
     render(<ScriptViewer text={textWithSummary} onSummary={onSummary} />);
     expect(onSummary).toHaveBeenCalledWith(expect.stringContaining("A short summary"));
+  });
+
+  it("hides all markers when showMarkers is false", () => {
+    scriptRendererSpy.mockClear();
+    render(
+      <ScriptViewer
+        text={sample}
+        markerConfigs={[{ id: "a" }, { id: "b" }]}
+        hiddenMarkerIds={["x"]}
+        showMarkers={false}
+      />
+    );
+    const props = scriptRendererSpy.mock.calls.at(-1)?.[0] as { hiddenMarkerIds?: string[] } | undefined;
+    expect(props?.hiddenMarkerIds).toEqual(expect.arrayContaining(["a", "b", "x"]));
   });
 });

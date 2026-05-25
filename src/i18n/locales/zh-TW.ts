@@ -1590,6 +1590,7 @@ const messages = {
     "standard": "標準",
     "relaxed": "寬鬆",
     "display": "介面顯示",
+    "showMarkers": "顯示標記",
     "uiFont": "系統字型",
     "desktopScale": "桌面字體倍率",
     "desktopScaleDesc": "僅在桌面版生效，用於放大整體介面文字。",

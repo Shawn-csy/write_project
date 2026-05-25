@@ -13,6 +13,7 @@ export const STORAGE_KEYS = {
   DESKTOP_UI_SCALE: "screenplay-reader-desktop-ui-scale",
   EXPORT_MODE: "screenplay-reader-export-mode",
   LINE_HEIGHT: "screenplay-reader-line-height",
+  SHOW_MARKERS: "screenplay-reader-show-markers",
   TRANSPARENT_BG: "screenplay-reader-transparent-bg",
   SHOW_UNDERLINE: "screenplay-reader-show-underline",
   USE_V2_RENDERER: "screenplay-reader-use-v2-renderer",
