@@ -7,6 +7,7 @@ import type { MarkerConfig } from '../../types/script';
 import type { MarkerConfigLike } from '../../types/renderer';
 import { NodeRenderer } from './NodeRenderer';
 import type { RendererNode } from './NodeRenderer';
+import { getMarkerElement, readMarkerAttrs } from '../../lib/markerDom';
 
 const TOOLTIP_OFFSET = 14;
 const TOOLTIP_MAX_WIDTH = 280;
@@ -143,13 +144,11 @@ export const ScriptRenderer = React.memo(({
   }, [markerConfigs]);
 
   const resolveMarkerTooltip = (target: EventTarget | null) => {
-    const targetEl = target instanceof Element ? target : null;
-    if (!targetEl || typeof targetEl.closest !== "function") return null;
-    const markerEl = targetEl.closest("[data-marker-id]");
+    const markerEl = getMarkerElement(target);
     if (!markerEl) return null;
-    const markerId = String(markerEl.getAttribute("data-marker-id") || "").trim();
+    const { markerId, markerLabel: attrLabel } = readMarkerAttrs(markerEl);
     if (!markerId) return null;
-    const markerLabel = String(markerEl.getAttribute("data-marker-label") || "").trim() || markerLabelById.get(markerId) || markerId;
+    const markerLabel = attrLabel || markerLabelById.get(markerId) || markerId;
     return { markerId, markerLabel };
   };
 

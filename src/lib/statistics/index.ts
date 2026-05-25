@@ -22,7 +22,8 @@ export type CharacterStatItem = {
 
 type StatsResult = {
   locations?: unknown[];
-  dialogueByCharacter?: unknown[];
+  dialogueByCharacter?: Record<string, string[]>;
+  dialogueOrdered?: { text: string; line: number | null }[];
   actionLines?: unknown[];
   sentences?: { dialogue?: unknown[]; sfx?: unknown[] };
   customLayers?: Record<string, unknown[]>;
@@ -41,7 +42,7 @@ export interface ScriptStatsOutput {
   durationMinutes: number;
   locations: unknown[];
   sentences: {
-    dialogue: unknown[];
+    dialogue: { text: string; line: number | null }[];
     action: unknown[];
     sceneHeadings: unknown[];
     sfx: unknown[];
@@ -58,6 +59,7 @@ export interface ScriptStatsOutput {
   pauseSeconds: number;
   pauseItems: unknown[];
   estimates: { pure: number; all: number };
+  dialogueByCharacter: Record<string, string[]>;
 }
 
 /**
@@ -93,7 +95,7 @@ export function calculateScriptStats(
 
   // 3. Post-Process / Merge for backward compatibility
   const sentences = {
-      dialogue: results.dialogueByCharacter || results.sentences?.dialogue || [],
+      dialogue: results.dialogueOrdered || [],
       action: results.actionLines || [], // Collect Action lines
       sceneHeadings: results.locations || [],
       sfx: results.sentences?.sfx || []
@@ -147,7 +149,8 @@ export function calculateScriptStats(
       rangeStats: results.rangeStats || {},
       customDurationSeconds: results.customDurationSeconds || 0,
       pauseSeconds: results.pauseSeconds || 0,
-      pauseItems: results.pauseItems || []
+      pauseItems: results.pauseItems || [],
+      dialogueByCharacter: results.dialogueByCharacter || {},
   };
   
   // Calculate Duration

@@ -695,7 +695,10 @@ const messages = {
     "itemTypeRange": "範囲",
     "itemTypeBlock": "ブロック",
     "itemTypeInline": "行内",
-    "pauseSummary": "停止時間サマリー"
+    "pauseSummary": "停止時間サマリー",
+    "dialogueEffectiveLines": "{count} 行",
+    "dialogueTotalChars": "{count} 文字",
+    "dialogueAvgCharsPerLine": "平均 {count} 文字/行"
   },
   "statisticsSettings": {
     "timeMinutesSeconds": "{mins}分 {secs}秒",

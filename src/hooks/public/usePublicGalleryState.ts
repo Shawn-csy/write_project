@@ -73,7 +73,7 @@ export function usePublicGalleryState() {
   const { t } = useI18n();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { currentUser, login } = useAuth();
+  const { currentUser, login, logout } = useAuth();
 
   const normalizeView = (value: string | null): GalleryView => {
     if (value === "authors" || value === "orgs" || value === "help" || value === "license" || value === "about") return value;
@@ -355,7 +355,7 @@ export function usePublicGalleryState() {
   };
 
   return {
-    t, navigate, currentUser, login,
+    t, navigate, currentUser, login, logout,
     view, setView, normalizeView,
     viewMode, handleViewModeChange, normalizeViewMode,
     selectedTags, setSelectedTags,

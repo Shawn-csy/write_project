@@ -695,7 +695,10 @@ const messages = {
     "itemTypeRange": "Range",
     "itemTypeBlock": "Block",
     "itemTypeInline": "Inline",
-    "pauseSummary": "Detected {count} pauses, total {seconds} seconds"
+    "pauseSummary": "Detected {count} pauses, total {seconds} seconds",
+    "dialogueEffectiveLines": "{count} lines",
+    "dialogueTotalChars": "{count} chars",
+    "dialogueAvgCharsPerLine": "avg {count}/line"
   },
   "statisticsSettings": {
     "timeMinutesSeconds": "{mins}m {secs}s",

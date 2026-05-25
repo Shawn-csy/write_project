@@ -76,6 +76,8 @@ export const TimelineRendererV2 = ({
           data-track-id={row.trackId}
           data-marker-id={row.event.markerId || undefined}
           data-marker-label={markerLabel || undefined}
+          data-line-start={row.event.lineSpan?.start ?? 1}
+          data-line-end={row.event.lineSpan?.end ?? row.event.lineSpan?.start ?? 1}
         >
           <div className="mb-1 flex items-center gap-2 text-xs text-muted-foreground">
             <span className="rounded bg-muted px-1.5 py-0.5">{row.trackName}</span>

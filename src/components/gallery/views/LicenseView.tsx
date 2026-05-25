@@ -1,8 +1,9 @@
 import React from "react";
-import { Scale, ShieldCheck, FileCheck2 } from "lucide-react";
+import { Scale, ShieldCheck, FileCheck2, ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
 import { useI18n } from "../../../contexts/I18nContext";
 import { getPublicTermsConfig } from "../../../lib/api/public";
+import { Button } from "../../ui/button";
 
 const licenseCardStyle = {
   backgroundColor: "var(--license-card-bg)",
@@ -28,7 +29,11 @@ interface TermsConfig {
   requiredChecks?: RequiredCheck[];
 }
 
-export function LicenseView() {
+interface LicenseViewProps {
+  onBack?: () => void;
+}
+
+export function LicenseView({ onBack }: LicenseViewProps) {
   const { t } = useI18n();
   const [termsConfig, setTermsConfig] = React.useState<TermsConfig | null>(null);
 
@@ -45,6 +50,21 @@ export function LicenseView() {
 
   return (
     <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
+      {onBack && (
+        <div className="mb-5">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 text-muted-foreground hover:text-foreground"
+            onClick={onBack}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {t("publicLicense.back", "返回公開台本")}
+          </Button>
+        </div>
+      )}
+
       <div className="flex flex-col items-center text-center space-y-4 mb-10">
         <div
           className="w-16 h-16 rounded-2xl flex items-center justify-center mb-2 shadow-sm border"
@@ -69,12 +89,29 @@ export function LicenseView() {
       </div>
 
       <div className="space-y-6">
+        <Card style={licenseCardStyle}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <Scale className="w-5 h-5 text-primary" />
+              {t("publicLicense.readFirstTitle", "閱讀前先看這裡")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm sm:text-base text-muted-foreground">
+            <p>{t("publicLicense.readFirstDesc", "每一部作品的授權可能不同，請以該作品頁面的授權標示與作者補充條款為準。")}</p>
+            <ul className="list-disc pl-5 space-y-1 text-foreground/90">
+              <li>{t("publicLicense.readFirstItemCommercial", "是否可商用：先看作品是否允許商業用途。")}</li>
+              <li>{t("publicLicense.readFirstItemDerivative", "是否可改作：二創、改編、剪輯前先確認是否開放。")}</li>
+              <li>{t("publicLicense.readFirstItemNotify", "是否需通知：部分作者要求使用前或發布前告知。")}</li>
+            </ul>
+          </CardContent>
+        </Card>
+
         {termsSections.length > 0 && (
           <Card style={licenseCardStyle}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-xl">
                 <ShieldCheck className="w-5 h-5 text-primary" />
-                {termsConfig?.title || t("publicLicense.checkTitle")}
+                {termsConfig?.title || t("publicLicense.latestNoticeTitle", "平台授權公告")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm sm:text-base">
@@ -92,7 +129,7 @@ export function LicenseView() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
               <ShieldCheck className="w-5 h-5 text-primary" />
-              {t("publicLicense.checkTitle")}
+              {t("publicLicense.checkTitle", "發布時可設定的授權項目")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm sm:text-base">
@@ -160,6 +197,7 @@ export function LicenseView() {
           </CardContent>
         </Card>
       </div>
+
     </div>
   );
 }

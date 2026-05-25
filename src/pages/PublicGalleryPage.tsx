@@ -15,14 +15,14 @@ import { TermsConsentDialog } from "../components/public/TermsConsentDialog";
 import { HelpView } from "../components/gallery/views/HelpView";
 import { AboutView } from "../components/gallery/views/AboutView";
 import { LicenseView } from "../components/gallery/views/LicenseView";
-import { CircleHelp, LayoutDashboard, LogIn, Scale, Search, SlidersHorizontal, X } from "lucide-react";
+import { CircleHelp, LayoutDashboard, LogIn, LogOut, Scale, Search, SlidersHorizontal, X } from "lucide-react";
 import { usePublicGalleryState, preloadStudioEntry } from "../hooks/public/usePublicGalleryState";
 import type { GalleryView, GalleryViewMode } from "../hooks/public/usePublicGalleryState";
 
 export default function PublicGalleryPage() {
   const appVersion = __APP_VERSION__ ?? "dev";
   const {
-    t, navigate, currentUser, login,
+    t, navigate, currentUser, login, logout,
     view, setView, normalizeView,
     viewMode, handleViewModeChange, normalizeViewMode,
     selectedTags, setSelectedTags,
@@ -98,25 +98,51 @@ export default function PublicGalleryPage() {
               <SlidersHorizontal className="h-4 w-4" />
             </Button>
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="sm" className="w-10 px-0 sm:w-auto sm:px-3" onClick={() => setView("license")} title={t("publicGallery.licenseTerms")} aria-label={t("publicGallery.licenseTerms")}>
-                <Scale className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">{t("publicGallery.licenseTerms")}</span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-10 w-10 sm:w-auto sm:px-3"
+                onClick={() => setView("license")}
+                title={t("publicGallery.licenseTerms")}
+                aria-label={t("publicGallery.licenseTerms")}
+              >
+                <Scale className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">{t("publicGallery.license", "授權")}</span>
               </Button>
-              <Button variant="ghost" size="sm" className="w-10 px-0 sm:w-auto sm:px-3" onClick={() => setView("help")} title={t("publicGallery.help")} aria-label={t("publicGallery.help")}>
-                <CircleHelp className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">{t("publicGallery.help")}</span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-10 w-10 sm:w-auto sm:px-3"
+                onClick={() => setView("help")}
+                title={t("publicGallery.help")}
+                aria-label={t("publicGallery.help")}
+              >
+                <CircleHelp className="h-4 w-4" />
               </Button>
             </div>
             {currentUser ? (
-              <Button variant="default" size="sm" className="w-10 px-0 sm:w-auto sm:px-3"
-                onClick={() => navigate("/dashboard")} onMouseEnter={preloadStudioEntry} onFocus={preloadStudioEntry}
-                title={t("publicGallery.goStudio")} aria-label={t("publicGallery.goStudio")}>
-                <LayoutDashboard className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">{t("publicGallery.goStudio")}</span>
-              </Button>
+              <>
+                <Button variant="default" size="icon" className="h-10 w-10 sm:w-auto sm:px-3"
+                  onClick={() => navigate("/dashboard")} onMouseEnter={preloadStudioEntry} onFocus={preloadStudioEntry}
+                  title={t("publicGallery.goStudio")} aria-label={t("publicGallery.goStudio")}>
+                  <LayoutDashboard className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">{t("publicGallery.studio", "工作室")}</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10"
+                  onClick={async () => { try { await logout(); } catch (e) { console.error(e); } }}
+                  title={t("userMenu.logout", "登出")}
+                  aria-label={t("userMenu.logout", "登出")}
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </>
             ) : (
-              <Button variant="outline" size="sm" className="w-10 px-0 sm:w-auto sm:px-3"
+              <Button variant="outline" size="icon" className="h-10 w-10 sm:w-auto sm:px-3"
                 onClick={async () => { try { await login(); } catch(e) { console.error(e); } }}
                 onMouseEnter={preloadStudioEntry} onFocus={preloadStudioEntry}
                 title={t("publicGallery.login")} aria-label={t("publicGallery.login")}>
-                <LogIn className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">{t("publicGallery.login")}</span>
+                <LogIn className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">{t("publicGallery.loginShort", "登入")}</span>
               </Button>
             )}
           </div>
@@ -278,7 +304,7 @@ export default function PublicGalleryPage() {
         )}
 
         {view === "help" && <HelpView />}
-        {view === "license" && <LicenseView />}
+        {view === "license" && <LicenseView onBack={() => setView("scripts")} />}
         {view === "about" && <AboutView />}
       </main>
 

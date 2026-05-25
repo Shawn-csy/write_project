@@ -3,6 +3,7 @@ import { Metric, AstNode, AnalyzerContext } from '../ScriptAnalyzer';
 export class CharacterAndDurationMetric extends Metric {
   wpm: { dialogue: number; action: number };
   dialogueByChar!: Record<string, string[]>;
+  dialogueOrdered!: { text: string; line: number | null }[];
   sceneSetByChar!: Record<string, Set<string>>;
   currentCharacterName!: string | null;
   currentSceneId!: string | null;
@@ -19,6 +20,7 @@ export class CharacterAndDurationMetric extends Metric {
 
   reset() {
     this.dialogueByChar = {}; // { Name: [lines...] }
+    this.dialogueOrdered = []; // document-order flat list with line numbers
     this.sceneSetByChar = {}; // { Name: Set(sceneId) }
     this.currentCharacterName = null;
     this.currentSceneId = null;
@@ -57,6 +59,7 @@ export class CharacterAndDurationMetric extends Metric {
           this.dialogueByChar[charName] = [];
         }
         this.dialogueByChar[charName].push(speechText);
+        this.dialogueOrdered.push({ text: speechText, line: node.lineStart ?? null });
         touchCharacterScene(charName);
       }
     } else if (node.type === 'character') {
@@ -69,6 +72,7 @@ export class CharacterAndDurationMetric extends Metric {
                   this.dialogueByChar[this.currentCharacterName] = [];
                 }
                 this.dialogueByChar[this.currentCharacterName].push(speechText);
+                this.dialogueOrdered.push({ text: speechText, line: node.lineStart ?? null });
                 touchCharacterScene(this.currentCharacterName);
              }
          }
@@ -109,7 +113,8 @@ export class CharacterAndDurationMetric extends Metric {
     
     return {
       characterStats,
-      dialogueByCharacter: this.dialogueByChar
+      dialogueByCharacter: this.dialogueByChar,
+      dialogueOrdered: this.dialogueOrdered,
     };
   }
 }

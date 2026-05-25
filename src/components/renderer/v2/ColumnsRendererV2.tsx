@@ -194,6 +194,8 @@ export const ColumnsRendererV2 = ({
                             style={shapeStyle}
                             data-marker-id={event.markerId || undefined}
                             data-marker-label={markerLabel || undefined}
+                            data-line-start={event.lineSpan?.start ?? row.line}
+                            data-line-end={event.lineSpan?.end ?? event.lineSpan?.start ?? row.line}
                           >
                             {event.speakerId && (
                               <div className="mb-0.5 text-[11px] text-muted-foreground/70">{event.speakerId}</div>
