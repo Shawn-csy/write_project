@@ -3,18 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useScriptMetadataHydration } from "./useScriptMetadataHydration";
 import { ensureList } from "./scriptMetadataUtils";
 
-vi.mock("../../lib/api/scripts", () => ({
-  getScript: vi.fn(),
-}));
-
-import { getScript } from "../../lib/api/scripts";
-
 const setter = () => vi.fn();
 
 const buildParams = () => ({
   customFields: [],
   ensureList,
-  loadPublicInfoIfNeeded: vi.fn(async () => {}),
   userEditedRef: { current: false },
   setIsInitializing: setter(),
   setTitle: setter(),
@@ -63,22 +56,6 @@ describe("useScriptMetadataHydration", () => {
 
   it("hydrates from full script and maps parsed metadata fields", async () => {
     localStorage.setItem("preferredPersonaId", "persona-pref");
-    getScript.mockResolvedValue({
-      id: "s-1",
-      title: "完整標題",
-      status: "Private",
-      coverUrl: "https://example.com/cover.jpg",
-      markerThemeId: "theme-1",
-      disableCopy: true,
-      customMetadata: [
-        { key: "Author", value: "作者甲" },
-        { key: "AuthorDisplayMode", value: "override" },
-        { key: "ActivityDemoLinks", value: JSON.stringify([{ name: "A", url: "https://example.com/a" }]) },
-        { key: "marker_legend", value: "true" },
-        { key: "自訂欄位", value: "自訂值" },
-      ],
-      tags: [{ id: "t1", name: "女性向" }, { id: "t2", name: "成人向" }],
-    });
 
     const params = buildParams();
     const { result } = renderHook(() => useScriptMetadataHydration(params));
@@ -86,11 +63,19 @@ describe("useScriptMetadataHydration", () => {
     await act(async () => {
       await result.current({
         id: "s-1",
-        title: "",
-        tags: [
-          { id: "t1", name: "女性向" },
-          { id: "t2", name: "成人向" },
+        title: "完整標題",
+        status: "Private",
+        coverUrl: "https://example.com/cover.jpg",
+        markerThemeId: "theme-1",
+        disableCopy: true,
+        customMetadata: [
+          { key: "Author", value: "作者甲" },
+          { key: "AuthorDisplayMode", value: "override" },
+          { key: "ActivityDemoLinks", value: JSON.stringify([{ name: "A", url: "https://example.com/a" }]) },
+          { key: "marker_legend", value: "true" },
+          { key: "自訂欄位", value: "自訂值" },
         ],
+        tags: [{ id: "t1", name: "女性向" }, { id: "t2", name: "成人向" }],
       });
     });
 
@@ -107,18 +92,16 @@ describe("useScriptMetadataHydration", () => {
   });
 
   it("falls back to legacy demo url when demo links are missing", async () => {
-    getScript.mockResolvedValue({
-      id: "s-2",
-      title: "legacy",
-      customMetadata: [{ key: "ActivityDemoUrl", value: "https://example.com/legacy-demo" }],
-      tags: [],
-    });
-
     const params = buildParams();
     const { result } = renderHook(() => useScriptMetadataHydration(params));
 
     await act(async () => {
-      await result.current({ id: "s-2", title: "legacy", tags: [] });
+      await result.current({
+        id: "s-2",
+        title: "legacy",
+        customMetadata: [{ key: "ActivityDemoUrl", value: "https://example.com/legacy-demo" }],
+        tags: [],
+      });
     });
 
     expect(params.setActivityDemoLinks).toHaveBeenCalledWith([
@@ -127,14 +110,6 @@ describe("useScriptMetadataHydration", () => {
   });
 
   it("does not prefill author when disableAuthorAutofill is enabled", async () => {
-    getScript.mockResolvedValue({
-      id: "s-3",
-      title: "admin",
-      author: "既有作者",
-      customMetadata: [{ key: "AuthorDisplayMode", value: "override" }],
-      tags: [],
-    });
-
     const params = buildParams();
     const { result } = renderHook(() => useScriptMetadataHydration({
       ...params,
@@ -142,7 +117,13 @@ describe("useScriptMetadataHydration", () => {
     }));
 
     await act(async () => {
-      await result.current({ id: "s-3", title: "admin", tags: [] });
+      await result.current({
+        id: "s-3",
+        title: "admin",
+        author: "既有作者",
+        customMetadata: [{ key: "AuthorDisplayMode", value: "override" }],
+        tags: [],
+      });
     });
 
     expect(params.setAuthor).toHaveBeenCalledWith("");
@@ -151,11 +132,6 @@ describe("useScriptMetadataHydration", () => {
 
   it("does not auto-apply preferred persona when disablePersonaAutofill is enabled", async () => {
     localStorage.setItem("preferredPersonaId", "persona-pref");
-    getScript.mockResolvedValue({
-      id: "s-4",
-      title: "admin",
-      tags: [],
-    });
 
     const params = buildParams();
     const { result } = renderHook(() => useScriptMetadataHydration({

@@ -15,6 +15,7 @@ import { ScrollArea } from "../ui/scroll-area";
 import { Separator } from "../ui/separator";
 import UserMenu from "../auth/UserMenu";
 import { useI18n } from "../../contexts/I18nContext";
+import { AppLogo } from "../common/AppLogo";
 
 interface AccentStyle {
   label?: string;
@@ -85,10 +86,13 @@ function MobileMenu({
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border/60 bg-muted/20 shrink-0">
         <div className="flex items-center gap-2">
-           <Button variant="ghost" className="p-0 hover:bg-transparent h-auto" onClick={handleHome}>
+           <Button variant="ghost" className="p-0 hover:bg-transparent h-auto gap-2" onClick={handleHome}>
+             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+               <AppLogo className="w-5 h-5 text-primary" />
+             </div>
              <div className="flex flex-col items-start leading-none">
-                <h2 className={`text-base font-bold tracking-tight uppercase ${accentStyle?.label || "text-primary"}`}>Screenplay</h2>
-                <span className="text-[10px] text-muted-foreground tracking-widest pl-[1px]">READER</span>
+               <span className="text-sm font-semibold leading-none">Screenplay</span>
+               <span className="text-[10px] text-muted-foreground leading-none mt-0.5">Reader</span>
              </div>
            </Button>
         </div>

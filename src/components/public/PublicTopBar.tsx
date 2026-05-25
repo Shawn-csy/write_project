@@ -1,9 +1,10 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, ArrowLeft, Settings2, X } from "lucide-react";
+import { ArrowLeft, Settings2, X } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
 import { useI18n } from "../../contexts/I18nContext";
+import { AppLogo } from "../common/AppLogo";
 import { LanguageSwitcher } from "../common/LanguageSwitcher";
 import { TOPBAR_INNER_CLASS, TOPBAR_OUTER_CLASS } from "../layout/topbarLayout";
 import {
@@ -64,13 +65,23 @@ export function PublicTopBar({
                   <ArrowLeft className="w-5 h-5" />
                 </Button>
               )}
-              <div
-                className="flex min-w-0 items-center gap-2 font-serif font-semibold text-base text-primary cursor-pointer sm:text-lg"
+              <button
+                type="button"
+                className="flex min-w-0 items-center gap-2 rounded-md px-1 py-1 hover:bg-muted/50 transition-colors cursor-pointer group"
                 onClick={() => navigate("/")}
+                aria-label="Screenplay Reader"
               >
-                <BookOpen className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" />
-                <span className="max-w-[42vw] truncate sm:max-w-none">{resolvedTitle}</span>
-              </div>
+                <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                  <AppLogo className="w-4 h-4 text-primary" />
+                </div>
+                {showBack ? (
+                  <span className="max-w-[42vw] truncate text-sm font-medium text-muted-foreground sm:max-w-none">
+                    {resolvedTitle}
+                  </span>
+                ) : (
+                  <span className="text-sm font-semibold text-foreground">{t("publicTopbar.title")}</span>
+                )}
+              </button>
             </div>
 
             {tabs.length > 0 && (
@@ -79,7 +90,7 @@ export function PublicTopBar({
                   <button
                     key={tab.key}
                     className={cn(
-                      "h-9 rounded-md border px-3 text-sm transition-colors",
+                      "h-11 rounded-md border px-3 text-sm transition-colors",
                       activeTab === tab.key
                         ? "border-primary/35 bg-primary/10 text-primary shadow-sm"
                         : "border-transparent bg-background/65 text-muted-foreground hover:border-border/70 hover:bg-muted/50 hover:text-foreground"
@@ -121,7 +132,7 @@ export function PublicTopBar({
               <button
                 key={tab.key}
                 className={cn(
-                  "h-9 rounded-md border px-3 text-sm whitespace-nowrap transition-colors",
+                  "h-11 rounded-md border px-3 text-sm whitespace-nowrap transition-colors",
                   activeTab === tab.key
                     ? "border-primary/35 bg-primary/10 text-primary shadow-sm"
                     : "border-transparent bg-background/65 text-muted-foreground hover:border-border/70 hover:bg-muted/50 hover:text-foreground"
@@ -147,7 +158,7 @@ export function PublicTopBar({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-10 w-10"
                   aria-label={t("common.close")}
                   title={t("common.close")}
                 >

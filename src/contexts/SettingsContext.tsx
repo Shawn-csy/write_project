@@ -106,6 +106,43 @@ interface SettingsContextValue {
 
 const FONT_STEPS = [12, 14, 16, 24, 36, 72] as const;
 
+// Synchronously inject accent CSS variables on first paint to prevent accent colour flash.
+// Reads localStorage directly (same key as usePersistentState) before React renders.
+function injectInitialAccentVars() {
+  if (typeof window === "undefined" || typeof document === "undefined") return;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.ACCENT) as keyof typeof accentThemes | null;
+    const accentKey = (stored && stored in accentThemes ? stored : defaultAccent) as keyof typeof accentThemes;
+    const cfg = accentThemes[accentKey];
+    const isDark = document.documentElement.classList.contains("dark");
+    const root = document.documentElement;
+    root.dataset.accent = accentKey;
+    root.style.setProperty("--accent", isDark ? (cfg.accentDark || cfg.accent) : cfg.accent);
+    root.style.setProperty("--accent-foreground", cfg.accentForeground);
+    root.style.setProperty("--accent-muted", isDark ? (cfg.accentMutedDark || cfg.accentMuted || cfg.accent) : (cfg.accentMuted || cfg.accent));
+    root.style.setProperty("--accent-strong", isDark ? (cfg.accentStrongDark || cfg.accentStrong || cfg.accent) : (cfg.accentStrong || cfg.accent));
+  } catch {
+    // localStorage unavailable — no-op
+  }
+}
+injectInitialAccentVars();
+
+// Synchronously inject UI font and desktop scale CSS variables to prevent layout flash.
+function injectInitialLayoutVars() {
+  if (typeof window === "undefined" || typeof document === "undefined") return;
+  try {
+    const root = document.documentElement;
+    const uiFont = localStorage.getItem(STORAGE_KEYS.UI_FONT);
+    root.style.setProperty("--app-font-family", resolveUiFontStack(uiFont || DEFAULT_UI_FONT));
+    const scaleRaw = localStorage.getItem(STORAGE_KEYS.DESKTOP_UI_SCALE);
+    const scale = scaleRaw !== null ? Math.min(1.5, Math.max(0.75, Number(scaleRaw))) : 1;
+    root.style.setProperty("--desktop-ui-scale", String(Number.isFinite(scale) ? scale : 1));
+  } catch {
+    // localStorage unavailable — no-op
+  }
+}
+injectInitialLayoutVars();
+
 const SettingsContext = createContext<SettingsContextValue | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {

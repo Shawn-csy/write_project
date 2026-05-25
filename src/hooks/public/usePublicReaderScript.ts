@@ -4,8 +4,8 @@ import { deriveSimpleLicenseTags, parseBasicLicenseFromMeta } from "../../lib/li
 import { normalizeSeriesName, parseSeriesOrder } from "../../lib/series";
 import { normalizeMarkerConfigsSchema } from "../../lib/markerThemeCodec";
 import { defaultMarkerConfigs } from "../../constants/defaultMarkerRules";
-import { parseActivityDemoLinks } from "../../lib/activityDemoLinks";
 import { customMetadataEntriesToMeta, customMetadataEntriesToRawEntries } from "../../lib/customMetadata";
+import { buildPrefaceItemsFromMeta, buildPublicReaderProjection } from "../../lib/publicReaderProjection";
 import { useI18n } from "../../contexts/I18nContext";
 import type { ScriptManager } from "../../hooks/useScriptManager.types";
 import type { BaseScriptApi } from "../../types/api";
@@ -83,41 +83,6 @@ const ensureList = (val: unknown): unknown[] => {
         });
     }
     return [];
-};
-
-const normalizePrefaceKey = (key = "") =>
-    String(key || "").trim().toLowerCase().replace(/\s+/g, "");
-
-const PREFACE_RULES = [
-    { id: "outline", title: "大綱", keys: ["outline", "大綱"] },
-    { id: "rolesetting", title: "角色設定", keys: ["rolesetting", "角色設定"] },
-    { id: "backgroundinfo", title: "背景資訊", keys: ["backgroundinfo", "背景資訊"] },
-    { id: "performanceinstruction", title: "演繹指示", keys: ["performanceinstruction", "演繹指示"] },
-    { id: "openingintro", title: "作品的開頭引言", keys: ["openingintro", "作品的開頭引言"] },
-    { id: "chaptersettings", title: "章節", keys: ["chaptersettings"] },
-].map((rule) => ({ ...rule, keys: rule.keys.map(normalizePrefaceKey) }));
-
-const buildPrefaceItems = (meta: Record<string, string> = {}) => {
-    const valueByKey = new Map<string, string>();
-    Object.entries(meta || {}).forEach(([key, value]) => {
-        const normalizedKey = normalizePrefaceKey(key);
-        const normalizedValue = String(value || "").trim();
-        if (!normalizedKey || !normalizedValue || valueByKey.has(normalizedKey)) return;
-        valueByKey.set(normalizedKey, normalizedValue);
-    });
-
-    const items: { id: string; title: string; value: string }[] = [];
-    const seen = new Set<string>();
-    PREFACE_RULES.forEach((rule) => {
-        const key = rule.keys.find((k) => valueByKey.has(k));
-        if (!key) return;
-        const value = valueByKey.get(key);
-        const signature = `${rule.id}::${value}`;
-        if (!value || seen.has(signature)) return;
-        seen.add(signature);
-        items.push({ id: rule.id, title: rule.title, value });
-    });
-    return items;
 };
 
 const RESERVED_META_KEYS = new Set([
@@ -241,38 +206,74 @@ export function usePublicReaderScript({ id, scriptManager }: Props) {
             notifyOnModify: basicLicenseFromMeta.notifyOnModify || String(script.licenseNotify || "").toLowerCase() || personaLicense.notifyOnModify,
           };
 
-          setMockMeta({
+          const publicProjection = buildPublicReaderProjection({
+            title: script.title || "Untitled",
+            synopsis: meta.synopsis || meta.summary || "",
             coverUrl: script.coverUrl || null,
             author: resolvedAuthor,
             organization: resolvedOrganization,
             tags: normalizedTags,
-            synopsis: meta.synopsis || meta.summary || "",
-            description: meta.description || meta.notes || "",
-            date: script.draftDate || meta.date || meta.draftdate || "",
-            contact: contactValue,
-            source: meta.source || "",
-            credit: meta.credit || "",
-            authors: meta.authors || "",
-            headerAuthor: meta.author || "",
-            license: meta.license || "",
             targetAudience: pickTagByGroup(normalizedTags, AUDIENCE_TAGS) || "",
             contentRating: pickTagByGroup(normalizedTags, RATING_TAGS) || "",
-            ...basicLicense,
+            customFields,
+            prefaceItems: buildPrefaceItemsFromMeta(meta),
+            contact: contactValue,
+            license: meta.license || "",
+            commercialUse: basicLicense.commercialUse,
+            derivativeUse: basicLicense.derivativeUse,
+            notifyOnModify: basicLicense.notifyOnModify,
             licenseSpecialTerms: ensureList(meta.licensespecialterms || meta.licenseSpecialTerms),
-            licenseTags: deriveSimpleLicenseTags(basicLicense),
-            seriesName,
-            seriesOrder,
-            prefaceItems: buildPrefaceItems(meta),
             activity: {
               name: String(meta.activityname || meta.eventname || "").trim(),
               bannerUrl: String(meta.activitybanner || meta.eventbanner || "").trim(),
               content: String(meta.activitycontent || meta.eventcontent || "").trim(),
               demoUrl: String(meta.activitydemourl || meta.eventdemolink || "").trim(),
-              demoLinks: parseActivityDemoLinks(meta.activitydemolinks || meta.eventdemolinks),
+              demoLinks: ensureList(meta.activitydemolinks || meta.eventdemolinks),
               workUrl: String(meta.activityworkurl || meta.eventworklink || "").trim(),
             },
-            customFields,
             showMarkerLegend: String(meta.marker_legend) === "true" || String(meta.show_legend) === "true",
+            content: script.content || "",
+          });
+
+          setMockMeta({
+            coverUrl: publicProjection.coverUrl || null,
+            author: publicProjection.author
+              ? {
+                  id: String(publicProjection.author.id || "unknown"),
+                  displayName: String(publicProjection.author.displayName || "Unknown"),
+                  avatarUrl: String(publicProjection.author.avatarUrl || ""),
+                }
+              : null,
+            organization: publicProjection.organization
+              ? {
+                  id: String(publicProjection.organization.id || "unknown-org"),
+                  name: String(publicProjection.organization.name || ""),
+                  logoUrl: publicProjection.organization.logoUrl,
+                }
+              : null,
+            tags: publicProjection.tags,
+            synopsis: publicProjection.synopsis,
+            description: meta.description || meta.notes || "",
+            date: script.draftDate || meta.date || meta.draftdate || "",
+            contact: publicProjection.contact,
+            source: meta.source || "",
+            credit: meta.credit || "",
+            authors: meta.authors || "",
+            headerAuthor: meta.author || "",
+            license: publicProjection.license,
+            targetAudience: publicProjection.targetAudience,
+            contentRating: publicProjection.contentRating,
+            commercialUse: publicProjection.commercialUse,
+            derivativeUse: publicProjection.derivativeUse,
+            notifyOnModify: publicProjection.notifyOnModify,
+            licenseSpecialTerms: publicProjection.licenseSpecialTerms,
+            licenseTags: deriveSimpleLicenseTags(basicLicense),
+            seriesName,
+            seriesOrder,
+            prefaceItems: publicProjection.prefaceItems,
+            activity: publicProjection.activity,
+            customFields: publicProjection.customFields,
+            showMarkerLegend: publicProjection.showMarkerLegend,
           });
 
           if (seriesName) {

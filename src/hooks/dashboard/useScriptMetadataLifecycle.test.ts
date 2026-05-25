@@ -20,7 +20,6 @@ const buildProps = (overrides = {}) => ({
   initializedRef: { current: false },
   userEditedRef: { current: true },
   contactAutoFilledRef: { current: true },
-  publicLoadedRef: { current: "s-1" },
   setActiveTab: setter(),
   setIsInitializing: setter(),
   setIsMediaPickerOpen: setter(),
@@ -47,7 +46,6 @@ describe("useScriptMetadataLifecycle", () => {
     expect(props.initializedRef.current).toBe(false);
     expect(props.userEditedRef.current).toBe(false);
     expect(props.contactAutoFilledRef.current).toBe(false);
-    expect(props.publicLoadedRef.current).toBe(null);
     expect(props.setLocalScript).toHaveBeenCalledWith(null);
     expect(props.setActiveTab).toHaveBeenCalledWith("basic");
     expect(props.setIsInitializing).toHaveBeenCalledWith(false);
@@ -64,7 +62,6 @@ describe("useScriptMetadataLifecycle", () => {
       scriptId: "s-2",
       userEditedRef: { current: false },
       contactAutoFilledRef: { current: false },
-      publicLoadedRef: { current: null },
     });
     renderHook(() => useScriptMetadataLifecycle(props));
 
@@ -84,7 +81,6 @@ describe("useScriptMetadataLifecycle", () => {
       script,
       userEditedRef: { current: false },
       contactAutoFilledRef: { current: false },
-      publicLoadedRef: { current: null },
     });
     renderHook(() => useScriptMetadataLifecycle(props));
 

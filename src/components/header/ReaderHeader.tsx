@@ -119,9 +119,10 @@ function ReaderHeader({
     [currentThemeId, switchTheme, persistMarkerTheme]
   );
 
-  const [collapsed, setCollapsed] = useState(true);
+  const lgQuery = typeof window !== "undefined" ? window.matchMedia("(min-width: 1024px)") : null;
+  const [isLg, setIsLg] = useState<boolean>(() => lgQuery?.matches ?? false);
+  const [collapsed, setCollapsed] = useState<boolean>(() => !(lgQuery?.matches ?? false));
   const [autoCollapse, setAutoCollapse] = useState(true);
-  const [isLg, setIsLg] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -132,7 +133,6 @@ function ReaderHeader({
         setCollapsed(!media.matches);
       }
     };
-    sync();
     media.addEventListener("change", sync);
     return () => media.removeEventListener("change", sync);
   }, [autoCollapse]);
@@ -164,11 +164,11 @@ function ReaderHeader({
           <div className="flex items-center gap-2 min-w-0">
             <HeaderTitleBlock
               onBack={onBack ? () => { onBack(); } : undefined}
-              backButtonClassName="h-9 w-9 inline-flex items-center justify-center -ml-1 text-foreground/80 hover:text-foreground transition-colors shrink-0"
+              backButtonClassName="h-11 w-11 inline-flex items-center justify-center -ml-1 text-foreground/80 hover:text-foreground transition-colors shrink-0"
               backIconClassName="h-5 w-5"
               backAriaLabel={t("common.back")}
               onOpenSidebar={() => setSidebarOpen(true)}
-              sidebarButtonClassName={`h-9 w-9 inline-flex items-center justify-center text-foreground/80 hover:text-foreground transition-colors shrink-0 ${
+              sidebarButtonClassName={`h-11 w-11 inline-flex items-center justify-center text-foreground/80 hover:text-foreground transition-colors shrink-0 ${
                 isSidebarOpen ? "lg:hidden" : ""
               }`}
               sidebarIconClassName="h-5 w-5"
@@ -210,7 +210,7 @@ function ReaderHeader({
               }
               metaNode={
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground min-w-0">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground min-w-0">
                     <span className="truncate max-w-[120px]">
                       {typeof activeFile === "string" && fileMeta[activeFile]
                         ? fileMeta[activeFile]?.toLocaleDateString()
@@ -228,7 +228,7 @@ function ReaderHeader({
                     <span className="whitespace-nowrap">{progressLabel}</span>
                   </div>
                   {showReadModeHint && onEdit && (
-                    <div className="mt-0.5 text-[11px] text-[color:var(--license-term-fg)] truncate">
+                    <div className="mt-0.5 text-xs text-[color:var(--license-term-fg)] truncate">
                       {t("readerHeader.readModeHint")}
                     </div>
                   )}
@@ -245,7 +245,7 @@ function ReaderHeader({
                   setCollapsed((v) => !v);
                 }}
                 aria-label={collapsed ? t("readerHeader.showTools") : t("readerHeader.hideTools")}
-                className="lg:hidden h-9 w-9 inline-flex items-center justify-center rounded-full border bg-muted/30 hover:bg-muted/50 text-foreground/80 transition-colors shrink-0 justify-self-end ml-1"
+                className="lg:hidden h-11 w-11 inline-flex items-center justify-center rounded-full border bg-muted/30 hover:bg-muted/50 text-foreground/80 transition-colors shrink-0 justify-self-end ml-1"
               >
                 <SlidersHorizontal className="h-4 w-4" />
               </button>

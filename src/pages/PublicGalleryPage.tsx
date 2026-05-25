@@ -176,7 +176,7 @@ export default function PublicGalleryPage() {
                 const isActive = (featuredLaneMode || "featured") === tab.key;
                 return (
                   <Button key={tab.key} type="button" size="sm" variant={isActive ? "default" : "outline"}
-                    className={`h-8 rounded-full px-3 text-xs ${isActive ? "border border-primary bg-primary text-primary-foreground shadow ring-1 ring-primary/35" : "border-border/60 bg-background text-muted-foreground"}`}
+                    className={`h-11 rounded-full px-3 text-sm ${isActive ? "border border-primary bg-primary text-primary-foreground shadow ring-1 ring-primary/35" : "border-border/60 bg-background text-muted-foreground"}`}
                     onClick={() => setFeaturedLaneMode(tab.key === "featured" ? false : tab.key)}>
                     {tab.label}
                   </Button>
@@ -195,7 +195,7 @@ export default function PublicGalleryPage() {
                   <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                   <Input value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
                     placeholder={view === "scripts" ? t("publicGallery.searchScripts", "搜尋劇本...") : view === "authors" ? t("publicGallery.searchAuthors", "搜尋作者...") : t("publicGallery.searchOrgs", "搜尋組織...")}
-                    className="h-9 rounded-full border-border/70 bg-background/90 pl-8 pr-8 text-sm" />
+                    className="h-11 rounded-full border-border/70 bg-background/90 pl-8 pr-8 text-sm" />
                   {searchTerm && (
                     <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       onClick={() => setSearchTerm("")} aria-label={t("publicGallery.clearSearch", "清除搜尋")}>
@@ -203,18 +203,18 @@ export default function PublicGalleryPage() {
                     </button>
                   )}
                 </div>
-                <Button type="button" size="sm" variant="outline" className="relative h-9 rounded-full px-3 text-xs" onClick={() => setIsMobileFilterOpen(true)}>
+                <Button type="button" size="sm" variant="outline" className="relative h-11 rounded-full px-3 text-sm" onClick={() => setIsMobileFilterOpen(true)}>
                   <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />
                   {t("publicGallery.mobileFilter", "篩選")}
                   {activeMobileFilterCount > 0 && (
-                    <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] text-primary-foreground">{activeMobileFilterCount}</span>
+                    <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs text-primary-foreground">{activeMobileFilterCount}</span>
                   )}
                 </Button>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">{mobileResultCount} {view === "scripts" ? t("publicReader.worksUnit", "部") : t("publicGallery.results", "筆")}</span>
                 {view === "scripts" && hasScriptFilters && (
-                  <Button type="button" size="sm" variant="ghost" className="h-7 rounded-full px-2 text-xs text-muted-foreground" onClick={resetScriptFilters}>
+                  <Button type="button" size="sm" variant="ghost" className="h-10 rounded-full px-2 text-sm text-muted-foreground" onClick={resetScriptFilters}>
                     {t("publicGallery.clearFilters")}
                   </Button>
                 )}
@@ -313,8 +313,8 @@ export default function PublicGalleryPage() {
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <p className="text-xs text-muted-foreground">{t("publicGallery.footerText")}</p>
           <div className="flex items-center gap-3">
-            <span className="text-[10px] tracking-wide text-muted-foreground/70">v{appVersion}</span>
-            <Button variant="link" size="sm" className="h-auto px-0 text-xs" onClick={() => setView("about")}>{t("publicGallery.about")}</Button>
+            <span className="text-xs tracking-wide text-muted-foreground/70">v{appVersion}</span>
+            <Button variant="link" size="sm" className="min-h-11 px-0 text-sm" onClick={() => setView("about")}>{t("publicGallery.about")}</Button>
           </div>
         </div>
       </footer>

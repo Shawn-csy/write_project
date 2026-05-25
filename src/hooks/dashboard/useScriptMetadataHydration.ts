@@ -1,5 +1,4 @@
 import { useCallback } from "react";
-import { getScript } from "../../lib/api/scripts";
 import { parseBasicLicenseFromMeta } from "../../lib/licenseRights";
 import { buildCustomFieldsFromRawEntries } from "./scriptMetadataUtils";
 import { customMetadataEntriesToMeta, customMetadataEntriesToRawEntries } from "../../lib/customMetadata";
@@ -7,12 +6,10 @@ import { parseActivityDemoLinks } from "../../lib/activityDemoLinks";
 import type { ScriptLike, TagLike, CustomField, LicenseSpecialTerm } from "./types";
 
 interface UseScriptMetadataHydrationOptions {
-  fetchFullScript?: boolean;
   disableAuthorAutofill?: boolean;
   disablePersonaAutofill?: boolean;
   customFields?: CustomField[];
   ensureList: (v: unknown) => unknown[];
-  loadPublicInfoIfNeeded: (script: ScriptLike) => Promise<void>;
   userEditedRef: { current: boolean };
   setIsInitializing: (v: boolean) => void;
   setTitle: (v: string | ((prev: string) => string)) => void;
@@ -54,12 +51,10 @@ interface UseScriptMetadataHydrationOptions {
 }
 
 export function useScriptMetadataHydration({
-  fetchFullScript = true,
   disableAuthorAutofill = false,
   disablePersonaAutofill = false,
   customFields,
   ensureList,
-  loadPublicInfoIfNeeded,
   userEditedRef,
   setIsInitializing,
   setTitle,
@@ -100,32 +95,18 @@ export function useScriptMetadataHydration({
   setCustomFields,
 }: UseScriptMetadataHydrationOptions) {
   return useCallback(
-    async (baseScript: ScriptLike) => {
-      if (!baseScript) return;
+    async (sourceScript: ScriptLike) => {
+      if (!sourceScript) return;
       try {
-        // Resolve the authoritative source: fetch full script first if needed,
-        // then apply all state in one pass to avoid a double-render wave.
-        let sourceScript = baseScript;
-
-        if (fetchFullScript && baseScript.id) {
-          try {
-            const full = await getScript(baseScript.id);
-            if (full) sourceScript = full;
-          } catch (error) {
-            console.error(error);
-          }
-        }
-
         setTitle(sourceScript.title || "");
         setCoverUrl(sourceScript.coverUrl || "");
         setStatus(sourceScript.status || (sourceScript.isPublic ? "Public" : "Private"));
-        setCurrentTags(sourceScript.tags || baseScript.tags || []);
+        setCurrentTags(sourceScript.tags || []);
         setMarkerThemeId(sourceScript.markerThemeId || "default");
         setShowMarkerLegend(false);
         setDisableCopy(Boolean(sourceScript.disableCopy));
 
-        const rawTagsForAudience = sourceScript.tags || baseScript.tags;
-        const tagsForAudience = Array.isArray(rawTagsForAudience) ? rawTagsForAudience : [];
+        const tagsForAudience = Array.isArray(sourceScript.tags) ? sourceScript.tags : [];
         if (tagsForAudience.length > 0) {
           const tagNames = tagsForAudience.map((tag) => String(tag.name || "").toLowerCase());
           if (tagNames.includes("男性向")) setTargetAudience("男性向");
@@ -139,17 +120,14 @@ export function useScriptMetadataHydration({
           }
         }
 
-        const personaSource = sourceScript.personaId ? sourceScript : baseScript;
-        if (personaSource.personaId) {
-          setIdentity(`persona:${personaSource.personaId}`);
-          setSelectedOrgId(personaSource.organizationId || "");
+        if (sourceScript.personaId) {
+          setIdentity(`persona:${sourceScript.personaId}`);
+          setSelectedOrgId(sourceScript.organizationId || "");
         } else {
           const preferredPersonaId = disablePersonaAutofill ? "" : localStorage.getItem("preferredPersonaId");
           setIdentity(preferredPersonaId ? `persona:${preferredPersonaId}` : "");
           setSelectedOrgId("");
         }
-
-        await loadPublicInfoIfNeeded(sourceScript);
 
         const rawEntries = customMetadataEntriesToRawEntries(sourceScript.customMetadata || []);
         const meta = customMetadataEntriesToMeta(sourceScript.customMetadata || []);
@@ -222,9 +200,7 @@ export function useScriptMetadataHydration({
       customFields,
       disableAuthorAutofill,
       disablePersonaAutofill,
-      fetchFullScript,
       ensureList,
-      loadPublicInfoIfNeeded,
       setAuthor,
       setAuthorDisplayMode,
       setBackgroundInfo,

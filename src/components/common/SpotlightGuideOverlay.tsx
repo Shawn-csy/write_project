@@ -88,7 +88,7 @@ export function SpotlightGuideOverlay({
         <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         <div className="mt-4 flex items-center justify-between gap-2">
           {showSkip ? (
-            <Button type="button" size="sm" variant="ghost" onClick={onSkip}>
+            <Button type="button" size="sm" variant="ghost" className="min-h-11 px-3 text-sm" onClick={onSkip}>
               {skipLabel}
             </Button>
           ) : (
@@ -96,11 +96,11 @@ export function SpotlightGuideOverlay({
           )}
           <div className="flex items-center gap-2">
             {showPrev ? (
-              <Button type="button" size="sm" variant="outline" onClick={onPrev} disabled={prevDisabled}>
+              <Button type="button" size="sm" variant="outline" className="min-h-11 px-3 text-sm" onClick={onPrev} disabled={prevDisabled}>
                 {prevLabel}
               </Button>
             ) : null}
-            <Button type="button" size="sm" onClick={onNext}>
+            <Button type="button" size="sm" className="min-h-11 px-3 text-sm" onClick={onNext}>
               {nextLabel}
             </Button>
           </div>
