@@ -1,14 +1,19 @@
 import React from "react";
-import { Dialog, DialogContent, DialogFooter } from "../ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
 import { Loader2 } from "lucide-react";
 import { ScriptMetadataDialogProvider, ScriptMetadataDialogProps, useFormContext, useUIContext } from "./metadata/ScriptMetadataDialogContext";
 import { ScriptMetadataDialogHeader } from "./metadata/ScriptMetadataDialogHeader";
 import { ScriptMetadataDialogBody } from "./metadata/ScriptMetadataDialogBody";
 import { ScriptMetadataDialogOverlays } from "./metadata/ScriptMetadataDialogOverlays";
 import { PublicReaderLayout } from "../reader/PublicReaderLayout";
-import { normalizeActivityDemoLinks } from "../../lib/activityDemoLinks";
+import { buildPrefaceItemsFromSections, buildPublicReaderProjection } from "../../lib/publicReaderProjection";
+import { useReaderPreferences } from "../../hooks/useReaderPreferences";
+import { useSettings } from "../../contexts/SettingsContext";
+import { getScript } from "../../lib/api/scripts";
+import { getPublicThemes } from "../../lib/api/public";
+import { normalizeMarkerConfigsSchema } from "../../lib/markerThemeCodec";
+import { defaultMarkerConfigs } from "../../constants/defaultMarkerRules";
 
 export { buildPublishChecklist } from "./metadata/ScriptMetadataDialogContext";
 
@@ -53,7 +58,8 @@ function ScriptMetadataPreviewDialog({ open, onOpenChange }: { open: boolean; on
     const { t } = useUIContext();
     const {
         title,
-        previewContent,
+        previewContent: previewContentFromContext,
+        previewScriptId,
         synopsis,
         outline,
         roleSetting,
@@ -63,6 +69,11 @@ function ScriptMetadataPreviewDialog({ open, onOpenChange }: { open: boolean; on
         chapterSettings,
         coverUrl,
         author,
+        authorDisplayMode,
+        identity,
+        personas,
+        orgs,
+        selectedOrgId,
         currentTags,
         contactFields,
         customFields,
@@ -77,13 +88,94 @@ function ScriptMetadataPreviewDialog({ open, onOpenChange }: { open: boolean; on
         activityBannerUrl,
         activityDemoLinks,
         activityWorkUrl,
+        markerThemeId,
     } = useFormContext();
     const [viewport, setViewport] = React.useState<"desktop" | "mobile">("desktop");
+    const readerPreferences = useReaderPreferences();
+    const { markerThemes: globalMarkerThemes } = useSettings();
+
+    const [resolvedMarkerConfigs, setResolvedMarkerConfigs] = React.useState(
+        () => normalizeMarkerConfigsSchema(defaultMarkerConfigs)
+    );
+
+    React.useEffect(() => {
+        if (!open) return;
+        let cancelled = false;
+
+        const resolve = async () => {
+            const base = normalizeMarkerConfigsSchema(defaultMarkerConfigs);
+            if (!markerThemeId || markerThemeId === "default") {
+                setResolvedMarkerConfigs(base);
+                return;
+            }
+            // 1. Check embedded theme in globalMarkerThemes (user's own themes, already loaded)
+            const localTheme = globalMarkerThemes.find((t) => t.id === markerThemeId);
+            if (Array.isArray(localTheme?.configs) && localTheme.configs.length > 0) {
+                setResolvedMarkerConfigs(normalizeMarkerConfigsSchema(localTheme.configs));
+                return;
+            }
+            // 2. Fetch from public themes API (same as PublicReaderPage)
+            try {
+                const themes = await getPublicThemes();
+                if (cancelled) return;
+                const matched = themes.find((theme) => String((theme as { id?: unknown })?.id || "") === markerThemeId);
+                if (matched?.configs) {
+                    const normalized = normalizeMarkerConfigsSchema(matched.configs);
+                    if (normalized.length > 0) { setResolvedMarkerConfigs(normalized); return; }
+                }
+            } catch {}
+            if (!cancelled) setResolvedMarkerConfigs(base);
+        };
+
+        resolve();
+        return () => { cancelled = true; };
+    }, [open, markerThemeId, globalMarkerThemes]);
+
+    const [fetchedContent, setFetchedContent] = React.useState<string | null>(null);
+    React.useEffect(() => {
+        if (previewContentFromContext || !previewScriptId) return;
+        let cancelled = false;
+        getScript(previewScriptId).then((s) => {
+            if (!cancelled) setFetchedContent(String(s?.content || ""));
+        }).catch(() => {});
+        return () => { cancelled = true; };
+    }, [previewScriptId, previewContentFromContext]);
+    const previewContent = previewContentFromContext || fetchedContent || "";
 
     const resolvedTags = React.useMemo(
         () => (Array.isArray(currentTags) ? currentTags.map((tag) => String(tag?.name || "").trim()).filter(Boolean) : []),
         [currentTags]
     );
+
+    const resolvedAuthor = React.useMemo(() => {
+        const authorStr = String(author || "").trim();
+        const useOverride = String(authorDisplayMode || "").toLowerCase() === "override" && Boolean(authorStr);
+        if (useOverride) {
+            return { id: "override-author", displayName: authorStr, avatarUrl: "" };
+        }
+        // Resolve from identity (persona:id or org:id)
+        if (identity && identity.startsWith("persona:")) {
+            const personaId = identity.slice("persona:".length);
+            const persona = (personas as Array<{ id: string; displayName?: string; avatarUrl?: string }>)
+                .find((p) => p.id === personaId);
+            if (persona) {
+                const orgId = selectedOrgId;
+                const org = orgId
+                    ? (orgs as Array<{ id: string; name?: string; logoUrl?: string }>).find((o) => o.id === orgId)
+                    : null;
+                return {
+                    id: persona.id,
+                    displayName: String(persona.displayName || "Unknown"),
+                    avatarUrl: String(persona.avatarUrl || ""),
+                    organization: org ? { id: org.id, name: String(org.name || "") } : null,
+                };
+            }
+        }
+        if (authorStr) {
+            return { id: "header-author-fallback", displayName: authorStr, avatarUrl: "" };
+        }
+        return null;
+    }, [author, authorDisplayMode, identity, personas, orgs, selectedOrgId]);
 
     const normalizedLicenseSpecialTerms = React.useMemo(
         () =>
@@ -116,27 +208,15 @@ function ScriptMetadataPreviewDialog({ open, onOpenChange }: { open: boolean; on
         [customFields]
     );
 
-    const normalizedDemoLinks = React.useMemo(
-        () => normalizeActivityDemoLinks(activityDemoLinks),
-        [activityDemoLinks]
-    );
-
     const previewPrefaceItems = React.useMemo(
-        () => [
-            { id: "outline", title: "大綱", value: String(outline || "").trim() },
-            { id: "rolesetting", title: "角色設定", value: String(roleSetting || "").trim() },
-            { id: "backgroundinfo", title: "背景資訊", value: String(backgroundInfo || "").trim() },
-            { id: "performanceinstruction", title: "演繹指示", value: String(performanceInstruction || "").trim() },
-            { id: "openingintro", title: "作品的開頭引言", value: String(openingIntro || "").trim() },
-            { id: "chaptersettings", title: "章節", value: String(chapterSettings || "").trim() },
-            ...normalizedCustomFields
-                .filter((field) => field.type !== "divider")
-                .map((field, idx) => ({
-                    id: `custom-${idx + 1}`,
-                    title: field.label || `自訂欄位 ${idx + 1}`,
-                    value: field.value,
-                })),
-        ].filter((item) => item.value),
+        () => buildPrefaceItemsFromSections({
+            outline,
+            roleSetting,
+            backgroundInfo,
+            performanceInstruction,
+            openingIntro,
+            chapterSettings,
+        }, normalizedCustomFields),
         [outline, roleSetting, backgroundInfo, performanceInstruction, openingIntro, chapterSettings, normalizedCustomFields]
     );
 
@@ -146,12 +226,21 @@ function ScriptMetadataPreviewDialog({ open, onOpenChange }: { open: boolean; on
     );
 
     const previewScript = React.useMemo(
-        () => ({
+        () => buildPublicReaderProjection({
             title: title || "未命名劇本",
             synopsis: synopsis || "",
             coverUrl: coverUrl || "",
-            author: { id: "override-author", displayName: author?.trim() || "尚未填寫" },
+            author: resolvedAuthor,
             organization: null,
+            tags: resolvedTags,
+            targetAudience: targetAudience || "",
+            contentRating: contentRating || "",
+            customFields: normalizedCustomFields
+                .filter((field) => field.type !== "divider")
+                .map((field) => ({
+                    key: field.label || "",
+                    value: field.value || "",
+                })),
             prefaceItems: previewPrefaceItems,
             contact: previewContact,
             commercialUse: licenseCommercial || "",
@@ -163,27 +252,17 @@ function ScriptMetadataPreviewDialog({ open, onOpenChange }: { open: boolean; on
                 bannerUrl: activityBannerUrl || "",
                 content: activityContent || "",
                 workUrl: activityWorkUrl || "",
-                demoLinks: normalizedDemoLinks,
+                demoLinks: activityDemoLinks,
             },
             showMarkerLegend: false,
             content: previewContent || "",
         }),
         [
-            title,
-            synopsis,
-            coverUrl,
-            author,
-            previewPrefaceItems,
-            previewContact,
-            licenseCommercial,
-            licenseDerivative,
-            licenseNotify,
-            normalizedLicenseSpecialTerms,
-            activityName,
-            activityBannerUrl,
-            activityContent,
-            activityWorkUrl,
-            normalizedDemoLinks,
+            title, synopsis, coverUrl, resolvedAuthor,
+            resolvedTags, targetAudience, contentRating, normalizedCustomFields,
+            previewPrefaceItems, previewContact,
+            licenseCommercial, licenseDerivative, licenseNotify, normalizedLicenseSpecialTerms,
+            activityName, activityBannerUrl, activityContent, activityWorkUrl, activityDemoLinks,
             previewContent,
         ]
     );
@@ -191,6 +270,7 @@ function ScriptMetadataPreviewDialog({ open, onOpenChange }: { open: boolean; on
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-h-[92vh] w-[95vw] overflow-y-auto p-0 sm:max-w-[900px]">
+                <DialogTitle className="sr-only">公開頁預覽</DialogTitle>
                 <div className="sticky top-0 z-10 border-b bg-background/95 px-4 py-3 backdrop-blur sm:px-5">
                     <div className="flex items-center justify-between gap-3">
                         <div className="text-sm font-semibold">公開頁預覽</div>
@@ -214,16 +294,6 @@ function ScriptMetadataPreviewDialog({ open, onOpenChange }: { open: boolean; on
 
                 <div className="relative overflow-hidden bg-background px-4 py-5 sm:px-6">
                     <div className={`mx-auto h-[72vh] overflow-hidden rounded-2xl border ${viewport === "mobile" ? "max-w-[390px]" : "max-w-[860px]"}`}>
-                        <div className="border-b bg-background px-3 py-2 text-xs text-muted-foreground">
-                            觀眾取向：{targetAudience?.trim() || "未設定"} ｜ 內容分級：{contentRating?.trim() || "未設定"}
-                        </div>
-                        {resolvedTags.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 border-b bg-background px-3 py-2">
-                                {resolvedTags.map((tag) => (
-                                    <Badge key={tag} variant="secondary">{tag}</Badge>
-                                ))}
-                            </div>
-                        )}
                         <PublicReaderLayout
                             script={previewScript}
                             isLoading={false}
@@ -232,9 +302,10 @@ function ScriptMetadataPreviewDialog({ open, onOpenChange }: { open: boolean; on
                             onOpenSeries={() => {}}
                             onBack={() => {}}
                             onShare={() => {}}
-                            validMarkerConfigs={[]}
+                            validMarkerConfigs={resolvedMarkerConfigs}
                             hiddenMarkerIds={[]}
                             onToggleMarker={() => {}}
+                            viewerProps={{ ...readerPreferences, markerConfigs: resolvedMarkerConfigs }}
                             embeddedPreview
                         />
                     </div>
@@ -252,7 +323,7 @@ function ScriptMetadataDialogInner() {
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
                 <DialogContent
-                    className="flex max-h-[92vh] w-[95vw] flex-col overflow-hidden gap-0 bg-background p-0 sm:max-w-[760px] lg:max-w-[980px] xl:max-w-[1120px]"
+                    className="flex max-h-[92vh] w-[95vw] flex-col overflow-hidden gap-0 rounded-lg bg-background p-0 sm:max-w-[760px] lg:max-w-[980px] xl:max-w-[1120px]"
                     onInteractOutside={(e) => {
                         if (showGuide) e.preventDefault();
                     }}
