@@ -1,12 +1,12 @@
 import { useCallback, useRef, useState } from "react";
 import { updateScript, addTagToScript, removeTagFromScript } from "../../lib/api/scripts";
 import { createTag } from "../../lib/api/tags";
-import type { ScriptUpdatePayload, BaseScriptApi } from "../../types/api";
+import { fromDraftToPayload } from "../../lib/scriptMetadataAdapter";
+import type { ScriptMetadataDraft } from "../../lib/scriptMetadataAdapter";
 import { AUDIENCE_TAG_GROUP, RATING_TAG_GROUP, syncGroupedTagSelection } from "./tagGroupUtils";
-import { normalizeCustomMetadataEntries } from "../../lib/customMetadata";
-import { applyPreservedAuthorEntries, buildCustomMetadataEntries } from "../../lib/scriptMetadataPayload";
+import type { BaseScriptApi, ScriptUpdatePayload } from "../../types/api";
 import type {
-  ScriptLike, TagLike, ContactField, CustomField, SeriesOption,
+  ScriptLike, TagLike, SeriesOption,
   PublishChecklist, LicenseSpecialTerm,
 } from "./types";
 
@@ -15,47 +15,13 @@ interface UseScriptMetadataSaveOptions {
   toast: (opts: { title?: string; description?: string; variant?: string }) => void;
   script: ScriptLike | null;
   activeScript?: ScriptLike | null;
-  title: string;
-  coverUrl: string;
-  coverCrop: { cx?: number; cy?: number; zoom?: number } | null;
-  status: string;
-  author: string;
-  authorDisplayMode: string;
-  date: string;
-  outline: string;
-  roleSetting: string;
-  backgroundInfo: string;
-  performanceInstruction: string;
-  openingIntro: string;
-  chapterSettings: string;
-  activityName: string;
-  activityBannerUrl: string;
-  activityContent: string;
-  activityDemoLinks: unknown[];
-  activityWorkUrl: string;
-  licenseCommercial: string;
-  licenseDerivative: string;
-  licenseNotify: string;
-  licenseSpecialTerms: LicenseSpecialTerm[];
-  copyright: string;
-  synopsis: string;
-  contact: string;
-  contactFields: ContactField[];
-  customFields: CustomField[];
-  seriesOptions: SeriesOption[];
-  seriesId: string | null;
-  seriesName: string;
-  seriesOrder: string | number;
-  currentTags: TagLike[];
-  setCurrentTags: (tags: TagLike[]) => void;
+  // draft fields
+  draft: ScriptMetadataDraft;
+  // tag helpers (needed for audience/rating sync, outside draft)
   availableTags: TagLike[];
-  markerThemeId: string;
-  showMarkerLegend: boolean;
-  disableCopy: boolean;
-  identity: string;
-  selectedOrgId: string | null;
-  targetAudience: string;
-  contentRating: string;
+  setCurrentTags: (tags: TagLike[]) => void;
+  seriesOptions?: SeriesOption[];
+  // validation helpers
   publishChecklist: PublishChecklist;
   needsPersonaBeforePublish: boolean;
   hasAnyPersona: boolean;
@@ -63,6 +29,7 @@ interface UseScriptMetadataSaveOptions {
   setShowValidationHints: (v: boolean) => void;
   setShowPersonaSetupDialog: (v: boolean) => void;
   setActiveTab: (v: string) => void;
+  // callbacks
   onSave: (script: ScriptLike) => void;
   onOpenChange: (open: boolean) => void;
   saveScript?: (id: string, payload: ScriptUpdatePayload & { author?: string }, extra?: Record<string, unknown>) => Promise<BaseScriptApi>;
@@ -70,52 +37,16 @@ interface UseScriptMetadataSaveOptions {
   preserveAuthorInternalData?: boolean;
   authorEditedRef?: { current?: boolean } | null;
 }
+
 export function useScriptMetadataSave({
   t,
   toast,
   script,
   activeScript,
-  title,
-  coverUrl,
-  coverCrop,
-  status,
-  author,
-  authorDisplayMode,
-  date,
-  outline,
-  roleSetting,
-  backgroundInfo,
-  performanceInstruction,
-  openingIntro,
-  chapterSettings,
-  activityName,
-  activityBannerUrl,
-  activityContent,
-  activityDemoLinks,
-  activityWorkUrl,
-  licenseCommercial,
-  licenseDerivative,
-  licenseNotify,
-  licenseSpecialTerms,
-  copyright,
-  synopsis,
-  contact,
-  contactFields,
-  customFields,
-  seriesOptions,
-  seriesId,
-  seriesName,
-  seriesOrder,
-  currentTags,
-  setCurrentTags,
+  draft,
   availableTags,
-  markerThemeId,
-  showMarkerLegend,
-  disableCopy,
-  identity,
-  selectedOrgId,
-  targetAudience,
-  contentRating,
+  setCurrentTags,
+  seriesOptions,
   publishChecklist,
   needsPersonaBeforePublish,
   hasAnyPersona,
@@ -131,139 +62,34 @@ export function useScriptMetadataSave({
   authorEditedRef = { current: false },
 }: UseScriptMetadataSaveOptions) {
   const [isSaving, setIsSaving] = useState(false);
+
+  // Capture latest values via ref so handleSave (stable useCallback(fn, []))
+  // always reads current state without re-subscribing.
   const latestRef = useRef<UseScriptMetadataSaveOptions | null>(null);
   latestRef.current = {
-    t,
-    toast,
-    script,
-    activeScript,
-    title,
-    coverUrl,
-    coverCrop,
-    status,
-    author,
-    authorDisplayMode,
-    date,
-    outline,
-    roleSetting,
-    backgroundInfo,
-    performanceInstruction,
-    openingIntro,
-    chapterSettings,
-    activityName,
-    activityBannerUrl,
-    activityContent,
-    activityDemoLinks,
-    activityWorkUrl,
-    licenseCommercial,
-    licenseDerivative,
-    licenseNotify,
-    licenseSpecialTerms,
-    copyright,
-    synopsis,
-    contact,
-    contactFields,
-    customFields,
-    seriesOptions,
-    seriesId,
-    seriesName,
-    seriesOrder,
-    currentTags,
-    setCurrentTags,
-    availableTags,
-    markerThemeId,
-    showMarkerLegend,
-    disableCopy,
-    identity,
-    selectedOrgId,
-    targetAudience,
-    contentRating,
-    publishChecklist,
-    needsPersonaBeforePublish,
-    hasAnyPersona,
-    jumpToChecklistItem,
-    setShowValidationHints,
-    setShowPersonaSetupDialog,
-    setActiveTab,
-    onSave,
-    onOpenChange,
-    saveScript,
-    syncScriptTags,
-    preserveAuthorInternalData,
-    authorEditedRef,
+    t, toast, script, activeScript, draft, availableTags, setCurrentTags,
+    seriesOptions, publishChecklist, needsPersonaBeforePublish, hasAnyPersona,
+    jumpToChecklistItem, setShowValidationHints, setShowPersonaSetupDialog,
+    setActiveTab, onSave, onOpenChange, saveScript, syncScriptTags,
+    preserveAuthorInternalData, authorEditedRef,
   };
 
   const handleSave = useCallback(async () => {
-    const options = latestRef.current;
-    if (!options) return;
+    const opts = latestRef.current;
+    if (!opts) return;
     const {
-      t,
-      toast,
-      script,
-      activeScript,
-      title,
-      coverUrl,
-      coverCrop,
-      status,
-      author,
-      authorDisplayMode,
-      date,
-      outline,
-      roleSetting,
-      backgroundInfo,
-      performanceInstruction,
-      openingIntro,
-      chapterSettings,
-      activityName,
-      activityBannerUrl,
-      activityContent,
-      activityDemoLinks,
-      activityWorkUrl,
-      licenseCommercial,
-      licenseDerivative,
-      licenseNotify,
-      licenseSpecialTerms,
-      copyright,
-      synopsis,
-      contact,
-      contactFields,
-      customFields,
-      seriesOptions,
-      seriesId,
-      seriesName,
-      seriesOrder,
-      currentTags,
-      setCurrentTags,
-      availableTags,
-      markerThemeId,
-      showMarkerLegend,
-      disableCopy,
-      identity,
-      selectedOrgId,
-      targetAudience,
-      contentRating,
-      publishChecklist,
-      needsPersonaBeforePublish,
-      hasAnyPersona,
-      jumpToChecklistItem,
-      setShowValidationHints,
-      setShowPersonaSetupDialog,
-      setActiveTab,
-      onSave,
-      onOpenChange,
-      saveScript,
-      syncScriptTags,
-      preserveAuthorInternalData,
-      authorEditedRef,
-    } = options;
+      t, toast, script, activeScript, draft, availableTags, setCurrentTags,
+      seriesOptions, publishChecklist, needsPersonaBeforePublish, hasAnyPersona,
+      jumpToChecklistItem, setShowValidationHints, setShowPersonaSetupDialog,
+      setActiveTab, onSave, onOpenChange, saveScript, syncScriptTags,
+      preserveAuthorInternalData, authorEditedRef,
+    } = opts;
 
-    const normalizedIdentity = String(identity || "").trim();
-    const personaId = normalizedIdentity.startsWith("persona:")
-      ? normalizedIdentity.slice("persona:".length).trim()
-      : "";
+    const { status, personaId, currentTags, targetAudience, contentRating } = draft;
     const hasValidPersonaSelection = Boolean(personaId);
 
     setShowValidationHints(true);
+
     if (needsPersonaBeforePublish) {
       toast({
         title: t("scriptMetadataDialog.selectIdentityFirst", "請先選擇作者"),
@@ -271,9 +97,7 @@ export function useScriptMetadataSave({
         variant: "destructive",
       });
       setActiveTab("basic");
-      if (!hasAnyPersona) {
-        setShowPersonaSetupDialog(true);
-      }
+      if (!hasAnyPersona) setShowPersonaSetupDialog(true);
       return;
     }
     if (!hasValidPersonaSelection) {
@@ -287,19 +111,18 @@ export function useScriptMetadataSave({
         variant: "destructive",
       });
       setActiveTab("basic");
-      if (!hasAnyPersona) {
-        setShowPersonaSetupDialog(true);
-      }
+      if (!hasAnyPersona) setShowPersonaSetupDialog(true);
       return;
     }
     if (status === "Public" && publishChecklist.missingRequired.length > 0) {
       const firstMissing = publishChecklist.missingRequired[0];
-      if (firstMissing?.key) {
-        jumpToChecklistItem(firstMissing.key);
-      }
+      if (firstMissing?.key) jumpToChecklistItem(firstMissing.key);
       toast({
         title: t("scriptMetadataDialog.cannotPublish"),
-        description: t("scriptMetadataDialog.cannotPublishDesc").replace("{items}", publishChecklist.missingRequired.map((item) => item.label).join("、")),
+        description: t("scriptMetadataDialog.cannotPublishDesc").replace(
+          "{items}",
+          publishChecklist.missingRequired.map((item) => item.label).join("、")
+        ),
         variant: "destructive",
       });
       return;
@@ -307,6 +130,7 @@ export function useScriptMetadataSave({
 
     setIsSaving(true);
     try {
+      // --- Tag sync for audience / rating ---
       let tagsToSave = [...currentTags];
       if (targetAudience) {
         try {
@@ -341,98 +165,39 @@ export function useScriptMetadataSave({
 
       const workingScript = activeScript || script;
       if (!workingScript) return;
-      const workingScriptMetadata = Array.isArray(workingScript?.customMetadata) ? workingScript.customMetadata : [];
-      const workingAuthorMetadataEntries = normalizeCustomMetadataEntries(workingScriptMetadata).filter((entry) => {
-        const normalized = String(entry?.key || "").trim().toLowerCase().replace(/\s+/g, "");
-        return normalized === "author" || normalized === "authors" || normalized === "authordisplaymode";
-      });
+
+      // --- Build payload via adapter ---
       const authorEditedValue = (authorEditedRef as { current?: boolean } | null)?.current ?? false;
       const shouldPreserveAuthor = preserveAuthorInternalData && !authorEditedValue;
-      const effectiveAuthorDisplayMode = authorDisplayMode === "override" ? "override" : "badge";
-      const effectiveAuthor = String(author || "");
-      const persistedAuthor = effectiveAuthorDisplayMode === "override" ? effectiveAuthor : "";
 
-      let customMetadata = buildCustomMetadataEntries({
-        title,
-        author,
-        authorDisplayMode,
-        date,
-        synopsis,
-        outline,
-        roleSetting,
-        backgroundInfo,
-        performanceInstruction,
-        openingIntro,
-        chapterSettings,
-        activityName,
-        activityBannerUrl,
-        activityContent,
-        activityDemoLinks,
-        activityWorkUrl,
-        contact,
-        contactFields,
-        seriesName,
-        seriesId,
-        seriesOrder,
-        coverUrl,
-        status,
-        licenseCommercial,
-        licenseDerivative,
-        licenseNotify,
-        licenseSpecialTerms,
-        copyright,
-        identity,
-        selectedOrgId,
-        currentTags: tagsToSave,
-        customFields,
-      }, {
+      const workingMetadata = Array.isArray(workingScript?.customMetadata) ? workingScript.customMetadata : [];
+      const existingAuthorEntries = workingMetadata
+        .filter((entry) => {
+          const key = String(entry?.key || "").trim().toLowerCase().replace(/\s+/g, "");
+          return key === "author" || key === "authors" || key === "authordisplaymode";
+        })
+        .map((e) => ({ key: String(e.key || ""), value: String(e.value || "") }));
+
+      const draftWithTags: ScriptMetadataDraft = { ...draft, currentTags: tagsToSave };
+      let payload = fromDraftToPayload(draftWithTags, {
         preserveAuthor: shouldPreserveAuthor,
-        existingAuthorEntries: workingAuthorMetadataEntries,
-        seriesOptions,
+        existingAuthorEntries,
       });
-      if (showMarkerLegend) {
-        customMetadata = normalizeCustomMetadataEntries([
-          ...customMetadata,
-          { key: "marker_legend", value: "true" },
-        ]);
-      }
-      if (shouldPreserveAuthor) {
-        customMetadata = applyPreservedAuthorEntries(customMetadata, workingAuthorMetadataEntries);
-      }
-
-      const updatePayload: ScriptUpdatePayload & { author?: string } = {
-        title,
-        coverUrl,
-        coverCrop: coverCrop || null,
-        status,
-        customMetadata,
-        draftDate: date,
-        personaId,
-        organizationId: selectedOrgId || null,
-        licenseCommercial: licenseCommercial || "",
-        licenseDerivative: licenseDerivative || "",
-        licenseNotify: licenseNotify || "",
-        markerThemeId,
-        showMarkerLegend,
-        disableCopy,
-        seriesId: seriesId || null,
-        seriesOrder: Number.isFinite(Number(seriesOrder)) && Number(seriesOrder) >= 0 ? Math.floor(Number(seriesOrder)) : null,
-      };
-      if (!shouldPreserveAuthor) {
-        updatePayload.author = persistedAuthor;
-      }
 
       const persisted = saveScript
-        ? await saveScript(workingScript.id, updatePayload, {
+        ? await saveScript(workingScript.id, payload, {
             script: workingScript,
             tagIds: tagsToSave.map((tag) => Number(tag?.id)).filter((id) => Number.isFinite(id)),
           })
-        : await updateScript(workingScript.id, updatePayload);
+        : await updateScript(workingScript.id, payload);
 
+      // --- Tag delta sync ---
       const originalTagIds = new Set(((workingScript && workingScript.tags) || []).map((tag) => String(tag.id)));
       const finalTagIds = new Set(tagsToSave.map((tag) => String(tag.id)));
       const addedTags = tagsToSave.filter((tag) => !originalTagIds.has(String(tag.id)));
-      const removedTags = ((workingScript && workingScript.tags) || []).filter((tag) => !finalTagIds.has(String(tag.id)));
+      const removedTags = ((workingScript && workingScript.tags) || []).filter(
+        (tag) => !finalTagIds.has(String(tag.id))
+      );
 
       if (typeof syncScriptTags === "function") {
         await syncScriptTags(workingScript.id, tagsToSave);
@@ -443,25 +208,29 @@ export function useScriptMetadataSave({
         ]);
       }
 
+      const effectiveAuthorDisplayMode = draft.authorDisplayMode === "override" ? "override" : "badge";
+      const persistedAuthor = effectiveAuthorDisplayMode === "override" ? String(draft.author || "") : "";
+
       onSave({
         ...(workingScript || script),
         ...(persisted || {}),
-        title,
-        coverUrl,
-        coverCrop: coverCrop || null,
-        status,
-        customMetadata,
+        title: draft.title,
+        coverUrl: draft.coverUrl,
+        coverCrop: draft.coverCrop ?? null,
+        status: draft.status,
+        customMetadata: payload.customMetadata,
         author: shouldPreserveAuthor ? String(workingScript?.author || "") : persistedAuthor,
-        draftDate: date,
-        licenseCommercial: licenseCommercial || "",
-        licenseDerivative: licenseDerivative || "",
-        licenseNotify: licenseNotify || "",
+        draftDate: draft.draftDate,
+        licenseCommercial: draft.licenseCommercial || "",
+        licenseDerivative: draft.licenseDerivative || "",
+        licenseNotify: draft.licenseNotify || "",
         tags: tagsToSave as Array<{ id?: string; name: string }>,
-        markerThemeId,
-        seriesId: updatePayload.seriesId,
-        seriesOrder: updatePayload.seriesOrder,
+        markerThemeId: draft.markerThemeId,
+        seriesId: payload.seriesId,
+        seriesOrder: payload.seriesOrder,
       });
       setCurrentTags(tagsToSave);
+
       if ((targetAudience || contentRating) && tagsToSave.length === currentTags.length) {
         toast({
           title: t("scriptMetadataDialog.saved"),
@@ -474,14 +243,15 @@ export function useScriptMetadataSave({
       onOpenChange(false);
     } catch (error) {
       console.error("Failed to save script metadata", error);
-      toast({ title: t("scriptMetadataDialog.saveFailed"), description: t("scriptMetadataDialog.tryLater"), variant: "destructive" });
+      toast({
+        title: t("scriptMetadataDialog.saveFailed"),
+        description: t("scriptMetadataDialog.tryLater"),
+        variant: "destructive",
+      });
     } finally {
       setIsSaving(false);
     }
   }, []);
 
-  return {
-    isSaving,
-    handleSave,
-  };
+  return { isSaving, handleSave };
 }

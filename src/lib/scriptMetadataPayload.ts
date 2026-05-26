@@ -1,7 +1,6 @@
 import { normalizeActivityDemoLinks, serializeActivityDemoLinks } from "./activityDemoLinks";
 import { normalizeCustomMetadataEntries } from "./customMetadata";
-import { deriveSimpleLicenseTags } from "./licenseRights";
-import type { ContactField, CustomField, LicenseSpecialTerm, SeriesOption, TagLike } from "../hooks/dashboard/types";
+import type { ContactField, CustomField, LicenseSpecialTerm, TagLike } from "../hooks/dashboard/types";
 
 export interface ScriptMetadataPayloadFields {
   title: string;
@@ -41,7 +40,6 @@ export interface ScriptMetadataPayloadFields {
 interface BuildCustomMetadataOptions {
   preserveAuthor?: boolean;
   existingAuthorEntries?: Array<{ key: string; value: string }>;
-  seriesOptions?: SeriesOption[];
 }
 
 const normalizeMetaKey = (key: unknown) => String(key || "").trim().toLowerCase().replace(/\s+/g, "");
@@ -49,11 +47,6 @@ const isAuthorMetaKey = (key: unknown) => {
   const normalized = normalizeMetaKey(key);
   return normalized === "author" || normalized === "authors" || normalized === "authordisplaymode";
 };
-
-function resolveSeriesName(fields: ScriptMetadataPayloadFields, seriesOptions: SeriesOption[] = []): string {
-  const selectedSeries = seriesOptions.find((item) => item.id === fields.seriesId);
-  return String(selectedSeries?.name || fields.seriesName || "").trim();
-}
 
 export function buildCustomMetadataEntries(
   fields: ScriptMetadataPayloadFields,
@@ -64,12 +57,9 @@ export function buildCustomMetadataEntries(
   const effectiveAuthor = String(fields.author || "");
   const orderedEntries: Array<{ key: string; value: string }> = [];
 
-  if (!preserveAuthor && effectiveAuthorDisplayMode === "override" && effectiveAuthor) {
-    orderedEntries.push({ key: "Author", value: effectiveAuthor });
-  }
-  if (!preserveAuthor) {
-    orderedEntries.push({ key: "AuthorDisplayMode", value: effectiveAuthorDisplayMode });
-  }
+  // Author and AuthorDisplayMode are RESERVED_CUSTOM_KEYS owned by structured api.author field.
+  // Do NOT write Author or AuthorDisplayMode into customMetadata.
+  // (preserveAuthor path handled separately via applyPreservedAuthorEntries in the save hook.)
   if (fields.outline) orderedEntries.push({ key: "Outline", value: fields.outline });
   if (fields.roleSetting) orderedEntries.push({ key: "RoleSetting", value: fields.roleSetting });
   if (fields.backgroundInfo) orderedEntries.push({ key: "BackgroundInfo", value: fields.backgroundInfo });
@@ -86,18 +76,9 @@ export function buildCustomMetadataEntries(
   if (normalizedDemoLinks[0]?.url) orderedEntries.push({ key: "ActivityDemoUrl", value: normalizedDemoLinks[0].url });
   if (fields.activityWorkUrl) orderedEntries.push({ key: "ActivityWorkUrl", value: fields.activityWorkUrl });
 
-  orderedEntries.push({ key: "LicenseCommercial", value: fields.licenseCommercial });
-  orderedEntries.push({ key: "LicenseDerivative", value: fields.licenseDerivative });
-  orderedEntries.push({ key: "LicenseNotify", value: fields.licenseNotify });
-  if (fields.licenseSpecialTerms && fields.licenseSpecialTerms.length > 0) {
-    orderedEntries.push({ key: "LicenseSpecialTerms", value: JSON.stringify(fields.licenseSpecialTerms) });
-  }
-  const basicTags = deriveSimpleLicenseTags({
-    commercialUse: fields.licenseCommercial,
-    derivativeUse: fields.licenseDerivative,
-    notifyOnModify: fields.licenseNotify,
-  });
-  if (basicTags.length > 0) orderedEntries.push({ key: "LicenseTags", value: JSON.stringify(basicTags) });
+  // License fields are now owned by structured API fields (licenseCommercial / licenseDerivative / licenseNotify).
+  // Do NOT write LicenseCommercial, LicenseDerivative, LicenseNotify, LicenseSpecialTerms, or LicenseTags
+  // into customMetadata — they are RESERVED_CUSTOM_KEYS. Legacy read-path in fromApiToDraft is preserved.
 
   if (fields.contact || (fields.contactFields && fields.contactFields.length > 0)) {
     const contactVal = fields.contactFields && fields.contactFields.length > 0
@@ -107,12 +88,8 @@ export function buildCustomMetadataEntries(
   }
 
   if (fields.synopsis) orderedEntries.push({ key: "Synopsis", value: fields.synopsis });
-  const resolvedSeriesName = resolveSeriesName(fields, options.seriesOptions || []);
-  if (resolvedSeriesName) orderedEntries.push({ key: "Series", value: resolvedSeriesName });
-  const parsedSeriesOrder = Number(fields.seriesOrder);
-  if (Number.isFinite(parsedSeriesOrder) && parsedSeriesOrder >= 0) {
-    orderedEntries.push({ key: "SeriesOrder", value: String(Math.floor(parsedSeriesOrder)) });
-  }
+  // Series and SeriesOrder are now owned by structured API fields (seriesId / seriesOrder).
+  // Do NOT write Series or SeriesOrder into customMetadata — they are RESERVED_CUSTOM_KEYS.
 
   (fields.customFields || []).forEach(({ key, value, type }) => {
     if (type === "divider") {

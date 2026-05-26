@@ -1,8 +1,5 @@
 import { useCallback } from "react";
-import { parseBasicLicenseFromMeta } from "../../lib/licenseRights";
-import { buildCustomFieldsFromRawEntries } from "./scriptMetadataUtils";
-import { customMetadataEntriesToMeta, customMetadataEntriesToRawEntries } from "../../lib/customMetadata";
-import { parseActivityDemoLinks } from "../../lib/activityDemoLinks";
+import { fromApiToDraft } from "../../lib/scriptMetadataAdapter";
 import type { ScriptLike, TagLike, CustomField, LicenseSpecialTerm } from "./types";
 
 interface UseScriptMetadataHydrationOptions {
@@ -55,7 +52,7 @@ export function useScriptMetadataHydration({
   disableAuthorAutofill = false,
   disablePersonaAutofill = false,
   customFields,
-  ensureList,
+  ensureList: _ensureList,
   userEditedRef,
   setIsInitializing,
   setTitle,
@@ -100,99 +97,53 @@ export function useScriptMetadataHydration({
     async (sourceScript: ScriptLike) => {
       if (!sourceScript) return;
       try {
-        setTitle(sourceScript.title || "");
-        setCoverUrl(sourceScript.coverUrl || "");
-        setCoverCrop((sourceScript as { coverCrop?: { cx?: number; cy?: number; zoom?: number } | null }).coverCrop || null);
-        setStatus(sourceScript.status || (sourceScript.isPublic ? "Public" : "Private"));
-        setCurrentTags(sourceScript.tags || []);
-        setMarkerThemeId(sourceScript.markerThemeId || "default");
-        setShowMarkerLegend(false);
-        setDisableCopy(Boolean(sourceScript.disableCopy));
+        const draft = fromApiToDraft(sourceScript, {
+          disableAuthorAutofill,
+          disablePersonaAutofill,
+          existingCustomFields: customFields,
+          existingDraftTouched: userEditedRef.current,
+        });
 
-        const tagsForAudience = Array.isArray(sourceScript.tags) ? sourceScript.tags : [];
-        if (tagsForAudience.length > 0) {
-          const tagNames = tagsForAudience.map((tag) => String(tag.name || "").toLowerCase());
-          if (tagNames.includes("男性向")) setTargetAudience("男性向");
-          else if (tagNames.includes("女性向")) setTargetAudience("女性向");
-          else if (tagNames.includes("全性向")) setTargetAudience("全性向");
-
-          if (tagNames.includes("r-18") || tagNames.includes("r18") || tagNames.includes("18+") || tagNames.includes("成人向")) {
-            setContentRating("成人向");
-          } else if (tagNames.includes("一般") || tagNames.includes("一般內容") || tagNames.includes("全年齡向")) {
-            setContentRating("全年齡向");
-          }
-        }
-
-        if (sourceScript.personaId) {
-          setIdentity(`persona:${sourceScript.personaId}`);
-          setSelectedOrgId(sourceScript.organizationId || "");
-        } else {
-          const preferredPersonaId = disablePersonaAutofill ? "" : localStorage.getItem("preferredPersonaId");
-          setIdentity(preferredPersonaId ? `persona:${preferredPersonaId}` : "");
-          setSelectedOrgId("");
-        }
-
-        const rawEntries = customMetadataEntriesToRawEntries(sourceScript.customMetadata || []);
-        const meta = customMetadataEntriesToMeta(sourceScript.customMetadata || []);
-        setTitle((prev) => prev || sourceScript.title || meta.title || "");
-        const resolvedAuthor = sourceScript.author || meta.author || meta.authors || "";
-        const rawAuthorDisplayMode = String(meta.authordisplaymode || meta.authorDisplayMode || "").trim().toLowerCase();
-        const resolvedAuthorDisplayMode =
-          rawAuthorDisplayMode === "override" || rawAuthorDisplayMode === "badge"
-            ? rawAuthorDisplayMode
-            : (String(resolvedAuthor || "").trim() ? "override" : "badge");
-        if (disableAuthorAutofill) {
-          setAuthor("");
-          setAuthorDisplayMode("badge");
-        } else {
-          setAuthor(String(resolvedAuthor));
-          setAuthorDisplayMode(resolvedAuthorDisplayMode);
-        }
-        setDate(sourceScript.draftDate || "");
-        setContact(meta.contact || "");
-        setSynopsis(meta.synopsis || meta.summary || meta.description || meta.notes || "");
-        setOutline(meta.outline || "");
-        setRoleSetting(meta.rolesetting || "");
-        setBackgroundInfo(meta.backgroundinfo || "");
-        setPerformanceInstruction(meta.performanceinstruction || "");
-        setOpeningIntro(meta.openingintro || meta.setting || meta.settingintro || "");
-        setChapterSettings(meta.chaptersettings || "");
-        setActivityName(String(meta.activityname || meta.eventname || ""));
-        setActivityBannerUrl(String(meta.activitybanner || meta.eventbanner || ""));
-        setActivityContent(String(meta.activitycontent || meta.eventcontent || ""));
-        const parsedDemoLinks = parseActivityDemoLinks(meta.activitydemolinks || meta.eventdemolinks);
-        if (parsedDemoLinks.length > 0) {
-          setActivityDemoLinks(parsedDemoLinks);
-        } else {
-          const legacyDemoUrl = String(meta.activitydemourl || meta.eventdemolink || "").trim();
-          setActivityDemoLinks(legacyDemoUrl ? [{ id: "demo-1", name: "", url: legacyDemoUrl, cast: "", description: "" }] : []);
-        }
-        setActivityWorkUrl(String(meta.activityworkurl || meta.eventworklink || ""));
-        setSeriesName(String(meta.series || meta.seriesname || sourceScript?.series?.name || ""));
-        setSeriesId(sourceScript?.seriesId || "");
-        setSeriesOrder(String(meta.seriesorder ?? sourceScript?.seriesOrder ?? ""));
-
-        if (meta.marker_legend !== undefined) setShowMarkerLegend(String(meta.marker_legend) === "true");
-        else if (meta.show_legend !== undefined) setShowMarkerLegend(String(meta.show_legend) === "true");
-
-        const basicLicense = parseBasicLicenseFromMeta(meta);
-        const nextCommercial = String(sourceScript.licenseCommercial || basicLicense.commercialUse || "").trim();
-        const nextDerivative = String(sourceScript.licenseDerivative || basicLicense.derivativeUse || "").trim();
-        const nextNotify = String(sourceScript.licenseNotify || basicLicense.notifyOnModify || "").trim();
-        const nextSpecialTerms = ensureList(meta.licensespecialterms || meta.licenseSpecialTerms) as string[];
-
-        setLicenseCommercial((prev) => nextCommercial || prev || "");
-        setLicenseDerivative((prev) => nextDerivative || prev || "");
-        setLicenseNotify((prev) => nextNotify || prev || "");
+        setTitle(draft.title);
+        setCoverUrl(draft.coverUrl);
+        setCoverCrop(draft.coverCrop);
+        setStatus(draft.status);
+        setCurrentTags(draft.currentTags);
+        setMarkerThemeId(draft.markerThemeId);
+        setShowMarkerLegend(draft.showMarkerLegend);
+        setDisableCopy(draft.disableCopy);
+        setTargetAudience(draft.targetAudience);
+        setContentRating(draft.contentRating);
+        setIdentity(draft.personaId ? `persona:${draft.personaId}` : "");
+        setSelectedOrgId(draft.organizationId);
+        setAuthor(draft.author);
+        setAuthorDisplayMode(draft.authorDisplayMode);
+        setDate(draft.draftDate);
+        setContact(draft.contact);
+        setSynopsis(draft.synopsis);
+        setOutline(draft.outline);
+        setRoleSetting(draft.roleSetting);
+        setBackgroundInfo(draft.backgroundInfo);
+        setPerformanceInstruction(draft.performanceInstruction);
+        setOpeningIntro(draft.openingIntro);
+        setChapterSettings(draft.chapterSettings);
+        setActivityName(draft.activityName);
+        setActivityBannerUrl(draft.activityBannerUrl);
+        setActivityContent(draft.activityContent);
+        setActivityDemoLinks(draft.activityDemoLinks);
+        setActivityWorkUrl(draft.activityWorkUrl);
+        setSeriesName(draft.seriesName);
+        setSeriesId(draft.seriesId);
+        setSeriesOrder(draft.seriesOrder);
+        setLicenseCommercial((prev) => draft.licenseCommercial || prev || "");
+        setLicenseDerivative((prev) => draft.licenseDerivative || prev || "");
+        setLicenseNotify((prev) => draft.licenseNotify || prev || "");
         setLicenseSpecialTerms((prev) => {
-          if (Array.isArray(nextSpecialTerms) && nextSpecialTerms.length > 0) return nextSpecialTerms as unknown as LicenseSpecialTerm[];
+          if (draft.licenseSpecialTerms.length > 0) return draft.licenseSpecialTerms;
           return Array.isArray(prev) ? prev : [];
         });
-        setCopyright(meta.copyright || "");
-
-        if (!userEditedRef.current && (customFields || []).length === 0) {
-          setCustomFields(buildCustomFieldsFromRawEntries(rawEntries));
-        }
+        setCopyright(draft.copyright);
+        setCustomFields(draft.customFields);
       } catch (error) {
         console.error("Failed to hydrate script metadata", error);
       } finally {
@@ -203,7 +154,7 @@ export function useScriptMetadataHydration({
       customFields,
       disableAuthorAutofill,
       disablePersonaAutofill,
-      ensureList,
+      userEditedRef,
       setAuthor,
       setAuthorDisplayMode,
       setBackgroundInfo,
@@ -242,7 +193,6 @@ export function useScriptMetadataHydration({
       setSynopsis,
       setTargetAudience,
       setTitle,
-      userEditedRef,
     ]
   );
 }

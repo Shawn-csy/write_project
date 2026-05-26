@@ -13,7 +13,8 @@ def _backfill_crop_refs(conn, table: str, url_col: str, crop_col: str):
         raw_url = row[1]
         existing_crop = row[2]
         cleaned_url, parsed_crop = parse_crop_from_url(raw_url)
-        if not parsed_crop:
+        url_changed = cleaned_url != (raw_url or "")
+        if not parsed_crop and not url_changed:
             continue
         if isinstance(existing_crop, str):
             try:

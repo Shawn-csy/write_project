@@ -256,7 +256,6 @@ export function HomepageBannerSection() {
       <MediaPicker
         open={homepageBannerPickerIndex !== null}
         onOpenChange={(open) => { if (!open) setHomepageBannerPickerIndex(null); }}
-        cropPurpose="banner"
         onSelect={(url) => {
           if (homepageBannerPickerIndex !== null) {
             updateHomepageBannerItem(homepageBannerPickerIndex, "imageUrl", url);

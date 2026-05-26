@@ -87,8 +87,11 @@ def update_series(db: Session, series_id: str, payload: schemas.SeriesUpdate, ow
             db_series.slug = _ensure_unique_slug(db, owner_id, _slugify(new_name), exclude_id=series_id)
     if "summary" in updates and updates["summary"] is not None:
         db_series.summary = updates["summary"].strip()
-    if "coverUrl" in updates and updates["coverUrl"] is not None:
-        cover_url, cover_crop = normalize_media_with_crop(updates.get("coverUrl"), updates.get("coverCrop"))
+    if "coverUrl" in updates:
+        cover_url, cover_crop = normalize_media_with_crop(
+            updates["coverUrl"] or "",
+            updates.get("coverCrop", db_series.coverCrop),
+        )
         db_series.coverUrl = cover_url.strip()
         db_series.coverCrop = cover_crop
     elif "coverCrop" in updates:
