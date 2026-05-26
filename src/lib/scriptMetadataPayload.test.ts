@@ -37,20 +37,20 @@ const baseFields = {
 };
 
 describe("scriptMetadataPayload", () => {
-  it("buildCustomMetadataEntries resolves series name from seriesOptions", () => {
-    const entries = buildCustomMetadataEntries(baseFields, {
-      seriesOptions: [{ id: "s1", name: "Series A" }],
-    });
-    expect(entries.find((entry) => entry.key === "Series")?.value).toBe("Series A");
-    expect(entries.find((entry) => entry.key === "Author")?.value).toBe("Alice");
-  });
-
-  it("preserveAuthor option skips new author entries", () => {
-    const entries = buildCustomMetadataEntries(baseFields, {
-      preserveAuthor: true,
-    });
+  it("buildCustomMetadataEntries does not write reserved structured keys", () => {
+    const entries = buildCustomMetadataEntries(baseFields);
+    // Series/SeriesOrder: now owned by structured API fields — must not appear in customMetadata
+    expect(entries.find((entry) => entry.key === "Series")).toBeUndefined();
+    expect(entries.find((entry) => entry.key === "SeriesOrder")).toBeUndefined();
+    // Author/AuthorDisplayMode: now owned by structured api.author — must not appear in customMetadata
     expect(entries.find((entry) => entry.key === "Author")).toBeUndefined();
     expect(entries.find((entry) => entry.key === "AuthorDisplayMode")).toBeUndefined();
+    // License: now owned by structured fields — must not appear in customMetadata
+    expect(entries.find((entry) => entry.key === "LicenseCommercial")).toBeUndefined();
+    expect(entries.find((entry) => entry.key === "LicenseDerivative")).toBeUndefined();
+    expect(entries.find((entry) => entry.key === "LicenseNotify")).toBeUndefined();
+    expect(entries.find((entry) => entry.key === "LicenseSpecialTerms")).toBeUndefined();
+    expect(entries.find((entry) => entry.key === "LicenseTags")).toBeUndefined();
   });
 
   it("applyPreservedAuthorEntries replaces author-related entries", () => {

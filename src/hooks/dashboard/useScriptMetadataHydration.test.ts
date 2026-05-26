@@ -12,6 +12,7 @@ const buildParams = () => ({
   setIsInitializing: setter(),
   setTitle: setter(),
   setCoverUrl: setter(),
+  setCoverCrop: setter(),
   setStatus: setter(),
   setCurrentTags: setter(),
   setMarkerThemeId: setter(),

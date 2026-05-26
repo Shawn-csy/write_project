@@ -25,7 +25,7 @@ def update_user(db: Session, user_id: str, user_update: schemas.UserCreate):
     if "avatar" in update_data or "avatarCrop" in update_data:
         avatar_url, avatar_crop = normalize_media_with_crop(
             update_data.pop("avatar", db_user.avatar),
-            update_data.pop("avatarCrop", None),
+            update_data.pop("avatarCrop", db_user.avatarCrop),
         )
         update_data["avatar"] = avatar_url
         update_data["avatarCrop"] = avatar_crop

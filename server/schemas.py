@@ -372,6 +372,7 @@ class ScriptAdminMetadataUpdate(BaseModel):
     status: Optional[str] = None
     markerThemeId: Optional[str] = None
     coverUrl: Optional[str] = None
+    coverCrop: Optional[Dict[str, float]] = None
     coverIsAiGenerated: Optional[bool] = None
     organizationId: Optional[str] = None
     personaId: Optional[str] = None

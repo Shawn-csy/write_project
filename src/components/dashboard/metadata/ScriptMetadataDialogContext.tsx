@@ -391,17 +391,28 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         toast: toastAdapter,
     });
 
+    const saveDraft = {
+        title, status, coverUrl, coverCrop: coverCrop ?? null,
+        draftDate: date, author, authorDisplayMode,
+        personaId: identity.startsWith("persona:") ? identity.slice("persona:".length).trim() : "",
+        organizationId: selectedOrgId ?? null,
+        seriesId: seriesId ?? null, seriesOrder, seriesName,
+        licenseCommercial, licenseDerivative, licenseNotify,
+        licenseSpecialTerms: licenseSpecialTerms as string[],
+        markerThemeId, showMarkerLegend, disableCopy,
+        currentTags, targetAudience, contentRating,
+        synopsis, outline, roleSetting, backgroundInfo, performanceInstruction,
+        openingIntro, chapterSettings, activityName, activityBannerUrl, activityContent,
+        activityDemoLinks: activityDemoLinks as unknown[], activityWorkUrl,
+        contact, contactFields, copyright, customFields,
+    };
+
     const { isSaving, handleSave } = useScriptMetadataSave({
         t, toast: toastAdapter,
         script: (script as ScriptLike | null | undefined) ?? null,
         activeScript: (activeScript as ScriptLike | null | undefined) ?? null,
-        title, coverUrl, coverCrop, status, author, authorDisplayMode, date, outline,
-        roleSetting, backgroundInfo, performanceInstruction, openingIntro, chapterSettings,
-        activityName, activityBannerUrl, activityContent, activityDemoLinks, activityWorkUrl,
-        licenseCommercial, licenseDerivative, licenseNotify, licenseSpecialTerms, copyright,
-        synopsis, contact, contactFields, customFields, seriesOptions, seriesId, seriesName,
-        seriesOrder, currentTags, setCurrentTags, availableTags, markerThemeId,
-        showMarkerLegend, disableCopy, identity, selectedOrgId, targetAudience, contentRating,
+        draft: saveDraft,
+        availableTags, setCurrentTags, seriesOptions,
         publishChecklist, needsPersonaBeforePublish, hasAnyPersona, jumpToChecklistItem,
         setShowValidationHints, setShowPersonaSetupDialog, setActiveTab, onSave, onOpenChange,
         saveScript: saveScript ?? undefined,
