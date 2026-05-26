@@ -5,7 +5,9 @@ import type { SensorDescriptor } from "@dnd-kit/core";
 interface UseScriptMetadataDetailsPropsOptions {
   status: string;
   coverUrl: string;
+  coverCrop: { cx?: number; cy?: number; zoom?: number } | null;
   setCoverUrl: (v: string) => void;
+  setCoverCrop: (v: { cx?: number; cy?: number; zoom?: number } | null) => void;
   currentTags: TagLike[];
   author: string;
   setAuthor: (v: string) => void;
@@ -50,7 +52,9 @@ interface UseScriptMetadataDetailsPropsOptions {
 export function useScriptMetadataDetailsProps({
   status,
   coverUrl,
+  coverCrop,
   setCoverUrl,
+  setCoverCrop,
   currentTags,
   author,
   setAuthor,
@@ -94,7 +98,9 @@ export function useScriptMetadataDetailsProps({
   return useMemo(() => ({
     status,
     coverUrl,
+    coverCrop,
     setCoverUrl,
+    setCoverCrop,
     currentTags,
     author,
     setAuthor,
@@ -141,7 +147,7 @@ export function useScriptMetadataDetailsProps({
     showTags: false,
     layout: "stack" as const,
   }), [
-    status, coverUrl, setCoverUrl, currentTags, author, setAuthor,
+    status, coverUrl, coverCrop, setCoverUrl, setCoverCrop, currentTags, author, setAuthor,
     availableTags, newTagInput, setNewTagInput, targetAudience, handleSetTargetAudience,
     contentRating, handleSetContentRating, seriesName, setSeriesName, seriesId, setSeriesId,
     seriesOptions, quickSeriesName, setQuickSeriesName, handleQuickCreateSeries,

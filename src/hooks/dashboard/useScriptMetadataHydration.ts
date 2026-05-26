@@ -14,6 +14,7 @@ interface UseScriptMetadataHydrationOptions {
   setIsInitializing: (v: boolean) => void;
   setTitle: (v: string | ((prev: string) => string)) => void;
   setCoverUrl: (v: string) => void;
+  setCoverCrop: (v: { cx?: number; cy?: number; zoom?: number } | null) => void;
   setStatus: (v: string) => void;
   setCurrentTags: (v: TagLike[]) => void;
   setMarkerThemeId: (v: string) => void;
@@ -59,6 +60,7 @@ export function useScriptMetadataHydration({
   setIsInitializing,
   setTitle,
   setCoverUrl,
+  setCoverCrop,
   setStatus,
   setCurrentTags,
   setMarkerThemeId,
@@ -100,6 +102,7 @@ export function useScriptMetadataHydration({
       try {
         setTitle(sourceScript.title || "");
         setCoverUrl(sourceScript.coverUrl || "");
+        setCoverCrop((sourceScript as { coverCrop?: { cx?: number; cy?: number; zoom?: number } | null }).coverCrop || null);
         setStatus(sourceScript.status || (sourceScript.isPublic ? "Public" : "Private"));
         setCurrentTags(sourceScript.tags || []);
         setMarkerThemeId(sourceScript.markerThemeId || "default");
@@ -206,6 +209,7 @@ export function useScriptMetadataHydration({
       setBackgroundInfo,
       setContact,
       setContentRating,
+      setCoverCrop,
       setCopyright,
       setCoverUrl,
       setCurrentTags,

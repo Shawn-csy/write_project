@@ -29,7 +29,7 @@ export function ScriptMetadataExposureSection({
     title,
   } = useContentContext();
   const {
-    coverUrl, setCoverUrl, handleCoverUpload, openCoverMediaPicker, coverUploadError, coverUploadWarning,
+    coverUrl, setCoverUrl, coverCrop, setCoverCrop, handleCoverUpload, openCoverMediaPicker, coverUploadError, coverUploadWarning,
     coverPreviewFailed, setCoverPreviewFailed, seriesExpanded, setSeriesExpanded, setSeriesId, setSeriesName,
     seriesOrder, setSeriesOrder, quickSeriesName, setQuickSeriesName, setShowSeriesQuickCreate, focusSeriesSelect, seriesId,
     showSeriesQuickCreate, handleQuickCreateSeries, isCreatingSeries, seriesOptions, newTagInput, setNewTagInput, handleAddTag,
@@ -38,7 +38,7 @@ export function ScriptMetadataExposureSection({
   const setQuickSeriesNameInput = setQuickSeriesName;
   const setSeriesOrderInput = setSeriesOrder;
   const coverGuide = React.useMemo(() => getImageUploadGuide("cover"), []);
-  const cropCover = getMediaCropStyle(coverUrl);
+  const cropCover = getMediaCropStyle(coverUrl, coverCrop);
   const resolveTagSwatch = React.useCallback((rawColor: string | undefined) => {
     const value = String(rawColor || "").trim();
     if (!value) return { className: "bg-primary/60", style: undefined };
@@ -87,7 +87,7 @@ export function ScriptMetadataExposureSection({
             <div className="text-sm font-medium text-foreground">封面</div>
           </div>
           <div className="space-y-2 p-4">
-            <Input id="metadata-cover-url" value={coverUrl} onChange={(e) => setCoverUrl(e.target.value)} placeholder="https://..." />
+            <Input id="metadata-cover-url" value={coverUrl} onChange={(e) => { setCoverUrl(e.target.value); setCoverCrop(null); }} placeholder="https://..." />
             <div className="flex flex-wrap items-center gap-2">
               <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
                 上傳圖片

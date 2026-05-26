@@ -4,9 +4,10 @@ import { uploadMediaObject } from "../../lib/api/media";
 
 interface Props {
   setCoverUrl: (value: string) => void;
+  setCoverCrop?: (value: { cx?: number; cy?: number; zoom?: number } | null) => void;
 }
 
-export function useMetadataCoverUpload({ setCoverUrl }: Props) {
+export function useMetadataCoverUpload({ setCoverUrl, setCoverCrop }: Props) {
   const [coverPreviewFailed, setCoverPreviewFailed] = React.useState(false);
   const [coverUploadError, setCoverUploadError] = React.useState("");
   const [coverUploadWarning, setCoverUploadWarning] = React.useState("");
@@ -29,6 +30,7 @@ export function useMetadataCoverUpload({ setCoverUrl }: Props) {
       setCoverUploadError("");
       setCoverUploadWarning(optimized.warning || "");
       setCoverUrl(nextUrl);
+      setCoverCrop?.(null);
       setCoverPreviewFailed(false);
     } catch (error: unknown) {
       setCoverUploadError(error instanceof Error ? error.message : "上傳失敗。");
@@ -46,6 +48,15 @@ export function useMetadataCoverUpload({ setCoverUrl }: Props) {
 
   const handleMediaPickerSelect = (url: string) => {
     setCoverUrl(url);
+    setCoverCrop?.(null);
+    setCoverPreviewFailed(false);
+    setCoverUploadError("");
+    setCoverUploadWarning("");
+  };
+
+  const handleMediaPickerSelectMedia = (selection: { url: string; crop: { cx?: number; cy?: number; zoom?: number } | null }) => {
+    setCoverUrl(selection.url);
+    setCoverCrop?.(selection.crop || null);
     setCoverPreviewFailed(false);
     setCoverUploadError("");
     setCoverUploadWarning("");
@@ -57,6 +68,6 @@ export function useMetadataCoverUpload({ setCoverUrl }: Props) {
     isMediaPickerOpen, setIsMediaPickerOpen,
     cropOpen, setCropOpen, cropSource,
     coverGuide,
-    applyCoverUpload, handleCoverUpload, handleMediaPickerSelect,
+    applyCoverUpload, handleCoverUpload, handleMediaPickerSelect, handleMediaPickerSelectMedia,
   };
 }

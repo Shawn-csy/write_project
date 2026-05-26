@@ -1,9 +1,11 @@
 import { useCallback } from "react";
 import { uploadMediaObject } from "../../lib/api/media";
 import { optimizeImageForUpload } from "../../lib/mediaLibrary";
+import type { MediaSelection } from "../../components/ui/MediaPicker";
 
 interface MediaHandlerState {
     setCoverUrl: (url: string) => void;
+    setCoverCrop: (crop: { cx?: number; cy?: number; zoom?: number } | null) => void;
     setCoverPreviewFailed: (v: boolean) => void;
     setCoverUploadError: (v: string) => void;
     setCoverUploadWarning: (v: string) => void;
@@ -21,7 +23,7 @@ interface MediaHandlerState {
 }
 
 export function useScriptMetadataMediaHandlers({
-    setCoverUrl, setCoverPreviewFailed, setCoverUploadError, setCoverUploadWarning,
+    setCoverUrl, setCoverCrop, setCoverPreviewFailed, setCoverUploadError, setCoverUploadWarning,
     setActivityBannerUrl, setActivityBannerPreviewFailed, setActivityBannerUploadError, setActivityBannerUploadWarning,
     setIsMediaPickerOpen, setMediaPickerTarget, mediaPickerTarget,
     setCropSource, setCropTarget, setCropPurpose, setCropOpen,
@@ -53,6 +55,7 @@ export function useScriptMetadataMediaHandlers({
                 setCoverUploadError("");
                 setCoverUploadWarning(optimized.warning || "");
                 setCoverUrl(nextUrl);
+                setCoverCrop(null);
                 setCoverPreviewFailed(false);
             }
         } catch (error) {
@@ -66,7 +69,7 @@ export function useScriptMetadataMediaHandlers({
             }
         }
     }, [
-        setCoverUrl, setCoverPreviewFailed, setCoverUploadError, setCoverUploadWarning,
+        setCoverUrl, setCoverCrop, setCoverPreviewFailed, setCoverUploadError, setCoverUploadWarning,
         setActivityBannerUrl, setActivityBannerPreviewFailed, setActivityBannerUploadError, setActivityBannerUploadWarning,
     ]);
 
@@ -108,13 +111,33 @@ export function useScriptMetadataMediaHandlers({
             setActivityBannerUploadWarning("");
         } else {
             setCoverUrl(url);
+            setCoverCrop(null);
             setCoverPreviewFailed(false);
             setCoverUploadError("");
             setCoverUploadWarning("");
         }
     }, [
         mediaPickerTarget,
-        setCoverUrl, setCoverPreviewFailed, setCoverUploadError, setCoverUploadWarning,
+        setCoverUrl, setCoverCrop, setCoverPreviewFailed, setCoverUploadError, setCoverUploadWarning,
+        setActivityBannerUrl, setActivityBannerPreviewFailed, setActivityBannerUploadError, setActivityBannerUploadWarning,
+    ]);
+
+    const handleMediaPickerSelectMedia = useCallback((selection: MediaSelection) => {
+        if (mediaPickerTarget === "activityBanner") {
+            setActivityBannerUrl(selection.url);
+            setActivityBannerPreviewFailed(false);
+            setActivityBannerUploadError("");
+            setActivityBannerUploadWarning("");
+        } else {
+            setCoverUrl(selection.url);
+            setCoverCrop(selection.crop || null);
+            setCoverPreviewFailed(false);
+            setCoverUploadError("");
+            setCoverUploadWarning("");
+        }
+    }, [
+        mediaPickerTarget,
+        setCoverUrl, setCoverCrop, setCoverPreviewFailed, setCoverUploadError, setCoverUploadWarning,
         setActivityBannerUrl, setActivityBannerPreviewFailed, setActivityBannerUploadError, setActivityBannerUploadWarning,
     ]);
 
@@ -125,5 +148,6 @@ export function useScriptMetadataMediaHandlers({
         openCoverMediaPicker,
         openActivityBannerMediaPicker,
         handleMediaPickerSelect,
+        handleMediaPickerSelectMedia,
     };
 }

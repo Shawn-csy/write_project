@@ -17,6 +17,7 @@ interface UseScriptMetadataSaveOptions {
   activeScript?: ScriptLike | null;
   title: string;
   coverUrl: string;
+  coverCrop: { cx?: number; cy?: number; zoom?: number } | null;
   status: string;
   author: string;
   authorDisplayMode: string;
@@ -76,6 +77,7 @@ export function useScriptMetadataSave({
   activeScript,
   title,
   coverUrl,
+  coverCrop,
   status,
   author,
   authorDisplayMode,
@@ -137,6 +139,7 @@ export function useScriptMetadataSave({
     activeScript,
     title,
     coverUrl,
+    coverCrop,
     status,
     author,
     authorDisplayMode,
@@ -200,6 +203,7 @@ export function useScriptMetadataSave({
       activeScript,
       title,
       coverUrl,
+      coverCrop,
       status,
       author,
       authorDisplayMode,
@@ -399,6 +403,7 @@ export function useScriptMetadataSave({
       const updatePayload: ScriptUpdatePayload & { author?: string } = {
         title,
         coverUrl,
+        coverCrop: coverCrop || null,
         status,
         customMetadata,
         draftDate: date,
@@ -443,6 +448,7 @@ export function useScriptMetadataSave({
         ...(persisted || {}),
         title,
         coverUrl,
+        coverCrop: coverCrop || null,
         status,
         customMetadata,
         author: shouldPreserveAuthor ? String(workingScript?.author || "") : persistedAuthor,
