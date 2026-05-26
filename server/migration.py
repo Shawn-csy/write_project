@@ -36,6 +36,57 @@ def _backfill_crop_refs(conn, table: str, url_col: str, crop_col: str):
     if migrated:
         print(f"Migrating: backfilled {migrated} crop refs for {table}.{url_col}")
 
+def _backfill_content_fields(conn):
+    """Backfill synopsis/outline/activityName/activityBannerUrl from customMetadata.
+
+    Only fills the new column when it is NULL (never overwrites existing data).
+    Idempotent — safe to re-run.
+    """
+    FIELDS = [
+        ("synopsis",          ["synopsis", "summary", "description", "notes"]),
+        ("outline",           ["outline"]),
+        ("activityName",      ["activityname", "eventname"]),
+        ("activityBannerUrl", ["activitybanner", "eventbanner"]),
+    ]
+    rows = conn.execute(text(
+        "SELECT id, customMetadata, synopsis, outline, activityName, activityBannerUrl FROM scripts"
+    )).fetchall()
+    migrated = 0
+    for row in rows:
+        raw_custom = row[1]
+        if not raw_custom:
+            continue
+        if isinstance(raw_custom, str):
+            try:
+                raw_custom = json.loads(raw_custom)
+            except Exception:
+                continue
+        if not isinstance(raw_custom, list):
+            continue
+        meta_map = {
+            str(item.get("key") or "").strip().lower().replace(" ", ""): str(item.get("value") or "")
+            for item in raw_custom if isinstance(item, dict)
+        }
+        updates = {}
+        current_values = {"synopsis": row[2], "outline": row[3], "activityName": row[4], "activityBannerUrl": row[5]}
+        for col, keys in FIELDS:
+            if current_values[col]:
+                continue  # already populated — never overwrite
+            for k in keys:
+                val = meta_map.get(k, "").strip()
+                if val:
+                    updates[col] = val
+                    break
+        if not updates:
+            continue
+        set_clause = ", ".join(f'"{k}" = :{k}' for k in updates)
+        updates["_id"] = row[0]
+        conn.execute(text(f"UPDATE scripts SET {set_clause} WHERE id = :_id"), updates)
+        migrated += 1
+    if migrated:
+        print(f"Migrating: backfilled synopsis/outline/activity fields for {migrated} scripts")
+
+
 def _run_postgres_migrations():
     """Migrate PostgreSQL schema changes (ALTER COLUMN type changes, etc.)."""
     timestamp_columns = [
@@ -246,6 +297,22 @@ def _run_postgres_migrations():
         _backfill_crop_refs(conn, "personas", "bannerUrl", "bannerCrop")
         _backfill_crop_refs(conn, "series", "coverUrl", "coverCrop")
         _backfill_crop_refs(conn, "scripts", "coverUrl", "coverCrop")
+
+        content_columns = [
+            ("scripts", "synopsis",          "TEXT"),
+            ("scripts", "outline",           "TEXT"),
+            ("scripts", "activityName",      "TEXT"),
+            ("scripts", "activityBannerUrl", "TEXT"),
+        ]
+        for table, col, col_type in content_columns:
+            result = conn.execute(text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = :t AND column_name = :c"
+            ), {"t": table, "c": col}).fetchone()
+            if not result:
+                print(f"Migrating: Adding '{col}' column to {table} (PostgreSQL)")
+                conn.execute(text(f'ALTER TABLE "{table}" ADD COLUMN "{col}" {col_type}'))
+        _backfill_content_fields(conn)
 
         conn.commit()
 
@@ -468,6 +535,11 @@ def run_migrations():
                 print("Migrating: Adding 'coverCrop' column to scripts")
                 conn.execute(text("ALTER TABLE scripts ADD COLUMN coverCrop TEXT DEFAULT NULL"))
 
+            for col in ("synopsis", "outline", "activityName", "activityBannerUrl"):
+                if col not in columns:
+                    print(f"Migrating: Adding '{col}' column to scripts")
+                    conn.execute(text(f"ALTER TABLE scripts ADD COLUMN {col} TEXT DEFAULT NULL"))
+
             # Organization memberships table (user <-> org many-to-many)
             result_tables = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='organization_memberships'"))
             has_org_memberships_table = result_tables.fetchone() is not None
@@ -639,6 +711,7 @@ def run_migrations():
             _backfill_crop_refs(conn, "personas", "bannerUrl", "bannerCrop")
             _backfill_crop_refs(conn, "series", "coverUrl", "coverCrop")
             _backfill_crop_refs(conn, "scripts", "coverUrl", "coverCrop")
+            _backfill_content_fields(conn)
 
             conn.commit()
     except Exception as e:

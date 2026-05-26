@@ -321,9 +321,17 @@ If you send the `Accept: text/markdown` header, or if you identify as an AI bot 
                 except Exception:
                     return Response(content="Internal Server Error", status_code=500, media_type="text/markdown")
 
-        if os.path.exists(INDEX_PATH):
-            with open(INDEX_PATH, "r", encoding="utf-8") as f:
-                html_template = f.read()
+        try:
+            index_exists = os.path.exists(INDEX_PATH)
+        except Exception:
+            return Response(content="Internal Server Error", status_code=500)
+
+        if index_exists:
+            try:
+                with open(INDEX_PATH, "r", encoding="utf-8") as f:
+                    html_template = f.read()
+            except Exception:
+                return Response(content="Internal Server Error", status_code=500)
 
             user_agent = request.headers.get("user-agent", "").lower()
             seo_html = inject_seo_for_route(full_path, db, html_template, public_base_url(), user_agent=user_agent)

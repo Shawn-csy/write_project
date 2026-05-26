@@ -26,8 +26,9 @@ def test_seo_tags(client):
             content = response.text
             
             assert "<title>SEO Script｜Screenplay Reader</title>" in content
-            assert 'content="SEO Script"' in content # og:title
-            assert 'content="Great content here"' in content # description
+            assert 'content="SEO Script｜Screenplay Reader"' in content  # og:title includes site name
+            assert "SEO Script" in content  # title appears somewhere in head
+            assert 'content="Great content here"' in content  # description
 
 
 def test_security_headers_csp_is_restricted(client):

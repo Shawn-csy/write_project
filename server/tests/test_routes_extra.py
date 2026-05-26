@@ -355,6 +355,9 @@ def test_public_script_visibility_route(client, db_session):
 
 
 def test_public_script_owner_redacts_sensitive_fields(client, db_session):
+    import routers.public_bundle as pb
+    pb._bundle_cache = None
+
     owner_id = "public-owner-redact"
     _create_user(db_session, owner_id)
     headers = {"X-User-ID": owner_id}
@@ -549,6 +552,10 @@ def test_public_scripts_filters(client, db_session):
 
 
 def test_public_personas_and_orgs_empty(client):
+    # Clear module-level bundle cache so a prior test's public script doesn't bleed in.
+    import routers.public_bundle as pb
+    pb._bundle_cache = None
+
     res_personas = client.get("/api/public-personas")
     assert res_personas.status_code == 200
     assert res_personas.json() == []

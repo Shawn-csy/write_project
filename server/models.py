@@ -147,6 +147,10 @@ class Script(Base):
     licenseCommercial = Column(String, default="")
     licenseDerivative = Column(String, default="")
     licenseNotify = Column(String, default="")
+    synopsis = Column(String, nullable=True)
+    outline = Column(String, nullable=True)
+    activityName = Column(String, nullable=True)
+    activityBannerUrl = Column(String, nullable=True)
 
     tags = relationship("Tag", secondary="script_tags", back_populates="scripts")
     markerTheme = relationship("MarkerTheme", lazy="joined")

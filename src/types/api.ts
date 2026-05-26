@@ -50,6 +50,10 @@ export interface BaseScriptApi {
   seriesId?: string | null;
   seriesOrder?: number | null;
   series?: ScriptSeriesLike;
+  synopsis?: string | null;
+  outline?: string | null;
+  activityName?: string | null;
+  activityBannerUrl?: string | null;
   organizationId?: string | null;
   organization?: OrgData;
   personaId?: string | null;

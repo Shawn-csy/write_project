@@ -59,6 +59,10 @@ Series
 SeriesOrder
 marker_legend
 show_legend
+Synopsis
+Outline
+ActivityName
+ActivityBanner
 ```
 
 > 前端常數定義見 `src/lib/metadataBoundary.ts`
@@ -67,13 +71,13 @@ show_legend
 
 ## 遷移策略
 
-| Phase | 動作 |
-|-------|------|
-| 0（本文件）| 凍結邊界規範，定義 reserved keys |
-| 1 | Adapter 接管 hydration/save，統一 mapping 入口 |
-| 2 | save hook 瘦身，payload builder 純函式化 |
-| 3 | 停止把 reserved keys 寫入 customMetadata |
-| 4 | 命中率低後移除 legacy fallback |
+| Phase | 動作 | 狀態 |
+|-------|------|------|
+| 0（本文件）| 凍結邊界規範，定義 reserved keys | ✅ 完成 |
+| 1 | Adapter 接管 hydration/save，統一 mapping 入口 | ✅ 完成 |
+| 2 | save hook 瘦身，payload builder 純函式化 | ✅ 完成 |
+| 3 | 停止把 reserved keys 寫入 customMetadata | ✅ 完成 |
+| 4 | 命中率低後移除 legacy fallback read path | 待辦 |
 
 ---
 
