@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 import models
 import schemas
+from media_crop import normalize_media_with_crop
 
 
 def get_user(db: Session, user_id: str):
@@ -21,6 +22,13 @@ def update_user(db: Session, user_id: str, user_update: schemas.UserCreate):
     update_data = user_update.model_dump(exclude_unset=True)
     if "settings" in update_data:
         db_user.settings = json.dumps(update_data.pop("settings"))
+    if "avatar" in update_data or "avatarCrop" in update_data:
+        avatar_url, avatar_crop = normalize_media_with_crop(
+            update_data.pop("avatar", db_user.avatar),
+            update_data.pop("avatarCrop", None),
+        )
+        update_data["avatar"] = avatar_url
+        update_data["avatarCrop"] = avatar_crop
 
     for key, value in update_data.items():
         setattr(db_user, key, value)

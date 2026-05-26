@@ -179,6 +179,7 @@ def user_to_persona_public(user: models.User, db: Session) -> schemas.PersonaPub
         displayName=user.displayName or user.handle or "Anonymous",
         bio=user.bio or "",
         avatar=user.avatar or "",
+        avatarCrop=user.avatarCrop,
         website=user.website or "",
         organizationIds=org_ids,
         tags=[], # Users don't have tags

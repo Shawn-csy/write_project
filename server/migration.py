@@ -3,6 +3,37 @@ import time
 import uuid
 from sqlalchemy import text
 from database import engine
+from media_crop import parse_crop_from_url
+
+
+def _backfill_crop_refs(conn, table: str, url_col: str, crop_col: str):
+    rows = conn.execute(text(f'SELECT id, "{url_col}", "{crop_col}" FROM {table}')).fetchall()
+    migrated = 0
+    for row in rows:
+        raw_url = row[1]
+        existing_crop = row[2]
+        cleaned_url, parsed_crop = parse_crop_from_url(raw_url)
+        if not parsed_crop:
+            continue
+        if isinstance(existing_crop, str):
+            try:
+                existing_crop = json.loads(existing_crop)
+            except Exception:
+                existing_crop = None
+        next_crop = existing_crop or parsed_crop
+        if cleaned_url == (raw_url or "") and next_crop == existing_crop:
+            continue
+        if engine.dialect.name == "postgresql":
+            conn.execute(text(
+                f'UPDATE {table} SET "{url_col}" = :url, "{crop_col}" = CAST(:crop AS JSONB) WHERE id = :id'
+            ), {"url": cleaned_url, "crop": json.dumps(next_crop), "id": row[0]})
+        else:
+            conn.execute(text(
+                f'UPDATE {table} SET "{url_col}" = :url, "{crop_col}" = :crop WHERE id = :id'
+            ), {"url": cleaned_url, "crop": json.dumps(next_crop), "id": row[0]})
+        migrated += 1
+    if migrated:
+        print(f"Migrating: backfilled {migrated} crop refs for {table}.{url_col}")
 
 def _run_postgres_migrations():
     """Migrate PostgreSQL schema changes (ALTER COLUMN type changes, etc.)."""
@@ -189,6 +220,32 @@ def _run_postgres_migrations():
             print("Migrating: Adding 'layoutConfig' column to marker_themes (PostgreSQL)")
             conn.execute(text('ALTER TABLE marker_themes ADD COLUMN "layoutConfig" TEXT DEFAULT NULL'))
 
+        crop_columns = [
+            ("users", "avatarCrop"),
+            ("organizations", "logoCrop"),
+            ("organizations", "bannerCrop"),
+            ("personas", "avatarCrop"),
+            ("personas", "bannerCrop"),
+            ("series", "coverCrop"),
+            ("scripts", "coverCrop"),
+        ]
+        for table, col in crop_columns:
+            result = conn.execute(text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = :t AND column_name = :c"
+            ), {"t": table, "c": col}).fetchone()
+            if not result:
+                print(f"Migrating: Adding '{col}' column to {table} (PostgreSQL)")
+                conn.execute(text(f'ALTER TABLE "{table}" ADD COLUMN "{col}" JSONB'))
+
+        _backfill_crop_refs(conn, "users", "avatar", "avatarCrop")
+        _backfill_crop_refs(conn, "organizations", "logoUrl", "logoCrop")
+        _backfill_crop_refs(conn, "organizations", "bannerUrl", "bannerCrop")
+        _backfill_crop_refs(conn, "personas", "avatar", "avatarCrop")
+        _backfill_crop_refs(conn, "personas", "bannerUrl", "bannerCrop")
+        _backfill_crop_refs(conn, "series", "coverUrl", "coverCrop")
+        _backfill_crop_refs(conn, "scripts", "coverUrl", "coverCrop")
+
         conn.commit()
 
 
@@ -306,6 +363,9 @@ def run_migrations():
             if 'email' not in user_columns:
                 print("Migrating: Adding 'email' column to users")
                 conn.execute(text("ALTER TABLE users ADD COLUMN email TEXT DEFAULT NULL"))
+            if 'avatarCrop' not in user_columns:
+                print("Migrating: Adding 'avatarCrop' column to users")
+                conn.execute(text("ALTER TABLE users ADD COLUMN avatarCrop TEXT DEFAULT NULL"))
 
             # Personas columns
             result_personas = conn.execute(text("PRAGMA table_info(personas)"))
@@ -345,6 +405,12 @@ def run_migrations():
             if 'bannerUrl' not in persona_columns:
                 print("Migrating: Adding 'bannerUrl' column to personas")
                 conn.execute(text("ALTER TABLE personas ADD COLUMN bannerUrl TEXT DEFAULT ''"))
+            if 'avatarCrop' not in persona_columns:
+                print("Migrating: Adding 'avatarCrop' column to personas")
+                conn.execute(text("ALTER TABLE personas ADD COLUMN avatarCrop TEXT DEFAULT NULL"))
+            if 'bannerCrop' not in persona_columns:
+                print("Migrating: Adding 'bannerCrop' column to personas")
+                conn.execute(text("ALTER TABLE personas ADD COLUMN bannerCrop TEXT DEFAULT NULL"))
 
             # Organizations columns
             result_orgs = conn.execute(text("PRAGMA table_info(organizations)"))
@@ -364,6 +430,12 @@ def run_migrations():
             if 'bannerUrl' not in org_columns:
                 print("Migrating: Adding 'bannerUrl' column to organizations")
                 conn.execute(text("ALTER TABLE organizations ADD COLUMN bannerUrl TEXT DEFAULT ''"))
+            if 'logoCrop' not in org_columns:
+                print("Migrating: Adding 'logoCrop' column to organizations")
+                conn.execute(text("ALTER TABLE organizations ADD COLUMN logoCrop TEXT DEFAULT NULL"))
+            if 'bannerCrop' not in org_columns:
+                print("Migrating: Adding 'bannerCrop' column to organizations")
+                conn.execute(text("ALTER TABLE organizations ADD COLUMN bannerCrop TEXT DEFAULT NULL"))
 
             # Series table
             result_tables = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='series'"))
@@ -384,6 +456,16 @@ def run_migrations():
                 """))
                 conn.execute(text("CREATE INDEX IF NOT EXISTS ix_series_ownerId ON series(ownerId)"))
                 conn.execute(text("CREATE INDEX IF NOT EXISTS ix_series_slug ON series(slug)"))
+            else:
+                result_series = conn.execute(text("PRAGMA table_info(series)"))
+                series_columns = [row.name for row in result_series.fetchall()]
+                if 'coverCrop' not in series_columns:
+                    print("Migrating: Adding 'coverCrop' column to series")
+                    conn.execute(text("ALTER TABLE series ADD COLUMN coverCrop TEXT DEFAULT NULL"))
+
+            if 'coverCrop' not in columns:
+                print("Migrating: Adding 'coverCrop' column to scripts")
+                conn.execute(text("ALTER TABLE scripts ADD COLUMN coverCrop TEXT DEFAULT NULL"))
 
             # Organization memberships table (user <-> org many-to-many)
             result_tables = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='organization_memberships'"))
@@ -548,6 +630,14 @@ def run_migrations():
                             "updatedAt": now_ms,
                         },
                     )
+
+            _backfill_crop_refs(conn, "users", "avatar", "avatarCrop")
+            _backfill_crop_refs(conn, "organizations", "logoUrl", "logoCrop")
+            _backfill_crop_refs(conn, "organizations", "bannerUrl", "bannerCrop")
+            _backfill_crop_refs(conn, "personas", "avatar", "avatarCrop")
+            _backfill_crop_refs(conn, "personas", "bannerUrl", "bannerCrop")
+            _backfill_crop_refs(conn, "series", "coverUrl", "coverCrop")
+            _backfill_crop_refs(conn, "scripts", "coverUrl", "coverCrop")
 
             conn.commit()
     except Exception as e:
