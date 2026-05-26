@@ -34,6 +34,7 @@ import { getPublicPersona, getPublicScripts } from "../lib/api/public";
 import { getSeriesInfoFromScript } from "../lib/series";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { getMorandiTagStyle } from "../lib/tagColors";
+import { getMediaCropStyle } from "../lib/mediaCropRef";
 import { useI18n } from "../contexts/I18nContext";
 import { CoverPlaceholder } from "../components/ui/CoverPlaceholder";
 import { useAuth } from "../contexts/AuthContext";
@@ -86,6 +87,8 @@ export default function AuthorProfilePage() {
   }, [id]);
 
   const tagStyle = (tag: string) => getMorandiTagStyle(tag, author?.tags || []);
+  const bannerCrop = getMediaCropStyle(String(author?.bannerUrl || ""));
+  const avatarCrop = getMediaCropStyle(String(author?.avatar || ""));
   const authorSeries = useMemo(() => {
     const map = new Map();
     for (const script of scripts || []) {
@@ -213,7 +216,7 @@ export default function AuthorProfilePage() {
 
       <div className="relative h-48 bg-muted/30">
         {author.bannerUrl ? (
-          <img src={author.bannerUrl} alt={`${author.displayName} banner`} className="w-full h-full object-cover" />
+          <img src={bannerCrop.src} style={bannerCrop.style} alt={`${author.displayName} banner`} className="w-full h-full object-cover" />
         ) : (
           <div className="h-full bg-gradient-to-r from-slate-900 to-slate-700" />
         )}
@@ -226,7 +229,7 @@ export default function AuthorProfilePage() {
         <div className="mb-8 rounded-xl border border-border/60 bg-muted/20 p-6 shadow-sm md:p-8">
           <div className="flex flex-col md:flex-row items-start gap-8">
               <Avatar className="w-32 h-32 md:w-40 md:h-40 border-4 border-muted bg-background">
-                  <AvatarImage src={author.avatar} />
+                  <AvatarImage src={avatarCrop.src} style={avatarCrop.style as React.CSSProperties} />
                   <AvatarFallback>{author.displayName?.[0]}</AvatarFallback>
               </Avatar>
               
@@ -304,26 +307,29 @@ export default function AuthorProfilePage() {
                     <span className="rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground">{authorSeries.length}</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {authorSeries.map((series) => (
-                      <button
-                        key={series.name}
-                        type="button"
-                        className="group flex items-center gap-3 rounded-lg border border-border/60 bg-muted/20 p-3 text-left hover:border-primary/50 hover:bg-muted/30 transition-colors"
-                        onClick={() => navigate(`/series/${encodeURIComponent(series.name)}`)}
-                      >
-                        <div className="h-14 w-10 shrink-0 overflow-hidden rounded border border-border/50 bg-muted">
-                          {series.coverUrl ? (
-                            <img src={series.coverUrl} alt={series.name} className="h-full w-full object-cover" loading="lazy" />
-                          ) : (
-                            <CoverPlaceholder title={series.name} compact />
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="line-clamp-1 text-sm font-semibold text-foreground group-hover:text-primary">{series.name}</p>
-                          <p className="text-xs text-muted-foreground">{series.count} {t("publicReader.worksUnit", "部")}</p>
-                        </div>
-                      </button>
-                    ))}
+                    {authorSeries.map((series) => {
+                      const seriesCoverCrop = getMediaCropStyle(String(series.coverUrl || ""));
+                      return (
+                        <button
+                          key={series.name}
+                          type="button"
+                          className="group flex items-center gap-3 rounded-lg border border-border/60 bg-muted/20 p-3 text-left hover:border-primary/50 hover:bg-muted/30 transition-colors"
+                          onClick={() => navigate(`/series/${encodeURIComponent(series.name)}`)}
+                        >
+                          <div className="h-14 w-10 shrink-0 overflow-hidden rounded border border-border/50 bg-muted">
+                            {series.coverUrl ? (
+                              <img src={seriesCoverCrop.src} style={seriesCoverCrop.style} alt={series.name} className="h-full w-full object-cover" loading="lazy" />
+                            ) : (
+                              <CoverPlaceholder title={series.name} compact />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="line-clamp-1 text-sm font-semibold text-foreground group-hover:text-primary">{series.name}</p>
+                            <p className="text-xs text-muted-foreground">{series.count} {t("publicReader.worksUnit", "部")}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}

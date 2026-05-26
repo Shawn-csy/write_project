@@ -11,6 +11,7 @@ import { TermsAcceptanceTable } from "../components/admin/TermsAcceptanceTable";
 import { HomepageBannerSection } from "../components/admin/HomepageBannerSection";
 import { AdminTransferModal } from "../components/admin/AdminTransferModal";
 import { useAdminPageState } from "../hooks/useAdminPageState";
+import { getMediaCropStyle } from "../lib/mediaCropRef";
 
 interface CollapsibleSectionProps {
   title: React.ReactNode;
@@ -254,27 +255,32 @@ export default function SuperAdminPage() {
                 <div className="py-8 text-center text-sm text-muted-foreground">無符合結果</div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {s.filteredPersonas.map((p) => (
-                    <div key={p.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/40 transition-colors">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center overflow-hidden shrink-0">
-                          {p.avatar ? <img src={p.avatar} alt={p.displayName || p.id} className="w-full h-full object-cover" /> : <UserCircle className="w-5 h-5" />}
+                  {s.filteredPersonas.map((p) => {
+                    const cropAvatar = getMediaCropStyle(String(p.avatar || ""));
+                    return (
+                      <div key={p.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/40 transition-colors">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center overflow-hidden shrink-0">
+                            {p.avatar ? (
+                              <img src={cropAvatar.src} style={cropAvatar.style} alt={p.displayName || p.id} className="w-full h-full object-cover" />
+                            ) : <UserCircle className="w-5 h-5" />}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-medium text-sm truncate">{p.displayName}</div>
+                            <div className="text-xs text-muted-foreground truncate">owner: {s.getOwnerLabel(p.ownerId)}</div>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <div className="font-medium text-sm truncate">{p.displayName}</div>
-                          <div className="text-xs text-muted-foreground truncate">owner: {s.getOwnerLabel(p.ownerId)}</div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => s.handleOpenTransfer("persona", p)}>
+                            <ArrowRightLeft className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button variant="destructive" size="sm" className="h-7" disabled={s.isDeleting} onClick={() => s.handleDeletePersona(p)}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => s.handleOpenTransfer("persona", p)}>
-                          <ArrowRightLeft className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button variant="destructive" size="sm" className="h-7" disabled={s.isDeleting} onClick={() => s.handleDeletePersona(p)}>
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

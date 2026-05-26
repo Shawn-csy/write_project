@@ -18,6 +18,7 @@ import { Button } from "../components/ui/button";
 import { getPublicOrganization, getPublicScripts } from "../lib/api/public";
 import { PublicTopBar } from "../components/public/PublicTopBar";
 import { getMorandiTagStyle } from "../lib/tagColors";
+import { getMediaCropStyle } from "../lib/mediaCropRef";
 import { useAuth } from "../contexts/AuthContext";
 import { useI18n } from "../contexts/I18nContext";
 
@@ -65,6 +66,8 @@ export default function OrganizationPage() {
   }, [id, currentUser]);
 
   const tagStyle = (tag: string) => getMorandiTagStyle(tag, org?.tags || []);
+  const bannerCrop = getMediaCropStyle(String(org?.bannerUrl || ""));
+  const logoCrop = getMediaCropStyle(String(org?.logoUrl || ""));
 
   if (isLoading) return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">{t("orgPage.loading")}</div>;
   if (!org) return <div className="min-h-screen flex items-center justify-center">{t("orgPage.notFound")}</div>;
@@ -154,7 +157,7 @@ export default function OrganizationPage() {
       {/* Banner Area */}
       <div className="relative h-48">
         {org.bannerUrl ? (
-          <img src={org.bannerUrl} alt={`${org.name} banner`} className="w-full h-full object-cover" />
+          <img src={bannerCrop.src} style={bannerCrop.style} alt={`${org.name} banner`} className="w-full h-full object-cover" />
         ) : (
           <div className="h-full bg-gradient-to-r from-blue-900 to-slate-900" />
         )}
@@ -165,7 +168,7 @@ export default function OrganizationPage() {
          {/* Org Header Card */}
          <div className="mb-8 flex flex-col items-start gap-6 rounded-xl border border-white/45 bg-background/72 p-6 shadow-[0_24px_50px_-28px_rgba(15,23,42,0.6)] backdrop-blur-md backdrop-brightness-90 backdrop-saturate-75 md:flex-row md:items-center md:p-8 dark:border-white/20 dark:bg-background/68">
              <div className="w-24 h-24 md:w-32 md:h-32 bg-background rounded-lg border-4 border-background shadow overflow-hidden shrink-0">
-                 <img src={org.logoUrl || "https://images.unsplash.com/photo-1560179707-f14e90ef3623?q=80&w=300&auto=format&fit=crop"} alt={org.name} className="w-full h-full object-cover" />
+                 <img src={org.logoUrl ? logoCrop.src : "https://images.unsplash.com/photo-1560179707-f14e90ef3623?q=80&w=300&auto=format&fit=crop"} style={org.logoUrl ? logoCrop.style : undefined} alt={org.name} className="w-full h-full object-cover" />
              </div>
              
              <div className="flex-1 space-y-2">
@@ -234,22 +237,25 @@ export default function OrganizationPage() {
             
             <TabsContent value="members" className="rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {members.map(member => (
-                        <div 
-                            key={member.id} 
-                            className="rounded-lg border border-border/70 bg-background/75 p-4 flex items-center gap-4 transition-colors hover:border-primary/50 hover:bg-background cursor-pointer"
-                            onClick={() => navigate(`/author/${member.id}`)}
-                        >
-                            <Avatar>
-                                <AvatarImage src={member.avatar} />
-                                <AvatarFallback>{member.displayName?.[0]}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                                <div className="font-medium">{member.displayName}</div>
-                                <div className="text-xs text-muted-foreground">{t("orgPage.member")}</div>
+                    {members.map((member) => {
+                        const memberAvatarCrop = getMediaCropStyle(String(member.avatar || ""));
+                        return (
+                            <div
+                                key={member.id}
+                                className="rounded-lg border border-border/70 bg-background/75 p-4 flex items-center gap-4 transition-colors hover:border-primary/50 hover:bg-background cursor-pointer"
+                                onClick={() => navigate(`/author/${member.id}`)}
+                            >
+                                <Avatar>
+                                    <AvatarImage src={memberAvatarCrop.src} style={memberAvatarCrop.style as React.CSSProperties} />
+                                    <AvatarFallback>{member.displayName?.[0]}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <div className="font-medium">{member.displayName}</div>
+                                    <div className="text-xs text-muted-foreground">{t("orgPage.member")}</div>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </TabsContent>
          </Tabs>

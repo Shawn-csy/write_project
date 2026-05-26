@@ -30,6 +30,9 @@ const messages = {
     "remove": "Remove",
     "none": "None",
     "select": "Select",
+    "latest": "Latest",
+    "name": "Name",
+    "size": "Size",
     "enabled": "Enabled",
     "disabled": "Disabled",
     "save": "Save",
@@ -783,7 +786,10 @@ const messages = {
     "addToLibrary": "Add to Media Library",
     "clearLibrary": "Clear Media Library",
     "empty": "No media files yet.",
-    "unnamed": "Untitled"
+    "unnamed": "Untitled",
+    "cropThenUse": "Crop and use",
+    "useOriginalDirectly": "Use original image",
+    "applyCropFrame": "Apply crop frame"
   },
   "authorBadge": {
     "goAuthor": "Go to author page",

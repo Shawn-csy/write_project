@@ -5,6 +5,7 @@ import { Textarea } from "../../ui/textarea";
 import { Badge } from "../../ui/badge";
 import { MediaPicker } from "../../ui/MediaPicker";
 import { CoverPlaceholder } from "../../ui/CoverPlaceholder";
+import { getMediaCropStyle } from "../../../lib/mediaCropRef";
 import { PublisherFormRow } from "./PublisherFormRow";
 import { PublisherTabHeader } from "./PublisherTabHeader";
 import {
@@ -66,6 +67,7 @@ export function PublisherSeriesTab({
   const selected = seriesList.find((s) => s.id === selectedSeriesId) || null;
   const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState<boolean>(false);
   const [coverPreviewFailed, setCoverPreviewFailed] = React.useState<boolean>(false);
+  const cropCover = getMediaCropStyle(String(seriesDraft.coverUrl || ""));
 
   React.useEffect(() => {
     setCoverPreviewFailed(false);
@@ -160,7 +162,8 @@ export function PublisherSeriesTab({
           <div className="h-36 w-24 overflow-hidden rounded-md border bg-muted/20">
             {seriesDraft.coverUrl && !coverPreviewFailed ? (
               <img
-                src={seriesDraft.coverUrl}
+                src={cropCover.src}
+                style={cropCover.style}
                 alt="series cover preview"
                 className="h-full w-full object-cover"
                 onError={() => setCoverPreviewFailed(true)}

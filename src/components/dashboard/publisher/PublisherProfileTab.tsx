@@ -13,6 +13,7 @@ import {
 import { PersonaProfileChecklist } from "./PersonaProfileChecklist";
 import { PersonaProfileForm } from "./PersonaProfileForm";
 import { usePublisherProfileState } from "../../../hooks/publisher/usePublisherProfileState";
+import { getMediaCropStyle } from "../../../lib/mediaCropRef";
 import type { PersonaItem, PersonaDraft, OrgItem } from "../../../hooks/publisher/usePublisherProfileState";
 
 interface TagOption { name: string; }
@@ -104,13 +105,23 @@ export function PublisherProfileTab(props: PublisherProfileTabProps): React.JSX.
             />
           ) : null}
         >
-          {personas.map(p => (
-            <PublisherEntityListItem
-              key={p.id} selected={selectedPersonaId === p.id} onClick={() => setSelectedPersonaId(p.id)}
-              leading={<Avatar className="h-8 w-8 border"><AvatarImage src={p.avatar} /><AvatarFallback>{p.displayName?.[0]}</AvatarFallback></Avatar>}
-              title={p.displayName}
-            />
-          ))}
+          {personas.map((p) => {
+            const avatarCrop = getMediaCropStyle(String(p.avatar || ""));
+            return (
+              <PublisherEntityListItem
+                key={p.id}
+                selected={selectedPersonaId === p.id}
+                onClick={() => setSelectedPersonaId(p.id)}
+                leading={
+                  <Avatar className="h-8 w-8 border">
+                    <AvatarImage src={avatarCrop.src} style={avatarCrop.style as React.CSSProperties} />
+                    <AvatarFallback>{p.displayName?.[0]}</AvatarFallback>
+                  </Avatar>
+                }
+                title={p.displayName}
+              />
+            );
+          })}
         </PublisherEntityListPane>
       )}
       header={(

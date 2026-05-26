@@ -4,6 +4,7 @@ import { Loader2, Trash2, Building2, CircleHelp, ExternalLink, AlertTriangle } f
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
+import { getMediaCropStyle } from "../../../lib/mediaCropRef";
 import { useI18n } from "../../../contexts/I18nContext";
 import { MediaPicker } from "../../ui/MediaPicker";
 import { PublisherFormRow } from "./PublisherFormRow";
@@ -150,6 +151,8 @@ export function PublisherOrgTab({
         orgTagInput, tagOptions,
         canManageOrgMembers,
     });
+    const logoCrop = getMediaCropStyle(String(orgDraft.logoUrl || ""));
+    const bannerCrop = getMediaCropStyle(String(orgDraft.bannerUrl || ""));
 
     const isReadOnlyExistingOrg = s.viewMode === "edit" && Boolean(selectedOrgId) && !canEditSelectedOrg;
 
@@ -339,7 +342,8 @@ export function PublisherOrgTab({
                                         <div className="h-16 w-16 overflow-hidden rounded-md border bg-muted/20">
                                             {orgDraft.logoUrl && !s.logoPreviewFailed ? (
                                                 <img
-                                                    src={orgDraft.logoUrl}
+                                                    src={logoCrop.src}
+                                                    style={logoCrop.style}
                                                     alt="org logo preview"
                                                     className="h-full w-full object-cover"
                                                     onError={() => s.setLogoPreviewFailed(true)}
@@ -392,7 +396,8 @@ export function PublisherOrgTab({
                                         <div className="h-20 overflow-hidden rounded-md border bg-muted/20">
                                             {orgDraft.bannerUrl && !s.bannerPreviewFailed ? (
                                                 <img
-                                                    src={orgDraft.bannerUrl}
+                                                    src={bannerCrop.src}
+                                                    style={bannerCrop.style}
                                                     alt="org banner preview"
                                                     className="h-full w-full object-cover"
                                                     onError={() => s.setBannerPreviewFailed(true)}

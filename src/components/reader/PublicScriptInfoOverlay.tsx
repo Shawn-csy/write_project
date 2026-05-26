@@ -2,6 +2,7 @@ import React from "react";
 import { Heart, Eye } from "lucide-react";
 import { AuthorBadge } from "../ui/AuthorBadge";
 import { Badge } from "../ui/badge";
+import { getMediaCropStyle } from "../../lib/mediaCropRef";
 
 interface PrefaceItem {
   id?: string;
@@ -108,6 +109,7 @@ export function PublicScriptInfoOverlay({
 }: PublicScriptInfoOverlayProps) {
   const [coverLoadFailed, setCoverLoadFailed] = React.useState(false);
   const [prefaceExpanded, setPrefaceExpanded] = React.useState(false);
+  const cropCover = getMediaCropStyle(String(coverUrl || ""));
   const hasCover = Boolean(String(coverUrl || "").trim()) && !coverLoadFailed;
   const itemById = React.useMemo(() => {
     const map = new Map<string, PrefaceItem & { value: string }>();
@@ -317,7 +319,8 @@ export function PublicScriptInfoOverlay({
       <div className={`w-full max-w-2xl overflow-hidden rounded-2xl border border-white/15 shadow-xl backdrop-blur-sm ${hasCover ? "bg-transparent" : "bg-background/40"}`}>
         {hasCover ? (
           <img
-            src={coverUrl}
+            src={cropCover.src}
+            style={cropCover.style}
             alt={title || "cover"}
             className="max-h-[460px] w-full object-cover"
             loading="eager"

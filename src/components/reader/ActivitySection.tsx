@@ -1,4 +1,5 @@
 import React from "react";
+import { getMediaCropStyle } from "../../lib/mediaCropRef";
 
 interface ActivitySectionProps {
   name?: string;
@@ -9,6 +10,7 @@ interface ActivitySectionProps {
 
 export function ActivitySection({ name, bannerUrl, content, workUrl }: ActivitySectionProps): React.JSX.Element {
   const [bannerLoadFailed, setBannerLoadFailed] = React.useState(false);
+  const cropBanner = getMediaCropStyle(String(bannerUrl || ""));
 
   return (
     <section className="mx-auto mb-8 w-full max-w-4xl px-6 text-left">
@@ -20,7 +22,8 @@ export function ActivitySection({ name, bannerUrl, content, workUrl }: ActivityS
         {bannerUrl && !bannerLoadFailed && (
           <div className="mt-3 overflow-hidden rounded-md border border-border/70 bg-muted/20">
             <img
-              src={bannerUrl}
+              src={cropBanner.src}
+              style={cropBanner.style}
               alt={name || "activity banner"}
               className="max-h-64 w-full object-cover"
               loading="lazy"

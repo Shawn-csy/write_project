@@ -5,6 +5,7 @@ import { Card } from "../../ui/card";
 import { Badge } from "../../ui/badge";
 import { CoverPlaceholder } from "../../ui/CoverPlaceholder";
 import { useI18n } from "../../../contexts/I18nContext";
+import { getMediaCropStyle } from "../../../lib/mediaCropRef";
 import type { PublishReadiness, PublisherScriptItem } from "../../../hooks/publisher/usePublisherWorksTabState";
 
 const warningBadgeClass = "h-5 border-[color:var(--license-term-border)] bg-[color:var(--license-term-bg)] text-[10px] font-semibold text-[color:var(--license-term-fg)]";
@@ -38,6 +39,7 @@ export function WorkScriptGridCard({
   navigate,
 }: WorkScriptGridCardProps): React.JSX.Element {
   const { t } = useI18n();
+  const cropCover = getMediaCropStyle(String(script.coverUrl || ""));
 
   return (
     <Card className="group overflow-hidden border border-border/60 bg-card p-0 transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:shadow-lg">
@@ -45,7 +47,8 @@ export function WorkScriptGridCard({
       <div className="relative aspect-[2/3] w-full overflow-hidden bg-muted/40">
         {hasCover(script.coverUrl) && !failedCover ? (
           <img
-            src={script.coverUrl || undefined}
+            src={cropCover.src || undefined}
+            style={cropCover.style}
             alt={script.title || "cover"}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
             loading="lazy"

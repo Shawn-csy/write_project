@@ -7,6 +7,7 @@ import { ImageCropDialog } from "../../ui/ImageCropDialog";
 import { MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
 import { useI18n } from "../../../contexts/I18nContext";
 import { useMetadataCoverUpload } from "../../../hooks/dashboard/useMetadataCoverUpload";
+import { getMediaCropStyle } from "../../../lib/mediaCropRef";
 
 interface Props {
   author: string;
@@ -28,6 +29,7 @@ export function MetadataAuthorCoverCard({ author, setAuthor, coverUrl, setCoverU
   } = useMetadataCoverUpload({ setCoverUrl });
 
   const normalizedCoverUrl = String(coverUrl || "");
+  const cropCover = getMediaCropStyle(normalizedCoverUrl);
   const hasInvalidCoverUrl = Boolean(normalizedCoverUrl.trim()) && !/^(https?:\/\/|\/)/i.test(normalizedCoverUrl.trim());
 
   return (
@@ -58,7 +60,7 @@ export function MetadataAuthorCoverCard({ author, setAuthor, coverUrl, setCoverU
           {coverUploadWarning && <p className="text-xs text-[color:var(--license-term-fg)]">{coverUploadWarning}</p>}
           <div className="mt-1 h-28 w-full overflow-hidden rounded-md border bg-muted/20">
             {coverUrl && !coverPreviewFailed ? (
-              <img src={coverUrl} alt="cover preview" className="h-full w-full object-cover" onLoad={() => setCoverPreviewFailed(false)} onError={() => setCoverPreviewFailed(true)} />
+              <img src={cropCover.src} alt="cover preview" style={cropCover.style} className="h-full w-full object-cover" onLoad={() => setCoverPreviewFailed(false)} onError={() => setCoverPreviewFailed(true)} />
             ) : (
               <CoverPlaceholder title={author || "Untitled"} compact />
             )}

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useI18n } from "../../contexts/I18nContext";
 import { normalizeActivityDemoLinks } from "../../lib/activityDemoLinks";
+import { decodeMediaCropRef } from "../../lib/mediaCropRef";
 import type { DownloadOption } from "../../types/routes";
 import type { MarkerConfig } from "../../types/script";
 import { buildV2TableExportFromRenderedHtml } from "../../lib/v2/exportAdapter";
@@ -381,8 +382,9 @@ export function usePublicReaderLayoutState({ script, isLoading, viewerProps, scr
     };
   }, [disableCopy]);
 
+  const bgCover = decodeMediaCropRef(String(coverUrl || ""));
   const backgroundStyle = coverUrl
-    ? { backgroundImage: `url(${coverUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
+    ? { backgroundImage: `url(${bgCover.src})`, backgroundSize: "cover", backgroundPosition: "center" }
     : { background: "linear-gradient(to bottom, hsl(var(--background)), hsl(var(--muted)))" };
 
   const normalizedActivity = useMemo(() => {

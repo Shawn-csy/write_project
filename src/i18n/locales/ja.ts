@@ -30,6 +30,9 @@ const messages = {
     "remove": "削除",
     "none": "なし",
     "select": "選択",
+    "latest": "最新",
+    "name": "名前",
+    "size": "サイズ",
     "enabled": "有効",
     "disabled": "無効",
     "save": "保存",
@@ -783,7 +786,10 @@ const messages = {
     "addToLibrary": "メディアライブラリに追加",
     "clearLibrary": "メディアライブラリをクリア",
     "empty": "メディアファイルはまだありません。",
-    "unnamed": "無題"
+    "unnamed": "無題",
+    "cropThenUse": "トリミングして使用",
+    "useOriginalDirectly": "元画像をそのまま使用",
+    "applyCropFrame": "トリミング枠を適用"
   },
   "authorBadge": {
     "goAuthor": "作者ページへ移動",

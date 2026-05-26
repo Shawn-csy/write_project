@@ -7,6 +7,7 @@ import { RelatedSeriesSection } from "./RelatedSeriesSection";
 import ScriptSurface from "../editor/ScriptSurface";
 import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
 import { usePublicReaderLayoutState } from "../../hooks/public/usePublicReaderLayoutState";
+import { decodeMediaCropRef } from "../../lib/mediaCropRef";
 import type { PublicReaderScriptData, ViewerProps } from "../../hooks/public/usePublicReaderLayoutState";
 
 interface RelatedSeriesScriptItem {
@@ -106,6 +107,7 @@ export function PublicReaderLayout({
   const safeScrollRef = scriptSurfaceProps?.scrollRef as React.RefObject<HTMLDivElement | null> | undefined;
   const showHeader = !embeddedPreview;
   const showGuideOverlay = !embeddedPreview;
+  const coverBgSrc = decodeMediaCropRef(String(s.coverUrl || "")).src;
 
   return (
     <div className={`relative w-full ${embeddedPreview ? "h-full min-h-[620px]" : "h-[100dvh]"} overflow-hidden flex flex-col bg-background ${s.hideWhitespace ? 'hide-whitespace' : ''} ${s.protectionClass}`}>
@@ -113,7 +115,7 @@ export function PublicReaderLayout({
       <div className="absolute inset-0 z-0 opacity-30 dark:opacity-20 pointer-events-none">
         {s.coverUrl ? (
           <img
-            src={s.coverUrl}
+            src={coverBgSrc}
             alt=""
             aria-hidden="true"
             className="absolute inset-0 h-full w-full object-cover"
