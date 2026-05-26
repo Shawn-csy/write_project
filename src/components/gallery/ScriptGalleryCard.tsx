@@ -23,6 +23,7 @@ export interface ScriptGalleryItem extends BaseScript {
   seriesOrder?: BaseScript["seriesOrder"];
   _seriesOrder?: number | string | null;
   _derivedLicenseTags?: Array<string | TagLike>;
+  coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
 }
 
 interface ScriptGalleryCardProps {
@@ -35,7 +36,7 @@ interface ScriptGalleryCardProps {
 function ScriptGalleryCardInner({ script, onClick, onScriptClick, variant = "standard" }: ScriptGalleryCardProps): React.JSX.Element {
   const navigate = useNavigate();
   const { id, title, author, coverUrl, tags = [], views = 0, likes = 0, contentLength } = script;
-  const cropCover = getMediaCropStyle(String(coverUrl || ""));
+  const cropCover = getMediaCropStyle(String(coverUrl || ""), script.coverCrop);
   const estDurationMinutes = contentLength && contentLength > 0
     ? Math.round(contentLength / 2 / 200)  // chars/2 = CJK chars, /200 = chars per min
     : null;

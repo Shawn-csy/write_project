@@ -13,6 +13,7 @@ interface AuthorGalleryItem {
   id: string;
   displayName?: string;
   avatar?: string;
+  avatarCrop?: { cx?: number; cy?: number; zoom?: number } | null;
   bio?: string;
   tags?: string[];
   organizations?: AuthorOrg[];
@@ -26,7 +27,7 @@ interface AuthorGalleryCardProps {
 
 export function AuthorGalleryCard({ author, onClick, onTagClick }: AuthorGalleryCardProps): React.JSX.Element {
   const { displayName, avatar, bio, tags = [], organizations = [] } = author;
-  const avatarCrop = getMediaCropStyle(String(avatar || ""));
+  const avatarCrop = getMediaCropStyle(String(avatar || ""), author.avatarCrop);
   
   return (
     <Card 

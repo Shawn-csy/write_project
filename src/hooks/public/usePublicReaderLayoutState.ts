@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useI18n } from "../../contexts/I18nContext";
 import { normalizeActivityDemoLinks } from "../../lib/activityDemoLinks";
-import { decodeMediaCropRef } from "../../lib/mediaCropRef";
+import { getMediaCropStyle } from "../../lib/mediaCropRef";
 import type { DownloadOption } from "../../types/routes";
 import type { MarkerConfig } from "../../types/script";
 import { buildV2TableExportFromRenderedHtml } from "../../lib/v2/exportAdapter";
@@ -37,6 +37,7 @@ interface PublicReaderScriptData {
   prefaceItems?: unknown[];
   activity?: { name?: string; bannerUrl?: string; content?: string; workUrl?: string; demoUrl?: string; demoLinks?: unknown[] };
   coverUrl?: string | null;
+  coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
   content?: string | null;
   showMarkerLegend?: boolean;
   disableCopy?: boolean;
@@ -85,6 +86,7 @@ export function usePublicReaderLayoutState({ script, isLoading, viewerProps, scr
     prefaceItems,
     activity,
     coverUrl,
+    coverCrop,
     content: rawScript,
     disableCopy,
   } = script || {};
@@ -382,10 +384,11 @@ export function usePublicReaderLayoutState({ script, isLoading, viewerProps, scr
     };
   }, [disableCopy]);
 
-  const bgCover = decodeMediaCropRef(String(coverUrl || ""));
+  const bgCover = getMediaCropStyle(String(coverUrl || ""), coverCrop);
   const backgroundStyle = coverUrl
     ? { backgroundImage: `url(${bgCover.src})`, backgroundSize: "cover", backgroundPosition: "center" }
     : { background: "linear-gradient(to bottom, hsl(var(--background)), hsl(var(--muted)))" };
+  const coverDisplayUrl = bgCover.src;
 
   const normalizedActivity = useMemo(() => {
     const base = activity || {};
@@ -394,7 +397,8 @@ export function usePublicReaderLayoutState({ script, isLoading, viewerProps, scr
     const content = String(base?.content || "").trim();
     const workUrl = String(base?.workUrl || "").trim();
     if (!name && !bannerUrl && !content && !workUrl) return null;
-    return { name, bannerUrl, content, workUrl };
+    const bannerCrop = (base as { bannerCrop?: { cx?: number; cy?: number; zoom?: number } | null }).bannerCrop || null;
+    return { name, bannerUrl, bannerCrop, content, workUrl };
   }, [activity]);
 
   const normalizedDemoLinks = useMemo(() => {
@@ -420,11 +424,11 @@ export function usePublicReaderLayoutState({ script, isLoading, viewerProps, scr
     // script data
     title, author, organization, synopsis, license, tags, targetAudience, contentRating, customFields,
     commercialUse, derivativeUse, notifyOnModify,
-    seriesName, prefaceItems, coverUrl, rawScript, disableCopy,
+    seriesName, prefaceItems, coverUrl, coverCrop, rawScript, disableCopy,
     // computed
     contactLines, licenseSummary, exportBaseName, pdfHeaderHtml,
     mergedViewerProps, downloadOptions,
-    backgroundStyle, protectionClass,
+    backgroundStyle, coverDisplayUrl, protectionClass,
     normalizedActivity, normalizedDemoLinks, normalizedLicenseSpecialTerms,
     // guide
     showGuide, guideIndex, guideSteps, currentGuide, guideSpotlightRect,

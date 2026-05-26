@@ -4,13 +4,14 @@ import { getMediaCropStyle } from "../../lib/mediaCropRef";
 interface ActivitySectionProps {
   name?: string;
   bannerUrl?: string;
+  bannerCrop?: { cx?: number; cy?: number; zoom?: number } | null;
   content?: string;
   workUrl?: string;
 }
 
-export function ActivitySection({ name, bannerUrl, content, workUrl }: ActivitySectionProps): React.JSX.Element {
+export function ActivitySection({ name, bannerUrl, bannerCrop, content, workUrl }: ActivitySectionProps): React.JSX.Element {
   const [bannerLoadFailed, setBannerLoadFailed] = React.useState(false);
-  const cropBanner = getMediaCropStyle(String(bannerUrl || ""));
+  const cropBanner = getMediaCropStyle(String(bannerUrl || ""), bannerCrop);
 
   return (
     <section className="mx-auto mb-8 w-full max-w-4xl px-6 text-left">
