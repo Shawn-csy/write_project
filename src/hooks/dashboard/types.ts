@@ -28,6 +28,7 @@ export type LicenseSpecialTerm = string;
 export interface ScriptMetadataSetters {
   setTitle?: (v: string) => void;
   setCoverUrl?: (v: string) => void;
+  setCoverCrop?: (v: { cx?: number; cy?: number; zoom?: number } | null) => void;
   setStatus?: (v: string) => void;
   setCurrentTags?: (v: TagLike[]) => void;
   setMarkerThemeId?: (v: string) => void;

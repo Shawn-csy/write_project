@@ -14,22 +14,24 @@ interface Props {
   setAuthor: (value: string) => void;
   coverUrl: string | null;
   setCoverUrl: (value: string) => void;
+  coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
+  setCoverCrop?: (value: { cx?: number; cy?: number; zoom?: number } | null) => void;
   recommendedErrors?: Record<string, string | boolean | undefined>;
   className?: string;
 }
 
-export function MetadataAuthorCoverCard({ author, setAuthor, coverUrl, setCoverUrl, recommendedErrors = {}, className = "" }: Props) {
+export function MetadataAuthorCoverCard({ author, setAuthor, coverUrl, setCoverUrl, coverCrop = null, setCoverCrop, recommendedErrors = {}, className = "" }: Props) {
   const { t } = useI18n();
   const {
     coverPreviewFailed, setCoverPreviewFailed,
     coverUploadError, coverUploadWarning,
     isMediaPickerOpen, setIsMediaPickerOpen,
     cropOpen, setCropOpen, cropSource,
-    coverGuide, applyCoverUpload, handleCoverUpload, handleMediaPickerSelect,
-  } = useMetadataCoverUpload({ setCoverUrl });
+    coverGuide, applyCoverUpload, handleCoverUpload, handleMediaPickerSelect, handleMediaPickerSelectMedia,
+  } = useMetadataCoverUpload({ setCoverUrl, setCoverCrop });
 
   const normalizedCoverUrl = String(coverUrl || "");
-  const cropCover = getMediaCropStyle(normalizedCoverUrl);
+  const cropCover = getMediaCropStyle(normalizedCoverUrl, coverCrop);
   const hasInvalidCoverUrl = Boolean(normalizedCoverUrl.trim()) && !/^(https?:\/\/|\/)/i.test(normalizedCoverUrl.trim());
 
   return (
@@ -42,7 +44,7 @@ export function MetadataAuthorCoverCard({ author, setAuthor, coverUrl, setCoverU
         </div>
         <div className="grid gap-2">
           <label className="text-sm font-medium" htmlFor="metadata-cover-url">{t("metadataDetails.coverUrl")}</label>
-          <Input id="metadata-cover-url" name="metadataCoverUrl" value={coverUrl || ""} onChange={e => setCoverUrl(e.target.value)} placeholder="https://..." />
+          <Input id="metadata-cover-url" name="metadataCoverUrl" value={coverUrl || ""} onChange={e => { setCoverUrl(e.target.value); setCoverCrop?.(null); }} placeholder="https://..." />
           <div className="flex items-center gap-2 flex-wrap">
             <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
               {t("metadataDetails.uploadImage")}
@@ -71,7 +73,7 @@ export function MetadataAuthorCoverCard({ author, setAuthor, coverUrl, setCoverU
         </div>
       </div>
 
-      <MediaPicker open={isMediaPickerOpen} onOpenChange={setIsMediaPickerOpen} cropPurpose="cover" onSelect={handleMediaPickerSelect} />
+      <MediaPicker open={isMediaPickerOpen} onOpenChange={setIsMediaPickerOpen} cropPurpose="cover" onSelect={handleMediaPickerSelect} onSelectMedia={handleMediaPickerSelectMedia} />
       <ImageCropDialog open={cropOpen} onOpenChange={setCropOpen} source={cropSource} purpose="cover" onConfirm={applyCoverUpload} />
     </>
   );

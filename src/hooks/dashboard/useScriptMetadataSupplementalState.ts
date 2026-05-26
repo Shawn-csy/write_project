@@ -166,6 +166,7 @@ export function useScriptMetadataSupplementalState() {
   const [activityState, dispatchActivity] = useReducer(activityReducer, ACTIVITY_INIT);
 
   const [coverUrl, setCoverUrl] = useState("");
+  const [coverCrop, setCoverCrop] = useState<{ cx?: number; cy?: number; zoom?: number } | null>(null);
   const [author, setAuthor] = useState("");
   const [authorDisplayMode, setAuthorDisplayMode] = useState("badge");
   const [date, setDate] = useState("");
@@ -218,7 +219,7 @@ export function useScriptMetadataSupplementalState() {
   const setActivityWorkUrl = useCallback((v: string) => dispatchActivity({ type: "setWorkUrl", value: v }), []);
 
   return {
-    coverUrl, setCoverUrl,
+    coverUrl, setCoverUrl, coverCrop, setCoverCrop,
     author, setAuthor,
     authorDisplayMode, setAuthorDisplayMode,
     date, setDate,

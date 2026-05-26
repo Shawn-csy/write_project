@@ -42,6 +42,7 @@ interface UseScriptMetadataJsonOptions {
   setSeriesId: (v: string | null) => void;
   setSeriesOrder: (v: string) => void;
   setCoverUrl: (v: string) => void;
+  setCoverCrop?: (v: { cx?: number; cy?: number; zoom?: number } | null) => void;
   setStatus: (v: string) => void;
   setIdentity: (v: string) => void;
   setSelectedOrgId: (v: string | null) => void;
@@ -124,6 +125,7 @@ export function useScriptMetadataJson({
   setSeriesId,
   setSeriesOrder,
   setCoverUrl,
+  setCoverCrop,
   setStatus,
   setIdentity,
   setSelectedOrgId,
@@ -202,7 +204,10 @@ export function useScriptMetadataJson({
       if (parsed.seriesName !== undefined && parsed.series === undefined) setSeriesName(String(parsed.seriesName || ""));
       if (parsed.seriesId !== undefined) setSeriesId(String(parsed.seriesId || ""));
       if (parsed.seriesOrder !== undefined) setSeriesOrder(String(parsed.seriesOrder ?? ""));
-      if (parsed.cover !== undefined) setCoverUrl(parsed.cover);
+      if (parsed.cover !== undefined) {
+        setCoverUrl(parsed.cover);
+        setCoverCrop?.(null);
+      }
       if (parsed.status !== undefined) setStatus(parsed.status);
       if (parsed.publishAs !== undefined && String(parsed.publishAs).startsWith("persona:")) {
         setIdentity(parsed.publishAs);
@@ -252,6 +257,7 @@ export function useScriptMetadataJson({
     setContactFields,
     setCopyright,
     setCoverUrl,
+    setCoverCrop,
     setCurrentTags,
     setCustomFields,
     setDate,

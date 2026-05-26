@@ -10,7 +10,7 @@ import { getSeriesInfoFromScript, normalizeSeriesName } from "../lib/series";
 import { useI18n } from "../contexts/I18nContext";
 
 interface SeriesScript extends ScriptGalleryItem {
-  series?: { name?: string; summary?: string; coverUrl?: string } | null;
+  series?: { name?: string; summary?: string; coverUrl?: string; coverCrop?: { cx?: number; cy?: number; zoom?: number } | null } | null;
   lastModified?: number;
   updatedAt?: number | string;
 }
@@ -22,7 +22,7 @@ export default function PublicSeriesPage() {
   const seriesName = normalizeSeriesName(decodeURIComponent(seriesNameParam || ""));
   const [scripts, setScripts] = useState<SeriesScript[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [seriesMeta, setSeriesMeta] = useState<{ summary: string; coverUrl: string }>({ summary: "", coverUrl: "" });
+  const [seriesMeta, setSeriesMeta] = useState<{ summary: string; coverUrl: string; coverCrop: { cx?: number; cy?: number; zoom?: number } | null }>({ summary: "", coverUrl: "", coverCrop: null });
 
   useEffect(() => {
     const load = async () => {
@@ -53,11 +53,12 @@ export default function PublicSeriesPage() {
         setSeriesMeta({
           summary: withMeta?.series?.summary || "",
           coverUrl: withMeta?.series?.coverUrl || "",
+          coverCrop: withMeta?.series?.coverCrop || null,
         });
       } catch (error) {
         console.error("Failed to load series page", error);
         setScripts([]);
-        setSeriesMeta({ summary: "", coverUrl: "" });
+        setSeriesMeta({ summary: "", coverUrl: "", coverCrop: null });
       } finally {
         setIsLoading(false);
       }
@@ -150,7 +151,7 @@ export default function PublicSeriesPage() {
             {scripts.map((script) => (
               <ScriptGalleryCard
                 key={script.id}
-                script={{ ...script, coverUrl: script.coverUrl || seriesMeta.coverUrl || "" }}
+                script={{ ...script, coverUrl: script.coverUrl || seriesMeta.coverUrl || "", coverCrop: script.coverCrop || seriesMeta.coverCrop || null }}
                 onClick={() => navigate(`/read/${script.id}`)}
               />
             ))}

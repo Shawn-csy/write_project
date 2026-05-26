@@ -11,6 +11,7 @@ export function ScriptMetadataDialogOverlays() {
         isMediaPickerOpen, setIsMediaPickerOpen,
         mediaPickerTarget,
         handleMediaPickerSelect,
+        handleMediaPickerSelectMedia,
         cropOpen, setCropOpen,
         cropSource, cropPurpose, cropTarget,
         applyCroppedUpload,
@@ -26,6 +27,7 @@ export function ScriptMetadataDialogOverlays() {
                 onOpenChange={setIsMediaPickerOpen}
                 cropPurpose={mediaPickerTarget === "activityBanner" ? "banner" : "cover"}
                 onSelect={handleMediaPickerSelect}
+                onSelectMedia={handleMediaPickerSelectMedia}
             />
             <ImageCropDialog
                 open={cropOpen}

@@ -112,7 +112,7 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
     const [collapsedSections, setCollapsedSections] = useState(initialCollapsedSections);
 
     const {
-        coverUrl, setCoverUrl,
+        coverUrl, setCoverUrl, coverCrop, setCoverCrop,
         author, setAuthor,
         authorDisplayMode, setAuthorDisplayMode,
         date, setDate,
@@ -292,6 +292,7 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         setSeriesId,
         setSeriesOrder: setSeriesOrderStrAdapter,
         setCoverUrl,
+        setCoverCrop,
         setStatus,
         setIdentity,
         setSelectedOrgId,
@@ -329,8 +330,9 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         openCoverMediaPicker,
         openActivityBannerMediaPicker,
         handleMediaPickerSelect,
+        handleMediaPickerSelectMedia,
     } = useScriptMetadataMediaHandlers({
-        setCoverUrl, setCoverPreviewFailed, setCoverUploadError, setCoverUploadWarning,
+        setCoverUrl, setCoverCrop, setCoverPreviewFailed, setCoverUploadError, setCoverUploadWarning,
         setActivityBannerUrl, setActivityBannerPreviewFailed, setActivityBannerUploadError, setActivityBannerUploadWarning,
         setIsMediaPickerOpen, setMediaPickerTarget, mediaPickerTarget,
         setCropSource, setCropTarget, setCropPurpose, setCropOpen,
@@ -340,7 +342,7 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         disableAuthorAutofill,
         disablePersonaAutofill: preserveAuthorInternalData,
         customFields, ensureList, userEditedRef,
-        setIsInitializing, setTitle, setCoverUrl, setStatus, setCurrentTags,
+        setIsInitializing, setTitle, setCoverUrl, setCoverCrop, setStatus, setCurrentTags,
         setMarkerThemeId, setShowMarkerLegend, setDisableCopy, setTargetAudience,
         setContentRating, setIdentity, setSelectedOrgId, setAuthor, setAuthorDisplayMode,
         setDate, setContact, setSynopsis, setOutline, setRoleSetting, setBackgroundInfo,
@@ -393,7 +395,7 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         t, toast: toastAdapter,
         script: (script as ScriptLike | null | undefined) ?? null,
         activeScript: (activeScript as ScriptLike | null | undefined) ?? null,
-        title, coverUrl, status, author, authorDisplayMode, date, outline,
+        title, coverUrl, coverCrop, status, author, authorDisplayMode, date, outline,
         roleSetting, backgroundInfo, performanceInstruction, openingIntro, chapterSettings,
         activityName, activityBannerUrl, activityContent, activityDemoLinks, activityWorkUrl,
         licenseCommercial, licenseDerivative, licenseNotify, licenseSpecialTerms, copyright,
@@ -423,7 +425,7 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
     });
 
     const metadataDetailsCommonProps = useScriptMetadataDetailsProps({
-        status, coverUrl, setCoverUrl, currentTags, author, setAuthor: setAuthorWithTracking,
+        status, coverUrl, coverCrop, setCoverUrl, setCoverCrop, currentTags, author, setAuthor: setAuthorWithTracking,
         availableTags, newTagInput, setNewTagInput, targetAudience, handleSetTargetAudience,
         contentRating, handleSetContentRating, seriesName, setSeriesName, seriesId, setSeriesId,
         seriesOptions, quickSeriesName, setQuickSeriesName, handleQuickCreateSeries,
@@ -535,7 +537,7 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         publishNewTerm, setPublishNewTerm,
         addLicenseSpecialTerm, licenseSpecialTerms, removeLicenseSpecialTerm,
         // exposure section
-        coverUrl, setCoverUrl,
+        coverUrl, setCoverUrl, coverCrop, setCoverCrop,
         handleCoverUpload, openCoverMediaPicker,
         coverUploadError, coverUploadWarning, coverPreviewFailed, setCoverPreviewFailed,
         seriesExpanded, setSeriesExpanded,
@@ -573,6 +575,7 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         isMediaPickerOpen, setIsMediaPickerOpen,
         mediaPickerTarget,
         handleMediaPickerSelect,
+        handleMediaPickerSelectMedia,
         cropOpen, setCropOpen,
         cropSource, cropPurpose,
         cropTarget,
