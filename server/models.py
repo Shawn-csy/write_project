@@ -151,6 +151,9 @@ class Script(Base):
     outline = Column(String, nullable=True)
     activityName = Column(String, nullable=True)
     activityBannerUrl = Column(String, nullable=True)
+    activityContent = Column(Text, nullable=True)
+    activityWorkUrl = Column(String, nullable=True)
+    activityDemoLinks = Column(Text, nullable=True)  # JSON string
 
     tags = relationship("Tag", secondary="script_tags", back_populates="scripts")
     markerTheme = relationship("MarkerTheme", lazy="joined")

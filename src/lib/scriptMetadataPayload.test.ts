@@ -15,9 +15,9 @@ const baseFields = {
   chapterSettings: "",
   activityName: "Act",
   activityBannerUrl: "",
-  activityContent: "",
+  activityContent: "Content here",
   activityDemoLinks: [{ id: "1", name: "Demo", url: "https://demo", cast: "", description: "" }],
-  activityWorkUrl: "",
+  activityWorkUrl: "https://work",
   contact: "",
   contactFields: [],
   seriesName: "",
@@ -51,11 +51,15 @@ describe("scriptMetadataPayload", () => {
     expect(entries.find((entry) => entry.key === "LicenseNotify")).toBeUndefined();
     expect(entries.find((entry) => entry.key === "LicenseSpecialTerms")).toBeUndefined();
     expect(entries.find((entry) => entry.key === "LicenseTags")).toBeUndefined();
-    // Content fields (PR-E2): now owned by structured api fields — must not appear in customMetadata
+    // Content fields (PR-E2/E6): now owned by structured api fields — must not appear in customMetadata
     expect(entries.find((entry) => entry.key === "Synopsis")).toBeUndefined();
     expect(entries.find((entry) => entry.key === "Outline")).toBeUndefined();
     expect(entries.find((entry) => entry.key === "ActivityName")).toBeUndefined();
     expect(entries.find((entry) => entry.key === "ActivityBanner")).toBeUndefined();
+    expect(entries.find((entry) => entry.key === "ActivityContent")).toBeUndefined();
+    expect(entries.find((entry) => entry.key === "ActivityDemoLinks")).toBeUndefined();
+    expect(entries.find((entry) => entry.key === "ActivityDemoUrl")).toBeUndefined();
+    expect(entries.find((entry) => entry.key === "ActivityWorkUrl")).toBeUndefined();
   });
 
   it("applyPreservedAuthorEntries replaces author-related entries", () => {

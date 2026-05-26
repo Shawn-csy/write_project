@@ -37,7 +37,7 @@ def _backfill_crop_refs(conn, table: str, url_col: str, crop_col: str):
         print(f"Migrating: backfilled {migrated} crop refs for {table}.{url_col}")
 
 def _backfill_content_fields(conn):
-    """Backfill synopsis/outline/activityName/activityBannerUrl from customMetadata.
+    """Backfill structured content fields from customMetadata.
 
     Only fills the new column when it is NULL (never overwrites existing data).
     Idempotent — safe to re-run.
@@ -47,9 +47,13 @@ def _backfill_content_fields(conn):
         ("outline",           ["outline"]),
         ("activityName",      ["activityname", "eventname"]),
         ("activityBannerUrl", ["activitybanner", "eventbanner"]),
+        ("activityContent",   ["activitycontent", "eventcontent"]),
+        ("activityWorkUrl",   ["activityworkurl", "eventworklink"]),
+        ("activityDemoLinks", ["activitydemolinks", "eventdemolinks"]),
     ]
     rows = conn.execute(text(
-        "SELECT id, customMetadata, synopsis, outline, activityName, activityBannerUrl FROM scripts"
+        "SELECT id, customMetadata, synopsis, outline, activityName, activityBannerUrl, "
+        "activityContent, activityWorkUrl, activityDemoLinks FROM scripts"
     )).fetchall()
     migrated = 0
     for row in rows:
@@ -68,7 +72,10 @@ def _backfill_content_fields(conn):
             for item in raw_custom if isinstance(item, dict)
         }
         updates = {}
-        current_values = {"synopsis": row[2], "outline": row[3], "activityName": row[4], "activityBannerUrl": row[5]}
+        current_values = {
+            "synopsis": row[2], "outline": row[3], "activityName": row[4], "activityBannerUrl": row[5],
+            "activityContent": row[6], "activityWorkUrl": row[7], "activityDemoLinks": row[8],
+        }
         for col, keys in FIELDS:
             if current_values[col]:
                 continue  # already populated — never overwrite
@@ -84,7 +91,7 @@ def _backfill_content_fields(conn):
         conn.execute(text(f"UPDATE scripts SET {set_clause} WHERE id = :_id"), updates)
         migrated += 1
     if migrated:
-        print(f"Migrating: backfilled synopsis/outline/activity fields for {migrated} scripts")
+        print(f"Migrating: backfilled structured content fields for {migrated} scripts")
 
 
 def _run_postgres_migrations():
@@ -303,6 +310,9 @@ def _run_postgres_migrations():
             ("scripts", "outline",           "TEXT"),
             ("scripts", "activityName",      "TEXT"),
             ("scripts", "activityBannerUrl", "TEXT"),
+            ("scripts", "activityContent",   "TEXT"),
+            ("scripts", "activityWorkUrl",   "TEXT"),
+            ("scripts", "activityDemoLinks", "TEXT"),
         ]
         for table, col, col_type in content_columns:
             result = conn.execute(text(
@@ -535,7 +545,8 @@ def run_migrations():
                 print("Migrating: Adding 'coverCrop' column to scripts")
                 conn.execute(text("ALTER TABLE scripts ADD COLUMN coverCrop TEXT DEFAULT NULL"))
 
-            for col in ("synopsis", "outline", "activityName", "activityBannerUrl"):
+            for col in ("synopsis", "outline", "activityName", "activityBannerUrl",
+                        "activityContent", "activityWorkUrl", "activityDemoLinks"):
                 if col not in columns:
                     print(f"Migrating: Adding '{col}' column to scripts")
                     conn.execute(text(f"ALTER TABLE scripts ADD COLUMN {col} TEXT DEFAULT NULL"))

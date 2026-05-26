@@ -23,6 +23,16 @@ export const RESERVED_CUSTOM_KEYS = new Set([
   "outline",
   "activityname",
   "activitybanner",
+  "activitycontent",
+  "activityworkurl",
+  "activitydemolinks",
+  "activitydemourl",
+  "eventname",
+  "eventbanner",
+  "eventcontent",
+  "eventworklink",
+  "eventdemolinks",
+  "eventdemolink",
 ]);
 
 /** Normalize a customMetadata key for comparison against RESERVED_CUSTOM_KEYS. */

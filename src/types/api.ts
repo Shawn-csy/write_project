@@ -54,6 +54,9 @@ export interface BaseScriptApi {
   outline?: string | null;
   activityName?: string | null;
   activityBannerUrl?: string | null;
+  activityContent?: string | null;
+  activityWorkUrl?: string | null;
+  activityDemoLinks?: string | null;  // JSON string
   organizationId?: string | null;
   organization?: OrgData;
   personaId?: string | null;

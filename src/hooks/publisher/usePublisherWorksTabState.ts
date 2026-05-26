@@ -76,7 +76,7 @@ export function usePublisherWorksTabState({ scripts, personas = [], isLoading }:
     const hasAudience = tagNames.some((tag) => AUDIENCE_TAG_GROUP.includes(tag));
     const hasRating = tagNames.some((tag) => RATING_TAG_GROUP.includes(tag));
     const hasIdentity = Boolean(script.personaId || String(meta.publishas || meta.publishAs || "").startsWith("persona:"));
-    const hasSynopsis = Boolean(String(meta.synopsis || meta.Synopsis || "").trim());
+    const hasSynopsis = Boolean(String(script.synopsis || "").trim());
     const missingRequired: string[] = [];
     const missingRecommended: string[] = [];
 

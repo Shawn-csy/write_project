@@ -60,6 +60,57 @@ describe("fromApiToDraft — structured content fields", () => {
 });
 
 // ---------------------------------------------------------------------------
+// fromApiToDraft — E6 structured fields (activityContent/WorkUrl/DemoLinks)
+// ---------------------------------------------------------------------------
+
+describe("fromApiToDraft — E6 activity structured fields", () => {
+  it("reads activityContent/activityWorkUrl from structured fields", () => {
+    const draft = fromApiToDraft({
+      id: "s-e6-1",
+      title: "T",
+      activityContent: "活動說明",
+      activityWorkUrl: "https://example.com/work",
+      customMetadata: [
+        { key: "ActivityContent", value: "舊 custom content" },
+        { key: "ActivityWorkUrl", value: "https://old-work" },
+      ],
+      tags: [],
+    });
+    expect(draft.activityContent).toBe("活動說明");
+    expect(draft.activityWorkUrl).toBe("https://example.com/work");
+  });
+
+  it("reads activityDemoLinks from structured JSON field", () => {
+    const links = [{ name: "Demo A", url: "https://example.com/a", cast: "", description: "" }];
+    const draft = fromApiToDraft({
+      id: "s-e6-2",
+      title: "T",
+      activityDemoLinks: JSON.stringify(links),
+      customMetadata: [],
+      tags: [],
+    });
+    expect(Array.isArray(draft.activityDemoLinks)).toBe(true);
+    expect((draft.activityDemoLinks as Array<{ url: string }>)[0]?.url).toBe("https://example.com/a");
+  });
+
+  it("ignores custom ActivityContent/ActivityWorkUrl/ActivityDemoLinks when structured fields absent (E6)", () => {
+    const draft = fromApiToDraft({
+      id: "s-e6-3",
+      title: "T",
+      customMetadata: [
+        { key: "ActivityContent", value: "legacy content" },
+        { key: "ActivityWorkUrl", value: "https://legacy-work" },
+        { key: "ActivityDemoLinks", value: JSON.stringify([{ name: "x", url: "https://x" }]) },
+      ],
+      tags: [],
+    });
+    expect(draft.activityContent).toBe("");
+    expect(draft.activityWorkUrl).toBe("");
+    expect(draft.activityDemoLinks).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // fromDraftToPayload — structured field output (PR-E2)
 // ---------------------------------------------------------------------------
 
@@ -106,5 +157,41 @@ describe("fromDraftToPayload — structured content fields in payload", () => {
     expect(payload.outline).toBeNull();
     expect(payload.activityName).toBeNull();
     expect(payload.activityBannerUrl).toBeNull();
+    expect(payload.activityContent).toBeNull();
+    expect(payload.activityWorkUrl).toBeNull();
+    expect(payload.activityDemoLinks).toBeNull();
+  });
+
+  it("includes activityContent/activityWorkUrl/activityDemoLinks as top-level payload fields (E6)", () => {
+    const draft = {
+      ...emptyDraft(),
+      title: "T",
+      personaId: "p-1",
+      activityContent: "活動說明",
+      activityWorkUrl: "https://example.com/work",
+      activityDemoLinks: [{ id: "1", name: "Demo A", url: "https://example.com/a", cast: "", description: "" }],
+    };
+    const payload = fromDraftToPayload(draft);
+    expect(payload.activityContent).toBe("活動說明");
+    expect(payload.activityWorkUrl).toBe("https://example.com/work");
+    expect(typeof payload.activityDemoLinks).toBe("string");
+    expect(JSON.parse(payload.activityDemoLinks as string)[0].url).toBe("https://example.com/a");
+  });
+
+  it("omits ActivityContent/ActivityDemoLinks/ActivityDemoUrl/ActivityWorkUrl from customMetadata (E6)", () => {
+    const draft = {
+      ...emptyDraft(),
+      title: "T",
+      personaId: "p-1",
+      activityContent: "活動說明",
+      activityWorkUrl: "https://example.com/work",
+      activityDemoLinks: [{ id: "1", name: "Demo A", url: "https://example.com/a", cast: "", description: "" }],
+    };
+    const payload = fromDraftToPayload(draft);
+    const metaKeys = (payload.customMetadata || []).map((e) => String(e.key || "").toLowerCase());
+    expect(metaKeys).not.toContain("activitycontent");
+    expect(metaKeys).not.toContain("activitydemolinks");
+    expect(metaKeys).not.toContain("activitydemourl");
+    expect(metaKeys).not.toContain("activityworkurl");
   });
 });

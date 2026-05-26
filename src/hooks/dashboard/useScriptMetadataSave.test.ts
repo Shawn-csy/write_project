@@ -123,8 +123,11 @@ describe("useScriptMetadataSave", () => {
     expect(updateScript).toHaveBeenCalledTimes(1);
     const [, payload] = (updateScript as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(payload.title).toBe("新標題");
-    expect(payload.customMetadata.some((entry) => entry.key === "ActivityDemoLinks")).toBe(true);
-    expect(payload.customMetadata.some((entry) => entry.key === "ActivityDemoUrl")).toBe(true);
+    // ActivityDemoLinks/ActivityDemoUrl are now structured fields (E6) — not in customMetadata
+    expect(payload.customMetadata.some((entry) => entry.key === "ActivityDemoLinks")).toBe(false);
+    expect(payload.customMetadata.some((entry) => entry.key === "ActivityDemoUrl")).toBe(false);
+    expect(typeof payload.activityDemoLinks).toBe("string");
+    expect(JSON.parse(payload.activityDemoLinks)[0].url).toBe("https://example.com/demo");
 
     expect(addTagToScript).toHaveBeenCalledWith("s-1", "tag-new");
     expect(removeTagFromScript).toHaveBeenCalledWith("s-1", "tag-old");
