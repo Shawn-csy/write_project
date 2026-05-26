@@ -33,6 +33,7 @@ def read_users_me(db: Session = Depends(get_db), ownerId: str = Depends(get_curr
         "displayName": user.displayName,
         "bio": user.bio,
         "avatar": user.avatar,
+        "avatarCrop": user.avatarCrop,
         "website": user.website,
         "settings": parsed_settings,
         "organizationId": effective_org_id,

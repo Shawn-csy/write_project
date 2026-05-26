@@ -111,14 +111,109 @@ def ensure_list(value):
     return []
 
 
-def inject_seo_for_route(full_path: str, db, html_template: str, public_base_url: str):
+_SYNOPSIS_KEYS = {"synopsis", "summary", "摘要", "outline", "大綱"}
+
+
+def _script_description(script) -> str:
+    """Extract synopsis from customMetadata; fall back to first non-empty content line."""
+    if script.customMetadata and isinstance(script.customMetadata, list):
+        meta_map = {
+            str(e.get("key") or "").strip().lower().replace(" ", ""): str(e.get("value") or "").strip()
+            for e in script.customMetadata
+            if isinstance(e, dict)
+        }
+        for key in _SYNOPSIS_KEYS:
+            value = meta_map.get(key, "")
+            if value:
+                return value[:300]
+    if script.content:
+        for line in script.content.splitlines():
+            line = line.strip()
+            if line:
+                return line[:200] + ("..." if len(line) > 200 else "")
+    return ""
+
+
+_CRAWLER_AGENTS = ("googlebot", "bingbot", "yandex", "duckduckbot", "facebot", "ia_archiver")
+
+
+def _inject_body_content(html_text: str, title: str, content: str) -> str:
+    """Inject plain-text script body into <div id="root"> for crawler rendering."""
+    safe_title = html.escape(str(title or ""))
+    safe_content = html.escape(str(content or ""))
+    article = (
+        '<article style="max-width:800px;margin:0 auto;padding:2rem;'
+        'font-family:serif;white-space:pre-wrap;line-height:1.6;">'
+        f"<h1>{safe_title}</h1>"
+        f'<pre style="white-space:pre-wrap;font-family:inherit;">{safe_content}</pre>'
+        "</article>"
+    )
+    if '<div id="root"></div>' in html_text:
+        return html_text.replace('<div id="root"></div>', f'<div id="root">{article}</div>')
+    if '<div id="root">' in html_text:
+        return html_text.replace('<div id="root">', f'<div id="root">{article}', 1)
+    return html_text
+
+
+def inject_seo_for_route(full_path: str, db, html_template: str, public_base_url: str, *, user_agent: str = ""):
+    if full_path.strip("/") == "":
+        canonical_url = public_base_url + "/"
+        return inject_seo_html(
+            html_template,
+            title="免費台本 · 劇本線上閱讀｜Screenplay Reader",
+            description="免費瀏覽、閱讀與分享創作台本。支援 Fountain 格式劇本，探索公開作品、配音台本與作者頁面。",
+            canonical_url=canonical_url,
+            og_type="website",
+            structured_data={
+                "@context": "https://schema.org",
+                "@type": "WebSite",
+                "name": "Screenplay Reader",
+                "url": public_base_url,
+                "description": "免費瀏覽、閱讀與分享創作台本。支援 Fountain 格式劇本。",
+                "inLanguage": "zh-Hant",
+                "potentialAction": {
+                    "@type": "SearchAction",
+                    "target": f"{public_base_url}/?q={{search_term_string}}",
+                    "query-input": "required name=search_term_string",
+                },
+            },
+        )
+
+    if full_path.startswith("gallery"):
+        canonical_url = f"{public_base_url}/gallery"
+        return inject_seo_html(
+            html_template,
+            title="劇本庫｜Screenplay Reader",
+            description="瀏覽所有公開劇本、作者與組織，發現精選台本作品。",
+            canonical_url=canonical_url,
+            og_type="website",
+        )
+
+    if full_path.startswith("series/"):
+        series_name = full_path.strip("/").split("/", 1)[-1]
+        try:
+            from urllib.parse import unquote
+            series_name = unquote(series_name)
+        except Exception:
+            pass
+        canonical_url = f"{public_base_url}/series/{series_name}"
+        title = f"{series_name}｜Screenplay Reader" if series_name else "系列作品｜Screenplay Reader"
+        desc = f"{series_name} 系列台本，免費線上閱讀。" if series_name else "免費瀏覽系列台本作品。"
+        return inject_seo_html(
+            html_template,
+            title=title,
+            description=desc,
+            canonical_url=canonical_url,
+            og_type="website",
+        )
+
     if full_path.startswith("read/"):
         script_id = full_path.strip("/").split("/")[-1]
         script = db.query(models.Script).filter(models.Script.id == script_id).first()
         if script and script.isPublic == 1:
             canonical_url = f"{public_base_url}/read/{script_id}"
             title = f"{script.title or 'Untitled'}｜Screenplay Reader"
-            desc = ((script.content or "").strip().replace("\n", " ")[:200] or "公開劇本閱讀頁")
+            desc = _script_description(script) or "公開劇本閱讀頁"
             image_url = script.coverUrl or ""
             structured = {
                 "@context": "https://schema.org",
@@ -132,7 +227,7 @@ def inject_seo_for_route(full_path: str, db, html_template: str, public_base_url
             }
             if image_url:
                 structured["image"] = image_url
-            return inject_seo_html(
+            result = inject_seo_html(
                 html_template,
                 title=title,
                 description=desc,
@@ -141,6 +236,11 @@ def inject_seo_for_route(full_path: str, db, html_template: str, public_base_url
                 image_url=image_url,
                 structured_data=structured,
             )
+            # Inject full script body for crawlers so Google indexes content without JS
+            is_crawler = any(bot in user_agent for bot in _CRAWLER_AGENTS)
+            if is_crawler and script.content:
+                result = _inject_body_content(result, script.title or "", script.content)
+            return result
 
     if full_path.startswith("author/"):
         author_id = full_path.strip("/").split("/")[-1]

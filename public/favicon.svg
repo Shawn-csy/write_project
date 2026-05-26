@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <rect width="32" height="32" rx="7" fill="#1a1a2e"/>
+  <!-- Cursive "f": tall ascender curving right at top, crossbar, descending tail -->
+  <path
+    d="M18 5 C20 5 22 7 21 10 L19 24 C18.5 26 17 27 15.5 26"
+    stroke="#e8e0d4"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+  <!-- Crossbar -->
+  <line x1="12" y1="16" x2="21" y2="16" stroke="#e8e0d4" stroke-width="1.8" stroke-linecap="round"/>
+</svg>

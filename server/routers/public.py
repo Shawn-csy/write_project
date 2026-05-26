@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel
 from typing import List, Optional
 from sqlalchemy import orm
 from sqlalchemy.orm import Session
@@ -14,6 +15,9 @@ from utils import normalize_homepage_banner_value, safe_json_list
 
 router = APIRouter(prefix="/api", tags=["public"])
 HOMEPAGE_BANNER_SETTING_KEY = "homepage_banner"
+
+_banner_cache: tuple[dict, float] | None = None
+_BANNER_TTL = 120  # seconds
 
 
 def _load_public_terms_config() -> dict:
@@ -175,6 +179,7 @@ def user_to_persona_public(user: models.User, db: Session) -> schemas.PersonaPub
         displayName=user.displayName or user.handle or "Anonymous",
         bio=user.bio or "",
         avatar=user.avatar or "",
+        avatarCrop=user.avatarCrop,
         website=user.website or "",
         organizationIds=org_ids,
         tags=[], # Users don't have tags
@@ -184,18 +189,26 @@ def user_to_persona_public(user: models.User, db: Session) -> schemas.PersonaPub
     )
 
 
-@router.get("/public-terms-config", response_model=schemas.PublicTermsConfigResponse)
+@router.get("/public-terms-config")
 def read_public_terms_config():
+    from fastapi.responses import JSONResponse
     config = _load_public_terms_config()
-    return config
+    return JSONResponse(content=config, headers={"Cache-Control": "public, max-age=300, stale-while-revalidate=600"})
 
 
 @router.get("/public-homepage-banner", response_model=schemas.HomepageBannerSetting)
 def read_public_homepage_banner(db: Session = Depends(get_db)):
+    global _banner_cache
+    now = time.monotonic()
+    if _banner_cache is not None and now < _banner_cache[1]:
+        return schemas.HomepageBannerSetting(**_banner_cache[0])
     row = db.query(models.SiteSetting).filter(models.SiteSetting.key == HOMEPAGE_BANNER_SETTING_KEY).first()
     if not row or not str(getattr(row, "value", "") or "").strip():
-        return schemas.HomepageBannerSetting(items=[])
-    return schemas.HomepageBannerSetting(**normalize_homepage_banner_value(row.value))
+        result = schemas.HomepageBannerSetting(items=[])
+    else:
+        result = schemas.HomepageBannerSetting(**normalize_homepage_banner_value(row.value))
+    _banner_cache = (result.model_dump(), now + _BANNER_TTL)
+    return result
 
 
 @router.post("/public-terms-acceptances", response_model=schemas.PublicTermsAcceptanceResponse)
@@ -475,6 +488,60 @@ def list_public_organizations(db: Session = Depends(get_db)):
 @router.get("/themes/public", response_model=List[schemas.MarkerTheme])
 def read_public_themes(db: Session = Depends(get_db)):
     return crud.get_public_themes(db)
+
+
+class PublicLikePayload(BaseModel):
+    visitorId: str
+
+
+@router.post("/public-scripts/{script_id}/like")
+def public_toggle_like(script_id: str, payload: PublicLikePayload, db: Session = Depends(get_db)):
+    if not payload.visitorId or len(payload.visitorId) > 128:
+        raise HTTPException(status_code=400, detail="Invalid visitorId")
+    script = db.query(models.Script).filter(
+        models.Script.id == script_id, models.Script.isPublic == 1
+    ).first()
+    if not script:
+        raise HTTPException(status_code=404, detail="Script not found")
+    result = crud.toggle_script_like(db, script_id, visitor_id=payload.visitorId)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Script not found")
+    liked, likes = result
+    return {"liked": liked, "likes": likes}
+
+
+@router.get("/public-scripts/{script_id}/like-status")
+def public_like_status(script_id: str, visitorId: str, db: Session = Depends(get_db)):
+    script = db.query(models.Script).filter(
+        models.Script.id == script_id, models.Script.isPublic == 1
+    ).first()
+    if not script:
+        raise HTTPException(status_code=404, detail="Script not found")
+    liked = crud.get_script_like_status(db, script_id, visitor_id=visitorId)
+    return {"liked": liked, "likes": script.likes or 0}
+
+
+@router.get("/public-scripts/{script_id}/stats")
+def public_script_stats(script_id: str, db: Session = Depends(get_db)):
+    script = db.query(models.Script).filter(
+        models.Script.id == script_id, models.Script.isPublic == 1
+    ).with_entities(
+        models.Script.content,
+        models.Script.views,
+        models.Script.likes,
+    ).first()
+    if not script:
+        raise HTTPException(status_code=404, detail="Script not found")
+    content = script.content or ""
+    content_length = len(content)
+    # Estimate: CJK scripts are ~half dialogue, at 200 chars/min
+    estimated_minutes = round(content_length / 2 / 200, 1) if content_length > 0 else 0
+    return {
+        "contentLength": content_length,
+        "estimatedMinutes": estimated_minutes,
+        "views": script.views or 0,
+        "likes": script.likes or 0,
+    }
 
 
 @router.get("/default-marker-configs", response_model=List[dict])

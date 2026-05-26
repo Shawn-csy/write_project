@@ -1,0 +1,90 @@
+/** 核心 domain types — lib 層和 hooks 層共用 */
+
+export interface MarkerConfig {
+  id: string;
+  type?: string;
+  matchMode?: "prefix" | "range" | "block" | "inline" | "virtual" | string;
+  isBlock?: boolean;
+  start?: string;
+  end?: string;
+  style?: Record<string, string>;
+  priority?: number;
+  caseInsensitive?: boolean;
+  regex?: string;
+  label?: string;
+  v2EventKind?: "speech" | "sfx" | "bgm" | "stage_direction" | "narration" | "meta" | "custom" | string;
+  v2TrackId?: string;
+  v2SpeakerSource?: "active" | "self" | "none" | string;
+  /**
+   * Whether events inside this range belong to the range's track (v2TrackId).
+   * true  → children inherit the range's preferredTrackId (e.g. @1/@2 character splits).
+   * false → children route independently by their own marker/kind rules (default).
+   */
+  v2RangeOwnsContent?: boolean;
+  /**
+   * Whether rows inside this range are synchronised side-by-side across tracks.
+   * Replaces enableColumnGrouping; both are read for backwards compatibility.
+   */
+  v2SyncRows?: boolean;
+  /** @deprecated Use v2SyncRows instead. Kept for backwards compatibility. */
+  enableColumnGrouping?: boolean;
+  [key: string]: unknown;
+}
+
+export interface CustomMetadataEntry {
+  key: string;
+  value: string;
+  type?: "text" | "divider";
+}
+
+export interface BaseScript {
+  id: string;
+  title?: string;
+  content?: string;
+  folder?: string;
+  ownerId?: string;
+  lastModified?: number | string | Date;
+  updatedAt?: number | string;
+  markerThemeId?: string;
+  draftDate?: string;
+  coverUrl?: string | null;
+  seriesId?: string | null;
+  seriesOrder?: number | string | null;
+  organizationId?: string | null;
+  personaId?: string | null;
+}
+
+/** screenplayAST 解析後的場景 */
+export interface ParsedScene {
+  id: string;
+  label?: string;
+  index?: number;
+  header?: string;
+  lineNumber?: number;
+  [key: string]: unknown;
+}
+
+export interface ParsedTitleEntry {
+  key: string;
+  value?: string;
+  indent?: number;
+  values?: string[];
+}
+
+/** screenplayAST 回傳的完整 AST */
+export interface ScriptAst {
+  children?: AstNode[];
+  [key: string]: unknown;
+}
+
+/** AST 節點 */
+export interface AstNode {
+  type: string;
+  text?: string;
+  raw?: string;
+  lineStart?: number;
+  lineEnd?: number;
+  children?: AstNode[];
+  inline?: unknown[];
+  [key: string]: unknown;
+}

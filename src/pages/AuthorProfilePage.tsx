@@ -1,0 +1,354 @@
+import React, { useState, useEffect, useMemo } from "react";
+
+interface AuthorData {
+  id?: string;
+  displayName?: string;
+  bio?: string;
+  avatar?: string;
+  bannerUrl?: string;
+  website?: string;
+  links?: string | Array<{ url?: string; label?: string }>;
+  tags?: string[];
+  organizationIds?: string[];
+  ownerId?: string;
+  organizations?: Array<{ id?: string; name?: string }>;
+  [key: string]: unknown;
+}
+
+interface ScriptData extends ScriptGalleryItem {
+  type?: string;
+  isFolder?: boolean;
+  lastModified?: number | string;
+  updatedAt?: number | string;
+  persona?: unknown;
+  owner?: unknown;
+  [key: string]: unknown;
+}
+import { useParams, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
+import { Link as LinkIcon, Building2, Globe, Twitter, Instagram, Youtube, Github } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
+import { ScriptGalleryCard } from "../components/gallery/ScriptGalleryCard";
+import type { ScriptGalleryItem } from "../components/gallery/ScriptGalleryCard";
+import { getPublicPersona, getPublicScripts } from "../lib/api/public";
+import { getSeriesInfoFromScript } from "../lib/series";
+import { PublicTopBar } from "../components/public/PublicTopBar";
+import { getMorandiTagStyle } from "../lib/tagColors";
+import { getMediaCropStyle } from "../lib/mediaCropRef";
+import { useI18n } from "../contexts/I18nContext";
+import { CoverPlaceholder } from "../components/ui/CoverPlaceholder";
+import { useAuth } from "../contexts/AuthContext";
+import { Button } from "../components/ui/button";
+
+export default function AuthorProfilePage() {
+  const { t } = useI18n();
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { currentUser, login } = useAuth();
+  const [author, setAuthor] = useState<AuthorData | null>(null);
+  const [scripts, setScripts] = useState<ScriptData[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (!id) {
+        setAuthor(null);
+        setScripts([]);
+        setIsLoading(false);
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const persona = await getPublicPersona(id);
+        setAuthor(persona);
+        const isUserProfile = persona?.ownerId === persona?.id;
+        const publicScripts = isUserProfile
+          ? []
+          : await getPublicScripts(undefined, undefined, id, undefined);
+        const normalizedScripts = (publicScripts || [])
+          .filter(s => s.type !== "folder" && !s.isFolder && s.id)
+          .map((s) => ({
+          ...getSeriesInfoFromScript(s),
+          ...s,
+          id: s.id as string,
+          author: s.persona || s.owner || s.author,
+        }));
+        setScripts(normalizedScripts);
+      } catch (e) {
+        console.error("Failed to load author profile", e);
+        setAuthor(null);
+        setScripts([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [id]);
+
+  const tagStyle = (tag: string) => getMorandiTagStyle(tag, author?.tags || []);
+  const bannerCrop = getMediaCropStyle(String(author?.bannerUrl || ""), (author as { bannerCrop?: { cx?: number; cy?: number; zoom?: number } | null } | null)?.bannerCrop);
+  const avatarCrop = getMediaCropStyle(String(author?.avatar || ""), (author as { avatarCrop?: { cx?: number; cy?: number; zoom?: number } | null } | null)?.avatarCrop);
+  const authorSeries = useMemo(() => {
+    const map = new Map();
+    for (const script of scripts || []) {
+      if (!script.seriesName) continue;
+      const key = script.seriesName.toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, { name: script.seriesName, count: 0, coverUrl: script.coverUrl || null, latestAt: 0 });
+      }
+      const bucket = map.get(key);
+      bucket.count += 1;
+      bucket.latestAt = Math.max(bucket.latestAt, Number(script.lastModified || script.updatedAt || 0));
+      if (!bucket.coverUrl && script.coverUrl) bucket.coverUrl = script.coverUrl;
+    }
+    return Array.from(map.values()).sort((a, b) => b.latestAt - a.latestAt);
+  }, [scripts]);
+
+  const getLinkIcon = (url = "") => {
+      const u = url.toLowerCase();
+      if (u.includes("twitter.com") || u.includes("x.com")) return Twitter;
+      if (u.includes("instagram.com")) return Instagram;
+      if (u.includes("youtube.com") || u.includes("youtu.be")) return Youtube;
+      if (u.includes("github.com")) return Github;
+      return Globe;
+  };
+
+  if (isLoading) {
+      return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">{t("authorPage.loading")}</div>;
+  }
+
+  if (!author) return <div className="min-h-screen flex items-center justify-center">{t("authorPage.notFound")}</div>;
+
+  const canonicalUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/author/${author.id || id}`
+      : `/author/${author.id || id}`;
+  const pageTitle = `${author.displayName || t("authorPage.fallbackAuthor")}｜${t("authorPage.siteName")}`;
+  const pageDescription = (author.bio || t("authorPage.descriptionFallback").replace("{name}", author.displayName || t("authorPage.fallbackAuthor"))).slice(0, 200);
+  const primaryImage = author.avatar || author.bannerUrl || "";
+  const authorLinks = Array.isArray(author.links)
+    ? author.links
+    : (() => {
+        if (typeof author.links !== "string") return [];
+        try {
+          const parsed = JSON.parse(author.links);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      })();
+  const sameAs = [
+    ...(author.website ? [author.website] : []),
+    ...(authorLinks.map((l) => l?.url).filter(Boolean)),
+  ];
+  const personSchema = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: author.displayName || t("authorPage.unknown"),
+    url: canonicalUrl,
+    description: author.bio || undefined,
+    image: primaryImage || undefined,
+    sameAs: sameAs.length > 0 ? sameAs : undefined,
+    knowsAbout: Array.isArray(author.tags) && author.tags.length > 0 ? author.tags : undefined,
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+        <link rel="canonical" href={canonicalUrl} />
+        <meta property="og:type" content="profile" />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:site_name" content="Screenplay Reader" />
+        {primaryImage && <meta property="og:image" content={primaryImage} />}
+        <meta name="twitter:card" content={primaryImage ? "summary_large_image" : "summary"} />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        {primaryImage && <meta name="twitter:image" content={primaryImage} />}
+        <script type="application/ld+json">{JSON.stringify(personSchema)}</script>
+      </Helmet>
+      <PublicTopBar
+        fullBleed
+        tabs={[
+          { key: "scripts", label: t("publicTopbar.scripts") },
+          { key: "authors", label: t("publicTopbar.authors") },
+          { key: "orgs", label: t("publicTopbar.orgs") },
+        ]}
+        activeTab="authors"
+        onTabChange={(key) => {
+          if (key === "scripts") navigate("/?view=scripts");
+          if (key === "authors") navigate("/?view=authors");
+          if (key === "orgs") navigate("/?view=orgs");
+        }}
+        actions={
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-1">
+              <Button variant="ghost" size="sm" onClick={() => navigate("/license")}>
+                {t("publicGallery.licenseTerms")}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/help")}>
+                {t("publicGallery.help")}
+              </Button>
+            </div>
+            {currentUser ? (
+              <Button variant="default" size="sm" onClick={() => navigate("/dashboard")}>
+                {t("publicGallery.goStudio")}
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  try { await login(); } catch (e) { console.error(e); }
+                }}
+              >
+                {t("publicGallery.login")}
+              </Button>
+            )}
+          </div>
+        }
+      />
+
+      <div className="relative h-48 bg-muted/30">
+        {author.bannerUrl ? (
+          <img src={bannerCrop.src} style={bannerCrop.style} alt={`${author.displayName} banner`} className="w-full h-full object-cover" />
+        ) : (
+          <div className="h-full bg-gradient-to-r from-slate-900 to-slate-700" />
+        )}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-black/18 to-transparent" />
+      </div>
+
+      <main className="relative -mt-16 mx-auto w-full max-w-7xl px-4 py-8 pb-20 sm:px-6 lg:px-8">
+        
+        {/* Profile Header */}
+        <div className="mb-8 rounded-xl border border-border/60 bg-muted/20 p-6 shadow-sm md:p-8">
+          <div className="flex flex-col md:flex-row items-start gap-8">
+              <Avatar className="w-32 h-32 md:w-40 md:h-40 border-4 border-muted bg-background">
+                  <AvatarImage src={avatarCrop.src} style={avatarCrop.style as React.CSSProperties} />
+                  <AvatarFallback>{author.displayName?.[0]}</AvatarFallback>
+              </Avatar>
+              
+              <div className="flex-1 space-y-4 pt-2">
+                  <div>
+                      <h1 className="text-3xl font-bold font-serif">{author.displayName}</h1>
+                      {author.organizations && author.organizations.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-1">
+                              {author.organizations.map(org => (
+                                  <div
+                                      key={org.id}
+                                      className="flex items-center gap-1.5 text-primary hover:underline cursor-pointer"
+                                      onClick={() => navigate(`/org/${org.id}`)}
+                                  >
+                                      <Building2 className="w-4 h-4" />
+                                      <span>{org.name}</span>
+                                  </div>
+                              ))}
+                          </div>
+                      )}
+                  </div>
+
+                  <p className="max-w-2xl text-lg leading-relaxed text-foreground/85">
+                      {author.bio}
+                  </p>
+                  {author.tags && author.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {author.tags.map((tag, i) => (
+                        <button
+                          key={`author-tag-${i}`}
+                          className="text-xs px-2 py-1 rounded-full hover:opacity-90"
+                          style={tagStyle(tag)}
+                          onClick={() => navigate(`/?view=authors&authorTag=${encodeURIComponent(tag)}`)}
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-4 text-sm text-foreground/80">
+                      {author.website && (
+                          <a href={author.website} target="_blank" rel="noreferrer" className="flex items-center gap-1 hover:text-primary transition-colors">
+                              <LinkIcon className="w-4 h-4" />
+                              {t("authorPage.website")}
+                          </a>
+                      )}
+                      {authorLinks.filter(l => l && l.url).map((link, idx) => {
+                          const Icon = getLinkIcon(link.url || "");
+                          const label = link.label || link.url || t("authorPage.link");
+                          return (
+                              <a
+                                  key={`author-link-${idx}`}
+                                  href={link.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="flex items-center gap-1 hover:text-primary transition-colors"
+                              >
+                                  <Icon className="w-4 h-4" />
+                                  {label}
+                              </a>
+                          );
+                      })}
+                  </div>
+                </div>
+            </div>
+        </div>
+
+	        {/* Works Section */}
+	        <section className="space-y-6 rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-5">
+              {authorSeries.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                    <h2 className="text-xl font-bold">{t("authorPage.seriesWorks", "系列作品")}</h2>
+                    <span className="rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground">{authorSeries.length}</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {authorSeries.map((series) => {
+                      const seriesCoverCrop = getMediaCropStyle(String(series.coverUrl || ""), (series as { coverCrop?: { cx?: number; cy?: number; zoom?: number } | null }).coverCrop);
+                      return (
+                        <button
+                          key={series.name}
+                          type="button"
+                          className="group flex items-center gap-3 rounded-lg border border-border/60 bg-muted/20 p-3 text-left hover:border-primary/50 hover:bg-muted/30 transition-colors"
+                          onClick={() => navigate(`/series/${encodeURIComponent(series.name)}`)}
+                        >
+                          <div className="h-14 w-10 shrink-0 overflow-hidden rounded border border-border/50 bg-muted">
+                            {series.coverUrl ? (
+                              <img src={seriesCoverCrop.src} style={seriesCoverCrop.style} alt={series.name} className="h-full w-full object-cover" loading="lazy" />
+                            ) : (
+                              <CoverPlaceholder title={series.name} compact />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="line-clamp-1 text-sm font-semibold text-foreground group-hover:text-primary">{series.name}</p>
+                            <p className="text-xs text-muted-foreground">{series.count} {t("publicReader.worksUnit", "部")}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+	            <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                <h2 className="text-xl font-bold">{t("authorPage.publicWorks")}</h2>
+                <span className="rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground">{scripts.length}</span>
+              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                {scripts.map((script, i) => (
+                    <ScriptGalleryCard
+                        key={script.id ?? i}
+                        script={script}
+                        onClick={() => navigate(`/read/${script.id}`)}
+                    />
+                ))}
+            </div>
+        </section>
+
+      </main>
+    </div>
+  );
+}

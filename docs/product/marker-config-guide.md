@@ -1,15 +1,26 @@
 # Marker 設定與解析說明
-最後更新：2026-03-11
+最後更新：2026-05-20
 
 ## 設定面板位置
 
 設定面板組件位於：
-- `src/components/settings/marker/MarkerDetailEditor.jsx`
-- `src/components/settings/marker/configs/MarkerLogicSettings.jsx`
+- `src/components/settings/marker/MarkerDetailEditor.tsx`
+- `src/components/settings/marker/configs/MarkerLogicSettings.tsx`
 
 ---
 
 ## 匹配模式 (matchMode)
+
+## 分欄位顯示與同行同步（重要）
+
+當你要讓不同欄位內容「同一列對齊」時，需同時滿足：
+
+1. 使用分欄位顯示（V2 renderer 開啟）
+2. 版面分組模式為 `marker_dialogue`
+3. 同步區間 marker（例如 `<<< >>>`）開啟 `enableColumnGrouping=true`
+4. 要同步的內容在同一個同步區間內
+
+若任一條件不成立，內容仍會依原始行號顯示，不會同行同步。
 
 ### 1. 包圍模式 (enclosure)
 **格式：** `[開始符號]內容[結束符號]`
@@ -76,6 +87,7 @@
 **說明：** 
 - 巢狀支援：同一組標記可多層嵌套
 - 區間內容正常匹配所有其他規則
+- 起訖行若含文字（如 `@1 開場`、`/@1 收尾`），文字會被保留並輸出
 - 樣式完全自訂（連接線、背景色、邊框等）
 
 ---
@@ -119,7 +131,7 @@ flowchart TD
 
 | 檔案 | 說明 |
 |------|------|
-| `src/lib/importPipeline/directASTBuilder.js` | 解析器核心 |
-| `src/constants/defaultMarkerRules.js` | 預設 marker 設定 |
-| `src/components/settings/marker/configs/ModeSelector.jsx` | 模式選擇器 UI |
-| `src/components/settings/marker/configs/MarkerPreview.jsx` | 即時預覽組件 |
+| `src/lib/importPipeline/directASTBuilder.ts` | 解析器核心 |
+| `src/constants/defaultMarkerRules.ts` | 預設 marker 設定 |
+| `src/components/settings/marker/configs/ModeSelector.tsx` | 模式選擇器 UI |
+| `src/components/settings/marker/configs/MarkerPreview.tsx` | 即時預覽組件 |

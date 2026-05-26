@@ -1,53 +1,28 @@
 # 文件索引
-最後更新：2026-03-20
+最後更新：2026-05-15
 
 ## 產品與功能
-- `docs/product/architecture.md`：系統架構圖與說明
-- `docs/product/data-flows.md`：核心資料流與功能資料流
+- `docs/product/architecture.md`：系統架構圖與模組關係
+- `docs/product/data-flows.md`：核心資料流與功能流程
 - `docs/product/marker-config-guide.md`：標記設定說明
 - `docs/product/script-import-pipeline.md`：匯入流程與解析
 
-## 工程與部署
-- `docs/engineering/backend-auth.md`：後端驗證（Firebase Token）
+## 工程與操作
+- `docs/engineering/operations.md`：開發/測試/部署操作手冊
+- `docs/engineering/testing.md`：測試指南（Vitest/Playwright/Pytest）
 - `docs/engineering/ci-process.md`：CI 建議流程
-- `docs/engineering/testing.md`：測試指南
-- `docs/engineering/database-runtime.md`：DB 執行模式（PostgreSQL 主用、SQLite 備用）與啟動初始化開關
-- `docs/engineering/database-architecture-current.md`：目前正式環境的資料庫架構（Postgres）
+- `docs/engineering/backend-auth.md`：後端驗證（Firebase Token）
+- `docs/engineering/database-runtime.md`：DB 執行模式（PostgreSQL 主用）
+- `docs/engineering/database-architecture-current.md`：目前資料庫架構
 
 ## 安全
-- `docs/weak-scan-2026-02-05.md`：弱點掃描最終版報告
+- `docs/security-protection.md`：安全防護實作
+- `docs/weak-scan-2026-02-05.md`：弱點掃描報告
 
-## 封存（過時）
-- `docs/archive/cloud-architecture.md`：舊版雲端備援架構（已封存）
+## 封存
+- `docs/archive/cloud-architecture.md`：舊版雲端備援架構（封存）
 
-## 最近更新（2026-03-20）
-- 資料庫架構改為 PostgreSQL 主用（SQLite 備用/遷移來源）
-- 新增目前 DB 架構文件：`docs/engineering/database-architecture-current.md`
-- 匯入流程文件改為現況版：`docs/product/script-import-pipeline.md`
-- 資料流與架構文件改為目前 hooks/importPipeline 路徑
-- 測試與 CI 文件同步目前腳本與測試檔案命名
-
----
-
-# 檔案架構（整理後）
-
-## 根目錄
-- `README.md`：專案說明（面向非開發者）
-- `docker-compose.yml`：正式模式（build + nginx serve）
-- `docker-compose.dev.yml`：開發模式（Vite dev server）
-- `docker-compose.prod.yml`：正式模式（含 PostgreSQL）
-- `nginx.conf`：SPA fallback + `/api` 反代
-- `vite.config.js`：Vite 設定
-- `vitest.config.js`：Vitest 設定
-- `playwright.config.js`：E2E 測試設定
-- `tailwind.config.js` / `postcss.config.js`：樣式建置設定
-- `package.json` / `package-lock.json`：前端依賴
-
-## 主要目錄
-- `src/`：前端原始碼
-- `server/`：後端 FastAPI 服務
-- `docs/`：文件
-- `scripts/`：工具腳本
-- `examples/`：範例資料
-- `tests-e2e/`：E2E 測試
-- `logs/`：本機日誌
+## 最近更新（2026-05-15）
+- 新增 `docs/engineering/operations.md`，統一啟動/測試/部署指令
+- 更新 `README.md`，對齊目前專案結構與入口文件
+- 更新 `docs/product/architecture.md`，修正模組與路由對應

@@ -3,6 +3,96 @@ import time
 import uuid
 from sqlalchemy import text
 from database import engine
+from media_crop import parse_crop_from_url
+
+
+def _backfill_crop_refs(conn, table: str, url_col: str, crop_col: str):
+    rows = conn.execute(text(f'SELECT id, "{url_col}", "{crop_col}" FROM {table}')).fetchall()
+    migrated = 0
+    for row in rows:
+        raw_url = row[1]
+        existing_crop = row[2]
+        cleaned_url, parsed_crop = parse_crop_from_url(raw_url)
+        url_changed = cleaned_url != (raw_url or "")
+        if not parsed_crop and not url_changed:
+            continue
+        if isinstance(existing_crop, str):
+            try:
+                existing_crop = json.loads(existing_crop)
+            except Exception:
+                existing_crop = None
+        next_crop = existing_crop or parsed_crop
+        if cleaned_url == (raw_url or "") and next_crop == existing_crop:
+            continue
+        if engine.dialect.name == "postgresql":
+            conn.execute(text(
+                f'UPDATE {table} SET "{url_col}" = :url, "{crop_col}" = CAST(:crop AS JSONB) WHERE id = :id'
+            ), {"url": cleaned_url, "crop": json.dumps(next_crop), "id": row[0]})
+        else:
+            conn.execute(text(
+                f'UPDATE {table} SET "{url_col}" = :url, "{crop_col}" = :crop WHERE id = :id'
+            ), {"url": cleaned_url, "crop": json.dumps(next_crop), "id": row[0]})
+        migrated += 1
+    if migrated:
+        print(f"Migrating: backfilled {migrated} crop refs for {table}.{url_col}")
+
+def _backfill_content_fields(conn):
+    """Backfill structured content fields from customMetadata.
+
+    Only fills the new column when it is NULL (never overwrites existing data).
+    Idempotent — safe to re-run.
+    """
+    FIELDS = [
+        ("synopsis",          ["synopsis", "summary", "description", "notes"]),
+        ("outline",           ["outline"]),
+        ("activityName",      ["activityname", "eventname"]),
+        ("activityBannerUrl", ["activitybanner", "eventbanner"]),
+        ("activityContent",   ["activitycontent", "eventcontent"]),
+        ("activityWorkUrl",   ["activityworkurl", "eventworklink"]),
+        ("activityDemoLinks", ["activitydemolinks", "eventdemolinks"]),
+    ]
+    rows = conn.execute(text(
+        'SELECT id, "customMetadata", synopsis, outline, "activityName", "activityBannerUrl", '
+        '"activityContent", "activityWorkUrl", "activityDemoLinks" FROM scripts'
+    )).fetchall()
+    migrated = 0
+    for row in rows:
+        raw_custom = row[1]
+        if not raw_custom:
+            continue
+        if isinstance(raw_custom, str):
+            try:
+                raw_custom = json.loads(raw_custom)
+            except Exception:
+                continue
+        if not isinstance(raw_custom, list):
+            continue
+        meta_map = {
+            str(item.get("key") or "").strip().lower().replace(" ", ""): str(item.get("value") or "")
+            for item in raw_custom if isinstance(item, dict)
+        }
+        updates = {}
+        current_values = {
+            "synopsis": row[2], "outline": row[3], "activityName": row[4], "activityBannerUrl": row[5],
+            "activityContent": row[6], "activityWorkUrl": row[7], "activityDemoLinks": row[8],
+        }
+        for col, keys in FIELDS:
+            if current_values[col]:
+                continue  # already populated — never overwrite
+            for k in keys:
+                val = meta_map.get(k, "").strip()
+                if val:
+                    updates[col] = val
+                    break
+        if not updates:
+            continue
+        set_clause = ", ".join(f'"{k}" = :{k}' for k in updates)
+        updates["_id"] = row[0]
+        conn.execute(text(f"UPDATE scripts SET {set_clause} WHERE id = :_id"), updates)
+        migrated += 1
+    if migrated:
+        print(f"Migrating: backfilled structured content fields for {migrated} scripts")
+
 
 def _run_postgres_migrations():
     """Migrate PostgreSQL schema changes (ALTER COLUMN type changes, etc.)."""
@@ -77,6 +167,163 @@ def _run_postgres_migrations():
         if inserted:
             print(f"Migrating: backfilled {inserted} persona_organization_membership rows from organizationIds JSON")
 
+        # Migrate script_likes: add id/visitorId columns, drop old composite PK
+        likes_cols = {
+            row[0] for row in conn.execute(text(
+                "SELECT column_name FROM information_schema.columns WHERE table_name = 'script_likes'"
+            )).fetchall()
+        }
+        if "id" not in likes_cols:
+            print("Migrating: Restructuring script_likes table (add id, visitorId, drop composite PK)")
+            # Rename old table
+            conn.execute(text('ALTER TABLE script_likes RENAME TO script_likes_old'))
+            # Create new table
+            conn.execute(text("""
+                CREATE TABLE script_likes (
+                    id TEXT PRIMARY KEY,
+                    "scriptId" TEXT NOT NULL REFERENCES scripts(id) ON DELETE CASCADE,
+                    "userId" TEXT REFERENCES users(id) ON DELETE CASCADE,
+                    "visitorId" TEXT,
+                    "createdAt" BIGINT NOT NULL DEFAULT 0,
+                    CONSTRAINT uq_script_likes_script_actor UNIQUE ("scriptId", "userId", "visitorId")
+                )
+            """))
+            conn.execute(text('CREATE INDEX ix_script_likes_scriptId ON script_likes ("scriptId")'))
+            conn.execute(text('CREATE INDEX ix_script_likes_userId ON script_likes ("userId")'))
+            conn.execute(text('CREATE INDEX ix_script_likes_visitorId ON script_likes ("visitorId")'))
+            # Migrate existing data
+            conn.execute(text("""
+                INSERT INTO script_likes (id, "scriptId", "userId", "createdAt")
+                SELECT gen_random_uuid()::text, "scriptId", "userId", "createdAt"
+                FROM script_likes_old
+            """))
+            conn.execute(text('DROP TABLE script_likes_old'))
+
+        # Add coverIsAiGenerated column to scripts if missing
+        result = conn.execute(text(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name = 'scripts' AND column_name = 'coverIsAiGenerated'"
+        )).fetchone()
+        if not result:
+            print("Migrating: Adding 'coverIsAiGenerated' column to scripts (PostgreSQL)")
+            conn.execute(text('ALTER TABLE scripts ADD COLUMN "coverIsAiGenerated" BOOLEAN DEFAULT FALSE'))
+
+        # Fix script_likes.scriptId FK: add ON DELETE CASCADE
+        fk_rows = conn.execute(text("""
+            SELECT tc.constraint_name
+            FROM information_schema.table_constraints tc
+            JOIN information_schema.key_column_usage kcu
+                ON tc.constraint_name = kcu.constraint_name
+            WHERE tc.table_name = 'script_likes'
+              AND tc.constraint_type = 'FOREIGN KEY'
+              AND kcu.column_name = 'scriptId'
+        """)).fetchall()
+        for row in fk_rows:
+            cname = row[0]
+            # Check if it already has CASCADE
+            rule = conn.execute(text("""
+                SELECT delete_rule FROM information_schema.referential_constraints
+                WHERE constraint_name = :cname
+            """), {"cname": cname}).fetchone()
+            if rule and rule[0].upper() != "CASCADE":
+                print(f"Migrating: script_likes.scriptId FK -> ON DELETE CASCADE")
+                # Delete dangling likes before adding FK constraint
+                conn.execute(text("""
+                    DELETE FROM script_likes
+                    WHERE "scriptId" IS NOT NULL
+                      AND "scriptId" NOT IN (SELECT id FROM scripts)
+                """))
+                conn.execute(text(f'ALTER TABLE script_likes DROP CONSTRAINT "{cname}"'))
+                conn.execute(text(
+                    'ALTER TABLE script_likes ADD CONSTRAINT "script_likes_scriptId_fkey" '
+                    'FOREIGN KEY ("scriptId") REFERENCES scripts(id) ON DELETE CASCADE'
+                ))
+
+        # Fix public_terms_acceptances.scriptId FK: add ON DELETE SET NULL
+        fk_rows = conn.execute(text("""
+            SELECT tc.constraint_name
+            FROM information_schema.table_constraints tc
+            JOIN information_schema.key_column_usage kcu
+                ON tc.constraint_name = kcu.constraint_name
+            WHERE tc.table_name = 'public_terms_acceptances'
+              AND tc.constraint_type = 'FOREIGN KEY'
+              AND kcu.column_name = 'scriptId'
+        """)).fetchall()
+        for row in fk_rows:
+            cname = row[0]
+            rule = conn.execute(text("""
+                SELECT delete_rule FROM information_schema.referential_constraints
+                WHERE constraint_name = :cname
+            """), {"cname": cname}).fetchone()
+            if rule and rule[0].upper() != "SET NULL":
+                print(f"Migrating: public_terms_acceptances.scriptId FK -> ON DELETE SET NULL")
+                # Nullify dangling scriptId references before adding FK constraint
+                conn.execute(text("""
+                    UPDATE public_terms_acceptances
+                    SET "scriptId" = NULL
+                    WHERE "scriptId" IS NOT NULL
+                      AND "scriptId" NOT IN (SELECT id FROM scripts)
+                """))
+                conn.execute(text(f'ALTER TABLE public_terms_acceptances DROP CONSTRAINT "{cname}"'))
+                conn.execute(text(
+                    'ALTER TABLE public_terms_acceptances ADD CONSTRAINT "public_terms_acceptances_scriptId_fkey" '
+                    'FOREIGN KEY ("scriptId") REFERENCES scripts(id) ON DELETE SET NULL'
+                ))
+
+        # Add layoutConfig column to marker_themes if missing
+        result = conn.execute(text(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name = 'marker_themes' AND column_name = 'layoutConfig'"
+        )).fetchone()
+        if not result:
+            print("Migrating: Adding 'layoutConfig' column to marker_themes (PostgreSQL)")
+            conn.execute(text('ALTER TABLE marker_themes ADD COLUMN "layoutConfig" TEXT DEFAULT NULL'))
+
+        crop_columns = [
+            ("users", "avatarCrop"),
+            ("organizations", "logoCrop"),
+            ("organizations", "bannerCrop"),
+            ("personas", "avatarCrop"),
+            ("personas", "bannerCrop"),
+            ("series", "coverCrop"),
+            ("scripts", "coverCrop"),
+        ]
+        for table, col in crop_columns:
+            result = conn.execute(text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = :t AND column_name = :c"
+            ), {"t": table, "c": col}).fetchone()
+            if not result:
+                print(f"Migrating: Adding '{col}' column to {table} (PostgreSQL)")
+                conn.execute(text(f'ALTER TABLE "{table}" ADD COLUMN "{col}" JSONB'))
+
+        _backfill_crop_refs(conn, "users", "avatar", "avatarCrop")
+        _backfill_crop_refs(conn, "organizations", "logoUrl", "logoCrop")
+        _backfill_crop_refs(conn, "organizations", "bannerUrl", "bannerCrop")
+        _backfill_crop_refs(conn, "personas", "avatar", "avatarCrop")
+        _backfill_crop_refs(conn, "personas", "bannerUrl", "bannerCrop")
+        _backfill_crop_refs(conn, "series", "coverUrl", "coverCrop")
+        _backfill_crop_refs(conn, "scripts", "coverUrl", "coverCrop")
+
+        content_columns = [
+            ("scripts", "synopsis",          "TEXT"),
+            ("scripts", "outline",           "TEXT"),
+            ("scripts", "activityName",      "TEXT"),
+            ("scripts", "activityBannerUrl", "TEXT"),
+            ("scripts", "activityContent",   "TEXT"),
+            ("scripts", "activityWorkUrl",   "TEXT"),
+            ("scripts", "activityDemoLinks", "TEXT"),
+        ]
+        for table, col, col_type in content_columns:
+            result = conn.execute(text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = :t AND column_name = :c"
+            ), {"t": table, "c": col}).fetchone()
+            if not result:
+                print(f"Migrating: Adding '{col}' column to {table} (PostgreSQL)")
+                conn.execute(text(f'ALTER TABLE "{table}" ADD COLUMN "{col}" {col_type}'))
+        _backfill_content_fields(conn)
+
         conn.commit()
 
 
@@ -150,6 +397,10 @@ def run_migrations():
                 print("Migrating: Adding 'seriesOrder' column")
                 conn.execute(text("ALTER TABLE scripts ADD COLUMN seriesOrder INTEGER DEFAULT NULL"))
 
+            if 'coverIsAiGenerated' not in columns:
+                print("Migrating: Adding 'coverIsAiGenerated' column to scripts")
+                conn.execute(text("ALTER TABLE scripts ADD COLUMN coverIsAiGenerated BOOLEAN DEFAULT 0"))
+
             if 'licenseCommercial' not in columns:
                 print("Migrating: Adding 'licenseCommercial' column")
                 conn.execute(text("ALTER TABLE scripts ADD COLUMN licenseCommercial TEXT DEFAULT ''"))
@@ -167,6 +418,14 @@ def run_migrations():
                 conn.execute(text("ALTER TABLE scripts ADD COLUMN customMetadata TEXT DEFAULT '[]'"))
             conn.execute(text("UPDATE scripts SET customMetadata = '[]' WHERE customMetadata IS NULL OR TRIM(customMetadata) = ''"))
             
+            # marker_themes columns
+            result_themes = conn.execute(text("PRAGMA table_info(marker_themes)"))
+            theme_columns = [row.name for row in result_themes.fetchall()]
+
+            if 'layoutConfig' not in theme_columns:
+                print("Migrating: Adding 'layoutConfig' column to marker_themes")
+                conn.execute(text("ALTER TABLE marker_themes ADD COLUMN layoutConfig TEXT DEFAULT NULL"))
+
             # Check users columns
             result_users = conn.execute(text("PRAGMA table_info(users)"))
             user_columns = [row.name for row in result_users.fetchall()]
@@ -182,6 +441,9 @@ def run_migrations():
             if 'email' not in user_columns:
                 print("Migrating: Adding 'email' column to users")
                 conn.execute(text("ALTER TABLE users ADD COLUMN email TEXT DEFAULT NULL"))
+            if 'avatarCrop' not in user_columns:
+                print("Migrating: Adding 'avatarCrop' column to users")
+                conn.execute(text("ALTER TABLE users ADD COLUMN avatarCrop TEXT DEFAULT NULL"))
 
             # Personas columns
             result_personas = conn.execute(text("PRAGMA table_info(personas)"))
@@ -221,6 +483,12 @@ def run_migrations():
             if 'bannerUrl' not in persona_columns:
                 print("Migrating: Adding 'bannerUrl' column to personas")
                 conn.execute(text("ALTER TABLE personas ADD COLUMN bannerUrl TEXT DEFAULT ''"))
+            if 'avatarCrop' not in persona_columns:
+                print("Migrating: Adding 'avatarCrop' column to personas")
+                conn.execute(text("ALTER TABLE personas ADD COLUMN avatarCrop TEXT DEFAULT NULL"))
+            if 'bannerCrop' not in persona_columns:
+                print("Migrating: Adding 'bannerCrop' column to personas")
+                conn.execute(text("ALTER TABLE personas ADD COLUMN bannerCrop TEXT DEFAULT NULL"))
 
             # Organizations columns
             result_orgs = conn.execute(text("PRAGMA table_info(organizations)"))
@@ -240,6 +508,12 @@ def run_migrations():
             if 'bannerUrl' not in org_columns:
                 print("Migrating: Adding 'bannerUrl' column to organizations")
                 conn.execute(text("ALTER TABLE organizations ADD COLUMN bannerUrl TEXT DEFAULT ''"))
+            if 'logoCrop' not in org_columns:
+                print("Migrating: Adding 'logoCrop' column to organizations")
+                conn.execute(text("ALTER TABLE organizations ADD COLUMN logoCrop TEXT DEFAULT NULL"))
+            if 'bannerCrop' not in org_columns:
+                print("Migrating: Adding 'bannerCrop' column to organizations")
+                conn.execute(text("ALTER TABLE organizations ADD COLUMN bannerCrop TEXT DEFAULT NULL"))
 
             # Series table
             result_tables = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='series'"))
@@ -260,6 +534,22 @@ def run_migrations():
                 """))
                 conn.execute(text("CREATE INDEX IF NOT EXISTS ix_series_ownerId ON series(ownerId)"))
                 conn.execute(text("CREATE INDEX IF NOT EXISTS ix_series_slug ON series(slug)"))
+            else:
+                result_series = conn.execute(text("PRAGMA table_info(series)"))
+                series_columns = [row.name for row in result_series.fetchall()]
+                if 'coverCrop' not in series_columns:
+                    print("Migrating: Adding 'coverCrop' column to series")
+                    conn.execute(text("ALTER TABLE series ADD COLUMN coverCrop TEXT DEFAULT NULL"))
+
+            if 'coverCrop' not in columns:
+                print("Migrating: Adding 'coverCrop' column to scripts")
+                conn.execute(text("ALTER TABLE scripts ADD COLUMN coverCrop TEXT DEFAULT NULL"))
+
+            for col in ("synopsis", "outline", "activityName", "activityBannerUrl",
+                        "activityContent", "activityWorkUrl", "activityDemoLinks"):
+                if col not in columns:
+                    print(f"Migrating: Adding '{col}' column to scripts")
+                    conn.execute(text(f"ALTER TABLE scripts ADD COLUMN {col} TEXT DEFAULT NULL"))
 
             # Organization memberships table (user <-> org many-to-many)
             result_tables = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='organization_memberships'"))
@@ -424,6 +714,15 @@ def run_migrations():
                             "updatedAt": now_ms,
                         },
                     )
+
+            _backfill_crop_refs(conn, "users", "avatar", "avatarCrop")
+            _backfill_crop_refs(conn, "organizations", "logoUrl", "logoCrop")
+            _backfill_crop_refs(conn, "organizations", "bannerUrl", "bannerCrop")
+            _backfill_crop_refs(conn, "personas", "avatar", "avatarCrop")
+            _backfill_crop_refs(conn, "personas", "bannerUrl", "bannerCrop")
+            _backfill_crop_refs(conn, "series", "coverUrl", "coverCrop")
+            _backfill_crop_refs(conn, "scripts", "coverUrl", "coverCrop")
+            _backfill_content_fields(conn)
 
             conn.commit()
     except Exception as e:

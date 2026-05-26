@@ -12,4 +12,5 @@ __all__ = [
     "reorder_scripts",
     "increment_script_view",
     "toggle_script_like",
+    "get_script_like_status",
 ]

@@ -72,10 +72,11 @@ def increment_view(script_id: str, db: Session = Depends(get_db)):
 
 @router.post("/{script_id}/like")
 def toggle_like(script_id: str, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
-    liked = crud.toggle_script_like(db, script_id, ownerId)
-    if liked is None:
+    result = crud.toggle_script_like(db, script_id, user_id=ownerId)
+    if result is None:
         raise HTTPException(status_code=404, detail="Script not found")
-    return {"success": True, "liked": liked}
+    liked, likes = result
+    return {"success": True, "liked": liked, "likes": likes}
 
 # Export (Note: Endpoint path is /api/export/all, handled here or in a separate router? 
 # It's related to scripts but the path doesn't start with /api/scripts. 

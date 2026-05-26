@@ -1,0 +1,35 @@
+import { defaultMarkerConfigs } from "../constants/defaultMarkerRules";
+import { normalizeMarkerConfigsSchema } from "./markerThemeCodec";
+import type { MarkerConfig } from "../hooks/useScriptManager.types";
+
+const isNil = (value: unknown) => value === null || value === undefined;
+
+/**
+ * @param {{ baseConfigs?: import("../hooks/useScriptManager.types").MarkerConfig[] | null, scopedConfigs?: import("../hooks/useScriptManager.types").MarkerConfig[] | null, fallbackConfigs?: import("../hooks/useScriptManager.types").MarkerConfig[] }} [options]
+ * @returns {{ configs: import("../hooks/useScriptManager.types").MarkerConfig[], source: "scoped" | "base" | "fallback" }}
+ */
+export const resolveEffectiveMarkerConfigs = ({
+  baseConfigs,
+  scopedConfigs,
+  fallbackConfigs = defaultMarkerConfigs,
+}: {
+  baseConfigs?: MarkerConfig[] | null;
+  scopedConfigs?: MarkerConfig[] | null;
+  fallbackConfigs?: MarkerConfig[];
+} = {}) => {
+  const hasScoped = !isNil(scopedConfigs);
+  const selected = hasScoped ? scopedConfigs : baseConfigs;
+  const normalized = normalizeMarkerConfigsSchema(selected);
+
+  if (normalized.length > 0) {
+    return {
+      configs: normalized,
+      source: hasScoped ? "scoped" : "base",
+    };
+  }
+
+  return {
+    configs: normalizeMarkerConfigsSchema(fallbackConfigs),
+    source: "fallback",
+  };
+};

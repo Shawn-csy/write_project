@@ -19,7 +19,10 @@ def _normalize_persona_for_public(db: Session, persona):
 def get_scripts(db: Session, ownerId: str):
     results = (
         db.query(models.Script, func.length(models.Script.content).label("contentLength"))
-        .options(orm.defer(models.Script.content))
+        .options(
+            orm.defer(models.Script.content),
+            orm.selectinload(models.Script.tags),
+        )
         .filter(models.Script.ownerId == ownerId)
         .order_by(models.Script.sortOrder.asc(), models.Script.lastModified.desc())
         .all()
@@ -105,6 +108,7 @@ def get_public_scripts(
             ).order_by(models.Script.sortOrder.asc(), models.Script.title.asc()).all()
 
         for s in results:
+            s.contentLength = len(s.content or "")
             if s.persona:
                 _normalize_persona_for_public(db, s.persona)
             if s.organization:
@@ -114,6 +118,7 @@ def get_public_scripts(
     if ownerId and folder is None:
         results = base_q.filter(models.Script.ownerId == ownerId).order_by(models.Script.lastModified.desc()).all()
         for s in results:
+            s.contentLength = len(s.content or "")
             if s.persona:
                 _normalize_persona_for_public(db, s.persona)
             if s.organization:
@@ -133,6 +138,7 @@ def get_public_scripts(
         if (s.ownerId, s.folder) in public_paths:
             continue
 
+        s.contentLength = len(s.content or "")
         if s.persona:
             _normalize_persona_for_public(db, s.persona)
         if s.organization:
@@ -149,9 +155,13 @@ def search_scripts(db: Session, query: str, ownerId: str):
     search = f"%{query}%"
     return (
         db.query(models.Script)
+        .options(orm.defer(models.Script.content))
         .filter(
             models.Script.ownerId == ownerId,
-            or_(models.Script.title.ilike(search), models.Script.content.ilike(search)),
+            or_(
+                models.Script.title.ilike(search),
+                models.Script.content.ilike(search),
+            ),
         )
         .limit(20)
         .all()

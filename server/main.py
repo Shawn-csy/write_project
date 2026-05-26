@@ -13,7 +13,7 @@ import models
 from dependencies import get_current_user_id, get_db
 from rate_limit import RATE_LIMIT_ENABLED, limiter
 from routers import analysis, scripts, users, orgs, personas, tags, themes, admin, public, seo, media, series
-from routers import public_bundle
+from routers import public_bundle, export
 from services.seo import inject_seo_for_route
 
 try:
@@ -167,6 +167,7 @@ def create_app() -> FastAPI:
     app.include_router(seo.router)
     app.include_router(media.router)
     app.include_router(series.router)
+    app.include_router(export.router)
 
     @app.get("/api/health/auth")
     async def auth_health_check(user_id: str = Depends(get_current_user_id)):
@@ -206,6 +207,32 @@ If you send the `Accept: text/markdown` header, or if you identify as an AI bot 
 
     @app.get("/sitemap.xml", response_class=Response)
     async def get_sitemap_xml(db: database.SessionLocal = Depends(get_db)):
+        def ms_to_w3c(ms):
+            try:
+                return datetime.fromtimestamp(ms / 1000.0, tz=timezone.utc).strftime("%Y-%m-%d")
+            except Exception:
+                return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+        def url_entry(loc, lastmod=None, changefreq=None, priority=None):
+            parts = [f"  <url>", f"    <loc>{loc}</loc>"]
+            if lastmod:
+                parts.append(f"    <lastmod>{lastmod}</lastmod>")
+            if changefreq:
+                parts.append(f"    <changefreq>{changefreq}</changefreq>")
+            if priority:
+                parts.append(f"    <priority>{priority}</priority>")
+            parts.append("  </url>")
+            return "\n".join(parts)
+
+        base_url = public_base_url()
+        urls = []
+
+        # Static pages
+        urls.append(url_entry(f"{base_url}/", changefreq="weekly", priority="0.8"))
+        urls.append(url_entry(f"{base_url}/about", changefreq="monthly", priority="0.5"))
+        urls.append(url_entry(f"{base_url}/gallery", changefreq="weekly", priority="0.7"))
+
+        # Public scripts
         scripts_rows = db.query(
             models.Script.id,
             models.Script.lastModified,
@@ -217,55 +244,55 @@ If you send the `Accept: text/markdown` header, or if you identify as an AI bot 
             models.Script.type == "script",
         ).all()
 
-        base_url = public_base_url()
-        xml_content = ['<?xml version="1.0" encoding="UTF-8"?>']
-        xml_content.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
+        author_ids: dict[str, int | None] = {}  # id -> updatedAt ms
+        org_ids: dict[str, int | None] = {}
 
-        xml_content.append("  <url>")
-        xml_content.append(f"    <loc>{base_url}/</loc>")
-        xml_content.append("    <changefreq>daily</changefreq>")
-        xml_content.append("  </url>")
-
-        xml_content.append("  <url>")
-        xml_content.append(f"    <loc>{base_url}/about</loc>")
-        xml_content.append("    <changefreq>monthly</changefreq>")
-        xml_content.append("  </url>")
-
-        author_ids = set()
-        org_ids = set()
         for script_id, last_mod, persona_id, owner_id, organization_id in scripts_rows:
-            try:
-                dt = datetime.fromtimestamp(last_mod / 1000.0, tz=timezone.utc)
-                lastmod_str = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-            except Exception:
-                lastmod_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-            xml_content.append("  <url>")
-            xml_content.append(f"    <loc>{base_url}/read/{script_id}</loc>")
-            xml_content.append(f"    <lastmod>{lastmod_str}</lastmod>")
-            xml_content.append("  </url>")
+            import html as _html
+            loc = _html.escape(f"{base_url}/read/{script_id}")
+            urls.append(url_entry(loc, lastmod=ms_to_w3c(last_mod), changefreq="weekly", priority="0.9"))
 
             if persona_id:
-                author_ids.add(persona_id)
+                author_ids.setdefault(persona_id, None)
             elif owner_id:
-                author_ids.add(owner_id)
+                author_ids.setdefault(owner_id, None)
             if organization_id:
-                org_ids.add(organization_id)
+                org_ids.setdefault(organization_id, None)
 
-        for author_id in sorted(author_ids):
-            xml_content.append("  <url>")
-            xml_content.append(f"    <loc>{base_url}/author/{author_id}</loc>")
-            xml_content.append("    <changefreq>weekly</changefreq>")
-            xml_content.append("  </url>")
+        # Fetch lastmod for author pages
+        for aid in list(author_ids):
+            persona = db.query(models.Persona.updatedAt).filter(models.Persona.id == aid).first()
+            if persona:
+                author_ids[aid] = persona.updatedAt
+            else:
+                user = db.query(models.User.lastLogin).filter(models.User.id == aid).first()
+                if user:
+                    author_ids[aid] = user.lastLogin
 
-        for org_id in sorted(org_ids):
-            xml_content.append("  <url>")
-            xml_content.append(f"    <loc>{base_url}/org/{org_id}</loc>")
-            xml_content.append("    <changefreq>weekly</changefreq>")
-            xml_content.append("  </url>")
+        for aid, ts in sorted(author_ids.items()):
+            loc = _html.escape(f"{base_url}/author/{aid}")
+            urls.append(url_entry(loc, lastmod=ms_to_w3c(ts) if ts else None, changefreq="monthly", priority="0.7"))
 
-        xml_content.append("</urlset>")
-        return Response(content="\n".join(xml_content), media_type="application/xml")
+        # Fetch lastmod for org pages
+        for oid in list(org_ids):
+            org = db.query(models.Organization.updatedAt).filter(models.Organization.id == oid).first()
+            if org:
+                org_ids[oid] = org.updatedAt
+
+        for oid, ts in sorted(org_ids.items()):
+            loc = _html.escape(f"{base_url}/org/{oid}")
+            urls.append(url_entry(loc, lastmod=ms_to_w3c(ts) if ts else None, changefreq="monthly", priority="0.6"))
+
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n'
+            '        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"\n'
+            '        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9\n'
+            '          http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">\n'
+            + "\n".join(urls) + "\n"
+            "</urlset>"
+        )
+        return Response(content=xml, media_type="application/xml")
 
     if os.path.exists(DIST_DIR):
         app.mount("/assets", StaticFiles(directory=os.path.join(DIST_DIR, "assets")), name="assets")
@@ -281,7 +308,9 @@ If you send the `Accept: text/markdown` header, or if you identify as an AI bot 
             accept_header = request.headers.get("accept", "")
             user_agent = request.headers.get("user-agent", "").lower()
             is_ai_bot = any(bot in user_agent for bot in ["gptbot", "claudebot", "google-extended", "anthropic", "perplexitybot"])
-            wants_markdown = "text/markdown" in accept_header or "text/plain" in accept_header
+            # Keep markdown negotiation explicit to avoid browsers/webviews that
+            # include text/plain from accidentally receiving raw script text.
+            wants_markdown = "text/markdown" in accept_header
 
             if is_ai_bot or wants_markdown:
                 try:
@@ -292,11 +321,20 @@ If you send the `Accept: text/markdown` header, or if you identify as an AI bot 
                 except Exception:
                     return Response(content="Internal Server Error", status_code=500, media_type="text/markdown")
 
-        if os.path.exists(INDEX_PATH):
-            with open(INDEX_PATH, "r", encoding="utf-8") as f:
-                html_template = f.read()
+        try:
+            index_exists = os.path.exists(INDEX_PATH)
+        except Exception:
+            return Response(content="Internal Server Error", status_code=500)
 
-            seo_html = inject_seo_for_route(full_path, db, html_template, public_base_url())
+        if index_exists:
+            try:
+                with open(INDEX_PATH, "r", encoding="utf-8") as f:
+                    html_template = f.read()
+            except Exception:
+                return Response(content="Internal Server Error", status_code=500)
+
+            user_agent = request.headers.get("user-agent", "").lower()
+            seo_html = inject_seo_for_route(full_path, db, html_template, public_base_url(), user_agent=user_agent)
             if seo_html is not None:
                 return HTMLResponse(content=seo_html)
 
