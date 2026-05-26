@@ -29,12 +29,14 @@ interface OrganizationInfo {
   id?: string;
   name?: string;
   logoUrl?: string;
+  logoCrop?: { cx?: number; cy?: number; zoom?: number } | null;
 }
 
 interface PublicScriptInfoOverlayProps {
   title?: string;
   synopsis?: string;
   coverUrl?: string;
+  coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
   author?: AuthorInfo | null;
   organization?: OrganizationInfo | null;
   license?: string;
@@ -87,6 +89,7 @@ export function PublicScriptInfoOverlay({
   title,
   synopsis,
   coverUrl,
+  coverCrop,
   author = null,
   organization = null,
   license = "",
@@ -109,7 +112,7 @@ export function PublicScriptInfoOverlay({
 }: PublicScriptInfoOverlayProps) {
   const [coverLoadFailed, setCoverLoadFailed] = React.useState(false);
   const [prefaceExpanded, setPrefaceExpanded] = React.useState(false);
-  const cropCover = getMediaCropStyle(String(coverUrl || ""));
+  const cropCover = getMediaCropStyle(String(coverUrl || ""), coverCrop);
   const hasCover = Boolean(String(coverUrl || "").trim()) && !coverLoadFailed;
   const itemById = React.useMemo(() => {
     const map = new Map<string, PrefaceItem & { value: string }>();

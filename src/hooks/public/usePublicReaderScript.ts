@@ -14,16 +14,19 @@ interface Author {
   id: string;
   displayName: string;
   avatarUrl: string;
+  avatarCrop?: { cx?: number; cy?: number; zoom?: number } | null;
 }
 
 interface Organization {
   id: string;
   name: string;
   logoUrl?: string;
+  logoCrop?: { cx?: number; cy?: number; zoom?: number } | null;
 }
 
 export interface MockMeta {
   coverUrl: string | null;
+  coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
   author: Author | null;
   organization: Organization | null;
   tags: string[];
@@ -49,6 +52,7 @@ export interface MockMeta {
   activity: {
     name: string;
     bannerUrl: string;
+    bannerCrop?: { cx?: number; cy?: number; zoom?: number } | null;
     content: string;
     demoUrl: string;
     demoLinks: unknown[];
@@ -119,7 +123,7 @@ export function usePublicReaderScript({ id, scriptManager }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [mockMeta, setMockMeta] = useState<MockMeta | null>(null);
   const [relatedSeriesScripts, setRelatedSeriesScripts] = useState<
-    { id: string; title: string; coverUrl: string | null; seriesOrder: number | null }[]
+    { id: string; title: string; coverUrl: string | null; coverCrop?: { cx?: number; cy?: number; zoom?: number } | null; seriesOrder: number | null }[]
   >([]);
   const [publicMarkerConfigs, setPublicMarkerConfigs] = useState(
     normalizeMarkerConfigsSchema(defaultMarkerConfigs)
@@ -175,10 +179,12 @@ export function usePublicReaderScript({ id, scriptManager }: Props) {
                 id: person.id || "unknown",
                 displayName: String(person.displayName || person.name || "Unknown"),
                 avatarUrl: String(person.avatar || person.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${person.displayName || person.name || "U"}`),
+                avatarCrop: (person as { avatarCrop?: { cx?: number; cy?: number; zoom?: number } | null }).avatarCrop || null,
               } : (authorOverride ? {
                 id: "header-author-fallback",
                 displayName: authorOverride,
                 avatarUrl: "",
+                avatarCrop: null,
               } : null));
 
           const resolvedOrganization = useOverrideAuthor
@@ -189,6 +195,7 @@ export function usePublicReaderScript({ id, scriptManager }: Props) {
                 logoUrl: organization.logoUrl || organization.avatar || organization.avatarUrl
                   ? String(organization.logoUrl || organization.avatar || organization.avatarUrl)
                   : undefined,
+                logoCrop: (organization as { logoCrop?: { cx?: number; cy?: number; zoom?: number } | null }).logoCrop || null,
               } : null);
 
           const normalizedTags = Array.isArray(script.tags)
@@ -210,6 +217,7 @@ export function usePublicReaderScript({ id, scriptManager }: Props) {
             title: script.title || "Untitled",
             synopsis: meta.synopsis || meta.summary || "",
             coverUrl: script.coverUrl || null,
+            coverCrop: (script as { coverCrop?: { cx?: number; cy?: number; zoom?: number } | null }).coverCrop || null,
             author: resolvedAuthor,
             organization: resolvedOrganization,
             tags: normalizedTags,
@@ -226,6 +234,7 @@ export function usePublicReaderScript({ id, scriptManager }: Props) {
             activity: {
               name: String(meta.activityname || meta.eventname || "").trim(),
               bannerUrl: String(meta.activitybanner || meta.eventbanner || "").trim(),
+              bannerCrop: null,
               content: String(meta.activitycontent || meta.eventcontent || "").trim(),
               demoUrl: String(meta.activitydemourl || meta.eventdemolink || "").trim(),
               demoLinks: ensureList(meta.activitydemolinks || meta.eventdemolinks),
@@ -237,11 +246,13 @@ export function usePublicReaderScript({ id, scriptManager }: Props) {
 
           setMockMeta({
             coverUrl: publicProjection.coverUrl || null,
+            coverCrop: publicProjection.coverCrop || null,
             author: publicProjection.author
               ? {
                   id: String(publicProjection.author.id || "unknown"),
                   displayName: String(publicProjection.author.displayName || "Unknown"),
                   avatarUrl: String(publicProjection.author.avatarUrl || ""),
+                  avatarCrop: publicProjection.author.avatarCrop || null,
                 }
               : null,
             organization: publicProjection.organization
@@ -249,6 +260,7 @@ export function usePublicReaderScript({ id, scriptManager }: Props) {
                   id: String(publicProjection.organization.id || "unknown-org"),
                   name: String(publicProjection.organization.name || ""),
                   logoUrl: publicProjection.organization.logoUrl,
+                  logoCrop: publicProjection.organization.logoCrop || null,
                 }
               : null,
             tags: publicProjection.tags,
@@ -279,7 +291,7 @@ export function usePublicReaderScript({ id, scriptManager }: Props) {
           if (seriesName) {
             try {
               const bundle = await getPublicBundle();
-              type SeriesItem = { id: string; title: string; coverUrl: string | null; seriesOrder: number | null };
+              type SeriesItem = { id: string; title: string; coverUrl: string | null; coverCrop?: { cx?: number; cy?: number; zoom?: number } | null; seriesOrder: number | null };
               const sameSeries = (bundle?.scripts || [])
                 .filter((item): item is BaseScriptApi => Boolean(item?.id) && item.id !== script.id)
                 .map((i): SeriesItem | null => {
@@ -290,6 +302,7 @@ export function usePublicReaderScript({ id, scriptManager }: Props) {
                     id: i.id,
                     title: i.title || t("publicGallery.unknown"),
                     coverUrl: i.coverUrl || null,
+                    coverCrop: (i as { coverCrop?: { cx?: number; cy?: number; zoom?: number } | null }).coverCrop || null,
                     seriesOrder: parseSeriesOrder(i.seriesOrder ?? parsedMeta?.seriesorder),
                   };
                 })

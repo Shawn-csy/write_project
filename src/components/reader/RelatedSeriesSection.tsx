@@ -7,6 +7,7 @@ interface RelatedSeriesScriptItem {
   id: string;
   title: string;
   coverUrl?: string | null;
+  coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
   seriesOrder?: string | number | null;
 }
 
@@ -50,7 +51,7 @@ export function RelatedSeriesSection({
       </div>
       <div className="flex gap-3 overflow-x-auto pb-1">
         {relatedSeriesScripts.map((item) => {
-          const cropCover = getMediaCropStyle(String(item.coverUrl || ""));
+          const cropCover = getMediaCropStyle(String(item.coverUrl || ""), item.coverCrop);
           return (
           <button
             key={item.id}

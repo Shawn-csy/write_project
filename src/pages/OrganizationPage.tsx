@@ -66,8 +66,8 @@ export default function OrganizationPage() {
   }, [id, currentUser]);
 
   const tagStyle = (tag: string) => getMorandiTagStyle(tag, org?.tags || []);
-  const bannerCrop = getMediaCropStyle(String(org?.bannerUrl || ""));
-  const logoCrop = getMediaCropStyle(String(org?.logoUrl || ""));
+  const bannerCrop = getMediaCropStyle(String(org?.bannerUrl || ""), (org as { bannerCrop?: { cx?: number; cy?: number; zoom?: number } | null } | null)?.bannerCrop);
+  const logoCrop = getMediaCropStyle(String(org?.logoUrl || ""), (org as { logoCrop?: { cx?: number; cy?: number; zoom?: number } | null } | null)?.logoCrop);
 
   if (isLoading) return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">{t("orgPage.loading")}</div>;
   if (!org) return <div className="min-h-screen flex items-center justify-center">{t("orgPage.notFound")}</div>;
@@ -238,7 +238,7 @@ export default function OrganizationPage() {
             <TabsContent value="members" className="rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {members.map((member) => {
-                        const memberAvatarCrop = getMediaCropStyle(String(member.avatar || ""));
+                        const memberAvatarCrop = getMediaCropStyle(String(member.avatar || ""), (member as { avatarCrop?: { cx?: number; cy?: number; zoom?: number } | null }).avatarCrop);
                         return (
                             <div
                                 key={member.id}

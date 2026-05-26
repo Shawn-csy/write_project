@@ -10,18 +10,21 @@ interface AuthorLike {
   id?: string;
   displayName?: string;
   avatarUrl?: string;
+  avatarCrop?: { cx?: number; cy?: number; zoom?: number } | null;
 }
 
 interface OrganizationLike {
   id?: string;
   name?: string;
   logoUrl?: string;
+  logoCrop?: { cx?: number; cy?: number; zoom?: number } | null;
 }
 
 interface BuildProjectionInput {
   title?: string;
   synopsis?: string;
   coverUrl?: string | null;
+  coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
   author?: AuthorLike | null;
   organization?: OrganizationLike | null;
   tags?: string[];
@@ -38,6 +41,7 @@ interface BuildProjectionInput {
   activity?: {
     name?: string;
     bannerUrl?: string;
+    bannerCrop?: { cx?: number; cy?: number; zoom?: number } | null;
     content?: string;
     demoUrl?: string;
     demoLinks?: unknown[];
@@ -134,6 +138,7 @@ export function buildPublicReaderProjection(input: BuildProjectionInput) {
     title: input.title || "未命名劇本",
     synopsis: String(input.synopsis || "").trim(),
     coverUrl: input.coverUrl || "",
+    coverCrop: input.coverCrop || null,
     author: input.author || null,
     organization: input.organization || null,
     license: String(input.license || "").trim(),
@@ -150,6 +155,7 @@ export function buildPublicReaderProjection(input: BuildProjectionInput) {
     activity: {
       name: String(input.activity?.name || "").trim(),
       bannerUrl: String(input.activity?.bannerUrl || "").trim(),
+      bannerCrop: input.activity?.bannerCrop || null,
       content: String(input.activity?.content || "").trim(),
       demoUrl: String(input.activity?.demoUrl || "").trim(),
       demoLinks: normalizeActivityDemoLinks(input.activity?.demoLinks || []),

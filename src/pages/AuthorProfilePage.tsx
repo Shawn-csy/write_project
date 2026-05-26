@@ -87,8 +87,8 @@ export default function AuthorProfilePage() {
   }, [id]);
 
   const tagStyle = (tag: string) => getMorandiTagStyle(tag, author?.tags || []);
-  const bannerCrop = getMediaCropStyle(String(author?.bannerUrl || ""));
-  const avatarCrop = getMediaCropStyle(String(author?.avatar || ""));
+  const bannerCrop = getMediaCropStyle(String(author?.bannerUrl || ""), (author as { bannerCrop?: { cx?: number; cy?: number; zoom?: number } | null } | null)?.bannerCrop);
+  const avatarCrop = getMediaCropStyle(String(author?.avatar || ""), (author as { avatarCrop?: { cx?: number; cy?: number; zoom?: number } | null } | null)?.avatarCrop);
   const authorSeries = useMemo(() => {
     const map = new Map();
     for (const script of scripts || []) {
@@ -308,7 +308,7 @@ export default function AuthorProfilePage() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {authorSeries.map((series) => {
-                      const seriesCoverCrop = getMediaCropStyle(String(series.coverUrl || ""));
+                      const seriesCoverCrop = getMediaCropStyle(String(series.coverUrl || ""), (series as { coverCrop?: { cx?: number; cy?: number; zoom?: number } | null }).coverCrop);
                       return (
                         <button
                           key={series.name}

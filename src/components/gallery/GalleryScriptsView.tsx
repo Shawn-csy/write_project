@@ -170,7 +170,10 @@ export const GalleryScriptsView = React.memo(GalleryScriptsViewInner);
 
 const SeriesCard = React.memo(function SeriesCard({ series, t, onNavigate, grid }: { series: FeaturedSeries; t: (k: string, f?: string) => string; onNavigate: (name: string) => void; grid?: boolean }) {
   const handleClick = useCallback(() => onNavigate(series.name), [onNavigate, series.name]);
-  const cropCover = getMediaCropStyle(String(series.coverUrl || ""));
+  const cropCover = getMediaCropStyle(
+    String(series.coverUrl || ""),
+    (series as { coverCrop?: { cx?: number; cy?: number; zoom?: number } | null }).coverCrop
+  );
   return (
     <button
       type="button"

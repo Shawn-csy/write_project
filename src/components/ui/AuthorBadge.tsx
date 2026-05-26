@@ -9,6 +9,7 @@ interface AuthorInfo {
   id?: string;
   avatarUrl?: string;
   avatar?: string;
+  avatarCrop?: { cx?: number; cy?: number; zoom?: number } | null;
   displayName?: string;
 }
 
@@ -35,7 +36,10 @@ export function AuthorBadge({ author, className, showAvatar = true, link, clicka
   };
 
   const avatarUrl = typeof author === "object" ? (author?.avatarUrl || author?.avatar || "") : "";
-  const cropAvatar = getMediaCropStyle(String(avatarUrl || ""));
+  const cropAvatar = getMediaCropStyle(
+    String(avatarUrl || ""),
+    typeof author === "object" ? author?.avatarCrop : null
+  );
 
   return (
     <div 

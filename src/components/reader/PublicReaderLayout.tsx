@@ -7,13 +7,13 @@ import { RelatedSeriesSection } from "./RelatedSeriesSection";
 import ScriptSurface from "../editor/ScriptSurface";
 import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
 import { usePublicReaderLayoutState } from "../../hooks/public/usePublicReaderLayoutState";
-import { decodeMediaCropRef } from "../../lib/mediaCropRef";
 import type { PublicReaderScriptData, ViewerProps } from "../../hooks/public/usePublicReaderLayoutState";
 
 interface RelatedSeriesScriptItem {
   id: string;
   title: string;
   coverUrl?: string | null;
+  coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
   seriesOrder?: string | number | null;
 }
 
@@ -107,15 +107,13 @@ export function PublicReaderLayout({
   const safeScrollRef = scriptSurfaceProps?.scrollRef as React.RefObject<HTMLDivElement | null> | undefined;
   const showHeader = !embeddedPreview;
   const showGuideOverlay = !embeddedPreview;
-  const coverBgSrc = decodeMediaCropRef(String(s.coverUrl || "")).src;
-
   return (
     <div className={`relative w-full ${embeddedPreview ? "h-full min-h-[620px]" : "h-[100dvh]"} overflow-hidden flex flex-col bg-background ${s.hideWhitespace ? 'hide-whitespace' : ''} ${s.protectionClass}`}>
       {/* Background Layer */}
       <div className="absolute inset-0 z-0 opacity-30 dark:opacity-20 pointer-events-none">
         {s.coverUrl ? (
           <img
-            src={coverBgSrc}
+            src={s.coverDisplayUrl || ""}
             alt=""
             aria-hidden="true"
             className="absolute inset-0 h-full w-full object-cover"
@@ -165,6 +163,7 @@ export function PublicReaderLayout({
                     title={s.title}
                     synopsis={s.synopsis}
                     coverUrl={s.coverUrl || ""}
+                    coverCrop={s.coverCrop || null}
                     author={s.author}
                     organization={s.organization}
                     license={s.license}
@@ -190,6 +189,7 @@ export function PublicReaderLayout({
                   <ActivitySection
                     name={s.normalizedActivity.name}
                     bannerUrl={s.normalizedActivity.bannerUrl}
+                    bannerCrop={s.normalizedActivity.bannerCrop || null}
                     content={s.normalizedActivity.content}
                     workUrl={s.normalizedActivity.workUrl}
                   />
