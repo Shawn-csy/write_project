@@ -3,6 +3,7 @@ import { optimizeImageForUpload, getImageUploadGuide } from "../../lib/mediaLibr
 import { uploadMediaObject } from "../../lib/api/media";
 import { useI18n } from "../../contexts/I18nContext";
 import { usePublisherOrgGuide } from "./usePublisherOrgGuide";
+import type { MediaSelection } from "../../components/ui/MediaPicker";
 
 interface OrgItem {
   id: string;
@@ -10,7 +11,9 @@ interface OrgItem {
   description?: string;
   website?: string;
   logoUrl?: string;
+  logoCrop?: { cx?: number; cy?: number; zoom?: number } | null;
   bannerUrl?: string;
+  bannerCrop?: { cx?: number; cy?: number; zoom?: number } | null;
   tags?: string[];
 }
 
@@ -20,7 +23,9 @@ interface OrgDraft {
   description: string;
   website: string;
   logoUrl: string;
+  logoCrop: { cx?: number; cy?: number; zoom?: number } | null;
   bannerUrl: string;
+  bannerCrop: { cx?: number; cy?: number; zoom?: number } | null;
   tags: string[];
 }
 
@@ -91,7 +96,8 @@ export function usePublisherOrgTabState({ orgs, selectedOrgId, setSelectedOrgId,
       const uploaded = await uploadMediaObject(optimized.file, field === "logoUrl" ? "logo" : "banner");
       const nextUrl = String(uploaded?.url || "").trim();
       if (!nextUrl) throw new Error(t("mediaLibrary.uploadFailed"));
-      setOrgDraft(prev => ({ ...prev, [field]: nextUrl }));
+      const cropField = field === "logoUrl" ? "logoCrop" : "bannerCrop";
+      setOrgDraft(prev => ({ ...prev, [field]: nextUrl, [cropField]: null }));
       if (field === "logoUrl") { setLogoUploadError(""); setLogoUploadWarning(optimized.warning || ""); setLogoPreviewFailed(false); }
       else { setBannerUploadError(""); setBannerUploadWarning(optimized.warning || ""); setBannerPreviewFailed(false); }
     } catch (error: unknown) {
@@ -113,10 +119,20 @@ export function usePublisherOrgTabState({ orgs, selectedOrgId, setSelectedOrgId,
 
   const handleMediaPickerSelect = (url: string) => {
     if (mediaPickerTarget === "logo") {
-      setOrgDraft(prev => ({ ...prev, logoUrl: url }));
+      setOrgDraft(prev => ({ ...prev, logoUrl: url, logoCrop: null }));
       setLogoPreviewFailed(false); setLogoUploadError(""); setLogoUploadWarning("");
     } else if (mediaPickerTarget === "banner") {
-      setOrgDraft(prev => ({ ...prev, bannerUrl: url }));
+      setOrgDraft(prev => ({ ...prev, bannerUrl: url, bannerCrop: null }));
+      setBannerPreviewFailed(false); setBannerUploadError(""); setBannerUploadWarning("");
+    }
+  };
+
+  const handleMediaPickerSelectMedia = (selection: MediaSelection) => {
+    if (mediaPickerTarget === "logo") {
+      setOrgDraft(prev => ({ ...prev, logoUrl: selection.url, logoCrop: selection.crop || null }));
+      setLogoPreviewFailed(false); setLogoUploadError(""); setLogoUploadWarning("");
+    } else if (mediaPickerTarget === "banner") {
+      setOrgDraft(prev => ({ ...prev, bannerUrl: selection.url, bannerCrop: selection.crop || null }));
       setBannerPreviewFailed(false); setBannerUploadError(""); setBannerUploadWarning("");
     }
   };
@@ -125,7 +141,17 @@ export function usePublisherOrgTabState({ orgs, selectedOrgId, setSelectedOrgId,
     if (!selectedOrgId) return;
     const org = orgs.find(item => item.id === selectedOrgId);
     if (!org) return;
-    setOrgDraft({ id: org.id, name: org.name || "", description: org.description || "", website: org.website || "", logoUrl: org.logoUrl || "", bannerUrl: org.bannerUrl || "", tags: org.tags || [] });
+    setOrgDraft({
+      id: org.id,
+      name: org.name || "",
+      description: org.description || "",
+      website: org.website || "",
+      logoUrl: org.logoUrl || "",
+      logoCrop: org.logoCrop || null,
+      bannerUrl: org.bannerUrl || "",
+      bannerCrop: org.bannerCrop || null,
+      tags: org.tags || []
+    });
     setViewMode("edit");
     setLogoPreviewFailed(false); setBannerPreviewFailed(false);
     setLogoUploadError(""); setBannerUploadError(""); setLogoUploadWarning(""); setBannerUploadWarning("");
@@ -133,7 +159,7 @@ export function usePublisherOrgTabState({ orgs, selectedOrgId, setSelectedOrgId,
 
   const onStartCreate = () => {
     setSelectedOrgId(null);
-    setOrgDraft({ id: "", name: "", description: "", website: "", logoUrl: "", bannerUrl: "", tags: [] });
+    setOrgDraft({ id: "", name: "", description: "", website: "", logoUrl: "", logoCrop: null, bannerUrl: "", bannerCrop: null, tags: [] });
     setViewMode("create");
   };
 
@@ -147,7 +173,7 @@ export function usePublisherOrgTabState({ orgs, selectedOrgId, setSelectedOrgId,
     cropOpen, setCropOpen, cropPurpose, cropTargetField, cropSource,
     logoGuide, bannerGuide, filteredTagOptions,
     orgChecklist, orgDone, orgProgress, orgNextSteps,
-    applyUploadedImage, handleImageUpload, handleMediaPickerSelect,
+    applyUploadedImage, handleImageUpload, handleMediaPickerSelect, handleMediaPickerSelectMedia,
     ...guide,
   };
 }

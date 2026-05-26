@@ -25,6 +25,7 @@ export interface ScriptSeriesLike {
   name?: string;
   summary?: string;
   coverUrl?: string;
+  coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
 }
 
 export interface BaseScriptApi {
@@ -39,6 +40,7 @@ export interface BaseScriptApi {
   status?: string;
   type?: string;
   coverUrl?: string | null;
+  coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
   markerThemeId?: string;
   markerTheme?: { configs?: MarkerConfig[] };
   customMetadata?: Array<{ key?: string; value?: string; type?: string }>;
@@ -135,6 +137,8 @@ export interface SeriesLike {
   id: string;
   name?: string;
   description?: string;
+  coverUrl?: string;
+  coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
 }
 
 export interface SeriesPayload {
@@ -142,6 +146,7 @@ export interface SeriesPayload {
   description?: string;
   summary?: string;
   coverUrl?: string;
+  coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
 }
 
 export interface PublicTermsConfig {
@@ -252,6 +257,7 @@ export interface ScriptMetadataUpdatePayload {
   status?: string;
   markerThemeId?: string | null;
   coverUrl?: string | null;
+  coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
   organizationId?: string | null;
   personaId?: string | null;
   disableCopy?: boolean;

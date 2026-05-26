@@ -23,7 +23,7 @@ import type { PersonaLike, OrgData } from "../../types/persona";
 import type { BaseScriptApi } from "../../types/api";
 
 interface TagData { id: string; name: string; }
-interface SeriesData { id: string; name?: string; summary?: string; coverUrl?: string; }
+interface SeriesData { id: string; name?: string; summary?: string; coverUrl?: string; coverCrop?: { cx?: number; cy?: number; zoom?: number } | null; }
 
 export type { SeriesData };
 
@@ -60,19 +60,26 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
   const [personaDraft, setPersonaDraft] = useState({
     displayName: "", bio: "", website: "",
     links: [] as Array<{ url?: string; label?: string }> | string,
-    avatar: "", bannerUrl: "", organizationIds: [] as string[], tags: [] as string[],
+    avatar: "", avatarCrop: null as { cx?: number; cy?: number; zoom?: number } | null,
+    bannerUrl: "", bannerCrop: null as { cx?: number; cy?: number; zoom?: number } | null,
+    organizationIds: [] as string[], tags: [] as string[],
     defaultLicenseCommercial: "", defaultLicenseDerivative: "", defaultLicenseNotify: "",
     defaultLicenseSpecialTerms: [] as string[],
   });
   const [personasLoadedAt, setPersonasLoadedAt] = useState(0);
-  const [orgDraft, setOrgDraft] = useState({ id: "", name: "", description: "", website: "", logoUrl: "", bannerUrl: "", tags: [] as string[] });
+  const [orgDraft, setOrgDraft] = useState({
+    id: "", name: "", description: "", website: "",
+    logoUrl: "", logoCrop: null as { cx?: number; cy?: number; zoom?: number } | null,
+    bannerUrl: "", bannerCrop: null as { cx?: number; cy?: number; zoom?: number } | null,
+    tags: [] as string[]
+  });
   const [personaTagInput, setPersonaTagInput] = useState("");
   const [orgTagInput, setOrgTagInput] = useState("");
   const [isWorksLoading, setIsWorksLoading] = useState(true);
   const [isMetaLoading, setIsMetaLoading] = useState(true);
   const [seriesList, setSeriesList] = useState<SeriesData[]>([]);
   const [selectedSeriesId, setSelectedSeriesId] = useState("");
-  const [seriesDraft, setSeriesDraft] = useState({ name: "", summary: "", coverUrl: "" });
+  const [seriesDraft, setSeriesDraft] = useState({ name: "", summary: "", coverUrl: "", coverCrop: null as { cx?: number; cy?: number; zoom?: number } | null });
   const [isSavingSeries, setIsSavingSeries] = useState(false);
   const tabsGuideRef = useRef<HTMLDivElement | null>(null);
 
@@ -265,7 +272,10 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
       setPersonaDraft({
         displayName: persona.displayName || "", bio: persona.bio || "",
         website: persona.website || "", links: links ?? [], avatar: persona.avatar || "",
-        bannerUrl: persona.bannerUrl || "", organizationIds: persona.organizationIds || [],
+        avatarCrop: (persona as { avatarCrop?: { cx?: number; cy?: number; zoom?: number } | null }).avatarCrop || null,
+        bannerUrl: persona.bannerUrl || "",
+        bannerCrop: (persona as { bannerCrop?: { cx?: number; cy?: number; zoom?: number } | null }).bannerCrop || null,
+        organizationIds: persona.organizationIds || [],
         tags: persona.tags || [], defaultLicenseCommercial: persona.defaultLicenseCommercial || "",
         defaultLicenseDerivative: persona.defaultLicenseDerivative || "",
         defaultLicenseNotify: persona.defaultLicenseNotify || "",
@@ -282,7 +292,17 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
   useEffect(() => {
     if (!selectedOrgId) return;
     const org = orgs.find(o => o.id === selectedOrgId);
-    if (org) setOrgDraft({ id: org.id, name: org.name || "", description: org.description || "", website: org.website || "", logoUrl: org.logoUrl || "", bannerUrl: org.bannerUrl || "", tags: org.tags || [] });
+    if (org) setOrgDraft({
+      id: org.id,
+      name: org.name || "",
+      description: org.description || "",
+      website: org.website || "",
+      logoUrl: org.logoUrl || "",
+      logoCrop: (org as { logoCrop?: { cx?: number; cy?: number; zoom?: number } | null }).logoCrop || null,
+      bannerUrl: org.bannerUrl || "",
+      bannerCrop: (org as { bannerCrop?: { cx?: number; cy?: number; zoom?: number } | null }).bannerCrop || null,
+      tags: org.tags || []
+    });
   }, [selectedOrgId, orgs]);
 
   const handleTabChange = useCallback((nextTab: string) => {

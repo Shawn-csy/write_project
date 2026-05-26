@@ -31,7 +31,9 @@ interface OrgItem {
     description?: string;
     website?: string;
     logoUrl?: string;
+    logoCrop?: { cx?: number; cy?: number; zoom?: number } | null;
     bannerUrl?: string;
+    bannerCrop?: { cx?: number; cy?: number; zoom?: number } | null;
     tags?: string[];
 }
 
@@ -41,7 +43,9 @@ interface OrgDraft {
     description: string;
     website: string;
     logoUrl: string;
+    logoCrop: { cx?: number; cy?: number; zoom?: number } | null;
     bannerUrl: string;
+    bannerCrop: { cx?: number; cy?: number; zoom?: number } | null;
     tags: string[];
 }
 
@@ -151,8 +155,8 @@ export function PublisherOrgTab({
         orgTagInput, tagOptions,
         canManageOrgMembers,
     });
-    const logoCrop = getMediaCropStyle(String(orgDraft.logoUrl || ""));
-    const bannerCrop = getMediaCropStyle(String(orgDraft.bannerUrl || ""));
+    const logoCrop = getMediaCropStyle(String(orgDraft.logoUrl || ""), orgDraft.logoCrop);
+    const bannerCrop = getMediaCropStyle(String(orgDraft.bannerUrl || ""), orgDraft.bannerCrop);
 
     const isReadOnlyExistingOrg = s.viewMode === "edit" && Boolean(selectedOrgId) && !canEditSelectedOrg;
 
@@ -317,7 +321,7 @@ export function PublisherOrgTab({
                                             id="org-logo-url"
                                             name="orgLogoUrl"
                                             value={orgDraft.logoUrl}
-                                            onChange={e => setOrgDraft({ ...orgDraft, logoUrl: e.target.value })}
+                                            onChange={e => setOrgDraft({ ...orgDraft, logoUrl: e.target.value, logoCrop: null })}
                                             placeholder="https://"
                                         />
                                         <div className="flex flex-wrap gap-2">
@@ -371,7 +375,7 @@ export function PublisherOrgTab({
                                             id="org-banner-url"
                                             name="orgBannerUrl"
                                             value={orgDraft.bannerUrl || ""}
-                                            onChange={e => setOrgDraft({ ...orgDraft, bannerUrl: e.target.value })}
+                                            onChange={e => setOrgDraft({ ...orgDraft, bannerUrl: e.target.value, bannerCrop: null })}
                                             placeholder="https://"
                                         />
                                         <div className="flex flex-wrap gap-2">
@@ -538,6 +542,7 @@ export function PublisherOrgTab({
             onOpenChange={s.setIsMediaPickerOpen}
             cropPurpose={s.mediaPickerTarget === "logo" ? "logo" : s.mediaPickerTarget === "banner" ? "banner" : null}
             onSelect={s.handleMediaPickerSelect}
+            onSelectMedia={s.handleMediaPickerSelectMedia}
         />
         <ImageCropDialog
             open={s.cropOpen}

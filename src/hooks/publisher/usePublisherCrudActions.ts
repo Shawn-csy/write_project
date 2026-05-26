@@ -9,7 +9,9 @@ interface PersonaDraft extends Partial<PersonaLike> {
   website: string;
   links: Array<{ url?: string; label?: string }> | string;
   avatar: string;
+  avatarCrop: { cx?: number; cy?: number; zoom?: number } | null;
   bannerUrl: string;
+  bannerCrop: { cx?: number; cy?: number; zoom?: number } | null;
   organizationIds: string[];
   tags: string[];
   defaultLicenseCommercial: string;
@@ -24,7 +26,9 @@ interface OrgDraft {
   description: string;
   website: string;
   logoUrl: string;
+  logoCrop: { cx?: number; cy?: number; zoom?: number } | null;
   bannerUrl: string;
+  bannerCrop: { cx?: number; cy?: number; zoom?: number } | null;
   tags: string[];
 }
 
@@ -88,7 +92,9 @@ export function usePublisherCrudActions({
         description: orgDraft.description,
         website: orgDraft.website,
         logoUrl: orgDraft.logoUrl,
+        logoCrop: orgDraft.logoCrop,
         bannerUrl: orgDraft.bannerUrl,
+        bannerCrop: orgDraft.bannerCrop,
         tags: orgDraft.tags,
       });
       await loadData(true);
@@ -139,7 +145,9 @@ export function usePublisherCrudActions({
         description: orgDraft.description,
         website: orgDraft.website,
         logoUrl: orgDraft.logoUrl,
+        logoCrop: orgDraft.logoCrop,
         bannerUrl: orgDraft.bannerUrl,
+        bannerCrop: orgDraft.bannerCrop,
         tags: orgDraft.tags,
       });
       await loadData(true);

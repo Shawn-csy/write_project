@@ -21,6 +21,7 @@ interface SeriesItem {
   name?: string;
   summary?: string;
   coverUrl?: string;
+  coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
   scriptCount?: number;
 }
 
@@ -28,6 +29,7 @@ interface SeriesDraft {
   name: string;
   summary: string;
   coverUrl: string;
+  coverCrop: { cx?: number; cy?: number; zoom?: number } | null;
 }
 
 interface SeriesScriptItem {
@@ -67,7 +69,7 @@ export function PublisherSeriesTab({
   const selected = seriesList.find((s) => s.id === selectedSeriesId) || null;
   const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState<boolean>(false);
   const [coverPreviewFailed, setCoverPreviewFailed] = React.useState<boolean>(false);
-  const cropCover = getMediaCropStyle(String(seriesDraft.coverUrl || ""));
+  const cropCover = getMediaCropStyle(String(seriesDraft.coverUrl || ""), seriesDraft.coverCrop);
 
   React.useEffect(() => {
     setCoverPreviewFailed(false);
@@ -75,7 +77,7 @@ export function PublisherSeriesTab({
 
   const onStartCreate = React.useCallback(() => {
     setSelectedSeriesId("");
-    setSeriesDraft({ name: "", summary: "", coverUrl: "" });
+    setSeriesDraft({ name: "", summary: "", coverUrl: "", coverCrop: null });
   }, [setSelectedSeriesId, setSeriesDraft]);
 
   return (
@@ -104,6 +106,7 @@ export function PublisherSeriesTab({
                   name: series.name || "",
                   summary: series.summary || "",
                   coverUrl: series.coverUrl || "",
+                  coverCrop: series.coverCrop || null,
                 });
               }}
               title={series.name}
@@ -141,7 +144,7 @@ export function PublisherSeriesTab({
           <div className="space-y-2">
             <Input
               value={seriesDraft.coverUrl}
-              onChange={(e) => setSeriesDraft((prev) => ({ ...prev, coverUrl: e.target.value }))}
+              onChange={(e) => setSeriesDraft((prev) => ({ ...prev, coverUrl: e.target.value, coverCrop: null }))}
               placeholder="https://..."
             />
             <div>
@@ -247,6 +250,10 @@ export function PublisherSeriesTab({
         onSelect={(url) => {
           if (!url) return;
           setSeriesDraft((prev) => ({ ...prev, coverUrl: url }));
+        }}
+        onSelectMedia={(selection) => {
+          if (!selection?.url) return;
+          setSeriesDraft((prev) => ({ ...prev, coverUrl: selection.url, coverCrop: selection.crop || null }));
         }}
       />
     </PublisherSplitPanel>
