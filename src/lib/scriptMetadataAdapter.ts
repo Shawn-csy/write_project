@@ -143,6 +143,11 @@ export function fromApiToDraft(
   draft.seriesOrder = api.seriesOrder ?? "";
   draft.seriesName = String(api.series?.name || "");
   draft.organizationId = api.organizationId ?? null;
+  // Structured content fields (PR-E1+) — preferred over customMetadata
+  draft.synopsis = String(api.synopsis || "");
+  draft.outline = String(api.outline || "");
+  draft.activityName = String(api.activityName || "");
+  draft.activityBannerUrl = String(api.activityBannerUrl || "");
 
   // persona / identity
   if (api.personaId) {
@@ -209,16 +214,16 @@ export function fromApiToDraft(
   // copyright
   draft.copyright = String(meta.copyright || "");
 
-  // content-only custom fields
-  draft.synopsis = String(meta.synopsis || meta.summary || meta.description || meta.notes || "");
-  draft.outline = String(meta.outline || "");
+  // content-only custom fields — structured fields win, custom is legacy fallback
+  draft.synopsis = draft.synopsis || String(meta.synopsis || meta.summary || meta.description || meta.notes || "");
+  draft.outline = draft.outline || String(meta.outline || "");
   draft.roleSetting = String(meta.rolesetting || "");
   draft.backgroundInfo = String(meta.backgroundinfo || "");
   draft.performanceInstruction = String(meta.performanceinstruction || "");
   draft.openingIntro = String(meta.openingintro || meta.setting || meta.settingintro || "");
   draft.chapterSettings = String(meta.chaptersettings || "");
-  draft.activityName = String(meta.activityname || meta.eventname || "");
-  draft.activityBannerUrl = String(meta.activitybanner || meta.eventbanner || "");
+  draft.activityName = draft.activityName || String(meta.activityname || meta.eventname || "");
+  draft.activityBannerUrl = draft.activityBannerUrl || String(meta.activitybanner || meta.eventbanner || "");
   draft.activityContent = String(meta.activitycontent || meta.eventcontent || "");
   draft.activityWorkUrl = String(meta.activityworkurl || meta.eventworklink || "");
 
@@ -335,6 +340,10 @@ export function fromDraftToPayload(
       Number.isFinite(Number(draft.seriesOrder)) && Number(draft.seriesOrder) >= 0
         ? Math.floor(Number(draft.seriesOrder))
         : null,
+    synopsis: draft.synopsis || null,
+    outline: draft.outline || null,
+    activityName: draft.activityName || null,
+    activityBannerUrl: draft.activityBannerUrl || null,
   };
 
   if (!shouldPreserve) {

@@ -51,6 +51,11 @@ describe("scriptMetadataPayload", () => {
     expect(entries.find((entry) => entry.key === "LicenseNotify")).toBeUndefined();
     expect(entries.find((entry) => entry.key === "LicenseSpecialTerms")).toBeUndefined();
     expect(entries.find((entry) => entry.key === "LicenseTags")).toBeUndefined();
+    // Content fields (PR-E2): now owned by structured api fields — must not appear in customMetadata
+    expect(entries.find((entry) => entry.key === "Synopsis")).toBeUndefined();
+    expect(entries.find((entry) => entry.key === "Outline")).toBeUndefined();
+    expect(entries.find((entry) => entry.key === "ActivityName")).toBeUndefined();
+    expect(entries.find((entry) => entry.key === "ActivityBanner")).toBeUndefined();
   });
 
   it("applyPreservedAuthorEntries replaces author-related entries", () => {

@@ -60,14 +60,13 @@ export function buildCustomMetadataEntries(
   // Author and AuthorDisplayMode are RESERVED_CUSTOM_KEYS owned by structured api.author field.
   // Do NOT write Author or AuthorDisplayMode into customMetadata.
   // (preserveAuthor path handled separately via applyPreservedAuthorEntries in the save hook.)
-  if (fields.outline) orderedEntries.push({ key: "Outline", value: fields.outline });
+  // Outline/Synopsis/ActivityName/ActivityBanner are RESERVED_CUSTOM_KEYS — now owned by structured fields.
+  // Do NOT write them into customMetadata. Legacy read-path in fromApiToDraft is preserved.
   if (fields.roleSetting) orderedEntries.push({ key: "RoleSetting", value: fields.roleSetting });
   if (fields.backgroundInfo) orderedEntries.push({ key: "BackgroundInfo", value: fields.backgroundInfo });
   if (fields.performanceInstruction) orderedEntries.push({ key: "PerformanceInstruction", value: fields.performanceInstruction });
   if (fields.openingIntro) orderedEntries.push({ key: "OpeningIntro", value: fields.openingIntro });
   if (fields.chapterSettings) orderedEntries.push({ key: "ChapterSettings", value: fields.chapterSettings });
-  if (fields.activityName) orderedEntries.push({ key: "ActivityName", value: fields.activityName });
-  if (fields.activityBannerUrl) orderedEntries.push({ key: "ActivityBanner", value: fields.activityBannerUrl });
   if (fields.activityContent) orderedEntries.push({ key: "ActivityContent", value: fields.activityContent });
 
   const serializedDemoLinks = serializeActivityDemoLinks(fields.activityDemoLinks);
@@ -87,7 +86,7 @@ export function buildCustomMetadataEntries(
     orderedEntries.push({ key: "Contact", value: contactVal });
   }
 
-  if (fields.synopsis) orderedEntries.push({ key: "Synopsis", value: fields.synopsis });
+  // Synopsis is a RESERVED_CUSTOM_KEY — now owned by structured api.synopsis field.
   // Series and SeriesOrder are now owned by structured API fields (seriesId / seriesOrder).
   // Do NOT write Series or SeriesOrder into customMetadata — they are RESERVED_CUSTOM_KEYS.
 

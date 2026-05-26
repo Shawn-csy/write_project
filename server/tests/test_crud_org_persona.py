@@ -186,12 +186,12 @@ def test_transfer_script_ownership_and_engagement(db_session):
     db_session.refresh(script)
     assert script.views == 1
 
-    liked = crud.toggle_script_like(db_session, script.id, new_owner_id)
+    liked, _ = crud.toggle_script_like(db_session, script.id, user_id=new_owner_id)
     assert liked is True
     db_session.refresh(script)
     assert script.likes == 1
 
-    liked = crud.toggle_script_like(db_session, script.id, new_owner_id)
+    liked, _ = crud.toggle_script_like(db_session, script.id, user_id=new_owner_id)
     assert liked is False
     db_session.refresh(script)
     assert script.likes == 0

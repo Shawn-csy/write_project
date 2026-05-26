@@ -261,8 +261,12 @@ class ScriptCreate(ScriptBase):
     licenseCommercial: Optional[str] = None
     licenseDerivative: Optional[str] = None
     licenseNotify: Optional[str] = None
+    synopsis: Optional[str] = None
+    outline: Optional[str] = None
+    activityName: Optional[str] = None
+    activityBannerUrl: Optional[str] = None
     customMetadata: Optional[List[Dict[str, Any]]] = None
-    
+
 class ScriptUpdate(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
@@ -284,6 +288,10 @@ class ScriptUpdate(BaseModel):
     licenseCommercial: Optional[str] = None
     licenseDerivative: Optional[str] = None
     licenseNotify: Optional[str] = None
+    synopsis: Optional[str] = None
+    outline: Optional[str] = None
+    activityName: Optional[str] = None
+    activityBannerUrl: Optional[str] = None
     customMetadata: Optional[List[Dict[str, Any]]] = None
 
 class ScriptReorderItem(BaseModel):
@@ -328,6 +336,10 @@ class Script(BaseModel):
     seriesId: Optional[str] = None
     seriesOrder: Optional[int] = None
     series: Optional[Series] = None
+    synopsis: Optional[str] = None
+    outline: Optional[str] = None
+    activityName: Optional[str] = None
+    activityBannerUrl: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -362,6 +374,10 @@ class ScriptSummary(BaseModel):
     seriesId: Optional[str] = None
     seriesOrder: Optional[int] = None
     series: Optional[Series] = None
+    synopsis: Optional[str] = None
+    outline: Optional[str] = None
+    activityName: Optional[str] = None
+    activityBannerUrl: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -382,6 +398,10 @@ class ScriptAdminMetadataUpdate(BaseModel):
     licenseCommercial: Optional[str] = None
     licenseDerivative: Optional[str] = None
     licenseNotify: Optional[str] = None
+    synopsis: Optional[str] = None
+    outline: Optional[str] = None
+    activityName: Optional[str] = None
+    activityBannerUrl: Optional[str] = None
     customMetadata: Optional[List[Dict[str, Any]]] = None
     tags: Optional[List[int]] = None
 

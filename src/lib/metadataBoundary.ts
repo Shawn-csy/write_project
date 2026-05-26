@@ -19,6 +19,10 @@ export const RESERVED_CUSTOM_KEYS = new Set([
   "seriesorder",
   "marker_legend",
   "show_legend",
+  "synopsis",
+  "outline",
+  "activityname",
+  "activitybanner",
 ]);
 
 /** Normalize a customMetadata key for comparison against RESERVED_CUSTOM_KEYS. */

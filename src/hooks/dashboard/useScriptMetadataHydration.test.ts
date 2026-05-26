@@ -146,4 +146,56 @@ describe("useScriptMetadataHydration", () => {
 
     expect(params.setIdentity).toHaveBeenCalledWith("");
   });
+
+  it("prefers structured synopsis/outline/activityName/activityBannerUrl over custom keys", async () => {
+    const params = buildParams();
+    const { result } = renderHook(() => useScriptMetadataHydration(params));
+
+    await act(async () => {
+      await result.current({
+        id: "s-5",
+        title: "structured",
+        synopsis: "結構化簡介",
+        outline: "結構化大綱",
+        activityName: "結構化活動名",
+        activityBannerUrl: "https://example.com/banner.jpg",
+        customMetadata: [
+          { key: "Synopsis", value: "舊 custom 簡介" },
+          { key: "Outline", value: "舊 custom 大綱" },
+          { key: "ActivityName", value: "舊 custom 活動名" },
+          { key: "ActivityBanner", value: "https://example.com/old-banner.jpg" },
+        ],
+        tags: [],
+      });
+    });
+
+    expect(params.setSynopsis).toHaveBeenCalledWith("結構化簡介");
+    expect(params.setOutline).toHaveBeenCalledWith("結構化大綱");
+    expect(params.setActivityName).toHaveBeenCalledWith("結構化活動名");
+    expect(params.setActivityBannerUrl).toHaveBeenCalledWith("https://example.com/banner.jpg");
+  });
+
+  it("falls back to custom synopsis/outline/activityName/activityBannerUrl when structured fields are absent", async () => {
+    const params = buildParams();
+    const { result } = renderHook(() => useScriptMetadataHydration(params));
+
+    await act(async () => {
+      await result.current({
+        id: "s-6",
+        title: "legacy",
+        customMetadata: [
+          { key: "Synopsis", value: "legacy 簡介" },
+          { key: "Outline", value: "legacy 大綱" },
+          { key: "ActivityName", value: "legacy 活動名" },
+          { key: "ActivityBanner", value: "https://example.com/legacy-banner.jpg" },
+        ],
+        tags: [],
+      });
+    });
+
+    expect(params.setSynopsis).toHaveBeenCalledWith("legacy 簡介");
+    expect(params.setOutline).toHaveBeenCalledWith("legacy 大綱");
+    expect(params.setActivityName).toHaveBeenCalledWith("legacy 活動名");
+    expect(params.setActivityBannerUrl).toHaveBeenCalledWith("https://example.com/legacy-banner.jpg");
+  });
 });

@@ -215,7 +215,7 @@ export function usePublicReaderScript({ id, scriptManager }: Props) {
 
           const publicProjection = buildPublicReaderProjection({
             title: script.title || "Untitled",
-            synopsis: meta.synopsis || meta.summary || "",
+            synopsis: String(script.synopsis || meta.synopsis || meta.summary || ""),
             coverUrl: script.coverUrl || null,
             coverCrop: (script as { coverCrop?: { cx?: number; cy?: number; zoom?: number } | null }).coverCrop || null,
             author: resolvedAuthor,
@@ -232,8 +232,8 @@ export function usePublicReaderScript({ id, scriptManager }: Props) {
             notifyOnModify: basicLicense.notifyOnModify,
             licenseSpecialTerms: ensureList(meta.licensespecialterms || meta.licenseSpecialTerms),
             activity: {
-              name: String(meta.activityname || meta.eventname || "").trim(),
-              bannerUrl: String(meta.activitybanner || meta.eventbanner || "").trim(),
+              name: String(script.activityName || meta.activityname || meta.eventname || "").trim(),
+              bannerUrl: String(script.activityBannerUrl || meta.activitybanner || meta.eventbanner || "").trim(),
               bannerCrop: null,
               content: String(meta.activitycontent || meta.eventcontent || "").trim(),
               demoUrl: String(meta.activitydemourl || meta.eventdemolink || "").trim(),
