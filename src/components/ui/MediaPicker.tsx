@@ -6,7 +6,6 @@ import { useMediaLibrary } from "../../hooks/useMediaLibrary";
 import { ImageCropDialog } from "./ImageCropDialog";
 import { uploadMediaObject } from "../../lib/api/media";
 import { MediaLibraryBrowser } from "../media/MediaLibraryBrowser";
-import { encodeMediaCropRef } from "../../lib/mediaCropRef";
 import type { MediaCropRef } from "../../lib/mediaCropRef";
 
 export interface MediaSelection {
@@ -62,7 +61,7 @@ export function MediaPicker({ open, onOpenChange, onSelect, onSelectMedia, cropP
         }
         setCropSource({ url: item.url, name: item.name || "media-image" });
         setCropOpen(true);
-    }, [cropPurpose, onOpenChange, onSelect]);
+    }, [cropPurpose, onOpenChange, onSelect, onSelectMedia]);
 
     const selectedItem = React.useMemo(
         () => items.find((item) => item.id === selectedId) || null,
@@ -127,7 +126,7 @@ export function MediaPicker({ open, onOpenChange, onSelect, onSelectMedia, cropP
             confirmLabel={t("mediaLibrary.cropThenUse", "裁切後使用")}
             applyCropRefLabel={t("mediaLibrary.applyCropFrame", "套用裁切框")}
             onApplyCropRef={cropSource?.url ? (crop) => {
-                onSelect(encodeMediaCropRef(cropSource.url as string, crop));
+                onSelect(cropSource.url as string);
                 onSelectMedia?.({ url: cropSource.url as string, crop });
                 onOpenChange(false);
             } : undefined}
