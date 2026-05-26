@@ -5,6 +5,7 @@ import { useToast } from "../../components/ui/toast";
 import { searchOrganizations, requestToJoinOrganization, getMyOrganizationRequests } from "../../lib/api/organizations";
 import { uploadMediaObject } from "../../lib/api/media";
 import { optimizeImageForUpload, getImageUploadGuide } from "../../lib/mediaLibrary";
+import type { MediaSelection } from "../../components/ui/MediaPicker";
 
 export interface PersonaLink {
   label?: string;
@@ -18,7 +19,9 @@ export interface PersonaItem {
   website?: string;
   links?: PersonaLink[] | string;
   avatar?: string;
+  avatarCrop?: { cx?: number; cy?: number; zoom?: number } | null;
   bannerUrl?: string;
+  bannerCrop?: { cx?: number; cy?: number; zoom?: number } | null;
   organizationIds?: string[];
   tags?: string[];
   defaultLicenseCommercial?: string;
@@ -33,7 +36,9 @@ export interface PersonaDraft {
   website: string;
   links: PersonaLink[] | string;
   avatar: string;
+  avatarCrop: { cx?: number; cy?: number; zoom?: number } | null;
   bannerUrl: string;
+  bannerCrop: { cx?: number; cy?: number; zoom?: number } | null;
   organizationIds: string[];
   tags: string[];
   defaultLicenseCommercial: string;
@@ -218,7 +223,8 @@ export function usePublisherProfileState({
       const uploaded = await uploadMediaObject(optimized.file, field === "avatar" ? "avatar" : "banner");
       const nextUrl = String(uploaded?.url || "").trim();
       if (!nextUrl) throw new Error(t("mediaLibrary.uploadFailed"));
-      setPersonaDraft(prev => ({ ...prev, [field]: nextUrl }));
+      const cropField = field === "avatar" ? "avatarCrop" : "bannerCrop";
+      setPersonaDraft(prev => ({ ...prev, [field]: nextUrl, [cropField]: null }));
       if (field === "avatar") { setAvatarUploadError(""); setAvatarUploadWarning(optimized.warning || ""); setAvatarPreviewFailed(false); }
       else { setBannerUploadError(""); setBannerUploadWarning(optimized.warning || ""); setBannerPreviewFailed(false); }
     } catch (error: unknown) {
@@ -241,7 +247,7 @@ export function usePublisherProfileState({
   const onStartCreate = () => {
     setSelectedPersonaId(null);
     setPersonaDraft({
-      displayName: "", bio: "", website: "", links: [], avatar: "", bannerUrl: "",
+      displayName: "", bio: "", website: "", links: [], avatar: "", avatarCrop: null, bannerUrl: "", bannerCrop: null,
       organizationIds: [], tags: [],
       defaultLicenseCommercial: "", defaultLicenseDerivative: "", defaultLicenseNotify: "",
       defaultLicenseSpecialTerms: [],
@@ -271,10 +277,20 @@ export function usePublisherProfileState({
 
   const handleMediaPickerSelect = (url: string) => {
     if (mediaPickerTarget === "avatar") {
-      setPersonaDraft(prev => ({ ...prev, avatar: url }));
+      setPersonaDraft(prev => ({ ...prev, avatar: url, avatarCrop: null }));
       setAvatarPreviewFailed(false); setAvatarUploadError(""); setAvatarUploadWarning("");
     } else if (mediaPickerTarget === "banner") {
-      setPersonaDraft(prev => ({ ...prev, bannerUrl: url }));
+      setPersonaDraft(prev => ({ ...prev, bannerUrl: url, bannerCrop: null }));
+      setBannerPreviewFailed(false); setBannerUploadError(""); setBannerUploadWarning("");
+    }
+  };
+
+  const handleMediaPickerSelectMedia = (selection: MediaSelection) => {
+    if (mediaPickerTarget === "avatar") {
+      setPersonaDraft(prev => ({ ...prev, avatar: selection.url, avatarCrop: selection.crop || null }));
+      setAvatarPreviewFailed(false); setAvatarUploadError(""); setAvatarUploadWarning("");
+    } else if (mediaPickerTarget === "banner") {
+      setPersonaDraft(prev => ({ ...prev, bannerUrl: selection.url, bannerCrop: selection.crop || null }));
       setBannerPreviewFailed(false); setBannerUploadError(""); setBannerUploadWarning("");
     }
   };
@@ -304,5 +320,6 @@ export function usePublisherProfileState({
     handleImageUpload,
     handleRequestJoinOrg,
     handleMediaPickerSelect,
+    handleMediaPickerSelectMedia,
   };
 }

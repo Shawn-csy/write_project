@@ -10,7 +10,9 @@ export interface PersonaLike {
   website?: string;
   links?: LinkItem[] | string;
   avatar?: string;
+  avatarCrop?: { cx?: number; cy?: number; zoom?: number } | null;
   bannerUrl?: string;
+  bannerCrop?: { cx?: number; cy?: number; zoom?: number } | null;
   organizationIds?: string[];
   tags?: string[];
   defaultLicenseCommercial?: string;
@@ -26,7 +28,9 @@ export interface OrgData {
   description?: string;
   website?: string;
   logoUrl?: string;
+  logoCrop?: { cx?: number; cy?: number; zoom?: number } | null;
   bannerUrl?: string;
+  bannerCrop?: { cx?: number; cy?: number; zoom?: number } | null;
   tags?: string[];
   ownerId?: string;
   organizationRole?: string;

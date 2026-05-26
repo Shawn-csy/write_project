@@ -7,11 +7,18 @@ import { ImageCropDialog } from "./ImageCropDialog";
 import { uploadMediaObject } from "../../lib/api/media";
 import { MediaLibraryBrowser } from "../media/MediaLibraryBrowser";
 import { encodeMediaCropRef } from "../../lib/mediaCropRef";
+import type { MediaCropRef } from "../../lib/mediaCropRef";
+
+export interface MediaSelection {
+    url: string;
+    crop: MediaCropRef | null;
+}
 
 interface MediaPickerProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onSelect: (url: string) => void;
+    onSelectMedia?: (selection: MediaSelection) => void;
     cropPurpose?: "avatar" | "logo" | "cover" | "banner" | "generic" | null;
 }
 
@@ -20,7 +27,7 @@ interface CropSource {
     name: string;
 }
 
-export function MediaPicker({ open, onOpenChange, onSelect, cropPurpose = null }: MediaPickerProps): React.JSX.Element {
+export function MediaPicker({ open, onOpenChange, onSelect, onSelectMedia, cropPurpose = null }: MediaPickerProps): React.JSX.Element {
     const { t } = useI18n();
     const [query, setQuery] = React.useState("");
     const [sortBy, setSortBy] = React.useState<"newest" | "name" | "size">("newest");
@@ -49,6 +56,7 @@ export function MediaPicker({ open, onOpenChange, onSelect, cropPurpose = null }
         if (!item?.url) return;
         if (!cropPurpose) {
             onSelect(item.url);
+            onSelectMedia?.({ url: item.url, crop: null });
             onOpenChange(false);
             return;
         }
@@ -95,6 +103,7 @@ export function MediaPicker({ open, onOpenChange, onSelect, cropPurpose = null }
                             variant="outline"
                             onClick={() => {
                                 onSelect(selectedItem.url);
+                                onSelectMedia?.({ url: selectedItem.url, crop: null });
                                 onOpenChange(false);
                             }}
                         >
@@ -119,6 +128,7 @@ export function MediaPicker({ open, onOpenChange, onSelect, cropPurpose = null }
             applyCropRefLabel={t("mediaLibrary.applyCropFrame", "套用裁切框")}
             onApplyCropRef={cropSource?.url ? (crop) => {
                 onSelect(encodeMediaCropRef(cropSource.url as string, crop));
+                onSelectMedia?.({ url: cropSource.url as string, crop });
                 onOpenChange(false);
             } : undefined}
             onConfirm={async (croppedFile: File) => {
@@ -126,6 +136,7 @@ export function MediaPicker({ open, onOpenChange, onSelect, cropPurpose = null }
                 const url = String(uploaded?.url || "").trim();
                 if (!url) throw new Error(t("mediaLibrary.uploadFailed", "上傳失敗"));
                 onSelect(url);
+                onSelectMedia?.({ url, crop: null });
                 onOpenChange(false);
             }}
         />

@@ -61,8 +61,8 @@ export function PersonaProfileForm({
   orgSearchResults, handleRequestJoinOrg, myOrgRequests,
   personaTagInput, setPersonaTagInput, parseTags, addTags, getTagStyle, filteredTagOptions,
 }: Props) {
-  const avatarCrop = getMediaCropStyle(String(personaDraft.avatar || ""));
-  const bannerCrop = getMediaCropStyle(String(personaDraft.bannerUrl || ""));
+  const avatarCrop = getMediaCropStyle(String(personaDraft.avatar || ""), personaDraft.avatarCrop);
+  const bannerCrop = getMediaCropStyle(String(personaDraft.bannerUrl || ""), personaDraft.bannerCrop);
 
   return (
     <>
@@ -98,7 +98,7 @@ export function PersonaProfileForm({
               <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">Avatar</div>
             )}
           </div>
-          <Input id="persona-avatar-url" name="personaAvatarUrl" value={personaDraft.avatar} onChange={e => setPersonaDraft({ ...personaDraft, avatar: e.target.value })} className="text-xs h-8" />
+          <Input id="persona-avatar-url" name="personaAvatarUrl" value={personaDraft.avatar} onChange={e => setPersonaDraft({ ...personaDraft, avatar: e.target.value, avatarCrop: null })} className="text-xs h-8" />
           <div className="flex flex-wrap gap-2">
             <label className="inline-flex cursor-pointer items-center justify-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
               {t("publisherProfileTab.uploadAvatar")}
@@ -127,7 +127,7 @@ export function PersonaProfileForm({
               <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">Banner</div>
             )}
           </div>
-          <Input id="persona-banner-url" name="personaBannerUrl" value={personaDraft.bannerUrl || ""} onChange={e => setPersonaDraft({ ...personaDraft, bannerUrl: e.target.value })} className="text-xs h-8" />
+          <Input id="persona-banner-url" name="personaBannerUrl" value={personaDraft.bannerUrl || ""} onChange={e => setPersonaDraft({ ...personaDraft, bannerUrl: e.target.value, bannerCrop: null })} className="text-xs h-8" />
           <div className="flex flex-wrap gap-2">
             <label className="inline-flex cursor-pointer items-center justify-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
               {t("publisherProfileTab.uploadBanner")}

@@ -9,6 +9,7 @@ interface SeriesData {
   name?: string;
   summary?: string;
   coverUrl?: string;
+  coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
   scriptCount?: number;
 }
 
@@ -16,6 +17,7 @@ interface SeriesDraft {
   name: string;
   summary: string;
   coverUrl: string;
+  coverCrop: { cx?: number; cy?: number; zoom?: number } | null;
 }
 
 interface ToastLike {
@@ -53,6 +55,7 @@ export function usePublisherSeriesActions({
         name: seriesDraft.name.trim(),
         summary: seriesDraft.summary || "",
         coverUrl: seriesDraft.coverUrl || "",
+        coverCrop: seriesDraft.coverCrop || null,
       });
       setSeriesList((prev) => [created as SeriesData, ...prev]);
       setSelectedSeriesId(created.id);
@@ -73,6 +76,7 @@ export function usePublisherSeriesActions({
         name: seriesDraft.name.trim(),
         summary: seriesDraft.summary || "",
         coverUrl: seriesDraft.coverUrl || "",
+        coverCrop: seriesDraft.coverCrop || null,
       });
       setSeriesList((prev) => prev.map((series) => (series.id === updated.id ? (updated as SeriesData) : series)));
       toast({ title: "已更新系列" });
@@ -91,7 +95,7 @@ export function usePublisherSeriesActions({
       await deleteSeries(selectedSeriesId);
       setSeriesList((prev) => prev.filter((series) => series.id !== selectedSeriesId));
       setSelectedSeriesId("");
-      setSeriesDraft({ name: "", summary: "", coverUrl: "" });
+      setSeriesDraft({ name: "", summary: "", coverUrl: "", coverCrop: null });
       setScripts((prev: BaseScriptApi[]) =>
         prev.map((script) =>
           script.seriesId === selectedSeriesId

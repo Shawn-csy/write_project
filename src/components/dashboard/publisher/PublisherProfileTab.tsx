@@ -68,7 +68,7 @@ export function PublisherProfileTab(props: PublisherProfileTabProps): React.JSX.
     cropOpen, setCropOpen, cropPurpose, cropTargetField, cropSource,
     avatarGuide, bannerGuide, hasPersona, filteredTagOptions, safeLinks,
     profileProgress, profileDone, profileNextSteps, missingRequiredFields, suggestedFields,
-    jumpToRequiredField, applyUploadedImage, handleImageUpload, handleRequestJoinOrg, handleMediaPickerSelect,
+    jumpToRequiredField, applyUploadedImage, handleImageUpload, handleRequestJoinOrg, handleMediaPickerSelect, handleMediaPickerSelectMedia,
   } = state;
 
   const profileChecklistLength = 6; // matches hook's checklist array length
@@ -106,7 +106,10 @@ export function PublisherProfileTab(props: PublisherProfileTabProps): React.JSX.
           ) : null}
         >
           {personas.map((p) => {
-            const avatarCrop = getMediaCropStyle(String(p.avatar || ""));
+            const avatarCrop = getMediaCropStyle(
+              String(p.avatar || ""),
+              (p as { avatarCrop?: { cx?: number; cy?: number; zoom?: number } | null }).avatarCrop
+            );
             return (
               <PublisherEntityListItem
                 key={p.id}
@@ -218,6 +221,7 @@ export function PublisherProfileTab(props: PublisherProfileTabProps): React.JSX.
         open={isMediaPickerOpen} onOpenChange={setIsMediaPickerOpen}
         cropPurpose={mediaPickerTarget === "avatar" ? "avatar" : mediaPickerTarget === "banner" ? "banner" : null}
         onSelect={handleMediaPickerSelect}
+        onSelectMedia={handleMediaPickerSelectMedia}
       />
       <ImageCropDialog
         open={cropOpen} onOpenChange={setCropOpen}

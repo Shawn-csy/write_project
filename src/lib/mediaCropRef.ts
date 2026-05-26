@@ -6,6 +6,12 @@ export interface MediaCropRef {
   zoom: number; // >= 1 preferred
 }
 
+export interface MediaCropLike {
+  cx?: number | null;
+  cy?: number | null;
+  zoom?: number | null;
+}
+
 const HASH_KEY = "srCrop";
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
@@ -41,13 +47,28 @@ export function decodeMediaCropRef(url: string): { src: string; crop: MediaCropR
   }
 }
 
-export function getMediaCropStyle(url: string) {
-  const { src, crop } = decodeMediaCropRef(url);
-  if (!crop) return { src, style: undefined as React.CSSProperties | undefined };
+export function normalizeMediaCropLike(crop: MediaCropLike | null | undefined): MediaCropRef | null {
+  if (!crop || typeof crop !== "object") return null;
+  const cx = Number(crop.cx ?? 0);
+  const cy = Number(crop.cy ?? 0);
+  const zoom = Number(crop.zoom ?? 1);
+  if (!Number.isFinite(cx) || !Number.isFinite(cy) || !Number.isFinite(zoom)) return null;
+  return {
+    cx: clamp(cx, -1, 1),
+    cy: clamp(cy, -1, 1),
+    zoom: clamp(zoom, 0.35, 3),
+  };
+}
+
+export function getMediaCropStyle(url: string, cropOverride?: MediaCropLike | null) {
+  const { src, crop: hashCrop } = decodeMediaCropRef(url);
+  const crop = normalizeMediaCropLike(cropOverride) || hashCrop;
+  if (!crop) return { src, style: undefined as React.CSSProperties | undefined, crop: null as MediaCropRef | null };
   const x = 50 + crop.cx * 20;
   const y = 50 + crop.cy * 20;
   return {
     src,
+    crop,
     style: {
       objectPosition: `${x}% ${y}%`,
       transform: `scale(${crop.zoom})`,
