@@ -52,8 +52,8 @@ def _backfill_content_fields(conn):
         ("activityDemoLinks", ["activitydemolinks", "eventdemolinks"]),
     ]
     rows = conn.execute(text(
-        "SELECT id, customMetadata, synopsis, outline, activityName, activityBannerUrl, "
-        "activityContent, activityWorkUrl, activityDemoLinks FROM scripts"
+        'SELECT id, "customMetadata", synopsis, outline, "activityName", "activityBannerUrl", '
+        '"activityContent", "activityWorkUrl", "activityDemoLinks" FROM scripts'
     )).fetchall()
     migrated = 0
     for row in rows:
