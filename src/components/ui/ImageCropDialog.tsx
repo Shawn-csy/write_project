@@ -4,6 +4,7 @@ import { Button } from "./button";
 import { Slider } from "./slider";
 import { Loader2 } from "lucide-react";
 import { useI18n } from "../../contexts/I18nContext";
+import type { MediaCropRef } from "../../lib/mediaCropRef";
 
 const PURPOSE_PRESETS = {
   avatar: { aspect: 1, outputWidth: 512, outputHeight: 512 },
@@ -35,6 +36,9 @@ interface ImageCropDialogProps {
   source: ImageSource | null;
   purpose?: PurposeKey;
   onConfirm: (file: File) => Promise<void> | void;
+  confirmLabel?: string;
+  onApplyCropRef?: (crop: MediaCropRef) => void;
+  applyCropRefLabel?: string;
 }
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
@@ -63,6 +67,9 @@ export function ImageCropDialog({
   source,
   purpose = "generic",
   onConfirm,
+  confirmLabel,
+  onApplyCropRef,
+  applyCropRefLabel,
 }: ImageCropDialogProps): React.JSX.Element {
   const { t } = useI18n();
   const preset = PURPOSE_PRESETS[purpose] || PURPOSE_PRESETS.generic;
@@ -242,17 +249,25 @@ export function ImageCropDialog({
     }
   };
 
+  const handleApplyCropRef = () => {
+    if (!computed || !onApplyCropRef) return;
+    const cx = computed.maxX > 0 ? clamp(computed.clampedX / computed.maxX, -1, 1) : 0;
+    const cy = computed.maxY > 0 ? clamp(computed.clampedY / computed.maxY, -1, 1) : 0;
+    onApplyCropRef({ cx, cy, zoom });
+    onOpenChange(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
+      <DialogContent className="w-[95vw] max-w-3xl h-[92dvh] sm:h-auto flex flex-col p-0 gap-0 overflow-hidden">
+        <DialogHeader className="px-4 pt-4 pb-2 sm:px-6 sm:pt-5 sm:pb-3 border-b shrink-0">
           <DialogTitle>{t("mediaLibrary.cropTitle", "裁切圖片")}</DialogTitle>
           <DialogDescription>
             {t("mediaLibrary.cropDesc", "拖曳圖片調整位置，並使用縮放控制裁切範圍。")}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3">
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 sm:px-6 space-y-3">
           <div
             ref={frameRef}
             className="relative mx-auto overflow-hidden rounded-lg border touch-none"
@@ -352,13 +367,18 @@ export function ImageCropDialog({
           ) : null}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0 border-t bg-background/95 px-4 py-3 sm:px-6 [padding-bottom:calc(0.75rem+env(safe-area-inset-bottom))]">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t("common.cancel", "取消")}
           </Button>
+          {onApplyCropRef ? (
+            <Button variant="outline" onClick={handleApplyCropRef} disabled={isLoading || isSubmitting || !computed}>
+              {applyCropRefLabel || t("mediaLibrary.applyCropFrame", "套用裁切框")}
+            </Button>
+          ) : null}
           <Button onClick={handleConfirm} disabled={isLoading || isSubmitting || !computed}>
             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            {t("common.confirm", "確認")}
+            {confirmLabel || t("common.confirm", "確認")}
           </Button>
         </DialogFooter>
       </DialogContent>

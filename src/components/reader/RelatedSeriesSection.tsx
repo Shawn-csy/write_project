@@ -1,6 +1,7 @@
 import React from "react";
 import { CoverPlaceholder } from "../ui/CoverPlaceholder";
 import { useI18n } from "../../contexts/I18nContext";
+import { getMediaCropStyle } from "../../lib/mediaCropRef";
 
 interface RelatedSeriesScriptItem {
   id: string;
@@ -48,7 +49,9 @@ export function RelatedSeriesSection({
         </div>
       </div>
       <div className="flex gap-3 overflow-x-auto pb-1">
-        {relatedSeriesScripts.map((item) => (
+        {relatedSeriesScripts.map((item) => {
+          const cropCover = getMediaCropStyle(String(item.coverUrl || ""));
+          return (
           <button
             key={item.id}
             type="button"
@@ -58,7 +61,8 @@ export function RelatedSeriesSection({
             <div className="aspect-[2/3] overflow-hidden rounded-md border border-border/60 bg-muted/30">
               {item.coverUrl ? (
                 <img
-                  src={item.coverUrl}
+                  src={cropCover.src}
+                  style={cropCover.style}
                   alt={item.title}
                   className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
                   loading="lazy"
@@ -80,7 +84,8 @@ export function RelatedSeriesSection({
               </p>
             </div>
           </button>
-        ))}
+          );
+        })}
       </div>
     </section>
   );

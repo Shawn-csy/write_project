@@ -6,6 +6,7 @@ import { PublisherFormRow } from "./PublisherFormRow";
 import { PublisherTagEditor } from "./PublisherTagEditor";
 import { MetadataLicenseTab } from "../metadata/MetadataLicenseTab";
 import { MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
+import { getMediaCropStyle } from "../../../lib/mediaCropRef";
 import type { PersonaDraft, PersonaLink, OrgItem } from "../../../hooks/publisher/usePublisherProfileState";
 
 interface ImageGuide {
@@ -60,6 +61,9 @@ export function PersonaProfileForm({
   orgSearchResults, handleRequestJoinOrg, myOrgRequests,
   personaTagInput, setPersonaTagInput, parseTags, addTags, getTagStyle, filteredTagOptions,
 }: Props) {
+  const avatarCrop = getMediaCropStyle(String(personaDraft.avatar || ""));
+  const bannerCrop = getMediaCropStyle(String(personaDraft.bannerUrl || ""));
+
   return (
     <>
       <PublisherFormRow label={t("publisherProfileTab.displayName")} required hint={t("publisherProfileTab.displayNameRequiredHint", "最重要欄位，建立身份前請先填寫。")}>
@@ -89,7 +93,7 @@ export function PersonaProfileForm({
         <div className="space-y-2">
           <div className="h-28 w-28 overflow-hidden rounded-xl border bg-muted/20 shadow-sm">
             {personaDraft.avatar && !avatarPreviewFailed ? (
-              <img src={personaDraft.avatar} alt="persona avatar preview" className="h-full w-full object-cover" onError={() => setAvatarPreviewFailed(true)} onLoad={() => setAvatarPreviewFailed(false)} />
+              <img src={avatarCrop.src} style={avatarCrop.style} alt="persona avatar preview" className="h-full w-full object-cover" onError={() => setAvatarPreviewFailed(true)} onLoad={() => setAvatarPreviewFailed(false)} />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">Avatar</div>
             )}
@@ -118,7 +122,7 @@ export function PersonaProfileForm({
         <div className="space-y-2">
           <div className="h-16 w-full max-w-sm overflow-hidden rounded-md border bg-muted/20">
             {personaDraft.bannerUrl && !bannerPreviewFailed ? (
-              <img src={personaDraft.bannerUrl} alt="persona banner preview" className="h-full w-full object-cover" onError={() => setBannerPreviewFailed(true)} onLoad={() => setBannerPreviewFailed(false)} />
+              <img src={bannerCrop.src} style={bannerCrop.style} alt="persona banner preview" className="h-full w-full object-cover" onError={() => setBannerPreviewFailed(true)} onLoad={() => setBannerPreviewFailed(false)} />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">Banner</div>
             )}

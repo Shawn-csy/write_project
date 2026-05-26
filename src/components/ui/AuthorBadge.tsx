@@ -3,6 +3,7 @@ import { User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "../../lib/utils";
 import { useI18n } from "../../contexts/I18nContext";
+import { getMediaCropStyle } from "../../lib/mediaCropRef";
 
 interface AuthorInfo {
   id?: string;
@@ -33,6 +34,9 @@ export function AuthorBadge({ author, className, showAvatar = true, link, clicka
     }
   };
 
+  const avatarUrl = typeof author === "object" ? (author?.avatarUrl || author?.avatar || "") : "";
+  const cropAvatar = getMediaCropStyle(String(avatarUrl || ""));
+
   return (
     <div 
       className={cn(
@@ -49,7 +53,7 @@ export function AuthorBadge({ author, className, showAvatar = true, link, clicka
       {showAvatar && (
         <>
             {typeof author === "object" && (author?.avatarUrl || author?.avatar) ? (
-                <img src={author?.avatarUrl || author?.avatar} alt={author.displayName} className="w-4 h-4 rounded-full object-cover" />
+                <img src={cropAvatar.src} style={cropAvatar.style} alt={author.displayName} className="w-4 h-4 rounded-full object-cover" />
             ) : (
                 <User className="w-3.5 h-3.5" />
             )}

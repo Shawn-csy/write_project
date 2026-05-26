@@ -28,26 +28,30 @@ export function useMediaLibrary({ t, maxBytes = DEFAULT_MAX_BYTES, autoLoad = fa
   const [isUploading, setIsUploading] = React.useState(false);
   const [deletingUrl, setDeletingUrl] = React.useState("");
 
+  const recalcStats = React.useCallback((nextItems: CloudMediaItem[]) => {
+    const usedBytes = nextItems.reduce((sum, it) => sum + Number(it?.sizeBytes || 0), 0);
+    setStats({
+      count: nextItems.length,
+      usedBytes,
+      maxBytes,
+      ratio: maxBytes > 0 ? Math.min(1, usedBytes / maxBytes) : 0,
+    });
+  }, [maxBytes]);
+
   const refresh = React.useCallback(async () => {
     setIsLoading(true);
     setError("");
     try {
       const res = await getMediaObjects() as { items?: CloudMediaItem[] } | null;
       const nextItems = Array.isArray(res?.items) ? res.items : [];
-      const usedBytes = nextItems.reduce((sum, it) => sum + Number(it?.sizeBytes || 0), 0);
       setItems(nextItems);
-      setStats({
-        count: nextItems.length,
-        usedBytes,
-        maxBytes,
-        ratio: maxBytes > 0 ? Math.min(1, usedBytes / maxBytes) : 0,
-      });
+      recalcStats(nextItems);
     } catch (e: unknown) {
       setError(String(e instanceof Error ? e.message : t?.("mediaLibrary.uploadFailed", "載入失敗")));
     } finally {
       setIsLoading(false);
     }
-  }, [maxBytes, t]);
+  }, [recalcStats, t]);
 
   React.useEffect(() => {
     if (autoLoad) {
@@ -98,14 +102,18 @@ export function useMediaLibrary({ t, maxBytes = DEFAULT_MAX_BYTES, autoLoad = fa
       setDeletingUrl(url);
       try {
         await deleteMediaObject(url);
-        await refresh();
+        setItems((prev) => {
+          const nextItems = prev.filter((item) => item.url !== url);
+          recalcStats(nextItems);
+          return nextItems;
+        });
       } catch (e: unknown) {
         setError(String(e instanceof Error ? e.message : t?.("mediaLibrary.uploadFailed", "刪除失敗")));
       } finally {
         setDeletingUrl("");
       }
     },
-    [refresh, t]
+    [recalcStats, t]
   );
 
   const clearAll = React.useCallback(async () => {
@@ -114,13 +122,14 @@ export function useMediaLibrary({ t, maxBytes = DEFAULT_MAX_BYTES, autoLoad = fa
     setIsLoading(true);
     try {
       await Promise.all(items.map((item) => deleteMediaObject(item.url)));
-      await refresh();
+      setItems([]);
+      recalcStats([]);
     } catch (e: unknown) {
       setError(String(e instanceof Error ? e.message : t?.("mediaLibrary.uploadFailed", "刪除失敗")));
     } finally {
       setIsLoading(false);
     }
-  }, [items, refresh, t]);
+  }, [items, recalcStats, t]);
 
   return {
     items,

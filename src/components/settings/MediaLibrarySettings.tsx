@@ -7,11 +7,15 @@ import { useAuth } from "../../contexts/AuthContext";
 import { PublisherFormRow } from "../dashboard/publisher/PublisherFormRow";
 import { useMediaLibrary } from "../../hooks/useMediaLibrary";
 import { SettingsSectionCard } from "./SettingsSectionCard";
+import { MediaLibraryBrowser } from "../media/MediaLibraryBrowser";
 
 export function MediaLibrarySettings() {
   const { t } = useI18n();
   const { profile } = useAuth();
   const isAdmin = Boolean(profile?.isAdmin);
+  const [query, setQuery] = React.useState("");
+  const [sortBy, setSortBy] = React.useState<"newest" | "name" | "size">("newest");
+  const [selectedId, setSelectedId] = React.useState<string>("");
   const {
     items,
     stats,
@@ -68,34 +72,21 @@ export function MediaLibrarySettings() {
 
       {error && <p className="text-xs text-destructive">{error}</p>}
 
-      {items.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-          {t("mediaLibrary.empty")}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {items.map((item) => (
-            <div key={item.id} className="overflow-hidden rounded-md border bg-background">
-              <div className="aspect-square bg-muted/30">
-                <img src={item.url} alt={item.name || "media"} className="h-full w-full object-cover" />
-              </div>
-              <div className="space-y-1 p-2">
-                <p className="truncate text-xs font-medium">{item.name || t("mediaLibrary.unnamed")}</p>
-                <p className="text-[11px] text-muted-foreground">{formatBytes(item.sizeBytes || 0)}</p>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 w-full text-xs text-destructive hover:text-destructive"
-                  onClick={() => deleteByUrl(item.url)}
-                >
-                  {t("common.remove")}
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <MediaLibraryBrowser
+        items={items}
+        stats={stats}
+        isLoading={isLoading}
+        isUploading={isUploading}
+        error={error}
+        query={query}
+        setQuery={setQuery}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        selectedId={selectedId}
+        setSelectedId={setSelectedId}
+        onUploadChange={uploadFromInput}
+        onDelete={deleteByUrl}
+      />
     </SettingsSectionCard>
   );
 }

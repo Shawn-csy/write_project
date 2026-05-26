@@ -3,6 +3,7 @@ import { Button } from "../ui/button";
 import { CoverPlaceholder } from "../ui/CoverPlaceholder";
 import { HorizontalScrollLane } from "./HorizontalScrollLane";
 import { ScriptGalleryCard } from "./ScriptGalleryCard";
+import { getMediaCropStyle } from "../../lib/mediaCropRef";
 import type { PublicGalleryScript } from "../../hooks/public/usePublicGalleryState";
 
 interface FeaturedSeries {
@@ -169,6 +170,7 @@ export const GalleryScriptsView = React.memo(GalleryScriptsViewInner);
 
 const SeriesCard = React.memo(function SeriesCard({ series, t, onNavigate, grid }: { series: FeaturedSeries; t: (k: string, f?: string) => string; onNavigate: (name: string) => void; grid?: boolean }) {
   const handleClick = useCallback(() => onNavigate(series.name), [onNavigate, series.name]);
+  const cropCover = getMediaCropStyle(String(series.coverUrl || ""));
   return (
     <button
       type="button"
@@ -177,7 +179,7 @@ const SeriesCard = React.memo(function SeriesCard({ series, t, onNavigate, grid 
     >
       <div className="aspect-[2/3] overflow-hidden rounded-lg border border-border/60 bg-muted/25">
         {series.coverUrl ? (
-          <img src={series.coverUrl} alt={series.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" loading="lazy" />
+          <img src={cropCover.src} style={cropCover.style} alt={series.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" loading="lazy" />
         ) : (
           <CoverPlaceholder title={series.name} compact />
         )}

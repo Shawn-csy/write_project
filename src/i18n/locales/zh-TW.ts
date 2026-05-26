@@ -30,6 +30,9 @@ const messages = {
     "remove": "移除",
     "none": "不選擇",
     "select": "選擇",
+    "latest": "最新",
+    "name": "名稱",
+    "size": "大小",
     "enabled": "開啟",
     "disabled": "關閉",
     "save": "儲存",
@@ -783,7 +786,10 @@ const messages = {
     "addToLibrary": "新增到媒體庫",
     "clearLibrary": "清空媒體庫",
     "empty": "目前還沒有媒體檔案。",
-    "unnamed": "未命名"
+    "unnamed": "未命名",
+    "cropThenUse": "裁切後使用",
+    "useOriginalDirectly": "直接使用原圖",
+    "applyCropFrame": "套用裁切框"
   },
   "authorBadge": {
     "goAuthor": "前往作者頁面",

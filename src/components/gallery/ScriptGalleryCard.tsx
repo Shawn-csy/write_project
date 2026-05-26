@@ -6,6 +6,7 @@ import { ChevronRight, Eye, Heart } from "lucide-react";
 import { publicToggleScriptLike, getVisitorId, incrementScriptView } from "../../lib/api/scripts";
 import { AuthorBadge } from "../ui/AuthorBadge";
 import { CoverPlaceholder } from "../ui/CoverPlaceholder";
+import { getMediaCropStyle } from "../../lib/mediaCropRef";
 import type { TagLike } from "../../types/persona";
 import type { BaseScript } from "../../types/script";
 
@@ -34,6 +35,7 @@ interface ScriptGalleryCardProps {
 function ScriptGalleryCardInner({ script, onClick, onScriptClick, variant = "standard" }: ScriptGalleryCardProps): React.JSX.Element {
   const navigate = useNavigate();
   const { id, title, author, coverUrl, tags = [], views = 0, likes = 0, contentLength } = script;
+  const cropCover = getMediaCropStyle(String(coverUrl || ""));
   const estDurationMinutes = contentLength && contentLength > 0
     ? Math.round(contentLength / 2 / 200)  // chars/2 = CJK chars, /200 = chars per min
     : null;
@@ -122,7 +124,8 @@ function ScriptGalleryCardInner({ script, onClick, onScriptClick, variant = "sta
             <div className="aspect-[2/3] w-full overflow-hidden rounded-sm border border-border/40 bg-muted/25 shadow-sm">
               {coverUrl ? (
                 <img
-                  src={coverUrl}
+                  src={cropCover.src}
+                  style={cropCover.style}
                   alt={title}
                   className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                   loading="lazy"
@@ -177,7 +180,8 @@ function ScriptGalleryCardInner({ script, onClick, onScriptClick, variant = "sta
       <div className="aspect-[2/3] w-full overflow-hidden rounded-lg bg-muted shadow-sm group-hover:shadow-md transition-shadow">
         {coverUrl ? (
           <img 
-            src={coverUrl} 
+            src={cropCover.src}
+            style={cropCover.style}
             alt={title}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             loading="lazy"

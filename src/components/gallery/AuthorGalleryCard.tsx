@@ -2,6 +2,7 @@ import React from "react";
 import { Badge } from "../ui/badge";
 import { Card } from "../ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
+import { getMediaCropStyle } from "../../lib/mediaCropRef";
 
 interface AuthorOrg {
   id: string;
@@ -25,6 +26,7 @@ interface AuthorGalleryCardProps {
 
 export function AuthorGalleryCard({ author, onClick, onTagClick }: AuthorGalleryCardProps): React.JSX.Element {
   const { displayName, avatar, bio, tags = [], organizations = [] } = author;
+  const avatarCrop = getMediaCropStyle(String(avatar || ""));
   
   return (
     <Card 
@@ -33,7 +35,7 @@ export function AuthorGalleryCard({ author, onClick, onTagClick }: AuthorGallery
     >
       <div className="flex items-start gap-4 mb-3">
         <Avatar className="w-12 h-12 border border-border">
-          <AvatarImage src={avatar} />
+          <AvatarImage src={avatarCrop.src} style={avatarCrop.style as React.CSSProperties} />
           <AvatarFallback>{displayName?.[0]}</AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">

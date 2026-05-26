@@ -6,6 +6,7 @@ import { CoverPlaceholder } from "../../ui/CoverPlaceholder";
 import { Input } from "../../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
+import { getMediaCropStyle } from "../../../lib/mediaCropRef";
 import { useChecklistContext, useContentContext, useExposureContext, useUIContext } from "./ScriptMetadataDialogContext";
 
 interface TagItem {
@@ -37,6 +38,7 @@ export function ScriptMetadataExposureSection({
   const setQuickSeriesNameInput = setQuickSeriesName;
   const setSeriesOrderInput = setSeriesOrder;
   const coverGuide = React.useMemo(() => getImageUploadGuide("cover"), []);
+  const cropCover = getMediaCropStyle(coverUrl);
   const resolveTagSwatch = React.useCallback((rawColor: string | undefined) => {
     const value = String(rawColor || "").trim();
     if (!value) return { className: "bg-primary/60", style: undefined };
@@ -104,7 +106,8 @@ export function ScriptMetadataExposureSection({
             <div className="mt-1 h-28 w-full overflow-hidden rounded-md border bg-muted/20">
               {coverUrl && !coverPreviewFailed ? (
                 <img
-                  src={coverUrl}
+                  src={cropCover.src}
+                  style={cropCover.style}
                   alt="cover preview"
                   className="h-full w-full object-cover"
                   onLoad={() => setCoverPreviewFailed(false)}
