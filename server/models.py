@@ -16,6 +16,7 @@ class User(Base):
     email = Column(String, index=True)  # Added for search/ownership transfer
     displayName = Column(String)
     avatar = Column(String)
+    avatarCrop = Column(JSON, nullable=True)
     bio = Column(Text)
     settings = Column(String, default="{}")  # JSON string
     website = Column(String, default="")
@@ -35,7 +36,9 @@ class Organization(Base):
     description = Column(Text, default="")
     website = Column(String, default="")
     logoUrl = Column(String, default="")
+    logoCrop = Column(JSON, nullable=True)
     bannerUrl = Column(String, default="")
+    bannerCrop = Column(JSON, nullable=True)
     tags = Column(JSON, default=list)
     ownerId = Column(String, ForeignKey("users.id"))
     createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
@@ -52,7 +55,9 @@ class Persona(Base):
     ownerId = Column(String, ForeignKey("users.id"))
     displayName = Column(String)
     avatar = Column(String, default="")
+    avatarCrop = Column(JSON, nullable=True)
     bannerUrl = Column(String, default="")
+    bannerCrop = Column(JSON, nullable=True)
     bio = Column(Text, default="")
     website = Column(String, default="")
     links = Column(JSON, default=list)
@@ -104,6 +109,7 @@ class Series(Base):
     slug = Column(String, index=True, nullable=False)
     summary = Column(Text, default="")
     coverUrl = Column(String, default="")
+    coverCrop = Column(JSON, nullable=True)
     createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
     updatedAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
 
@@ -131,6 +137,7 @@ class Script(Base):
     seriesOrder = Column(Integer, nullable=True)
     status = Column(String, default="Private")  # Private, Public, Unlisted
     coverUrl = Column(String, default="")
+    coverCrop = Column(JSON, nullable=True)
     views = Column(Integer, default=0)
     likes = Column(Integer, default=0)
     organizationId = Column(String, ForeignKey("organizations.id"), nullable=True)

@@ -22,7 +22,9 @@ class OrganizationBase(BaseModel):
     description: Optional[str] = ""
     website: Optional[str] = ""
     logoUrl: Optional[str] = ""
+    logoCrop: Optional[Dict[str, float]] = None
     bannerUrl: Optional[str] = ""
+    bannerCrop: Optional[Dict[str, float]] = None
     tags: List[str] = []
 
 class OrganizationCreate(OrganizationBase):
@@ -33,7 +35,9 @@ class OrganizationUpdate(BaseModel):
     description: Optional[str] = None
     website: Optional[str] = None
     logoUrl: Optional[str] = None
+    logoCrop: Optional[Dict[str, float]] = None
     bannerUrl: Optional[str] = None
+    bannerCrop: Optional[Dict[str, float]] = None
     tags: Optional[List[str]] = None
 
 class OrganizationTransferRequest(BaseModel):
@@ -55,6 +59,7 @@ class UserBase(BaseModel):
     displayName: Optional[str] = None
     bio: Optional[str] = None
     avatar: Optional[str] = None
+    avatarCrop: Optional[Dict[str, float]] = None
     website: Optional[str] = None # Added
     settings: Optional[dict] = {}
     isAdmin: Optional[bool] = False
@@ -85,7 +90,9 @@ class PersonaBase(BaseModel):
     displayName: str
     bio: Optional[str] = ""
     avatar: Optional[str] = ""
+    avatarCrop: Optional[Dict[str, float]] = None
     bannerUrl: Optional[str] = ""
+    bannerCrop: Optional[Dict[str, float]] = None
     website: Optional[str] = ""
     links: List[Dict[str, Any]] = []
     organizationIds: List[str] = []
@@ -147,6 +154,7 @@ class UserPublic(BaseModel):
     email: Optional[str] = None # Include email if needed for admin search, or maybe restrict? Assuming visible for search results.
     displayName: Optional[str] = "Anonymous"
     avatar: Optional[str] = None
+    avatarCrop: Optional[Dict[str, float]] = None
     website: Optional[str] = None
     organizationRole: Optional[str] = None
 
@@ -207,6 +215,7 @@ class SeriesBase(BaseModel):
     name: str
     summary: Optional[str] = ""
     coverUrl: Optional[str] = ""
+    coverCrop: Optional[Dict[str, float]] = None
 
 class SeriesCreate(SeriesBase):
     pass
@@ -215,6 +224,7 @@ class SeriesUpdate(BaseModel):
     name: Optional[str] = None
     summary: Optional[str] = None
     coverUrl: Optional[str] = None
+    coverCrop: Optional[Dict[str, float]] = None
 
 class Series(SeriesBase):
     id: str
@@ -243,6 +253,7 @@ class ScriptCreate(ScriptBase):
     draftDate: Optional[str] = None
     markerThemeId: Optional[str] = None
     coverUrl: Optional[str] = None # Added
+    coverCrop: Optional[Dict[str, float]] = None
     personaId: Optional[str] = None
     organizationId: Optional[str] = None
     seriesId: Optional[str] = None
@@ -263,6 +274,7 @@ class ScriptUpdate(BaseModel):
     type: Optional[str] = None
     markerThemeId: Optional[str] = None
     coverUrl: Optional[str] = None
+    coverCrop: Optional[Dict[str, float]] = None
     coverIsAiGenerated: Optional[bool] = None
     organizationId: Optional[str] = None
     personaId: Optional[str] = None
@@ -294,6 +306,7 @@ class Script(BaseModel):
     isPublic: int
     status: Optional[str] = "Private"
     coverUrl: Optional[str] = None
+    coverCrop: Optional[Dict[str, float]] = None
     coverIsAiGenerated: bool = False
     views: int = 0
     likes: int = 0
@@ -332,6 +345,7 @@ class ScriptSummary(BaseModel):
     isPublic: int
     status: Optional[str] = "Private"
     coverUrl: Optional[str] = None
+    coverCrop: Optional[Dict[str, float]] = None
     coverIsAiGenerated: bool = False
     views: int = 0
     likes: int = 0

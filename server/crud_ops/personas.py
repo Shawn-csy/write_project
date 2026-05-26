@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 import models
 import schemas
+from media_crop import normalize_media_with_crop
 from .common import _ensure_list
 from .organizations_query import ensure_persona_org_memberships, get_persona_org_ids, is_user_org_manager
 
@@ -19,13 +20,17 @@ def _sanitize_persona_org_ids(db: Session, owner_id: str, org_ids) -> list:
 
 def create_persona(db: Session, persona: schemas.PersonaCreate, ownerId: str):
     org_ids = _sanitize_persona_org_ids(db, ownerId, persona.organizationIds or [])
+    avatar_url, avatar_crop = normalize_media_with_crop(persona.avatar or "", persona.avatarCrop)
+    banner_url, banner_crop = normalize_media_with_crop(persona.bannerUrl or "", persona.bannerCrop)
     db_persona = models.Persona(
         id=str(uuid.uuid4()),
         ownerId=ownerId,
         displayName=persona.displayName,
         bio=persona.bio,
-        avatar=persona.avatar,
-        bannerUrl=persona.bannerUrl or "",
+        avatar=avatar_url,
+        avatarCrop=avatar_crop,
+        bannerUrl=banner_url,
+        bannerCrop=banner_crop,
         website=persona.website or "",
         links=persona.links or [],
         organizationIds=org_ids,
@@ -48,6 +53,20 @@ def update_persona(db: Session, persona_id: str, persona: schemas.PersonaCreate,
     if not db_persona:
         return None
     update_data = persona.model_dump(exclude_unset=True)
+    if "avatar" in update_data or "avatarCrop" in update_data:
+        avatar_url, avatar_crop = normalize_media_with_crop(
+            update_data.pop("avatar", db_persona.avatar),
+            update_data.pop("avatarCrop", db_persona.avatarCrop),
+        )
+        update_data["avatar"] = avatar_url
+        update_data["avatarCrop"] = avatar_crop
+    if "bannerUrl" in update_data or "bannerCrop" in update_data:
+        banner_url, banner_crop = normalize_media_with_crop(
+            update_data.pop("bannerUrl", db_persona.bannerUrl),
+            update_data.pop("bannerCrop", db_persona.bannerCrop),
+        )
+        update_data["bannerUrl"] = banner_url
+        update_data["bannerCrop"] = banner_crop
     if "tags" in update_data and update_data["tags"] is None:
         update_data["tags"] = []
     if "defaultLicenseSpecialTerms" in update_data and update_data["defaultLicenseSpecialTerms"] is None:

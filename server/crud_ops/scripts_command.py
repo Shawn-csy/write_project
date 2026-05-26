@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 import models
 import schemas
+from media_crop import normalize_media_with_crop
 from .common import touch_parent_folders
 from .scripts_query import get_script
 
@@ -106,6 +107,8 @@ def create_script(db: Session, script: schemas.ScriptCreate, ownerId: str):
         if existing:
             return existing
 
+    cover_url, cover_crop = normalize_media_with_crop(script.coverUrl or "", script.coverCrop)
+
     db_script = models.Script(
         id=str(uuid.uuid4()),
         ownerId=ownerId,
@@ -124,6 +127,8 @@ def create_script(db: Session, script: schemas.ScriptCreate, ownerId: str):
         licenseCommercial=seed_license.get("licenseCommercial", ""),
         licenseDerivative=seed_license.get("licenseDerivative", ""),
         licenseNotify=seed_license.get("licenseNotify", ""),
+        coverUrl=cover_url,
+        coverCrop=cover_crop,
     )
     max_order = (
         db.query(models.Script)
@@ -163,6 +168,13 @@ def update_script(db: Session, script_id: str, script: schemas.ScriptUpdate, own
     update_data = script.model_dump(exclude_unset=True)
     if "customMetadata" in update_data:
         update_data["customMetadata"] = _normalize_custom_metadata(update_data.get("customMetadata"))
+    if "coverUrl" in update_data or "coverCrop" in update_data:
+        cover_url, cover_crop = normalize_media_with_crop(
+            update_data.pop("coverUrl", db_script.coverUrl),
+            update_data.pop("coverCrop", db_script.coverCrop),
+        )
+        update_data["coverUrl"] = cover_url
+        update_data["coverCrop"] = cover_crop
     if "personaId" in update_data and not str(update_data.get("personaId") or "").strip():
         update_data["personaId"] = None
     if "organizationId" in update_data and not str(update_data.get("organizationId") or "").strip():
