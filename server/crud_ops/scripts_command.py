@@ -68,36 +68,6 @@ def _resolve_license_fields(update_data):
         update_data["licenseNotify"] = _norm_choice(meta_map.get("licensenotify"), VALID_NOTIFY)
 
 
-_CONTENT_FIELD_CUSTOM_KEYS = {
-    "synopsis":          ["synopsis", "summary", "description", "notes"],
-    "outline":           ["outline"],
-    "activityName":      ["activityname", "eventname"],
-    "activityBannerUrl": ["activitybanner", "eventbanner"],
-}
-
-
-def _resolve_content_fields(update_data):
-    """If a content field is explicitly set in update_data, use it directly.
-    Otherwise, if customMetadata is present, try to read from it as fallback.
-    Never overwrites an explicitly-passed value with a custom key.
-    """
-    custom = update_data.get("customMetadata")
-    meta_map = {}
-    if isinstance(custom, list):
-        for item in custom:
-            if isinstance(item, dict):
-                k = str(item.get("key") or "").strip().lower().replace(" ", "")
-                meta_map[k] = str(item.get("value") or "")
-
-    for col, keys in _CONTENT_FIELD_CUSTOM_KEYS.items():
-        if col in update_data:
-            continue  # explicit value wins — do not touch
-        for k in keys:
-            val = meta_map.get(k, "").strip()
-            if val:
-                update_data[col] = val
-                break
-
 
 def _folder_descendants_filter(folder_path: str):
     # Match exactly `/a/b` and descendants like `/a/b/...`; avoid prefix collisions (`/a/b2`).
@@ -115,8 +85,6 @@ def create_script(db: Session, script: schemas.ScriptCreate, ownerId: str):
         "licenseNotify": _norm_choice(script.licenseNotify, VALID_NOTIFY),
         "customMetadata": _normalize_custom_metadata(script.customMetadata or []),
     }
-    # Only set structured content fields when explicitly provided — omitting them lets
-    # _resolve_content_fields fall back to customMetadata keys (legacy client compat).
     for _col, _val in (
         ("synopsis", script.synopsis),
         ("outline", script.outline),
@@ -126,7 +94,6 @@ def create_script(db: Session, script: schemas.ScriptCreate, ownerId: str):
         if _val is not None:
             seed_license[_col] = _val
     _resolve_license_fields(seed_license)
-    _resolve_content_fields(seed_license)
 
     if script.seriesId:
         series = db.query(models.Series).filter(models.Series.id == script.seriesId, models.Series.ownerId == ownerId).first()
@@ -233,7 +200,6 @@ def update_script(db: Session, script_id: str, script: schemas.ScriptUpdate, own
         else:
             update_data["markerThemeId"] = None
     _resolve_license_fields(update_data)
-    _resolve_content_fields(update_data)
     if "seriesId" in update_data:
         new_series_id = update_data.get("seriesId")
         if new_series_id:
