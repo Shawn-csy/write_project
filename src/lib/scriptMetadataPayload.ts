@@ -1,5 +1,6 @@
-import { normalizeActivityDemoLinks, serializeActivityDemoLinks } from "./activityDemoLinks";
+import { normalizeActivityDemoLinks } from "./activityDemoLinks";
 import { normalizeCustomMetadataEntries } from "./customMetadata";
+import { isReservedCustomKey } from "./metadataBoundary";
 import type { ContactField, CustomField, LicenseSpecialTerm, TagLike } from "../hooks/dashboard/types";
 
 export interface ScriptMetadataPayloadFields {
@@ -60,20 +61,13 @@ export function buildCustomMetadataEntries(
   // Author and AuthorDisplayMode are RESERVED_CUSTOM_KEYS owned by structured api.author field.
   // Do NOT write Author or AuthorDisplayMode into customMetadata.
   // (preserveAuthor path handled separately via applyPreservedAuthorEntries in the save hook.)
-  // Outline/Synopsis/ActivityName/ActivityBanner are RESERVED_CUSTOM_KEYS — now owned by structured fields.
-  // Do NOT write them into customMetadata. Legacy read-path in fromApiToDraft is preserved.
+  // Synopsis/Outline/ActivityName/ActivityBanner/ActivityContent/ActivityWorkUrl/ActivityDemoLinks
+  // are RESERVED_CUSTOM_KEYS — owned by structured fields (E1-E6). Do NOT write them into customMetadata.
   if (fields.roleSetting) orderedEntries.push({ key: "RoleSetting", value: fields.roleSetting });
   if (fields.backgroundInfo) orderedEntries.push({ key: "BackgroundInfo", value: fields.backgroundInfo });
   if (fields.performanceInstruction) orderedEntries.push({ key: "PerformanceInstruction", value: fields.performanceInstruction });
   if (fields.openingIntro) orderedEntries.push({ key: "OpeningIntro", value: fields.openingIntro });
   if (fields.chapterSettings) orderedEntries.push({ key: "ChapterSettings", value: fields.chapterSettings });
-  if (fields.activityContent) orderedEntries.push({ key: "ActivityContent", value: fields.activityContent });
-
-  const serializedDemoLinks = serializeActivityDemoLinks(fields.activityDemoLinks);
-  const normalizedDemoLinks = normalizeActivityDemoLinks(fields.activityDemoLinks);
-  if (serializedDemoLinks) orderedEntries.push({ key: "ActivityDemoLinks", value: serializedDemoLinks });
-  if (normalizedDemoLinks[0]?.url) orderedEntries.push({ key: "ActivityDemoUrl", value: normalizedDemoLinks[0].url });
-  if (fields.activityWorkUrl) orderedEntries.push({ key: "ActivityWorkUrl", value: fields.activityWorkUrl });
 
   // License fields are now owned by structured API fields (licenseCommercial / licenseDerivative / licenseNotify).
   // Do NOT write LicenseCommercial, LicenseDerivative, LicenseNotify, LicenseSpecialTerms, or LicenseTags
@@ -91,9 +85,10 @@ export function buildCustomMetadataEntries(
   // Do NOT write Series or SeriesOrder into customMetadata — they are RESERVED_CUSTOM_KEYS.
 
   (fields.customFields || []).forEach(({ key, value, type }) => {
+    if (!key || isReservedCustomKey(key)) return;  // never write reserved keys
     if (type === "divider") {
       orderedEntries.push({ key, value: value || "SECTION" });
-    } else if (key && value) {
+    } else if (value) {
       orderedEntries.push({ key, value });
     }
   });

@@ -265,6 +265,9 @@ class ScriptCreate(ScriptBase):
     outline: Optional[str] = None
     activityName: Optional[str] = None
     activityBannerUrl: Optional[str] = None
+    activityContent: Optional[str] = None
+    activityWorkUrl: Optional[str] = None
+    activityDemoLinks: Optional[str] = None  # JSON string
     customMetadata: Optional[List[Dict[str, Any]]] = None
 
 class ScriptUpdate(BaseModel):
@@ -292,6 +295,9 @@ class ScriptUpdate(BaseModel):
     outline: Optional[str] = None
     activityName: Optional[str] = None
     activityBannerUrl: Optional[str] = None
+    activityContent: Optional[str] = None
+    activityWorkUrl: Optional[str] = None
+    activityDemoLinks: Optional[str] = None  # JSON string
     customMetadata: Optional[List[Dict[str, Any]]] = None
 
 class ScriptReorderItem(BaseModel):
@@ -340,6 +346,9 @@ class Script(BaseModel):
     outline: Optional[str] = None
     activityName: Optional[str] = None
     activityBannerUrl: Optional[str] = None
+    activityContent: Optional[str] = None
+    activityWorkUrl: Optional[str] = None
+    activityDemoLinks: Optional[str] = None  # JSON string
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -378,6 +387,9 @@ class ScriptSummary(BaseModel):
     outline: Optional[str] = None
     activityName: Optional[str] = None
     activityBannerUrl: Optional[str] = None
+    activityContent: Optional[str] = None
+    activityWorkUrl: Optional[str] = None
+    activityDemoLinks: Optional[str] = None  # JSON string
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -402,6 +414,9 @@ class ScriptAdminMetadataUpdate(BaseModel):
     outline: Optional[str] = None
     activityName: Optional[str] = None
     activityBannerUrl: Optional[str] = None
+    activityContent: Optional[str] = None
+    activityWorkUrl: Optional[str] = None
+    activityDemoLinks: Optional[str] = None  # JSON string
     customMetadata: Optional[List[Dict[str, Any]]] = None
     tags: Optional[List[int]] = None
 

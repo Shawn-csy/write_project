@@ -69,10 +69,10 @@ describe("useScriptMetadataHydration", () => {
         coverUrl: "https://example.com/cover.jpg",
         markerThemeId: "theme-1",
         disableCopy: true,
+        activityDemoLinks: JSON.stringify([{ name: "A", url: "https://example.com/a" }]),
         customMetadata: [
           { key: "Author", value: "作者甲" },
           { key: "AuthorDisplayMode", value: "override" },
-          { key: "ActivityDemoLinks", value: JSON.stringify([{ name: "A", url: "https://example.com/a" }]) },
           { key: "marker_legend", value: "true" },
           { key: "自訂欄位", value: "自訂值" },
         ],
@@ -92,21 +92,24 @@ describe("useScriptMetadataHydration", () => {
     expect(params.setCustomFields).toHaveBeenCalled();
   });
 
-  it("falls back to legacy demo url when demo links are missing", async () => {
+  it("reads activityDemoLinks from structured field (E6)", async () => {
+    // Legacy ActivityDemoUrl/ActivityDemoLinks custom keys no longer read (E6).
+    // Structured activityDemoLinks field is now the source.
     const params = buildParams();
     const { result } = renderHook(() => useScriptMetadataHydration(params));
 
     await act(async () => {
       await result.current({
         id: "s-2",
-        title: "legacy",
-        customMetadata: [{ key: "ActivityDemoUrl", value: "https://example.com/legacy-demo" }],
+        title: "structured-demo",
+        activityDemoLinks: JSON.stringify([{ name: "", url: "https://example.com/demo" }]),
+        customMetadata: [],
         tags: [],
       });
     });
 
     expect(params.setActivityDemoLinks).toHaveBeenCalledWith([
-      { id: "demo-1", name: "", url: "https://example.com/legacy-demo", cast: "", description: "" },
+      { id: "demo-1", name: "", url: "https://example.com/demo", cast: "", description: "" },
     ]);
   });
 

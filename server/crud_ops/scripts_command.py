@@ -90,6 +90,9 @@ def create_script(db: Session, script: schemas.ScriptCreate, ownerId: str):
         ("outline", script.outline),
         ("activityName", script.activityName),
         ("activityBannerUrl", script.activityBannerUrl),
+        ("activityContent", script.activityContent),
+        ("activityWorkUrl", script.activityWorkUrl),
+        ("activityDemoLinks", script.activityDemoLinks),
     ):
         if _val is not None:
             seed_license[_col] = _val
@@ -140,6 +143,9 @@ def create_script(db: Session, script: schemas.ScriptCreate, ownerId: str):
         outline=seed_license.get("outline"),
         activityName=seed_license.get("activityName"),
         activityBannerUrl=seed_license.get("activityBannerUrl"),
+        activityContent=seed_license.get("activityContent"),
+        activityWorkUrl=seed_license.get("activityWorkUrl"),
+        activityDemoLinks=seed_license.get("activityDemoLinks"),
         coverUrl=cover_url,
         coverCrop=cover_crop,
     )

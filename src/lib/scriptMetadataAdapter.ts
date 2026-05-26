@@ -8,7 +8,7 @@
  */
 
 import { customMetadataEntriesToMeta, customMetadataEntriesToRawEntries, normalizeCustomMetadataEntries } from "./customMetadata";
-import { parseActivityDemoLinks } from "./activityDemoLinks";
+import { parseActivityDemoLinks, serializeActivityDemoLinks } from "./activityDemoLinks";
 import { parseBasicLicenseFromMeta } from "./licenseRights";
 import { buildCustomFieldsFromRawEntries } from "../hooks/dashboard/scriptMetadataUtils";
 import { buildCustomMetadataEntries, applyPreservedAuthorEntries } from "./scriptMetadataPayload";
@@ -44,20 +44,20 @@ export interface ScriptMetadataDraft {
   targetAudience: string;
   contentRating: string;
 
-  // structured API content fields (PR-E1+)
+  // structured API content fields (PR-E1+ / E6)
   synopsis: string;
   outline: string;
   activityName: string;
   activityBannerUrl: string;
+  activityContent: string;
+  activityWorkUrl: string;
+  activityDemoLinks: unknown[];
   // customMetadata-backed content fields (no structured API field)
   roleSetting: string;
   backgroundInfo: string;
   performanceInstruction: string;
   openingIntro: string;
   chapterSettings: string;
-  activityContent: string;
-  activityDemoLinks: unknown[];
-  activityWorkUrl: string;
   contact: string;
   contactFields: ContactField[];
   copyright: string;
@@ -144,11 +144,18 @@ export function fromApiToDraft(
   draft.seriesOrder = api.seriesOrder ?? "";
   draft.seriesName = String(api.series?.name || "");
   draft.organizationId = api.organizationId ?? null;
-  // Structured content fields (PR-E1+) — preferred over customMetadata
+  // Structured content fields (PR-E1+ / E6) — read directly; no custom fallback
   draft.synopsis = String(api.synopsis || "");
   draft.outline = String(api.outline || "");
   draft.activityName = String(api.activityName || "");
   draft.activityBannerUrl = String(api.activityBannerUrl || "");
+  draft.activityContent = String(api.activityContent || "");
+  draft.activityWorkUrl = String(api.activityWorkUrl || "");
+  // activityDemoLinks: structured field is a JSON string; parse it, fall back to empty
+  if (api.activityDemoLinks) {
+    const parsed = parseActivityDemoLinks(api.activityDemoLinks);
+    draft.activityDemoLinks = parsed.length > 0 ? parsed : [];
+  }
 
   // persona / identity
   if (api.personaId) {
@@ -215,25 +222,13 @@ export function fromApiToDraft(
   // copyright
   draft.copyright = String(meta.copyright || "");
 
-  // content-only custom fields — structured fields (synopsis/outline/activityName/activityBannerUrl)
-  // are read directly from API fields above; custom fallback removed in E5-1.
+  // content-only custom fields — structured fields (synopsis/outline/activityName/activityBannerUrl
+  // activityContent/activityWorkUrl/activityDemoLinks) read directly from API above; no custom fallback (E5-1, E6).
   draft.roleSetting = String(meta.rolesetting || "");
   draft.backgroundInfo = String(meta.backgroundinfo || "");
   draft.performanceInstruction = String(meta.performanceinstruction || "");
   draft.openingIntro = String(meta.openingintro || meta.setting || meta.settingintro || "");
   draft.chapterSettings = String(meta.chaptersettings || "");
-  draft.activityContent = String(meta.activitycontent || meta.eventcontent || "");
-  draft.activityWorkUrl = String(meta.activityworkurl || meta.eventworklink || "");
-
-  const parsedDemoLinks = parseActivityDemoLinks(meta.activitydemolinks || meta.eventdemolinks);
-  if (parsedDemoLinks.length > 0) {
-    draft.activityDemoLinks = parsedDemoLinks;
-  } else {
-    const legacyUrl = String(meta.activitydemourl || meta.eventdemolink || "").trim();
-    draft.activityDemoLinks = legacyUrl
-      ? [{ id: "demo-1", name: "", url: legacyUrl, cast: "", description: "" }]
-      : [];
-  }
 
   const rawContact = String(meta.contact || "");
   draft.contact = rawContact;
@@ -342,6 +337,9 @@ export function fromDraftToPayload(
     outline: draft.outline || null,
     activityName: draft.activityName || null,
     activityBannerUrl: draft.activityBannerUrl || null,
+    activityContent: draft.activityContent || null,
+    activityWorkUrl: draft.activityWorkUrl || null,
+    activityDemoLinks: serializeActivityDemoLinks(draft.activityDemoLinks) || null,
   };
 
   if (!shouldPreserve) {
