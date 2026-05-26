@@ -5,6 +5,7 @@ import { normalizeMarkerConfigsSchema } from "../lib/markerThemeCodec";
 import { validateMarkerConfigs } from "../lib/markerConfigValidation";
 import { isDefaultLikeTheme } from "../lib/themeNameUtils";
 import { fetchPublic } from "../lib/api/client";
+import { getDefaultMarkerConfigsAdmin } from "../lib/api/admin";
 import { cloneDefaultLayoutConfig, normalizeLayoutConfig, type LayoutConfig } from "../lib/v2";
 import { useDebouncedAutosave } from "./useDebouncedAutosave";
 import type { CurrentUserLike } from "../types/user";
@@ -75,8 +76,11 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
 
     useEffect(() => {
         let active = true;
-        fetchPublic("/default-marker-configs")
-            .then((configs) => {
+        const loadDefaultConfigs = async () => {
+            try {
+                const configs = (isAdmin && currentUser)
+                    ? await getDefaultMarkerConfigsAdmin()
+                    : await fetchPublic("/default-marker-configs");
                 if (!active) return;
                 const normalized = normalizeMarkerConfigsSchema(configs);
                 if (normalized.length > 0) {
@@ -84,12 +88,13 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
                 } else {
                     setSystemDefaultConfigs(NORMALIZED_DEFAULT_CONFIGS);
                 }
-            })
-            .catch(() => {
+            } catch {
                 if (active) setSystemDefaultConfigs(NORMALIZED_DEFAULT_CONFIGS);
-            });
+            }
+        };
+        loadDefaultConfigs();
         return () => { active = false; };
-    }, []);
+    }, [isAdmin, currentUser]);
 
     // Actions
     const setMarkerThemes = useCallback((val: MarkerTheme[]) => {
@@ -123,7 +128,12 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
         const errors = validateMarkerConfigs(normalizedConfigs);
         if (errors.length > 0) throw new Error(errors.join("\n"));
         if (currentThemeId === DEFAULT_THEME_ID) {
-            if (!isAdmin || !currentUser) return;
+            if (!currentUser) {
+                throw new Error("請先登入再儲存系統預設設定");
+            }
+            if (!isAdmin) {
+                throw new Error("只有超級管理員可以修改系統預設設定");
+            }
             setSystemDefaultConfigs(normalizedConfigs);
             await apiCall('/admin/default-marker-configs', 'PUT', normalizedConfigs);
             return;

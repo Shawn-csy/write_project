@@ -205,10 +205,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   );
 
   const [useV2RendererStr, setUseV2RendererStr] = usePersistentState(STORAGE_KEYS.USE_V2_RENDERER, "on");
-  const useV2Renderer = useV2RendererStr === "on";
-  const setUseV2Renderer = useCallback(
-    (val: boolean) => setUseV2RendererStr(val ? "on" : "off"),
-    [setUseV2RendererStr]
+  const [useV2RendererByTheme, setUseV2RendererByTheme] = usePersistentState<Record<string, boolean>>(
+    STORAGE_KEYS.USE_V2_RENDERER_BY_THEME,
+    {}
   );
 
   const adjustFont = useCallback((delta: number) => {
@@ -277,6 +276,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const setV2LayoutConfig = useCallback((config: LayoutConfig) => {
     themes.updateThemeLayoutConfig(themes.currentThemeId, config);
   }, [themes.updateThemeLayoutConfig, themes.currentThemeId]);
+  const useV2Renderer = useV2RendererByTheme[themes.currentThemeId] ?? (useV2RendererStr === "on");
+  const setUseV2Renderer = useCallback(
+    (val: boolean) => {
+      const next = { ...useV2RendererByTheme, [themes.currentThemeId]: val };
+      setUseV2RendererByTheme(next);
+    },
+    [useV2RendererByTheme, themes.currentThemeId, setUseV2RendererByTheme]
+  );
 
   // API Helper
   const apiCall = useCallback(
@@ -363,7 +370,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                       if (typeof s.desktopUiScale === "number") setDesktopUiScale(s.desktopUiScale);
                       if (typeof s.transparentBg === "boolean") setTransparentBg(s.transparentBg);
                       if (typeof s.showLineUnderline === "boolean") setShowLineUnderline(s.showLineUnderline);
-                      if (typeof s.useV2Renderer === "boolean") setUseV2Renderer(s.useV2Renderer);
+                      if (s.useV2RendererByTheme && typeof s.useV2RendererByTheme === "object") {
+                        setUseV2RendererByTheme(s.useV2RendererByTheme as Record<string, boolean>);
+                      }
+                      if (typeof s.useV2Renderer === "boolean") setUseV2RendererStr(s.useV2Renderer ? "on" : "off");
                       if (s.statsConfig && typeof s.statsConfig === "object") setStatsConfig(s.statsConfig as StatsConfig);
 
                       if (realThemes && realThemes.length > 0) {
@@ -405,6 +415,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                           transparentBg,
                           showLineUnderline,
                           useV2Renderer,
+                          useV2RendererByTheme,
                           currentThemeId: themes.currentThemeId
                       };
                       await saveUserSettings(currentUser, payload);
@@ -442,6 +453,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           transparentBg,
           showLineUnderline,
           useV2Renderer,
+          useV2RendererByTheme,
           statsConfig,
           currentThemeId: themes.currentThemeId
       };
@@ -465,6 +477,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       transparentBg,
       showLineUnderline,
       useV2Renderer,
+      useV2RendererByTheme,
       statsConfig,
       themes.currentThemeId
   ]);
