@@ -73,24 +73,34 @@ export function TermsConsentDialog({
         </DialogHeader>
 
         <div className="px-5 pb-2">
-          <div
-            ref={termsScrollRef}
-            onScroll={handleTermsScroll}
-            className="max-h-[46vh] overflow-y-auto touch-pan-y rounded-md border p-4 text-sm leading-6"
-            style={{
-              backgroundColor: "var(--license-term-bg)",
-              borderColor: "var(--license-term-border)",
-              color: "var(--license-term-fg)",
-            }}
-          >
-            {(termsConfig?.sections || []).map((section) => (
-              <section key={section.id || section.title} className="mb-4 last:mb-0">
-                <h4 className="font-semibold text-foreground">{section.title}</h4>
-                <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{section.body}</p>
-              </section>
-            ))}
-            {(termsConfig?.sections || []).length === 0 && (
-              <p className="text-muted-foreground">條款內容尚未設定。</p>
+          <div className="relative">
+            <div
+              ref={termsScrollRef}
+              onScroll={handleTermsScroll}
+              className="max-h-[46vh] overflow-y-auto touch-pan-y rounded-md border p-4 text-sm leading-6"
+              style={{
+                backgroundColor: "var(--license-term-bg)",
+                borderColor: "var(--license-term-border)",
+                color: "var(--license-term-fg)",
+              }}
+            >
+              {(termsConfig?.sections || []).map((section) => (
+                <section key={section.id || section.title} className="mb-4 last:mb-0">
+                  <h4 className="font-semibold text-foreground">{section.title}</h4>
+                  <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{section.body}</p>
+                </section>
+              ))}
+              {(termsConfig?.sections || []).length === 0 && (
+                <p className="text-muted-foreground">條款內容尚未設定。</p>
+              )}
+            </div>
+            {termsRequireScroll && !termsReadToBottom && (
+              <div className="pointer-events-none absolute inset-x-1 bottom-1 rounded-b-md bg-gradient-to-t from-background via-background/80 to-transparent px-3 pb-2 pt-10 text-center">
+                <div className="mx-auto w-fit rounded-full border border-border/60 bg-background/90 px-2 py-1 text-[11px] font-medium text-muted-foreground shadow-sm">
+                  <span className="mr-1 inline-block animate-bounce">↓</span>
+                  向下滑動閱讀完整條款
+                </div>
+              </div>
             )}
           </div>
           <p

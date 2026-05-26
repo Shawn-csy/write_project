@@ -1,4 +1,5 @@
 import React from "react";
+import { AlertTriangle } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
 
 interface R18ConsentDialogProps {
@@ -10,10 +11,10 @@ interface R18ConsentDialogProps {
 export function R18ConsentDialog({ open, onOpenChange, onConfirm }: R18ConsentDialogProps): React.JSX.Element {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="w-[92vw] max-w-[92vw] sm:max-w-lg rounded-xl p-4 sm:p-6 gap-3 max-h-[90vh] overflow-y-auto">
+      <AlertDialogContent className="w-[92vw] max-w-[92vw] sm:max-w-lg rounded-xl p-4 sm:p-6 gap-4 max-h-[90vh] overflow-y-auto">
         <AlertDialogHeader>
           <AlertDialogTitle className="text-destructive font-bold flex items-center gap-2 text-base sm:text-lg leading-snug break-words">
-            <span className="text-xl sm:text-2xl">🔞</span>
+            <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
             <span>內容分級警告 (Adult Content Warning)</span>
           </AlertDialogTitle>
           <AlertDialogDescription className="space-y-2 text-left break-words">
@@ -25,16 +26,21 @@ export function R18ConsentDialog({ open, onOpenChange, onConfirm }: R18ConsentDi
             </p>
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="mt-2 sm:mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <AlertDialogCancel className="w-full h-auto min-h-10 whitespace-normal leading-snug px-3 py-2">
-            返回 (Go Back)
-          </AlertDialogCancel>
+
+        <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs sm:text-sm text-foreground/80">
+          進入即代表您已確認年齡符合規範，並願意自行承擔閱覽責任。
+        </div>
+
+        <AlertDialogFooter className="mt-1 sm:mt-2 grid grid-cols-1 gap-2">
           <AlertDialogAction
             onClick={onConfirm}
-            className="w-full h-auto min-h-10 whitespace-normal leading-snug px-3 py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+            className="order-1 w-full h-auto min-h-11 whitespace-normal leading-snug px-3 py-2 text-sm font-semibold bg-destructive hover:bg-destructive/90 text-destructive-foreground"
           >
-            已滿 18 歲，進入觀看 (I am 18+, Enter)
+            已滿 18 歲，進入
           </AlertDialogAction>
+          <AlertDialogCancel className="order-2 w-full h-auto min-h-10 whitespace-normal leading-snug px-3 py-2 text-sm">
+            返回
+          </AlertDialogCancel>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
