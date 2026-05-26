@@ -34,17 +34,17 @@
 
 `customMetadata` 是自由格式 key-value 陣列，保留用於：
 
-1. **腳本創作 metadata**：只在劇本正文 parser / 讀者頁使用的欄位（`Outline`、`RoleSetting`、`BackgroundInfo`、`Synopsis`、`OpeningIntro`、`ChapterSettings`、`PerformanceInstruction`）
-2. **活動 metadata**：`ActivityName`、`ActivityBanner`、`ActivityContent`、`ActivityDemoLinks`、`ActivityDemoUrl`、`ActivityWorkUrl`
+1. **腳本創作 metadata**：只在劇本正文 parser / 讀者頁使用的欄位（`RoleSetting`、`BackgroundInfo`、`OpeningIntro`、`ChapterSettings`、`PerformanceInstruction`）
+2. **活動 metadata**：`ActivityContent`、`ActivityDemoLinks`、`ActivityDemoUrl`、`ActivityWorkUrl`
 3. **聯絡資訊**：`Contact`（自由格式或 JSON 物件）
 4. **用戶自訂欄位**：任意 key-value（divider / text）
-5. **legacy 讀取 fallback**：以下 reserved keys 僅讀不寫（見下節）
+5. **legacy 保留 keys**：以下 reserved keys 不再讀寫，僅歷史資料保留（見下節）
 
 ---
 
-## Reserved Keys（禁止新增寫入）
+## Reserved Keys（禁止讀寫）
 
-以下 keys 過去曾寫入 customMetadata，現在由正式欄位取代。**新存檔流程不得產生這些 key**，僅保留讀取以相容舊資料。
+以下 keys 過去曾寫入 customMetadata，現在由正式欄位取代。**新存檔流程不得產生這些 key，前後端也不再從中讀取**。舊資料中的這些 keys 為歷史殘留，不影響渲染。
 
 ```
 Author
@@ -77,7 +77,8 @@ ActivityBanner
 | 1 | Adapter 接管 hydration/save，統一 mapping 入口 | ✅ 完成 |
 | 2 | save hook 瘦身，payload builder 純函式化 | ✅ 完成 |
 | 3 | 停止把 reserved keys 寫入 customMetadata | ✅ 完成 |
-| 4 | 命中率低後移除 legacy fallback read path | 待辦 |
+| 4 | 移除 legacy fallback read path（synopsis/outline/activityName/activityBannerUrl）| ✅ 完成（E5） |
+| 5（可選）| 其他高價值欄位升 schema（activityContent / workUrl 等）| 待辦 |
 
 ---
 
@@ -86,3 +87,5 @@ ActivityBanner
 - `Author` / `AuthorDisplayMode`：新寫入路徑已停止寫入 customMetadata，僅保留 legacy 讀取與 preserve 邏輯
 - `LicenseCommercial` / `LicenseDerivative` / `LicenseNotify` / `LicenseSpecialTerms` / `LicenseTags`：新寫入路徑已停止寫入 customMetadata，僅保留 legacy 讀取
 - `Series` / `SeriesOrder`：新寫入路徑已停止寫入 customMetadata，改由 `seriesId` / `seriesOrder` 正式欄位承載
+- `Synopsis` / `Outline` / `ActivityName` / `ActivityBanner`：E5 完成後已停止讀寫 customMetadata，前後端均直接使用結構化欄位
+- **rollback 策略**：若需臨時恢復 fallback，前端在 `fromApiToDraft` 的 custom read 區段加回 `draft.synopsis = draft.synopsis || String(meta.synopsis || ...)` 即可；後端在 `create_script` / `update_script` 加回 `_resolve_content_fields` 呼叫

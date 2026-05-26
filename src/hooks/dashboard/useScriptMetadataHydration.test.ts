@@ -175,7 +175,8 @@ describe("useScriptMetadataHydration", () => {
     expect(params.setActivityBannerUrl).toHaveBeenCalledWith("https://example.com/banner.jpg");
   });
 
-  it("falls back to custom synopsis/outline/activityName/activityBannerUrl when structured fields are absent", async () => {
+  it("ignores custom synopsis/outline/activityName/activityBannerUrl — structured fields only (E5-1)", async () => {
+    // Legacy custom fallback removed in E5-1. Custom keys are no longer read for these 4 fields.
     const params = buildParams();
     const { result } = renderHook(() => useScriptMetadataHydration(params));
 
@@ -193,9 +194,9 @@ describe("useScriptMetadataHydration", () => {
       });
     });
 
-    expect(params.setSynopsis).toHaveBeenCalledWith("legacy 簡介");
-    expect(params.setOutline).toHaveBeenCalledWith("legacy 大綱");
-    expect(params.setActivityName).toHaveBeenCalledWith("legacy 活動名");
-    expect(params.setActivityBannerUrl).toHaveBeenCalledWith("https://example.com/legacy-banner.jpg");
+    expect(params.setSynopsis).toHaveBeenCalledWith("");
+    expect(params.setOutline).toHaveBeenCalledWith("");
+    expect(params.setActivityName).toHaveBeenCalledWith("");
+    expect(params.setActivityBannerUrl).toHaveBeenCalledWith("");
   });
 });

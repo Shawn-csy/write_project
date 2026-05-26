@@ -23,7 +23,8 @@ describe("fromApiToDraft — structured content fields", () => {
     expect(draft.activityBannerUrl).toBe("https://example.com/banner.jpg");
   });
 
-  it("falls back to custom Synopsis/Outline/ActivityName/ActivityBanner when structured fields absent", () => {
+  it("ignores custom Synopsis/Outline/ActivityName/ActivityBanner — structured fields only (E5-1)", () => {
+    // Legacy custom fallback removed in E5-1. Custom keys are no longer read for these 4 fields.
     const draft = fromApiToDraft({
       id: "s-2",
       title: "T",
@@ -35,10 +36,10 @@ describe("fromApiToDraft — structured content fields", () => {
       ],
       tags: [],
     });
-    expect(draft.synopsis).toBe("legacy 簡介");
-    expect(draft.outline).toBe("legacy 大綱");
-    expect(draft.activityName).toBe("legacy 活動名");
-    expect(draft.activityBannerUrl).toBe("https://example.com/legacy-banner.jpg");
+    expect(draft.synopsis).toBe("");
+    expect(draft.outline).toBe("");
+    expect(draft.activityName).toBe("");
+    expect(draft.activityBannerUrl).toBe("");
   });
 
   it("structured field wins over custom key when both present", () => {

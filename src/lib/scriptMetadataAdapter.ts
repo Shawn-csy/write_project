@@ -44,16 +44,17 @@ export interface ScriptMetadataDraft {
   targetAudience: string;
   contentRating: string;
 
-  // customMetadata-backed content fields (no structured API field)
+  // structured API content fields (PR-E1+)
   synopsis: string;
   outline: string;
+  activityName: string;
+  activityBannerUrl: string;
+  // customMetadata-backed content fields (no structured API field)
   roleSetting: string;
   backgroundInfo: string;
   performanceInstruction: string;
   openingIntro: string;
   chapterSettings: string;
-  activityName: string;
-  activityBannerUrl: string;
   activityContent: string;
   activityDemoLinks: unknown[];
   activityWorkUrl: string;
@@ -214,16 +215,13 @@ export function fromApiToDraft(
   // copyright
   draft.copyright = String(meta.copyright || "");
 
-  // content-only custom fields — structured fields win, custom is legacy fallback
-  draft.synopsis = draft.synopsis || String(meta.synopsis || meta.summary || meta.description || meta.notes || "");
-  draft.outline = draft.outline || String(meta.outline || "");
+  // content-only custom fields — structured fields (synopsis/outline/activityName/activityBannerUrl)
+  // are read directly from API fields above; custom fallback removed in E5-1.
   draft.roleSetting = String(meta.rolesetting || "");
   draft.backgroundInfo = String(meta.backgroundinfo || "");
   draft.performanceInstruction = String(meta.performanceinstruction || "");
   draft.openingIntro = String(meta.openingintro || meta.setting || meta.settingintro || "");
   draft.chapterSettings = String(meta.chaptersettings || "");
-  draft.activityName = draft.activityName || String(meta.activityname || meta.eventname || "");
-  draft.activityBannerUrl = draft.activityBannerUrl || String(meta.activitybanner || meta.eventbanner || "");
   draft.activityContent = String(meta.activitycontent || meta.eventcontent || "");
   draft.activityWorkUrl = String(meta.activityworkurl || meta.eventworklink || "");
 
