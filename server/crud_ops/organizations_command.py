@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 import models
 import schemas
+from media_crop import normalize_media_with_crop
 from .organizations_query import (
     ensure_user_org_membership,
     get_primary_user_org_id,
@@ -17,13 +18,17 @@ from .organizations_query import (
 
 
 def create_organization(db: Session, org: schemas.OrganizationCreate, ownerId: str):
+    logo_url, logo_crop = normalize_media_with_crop(org.logoUrl or "", org.logoCrop)
+    banner_url, banner_crop = normalize_media_with_crop(org.bannerUrl or "", org.bannerCrop)
     db_org = models.Organization(
         id=str(uuid.uuid4()),
         name=org.name,
         description=org.description,
         website=org.website or "",
-        logoUrl=org.logoUrl or "",
-        bannerUrl=org.bannerUrl or "",
+        logoUrl=logo_url,
+        logoCrop=logo_crop,
+        bannerUrl=banner_url,
+        bannerCrop=banner_crop,
         tags=org.tags or [],
         ownerId=ownerId,
         createdAt=int(time.time() * 1000),
@@ -45,6 +50,20 @@ def update_organization(db: Session, org_id: str, org_update: schemas.Organizati
         return None
 
     update_data = org_update.model_dump(exclude_unset=True)
+    if "logoUrl" in update_data or "logoCrop" in update_data:
+        logo_url, logo_crop = normalize_media_with_crop(
+            update_data.pop("logoUrl", db_org.logoUrl),
+            update_data.pop("logoCrop", db_org.logoCrop),
+        )
+        update_data["logoUrl"] = logo_url
+        update_data["logoCrop"] = logo_crop
+    if "bannerUrl" in update_data or "bannerCrop" in update_data:
+        banner_url, banner_crop = normalize_media_with_crop(
+            update_data.pop("bannerUrl", db_org.bannerUrl),
+            update_data.pop("bannerCrop", db_org.bannerCrop),
+        )
+        update_data["bannerUrl"] = banner_url
+        update_data["bannerCrop"] = banner_crop
     if "tags" in update_data and update_data["tags"] is None:
         update_data["tags"] = []
     for key, value in update_data.items():

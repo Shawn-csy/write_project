@@ -1,0 +1,107 @@
+import React, { forwardRef } from "react";
+import ScriptSurface from "./ScriptSurface";
+import { useReaderPreferences } from "../../hooks/useReaderPreferences";
+import { useI18n } from "../../contexts/I18nContext";
+import type { MarkerConfig } from "../../types/script";
+
+interface PreviewPanelProps {
+  show: boolean;
+  readOnly: boolean;
+  content: string;
+  type?: string;
+  theme?: string;
+  fontSize?: number;
+  bodyFontSize?: number;
+  dialogueFontSize?: number;
+  lineHeight?: number;
+  accentColor?: string;
+  markerConfigs?: MarkerConfig[];
+  onTitleHtml?: (html: string) => void;
+  onHasTitle?: (has: boolean) => void;
+  onTitleNote?: (note: string) => void;
+  onTitleSummary?: (summary: string) => void;
+  onTitleName?: (name: string) => void;
+  onRawHtml?: (html: string) => void;
+  onProcessedHtml?: (html: string) => void;
+  initialSceneId?: string | null;
+  onScenes?: (scenes: Array<{ id?: string; [key: string]: unknown }>) => void;
+  onRequestEdit?: () => void;
+  hiddenMarkerIds?: string[];
+  onContentClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
+  outerClassName?: string;
+  scrollClassName?: string;
+}
+
+export const PreviewPanel = forwardRef(function PreviewPanel({
+  show,
+  readOnly,
+  content,
+  type,
+  theme,
+  fontSize,
+  bodyFontSize,
+  dialogueFontSize,
+  lineHeight,
+  accentColor,
+  markerConfigs,
+  onTitleHtml,
+  onHasTitle,
+  onTitleNote,
+  onTitleSummary,
+  onTitleName,
+  onRawHtml,
+  onProcessedHtml,
+  initialSceneId,
+  onScenes,
+  onRequestEdit,
+  hiddenMarkerIds,
+  onContentClick,
+  outerClassName,
+  scrollClassName
+}: PreviewPanelProps, ref: React.ForwardedRef<HTMLDivElement>) {
+  const { t } = useI18n();
+  const readerPreferences = useReaderPreferences({
+    theme,
+    fontSize,
+    bodyFontSize,
+    dialogueFontSize,
+    lineHeight,
+    accentColor,
+  });
+
+  return (
+    <ScriptSurface
+      show={show}
+      readOnly={readOnly}
+      outerClassName={outerClassName || `${readOnly ? "w-full" : "w-full sm:w-1/2"} h-full overflow-hidden bg-background flex flex-col`}
+      scrollClassName={scrollClassName || "h-full overflow-y-auto px-4 py-8"}
+      contentClassName=""
+      scrollRef={ref}
+      onDoubleClick={() => {
+        if (readOnly && onRequestEdit) onRequestEdit();
+      }}
+      onContentClick={onContentClick}
+      text={content}
+      emptyMessage={
+        readOnly
+          ? t("previewPanel.emptyReadOnly")
+          : t("previewPanel.emptyEditable")
+      }
+      viewerProps={{
+        type,
+        onTitle: onTitleHtml,
+        onHasTitle,
+        onTitleNote,
+        onSummary: onTitleSummary,
+        onTitleName,
+        onRawHtml,
+        onProcessedHtml,
+        scrollToScene: initialSceneId,
+        onScenes,
+        ...readerPreferences,
+        markerConfigs,
+        hiddenMarkerIds: hiddenMarkerIds || [],
+      }}
+    />
+  );
+});

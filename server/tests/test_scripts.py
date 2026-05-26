@@ -182,3 +182,21 @@ def test_script_custom_metadata_roundtrip(client):
     row = next((item for item in summary_items if item["id"] == script_id), None)
     assert row is not None
     assert isinstance(row.get("customMetadata"), list)
+
+
+def test_create_script_explicit_empty_structured_content_does_not_fallback_to_custom(client):
+    headers = {"X-User-ID": "u1"}
+    create_res = client.post(
+        "/api/scripts",
+        json={
+            "title": "Explicit Empty Structured Content",
+            "synopsis": "",
+            "customMetadata": [
+                {"key": "Synopsis", "value": "legacy synopsis should not win"},
+            ],
+        },
+        headers=headers,
+    )
+    assert create_res.status_code == 200
+    data = create_res.json()
+    assert data.get("synopsis") in ("", None)

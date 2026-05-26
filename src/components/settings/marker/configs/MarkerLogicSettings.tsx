@@ -1,0 +1,369 @@
+import React from "react";
+import { Settings } from "lucide-react";
+import { Input } from "../../../ui/input";
+import { ModeSelector } from "./ModeSelector";
+import { useI18n } from "../../../../contexts/I18nContext";
+import type { MarkerConfigEditorProps } from "../types";
+
+export function MarkerLogicSettings({ config, idx, updateMarker, isAdvancedMode = true, tracks = [], showLayoutRouting = true }: MarkerConfigEditorProps): React.JSX.Element {
+    const { t } = useI18n();
+const isBlock = config.type === 'block' || config.isBlock;
+    const isInline = !isBlock;
+    const eventKindOptions = ["", "speech", "sfx", "bgm", "stage_direction", "narration", "meta", "custom"];
+    const speakerSourceOptions = ["none", "active", "self"];
+    const enabledTracks = tracks.filter((tr) => tr.enabled);
+
+    const updateArrayField = (field: "keywords", valueStr: string) => {
+        const arr = valueStr.split(',').map((s: string) => s.trim()).filter(Boolean);
+        updateMarker(idx, field, arr);
+    };
+
+    return (
+        <div className="space-y-4">
+             <div className="hidden items-center gap-2 mb-2">
+                <Settings className="w-3 h-3 text-muted-foreground" />
+                <span className="text-[11px] font-bold text-muted-foreground">{t("markerLogic.title")}</span>
+             </div>
+
+             {isAdvancedMode && (
+                 <div className="mb-4">
+                    <ModeSelector 
+                        value={config.matchMode || 'enclosure'} 
+                        onChange={(mode: "enclosure" | "prefix" | "range" | "regex") => updateMarker(idx, 'matchMode', mode)}
+                    />
+                </div>
+             )}
+
+             {showLayoutRouting ? (
+             <div className="rounded-md border border-border/50 bg-background/60 p-3 space-y-3">
+                    <div className="text-[11px] font-bold text-muted-foreground">{t("markerLogic.semanticTitle")}</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="space-y-1">
+                            <label className="text-[10px] text-muted-foreground block">{t("markerLogic.defaultTrack")}</label>
+                            {enabledTracks.length > 0 ? (
+                                <select
+                                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                                    value={String(config.v2TrackId || "")}
+                                    onChange={(event) => updateMarker(idx, 'v2TrackId', event.target.value || undefined)}
+                                >
+                                    <option value="">{t("markerLogic.trackAuto")}</option>
+                                    {enabledTracks.map((tr) => (
+                                        <option key={tr.id} value={tr.id}>{tr.name} ({tr.id})</option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <Input
+                                    value={String(config.v2TrackId || "")}
+                                    onChange={(event) => updateMarker(idx, 'v2TrackId', event.target.value || undefined)}
+                                    className="h-10 text-sm font-mono"
+                                    placeholder="main / sfx / secondary"
+                                />
+                            )}
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] text-muted-foreground block">{t("markerLogic.eventKind")}</label>
+                            <select
+                                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                                value={String(config.v2EventKind || "")}
+                                onChange={(event) => updateMarker(idx, 'v2EventKind', event.target.value || undefined)}
+                            >
+                                {eventKindOptions.map((kind) => (
+                                    <option key={kind || "auto"} value={kind}>
+                                        {kind || t("markerLogic.eventKindAuto")}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        {isAdvancedMode && (
+                            <div className="space-y-1">
+                                <label className="text-[10px] text-muted-foreground block">{t("markerLogic.speakerSource")}</label>
+                                <select
+                                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                                    value={String(config.v2SpeakerSource || "none")}
+                                    onChange={(event) => updateMarker(idx, 'v2SpeakerSource', event.target.value === "none" ? undefined : event.target.value)}
+                                >
+                                    {speakerSourceOptions.map((source) => (
+                                        <option key={source} value={source}>
+                                            {t(`markerLogic.speakerSource_${source}`)}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                    </div>
+                </div>
+             ) : null}
+
+             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                
+                {/* Range 模式專用設定 - 成對設定開始/結束 */}
+                {config.matchMode === 'range' && (
+                    <>
+                        <div className="sm:col-span-2 bg-primary/5 rounded-md p-3 border border-primary/20 space-y-3">
+                            <p className="text-[10px] text-muted-foreground">
+                                {t("markerLogic.rangeModeTip")}
+                            </p>
+                            
+                            {/* 開始/結束符號 */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-sm font-medium text-foreground block">{t("markerLogic.rangeStartLabel")} <span className="text-destructive">*</span></label>
+                                    <Input 
+                                        value={config.start || ''} 
+                                        onChange={(e) => updateMarker(idx, 'start', e.target.value)}
+                                        className={`h-10 font-mono text-base text-center ${!config.start ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                                        placeholder={t("markerLogic.rangeStartPlaceholder")}
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-sm font-medium text-foreground block">{t("markerLogic.rangeEndLabel")} <span className="text-destructive">*</span></label>
+                                    <Input 
+                                        value={config.end || ''} 
+                                        onChange={(e) => updateMarker(idx, 'end', e.target.value)}
+                                        className={`h-10 font-mono text-base text-center ${!config.end ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                                        placeholder={t("markerLogic.rangeEndPlaceholder")}
+                                    />
+                                </div>
+                            </div>
+                            
+                            {/* 暫停/切換符號 & 顯示文字 */}
+                            {isAdvancedMode && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-muted-foreground block">
+                                            {t("markerLogic.pauseSwitchLabel")} <span className="text-[9px] text-muted-foreground/50 font-normal">{t("markerLogic.optional")}</span>
+                                        </label>
+                                        <Input 
+                                            value={config.pause || ''} 
+                                            onChange={(e) => updateMarker(idx, 'pause', e.target.value)}
+                                            className="h-10 font-mono text-sm text-center border-dashed"
+                                            placeholder="><SE"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-muted-foreground block">
+                                            {t("markerLogic.pauseDisplayLabel")}
+                                        </label>
+                                        <Input 
+                                            value={config.pauseLabel !== undefined ? config.pauseLabel : t("markerLogic.pauseDefault")}
+                                            onChange={(e) => updateMarker(idx, 'pauseLabel', e.target.value)}
+                                            className="h-10 text-sm text-center"
+                                            placeholder={t("markerLogic.pausePlaceholder")}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* 欄位並排設定 */}
+                            <div className="col-span-1 sm:col-span-2 pt-1 border-t border-dashed border-border/30 space-y-2">
+                                <label className="flex items-start gap-2 cursor-pointer select-none group" title={t("markerLogic.v2SyncRowsDesc")}>
+                                    <input
+                                        type="checkbox"
+                                        checked={!!(config.v2SyncRows || config.enableColumnGrouping)}
+                                        onChange={(e) => {
+                                            updateMarker(idx, 'v2SyncRows', e.target.checked || undefined);
+                                            updateMarker(idx, 'enableColumnGrouping', undefined);
+                                        }}
+                                        className="mt-0.5 h-3.5 w-3.5 rounded border-input text-primary focus:ring-ring shrink-0"
+                                    />
+                                    <span className="text-xs text-foreground leading-snug">
+                                        {t("markerLogic.v2SyncRows")}
+                                        <span className="ml-1 text-[10px] text-muted-foreground/60 group-hover:text-muted-foreground transition-colors">ⓘ</span>
+                                    </span>
+                                </label>
+                                <p className="mt-0 ml-5 text-[10px] text-muted-foreground/70 leading-relaxed">
+                                    {t("markerLogic.v2SyncRowsDesc")}
+                                </p>
+                                <label className="flex items-start gap-2 cursor-pointer select-none group" title={t("markerLogic.v2RangeOwnsContentDesc")}>
+                                    <input
+                                        type="checkbox"
+                                        checked={!!config.v2RangeOwnsContent}
+                                        onChange={(e) => updateMarker(idx, 'v2RangeOwnsContent', e.target.checked || undefined)}
+                                        className="mt-0.5 h-3.5 w-3.5 rounded border-input text-primary focus:ring-ring shrink-0"
+                                    />
+                                    <span className="text-xs text-foreground leading-snug">
+                                        {t("markerLogic.v2RangeOwnsContent")}
+                                        <span className="ml-1 text-[10px] text-muted-foreground/60 group-hover:text-muted-foreground transition-colors">ⓘ</span>
+                                    </span>
+                                </label>
+                                <p className="mt-0 ml-5 text-[10px] text-muted-foreground/70 leading-relaxed">
+                                    {t("markerLogic.v2RangeOwnsContentDesc")}
+                                </p>
+                            </div>
+
+                            {/* 區間樣式選擇器 */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] text-muted-foreground block">{t("markerLogic.rangeStyleLabel")}</label>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => updateMarker(idx, 'style', { 
+                                            ...config.style, 
+                                            borderLeft: '2px solid currentColor',
+                                            paddingLeft: '8px',
+                                            backgroundColor: undefined
+                                        })}
+                                        className={`p-2 rounded border text-[10px] flex items-center gap-1 ${
+                                            config.style?.borderLeft ? 'border-primary bg-primary/10' : 'border-border/50 hover:border-border'
+                                        }`}
+                                    >
+                                        <span className="w-[2px] h-4 bg-current rounded"></span>
+                                        {t("markerLogic.rangeStyleLine")}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => updateMarker(idx, 'style', { 
+                                            ...config.style, 
+                                            backgroundColor: 'hsl(var(--muted) / 0.45)',
+                                            borderLeft: undefined,
+                                            paddingLeft: undefined
+                                        })}
+                                        className={`p-2 rounded border text-[10px] flex items-center gap-1 ${
+                                            config.style?.backgroundColor && !config.style?.borderLeft ? 'border-primary bg-primary/10' : 'border-border/50 hover:border-border'
+                                        }`}
+                                    >
+                                        <span className="w-4 h-4 bg-muted rounded"></span>
+                                        {t("markerLogic.rangeStyleBackground")}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => updateMarker(idx, 'style', {})}
+                                        className={`p-2 rounded border text-[10px] ${
+                                            !config.style?.borderLeft && !config.style?.backgroundColor ? 'border-primary bg-primary/10' : 'border-border/50 hover:border-border'
+                                        }`}
+                                    >
+                                        {t("markerLogic.rangeStyleNone")}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                )}
+                
+                {config.matchMode === 'regex' ? (
+                    <div className="sm:col-span-2 space-y-1">
+                        <label className="text-sm font-medium text-foreground block mb-2">{t("markerLogic.regexLabel")} <span className="text-destructive">*</span></label>
+                        <Input 
+                            value={config.regex || ''}
+                            onChange={(e) => updateMarker(idx, 'regex', e.target.value)}
+                            className={`h-10 font-mono text-sm ${!config.regex ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                            placeholder={t("markerLogic.regexPlaceholder")}
+                        />
+                        {!config.regex && (
+                             <p className="text-sm text-destructive font-medium">{t("markerLogic.regexRequired")}</p>
+                        )}
+                    </div>
+                ) : config.matchMode !== 'range' && (
+                    <>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <div className="flex-1 space-y-1">
+                                    <label className="text-sm font-medium text-foreground block mb-2">{t("markerLogic.startLabel")} <span className="text-destructive">*</span></label>
+                                    <Input 
+                                        value={config.start || ''} 
+                                        onChange={(e) => updateMarker(idx, 'start', e.target.value)}
+                                        className={`h-10 font-mono text-base text-center ${!config.start ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                                    />
+                                    {!config.start && (
+                                        <p className="text-sm text-destructive font-medium">{t("markerLogic.startRequired")}</p>
+                                    )}
+                                </div>
+                            {(isBlock || config.matchMode !== 'prefix') && (
+                                <div className="flex-1 space-y-1">
+                                    <label className="text-sm font-medium text-foreground block mb-2">{t("markerLogic.endLabel")} <span className="text-destructive">*</span></label>
+                                    <Input 
+                                        value={config.end || ''} 
+                                        onChange={(e) => updateMarker(idx, 'end', e.target.value)}
+                                        className={`h-10 font-mono text-base text-center ${!config.end ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                                    />
+                                    {!config.end && (
+                                        <p className="text-sm text-destructive font-medium">{t("markerLogic.startRequired")}</p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                        
+                        {isBlock && isAdvancedMode && (
+                             <div className="col-span-1 sm:col-span-2 mt-2 pt-2 border-t border-dashed border-border/30">
+                                <label className="flex items-center gap-2 cursor-pointer select-none" title={t("markerLogic.showEndTitle")}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={config.showEndLabel !== false}
+                                        onChange={(e) => updateMarker(idx, 'showEndLabel', e.target.checked)}
+                                        className="h-3.5 w-3.5 rounded border-input text-primary focus:ring-ring"
+                                    />
+                                    <span className="text-xs text-foreground">{t("markerLogic.showEnd")}</span>
+                                </label>
+                             </div>
+                        )}
+
+                        
+                        {isBlock && config.matchMode === 'enclosure' && isAdvancedMode && (
+                             <div className="col-span-1 sm:col-span-2 mt-2">
+                                <label className="flex items-center gap-2 cursor-pointer select-none" title={t("markerLogic.smartToggleTitle")}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={!!config.smartToggle} 
+                                        onChange={(e) => updateMarker(idx, 'smartToggle', e.target.checked)}
+                                        className="h-3.5 w-3.5 rounded border-input text-primary focus:ring-ring"
+                                    />
+                                    <span className="text-xs text-foreground">{t("markerLogic.smartToggle")}</span>
+                                </label>
+                             </div>
+                        )}
+                    </>
+                )}
+             </div>
+
+            {isAdvancedMode && (
+                <div className="space-y-2 pt-2 border-t border-dashed border-border/30">
+                    <label className="text-[10px] text-muted-foreground block">{t("markerLogic.template")}</label>
+                    <Input 
+                            value={config.renderer?.template || ''}
+                            onChange={(e) => {
+                                const renderer = config.renderer || {};
+                                updateMarker(idx, 'renderer', { ...renderer, template: e.target.value });
+                            }}
+                            className="h-8 text-xs font-mono"
+                            placeholder={t("markerLogic.templatePlaceholder")}
+                    />
+                </div>
+            )}
+
+             {isInline && config.matchMode !== 'regex' && isAdvancedMode && (
+                <div className="space-y-2 pt-2 border-t border-dashed border-border/30">
+                    <label className="text-[10px] text-muted-foreground block">{t("markerLogic.keywords")}</label>
+                    <Input 
+                         value={config.keywords ? config.keywords.join(', ') : ''}
+                         onChange={(e) => updateArrayField('keywords', e.target.value)}
+                         className="h-8 text-xs font-mono"
+                         placeholder={t("markerLogic.keywordsPlaceholder")}
+                    />
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input 
+                            type="checkbox" 
+                            checked={!!config.dimIfNotKeyword} 
+                            onChange={(e) => updateMarker(idx, 'dimIfNotKeyword', e.target.checked)}
+                            className="h-3 w-3 rounded border-input text-primary focus:ring-ring"
+                        />
+                        <span className="text-xs text-muted-foreground">{t("markerLogic.dimKeyword")}</span>
+                    </label>
+                </div>
+             )}
+             
+             {/* Options moved from outer scope if match mode not regex */}
+             {config.matchMode !== 'regex' && isAdvancedMode && (
+                 <div className="flex items-center gap-4 mt-2">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input 
+                            type="checkbox" 
+                            checked={!!config.showDelimiters} 
+                            onChange={(e) => updateMarker(idx, 'showDelimiters', e.target.checked)}
+                            className="h-3.5 w-3.5 rounded border-input text-primary focus:ring-ring"
+                        />
+                        <span className="text-xs text-muted-foreground">{t("markerLogic.showDelimiters")}</span>
+                    </label>
+                 </div>
+             )}
+        </div>
+    );
+}

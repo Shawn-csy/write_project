@@ -1,0 +1,294 @@
+import React, { useEffect, useState, useCallback } from "react";
+import { SlidersHorizontal } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import { useEditableTitle } from "../../hooks/useEditableTitle";
+import { useI18n } from "../../contexts/I18nContext";
+import { useSettings } from "../../contexts/SettingsContext";
+import type { MarkerConfig, ParsedScene, FileMeta } from "../../hooks/useScriptManager.types";
+import type { DownloadOption } from "../../types/routes";
+
+import { Card, CardContent } from "../ui/card";
+import { ReaderControls } from "../reader/ReaderControls";
+import { ReaderActions } from "../reader/ReaderActions";
+import EditableTitle from "./EditableTitle";
+import HeaderTitleBlock from "./HeaderTitleBlock";
+
+interface MarkerTheme {
+  id: string;
+  [key: string]: unknown;
+}
+
+interface ReaderHeaderProps {
+  hasTitle?: boolean;
+  onToggleTitle?: () => void;
+  titleName?: string;
+  activeFile?: string | { name: string } | null;
+  fileMeta?: FileMeta;
+  isSidebarOpen?: boolean;
+  setSidebarOpen: (open: boolean) => void;
+  downloadOptions?: DownloadOption[];
+  onShareUrl?: (event?: Event | React.MouseEvent) => void;
+  canShare?: boolean;
+  shareCopied?: boolean;
+  sceneList?: ParsedScene[];
+  currentSceneId?: string;
+  onSelectScene?: (id: string) => void;
+  characterList?: string[];
+  filterCharacter?: string;
+  setFilterCharacter?: (val: string) => void;
+  setFocusMode?: (val: boolean) => void;
+  scrollProgress?: number;
+  totalLines?: number;
+  onEdit?: (() => void) | null;
+  onOpenGuide?: () => void;
+  showReadModeHint?: boolean;
+  extraActions?: React.ReactNode;
+  onBack?: () => void;
+  onToggleStats?: () => void;
+  onTitleChange?: (title: string) => Promise<void>;
+  onSwitchMarkerTheme?: (themeId: string) => Promise<boolean>;
+  markerConfigs?: MarkerConfig[];
+  visibleMarkerIds?: string[];
+  hiddenMarkerIds?: string[];
+  onToggleMarker?: (id: string) => void;
+}
+
+function ReaderHeader({
+  hasTitle,
+  onToggleTitle,
+  titleName,
+  activeFile,
+  fileMeta = {},
+  isSidebarOpen,
+  setSidebarOpen,
+  downloadOptions = [],
+  onShareUrl,
+  canShare,
+  shareCopied,
+  sceneList = [],
+  currentSceneId,
+  onSelectScene,
+  characterList = [],
+  filterCharacter,
+  setFilterCharacter,
+  setFocusMode,
+  scrollProgress = 0,
+  totalLines = 0,
+  onEdit,
+  onOpenGuide,
+  showReadModeHint = false,
+  extraActions,
+  onBack,
+  onToggleStats,
+  onTitleChange,
+  onSwitchMarkerTheme,
+  markerConfigs,
+  visibleMarkerIds: visibleMarkerIdsProp,
+  hiddenMarkerIds: hiddenMarkerIdsProp,
+  onToggleMarker: onToggleMarkerProp,
+}: ReaderHeaderProps) {
+  const { t } = useI18n() as { t: (key: string, fallback?: string) => string };
+  const location = useLocation();
+  const {
+    markerThemes = [] as MarkerTheme[],
+    currentThemeId = "default",
+    switchTheme = () => {},
+  } = useSettings();
+
+  const effectiveHiddenMarkerIds = hiddenMarkerIdsProp ?? [];
+  const effectiveToggleMarker = onToggleMarkerProp ?? (() => {});
+  const persistMarkerTheme = onSwitchMarkerTheme;
+  const effectiveVisibleMarkerIds =
+    visibleMarkerIdsProp ??
+    (Array.isArray(markerConfigs)
+      ? markerConfigs.filter((c) => !effectiveHiddenMarkerIds.includes(c.id)).map((c) => c.id)
+      : []);
+
+  const handleSwitchMarkerTheme = useCallback(
+    async (themeId: string) => {
+      const nextId = String(themeId || "default");
+      const prevId = String(currentThemeId || "default");
+      if (nextId === prevId) return;
+      switchTheme(nextId);
+      if (!persistMarkerTheme) return;
+      const ok = await persistMarkerTheme(nextId);
+      if (ok === false) {
+        switchTheme(prevId);
+      }
+    },
+    [currentThemeId, switchTheme, persistMarkerTheme]
+  );
+
+  const lgQuery = typeof window !== "undefined" ? window.matchMedia("(min-width: 1024px)") : null;
+  const [isLg, setIsLg] = useState<boolean>(() => lgQuery?.matches ?? false);
+  const [collapsed, setCollapsed] = useState<boolean>(() => !(lgQuery?.matches ?? false));
+  const [autoCollapse, setAutoCollapse] = useState(true);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia("(min-width: 1024px)");
+    const sync = () => {
+      setIsLg(media.matches);
+      if (autoCollapse) {
+        setCollapsed(!media.matches);
+      }
+    };
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, [autoCollapse]);
+
+  const progressLabel = `${Math.round(scrollProgress)}%`;
+  const { isEditing, editTitle, setEditTitle, startEditing, submitTitle } = useEditableTitle(
+    titleName || "",
+    onTitleChange
+  );
+
+  const isGuideMode = React.useMemo(() => {
+    const params = new URLSearchParams(location.search || "");
+    return params.get("guide") === "1";
+  }, [location.search]);
+
+  const showTools = isGuideMode || isLg || !collapsed;
+
+  const activeFileName =
+    typeof activeFile === "object" && activeFile !== null ? activeFile.name : activeFile;
+
+  return (
+    <Card id="reader-guide-header" className="border border-border bg-card/80 backdrop-blur rounded-none sm:rounded-xl border-x-0 sm:border-x">
+      <CardContent
+        className={`flex flex-col ${
+          collapsed ? "p-2 sm:p-3" : "p-3 sm:p-4"
+        } gap-2 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center pt-2.5 sm:pt-3`}
+      >
+        <div className="flex w-full flex-col gap-2 min-w-0 max-w-[1000px]">
+          <div className="flex items-center gap-2 min-w-0">
+            <HeaderTitleBlock
+              onBack={onBack ? () => { onBack(); } : undefined}
+              backButtonClassName="h-11 w-11 inline-flex items-center justify-center -ml-1 text-foreground/80 hover:text-foreground transition-colors shrink-0"
+              backIconClassName="h-5 w-5"
+              backAriaLabel={t("common.back")}
+              onOpenSidebar={() => setSidebarOpen(true)}
+              sidebarButtonClassName={`h-11 w-11 inline-flex items-center justify-center text-foreground/80 hover:text-foreground transition-colors shrink-0 ${
+                isSidebarOpen ? "lg:hidden" : ""
+              }`}
+              sidebarIconClassName="h-5 w-5"
+              containerClassName="flex items-center gap-2 min-w-0"
+              titleWrapperClassName="min-w-0 flex-1 flex flex-col justify-center"
+              titleNode={
+                <div className="flex items-center gap-2 min-w-0">
+                  <EditableTitle
+                    isEditing={isEditing && Boolean(onTitleChange)}
+                    editTitle={editTitle}
+                    setEditTitle={(val: string) => setEditTitle(val)}
+                    onSubmit={submitTitle}
+                    inputClassName="text-base sm:text-2xl font-semibold border border-primary/50 rounded px-1 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary min-w-[120px] sm:min-w-[200px] w-[45vw] sm:w-auto max-w-[60vw]"
+                    inputProps={{ onClick: (e: React.MouseEvent) => e.stopPropagation() }}
+                    renderDisplay={() => (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          if (!hasTitle) return;
+                          e.stopPropagation();
+                          onToggleTitle?.();
+                        }}
+                        onDoubleClick={(e) => {
+                          if (onTitleChange) {
+                            e.stopPropagation();
+                            startEditing();
+                          }
+                        }}
+                        className={`text-left flex-1 min-w-0 ${hasTitle ? "cursor-pointer" : "cursor-default"}`}
+                        title={onTitleChange ? t("editorHeader.doubleClickRename") : ""}
+                      >
+                        <h2 className="text-base sm:text-2xl font-semibold truncate flex-1 leading-tight min-w-0">
+                          {titleName || activeFileName || t("app.selectScript")}
+                        </h2>
+                      </button>
+                    )}
+                  />
+                </div>
+              }
+              metaNode={
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground min-w-0">
+                    <span className="truncate max-w-[120px]">
+                      {typeof activeFile === "string" && fileMeta[activeFile]
+                        ? fileMeta[activeFile]?.toLocaleDateString()
+                        : ""}
+                    </span>
+                    {totalLines > 0 && (
+                      <>
+                        <span className="opacity-50">·</span>
+                        <span className="whitespace-nowrap">
+                          {t("readerHeader.linesCount").replace("{count}", String(totalLines))}
+                        </span>
+                      </>
+                    )}
+                    <span className="opacity-50">·</span>
+                    <span className="whitespace-nowrap">{progressLabel}</span>
+                  </div>
+                  {showReadModeHint && onEdit && (
+                    <div className="mt-0.5 text-xs text-[color:var(--license-term-fg)] truncate">
+                      {t("readerHeader.readModeHint")}
+                    </div>
+                  )}
+                </div>
+              }
+            />
+
+            {!isLg && (
+              <button
+                id="reader-guide-tools-toggle"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setAutoCollapse(false);
+                  setCollapsed((v) => !v);
+                }}
+                aria-label={collapsed ? t("readerHeader.showTools") : t("readerHeader.hideTools")}
+                className="lg:hidden h-11 w-11 inline-flex items-center justify-center rounded-full border bg-muted/30 hover:bg-muted/50 text-foreground/80 transition-colors shrink-0 justify-self-end ml-1"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {showTools && (
+          <div
+            id="reader-guide-tools"
+            className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 lg:justify-end lg:ml-auto lg:w-auto w-full mt-2 sm:mt-0"
+          >
+            <ReaderControls
+              sceneList={sceneList}
+              currentSceneId={currentSceneId}
+              onSelectScene={onSelectScene ?? (() => {})}
+              characterList={characterList}
+              filterCharacter={filterCharacter}
+              setFilterCharacter={setFilterCharacter ?? (() => {})}
+              setFocusMode={setFocusMode ?? (() => {})}
+              markerConfigs={markerConfigs}
+              markerThemes={markerThemes}
+              currentThemeId={currentThemeId}
+              onSwitchMarkerTheme={handleSwitchMarkerTheme}
+              visibleMarkerIds={effectiveVisibleMarkerIds}
+              hiddenMarkerIds={effectiveHiddenMarkerIds}
+              onToggleMarker={effectiveToggleMarker}
+            />
+            <ReaderActions
+              canShare={canShare}
+              onShareUrl={onShareUrl}
+              shareCopied={shareCopied}
+              downloadOptions={downloadOptions}
+              onEdit={onEdit ?? undefined}
+              onOpenGuide={onOpenGuide}
+              extraActions={extraActions}
+              onToggleStats={onToggleStats}
+            />
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+export default ReaderHeader;

@@ -13,7 +13,7 @@ def test_seo_tags(client):
     <title>Screenplay Reader</title>
     <meta property="og:title" content="Screenplay Reader" />
     <meta property="og:description" content="Default Desc" />
-    <meta name="description" content="線上閱讀、瀏覽與分享 Fountain 劇本的閱讀器。" />
+    <meta name="description" content="免費瀏覽、閱讀與分享創作台本。支援 Fountain 格式劇本，探索公開作品、配音台本與作者頁面。" />
     </head><body></body></html>"""
     
     # We patch os.path.exists to return True when checking for index.html
@@ -26,8 +26,9 @@ def test_seo_tags(client):
             content = response.text
             
             assert "<title>SEO Script｜Screenplay Reader</title>" in content
-            assert 'content="SEO Script"' in content # og:title
-            assert 'content="Great content here"' in content # description
+            assert 'content="SEO Script｜Screenplay Reader"' in content  # og:title includes site name
+            assert "SEO Script" in content  # title appears somewhere in head
+            assert 'content="Great content here"' in content  # description
 
 
 def test_security_headers_csp_is_restricted(client):

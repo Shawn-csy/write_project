@@ -63,12 +63,42 @@ def _serialize_theme_configs(configs: Any) -> str:
     return "[]"
 
 
+def _serialize_layout_config(layout_config: Any) -> str | None:
+    if layout_config is None:
+        return None
+    if isinstance(layout_config, str):
+        # Validate it's parseable JSON; store as-is if valid
+        try:
+            json.loads(layout_config)
+            return layout_config
+        except Exception:
+            return None
+    if isinstance(layout_config, dict):
+        return json.dumps(layout_config, ensure_ascii=False)
+    return None
+
+
+def _parse_layout_config(raw: Any) -> Any:
+    if raw is None:
+        return None
+    if isinstance(raw, dict):
+        return raw
+    if isinstance(raw, str):
+        try:
+            parsed = json.loads(raw)
+            return parsed if isinstance(parsed, dict) else None
+        except Exception:
+            return None
+    return None
+
+
 def create_theme(db: Session, theme: schemas.MarkerThemeCreate, ownerId: str):
     db_theme = models.MarkerTheme(
         id=theme.id if theme.id else str(uuid.uuid4()),
         ownerId=ownerId,
         name=theme.name,
         configs=_serialize_theme_configs(theme.configs),
+        layoutConfig=_serialize_layout_config(theme.layoutConfig),
         isPublic=theme.isPublic,
         description=theme.description,
     )
@@ -90,6 +120,8 @@ def update_theme(db: Session, theme_id: str, theme: schemas.MarkerThemeUpdate, o
     update_data = theme.model_dump(exclude_unset=True)
     if "configs" in update_data:
         update_data["configs"] = _serialize_theme_configs(update_data["configs"])
+    if "layoutConfig" in update_data:
+        update_data["layoutConfig"] = _serialize_layout_config(update_data["layoutConfig"])
     for key, value in update_data.items():
         setattr(db_theme, key, value)
 

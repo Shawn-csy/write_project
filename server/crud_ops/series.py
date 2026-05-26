@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 import models
 import schemas
+from media_crop import normalize_media_with_crop
 
 
 def _slugify(name: str) -> str:
@@ -55,13 +56,15 @@ def create_series(db: Session, payload: schemas.SeriesCreate, owner_id: str):
     now = int(time.time() * 1000)
     base_slug = _slugify(payload.name)
     slug = _ensure_unique_slug(db, owner_id, base_slug)
+    cover_url, cover_crop = normalize_media_with_crop(payload.coverUrl or "", payload.coverCrop)
     db_series = models.Series(
         id=str(uuid.uuid4()),
         ownerId=owner_id,
         name=payload.name.strip(),
         slug=slug,
         summary=(payload.summary or "").strip(),
-        coverUrl=(payload.coverUrl or "").strip(),
+        coverUrl=cover_url.strip(),
+        coverCrop=cover_crop,
         createdAt=now,
         updatedAt=now,
     )
@@ -84,8 +87,16 @@ def update_series(db: Session, series_id: str, payload: schemas.SeriesUpdate, ow
             db_series.slug = _ensure_unique_slug(db, owner_id, _slugify(new_name), exclude_id=series_id)
     if "summary" in updates and updates["summary"] is not None:
         db_series.summary = updates["summary"].strip()
-    if "coverUrl" in updates and updates["coverUrl"] is not None:
-        db_series.coverUrl = updates["coverUrl"].strip()
+    if "coverUrl" in updates:
+        cover_url, cover_crop = normalize_media_with_crop(
+            updates["coverUrl"] or "",
+            updates.get("coverCrop", db_series.coverCrop),
+        )
+        db_series.coverUrl = cover_url.strip()
+        db_series.coverCrop = cover_crop
+    elif "coverCrop" in updates:
+        _, cover_crop = normalize_media_with_crop(db_series.coverUrl, updates.get("coverCrop"))
+        db_series.coverCrop = cover_crop
     db_series.updatedAt = int(time.time() * 1000)
     db.commit()
     db.refresh(db_series)

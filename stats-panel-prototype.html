@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Script Stats Panel — Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans+Condensed:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:         #0e0e0f;
+    --bg-raised:  #141416;
+    --bg-active:  #1c1c1f;
+    --border:     #2a2a2e;
+    --border-dim: #1e1e22;
+    --text:       #d4d4d8;
+    --text-dim:   #71717a;
+    --text-faint: #3f3f46;
+    --amber:      #f59e0b;
+    --amber-dim:  #78350f;
+    --green:      #22c55e;
+    --green-dim:  #14532d;
+    --blue:       #60a5fa;
+    --accent:     #f59e0b;
+
+    /* character palette */
+    --c1: #fb923c;
+    --c2: #a78bfa;
+    --c3: #34d399;
+    --c4: #f472b6;
+    --c5: #38bdf8;
+    --c6: #fbbf24;
+  }
+
+  body {
+    background: #18181b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'IBM Plex Sans Condensed', sans-serif;
+  }
+
+  /* ── PANEL SHELL ── */
+  .panel {
+    width: 400px;
+    height: 100vh;
+    max-height: 860px;
+    background: var(--bg);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* scan-line texture */
+  .panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(255,255,255,0.012) 2px,
+      rgba(255,255,255,0.012) 4px
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .panel > * { position: relative; z-index: 1; }
+
+  /* ── OVERVIEW ── */
+  .overview {
+    border-bottom: 1px solid var(--border);
+    padding: 12px 14px 0;
+  }
+
+  .overview-label {
+    font-size: 8px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    font-family: 'IBM Plex Mono', monospace;
+    margin-bottom: 8px;
+  }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin: 0 -14px;
+  }
+
+  .kpi {
+    background: var(--bg);
+    padding: 10px 14px 12px;
+  }
+
+  .kpi-title {
+    font-size: 8px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    font-family: 'IBM Plex Mono', monospace;
+    margin-bottom: 4px;
+  }
+
+  .kpi-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 28px;
+    font-weight: 500;
+    color: var(--amber);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .kpi-value.secondary {
+    font-size: 26px;
+    color: var(--text);
+  }
+
+  /* ── SECONDARY TILES ── */
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border-dim);
+    border-bottom: 1px solid var(--border);
+    margin: 0;
+  }
+
+  .tile {
+    background: var(--bg-raised);
+    padding: 7px 10px;
+    text-align: center;
+  }
+
+  .tile-label {
+    font-size: 7px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    font-family: 'IBM Plex Mono', monospace;
+    margin-bottom: 3px;
+  }
+
+  .tile-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  /* ── TAB BAR ── */
+  .tabbar {
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    gap: 6px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-raised);
+  }
+
+  .tabs {
+    display: flex;
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 2px;
+    gap: 2px;
+  }
+
+  .tab {
+    flex: 1;
+    font-family: 'IBM Plex Sans Condensed', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: transparent;
+    border: none;
+    border-radius: 2px;
+    padding: 5px 4px;
+    cursor: pointer;
+    transition: background 0.1s, color 0.1s;
+    white-space: nowrap;
+  }
+
+  .tab.active {
+    background: var(--bg-active);
+    color: var(--amber);
+    box-shadow: inset 0 0 0 1px var(--amber-dim);
+  }
+
+  .gear-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--text-faint);
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .gear-btn:hover { color: var(--text); border-color: var(--text-dim); }
+
+  /* ── CONTENT AREA ── */
+  .content {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .pane {
+    display: none;
+    flex-direction: column;
+    height: 100%;
+  }
+  .pane.visible { display: flex; }
+
+  /* ── CONTENT VIEW ── */
+  .micro-stats {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border-dim);
+    background: var(--bg-raised);
+  }
+
+  .micro-stat {
+    flex: 1;
+    padding: 6px 10px;
+    border-right: 1px solid var(--border-dim);
+  }
+  .micro-stat:last-child { border-right: none; }
+
+  .micro-stat-label {
+    font-size: 7px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    font-family: 'IBM Plex Mono', monospace;
+    margin-bottom: 2px;
+  }
+
+  .micro-stat-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--green);
+  }
+
+  .script-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 14px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .script-line {
+    display: block;
+    width: 100%;
+    background: none;
+    border: none;
+    border-left: 2px solid transparent;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--text);
+    text-align: left;
+    padding: 2px 0 2px 8px;
+    cursor: pointer;
+    transition: border-color 0.1s, color 0.1s, background 0.1s;
+    margin-bottom: 4px;
+  }
+
+  .script-line:hover {
+    border-left-color: var(--amber);
+    color: #fafafa;
+    background: rgba(245, 158, 11, 0.04);
+  }
+
+  /* ── CHARACTER STATS ── */
+  .char-scroll {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .char-row {
+    border-bottom: 1px solid var(--border-dim);
+    overflow: hidden;
+  }
+
+  .char-header {
+    display: flex;
+    align-items: center;
+    padding: 9px 14px;
+    cursor: pointer;
+    background: var(--bg);
+    transition: background 0.1s;
+    gap: 8px;
+  }
+
+  .char-header:hover { background: var(--bg-raised); }
+
+  .char-expand-icon {
+    color: var(--text-faint);
+    font-size: 9px;
+    width: 10px;
+    flex-shrink: 0;
+    font-family: 'IBM Plex Mono', monospace;
+    transition: transform 0.15s;
+  }
+
+  .char-row.expanded .char-expand-icon { transform: rotate(90deg); }
+
+  .char-name {
+    font-family: 'IBM Plex Sans Condensed', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    flex: 1;
+  }
+
+  .char-counts {
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .char-lines {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .char-chars {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--text-faint);
+    margin-top: 1px;
+  }
+
+  .char-bar-wrap {
+    width: 60px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 0;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .char-bar {
+    height: 100%;
+    border-radius: 0;
+    opacity: 0.85;
+  }
+
+  .char-lines-list {
+    display: none;
+    padding: 0 14px 10px 32px;
+    background: var(--bg-raised);
+    border-top: 1px solid var(--border-dim);
+  }
+
+  .char-row.expanded .char-lines-list { display: block; }
+
+  .char-script-line {
+    display: block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    padding: 2px 0;
+    cursor: pointer;
+    border: none;
+    background: none;
+    text-align: left;
+    width: 100%;
+    transition: color 0.1s;
+  }
+
+  .char-script-line:hover { color: var(--text); }
+
+  /* ── CUE ANALYSIS ── */
+  .cue-scroll {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .cue-section {
+    border-bottom: 1px solid var(--border-dim);
+  }
+
+  .cue-header {
+    display: flex;
+    align-items: center;
+    padding: 9px 14px;
+    cursor: pointer;
+    background: var(--bg);
+    transition: background 0.1s;
+    gap: 8px;
+  }
+
+  .cue-header:hover { background: var(--bg-raised); }
+
+  .cue-expand {
+    color: var(--text-faint);
+    font-size: 9px;
+    width: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    transition: transform 0.15s;
+  }
+
+  .cue-section.expanded .cue-expand { transform: rotate(90deg); }
+
+  .cue-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .cue-label {
+    font-family: 'IBM Plex Sans Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text);
+    flex: 1;
+    letter-spacing: 0.03em;
+  }
+
+  .cue-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-dim);
+    background: var(--bg-active);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    letter-spacing: 0.04em;
+  }
+
+  .cue-items {
+    display: none;
+    padding: 0 14px 10px 32px;
+    background: var(--bg-raised);
+    border-top: 1px solid var(--border-dim);
+  }
+
+  .cue-section.expanded .cue-items { display: block; }
+
+  .cue-item {
+    display: block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint);
+    line-height: 1.7;
+    cursor: pointer;
+    background: none;
+    border: none;
+    text-align: left;
+    width: 100%;
+    padding: 1px 0;
+    transition: color 0.1s;
+  }
+
+  .cue-item:hover { color: var(--text); }
+
+  .cue-footer {
+    border-top: 1px solid var(--border);
+    padding: 10px 14px;
+    background: var(--bg-raised);
+    flex-shrink: 0;
+  }
+
+  .report-btn {
+    width: 100%;
+    font-family: 'IBM Plex Sans Condensed', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber);
+    background: transparent;
+    border: 1px solid var(--amber-dim);
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .report-btn:hover {
+    background: rgba(245, 158, 11, 0.08);
+    border-color: var(--amber);
+  }
+
+  /* scrollbar styling */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); }
+
+  /* ── STATUS LINE ── */
+  .status-line {
+    height: 20px;
+    border-top: 1px solid var(--border-dim);
+    background: var(--bg-raised);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .status-dot {
+    width: 5px;
+    height: 5px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .status-text {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<div class="panel">
+
+  <!-- OVERVIEW -->
+  <div class="overview">
+    <div class="overview-label">Script Analysis — ACT II DRAFT 3</div>
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-title">Est. Duration</div>
+        <div class="kpi-value">12m 30s</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-title">Total Chars</div>
+        <div class="kpi-value secondary">8,452</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECONDARY TILES -->
+  <div class="tiles">
+    <div class="tile">
+      <div class="tile-label">Dialogue</div>
+      <div class="tile-value">84</div>
+    </div>
+    <div class="tile">
+      <div class="tile-label">Cues</div>
+      <div class="tile-value">23</div>
+    </div>
+    <div class="tile">
+      <div class="tile-label">Pauses</div>
+      <div class="tile-value">42s</div>
+    </div>
+  </div>
+
+  <!-- TAB BAR -->
+  <div class="tabbar">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('dialogue', this)">Content View</button>
+      <button class="tab" onclick="switchTab('characters', this)">Characters</button>
+      <button class="tab" onclick="switchTab('cues', this)">Cue Analysis</button>
+    </div>
+    <button class="gear-btn" title="Settings">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- CONTENT VIEW PANE -->
+    <div class="pane visible" id="pane-dialogue">
+      <div class="micro-stats">
+        <div class="micro-stat">
+          <div class="micro-stat-label">Lines</div>
+          <div class="micro-stat-value">78</div>
+        </div>
+        <div class="micro-stat">
+          <div class="micro-stat-label">Chars</div>
+          <div class="micro-stat-value">6,210</div>
+        </div>
+        <div class="micro-stat">
+          <div class="micro-stat-label">Avg/Line</div>
+          <div class="micro-stat-value">79</div>
+        </div>
+      </div>
+      <div class="script-scroll">
+        <button class="script-line">You can't just walk in here and expect everything to be fine.</button>
+        <button class="script-line">I didn't expect anything. I just came back.</button>
+        <button class="script-line">Coming back isn't the same as being here, Michael.</button>
+        <button class="script-line">Then tell me what I missed. All of it.</button>
+        <button class="script-line">You missed the funeral. You missed the sale of the house. You missed three years.</button>
+        <button class="script-line">I know what I missed.</button>
+        <button class="script-line">Do you? Because standing there looking lost doesn't convince me.</button>
+        <button class="script-line">I'm not lost. I'm just— I don't know how to start.</button>
+        <button class="script-line">Start with why you left without saying a word.</button>
+        <button class="script-line">Because there were no words. There still aren't.</button>
+        <button class="script-line">That's not good enough.</button>
+        <button class="script-line">I know it isn't. Nothing I could say would be.</button>
+        <button class="script-line">Then maybe you should have thought about that before you came back.</button>
+        <button class="script-line">Maybe I should have. But here I am.</button>
+        <button class="script-line">Yes. Here you are.</button>
+        <button class="script-line">What do you want me to do, Sara?</button>
+        <button class="script-line">I want you to explain. I want you to try.</button>
+        <button class="script-line">I can try. I don't know if it'll help.</button>
+        <button class="script-line">It won't. But try anyway.</button>
+      </div>
+    </div>
+
+    <!-- CHARACTER STATS PANE -->
+    <div class="pane" id="pane-characters">
+      <div class="char-scroll">
+
+        <div class="char-row" onclick="toggleRow(this)">
+          <div class="char-header">
+            <span class="char-expand-icon">▶</span>
+            <span class="char-name" style="color:var(--c1)">SARA</span>
+            <div class="char-counts">
+              <div class="char-lines">42</div>
+              <div class="char-chars">3,280 ch</div>
+            </div>
+            <div class="char-bar-wrap">
+              <div class="char-bar" style="width:50%;background:var(--c1)"></div>
+            </div>
+          </div>
+          <div class="char-lines-list">
+            <button class="char-script-line">You can't just walk in here and expect everything to be fine.</button>
+            <button class="char-script-line">Coming back isn't the same as being here, Michael.</button>
+            <button class="char-script-line">Then tell me what I missed. All of it.</button>
+            <button class="char-script-line">You missed the funeral. You missed the sale of the house.</button>
+            <button class="char-script-line">Do you? Because standing there looking lost doesn't convince me.</button>
+          </div>
+        </div>
+
+        <div class="char-row" onclick="toggleRow(this)">
+          <div class="char-header">
+            <span class="char-expand-icon">▶</span>
+            <span class="char-name" style="color:var(--c2)">MICHAEL</span>
+            <div class="char-counts">
+              <div class="char-lines">31</div>
+              <div class="char-chars">2,104 ch</div>
+            </div>
+            <div class="char-bar-wrap">
+              <div class="char-bar" style="width:37%;background:var(--c2)"></div>
+            </div>
+          </div>
+          <div class="char-lines-list">
+            <button class="char-script-line">I didn't expect anything. I just came back.</button>
+            <button class="char-script-line">Then tell me what I missed. All of it.</button>
+            <button class="char-script-line">I know what I missed.</button>
+            <button class="char-script-line">I'm not lost. I'm just— I don't know how to start.</button>
+          </div>
+        </div>
+
+        <div class="char-row" onclick="toggleRow(this)">
+          <div class="char-header">
+            <span class="char-expand-icon">▶</span>
+            <span class="char-name" style="color:var(--c3)">NARRATOR</span>
+            <div class="char-counts">
+              <div class="char-lines">11</div>
+              <div class="char-chars">826 ch</div>
+            </div>
+            <div class="char-bar-wrap">
+              <div class="char-bar" style="width:13%;background:var(--c3)"></div>
+            </div>
+          </div>
+          <div class="char-lines-list">
+            <button class="char-script-line">Three years is a long time. Long enough to forget the weight of a key.</button>
+            <button class="char-script-line">The house still smells the same.</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- CUE ANALYSIS PANE -->
+    <div class="pane" id="pane-cues" style="display:none;flex-direction:column;">
+      <div class="cue-scroll">
+
+        <div class="cue-section expanded" onclick="toggleCue(this)">
+          <div class="cue-header">
+            <span class="cue-expand">▶</span>
+            <span class="cue-dot" style="background:var(--c5)"></span>
+            <span class="cue-label">Sound Effects</span>
+            <span class="cue-badge">12</span>
+          </div>
+          <div class="cue-items">
+            <button class="cue-item">Door creaks open — Scene 3</button>
+            <button class="cue-item">Rain against window — Scene 4</button>
+            <button class="cue-item">Clock ticking — Scene 4</button>
+            <button class="cue-item">Footsteps on hardwood — Scene 5</button>
+            <button class="cue-item">Phone buzzes — Scene 7</button>
+          </div>
+        </div>
+
+        <div class="cue-section" onclick="toggleCue(this)">
+          <div class="cue-header">
+            <span class="cue-expand">▶</span>
+            <span class="cue-dot" style="background:var(--c4)"></span>
+            <span class="cue-label">Music</span>
+            <span class="cue-badge">5</span>
+          </div>
+          <div class="cue-items">
+            <button class="cue-item">Piano theme — Intro</button>
+            <button class="cue-item">String swell — Scene 6</button>
+            <button class="cue-item">Silence — Scene 8</button>
+          </div>
+        </div>
+
+        <div class="cue-section" onclick="toggleCue(this)">
+          <div class="cue-header">
+            <span class="cue-expand">▶</span>
+            <span class="cue-dot" style="background:var(--amber)"></span>
+            <span class="cue-label">Lighting</span>
+            <span class="cue-badge">4</span>
+          </div>
+          <div class="cue-items">
+            <button class="cue-item">Fade to warm — Scene 2</button>
+            <button class="cue-item">Harsh overhead — Scene 5</button>
+          </div>
+        </div>
+
+        <div class="cue-section" onclick="toggleCue(this)">
+          <div class="cue-header">
+            <span class="cue-expand">▶</span>
+            <span class="cue-dot" style="background:var(--c3)"></span>
+            <span class="cue-label">Pauses</span>
+            <span class="cue-badge">2</span>
+          </div>
+          <div class="cue-items">
+            <button class="cue-item">3s pause — Scene 4, after "I know."</button>
+            <button class="cue-item">5s pause — Scene 8, closing</button>
+          </div>
+        </div>
+
+      </div>
+      <div class="cue-footer">
+        <button class="report-btn">Generate Report</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- STATUS LINE -->
+  <div class="status-line">
+    <span class="status-dot"></span>
+    <span class="status-text">Live — last updated 0s ago</span>
+  </div>
+
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+
+    // hide all
+    document.querySelectorAll('.pane').forEach(p => {
+      p.classList.remove('visible');
+      p.style.display = 'none';
+    });
+
+    const pane = document.getElementById('pane-' + id);
+    pane.style.display = 'flex';
+    requestAnimationFrame(() => pane.classList.add('visible'));
+  }
+
+  function toggleRow(row) {
+    row.classList.toggle('expanded');
+  }
+
+  function toggleCue(section) {
+    section.classList.toggle('expanded');
+  }
+</script>
+</body>
+</html>

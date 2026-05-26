@@ -1,0 +1,170 @@
+import React, { memo } from "react";
+import { Badge } from "../ui/badge";
+import { GripVertical } from "lucide-react";
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import type { DraggableAttributes } from "@dnd-kit/core";
+
+// @dnd-kit does not export SyntheticListenerMap from the public entrypoint;
+// mirror the internal shape (values typed as Function to match dnd-kit internals).
+// eslint-disable-next-line @typescript-eslint/ban-types
+type SyntheticListenerMap = Record<string, Function>;
+
+interface FileTag {
+    id: string;
+    name: string;
+    color?: string;
+}
+
+interface SortableFileRowProps {
+    id: string;
+    item: unknown;
+    isFolder: boolean;
+    disableDrag?: boolean;
+    children: React.ReactNode;
+}
+
+interface FileRowProps {
+    icon: React.ReactNode;
+    title: string;
+    meta?: React.ReactNode;
+    actions?: React.ReactNode;
+    onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+    onDoubleClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+    isFolder?: boolean;
+    tags?: Array<string | Partial<FileTag>>;
+    dragListeners?: SyntheticListenerMap | null;
+    style?: React.CSSProperties;
+    className?: string;
+}
+
+const resolveTagSwatch = (rawColor: string | undefined) => {
+    const value = String(rawColor || "").trim();
+    if (!value) return { className: "bg-primary/60", style: undefined };
+    if (value.startsWith("#") || value.startsWith("rgb") || value.startsWith("hsl") || value.startsWith("var(")) {
+        return { className: "", style: { backgroundColor: value } };
+    }
+    return { className: value, style: undefined };
+};
+
+export const SortableFileRow = (props: SortableFileRowProps): React.JSX.Element => {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging
+    } = useSortable({ 
+        id: props.id,
+        data: {
+            type: props.isFolder ? 'folder' : 'script',
+            item: props.item
+        }
+    });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 10 : 1,
+        opacity: isDragging ? 0.5 : 1
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} {...attributes}>
+            {React.isValidElement(props.children) 
+                ? React.cloneElement(props.children as React.ReactElement<{ dragListeners?: SyntheticListenerMap | null }>, { dragListeners: props.disableDrag ? null : listeners })
+                : props.children
+            }
+        </div>
+    );
+};
+
+export const FileRow = memo(function FileRow({ icon, title, meta, actions, onClick, onDoubleClick, isFolder, tags = [], dragListeners, style, className = "" }: FileRowProps): React.JSX.Element {
+    const normalizedTags = (tags || [])
+        .map((tag, idx) => {
+            if (typeof tag === "string") {
+                return { id: `tag-${idx}-${tag}`, name: tag, color: "" };
+            }
+            return {
+                id: tag?.id ?? `tag-${idx}-${tag?.name || ""}`,
+                name: tag?.name || "",
+                color: tag?.color || "",
+            };
+        })
+        .filter((tag) => Boolean(tag.name));
+    const visibleTags = normalizedTags.slice(0, 3);
+    const hiddenCount = Math.max(0, normalizedTags.length - visibleTags.length);
+    const hiddenTagsLabel = normalizedTags
+        .slice(3)
+        .map((tag) => tag.name)
+        .filter(Boolean)
+        .join("、");
+
+    return (
+    <div 
+        onClick={onClick}
+        onDoubleClick={onDoubleClick}
+        style={style}
+        className={`group flex cursor-pointer items-center justify-between rounded-md border border-transparent bg-[hsl(var(--surface-1))] p-3 transition-colors hover:border-border/50 hover:bg-[hsl(var(--surface-2))] ${className}`}
+    >
+        {/* Drag Handle */}
+        {dragListeners && (
+             <div 
+                {...dragListeners}
+                className="mr-2 text-muted-foreground/30 hover:text-foreground cursor-grab active:cursor-grabbing p-1"
+                onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}
+            >
+                <GripVertical className="w-4 h-4" />
+            </div>
+        )}
+
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className={`rounded-md p-2 ${isFolder ? 'bg-primary/10 text-primary' : 'bg-muted/80 text-muted-foreground'} transition-colors group-hover:bg-primary/10 group-hover:text-primary`}>
+                {icon}
+            </div>
+            <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+                <div className="font-medium truncate text-sm">{title}</div>
+                <div className="flex items-start gap-2 min-w-0">
+                    {visibleTags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 max-w-full min-w-0">
+                            {visibleTags.map((tag) => (
+                                <Badge
+                                    key={tag.id}
+                                    variant="outline"
+                                    className="flex h-4 max-w-[120px] items-center gap-1 border-[color:var(--license-filter-border)] bg-[color:var(--license-filter-bg)] px-1 py-0 text-[10px] text-[color:var(--license-filter-fg)]"
+                                    title={tag.name}
+                                >
+                                    {(() => {
+                                        const swatch = resolveTagSwatch(tag.color);
+                                        return (
+                                            <span
+                                                className={`h-1.5 w-1.5 shrink-0 rounded-full ${swatch.className}`}
+                                                style={swatch.style}
+                                            />
+                                        );
+                                    })()}
+                                    <span className="truncate">{tag.name}</span>
+                                </Badge>
+                            ))}
+                            {hiddenCount > 0 && (
+                                <Badge
+                                    variant="outline"
+                                    className="text-[10px] px-1 py-0 h-4 text-muted-foreground"
+                                    title={hiddenTagsLabel || `還有 ${hiddenCount} 個標籤`}
+                                >
+                                    +{hiddenCount}
+                                </Badge>
+                            )}
+                        </div>
+                    )}
+                    {meta && <div className="min-w-0 truncate text-xs text-muted-foreground/85">{meta}</div>}
+                </div>
+            </div>
+        </div>
+        <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+            {actions}
+        </div>
+    </div>
+    );
+});

@@ -4,6 +4,9 @@ import routers.public_bundle as public_bundle_router
 
 
 def test_public_bundle_top_tags_weighted_by_views(client, monkeypatch):
+    import routers.public_bundle as pb
+    pb._bundle_cache = None
+
     scripts = [
         SimpleNamespace(views=30, tags=[SimpleNamespace(name="A"), "B"]),
         SimpleNamespace(views=10, tags=["B", "C"]),
@@ -23,6 +26,9 @@ def test_public_bundle_top_tags_weighted_by_views(client, monkeypatch):
 
 
 def test_public_bundle_ignores_invalid_tag_entries(client, monkeypatch):
+    import routers.public_bundle as pb
+    pb._bundle_cache = None
+
     scripts = [
         SimpleNamespace(views=3, tags=[None, SimpleNamespace(name=""), {"name": "dict-ignored"}, "ValidTag"]),
         SimpleNamespace(views=2, tags=[]),

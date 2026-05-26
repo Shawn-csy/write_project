@@ -1,0 +1,43 @@
+import React, { useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import { useAppShortcuts } from "../../hooks/useAppShortcuts";
+import type { Nav } from "../../types/nav";
+
+interface GlobalListenersProps {
+  nav: Nav;
+  adjustFont: (delta: number) => void;
+  filterCharacter: string;
+  setFocusMode: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowTitle: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+export function GlobalListeners({ nav, adjustFont, filterCharacter, setFocusMode, setShowTitle }: GlobalListenersProps) {
+    const location = useLocation();
+
+    // 1. Keyboard Shortcuts
+    useAppShortcuts({ adjustFont, nav, filterCharacter, setFocusMode });
+
+    // 2. Auto-hide Title on Nav
+    useEffect(() => {
+        if (nav.homeOpen || nav.aboutOpen || nav.settingsOpen) {
+            setShowTitle(false);
+        }
+    }, [nav.homeOpen, nav.aboutOpen, nav.settingsOpen, setShowTitle]);
+
+    // 3. Reset overlays on route change
+    const prevPathRef = React.useRef(location.pathname);
+
+    useEffect(() => {
+        if (prevPathRef.current !== location.pathname) {
+            // Path changed
+            if (nav.homeOpen || nav.aboutOpen || nav.settingsOpen) {
+                 nav.setHomeOpen(false);
+                 nav.setAboutOpen(false);
+                 nav.setSettingsOpen(false);
+            }
+            prevPathRef.current = location.pathname;
+        }
+    }, [location.pathname, nav]);
+
+    return null;
+}
