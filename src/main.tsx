@@ -10,6 +10,9 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './components/ui/toast';
 import { I18nProvider } from './contexts/I18nContext';
 
+const staticFooter = document.getElementById('static-footer');
+if (staticFooter) staticFooter.style.display = 'none';
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
