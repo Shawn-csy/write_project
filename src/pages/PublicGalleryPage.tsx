@@ -310,10 +310,15 @@ export default function PublicGalleryPage() {
 
       {/* Footer */}
       <footer className="border-t border-border/60 bg-muted/20">
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">{t("publicGallery.footerText")}</p>
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+            <p className="text-xs text-muted-foreground">{t("publicGallery.footerText")}</p>
+            <p className="text-xs text-muted-foreground hidden sm:block">&mdash; {t("publicGallery.footerDesc", "免費台本創作與閱讀平台，支援 Fountain 格式劇本")}</p>
+          </div>
           <div className="flex items-center gap-3">
             <span className="text-xs tracking-wide text-muted-foreground/70">v{appVersion}</span>
+            <a href="/privacy" className="text-xs text-muted-foreground hover:text-foreground underline">{t("publicGallery.privacy", "隱私權政策")}</a>
+            <a href="/terms" className="text-xs text-muted-foreground hover:text-foreground underline">{t("publicGallery.terms", "服務條款")}</a>
             <Button variant="link" size="sm" className="min-h-11 px-0 text-sm" onClick={() => setView("about")}>{t("publicGallery.about")}</Button>
           </div>
         </div>
