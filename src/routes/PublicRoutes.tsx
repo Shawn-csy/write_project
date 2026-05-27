@@ -8,6 +8,8 @@ const PublicGalleryPage = lazyWithRefreshRetry(() => import("../pages/PublicGall
 const AuthorProfilePage = lazyWithRefreshRetry(() => import("../pages/AuthorProfilePage"), "page-author-profile");
 const OrganizationPage = lazyWithRefreshRetry(() => import("../pages/OrganizationPage"), "page-organization");
 const PublicSeriesPage = lazyWithRefreshRetry(() => import("../pages/PublicSeriesPage"), "page-public-series");
+const PrivacyPolicyPage = lazyWithRefreshRetry(() => import("../pages/PrivacyPolicyPage"), "page-privacy-policy");
+const TermsOfServicePage = lazyWithRefreshRetry(() => import("../pages/TermsOfServicePage"), "page-terms-of-service");
 
 const routeFallback = <div className="p-8 text-center text-muted-foreground">Loading...</div>;
 
@@ -58,6 +60,22 @@ export function renderPublicRoutes({ scriptManager, navProps }: PublicRoutesProp
       <Route path="/license" element={<Navigate to="/?view=license" replace />} />
       <Route path="/help" element={<Navigate to="/?view=help" replace />} />
       <Route path="/help/import-format" element={<Navigate to="/?view=help" replace />} />
+      <Route
+        path="/privacy"
+        element={
+          <Suspense fallback={routeFallback}>
+            <PrivacyPolicyPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/terms"
+        element={
+          <Suspense fallback={routeFallback}>
+            <TermsOfServicePage />
+          </Suspense>
+        }
+      />
     </>
   );
 }
