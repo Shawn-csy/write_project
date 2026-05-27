@@ -4,10 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>免費台本 · 劇本線上閱讀｜Screenplay Reader</title>
-    <meta name="description" content="免費瀏覽、閱讀與分享創作台本。支援 Fountain 格式劇本，探索公開作品、配音台本與作者頁面。" />
+    <meta name="description" content="免費瀏覽、閱讀與分享創作台本，探索公開作品、配音台本與作者頁面。" />
     <meta property="og:title" content="免費台本 · 劇本線上閱讀｜Screenplay Reader" />
-    <meta property="og:description" content="免費瀏覽、閱讀與分享創作台本。支援 Fountain 格式劇本，探索公開作品、配音台本與作者頁面。" />
+    <meta property="og:description" content="免費瀏覽、閱讀與分享創作台本，探索公開作品、配音台本與作者頁面。" />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="公開台本" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <!-- Preconnect to third-party origins used on every page load -->
     <link rel="preconnect" href="https://identitytoolkit.googleapis.com">
@@ -20,6 +21,12 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Static links for Google OAuth verification crawler -->
+    <div style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">
+      <p>公開台本 — 免費台本創作與閱讀平台。</p>
+      <a href="/privacy">隱私權政策</a>
+      <a href="/terms">服務條款</a>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
