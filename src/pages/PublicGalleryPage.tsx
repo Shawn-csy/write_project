@@ -81,7 +81,7 @@ export default function PublicGalleryPage() {
     <div className="min-h-screen bg-background flex flex-col">
       <MetaTags
         titleName="免費台本 · 劇本線上閱讀｜Screenplay Reader"
-        titleSummary="免費瀏覽、閱讀與分享創作台本。支援 Fountain 格式劇本，探索公開作品、配音台本與作者頁面。"
+        titleSummary="免費瀏覽、閱讀與分享創作台本，探索公開作品、配音台本與作者頁面。"
         indexable={true}
         canonicalPath="/"
       />
@@ -313,7 +313,7 @@ export default function PublicGalleryPage() {
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
             <p className="text-xs text-muted-foreground">{t("publicGallery.footerText")}</p>
-            <p className="text-xs text-muted-foreground hidden sm:block">&mdash; {t("publicGallery.footerDesc", "免費台本創作與閱讀平台，支援 Fountain 格式劇本")}</p>
+            <p className="text-xs text-muted-foreground hidden sm:block">&mdash; {t("publicGallery.footerDesc", "免費台本創作與閱讀平台")}</p>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs tracking-wide text-muted-foreground/70">v{appVersion}</span>

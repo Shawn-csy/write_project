@@ -35,7 +35,7 @@ export function MetaTags({
     
   const description =
     summary.slice(0, 200) ||
-    "免費瀏覽、閱讀與分享創作台本。支援 Fountain 格式劇本，探索公開作品、配音台本與作者頁面。";
+    "免費瀏覽、閱讀與分享創作台本，探索公開作品、配音台本與作者頁面。";
     
   const shareTitle = titleName || (typeof activeFile === 'string' ? activeFile : activeFile?.name) || "免費台本 · 劇本線上閱讀｜Screenplay Reader";
   const fullTitle = titleName ? `${titleName}｜Screenplay Reader` : shareTitle;
