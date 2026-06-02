@@ -10,6 +10,9 @@ class TagBase(BaseModel):
 class TagCreate(TagBase):
     pass
 
+class TagAttach(BaseModel):
+    tagId: int
+
 class Tag(TagBase):
     id: int
     ownerId: str
