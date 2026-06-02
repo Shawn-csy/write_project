@@ -36,10 +36,8 @@ def delete_tag(tag_id: int, db: Session = Depends(get_db), ownerId: str = Depend
     return {"success": True}
 
 @router.post("/scripts/{script_id}/tags")
-def attach_tag(script_id: str, payload: dict, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
-    tag_id = payload.get("tagId")
-    if tag_id is None:
-        raise HTTPException(status_code=400, detail="Missing tagId")
+def attach_tag(script_id: str, payload: schemas.TagAttach, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    tag_id = payload.tagId
 
     script = db.query(models.Script).filter(models.Script.id == script_id).first()
     if not script:

@@ -175,7 +175,7 @@ export function PublicScriptInfoOverlay({
     );
   };
 
-  const renderItem = (id: string) => {
+  const renderItem = (id: string, clamp = false) => {
     const item = itemById.get(id);
     if (!item) return null;
 
@@ -207,16 +207,16 @@ export function PublicScriptInfoOverlay({
     return (
       <div key={id}>
         <div className="text-xs font-semibold text-muted-foreground">{item.title}</div>
-        <div className="text-sm leading-6 text-foreground/90 whitespace-pre-wrap line-clamp-3">{item.value}</div>
+        <div className={`text-sm leading-6 text-foreground/90 whitespace-pre-wrap${clamp ? " line-clamp-3" : ""}`}>{item.value}</div>
       </div>
     );
   };
   const compactIds = ["openingintro", "chaptersettings"];
   const expandedTopIds = ["outline", "rolesetting", "backgroundinfo", "performanceinstruction"];
   const expandedBottomIds = ["openingintro", "chaptersettings"];
-  const compactItems = compactIds.map(renderItem).filter(Boolean);
-  const expandedTopItems = expandedTopIds.map(renderItem).filter(Boolean);
-  const expandedBottomItems = expandedBottomIds.map(renderItem).filter(Boolean);
+  const compactItems = compactIds.map((id) => renderItem(id, true)).filter(Boolean);
+  const expandedTopItems = expandedTopIds.map((id) => renderItem(id, false)).filter(Boolean);
+  const expandedBottomItems = expandedBottomIds.map((id) => renderItem(id, false)).filter(Boolean);
   const hasPrefaceItems = compactItems.length > 0 || expandedTopItems.length > 0 || expandedBottomItems.length > 0;
   const hasDemoLinks = Array.isArray(demoLinks) && demoLinks.length > 0;
   const hasSpecialTerms = Array.isArray(licenseSpecialTerms) && licenseSpecialTerms.length > 0;
@@ -348,7 +348,7 @@ export function PublicScriptInfoOverlay({
 
       <h1
         className="font-serif font-bold leading-tight tracking-tight text-foreground drop-shadow-sm"
-        style={{ fontSize: "clamp(1.5rem, 5vw + 0.5rem, 4.5rem)" }}
+        style={{ fontSize: "clamp(1.5rem, 3vw + 1rem, 2.75rem)" }}
       >
         {title}
       </h1>
