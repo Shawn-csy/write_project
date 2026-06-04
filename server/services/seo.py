@@ -9,6 +9,15 @@ def meta_escape(text) -> str:
     return html.escape(str(text or ""), quote=True)
 
 
+def _absolute_url(url: str, base: str) -> str:
+    """Convert relative /media/... URLs to absolute using public_base_url."""
+    if not url:
+        return ""
+    if url.startswith("http://") or url.startswith("https://"):
+        return url
+    return base.rstrip("/") + ("/" if not url.startswith("/") else "") + url
+
+
 def upsert_meta(html_text: str, *, name: str = None, prop: str = None, content: str = "") -> str:
     if not name and not prop:
         return html_text
@@ -214,7 +223,7 @@ def inject_seo_for_route(full_path: str, db, html_template: str, public_base_url
             canonical_url = f"{public_base_url}/read/{script_id}"
             title = f"{script.title or 'Untitled'}｜Screenplay Reader"
             desc = _script_description(script) or "公開劇本閱讀頁"
-            image_url = script.coverUrl or ""
+            image_url = _absolute_url(script.coverUrl or "", public_base_url)
             structured = {
                 "@context": "https://schema.org",
                 "@type": "CreativeWork",
@@ -258,7 +267,7 @@ def inject_seo_for_route(full_path: str, db, html_template: str, public_base_url
             canonical_url = f"{public_base_url}/author/{author_id}"
             page_title = f"{display_name}｜Screenplay Reader"
             page_desc = str(bio).strip()[:200]
-            image_url = avatar or banner
+            image_url = _absolute_url(avatar or banner or "", public_base_url)
             structured = {
                 "@context": "https://schema.org",
                 "@type": "Person",
@@ -287,7 +296,7 @@ def inject_seo_for_route(full_path: str, db, html_template: str, public_base_url
             canonical_url = f"{public_base_url}/org/{org_id}"
             page_title = f"{(org.name or '組織')}｜Screenplay Reader"
             page_desc = str(org.description or f"{org.name or '組織'} 的公開作品與成員資訊").strip()[:200]
-            image_url = org.logoUrl or org.bannerUrl or ""
+            image_url = _absolute_url(org.logoUrl or org.bannerUrl or "", public_base_url)
             structured = {
                 "@context": "https://schema.org",
                 "@type": "Organization",
@@ -296,7 +305,7 @@ def inject_seo_for_route(full_path: str, db, html_template: str, public_base_url
                 "description": page_desc,
             }
             if org.logoUrl:
-                structured["logo"] = org.logoUrl
+                structured["logo"] = _absolute_url(org.logoUrl, public_base_url)
             if image_url:
                 structured["image"] = image_url
             if org.website:
