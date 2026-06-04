@@ -101,12 +101,21 @@ export function EditorShell() {
     if (!scriptId) return;
     if (appliedScriptThemeRef.current === scriptId) return;
 
-    const desiredThemeId = String(activeCloudScript?.markerThemeId || "default");
-    const themeExists = markerThemes.some((t) => String(t?.id || "") === desiredThemeId);
+    const scriptThemeId = activeCloudScript?.markerThemeId;
+
+    // If the script has no assigned theme, don't force a switch to "default" —
+    // keep whatever theme the user currently has active so column mode / V2
+    // settings remain intact across script switches.
+    if (!scriptThemeId) {
+      appliedScriptThemeRef.current = scriptId;
+      return;
+    }
+
+    const themeExists = markerThemes.some((t) => String(t?.id || "") === scriptThemeId);
 
     // Wait until the script's custom theme is loaded, then apply once for this script.
-    if (desiredThemeId !== "default" && !themeExists) return;
-    setCurrentThemeId(themeExists ? desiredThemeId : "default");
+    if (!themeExists) return;
+    setCurrentThemeId(scriptThemeId);
     appliedScriptThemeRef.current = scriptId;
   }, [activeCloudScript?.id, activeCloudScript?.markerThemeId, markerThemes, setCurrentThemeId]);
 
