@@ -685,14 +685,14 @@ export function CoverDesignerPanel({ design, onChange, scriptTitle, vars }: Cove
   }, [current, layers, onChange]);
 
   const handleTitleDrag   = useCallback((x: number, y: number) => onChange({ ...current, title: { ...current.title, x, y } }), [current, onChange]);
-  const handleTitleScale  = useCallback((s: number) => onChange({ ...current, title: { ...current.title, scale: s } }), [current, onChange]);
+  const handleTitleResize = useCallback((normW: number, fontSize: number) => onChange({ ...current, title: { ...current.title, w: normW, fontSize } }), [current, onChange]);
   const handleTitleRotate = useCallback((r: number) => onChange({ ...current, title: { ...current.title, rotation: r } }), [current, onChange]);
   const handleSplitDrag   = useCallback((ratio: number) => onChange({ ...current, bg: { ...current.bg, splitRatio: ratio } }), [current, onChange]);
   const handleLayerDrag   = useCallback((id: string, x: number, y: number) => {
     onChange({ ...current, layers: layers.map((l) => l.id === id ? { ...l, x, y } : l) });
   }, [current, layers, onChange]);
-  const handleLayerScale  = useCallback((id: string, s: number) => {
-    onChange({ ...current, layers: layers.map((l) => l.id === id ? { ...l, scale: s } : l) });
+  const handleLayerResize = useCallback((id: string, normW: number, fontSize: number) => {
+    onChange({ ...current, layers: layers.map((l) => l.id === id ? { ...l, w: normW, fontSize } : l) });
   }, [current, layers, onChange]);
   const handleLayerRotate = useCallback((id: string, r: number) => {
     onChange({ ...current, layers: layers.map((l) => l.id === id ? { ...l, rotation: r } : l) });
@@ -811,8 +811,8 @@ export function CoverDesignerPanel({ design, onChange, scriptTitle, vars }: Cove
                       onDblClickLayer={handleDblClick}
                       onTitleDrag={handleTitleDrag}
                       onLayerDrag={handleLayerDrag}
-                      onTitleScale={handleTitleScale}
-                      onLayerScale={handleLayerScale}
+                      onTitleResize={handleTitleResize}
+                      onLayerResize={handleLayerResize}
                       onTitleRotate={handleTitleRotate}
                       onLayerRotate={handleLayerRotate}
                       onSplitDrag={current.bg.type === "split" ? handleSplitDrag : undefined}

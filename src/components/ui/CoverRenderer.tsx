@@ -218,17 +218,20 @@ interface TransformLayerProps {
   direction: "horizontal" | "vertical";
   px: number; // absolute px from left
   py: number; // absolute px from top
+  /** Absolute box width in px. undefined = auto (shrink-wrap) */
+  boxW?: number;
   scale: number;
   rotation: number;
-  w: number;
-  h: number;
+  /** Cover canvas width in px (for normalised resize callbacks) */
+  canvasW: number;
+  canvasH: number;
   interactive: boolean;
   selected: boolean;
   editing: boolean;
   onSelect: () => void;
   onDblClick: () => void;
   onDrag: (x: number, y: number) => void;
-  onScale: (scale: number) => void;
+  onResize: (normW: number, fontSize: number) => void;
   onRotate: (rotation: number) => void;
   onEditChange?: (text: string) => void;
   onEditCommit?: () => void;
@@ -236,9 +239,9 @@ interface TransformLayerProps {
 
 function TransformLayer({
   id, text, font, fontSize, letterSpacing, effect, color, effectColor,
-  direction, px, py, scale, rotation, w, h,
+  direction, px, py, boxW, scale, rotation, canvasW, canvasH,
   interactive, selected, editing,
-  onSelect, onDblClick, onDrag, onScale, onRotate, onEditChange, onEditCommit,
+  onSelect, onDblClick, onDrag, onResize, onRotate, onEditChange, onEditCommit,
 }: TransformLayerProps) {
   const dragRef = useRef(false);
   const elRef = useRef<HTMLDivElement>(null);
@@ -261,10 +264,11 @@ function TransformLayer({
     writingMode: direction === "vertical" ? "vertical-rl" : undefined,
     textOrientation: direction === "vertical" ? "mixed" : undefined,
     wordBreak: "break-word",
-    whiteSpace: "pre-wrap",
+    whiteSpace: boxW != null ? "pre-wrap" : "nowrap",
     textAlign: "center",
     userSelect: "none",
     pointerEvents: "none",
+    width: boxW != null ? "100%" : undefined,
   };
 
   if (effect === "shadow") {
@@ -282,6 +286,7 @@ function TransformLayer({
     position: "absolute",
     left: px,
     top: py,
+    width: boxW != null ? boxW : undefined,
     transform: `translate(-50%, -50%) rotate(${rotation}deg) scale(${scale})`,
     transformOrigin: "center center",
     cursor: interactive ? (selected ? "move" : "pointer") : "default",
@@ -289,12 +294,13 @@ function TransformLayer({
     zIndex: selected ? 20 : 10,
     outline: selected ? "1.5px dashed rgba(255,255,255,0.55)" : undefined,
     outlineOffset: selected ? "4px" : undefined,
+    boxSizing: "border-box",
   };
 
   // Drag to move
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!interactive) return;
-    if (e.detail === 2) return; // let dblclick handle
+    if (e.detail === 2) return;
     e.stopPropagation();
     onSelect();
     dragRef.current = true;
@@ -312,23 +318,36 @@ function TransformLayer({
     window.addEventListener("mouseup", onUp);
   }, [interactive, onSelect, onDrag]);
 
-  // Scale handle drag (corner)
-  const handleScaleDrag = useCallback((e: React.MouseEvent<HTMLDivElement>, corner: string) => {
+  // Resize handle drag — left/right edge adjusts width, top/bottom adjusts fontSize
+  const handleResizeDrag = useCallback((e: React.MouseEvent<HTMLDivElement>, handle: "left" | "right" | "top" | "bottom") => {
     e.stopPropagation();
     const startX = e.clientX;
     const startY = e.clientY;
-    const startScale = scale;
+    const startW = boxW ?? canvasW * 0.5;
+    const startFs = fontSize;
     const onMove = (me: MouseEvent) => {
-      const dx = me.clientX - startX;
-      const dy = me.clientY - startY;
-      const delta = (corner.includes("r") ? dx : -dx) + (corner.includes("b") ? dy : -dy);
-      const next = Math.max(0.3, Math.min(4, startScale + delta / 80));
-      onScale(Math.round(next * 100) / 100);
+      if (handle === "left") {
+        const dx = startX - me.clientX;
+        const nextW = Math.max(20, Math.min(canvasW, startW + dx * 2));
+        onResize(nextW / canvasW, startFs);
+      } else if (handle === "right") {
+        const dx = me.clientX - startX;
+        const nextW = Math.max(20, Math.min(canvasW, startW + dx * 2));
+        onResize(nextW / canvasW, startFs);
+      } else if (handle === "top") {
+        const dy = startY - me.clientY;
+        const nextFs = Math.max(6, Math.min(120, Math.round(startFs + dy * 0.5)));
+        onResize(startW / canvasW, nextFs);
+      } else {
+        const dy = me.clientY - startY;
+        const nextFs = Math.max(6, Math.min(120, Math.round(startFs + dy * 0.5)));
+        onResize(startW / canvasW, nextFs);
+      }
     };
     const onUp = () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
-  }, [scale, onScale]);
+  }, [boxW, canvasW, fontSize, onResize]);
 
   // Rotation handle drag
   const handleRotateDrag = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -345,11 +364,12 @@ function TransformLayer({
   }, [px, py, rotation, onRotate]);
 
   const HANDLE_SIZE = 8;
-  const corners = [
-    { id: "tl", cx: -HANDLE_SIZE / 2, cy: -HANDLE_SIZE / 2 },
-    { id: "tr", cx: HANDLE_SIZE / 2,  cy: -HANDLE_SIZE / 2 },
-    { id: "bl", cx: -HANDLE_SIZE / 2, cy: HANDLE_SIZE / 2  },
-    { id: "br", cx: HANDLE_SIZE / 2,  cy: HANDLE_SIZE / 2  },
+  // Edge mid-point handles for resize
+  const edgeHandles: Array<{ id: "left" | "right" | "top" | "bottom"; style: React.CSSProperties; cursor: string }> = [
+    { id: "left",   cursor: "ew-resize",  style: { left: -HANDLE_SIZE / 2, top: "50%", transform: "translateY(-50%)" } },
+    { id: "right",  cursor: "ew-resize",  style: { right: -HANDLE_SIZE / 2, top: "50%", transform: "translateY(-50%)" } },
+    { id: "top",    cursor: "ns-resize",  style: { top: -HANDLE_SIZE / 2, left: "50%", transform: "translateX(-50%)" } },
+    { id: "bottom", cursor: "ns-resize",  style: { bottom: -HANDLE_SIZE / 2, left: "50%", transform: "translateX(-50%)" } },
   ];
 
   return (
@@ -371,6 +391,7 @@ function TransformLayer({
             padding: "2px 4px",
             outline: "none",
             resize: "none",
+            width: boxW != null ? "100%" : undefined,
             minWidth: 60,
             minHeight: 24,
             backdropFilter: "blur(2px)",
@@ -381,24 +402,23 @@ function TransformLayer({
         <div style={textStyle}>{text}</div>
       )}
 
-      {/* Transform handles — only when selected and not editing */}
+      {/* Resize + rotate handles — only when selected and not editing */}
       {selected && !editing && (
         <>
-          {corners.map((c) => (
-            <div key={c.id}
+          {edgeHandles.map((h) => (
+            <div key={h.id}
               style={{
                 position: "absolute",
-                left: "50%", top: "50%",
-                transform: `translate(calc(-50% + ${c.cx * 8}px), calc(-50% + ${c.cy * 8}px))`,
                 width: HANDLE_SIZE, height: HANDLE_SIZE,
                 borderRadius: 2,
                 background: "white",
                 border: "1.5px solid rgba(0,0,0,0.5)",
-                cursor: c.id === "tl" || c.id === "br" ? "nwse-resize" : "nesw-resize",
+                cursor: h.cursor,
                 zIndex: 30,
                 pointerEvents: "auto",
+                ...h.style,
               }}
-              onMouseDown={(e) => handleScaleDrag(e, c.id)}
+              onMouseDown={(e) => handleResizeDrag(e, h.id)}
             />
           ))}
           {/* Rotation handle above */}
@@ -442,8 +462,8 @@ interface TextOverlayProps {
   onDblClick: (id: string) => void;
   onTitleDrag?: (x: number, y: number) => void;
   onLayerDrag?: (id: string, x: number, y: number) => void;
-  onTitleScale?: (scale: number) => void;
-  onLayerScale?: (id: string, scale: number) => void;
+  onTitleResize?: (normW: number, fontSize: number) => void;
+  onLayerResize?: (id: string, normW: number, fontSize: number) => void;
   onTitleRotate?: (rotation: number) => void;
   onLayerRotate?: (id: string, rotation: number) => void;
   onEditChange?: (id: string, text: string) => void;
@@ -455,7 +475,7 @@ function TextOverlay({
   selectedLayerId, editingLayerId,
   onSelect, onDblClick,
   onTitleDrag, onLayerDrag,
-  onTitleScale, onLayerScale,
+  onTitleResize, onLayerResize,
   onTitleRotate, onLayerRotate,
   onEditChange, onEditCommit,
 }: TextOverlayProps) {
@@ -471,13 +491,18 @@ function TextOverlay({
     ...(design.layers ?? []),
   ].filter((l, idx, arr) => arr.findIndex((x) => x.id === l.id) === idx);
 
+  // Resolve effective font size: fontSize field takes precedence over size enum
+  const titleFontSize = title.fontSize != null
+    ? title.fontSize * canvasScale
+    : FONT_SIZE_MAP[title.size] * canvasScale;
+
   return (
     <>
       <TransformLayer
         id="__title__"
         text={titleText}
         font={title.font}
-        fontSize={FONT_SIZE_MAP[title.size] * canvasScale}
+        fontSize={titleFontSize}
         letterSpacing={title.letterSpacing}
         effect={title.effect}
         color={title.color}
@@ -485,16 +510,17 @@ function TextOverlay({
         direction={title.direction}
         px={title.x * w}
         py={title.y * h}
+        boxW={title.w != null ? title.w * w : undefined}
         scale={title.scale ?? 1}
         rotation={title.rotation ?? 0}
-        w={w} h={h}
+        canvasW={w} canvasH={h}
         interactive={interactive}
         selected={selectedLayerId === "__title__"}
         editing={editingLayerId === "__title__"}
         onSelect={() => onSelect("__title__")}
         onDblClick={() => onDblClick("__title__")}
         onDrag={(x, y) => onTitleDrag?.(x, y)}
-        onScale={(s) => onTitleScale?.(s)}
+        onResize={(nw, fs) => onTitleResize?.(nw, fs / canvasScale)}
         onRotate={(r) => onTitleRotate?.(r)}
         onEditChange={(t) => onEditChange?.("__title__", t)}
         onEditCommit={onEditCommit}
@@ -503,13 +529,16 @@ function TextOverlay({
         if (!layer.visible) return null;
         const resolved = resolveCoverText(layer.text, vars);
         if (!resolved.trim() && editingLayerId !== layer.id) return null;
+        const layerFontSize = layer.fontSize != null
+          ? layer.fontSize * canvasScale
+          : FONT_SIZE_MAP[layer.size] * canvasScale;
         return (
           <TransformLayer
             key={layer.id}
             id={layer.id}
             text={editingLayerId === layer.id ? layer.text : resolved}
             font={layer.font}
-            fontSize={FONT_SIZE_MAP[layer.size] * canvasScale}
+            fontSize={layerFontSize}
             letterSpacing={layer.letterSpacing}
             effect={layer.effect}
             color={layer.color}
@@ -517,16 +546,17 @@ function TextOverlay({
             direction={layer.direction}
             px={layer.x * w}
             py={layer.y * h}
+            boxW={layer.w != null ? layer.w * w : undefined}
             scale={layer.scale ?? 1}
             rotation={layer.rotation ?? 0}
-            w={w} h={h}
+            canvasW={w} canvasH={h}
             interactive={interactive}
             selected={selectedLayerId === layer.id}
             editing={editingLayerId === layer.id}
             onSelect={() => onSelect(layer.id)}
             onDblClick={() => onDblClick(layer.id)}
             onDrag={(x, y) => onLayerDrag?.(layer.id, x, y)}
-            onScale={(s) => onLayerScale?.(layer.id, s)}
+            onResize={(nw, fs) => onLayerResize?.(layer.id, nw, fs / canvasScale)}
             onRotate={(r) => onLayerRotate?.(layer.id, r)}
             onEditChange={(t) => onEditChange?.(layer.id, t)}
             onEditCommit={onEditCommit}
@@ -557,8 +587,8 @@ export interface CoverRendererProps {
   onDblClickLayer?: (id: string) => void;
   onTitleDrag?: (x: number, y: number) => void;
   onLayerDrag?: (id: string, x: number, y: number) => void;
-  onTitleScale?: (scale: number) => void;
-  onLayerScale?: (id: string, scale: number) => void;
+  onTitleResize?: (normW: number, fontSize: number) => void;
+  onLayerResize?: (id: string, normW: number, fontSize: number) => void;
   onTitleRotate?: (rotation: number) => void;
   onLayerRotate?: (id: string, rotation: number) => void;
   onSplitDrag?: (ratio: number) => void;
@@ -573,7 +603,7 @@ function CoverRendererInner({
   selectedLayerId, editingLayerId,
   onSelectLayer, onDblClickLayer,
   onTitleDrag, onLayerDrag,
-  onTitleScale, onLayerScale,
+  onTitleResize, onLayerResize,
   onTitleRotate, onLayerRotate,
   onSplitDrag,
   onEditChange, onEditCommit,
@@ -663,8 +693,8 @@ function CoverRendererInner({
             onDblClick={onDblClickLayer ?? (() => {})}
             onTitleDrag={onTitleDrag}
             onLayerDrag={onLayerDrag}
-            onTitleScale={onTitleScale}
-            onLayerScale={onLayerScale}
+            onTitleResize={onTitleResize}
+            onLayerResize={onLayerResize}
             onTitleRotate={onTitleRotate}
             onLayerRotate={onLayerRotate}
             onEditChange={onEditChange}
