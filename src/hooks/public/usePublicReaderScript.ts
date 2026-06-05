@@ -292,7 +292,8 @@ export function usePublicReaderScript({ id, scriptManager }: Props) {
             showMarkerLegend: publicProjection.showMarkerLegend,
           });
 
-          if (seriesName) {
+          const currentSeriesId = script.seriesId || null;
+          if (seriesName || currentSeriesId) {
             try {
               const bundle = await getPublicBundle();
               type SeriesItem = { id: string; title: string; coverUrl: string | null; coverCrop?: { cx?: number; cy?: number; zoom?: number } | null; coverDesign?: CoverDesign | null; seriesOrder: number | null };
@@ -300,8 +301,13 @@ export function usePublicReaderScript({ id, scriptManager }: Props) {
                 .filter((item): item is BaseScriptApi => Boolean(item?.id) && item.id !== script.id)
                 .map((i): SeriesItem | null => {
                   const parsedMeta = customMetadataEntriesToMeta(i.customMetadata || []) as Record<string, string>;
-                  const itemSeriesName = normalizeSeriesName(parsedMeta?.series || parsedMeta?.seriesname);
-                  if (itemSeriesName.toLowerCase() !== seriesName.toLowerCase()) return null;
+                  const itemSeriesId = i.seriesId || null;
+                  const itemSeriesName = normalizeSeriesName(
+                    i.series?.name || parsedMeta?.series || parsedMeta?.seriesname
+                  );
+                  const matchById = Boolean(currentSeriesId && itemSeriesId && itemSeriesId === currentSeriesId);
+                  const matchByName = Boolean(seriesName && itemSeriesName && itemSeriesName.toLowerCase() === seriesName.toLowerCase());
+                  if (!matchById && !matchByName) return null;
                   return {
                     id: i.id,
                     title: i.title || t("publicGallery.unknown"),
