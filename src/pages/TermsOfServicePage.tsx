@@ -4,7 +4,7 @@ import { MetaTags } from "../components/common/MetaTags";
 export default function TermsOfServicePage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <MetaTags title="Terms of Service" />
+      <MetaTags titleName="Terms of Service" />
       <div className="max-w-3xl mx-auto px-6 py-16">
         <h1 className="text-3xl font-bold mb-2">Terms of Service</h1>
         <p className="text-sm text-muted-foreground mb-10">Last updated: May 27, 2026</p>

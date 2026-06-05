@@ -257,6 +257,7 @@ class ScriptCreate(ScriptBase):
     markerThemeId: Optional[str] = None
     coverUrl: Optional[str] = None # Added
     coverCrop: Optional[Dict[str, float]] = None
+    coverDesign: Optional[Dict[str, Any]] = None
     personaId: Optional[str] = None
     organizationId: Optional[str] = None
     seriesId: Optional[str] = None
@@ -285,6 +286,7 @@ class ScriptUpdate(BaseModel):
     markerThemeId: Optional[str] = None
     coverUrl: Optional[str] = None
     coverCrop: Optional[Dict[str, float]] = None
+    coverDesign: Optional[Dict[str, Any]] = None
     coverIsAiGenerated: Optional[bool] = None
     organizationId: Optional[str] = None
     personaId: Optional[str] = None
@@ -324,6 +326,7 @@ class Script(BaseModel):
     status: Optional[str] = "Private"
     coverUrl: Optional[str] = None
     coverCrop: Optional[Dict[str, float]] = None
+    coverDesign: Optional[Dict[str, Any]] = None
     coverIsAiGenerated: bool = False
     views: int = 0
     likes: int = 0
@@ -370,6 +373,7 @@ class ScriptSummary(BaseModel):
     status: Optional[str] = "Private"
     coverUrl: Optional[str] = None
     coverCrop: Optional[Dict[str, float]] = None
+    coverDesign: Optional[Dict[str, Any]] = None
     coverIsAiGenerated: bool = False
     views: int = 0
     likes: int = 0
@@ -393,6 +397,44 @@ class ScriptSummary(BaseModel):
     activityContent: Optional[str] = None
     activityWorkUrl: Optional[str] = None
     activityDemoLinks: Optional[str] = None  # JSON string
+
+    model_config = ConfigDict(from_attributes=True)
+
+class ScriptStudioSummary(BaseModel):
+    id: str
+    ownerId: str
+    title: str
+    contentLength: Optional[int] = 0
+    # content and customMetadata excluded for publisher studio initial load
+    createdAt: int
+    lastModified: int
+    author: Optional[str] = None
+    draftDate: Optional[str] = None
+    isPublic: int
+    status: Optional[str] = "Private"
+    coverUrl: Optional[str] = None
+    coverCrop: Optional[Dict[str, float]] = None
+    coverDesign: Optional[Dict[str, Any]] = None
+    coverIsAiGenerated: bool = False
+    views: int = 0
+    likes: int = 0
+    type: str
+    folder: str
+    sortOrder: float
+    markerThemeId: Optional[str] = None
+    tags: List[Tag] = []
+    disableCopy: bool = False
+    licenseCommercial: Optional[str] = ""
+    licenseDerivative: Optional[str] = ""
+    licenseNotify: Optional[str] = ""
+    personaId: Optional[str] = None
+    organizationId: Optional[str] = None
+    seriesId: Optional[str] = None
+    seriesOrder: Optional[int] = None
+    series: Optional[Series] = None
+    synopsis: Optional[str] = None
+    hasPublishIdentity: bool = False
+    metadataSeriesName: Optional[str] = ""
 
     model_config = ConfigDict(from_attributes=True)
 

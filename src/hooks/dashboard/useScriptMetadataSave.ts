@@ -217,6 +217,7 @@ export function useScriptMetadataSave({
         title: draft.title,
         coverUrl: draft.coverUrl,
         coverCrop: draft.coverCrop ?? null,
+        coverDesign: draft.coverDesign ?? null,
         status: draft.status,
         customMetadata: payload.customMetadata,
         author: shouldPreserveAuthor ? String(workingScript?.author || "") : persistedAuthor,

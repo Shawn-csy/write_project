@@ -3,6 +3,7 @@ from .scripts_query import *  # noqa: F401,F403
 
 __all__ = [
     "get_scripts",
+    "get_studio_script_summaries",
     "get_script",
     "get_public_scripts",
     "search_scripts",

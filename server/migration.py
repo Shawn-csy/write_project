@@ -208,6 +208,14 @@ def _run_postgres_migrations():
             print("Migrating: Adding 'coverIsAiGenerated' column to scripts (PostgreSQL)")
             conn.execute(text('ALTER TABLE scripts ADD COLUMN "coverIsAiGenerated" BOOLEAN DEFAULT FALSE'))
 
+        result = conn.execute(text(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name = 'scripts' AND column_name = 'coverDesign'"
+        )).fetchone()
+        if not result:
+            print("Migrating: Adding 'coverDesign' column to scripts (PostgreSQL)")
+            conn.execute(text('ALTER TABLE scripts ADD COLUMN "coverDesign" JSONB DEFAULT NULL'))
+
         # Fix script_likes.scriptId FK: add ON DELETE CASCADE
         fk_rows = conn.execute(text("""
             SELECT tc.constraint_name
@@ -372,6 +380,10 @@ def run_migrations():
             if 'coverUrl' not in columns:
                 print("Migrating: Adding 'coverUrl' column")
                 conn.execute(text("ALTER TABLE scripts ADD COLUMN coverUrl TEXT DEFAULT ''"))
+
+            if 'coverDesign' not in columns:
+                print("Migrating: Adding 'coverDesign' column")
+                conn.execute(text("ALTER TABLE scripts ADD COLUMN coverDesign TEXT DEFAULT NULL"))
             
             if 'views' not in columns:
                 print("Migrating: Adding 'views' column")

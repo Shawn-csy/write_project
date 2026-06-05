@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { fromApiToDraft } from "../../lib/scriptMetadataAdapter";
 import type { ScriptLike, TagLike, CustomField, LicenseSpecialTerm } from "./types";
+import type { CoverDesign } from "../../types/coverDesign";
 
 interface UseScriptMetadataHydrationOptions {
   disableAuthorAutofill?: boolean;
@@ -12,6 +13,7 @@ interface UseScriptMetadataHydrationOptions {
   setTitle: (v: string | ((prev: string) => string)) => void;
   setCoverUrl: (v: string) => void;
   setCoverCrop: (v: { cx?: number; cy?: number; zoom?: number } | null) => void;
+  setCoverDesign: (v: CoverDesign | null) => void;
   setStatus: (v: string) => void;
   setCurrentTags: (v: TagLike[]) => void;
   setMarkerThemeId: (v: string) => void;
@@ -58,6 +60,7 @@ export function useScriptMetadataHydration({
   setTitle,
   setCoverUrl,
   setCoverCrop,
+  setCoverDesign,
   setStatus,
   setCurrentTags,
   setMarkerThemeId,
@@ -107,6 +110,7 @@ export function useScriptMetadataHydration({
         setTitle(draft.title);
         setCoverUrl(draft.coverUrl);
         setCoverCrop(draft.coverCrop);
+        setCoverDesign(draft.coverDesign ?? null);
         setStatus(draft.status);
         setCurrentTags(draft.currentTags);
         setMarkerThemeId(draft.markerThemeId);
@@ -161,6 +165,7 @@ export function useScriptMetadataHydration({
       setContact,
       setContentRating,
       setCoverCrop,
+      setCoverDesign,
       setCopyright,
       setCoverUrl,
       setCurrentTags,

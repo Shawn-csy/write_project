@@ -138,6 +138,7 @@ class Script(Base):
     status = Column(String, default="Private")  # Private, Public, Unlisted
     coverUrl = Column(String, default="")
     coverCrop = Column(JSON, nullable=True)
+    coverDesign = Column(JSON, nullable=True)
     views = Column(Integer, default=0)
     likes = Column(Integer, default=0)
     organizationId = Column(String, ForeignKey("organizations.id"), nullable=True)

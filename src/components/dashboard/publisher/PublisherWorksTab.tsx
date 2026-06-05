@@ -205,7 +205,7 @@ export function PublisherWorksTab({ isLoading, scripts, personas = [], setEditin
                         </div>
                     )}
                     {s.hasMore && (
-                        <div className="pt-3 text-center">
+                        <div ref={s.loadMoreRef} className="pt-3 text-center">
                             <Button variant="ghost" size="sm" onClick={s.loadMore} className="h-8 px-6 text-xs text-muted-foreground hover:text-foreground">
                                 {t("publisherWorksTab.loadMore")} ↓
                             </Button>

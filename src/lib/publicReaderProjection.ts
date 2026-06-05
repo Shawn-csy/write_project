@@ -1,4 +1,5 @@
 import { normalizeActivityDemoLinks } from "./activityDemoLinks";
+import type { CoverDesign } from "../types/coverDesign";
 
 interface PrefaceItem {
   id: string;
@@ -25,6 +26,7 @@ interface BuildProjectionInput {
   synopsis?: string;
   coverUrl?: string | null;
   coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
+  coverDesign?: CoverDesign | null;
   author?: AuthorLike | null;
   organization?: OrganizationLike | null;
   tags?: string[];
@@ -139,6 +141,7 @@ export function buildPublicReaderProjection(input: BuildProjectionInput) {
     synopsis: String(input.synopsis || "").trim(),
     coverUrl: input.coverUrl || "",
     coverCrop: input.coverCrop || null,
+    coverDesign: input.coverDesign || null,
     author: input.author || null,
     organization: input.organization || null,
     license: String(input.license || "").trim(),

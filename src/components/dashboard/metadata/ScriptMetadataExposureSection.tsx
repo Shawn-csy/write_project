@@ -3,11 +3,13 @@ import { X } from "lucide-react";
 import { Badge } from "../../ui/badge";
 import { Button } from "../../ui/button";
 import { CoverPlaceholder } from "../../ui/CoverPlaceholder";
+import { CoverRenderer } from "../../ui/CoverRenderer";
+import { CoverDesignerPanel } from "./CoverDesignerPanel";
 import { Input } from "../../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
 import { getMediaCropStyle } from "../../../lib/mediaCropRef";
-import { useChecklistContext, useContentContext, useExposureContext, useUIContext } from "./ScriptMetadataDialogContext";
+import { useChecklistContext, useContentContext, useExposureContext, usePublicationContext, useUIContext } from "./ScriptMetadataDialogContext";
 
 interface TagItem {
   id?: string | number;
@@ -26,10 +28,11 @@ export function ScriptMetadataExposureSection({
   const { getRowLabelClass, recommendedErrorMap } = useChecklistContext();
   const {
     author, setAuthorWithTracking: setAuthor, authorDisplayMode, setAuthorDisplayModeWithTracking: setAuthorDisplayMode,
-    title,
+    title, date, personas,
   } = useContentContext();
+  const { identity, status } = usePublicationContext();
   const {
-    coverUrl, setCoverUrl, coverCrop, setCoverCrop, handleCoverUpload, openCoverMediaPicker, coverUploadError, coverUploadWarning,
+    coverUrl, setCoverUrl, coverCrop, setCoverCrop, coverDesign, setCoverDesign, handleCoverUpload, openCoverMediaPicker, coverUploadError, coverUploadWarning,
     coverPreviewFailed, setCoverPreviewFailed, seriesExpanded, setSeriesExpanded, setSeriesId, setSeriesName,
     seriesOrder, setSeriesOrder, quickSeriesName, setQuickSeriesName, setShowSeriesQuickCreate, focusSeriesSelect, seriesId,
     showSeriesQuickCreate, handleQuickCreateSeries, isCreatingSeries, seriesOptions, newTagInput, setNewTagInput, handleAddTag,
@@ -37,6 +40,27 @@ export function ScriptMetadataExposureSection({
   } = useExposureContext();
   const setQuickSeriesNameInput = setQuickSeriesName;
   const setSeriesOrderInput = setSeriesOrder;
+
+  // Resolve persona display name for cover vars
+  const personaName = React.useMemo(() => {
+    if (!identity?.startsWith("persona:")) return "";
+    const pid = identity.slice("persona:".length).trim();
+    return personas?.find((p) => p.id === pid)?.displayName ?? "";
+  }, [identity, personas]);
+
+  const seriesDisplayName = React.useMemo(() => {
+    if (!seriesId) return "";
+    return seriesOptions?.find((s) => s.id === seriesId)?.name ?? "";
+  }, [seriesId, seriesOptions]);
+
+  const coverVars = React.useMemo(() => ({
+    title: title || "",
+    author: author || "",
+    persona: personaName,
+    date: date || "",
+    series: seriesDisplayName,
+    status: status || "",
+  }), [title, author, personaName, date, seriesDisplayName, status]);
   const coverGuide = React.useMemo(() => getImageUploadGuide("cover"), []);
   const cropCover = getMediaCropStyle(coverUrl, coverCrop);
   const resolveTagSwatch = React.useCallback((rawColor: string | undefined) => {
@@ -113,10 +137,20 @@ export function ScriptMetadataExposureSection({
                   onLoad={() => setCoverPreviewFailed(false)}
                   onError={() => setCoverPreviewFailed(true)}
                 />
+              ) : coverDesign ? (
+                <div className="flex h-full w-full items-center justify-center">
+                  <CoverRenderer design={coverDesign} title={title || "Untitled"} vars={coverVars} compact responsive className="h-full w-full" />
+                </div>
               ) : (
                 <CoverPlaceholder title={title || "Untitled"} compact />
               )}
             </div>
+            <CoverDesignerPanel
+              design={coverDesign}
+              onChange={setCoverDesign}
+              scriptTitle={title || ""}
+              vars={coverVars}
+            />
             {coverUrl && coverPreviewFailed && (
               <p className="text-xs text-muted-foreground">{t("metadataDetails.coverPreviewFail")}</p>
             )}

@@ -25,6 +25,12 @@ interface Props {
   isLoading: boolean;
 }
 
+interface ScriptWorkIndexItem {
+  script: PublisherScriptItem;
+  readiness: PublishReadiness;
+  searchText: string;
+}
+
 export function usePublisherWorksTabState({ scripts, personas = [], isLoading }: Props) {
   const [filter, setFilter] = React.useState<"all" | PublishReadinessStatus>("all");
   const [query, setQuery] = React.useState("");
@@ -33,12 +39,30 @@ export function usePublisherWorksTabState({ scripts, personas = [], isLoading }:
   const [showAdvancedFilters, setShowAdvancedFilters] = React.useState<boolean>(false);
   const [failedCoverById, setFailedCoverById] = React.useState<Record<string, boolean>>({});
   const [visibleCount, setVisibleCount] = React.useState(INITIAL_VISIBLE);
+  const loadMoreRef = React.useRef<HTMLDivElement | null>(null);
 
   const hasCover = (value: unknown) => Boolean(String(value || "").trim());
+  const hasAnyCover = React.useCallback(
+    (script: PublisherScriptItem) => hasCover(script.coverUrl) || Boolean(script.coverDesign),
+    []
+  );
   const isPublicScript = React.useCallback((script: PublisherScriptItem) => script?.status === "Public" || Boolean(script?.isPublic), []);
   const getTagNames = React.useCallback((script: PublisherScriptItem) =>
     (script.tags || []).map((tag) => String(tag?.name || "").trim()).filter(Boolean)
   , []);
+
+  const personaLicenseById = React.useMemo(() => {
+    const map = new Map<string, { commercialUse?: string; derivativeUse?: string; notifyOnModify?: string }>();
+    (personas || []).forEach((persona) => {
+      if (!persona?.id) return;
+      map.set(persona.id, parseBasicLicenseFromMeta({
+        licensecommercial: persona.defaultLicenseCommercial || "",
+        licensederivative: persona.defaultLicenseDerivative || "",
+        licensenotify: persona.defaultLicenseNotify || "",
+      }));
+    });
+    return map;
+  }, [personas]);
 
   const parseTopLevelLicense = React.useCallback((script: PublisherScriptItem) => {
     return parseBasicLicenseFromMeta({
@@ -54,14 +78,8 @@ export function usePublisherWorksTabState({ scripts, personas = [], isLoading }:
 
   const getPersonaFallbackLicense = React.useCallback((script: PublisherScriptItem) => {
     if (!script?.personaId) return { commercialUse: "", derivativeUse: "", notifyOnModify: "" };
-    const persona = (personas || []).find((item) => item?.id === script.personaId);
-    if (!persona) return { commercialUse: "", derivativeUse: "", notifyOnModify: "" };
-    return parseBasicLicenseFromMeta({
-      licensecommercial: persona.defaultLicenseCommercial || "",
-      licensederivative: persona.defaultLicenseDerivative || "",
-      licensenotify: persona.defaultLicenseNotify || "",
-    });
-  }, [personas]);
+    return personaLicenseById.get(script.personaId) || { commercialUse: "", derivativeUse: "", notifyOnModify: "" };
+  }, [personaLicenseById]);
 
   const hasCompleteLicense = React.useCallback((script: PublisherScriptItem) => {
     const topLevel = parseTopLevelLicense(script);
@@ -70,12 +88,14 @@ export function usePublisherWorksTabState({ scripts, personas = [], isLoading }:
     return isBasicLicenseComplete(fallback);
   }, [getPersonaFallbackLicense, isBasicLicenseComplete, parseTopLevelLicense]);
 
-  const getReadiness = React.useCallback((script: PublisherScriptItem): PublishReadiness => {
-    const meta = customMetadataEntriesToMeta(script.customMetadata || []);
-    const tagNames = getTagNames(script);
+  const getReadinessFromParts = React.useCallback((
+    script: PublisherScriptItem,
+    meta: Record<string, string>,
+    tagNames: string[]
+  ): PublishReadiness => {
     const hasAudience = tagNames.some((tag) => AUDIENCE_TAG_GROUP.includes(tag));
     const hasRating = tagNames.some((tag) => RATING_TAG_GROUP.includes(tag));
-    const hasIdentity = Boolean(script.personaId || String(meta.publishas || meta.publishAs || "").startsWith("persona:"));
+    const hasIdentity = Boolean(script.personaId || script.hasPublishIdentity || String(meta.publishas || meta.publishAs || "").startsWith("persona:"));
     const hasSynopsis = Boolean(String(script.synopsis || "").trim());
     const missingRequired: string[] = [];
     const missingRecommended: string[] = [];
@@ -85,7 +105,7 @@ export function usePublisherWorksTabState({ scripts, personas = [], isLoading }:
     if (!hasAudience) missingRequired.push("觀眾取向");
     if (!hasRating) missingRequired.push("內容分級");
     if (!hasCompleteLicense(script)) missingRequired.push("授權");
-    if (!hasCover(script.coverUrl)) missingRecommended.push("封面");
+    if (!hasAnyCover(script)) missingRecommended.push("封面");
     if (!hasSynopsis) missingRecommended.push("簡介");
     if (tagNames.length === 0) missingRecommended.push("標籤");
 
@@ -124,7 +144,12 @@ export function usePublisherWorksTabState({ scripts, personas = [], isLoading }:
       missingRequired,
       missingRecommended,
     };
-  }, [getTagNames, hasCompleteLicense, hasCover, isPublicScript]);
+  }, [hasAnyCover, hasCompleteLicense, isPublicScript]);
+
+  const getReadiness = React.useCallback((script: PublisherScriptItem): PublishReadiness => {
+    const meta = customMetadataEntriesToMeta(script.customMetadata || []) as Record<string, string>;
+    return getReadinessFromParts(script, meta, getTagNames(script));
+  }, [getReadinessFromParts, getTagNames]);
 
   const statusBadgeClass = (script: PublisherScriptItem) => {
     const isPublic = isPublicScript(script);
@@ -133,9 +158,26 @@ export function usePublisherWorksTabState({ scripts, personas = [], isLoading }:
       : "border-border bg-muted text-foreground hover:bg-muted/80";
   };
 
-  const scriptsWithReadiness = React.useMemo(() =>
-    (scripts || []).map((script) => ({ script, readiness: getReadiness(script) }))
-  , [getReadiness, scripts]);
+  const scriptsWithReadiness = React.useMemo<ScriptWorkIndexItem[]>(() =>
+    (scripts || []).map((script) => {
+      const meta = customMetadataEntriesToMeta(script.customMetadata || []) as Record<string, string>;
+      const tagNames = getTagNames(script);
+      const searchText = [
+        script.title,
+        script.author,
+        script.series?.name,
+        script.metadataSeriesName,
+        meta.series,
+        meta.seriesname,
+        ...tagNames,
+      ].map((value) => String(value || "").toLowerCase()).join(" ");
+      return {
+        script,
+        readiness: getReadinessFromParts(script, meta, tagNames),
+        searchText,
+      };
+    })
+  , [getReadinessFromParts, getTagNames, scripts]);
 
   const readinessById = React.useMemo(() => {
     const next: Record<string, PublishReadiness> = {};
@@ -147,34 +189,24 @@ export function usePublisherWorksTabState({ scripts, personas = [], isLoading }:
     let needsWorkCount = 0;
     let readyCount = 0;
     let publishedCount = 0;
-    (scripts || []).forEach((script) => {
-      const readiness = readinessById[script.id] || getReadiness(script);
+    scriptsWithReadiness.forEach(({ readiness }) => {
       if (readiness.status === "needs_work") needsWorkCount += 1;
       else if (readiness.status === "ready") readyCount += 1;
       else if (readiness.status === "published") publishedCount += 1;
     });
-    return { total: (scripts || []).length, needsWorkCount, readyCount, publishedCount };
-  }, [getReadiness, readinessById, scripts]);
+    return { total: scriptsWithReadiness.length, needsWorkCount, readyCount, publishedCount };
+  }, [scriptsWithReadiness]);
 
   const hasAnyScripts = (scripts || []).length > 0;
 
   const filteredScripts = React.useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return scriptsWithReadiness.filter(({ script, readiness }) => {
+    return scriptsWithReadiness.filter(({ script, readiness, searchText }) => {
       if (filter !== "all" && readiness.status !== filter) return false;
       if (!needle) return true;
-      const meta = customMetadataEntriesToMeta(script.customMetadata || []);
-      const haystack = [
-        script.title,
-        script.author,
-        script.series?.name,
-        meta.series,
-        meta.seriesname,
-        ...getTagNames(script),
-      ].map((value) => String(value || "").toLowerCase()).join(" ");
-      return haystack.includes(needle);
+      return searchText.includes(needle);
     }).map(({ script }) => script);
-  }, [filter, getTagNames, query, scriptsWithReadiness]);
+  }, [filter, query, scriptsWithReadiness]);
 
   const hasActiveFilters = filter !== "all" || query.trim().length > 0;
   const clearFilters = React.useCallback(() => {
@@ -185,24 +217,13 @@ export function usePublisherWorksTabState({ scripts, personas = [], isLoading }:
   const filteredStatusCounts = React.useMemo(() => {
     const counts = { all: 0, needs_work: 0, ready: 0, published: 0 };
     const needle = query.trim().toLowerCase();
-    scriptsWithReadiness.forEach(({ script, readiness }) => {
-      if (needle) {
-        const meta = customMetadataEntriesToMeta(script.customMetadata || []);
-        const haystack = [
-          script.title,
-          script.author,
-          script.series?.name,
-          meta.series,
-          meta.seriesname,
-          ...getTagNames(script),
-        ].map((value) => String(value || "").toLowerCase()).join(" ");
-        if (!haystack.includes(needle)) return;
-      }
+    scriptsWithReadiness.forEach(({ readiness, searchText }) => {
+      if (needle && !searchText.includes(needle)) return;
       counts.all += 1;
       counts[readiness.status] += 1;
     });
     return counts;
-  }, [getTagNames, query, scriptsWithReadiness]);
+  }, [query, scriptsWithReadiness]);
 
   const sortedScripts = React.useMemo(() => {
     const list = [...filteredScripts];
@@ -229,32 +250,25 @@ export function usePublisherWorksTabState({ scripts, personas = [], isLoading }:
     [sortedScripts, visibleCount]
   );
 
-  React.useEffect(() => {
-    if (isLoading) return;
-    if (visibleCount >= sortedScripts.length) return;
-    let cancelled = false;
-    let idleId: number | null = null;
-    let timerId: number | null = null;
-    const prefetchNextBatch = () => {
-      if (cancelled) return;
-      setVisibleCount((prev) => Math.min(prev + PREFETCH_STEP, sortedScripts.length));
-    };
-    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      idleId = window.requestIdleCallback(prefetchNextBatch, { timeout: 300 });
-    } else {
-      timerId = globalThis.setTimeout(prefetchNextBatch, 120);
-    }
-    return () => {
-      cancelled = true;
-      if (idleId !== null && typeof window !== "undefined" && "cancelIdleCallback" in window) window.cancelIdleCallback(idleId);
-      if (timerId !== null) window.clearTimeout(timerId);
-    };
-  }, [sortedScripts.length, isLoading, visibleCount]);
-
   const hasMore = visibleCount < sortedScripts.length;
   const loadMore = React.useCallback(() => {
     setVisibleCount((prev) => Math.min(prev + PREFETCH_STEP, sortedScripts.length));
   }, [sortedScripts.length]);
+
+  React.useEffect(() => {
+    const node = loadMoreRef.current;
+    if (!node || !hasMore || isLoading) return;
+    if (typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) loadMore();
+      },
+      { root: null, rootMargin: "360px 0px", threshold: 0.01 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasMore, isLoading, loadMore]);
 
   const onCoverError = React.useCallback((id: string) => {
     setFailedCoverById((prev) => ({ ...prev, [id]: true }));
@@ -269,7 +283,7 @@ export function usePublisherWorksTabState({ scripts, personas = [], isLoading }:
     failedCoverById, onCoverError,
     stats, filteredStatusCounts, hasAnyScripts, hasActiveFilters, clearFilters,
     filteredScripts, sortedScripts, visibleScripts,
-    hasMore, loadMore,
+    hasMore, loadMore, loadMoreRef,
     hasCover, hasCompleteLicense, statusBadgeClass, readinessById, getReadiness,
     PREFETCH_STEP,
   };

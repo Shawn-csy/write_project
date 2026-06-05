@@ -5,6 +5,7 @@ import { normalizeActivityDemoLinks } from "../../lib/activityDemoLinks";
 import { getMediaCropStyle } from "../../lib/mediaCropRef";
 import type { DownloadOption } from "../../types/routes";
 import type { MarkerConfig } from "../../types/script";
+import type { CoverDesign } from "../../types/coverDesign";
 import { buildV2TableExportFromRenderedHtml } from "../../lib/v2/exportAdapter";
 import { useScriptDownloadOptions } from "../shared/useScriptDownloadOptions";
 
@@ -38,6 +39,7 @@ interface PublicReaderScriptData {
   activity?: { name?: string; bannerUrl?: string; content?: string; workUrl?: string; demoUrl?: string; demoLinks?: unknown[] };
   coverUrl?: string | null;
   coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
+  coverDesign?: CoverDesign | null;
   content?: string | null;
   showMarkerLegend?: boolean;
   disableCopy?: boolean;
@@ -87,6 +89,7 @@ export function usePublicReaderLayoutState({ script, isLoading, viewerProps, scr
     activity,
     coverUrl,
     coverCrop,
+    coverDesign,
     content: rawScript,
     disableCopy,
   } = script || {};
@@ -424,7 +427,7 @@ export function usePublicReaderLayoutState({ script, isLoading, viewerProps, scr
     // script data
     title, author, organization, synopsis, license, tags, targetAudience, contentRating, customFields,
     commercialUse, derivativeUse, notifyOnModify,
-    seriesName, prefaceItems, coverUrl, coverCrop, rawScript, disableCopy,
+    seriesName, prefaceItems, coverUrl, coverCrop, coverDesign, rawScript, disableCopy,
     // computed
     contactLines, licenseSummary, exportBaseName, pdfHeaderHtml,
     mergedViewerProps, downloadOptions,

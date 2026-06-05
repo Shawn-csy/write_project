@@ -112,7 +112,7 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
     const [collapsedSections, setCollapsedSections] = useState(initialCollapsedSections);
 
     const {
-        coverUrl, setCoverUrl, coverCrop, setCoverCrop,
+        coverUrl, setCoverUrl, coverCrop, setCoverCrop, coverDesign, setCoverDesign,
         author, setAuthor,
         authorDisplayMode, setAuthorDisplayMode,
         date, setDate,
@@ -342,7 +342,7 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         disableAuthorAutofill,
         disablePersonaAutofill: preserveAuthorInternalData,
         customFields, ensureList, userEditedRef,
-        setIsInitializing, setTitle, setCoverUrl, setCoverCrop, setStatus, setCurrentTags,
+        setIsInitializing, setTitle, setCoverUrl, setCoverCrop, setCoverDesign, setStatus, setCurrentTags,
         setMarkerThemeId, setShowMarkerLegend, setDisableCopy, setTargetAudience,
         setContentRating, setIdentity, setSelectedOrgId, setAuthor, setAuthorDisplayMode,
         setDate, setContact, setSynopsis, setOutline, setRoleSetting, setBackgroundInfo,
@@ -392,7 +392,7 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
     });
 
     const saveDraft = {
-        title, status, coverUrl, coverCrop: coverCrop ?? null,
+        title, status, coverUrl, coverCrop: coverCrop ?? null, coverDesign: coverDesign ?? null,
         draftDate: date, author, authorDisplayMode,
         personaId: identity.startsWith("persona:") ? identity.slice("persona:".length).trim() : "",
         organizationId: selectedOrgId ?? null,
@@ -548,7 +548,7 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         publishNewTerm, setPublishNewTerm,
         addLicenseSpecialTerm, licenseSpecialTerms, removeLicenseSpecialTerm,
         // exposure section
-        coverUrl, setCoverUrl, coverCrop, setCoverCrop,
+        coverUrl, setCoverUrl, coverCrop, setCoverCrop, coverDesign, setCoverDesign,
         handleCoverUpload, openCoverMediaPicker,
         coverUploadError, coverUploadWarning, coverPreviewFailed, setCoverPreviewFailed,
         seriesExpanded, setSeriesExpanded,

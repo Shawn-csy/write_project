@@ -1,5 +1,6 @@
 import { useCallback, useReducer, useState } from "react";
 import type { ContactField, CustomField, LicenseSpecialTerm } from "./types";
+import type { CoverDesign } from "../../types/coverDesign";
 
 interface ActivityDemoLinkItem {
   id: string;
@@ -167,6 +168,7 @@ export function useScriptMetadataSupplementalState() {
 
   const [coverUrl, setCoverUrl] = useState("");
   const [coverCrop, setCoverCrop] = useState<{ cx?: number; cy?: number; zoom?: number } | null>(null);
+  const [coverDesign, setCoverDesign] = useState<CoverDesign | null>(null);
   const [author, setAuthor] = useState("");
   const [authorDisplayMode, setAuthorDisplayMode] = useState("badge");
   const [date, setDate] = useState("");
@@ -219,7 +221,7 @@ export function useScriptMetadataSupplementalState() {
   const setActivityWorkUrl = useCallback((v: string) => dispatchActivity({ type: "setWorkUrl", value: v }), []);
 
   return {
-    coverUrl, setCoverUrl, coverCrop, setCoverCrop,
+    coverUrl, setCoverUrl, coverCrop, setCoverCrop, coverDesign, setCoverDesign,
     author, setAuthor,
     authorDisplayMode, setAuthorDisplayMode,
     date, setDate,
