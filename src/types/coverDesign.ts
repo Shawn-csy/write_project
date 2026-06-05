@@ -44,14 +44,18 @@ export interface CoverTextLayer {
   direction: "horizontal" | "vertical";
   font: CoverFont;
   size: "xs" | "sm" | "md" | "lg" | "xl";
+  /** Override font size in px (takes precedence over size enum) */
+  fontSize?: number;
   letterSpacing: number;
   effect: CoverTextEffect;
   color: string;
   effectColor?: string;
-  /** Normalised 0–1 position from top-left */
+  /** Normalised 0–1 position from top-left (centre anchor) */
   x: number;
   y: number;
   visible: boolean;
+  /** Normalised 0–1 box width relative to cover width. undefined = auto (shrink-wrap) */
+  w?: number;
   /** Scale multiplier, default 1.0 */
   scale?: number;
   /** Rotation in degrees, default 0 */
@@ -77,12 +81,16 @@ export interface CoverDesign {
     direction: "horizontal" | "vertical";
     font: CoverFont;
     size: "xs" | "sm" | "md" | "lg" | "xl";
+    /** Override font size in px (takes precedence over size enum) */
+    fontSize?: number;
     letterSpacing: number;
     effect: CoverTextEffect;
     color: string;
     effectColor?: string;
     x: number;
     y: number;
+    /** Normalised 0–1 box width relative to cover width. undefined = auto */
+    w?: number;
     /** Scale multiplier, default 1.0 */
     scale?: number;
     /** Rotation in degrees, default 0 */
