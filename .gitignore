@@ -10,6 +10,8 @@ build
 
 # Deploy
 .deploy-hash
+.deploy-hash.prev
+dist.rollback/
 
 # OS Generated
 .DS_Store

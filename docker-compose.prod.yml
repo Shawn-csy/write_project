@@ -17,6 +17,7 @@ services:
       retries: 20
 
   write_project-backend:
+    image: write_project-backend:${DEPLOY_TAG:-latest}
     build:
       context: ./server
     restart: unless-stopped
