@@ -8,12 +8,14 @@ import ScriptSurface from "../editor/ScriptSurface";
 import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
 import { usePublicReaderLayoutState } from "../../hooks/public/usePublicReaderLayoutState";
 import type { PublicReaderScriptData, ViewerProps } from "../../hooks/public/usePublicReaderLayoutState";
+import type { CoverDesign } from "../../types/coverDesign";
 
 interface RelatedSeriesScriptItem {
   id: string;
   title: string;
   coverUrl?: string | null;
   coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
+  coverDesign?: CoverDesign | null;
   seriesOrder?: string | number | null;
 }
 
@@ -164,6 +166,7 @@ export function PublicReaderLayout({
                     synopsis={s.synopsis}
                     coverUrl={s.coverUrl || ""}
                     coverCrop={s.coverCrop || null}
+                    coverDesign={s.coverDesign || null}
                     author={s.author}
                     organization={s.organization}
                     license={s.license}

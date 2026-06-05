@@ -14,6 +14,7 @@ import { buildCustomFieldsFromRawEntries } from "../hooks/dashboard/scriptMetada
 import { buildCustomMetadataEntries, applyPreservedAuthorEntries } from "./scriptMetadataPayload";
 import type { BaseScriptApi, ScriptUpdatePayload } from "../types/api";
 import type { ContactField, CustomField, LicenseSpecialTerm, TagLike } from "../hooks/dashboard/types";
+import type { CoverDesign } from "../types/coverDesign";
 
 // ---------------------------------------------------------------------------
 // Draft type — the single source of truth for in-memory editing state
@@ -25,6 +26,7 @@ export interface ScriptMetadataDraft {
   status: string;
   coverUrl: string;
   coverCrop: { cx?: number; cy?: number; zoom?: number } | null;
+  coverDesign: CoverDesign | null;
   draftDate: string;
   author: string;
   authorDisplayMode: string;
@@ -70,6 +72,7 @@ export function emptyDraft(): ScriptMetadataDraft {
     status: "Private",
     coverUrl: "",
     coverCrop: null,
+    coverDesign: null,
     draftDate: "",
     author: "",
     authorDisplayMode: "badge",
@@ -129,6 +132,7 @@ export function fromApiToDraft(
   draft.status = String(api.status || (api.isPublic ? "Public" : "Private"));
   draft.coverUrl = String(api.coverUrl || "");
   draft.coverCrop = (api as { coverCrop?: { cx?: number; cy?: number; zoom?: number } | null }).coverCrop ?? null;
+  draft.coverDesign = (api as BaseScriptApi).coverDesign ?? null;
   draft.draftDate = String(api.draftDate || "");
   // disableAuthorAutofill suppresses ALL author population (structured + legacy)
   if (!opts.disableAuthorAutofill) {
@@ -318,6 +322,7 @@ export function fromDraftToPayload(
     title: draft.title,
     coverUrl: draft.coverUrl,
     coverCrop: draft.coverCrop ?? null,
+    coverDesign: draft.coverDesign ?? null,
     status: draft.status,
     customMetadata,
     draftDate: draft.draftDate,

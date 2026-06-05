@@ -4,6 +4,7 @@ import { Button } from "../../ui/button";
 import { Card } from "../../ui/card";
 import { Badge } from "../../ui/badge";
 import { CoverPlaceholder } from "../../ui/CoverPlaceholder";
+import { CoverRenderer } from "../../ui/CoverRenderer";
 import { useI18n } from "../../../contexts/I18nContext";
 import { getMediaCropStyle } from "../../../lib/mediaCropRef";
 import type { PublishReadiness, PublisherScriptItem } from "../../../hooks/publisher/usePublisherWorksTabState";
@@ -54,6 +55,10 @@ export function WorkScriptListCard({
             loading="lazy"
             onError={() => onCoverError(script.id)}
           />
+        ) : script.coverDesign ? (
+          <div className="flex h-full w-full items-center justify-center">
+            <CoverRenderer design={script.coverDesign} title={script.title || ""} compact responsive className="h-full w-full" />
+          </div>
         ) : (
           <CoverPlaceholder title={script.title || t("publisherWorksTab.noCover")} compact />
         )}

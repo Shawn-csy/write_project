@@ -2,7 +2,9 @@ import React from "react";
 import { Heart, Eye } from "lucide-react";
 import { AuthorBadge } from "../ui/AuthorBadge";
 import { Badge } from "../ui/badge";
+import { CoverRenderer } from "../ui/CoverRenderer";
 import { getMediaCropStyle } from "../../lib/mediaCropRef";
+import type { CoverDesign } from "../../types/coverDesign";
 
 interface PrefaceItem {
   id?: string;
@@ -37,6 +39,7 @@ interface PublicScriptInfoOverlayProps {
   synopsis?: string;
   coverUrl?: string;
   coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
+  coverDesign?: CoverDesign | null;
   author?: AuthorInfo | null;
   organization?: OrganizationInfo | null;
   license?: string;
@@ -90,6 +93,7 @@ export function PublicScriptInfoOverlay({
   synopsis,
   coverUrl,
   coverCrop,
+  coverDesign,
   author = null,
   organization = null,
   license = "",
@@ -114,6 +118,7 @@ export function PublicScriptInfoOverlay({
   const [prefaceExpanded, setPrefaceExpanded] = React.useState(false);
   const cropCover = getMediaCropStyle(String(coverUrl || ""), coverCrop);
   const hasCover = Boolean(String(coverUrl || "").trim()) && !coverLoadFailed;
+  const hasDesignedCover = Boolean(coverDesign) && !hasCover;
   const itemById = React.useMemo(() => {
     const map = new Map<string, PrefaceItem & { value: string }>();
     (prefaceItems || []).forEach((item) => {
@@ -319,7 +324,7 @@ export function PublicScriptInfoOverlay({
 
   return (
     <div className="relative mx-auto flex w-full max-w-4xl flex-col items-center space-y-6 px-6 py-12 text-center md:py-20">
-      <div className={`w-full max-w-2xl overflow-hidden rounded-2xl border border-white/15 shadow-xl backdrop-blur-sm ${hasCover ? "bg-transparent" : "bg-background/40"}`}>
+      <div className={`w-full max-w-2xl overflow-hidden rounded-2xl border border-white/15 shadow-xl backdrop-blur-sm ${hasCover || hasDesignedCover ? "bg-transparent" : "bg-background/40"}`}>
         {hasCover ? (
           <img
             src={cropCover.src}
@@ -329,6 +334,12 @@ export function PublicScriptInfoOverlay({
             loading="eager"
             onError={() => setCoverLoadFailed(true)}
           />
+        ) : hasDesignedCover && coverDesign ? (
+          <div className="flex w-full justify-center bg-background/70 px-4 py-5">
+            <div className="aspect-[2/3] w-full max-w-[320px] overflow-hidden rounded-lg">
+              <CoverRenderer design={coverDesign} title={title || ""} responsive responsiveFit="contain" className="h-full w-full" />
+            </div>
+          </div>
         ) : (
           <div
             className="relative flex min-h-[260px] w-full items-center justify-center px-6 py-10 text-center md:min-h-[320px]"

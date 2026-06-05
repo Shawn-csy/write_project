@@ -184,6 +184,38 @@ def test_script_custom_metadata_roundtrip(client):
     assert isinstance(row.get("customMetadata"), list)
 
 
+def test_studio_summary_excludes_heavy_fields_and_keeps_publish_derivatives(client):
+    headers = {"X-User-ID": "u1"}
+    create_res = client.post(
+        "/api/scripts",
+        json={
+            "title": "Studio Summary",
+            "content": "EXT. VERY LONG SCENE - DAY\n" * 100,
+            "coverDesign": {"theme": "minimal", "title": {"text": "Studio Summary"}},
+            "customMetadata": [
+                {"key": "PublishAs", "value": "persona:p-legacy", "type": "text"},
+                {"key": "Series", "value": "Legacy Series", "type": "text"},
+            ],
+        },
+        headers=headers,
+    )
+    assert create_res.status_code == 200
+    script_id = create_res.json()["id"]
+
+    summary_res = client.get("/api/scripts/studio-summary", headers=headers)
+    assert summary_res.status_code == 200
+    items = summary_res.json()
+    row = next((item for item in items if item["id"] == script_id), None)
+
+    assert row is not None
+    assert "content" not in row
+    assert "customMetadata" not in row
+    assert row["contentLength"] == 0
+    assert row["coverDesign"]["theme"] == "minimal"
+    assert row["hasPublishIdentity"] is True
+    assert row["metadataSeriesName"] == "Legacy Series"
+
+
 def test_create_script_explicit_empty_structured_content_does_not_fallback_to_custom(client):
     headers = {"X-User-ID": "u1"}
     create_res = client.post(

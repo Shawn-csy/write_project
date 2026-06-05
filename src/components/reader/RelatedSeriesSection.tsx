@@ -1,13 +1,16 @@
 import React from "react";
 import { CoverPlaceholder } from "../ui/CoverPlaceholder";
+import { CoverRenderer } from "../ui/CoverRenderer";
 import { useI18n } from "../../contexts/I18nContext";
 import { getMediaCropStyle } from "../../lib/mediaCropRef";
+import type { CoverDesign } from "../../types/coverDesign";
 
 interface RelatedSeriesScriptItem {
   id: string;
   title: string;
   coverUrl?: string | null;
   coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
+  coverDesign?: CoverDesign | null;
   seriesOrder?: string | number | null;
 }
 
@@ -68,6 +71,10 @@ export function RelatedSeriesSection({
                   className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
                   loading="lazy"
                 />
+              ) : item.coverDesign ? (
+                <div className="flex h-full w-full items-center justify-center">
+                  <CoverRenderer design={item.coverDesign} title={item.title} compact responsive className="h-full w-full" />
+                </div>
               ) : (
                 <CoverPlaceholder title={item.title} compact />
               )}

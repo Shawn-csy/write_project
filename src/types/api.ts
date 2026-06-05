@@ -1,6 +1,7 @@
 import type { CurrentUserLike } from "./user";
 import type { MarkerConfig } from "./script";
 import type { PersonaLike, OrgData, TagLike } from "./persona";
+import type { CoverDesign } from "./coverDesign";
 
 export type { PersonaLike, OrgData, TagLike };
 
@@ -41,6 +42,9 @@ export interface BaseScriptApi {
   type?: string;
   coverUrl?: string | null;
   coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
+  coverDesign?: CoverDesign | null;
+  hasPublishIdentity?: boolean;
+  metadataSeriesName?: string;
   markerThemeId?: string;
   markerTheme?: { configs?: MarkerConfig[] };
   customMetadata?: Array<{ key?: string; value?: string; type?: string }>;

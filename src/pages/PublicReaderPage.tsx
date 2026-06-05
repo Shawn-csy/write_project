@@ -91,6 +91,8 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
       title: String(merged?.title || ""),
       synopsis: String(merged?.synopsis || merged?.description || ""),
       coverUrl: merged?.coverUrl || null,
+      coverCrop: merged?.coverCrop || null,
+      coverDesign: merged?.coverDesign || null,
       author: merged?.author || null,
       organization: merged?.organization || null,
       tags: Array.isArray(merged?.tags)

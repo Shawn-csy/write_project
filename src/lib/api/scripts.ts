@@ -20,6 +20,22 @@ export const getUserScripts = async (ownerId?: string): Promise<BaseScriptApi[]>
   return fetchApi<BaseScriptApi[]>(`/scripts${qs}`);
 };
 
+interface StudioScriptsQuery {
+  ownerId?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export const getStudioScripts = async (query: string | StudioScriptsQuery = {}): Promise<BaseScriptApi[]> => {
+  const resolved = typeof query === "string" ? { ownerId: query } : query;
+  const params = new URLSearchParams();
+  if (resolved.ownerId) params.set("ownerIdQuery", resolved.ownerId);
+  if (typeof resolved.limit === "number") params.set("limit", String(resolved.limit));
+  if (typeof resolved.offset === "number") params.set("offset", String(resolved.offset));
+  const qs = params.toString();
+  return fetchApi<BaseScriptApi[]>(`/scripts/studio-summary${qs ? `?${qs}` : ""}`);
+};
+
 export const getScript = async (scriptId: string): Promise<BaseScriptApi> => fetchApi<BaseScriptApi>(`/scripts/${scriptId}`);
 
 export const updateScript = async (scriptId: string, updates: ScriptUpdatePayload): Promise<BaseScriptApi> => {

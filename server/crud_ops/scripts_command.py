@@ -148,6 +148,7 @@ def create_script(db: Session, script: schemas.ScriptCreate, ownerId: str):
         activityDemoLinks=seed_license.get("activityDemoLinks"),
         coverUrl=cover_url,
         coverCrop=cover_crop,
+        coverDesign=script.coverDesign,
     )
     max_order = (
         db.query(models.Script)

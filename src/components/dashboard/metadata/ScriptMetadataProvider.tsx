@@ -118,7 +118,7 @@ export function useLicenseContext() {
 }
 
 export type ExposureContextValue = Pick<AllState,
-    "coverUrl" | "setCoverUrl" | "coverCrop" | "setCoverCrop" | "handleCoverUpload" | "openCoverMediaPicker" | "coverUploadError" |
+    "coverUrl" | "setCoverUrl" | "coverCrop" | "setCoverCrop" | "coverDesign" | "setCoverDesign" | "handleCoverUpload" | "openCoverMediaPicker" | "coverUploadError" |
     "coverUploadWarning" | "coverPreviewFailed" | "setCoverPreviewFailed" | "seriesExpanded" | "setSeriesExpanded" |
     "seriesId" | "setSeriesId" | "seriesName" | "setSeriesName" | "seriesOrder" | "setSeriesOrder" |
     "quickSeriesName" | "setQuickSeriesName" | "setShowSeriesQuickCreate" | "showSeriesQuickCreate" |
@@ -277,7 +277,7 @@ export function ScriptMetadataDialogProvider({
         metadataDetailsCommonProps, currentUser, personas, orgs,
         licenseCommercial, setLicenseCommercial, licenseDerivative, setLicenseDerivative, licenseNotify, setLicenseNotify,
         publishNewTerm, setPublishNewTerm, addLicenseSpecialTerm, licenseSpecialTerms, removeLicenseSpecialTerm,
-        coverUrl, setCoverUrl, coverCrop, setCoverCrop, handleCoverUpload, openCoverMediaPicker, coverUploadError, coverUploadWarning, coverPreviewFailed, setCoverPreviewFailed,
+        coverUrl, setCoverUrl, coverCrop, setCoverCrop, coverDesign, setCoverDesign, handleCoverUpload, openCoverMediaPicker, coverUploadError, coverUploadWarning, coverPreviewFailed, setCoverPreviewFailed,
         seriesExpanded, setSeriesExpanded, seriesId, setSeriesId, seriesName, setSeriesName, seriesOrder, setSeriesOrder,
         quickSeriesName, setQuickSeriesName, setShowSeriesQuickCreate, showSeriesQuickCreate, focusSeriesSelect, handleQuickCreateSeries,
         isCreatingSeries, seriesOptions, newTagInput, setNewTagInput, handleAddTag, currentTags, handleRemoveTag, markerThemeId, setMarkerThemeId,
@@ -331,14 +331,14 @@ export function ScriptMetadataDialogProvider({
     ]);
 
     const exposure: ExposureContextValue = useMemo(() => ({
-        coverUrl, setCoverUrl, coverCrop, setCoverCrop, handleCoverUpload, openCoverMediaPicker, coverUploadError, coverUploadWarning,
+        coverUrl, setCoverUrl, coverCrop, setCoverCrop, coverDesign, setCoverDesign, handleCoverUpload, openCoverMediaPicker, coverUploadError, coverUploadWarning,
         coverPreviewFailed, setCoverPreviewFailed, seriesExpanded, setSeriesExpanded, seriesId, setSeriesId,
         seriesName, setSeriesName, seriesOrder, setSeriesOrder, quickSeriesName, setQuickSeriesName,
         setShowSeriesQuickCreate, showSeriesQuickCreate, focusSeriesSelect, handleQuickCreateSeries,
         isCreatingSeries, seriesOptions, newTagInput, setNewTagInput, handleAddTag, currentTags, handleRemoveTag, markerThemeId, setMarkerThemeId,
         markerThemes, showMarkerLegend, setShowMarkerLegend, disableCopy, setDisableCopy,
     }), [
-        coverUrl, setCoverUrl, coverCrop, setCoverCrop, handleCoverUpload, openCoverMediaPicker, coverUploadError, coverUploadWarning,
+        coverUrl, setCoverUrl, coverCrop, setCoverCrop, coverDesign, setCoverDesign, handleCoverUpload, openCoverMediaPicker, coverUploadError, coverUploadWarning,
         coverPreviewFailed, setCoverPreviewFailed, seriesExpanded, setSeriesExpanded, seriesId, setSeriesId,
         seriesName, setSeriesName, seriesOrder, setSeriesOrder, quickSeriesName, setQuickSeriesName,
         setShowSeriesQuickCreate, showSeriesQuickCreate, focusSeriesSelect, handleQuickCreateSeries,

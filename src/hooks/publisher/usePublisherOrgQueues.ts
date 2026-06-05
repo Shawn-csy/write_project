@@ -29,9 +29,10 @@ export interface OrgMembersData {
 interface UsePublisherOrgQueuesInput {
   selectedOrgId: string | null;
   currentUser: CurrentUserLike | null | undefined;
+  enabled?: boolean;
 }
 
-export function usePublisherOrgQueues({ selectedOrgId, currentUser }: UsePublisherOrgQueuesInput) {
+export function usePublisherOrgQueues({ selectedOrgId, currentUser, enabled = true }: UsePublisherOrgQueuesInput) {
   const [orgMembers, setOrgMembers] = useState<OrgMembersData>({ users: [], personas: [] });
   const [orgInvites, setOrgInvites] = useState<OrganizationInvite[]>([]);
   const [orgRequests, setOrgRequests] = useState<OrganizationRequest[]>([]);
@@ -42,8 +43,19 @@ export function usePublisherOrgQueues({ selectedOrgId, currentUser }: UsePublish
   const [isOrgMembersLoading, setIsOrgMembersLoading] = useState(false);
 
   useEffect(() => {
+    if (enabled && selectedOrgId && currentUser) return;
+    setOrgMembers({ users: [], personas: [] });
+    setOrgInvites([]);
+    setOrgRequests([]);
+    setInviteSearchQuery("");
+    setInviteSearchResults([]);
+    setIsInviteSearching(false);
+    setIsOrgMembersLoading(false);
+  }, [enabled, selectedOrgId, currentUser]);
+
+  useEffect(() => {
     const loadMembers = async () => {
-      if (!selectedOrgId || !currentUser) return;
+      if (!enabled || !selectedOrgId || !currentUser) return;
       setIsOrgMembersLoading(true);
       setOrgMembers({ users: [], personas: [] });
       try {
@@ -69,11 +81,11 @@ export function usePublisherOrgQueues({ selectedOrgId, currentUser }: UsePublish
     };
 
     loadMembers();
-  }, [selectedOrgId, currentUser]);
+  }, [enabled, selectedOrgId, currentUser]);
 
   useEffect(() => {
     const loadOrgQueues = async () => {
-      if (!selectedOrgId || !currentUser) return;
+      if (!enabled || !selectedOrgId || !currentUser) return;
       setOrgInvites([]);
       setOrgRequests([]);
       setInviteSearchQuery("");
@@ -94,7 +106,7 @@ export function usePublisherOrgQueues({ selectedOrgId, currentUser }: UsePublish
     };
 
     loadOrgQueues();
-  }, [selectedOrgId, currentUser]);
+  }, [enabled, selectedOrgId, currentUser]);
 
   useEffect(() => {
     const loadMyInvites = async () => {

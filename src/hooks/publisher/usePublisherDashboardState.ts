@@ -3,13 +3,12 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../components/ui/toast";
 import { useI18n } from "../../contexts/I18nContext";
-import { getUserScripts } from "../../lib/api/scripts";
+import { getStudioScripts } from "../../lib/api/scripts";
 import { getTags } from "../../lib/api/tags";
 import { getSeries } from "../../lib/api/series";
 import { getOrganizations, getOrganization } from "../../lib/api/organizations";
 import { getPersonas } from "../../lib/api/personas";
 import { getUserProfile } from "../../lib/api/user";
-import { getPublicPersona } from "../../lib/api/public";
 import { getMorandiTagStyle } from "../../lib/tagColors";
 import { MORANDI_STUDIO_TONE_VARS } from "../../constants/morandiPanelTones";
 import { normalizeOrgIds } from "../dashboard/scriptMetadataUtils";
@@ -24,6 +23,7 @@ import type { BaseScriptApi } from "../../types/api";
 
 interface TagData { id: string; name: string; }
 interface SeriesData { id: string; name?: string; summary?: string; coverUrl?: string; coverCrop?: { cx?: number; cy?: number; zoom?: number } | null; }
+const STUDIO_INITIAL_WORK_LIMIT = 12;
 
 export type { SeriesData };
 
@@ -82,6 +82,12 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
   const [seriesDraft, setSeriesDraft] = useState({ name: "", summary: "", coverUrl: "", coverCrop: null as { cx?: number; cy?: number; zoom?: number } | null });
   const [isSavingSeries, setIsSavingSeries] = useState(false);
   const tabsGuideRef = useRef<HTMLDivElement | null>(null);
+  const metaLoadRequestedRef = useRef(false);
+
+  useEffect(() => {
+    metaLoadRequestedRef.current = false;
+    setIsMetaLoading(Boolean(currentUser));
+  }, [currentUser?.uid]);
 
   const {
     orgMembers, setOrgMembers, isOrgMembersLoading,
@@ -90,7 +96,7 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
     inviteSearchQuery, setInviteSearchQuery,
     inviteSearchResults, setInviteSearchResults,
     isInviteSearching,
-  } = usePublisherOrgQueues({ selectedOrgId, currentUser });
+  } = usePublisherOrgQueues({ selectedOrgId, currentUser, enabled: activeTab === "org" });
 
   const formatDate = (ts: number | string | null | undefined): string => {
     if (!ts) return "-";
@@ -161,80 +167,120 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
 
   const getTagStyle = (name: string) => getMorandiTagStyle(name, allTagNames);
 
-  const loadData = useCallback(async (isBackground = false) => {
-    if (!currentUser) return;
-    if (!isBackground) { setIsWorksLoading(true); setIsMetaLoading(true); }
-
-    const scriptsPromise = getUserScripts(undefined)
-      .then(scriptData => {
-        const sorted = (scriptData || [])
-          .filter(s => s.type !== "folder" && !s.isFolder)
-          .sort((a, b) => {
-            const aPublic = a.status === "Public" || a.isPublic;
-            const bPublic = b.status === "Public" || b.isPublic;
-            if (aPublic !== bPublic) return aPublic ? -1 : 1;
-            return Number(b.lastModified || 0) - Number(a.lastModified || 0);
-          });
-        setScripts(sorted);
+  const normalizeStudioScripts = useCallback((scriptData: BaseScriptApi[]) =>
+    (scriptData || [])
+      .filter(s => s.type !== "folder" && !s.isFolder)
+      .sort((a, b) => {
+        const aPublic = a.status === "Public" || a.isPublic;
+        const bPublic = b.status === "Public" || b.isPublic;
+        if (aPublic !== bPublic) return aPublic ? -1 : 1;
+        return Number(b.lastModified || 0) - Number(a.lastModified || 0);
       })
-      .catch(e => console.error("Failed to load scripts", e))
-      .finally(() => { if (!isBackground) setIsWorksLoading(false); });
+  , []);
 
-    const metaPromise = (async () => {
-      try {
-        const [personaData, orgData, tagData, seriesData] = await Promise.all([
-          getPersonas(undefined), getOrganizations(undefined), getTags(), getSeries(),
-        ]);
+  const loadWorks = useCallback(async (isBackground = false) => {
+    if (!currentUser) return;
+    if (!isBackground) setIsWorksLoading(true);
+    try {
+      if (isBackground) {
+        const scriptData = await getStudioScripts();
+        setScripts(normalizeStudioScripts(scriptData || []));
+        return;
+      }
 
-        let normalizedPersonas = (personaData || []).map(p => {
-          let links = p?.links;
-          if (typeof links === "string") { try { links = JSON.parse(links); } catch { links = []; } }
-          if (!Array.isArray(links)) links = [];
-          return { ...p, links, organizationIds: normalizeOrgIds(p?.organizationIds) };
-        });
+      const firstBatch = await getStudioScripts({ limit: STUDIO_INITIAL_WORK_LIMIT });
+      const normalizedFirstBatch = normalizeStudioScripts(firstBatch || []);
+      setScripts(normalizedFirstBatch);
+      setIsWorksLoading(false);
 
-        const needsEnrich = normalizedPersonas.filter(p => (p.links || []).length === 0);
-        const [enriched, deduped] = await Promise.all([
-          needsEnrich.length > 0
-            ? Promise.all(needsEnrich.map(async p => {
-                try {
-                  const pub = await getPublicPersona(p.id);
-                  let pubLinks = pub?.links;
-                  if (typeof pubLinks === "string") { try { pubLinks = JSON.parse(pubLinks); } catch { pubLinks = []; } }
-                  if (Array.isArray(pubLinks) && pubLinks.length > 0) return { ...p, links: pubLinks };
-                } catch {}
-                return p;
-              }))
-            : Promise.resolve([] as typeof normalizedPersonas),
-          buildAffiliatedOrganizations({
-            ownedOrgs: orgData || [], profile: currentProfile,
-            personas: normalizedPersonas, fetchOrganizationById: getOrganization,
-          }),
-        ]);
-
-        if (enriched.length > 0) {
-          const enrichMap = new Map(enriched.map(p => [p.id, p]));
-          normalizedPersonas = normalizedPersonas.map(p => enrichMap.get(p.id) || p);
+      if ((firstBatch || []).length >= STUDIO_INITIAL_WORK_LIMIT) {
+        const loadAll = () => {
+          getStudioScripts()
+            .then(scriptData => setScripts(normalizeStudioScripts(scriptData || [])))
+            .catch(e => console.error("Failed to load full studio scripts", e));
+        };
+        if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+          window.requestIdleCallback(loadAll, { timeout: 1200 });
+        } else {
+          globalThis.setTimeout(loadAll, 500);
         }
+      }
+    } catch (e) {
+      console.error("Failed to load scripts", e);
+    } finally {
+      if (!isBackground) setIsWorksLoading(false);
+    }
+  }, [currentUser, normalizeStudioScripts]);
 
-        setPersonas(normalizedPersonas);
-        setPersonasLoadedAt(Date.now());
-        setOrgs(orgData || []);
-        setOrgsForPersona(deduped);
-        setAvailableTags(tagData || []);
-        setSeriesList(seriesData || []);
-        const preferredPersonaId = localStorage.getItem("preferredPersonaId");
-        const nextPersona = (preferredPersonaId && normalizedPersonas.find(p => p.id === preferredPersonaId)) || normalizedPersonas[0];
-        if (nextPersona) setSelectedPersonaId(nextPersona.id);
-        if (deduped.length > 0) setSelectedOrgId(prev => (prev && deduped.some(o => o.id === prev) ? prev : deduped[0].id));
-      } catch (e) { console.error("Failed to load studio data", e); }
-      finally { setIsMetaLoading(false); }
-    })();
+  const loadMeta = useCallback(async (isBackground = false) => {
+    if (!currentUser) return;
+    if (!isBackground) setIsMetaLoading(true);
+    try {
+      const [personaData, orgData, tagData, seriesData] = await Promise.all([
+        getPersonas(undefined), getOrganizations(undefined), getTags(), getSeries(),
+      ]);
 
-    await Promise.all([scriptsPromise, metaPromise]);
+      const normalizedPersonas = (personaData || []).map(p => {
+        let links = p?.links;
+        if (typeof links === "string") { try { links = JSON.parse(links); } catch { links = []; } }
+        if (!Array.isArray(links)) links = [];
+        return { ...p, links, organizationIds: normalizeOrgIds(p?.organizationIds) };
+      });
+
+      const deduped = await buildAffiliatedOrganizations({
+        ownedOrgs: orgData || [], profile: currentProfile,
+        personas: normalizedPersonas, fetchOrganizationById: getOrganization,
+      });
+
+      setPersonas(normalizedPersonas);
+      setPersonasLoadedAt(Date.now());
+      setOrgs(orgData || []);
+      setOrgsForPersona(deduped);
+      setAvailableTags(tagData || []);
+      setSeriesList(seriesData || []);
+      const preferredPersonaId = localStorage.getItem("preferredPersonaId");
+      const nextPersona = (preferredPersonaId && normalizedPersonas.find(p => p.id === preferredPersonaId)) || normalizedPersonas[0];
+      if (nextPersona) setSelectedPersonaId(nextPersona.id);
+      if (deduped.length > 0) setSelectedOrgId(prev => (prev && deduped.some(o => o.id === prev) ? prev : deduped[0].id));
+    } catch (e) {
+      console.error("Failed to load studio data", e);
+    } finally {
+      setIsMetaLoading(false);
+      metaLoadRequestedRef.current = true;
+    }
   }, [currentUser, currentProfile]);
 
-  useEffect(() => { if (currentUser) loadData(); }, [currentUser, loadData]);
+  const loadData = useCallback(async (isBackground = false) => {
+    if (!currentUser) return;
+    await Promise.all([loadWorks(isBackground), loadMeta(isBackground)]);
+  }, [currentUser, loadWorks, loadMeta]);
+
+  useEffect(() => { if (currentUser) loadWorks(); }, [currentUser, loadWorks]);
+
+  useEffect(() => {
+    if (!currentUser || metaLoadRequestedRef.current) return;
+    let cancelled = false;
+    let idleId: number | null = null;
+    let timerId: number | null = null;
+    const shouldLoadImmediately = activeTab !== "works" || new URLSearchParams(location.search || "").get("open") === "publish";
+    const run = () => {
+      if (cancelled || metaLoadRequestedRef.current) return;
+      metaLoadRequestedRef.current = true;
+      loadMeta(shouldLoadImmediately ? false : true);
+    };
+    if (shouldLoadImmediately) {
+      run();
+    } else if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      idleId = window.requestIdleCallback(run, { timeout: 800 });
+    } else {
+      timerId = globalThis.setTimeout(run, 300);
+    }
+    return () => {
+      cancelled = true;
+      if (idleId !== null && typeof window !== "undefined" && "cancelIdleCallback" in window) window.cancelIdleCallback(idleId);
+      if (timerId !== null) window.clearTimeout(timerId);
+    };
+  }, [activeTab, currentUser, loadMeta, location.search]);
 
   useEffect(() => {
     const nextTab = resolveTabFromSearch(location.search);
@@ -255,38 +301,26 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
   useEffect(() => {
     if (!selectedPersonaId || personasLoadedAt === 0) return;
     localStorage.setItem("preferredPersonaId", selectedPersonaId);
-    let ignore = false;
-    const run = async () => {
-      const persona = personas.find(p => p.id === selectedPersonaId);
-      if (!persona) return;
-      let links = persona.links;
-      if (typeof links === "string") { try { links = JSON.parse(links); } catch { links = []; } }
-      if (!Array.isArray(links)) links = [];
-      if (links.length === 0) {
-        try {
-          const pub = await getPublicPersona(selectedPersonaId);
-          if (pub?.links && pub.links.length > 0) links = pub.links;
-        } catch {}
-      }
-      if (ignore) return;
-      setPersonaDraft({
-        displayName: persona.displayName || "", bio: persona.bio || "",
-        website: persona.website || "", links: links ?? [], avatar: persona.avatar || "",
-        avatarCrop: (persona as { avatarCrop?: { cx?: number; cy?: number; zoom?: number } | null }).avatarCrop || null,
-        bannerUrl: persona.bannerUrl || "",
-        bannerCrop: (persona as { bannerCrop?: { cx?: number; cy?: number; zoom?: number } | null }).bannerCrop || null,
-        organizationIds: persona.organizationIds || [],
-        tags: persona.tags || [], defaultLicenseCommercial: persona.defaultLicenseCommercial || "",
-        defaultLicenseDerivative: persona.defaultLicenseDerivative || "",
-        defaultLicenseNotify: persona.defaultLicenseNotify || "",
-        defaultLicenseSpecialTerms: persona.defaultLicenseSpecialTerms || [],
-      });
-      if ((persona.organizationIds || []).length > 0) {
-        setSelectedOrgId((persona.organizationIds ?? [])[0] ?? null);
-      }
-    };
-    run();
-    return () => { ignore = true; };
+    const persona = personas.find(p => p.id === selectedPersonaId);
+    if (!persona) return;
+    let links = persona.links;
+    if (typeof links === "string") { try { links = JSON.parse(links); } catch { links = []; } }
+    if (!Array.isArray(links)) links = [];
+    setPersonaDraft({
+      displayName: persona.displayName || "", bio: persona.bio || "",
+      website: persona.website || "", links: links ?? [], avatar: persona.avatar || "",
+      avatarCrop: (persona as { avatarCrop?: { cx?: number; cy?: number; zoom?: number } | null }).avatarCrop || null,
+      bannerUrl: persona.bannerUrl || "",
+      bannerCrop: (persona as { bannerCrop?: { cx?: number; cy?: number; zoom?: number } | null }).bannerCrop || null,
+      organizationIds: persona.organizationIds || [],
+      tags: persona.tags || [], defaultLicenseCommercial: persona.defaultLicenseCommercial || "",
+      defaultLicenseDerivative: persona.defaultLicenseDerivative || "",
+      defaultLicenseNotify: persona.defaultLicenseNotify || "",
+      defaultLicenseSpecialTerms: persona.defaultLicenseSpecialTerms || [],
+    });
+    if ((persona.organizationIds || []).length > 0) {
+      setSelectedOrgId((persona.organizationIds ?? [])[0] ?? null);
+    }
   }, [selectedPersonaId, personasLoadedAt, personas]);
 
   useEffect(() => {

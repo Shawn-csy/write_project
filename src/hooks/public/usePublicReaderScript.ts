@@ -9,6 +9,7 @@ import { buildPrefaceItemsFromMeta, buildPublicReaderProjection } from "../../li
 import { useI18n } from "../../contexts/I18nContext";
 import type { ScriptManager } from "../../hooks/useScriptManager.types";
 import type { BaseScriptApi } from "../../types/api";
+import type { CoverDesign } from "../../types/coverDesign";
 
 interface Author {
   id: string;
@@ -27,6 +28,7 @@ interface Organization {
 export interface MockMeta {
   coverUrl: string | null;
   coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
+  coverDesign?: CoverDesign | null;
   author: Author | null;
   organization: Organization | null;
   tags: string[];
@@ -123,7 +125,7 @@ export function usePublicReaderScript({ id, scriptManager }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [mockMeta, setMockMeta] = useState<MockMeta | null>(null);
   const [relatedSeriesScripts, setRelatedSeriesScripts] = useState<
-    { id: string; title: string; coverUrl: string | null; coverCrop?: { cx?: number; cy?: number; zoom?: number } | null; seriesOrder: number | null }[]
+    { id: string; title: string; coverUrl: string | null; coverCrop?: { cx?: number; cy?: number; zoom?: number } | null; coverDesign?: CoverDesign | null; seriesOrder: number | null }[]
   >([]);
   const [publicMarkerConfigs, setPublicMarkerConfigs] = useState(
     normalizeMarkerConfigsSchema(defaultMarkerConfigs)
@@ -218,6 +220,7 @@ export function usePublicReaderScript({ id, scriptManager }: Props) {
             synopsis: String(script.synopsis || ""),
             coverUrl: script.coverUrl || null,
             coverCrop: (script as { coverCrop?: { cx?: number; cy?: number; zoom?: number } | null }).coverCrop || null,
+            coverDesign: script.coverDesign || null,
             author: resolvedAuthor,
             organization: resolvedOrganization,
             tags: normalizedTags,
@@ -247,6 +250,7 @@ export function usePublicReaderScript({ id, scriptManager }: Props) {
           setMockMeta({
             coverUrl: publicProjection.coverUrl || null,
             coverCrop: publicProjection.coverCrop || null,
+            coverDesign: publicProjection.coverDesign || null,
             author: publicProjection.author
               ? {
                   id: String(publicProjection.author.id || "unknown"),
@@ -291,7 +295,7 @@ export function usePublicReaderScript({ id, scriptManager }: Props) {
           if (seriesName) {
             try {
               const bundle = await getPublicBundle();
-              type SeriesItem = { id: string; title: string; coverUrl: string | null; coverCrop?: { cx?: number; cy?: number; zoom?: number } | null; seriesOrder: number | null };
+              type SeriesItem = { id: string; title: string; coverUrl: string | null; coverCrop?: { cx?: number; cy?: number; zoom?: number } | null; coverDesign?: CoverDesign | null; seriesOrder: number | null };
               const sameSeries = (bundle?.scripts || [])
                 .filter((item): item is BaseScriptApi => Boolean(item?.id) && item.id !== script.id)
                 .map((i): SeriesItem | null => {
@@ -303,6 +307,7 @@ export function usePublicReaderScript({ id, scriptManager }: Props) {
                     title: i.title || t("publicGallery.unknown"),
                     coverUrl: i.coverUrl || null,
                     coverCrop: (i as { coverCrop?: { cx?: number; cy?: number; zoom?: number } | null }).coverCrop || null,
+                    coverDesign: i.coverDesign || null,
                     seriesOrder: parseSeriesOrder(i.seriesOrder ?? parsedMeta?.seriesorder),
                   };
                 })
@@ -386,6 +391,7 @@ They discover a glowing artifact.
           setCloudScriptMode("read");
           setMockMeta({
             coverUrl: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop",
+            coverDesign: null,
             author: { id: "user-1", displayName: "Alex Chen", avatarUrl: "https://github.com/shadcn.png" },
             organization: null,
             tags: ["Sci-Fi", "Thriller"],

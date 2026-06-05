@@ -1,13 +1,9 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
 import { Button } from "../components/ui/button";
 import { PanelLeftOpen, FileText, UserRound, Building2, Layers3 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
-import { ScriptMetadataDialog } from "../components/dashboard/ScriptMetadataDialog";
 import { PublisherWorksTab } from "../components/dashboard/publisher/PublisherWorksTab";
-import { PublisherProfileTab } from "../components/dashboard/publisher/PublisherProfileTab";
-import { PublisherOrgTab } from "../components/dashboard/publisher/PublisherOrgTab";
-import { PublisherSeriesTab } from "../components/dashboard/publisher/PublisherSeriesTab";
 import { SpotlightGuideOverlay } from "../components/common/SpotlightGuideOverlay";
 import { TOPBAR_OUTER_CLASS } from "../components/layout/topbarLayout";
 import {
@@ -21,6 +17,25 @@ import {
 } from "../components/layout/studioTopbarTokens";
 import { StudioTopbarQuickActions } from "../components/layout/StudioTopbarQuickActions";
 import { usePublisherDashboardState } from "../hooks/publisher/usePublisherDashboardState";
+
+const ScriptMetadataDialogLazy = React.lazy(async () => {
+  const mod = await import("../components/dashboard/ScriptMetadataDialog");
+  return { default: mod.ScriptMetadataDialog };
+});
+const PublisherProfileTabLazy = React.lazy(async () => {
+  const mod = await import("../components/dashboard/publisher/PublisherProfileTab");
+  return { default: mod.PublisherProfileTab };
+});
+const PublisherOrgTabLazy = React.lazy(async () => {
+  const mod = await import("../components/dashboard/publisher/PublisherOrgTab");
+  return { default: mod.PublisherOrgTab };
+});
+const PublisherSeriesTabLazy = React.lazy(async () => {
+  const mod = await import("../components/dashboard/publisher/PublisherSeriesTab");
+  return { default: mod.PublisherSeriesTab };
+});
+
+const tabFallback = <div className="p-6 text-sm text-muted-foreground">Loading...</div>;
 
 interface PublisherDashboardProps {
   isSidebarOpen?: boolean;
@@ -140,106 +155,122 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
             </TabsContent>
 
             <TabsContent value="profile" style={s.tabTone.profile} className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3" data-guide-id="studio-profile-panel">
-              <PublisherProfileTab
-                selectedPersonaId={s.selectedPersonaId} setSelectedPersonaId={s.setSelectedPersonaId}
-                personas={s.personas}
-                selectedPersona={s.personas.find(p => p.id === s.selectedPersonaId) ?? null}
-                handleCreatePersona={s.handleCreatePersona} isCreatingPersona={s.isCreatingPersona}
-                handleDeletePersona={() => s.setConfirmDeletePersonaOpen(true)}
-                personaDraft={s.personaDraft} setPersonaDraft={s.setPersonaDraft}
-                orgs={s.orgsForPersona}
-                isLoading={s.isMetaLoading}
-                personaTagInput={s.personaTagInput} setPersonaTagInput={s.setPersonaTagInput}
-                handleSaveProfile={s.handleSaveProfile} isSavingProfile={s.isSavingProfile}
-                parseTags={s.parseTags}
-                addTags={s.addTags}
-                getSuggestions={(input: string) => s.getSuggestions(input, s.personaDraft.tags || [])}
-                getTagStyle={s.getTagStyle}
-                tagOptions={s.availableTags}
-              />
+              {s.activeTab === "profile" && (
+                <Suspense fallback={tabFallback}>
+                  <PublisherProfileTabLazy
+                    selectedPersonaId={s.selectedPersonaId} setSelectedPersonaId={s.setSelectedPersonaId}
+                    personas={s.personas}
+                    selectedPersona={s.personas.find(p => p.id === s.selectedPersonaId) ?? null}
+                    handleCreatePersona={s.handleCreatePersona} isCreatingPersona={s.isCreatingPersona}
+                    handleDeletePersona={() => s.setConfirmDeletePersonaOpen(true)}
+                    personaDraft={s.personaDraft} setPersonaDraft={s.setPersonaDraft}
+                    orgs={s.orgsForPersona}
+                    isLoading={s.isMetaLoading}
+                    personaTagInput={s.personaTagInput} setPersonaTagInput={s.setPersonaTagInput}
+                    handleSaveProfile={s.handleSaveProfile} isSavingProfile={s.isSavingProfile}
+                    parseTags={s.parseTags}
+                    addTags={s.addTags}
+                    getSuggestions={(input: string) => s.getSuggestions(input, s.personaDraft.tags || [])}
+                    getTagStyle={s.getTagStyle}
+                    tagOptions={s.availableTags}
+                  />
+                </Suspense>
+              )}
             </TabsContent>
 
-            <ScriptMetadataDialog
-              open={!!s.editingScript}
-              onOpenChange={(open) => !open && s.closePublishDialog()}
-              script={s.editingScript}
-              scriptId={typeof s.editingScript?.id === "string" ? s.editingScript.id : undefined}
-              seriesOptions={s.seriesList.map((item) => ({ id: item.id, name: item.name || "" }))}
-              preloadedData={{ personas: s.personas, orgs: s.orgsForPersona }}
-              onSeriesCreated={(createdSeries) => {
-                if (!createdSeries?.id) return;
-                s.setSeriesList((prev) => {
-                  const exists = prev.some((item) => item.id === createdSeries.id);
-                  return exists ? prev : [createdSeries, ...prev];
-                });
-                s.setSelectedSeriesId(createdSeries.id);
-              }}
-              onSave={(updatedScript) => {
-                s.closePublishDialog();
-                s.setScripts(prev => prev.map(sc => sc.id === updatedScript.id ? { ...sc, ...updatedScript } : sc));
-              }}
-            />
+            {s.editingScript && (
+              <Suspense fallback={null}>
+                <ScriptMetadataDialogLazy
+                  open={!!s.editingScript}
+                  onOpenChange={(open) => !open && s.closePublishDialog()}
+                  script={s.editingScript}
+                  scriptId={typeof s.editingScript?.id === "string" ? s.editingScript.id : undefined}
+                  seriesOptions={s.seriesList.map((item) => ({ id: item.id, name: item.name || "" }))}
+                  preloadedData={{ personas: s.personas, orgs: s.orgsForPersona }}
+                  onSeriesCreated={(createdSeries) => {
+                    if (!createdSeries?.id) return;
+                    s.setSeriesList((prev) => {
+                      const exists = prev.some((item) => item.id === createdSeries.id);
+                      return exists ? prev : [createdSeries, ...prev];
+                    });
+                    s.setSelectedSeriesId(createdSeries.id);
+                  }}
+                  onSave={(updatedScript) => {
+                    s.closePublishDialog();
+                    s.setScripts(prev => prev.map(sc => sc.id === updatedScript.id ? { ...sc, ...updatedScript } : sc));
+                  }}
+                />
+              </Suspense>
+            )}
 
             <TabsContent value="org" style={s.tabTone.org} className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3" data-guide-id="studio-org-panel">
-              <PublisherOrgTab
-                orgs={s.orgsForPersona}
-                selectedOrgId={s.selectedOrgId} setSelectedOrgId={s.setSelectedOrgId}
-                handleCreateOrg={s.handleCreateOrg} isCreatingOrg={s.isCreatingOrg}
-                handleDeleteOrg={() => s.setConfirmDeleteOrgOpen(true)}
-                orgDraft={s.orgDraft} setOrgDraft={s.setOrgDraft}
-                handleSaveOrg={s.handleSaveOrg} isSavingOrg={s.isSavingOrg}
-                orgTagInput={s.orgTagInput} setOrgTagInput={s.setOrgTagInput}
-                parseTags={s.parseTags}
-                addTags={(next: string | string[]) => {
-                  const incoming = Array.isArray(next) ? next : s.parseTags(next);
-                  return s.addTags(s.orgDraft.tags || [], incoming);
-                }}
-                getSuggestions={(input: string) => s.getSuggestions(input, s.orgDraft.tags || [])}
-                getTagStyle={s.getTagStyle}
-                tagOptions={s.availableTags}
-                isLoading={s.isMetaLoading || s.isOrgMembersLoading}
-                orgMembers={s.orgMembers}
-                orgInvites={s.orgInvites}
-                orgRequests={s.orgRequests}
-                canEditSelectedOrg={s.canManageOrgMembers}
-                currentUserId={s.currentUserId}
-                currentOrgRole={s.currentOrgRole}
-                canManageOrgMembers={s.canManageOrgMembers}
-                inviteSearchQuery={s.inviteSearchQuery}
-                setInviteSearchQuery={s.setInviteSearchQuery}
-                inviteSearchResults={s.inviteSearchResults}
-                isInviteSearching={s.isInviteSearching}
-                handleInviteMember={s.handleInviteMember}
-                handleAcceptRequest={s.handleAcceptRequest}
-                handleDeclineRequest={s.handleDeclineRequest}
-                handleRemoveMember={s.handleRemoveMember}
-                handleRemovePersonaMember={s.handleRemovePersonaMember}
-                handleChangeMemberRole={s.handleChangeMemberRole}
-              />
+              {s.activeTab === "org" && (
+                <Suspense fallback={tabFallback}>
+                  <PublisherOrgTabLazy
+                    orgs={s.orgsForPersona}
+                    selectedOrgId={s.selectedOrgId} setSelectedOrgId={s.setSelectedOrgId}
+                    handleCreateOrg={s.handleCreateOrg} isCreatingOrg={s.isCreatingOrg}
+                    handleDeleteOrg={() => s.setConfirmDeleteOrgOpen(true)}
+                    orgDraft={s.orgDraft} setOrgDraft={s.setOrgDraft}
+                    handleSaveOrg={s.handleSaveOrg} isSavingOrg={s.isSavingOrg}
+                    orgTagInput={s.orgTagInput} setOrgTagInput={s.setOrgTagInput}
+                    parseTags={s.parseTags}
+                    addTags={(next: string | string[]) => {
+                      const incoming = Array.isArray(next) ? next : s.parseTags(next);
+                      return s.addTags(s.orgDraft.tags || [], incoming);
+                    }}
+                    getSuggestions={(input: string) => s.getSuggestions(input, s.orgDraft.tags || [])}
+                    getTagStyle={s.getTagStyle}
+                    tagOptions={s.availableTags}
+                    isLoading={s.isMetaLoading || s.isOrgMembersLoading}
+                    orgMembers={s.orgMembers}
+                    orgInvites={s.orgInvites}
+                    orgRequests={s.orgRequests}
+                    canEditSelectedOrg={s.canManageOrgMembers}
+                    currentUserId={s.currentUserId}
+                    currentOrgRole={s.currentOrgRole}
+                    canManageOrgMembers={s.canManageOrgMembers}
+                    inviteSearchQuery={s.inviteSearchQuery}
+                    setInviteSearchQuery={s.setInviteSearchQuery}
+                    inviteSearchResults={s.inviteSearchResults}
+                    isInviteSearching={s.isInviteSearching}
+                    handleInviteMember={s.handleInviteMember}
+                    handleAcceptRequest={s.handleAcceptRequest}
+                    handleDeclineRequest={s.handleDeclineRequest}
+                    handleRemoveMember={s.handleRemoveMember}
+                    handleRemovePersonaMember={s.handleRemovePersonaMember}
+                    handleChangeMemberRole={s.handleChangeMemberRole}
+                  />
+                </Suspense>
+              )}
             </TabsContent>
 
             <TabsContent value="series" style={s.tabTone.series} className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3">
-              <PublisherSeriesTab
-                seriesList={s.seriesList}
-                selectedSeriesId={s.selectedSeriesId}
-                setSelectedSeriesId={s.setSelectedSeriesId}
-                seriesDraft={s.seriesDraft}
-                setSeriesDraft={s.setSeriesDraft}
-                seriesScripts={(s.scripts || [])
-                  .filter((script) => script.seriesId === s.selectedSeriesId)
-                  .map((script) => ({ ...script, seriesOrder: script.seriesOrder ?? undefined }))
-                  .sort((a, b) => {
-                    const aOrder = Number.isFinite(Number(a.seriesOrder)) ? Number(a.seriesOrder) : Number.MAX_SAFE_INTEGER;
-                    const bOrder = Number.isFinite(Number(b.seriesOrder)) ? Number(b.seriesOrder) : Number.MAX_SAFE_INTEGER;
-                    if (aOrder !== bOrder) return aOrder - bOrder;
-                    return Number(b.lastModified || 0) - Number(a.lastModified || 0);
-                  })}
-                onDetachScript={s.handleDetachScriptFromSeries}
-                onCreateSeries={s.handleCreateSeries}
-                onUpdateSeries={s.handleUpdateSeries}
-                onDeleteSeries={s.handleDeleteSeries}
-                isSaving={s.isSavingSeries}
-              />
+              {s.activeTab === "series" && (
+                <Suspense fallback={tabFallback}>
+                  <PublisherSeriesTabLazy
+                    seriesList={s.seriesList}
+                    selectedSeriesId={s.selectedSeriesId}
+                    setSelectedSeriesId={s.setSelectedSeriesId}
+                    seriesDraft={s.seriesDraft}
+                    setSeriesDraft={s.setSeriesDraft}
+                    seriesScripts={(s.scripts || [])
+                      .filter((script) => script.seriesId === s.selectedSeriesId)
+                      .map((script) => ({ ...script, seriesOrder: script.seriesOrder ?? undefined }))
+                      .sort((a, b) => {
+                        const aOrder = Number.isFinite(Number(a.seriesOrder)) ? Number(a.seriesOrder) : Number.MAX_SAFE_INTEGER;
+                        const bOrder = Number.isFinite(Number(b.seriesOrder)) ? Number(b.seriesOrder) : Number.MAX_SAFE_INTEGER;
+                        if (aOrder !== bOrder) return aOrder - bOrder;
+                        return Number(b.lastModified || 0) - Number(a.lastModified || 0);
+                      })}
+                    onDetachScript={s.handleDetachScriptFromSeries}
+                    onCreateSeries={s.handleCreateSeries}
+                    onUpdateSeries={s.handleUpdateSeries}
+                    onDeleteSeries={s.handleDeleteSeries}
+                    isSaving={s.isSavingSeries}
+                  />
+                </Suspense>
+              )}
             </TabsContent>
           </Tabs>
 

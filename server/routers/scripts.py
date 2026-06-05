@@ -21,6 +21,17 @@ def read_scripts(
     effective_owner_id = ownerIdQuery if ownerIdQuery and is_admin_user(db, ownerId) else ownerId
     return crud.get_scripts(db, ownerId=effective_owner_id)
 
+@router.get("/studio-summary", response_model=List[schemas.ScriptStudioSummary])
+def read_studio_script_summaries(
+    ownerId: str = Depends(get_current_user_id),
+    ownerIdQuery: Optional[str] = None,
+    limit: Optional[int] = None,
+    offset: int = 0,
+    db: Session = Depends(get_db)
+):
+    effective_owner_id = ownerIdQuery if ownerIdQuery and is_admin_user(db, ownerId) else ownerId
+    return crud.get_studio_script_summaries(db, ownerId=effective_owner_id, limit=limit, offset=offset)
+
 @router.post("", response_model=schemas.Script)
 def create_script(script: schemas.ScriptCreate, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
     return crud.create_script(db=db, script=script, ownerId=ownerId)
@@ -40,12 +51,12 @@ def read_script(script_id: str, ownerId: str = Depends(get_current_user_id), db:
         raise HTTPException(status_code=404, detail="Script not found")
     return db_script
 
-@router.put("/{script_id}")
+@router.put("/{script_id}", response_model=schemas.Script)
 def update_script(script_id: str, script: schemas.ScriptUpdate, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
     updated = crud.update_script(db, script_id, script, ownerId)
     if not updated:
         raise HTTPException(status_code=404, detail="Script not found")
-    return {"success": True, "lastModified": updated.lastModified}
+    return updated
 
 @router.delete("/{script_id}")
 def delete_script(script_id: str, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):

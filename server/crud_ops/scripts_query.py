@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from sqlalchemy import func, or_, orm
 from sqlalchemy.orm import Session
@@ -31,6 +31,79 @@ def get_scripts(db: Session, ownerId: str):
     out = []
     for script, length in results:
         script.contentLength = length or 0
+        out.append(script)
+    return out
+
+
+def _metadata_entries_to_map(entries: Any) -> Dict[str, str]:
+    if not isinstance(entries, list):
+        return {}
+    out: Dict[str, str] = {}
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        key = str(entry.get("key") or "").strip()
+        if not key:
+            continue
+        normalized_key = "".join(key.lower().split())
+        out[normalized_key] = str(entry.get("value") or "")
+    return out
+
+
+def get_studio_script_summaries(db: Session, ownerId: str, limit: Optional[int] = None, offset: int = 0):
+    query = (
+        db.query(models.Script)
+        .options(
+            orm.load_only(
+                models.Script.id,
+                models.Script.ownerId,
+                models.Script.title,
+                models.Script.customMetadata,
+                models.Script.createdAt,
+                models.Script.lastModified,
+                models.Script.author,
+                models.Script.draftDate,
+                models.Script.isPublic,
+                models.Script.status,
+                models.Script.coverUrl,
+                models.Script.coverCrop,
+                models.Script.coverDesign,
+                models.Script.coverIsAiGenerated,
+                models.Script.views,
+                models.Script.likes,
+                models.Script.type,
+                models.Script.folder,
+                models.Script.sortOrder,
+                models.Script.markerThemeId,
+                models.Script.disableCopy,
+                models.Script.licenseCommercial,
+                models.Script.licenseDerivative,
+                models.Script.licenseNotify,
+                models.Script.personaId,
+                models.Script.organizationId,
+                models.Script.seriesId,
+                models.Script.seriesOrder,
+                models.Script.synopsis,
+            ),
+            orm.selectinload(models.Script.tags),
+            orm.joinedload(models.Script.series),
+        )
+        .filter(models.Script.ownerId == ownerId)
+        .order_by(models.Script.sortOrder.asc(), models.Script.lastModified.desc())
+    )
+    if offset > 0:
+        query = query.offset(offset)
+    if limit is not None and limit > 0:
+        query = query.limit(min(limit, 100))
+    scripts = query.all()
+
+    out = []
+    for script in scripts:
+        meta = _metadata_entries_to_map(script.customMetadata)
+        publish_as = meta.get("publishas", "")
+        script.contentLength = 0
+        script.hasPublishIdentity = bool(script.personaId or publish_as.startswith("persona:"))
+        script.metadataSeriesName = meta.get("series") or meta.get("seriesname") or ""
         out.append(script)
     return out
 
@@ -170,6 +243,7 @@ def search_scripts(db: Session, query: str, ownerId: str):
 
 __all__ = [
     "get_scripts",
+    "get_studio_script_summaries",
     "get_script",
     "get_public_scripts",
     "search_scripts",

@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { useTheme } from "../components/theme-provider";
 import {
@@ -21,6 +21,8 @@ import type { LayoutConfig } from "../lib/v2";
 import { AppearanceProvider } from "./AppearanceContext";
 import { MarkerThemeProvider } from "./MarkerThemeContext";
 import { StatsConfigProvider } from "./StatsConfigContext";
+import type { CoverPreset, CoverDesign as CoverDesignType } from "../types/coverDesign";
+import { MAX_COVER_PRESETS } from "../types/coverDesign";
 
 interface StatsKeywordRule {
   factor: number;
@@ -102,6 +104,9 @@ interface SettingsContextValue {
   copyPublicTheme: (themeId: string) => Promise<void>;
   switchTheme: (id: string) => void;
   updateThemeLayoutConfig: (id: string, config: LayoutConfig) => void;
+  coverPresets: CoverPreset[];
+  saveCoverPreset: (name: string, design: CoverDesignType) => void;
+  deleteCoverPreset: (id: string) => void;
 }
 
 const FONT_STEPS = [12, 14, 16, 24, 36, 72] as const;
@@ -268,6 +273,24 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   };
   const [statsConfig, setStatsConfig] = usePersistentState("statsConfig", defaultStatsConfig);
 
+  // --- Cover Presets ---
+  const [coverPresets, setCoverPresets] = useState<CoverPreset[]>([]);
+
+  const saveCoverPreset = useCallback((name: string, design: CoverDesignType) => {
+    setCoverPresets((prev) => {
+      if (prev.length >= MAX_COVER_PRESETS) return prev;
+      const next: CoverPreset[] = [
+        ...prev,
+        { id: `preset_${Date.now()}`, name: name.trim() || "未命名樣式", design, createdAt: Date.now() },
+      ];
+      return next;
+    });
+  }, []);
+
+  const deleteCoverPreset = useCallback((id: string) => {
+    setCoverPresets((prev) => prev.filter((p) => p.id !== id));
+  }, []);
+
   // --- Theme Hook ---
   const themes = useMarkerThemes(currentUser, Boolean(profile?.isAdmin));
 
@@ -375,6 +398,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                       }
                       if (typeof s.useV2Renderer === "boolean") setUseV2RendererStr(s.useV2Renderer ? "on" : "off");
                       if (s.statsConfig && typeof s.statsConfig === "object") setStatsConfig(s.statsConfig as StatsConfig);
+                      if (Array.isArray(s.coverPresets)) setCoverPresets(s.coverPresets as CoverPreset[]);
 
                       if (realThemes && realThemes.length > 0) {
                           const parsedThemes = realThemes.map((t) => ({
@@ -416,7 +440,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                           showLineUnderline,
                           useV2Renderer,
                           useV2RendererByTheme,
-                          currentThemeId: themes.currentThemeId
+                          currentThemeId: themes.currentThemeId,
+                          coverPresets,
                       };
                       await saveUserSettings(currentUser, payload);
                       // Also sync default marker themes if needed? 
@@ -455,7 +480,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           useV2Renderer,
           useV2RendererByTheme,
           statsConfig,
-          currentThemeId: themes.currentThemeId
+          currentThemeId: themes.currentThemeId,
+          coverPresets,
       };
 
       const timer = setTimeout(async () => {
@@ -479,7 +505,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       useV2Renderer,
       useV2RendererByTheme,
       statsConfig,
-      themes.currentThemeId
+      themes.currentThemeId,
+      coverPresets,
   ]);
 
   const appearanceValue = useMemo(() => ({
@@ -569,6 +596,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     statsConfig,
     setStatsConfig,
 
+    // Cover Presets
+    coverPresets,
+    saveCoverPreset,
+    deleteCoverPreset,
+
     // Themes (New API)
     ...themes,
   }), [
@@ -589,6 +621,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     useV2Renderer, setUseV2Renderer,
     v2LayoutConfig, setV2LayoutConfig,
     statsConfig, setStatsConfig,
+    coverPresets, saveCoverPreset, deleteCoverPreset,
     themes,
   ]);
 
