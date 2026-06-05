@@ -12,7 +12,7 @@ export const parseSeriesOrder = (value: unknown): number | null => {
 export const getSeriesInfoFromScript = (script: Partial<BaseScriptApi> | null | undefined): { seriesName: string; seriesOrder: number | null } => {
   try {
     const meta = customMetadataEntriesToMeta(script?.customMetadata || []);
-    const seriesName = normalizeSeriesName(meta?.series || meta?.seriesname);
+    const seriesName = normalizeSeriesName(script?.series?.name || meta?.series || meta?.seriesname);
     const seriesOrder = parseSeriesOrder(script?.seriesOrder ?? meta?.seriesorder ?? meta?.episode);
     return { seriesName, seriesOrder };
   } catch {

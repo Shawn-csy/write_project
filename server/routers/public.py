@@ -313,7 +313,8 @@ def read_public_script(script_id: str, db: Session = Depends(get_db)):
         orm.joinedload(models.Script.owner),
         orm.joinedload(models.Script.tags),
         orm.joinedload(models.Script.organization),
-        orm.joinedload(models.Script.persona)
+        orm.joinedload(models.Script.persona),
+        orm.joinedload(models.Script.series),
     ).filter(models.Script.id == script_id).first()
     if not script:
         raise HTTPException(status_code=404, detail="Script not found")
