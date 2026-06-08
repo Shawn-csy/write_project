@@ -12,7 +12,7 @@ import migration
 import models
 from dependencies import get_current_user_id, get_db
 from rate_limit import RATE_LIMIT_ENABLED, limiter
-from routers import analysis, scripts, users, orgs, personas, tags, themes, admin, public, seo, media, series
+from routers import analysis, scripts, users, orgs, personas, tags, themes, admin, public, seo, media, series, studio
 from routers import public_bundle, export
 from services.seo import inject_seo_for_route
 
@@ -167,6 +167,7 @@ def create_app() -> FastAPI:
     app.include_router(seo.router)
     app.include_router(media.router)
     app.include_router(series.router)
+    app.include_router(studio.router)
     app.include_router(export.router)
 
     @app.get("/api/health/auth")

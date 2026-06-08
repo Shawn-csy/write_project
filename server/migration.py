@@ -94,6 +94,90 @@ def _backfill_content_fields(conn):
         print(f"Migrating: backfilled structured content fields for {migrated} scripts")
 
 
+AUDIENCE_TAG_GROUP = {"全年齡", "青少年", "成人", "親子", "一般向", "男性向", "女性向", "兒童"}
+RATING_TAG_GROUP = {"普遍級", "保護級", "輔導級", "限制級", "G", "PG", "PG-13", "R", "NC-17"}
+
+
+def _metadata_entries_to_map(entries):
+    if isinstance(entries, str):
+        try:
+            entries = json.loads(entries)
+        except Exception:
+            entries = []
+    if not isinstance(entries, list):
+        return {}
+    out = {}
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        key = str(entry.get("key") or "").strip()
+        if key:
+            out["".join(key.lower().split())] = str(entry.get("value") or "")
+    return out
+
+
+def _backfill_publish_state(conn):
+    rows = conn.execute(text(
+        'SELECT id, "customMetadata", "personaId", title, status, "isPublic", '
+        '"licenseCommercial", "licenseDerivative", "licenseNotify" '
+        'FROM scripts WHERE COALESCE(type, \'script\') != \'folder\''
+    )).fetchall()
+    if not rows:
+        return
+
+    persona_rows = conn.execute(text(
+        'SELECT id, "defaultLicenseCommercial", "defaultLicenseDerivative", "defaultLicenseNotify" FROM personas'
+    )).fetchall()
+    persona_license_by_id = {
+        row[0]: (row[1] or "", row[2] or "", row[3] or "")
+        for row in persona_rows
+    }
+
+    tag_rows = conn.execute(text(
+        'SELECT st."scriptId", t.name FROM script_tags st JOIN tags t ON t.id = st."tagId"'
+    )).fetchall()
+    tags_by_script_id = {}
+    for script_id, tag_name in tag_rows:
+        tags_by_script_id.setdefault(script_id, set()).add(str(tag_name or ""))
+
+    migrated = 0
+    for row in rows:
+        script_id = row[0]
+        meta = _metadata_entries_to_map(row[1])
+        persona_id = row[2]
+        has_identity = bool(persona_id or str(meta.get("publishas") or "").startswith("persona:"))
+        series_name = meta.get("series") or meta.get("seriesname") or ""
+        tag_names = tags_by_script_id.get(script_id, set())
+        persona_license = persona_license_by_id.get(persona_id, ("", "", ""))
+        has_script_license = bool(row[6] and row[7] and row[8])
+        has_persona_license = bool(persona_license[0] and persona_license[1] and persona_license[2])
+        if row[4] == "Public" or bool(row[5]):
+            readiness = "published"
+        elif (
+            str(row[3] or "").strip()
+            and has_identity
+            and tag_names.intersection(AUDIENCE_TAG_GROUP)
+            and tag_names.intersection(RATING_TAG_GROUP)
+            and (has_script_license or has_persona_license)
+        ):
+            readiness = "ready"
+        else:
+            readiness = "needs_work"
+        conn.execute(text(
+            'UPDATE scripts SET "hasPublishIdentity" = :identity, '
+            '"metadataSeriesName" = :series_name, "publishReadiness" = :readiness '
+            'WHERE id = :id'
+        ), {
+            "identity": has_identity,
+            "series_name": series_name,
+            "readiness": readiness,
+            "id": script_id,
+        })
+        migrated += 1
+    if migrated:
+        print(f"Migrating: backfilled publish state for {migrated} scripts")
+
+
 def _run_postgres_migrations():
     """Migrate PostgreSQL schema changes (ALTER COLUMN type changes, etc.)."""
     timestamp_columns = [
@@ -330,7 +414,34 @@ def _run_postgres_migrations():
             if not result:
                 print(f"Migrating: Adding '{col}' column to {table} (PostgreSQL)")
                 conn.execute(text(f'ALTER TABLE "{table}" ADD COLUMN "{col}" {col_type}'))
+
+        publish_state_columns = [
+            ("hasPublishIdentity", "BOOLEAN DEFAULT FALSE"),
+            ("metadataSeriesName", "TEXT DEFAULT ''"),
+            ("publishReadiness", "TEXT DEFAULT 'needs_work'"),
+        ]
+        for col, col_type in publish_state_columns:
+            result = conn.execute(text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = 'scripts' AND column_name = :c"
+            ), {"c": col}).fetchone()
+            if not result:
+                print(f"Migrating: Adding '{col}' column to scripts (PostgreSQL)")
+                conn.execute(text(f'ALTER TABLE scripts ADD COLUMN "{col}" {col_type}'))
         _backfill_content_fields(conn)
+        _backfill_publish_state(conn)
+        conn.execute(text(
+            'CREATE INDEX IF NOT EXISTS ix_scripts_owner_sort_modified '
+            'ON scripts ("ownerId", "sortOrder", "lastModified" DESC)'
+        ))
+        conn.execute(text(
+            'CREATE INDEX IF NOT EXISTS ix_scripts_owner_modified '
+            'ON scripts ("ownerId", "lastModified" DESC)'
+        ))
+        conn.execute(text(
+            'CREATE INDEX IF NOT EXISTS ix_scripts_owner_readiness_modified '
+            'ON scripts ("ownerId", "publishReadiness", "lastModified" DESC)'
+        ))
 
         conn.commit()
 
@@ -424,6 +535,18 @@ def run_migrations():
             if 'licenseNotify' not in columns:
                 print("Migrating: Adding 'licenseNotify' column")
                 conn.execute(text("ALTER TABLE scripts ADD COLUMN licenseNotify TEXT DEFAULT ''"))
+
+            if 'hasPublishIdentity' not in columns:
+                print("Migrating: Adding 'hasPublishIdentity' column")
+                conn.execute(text("ALTER TABLE scripts ADD COLUMN hasPublishIdentity BOOLEAN DEFAULT 0"))
+
+            if 'metadataSeriesName' not in columns:
+                print("Migrating: Adding 'metadataSeriesName' column")
+                conn.execute(text("ALTER TABLE scripts ADD COLUMN metadataSeriesName TEXT DEFAULT ''"))
+
+            if 'publishReadiness' not in columns:
+                print("Migrating: Adding 'publishReadiness' column")
+                conn.execute(text("ALTER TABLE scripts ADD COLUMN publishReadiness TEXT DEFAULT 'needs_work'"))
 
             if 'customMetadata' not in columns:
                 print("Migrating: Adding 'customMetadata' column")
@@ -735,6 +858,19 @@ def run_migrations():
             _backfill_crop_refs(conn, "series", "coverUrl", "coverCrop")
             _backfill_crop_refs(conn, "scripts", "coverUrl", "coverCrop")
             _backfill_content_fields(conn)
+            _backfill_publish_state(conn)
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS ix_scripts_owner_sort_modified "
+                "ON scripts (ownerId, sortOrder, lastModified DESC)"
+            ))
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS ix_scripts_owner_modified "
+                "ON scripts (ownerId, lastModified DESC)"
+            ))
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS ix_scripts_owner_readiness_modified "
+                "ON scripts (ownerId, publishReadiness, lastModified DESC)"
+            ))
 
             conn.commit()
     except Exception as e:

@@ -50,6 +50,7 @@ from .scripts import (
 )
 from .series import create_series, delete_series, get_series, get_series_by_id, update_series
 from .tags import add_tag_to_script, create_tag, delete_tag, get_tags, remove_tag_from_script
+from .studio import get_studio_bootstrap, get_studio_publish_context, list_studio_scripts
 from .themes import (
     SYSTEM_DEFAULT_THEME_ID,
     SYSTEM_DEFAULT_THEME_NAME,
@@ -116,6 +117,9 @@ __all__ = [
     "get_script",
     "get_scripts",
     "get_studio_script_summaries",
+    "get_studio_bootstrap",
+    "get_studio_publish_context",
+    "list_studio_scripts",
     "get_script_like_status",
     "increment_script_view",
     "reorder_scripts",

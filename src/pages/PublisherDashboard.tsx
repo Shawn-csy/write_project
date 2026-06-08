@@ -151,6 +151,12 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 navigate={s.navigate}
                 formatDate={s.formatDate}
                 onContinueEdit={(script) => s.navigate(`/edit/${script.id}?mode=edit`)}
+                serverCounts={s.scriptCounts}
+                externalPagination
+                hasMore={typeof s.scriptsNextOffset === "number"}
+                isLoadingMore={s.isLoadingMoreWorks}
+                onLoadMore={s.handleLoadMoreWorks}
+                onQueryChange={s.handleWorksQueryChange}
               />
             </TabsContent>
 

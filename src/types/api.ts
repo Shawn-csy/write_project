@@ -45,6 +45,7 @@ export interface BaseScriptApi {
   coverDesign?: CoverDesign | null;
   hasPublishIdentity?: boolean;
   metadataSeriesName?: string;
+  publishReadiness?: "needs_work" | "ready" | "published";
   markerThemeId?: string;
   markerTheme?: { configs?: MarkerConfig[] };
   customMetadata?: Array<{ key?: string; value?: string; type?: string }>;
@@ -68,6 +69,31 @@ export interface BaseScriptApi {
   owner?: ScriptOwnerLike;
   author?: string | ScriptOwnerLike;
   [key: string]: unknown;
+}
+
+export interface StudioScriptCounts {
+  all: number;
+  needs_work: number;
+  ready: number;
+  published: number;
+}
+
+export interface StudioScriptsResponse {
+  items: BaseScriptApi[];
+  total: number;
+  limit: number;
+  offset: number;
+  nextOffset?: number | null;
+  counts: StudioScriptCounts;
+}
+
+export interface StudioBootstrapResponse {
+  scripts: StudioScriptsResponse;
+  personas: PersonaLike[];
+  organizations: OrgData[];
+  tags: TagLike[];
+  series: SeriesLike[];
+  myInvites: OrganizationInvite[];
 }
 
 export interface ScriptCreatePayload {

@@ -9,6 +9,7 @@ import models
 import schemas
 from media_crop import normalize_media_with_crop
 from .common import touch_parent_folders
+from .publish_state import refresh_script_publish_state
 from .scripts_query import get_script
 
 VALID_COMMERCIAL = {"allow", "disallow"}
@@ -159,6 +160,8 @@ def create_script(db: Session, script: schemas.ScriptCreate, ownerId: str):
     db_script.sortOrder = max_order.sortOrder + 1000.0 if max_order else 0.0
 
     db.add(db_script)
+    db.flush()
+    refresh_script_publish_state(db, db_script)
     db.commit()
     db.refresh(db_script)
 
@@ -227,6 +230,7 @@ def update_script(db: Session, script_id: str, script: schemas.ScriptUpdate, own
             setattr(db_script, key, value)
 
     db_script.lastModified = int(time.time() * 1000)
+    refresh_script_publish_state(db, db_script)
     touch_parent_folders(db, db_script.folder, ownerId, db_script.lastModified)
     db.commit()
     return db_script
