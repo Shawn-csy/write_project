@@ -8,6 +8,7 @@ import type { MarkerConfig } from "../../types/script";
 import type { CoverDesign } from "../../types/coverDesign";
 import { buildV2TableExportFromRenderedHtml } from "../../lib/v2/exportAdapter";
 import { useScriptDownloadOptions } from "../shared/useScriptDownloadOptions";
+import { buildExportMetadata } from "../../lib/exportMetadata";
 
 const PUBLIC_READER_GUIDE_STORAGE_KEY = "public-reader-guide-seen-v1";
 const PUBLIC_READER_TOC_OPEN_STORAGE_KEY = "public-reader-toc-open-v1";
@@ -177,6 +178,7 @@ export function usePublicReaderLayoutState({ script, isLoading, viewerProps, scr
       </section>
     `.trim();
   }, [escapeHtml, title, synopsis, coverUrl, organization?.name, author?.displayName, contactLines, licenseSummary]);
+  const exportMetadata = useMemo(() => buildExportMetadata(script, title || "Script"), [script, title]);
 
   const [exportRenderedHtml, setExportRenderedHtml] = useState("");
   const [exportRawHtml, setExportRawHtml] = useState("");
@@ -204,6 +206,8 @@ export function usePublicReaderLayoutState({ script, isLoading, viewerProps, scr
     markerConfigs: exportMarkerConfigs as MarkerConfig[],
     getRenderedHtml: () => exportRenderedHtml || exportRawHtml || renderedHtml || "",
     pdfHeaderHtml,
+    exportMetadata,
+    pdfCoverUrl: coverUrl,
     disablePdf: !rawScript && !title,
     disableDocx: !rawScript,
     disableXlsx: !rawScript,

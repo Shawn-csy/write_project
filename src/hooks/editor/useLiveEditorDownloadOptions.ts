@@ -1,4 +1,5 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
+import { buildExportMetadata, type ExportMetadataSource } from "../../lib/exportMetadata";
 import { buildV2TableExport, buildV2TableExportFromRenderedHtml } from "../../lib/v2/exportAdapter";
 import type { OrchestratedDocument } from "../../lib/v2/types";
 import type { MarkerConfig } from "../../types/script";
@@ -20,6 +21,7 @@ interface UseLiveEditorDownloadOptionsParams {
   markerConfigs?: MarkerConfig[];
   orchestratedDoc?: OrchestratedDocument | null;
   isV2RendererEnabled?: boolean;
+  metadataSource?: ExportMetadataSource | null;
 }
 
 export function useLiveEditorDownloadOptions({
@@ -31,6 +33,7 @@ export function useLiveEditorDownloadOptions({
   markerConfigs = [],
   orchestratedDoc,
   isV2RendererEnabled = false,
+  metadataSource,
 }: UseLiveEditorDownloadOptionsParams) {
   const getRenderedHtml = useCallback(async () => {
     let currentHtml = renderedHtmlRef.current.processed || renderedHtmlRef.current.raw;
@@ -48,6 +51,11 @@ export function useLiveEditorDownloadOptions({
     [orchestratedDoc, markerConfigs]
   );
 
+  const exportMetadata = useMemo(
+    () => buildExportMetadata(metadataSource || { title }, title),
+    [metadataSource, title]
+  );
+
   return useScriptDownloadOptions({
     t,
     title,
@@ -58,6 +66,8 @@ export function useLiveEditorDownloadOptions({
     enableGoogleDocsTable: isV2RendererEnabled && !!orchestratedDoc,
     fallbackToClassicWhenTableMissing: true,
     showGoogleDocsTableOption: true,
+    exportMetadata,
+    pdfCoverUrl: metadataSource?.coverUrl,
     resolveTableExport,
   });
 }

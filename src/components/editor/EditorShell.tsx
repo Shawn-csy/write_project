@@ -17,6 +17,7 @@ import { ScriptViewProvider } from "../../contexts/ScriptViewContext";
 import { useTextLocator } from "../../hooks/useTextLocator";
 import { buildV2TableExportFromRenderedHtml } from "../../lib/v2/exportAdapter";
 import { useScriptDownloadOptions } from "../../hooks/shared/useScriptDownloadOptions";
+import { buildExportMetadata } from "../../lib/exportMetadata";
 
 import type { NavProps } from "../../types/nav";
 import type { DownloadOption } from "../../types/routes";
@@ -80,7 +81,7 @@ export function EditorShell() {
 
   useInitialScroll(sceneList, initialParamsRef, setCurrentSceneId, setScrollSceneId);
 
-  const { handleExportPdf, handleShareUrl, shareCopied } = useReaderScriptActions({
+  const { handleShareUrl, shareCopied } = useReaderScriptActions({
     accentConfig,
     processedScriptHtml: scriptManager.processedScriptHtml,
     rawScriptHtml: scriptManager.rawScriptHtml,
@@ -189,6 +190,10 @@ export function EditorShell() {
   const exportTitle = titleName || activeCloudScript?.title || "script";
   const exportContent = rawScript || "";
   const renderedExportHtml = scriptManager.processedScriptHtml || scriptManager.rawScriptHtml || "";
+  const exportMetadata = useMemo(
+    () => buildExportMetadata(activeCloudScript, exportTitle),
+    [activeCloudScript, exportTitle]
+  );
 
   const sharedReaderDownloadOptions: DownloadOption[] = useScriptDownloadOptions({
     t,
@@ -196,6 +201,8 @@ export function EditorShell() {
     content: exportContent,
     markerConfigs: effectiveMarkerConfigs as any,
     getRenderedHtml: () => renderedExportHtml,
+    exportMetadata,
+    pdfCoverUrl: activeCloudScript?.coverUrl,
     disablePdf: !exportContent && !scriptManager.titleHtml,
     disableDocx: !exportContent,
     disableXlsx: !exportContent,
@@ -207,14 +214,7 @@ export function EditorShell() {
     resolveTableExport: (html) => buildV2TableExportFromRenderedHtml(html),
   });
 
-  const readerDownloadOptions: DownloadOption[] = useMemo(
-    () => sharedReaderDownloadOptions.map((opt) => (
-      opt.id === "pdf"
-        ? { ...opt, onClick: () => handleExportPdf() }
-        : opt
-    )),
-    [sharedReaderDownloadOptions, handleExportPdf]
-  );
+  const readerDownloadOptions: DownloadOption[] = sharedReaderDownloadOptions;
 
   const isPublicReader = location.pathname.startsWith("/read/");
   const isPublicGallery = location.pathname === "/";

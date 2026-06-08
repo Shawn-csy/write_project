@@ -121,6 +121,7 @@ interface TableV2ExportPayload {
     };
   };
   docTitle?: string;
+  metadataRows?: string[];
 }
 
 export const exportTableV2ToGoogleDocs = async (
@@ -131,6 +132,7 @@ export const exportTableV2ToGoogleDocs = async (
     cellStyles,
     cellRuns,
     tableLayout,
+    metadataRows,
     googleAccessToken,
     folderId,
   }: TableV2ExportPayload & { googleAccessToken: string; folderId?: string }
@@ -146,6 +148,7 @@ export const exportTableV2ToGoogleDocs = async (
       cell_styles: Array.isArray(cellStyles) ? cellStyles : null,
       cell_runs: Array.isArray(cellRuns) ? cellRuns : null,
       table_layout: tableLayout && typeof tableLayout === "object" ? tableLayout : null,
+      metadata_rows: Array.isArray(metadataRows) ? metadataRows : null,
       google_access_token: googleAccessToken,
       folder_id: folderId || null,
     }),

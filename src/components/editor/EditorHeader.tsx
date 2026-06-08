@@ -19,6 +19,7 @@ interface DownloadOption {
   disabled?: boolean;
   icon?: React.ComponentType<{ className?: string }>;
   onClick?: (event?: React.MouseEvent) => void;
+  renderDialog?: () => React.ReactNode;
 }
 
 interface EditorScript {
@@ -304,6 +305,9 @@ export function EditorHeader({
             )}
           </DropdownMenuContent>
         </DropdownMenu>
+        {enabledDownloadOptions.map((opt) => (
+          <React.Fragment key={`${opt.id}-dialog`}>{opt.renderDialog?.()}</React.Fragment>
+        ))}
       </div>
     </div>
   );

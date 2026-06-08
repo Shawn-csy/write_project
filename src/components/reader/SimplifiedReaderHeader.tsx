@@ -24,6 +24,7 @@ interface DownloadOption {
   disabled?: boolean;
   hidden?: boolean;
   onClick?: (event: Event | React.MouseEvent) => void;
+  renderDialog?: () => React.ReactNode;
 }
 
 interface SceneItem {
@@ -234,6 +235,9 @@ export function SimplifiedReaderHeader({
             )}
           </DropdownMenuContent>
         </DropdownMenu>
+        {activeDownloadOptions.map((opt) => (
+          <React.Fragment key={`${opt.id}-dialog`}>{opt.renderDialog?.()}</React.Fragment>
+        ))}
         <ReaderAppearanceMenu open={appearanceOpen} onOpenChange={setAppearanceOpen} hideTrigger />
       </div>
     </header>
