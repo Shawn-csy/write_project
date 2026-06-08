@@ -15,6 +15,7 @@ import { WorkScriptListCard } from "./WorkScriptListCard";
 import { usePublisherWorksTabState } from "../../../hooks/publisher/usePublisherWorksTabState";
 import type { PublisherScriptItem } from "../../../hooks/publisher/usePublisherWorksTabState";
 import type { PersonaLike } from "../../../types/persona";
+import type { StudioScriptCounts } from "../../../types/api";
 
 interface PublisherWorksTabProps {
     isLoading: boolean;
@@ -24,6 +25,16 @@ interface PublisherWorksTabProps {
     navigate: (to: string) => void;
     formatDate: (value?: number) => string;
     onContinueEdit?: (script: PublisherScriptItem) => void;
+    serverCounts?: StudioScriptCounts | null;
+    externalPagination?: boolean;
+    hasMore?: boolean;
+    isLoadingMore?: boolean;
+    onLoadMore?: () => void;
+    onQueryChange?: (query: {
+        filter: "all" | "needs_work" | "ready" | "published";
+        q: string;
+        sort: "updated_desc" | "updated_asc" | "title_asc" | "views_desc";
+    }) => void;
 }
 
 const warningBadgeClass = "h-5 border-[color:var(--license-term-border)] bg-[color:var(--license-term-bg)] text-[10px] font-semibold text-[color:var(--license-term-fg)]";
@@ -35,9 +46,33 @@ const filterOptions = [
     { key: "published", label: "已公開" },
 ] as const;
 
-export function PublisherWorksTab({ isLoading, scripts, personas = [], setEditingScript, navigate, formatDate, onContinueEdit }: PublisherWorksTabProps): React.JSX.Element {
+export function PublisherWorksTab({
+    isLoading,
+    scripts,
+    personas = [],
+    setEditingScript,
+    navigate,
+    formatDate,
+    onContinueEdit,
+    serverCounts,
+    externalPagination = false,
+    hasMore,
+    isLoadingMore = false,
+    onLoadMore,
+    onQueryChange,
+}: PublisherWorksTabProps): React.JSX.Element {
     const { t } = useI18n();
-    const s = usePublisherWorksTabState({ scripts, personas, isLoading });
+    const s = usePublisherWorksTabState({
+        scripts,
+        personas,
+        isLoading,
+        serverCounts,
+        externalPagination,
+        externalHasMore: Boolean(hasMore),
+        externalIsLoadingMore: isLoadingMore,
+        onExternalLoadMore: onLoadMore,
+        onQueryChange,
+    });
 
     const sharedCardProps = {
         hasCover: s.hasCover,
@@ -204,9 +239,16 @@ export function PublisherWorksTab({ isLoading, scripts, personas = [], setEditin
                             ))}
                         </div>
                     )}
-                    {s.hasMore && (
+                    {(externalPagination ? hasMore : s.hasMore) && (
                         <div ref={s.loadMoreRef} className="pt-3 text-center">
-                            <Button variant="ghost" size="sm" onClick={s.loadMore} className="h-8 px-6 text-xs text-muted-foreground hover:text-foreground">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={externalPagination ? onLoadMore : s.loadMore}
+                                disabled={isLoadingMore}
+                                className="h-8 px-6 text-xs text-muted-foreground hover:text-foreground"
+                            >
+                                {isLoadingMore ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : null}
                                 {t("publisherWorksTab.loadMore")} ↓
                             </Button>
                         </div>

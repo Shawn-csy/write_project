@@ -155,6 +155,9 @@ class Script(Base):
     activityContent = Column(Text, nullable=True)
     activityWorkUrl = Column(String, nullable=True)
     activityDemoLinks = Column(Text, nullable=True)  # JSON string
+    hasPublishIdentity = Column(Boolean, default=False, index=True)
+    metadataSeriesName = Column(String, default="")
+    publishReadiness = Column(String, default="needs_work", index=True)
 
     tags = relationship("Tag", secondary="script_tags", back_populates="scripts")
     markerTheme = relationship("MarkerTheme", lazy="joined")

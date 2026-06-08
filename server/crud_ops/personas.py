@@ -8,6 +8,7 @@ import schemas
 from media_crop import normalize_media_with_crop
 from .common import _ensure_list
 from .organizations_query import ensure_persona_org_memberships, get_persona_org_ids, is_user_org_manager
+from .publish_state import refresh_persona_scripts_publish_state, refresh_script_publish_state
 
 
 def _sanitize_persona_org_ids(db: Session, owner_id: str, org_ids) -> list:
@@ -85,6 +86,7 @@ def update_persona(db: Session, persona_id: str, persona: schemas.PersonaCreate,
         ensure_persona_org_memberships(db, db_persona, new_org_ids)
 
     db_persona.updatedAt = int(time.time() * 1000)
+    refresh_persona_scripts_publish_state(db, db_persona.id, ownerId)
     db.commit()
     db.refresh(db_persona)
 
@@ -109,10 +111,13 @@ def get_user_personas(db: Session, ownerId: str):
 def delete_persona(db: Session, persona_id: str):
     persona = db.query(models.Persona).filter(models.Persona.id == persona_id).first()
     if persona:
+        scripts = db.query(models.Script).filter(models.Script.personaId == persona_id).all()
         db.query(models.PersonaOrganizationMembership).filter(
             models.PersonaOrganizationMembership.personaId == persona_id
         ).delete()
-        db.query(models.Script).filter(models.Script.personaId == persona_id).update({models.Script.personaId: None})
+        for script in scripts:
+            script.personaId = None
+            refresh_script_publish_state(db, script)
         db.delete(persona)
         db.commit()
         return True

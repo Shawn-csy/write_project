@@ -23,6 +23,16 @@ interface Props {
   scripts: PublisherScriptItem[];
   personas?: PersonaLike[];
   isLoading: boolean;
+  serverCounts?: { all: number; needs_work: number; ready: number; published: number } | null;
+  externalPagination?: boolean;
+  externalHasMore?: boolean;
+  externalIsLoadingMore?: boolean;
+  onExternalLoadMore?: () => void;
+  onQueryChange?: (query: {
+    filter: "all" | PublishReadinessStatus;
+    q: string;
+    sort: "updated_desc" | "updated_asc" | "title_asc" | "views_desc";
+  }) => void;
 }
 
 interface ScriptWorkIndexItem {
@@ -31,7 +41,17 @@ interface ScriptWorkIndexItem {
   searchText: string;
 }
 
-export function usePublisherWorksTabState({ scripts, personas = [], isLoading }: Props) {
+export function usePublisherWorksTabState({
+  scripts,
+  personas = [],
+  isLoading,
+  serverCounts = null,
+  externalPagination = false,
+  externalHasMore = false,
+  externalIsLoadingMore = false,
+  onExternalLoadMore,
+  onQueryChange,
+}: Props) {
   const [filter, setFilter] = React.useState<"all" | PublishReadinessStatus>("all");
   const [query, setQuery] = React.useState("");
   const [viewMode, setViewMode] = React.useState<"list" | "grid">("list");
@@ -200,13 +220,14 @@ export function usePublisherWorksTabState({ scripts, personas = [], isLoading }:
   const hasAnyScripts = (scripts || []).length > 0;
 
   const filteredScripts = React.useMemo(() => {
+    if (externalPagination) return scriptsWithReadiness.map(({ script }) => script);
     const needle = query.trim().toLowerCase();
     return scriptsWithReadiness.filter(({ script, readiness, searchText }) => {
       if (filter !== "all" && readiness.status !== filter) return false;
       if (!needle) return true;
       return searchText.includes(needle);
     }).map(({ script }) => script);
-  }, [filter, query, scriptsWithReadiness]);
+  }, [externalPagination, filter, query, scriptsWithReadiness]);
 
   const hasActiveFilters = filter !== "all" || query.trim().length > 0;
   const clearFilters = React.useCallback(() => {
@@ -215,6 +236,7 @@ export function usePublisherWorksTabState({ scripts, personas = [], isLoading }:
   }, []);
 
   const filteredStatusCounts = React.useMemo(() => {
+    if (serverCounts) return serverCounts;
     const counts = { all: 0, needs_work: 0, ready: 0, published: 0 };
     const needle = query.trim().toLowerCase();
     scriptsWithReadiness.forEach(({ readiness, searchText }) => {
@@ -223,7 +245,7 @@ export function usePublisherWorksTabState({ scripts, personas = [], isLoading }:
       counts[readiness.status] += 1;
     });
     return counts;
-  }, [query, scriptsWithReadiness]);
+  }, [query, scriptsWithReadiness, serverCounts]);
 
   const sortedScripts = React.useMemo(() => {
     const list = [...filteredScripts];
@@ -242,15 +264,15 @@ export function usePublisherWorksTabState({ scripts, personas = [], isLoading }:
     return list;
   }, [filteredScripts, sortKey]);
 
-  React.useEffect(() => { setVisibleCount(INITIAL_VISIBLE); }, [filter, query, sortKey, scripts]);
+  React.useEffect(() => { setVisibleCount(externalPagination ? Number.MAX_SAFE_INTEGER : INITIAL_VISIBLE); }, [externalPagination, filter, query, sortKey, scripts]);
   React.useEffect(() => { setFailedCoverById({}); }, [scripts]);
 
   const visibleScripts = React.useMemo(
-    () => sortedScripts.slice(0, visibleCount),
-    [sortedScripts, visibleCount]
+    () => externalPagination ? sortedScripts : sortedScripts.slice(0, visibleCount),
+    [externalPagination, sortedScripts, visibleCount]
   );
 
-  const hasMore = visibleCount < sortedScripts.length;
+  const hasMore = !externalPagination && visibleCount < sortedScripts.length;
   const loadMore = React.useCallback(() => {
     setVisibleCount((prev) => Math.min(prev + PREFETCH_STEP, sortedScripts.length));
   }, [sortedScripts.length]);
@@ -269,6 +291,26 @@ export function usePublisherWorksTabState({ scripts, personas = [], isLoading }:
     observer.observe(node);
     return () => observer.disconnect();
   }, [hasMore, isLoading, loadMore]);
+
+  React.useEffect(() => {
+    if (!externalPagination) return;
+    const node = loadMoreRef.current;
+    if (!node || !externalHasMore || isLoading || externalIsLoadingMore || !onExternalLoadMore) return;
+    if (typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) onExternalLoadMore();
+      },
+      { root: null, rootMargin: "520px 0px", threshold: 0.01 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [externalHasMore, externalIsLoadingMore, externalPagination, isLoading, onExternalLoadMore]);
+
+  React.useEffect(() => {
+    onQueryChange?.({ filter, q: query, sort: sortKey });
+  }, [filter, onQueryChange, query, sortKey]);
 
   const onCoverError = React.useCallback((id: string) => {
     setFailedCoverById((prev) => ({ ...prev, [id]: true }));

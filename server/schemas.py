@@ -240,6 +240,14 @@ class Series(SeriesBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class StudioSeriesSummary(BaseModel):
+    id: str
+    name: str = ""
+    summary: Optional[str] = ""
+    coverUrl: Optional[str] = ""
+    coverCrop: Optional[Dict[str, float]] = None
+
+
 # Script Schemas
 class ScriptBase(BaseModel):
     title: str
@@ -355,6 +363,9 @@ class Script(BaseModel):
     activityContent: Optional[str] = None
     activityWorkUrl: Optional[str] = None
     activityDemoLinks: Optional[str] = None  # JSON string
+    hasPublishIdentity: bool = False
+    metadataSeriesName: Optional[str] = ""
+    publishReadiness: Optional[str] = "needs_work"
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -397,6 +408,9 @@ class ScriptSummary(BaseModel):
     activityContent: Optional[str] = None
     activityWorkUrl: Optional[str] = None
     activityDemoLinks: Optional[str] = None  # JSON string
+    hasPublishIdentity: bool = False
+    metadataSeriesName: Optional[str] = ""
+    publishReadiness: Optional[str] = "needs_work"
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -435,8 +449,71 @@ class ScriptStudioSummary(BaseModel):
     synopsis: Optional[str] = None
     hasPublishIdentity: bool = False
     metadataSeriesName: Optional[str] = ""
+    publishReadiness: Optional[str] = "needs_work"
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class StudioScriptSummary(BaseModel):
+    id: str
+    ownerId: str
+    title: str
+    contentLength: Optional[int] = 0
+    createdAt: int
+    lastModified: int
+    author: Optional[str] = None
+    draftDate: Optional[str] = None
+    isPublic: int
+    status: Optional[str] = "Private"
+    coverUrl: Optional[str] = None
+    coverCrop: Optional[Dict[str, float]] = None
+    coverDesign: Optional[Dict[str, Any]] = None
+    coverIsAiGenerated: bool = False
+    views: int = 0
+    likes: int = 0
+    type: str
+    folder: str
+    sortOrder: float
+    markerThemeId: Optional[str] = None
+    tags: List[Tag] = []
+    disableCopy: bool = False
+    licenseCommercial: Optional[str] = ""
+    licenseDerivative: Optional[str] = ""
+    licenseNotify: Optional[str] = ""
+    personaId: Optional[str] = None
+    organizationId: Optional[str] = None
+    seriesId: Optional[str] = None
+    seriesOrder: Optional[int] = None
+    series: Optional[StudioSeriesSummary] = None
+    synopsis: Optional[str] = None
+    hasPublishIdentity: bool = False
+    metadataSeriesName: str = ""
+    publishReadiness: Optional[str] = "needs_work"
+
+
+class StudioScriptCounts(BaseModel):
+    all: int = 0
+    needs_work: int = 0
+    ready: int = 0
+    published: int = 0
+
+
+class StudioScriptsResponse(BaseModel):
+    items: List[StudioScriptSummary] = []
+    total: int = 0
+    limit: int = 24
+    offset: int = 0
+    nextOffset: Optional[int] = None
+    counts: StudioScriptCounts = StudioScriptCounts()
+
+
+class StudioBootstrapResponse(BaseModel):
+    scripts: StudioScriptsResponse
+    personas: List[Persona] = []
+    organizations: List[Organization] = []
+    tags: List[Tag] = []
+    series: List[Series] = []
+    myInvites: List[OrganizationInvite] = []
 
 class ScriptAdminMetadataUpdate(BaseModel):
     title: Optional[str] = None
