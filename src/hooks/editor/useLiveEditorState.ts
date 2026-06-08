@@ -26,6 +26,20 @@ interface LiveEditorScriptData {
   title?: string;
   content?: string;
   lastModified?: string | number | Date;
+  author?: string;
+  draftDate?: string;
+  synopsis?: string;
+  customMetadata?: unknown[];
+  tags?: Array<string | { name?: string }>;
+  organization?: { name?: string; displayName?: string } | null;
+  persona?: { displayName?: string; name?: string; defaultLicenseCommercial?: string; defaultLicenseDerivative?: string; defaultLicenseNotify?: string } | null;
+  owner?: { displayName?: string; name?: string } | null;
+  series?: { name?: string } | null;
+  seriesOrder?: string | number | null;
+  licenseCommercial?: string;
+  licenseDerivative?: string;
+  licenseNotify?: string;
+  coverUrl?: string | null;
 }
 
 interface Props {
@@ -220,6 +234,7 @@ export function useLiveEditorState({
     t, title, content, renderedHtmlRef, ensureRenderedHtml, markerConfigs: activeMarkerConfigs as any,
     orchestratedDoc,
     isV2RendererEnabled: !!useV2Renderer,
+    metadataSource: { ...(initialData || {}), title },
   });
 
   const { handleLocateText, handlePreviewLineClick } = usePreviewLineNavigation({

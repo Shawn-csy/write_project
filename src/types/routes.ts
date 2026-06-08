@@ -10,6 +10,7 @@ export interface DownloadOption {
   onClick?: () => void | Promise<void>;
   disabled?: boolean;
   hidden?: boolean;
+  renderDialog?: () => React.ReactNode;
 }
 
 /** Props shared by AppRouter → WorkspaceRoutes render function */

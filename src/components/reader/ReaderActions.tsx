@@ -115,6 +115,9 @@ export function ReaderActions({
                     ) : null}
                 </DropdownMenuContent>
             </DropdownMenu>
+            {enabledDownloadOptions.map((opt) => (
+                <React.Fragment key={`${opt.id}-dialog`}>{opt.renderDialog?.()}</React.Fragment>
+            ))}
         </div>
     );
 }

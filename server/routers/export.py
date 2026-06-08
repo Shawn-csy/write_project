@@ -541,6 +541,7 @@ def _create_google_doc_table(
     cell_styles: Optional[List[List[Optional[dict]]]],
     cell_runs: Optional[List[List[List[dict]]]],
     table_layout: Optional[dict],
+    metadata_rows: Optional[List[str]],
     google_access_token: str,
     folder_id: Optional[str],
 ) -> dict:
@@ -563,12 +564,23 @@ def _create_google_doc_table(
     n_cols = len(columns)
     n_data_rows = len(rows)
     total_rows = 1 + n_data_rows  # header + data
+    clean_metadata_rows = [str(row or "").strip() for row in (metadata_rows or []) if str(row or "").strip()]
+    table_location_index = 1
+    if clean_metadata_rows:
+        metadata_text = "\n".join(clean_metadata_rows) + "\n\n"
+        docs_service.documents().batchUpdate(
+            documentId=document_id,
+            body={"requests": [
+                {"insertText": {"location": {"index": 1}, "text": metadata_text}}
+            ]},
+        ).execute()
+        table_location_index = 1 + len(metadata_text)
 
     # Step 1: insert table at index 1
     docs_service.documents().batchUpdate(
         documentId=document_id,
         body={"requests": [
-            {"insertTable": {"rows": total_rows, "columns": n_cols, "location": {"index": 1}}}
+            {"insertTable": {"rows": total_rows, "columns": n_cols, "location": {"index": table_location_index}}}
         ]},
     ).execute()
 
@@ -743,6 +755,7 @@ class GoogleDocsTableV2Request(BaseModel):
     cell_styles: Optional[List[List[Optional[dict]]]] = None
     cell_runs: Optional[List[List[List[dict]]]] = None
     table_layout: Optional[dict] = None
+    metadata_rows: Optional[List[str]] = None
 
 
 @router.post("/google-docs/v2")
@@ -758,6 +771,7 @@ async def export_google_docs_table_v2(
             cell_styles=req.cell_styles,
             cell_runs=req.cell_runs,
             table_layout=req.table_layout,
+            metadata_rows=req.metadata_rows,
             google_access_token=req.google_access_token,
             folder_id=req.folder_id,
         )
