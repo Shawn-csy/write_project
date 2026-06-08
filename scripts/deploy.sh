@@ -132,6 +132,8 @@ start_postgres_for_migration() {
 
 CURRENT_HASH="$(git -C "$ROOT_DIR" rev-parse HEAD 2>/dev/null || echo "unknown")"
 LAST_HASH="$(cat "$DEPLOY_HASH_FILE" 2>/dev/null || echo "")"
+DEPLOY_TAG="${CURRENT_HASH:0:8}"
+PREV_HASH_FILE="${ROOT_DIR}/.deploy-hash.prev"
 
 if [ "$FORCE_DEPLOY" != "1" ] && [ "$CURRENT_HASH" != "unknown" ] && [ "$CURRENT_HASH" = "$LAST_HASH" ]; then
   echo "[deploy] no changes since last deploy (${CURRENT_HASH:0:8}) — skipping."
@@ -198,8 +200,31 @@ fi
 echo "[deploy] stopping existing containers..."
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" down
 
-echo "[deploy] building and starting containers..."
+# Save previous deploy state for rollback
+if [ -n "$LAST_HASH" ]; then
+  echo "$LAST_HASH" > "$PREV_HASH_FILE"
+fi
+if [ -d "${ROOT_DIR}/dist" ]; then
+  echo "[deploy] backing up dist for rollback..."
+  rm -rf "${ROOT_DIR}/dist.rollback"
+  cp -a "${ROOT_DIR}/dist" "${ROOT_DIR}/dist.rollback"
+fi
+
+echo "[deploy] building and starting containers (tag: ${DEPLOY_TAG})..."
+export DEPLOY_TAG
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up --build -d
+
+# Also tag as 'latest' for convenience
+if docker image inspect "write_project-backend:${DEPLOY_TAG}" >/dev/null 2>&1; then
+  docker tag "write_project-backend:${DEPLOY_TAG}" "write_project-backend:latest"
+fi
+
+# Prune backend images older than the last 3 versions
+backend_images=$(docker images write_project-backend --format "{{.Tag}}" | grep -v "latest" | sort -r | tail -n +4)
+if [ -n "$backend_images" ]; then
+  echo "[deploy] pruning old backend images: $(echo $backend_images | tr '\n' ' ')"
+  echo "$backend_images" | xargs -I{} docker rmi "write_project-backend:{}" 2>/dev/null || true
+fi
 
 echo "[deploy] waiting for backend to be ready..."
 BACKEND_CID="$(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps -q write_project-backend 2>/dev/null || true)"
@@ -235,6 +260,7 @@ docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
 if [ "$CURRENT_HASH" != "unknown" ]; then
   echo "$CURRENT_HASH" > "$DEPLOY_HASH_FILE"
   echo "[deploy] saved deploy hash: ${CURRENT_HASH:0:8}"
+  echo "[deploy] rollback available: bash scripts/rollback.sh"
 fi
 
 echo "[deploy] done"
