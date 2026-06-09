@@ -51,13 +51,26 @@ if [ "$ROLLBACK_TAG" = "$CURRENT_TAG" ]; then
   exit 1
 fi
 
-# Verify image exists
+# Verify backend image exists
 if ! docker image inspect "write_project-backend:${ROLLBACK_TAG}" >/dev/null 2>&1; then
   echo "ERROR: image write_project-backend:${ROLLBACK_TAG} not found."
   echo ""
   echo "Available backend images:"
   docker images write_project-backend --format "  {{.Tag}}\t{{.CreatedAt}}" 2>/dev/null || echo "  (none found)"
   exit 1
+fi
+
+# Determine which public image to use for rollback
+# Prefer the matching tag; fall back to 'latest' so the site stays up.
+PUBLIC_ROLLBACK_TAG=""
+if docker image inspect "write_project-public:${ROLLBACK_TAG}" >/dev/null 2>&1; then
+  PUBLIC_ROLLBACK_TAG="$ROLLBACK_TAG"
+  echo "[rollback] public image found for tag: ${ROLLBACK_TAG}"
+elif docker image inspect "write_project-public:latest" >/dev/null 2>&1; then
+  PUBLIC_ROLLBACK_TAG="latest"
+  echo "WARN: write_project-public:${ROLLBACK_TAG} not found — using write_project-public:latest"
+else
+  echo "WARN: no write_project-public image found — public SSR routes will be unavailable"
 fi
 
 if [ ! -f "$ENV_FILE" ]; then
@@ -104,6 +117,15 @@ fi
 echo "[rollback] starting backend with image write_project-backend:${ROLLBACK_TAG}..."
 DEPLOY_TAG="$ROLLBACK_TAG" docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" \
   up -d --no-build --no-deps write_project-backend
+
+# Start public Next.js app (must come before nginx which depends on it)
+if [ -n "$PUBLIC_ROLLBACK_TAG" ]; then
+  echo "[rollback] starting public app with image write_project-public:${PUBLIC_ROLLBACK_TAG}..."
+  DEPLOY_TAG="$PUBLIC_ROLLBACK_TAG" docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" \
+    up -d --no-build --no-deps write_project-public
+else
+  echo "WARN: skipping write_project-public — no image available"
+fi
 
 # Start frontend nginx (no build, serves restored dist)
 echo "[rollback] starting frontend..."
