@@ -7,8 +7,8 @@
  */
 
 import { apiFetch } from "./api";
-import { normalizeMarkerConfigsSchema, getDefaultMarkerRules } from "@script-engine";
-import type { MarkerConfig } from "@script-engine";
+import { normalizeMarkerConfigsSchema, getDefaultMarkerRules } from "@write/script-engine";
+import type { MarkerConfig } from "@write/script-engine";
 import type { PublicScript } from "./types";
 
 type ScriptWithTheme = PublicScript & {

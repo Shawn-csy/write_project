@@ -19,9 +19,7 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"],
-      "@script-engine": ["../../packages/script-engine/src/index.ts"],
-      "@script-engine/*": ["../../packages/script-engine/src/*"]
+      "@/*": ["./*"]
     }
   },
   "include": [

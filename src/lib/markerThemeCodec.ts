@@ -1,5 +1,5 @@
 /**
- * markerThemeCodec — re-exports canonical normalize fns from @script-engine.
+ * markerThemeCodec — re-exports canonical normalize fns from @write/script-engine.
  * safeParseThemeConfigsText remains here as it depends on validateMarkerConfigs (Vite-only).
  */
 
@@ -9,9 +9,9 @@ import { validateMarkerConfigs } from './markerConfigValidation';
 export {
   normalizeThemeConfigs,
   normalizeMarkerConfigsSchema,
-} from "@script-engine/marker-theme/normalize";
+} from "@write/script-engine";
 
-import { normalizeMarkerConfigsSchema } from "@script-engine/marker-theme/normalize";
+import { normalizeMarkerConfigsSchema } from "@write/script-engine";
 
 export const serializeThemeConfigs = (configs: unknown) => {
   const normalized = normalizeMarkerConfigsSchema(configs);

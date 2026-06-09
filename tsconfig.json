@@ -19,9 +19,7 @@
     /* 路徑 */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@script-engine": ["./packages/script-engine/src/index.ts"],
-      "@script-engine/*": ["./packages/script-engine/src/*"]
+      "@/*": ["./src/*"]
     },
 
     /* 輸出：Vite 處理，tsc 只做型別檢查 */
