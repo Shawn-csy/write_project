@@ -12,6 +12,7 @@
 - `docs/product/data-flows.md`：公開頁/工作室/後台的主要資料流
 - `docs/product/marker-config-guide.md`：標記規則與主題設定
 - `docs/product/script-import-pipeline.md`：匯入與解析流程
+- `docs/public-reader-parity.md`：Next public reader 替換 Vite public reader 的長期架構與 parity checklist
 
 ## 工程與操作
 - `docs/engineering/operations.md`：開發與部署操作手冊
