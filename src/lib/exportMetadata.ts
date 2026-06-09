@@ -136,7 +136,7 @@ export const buildExportMetadata = (source: ExportMetadataSource | null | undefi
   ].filter(Boolean) as ExportMetadataField[];
   const rows = fields
     .filter((field) => field.key !== "title" && field.key !== "synopsis")
-    .map((field) => `${field.label}：${field.value}`);
+    .map((field) => field.key === "license" ? field.value : `${field.label}：${field.value}`);
 
   return {
     title: normalize(source?.title) || fallbackTitle || "Script",
@@ -158,7 +158,7 @@ export const filterExportMetadata = (
     fields,
     rows: fields
       .filter((field) => field.key !== "title" && field.key !== "synopsis")
-      .map((field) => `${field.label}：${field.value}`),
+      .map((field) => field.key === "license" ? field.value : `${field.label}：${field.value}`),
   };
 };
 
