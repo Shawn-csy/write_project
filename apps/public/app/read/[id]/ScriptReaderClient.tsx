@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { PublicScript } from "@/lib/types";
-import type { AstNode, TocEntry, MarkerConfig } from "@script-engine";
-import { extractToc } from "@script-engine";
+import type { AstNode, TocEntry, MarkerConfig } from "@write/script-engine";
+import { extractToc } from "@write/script-engine";
 import { ScriptContentRenderer } from "./ScriptContentRenderer";
 
 // Persistent visitor ID for anonymous like tracking (mirrors Vite getVisitorId() — same key)

@@ -10,13 +10,21 @@ import { normalizeMarkerConfigsSchema } from "../marker-theme/normalize";
 import { extractToc } from "../document/toc";
 import type { AstNode, TitleEntry, ScriptDocument } from "../document/astTypes";
 
-const applyLineOffset = (node: Record<string, unknown>, offset: number): void => {
+const applyLineOffset = (node: Record<string, unknown>, offset: number, visited = new Set<unknown>()): void => {
   if (!node || typeof node !== "object") return;
+  if (visited.has(node)) return;
+  visited.add(node);
   if (Number.isFinite(node.lineStart)) node.lineStart = (node.lineStart as number) + offset;
   if (Number.isFinite(node.lineEnd)) node.lineEnd = (node.lineEnd as number) + offset;
   if (Number.isFinite(node.endLine)) node.endLine = (node.endLine as number) + offset;
   if (Array.isArray(node.children)) {
-    node.children.forEach((child) => applyLineOffset(child as Record<string, unknown>, offset));
+    node.children.forEach((child) => applyLineOffset(child as Record<string, unknown>, offset, visited));
+  }
+  if (node.startNode && typeof node.startNode === "object") {
+    applyLineOffset(node.startNode as Record<string, unknown>, offset, visited);
+  }
+  if (node.endNode && typeof node.endNode === "object") {
+    applyLineOffset(node.endNode as Record<string, unknown>, offset, visited);
   }
 };
 

@@ -3,9 +3,9 @@ import { notFound } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import type { PublicScript } from "@/lib/types";
 import { ScriptReaderClient } from "./ScriptReaderClient";
-import { parseScreenplay } from "@script-engine";
+import { parseScreenplay } from "@write/script-engine";
 import { resolveMarkerConfigs } from "@/lib/markerThemeResolver";
-import type { MarkerConfig, AstNode } from "@script-engine";
+import type { MarkerConfig, AstNode } from "@write/script-engine";
 
 // ISR: revalidate daily as fallback; on-demand revalidation handles real-time updates
 export const revalidate = 86400;

@@ -1,10 +1,10 @@
 /**
- * screenplayAST — thin facade over @script-engine/parser/parseScreenplay.
+ * screenplayAST — thin facade over @write/script-engine.
  * Public API is identical to the previous implementation.
  * All parser logic lives in packages/script-engine.
  */
 
-import { parseScreenplay as _parseScreenplay } from "@script-engine/parser/parseScreenplay";
+import { parseScreenplay as _parseScreenplay } from "@write/script-engine";
 
 export const parseScreenplay = (text = "", markerConfigs?: unknown) => {
   const doc = _parseScreenplay(text, markerConfigs);

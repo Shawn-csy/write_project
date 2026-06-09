@@ -7,8 +7,8 @@
  */
 
 import { createContext, useContext } from "react";
-import type { AstNode, MarkerConfig, InlineToken } from "@script-engine";
-import { parseInline } from "@script-engine";
+import type { AstNode, MarkerConfig, InlineToken } from "@write/script-engine";
+import { parseInline } from "@write/script-engine";
 
 // ─── inline render context ────────────────────────────────────────────────────
 
