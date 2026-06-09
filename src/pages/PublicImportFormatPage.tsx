@@ -6,9 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button";
 import { useI18n } from "../contexts/I18nContext";
 import { DEFAULT_MARKER_RULES, DEFAULT_MARKER_RULES_NAME } from "../constants/defaultMarkerRules";
+import { toRenderBlocks, normalizeMarkerConfigsSchema } from "@write/script-engine";
+import type { MarkerConfig, RenderBlock } from "@write/script-engine";
 import { parseScreenplay } from "../lib/screenplayAST";
-import { ScriptRenderer } from "../components/renderer/ScriptRenderer";
-import type { MarkerConfigLike } from "../types/renderer";
+import { RenderBlockRenderer } from "../components/renderer/RenderBlockRenderer";
 
 type RuleId =
   | "rule-numbered-chapter-title"
@@ -28,17 +29,7 @@ export default function PublicImportFormatPage() {
   const navigate = useNavigate();
 
   const allRules = React.useMemo(() => DEFAULT_MARKER_RULES || [], []);
-  const rendererRules = React.useMemo<MarkerConfigLike[]>(() => {
-    return (DEFAULT_MARKER_RULES || []).map((rule) => {
-      const normalizedStyle = Object.fromEntries(
-        Object.entries((rule.style || {}) as Record<string, unknown>).filter(([, value]) => typeof value === "string")
-      ) as Record<string, string>;
-      return {
-        ...rule,
-        style: normalizedStyle,
-      };
-    });
-  }, []);
+  const normalizedRules = React.useMemo<MarkerConfig[]>(() => normalizeMarkerConfigsSchema(allRules), [allRules]);
   const colorCacheRef = React.useRef<Map<string, string>>(new Map());
   const usageById = React.useMemo(() => ({
     "rule-numbered-chapter-title": t("importFormat.usageChapter"),
@@ -79,16 +70,17 @@ export default function PublicImportFormatPage() {
     "dialogue": "#C 小雨\n#D 你好。",
     "action": "我們到了，先觀察四周。",
   }), []);
-  const astById = React.useMemo<Partial<Record<RuleId, ReturnType<typeof parseScreenplay>["ast"]>>>(() => {
-    const entries: Partial<Record<RuleId, ReturnType<typeof parseScreenplay>["ast"]>> = {};
+  const renderBlocksById = React.useMemo<Partial<Record<RuleId, RenderBlock[]>>>(() => {
+    const entries: Partial<Record<RuleId, RenderBlock[]>> = {};
     allRules.forEach((rule) => {
       const ruleId = rule.id as RuleId;
       const sample = renderTextById[ruleId] || exampleById[ruleId] || "";
       if (!sample) return;
-      entries[ruleId] = parseScreenplay(sample, DEFAULT_MARKER_RULES).ast;
+      const { ast } = parseScreenplay(sample, normalizedRules);
+      entries[ruleId] = toRenderBlocks(ast, normalizedRules);
     });
     return entries;
-  }, [allRules, renderTextById, exampleById]);
+  }, [allRules, normalizedRules, renderTextById, exampleById]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -131,13 +123,14 @@ export default function PublicImportFormatPage() {
                     <div className="px-3 py-2 border-r text-muted-foreground">{usageById[ruleId] || t("importFormat.usageGeneric")}</div>
                     <div className="px-3 py-2 border-r font-mono text-xs break-all">{exampleById[ruleId] || "-"}</div>
                     <div className="px-3 py-2">
-                      {astById[ruleId] ? (
+                      {renderBlocksById[ruleId] ? (
                         <div className="rounded border bg-background p-2 text-xs">
-                          <ScriptRenderer
-                            ast={astById[ruleId]}
-                            markerConfigs={rendererRules}
+                          <RenderBlockRenderer
+                            blocks={renderBlocksById[ruleId]!}
+                            markerConfigs={normalizedRules}
                             colorCache={colorCacheRef}
                             fontSize={13}
+                            showMarkerTooltip={false}
                           />
                         </div>
                       ) : (
