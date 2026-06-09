@@ -4,7 +4,7 @@ import path from "path";
 const nextConfig: NextConfig = {
   output: "standalone",
   outputFileTracingRoot: path.resolve(__dirname, "../.."),
-  transpilePackages: ["@write/script-engine"],
+  transpilePackages: ["@write/script-engine", "@write/script-reader-renderer"],
   images: {
     remotePatterns: [
       {
