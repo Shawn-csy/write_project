@@ -218,13 +218,18 @@ docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up --build -d
 if docker image inspect "write_project-backend:${DEPLOY_TAG}" >/dev/null 2>&1; then
   docker tag "write_project-backend:${DEPLOY_TAG}" "write_project-backend:latest"
 fi
-
-# Prune backend images older than the last 3 versions
-backend_images=$(docker images write_project-backend --format "{{.Tag}}" | grep -v "latest" | sort -r | tail -n +4)
-if [ -n "$backend_images" ]; then
-  echo "[deploy] pruning old backend images: $(echo $backend_images | tr '\n' ' ')"
-  echo "$backend_images" | xargs -I{} docker rmi "write_project-backend:{}" 2>/dev/null || true
+if docker image inspect "write_project-public:${DEPLOY_TAG}" >/dev/null 2>&1; then
+  docker tag "write_project-public:${DEPLOY_TAG}" "write_project-public:latest"
 fi
+
+# Prune backend and public images older than the last 3 versions
+for image_name in write_project-backend write_project-public; do
+  old_images=$(docker images "$image_name" --format "{{.Tag}}" | grep -v "latest" | sort -r | tail -n +4)
+  if [ -n "$old_images" ]; then
+    echo "[deploy] pruning old ${image_name} images: $(echo $old_images | tr '\n' ' ')"
+    echo "$old_images" | xargs -I{} docker rmi "${image_name}:{}" 2>/dev/null || true
+  fi
+done
 
 echo "[deploy] waiting for backend to be ready..."
 BACKEND_CID="$(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps -q write_project-backend 2>/dev/null || true)"

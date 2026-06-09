@@ -19,18 +19,36 @@ logger = logging.getLogger(__name__)
 _REVALIDATE_URL = os.getenv("NEXTJS_REVALIDATE_URL", "")
 _REVALIDATE_SECRET = os.getenv("REVALIDATE_SECRET", "")
 
-async def _revalidate_script(script_id: str) -> None:
-    """Fire-and-forget: tell Next.js to revalidate /read/<script_id>."""
-    if not _REVALIDATE_URL or not _REVALIDATE_SECRET:
+async def _revalidate_paths(paths: list[str]) -> None:
+    """Fire-and-forget: tell Next.js to revalidate the given paths."""
+    if not _REVALIDATE_URL or not _REVALIDATE_SECRET or not paths:
         return
     try:
         async with httpx.AsyncClient(timeout=5) as client:
             await client.post(
                 _REVALIDATE_URL,
-                json={"secret": _REVALIDATE_SECRET, "paths": [f"/read/{script_id}"]},
+                json={"secret": _REVALIDATE_SECRET, "paths": paths},
             )
     except Exception as exc:
-        logger.warning("revalidate /read/%s failed: %s", script_id, exc)
+        logger.warning("revalidate %s failed: %s", paths, exc)
+
+
+async def _revalidate_script(script_id: str, updated, db) -> None:
+    """Build revalidation path list from updated script relations and fire."""
+    paths = [f"/read/{script_id}", "/"]  # always clear the script page + homepage
+    if updated.personaId:
+        paths.append(f"/author/{updated.personaId}")
+    if updated.organizationId:
+        paths.append(f"/org/{updated.organizationId}")
+    if updated.seriesId:
+        try:
+            from models import Series as SeriesModel  # local import to avoid circular
+            series = db.query(SeriesModel).filter(SeriesModel.id == updated.seriesId).first()
+            if series and series.name:
+                paths.append(f"/series/{series.name}")
+        except Exception as exc:
+            logger.warning("series lookup for revalidate failed: %s", exc)
+    await _revalidate_paths(paths)
 
 router = APIRouter(prefix="/api/scripts", tags=["scripts"])
 
@@ -78,7 +96,7 @@ async def update_script(script_id: str, script: schemas.ScriptUpdate, db: Sessio
     updated = crud.update_script(db, script_id, script, ownerId)
     if not updated:
         raise HTTPException(status_code=404, detail="Script not found")
-    asyncio.create_task(_revalidate_script(script_id))
+    asyncio.create_task(_revalidate_script(script_id, updated, db))
     return updated
 
 @router.delete("/{script_id}")
