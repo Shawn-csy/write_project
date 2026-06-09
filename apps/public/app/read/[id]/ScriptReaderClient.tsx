@@ -27,12 +27,15 @@ export function ScriptReaderClient({ scriptId, initialScript }: Props) {
   const [views, setViews] = useState<number>(initialScript.views ?? 0);
   const authorName = getAuthorName(initialScript);
   const tags = getTagNames(initialScript);
-  const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "";
 
   // Increment view count (fire-and-forget)
   useEffect(() => {
-    fetch(`${apiBase}/api/public-scripts/${scriptId}/view`, { method: "POST" }).catch(() => {});
-  }, [scriptId, apiBase]);
+    fetch(`/api/scripts/${scriptId}/view`, { method: "POST" })
+      .then((res) => {
+        if (res.ok) setViews((current) => current + 1);
+      })
+      .catch(() => {});
+  }, [scriptId]);
 
   return (
     <main className="min-h-screen bg-background">
