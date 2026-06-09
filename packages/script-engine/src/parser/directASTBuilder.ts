@@ -25,12 +25,14 @@ export class DirectASTBuilder {
   blockMarkers: MarkerConfig[];
   inlineMarkers: MarkerConfig[];
   rangeGroups: Record<string, RangeGroup>;
+  _hitCounts: Map<string, number>;
 
   constructor(markerConfigs: MarkerConfig[] = []) {
     this.configs = markerConfigs.map((c) => ({ ...c }));
     this.blockMarkers = this.configs.filter((c) => isBlockLike(c));
     this.inlineMarkers = this.configs.filter((c) => isInlineLike(c));
     this.rangeGroups = {};
+    this._hitCounts = new Map();
     for (const marker of this.configs) {
       if (marker.matchMode === "range" && marker.start && marker.end) {
         this.rangeGroups[marker.id] = {
@@ -41,6 +43,14 @@ export class DirectASTBuilder {
         };
       }
     }
+  }
+
+  _recordHit(markerId: string): void {
+    this._hitCounts.set(markerId, (this._hitCounts.get(markerId) ?? 0) + 1);
+  }
+
+  getMarkersUsed(): Array<{ markerId: string; count: number }> {
+    return Array.from(this._hitCounts.entries()).map(([markerId, count]) => ({ markerId, count }));
   }
 
   _normalizeWidthAndCase(value: unknown) {
@@ -236,6 +246,7 @@ export class DirectASTBuilder {
           const matchedFullEnd = fullEnd ? this._matchLeadingToken(line, fullEnd, caseInsensitive) : null;
           const matchedEndToken = matchedEnd || matchedFullEnd;
           if (matchedEndToken) {
+            this._recordHit(marker.id);
             const content = line.slice(matchedEndToken.length).trim();
             return {
               type: "layer",
@@ -262,6 +273,7 @@ export class DirectASTBuilder {
           const matchedFullPause = this._matchLeadingToken(line, fullPause, caseInsensitive);
           const matchedPauseToken = matchedPause || matchedFullPause;
           if (matchedPauseToken) {
+            this._recordHit(marker.id);
             const content = line.slice(matchedPauseToken.length).trim();
             return {
               type: "layer",
@@ -282,6 +294,7 @@ export class DirectASTBuilder {
         }
 
         if (matchedStartToken) {
+          this._recordHit(marker.id);
           const content = line.slice(matchedStartToken.length).trim();
           return {
             type: "layer",
@@ -451,6 +464,7 @@ export class DirectASTBuilder {
     match: RegExpMatchArray | null
   ): AstNode | null {
     if (!marker?.parseAs) return null;
+    this._recordHit(marker.id);
     const node: AstNode = {
       type: marker.parseAs,
       markerType: marker.type,
@@ -476,6 +490,7 @@ export class DirectASTBuilder {
   }
 
   _buildLayerNode(marker: MarkerConfig, content: string, rawLine: string, lineNumber: number): AstNode {
+    this._recordHit(marker.id);
     return {
       type: "layer",
       layerType: marker.id,

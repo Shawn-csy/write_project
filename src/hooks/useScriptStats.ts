@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { calculateScriptStats } from '../lib/statistics';
-import { buildAST } from '../lib/importPipeline/directASTBuilder';
+import { buildAST } from '@write/script-engine';
 import type { AstNode, MarkerConfig } from '../lib/statistics/ScriptAnalyzer';
 
 
@@ -38,7 +38,7 @@ export function useScriptStats({ scriptId, rawScript, scriptAst, markerConfigs =
     if (rawScript !== undefined && rawScript !== null && markerConfigs.length > 0) {
         try {
             const ast = buildAST(rawScript || "", markerConfigs);
-            return calculateScriptStats(ast, markerConfigs, options);
+            return calculateScriptStats(ast as Parameters<typeof calculateScriptStats>[0], markerConfigs, options);
         } catch (e: unknown) {
             console.error("Error calculating script stats from raw text:", e);
         }

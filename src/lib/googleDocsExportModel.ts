@@ -1,5 +1,5 @@
 import { parseScreenplay } from "./screenplayAST";
-import { parseInline } from "./parsers/inlineParser";
+import { parseInline } from "@write/script-engine";
 import type { MarkerConfig } from "../types/script";
 import { isInlineLike } from "./markerRules";
 import { resolveMarkerColorToken } from "./markerStyleResolver";
@@ -106,7 +106,7 @@ const pushInlineLines = (
 ) => {
   const lines = splitLines(text);
   lines.forEach((line) => {
-    const nodes = (parseInline(line, inlineConfigs) as Array<Record<string, unknown>>) || [];
+    const nodes = (parseInline(line, inlineConfigs) as unknown as Array<Record<string, unknown>>) || [];
     const runs: GoogleDocsRun[] = [];
     nodes.forEach((node) => {
       const type = String(node?.type || "");

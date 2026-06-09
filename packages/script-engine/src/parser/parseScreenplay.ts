@@ -56,6 +56,7 @@ export const parseScreenplay = (
   const toc = extractToc(ast);
   const scenes = toc.map((e) => ({ id: e.id, label: e.label }));
   const titleEntries: TitleEntry[] = extractTitleEntries(titleLines);
+  const markersUsed = builder.getMarkersUsed().map(({ markerId, count }) => ({ markerId, count }));
 
   return {
     titlePage: titleLines,
@@ -63,6 +64,6 @@ export const parseScreenplay = (
     ast,
     toc,
     scenes,
-    markersUsed: [], // populated in Phase 2
+    markersUsed,
   };
 };

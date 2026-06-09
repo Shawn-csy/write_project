@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useSettings } from "../contexts/SettingsContext";
 import { useScriptStats } from "./useScriptStats";
-import { parseInline } from "../lib/parsers/inlineParser";
+import { parseInline } from "@write/script-engine";
 import type { AstNode } from "../lib/statistics/ScriptAnalyzer";
 
 export interface StatsLineItem {

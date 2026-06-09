@@ -5,7 +5,7 @@ export { getDefaultMarkerRules, defaultMarkerConfigs, DEFAULT_MARKER_RULES } fro
 
 // parser
 export { parseScreenplay } from "./parser/parseScreenplay";
-export { DirectASTBuilder, buildAST } from "./parser/directASTBuilder";
+export { buildAST } from "./parser/directASTBuilder";
 export { parseInline, buildFlexiblePattern } from "./parser/inlineParser";
 export { splitTitleAndBody, extractTitleEntries } from "./parser/titlePageParser";
 

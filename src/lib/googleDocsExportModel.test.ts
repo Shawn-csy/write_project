@@ -4,12 +4,16 @@ vi.mock("./screenplayAST", () => ({
   parseScreenplay: vi.fn(),
 }));
 
-vi.mock("./parsers/inlineParser", () => ({
-  parseInline: vi.fn(),
-}));
+vi.mock("@write/script-engine", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@write/script-engine")>();
+  return {
+    ...actual,
+    parseInline: vi.fn(),
+  };
+});
 
 import { parseScreenplay } from "./screenplayAST";
-import { parseInline } from "./parsers/inlineParser";
+import { parseInline } from "@write/script-engine";
 import { buildGoogleDocsBlocksFromRenderedHtml, buildGoogleDocsBlocksFromScript } from "./googleDocsExportModel";
 
 describe("buildGoogleDocsBlocksFromScript", () => {
