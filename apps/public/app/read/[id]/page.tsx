@@ -3,9 +3,9 @@ import { notFound } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import type { PublicScript } from "@/lib/types";
 import { ScriptReaderClient } from "./ScriptReaderClient";
-import { parseScreenplay } from "@write/script-engine";
+import { parseScreenplay, toRenderBlocks } from "@write/script-engine";
 import { resolveMarkerConfigs } from "@/lib/markerThemeResolver";
-import type { MarkerConfig, AstNode } from "@write/script-engine";
+import type { RenderBlock, TocEntry } from "@write/script-engine";
 
 // ISR: revalidate daily as fallback; on-demand revalidation handles real-time updates
 export const revalidate = 86400;
@@ -156,9 +156,13 @@ export default async function ScriptReaderPage({
 
   // Parse content server-side with marker theme (engine is canonical)
   const markerConfigs = await resolveMarkerConfigs(script);
-  const parsedRoot: AstNode = script.content
-    ? parseScreenplay(script.content, markerConfigs).ast
-    : { type: "root", children: [] };
+  const scriptDocument = script.content
+    ? parseScreenplay(script.content, markerConfigs)
+    : null;
+  const renderBlocks: RenderBlock[] = scriptDocument
+    ? toRenderBlocks(scriptDocument.ast, markerConfigs)
+    : [];
+  const toc: TocEntry[] = scriptDocument?.toc ?? [];
 
   return (
     <>
@@ -173,15 +177,15 @@ export default async function ScriptReaderPage({
       />
       {/*
         ScriptReaderClient renders the full reader UI.
-        It receives parsedRoot so it can render the same content both on the
+        It receives renderBlocks so it can render the same content both on the
         server (SSR) and after hydration — no duplicate, no flash.
         The client component itself handles the sticky nav + header + content.
       */}
       <ScriptReaderClient
         scriptId={id}
         initialScript={script}
-        parsedRoot={parsedRoot}
-        markerConfigs={markerConfigs}
+        renderBlocks={renderBlocks}
+        toc={toc}
       />
     </>
   );
