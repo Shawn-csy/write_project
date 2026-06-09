@@ -4,11 +4,33 @@ from sqlalchemy.orm import Session
 from fastapi.responses import StreamingResponse
 import io
 import zipfile
+import os
+import logging
+import httpx
+import asyncio
 import crud_ops as crud
 import schemas
 import models
 from dependencies import get_db, get_current_user_id, is_admin_user
 from rate_limit import limiter
+
+logger = logging.getLogger(__name__)
+
+_REVALIDATE_URL = os.getenv("NEXTJS_REVALIDATE_URL", "")
+_REVALIDATE_SECRET = os.getenv("REVALIDATE_SECRET", "")
+
+async def _revalidate_script(script_id: str) -> None:
+    """Fire-and-forget: tell Next.js to revalidate /read/<script_id>."""
+    if not _REVALIDATE_URL or not _REVALIDATE_SECRET:
+        return
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            await client.post(
+                _REVALIDATE_URL,
+                json={"secret": _REVALIDATE_SECRET, "paths": [f"/read/{script_id}"]},
+            )
+    except Exception as exc:
+        logger.warning("revalidate /read/%s failed: %s", script_id, exc)
 
 router = APIRouter(prefix="/api/scripts", tags=["scripts"])
 
@@ -52,10 +74,11 @@ def read_script(script_id: str, ownerId: str = Depends(get_current_user_id), db:
     return db_script
 
 @router.put("/{script_id}", response_model=schemas.Script)
-def update_script(script_id: str, script: schemas.ScriptUpdate, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+async def update_script(script_id: str, script: schemas.ScriptUpdate, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
     updated = crud.update_script(db, script_id, script, ownerId)
     if not updated:
         raise HTTPException(status_code=404, detail="Script not found")
+    asyncio.create_task(_revalidate_script(script_id))
     return updated
 
 @router.delete("/{script_id}")
