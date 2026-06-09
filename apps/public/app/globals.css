@@ -1,3 +1,6 @@
+/* Marker color tokens — shared with @write/script-reader-renderer */
+@import "@write/script-theme/marker-colors.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

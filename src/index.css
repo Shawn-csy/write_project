@@ -1,3 +1,6 @@
+/* Marker color tokens — shared with @write/script-reader-renderer */
+@import "@write/script-theme/marker-colors.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -47,47 +50,7 @@
     --license-term-border: color-mix(in srgb, hsl(var(--accent)) 46%, hsl(var(--border)) 54%);
     --license-term-fg: color-mix(in srgb, hsl(var(--accent-strong)) 56%, hsl(var(--foreground)) 44%);
 
-    /* Marker Colors (Light Mode) */
-    --marker-color-red: #dc2626;
-    --marker-color-orange: #ea580c;
-    --marker-color-amber: #d97706;
-    --marker-color-yellow: #ca8a04;
-    --marker-color-lime: #65a30d;
-    --marker-color-green: #16a34a;
-    --marker-color-emerald: #059669;
-    --marker-color-teal: #0d9488;
-    --marker-color-cyan: #0891b2;
-    --marker-color-sky: #0284c7;
-    --marker-color-blue: #2563eb;
-    --marker-color-indigo: #4f46e5;
-    --marker-color-violet: #7c3aed;
-    --marker-color-purple: #9333ea;
-    --marker-color-fuchsia: #c026d3;
-    --marker-color-pink: #db2777;
-    --marker-color-rose: #e11d48;
-    --marker-color-slate: #475569;
-    --marker-color-gray: #4b5563;
-    --marker-color-zinc: #52525b;
-    
-    /* Morandi Palette (Default - Darker for Light Mode) */
-    --marker-color-verdigris: #4B8F84;
-    --marker-color-sage: #6B966A;
-    --marker-color-cadet: #6D8F8C;
-    --marker-color-steel: #587B88;
-    --marker-color-periwinkle: #7582C0;
-    --marker-color-pastel-rose: #B87B7B;
-    --marker-color-sand: #B89C72;
-    --marker-color-olive: #8C8C78;
-    --marker-color-warm-gray: #63625F;
-    --marker-color-orchid: #96708F;
-
-    /* Morandi High Contrast (Light Mode - Extra Dark) */
-    --marker-color-deep-teal: #26524C;
-    --marker-color-russet: #663A35;
-    --marker-color-slate-blue: #3D4C5C;
-    --marker-color-antique-gold: #70552D;
-    --marker-color-deep-iris: #4E4057;
-    --marker-color-charcoal: #333333;
+    /* Marker color tokens: see @write/script-theme/marker-colors.css (imported above) */
 
     /* Morandi Panel Tokens (Light Mode, derived from global semantic tokens) */
     --morandi-tone-works-trigger-bg: color-mix(in srgb, hsl(var(--accent)) 30%, hsl(var(--card)) 70%);
@@ -171,47 +134,7 @@
     --license-term-border: color-mix(in srgb, hsl(var(--accent)) 38%, hsl(var(--border)) 62%);
     --license-term-fg: hsl(var(--foreground));
 
-    /* Marker Colors (Dark Mode) */
-    --marker-color-red: #f87171;
-    --marker-color-orange: #fb923c;
-    --marker-color-amber: #fbbf24;
-    --marker-color-yellow: #facc15;
-    --marker-color-lime: #a3e635;
-    --marker-color-green: #4ade80;
-    --marker-color-emerald: #34d399;
-    --marker-color-teal: #2dd4bf;
-    --marker-color-cyan: #22d3ee;
-    --marker-color-sky: #38bdf8;
-    --marker-color-blue: #60a5fa;
-    --marker-color-indigo: #818cf8;
-    --marker-color-violet: #a78bfa;
-    --marker-color-purple: #c084fc;
-    --marker-color-fuchsia: #e879f9;
-    --marker-color-pink: #f472b6;
-    --marker-color-rose: #fb7185;
-    --marker-color-slate: #94a3b8;
-    --marker-color-gray: #9ca3af;
-    --marker-color-zinc: #a1a1aa;
-
-    /* Morandi Palette (Dark Mode - Lighter) */
-    --marker-color-verdigris: #8CC9BE;
-    --marker-color-sage: #AED9AD;
-    --marker-color-cadet: #B0CCC9;
-    --marker-color-steel: #9ABCC9;
-    --marker-color-periwinkle: #BDC8F2;
-    --marker-color-pastel-rose: #EBC0C0;
-    --marker-color-sand: #E8D1AC;
-    --marker-color-olive: #CBCBBA;
-    --marker-color-warm-gray: #A8A7A4;
-    --marker-color-orchid: #D9B9D2;
-
-    /* Morandi High Contrast (Dark Mode - Brighter) */
-    --marker-color-deep-teal: #6EA39C;
-    --marker-color-russet: #B3837D;
-    --marker-color-slate-blue: #7D8D9E;
-    --marker-color-antique-gold: #BC9E6A;
-    --marker-color-deep-iris: #91809C;
-    --marker-color-charcoal: #808080;
+    /* Marker color tokens (dark): see @write/script-theme/marker-colors.css */
 
     /* Morandi Panel Tokens (Dark Mode, derived from global semantic tokens) */
     --morandi-tone-works-trigger-bg: color-mix(in srgb, hsl(var(--accent)) 24%, hsl(var(--card)) 76%);
