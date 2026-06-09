@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { PublicScript } from "@/lib/types";
-import type { AstNode, TocEntry, MarkerConfig } from "@write/script-engine";
-import { extractToc } from "@write/script-engine";
+import type { RenderBlock, TocEntry } from "@write/script-engine";
 import { ScriptContentRenderer } from "./ScriptContentRenderer";
 
 // Persistent visitor ID for anonymous like tracking (mirrors Vite getVisitorId() — same key)
@@ -24,8 +23,8 @@ function getOrCreateVisitorId(): string {
 interface Props {
   scriptId: string;
   initialScript: PublicScript;
-  parsedRoot: AstNode;
-  markerConfigs: MarkerConfig[];
+  renderBlocks: RenderBlock[];
+  toc: TocEntry[];
 }
 
 function getAuthorName(script: PublicScript): string {
@@ -41,8 +40,8 @@ function getTagNames(script: PublicScript): string[] {
 export function ScriptReaderClient({
   scriptId,
   initialScript,
-  parsedRoot,
-  markerConfigs,
+  renderBlocks,
+  toc,
 }: Props) {
   const [views, setViews] = useState<number>(initialScript.views ?? 0);
   const [likes, setLikes] = useState<number>(initialScript.likes ?? 0);
@@ -55,7 +54,6 @@ export function ScriptReaderClient({
 
   const authorName = getAuthorName(initialScript);
   const tags = getTagNames(initialScript);
-  const toc: TocEntry[] = extractToc(parsedRoot);
 
   // Increment view count
   useEffect(() => {
@@ -264,8 +262,7 @@ export function ScriptReaderClient({
 
         {/* Script content — SSR-parsed, rendered with marker styles */}
         <ScriptContentRenderer
-          root={parsedRoot}
-          markerConfigs={markerConfigs}
+          blocks={renderBlocks}
           className="border-t border-border/40 pt-6"
         />
 
