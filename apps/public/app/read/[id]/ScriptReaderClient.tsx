@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { PublicScript } from "@/lib/types";
-import type { RenderBlock, TocEntry } from "@write/script-engine";
+import type { RenderBlock, TocEntry, MarkerConfig } from "@write/script-engine";
 import { ScriptContentRenderer } from "./ScriptContentRenderer";
 
 // Persistent visitor ID for anonymous like tracking (mirrors Vite getVisitorId() — same key)
@@ -24,6 +24,7 @@ interface Props {
   scriptId: string;
   initialScript: PublicScript;
   renderBlocks: RenderBlock[];
+  markerConfigs: MarkerConfig[];
   toc: TocEntry[];
 }
 
@@ -41,6 +42,7 @@ export function ScriptReaderClient({
   scriptId,
   initialScript,
   renderBlocks,
+  markerConfigs,
   toc,
 }: Props) {
   const [views, setViews] = useState<number>(initialScript.views ?? 0);
@@ -263,6 +265,7 @@ export function ScriptReaderClient({
         {/* Script content — SSR-parsed, rendered with marker styles */}
         <ScriptContentRenderer
           blocks={renderBlocks}
+          markerConfigs={markerConfigs}
           className="border-t border-border/40 pt-6"
         />
 

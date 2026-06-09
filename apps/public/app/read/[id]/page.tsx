@@ -5,7 +5,7 @@ import type { PublicScript } from "@/lib/types";
 import { ScriptReaderClient } from "./ScriptReaderClient";
 import { parseScreenplay, toRenderBlocks } from "@write/script-engine";
 import { resolveMarkerConfigs } from "@/lib/markerThemeResolver";
-import type { RenderBlock, TocEntry } from "@write/script-engine";
+import type { RenderBlock, TocEntry, MarkerConfig } from "@write/script-engine";
 
 // ISR: revalidate daily as fallback; on-demand revalidation handles real-time updates
 export const revalidate = 86400;
@@ -185,6 +185,7 @@ export default async function ScriptReaderPage({
         scriptId={id}
         initialScript={script}
         renderBlocks={renderBlocks}
+        markerConfigs={markerConfigs}
         toc={toc}
       />
     </>
