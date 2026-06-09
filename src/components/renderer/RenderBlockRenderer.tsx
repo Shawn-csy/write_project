@@ -50,9 +50,12 @@ interface RenderBlockRendererProps {
   hiddenMarkerIds?: string[];
   markerConfigs?: MarkerConfigLike[];
   showMarkerTooltip?: boolean;
+  markerTooltipPrefix?: string;
+  showLineUnderline?: boolean;
   colorCache?: React.MutableRefObject<Map<string, string>>;
   className?: string;
 }
+
 
 const normalizeCharacterKey = (name = "") => String(name).trim().toLowerCase();
 
@@ -318,6 +321,8 @@ export const RenderBlockRenderer = React.memo(function RenderBlockRenderer({
   hiddenMarkerIds = [],
   markerConfigs = [],
   showMarkerTooltip = true,
+  markerTooltipPrefix = "標記",
+  showLineUnderline = false,
   colorCache,
   className,
 }: RenderBlockRendererProps) {
@@ -352,7 +357,7 @@ export const RenderBlockRenderer = React.memo(function RenderBlockRenderer({
       if (markerTooltip) setMarkerTooltip(null);
       return;
     }
-    setMarkerTooltip({ text: `標記: ${resolved.markerLabel}`, x: event.clientX, y: event.clientY });
+    setMarkerTooltip({ text: `${markerTooltipPrefix}: ${resolved.markerLabel}`, x: event.clientX, y: event.clientY });
   };
 
   const markerTooltipStyle = useMemo(() => {
@@ -373,7 +378,7 @@ export const RenderBlockRenderer = React.memo(function RenderBlockRenderer({
 
   return (
     <article
-      className={`script-renderer render-block-renderer relative${className ? ` ${className}` : ""}`}
+      className={`script-renderer render-block-renderer relative${showLineUnderline ? " show-line-underline" : ""}${className ? ` ${className}` : ""}`}
       style={{ fontFamily: readingFontFamily, fontSize, lineHeight }}
       onPointerMove={handlePointerMove}
       onPointerLeave={() => { if (markerTooltip) setMarkerTooltip(null); }}

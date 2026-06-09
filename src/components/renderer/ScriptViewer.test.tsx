@@ -1,6 +1,6 @@
 import React from "react";
 import { describe, it, expect, vi } from "vitest";
-import { render } from "@testing-library/react";
+import { render, fireEvent, screen } from "@testing-library/react";
 import ScriptViewer from "./ScriptViewer";
 import { parseScreenplay } from "../../lib/screenplayAST";
 
@@ -119,5 +119,102 @@ describe("ScriptViewer", () => {
     const props = scriptRendererSpy.mock.calls.at(-1)?.[0] as { hiddenMarkerIds?: string[]; showMarkerTooltip?: boolean } | undefined;
     expect(props?.hiddenMarkerIds).toEqual(["x"]);
     expect(props?.showMarkerTooltip).toBe(false);
+  });
+});
+
+describe("ScriptViewer useRenderModelRenderer with filterCharacter", () => {
+  it("still uses render-block-renderer when filterCharacter is set (transforms applied in pipeline)", () => {
+    const { container } = render(
+      <ScriptViewer
+        text={sample}
+        filterCharacter="CHARACTER"
+        useRenderModelRenderer
+      />
+    );
+    expect(container.querySelector(".render-block-renderer")).not.toBeNull();
+  });
+
+  it("focusMode prop is ignored by render model path (render-block-renderer still rendered)", () => {
+    // focusMode is handled by the legacy ScriptRenderer path only.
+    // The render model path does not implement focus dimming — it passes through unchanged.
+    const { container } = render(
+      <ScriptViewer
+        text={sample}
+        focusMode
+        useRenderModelRenderer
+      />
+    );
+    expect(container.querySelector(".render-block-renderer")).not.toBeNull();
+  });
+});
+
+describe("ScriptViewer useRenderModelRenderer", () => {
+  const markerText = "//BG 夜晚街景";
+  const blockConfig = [{ id: "bg", start: "//BG", isBlock: true, label: "背景音開始", style: { color: "green" } }];
+
+  it("renders RenderBlockRenderer article when useRenderModelRenderer=true", () => {
+    const { container } = render(
+      <ScriptViewer
+        text={markerText}
+        markerConfigs={blockConfig}
+        useRenderModelRenderer
+      />
+    );
+    // visible article uses render-block-renderer class
+    expect(container.querySelector(".render-block-renderer")).not.toBeNull();
+    // ScriptRenderer may still be called by useRenderedSnapshot for HTML export; that's expected
+  });
+
+  it("hides marker when hiddenMarkerIds passed to useRenderModelRenderer branch", () => {
+    const { container } = render(
+      <ScriptViewer
+        text={markerText}
+        markerConfigs={blockConfig}
+        hiddenMarkerIds={["bg"]}
+        useRenderModelRenderer
+      />
+    );
+    expect(container.querySelector(".layer-node")).toBeNull();
+  });
+
+  it("applies showLineUnderline class in useRenderModelRenderer branch", () => {
+    const { container } = render(
+      <ScriptViewer
+        text="plain text"
+        showLineUnderline
+        useRenderModelRenderer
+      />
+    );
+    const article = container.querySelector(".render-block-renderer");
+    expect(article?.className).toContain("show-line-underline");
+  });
+
+  it("shows marker tooltip with i18n prefix in useRenderModelRenderer branch", () => {
+    render(
+      <ScriptViewer
+        text={markerText}
+        markerConfigs={blockConfig}
+        showMarkers
+        useRenderModelRenderer
+      />
+    );
+    const label = screen.getByText(/夜晚街景/);
+    fireEvent.pointerMove(label, { clientX: 100, clientY: 80 });
+    // t() mock returns the key; prefix key is "scriptRenderer.markerTooltipPrefix"
+    expect(screen.getByText(/scriptRenderer\.markerTooltipPrefix.*背景音開始/)).toBeDefined();
+  });
+
+  it("suppresses tooltip when showMarkers=false in useRenderModelRenderer branch", () => {
+    render(
+      <ScriptViewer
+        text={markerText}
+        markerConfigs={blockConfig}
+        showMarkers={false}
+        useRenderModelRenderer
+      />
+    );
+    const label = screen.getByText(/夜晚街景/);
+    fireEvent.pointerMove(label, { clientX: 100, clientY: 80 });
+    expect(screen.queryByText(/背景音開始/)).toBeNull();
   });
 });

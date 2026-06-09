@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ScriptRenderer } from './ScriptRenderer';
 import { ScriptRendererV2 } from './v2/ScriptRendererV2';
+import { RenderBlockRenderer } from './RenderBlockRenderer';
+import { normalizeMarkerConfigsSchema } from '@write/script-engine';
+import { buildViewerRenderBlocks, buildRawRenderBlocks, type ViewerOptions } from '../../lib/viewerRenderPipeline';
 import { useI18n } from '../../contexts/I18nContext';
 import { resolveReadingFontStack } from '../../constants/readingFonts';
 import { cloneDefaultLayoutConfig, type LayoutConfig } from '../../lib/v2';
@@ -15,7 +18,9 @@ interface ScriptViewerProps {
   externalScenes?: ScriptDocSceneItem[] | null;
   externalTitleEntries?: ScriptDocTitleEntry[] | null;
   filterCharacter?: string | null;
+  /** Handled by the legacy ScriptRenderer path only. The render model path (useRenderModelRenderer) ignores this. */
   focusMode?: boolean;
+  /** Handled by the legacy ScriptRenderer path only. The render model path (useRenderModelRenderer) ignores this. */
   focusEffect?: string;
   onCharacters?: (chars: string[]) => void;
   onTitle?: (html: string) => void;
@@ -42,6 +47,7 @@ interface ScriptViewerProps {
   showLineUnderline?: boolean;
   useV2Renderer?: boolean;
   v2LayoutConfig?: LayoutConfig;
+  useRenderModelRenderer?: boolean;
 }
 
 const TOOLTIP_OFFSET = 14;
@@ -92,6 +98,7 @@ function ScriptViewer({
   showLineUnderline = false,
   useV2Renderer = false,
   v2LayoutConfig,
+  useRenderModelRenderer = false,
 }: ScriptViewerProps) {
   const { t } = useI18n();
   const readingFontStack = resolveReadingFontStack(readingFontFamily);
@@ -112,6 +119,19 @@ function ScriptViewer({
   const effectiveHiddenMarkerIds = useMemo(() => {
     return (hiddenMarkerIds || []).map((id) => String(id || "").trim()).filter(Boolean);
   }, [hiddenMarkerIds]);
+
+  const normalizedMarkerConfigs = useMemo(
+    () => normalizeMarkerConfigsSchema(Array.isArray(markerConfigs) ? markerConfigs : []),
+    [markerConfigs]
+  );
+
+  const renderBlocks = useMemo(() => {
+    if (!useRenderModelRenderer || !ast) return null;
+    const opts: ViewerOptions = {};
+    if (filterCharacter) opts.filterCharacter = filterCharacter;
+    // Pass raw markerConfigs — pipeline normalizes internally.
+    return buildViewerRenderBlocks(ast as any, markerConfigs, opts);
+  }, [useRenderModelRenderer, ast, markerConfigs, filterCharacter]);
 
   useEffect(() => {
     onCharacters?.(characterList);
@@ -155,9 +175,32 @@ function ScriptViewer({
 
   const renderScriptNode = (
     currentAst: { children?: ScriptDocAstNode[] } | null,
+    // filterCharacterValue: render model path uses this to detect snapshot override (null → raw blocks).
+    // focusModeValue: only used by the legacy ScriptRenderer path below; render model ignores it.
     options?: { filterCharacterValue?: string | null; focusModeValue?: boolean }
   ) => {
     if (!currentAst) return null;
+    if (useRenderModelRenderer && renderBlocks) {
+      // Snapshot override: useRenderedSnapshot passes filterCharacterValue=null to get raw HTML.
+      const optionsOverrideFilter = options?.filterCharacterValue !== undefined;
+      const effectiveBlocks = optionsOverrideFilter
+        ? buildRawRenderBlocks(currentAst as Parameters<typeof buildRawRenderBlocks>[0], markerConfigs)
+        : renderBlocks;
+      return (
+        <RenderBlockRenderer
+          blocks={effectiveBlocks}
+          fontSize={effectiveBodyFontSize}
+          lineHeight={lineHeight}
+          readingFontFamily={readingFontStack}
+          markerConfigs={normalizedMarkerConfigs}
+          hiddenMarkerIds={effectiveHiddenMarkerIds}
+          showMarkerTooltip={showMarkers}
+          markerTooltipPrefix={t("scriptRenderer.markerTooltipPrefix", "標記")}
+          showLineUnderline={showLineUnderline}
+          colorCache={colorCache}
+        />
+      );
+    }
     if (useV2Renderer) {
       return (
         <ScriptRendererV2

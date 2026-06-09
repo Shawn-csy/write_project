@@ -24,6 +24,7 @@ export { extractToc } from "./document/toc";
 // render model
 export { toRenderBlocks } from "./render/toRenderBlocks";
 export { toInlineRuns, toLineRuns } from "./render/toInlineRuns";
+export { filterRenderBlocksByCharacter } from "./render/renderTransforms";
 export type {
   RenderBlock,
   RenderBlockKind,
