@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash2 } from "lucide-react";
 
 import { calculateScriptStats } from '@/lib/statistics';
-import { buildAST } from '@/lib/importPipeline/directASTBuilder';
+import { buildAST } from '@write/script-engine';
 import { useI18n } from "@/contexts/I18nContext";
 import type { MarkerConfig } from "@/types/script";
 import type { CheckedState } from "@radix-ui/react-checkbox";
@@ -82,7 +82,7 @@ export function StatisticsSettingsDialog({ open, onOpenChange, config, onSave, s
                 stats = calculateScriptStats(scriptAst as StatsAst, markerConfigs, options);
             } else if (rawScript) {
                 const ast = buildAST(rawScript || "", markerConfigs || []);
-                stats = calculateScriptStats(ast, markerConfigs || [], options);
+                stats = calculateScriptStats(ast as Parameters<typeof calculateScriptStats>[0], markerConfigs || [], options);
             }
             
             if (stats) {

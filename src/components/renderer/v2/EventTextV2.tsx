@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { parseInline } from '../../../lib/parsers/inlineParser';
+import { parseInline } from '@write/script-engine';
 import { isInlineLike } from '../../../lib/markerRules';
 import { InlineRenderer } from '../InlineRenderer';
 import type { MarkerConfig } from '../../../types/script';
