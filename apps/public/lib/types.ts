@@ -48,3 +48,28 @@ export interface PublicScript {
   isPublic?: number | boolean;
   [key: string]: unknown;
 }
+
+export interface PublicOrg {
+  id: string;
+  name: string;
+  description?: string;
+  website?: string;
+  logoUrl?: string;
+  bannerUrl?: string;
+  tags?: string[];
+  members?: PublicPersona[];
+}
+
+export interface PublicPersona {
+  id: string;
+  ownerId?: string;
+  displayName: string;
+  bio?: string;
+  avatar?: string;
+  bannerUrl?: string;
+  website?: string;
+  links?: Array<{ url?: string; label?: string }> | string;
+  tags?: string[];
+  organizationIds?: string[];
+  organizations?: PublicOrg[];
+}
