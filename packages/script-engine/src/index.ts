@@ -20,3 +20,20 @@ export type {
   ScriptDocument,
 } from "./document/astTypes";
 export { extractToc } from "./document/toc";
+
+// render model
+export { toRenderBlocks } from "./render/toRenderBlocks";
+export { toInlineRuns, toLineRuns } from "./render/toInlineRuns";
+export type {
+  RenderBlock,
+  RenderBlockKind,
+  InlineRun,
+  LineSpan,
+  SceneHeadingBlock,
+  CharacterBlock,
+  TextBlock,
+  BlankBlock,
+  UnknownBlock,
+  LayerBlock,
+  RangeBlock,
+} from "./render/renderTypes";
