@@ -1,0 +1,123 @@
+/**
+ * ScriptCard — shared script card for public SSR pages.
+ * Server-renderable: uses <a> tags, no client hooks.
+ * Handles coverCrop via getMediaCropStyle.
+ */
+
+import { getMediaCropStyle } from "@/lib/mediaCrop";
+
+interface Tag {
+  id?: string;
+  name: string;
+}
+
+interface SeriesInfo {
+  name?: string;
+  coverUrl?: string;
+}
+
+export interface ScriptCardData {
+  id: string;
+  title: string;
+  coverUrl?: string | null;
+  coverCrop?: { cx?: number | null; cy?: number | null; zoom?: number | null } | null;
+  synopsis?: string | null;
+  tags?: Tag[];
+  views?: number;
+  likes?: number;
+  seriesOrder?: number | null;
+  series?: SeriesInfo | null;
+  persona?: { id?: string; displayName?: string; avatar?: string } | null;
+  owner?: { id?: string; displayName?: string } | null;
+  organization?: { id?: string; name?: string } | null;
+}
+
+interface Props {
+  script: ScriptCardData;
+  /** Override href — defaults to /read/:id */
+  href?: string;
+}
+
+function getAuthorName(script: ScriptCardData): string {
+  return script.persona?.displayName ?? script.owner?.displayName ?? "";
+}
+
+export function ScriptCard({ script, href }: Props) {
+  const { src, style } = getMediaCropStyle(
+    script.coverUrl ?? "",
+    script.coverCrop
+  );
+  const tags = (script.tags ?? []).slice(0, 3);
+  const authorName = getAuthorName(script);
+  const target = href ?? `/read/${script.id}`;
+
+  return (
+    <a
+      href={target}
+      className="group flex flex-col rounded-xl border border-border/60 bg-background overflow-hidden hover:border-primary/50 hover:shadow-sm transition-all"
+    >
+      {/* Cover */}
+      <div className="aspect-[2/3] bg-muted relative overflow-hidden">
+        {src ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={src}
+            style={style}
+            alt={script.title}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center p-3">
+            <span className="text-xs text-muted-foreground text-center line-clamp-4 leading-relaxed">
+              {script.title}
+            </span>
+          </div>
+        )}
+        {script.seriesOrder != null && (
+          <div className="absolute top-1.5 left-1.5 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
+            #{script.seriesOrder}
+          </div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="p-3 flex flex-col gap-1 flex-1">
+        <p className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors leading-snug">
+          {script.title}
+        </p>
+
+        {authorName && (
+          <p className="text-xs text-muted-foreground line-clamp-1">{authorName}</p>
+        )}
+
+        {script.series?.name && (
+          <p className="text-xs text-muted-foreground/70 line-clamp-1">
+            {script.series.name}
+          </p>
+        )}
+
+        {tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-auto pt-1">
+            {tags.map((tag) => (
+              <span
+                key={tag.id ?? tag.name}
+                className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground"
+              >
+                {tag.name}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Stats */}
+        {((script.views ?? 0) > 0 || (script.likes ?? 0) > 0) && (
+          <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground/70 border-t border-border/40 pt-1">
+            {(script.views ?? 0) > 0 && <span>👁 {script.views}</span>}
+            {(script.likes ?? 0) > 0 && <span>♥ {script.likes}</span>}
+          </div>
+        )}
+      </div>
+    </a>
+  );
+}

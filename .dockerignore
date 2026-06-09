@@ -1,5 +1,9 @@
 .git
 node_modules
+**/node_modules
+apps/public/.next
+apps/public/out
+apps/public/coverage
 dist
 .DS_Store
 npm-debug.log*

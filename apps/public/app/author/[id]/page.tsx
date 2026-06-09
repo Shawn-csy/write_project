@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import type { PublicPersona, PublicScript } from "@/lib/types";
 import { AuthorPageClient } from "./AuthorPageClient";
+import { PublicTopBar } from "@/components/PublicTopBar";
 
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -108,6 +109,7 @@ export default async function AuthorPage({
             .replace(/&/g, "\\u0026"),
         }}
       />
+      <PublicTopBar activeTab="authors" />
       <noscript>
         <article style={{ maxWidth: 800, margin: "0 auto", padding: "2rem", fontFamily: "serif" }}>
           <h1>{persona.displayName}</h1>
