@@ -73,7 +73,8 @@ services:
   write_project-public:
     image: write_project-public:${DEPLOY_TAG:-latest}
     build:
-      context: ./apps/public
+      context: .
+      dockerfile: apps/public/Dockerfile
     restart: unless-stopped
     environment:
       - BACKEND_API_URL=${BACKEND_API_URL:-http://write_project-backend:1091}

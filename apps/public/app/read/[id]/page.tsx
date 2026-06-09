@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import type { PublicScript } from "@/lib/types";
 import { ScriptReaderClient } from "./ScriptReaderClient";
+import { parseScreenplay } from "@script-engine";
+import { resolveMarkerConfigs } from "@/lib/markerThemeResolver";
+import type { MarkerConfig, AstNode } from "@script-engine";
 
 // ISR: revalidate daily as fallback; on-demand revalidation handles real-time updates
 export const revalidate = 86400;
@@ -40,6 +43,7 @@ async function fetchScript(id: string): Promise<PublicScript | null> {
     return null;
   }
 }
+
 
 export async function generateMetadata({
   params,
@@ -150,6 +154,12 @@ export default async function ScriptReaderPage({
     ...(script.coverUrl && { image: script.coverUrl }),
   };
 
+  // Parse content server-side with marker theme (engine is canonical)
+  const markerConfigs = await resolveMarkerConfigs(script);
+  const parsedRoot: AstNode = script.content
+    ? parseScreenplay(script.content, markerConfigs).ast
+    : { type: "root", children: [] };
+
   return (
     <>
       <script
@@ -161,22 +171,18 @@ export default async function ScriptReaderPage({
             .replace(/&/g, "\\u0026"),
         }}
       />
-      {/* Static content for crawlers — visible before JS hydrates */}
-      <noscript>
-        <article style={{ maxWidth: 800, margin: "0 auto", padding: "2rem", fontFamily: "serif" }}>
-          <h1>{script.title}</h1>
-          {authorName && <p>作者：{authorName}</p>}
-          {description && <p>{description}</p>}
-          {tags.length > 0 && <p>標籤：{tags.join("、")}</p>}
-          {script.content && (
-            <pre style={{ whiteSpace: "pre-wrap", fontFamily: "inherit" }}>
-              {script.content}
-            </pre>
-          )}
-        </article>
-      </noscript>
-      {/* Interactive client component handles full reader UI */}
-      <ScriptReaderClient scriptId={id} initialScript={script} />
+      {/*
+        ScriptReaderClient renders the full reader UI.
+        It receives parsedRoot so it can render the same content both on the
+        server (SSR) and after hydration — no duplicate, no flash.
+        The client component itself handles the sticky nav + header + content.
+      */}
+      <ScriptReaderClient
+        scriptId={id}
+        initialScript={script}
+        parsedRoot={parsedRoot}
+        markerConfigs={markerConfigs}
+      />
     </>
   );
 }

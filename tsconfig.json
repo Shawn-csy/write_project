@@ -19,7 +19,9 @@
     /* 路徑 */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@script-engine": ["./packages/script-engine/src/index.ts"],
+      "@script-engine/*": ["./packages/script-engine/src/*"]
     },
 
     /* 輸出：Vite 處理，tsc 只做型別檢查 */
@@ -30,7 +32,7 @@
     "resolveJsonModule": true,
     "ignoreDeprecations": "6.0"
   },
-  "include": ["src"],
+  "include": ["src", "packages/script-engine/src"],
   "exclude": [
     "node_modules",
     "dist",

@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
+        "@script-engine": path.resolve(__dirname, "./packages/script-engine/src"),
       },
     },
     server: {
