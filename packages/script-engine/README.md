@@ -29,6 +29,11 @@ import {
   extractToc,           // (AstNode) → TocEntry[]
   splitTitleAndBody,    // (text) → { titleLines, bodyText, bodyStartLine }
   extractTitleEntries,  // (titleLines) → TitleEntry[]
+
+  // Render model
+  toRenderBlocks,       // (AstNode, MarkerConfig[]) → RenderBlock[]
+  toInlineRuns,         // (InlineToken[], MarkerConfig[]) → InlineRun[]
+  toLineRuns,           // (text, parseFn, MarkerConfig[]) → InlineRun[][]
 } from '@write/script-engine';
 ```
 
@@ -43,6 +48,9 @@ import type {
   TitleEntry,
   MarkerUsage,
   ScriptDocument,
+  RenderBlock,
+  InlineRun,
+  LineSpan,
 } from '@write/script-engine';
 ```
 
@@ -71,6 +79,14 @@ interface ScriptDocument {
 | `dialogue` | dialogue line (via `parseAs: "dialogue"`) |
 | `layer` | block marker hit (`rangeRole`: start/end/pause) |
 | `range` | collapsed range (`startNode`, `endNode`, `children`) |
+
+## Render model
+
+`toRenderBlocks` converts engine AST into pure data for UI/export consumers. It contains no React or DOM values.
+
+`InlineRun.text` is display text after marker renderer rules are applied. `InlineRun.content` preserves the raw marker content. Inline renderer support includes:
+- `renderer.template`, replacing all `{{content}}` placeholders
+- `showDelimiters`, using `start + content + end` when no template is present
 
 ## Internal (not exported)
 
