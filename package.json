@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@write/script-engine": "*",
+    "@write/script-theme": "*",
     "@codemirror/theme-one-dark": "^6.1.3",
     "@codemirror/view": "^6.39.9",
     "@dnd-kit/core": "^6.3.1",
