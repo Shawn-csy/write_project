@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { buildFilename, downloadText } from "@/lib/download";
 
 function getOrCreateVisitorId(): string {
   try {
@@ -22,14 +23,18 @@ export interface PublicReaderActions {
   liked: boolean;
   likeInFlight: boolean;
   copied: boolean;
+  canDownload: boolean;
   handleLike: () => Promise<void>;
   handleShare: () => Promise<void>;
+  handleDownloadTxt: () => void;
 }
 
 export function usePublicReaderActions(
   scriptId: string,
   initialViews: number,
-  initialLikes: number
+  initialLikes: number,
+  scriptTitle: string,
+  scriptContent: string,
 ): PublicReaderActions {
   const [views, setViews] = useState(initialViews);
   const [likes, setLikes] = useState(initialLikes);
@@ -96,5 +101,13 @@ export function usePublicReaderActions(
     window.prompt("複製連結：", url);
   }, []);
 
-  return { views, likes, liked, likeInFlight, copied, handleLike, handleShare };
+  const handleDownloadTxt = useCallback(() => {
+    downloadText(scriptContent, buildFilename(scriptTitle, "txt"));
+  }, [scriptTitle, scriptContent]);
+
+  return {
+    views, likes, liked, likeInFlight, copied,
+    canDownload: scriptContent.length > 0,
+    handleLike, handleShare, handleDownloadTxt,
+  };
 }

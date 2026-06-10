@@ -1,7 +1,7 @@
 "use client";
 
 import type { PublicScript } from "@/lib/types";
-import { getMediaCropStyle } from "@/lib/mediaCrop";
+import { getMediaCropStyle } from "@write/media-crop";
 import { ScriptCard } from "@/components/ScriptCard";
 
 interface SeriesMeta {

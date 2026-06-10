@@ -1,4 +1,5 @@
 import React from "react";
+import * as Popover from "@radix-ui/react-popover";
 import type { TocStateEntry } from "./useTocState";
 import type { ReaderTocState } from "./useReaderState";
 
@@ -51,23 +52,32 @@ export function TocMenu({
   };
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={toc.toggle}
-        aria-expanded={toc.isOpen}
-        className="text-xs px-2 py-1 rounded border border-border/60 text-muted-foreground hover:text-foreground hover:border-border transition-colors"
-      >
-        {triggerLabel} ({toc.entries.length})
-      </button>
-
-      {toc.isOpen && (
-        <div
-          role="navigation"
-          aria-label={triggerLabel}
-          className="absolute left-0 right-0 top-full border-t border-border/60 bg-background max-h-48 overflow-y-auto z-40"
+    <Popover.Root
+      open={toc.isOpen}
+      onOpenChange={(open) => {
+        if (open) toc.open(); else toc.close();
+      }}
+    >
+      <Popover.Trigger asChild>
+        <button
+          type="button"
+          className="text-xs px-2 py-1 rounded border border-border/60 text-muted-foreground hover:text-foreground hover:border-border transition-colors"
         >
-          <div className="px-4 py-2">
+          {triggerLabel} ({toc.entries.length})
+        </button>
+      </Popover.Trigger>
+
+      <Popover.Portal>
+        <Popover.Content
+          align="end"
+          sideOffset={4}
+          aria-label={triggerLabel}
+          className="z-50 w-72 max-h-60 overflow-y-auto rounded-md border border-border bg-background shadow-md outline-none"
+        >
+          <nav
+            aria-label={triggerLabel}
+            className="px-3 py-2"
+          >
             {toc.entries.map((entry) =>
               renderItem ? (
                 <React.Fragment key={entry.id}>
@@ -82,9 +92,9 @@ export function TocMenu({
                 />
               )
             )}
-          </div>
-        </div>
-      )}
-    </>
+          </nav>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }

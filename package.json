@@ -23,6 +23,8 @@
     "script:test-parsing": "tsx scripts/test_parsing.ts"
   },
   "dependencies": {
+    "@write/browser-download": "*",
+    "@write/media-crop": "*",
     "@write/script-engine": "*",
     "@write/script-reader-renderer": "*",
     "@write/script-reader-ui": "*",

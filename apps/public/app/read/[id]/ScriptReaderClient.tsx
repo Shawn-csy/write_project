@@ -3,7 +3,12 @@
 import React, { useMemo } from "react";
 import type { PublicScript } from "@/lib/types";
 import type { RenderBlock, TocEntry, MarkerConfig } from "@write/script-engine";
-import { useReaderState, createLocalStorageReaderStorage } from "@write/script-reader-ui";
+import {
+  useReaderState,
+  createLocalStorageReaderStorage,
+  resolveReaderFontFamily,
+  useReaderThemeClass,
+} from "@write/script-reader-ui";
 import { ScriptContentRenderer } from "./ScriptContentRenderer";
 import { PublicReaderHeader } from "./PublicReaderHeader";
 import { ReaderToolbar } from "./ReaderToolbar";
@@ -27,7 +32,9 @@ export function ScriptReaderClient({
   const actions = usePublicReaderActions(
     scriptId,
     initialScript.views ?? 0,
-    initialScript.likes ?? 0
+    initialScript.likes ?? 0,
+    initialScript.title,
+    initialScript.content ?? "",
   );
 
   const storage = useMemo(
@@ -35,7 +42,22 @@ export function ScriptReaderClient({
     [scriptId]
   );
 
-  const readerState = useReaderState({ markerConfigs, toc, storage });
+  // Global adapter — not scoped to scriptId so preferences persist across scripts.
+  const globalStorage = useMemo(
+    () => createLocalStorageReaderStorage("public-reader"),
+    []
+  );
+
+  const readerState = useReaderState({
+    markerConfigs,
+    toc,
+    storage,
+    preferencesStorage: globalStorage,
+  });
+
+  const { theme, fontSize, lineHeight, fontFamily } = readerState.preferences.preferences;
+  useReaderThemeClass(theme);
+  const readingFontFamily = resolveReaderFontFamily(fontFamily);
 
   return (
     <div className="min-h-screen bg-background">
@@ -48,6 +70,9 @@ export function ScriptReaderClient({
           blocks={renderBlocks}
           markerConfigs={markerConfigs}
           hiddenMarkerIds={readerState.markerVisibility.hiddenMarkerIds}
+          fontSize={fontSize}
+          lineHeight={lineHeight}
+          readingFontFamily={readingFontFamily}
           className="border-t border-border/40 pt-6"
         />
 

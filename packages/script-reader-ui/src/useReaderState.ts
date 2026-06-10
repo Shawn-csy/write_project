@@ -1,6 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MarkerConfigLike, ReaderMarkerVisibility } from "./useReaderMarkerVisibility";
 import type { TocStateEntry } from "./useTocState";
+import {
+  DEFAULT_READER_PREFERENCES,
+  READER_FONT_SIZES,
+  READER_LINE_HEIGHTS,
+  READER_FONT_FAMILIES,
+} from "./readerPreferences";
+import type {
+  ReaderPreferences,
+  ReaderPreferencesState,
+  ReaderTheme,
+  ReaderFontSize,
+  ReaderLineHeight,
+  ReaderFontFamily,
+} from "./readerPreferences";
+
+export type { ReaderPreferences, ReaderPreferencesState, ReaderTheme, ReaderFontSize, ReaderLineHeight, ReaderFontFamily };
 
 export interface ReaderStorageAdapter {
   get(key: string): string | null;
@@ -21,8 +37,17 @@ export interface ReaderTocState {
 export interface ReaderStateOptions {
   markerConfigs: MarkerConfigLike[];
   toc: TocStateEntry[];
-  /** Storage adapter for persisting reader preferences. Omit or pass null to disable persistence. */
+  /**
+   * Storage adapter for marker visibility persistence (per-script).
+   * Omit or pass null to disable.
+   */
   storage?: ReaderStorageAdapter | null;
+  /**
+   * Storage adapter for reading preferences (global/user-level).
+   * Defaults to `storage` if not provided.
+   * Pass a separate global adapter so preferences are not scoped per-script.
+   */
+  preferencesStorage?: ReaderStorageAdapter | null;
   /** Storage key prefix. Default: "reader". */
   storageKey?: string;
 }
@@ -31,9 +56,11 @@ export interface ReaderState {
   markerConfigs: MarkerConfigLike[];
   markerVisibility: ReaderMarkerVisibility;
   toc: ReaderTocState;
+  preferences: ReaderPreferencesState;
 }
 
 const HIDDEN_IDS_KEY = "hiddenMarkerIds";
+const PREFS_KEY = "preferences";
 
 function safeGet(storage: ReaderStorageAdapter, key: string): string | null {
   try { return storage.get(key); } catch { return null; }
@@ -58,21 +85,58 @@ function parseStoredHiddenIds(raw: string | null): string[] {
   }
 }
 
+function parseStoredPreferences(raw: string | null): Partial<ReaderPreferences> {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    const out: Partial<ReaderPreferences> = {};
+    const p = parsed as Record<string, unknown>;
+    if (["light", "dark", "system"].includes(p.theme as string)) {
+      out.theme = p.theme as ReaderTheme;
+    }
+    if (READER_FONT_SIZES.includes(p.fontSize as ReaderFontSize)) {
+      out.fontSize = p.fontSize as ReaderFontSize;
+    }
+    if (READER_LINE_HEIGHTS.includes(p.lineHeight as ReaderLineHeight)) {
+      out.lineHeight = p.lineHeight as ReaderLineHeight;
+    }
+    if (READER_FONT_FAMILIES.includes(p.fontFamily as ReaderFontFamily)) {
+      out.fontFamily = p.fontFamily as ReaderFontFamily;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 export function useReaderState({
   markerConfigs,
   toc: tocEntries,
   storage,
+  preferencesStorage: preferencesStorageProp,
   storageKey = "reader",
 }: ReaderStateOptions): ReaderState {
+  // If no preferencesStorage specified, fall back to storage (backward compat).
+  // Callers should pass a separate global adapter to avoid per-script scoping.
+  const preferencesStorage = preferencesStorageProp !== undefined ? preferencesStorageProp : storage;
   const hiddenKey = `${storageKey}:${HIDDEN_IDS_KEY}`;
+  const prefsKey = `${storageKey}:${PREFS_KEY}`;
 
   // Always start from [] on initial render so server HTML and client first render match.
   // Storage restore happens after mount in the effect below.
   const [hiddenMarkerIds, setHiddenMarkerIds] = useState<string[]>([]);
   const [storageHydrated, setStorageHydrated] = useState(storage == null);
 
+  // Preferences also start from defaults on initial render; restored after mount.
+  const [preferences, setPreferences] = useState<ReaderPreferences>(DEFAULT_READER_PREFERENCES);
+  const [prefsMounted, setPrefsMounted] = useState(false);
+
   const storageRef = useRef(storage);
   storageRef.current = storage;
+
+  const preferencesStorageRef = useRef(preferencesStorage);
+  preferencesStorageRef.current = preferencesStorage;
 
   const hydrationRef = useRef<{
     hiddenKey: string;
@@ -130,6 +194,19 @@ export function useReaderState({
     setStorageHydrated(true);
   }, [hiddenKey, markerConfigs, storage]);
 
+  // After mount: restore preferences from storage. No dependency on markerConfigs.
+  useEffect(() => {
+    setPrefsMounted(true);
+    const s = preferencesStorageRef.current;
+    if (!s) return;
+    const stored = parseStoredPreferences(safeGet(s, prefsKey));
+    if (Object.keys(stored).length > 0) {
+      setPreferences((prev) => ({ ...prev, ...stored }));
+    }
+  // prefsKey intentionally stable across renders unless storageKey changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefsKey]);
+
   // Persist whenever hiddenMarkerIds changes, but only after storage hydration
   // completes (avoid writing empty [] back over stored data before restore).
   useEffect(() => {
@@ -142,6 +219,28 @@ export function useReaderState({
       safeSet(s, hiddenKey, JSON.stringify(hiddenMarkerIds));
     }
   }, [hiddenMarkerIds, hiddenKey, storageHydrated]);
+
+  // Persist preferences after mount (avoid overwriting stored data before restore).
+  // Only write when preferences differ from defaults — avoids writing default values
+  // on first open before the user has changed anything.
+  useEffect(() => {
+    if (!prefsMounted) return;
+    const s = preferencesStorageRef.current;
+    if (!s) return;
+    const delta: Partial<ReaderPreferences> = {};
+    let hasDelta = false;
+    for (const k of Object.keys(DEFAULT_READER_PREFERENCES) as (keyof ReaderPreferences)[]) {
+      if (preferences[k] !== DEFAULT_READER_PREFERENCES[k]) {
+        (delta as Record<string, unknown>)[k] = preferences[k];
+        hasDelta = true;
+      }
+    }
+    if (hasDelta) {
+      safeSet(s, prefsKey, JSON.stringify(delta));
+    } else {
+      safeRemove(s, prefsKey);
+    }
+  }, [preferences, prefsKey, prefsMounted]);
 
   // Prune hidden ids that no longer exist in markerConfigs.
   useEffect(() => {
@@ -219,5 +318,24 @@ export function useReaderState({
     [tocEntries, tocIsOpen, activeId, tocOpen, tocClose, tocToggle, tocSetActiveId]
   );
 
-  return { markerConfigs, markerVisibility, toc };
+  // Preferences setters
+  const setTheme = useCallback((theme: ReaderTheme) => setPreferences((p) => ({ ...p, theme })), []);
+  const setFontSize = useCallback((fontSize: ReaderFontSize) => setPreferences((p) => ({ ...p, fontSize })), []);
+  const setLineHeight = useCallback((lineHeight: ReaderLineHeight) => setPreferences((p) => ({ ...p, lineHeight })), []);
+  const setFontFamily = useCallback((fontFamily: ReaderFontFamily) => setPreferences((p) => ({ ...p, fontFamily })), []);
+  const resetPreferences = useCallback(() => setPreferences(DEFAULT_READER_PREFERENCES), []);
+
+  const preferencesState: ReaderPreferencesState = useMemo(
+    () => ({
+      preferences,
+      setTheme,
+      setFontSize,
+      setLineHeight,
+      setFontFamily,
+      reset: resetPreferences,
+    }),
+    [preferences, setTheme, setFontSize, setLineHeight, setFontFamily, resetPreferences]
+  );
+
+  return { markerConfigs, markerVisibility, toc, preferences: preferencesState };
 }

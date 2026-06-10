@@ -1,6 +1,6 @@
 # Public Reader Replacement Plan
 
-Last updated: 2026-06-09 (Phase 3 complete)
+Last updated: 2026-06-10 (Phase 4 reading preferences + download/export + consent complete)
 
 ## Purpose
 
@@ -148,10 +148,10 @@ The public reader is considered replacement-ready only when the following catego
 | Marker visibility | User can hide/show marker content | `@write/script-reader-ui` + renderer | Done |
 | TOC | Reader can open TOC and jump to sections | `@write/script-reader-ui` | Done (disclosure panel; no Radix keyboard/focus yet) |
 | Public actions | view, like, share | `apps/public` | Partial |
-| Reading preferences | font, font size, line height, theme | `@write/script-reader-ui` | Not started |
-| Legal consent | terms/consent flow where required | `apps/public` + shared UI if reusable | Not started |
-| Discovery | series, author, org, tags navigation | `apps/public` | Partial |
-| Export/download | reader-facing download/export actions | shared UI + app adapters | Not started |
+| Reading preferences | font, font size, line height, theme | `@write/script-reader-ui` | Done |
+| Legal consent | terms/consent flow where required | `apps/public` | Done |
+| Discovery | series, author, org, tags navigation | `apps/public` | Done |
+| Export/download | reader-facing download/export actions | `apps/public` + `@write/browser-download` | Done (plain text .txt; no auth required; rich export endpoints are auth-gated and intentionally excluded from public reader scope) |
 | SEO | metadata and structured data | `apps/public` | Partial |
 
 ## Execution Plan
@@ -177,13 +177,15 @@ Goal: move reader controls out of `apps/public` and into shared reader UI where 
 
 Done:
 
-1. `useTocState` + `TocMenu` added to `@write/script-reader-ui` (10 tests).
+1. `useTocState` + `TocMenu` added to `@write/script-reader-ui` (12 `TocMenu` tests, 5 `useTocState` tests).
 2. Shared `ReaderToolbar` introduced with `startSlot`/`endSlot`/`contentClassName` slots (6 tests).
 3. `apps/public/app/read/[id]/ReaderToolbar.tsx` is now a thin adapter: owns `useTocState`, passes back link via `startSlot`, passes `contentClassName="max-w-4xl mx-auto"` to match body layout width.
 4. Public API actions remain in `apps/public`.
 5. `exportMetadata.test.ts` pre-existing failure also fixed (license rows format regression).
 
-Open item: `TocMenu` uses a self-managed disclosure panel, not Radix. No outside-click, Esc, or focus management. Acceptable for now; should be addressed in Phase 4 if TOC accessibility becomes a requirement.
+Accessibility note: `TocMenu` and `ReaderPreferencesPanel` use Radix Popover primitives for trigger state, Esc, outside-click dismissal, portal rendering, and focus handling.
+
+Theme note: reader theme class management lives in `useReaderThemeClass(theme)` inside `@write/script-reader-ui`; host apps should not hand-roll `<html>` class transitions.
 
 ### Phase 3: Reader State Model ✓ Complete
 
@@ -194,26 +196,26 @@ Done:
 - `useReaderState` is the canonical reader state hook. All new code should use it.
 - `ReaderStorageAdapter` interface decouples persistence from `localStorage`.
 - `createLocalStorageReaderStorage(prefix)` — browser `localStorage` adapter in `readerStorage.ts`.
-- `useReaderState` accepts optional `storage` adapter + `storageKey`; `null`/`undefined` disables persistence.
+- `useReaderState` accepts `storage` (per-script marker visibility) + `preferencesStorage` (global user preferences); both optional, `null` disables.
 - Storage unavailable (throws) silently ignored — no crash.
 - Stale `hiddenMarkerIds` pruned when `markerConfigs` changes.
 - Restores `hiddenMarkerIds` from storage on mount; filters ids not in current configs.
 - TOC is a real document-derived state model: `{ entries, isOpen, activeId, open, close, toggle, setActiveId }`.
-- `ReaderState` exposes `{ markerConfigs, markerVisibility, toc }`.
+- `ReaderState` exposes `{ markerConfigs, markerVisibility, toc, preferences }`.
 - `ReaderToolbar` accepts a single `readerState` prop — self-contained, no separate config/visibility/toc props.
 - `useReaderMarkerVisibility` is a compat wrapper over `useReaderState`; contains no own state logic.
-- `ScriptReaderClient` uses `useReaderState` with `createLocalStorageReaderStorage` scoped to `scriptId`.
+- `ScriptReaderClient` uses `useReaderState` with per-script `storage` + global `preferencesStorage` (`createLocalStorageReaderStorage("public-reader")`).
 - App `ReaderToolbar` adapter passes `readerState` through; no owned state.
-- 22 tests in `useReaderState.test.ts`: markerVisibility, toc model, stale pruning, storage persist/restore/unavailable/null/undefined.
+- 36 tests in `useReaderState.test.ts`: markerVisibility, toc model, stale pruning, storage persist/restore/unavailable/null/undefined, preferences (setters/reset/persist/restore/invalid values/separate storage/delta-only write).
 
 State groups currently in `useReaderState`:
 
 - marker visibility (hidden ids, counts, toggle/show/hide)
 - TOC (entries, open/close, activeId)
+- reading preferences (theme, fontSize, lineHeight, fontFamily) — stored in storage, restored after mount
 
-Not yet in `useReaderState` (Phase 4):
+Not yet in `useReaderState`:
 
-- reading preferences: font, font size, line height, theme
 - transient UI: copied state
 
 ### Phase 4: Public Reader Feature Completion
@@ -223,11 +225,11 @@ Goal: complete user-facing reader capability after the shared boundaries are sta
 Priority order:
 
 1. ~~TOC as shared UI.~~ Done in Phase 2.
-2. Reading preferences.
-3. Download/export actions.
-4. Terms/consent flow.
-5. Series related scripts and navigation.
-6. Author/org/tag navigation consistency.
+2. ~~Reading preferences.~~ Done: `ReaderPreferencesPanel`, `resolveReaderFontFamily`, and `useReaderThemeClass` in `@write/script-reader-ui`; wired to `ScriptContentRenderer` (fontSize/lineHeight/readingFontFamily). Covered by 14 `ReaderPreferencesPanel` tests and 5 `useReaderThemeClass` tests.
+3. ~~Download/export actions.~~ Done: `@write/browser-download` shared package (`sanitizeBaseFilename`, `buildFilename`, `downloadBlob`, `downloadText`); `src/lib/download.ts` and `apps/public/lib/download.ts` are thin re-exports. `handleDownloadTxt` in `usePublicReaderActions`; button gated on `canDownload` (content non-empty); 14 unit tests in `@write/browser-download`, 3 integration tests in `ScriptReaderClient.test.tsx`.
+4. ~~Terms/consent flow.~~ Done: `ConsentGate` in `apps/public`; fetches `/api/public-terms-config`, gates reader until all `requiredChecks` ticked, POSTs to `/api/public-terms-acceptances`, stores accepted version in localStorage so same version not re-prompted. Fails open if config unavailable. 7 tests in `ConsentGate.test.tsx`.
+5. ~~Series related scripts and navigation.~~ Done: series page existed; `ScriptCard` now links series name → `/series/:name`.
+6. ~~Author/org/tag navigation consistency.~~ Done: `ScriptCard` restructured from wrapping `<a>` to `<article>` with individual links (title→read, author→/author/:id, series→/series/:name, org→/org/:id, tags→/tag/:name); `/app/tag/[name]/` page created (SSR, ISR 1h, bundle-filtered); tags made clickable in `PublicReaderHeader`, `AuthorPageClient`, `OrgPageClient`, `GalleryClient`.
 7. Optional speech/reading features.
 
 Implementation rule:
@@ -264,15 +266,7 @@ Required verification:
 
 ## Immediate Next Step
 
-Phase 3 is complete. The next step is Phase 4: Public Reader Feature Completion.
-
-Priority:
-
-1. Reading preferences — font, font size, line height, theme. Extend `useReaderState` with preference state + storage keys. Add shared preference UI controls to `@write/script-reader-ui`.
-2. Download/export actions — wire reader-facing export to existing export infrastructure.
-3. TOC accessibility — migrate `TocMenu` from self-managed disclosure to Radix Popover/DropdownMenu for Esc, outside-click, and focus management.
-
-Do not start with terms/consent or series navigation until reading preferences are wired.
+Phase 4 priorities 5+6 complete. Next: Phase 4 priority 7 (optional speech/reading features) or Phase 5 replacement readiness.
 
 ## Known Issues
 
