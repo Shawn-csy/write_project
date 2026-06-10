@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { PublicPersona, PublicScript } from "@/lib/types";
-import { getMediaCropStyle } from "@/lib/mediaCrop";
+import { getMediaCropStyle } from "@write/media-crop";
 import { ScriptCard } from "@/components/ScriptCard";
 
 interface Props {
@@ -125,12 +125,13 @@ export function AuthorPageClient({ persona, scripts }: Props) {
               {persona.tags && persona.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {persona.tags.map((tag, i) => (
-                    <span
+                    <a
                       key={i}
-                      className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground"
+                      href={`/tag/${encodeURIComponent(tag)}`}
+                      className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-colors"
                     >
                       {tag}
-                    </span>
+                    </a>
                   ))}
                 </div>
               )}

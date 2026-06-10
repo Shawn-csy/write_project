@@ -4,7 +4,7 @@
  * Handles coverCrop via getMediaCropStyle.
  */
 
-import { getMediaCropStyle } from "@/lib/mediaCrop";
+import { getMediaCropStyle } from "@write/media-crop";
 
 interface Tag {
   id?: string;
@@ -49,15 +49,18 @@ export function ScriptCard({ script, href }: Props) {
   );
   const tags = (script.tags ?? []).slice(0, 3);
   const authorName = getAuthorName(script);
-  const target = href ?? `/read/${script.id}`;
+  const readTarget = href ?? `/read/${script.id}`;
+  // Only link /author/:id when persona.id exists — /author route is persona-scoped
+  const authorHref = script.persona?.id ? `/author/${script.persona.id}` : null;
+  const seriesHref = script.series?.name
+    ? `/series/${encodeURIComponent(script.series.name)}`
+    : null;
+  const orgHref = script.organization?.id ? `/org/${script.organization.id}` : null;
 
   return (
-    <a
-      href={target}
-      className="group flex flex-col rounded-xl border border-border/60 bg-background overflow-hidden hover:border-primary/50 hover:shadow-sm transition-all"
-    >
-      {/* Cover */}
-      <div className="aspect-[2/3] bg-muted relative overflow-hidden">
+    <article className="flex flex-col rounded-xl border border-border/60 bg-background overflow-hidden hover:border-primary/50 hover:shadow-sm transition-all">
+      {/* Cover — full clickable area to read */}
+      <a href={readTarget} className="group block aspect-[2/3] bg-muted relative overflow-hidden">
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -79,33 +82,57 @@ export function ScriptCard({ script, href }: Props) {
             #{script.seriesOrder}
           </div>
         )}
-      </div>
+      </a>
 
       {/* Info */}
       <div className="p-3 flex flex-col gap-1 flex-1">
-        <p className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors leading-snug">
+        <a
+          href={readTarget}
+          className="text-sm font-medium line-clamp-2 hover:text-primary transition-colors leading-snug"
+        >
           {script.title}
-        </p>
+        </a>
 
         {authorName && (
-          <p className="text-xs text-muted-foreground line-clamp-1">{authorName}</p>
+          authorHref ? (
+            <a href={authorHref} className="text-xs text-muted-foreground line-clamp-1 hover:text-foreground transition-colors">
+              {authorName}
+            </a>
+          ) : (
+            <p className="text-xs text-muted-foreground line-clamp-1">{authorName}</p>
+          )
         )}
 
         {script.series?.name && (
-          <p className="text-xs text-muted-foreground/70 line-clamp-1">
-            {script.series.name}
-          </p>
+          seriesHref ? (
+            <a href={seriesHref} className="text-xs text-muted-foreground/70 line-clamp-1 hover:text-muted-foreground transition-colors">
+              {script.series.name}
+            </a>
+          ) : (
+            <p className="text-xs text-muted-foreground/70 line-clamp-1">{script.series.name}</p>
+          )
+        )}
+
+        {script.organization?.name && !script.series?.name && (
+          orgHref ? (
+            <a href={orgHref} className="text-xs text-muted-foreground/70 line-clamp-1 hover:text-muted-foreground transition-colors">
+              {script.organization.name}
+            </a>
+          ) : (
+            <p className="text-xs text-muted-foreground/70 line-clamp-1">{script.organization.name}</p>
+          )
         )}
 
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-auto pt-1">
             {tags.map((tag) => (
-              <span
+              <a
                 key={tag.id ?? tag.name}
-                className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground"
+                href={`/tag/${encodeURIComponent(tag.name)}`}
+                className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-colors"
               >
                 {tag.name}
-              </span>
+              </a>
             ))}
           </div>
         )}
@@ -118,6 +145,6 @@ export function ScriptCard({ script, href }: Props) {
           </div>
         )}
       </div>
-    </a>
+    </article>
   );
 }

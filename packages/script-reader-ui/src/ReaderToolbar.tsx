@@ -1,6 +1,7 @@
 import React from "react";
 import { MarkerVisibilityMenu } from "./MarkerVisibilityMenu";
 import { TocMenu } from "./TocMenu";
+import { ReaderPreferencesPanel } from "./ReaderPreferencesPanel";
 import type { ReaderState } from "./useReaderState";
 import type { TocStateEntry } from "./useTocState";
 
@@ -40,6 +41,7 @@ export function ReaderToolbar({
             onItemClick={onTocItemClick}
             renderItem={renderTocItem}
           />
+          <ReaderPreferencesPanel preferences={readerState.preferences} />
           {endSlot}
         </div>
       </div>

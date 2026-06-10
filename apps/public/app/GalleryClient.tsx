@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { PublicScript, PublicPersona, PublicOrg } from "@/lib/types";
+import { ScriptCard } from "@/components/ScriptCard";
 
 interface Props {
   initialScripts: PublicScript[];
@@ -20,53 +21,6 @@ function matchesSearch(text: string, q: string): boolean {
 }
 
 // ─── sub-components ────────────────────────────────────────────────────────
-
-function ScriptCard({ script }: { script: PublicScript }) {
-  const tags = scriptTags(script);
-  return (
-    <a
-      href={`/read/${script.id}`}
-      className="group flex flex-col rounded-xl border border-border/60 bg-background overflow-hidden hover:border-primary/50 hover:shadow-sm transition-all"
-    >
-      <div className="aspect-[2/3] bg-muted relative overflow-hidden">
-        {script.coverUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={script.coverUrl}
-            alt={script.title}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center p-4">
-            <span className="text-xs text-muted-foreground text-center line-clamp-4 leading-relaxed">
-              {script.title}
-            </span>
-          </div>
-        )}
-      </div>
-      <div className="p-3 flex flex-col gap-1 flex-1">
-        <p className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors leading-snug">
-          {script.title}
-        </p>
-        {(script.persona?.displayName || script.owner?.displayName) && (
-          <p className="text-xs text-muted-foreground line-clamp-1">
-            {script.persona?.displayName ?? script.owner?.displayName}
-          </p>
-        )}
-        {tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-1">
-            {tags.slice(0, 3).map((tag) => (
-              <span key={tag} className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-    </a>
-  );
-}
 
 function AuthorCard({ author }: { author: PublicPersona }) {
   return (

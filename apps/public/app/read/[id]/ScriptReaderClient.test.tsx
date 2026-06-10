@@ -21,6 +21,13 @@ import { parseScreenplay, toRenderBlocks, normalizeMarkerConfigsSchema } from "@
 import type { MarkerConfig } from "@write/script-engine";
 import { ScriptReaderClient } from "./ScriptReaderClient";
 
+vi.mock("@write/browser-download", () => ({
+  sanitizeBaseFilename: (v: string) => v.toLowerCase().replace(/\s+/g, "_"),
+  buildFilename: (base: string, ext: string) => `${base.toLowerCase().replace(/\s+/g, "_")}.${ext}`,
+  downloadBlob: vi.fn(),
+  downloadText: vi.fn(),
+}));
+
 // ---------------------------------------------------------------------------
 // Fixtures
 // ---------------------------------------------------------------------------
@@ -164,6 +171,57 @@ describe("ScriptReaderClient — Next host assembly", () => {
       expect(screen.queryByText("beta content")).not.toBeNull();
       expect(screen.queryByText("標記 (1/2)")).not.toBeNull();
     });
+  });
+
+  it("download button hidden when content is absent", async () => {
+    const { markerConfigs, renderBlocks } = buildProps();
+    await act(async () => {
+      render(
+        <ScriptReaderClient
+          scriptId="test-script-id"
+          initialScript={{ ...MINIMAL_SCRIPT }}  // no content field
+          renderBlocks={renderBlocks}
+          markerConfigs={markerConfigs}
+          toc={[]}
+        />
+      );
+    });
+    expect(screen.queryByRole("button", { name: /下載 .txt/i })).toBeNull();
+  });
+
+  it("download button visible when content is present", async () => {
+    const { markerConfigs, renderBlocks } = buildProps();
+    await act(async () => {
+      render(
+        <ScriptReaderClient
+          scriptId="test-script-id"
+          initialScript={{ ...MINIMAL_SCRIPT, content: SCRIPT_TEXT }}
+          renderBlocks={renderBlocks}
+          markerConfigs={markerConfigs}
+          toc={[]}
+        />
+      );
+    });
+    expect(screen.getByRole("button", { name: /下載 .txt/i })).toBeTruthy();
+  });
+
+  it("download button calls downloadText with script content and sanitized filename", async () => {
+    const { downloadText } = await import("@write/browser-download");
+    const user = userEvent.setup();
+    const { markerConfigs, renderBlocks } = buildProps();
+    await act(async () => {
+      render(
+        <ScriptReaderClient
+          scriptId="test-script-id"
+          initialScript={{ ...MINIMAL_SCRIPT, content: SCRIPT_TEXT }}
+          renderBlocks={renderBlocks}
+          markerConfigs={markerConfigs}
+          toc={[]}
+        />
+      );
+    });
+    await user.click(screen.getByRole("button", { name: /下載 .txt/i }));
+    expect(downloadText).toHaveBeenCalledWith(SCRIPT_TEXT, "test_script_title.txt");
   });
 
   it("no marker trigger when markerConfigs is empty", async () => {

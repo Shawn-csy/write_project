@@ -73,9 +73,13 @@ export function PublicReaderHeader({ script, actions }: Props) {
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-3">
           {tags.map((tag) => (
-            <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+            <a
+              key={tag}
+              href={`/tag/${encodeURIComponent(tag)}`}
+              className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-colors"
+            >
               {tag}
-            </span>
+            </a>
           ))}
         </div>
       )}
@@ -107,6 +111,15 @@ export function PublicReaderHeader({ script, actions }: Props) {
         >
           {actions.copied ? "已複製！" : "分享連結"}
         </button>
+        {actions.canDownload && (
+          <button
+            type="button"
+            onClick={actions.handleDownloadTxt}
+            className="text-xs px-2 py-1 rounded border border-border/60 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            下載 .txt
+          </button>
+        )}
       </div>
     </header>
   );

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import type { PublicScript } from "@/lib/types";
 import { ScriptReaderClient } from "./ScriptReaderClient";
+import { ConsentGate } from "./ConsentGate";
 import { parseScreenplay, toRenderBlocks } from "@write/script-engine";
 import { resolveMarkerConfigs } from "@/lib/markerThemeResolver";
 import type { RenderBlock, TocEntry, MarkerConfig } from "@write/script-engine";
@@ -181,13 +182,15 @@ export default async function ScriptReaderPage({
         server (SSR) and after hydration — no duplicate, no flash.
         The client component itself handles the sticky nav + header + content.
       */}
-      <ScriptReaderClient
-        scriptId={id}
-        initialScript={script}
-        renderBlocks={renderBlocks}
-        markerConfigs={markerConfigs}
-        toc={toc}
-      />
+      <ConsentGate scriptId={id}>
+        <ScriptReaderClient
+          scriptId={id}
+          initialScript={script}
+          renderBlocks={renderBlocks}
+          markerConfigs={markerConfigs}
+          toc={toc}
+        />
+      </ConsentGate>
     </>
   );
 }

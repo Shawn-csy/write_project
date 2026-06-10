@@ -17,6 +17,7 @@ import { describe, it, expect } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useReaderState } from "../useReaderState";
 import type { ReaderStorageAdapter } from "../useReaderState";
+import { DEFAULT_READER_PREFERENCES } from "../readerPreferences";
 
 const CONFIGS = [
   { id: "alpha", label: "Alpha" },
@@ -151,6 +152,170 @@ describe("useReaderState — toc", () => {
     act(() => { result.current.toc.setActiveId("s1"); });
     rerender({ toc: [{ id: "s1", label: "Scene 1 (updated)" }] });
     expect(result.current.toc.activeId).toBe("s1");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// preferences
+// ---------------------------------------------------------------------------
+
+describe("useReaderState — preferences", () => {
+  it("starts with defaults", () => {
+    const { result } = renderHook(() => useReaderState({ markerConfigs: CONFIGS, toc: TOC }));
+    expect(result.current.preferences.preferences).toEqual(DEFAULT_READER_PREFERENCES);
+  });
+
+  it("setTheme updates theme", () => {
+    const { result } = renderHook(() => useReaderState({ markerConfigs: CONFIGS, toc: TOC }));
+    act(() => { result.current.preferences.setTheme("dark"); });
+    expect(result.current.preferences.preferences.theme).toBe("dark");
+  });
+
+  it("setFontSize updates fontSize", () => {
+    const { result } = renderHook(() => useReaderState({ markerConfigs: CONFIGS, toc: TOC }));
+    act(() => { result.current.preferences.setFontSize(20); });
+    expect(result.current.preferences.preferences.fontSize).toBe(20);
+  });
+
+  it("setLineHeight updates lineHeight", () => {
+    const { result } = renderHook(() => useReaderState({ markerConfigs: CONFIGS, toc: TOC }));
+    act(() => { result.current.preferences.setLineHeight(2.0); });
+    expect(result.current.preferences.preferences.lineHeight).toBe(2.0);
+  });
+
+  it("setFontFamily updates fontFamily", () => {
+    const { result } = renderHook(() => useReaderState({ markerConfigs: CONFIGS, toc: TOC }));
+    act(() => { result.current.preferences.setFontFamily("serif"); });
+    expect(result.current.preferences.preferences.fontFamily).toBe("serif");
+  });
+
+  it("reset restores defaults", () => {
+    const { result } = renderHook(() => useReaderState({ markerConfigs: CONFIGS, toc: TOC }));
+    act(() => {
+      result.current.preferences.setTheme("dark");
+      result.current.preferences.setFontSize(24);
+    });
+    act(() => { result.current.preferences.reset(); });
+    expect(result.current.preferences.preferences).toEqual(DEFAULT_READER_PREFERENCES);
+  });
+
+  it("persists preferences to storage", async () => {
+    const storage = makeStorage();
+    const { result } = renderHook(() =>
+      useReaderState({ markerConfigs: CONFIGS, toc: TOC, storage, storageKey: "test" })
+    );
+    act(() => { result.current.preferences.setTheme("dark"); });
+    await waitFor(() => {
+      const stored = JSON.parse(storage.store["test:preferences"] ?? "{}");
+      expect(stored.theme).toBe("dark");
+    });
+  });
+
+  it("only writes delta — default fields not stored", async () => {
+    const storage = makeStorage();
+    const { result } = renderHook(() =>
+      useReaderState({ markerConfigs: CONFIGS, toc: TOC, storage, storageKey: "test" })
+    );
+    act(() => { result.current.preferences.setTheme("dark"); });
+    await waitFor(() => {
+      expect(storage.store["test:preferences"]).toBeDefined();
+    });
+    const stored = JSON.parse(storage.store["test:preferences"]);
+    expect(stored).toEqual({ theme: "dark" });
+    expect(stored.fontSize).toBeUndefined();
+    expect(stored.lineHeight).toBeUndefined();
+    expect(stored.fontFamily).toBeUndefined();
+  });
+
+  it("restores preferences from storage after mount", async () => {
+    const stored = JSON.stringify({ theme: "dark", fontSize: 20, lineHeight: 1.8, fontFamily: "serif" });
+    const storage = makeStorage({ "test:preferences": stored });
+    const { result } = renderHook(() =>
+      useReaderState({ markerConfigs: CONFIGS, toc: TOC, storage, storageKey: "test" })
+    );
+    await waitFor(() => {
+      expect(result.current.preferences.preferences.theme).toBe("dark");
+      expect(result.current.preferences.preferences.fontSize).toBe(20);
+      expect(result.current.preferences.preferences.fontFamily).toBe("serif");
+    });
+  });
+
+  it("ignores invalid stored preference values", async () => {
+    const stored = JSON.stringify({ theme: "invalid-theme", fontSize: 999 });
+    const storage = makeStorage({ "test:preferences": stored });
+    const { result } = renderHook(() =>
+      useReaderState({ markerConfigs: CONFIGS, toc: TOC, storage, storageKey: "test" })
+    );
+    await waitFor(() => {
+      // Invalid values ignored; defaults used
+      expect(result.current.preferences.preferences.theme).toBe(DEFAULT_READER_PREFERENCES.theme);
+      expect(result.current.preferences.preferences.fontSize).toBe(DEFAULT_READER_PREFERENCES.fontSize);
+    });
+  });
+
+  it("does not write defaults to storage on first open", async () => {
+    const storage = makeStorage();
+    renderHook(() =>
+      useReaderState({ markerConfigs: CONFIGS, toc: TOC, storage, storageKey: "test" })
+    );
+    // Wait for effects to settle
+    await new Promise((r) => setTimeout(r, 0));
+    expect(storage.store["test:preferences"]).toBeUndefined();
+  });
+
+  it("reset removes preferences key from storage", async () => {
+    const storage = makeStorage();
+    const { result } = renderHook(() =>
+      useReaderState({ markerConfigs: CONFIGS, toc: TOC, storage, storageKey: "test" })
+    );
+    act(() => { result.current.preferences.setTheme("dark"); });
+    await waitFor(() => {
+      expect(storage.store["test:preferences"]).toBeDefined();
+    });
+    act(() => { result.current.preferences.reset(); });
+    await waitFor(() => {
+      expect(storage.store["test:preferences"]).toBeUndefined();
+    });
+  });
+
+  it("preferencesStorage separate from storage — preferences go to global adapter", async () => {
+    const markerStorage = makeStorage();
+    const globalStorage = makeStorage();
+    const { result } = renderHook(() =>
+      useReaderState({
+        markerConfigs: CONFIGS,
+        toc: TOC,
+        storage: markerStorage,
+        preferencesStorage: globalStorage,
+        storageKey: "test",
+      })
+    );
+    act(() => { result.current.preferences.setTheme("dark"); });
+    await waitFor(() => {
+      expect(globalStorage.store["test:preferences"]).toBeDefined();
+      expect(JSON.parse(globalStorage.store["test:preferences"]).theme).toBe("dark");
+    });
+    // Marker storage must not contain preferences key
+    expect(markerStorage.store["test:preferences"]).toBeUndefined();
+  });
+
+  it("preferencesStorage restores from global adapter independently of marker storage", async () => {
+    const stored = JSON.stringify({ theme: "dark", fontSize: 20, lineHeight: 1.8, fontFamily: "serif" });
+    const markerStorage = makeStorage();
+    const globalStorage = makeStorage({ "test:preferences": stored });
+    const { result } = renderHook(() =>
+      useReaderState({
+        markerConfigs: CONFIGS,
+        toc: TOC,
+        storage: markerStorage,
+        preferencesStorage: globalStorage,
+        storageKey: "test",
+      })
+    );
+    await waitFor(() => {
+      expect(result.current.preferences.preferences.theme).toBe("dark");
+      expect(result.current.preferences.preferences.fontSize).toBe(20);
+    });
   });
 });
 
