@@ -4,11 +4,13 @@
   "version": "0.5.0",
   "type": "module",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/public"
   ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:public": "npm run build -w apps/public",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

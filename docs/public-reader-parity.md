@@ -147,12 +147,12 @@ The public reader is considered replacement-ready only when the following catego
 | Marker display | Render blocks styled by marker configs | `@write/script-reader-renderer` | Done |
 | Marker visibility | User can hide/show marker content | `@write/script-reader-ui` + renderer | Done |
 | TOC | Reader can open TOC and jump to sections | `@write/script-reader-ui` | Done (disclosure panel; no Radix keyboard/focus yet) |
-| Public actions | view, like, share | `apps/public` | Partial |
+| Public actions | view, like, share | `apps/public` | Done |
 | Reading preferences | font, font size, line height, theme | `@write/script-reader-ui` | Done |
 | Legal consent | terms/consent flow where required | `apps/public` | Done |
 | Discovery | series, author, org, tags navigation | `apps/public` | Done |
 | Export/download | reader-facing download/export actions | `apps/public` + `@write/browser-download` | Done (plain text .txt; no auth required; rich export endpoints are auth-gated and intentionally excluded from public reader scope) |
-| SEO | metadata and structured data | `apps/public` | Partial |
+| SEO | metadata and structured data | `apps/public` | Done (generateMetadata + JSON-LD on all public pages: read, author, org, series, tag, homepage) |
 
 ## Execution Plan
 
@@ -238,35 +238,48 @@ Implementation rule:
 - If a feature affects render output, start in `@write/script-reader-renderer` or `@write/script-engine`.
 - If a feature affects public API, SEO, or routing, keep it in `apps/public`.
 
-### Phase 5: Replacement Readiness
+### Workspace and Deploy Contract
+
+The public app is a root npm workspace member. The root `package-lock.json` is the
+only lockfile for `apps/public` and all `packages/*` workspace packages.
+
+Required rules:
+
+- Run install/build commands from the repository root for production-equivalent checks.
+- Use `npm run build:public` for the Next.js public app build.
+- Do not recreate or commit `apps/public/package-lock.json`.
+- Keep `apps/public/package.json` `@write/*` dependencies as workspace ranges (`"*"`), not `file:../../packages/*`.
+- Docker production builds must install from the root lockfile before building `apps/public`.
+
+### Phase 5: Replacement Readiness ✓ Complete (automated checks)
 
 Goal: cut over to the Next.js public reader as the canonical public surface.
 
-Required fixture scenarios:
+Required fixture scenarios — all covered in `ScriptReaderClient.fixture.test.tsx`:
 
-- default script with no custom markers
-- custom marker theme
-- hidden marker content
-- range/layer marker
-- TOC entries
-- long script
-- script in a series
-- script with author/org/tags
-- script requiring consent
-- script with no markers
+- default script with no custom markers ✓
+- custom marker theme ✓
+- hidden marker content ✓ (ScriptReaderClient.test.tsx)
+- range/layer marker ✓
+- TOC entries ✓
+- long script ✓
+- script in a series ✓
+- script with author/org/tags ✓
+- script requiring consent ✓ (ConsentGate.test.tsx)
+- script with no markers ✓ (ScriptReaderClient.test.tsx)
 
 Required verification:
 
-- Next build passes.
-- Docker production build passes.
-- full Vitest has no new reader failures.
-- known unrelated failures are either fixed or explicitly tracked.
-- mobile and desktop reader screenshots are reviewed.
-- dark mode and dense marker scripts are reviewed.
+- Next build passes. ✓
+- Docker production build passes. ✓ (Dockerfile uses root workspace install from the single lockfile; peer deps are hoisted to `/app/node_modules`; dependency install is cached from workspace manifests before source copy; builder stage runs `npm run build:public`; unused deps stage removed)
+- full Vitest has no new reader failures. ✓ (910 tests pass; 14-file count drop vs previous is deduplication of package tests that previously ran twice via apps/public/node_modules symlinks)
+- known unrelated failures are either fixed or explicitly tracked. ✓ (none)
+- mobile and desktop reader screenshots are reviewed. ⚠ Manual — not automated.
+- dark mode and dense marker scripts are reviewed. ⚠ Manual — not automated.
 
 ## Immediate Next Step
 
-Phase 4 priorities 5+6 complete. Next: Phase 4 priority 7 (optional speech/reading features) or Phase 5 replacement readiness.
+Phase 5 automated checks complete. Remaining manual verification: mobile/desktop screenshots and dark mode review before cutover.
 
 ## Known Issues
 

@@ -70,8 +70,32 @@ export default async function TagPage({
 
   if (scripts.length === 0) notFound();
 
+  const canonicalUrl = `${BASE_URL}/tag/${name}`;
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: `#${tagName}`,
+    url: canonicalUrl,
+    inLanguage: "zh-Hant",
+    description: `標籤「${tagName}」的公開台本列表`,
+    hasPart: scripts.map((s) => ({
+      "@type": "CreativeWork",
+      name: s.title,
+      url: `${BASE_URL}/read/${s.id}`,
+    })),
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData)
+            .replace(/</g, "\\u003c")
+            .replace(/>/g, "\\u003e")
+            .replace(/&/g, "\\u0026"),
+        }}
+      />
       <PublicTopBar activeTab="scripts" showBack backHref="/" backLabel="返回" />
       <noscript>
         <article style={{ maxWidth: 800, margin: "0 auto", padding: "2rem", fontFamily: "serif" }}>

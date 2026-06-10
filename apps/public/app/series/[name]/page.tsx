@@ -95,8 +95,34 @@ export default async function SeriesPage({
     | null
     | undefined;
 
+  const canonicalUrl = `${BASE_URL}/series/${name}`;
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "CreativeWorkSeries",
+    name: seriesName,
+    url: canonicalUrl,
+    inLanguage: "zh-Hant",
+    ...(seriesMeta?.summary && { description: seriesMeta.summary }),
+    ...(seriesMeta?.coverUrl && { image: seriesMeta.coverUrl }),
+    hasPart: scripts.map((s) => ({
+      "@type": "CreativeWork",
+      name: s.title,
+      url: `${BASE_URL}/read/${s.id}`,
+      ...(s.seriesOrder != null && { position: s.seriesOrder }),
+    })),
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData)
+            .replace(/</g, "\\u003c")
+            .replace(/>/g, "\\u003e")
+            .replace(/&/g, "\\u0026"),
+        }}
+      />
       <PublicTopBar activeTab="scripts" showBack backHref="/" backLabel="返回" />
       <noscript>
         <article style={{ maxWidth: 800, margin: "0 auto", padding: "2rem", fontFamily: "serif" }}>
