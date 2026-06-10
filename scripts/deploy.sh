@@ -259,6 +259,31 @@ else
   fi
 fi
 
+echo "[deploy] waiting for public reader to be ready..."
+PUBLIC_CID="$(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps -q write_project-public 2>/dev/null || true)"
+if [ -z "$PUBLIC_CID" ]; then
+  echo "WARN: cannot find write_project-public container — skipping readiness check"
+else
+  PUBLIC_READY=0
+  for i in $(seq 1 30); do
+    STATUS="$(docker inspect -f '{{.State.Status}}' "$PUBLIC_CID" 2>/dev/null || true)"
+    if [ "$STATUS" = "running" ]; then
+      if docker exec "$PUBLIC_CID" node -e "fetch('http://127.0.0.1:3000/about').then(r => { if (r.ok) process.exit(0); process.exit(1); }).catch(() => process.exit(1));" >/dev/null 2>&1; then
+        PUBLIC_READY=1
+        break
+      fi
+    fi
+    sleep 2
+  done
+
+  if [ "$PUBLIC_READY" = "1" ]; then
+    echo "[deploy] public reader is up"
+  else
+    echo "WARN: public reader did not become ready in time — showing last 80 log lines:"
+    docker logs --tail=80 "$PUBLIC_CID" 2>&1 || true
+  fi
+fi
+
 echo "[deploy] service status:"
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
 
