@@ -30,6 +30,7 @@
     "@write/script-engine": "*",
     "@write/script-reader-renderer": "*",
     "@write/script-reader-ui": "*",
+    "@write/public-ui": "*",
     "@write/script-theme": "*",
     "@codemirror/theme-one-dark": "^6.1.3",
     "@codemirror/view": "^6.39.9",

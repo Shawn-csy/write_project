@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { PublicScript, PublicPersona, PublicOrg } from "@/lib/types";
-import { ScriptCard } from "@/components/ScriptCard";
+import { ScriptGalleryCard, HorizontalScrollLane } from "@write/public-ui";
+import type { ScriptGalleryItem } from "@write/public-ui";
 
 interface Props {
   initialScripts: PublicScript[];
@@ -18,6 +19,28 @@ function scriptTags(s: PublicScript): string[] {
 
 function matchesSearch(text: string, q: string): boolean {
   return text.toLowerCase().includes(q.toLowerCase());
+}
+
+function toGalleryItem(s: PublicScript): ScriptGalleryItem {
+  return {
+    id: s.id,
+    title: s.title,
+    coverUrl: s.coverUrl ?? null,
+    coverCrop: s.coverCrop ?? null,
+    coverDesign: s.coverDesign ?? null,
+    tags: s.tags,
+    views: s.views,
+    likes: s.likes,
+    contentLength: s.contentLength,
+    author: s.persona
+      ? { id: s.persona.id, displayName: s.persona.displayName, avatar: s.persona.avatar }
+      : s.owner
+      ? { id: s.owner.id, displayName: s.owner.displayName, avatar: s.owner.avatar }
+      : undefined,
+    _disableAuthorLink: !s.persona?.id,
+    seriesName: s.series?.name,
+    seriesOrder: s.seriesOrder,
+  };
 }
 
 // ─── sub-components ────────────────────────────────────────────────────────
@@ -76,6 +99,8 @@ function OrgCard({ org }: { org: PublicOrg }) {
 
 // ─── main component ────────────────────────────────────────────────────────
 
+const CARD_WIDTH = "min-w-[160px] w-[160px] sm:min-w-[180px] sm:w-[180px]";
+
 export function GalleryClient({ initialScripts }: Props) {
   const [tab, setTab] = useState<Tab>("scripts");
   const [searchTerm, setSearchTerm] = useState("");
@@ -83,6 +108,19 @@ export function GalleryClient({ initialScripts }: Props) {
   const [authors, setAuthors] = useState<PublicPersona[]>([]);
   const [orgs, setOrgs] = useState<PublicOrg[]>([]);
   const [loadingPeople, setLoadingPeople] = useState(false);
+
+  const handleNavigate = useCallback((id: string) => {
+    window.location.href = `/read/${id}`;
+  }, []);
+  const handleSeriesClick = useCallback((name: string) => {
+    window.location.href = `/series/${encodeURIComponent(name)}`;
+  }, []);
+  const handleTagClick = useCallback((tag: string) => {
+    window.location.href = `/tag/${encodeURIComponent(tag)}`;
+  }, []);
+  const handleAuthorClick = useCallback((authorId: string) => {
+    window.location.href = `/author/${authorId}`;
+  }, []);
 
   // Re-fetch bundle client-side to get fresh data after hydration
   useEffect(() => {
@@ -128,6 +166,33 @@ export function GalleryClient({ initialScripts }: Props) {
         scriptTags(s).some((t) => matchesSearch(t, q))
     );
   }, [scripts, searchTerm]);
+
+  const { latestLane, topViewedLane, seriesGroups } = useMemo(() => {
+    const sorted = [...scripts].sort((a, b) => (b.updatedAt ? Number(b.updatedAt) : 0) - (a.updatedAt ? Number(a.updatedAt) : 0));
+    const latest = sorted.slice(0, 20).map(toGalleryItem);
+    const topViewed = [...scripts]
+      .sort((a, b) => (b.views ?? 0) - (a.views ?? 0))
+      .slice(0, 20)
+      .map(toGalleryItem);
+    // Group by series — show series with ≥2 scripts
+    const bySeriesMap = new Map<string, PublicScript[]>();
+    for (const s of scripts) {
+      const name = s.series?.name;
+      if (!name) continue;
+      const existing = bySeriesMap.get(name) ?? [];
+      existing.push(s);
+      bySeriesMap.set(name, existing);
+    }
+    const groups = Array.from(bySeriesMap.entries())
+      .filter(([, arr]) => arr.length >= 2)
+      .sort((a, b) => b[1].length - a[1].length)
+      .slice(0, 3)
+      .map(([name, arr]) => ({
+        name,
+        items: arr.sort((a, b) => (a.seriesOrder ?? 999) - (b.seriesOrder ?? 999)).map(toGalleryItem),
+      }));
+    return { latestLane: latest, topViewedLane: topViewed, seriesGroups: groups };
+  }, [scripts]);
 
   const filteredAuthors = useMemo(() => {
     if (!searchTerm.trim()) return authors;
@@ -229,19 +294,103 @@ export function GalleryClient({ initialScripts }: Props) {
 
         {/* Scripts */}
         {tab === "scripts" && (
-          <div
-            className="grid gap-4"
-            style={{ gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))" }}
-          >
-            {filteredScripts.map((s) => (
-              <ScriptCard key={s.id} script={s} />
-            ))}
-            {filteredScripts.length === 0 && (
-              <p className="col-span-full py-16 text-center text-muted-foreground text-sm">
-                找不到符合的台本
-              </p>
-            )}
-          </div>
+          searchTerm.trim() ? (
+            // Search results — flat grid
+            <div
+              className="grid gap-4"
+              style={{ gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))" }}
+            >
+              {filteredScripts.map((s) => (
+                <ScriptGalleryCard
+                  key={s.id}
+                  script={toGalleryItem(s)}
+                  href={`/read/${s.id}`}
+                  authorHref={s.persona?.id ? `/author/${s.persona.id}` : undefined}
+                  seriesHref={s.series?.name ? `/series/${encodeURIComponent(s.series.name)}` : undefined}
+                  onView={handleNavigate}
+                  onSeriesClick={handleSeriesClick}
+                  onTagClick={handleTagClick}
+                  onAuthorClick={handleAuthorClick}
+                />
+              ))}
+              {filteredScripts.length === 0 && (
+                <p className="col-span-full py-16 text-center text-muted-foreground text-sm">
+                  找不到符合的台本
+                </p>
+              )}
+            </div>
+          ) : (
+            // Browse mode — lanes
+            <div className="space-y-10">
+              {latestLane.length > 0 && (
+                <HorizontalScrollLane title="最新上架">
+                  {latestLane.map((item) => (
+                    <div key={item.id} className={CARD_WIDTH}>
+                      <ScriptGalleryCard
+                        script={item}
+                        href={`/read/${item.id}`}
+                        authorHref={typeof item.author === "object" && item.author?.id ? `/author/${item.author.id}` : undefined}
+                        seriesHref={item.seriesName ? `/series/${encodeURIComponent(item.seriesName)}` : undefined}
+                        onView={handleNavigate}
+                        onSeriesClick={handleSeriesClick}
+                        onTagClick={handleTagClick}
+                        onAuthorClick={handleAuthorClick}
+                      />
+                    </div>
+                  ))}
+                </HorizontalScrollLane>
+              )}
+
+              {topViewedLane.length > 0 && (
+                <HorizontalScrollLane title="熱門閱讀">
+                  {topViewedLane.map((item) => (
+                    <div key={item.id} className={CARD_WIDTH}>
+                      <ScriptGalleryCard
+                        script={item}
+                        href={`/read/${item.id}`}
+                        authorHref={typeof item.author === "object" && item.author?.id ? `/author/${item.author.id}` : undefined}
+                        seriesHref={item.seriesName ? `/series/${encodeURIComponent(item.seriesName)}` : undefined}
+                        onView={handleNavigate}
+                        onSeriesClick={handleSeriesClick}
+                        onTagClick={handleTagClick}
+                        onAuthorClick={handleAuthorClick}
+                      />
+                    </div>
+                  ))}
+                </HorizontalScrollLane>
+              )}
+
+              {seriesGroups.map((group) => (
+                <HorizontalScrollLane
+                  key={group.name}
+                  title={group.name}
+                  actionLabel="查看系列"
+                  onAction={() => handleSeriesClick(group.name)}
+                >
+                  {group.items.map((item) => (
+                    <div key={item.id} className={CARD_WIDTH}>
+                      <ScriptGalleryCard
+                        script={item}
+                        href={`/read/${item.id}`}
+                        authorHref={typeof item.author === "object" && item.author?.id ? `/author/${item.author.id}` : undefined}
+                        seriesHref={`/series/${encodeURIComponent(group.name)}`}
+                        onView={handleNavigate}
+                        onSeriesClick={handleSeriesClick}
+                        onTagClick={handleTagClick}
+                        onAuthorClick={handleAuthorClick}
+                      />
+                    </div>
+                  ))}
+                </HorizontalScrollLane>
+              ))}
+
+              {scripts.length === 0 && (
+                <p className="py-16 text-center text-muted-foreground text-sm">
+                  目前沒有公開台本
+                </p>
+              )}
+            </div>
+          )
         )}
 
         {/* Authors */}

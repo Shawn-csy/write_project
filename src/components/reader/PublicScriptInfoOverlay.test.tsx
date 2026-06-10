@@ -7,12 +7,6 @@ vi.mock("../ui/AuthorBadge", () => ({
   AuthorBadge: ({ author }) => <span data-testid="author-badge">{author?.displayName}</span>,
 }));
 
-vi.mock("../ui/badge", () => ({
-  Badge: ({ children, style }) => (
-    <span data-testid="badge" style={style}>{children}</span>
-  ),
-}));
-
 describe("PublicScriptInfoOverlay – licenseSpecialTerms", () => {
   it("renders special terms inside the info card when present", () => {
     render(
@@ -76,17 +70,16 @@ describe("PublicScriptInfoOverlay – usage badges", () => {
       />
     );
 
-    const badges = screen.getAllByTestId("badge");
-    const labels = badges.map((b) => b.textContent);
-    expect(labels.some((l) => l.includes("商業使用") && l.includes("可"))).toBe(true);
-    expect(labels.some((l) => l.includes("改作許可") && l.includes("不可"))).toBe(true);
-    expect(labels.some((l) => l.includes("修改須通知作者"))).toBe(true);
+    expect(screen.getByText(/商業使用.+可/)).toBeInTheDocument();
+    expect(screen.getByText(/改作許可.+不可/)).toBeInTheDocument();
+    expect(screen.getByText(/修改須通知作者/)).toBeInTheDocument();
   });
 
   it("renders no usage badges when all license fields are empty", () => {
     render(<PublicScriptInfoOverlay title="Test" />);
 
-    expect(screen.queryAllByTestId("badge")).toHaveLength(0);
+    expect(screen.queryByText(/商業使用/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/改作許可/)).not.toBeInTheDocument();
   });
 
   it("renders derivative badge with caution style for 'limited'", () => {
@@ -94,8 +87,6 @@ describe("PublicScriptInfoOverlay – usage badges", () => {
       <PublicScriptInfoOverlay title="Test" derivativeUse="limited" />
     );
 
-    const badges = screen.getAllByTestId("badge");
-    const derivativeBadge = badges.find((b) => b.textContent.includes("改作許可"));
-    expect(derivativeBadge?.textContent).toContain("需同意");
+    expect(screen.getByText(/改作許可.+需同意/)).toBeInTheDocument();
   });
 });

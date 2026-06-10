@@ -19,6 +19,7 @@
     "@write/script-engine": "*",
     "@write/script-reader-renderer": "*",
     "@write/script-reader-ui": "*",
+    "@write/public-ui": "*",
     "@write/script-theme": "*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

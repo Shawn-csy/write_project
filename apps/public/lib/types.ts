@@ -33,9 +33,12 @@ export interface PublicScript {
   content?: string;
   synopsis?: string | null;
   coverUrl?: string | null;
+  coverCrop?: { cx?: number | null; cy?: number | null; zoom?: number | null } | null;
+  coverDesign?: import("@write/public-ui").CoverDesign | null;
   tags?: Array<{ id?: string; name: string }>;
   views?: number;
   likes?: number;
+  contentLength?: number;
   lastModified?: number;
   updatedAt?: number | string;
   seriesId?: string | null;
@@ -44,7 +47,17 @@ export interface PublicScript {
   owner?: ScriptOwner;
   persona?: ScriptPersona | null;
   organization?: ScriptOrg | null;
-  customMetadata?: Array<{ key?: string; value?: string }>;
+  customMetadata?: Array<{ key?: string; value?: string; [k: string]: unknown }>;
+  licenseCommercial?: string | null;
+  licenseDerivative?: string | null;
+  licenseNotify?: string | null;
+  outline?: string | null;
+  activityName?: string | null;
+  activityBannerUrl?: string | null;
+  activityContent?: string | null;
+  activityWorkUrl?: string | null;
+  activityDemoLinks?: string | null;
+  disableCopy?: boolean;
   isPublic?: number | boolean;
   [key: string]: unknown;
 }

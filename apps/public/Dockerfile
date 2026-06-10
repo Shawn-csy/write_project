@@ -6,6 +6,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY packages/browser-download/package.json ./packages/browser-download/package.json
 COPY packages/media-crop/package.json ./packages/media-crop/package.json
+COPY packages/public-ui/package.json ./packages/public-ui/package.json
 COPY packages/script-engine/package.json ./packages/script-engine/package.json
 COPY packages/script-reader-renderer/package.json ./packages/script-reader-renderer/package.json
 COPY packages/script-reader-ui/package.json ./packages/script-reader-ui/package.json
