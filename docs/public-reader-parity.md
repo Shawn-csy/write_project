@@ -1,6 +1,6 @@
 # Public Reader Replacement Plan
 
-Last updated: 2026-06-09 (Phase 2 complete)
+Last updated: 2026-06-09 (Phase 3 complete)
 
 ## Purpose
 
@@ -185,35 +185,36 @@ Done:
 
 Open item: `TocMenu` uses a self-managed disclosure panel, not Radix. No outside-click, Esc, or focus management. Acceptable for now; should be addressed in Phase 4 if TOC accessibility becomes a requirement.
 
-### Phase 3: Reader State Model
+### Phase 3: Reader State Model ✓ Complete
 
 Goal: centralize reader state without coupling it to Next.js or localStorage.
 
-Create `useReaderState` in `@write/script-reader-ui`.
+Done:
 
-State groups:
+- `useReaderState` is the canonical reader state hook. All new code should use it.
+- `ReaderStorageAdapter` interface decouples persistence from `localStorage`.
+- `createLocalStorageReaderStorage(prefix)` — browser `localStorage` adapter in `readerStorage.ts`.
+- `useReaderState` accepts optional `storage` adapter + `storageKey`; `null`/`undefined` disables persistence.
+- Storage unavailable (throws) silently ignored — no crash.
+- Stale `hiddenMarkerIds` pruned when `markerConfigs` changes.
+- Restores `hiddenMarkerIds` from storage on mount; filters ids not in current configs.
+- TOC is a real document-derived state model: `{ entries, isOpen, activeId, open, close, toggle, setActiveId }`.
+- `ReaderState` exposes `{ markerConfigs, markerVisibility, toc }`.
+- `ReaderToolbar` accepts a single `readerState` prop — self-contained, no separate config/visibility/toc props.
+- `useReaderMarkerVisibility` is a compat wrapper over `useReaderState`; contains no own state logic.
+- `ScriptReaderClient` uses `useReaderState` with `createLocalStorageReaderStorage` scoped to `scriptId`.
+- App `ReaderToolbar` adapter passes `readerState` through; no owned state.
+- 22 tests in `useReaderState.test.ts`: markerVisibility, toc model, stale pruning, storage persist/restore/unavailable/null/undefined.
 
-- document-derived state: marker configs, TOC, available markers
-- reader preferences: hidden marker ids, font, font size, line height, theme
-- transient UI state: menu open state, copied state, active TOC item
+State groups currently in `useReaderState`:
 
-Storage design:
+- marker visibility (hidden ids, counts, toggle/show/hide)
+- TOC (entries, open/close, activeId)
 
-```ts
-interface ReaderStorageAdapter {
-  get(key: string): string | null;
-  set(key: string, value: string): void;
-  remove(key: string): void;
-}
-```
+Not yet in `useReaderState` (Phase 4):
 
-`useReaderState` should accept a storage adapter instead of directly importing `localStorage`.
-
-Completion standard:
-
-- stale marker ids are pruned when configs change.
-- storage unavailable fallback is tested.
-- public reader and editor preview can use the same hook with different adapters.
+- reading preferences: font, font size, line height, theme
+- transient UI: copied state
 
 ### Phase 4: Public Reader Feature Completion
 
@@ -263,14 +264,15 @@ Required verification:
 
 ## Immediate Next Step
 
-Phase 2 is complete. The next step is Phase 3: Reader State Model.
+Phase 3 is complete. The next step is Phase 4: Public Reader Feature Completion.
 
-1. Create `useReaderState` in `@write/script-reader-ui` — consolidates `useReaderMarkerVisibility` + `useTocState` + future preference state behind one hook.
-2. Accept a `ReaderStorageAdapter` to decouple from `localStorage`.
-3. Update `ScriptReaderClient` to call `useReaderState` instead of individual hooks.
-4. Add smoke tests: storage unavailable fallback, stale marker id pruning.
+Priority:
 
-Do not start with reading preferences or download until `useReaderState` storage boundary is defined.
+1. Reading preferences — font, font size, line height, theme. Extend `useReaderState` with preference state + storage keys. Add shared preference UI controls to `@write/script-reader-ui`.
+2. Download/export actions — wire reader-facing export to existing export infrastructure.
+3. TOC accessibility — migrate `TocMenu` from self-managed disclosure to Radix Popover/DropdownMenu for Esc, outside-click, and focus management.
+
+Do not start with terms/consent or series navigation until reading preferences are wired.
 
 ## Known Issues
 

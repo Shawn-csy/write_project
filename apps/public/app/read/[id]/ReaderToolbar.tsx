@@ -1,28 +1,17 @@
 "use client";
 
 import React from "react";
-import type { TocEntry, MarkerConfig } from "@write/script-engine";
-import {
-  ReaderToolbar as SharedReaderToolbar,
-  useTocState,
-} from "@write/script-reader-ui";
-import type { ReaderMarkerVisibility } from "@write/script-reader-ui";
+import { ReaderToolbar as SharedReaderToolbar } from "@write/script-reader-ui";
+import type { ReaderState } from "@write/script-reader-ui";
 
 interface Props {
-  markerConfigs: MarkerConfig[];
-  markerVisibility: ReaderMarkerVisibility;
-  toc: TocEntry[];
+  readerState: ReaderState;
 }
 
-export function ReaderToolbar({ markerConfigs, markerVisibility, toc }: Props) {
-  const tocState = useTocState();
-
+export function ReaderToolbar({ readerState }: Props) {
   return (
     <SharedReaderToolbar
-      markerConfigs={markerConfigs}
-      markerVisibility={markerVisibility}
-      toc={toc}
-      tocState={tocState}
+      readerState={readerState}
       contentClassName="max-w-4xl mx-auto"
       startSlot={
         <a

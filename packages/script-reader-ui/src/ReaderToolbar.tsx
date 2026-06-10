@@ -1,14 +1,11 @@
 import React from "react";
-import type { MarkerConfigLike, ReaderMarkerVisibility } from "./useReaderMarkerVisibility";
 import { MarkerVisibilityMenu } from "./MarkerVisibilityMenu";
-import type { TocStateEntry, TocState } from "./useTocState";
 import { TocMenu } from "./TocMenu";
+import type { ReaderState } from "./useReaderState";
+import type { TocStateEntry } from "./useTocState";
 
 export interface ReaderToolbarProps {
-  markerConfigs: MarkerConfigLike[];
-  markerVisibility: ReaderMarkerVisibility;
-  toc: TocStateEntry[];
-  tocState: TocState;
+  readerState: ReaderState;
   /** Slot rendered at the start (left) of the toolbar. */
   startSlot?: React.ReactNode;
   /** Slot rendered at the end (right) of the toolbar, after the built-in controls. */
@@ -22,10 +19,7 @@ export interface ReaderToolbarProps {
 }
 
 export function ReaderToolbar({
-  markerConfigs,
-  markerVisibility,
-  toc,
-  tocState,
+  readerState,
   startSlot,
   endSlot,
   onTocItemClick,
@@ -38,12 +32,11 @@ export function ReaderToolbar({
         {startSlot && <div className="shrink-0">{startSlot}</div>}
         <div className="ml-auto flex items-center gap-2">
           <MarkerVisibilityMenu
-            markerConfigs={markerConfigs}
-            visibility={markerVisibility}
+            markerConfigs={readerState.markerConfigs}
+            visibility={readerState.markerVisibility}
           />
           <TocMenu
-            toc={toc}
-            tocState={tocState}
+            toc={readerState.toc}
             onItemClick={onTocItemClick}
             renderItem={renderTocItem}
           />

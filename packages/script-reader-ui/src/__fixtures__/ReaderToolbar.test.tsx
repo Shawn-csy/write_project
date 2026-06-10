@@ -1,9 +1,11 @@
 /**
  * ReaderToolbar shared component tests.
  *
+ * ReaderToolbar accepts a single readerState prop from useReaderState.
+ *
  * Covers:
  *   - renders MarkerVisibilityMenu trigger when marker configs present
- *   - renders TocMenu trigger when toc present
+ *   - renders TocMenu trigger when toc entries present
  *   - renders startSlot and endSlot
  *   - renders nothing for markers/toc when empty
  */
@@ -11,19 +13,16 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import React from "react";
-import { renderHook, act } from "@testing-library/react";
+import { renderHook } from "@testing-library/react";
 import { ReaderToolbar } from "../ReaderToolbar";
-import { useReaderMarkerVisibility } from "../useReaderMarkerVisibility";
-import { useTocState } from "../useTocState";
+import { useReaderState } from "../useReaderState";
 
 const MARKER_CONFIGS = [
   { id: "alpha", label: "Alpha Marker" },
   { id: "beta", label: "Beta Marker" },
 ];
 
-const TOC = [
-  { id: "scene-1", label: "Scene 1" },
-];
+const TOC = [{ id: "scene-1", label: "Scene 1" }];
 
 function Fixture({
   markerConfigs = MARKER_CONFIGS,
@@ -32,16 +31,8 @@ function Fixture({
   markerConfigs?: typeof MARKER_CONFIGS;
   toc?: typeof TOC;
 }) {
-  const markerVisibility = useReaderMarkerVisibility(markerConfigs);
-  const tocState = useTocState();
-  return (
-    <ReaderToolbar
-      markerConfigs={markerConfigs}
-      markerVisibility={markerVisibility}
-      toc={toc}
-      tocState={tocState}
-    />
-  );
+  const readerState = useReaderState({ markerConfigs, toc });
+  return <ReaderToolbar readerState={readerState} />;
 }
 
 describe("ReaderToolbar — rendering", () => {
@@ -66,14 +57,12 @@ describe("ReaderToolbar — rendering", () => {
   });
 
   it("renders startSlot", () => {
-    const markerVisibility = renderHook(() => useReaderMarkerVisibility([])).result.current;
-    const tocState = renderHook(() => useTocState()).result.current;
+    const readerState = renderHook(() =>
+      useReaderState({ markerConfigs: [], toc: [] })
+    ).result.current;
     render(
       <ReaderToolbar
-        markerConfigs={[]}
-        markerVisibility={markerVisibility}
-        toc={[]}
-        tocState={tocState}
+        readerState={readerState}
         startSlot={<span data-testid="start">back</span>}
       />
     );
@@ -81,14 +70,12 @@ describe("ReaderToolbar — rendering", () => {
   });
 
   it("renders endSlot", () => {
-    const markerVisibility = renderHook(() => useReaderMarkerVisibility([])).result.current;
-    const tocState = renderHook(() => useTocState()).result.current;
+    const readerState = renderHook(() =>
+      useReaderState({ markerConfigs: [], toc: [] })
+    ).result.current;
     render(
       <ReaderToolbar
-        markerConfigs={[]}
-        markerVisibility={markerVisibility}
-        toc={[]}
-        tocState={tocState}
+        readerState={readerState}
         endSlot={<span data-testid="end">extra</span>}
       />
     );
