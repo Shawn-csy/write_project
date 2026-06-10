@@ -1,9 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import type { PublicScript } from "@/lib/types";
 import type { RenderBlock, TocEntry, MarkerConfig } from "@write/script-engine";
-import { useReaderMarkerVisibility } from "@write/script-reader-ui";
+import { useReaderState, createLocalStorageReaderStorage } from "@write/script-reader-ui";
 import { ScriptContentRenderer } from "./ScriptContentRenderer";
 import { PublicReaderHeader } from "./PublicReaderHeader";
 import { ReaderToolbar } from "./ReaderToolbar";
@@ -29,15 +29,17 @@ export function ScriptReaderClient({
     initialScript.views ?? 0,
     initialScript.likes ?? 0
   );
-  const markerVisibility = useReaderMarkerVisibility(markerConfigs);
+
+  const storage = useMemo(
+    () => createLocalStorageReaderStorage(`public-reader:${scriptId}`),
+    [scriptId]
+  );
+
+  const readerState = useReaderState({ markerConfigs, toc, storage });
 
   return (
     <div className="min-h-screen bg-background">
-      <ReaderToolbar
-        markerConfigs={markerConfigs}
-        markerVisibility={markerVisibility}
-        toc={toc}
-      />
+      <ReaderToolbar readerState={readerState} />
 
       <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6">
         <PublicReaderHeader script={initialScript} actions={actions} />
@@ -45,7 +47,7 @@ export function ScriptReaderClient({
         <ScriptContentRenderer
           blocks={renderBlocks}
           markerConfigs={markerConfigs}
-          hiddenMarkerIds={markerVisibility.hiddenMarkerIds}
+          hiddenMarkerIds={readerState.markerVisibility.hiddenMarkerIds}
           className="border-t border-border/40 pt-6"
         />
 

@@ -1,9 +1,11 @@
 /**
  * TocMenu tests.
  *
+ * TocMenu now accepts a single `toc: ReaderTocState` prop (from useReaderState).
+ *
  * Covers:
- *   1. Trigger rendering — count label, empty case
- *   2. Interaction — open panel, item links visible, clicking item closes panel
+ *   1. Trigger rendering — count label, empty case, aria-expanded
+ *   2. Interaction — open panel, item links visible, click closes, toggle, onItemClick, renderItem
  */
 
 import { describe, it, expect, vi } from "vitest";
@@ -12,16 +14,18 @@ import userEvent from "@testing-library/user-event";
 import React from "react";
 import { renderHook, act } from "@testing-library/react";
 import { TocMenu } from "../TocMenu";
-import { useTocState } from "../useTocState";
+import { useReaderState } from "../useReaderState";
 
-const TOC = [
+const CONFIGS = [{ id: "m1", label: "Marker" }];
+
+const TOC_ENTRIES = [
   { id: "scene-1", label: "Scene 1" },
   { id: "scene-2", label: "Scene 2" },
 ];
 
-function Fixture({ toc = TOC }: { toc?: typeof TOC }) {
-  const tocState = useTocState();
-  return <TocMenu toc={toc} tocState={tocState} />;
+function Fixture({ entries = TOC_ENTRIES }: { entries?: typeof TOC_ENTRIES }) {
+  const { toc } = useReaderState({ markerConfigs: CONFIGS, toc: entries });
+  return <TocMenu toc={toc} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -34,8 +38,8 @@ describe("TocMenu — trigger rendering", () => {
     expect(screen.queryByText("目錄 (2)")).not.toBeNull();
   });
 
-  it("renders nothing when toc is empty", () => {
-    const { container } = render(<Fixture toc={[]} />);
+  it("renders nothing when toc entries empty", () => {
+    const { container } = render(<Fixture entries={[]} />);
     expect(container.firstChild).toBeNull();
   });
 
@@ -94,25 +98,23 @@ describe("TocMenu — interaction", () => {
     const user = userEvent.setup();
     const onItemClick = vi.fn();
     function FixtureWithCallback() {
-      const tocState = useTocState();
-      return <TocMenu toc={TOC} tocState={tocState} onItemClick={onItemClick} />;
+      const { toc } = useReaderState({ markerConfigs: CONFIGS, toc: TOC_ENTRIES });
+      return <TocMenu toc={toc} onItemClick={onItemClick} />;
     }
     render(<FixtureWithCallback />);
-    // open panel
     await act(async () => { await user.click(screen.getByText("目錄 (2)")); });
     expect(screen.queryByText("Scene 2")).not.toBeNull();
     await act(async () => { await user.click(screen.getByText("Scene 2")); });
-    expect(onItemClick).toHaveBeenCalledWith(TOC[1]);
+    expect(onItemClick).toHaveBeenCalledWith(TOC_ENTRIES[1]);
   });
 
   it("accepts custom renderItem render prop", async () => {
     const user = userEvent.setup();
     function FixtureWithRenderItem() {
-      const tocState = useTocState();
+      const { toc } = useReaderState({ markerConfigs: CONFIGS, toc: TOC_ENTRIES });
       return (
         <TocMenu
-          toc={TOC}
-          tocState={tocState}
+          toc={toc}
           renderItem={(entry, close) => (
             <button data-testid={`item-${entry.id}`} onClick={close}>
               {entry.label}
