@@ -25,6 +25,13 @@ Thumbs.db
 # Vite
 .vite
 
+# TypeScript build info
+*.tsbuildinfo
+
+# Next.js build output (apps/public also has its own .gitignore)
+.next/
+next-env.d.ts
+
 # Logs
 *.log
 npm-debug.log*
