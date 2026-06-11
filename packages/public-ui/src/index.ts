@@ -72,6 +72,15 @@ export type {
   UseGalleryFilterModelResult,
 } from "./gallery/useGalleryFilterModel";
 export { buildPublicHomepageModel } from "./gallery/homepageModel";
+export {
+  scriptRequiresAgeGate,
+  getScriptNavigationPolicy,
+  buildNavigationPolicyMap,
+} from "./gallery/navigationPolicy";
+export type {
+  NavigationPolicyReason,
+  ScriptNavigationPolicy,
+} from "./gallery/navigationPolicy";
 export type {
   PublicHomepageModel,
   BuildPublicHomepageModelInput,

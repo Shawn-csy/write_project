@@ -6,7 +6,9 @@ import {
   HorizontalScrollLane,
   type EnrichedGalleryScript,
   type PublicHomepageModel,
+  type ScriptNavigationPolicy,
 } from "@write/public-ui";
+// ScriptGalleryCard is used inside CardWithPolicy below
 
 const CARD_WIDTH = "min-w-[160px] w-[160px] sm:min-w-[180px] sm:w-[180px]";
 
@@ -15,8 +17,52 @@ interface GalleryScriptResultsProps {
   onResetFilters: () => void;
 }
 
+function AgeGateBadge() {
+  return (
+    <span className="absolute top-1.5 right-1.5 z-10 rounded-sm bg-black/70 px-1.5 py-0.5 text-[10px] font-medium leading-none text-white pointer-events-none">
+      R-18
+    </span>
+  );
+}
+
+function CardWithPolicy({
+  script,
+  policy,
+  variant,
+  authorHref,
+  seriesHref,
+  onSeriesClick,
+  onTagClick,
+  onAuthorClick,
+}: {
+  script: EnrichedGalleryScript;
+  policy: ScriptNavigationPolicy | undefined;
+  variant: "standard" | "compact";
+  authorHref?: string;
+  seriesHref?: string;
+  onSeriesClick: (name: string) => void;
+  onTagClick: (tag: string) => void;
+  onAuthorClick: (id: string) => void;
+}) {
+  return (
+    <div className="relative">
+      {policy?.showGateIndicator && <AgeGateBadge />}
+      <ScriptGalleryCard
+        script={script}
+        variant={variant}
+        href={`/read/${script.id}`}
+        authorHref={authorHref}
+        seriesHref={seriesHref}
+        onSeriesClick={onSeriesClick}
+        onTagClick={onTagClick}
+        onAuthorClick={onAuthorClick}
+      />
+    </div>
+  );
+}
+
 export function GalleryScriptResults({ model, onResetFilters }: GalleryScriptResultsProps) {
-  const { filteredScripts, lanes, showLanes, hasFilters, viewMode, emptyState } = model;
+  const { filteredScripts, lanes, showLanes, hasFilters, viewMode, emptyState, navigationPolicyMap } = model;
 
   const handleSeriesClick = useCallback(
     (name: string) => { window.location.href = `/series/${encodeURIComponent(name)}`; },
@@ -45,11 +91,11 @@ export function GalleryScriptResults({ model, onResetFilters }: GalleryScriptRes
         }}
       >
         {filteredScripts.map((s) => (
-          <ScriptGalleryCard
+          <CardWithPolicy
             key={s.id}
             script={s}
+            policy={navigationPolicyMap.get(s.id)}
             variant={viewMode}
-            href={`/read/${s.id}`}
             authorHref={authorHref(s)}
             seriesHref={seriesHref(s)}
             onSeriesClick={handleSeriesClick}
@@ -84,10 +130,10 @@ export function GalleryScriptResults({ model, onResetFilters }: GalleryScriptRes
         <HorizontalScrollLane title="最新發布">
           {lanes.latestPreview.map((s) => (
             <div key={s.id} className={CARD_WIDTH}>
-              <ScriptGalleryCard
+              <CardWithPolicy
                 script={s}
+                policy={navigationPolicyMap.get(s.id)}
                 variant={viewMode}
-                href={`/read/${s.id}`}
                 authorHref={authorHref(s)}
                 seriesHref={seriesHref(s)}
                 onSeriesClick={handleSeriesClick}
@@ -102,10 +148,10 @@ export function GalleryScriptResults({ model, onResetFilters }: GalleryScriptRes
         <HorizontalScrollLane title="點閱排行">
           {lanes.topViewedPreview.map((s) => (
             <div key={s.id} className={CARD_WIDTH}>
-              <ScriptGalleryCard
+              <CardWithPolicy
                 script={s}
+                policy={navigationPolicyMap.get(s.id)}
                 variant={viewMode}
-                href={`/read/${s.id}`}
                 authorHref={authorHref(s)}
                 seriesHref={seriesHref(s)}
                 onSeriesClick={handleSeriesClick}
@@ -125,10 +171,10 @@ export function GalleryScriptResults({ model, onResetFilters }: GalleryScriptRes
         >
           {series.scripts.slice(0, 15).map((s) => (
             <div key={s.id} className={CARD_WIDTH}>
-              <ScriptGalleryCard
+              <CardWithPolicy
                 script={s}
+                policy={navigationPolicyMap.get(s.id)}
                 variant={viewMode}
-                href={`/read/${s.id}`}
                 authorHref={authorHref(s)}
                 seriesHref={`/series/${encodeURIComponent(series.name)}`}
                 onSeriesClick={handleSeriesClick}

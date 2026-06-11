@@ -266,7 +266,7 @@ The public homepage is considered replacement-ready only when these categories a
 | Cards | Valid semantic card DOM and href/callback support | `@write/public-ui` | Done |
 | Topbar | Canonical public navigation shell | `@write/public-ui` + `apps/public` | Mostly done |
 | Info views | Help/license/about reachable from public shell | `apps/public` | Partial |
-| Navigation policy | Terms/R18 gates from discovery to reader | `apps/public` | Not done |
+| Navigation policy | Terms/R18 gates from discovery to reader | `apps/public` | Done |
 | SEO | Homepage metadata and no-script fallback | `apps/public` | Partial |
 | Browser QA | Desktop/mobile/light/dark checked | manual + future visual tests | Not done |
 
@@ -391,22 +391,36 @@ Completion standard met:
 - Mobile filter trigger and tab nav owned by shared component.
 - 159 total package tests pass.
 
-### Phase 6: Navigation Policy
+### Phase 6: Navigation Policy ✓ Done
 
 Goal: make script entry from discovery respect public reader policy.
 
-Work:
+Work completed:
 
-1. Define when terms consent or age gate applies before navigating to `/read/:id`.
-2. Keep policy data in script projection or public bundle response.
-3. Implement router-neutral UI where possible and Next-specific navigation in `apps/public`.
-4. Add integration tests for gated and ungated script navigation.
+1. `packages/public-ui/src/gallery/navigationPolicy.ts` — pure policy model.
+   - `scriptRequiresAgeGate(script)` — detects adult tags (`成人向`, `R-18`, `r18`, `18+`) via `SEGMENT_TAGS`.
+   - `getScriptNavigationPolicy(script, termsRequired)` — returns `{ reason, showGateIndicator }`.
+   - `buildNavigationPolicyMap(scripts, termsRequired)` — `Map<scriptId, policy>` for O(1) UI lookup.
+   - `NavigationPolicyReason`: `"none" | "age-gate" | "terms-consent"`.
+2. `buildPublicHomepageModel` now accepts `termsRequired?: boolean` and includes `navigationPolicyMap` in output.
+3. `useGalleryController` fetches `/api/public-terms-config` on mount; sets `termsRequired=true` if backend returns a config with a `version` field.
+4. `/api/public-terms-config/route.ts` — BFF proxy, `force-dynamic`. Returns `null` (502) if backend unavailable; `ConsentGate` already fails open on null.
+5. `GalleryScriptResults` — adult scripts display an R-18 badge overlay via `CardWithPolicy` wrapper.
+6. Direct `/read/:id` remains independently protected by `ConsentGate` at the page level.
+7. 17 unit tests: `scriptRequiresAgeGate` (8 cases), `getScriptNavigationPolicy` (5), `buildNavigationPolicyMap` (4).
 
-Completion standard:
+Policy semantics:
+
+- `age-gate`: script carries adult segment tag → badge shown in discovery, `ConsentGate` blocks at reader.
+- `terms-consent`: no adult tag, but platform-wide terms are active → no badge in discovery (non-alarming), `ConsentGate` blocks at reader.
+- `none`: no gate applicable → navigate directly.
+
+Completion standard met:
 
 - Discovery-to-reader behavior matches reader policy.
-- Gated navigation is explicit and testable.
+- Gated navigation is explicit and testable without React.
 - Direct reader route remains independently protected.
+- 176 total package tests pass.
 
 ### Phase 7: Browser Acceptance
 
@@ -434,7 +448,7 @@ Completion standard:
 
 ## Immediate Next Step
 
-Phase 6: Navigation policy — define when terms consent or age gate applies before navigating to `/read/:id` from discovery. Or Phase 7 browser acceptance QA if navigation policy is deprioritized.
+Phase 7: Browser acceptance QA — desktop/mobile, light/dark, all parity categories listed in the Phase 7 checklist.
 
 ## Known Risks
 

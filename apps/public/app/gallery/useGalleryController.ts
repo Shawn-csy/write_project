@@ -39,10 +39,23 @@ export function useGalleryController({
   const [authors, setAuthors] = useState<PublicPersona[]>([]);
   const [orgs, setOrgs] = useState<PublicOrg[]>([]);
   const [loadingPeople, setLoadingPeople] = useState(false);
+  const [termsRequired, setTermsRequired] = useState(false);
 
   // ── Transient UI state (not shareable) ────────────────────────────────────
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [tagSearch, setTagSearch] = useState("");
+
+  // ── Terms config (determines platform-wide gate policy) ──────────────────
+  useEffect(() => {
+    fetch("/api/public-terms-config")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((cfg) => {
+        if (cfg && typeof cfg === "object" && "version" in cfg) {
+          setTermsRequired(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // ── Client-side refresh ───────────────────────────────────────────────────
   useEffect(() => {
@@ -117,6 +130,7 @@ export function useGalleryController({
         totalScriptCount: galleryScripts.length,
         totalAuthorCount: galleryAuthors.length,
         totalOrgCount: galleryOrgs.length,
+        termsRequired,
       }),
     [
       urlState.view,
@@ -131,6 +145,7 @@ export function useGalleryController({
       galleryScripts.length,
       galleryAuthors.length,
       galleryOrgs.length,
+      termsRequired,
     ]
   );
 

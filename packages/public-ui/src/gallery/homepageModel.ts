@@ -12,6 +12,8 @@ import type {
   OrgLike,
 } from "./filterModel";
 import type { GalleryView, GalleryViewMode, GalleryLaneMode } from "./galleryUrlState";
+import { buildNavigationPolicyMap } from "./navigationPolicy";
+import type { ScriptNavigationPolicy } from "./navigationPolicy";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -63,6 +65,10 @@ export interface PublicHomepageModel {
   // ── Tags ──────────────────────────────────────────────────────────────────
   allTags: string[];
   licenseTagShortcuts: string[];
+
+  // ── Navigation policy ─────────────────────────────────────────────────────
+  /** Per-script navigation policy. Keyed by script id. O(1) lookup for UI. */
+  navigationPolicyMap: Map<string, ScriptNavigationPolicy>;
 }
 
 export interface BuildPublicHomepageModelInput {
@@ -96,6 +102,12 @@ export interface BuildPublicHomepageModelInput {
   totalAuthorCount: number;
   /** Total orgs before filtering. */
   totalOrgCount: number;
+  /**
+   * Whether platform-wide terms consent is active (from backend terms config).
+   * Affects navigation policy for non-adult scripts.
+   * Defaults to false — fail open when terms config unavailable.
+   */
+  termsRequired?: boolean;
 }
 
 const LANE_PREVIEW_SIZE = 15;
@@ -126,6 +138,7 @@ export function buildPublicHomepageModel(
     totalScriptCount,
     totalAuthorCount,
     totalOrgCount,
+    termsRequired = false,
   } = input;
 
   // ── hasFilters ────────────────────────────────────────────────────────────
@@ -199,6 +212,15 @@ export function buildPublicHomepageModel(
     }
   }
 
+  // ── Navigation policy map ─────────────────────────────────────────────────
+  // Built from all enriched scripts (not just filtered) so lane cards also get policy.
+  const seriesScripts = featuredSeries.flatMap((series) => series.scripts);
+  const allEnrichedScripts = [...filteredScripts, ...latestScripts, ...topViewedScripts, ...seriesScripts];
+  const dedupedForPolicy = Array.from(
+    new Map(allEnrichedScripts.map((s) => [s.id, s])).values()
+  );
+  const navigationPolicyMap = buildNavigationPolicyMap(dedupedForPolicy, termsRequired);
+
   return {
     view,
     viewMode,
@@ -213,5 +235,6 @@ export function buildPublicHomepageModel(
     emptyState,
     allTags,
     licenseTagShortcuts,
+    navigationPolicyMap,
   };
 }
