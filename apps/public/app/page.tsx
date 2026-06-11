@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { apiFetch } from "@/lib/api";
 import type { PublicScript } from "@/lib/types";
 import { GalleryClient } from "./GalleryClient";
+import type { HeroSlide } from "@write/public-ui/server";
+import { parseBannerSlides } from "@write/public-ui/server";
 
 export const revalidate = 300; // 5-min ISR; on-demand revalidation handles real-time updates
 
@@ -29,19 +31,23 @@ export const metadata: Metadata = {
 
 interface BundleResponse {
   scripts?: PublicScript[];
+  banner?: unknown;
 }
 
-async function fetchInitialScripts(): Promise<PublicScript[]> {
+async function fetchBundle(): Promise<{ scripts: PublicScript[]; bannerSlides: HeroSlide[] | undefined }> {
   try {
     const bundle = await apiFetch<BundleResponse>("/public-bundle");
-    return (bundle.scripts ?? []).filter((s): s is PublicScript => Boolean(s?.id));
+    return {
+      scripts: (bundle.scripts ?? []).filter((s): s is PublicScript => Boolean(s?.id)),
+      bannerSlides: parseBannerSlides(bundle.banner),
+    };
   } catch {
-    return [];
+    return { scripts: [], bannerSlides: undefined };
   }
 }
 
 export default async function HomePage() {
-  const initialScripts = await fetchInitialScripts();
+  const { scripts: initialScripts, bannerSlides } = await fetchBundle();
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -83,7 +89,7 @@ export default async function HomePage() {
           </ul>
         </main>
       </noscript>
-      <GalleryClient initialScripts={initialScripts} />
+      <GalleryClient initialScripts={initialScripts} initialBannerSlides={bannerSlides} />
     </>
   );
 }

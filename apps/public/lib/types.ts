@@ -18,6 +18,9 @@ export interface ScriptPersona {
   avatar?: string;
   bio?: string;
   website?: string;
+  defaultLicenseCommercial?: string;
+  defaultLicenseDerivative?: string;
+  defaultLicenseNotify?: string;
 }
 
 export interface ScriptOrg {

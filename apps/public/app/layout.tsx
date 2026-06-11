@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 export const metadata: Metadata = {
   title: "免費台本 · 劇本線上閱讀｜Screenplay Reader",
@@ -18,7 +19,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-Hant" className="h-full antialiased">
-      <body className="min-h-full flex flex-col bg-background text-foreground">{children}</body>
+      <body className="min-h-full flex flex-col bg-background text-foreground">
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }
