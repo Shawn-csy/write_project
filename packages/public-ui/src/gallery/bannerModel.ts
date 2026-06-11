@@ -2,6 +2,40 @@
  * Pure banner conversion helpers — no React, server-safe.
  */
 
+/**
+ * Placeholder slides for development / Storybook / test fixtures only.
+ * Production code must never pass these to PublicHeroMarquee.
+ * Missing backend banner data → no banner (return undefined from parseBannerSlides).
+ */
+export const DEV_PLACEHOLDER_SLIDES: readonly {
+  id: string;
+  title: string;
+  subtitle: string;
+  className: string;
+}[] = [
+  {
+    id: "placeholder-1",
+    title: "Marquee Placeholder A",
+    subtitle: "可替換成活動宣傳圖、公告、主題企劃。",
+    className:
+      "from-[#e7f4ff] via-[#f2fbff] to-[#fff9f2] dark:from-[#16314b] dark:via-[#13313c] dark:to-[#3b2a1e]",
+  },
+  {
+    id: "placeholder-2",
+    title: "Marquee Placeholder B",
+    subtitle: "可放最新上架、徵稿中、站內公告等資訊。",
+    className:
+      "from-[#f6f1ff] via-[#fff2f7] to-[#fff8e7] dark:from-[#2d1f4a] dark:via-[#3a2036] dark:to-[#3a2d18]",
+  },
+  {
+    id: "placeholder-3",
+    title: "Marquee Placeholder C",
+    subtitle: "之後可接後台資料，改為可管理的輪播素材。",
+    className:
+      "from-[#e9fff7] via-[#edf9ff] to-[#f4f2ff] dark:from-[#133a33] dark:via-[#15303f] dark:to-[#2a2450]",
+  },
+] as const;
+
 export interface HeroSlide {
   id?: string | number;
   title?: string;

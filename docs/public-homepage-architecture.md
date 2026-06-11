@@ -45,10 +45,10 @@ This document defines the long-term architecture and execution plan for the publ
 
 ### Remaining structural gaps
 
-- Homepage URL state is incomplete. `useGalleryController` still owns important discovery state in local React state.
-- `featuredLaneMode` is currently hard-coded to `"latest"` in the Next controller.
+- Homepage URL state is established for Phase 2 (`view`, tags, author/org tags, usage, segment, mode, search). Lane state is intentionally deferred until the homepage model owns lane selection.
+- `featuredLaneMode` is currently hard-coded to `"latest"` in the Next controller until Phase 4 introduces `buildPublicHomepageModel()`.
 - Script tags are modeled, but author/org tag filters are not wired into the Next controller.
-- `PublicHeroMarquee` can still render default placeholder slides when banner data is absent.
+- Next production banner fallback is clean: missing backend banner data renders no banner. Vite legacy `src/components/public/PublicHeroMarquee.tsx` still contains old placeholder fallback and should be treated as non-canonical until Vite public gallery retires or imports `@write/public-ui`.
 - Topbar/product navigation is not yet a canonical public shell. Next currently has a simpler topbar than the Vite reference.
 - Help, license, about, and other public informational views are route pages, but not yet part of a unified homepage navigation model.
 - Consent/age gates for script navigation from discovery are not yet represented as homepage navigation policy.
@@ -258,7 +258,7 @@ The public homepage is considered replacement-ready only when these categories a
 |---|---|---|---|
 | Server data | SSR receives scripts and banner payload | `apps/public` | Partial |
 | Banner | Backend banner parsed through one pure model | `@write/public-ui/server` | Partial |
-| Banner fallback | No placeholder slides in production fallback | `@write/public-ui` + `apps/public` | Not done |
+| Banner fallback | No placeholder slides in production fallback | `@write/public-ui` + `apps/public` | Done |
 | Script filtering | Search, segment, usage, license tags | `@write/public-ui` | Mostly done |
 | Author/org filtering | Author and org tag filters | `@write/public-ui` + `apps/public` | Not done |
 | URL state | Shareable view/filter/mode/lane state | shared model + `apps/public` | Not done |
@@ -304,6 +304,7 @@ Known caveats deferred to later phases:
 
 - `lane` (featured/top/latest/series): type `GalleryLaneMode` exported but not yet in `PublicHomepageUrlState`. Will be added in Phase 4 when `buildPublicHomepageModel` drives lane selection in the UI.
 - `view` currently `"scripts" | "authors" | "orgs"`. Will expand to include `"help" | "license" | "about"` in Phase 5 when public shell navigation is unified.
+- Search/tag state is URL-owned, but author/org tag filter UI is not exposed yet. The model accepts the state; Phase 4/5 will decide the public UI surface.
 
 Completion standard met:
 
@@ -313,23 +314,28 @@ Completion standard met:
 - Default homepage URL remains clean (no query params).
 - Tests cover parse/serialize round trips, whitespace normalization, deduplication, and invalid value handling.
 
-### Phase 3: Banner Contract Cleanup
+### Phase 3: Banner Contract Cleanup ✓ Done
 
 Goal: remove placeholder-driven behavior and make banner data a real product contract.
 
-Work:
+Work completed:
 
-1. Make `parseBannerSlides` return only backend-provided slides.
-2. Remove production use of default placeholder slides.
-3. Represent missing banner as no-banner state.
-4. Decide whether development/demo placeholder slides belong in Storybook/test fixtures only.
-5. Add tests for absent, malformed, and valid banner payloads.
+1. `parseBannerSlides` already returns only backend-provided slides (returns `undefined` for absent/malformed input).
+2. `DEV_PLACEHOLDER_SLIDES` extracted from `PublicHeroMarquee` into `bannerModel.ts` with explicit dev-only doc comment. Exported from `@write/public-ui` for Storybook/test use.
+3. `PublicHeroMarquee` `fallbackToDefault` default changed from `true` to `false`. Component renders nothing when no slides provided.
+4. `GalleryClient.tsx` renders `<PublicHeroMarquee>` only when `bannerSlides` is non-empty. No `fallbackToDefault` prop passed.
+5. Tests updated: 2 new tests for absent-banner no-render behavior; existing fallbackToDefault=true test renamed to clarify it is dev/Storybook only.
 
-Completion standard:
+Completion standard met:
 
 - Production homepage never shows "Marquee Placeholder" content.
-- Missing banner data does not create layout breakage.
-- Server and client refresh paths use the same parser.
+- Missing banner data → no banner section rendered, no layout breakage.
+- Server and client refresh paths use the same `parseBannerSlides` parser.
+- 15 PublicHeroMarquee tests pass, 133 total package tests pass.
+
+Known caveat:
+
+- Vite legacy `src/components/public/PublicHeroMarquee.tsx` still has embedded placeholder fallback. This is not the canonical public homepage path; do not copy it forward. Either retire the Vite public gallery or make it import `@write/public-ui` before treating Vite as parity evidence again.
 
 ### Phase 4: Public Homepage Model
 
@@ -410,14 +416,15 @@ Completion standard:
 
 ## Immediate Next Step
 
-Implement Phase 3: Banner contract cleanup — remove placeholder slides from production fallback, make missing banner an explicit no-banner state.
+Implement Phase 4: `buildPublicHomepageModel()` — move lane selection, result counts, and empty/loading/failure state derivation out of page components into a pure shared model.
 
-Do not start with topbar or visual polish. Phase 3 is prerequisite to Phase 4 (homepage model), which is prerequisite to URL-controlled lane selection.
+Phase 4 is prerequisite to URL-controlled lane selection (deferred from Phase 2).
 
 ## Known Risks
 
 - Blindly copying Vite will preserve old coupling and create a second legacy implementation.
 - Leaving filter state in React local state makes public discovery hard to share, test, and debug.
-- Keeping placeholder banner slides hides backend/data contract failures.
+- Reintroducing placeholder banner slides into production hides backend/data contract failures.
+- Treating Vite legacy public components as canonical after the Next/public-ui split will reintroduce divergent behavior.
 - Moving too much into `@write/public-ui` too early can create a generic package with app-specific concerns. Promote code only when the boundary is clear.
 - Treating browser parity as optional will miss layout, density, and mobile interaction regressions that unit tests cannot detect.

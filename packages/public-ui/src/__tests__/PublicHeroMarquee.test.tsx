@@ -10,14 +10,24 @@ const slides = [
 ];
 
 describe("PublicHeroMarquee", () => {
-  it("renders nothing for empty slides when fallbackToDefault=false", () => {
+  it("renders nothing when no slides provided (default behavior — no fallback)", () => {
+    const { container } = render(<PublicHeroMarquee />);
+    expect(container.firstChild).toBeNull();
+  });
+
+  it("renders nothing for empty slides array (no fallback)", () => {
+    const { container } = render(<PublicHeroMarquee slides={[]} />);
+    expect(container.firstChild).toBeNull();
+  });
+
+  it("renders nothing for empty slides when fallbackToDefault=false (explicit)", () => {
     const { container } = render(
       <PublicHeroMarquee slides={[]} fallbackToDefault={false} />
     );
     expect(container.firstChild).toBeNull();
   });
 
-  it("renders default slides when slides=[] and fallbackToDefault=true", () => {
+  it("renders dev placeholder slides when fallbackToDefault=true (dev/Storybook only)", () => {
     render(<PublicHeroMarquee slides={[]} fallbackToDefault={true} />);
     expect(screen.getByRole("region")).toBeTruthy();
   });

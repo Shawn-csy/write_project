@@ -38,7 +38,7 @@ export { AuthorBadge } from "./reader/InlineAuthorBadge";
 // ── Gallery ───────────────────────────────────────────────────────────────
 export { PublicHeroMarquee } from "./gallery/PublicHeroMarquee";
 export type { PublicHeroMarqueeProps } from "./gallery/PublicHeroMarquee";
-export { parseBannerSlides } from "./gallery/bannerModel";
+export { parseBannerSlides, DEV_PLACEHOLDER_SLIDES } from "./gallery/bannerModel";
 export type { HeroSlide } from "./gallery/bannerModel";
 export {
   SEGMENT_KEYS,
