@@ -45,12 +45,12 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
         onOpenMobileFilter={openMobileFilter}
       />
 
-      {/* Hero banner — only rendered when slides are present */}
-      {tab === "scripts" && bannerSlides && bannerSlides.length > 0 && (
-        <PublicHeroMarquee slides={bannerSlides} fullBleed />
+      {/* Hero banner — always shown on scripts tab; component uses DEFAULT_SLIDES when no slides provided */}
+      {tab === "scripts" && (
+        <PublicHeroMarquee slides={bannerSlides} fullBleed fallbackToDefault />
       )}
 
-      <div className="flex flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-20 gap-6">
+      <div className="flex flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 pb-20 gap-6">
         {/* Desktop sidebar */}
         {tab === "scripts" && (
           <aside className="hidden lg:block w-56 shrink-0">

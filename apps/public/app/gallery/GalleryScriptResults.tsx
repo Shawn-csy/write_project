@@ -54,15 +54,10 @@ export function GalleryScriptResults({
   if (hasFilters || !isDefaultView) {
     return (
       <>
-        <p className="text-xs text-muted-foreground mb-4">
-          {searchTerm
-            ? `搜尋「${searchTerm}」共 ${filteredScripts.length} 筆結果`
-            : `${filteredScripts.length} 部公開台本`}
-        </p>
         <div
-          className="grid gap-4"
+          className="grid gap-4 sm:gap-5"
           style={{
-            gridTemplateColumns: `repeat(auto-fill, minmax(${viewMode === "compact" ? "140px" : "160px"}, 1fr))`,
+            gridTemplateColumns: `repeat(auto-fill, minmax(${viewMode === "compact" ? "140px" : "165px"}, 1fr))`,
           }}
         >
           {filteredScripts.map((s) => (
@@ -99,7 +94,7 @@ export function GalleryScriptResults({
 
   // Default lanes view
   return (
-    <div className="space-y-10">
+    <div className="space-y-12">
       {latestScriptsPreview.length > 0 && (
         <HorizontalScrollLane title="最新發布">
           {latestScriptsPreview.map((s) => (
