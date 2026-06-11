@@ -13,6 +13,7 @@
 - `docs/product/marker-config-guide.md`：標記規則與主題設定
 - `docs/product/script-import-pipeline.md`：匯入與解析流程
 - `docs/public-reader-parity.md`：Next public reader 替換 Vite public reader 的長期架構與 parity checklist
+- `docs/public-homepage-architecture.md`：Next public homepage 的長期架構、URL state、資料契約與 parity 計畫
 
 ## 工程與操作
 - `docs/engineering/operations.md`：開發與部署操作手冊
