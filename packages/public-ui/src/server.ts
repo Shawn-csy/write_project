@@ -30,6 +30,14 @@ export type {
   PersonaLike,
 } from "./gallery/filterModel";
 
+export { buildPublicHomepageModel } from "./gallery/homepageModel";
+export type {
+  PublicHomepageModel,
+  BuildPublicHomepageModelInput,
+  ScriptLanes,
+  FilterChip,
+  EmptyStateReason,
+} from "./gallery/homepageModel";
 export {
   parseGalleryUrlState,
   serializeGalleryUrlState,

@@ -29,13 +29,10 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
     openMobileFilter,
     closeMobileFilter,
     filterPanelProps,
-    galleryModel,
-    hasFilters,
-    isDefaultView,
-    resultCount,
-    searchTerm,
-    viewMode,
+    homepageModel,
   } = useGalleryController({ initialScripts, initialBannerSlides });
+
+  const { view, resultCount, hasFilters } = homepageModel;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -46,13 +43,13 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
       />
 
       {/* Hero banner — only rendered when backend provides slides; no placeholder fallback in production */}
-      {tab === "scripts" && bannerSlides && bannerSlides.length > 0 && (
+      {view === "scripts" && bannerSlides && bannerSlides.length > 0 && (
         <PublicHeroMarquee slides={bannerSlides} fullBleed />
       )}
 
       <div className="flex flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 pb-20 gap-6">
         {/* Desktop sidebar */}
-        {tab === "scripts" && (
+        {view === "scripts" && (
           <aside className="hidden lg:block w-56 shrink-0">
             <GalleryFilterPanel {...filterPanelProps} />
           </aside>
@@ -61,41 +58,34 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
         {/* Main content */}
         <main className="flex-1 min-w-0">
           <p className="text-xs text-muted-foreground mb-4">
-            {searchTerm
-              ? `搜尋「${searchTerm}」共 ${resultCount} 筆結果`
-              : tab === "scripts"
+            {filterPanelProps.searchTerm
+              ? `搜尋「${filterPanelProps.searchTerm}」共 ${resultCount} 筆結果`
+              : view === "scripts"
               ? `${resultCount} 部公開台本`
-              : tab === "authors"
+              : view === "authors"
               ? `${resultCount} 位作者`
               : `${resultCount} 個組織`}
           </p>
 
-          {tab === "scripts" && (
+          {view === "scripts" && (
             <GalleryScriptResults
-              isDefaultView={isDefaultView}
-              viewMode={viewMode}
-              filteredScripts={galleryModel.filteredScripts}
-              topViewedScriptsPreview={galleryModel.topViewedScriptsPreview}
-              latestScriptsPreview={galleryModel.latestScriptsPreview}
-              featuredSeries={galleryModel.featuredSeries}
-              hasFilters={hasFilters}
+              model={homepageModel}
               onResetFilters={filterPanelProps.onResetFilters}
-              searchTerm={searchTerm}
             />
           )}
 
-          {tab === "authors" && (
+          {view === "authors" && (
             <GalleryAuthorGrid
               authors={authors}
-              filteredAuthors={galleryModel.filteredAuthors}
+              filteredAuthors={homepageModel.filteredAuthors}
               loading={loadingPeople}
             />
           )}
 
-          {tab === "orgs" && (
+          {view === "orgs" && (
             <GalleryOrgGrid
               orgs={orgs}
-              filteredOrgs={galleryModel.filteredOrgs}
+              filteredOrgs={homepageModel.filteredOrgs}
               loading={loadingPeople}
             />
           )}

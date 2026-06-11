@@ -5,34 +5,19 @@ import {
   ScriptGalleryCard,
   HorizontalScrollLane,
   type EnrichedGalleryScript,
-  type FeaturedSeries,
+  type PublicHomepageModel,
 } from "@write/public-ui";
 
 const CARD_WIDTH = "min-w-[160px] w-[160px] sm:min-w-[180px] sm:w-[180px]";
 
 interface GalleryScriptResultsProps {
-  isDefaultView: boolean;
-  viewMode: "standard" | "compact";
-  filteredScripts: EnrichedGalleryScript[];
-  topViewedScriptsPreview: EnrichedGalleryScript[];
-  latestScriptsPreview: EnrichedGalleryScript[];
-  featuredSeries: FeaturedSeries[];
-  hasFilters: boolean;
+  model: PublicHomepageModel;
   onResetFilters: () => void;
-  searchTerm: string;
 }
 
-export function GalleryScriptResults({
-  isDefaultView,
-  viewMode,
-  filteredScripts,
-  topViewedScriptsPreview,
-  latestScriptsPreview,
-  featuredSeries,
-  hasFilters,
-  onResetFilters,
-  searchTerm,
-}: GalleryScriptResultsProps) {
+export function GalleryScriptResults({ model, onResetFilters }: GalleryScriptResultsProps) {
+  const { filteredScripts, lanes, showLanes, hasFilters, viewMode, emptyState } = model;
+
   const handleSeriesClick = useCallback(
     (name: string) => { window.location.href = `/series/${encodeURIComponent(name)}`; },
     []
@@ -51,53 +36,53 @@ export function GalleryScriptResults({
   const seriesHref = (s: EnrichedGalleryScript) =>
     s.seriesName ? `/series/${encodeURIComponent(s.seriesName)}` : undefined;
 
-  if (hasFilters || !isDefaultView) {
+  if (!showLanes) {
     return (
-      <>
-        <div
-          className="grid gap-4 sm:gap-5"
-          style={{
-            gridTemplateColumns: `repeat(auto-fill, minmax(${viewMode === "compact" ? "140px" : "165px"}, 1fr))`,
-          }}
-        >
-          {filteredScripts.map((s) => (
-            <ScriptGalleryCard
-              key={s.id}
-              script={s}
-              variant={viewMode}
-              href={`/read/${s.id}`}
-              authorHref={authorHref(s)}
-              seriesHref={seriesHref(s)}
-              onSeriesClick={handleSeriesClick}
-              onTagClick={handleTagClick}
-              onAuthorClick={handleAuthorClick}
-            />
-          ))}
-          {filteredScripts.length === 0 && (
-            <div className="col-span-full py-16 text-center">
-              <p className="text-muted-foreground text-sm">找不到符合的台本</p>
-              {hasFilters && (
-                <button
-                  type="button"
-                  onClick={onResetFilters}
-                  className="mt-2 text-sm text-primary underline"
-                >
-                  清除篩選
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      </>
+      <div
+        className="grid gap-4 sm:gap-5"
+        style={{
+          gridTemplateColumns: `repeat(auto-fill, minmax(${viewMode === "compact" ? "140px" : "165px"}, 1fr))`,
+        }}
+      >
+        {filteredScripts.map((s) => (
+          <ScriptGalleryCard
+            key={s.id}
+            script={s}
+            variant={viewMode}
+            href={`/read/${s.id}`}
+            authorHref={authorHref(s)}
+            seriesHref={seriesHref(s)}
+            onSeriesClick={handleSeriesClick}
+            onTagClick={handleTagClick}
+            onAuthorClick={handleAuthorClick}
+          />
+        ))}
+        {emptyState !== "none" && (
+          <div className="col-span-full py-16 text-center">
+            <p className="text-muted-foreground text-sm">
+              {emptyState === "no-match" ? "找不到符合條件的台本" : "目前沒有公開台本"}
+            </p>
+            {emptyState === "no-match" && (
+              <button
+                type="button"
+                onClick={onResetFilters}
+                className="mt-2 text-sm text-primary underline"
+              >
+                清除篩選
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     );
   }
 
   // Default lanes view
   return (
     <div className="space-y-12">
-      {latestScriptsPreview.length > 0 && (
+      {lanes.latestPreview.length > 0 && (
         <HorizontalScrollLane title="最新發布">
-          {latestScriptsPreview.map((s) => (
+          {lanes.latestPreview.map((s) => (
             <div key={s.id} className={CARD_WIDTH}>
               <ScriptGalleryCard
                 script={s}
@@ -113,9 +98,9 @@ export function GalleryScriptResults({
           ))}
         </HorizontalScrollLane>
       )}
-      {topViewedScriptsPreview.length > 0 && (
+      {lanes.topViewedPreview.length > 0 && (
         <HorizontalScrollLane title="點閱排行">
-          {topViewedScriptsPreview.map((s) => (
+          {lanes.topViewedPreview.map((s) => (
             <div key={s.id} className={CARD_WIDTH}>
               <ScriptGalleryCard
                 script={s}
@@ -131,7 +116,7 @@ export function GalleryScriptResults({
           ))}
         </HorizontalScrollLane>
       )}
-      {featuredSeries.map((series) => (
+      {lanes.featuredSeries.map((series) => (
         <HorizontalScrollLane
           key={series.name}
           title={series.name}
@@ -154,7 +139,7 @@ export function GalleryScriptResults({
           ))}
         </HorizontalScrollLane>
       ))}
-      {latestScriptsPreview.length === 0 && topViewedScriptsPreview.length === 0 && (
+      {(emptyState === "no-public-scripts" || emptyState === "no-data") && (
         <p className="py-16 text-center text-muted-foreground text-sm">目前沒有公開台本</p>
       )}
     </div>
