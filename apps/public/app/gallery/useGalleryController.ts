@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   parseBannerSlides,
   useGalleryFilterModel,
+  buildPublicHomepageModel,
   type HeroSlide,
+  type PublicHomepageModel,
 } from "@write/public-ui";
 import type { PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
 import {
@@ -18,7 +20,7 @@ import {
 import { useGalleryUrlState } from "./useGalleryUrlState";
 import type { GalleryView, GalleryViewMode } from "./useGalleryUrlState";
 
-export type { GalleryView, GalleryViewMode };
+export type { GalleryView, GalleryViewMode, PublicHomepageModel };
 
 interface UseGalleryControllerOptions {
   initialScripts: PublicScript[];
@@ -78,7 +80,7 @@ export function useGalleryController({
   const galleryAuthors = useMemo(() => authors.map(toAuthorLike), [authors]);
   const galleryOrgs = useMemo(() => orgs.map(toOrgLike), [orgs]);
 
-  const galleryModel = useGalleryFilterModel({
+  const filterResult = useGalleryFilterModel({
     scripts: galleryScripts,
     authors: galleryAuthors,
     orgs: galleryOrgs,
@@ -91,22 +93,57 @@ export function useGalleryController({
     featuredLaneMode: "latest",
   });
 
-  // ── Derived display state ─────────────────────────────────────────────────
+  // ── Homepage model (pure — all display semantics here) ────────────────────
+  const homepageModel = useMemo(
+    () =>
+      buildPublicHomepageModel({
+        view: urlState.view,
+        viewMode: urlState.mode,
+        laneMode: "latest",
+        filteredScripts: filterResult.filteredScripts,
+        topViewedScripts: filterResult.topViewedScripts,
+        latestScripts: filterResult.latestScripts,
+        featuredSeries: filterResult.featuredSeries,
+        allTags: filterResult.allTags,
+        licenseTagShortcuts: filterResult.licenseTagShortcuts,
+        filteredAuthors: filterResult.filteredAuthors,
+        filteredOrgs: filterResult.filteredOrgs,
+        selectedTags: urlState.tags,
+        selectedAuthorTags: urlState.authorTags,
+        selectedOrgTags: urlState.orgTags,
+        segment: urlState.segment,
+        usage: urlState.usage,
+        q: urlState.q,
+        totalScriptCount: galleryScripts.length,
+        totalAuthorCount: galleryAuthors.length,
+        totalOrgCount: galleryOrgs.length,
+      }),
+    [
+      urlState.view,
+      urlState.mode,
+      urlState.tags,
+      urlState.authorTags,
+      urlState.orgTags,
+      urlState.segment,
+      urlState.usage,
+      urlState.q,
+      filterResult,
+      galleryScripts.length,
+      galleryAuthors.length,
+      galleryOrgs.length,
+    ]
+  );
+
+  // ── Derived display tags (transient tagSearch not in URL) ─────────────────
   const displayTags = useMemo(
     () =>
       tagSearch
-        ? galleryModel.allTags.filter((tag) =>
+        ? homepageModel.allTags.filter((tag) =>
             tag.toLowerCase().includes(tagSearch.toLowerCase())
           )
-        : galleryModel.allTags,
-    [galleryModel.allTags, tagSearch]
+        : homepageModel.allTags,
+    [homepageModel.allTags, tagSearch]
   );
-
-  const hasFilters =
-    urlState.q !== "" ||
-    urlState.tags.length > 0 ||
-    urlState.segment !== "all" ||
-    urlState.usage !== "all";
 
   // ── Callbacks ──────────────────────────────────────────────────────────────
   const openMobileFilter = useCallback(() => setMobileFilterOpen(true), []);
@@ -119,23 +156,16 @@ export function useGalleryController({
     onUsageFilterChange: urlActions.setUsage,
     viewMode: urlState.mode,
     onViewModeChange: urlActions.setMode,
-    licenseTagShortcuts: galleryModel.licenseTagShortcuts,
-    allTags: galleryModel.allTags,
+    licenseTagShortcuts: homepageModel.licenseTagShortcuts,
+    allTags: homepageModel.allTags,
     selectedTags: urlState.tags,
     onToggleTag: urlActions.toggleTag,
     tagSearch,
     onTagSearchChange: setTagSearch,
     displayTags,
-    hasFilters,
+    hasFilters: homepageModel.hasFilters,
     onResetFilters: urlActions.resetFilters,
   };
-
-  const resultCount =
-    urlState.view === "scripts"
-      ? galleryModel.filteredScripts.length
-      : urlState.view === "authors"
-      ? galleryModel.filteredAuthors.length
-      : galleryModel.filteredOrgs.length;
 
   return {
     tab: urlState.view,
@@ -148,11 +178,6 @@ export function useGalleryController({
     openMobileFilter,
     closeMobileFilter,
     filterPanelProps,
-    galleryModel,
-    hasFilters,
-    isDefaultView: !hasFilters,
-    resultCount,
-    searchTerm: urlState.q,
-    viewMode: urlState.mode,
+    homepageModel,
   };
 }

@@ -264,7 +264,7 @@ The public homepage is considered replacement-ready only when these categories a
 | URL state | Shareable view/filter/mode/lane state | shared model + `apps/public` | Not done |
 | Featured lanes | Featured/latest/top/series modes | shared homepage model | Partial |
 | Cards | Valid semantic card DOM and href/callback support | `@write/public-ui` | Done |
-| Topbar | Canonical public navigation shell | `@write/public-ui` + `apps/public` | Partial |
+| Topbar | Canonical public navigation shell | `@write/public-ui` + `apps/public` | Mostly done |
 | Info views | Help/license/about reachable from public shell | `apps/public` | Partial |
 | Navigation policy | Terms/R18 gates from discovery to reader | `apps/public` | Not done |
 | SEO | Homepage metadata and no-script fallback | `apps/public` | Partial |
@@ -337,41 +337,59 @@ Known caveat:
 
 - Vite legacy `src/components/public/PublicHeroMarquee.tsx` still has embedded placeholder fallback. This is not the canonical public homepage path; do not copy it forward. Either retire the Vite public gallery or make it import `@write/public-ui` before treating Vite as parity evidence again.
 
-### Phase 4: Public Homepage Model
+### Phase 4: Public Homepage Model ✓ Done
 
 Goal: move view derivation out of page components.
 
-Work:
+Work completed:
 
-1. Add `buildPublicHomepageModel()` in `@write/public-ui`.
-2. Move lane selection and result counts into the model.
-3. Add explicit empty/loading/failure model states.
-4. Wire `GalleryClient` to consume the model instead of deriving display semantics locally.
-5. Add model fixture tests for representative datasets.
+1. `packages/public-ui/src/gallery/homepageModel.ts` — pure `buildPublicHomepageModel()` function.
+2. Owns: `hasFilters`, `showLanes`, `filterChips`, `resultCount`, `emptyState`, `lanes` (latestPreview / topViewedPreview / featuredSeries / activeLaneMode).
+3. `EmptyStateReason`: `"none" | "no-data" | "no-match" | "no-public-scripts"` — explicit rather than silent empty.
+4. `FilterChip` type captures all active filter dimensions for UI rendering.
+5. `useGalleryController` calls `buildPublicHomepageModel` via `useMemo`; returns `homepageModel` directly. No `galleryModel` passthrough — that was removed in Phase 5.
+6. Exported from both `@write/public-ui` and `@write/public-ui/server`.
+7. 26 unit tests: hasFilters, showLanes, resultCount, emptyState (all 4 reasons), filterChips, lane preview capping, activeLaneMode, featuredSeries passthrough.
 
-Completion standard:
+Known caveats:
 
-- `GalleryClient` becomes a composition layer.
-- Filtering and lane behavior can be tested without React.
+- `laneMode` is hard-coded to `"latest"` until URL-controlled lane selection is added in a future iteration. The model already accepts `laneMode` as input — wiring it to URL state requires updating `galleryUrlState.ts` and the controller.
+
+Completion standard met:
+
+- `GalleryClient` is a composition layer. No display semantics derived in page components.
+- Filter, lane, and empty-state behavior tested without React.
 - Author/org/script results share one model vocabulary.
+- 159 total package tests pass.
 
-### Phase 5: Public Shell Convergence
+### Phase 5: Public Shell Convergence ✓ Partial
 
 Goal: make the public homepage shell coherent across desktop and mobile.
 
-Work:
+Work completed:
 
-1. Define a router-neutral public topbar component or shell primitive in `@write/public-ui`.
-2. Support scripts/authors/orgs/help/license/about navigation.
-3. Expose slots for host-specific login/studio/actions.
-4. Move reusable filter panel and mobile sheet primitives to shared UI if their behavior is stable.
-5. Keep Next-specific href and route mutation in `apps/public`.
+1. `packages/public-ui/src/gallery/PublicGalleryTopBar.tsx` — router-neutral topbar primitive.
+   - Props: `activeTab`, `onTabChange`, `onOpenMobileFilter?`, `tabs?`, `brandName?`, `trailing`, `mobileFilterLabel?`
+   - `trailing` slot: host-specific actions (studio link, login, etc.) kept in `apps/public`
+   - `aria-current="page"` on active tab; `aria-label` on nav and filter button
+   - Default tabs: scripts / authors / orgs
+2. `apps/public/app/gallery/GalleryTopBar.tsx` rewritten as thin wrapper: passes studio link via `trailing` slot.
+3. `GalleryScriptResults` migrated from flat prop explosion to `model: PublicHomepageModel` — reads `lanes`, `showLanes`, `emptyState`, `viewMode`, `hasFilters` from model.
+4. `GalleryClient` reads `homepageModel` directly; no more `galleryModel` passthrough.
+5. `useGalleryController` passthrough removed — returns only `homepageModel` + routing/data state.
+6. Exported: `PublicGalleryTopBar`, `DEFAULT_TABS`, `PublicGalleryTopBarProps`, `PublicGalleryTab` from `@write/public-ui`.
 
-Completion standard:
+Remaining for future iteration:
 
-- Topbar behavior is not duplicated across apps.
-- Help/license/about are part of the same navigation model.
-- Mobile and desktop expose equivalent public discovery actions.
+- `help | license | about` tabs: `PublicGalleryTopBar` already accepts `tabs?` override for this, but URL model (`GalleryView`) not yet expanded. Phase 5.2.
+- Filter panel and mobile sheet not yet promoted to shared UI — behavior is stable but contains host-specific label strings. Phase 5.3 if needed.
+
+Completion standard met:
+
+- Topbar behavior not duplicated across apps.
+- Host-specific actions isolated to `trailing` slot in `apps/public`.
+- Mobile filter trigger and tab nav owned by shared component.
+- 159 total package tests pass.
 
 ### Phase 6: Navigation Policy
 
@@ -416,9 +434,7 @@ Completion standard:
 
 ## Immediate Next Step
 
-Implement Phase 4: `buildPublicHomepageModel()` — move lane selection, result counts, and empty/loading/failure state derivation out of page components into a pure shared model.
-
-Phase 4 is prerequisite to URL-controlled lane selection (deferred from Phase 2).
+Phase 6: Navigation policy — define when terms consent or age gate applies before navigating to `/read/:id` from discovery. Or Phase 7 browser acceptance QA if navigation policy is deprioritized.
 
 ## Known Risks
 

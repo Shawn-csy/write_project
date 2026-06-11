@@ -37,6 +37,8 @@ export { AuthorBadge } from "./reader/InlineAuthorBadge";
 
 // ── Gallery ───────────────────────────────────────────────────────────────
 export { PublicHeroMarquee } from "./gallery/PublicHeroMarquee";
+export { PublicGalleryTopBar, DEFAULT_TABS } from "./gallery/PublicGalleryTopBar";
+export type { PublicGalleryTopBarProps, PublicGalleryTab } from "./gallery/PublicGalleryTopBar";
 export type { PublicHeroMarqueeProps } from "./gallery/PublicHeroMarquee";
 export { parseBannerSlides, DEV_PLACEHOLDER_SLIDES } from "./gallery/bannerModel";
 export type { HeroSlide } from "./gallery/bannerModel";
@@ -69,6 +71,14 @@ export type {
   UseGalleryFilterModelInput,
   UseGalleryFilterModelResult,
 } from "./gallery/useGalleryFilterModel";
+export { buildPublicHomepageModel } from "./gallery/homepageModel";
+export type {
+  PublicHomepageModel,
+  BuildPublicHomepageModelInput,
+  ScriptLanes,
+  FilterChip,
+  EmptyStateReason,
+} from "./gallery/homepageModel";
 export {
   parseGalleryUrlState,
   serializeGalleryUrlState,
