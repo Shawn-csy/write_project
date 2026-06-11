@@ -6,12 +6,18 @@
 import React, { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { HeroSlide } from "./bannerModel";
+import { DEV_PLACEHOLDER_SLIDES } from "./bannerModel";
 
 export type { HeroSlide } from "./bannerModel";
 
 export interface PublicHeroMarqueeProps {
   slides?: HeroSlide[];
   intervalMs?: number;
+  /**
+   * When true, renders DEV_PLACEHOLDER_SLIDES when no backend slides are provided.
+   * Default is false. Only set true in Storybook, local dev, or explicit demo pages.
+   * Production pages must never pass fallbackToDefault=true.
+   */
   fallbackToDefault?: boolean;
   fullBleed?: boolean;
   /** Accessible labels — provide localised strings from host */
@@ -23,38 +29,14 @@ export interface PublicHeroMarqueeProps {
   };
 }
 
-const DEFAULT_SLIDES: HeroSlide[] = [
-  {
-    id: "placeholder-1",
-    title: "Marquee Placeholder A",
-    subtitle: "可替換成活動宣傳圖、公告、主題企劃。",
-    className:
-      "from-[#e7f4ff] via-[#f2fbff] to-[#fff9f2] dark:from-[#16314b] dark:via-[#13313c] dark:to-[#3b2a1e]",
-  },
-  {
-    id: "placeholder-2",
-    title: "Marquee Placeholder B",
-    subtitle: "可放最新上架、徵稿中、站內公告等資訊。",
-    className:
-      "from-[#f6f1ff] via-[#fff2f7] to-[#fff8e7] dark:from-[#2d1f4a] dark:via-[#3a2036] dark:to-[#3a2d18]",
-  },
-  {
-    id: "placeholder-3",
-    title: "Marquee Placeholder C",
-    subtitle: "之後可接後台資料，改為可管理的輪播素材。",
-    className:
-      "from-[#e9fff7] via-[#edf9ff] to-[#f4f2ff] dark:from-[#133a33] dark:via-[#15303f] dark:to-[#2a2450]",
-  },
-];
-
 function cn(...classes: (string | undefined | false | null)[]): string {
   return classes.filter(Boolean).join(" ");
 }
 
 export function PublicHeroMarquee({
-  slides = DEFAULT_SLIDES,
+  slides,
   intervalMs = 4500,
-  fallbackToDefault = true,
+  fallbackToDefault = false,
   fullBleed = false,
   labels,
 }: PublicHeroMarqueeProps): React.JSX.Element | null {
@@ -62,7 +44,7 @@ export function PublicHeroMarquee({
     Array.isArray(slides) && slides.length > 0
       ? slides
       : fallbackToDefault
-      ? DEFAULT_SLIDES
+      ? (DEV_PLACEHOLDER_SLIDES as HeroSlide[])
       : [];
 
   const [activeIndex, setActiveIndex] = useState<number>(0);

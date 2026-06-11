@@ -45,9 +45,9 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
         onOpenMobileFilter={openMobileFilter}
       />
 
-      {/* Hero banner — always shown on scripts tab; component uses DEFAULT_SLIDES when no slides provided */}
-      {tab === "scripts" && (
-        <PublicHeroMarquee slides={bannerSlides} fullBleed fallbackToDefault />
+      {/* Hero banner — only rendered when backend provides slides; no placeholder fallback in production */}
+      {tab === "scripts" && bannerSlides && bannerSlides.length > 0 && (
+        <PublicHeroMarquee slides={bannerSlides} fullBleed />
       )}
 
       <div className="flex flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 pb-20 gap-6">
