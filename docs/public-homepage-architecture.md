@@ -284,25 +284,34 @@ Completion standard:
 - Parity categories have owners.
 - No open item is described only as "match Vite"; each item has a product/system reason.
 
-### Phase 2: URL State Model
+### Phase 2: URL State Model ✓ Done
 
 Goal: make public discovery state shareable, deterministic, and testable.
 
-Work:
+Work completed:
 
-1. Add a pure `galleryUrlState.ts`.
-2. Define `PublicHomepageUrlState`.
-3. Implement parse and serialize helpers.
-4. Add unit tests for defaults, invalid values, repeated tags, ordering, and round trips.
-5. Update `useGalleryController` to read/write URL state with `next/navigation`.
-6. Keep only transient UI in local React state.
+1. `packages/public-ui/src/gallery/galleryUrlState.ts` — pure parse/serialize/merge model, no React.
+2. `PublicHomepageUrlState` defines `view | tags | authorTags | orgTags | usage | segment | mode | q`.
+3. `parseGalleryUrlState`, `serializeGalleryUrlState`, `mergeGalleryUrlState`, `isDefaultGalleryUrlState` implemented.
+4. 37 unit tests covering defaults, invalid values, whitespace tag normalization, deduplication, sort ordering, and round trips.
+5. `apps/public/app/gallery/useGalleryUrlState.ts` — Next.js adapter; push for discrete actions, replace for search input.
+6. `useGalleryController` reads all shareable state from URL; only `mobileFilterOpen` and `tagSearch` remain local.
+7. `page.tsx` wraps `GalleryClient` in `<Suspense>` as required by `useSearchParams`.
 
-Completion standard:
+Exported from `@write/public-ui` and `@write/public-ui/server`.
 
-- Refresh preserves selected view, filters, mode, and lane.
-- Browser back/forward works for view/filter changes.
-- Default homepage URL remains clean.
-- Tests cover parse/serialize round trips.
+Known caveats deferred to later phases:
+
+- `lane` (featured/top/latest/series): type `GalleryLaneMode` exported but not yet in `PublicHomepageUrlState`. Will be added in Phase 4 when `buildPublicHomepageModel` drives lane selection in the UI.
+- `view` currently `"scripts" | "authors" | "orgs"`. Will expand to include `"help" | "license" | "about"` in Phase 5 when public shell navigation is unified.
+
+Completion standard met:
+
+- Refresh preserves selected view, filters, mode, and search term.
+- Browser back/forward works for view/filter/tag/segment changes.
+- Search input uses replace — back/forward does not step through individual keystrokes.
+- Default homepage URL remains clean (no query params).
+- Tests cover parse/serialize round trips, whitespace normalization, deduplication, and invalid value handling.
 
 ### Phase 3: Banner Contract Cleanup
 
@@ -401,9 +410,9 @@ Completion standard:
 
 ## Immediate Next Step
 
-Implement Phase 2: `galleryUrlState.ts` and URL-driven `useGalleryController`.
+Implement Phase 3: Banner contract cleanup — remove placeholder slides from production fallback, make missing banner an explicit no-banner state.
 
-Do not start with topbar or visual polish. Without URL state, homepage behavior remains app-local and cannot be treated as a stable public discovery surface.
+Do not start with topbar or visual polish. Phase 3 is prerequisite to Phase 4 (homepage model), which is prerequisite to URL-controlled lane selection.
 
 ## Known Risks
 

@@ -29,3 +29,18 @@ export type {
   OrgLike,
   PersonaLike,
 } from "./gallery/filterModel";
+
+export {
+  parseGalleryUrlState,
+  serializeGalleryUrlState,
+  serializeGalleryUrlStateToString,
+  mergeGalleryUrlState,
+  isDefaultGalleryUrlState,
+  DEFAULT_URL_STATE,
+} from "./gallery/galleryUrlState";
+export type {
+  GalleryView,
+  GalleryViewMode,
+  GalleryLaneMode,
+  PublicHomepageUrlState,
+} from "./gallery/galleryUrlState";

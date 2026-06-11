@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { apiFetch } from "@/lib/api";
 import type { PublicScript } from "@/lib/types";
@@ -89,7 +90,9 @@ export default async function HomePage() {
           </ul>
         </main>
       </noscript>
-      <GalleryClient initialScripts={initialScripts} initialBannerSlides={bannerSlides} />
+      <Suspense fallback={null}>
+        <GalleryClient initialScripts={initialScripts} initialBannerSlides={bannerSlides} />
+      </Suspense>
     </>
   );
 }
