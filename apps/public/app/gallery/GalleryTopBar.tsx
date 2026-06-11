@@ -1,15 +1,15 @@
 "use client";
 
 import { SlidersHorizontal } from "lucide-react";
-import type { GalleryTab } from "./useGalleryController";
+import type { GalleryView } from "./useGalleryUrlState";
 
 interface GalleryTopBarProps {
-  activeTab: GalleryTab;
-  onTabChange: (tab: GalleryTab) => void;
+  activeTab: GalleryView;
+  onTabChange: (tab: GalleryView) => void;
   onOpenMobileFilter: () => void;
 }
 
-const TABS: Array<{ key: GalleryTab; label: string }> = [
+const TABS: Array<{ key: GalleryView; label: string }> = [
   { key: "scripts", label: "台本" },
   { key: "authors", label: "作者" },
   { key: "orgs", label: "組織" },

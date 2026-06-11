@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   parseBannerSlides,
-  SEGMENT_KEYS,
   useGalleryFilterModel,
   type HeroSlide,
 } from "@write/public-ui";
@@ -16,9 +15,10 @@ import {
   toGalleryInput,
   toOrgLike,
 } from "@/lib/galleryProjection";
+import { useGalleryUrlState } from "./useGalleryUrlState";
+import type { GalleryView, GalleryViewMode } from "./useGalleryUrlState";
 
-export type GalleryTab = "scripts" | "authors" | "orgs";
-export type GalleryViewMode = "standard" | "compact";
+export type { GalleryView, GalleryViewMode };
 
 interface UseGalleryControllerOptions {
   initialScripts: PublicScript[];
@@ -29,21 +29,20 @@ export function useGalleryController({
   initialScripts,
   initialBannerSlides,
 }: UseGalleryControllerOptions) {
-  const [tab, setTab] = useState<GalleryTab>("scripts");
+  const { state: urlState, actions: urlActions } = useGalleryUrlState();
+
+  // ── Server data ────────────────────────────────────────────────────────────
   const [rawScripts, setRawScripts] = useState<PublicScript[]>(initialScripts);
   const [bannerSlides, setBannerSlides] = useState<HeroSlide[] | undefined>(initialBannerSlides);
   const [authors, setAuthors] = useState<PublicPersona[]>([]);
   const [orgs, setOrgs] = useState<PublicOrg[]>([]);
   const [loadingPeople, setLoadingPeople] = useState(false);
-  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [segmentFilter, setSegmentFilter] = useState<string>(SEGMENT_KEYS.all);
-  const [usageFilter, setUsageFilter] = useState<string>("all");
-  const [viewMode, setViewMode] = useState<GalleryViewMode>("standard");
+  // ── Transient UI state (not shareable) ────────────────────────────────────
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [tagSearch, setTagSearch] = useState("");
 
+  // ── Client-side refresh ───────────────────────────────────────────────────
   useEffect(() => {
     fetch("/api/public-bundle")
       .then((response) => (response.ok ? response.json() : null))
@@ -59,7 +58,7 @@ export function useGalleryController({
   }, []);
 
   useEffect(() => {
-    if (tab !== "authors" && tab !== "orgs") return;
+    if (urlState.view !== "authors" && urlState.view !== "orgs") return;
     if (authors.length > 0 || orgs.length > 0) return;
     setLoadingPeople(true);
     Promise.all([
@@ -72,8 +71,9 @@ export function useGalleryController({
       })
       .catch(() => {})
       .finally(() => setLoadingPeople(false));
-  }, [tab, authors.length, orgs.length]);
+  }, [urlState.view, authors.length, orgs.length]);
 
+  // ── Gallery model inputs ───────────────────────────────────────────────────
   const galleryScripts = useMemo(() => rawScripts.map(toGalleryInput), [rawScripts]);
   const galleryAuthors = useMemo(() => authors.map(toAuthorLike), [authors]);
   const galleryOrgs = useMemo(() => orgs.map(toOrgLike), [orgs]);
@@ -82,15 +82,16 @@ export function useGalleryController({
     scripts: galleryScripts,
     authors: galleryAuthors,
     orgs: galleryOrgs,
-    searchNeedle: searchTerm.toLowerCase(),
-    selectedTags,
-    selectedAuthorTags: [],
-    selectedOrgTags: [],
-    segmentFilter,
-    usageFilter,
+    searchNeedle: urlState.q.toLowerCase(),
+    selectedTags: urlState.tags,
+    selectedAuthorTags: urlState.authorTags,
+    selectedOrgTags: urlState.orgTags,
+    segmentFilter: urlState.segment,
+    usageFilter: urlState.usage,
     featuredLaneMode: "latest",
   });
 
+  // ── Derived display state ─────────────────────────────────────────────────
   const displayTags = useMemo(
     () =>
       tagSearch
@@ -102,58 +103,43 @@ export function useGalleryController({
   );
 
   const hasFilters =
-    searchTerm !== "" ||
-    selectedTags.length > 0 ||
-    segmentFilter !== SEGMENT_KEYS.all ||
-    usageFilter !== "all";
+    urlState.q !== "" ||
+    urlState.tags.length > 0 ||
+    urlState.segment !== "all" ||
+    urlState.usage !== "all";
 
-  const toggleTag = useCallback((tag: string) => {
-    setSelectedTags((previous) =>
-      previous.includes(tag)
-        ? previous.filter((selectedTag) => selectedTag !== tag)
-        : [...previous, tag]
-    );
-  }, []);
-
-  const resetFilters = useCallback(() => {
-    setSearchTerm("");
-    setSelectedTags([]);
-    setSegmentFilter(SEGMENT_KEYS.all);
-    setUsageFilter("all");
-    setTagSearch("");
-  }, []);
-
+  // ── Callbacks ──────────────────────────────────────────────────────────────
   const openMobileFilter = useCallback(() => setMobileFilterOpen(true), []);
   const closeMobileFilter = useCallback(() => setMobileFilterOpen(false), []);
 
   const filterPanelProps = {
-    searchTerm,
-    onSearchChange: setSearchTerm,
-    usageFilter,
-    onUsageFilterChange: setUsageFilter,
-    viewMode,
-    onViewModeChange: setViewMode,
+    searchTerm: urlState.q,
+    onSearchChange: urlActions.setQ,
+    usageFilter: urlState.usage,
+    onUsageFilterChange: urlActions.setUsage,
+    viewMode: urlState.mode,
+    onViewModeChange: urlActions.setMode,
     licenseTagShortcuts: galleryModel.licenseTagShortcuts,
     allTags: galleryModel.allTags,
-    selectedTags,
-    onToggleTag: toggleTag,
+    selectedTags: urlState.tags,
+    onToggleTag: urlActions.toggleTag,
     tagSearch,
     onTagSearchChange: setTagSearch,
     displayTags,
     hasFilters,
-    onResetFilters: resetFilters,
+    onResetFilters: urlActions.resetFilters,
   };
 
   const resultCount =
-    tab === "scripts"
+    urlState.view === "scripts"
       ? galleryModel.filteredScripts.length
-      : tab === "authors"
+      : urlState.view === "authors"
       ? galleryModel.filteredAuthors.length
       : galleryModel.filteredOrgs.length;
 
   return {
-    tab,
-    setTab,
+    tab: urlState.view,
+    setTab: urlActions.setView,
     bannerSlides,
     authors,
     orgs,
@@ -166,7 +152,7 @@ export function useGalleryController({
     hasFilters,
     isDefaultView: !hasFilters,
     resultCount,
-    searchTerm,
-    viewMode,
+    searchTerm: urlState.q,
+    viewMode: urlState.mode,
   };
 }
