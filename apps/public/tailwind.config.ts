@@ -2,7 +2,12 @@ import type { Config } from "tailwindcss";
 import tailwindcssAnimate from "tailwindcss-animate";
 
 const config: Config = {
-  content: ["./app/**/*.{js,jsx,ts,tsx}", "./components/**/*.{js,jsx,ts,tsx}"],
+  content: [
+    "./app/**/*.{js,jsx,ts,tsx}",
+    "./components/**/*.{js,jsx,ts,tsx}",
+    "../../packages/public-ui/src/**/*.{js,jsx,ts,tsx}",
+    "../../packages/script-reader-ui/src/**/*.{js,jsx,ts,tsx}",
+  ],
   darkMode: ["class"],
   theme: {
     container: {
