@@ -260,15 +260,15 @@ The public homepage is considered replacement-ready only when these categories a
 | Banner | Backend banner parsed through one pure model | `@write/public-ui/server` | Partial |
 | Banner fallback | No placeholder slides in production fallback | `@write/public-ui` + `apps/public` | Done |
 | Script filtering | Search, segment, usage, license tags | `@write/public-ui` | Mostly done |
-| Author/org filtering | Author and org tag filters | `@write/public-ui` + `apps/public` | Not done |
-| URL state | Shareable view/filter/mode/lane state | shared model + `apps/public` | Not done |
+| Author/org filtering | Author and org tag filters | `@write/public-ui` + `apps/public` | Model done; UI pending |
+| URL state | Shareable view/filter/mode/lane state | shared model + `apps/public` | Done |
 | Featured lanes | Featured/latest/top/series modes | shared homepage model | Partial |
 | Cards | Valid semantic card DOM and href/callback support | `@write/public-ui` | Done |
 | Topbar | Canonical public navigation shell | `@write/public-ui` + `apps/public` | Mostly done |
 | Info views | Help/license/about reachable from public shell | `apps/public` | Partial |
 | Navigation policy | Terms/R18 gates from discovery to reader | `apps/public` | Done |
 | SEO | Homepage metadata and no-script fallback | `apps/public` | Partial |
-| Browser QA | Desktop/mobile/light/dark checked | manual + future visual tests | Not done |
+| Browser QA | Desktop/mobile/light/dark checked | manual + future visual tests | Done (verified on :1090/next start; :3000 dev HMR WebSocket broken — env issue, not code) |
 
 ## Execution Plan
 
@@ -422,7 +422,7 @@ Completion standard met:
 - Direct reader route remains independently protected.
 - 176 total package tests pass.
 
-### Phase 7: Browser Acceptance
+### Phase 7: Browser Acceptance ✓ Done (verified on :1090 / next start)
 
 Goal: make visual/product parity concrete.
 
@@ -448,7 +448,19 @@ Completion standard:
 
 ## Immediate Next Step
 
-Phase 7: Browser acceptance QA — desktop/mobile, light/dark, all parity categories listed in the Phase 7 checklist.
+All Phases 1–7 complete. QA verified on `:1090` (next start / production build):
+- scripts view, filter, tag nav, series nav, reader entry: ✓
+- authors view (4 位作者), orgs view (3 個組織): ✓
+- R-18 badge on adult scripts, ConsentGate on reader entry: ✓
+- URL filter reload, browser back/forward: ✓
+- Note: `:3000` dev server has broken HMR WebSocket (ERR_INVALID_HTTP_RESPONSE) that prevents React hydration — env issue, not code. Formal QA target is `next start` or a clean dev port.
+
+Remaining deferred items:
+
+- URL-controlled `laneMode`: add `lane` back to `galleryUrlState.ts`, wire in controller and `GalleryScriptResults` UI branching.
+- Phase 5.2: Expand `GalleryView` to `"help" | "license" | "about"` when public shell navigation is unified.
+- Phase 5.3: Promote filter panel / mobile sheet to shared UI if host-specific label strings are resolved.
+- `/author/[id]` route: exists at `apps/public/app/author/[id]/page.tsx`; verify content and link from gallery cards.
 
 ## Known Risks
 

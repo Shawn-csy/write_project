@@ -55,19 +55,31 @@ function OrgCard({ org }: { org: PublicOrg }) {
   );
 }
 
+type PeopleStatus = "idle" | "loading" | "loaded" | "error";
+
 interface GalleryAuthorGridProps {
   authors: PublicPersona[];
   filteredAuthors: AuthorLike[];
-  loading: boolean;
+  peopleStatus: PeopleStatus;
+  onRetry: () => void;
 }
 
 export function GalleryAuthorGrid({
   authors,
   filteredAuthors,
-  loading,
+  peopleStatus,
+  onRetry,
 }: GalleryAuthorGridProps) {
-  if (loading) {
+  if (peopleStatus === "loading" || peopleStatus === "idle") {
     return <p className="text-sm text-muted-foreground py-16 text-center">載入中...</p>;
+  }
+  if (peopleStatus === "error") {
+    return (
+      <div className="py-16 text-center">
+        <p className="text-sm text-muted-foreground">載入失敗</p>
+        <button type="button" onClick={onRetry} className="mt-2 text-sm text-primary underline">重試</button>
+      </div>
+    );
   }
 
   return (
@@ -89,16 +101,26 @@ export function GalleryAuthorGrid({
 interface GalleryOrgGridProps {
   orgs: PublicOrg[];
   filteredOrgs: OrgLike[];
-  loading: boolean;
+  peopleStatus: PeopleStatus;
+  onRetry: () => void;
 }
 
 export function GalleryOrgGrid({
   orgs,
   filteredOrgs,
-  loading,
+  peopleStatus,
+  onRetry,
 }: GalleryOrgGridProps) {
-  if (loading) {
+  if (peopleStatus === "loading" || peopleStatus === "idle") {
     return <p className="text-sm text-muted-foreground py-16 text-center">載入中...</p>;
+  }
+  if (peopleStatus === "error") {
+    return (
+      <div className="py-16 text-center">
+        <p className="text-sm text-muted-foreground">載入失敗</p>
+        <button type="button" onClick={onRetry} className="mt-2 text-sm text-primary underline">重試</button>
+      </div>
+    );
   }
 
   return (
