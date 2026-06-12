@@ -24,7 +24,8 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
     bannerSlides,
     authors,
     orgs,
-    loadingPeople,
+    peopleStatus,
+    retryPeople,
     mobileFilterOpen,
     openMobileFilter,
     closeMobileFilter,
@@ -78,7 +79,8 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
             <GalleryAuthorGrid
               authors={authors}
               filteredAuthors={homepageModel.filteredAuthors}
-              loading={loadingPeople}
+              peopleStatus={peopleStatus}
+              onRetry={retryPeople}
             />
           )}
 
@@ -86,7 +88,8 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
             <GalleryOrgGrid
               orgs={orgs}
               filteredOrgs={homepageModel.filteredOrgs}
-              loading={loadingPeople}
+              peopleStatus={peopleStatus}
+              onRetry={retryPeople}
             />
           )}
         </main>

@@ -38,7 +38,7 @@ export function useGalleryController({
   const [bannerSlides, setBannerSlides] = useState<HeroSlide[] | undefined>(initialBannerSlides);
   const [authors, setAuthors] = useState<PublicPersona[]>([]);
   const [orgs, setOrgs] = useState<PublicOrg[]>([]);
-  const [loadingPeople, setLoadingPeople] = useState(false);
+  const [peopleStatus, setPeopleStatus] = useState<"idle" | "loading" | "loaded" | "error">("idle");
   const [termsRequired, setTermsRequired] = useState(false);
 
   // ── Transient UI state (not shareable) ────────────────────────────────────
@@ -74,19 +74,22 @@ export function useGalleryController({
 
   useEffect(() => {
     if (urlState.view !== "authors" && urlState.view !== "orgs") return;
-    if (authors.length > 0 || orgs.length > 0) return;
-    setLoadingPeople(true);
+    // Only fetch when idle. error stops here — retryPeople() resets to idle.
+    if (peopleStatus !== "idle") return;
+    setPeopleStatus("loading");
     Promise.all([
-      fetch("/api/public-personas").then((response) => (response.ok ? response.json() : [])),
-      fetch("/api/public-organizations").then((response) => (response.ok ? response.json() : [])),
+      fetch("/api/public-personas").then((r) => (r.ok ? r.json() : Promise.reject(new Error(`personas ${r.status}`)))),
+      fetch("/api/public-organizations").then((r) => (r.ok ? r.json() : Promise.reject(new Error(`organizations ${r.status}`)))),
     ])
       .then(([personaData, orgData]) => {
         setAuthors(publicPersonasFromResponse(personaData));
         setOrgs(publicOrgsFromResponse(orgData));
+        setPeopleStatus("loaded");
       })
-      .catch(() => {})
-      .finally(() => setLoadingPeople(false));
-  }, [urlState.view, authors.length, orgs.length]);
+      .catch(() => {
+        setPeopleStatus("error");
+      });
+  }, [urlState.view, peopleStatus]);
 
   // ── Gallery model inputs ───────────────────────────────────────────────────
   const galleryScripts = useMemo(() => rawScripts.map(toGalleryInput), [rawScripts]);
@@ -163,6 +166,8 @@ export function useGalleryController({
   // ── Callbacks ──────────────────────────────────────────────────────────────
   const openMobileFilter = useCallback(() => setMobileFilterOpen(true), []);
   const closeMobileFilter = useCallback(() => setMobileFilterOpen(false), []);
+  /** Reset people fetch from error state. Only valid when peopleStatus === "error". */
+  const retryPeople = useCallback(() => setPeopleStatus("idle"), []);
 
   const filterPanelProps = {
     searchTerm: urlState.q,
@@ -188,7 +193,8 @@ export function useGalleryController({
     bannerSlides,
     authors,
     orgs,
-    loadingPeople,
+    peopleStatus,
+    retryPeople,
     mobileFilterOpen,
     openMobileFilter,
     closeMobileFilter,
