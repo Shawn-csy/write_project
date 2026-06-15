@@ -2,7 +2,10 @@
  * PublicTopBar — shared top navigation for public SSR pages.
  * Next-native: uses <a> for navigation, no react-router-dom.
  * Server-renderable (no hooks that need client).
+ * Pass client-side actions (theme toggle, studio link, etc.) via the `trailing` prop.
  */
+
+import type { ReactNode } from "react";
 
 export interface TopBarTab {
   key: string;
@@ -16,8 +19,8 @@ interface Props {
   showBack?: boolean;
   backHref?: string;
   backLabel?: string;
-  /** Extra content rendered in the actions slot (right side) */
-  actions?: React.ReactNode;
+  /** Extra content rendered in the actions slot (right side). Use PublicShellActions for standard shell actions. */
+  trailing?: ReactNode;
 }
 
 const DEFAULT_TABS: TopBarTab[] = [
@@ -32,11 +35,11 @@ export function PublicTopBar({
   showBack = false,
   backHref = "/",
   backLabel = "返回",
-  actions,
+  trailing,
 }: Props) {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/95 backdrop-blur">
-      <div className="flex h-13 items-center gap-3 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <div className="flex h-14 items-center gap-3 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         {/* Left: logo + back */}
         <div className="flex items-center gap-2 shrink-0">
           {showBack && (
@@ -58,7 +61,7 @@ export function PublicTopBar({
 
         {/* Center: tab nav (hidden on mobile, shown on md+) */}
         {tabs.length > 0 && (
-          <nav className="hidden md:flex items-center gap-1 ml-2">
+          <nav className="hidden md:flex items-center gap-1 ml-2 shrink-0">
             {tabs.map((tab) => (
               <a
                 key={tab.key}
@@ -75,15 +78,9 @@ export function PublicTopBar({
           </nav>
         )}
 
-        {/* Right: actions */}
-        <div className="ml-auto flex items-center gap-2">
-          {actions}
-          <a
-            href="/dashboard"
-            className="hidden sm:inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors shrink-0"
-          >
-            工作室
-          </a>
+        {/* Right: trailing actions */}
+        <div className="ml-auto flex items-center gap-2 shrink-0">
+          {trailing}
         </div>
       </div>
 

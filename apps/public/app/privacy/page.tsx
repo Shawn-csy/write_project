@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { PublicTopBar } from "@/components/PublicTopBar";
+import { PublicShellActions } from "@/components/PublicShellActions";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://open-scripts.shawnup.com";
 
@@ -19,6 +21,7 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <PublicTopBar showBack backHref="/" backLabel="返回" trailing={<PublicShellActions />} />
       <div className="max-w-3xl mx-auto px-6 py-16">
         <h1 className="text-3xl font-bold mb-2">Privacy Policy</h1>
         <p className="text-sm text-muted-foreground mb-10">Last updated: May 27, 2026</p>

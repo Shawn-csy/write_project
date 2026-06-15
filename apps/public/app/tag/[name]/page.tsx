@@ -4,6 +4,7 @@ import { apiFetch } from "@/lib/api";
 import type { PublicScript } from "@/lib/types";
 import { TagPageClient } from "./TagPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
+import { PublicShellActions } from "@/components/PublicShellActions";
 import { filterScriptsByTag } from "./filterScriptsByTag";
 
 export const revalidate = 3600;
@@ -96,7 +97,7 @@ export default async function TagPage({
             .replace(/&/g, "\\u0026"),
         }}
       />
-      <PublicTopBar activeTab="scripts" showBack backHref="/" backLabel="返回" />
+      <PublicTopBar activeTab="scripts" showBack backHref="/" backLabel="返回" trailing={<PublicShellActions />} />
       <noscript>
         <article style={{ maxWidth: 800, margin: "0 auto", padding: "2rem", fontFamily: "serif" }}>
           <h1>#{tagName}</h1>

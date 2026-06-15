@@ -2,6 +2,7 @@
 
 import { PublicGalleryTopBar } from "@write/public-ui";
 import type { GalleryView } from "@write/public-ui";
+import { PublicShellActions } from "@/components/PublicShellActions";
 
 export type { GalleryView };
 
@@ -21,14 +22,7 @@ export function GalleryTopBar({
       activeTab={activeTab}
       onTabChange={onTabChange}
       onOpenMobileFilter={onOpenMobileFilter}
-      trailing={
-        <a
-          href="/dashboard"
-          className="hidden sm:inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-        >
-          工作室
-        </a>
-      }
+      trailing={<PublicShellActions />}
     />
   );
 }
