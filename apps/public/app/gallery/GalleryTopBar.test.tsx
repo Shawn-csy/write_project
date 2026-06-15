@@ -7,6 +7,10 @@ vi.mock("lucide-react", () => ({
   SlidersHorizontal: () => <span data-testid="sliders-icon" />,
 }));
 
+vi.mock("@/components/PublicShellActions", () => ({
+  PublicShellActions: () => <a href="/dashboard">工作室</a>,
+}));
+
 describe("GalleryTopBar", () => {
   it("renders tabs and dispatches tab changes", () => {
     const onTabChange = vi.fn();

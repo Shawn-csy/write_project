@@ -54,9 +54,12 @@ export function PublicGalleryTopBar({
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/95 backdrop-blur">
       <div className="flex h-14 items-center gap-3 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <span className="font-serif font-bold text-foreground text-base shrink-0">
+        <a
+          href="/"
+          className="font-serif font-bold text-foreground text-base shrink-0 hover:text-primary transition-colors"
+        >
           {brandName}
-        </span>
+        </a>
 
         <nav className="flex items-center gap-1 ml-2" aria-label="公開頁面導航">
           {tabs.map((tab) => (

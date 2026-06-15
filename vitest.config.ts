@@ -3,14 +3,9 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig({
-  plugins: [react()],
   test: {
     pool: 'forks',
     maxWorkers: '50%',
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
-    include: ['src/**/*.{test,spec}.{ts,tsx}', 'packages/**/*.{test,spec}.{ts,tsx}', 'apps/public/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['tests-e2e/**', 'node_modules/**'],
     coverage: {
       provider: 'v8',
@@ -18,10 +13,39 @@ export default defineConfig({
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['src/**/*.{test,spec}.{ts,tsx}', 'src/test/**', 'src/tests/**', 'src/main.tsx'],
     },
-  },
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
+    projects: [
+      // Main app + packages — @/ resolves to ./src
+      {
+        plugins: [react()],
+        test: {
+          name: 'main',
+          include: ['src/**/*.{test,spec}.{ts,tsx}', 'packages/**/*.{test,spec}.{ts,tsx}'],
+          environment: 'jsdom',
+          globals: true,
+          setupFiles: ['./src/test/setup.ts'],
+        },
+        resolve: {
+          alias: {
+            '@': path.resolve(__dirname, './src'),
+          },
+        },
+      },
+      // apps/public Next.js — @/ resolves to apps/public/
+      {
+        plugins: [react()],
+        test: {
+          name: 'public',
+          include: ['apps/public/**/*.{test,spec}.{ts,tsx}'],
+          environment: 'jsdom',
+          globals: true,
+          setupFiles: ['./src/test/setup.ts'],
+        },
+        resolve: {
+          alias: {
+            '@': path.resolve(__dirname, './apps/public'),
+          },
+        },
+      },
+    ],
   },
 });

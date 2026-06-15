@@ -4,6 +4,7 @@ import { apiFetch } from "@/lib/api";
 import type { PublicOrg, PublicScript } from "@/lib/types";
 import { OrgPageClient } from "./OrgPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
+import { PublicShellActions } from "@/components/PublicShellActions";
 
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -110,7 +111,7 @@ export default async function OrgPage({
             .replace(/&/g, "\\u0026"),
         }}
       />
-      <PublicTopBar activeTab="orgs" />
+      <PublicTopBar activeTab="orgs" trailing={<PublicShellActions />} />
       <noscript>
         <article style={{ maxWidth: 800, margin: "0 auto", padding: "2rem", fontFamily: "serif" }}>
           <h1>{org.name}</h1>
