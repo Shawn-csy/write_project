@@ -385,7 +385,7 @@ function ScriptGalleryCardInner({
       {/* Cover */}
       <div className="aspect-[2/3] w-full overflow-hidden rounded-lg bg-muted shadow-sm group-hover:shadow-md transition-shadow">
         {coverLinkEl}
-        <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-primary/10" aria-hidden />
+        <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-primary/10 pointer-events-none" aria-hidden />
       </div>
 
       {/* Meta */}
