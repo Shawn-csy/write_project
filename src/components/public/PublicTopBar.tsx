@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { openPublicPath } from "../../lib/publicNavigation";
 import { ArrowLeft, Settings2, X } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
@@ -68,7 +69,7 @@ export function PublicTopBar({
               <button
                 type="button"
                 className="flex min-w-0 items-center gap-2 rounded-md px-1 py-1 hover:bg-muted/50 transition-colors cursor-pointer group"
-                onClick={() => navigate("/")}
+                onClick={() => openPublicPath("/")}
                 aria-label="Screenplay Reader"
               >
                 <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">

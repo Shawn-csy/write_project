@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { openPublicPath } from "../../lib/publicNavigation";
 import type { LucideIcon } from "lucide-react";
 import {
   Settings,
@@ -118,7 +119,7 @@ function MobileMenu({
                      <NavItem
                          icon={Library}
                          label={t("nav.gallery")}
-                         onClick={() => { navigate("/"); onClose(); }}
+                         onClick={() => { openPublicPath("/"); onClose(); }}
                          isActive={location.pathname === "/"}
                      />
 

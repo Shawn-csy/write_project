@@ -5,6 +5,7 @@ import { PanelLeftOpen, Plus, ChevronDown, FolderPlus, Upload } from "lucide-rea
 import { Button } from "../ui/button";
 import { WriteTab } from "./WriteTab";
 import { useNavigate } from "react-router-dom";
+import { openPublicPath } from "../../lib/publicNavigation";
 import { TOPBAR_OUTER_CLASS } from "../layout/topbarLayout";
 import {
   STUDIO_TOPBAR_ACTIONS_CLASS,
@@ -135,7 +136,7 @@ export default function HybridDashboard({
                 </div>
                 <StudioTopbarQuickActions
                   onOpenGuide={() => dispatchWriteTabAction("open-guide")}
-                  onOpenGallery={() => navigate("/")}
+                  onOpenGallery={() => openPublicPath("/")}
                   guideLabel={t("scriptToolbar.guide")}
                   galleryLabel={t("nav.gallery", "公開台本")}
                   languageLabel={t("settings.language")}
