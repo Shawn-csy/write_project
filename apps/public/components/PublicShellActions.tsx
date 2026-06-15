@@ -8,8 +8,7 @@
  * Language switching is intentionally omitted until Next.js i18n is designed.
  */
 
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useTheme } from "@/components/ThemeProvider";
 
 function ThemeToggleButton() {
@@ -32,95 +31,51 @@ function ThemeToggleButton() {
   );
 }
 
-function InfoDropdown({
-  open,
-  onClose,
-  anchorRef,
-}: {
-  open: boolean;
-  onClose: () => void;
-  anchorRef: React.RefObject<HTMLButtonElement | null>;
-}) {
-  useEffect(() => {
-    if (!open) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [open, onClose]);
-
-  if (!open || typeof window === "undefined") return null;
-
-  const rect = anchorRef.current?.getBoundingClientRect();
-  const top = rect ? rect.bottom + 4 : 0;
-  const right = rect ? window.innerWidth - rect.right : 0;
-
-  return createPortal(
-    <>
-      <div className="fixed inset-0 z-[100]" onClick={onClose} aria-hidden />
-      <div
-        className="fixed z-[101] w-40 rounded-lg border border-border/60 bg-background shadow-md py-1 text-sm"
-        style={{ top, right }}
-      >
-        <a
-          href="/help"
-          className="block px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-        >
-          使用說明
-        </a>
-        <a
-          href="/license"
-          className="block px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-        >
-          授權說明
-        </a>
-        <a
-          href="/about"
-          className="block px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-        >
-          關於我們
-        </a>
-        <div className="my-1 border-t border-border/40" />
-        <a
-          href="/privacy"
-          className="block px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-        >
-          隱私政策
-        </a>
-        <a
-          href="/terms"
-          className="block px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-        >
-          使用條款
-        </a>
-      </div>
-    </>,
-    document.body
-  );
-}
+const itemClass =
+  "block px-4 py-2 text-sm text-muted-foreground outline-none cursor-pointer select-none hover:text-foreground hover:bg-muted focus:text-foreground focus:bg-muted transition-colors";
 
 export function PublicShellActions() {
-  const [infoOpen, setInfoOpen] = useState(false);
-  const infoButtonRef = useRef<HTMLButtonElement>(null);
-
   return (
     <div className="flex items-center gap-2">
       <ThemeToggleButton />
 
-      <div className="relative">
-        <button
-          ref={infoButtonRef}
-          type="button"
-          onClick={() => setInfoOpen((v) => !v)}
-          aria-label="資訊選單"
-          title="資訊選單"
-          className="flex h-8 w-8 items-center justify-center rounded-md border border-border/60 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-        >
-          ?
-        </button>
-        <InfoDropdown open={infoOpen} onClose={() => setInfoOpen(false)} anchorRef={infoButtonRef} />
-      </div>
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger asChild>
+          <button
+            type="button"
+            aria-label="資訊選單"
+            title="資訊選單"
+            className="flex h-8 w-8 items-center justify-center rounded-md border border-border/60 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            ?
+          </button>
+        </DropdownMenu.Trigger>
+
+        <DropdownMenu.Portal>
+          <DropdownMenu.Content
+            align="end"
+            sideOffset={4}
+            className="z-[101] w-40 rounded-lg border border-border/60 bg-background shadow-md py-1 text-sm"
+          >
+            <DropdownMenu.Item asChild>
+              <a href="/help" className={itemClass}>使用說明</a>
+            </DropdownMenu.Item>
+            <DropdownMenu.Item asChild>
+              <a href="/license" className={itemClass}>授權說明</a>
+            </DropdownMenu.Item>
+            <DropdownMenu.Item asChild>
+              <a href="/about" className={itemClass}>關於我們</a>
+            </DropdownMenu.Item>
+            <DropdownMenu.Separator className="my-1 border-t border-border/40" />
+            <DropdownMenu.Item asChild>
+              <a href="/privacy" className={itemClass}>隱私政策</a>
+            </DropdownMenu.Item>
+            <DropdownMenu.Item asChild>
+              <a href="/terms" className={itemClass}>使用條款</a>
+            </DropdownMenu.Item>
+          </DropdownMenu.Content>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
 
       <a
         href="/dashboard"
