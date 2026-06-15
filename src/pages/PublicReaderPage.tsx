@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { PublicReaderLayout } from "../components/reader/PublicReaderLayout";
 import { useReaderPreferences } from "../hooks/useReaderPreferences";
@@ -11,11 +11,11 @@ import { incrementScriptView, publicToggleScriptLike, getPublicScriptLikeStatus,
 import { buildPublicReaderProjection } from "../lib/publicReaderProjection";
 import type { ScriptManager } from "../hooks/useScriptManager.types";
 import type { NavProps } from "../types/nav";
+import { openPublicPath } from "../lib/publicNavigation";
 
 export default function PublicReaderPage({ scriptManager, navProps }: { scriptManager: ScriptManager; navProps: NavProps }) {
   const { t } = useI18n();
   const { id } = useParams();
-  const navigate = useNavigate();
 
   const { isLoading, mockMeta, relatedSeriesScripts, publicMarkerConfigs } = usePublicReaderScript({
     id,
@@ -214,9 +214,9 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
         script={fullScriptData}
         isLoading={isLoading}
         relatedSeriesScripts={relatedSeriesScripts}
-        onOpenRelatedScript={(sid: string) => navigate(`/read/${sid}`)}
-        onOpenSeries={(name: string) => navigate(`/series/${encodeURIComponent(name)}`)}
-        onBack={() => navigate("/")}
+        onOpenRelatedScript={(sid: string) => { openPublicPath(`/read/${sid}`); }}
+        onOpenSeries={(name: string) => { openPublicPath(`/series/${encodeURIComponent(name)}`); }}
+        onBack={() => { openPublicPath("/"); }}
         views={(fullScriptData as { views?: number })?.views}
         likes={likeState?.likes}
         isLiked={likeState?.liked}
@@ -246,7 +246,7 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
       />
       <TermsConsentDialog
         open={termsDialogOpen}
-        onOpenChange={(open: boolean) => { if (!open && !isSubmittingTerms) { setTermsDialogOpen(false); navigate("/"); } }}
+        onOpenChange={(open: boolean) => { if (!open && !isSubmittingTerms) { setTermsDialogOpen(false); openPublicPath("/"); } }}
         termsConfig={termsConfig}
         termsScrollRef={termsScrollRef}
         termsReadToBottom={termsReadToBottom}
@@ -258,7 +258,7 @@ export default function PublicReaderPage({ scriptManager, navProps }: { scriptMa
         handleTermsScroll={handleTermsScroll}
         toggleRequiredCheck={(checkId, checked) => toggleRequiredCheck(checkId, checked === true)}
         onConfirm={() => confirmTermsConsent(id)}
-        onCancel={() => navigate("/")}
+        onCancel={() => { openPublicPath("/"); }}
         cancelLabel="返回公開台本"
         confirmLabel="同意並進入"
       />

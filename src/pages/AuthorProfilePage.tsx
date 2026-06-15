@@ -39,6 +39,7 @@ import { useI18n } from "../contexts/I18nContext";
 import { CoverPlaceholder } from "../components/ui/CoverPlaceholder";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "../components/ui/button";
+import { openPublicPath } from "../lib/publicNavigation";
 
 export default function AuthorProfilePage() {
   const { t } = useI18n();
@@ -181,17 +182,17 @@ export default function AuthorProfilePage() {
         ]}
         activeTab="authors"
         onTabChange={(key) => {
-          if (key === "scripts") navigate("/?view=scripts");
-          if (key === "authors") navigate("/?view=authors");
-          if (key === "orgs") navigate("/?view=orgs");
+          if (key === "scripts") openPublicPath("/?view=scripts");
+          if (key === "authors") openPublicPath("/?view=authors");
+          if (key === "orgs") openPublicPath("/?view=orgs");
         }}
         actions={
           <div className="flex items-center gap-2">
             <div className="hidden sm:flex items-center gap-1">
-              <Button variant="ghost" size="sm" onClick={() => navigate("/license")}>
+              <Button variant="ghost" size="sm" onClick={() => openPublicPath("/license")}>
                 {t("publicGallery.licenseTerms")}
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => navigate("/help")}>
+              <Button variant="ghost" size="sm" onClick={() => openPublicPath("/help")}>
                 {t("publicGallery.help")}
               </Button>
             </div>
@@ -242,7 +243,7 @@ export default function AuthorProfilePage() {
                                   <div
                                       key={org.id}
                                       className="flex items-center gap-1.5 text-primary hover:underline cursor-pointer"
-                                      onClick={() => navigate(`/org/${org.id}`)}
+                                      onClick={() => { openPublicPath(`/org/${org.id}`); }}
                                   >
                                       <Building2 className="w-4 h-4" />
                                       <span>{org.name}</span>
@@ -262,7 +263,7 @@ export default function AuthorProfilePage() {
                           key={`author-tag-${i}`}
                           className="text-xs px-2 py-1 rounded-full hover:opacity-90"
                           style={tagStyle(tag)}
-                          onClick={() => navigate(`/?view=authors&authorTag=${encodeURIComponent(tag)}`)}
+                          onClick={() => { openPublicPath(`/?view=authors&authorTag=${encodeURIComponent(tag)}`); }}
                         >
                           {tag}
                         </button>
@@ -314,7 +315,7 @@ export default function AuthorProfilePage() {
                           key={series.name}
                           type="button"
                           className="group flex items-center gap-3 rounded-lg border border-border/60 bg-muted/20 p-3 text-left hover:border-primary/50 hover:bg-muted/30 transition-colors"
-                          onClick={() => navigate(`/series/${encodeURIComponent(series.name)}`)}
+                          onClick={() => { openPublicPath(`/series/${encodeURIComponent(series.name)}`); }}
                         >
                           <div className="h-14 w-10 shrink-0 overflow-hidden rounded border border-border/50 bg-muted">
                             {series.coverUrl ? (
@@ -342,7 +343,7 @@ export default function AuthorProfilePage() {
                     <ScriptGalleryCard
                         key={script.id ?? i}
                         script={script}
-                        onClick={() => navigate(`/read/${script.id}`)}
+                        onClick={() => { openPublicPath(`/read/${script.id}`); }}
                     />
                 ))}
             </div>

@@ -8,6 +8,7 @@ import { Button } from "../components/ui/button";
 import { getPublicBundle } from "../lib/api/public";
 import { getSeriesInfoFromScript, normalizeSeriesName } from "../lib/series";
 import { useI18n } from "../contexts/I18nContext";
+import { openPublicPath } from "../lib/publicNavigation";
 
 interface SeriesScript extends ScriptGalleryItem {
   series?: { name?: string; summary?: string; coverUrl?: string; coverCrop?: { cx?: number; cy?: number; zoom?: number } | null } | null;
@@ -109,9 +110,9 @@ export default function PublicSeriesPage() {
         ]}
         activeTab="scripts"
         onTabChange={(key) => {
-          if (key === "scripts") navigate("/?view=scripts");
-          if (key === "authors") navigate("/?view=authors");
-          if (key === "orgs") navigate("/?view=orgs");
+          if (key === "scripts") openPublicPath("/?view=scripts");
+          if (key === "authors") openPublicPath("/?view=authors");
+          if (key === "orgs") openPublicPath("/?view=orgs");
         }}
       />
 
@@ -139,7 +140,7 @@ export default function PublicSeriesPage() {
         ) : scripts.length === 0 ? (
           <div className="py-16 text-center text-muted-foreground">
             <p>{t("publicSeries.empty", "這個系列目前沒有公開作品。")}</p>
-            <Button variant="link" onClick={() => navigate("/")}>
+            <Button variant="link" onClick={() => { openPublicPath("/"); }}>
               {t("publicSeries.backHome", "返回首頁")}
             </Button>
           </div>
@@ -152,7 +153,7 @@ export default function PublicSeriesPage() {
               <ScriptGalleryCard
                 key={script.id}
                 script={{ ...script, coverUrl: script.coverUrl || seriesMeta.coverUrl || "", coverCrop: script.coverCrop || seriesMeta.coverCrop || null }}
-                onClick={() => navigate(`/read/${script.id}`)}
+                onClick={() => { openPublicPath(`/read/${script.id}`); }}
               />
             ))}
           </div>

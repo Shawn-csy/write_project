@@ -205,6 +205,22 @@ Each item must be labeled:
 - `redirect/remove`: no longer needed because Next owns the public route
 - `deprecated-wrapper`: temporary re-export around shared package, with deletion criteria
 
+### Vite → Next Handoff Helper
+
+All navigation from the Vite SPA to a Next.js public route must go through `src/lib/publicNavigation.ts`.
+
+Never write `window.location.href = "/public-path"` directly at call sites.
+
+**Environment variable: `VITE_PUBLIC_BASE_URL`**
+
+| Deployment scenario | Value |
+|---|---|
+| Production (same-origin, nginx proxies public paths to Next container) | unset or `""` — helper returns relative paths, nginx routes correctly |
+| Local dev with separate Next.js port (e.g. `next dev` on :3001) | `http://localhost:3001` |
+| Split-domain deployment (public app on separate domain) | `https://public.example.com` |
+
+`VITE_PUBLIC_BASE_URL` is read by Vite at build time. Changing it requires rebuilding the Vite bundle unless a separate runtime config layer is introduced.
+
 ### Phase 3: Route Cutover
 
 For any Vite route that overlaps a public Next route:

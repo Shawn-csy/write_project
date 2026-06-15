@@ -21,6 +21,7 @@ import { getMorandiTagStyle } from "../lib/tagColors";
 import { getMediaCropStyle } from "../lib/mediaCropRef";
 import { useAuth } from "../contexts/AuthContext";
 import { useI18n } from "../contexts/I18nContext";
+import { openPublicPath } from "../lib/publicNavigation";
 
 export default function OrganizationPage() {
   const { t } = useI18n();
@@ -121,17 +122,17 @@ export default function OrganizationPage() {
         ]}
         activeTab="orgs"
         onTabChange={(key) => {
-          if (key === "scripts") navigate("/?view=scripts");
-          if (key === "authors") navigate("/?view=authors");
-          if (key === "orgs") navigate("/?view=orgs");
+          if (key === "scripts") openPublicPath("/?view=scripts");
+          if (key === "authors") openPublicPath("/?view=authors");
+          if (key === "orgs") openPublicPath("/?view=orgs");
         }}
         actions={
           <div className="flex items-center gap-2">
             <div className="hidden sm:flex items-center gap-1">
-              <Button variant="ghost" size="sm" onClick={() => navigate("/license")}>
+              <Button variant="ghost" size="sm" onClick={() => { openPublicPath("/license"); }}>
                 {t("publicGallery.licenseTerms")}
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => navigate("/help")}>
+              <Button variant="ghost" size="sm" onClick={() => { openPublicPath("/help"); }}>
                 {t("publicGallery.help")}
               </Button>
             </div>
@@ -181,7 +182,7 @@ export default function OrganizationPage() {
                          key={`org-tag-${i}`}
                          className="text-xs px-2 py-1 rounded-full hover:opacity-90"
                          style={tagStyle(tag)}
-                         onClick={() => navigate(`/?view=orgs&orgTag=${encodeURIComponent(tag)}`)}
+                         onClick={() => { openPublicPath(`/?view=orgs&orgTag=${encodeURIComponent(tag)}`); }}
                        >
                          {tag}
                        </button>
@@ -229,7 +230,7 @@ export default function OrganizationPage() {
                         <ScriptGalleryCard 
                             key={script.id}
                             script={script}
-                            onClick={() => navigate(`/read/${script.id}`)}
+                            onClick={() => { openPublicPath(`/read/${script.id}`); }}
                         />
                     ))}
                 </div>
@@ -243,7 +244,7 @@ export default function OrganizationPage() {
                             <div
                                 key={member.id}
                                 className="rounded-lg border border-border/70 bg-background/75 p-4 flex items-center gap-4 transition-colors hover:border-primary/50 hover:bg-background cursor-pointer"
-                                onClick={() => navigate(`/author/${member.id}`)}
+                                onClick={() => { openPublicPath(`/author/${member.id}`); }}
                             >
                                 <Avatar>
                                     <AvatarImage src={memberAvatarCrop.src} style={memberAvatarCrop.style as React.CSSProperties} />
