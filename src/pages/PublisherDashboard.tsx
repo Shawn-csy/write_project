@@ -149,7 +149,6 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 scripts={s.scripts}
                 personas={s.personas}
                 setEditingScript={s.setEditingScript}
-                navigate={s.navigate}
                 formatDate={s.formatDate}
                 onContinueEdit={(script) => s.navigate(`/edit/${script.id}?mode=edit`)}
                 serverCounts={s.scriptCounts}

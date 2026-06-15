@@ -22,7 +22,6 @@ interface PublisherWorksTabProps {
     scripts: PublisherScriptItem[];
     personas?: PersonaLike[];
     setEditingScript: (script: PublisherScriptItem) => void;
-    navigate: (to: string) => void;
     formatDate: (value?: number) => string;
     onContinueEdit?: (script: PublisherScriptItem) => void;
     serverCounts?: StudioScriptCounts | null;
@@ -51,7 +50,6 @@ export function PublisherWorksTab({
     scripts,
     personas = [],
     setEditingScript,
-    navigate,
     formatDate,
     onContinueEdit,
     serverCounts,
@@ -81,7 +79,6 @@ export function PublisherWorksTab({
         formatDate,
         onContinueEdit,
         setEditingScript,
-        navigate,
     };
 
     return (

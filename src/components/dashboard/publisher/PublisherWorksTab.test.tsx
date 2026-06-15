@@ -38,7 +38,6 @@ describe("PublisherWorksTab", () => {
           },
         ]}
         setEditingScript={vi.fn()}
-        navigate={vi.fn()}
         formatDate={() => "2026-02-15"}
         onContinueEdit={onContinueEdit}
       />
@@ -98,7 +97,6 @@ describe("PublisherWorksTab", () => {
           },
         ]}
         setEditingScript={vi.fn()}
-        navigate={vi.fn()}
         formatDate={() => "2026-02-15"}
         onContinueEdit={vi.fn()}
       />
@@ -134,7 +132,6 @@ describe("PublisherWorksTab", () => {
           },
         ]}
         setEditingScript={vi.fn()}
-        navigate={vi.fn()}
         formatDate={() => "2026-02-15"}
         onContinueEdit={vi.fn()}
       />
@@ -167,7 +164,6 @@ describe("PublisherWorksTab", () => {
           },
         ]}
         setEditingScript={vi.fn()}
-        navigate={vi.fn()}
         formatDate={() => "2026-02-15"}
         onContinueEdit={vi.fn()}
       />
