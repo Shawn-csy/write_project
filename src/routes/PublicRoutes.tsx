@@ -1,13 +1,19 @@
+// Phase 2 audit (2026-06-15): Routes below are Vite fallbacks only.
+// nginx already routes /, /read/, /author/, /org/, /series/ to Next.js.
+// These Vite routes exist as belt-and-suspenders for direct SPA navigation
+// and will be removed in Batch 2 once Next parity is confirmed.
+// DO NOT add new public canonical routes here — add them in apps/public instead.
 import React, { Suspense } from "react";
-import { Navigate, Route } from "react-router-dom";
+import { Route } from "react-router-dom";
 import { lazyWithRefreshRetry } from "../lib/lazyWithRefreshRetry";
 import type { PublicRoutesProps } from "../types/routes";
 
+// Batch 2 — pending removal; canonical owner is apps/public (Next.js)
 const PublicReaderPage = lazyWithRefreshRetry(() => import("../pages/PublicReaderPage"), "page-public-reader");
-const PublicGalleryPage = lazyWithRefreshRetry(() => import("../pages/PublicGalleryPage"), "page-public-gallery");
 const AuthorProfilePage = lazyWithRefreshRetry(() => import("../pages/AuthorProfilePage"), "page-author-profile");
 const OrganizationPage = lazyWithRefreshRetry(() => import("../pages/OrganizationPage"), "page-organization");
 const PublicSeriesPage = lazyWithRefreshRetry(() => import("../pages/PublicSeriesPage"), "page-public-series");
+// Vite-owned (no Next equivalent yet)
 const PrivacyPolicyPage = lazyWithRefreshRetry(() => import("../pages/PrivacyPolicyPage"), "page-privacy-policy");
 const TermsOfServicePage = lazyWithRefreshRetry(() => import("../pages/TermsOfServicePage"), "page-terms-of-service");
 
@@ -21,14 +27,6 @@ export function renderPublicRoutes({ scriptManager, navProps }: PublicRoutesProp
         element={
           <Suspense fallback={routeFallback}>
             <PublicReaderPage scriptManager={scriptManager} navProps={navProps} />
-          </Suspense>
-        }
-      />
-      <Route
-        path="/"
-        element={
-          <Suspense fallback={routeFallback}>
-            <PublicGalleryPage />
           </Suspense>
         }
       />
@@ -56,10 +54,6 @@ export function renderPublicRoutes({ scriptManager, navProps }: PublicRoutesProp
           </Suspense>
         }
       />
-      <Route path="/about" element={<Navigate to="/?view=about" replace />} />
-      <Route path="/license" element={<Navigate to="/?view=license" replace />} />
-      <Route path="/help" element={<Navigate to="/?view=help" replace />} />
-      <Route path="/help/import-format" element={<Navigate to="/?view=help" replace />} />
       <Route
         path="/privacy"
         element={
