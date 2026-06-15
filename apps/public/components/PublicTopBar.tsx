@@ -22,8 +22,8 @@ interface Props {
 
 const DEFAULT_TABS: TopBarTab[] = [
   { key: "scripts", label: "台本", href: "/" },
-  { key: "authors", label: "作者", href: "/?tab=authors" },
-  { key: "orgs", label: "組織", href: "/?tab=orgs" },
+  { key: "authors", label: "作者", href: "/?view=authors" },
+  { key: "orgs", label: "組織", href: "/?view=orgs" },
 ];
 
 export function PublicTopBar({
