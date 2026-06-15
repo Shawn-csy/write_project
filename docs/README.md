@@ -12,6 +12,7 @@
 - `docs/product/data-flows.md`：公開頁/工作室/後台的主要資料流
 - `docs/product/marker-config-guide.md`：標記規則與主題設定
 - `docs/product/script-import-pipeline.md`：匯入與解析流程
+- `docs/frontend-boundaries.md`：Next public、Vite editor、shared packages 的長期前端邊界與退場規則
 - `docs/public-reader-parity.md`：Next public reader 替換 Vite public reader 的長期架構與 parity checklist
 - `docs/public-homepage-architecture.md`：Next public homepage 的長期架構、URL state、資料契約與 parity 計畫
 
