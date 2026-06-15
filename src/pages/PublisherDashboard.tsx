@@ -17,6 +17,7 @@ import {
 } from "../components/layout/studioTopbarTokens";
 import { StudioTopbarQuickActions } from "../components/layout/StudioTopbarQuickActions";
 import { usePublisherDashboardState } from "../hooks/publisher/usePublisherDashboardState";
+import { openPublicPath } from "../lib/publicNavigation";
 
 const ScriptMetadataDialogLazy = React.lazy(async () => {
   const mod = await import("../components/dashboard/ScriptMetadataDialog");
@@ -76,7 +77,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
             <div className={STUDIO_TOPBAR_ACTIONS_CLASS}>
               <StudioTopbarQuickActions
                 onOpenGuide={s.handleStartStudioGuide}
-                onOpenGallery={() => s.navigate("/")}
+                onOpenGallery={() => openPublicPath("/")}
                 guideLabel={s.t("publisher.guide")}
                 galleryLabel={s.t("nav.gallery", "公開台本")}
                 languageLabel={s.t("settings.language")}

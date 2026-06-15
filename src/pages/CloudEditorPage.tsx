@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { openPublicPath } from "../lib/publicNavigation";
 import { getScript } from "../lib/api/scripts";
 import { usePersistMarkerTheme } from "../hooks/usePersistMarkerTheme";
 import LiveEditor from "../components/editor/LiveEditor";
@@ -48,7 +49,7 @@ export default function CloudEditorPage({ scriptManager, navProps }: { scriptMan
       scriptManager.setActivePublicScriptId(null);
     }).catch(err => {
       console.error("Failed to load cloud script", err);
-      navigate("/"); // Fallback
+      openPublicPath("/"); // Fallback
     });
   }, [id, location.search]);
 
@@ -128,7 +129,7 @@ export default function CloudEditorPage({ scriptManager, navProps }: { scriptMan
           params.set("mode", "read");
           navigate(`/edit/${activeCloudScript.id}?${params.toString()}`);
         } else {
-          navigate("/");
+          openPublicPath("/");
         }
       }}
       initialSceneId={currentSceneId}
