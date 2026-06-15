@@ -23,6 +23,8 @@ export interface GalleryUrlStateActions {
   toggleAuthorTag: (tag: string) => void;
   toggleOrgTag: (tag: string) => void;
   resetFilters: () => void;
+  resetAuthorTags: () => void;
+  resetOrgTags: () => void;
 }
 
 function navigate(
@@ -122,6 +124,16 @@ export function useGalleryUrlState(): {
     [router, state]
   );
 
+  const resetAuthorTags = useCallback(
+    () => navigate(router, state, { authorTags: [] }),
+    [router, state]
+  );
+
+  const resetOrgTags = useCallback(
+    () => navigate(router, state, { orgTags: [] }),
+    [router, state]
+  );
+
   const actions: GalleryUrlStateActions = useMemo(
     () => ({
       setView,
@@ -133,8 +145,10 @@ export function useGalleryUrlState(): {
       toggleAuthorTag,
       toggleOrgTag,
       resetFilters,
+      resetAuthorTags,
+      resetOrgTags,
     }),
-    [setView, setMode, setSegment, setUsage, setQ, toggleTag, toggleAuthorTag, toggleOrgTag, resetFilters]
+    [setView, setMode, setSegment, setUsage, setQ, toggleTag, toggleAuthorTag, toggleOrgTag, resetFilters, resetAuthorTags, resetOrgTags]
   );
 
   return { state, actions };

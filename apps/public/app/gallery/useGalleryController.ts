@@ -200,5 +200,14 @@ export function useGalleryController({
     closeMobileFilter,
     filterPanelProps,
     homepageModel,
+    // author/org tag filter
+    allAuthorTags: filterResult.authorTags,
+    allOrgTags: filterResult.orgTags,
+    selectedAuthorTags: urlState.authorTags,
+    selectedOrgTags: urlState.orgTags,
+    onToggleAuthorTag: urlActions.toggleAuthorTag,
+    onToggleOrgTag: urlActions.toggleOrgTag,
+    onResetAuthorTags: urlActions.resetAuthorTags,
+    onResetOrgTags: urlActions.resetOrgTags,
   };
 }
