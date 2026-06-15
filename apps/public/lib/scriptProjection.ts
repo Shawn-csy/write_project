@@ -24,6 +24,33 @@ interface DemoLinkItem {
 const normalizePrefaceKey = (key = "") =>
   String(key || "").trim().toLowerCase().replace(/\s+/g, "");
 
+// Keys that are consumed by dedicated overlay fields or preface rules and
+// must NOT appear again in the free-form customFields list.
+const SYSTEM_KEYS = new Set([
+  // preface rule keys
+  "outline", "大綱",
+  "rolesetting", "角色設定",
+  "backgroundinfo", "背景資訊",
+  "performanceinstruction", "演繹指示",
+  "openingintro", "作品的開頭引言",
+  "chaptersettings",
+  // audience / rating / license overlay fields
+  "targetaudience", "觀眾取向",
+  "contentrating", "內容分級",
+  "license", "授權",
+  "licensecommercial",
+  "licensederivative",
+  "licensenotify",
+  "licensespecialterms",
+  "licensetags",
+  // author / series / contact / system metadata injected by backend
+  "author",
+  "authordisplaymode",
+  "seriesorder",
+  "synopsis", "摘要",
+  "contact", "聯絡方式",
+].map(normalizePrefaceKey));
+
 const PREFACE_RULES: Array<{ id: string; title: string; keys: string[] }> = [
   { id: "outline", title: "大綱", keys: ["outline", "大綱"] },
   { id: "rolesetting", title: "角色設定", keys: ["rolesetting", "角色設定"] },
@@ -135,6 +162,6 @@ export function buildScriptOverlayProps(script: PublicScript): ScriptOverlayProp
     license: metaByKey.get("license") ?? metaByKey.get("授權") ?? "",
     customFields: customMeta
       .map((e) => ({ key: String(e.key ?? "").trim(), value: String(e.value ?? "").trim() }))
-      .filter((e) => e.key && e.value),
+      .filter((e) => e.key && e.value && !SYSTEM_KEYS.has(normalizePrefaceKey(e.key))),
   };
 }

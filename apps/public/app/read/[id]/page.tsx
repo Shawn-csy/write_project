@@ -6,6 +6,7 @@ import { ScriptReaderClient } from "./ScriptReaderClient";
 import { ConsentGate } from "./ConsentGate";
 import { parseScreenplay, toRenderBlocks } from "@write/script-engine";
 import { resolveMarkerConfigs } from "@/lib/markerThemeResolver";
+import { getScriptDescription } from "@/lib/scriptDescription";
 import type { RenderBlock, TocEntry, MarkerConfig } from "@write/script-engine";
 
 // ISR: revalidate daily as fallback; on-demand revalidation handles real-time updates
@@ -15,21 +16,6 @@ export const revalidate = 86400;
 export const dynamicParams = true;
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://open-scripts.shawnup.com";
-
-function getScriptDescription(script: PublicScript): string {
-  if (script.synopsis) return script.synopsis.slice(0, 300);
-  const synopsisEntry = (script.customMetadata ?? []).find(
-    (e) => ["synopsis", "summary", "摘要", "outline", "大綱"].includes(
-      (e.key ?? "").toLowerCase().replace(/\s/g, "")
-    )
-  );
-  if (synopsisEntry?.value) return synopsisEntry.value.slice(0, 300);
-  if (script.content) {
-    const firstLine = script.content.split("\n").find((l) => l.trim());
-    if (firstLine) return firstLine.trim().slice(0, 200);
-  }
-  return "公開劇本閱讀頁";
-}
 
 function getAuthorName(script: PublicScript): string {
   if (script.persona?.displayName) return script.persona.displayName;
