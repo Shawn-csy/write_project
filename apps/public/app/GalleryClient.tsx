@@ -31,6 +31,14 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
     closeMobileFilter,
     filterPanelProps,
     homepageModel,
+    allAuthorTags,
+    allOrgTags,
+    selectedAuthorTags,
+    selectedOrgTags,
+    onToggleAuthorTag,
+    onToggleOrgTag,
+    onResetAuthorTags,
+    onResetOrgTags,
   } = useGalleryController({ initialScripts, initialBannerSlides });
 
   const { view, resultCount, hasFilters } = homepageModel;
@@ -81,6 +89,10 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
               filteredAuthors={homepageModel.filteredAuthors}
               peopleStatus={peopleStatus}
               onRetry={retryPeople}
+              allTags={allAuthorTags}
+              selectedTags={selectedAuthorTags}
+              onToggleTag={onToggleAuthorTag}
+              onResetFilters={onResetAuthorTags}
             />
           )}
 
@@ -90,6 +102,10 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
               filteredOrgs={homepageModel.filteredOrgs}
               peopleStatus={peopleStatus}
               onRetry={retryPeople}
+              allTags={allOrgTags}
+              selectedTags={selectedOrgTags}
+              onToggleTag={onToggleOrgTag}
+              onResetFilters={onResetOrgTags}
             />
           )}
         </main>
