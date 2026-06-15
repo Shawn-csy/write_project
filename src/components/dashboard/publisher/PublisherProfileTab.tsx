@@ -14,6 +14,7 @@ import { PersonaProfileChecklist } from "./PersonaProfileChecklist";
 import { PersonaProfileForm } from "./PersonaProfileForm";
 import { usePublisherProfileState } from "../../../hooks/publisher/usePublisherProfileState";
 import { getMediaCropStyle } from "../../../lib/mediaCropRef";
+import { openPublicPath } from "../../../lib/publicNavigation";
 import type { PersonaItem, PersonaDraft, OrgItem } from "../../../hooks/publisher/usePublisherProfileState";
 
 interface TagOption { name: string; }
@@ -59,7 +60,7 @@ export function PublisherProfileTab(props: PublisherProfileTabProps): React.JSX.
   });
 
   const {
-    t, navigate, viewMode, onStartCreate,
+    t, viewMode, onStartCreate,
     orgSearchQuery, setOrgSearchQuery, orgSearchResults, isOrgSearching, myOrgRequests,
     avatarPreviewFailed, setAvatarPreviewFailed,
     bannerPreviewFailed, setBannerPreviewFailed,
@@ -83,7 +84,7 @@ export function PublisherProfileTab(props: PublisherProfileTabProps): React.JSX.
           createAriaLabel={t("publisherProfileTab.createIdentity")}
           topActions={(
             <div className={`flex items-center gap-1 pb-1 ${viewMode === "edit" && selectedPersonaId ? "" : "invisible pointer-events-none h-0 overflow-hidden p-0 m-0"}`}>
-              <Button type="button" size="sm" variant="outline" className="h-8 text-xs" onClick={() => selectedPersonaId && navigate(`/author/${selectedPersonaId}`)}>
+              <Button type="button" size="sm" variant="outline" className="h-8 text-xs" onClick={() => selectedPersonaId && openPublicPath(`/author/${selectedPersonaId}`)}>
                 <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
                 {t("publisherProfileTab.viewAuthorPage")}
               </Button>

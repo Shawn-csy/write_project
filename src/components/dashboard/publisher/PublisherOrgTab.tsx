@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from "react-router-dom";
+import { openPublicPath } from "../../../lib/publicNavigation";
 import { Loader2, Trash2, Building2, CircleHelp, ExternalLink, AlertTriangle } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
@@ -147,7 +147,6 @@ export function PublisherOrgTab({
     handleChangeMemberRole
 }: PublisherOrgTabProps): React.JSX.Element {
     const { t } = useI18n();
-    const navigate = useNavigate();
 
     const s = usePublisherOrgTabState({
         orgs, selectedOrgId, setSelectedOrgId,
@@ -176,7 +175,7 @@ export function PublisherOrgTab({
                                 size="sm"
                                 variant="outline"
                                 className="h-8 text-xs"
-                                onClick={() => selectedOrgId && navigate(`/org/${selectedOrgId}`)}
+                                onClick={() => selectedOrgId && openPublicPath(`/org/${selectedOrgId}`)}
                             >
                                 <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
                                 {t("publisherOrgTab.viewOrgPage")}

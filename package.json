@@ -8,7 +8,7 @@
     "apps/public"
   ],
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --mode dev",
     "build": "vite build",
     "build:public": "npm run build -w apps/public",
     "preview": "vite preview",

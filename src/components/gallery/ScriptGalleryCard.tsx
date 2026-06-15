@@ -4,10 +4,10 @@
  * The shared component receives only resolved hrefs/callbacks.
  */
 import React, { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { ScriptGalleryCard as SharedScriptGalleryCard } from "@write/public-ui";
 import type { ScriptGalleryItem } from "@write/public-ui";
 import { publicToggleScriptLike, getVisitorId, incrementScriptView } from "../../lib/api/scripts";
+import { openPublicPath } from "../../lib/publicNavigation";
 
 export type { ScriptGalleryItem };
 
@@ -48,30 +48,29 @@ function usePublicScriptLikeState(script: ScriptGalleryItem) {
 }
 
 function ScriptGalleryCardAdapter({ script, onClick, onScriptClick, variant = "standard" }: ScriptGalleryCardProps): React.JSX.Element {
-  const navigate = useNavigate();
   const { resolvedScript, handleLike } = usePublicScriptLikeState(script);
 
   const handleNavigate = useCallback((id: string) => {
     if (onScriptClick) onScriptClick(script);
     else if (onClick) onClick();
-    else navigate(`/read/${id}`);
-  }, [navigate, onClick, onScriptClick, script]);
+    else openPublicPath(`/read/${id}`);
+  }, [onClick, onScriptClick, script]);
 
   const handleView = useCallback((id: string) => {
     incrementScriptView(id).catch((err) => console.error("Failed to count view", err));
   }, []);
 
   const handleSeriesClick = useCallback((seriesName: string) => {
-    navigate(`/series/${encodeURIComponent(seriesName)}`);
-  }, [navigate]);
+    openPublicPath(`/series/${encodeURIComponent(seriesName)}`);
+  }, []);
 
   const handleTagClick = useCallback((tag: string) => {
-    navigate(`/?tag=${encodeURIComponent(tag)}`);
-  }, [navigate]);
+    openPublicPath(`/?view=scripts&tag=${encodeURIComponent(tag)}`);
+  }, []);
 
   const handleAuthorClick = useCallback((authorId: string) => {
-    navigate(`/author/${authorId}`);
-  }, [navigate]);
+    openPublicPath(`/author/${authorId}`);
+  }, []);
 
   return (
     <SharedScriptGalleryCard
