@@ -1,5 +1,4 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import { useI18n } from "../../contexts/I18nContext";
 import { useToast } from "../../components/ui/toast";
 import { searchOrganizations, requestToJoinOrganization, getMyOrganizationRequests } from "../../lib/api/organizations";
@@ -103,7 +102,6 @@ export function usePublisherProfileState({
 }: UsePublisherProfileStateProps) {
   const { t } = useI18n();
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   const [viewMode, setViewMode] = React.useState<"edit" | "create">("edit");
   const [orgSearchQuery, setOrgSearchQuery] = React.useState<string>("");
@@ -296,7 +294,7 @@ export function usePublisherProfileState({
   };
 
   return {
-    t, navigate,
+    t,
     viewMode, setViewMode, onStartCreate,
     orgSearchQuery, setOrgSearchQuery,
     orgSearchResults, isOrgSearching,

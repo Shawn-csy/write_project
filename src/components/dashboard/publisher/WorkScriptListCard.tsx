@@ -24,7 +24,6 @@ interface WorkScriptListCardProps {
   formatDate: (value?: number) => string;
   onContinueEdit?: (script: PublisherScriptItem) => void;
   setEditingScript: (script: PublisherScriptItem) => void;
-  navigate: (to: string) => void;
 }
 
 export function WorkScriptListCard({
@@ -38,7 +37,6 @@ export function WorkScriptListCard({
   formatDate,
   onContinueEdit,
   setEditingScript,
-  navigate,
 }: WorkScriptListCardProps): React.JSX.Element {
   const { t } = useI18n();
   const cropCover = getMediaCropStyle(String(script.coverUrl || ""));
