@@ -89,6 +89,13 @@ export type {
   EmptyStateReason,
 } from "./gallery/homepageModel";
 export {
+  groupScriptsIntoGalleryEntries,
+  deriveSeriesChapterOrder,
+  deriveAggregateAgeGate,
+} from "./gallery/seriesModel";
+export type { PublicSeriesGroup, PublicGalleryEntry } from "./gallery/seriesModel";
+
+export {
   parseGalleryUrlState,
   serializeGalleryUrlState,
   serializeGalleryUrlStateToString,
