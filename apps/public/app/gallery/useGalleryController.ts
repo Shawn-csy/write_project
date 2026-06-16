@@ -172,10 +172,6 @@ export function useGalleryController({
   const filterPanelProps = {
     searchTerm: urlState.q,
     onSearchChange: urlActions.setQ,
-    usageFilter: urlState.usage,
-    onUsageFilterChange: urlActions.setUsage,
-    viewMode: urlState.mode,
-    onViewModeChange: urlActions.setMode,
     licenseTagShortcuts: homepageModel.licenseTagShortcuts,
     allTags: homepageModel.allTags,
     selectedTags: urlState.tags,
@@ -190,6 +186,12 @@ export function useGalleryController({
   return {
     tab: urlState.view,
     setTab: urlActions.setView,
+    segment: urlState.segment,
+    setSegment: urlActions.setSegment,
+    usage: urlState.usage,
+    setUsage: urlActions.setUsage,
+    viewMode: urlState.mode,
+    setViewMode: urlActions.setMode,
     bannerSlides,
     authors,
     orgs,

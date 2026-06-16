@@ -22,7 +22,7 @@ export function SeriesPageClient({ seriesName, scripts, seriesMeta }: Props) {
 
   return (
     <main className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-20">
+      <div className="w-full px-3 sm:px-5 lg:px-8 py-10 pb-20">
         {/* Series header */}
         <div className="mb-6 rounded-xl border border-border/60 bg-muted/20 p-6">
           <div className="flex gap-5 items-start">

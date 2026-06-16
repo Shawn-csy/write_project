@@ -5,7 +5,9 @@ import {
   PublicHeroMarquee,
   type HeroSlide,
 } from "@write/public-ui";
+import { GalleryControlsBar } from "./gallery/GalleryControlsBar";
 import { GalleryFilterPanel } from "./gallery/GalleryFilterPanel";
+import { GallerySegmentBar } from "./gallery/GallerySegmentBar";
 import { GalleryMobileSheet } from "./gallery/GalleryMobileSheet";
 import { GalleryAuthorGrid, GalleryOrgGrid } from "./gallery/GalleryPeopleGrid";
 import { GalleryScriptResults } from "./gallery/GalleryScriptResults";
@@ -21,6 +23,12 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
   const {
     tab,
     setTab,
+    segment,
+    setSegment,
+    usage,
+    setUsage,
+    viewMode,
+    setViewMode,
     bannerSlides,
     authors,
     orgs,
@@ -56,7 +64,7 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
         <PublicHeroMarquee slides={bannerSlides} fullBleed />
       )}
 
-      <div className="flex flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 pb-20 gap-6">
+      <div className="flex flex-1 w-full px-3 sm:px-5 lg:px-8 py-5 sm:py-8 pb-20 gap-6">
         {/* Desktop sidebar */}
         {view === "scripts" && (
           <aside className="hidden lg:block w-56 shrink-0">
@@ -66,6 +74,25 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
 
         {/* Main content */}
         <main className="flex-1 min-w-0">
+          {/* Segment + controls bar — scripts view only */}
+          {view === "scripts" && (
+            <div className="sticky top-[6.5rem] sm:top-14 z-30 -mx-3 sm:-mx-5 lg:mx-0 mb-4 bg-background/95 backdrop-blur px-3 sm:px-5 lg:px-0">
+              {/* Segment tabs row */}
+              <GallerySegmentBar segment={segment} onSegmentChange={setSegment} />
+
+              {/* Usage + ViewMode row — hidden on mobile (in mobile sheet) */}
+              <div className="hidden md:flex items-center py-2.5">
+                <GalleryControlsBar
+                  usage={usage}
+                  onUsageChange={setUsage}
+                  viewMode={viewMode}
+                  onViewModeChange={setViewMode}
+                  layout="inline"
+                />
+              </div>
+            </div>
+          )}
+
           <p className="text-xs text-muted-foreground mb-4">
             {filterPanelProps.searchTerm
               ? `搜尋「${filterPanelProps.searchTerm}」共 ${resultCount} 筆結果`
@@ -116,6 +143,10 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
         open={mobileFilterOpen}
         onClose={closeMobileFilter}
         {...filterPanelProps}
+        usage={usage}
+        setUsage={setUsage}
+        viewModeValue={viewMode}
+        setViewMode={setViewMode}
       />
     </div>
   );

@@ -2,6 +2,22 @@
 
 import type { AuthorLike, OrgLike } from "@write/public-ui";
 import type { PublicOrg, PublicPersona } from "@/lib/types";
+import { BuildingIcon, LinkIcon } from "./GalleryIcons";
+
+const AVATAR_COLORS = [
+  "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+  "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
+  "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+  "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
+  "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+  "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300",
+];
+
+function avatarColor(name: string | undefined): string {
+  if (!name) return AVATAR_COLORS[0];
+  const code = name.charCodeAt(0) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[code];
+}
 
 // ── Tag filter chips ──────────────────────────────────────────────────────────
 
@@ -50,14 +66,14 @@ function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: 
 
 function AuthorCard({ author, onTagClick }: { author: PublicPersona; onTagClick: (tag: string) => void }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-background overflow-hidden hover:border-primary/50 transition-colors">
+    <div className="rounded-xl border border-border/60 bg-background overflow-hidden hover:border-border hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
       <a href={`/author/${author.id}`} className="flex items-center gap-3 p-4">
-        <div className="w-12 h-12 rounded-full bg-muted overflow-hidden shrink-0">
+        <div className="w-12 h-12 rounded-full overflow-hidden shrink-0">
           {author.avatar ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={author.avatar} alt={author.displayName} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-lg font-bold text-muted-foreground">
+            <div className={`w-full h-full flex items-center justify-center text-base font-bold ${avatarColor(author.displayName)}`}>
               {author.displayName?.[0]}
             </div>
           )}
@@ -68,8 +84,9 @@ function AuthorCard({ author, onTagClick }: { author: PublicPersona; onTagClick:
             <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{author.bio}</p>
           )}
           {author.organizations && author.organizations.length > 0 && (
-            <p className="text-xs text-muted-foreground mt-0.5 truncate">
-              🏢 {author.organizations.map((o) => o.name).join("、")}
+            <p className="text-xs text-muted-foreground mt-0.5 truncate flex items-center gap-1">
+              <BuildingIcon />
+              {author.organizations.map((o) => o.name).join("、")}
             </p>
           )}
         </div>
@@ -97,15 +114,15 @@ function AuthorCard({ author, onTagClick }: { author: PublicPersona; onTagClick:
 function OrgCard({ org, onTagClick }: { org: PublicOrg; onTagClick: (tag: string) => void }) {
   const memberCount = org.members?.length;
   return (
-    <div className="rounded-xl border border-border/60 bg-background overflow-hidden hover:border-primary/50 transition-colors">
+    <div className="rounded-xl border border-border/60 bg-background overflow-hidden hover:border-border hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
       {/* Main org link — no nested anchors inside */}
       <a href={`/org/${org.id}`} className="flex items-center gap-3 p-4">
-        <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden shrink-0">
+        <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0">
           {org.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={org.logoUrl} alt={org.name} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-lg font-bold text-muted-foreground">
+            <div className={`w-full h-full flex items-center justify-center text-base font-bold rounded-lg ${avatarColor(org.name)}`}>
               {org.name?.[0]}
             </div>
           )}
@@ -127,9 +144,10 @@ function OrgCard({ org, onTagClick }: { org: PublicOrg; onTagClick: (tag: string
             href={org.website}
             target="_blank"
             rel="noreferrer"
-            className="text-xs text-primary hover:underline truncate block"
+            className="text-xs text-primary hover:underline truncate flex items-center gap-1"
           >
-            🔗 {org.website}
+            <LinkIcon />
+            {org.website}
           </a>
         </div>
       )}

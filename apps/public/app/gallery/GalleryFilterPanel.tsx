@@ -5,10 +5,6 @@ import { Search, X } from "lucide-react";
 interface GalleryFilterPanelProps {
   searchTerm: string;
   onSearchChange: (v: string) => void;
-  usageFilter: string;
-  onUsageFilterChange: (v: string) => void;
-  viewMode: "standard" | "compact";
-  onViewModeChange: (v: "standard" | "compact") => void;
   licenseTagShortcuts: string[];
   allTags: string[];
   selectedTags: string[];
@@ -23,10 +19,6 @@ interface GalleryFilterPanelProps {
 export function GalleryFilterPanel({
   searchTerm,
   onSearchChange,
-  usageFilter,
-  onUsageFilterChange,
-  viewMode,
-  onViewModeChange,
   licenseTagShortcuts,
   allTags,
   selectedTags,
@@ -39,17 +31,17 @@ export function GalleryFilterPanel({
 }: GalleryFilterPanelProps) {
   return (
     <div className="space-y-4">
-      <p className="text-xs font-semibold tracking-wide text-muted-foreground">篩選與搜尋</p>
+      <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">篩選與搜尋</p>
 
       {/* Search */}
       <div className="relative">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
         <input
           type="search"
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="搜尋台本..."
-          className="w-full rounded-full border border-border/70 bg-background pl-8 pr-8 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+          className="w-full rounded-full border border-border/70 bg-muted/40 pl-9 pr-8 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 focus:bg-background transition-colors"
         />
         {searchTerm && (
           <button
@@ -61,51 +53,6 @@ export function GalleryFilterPanel({
             <X className="h-3.5 w-3.5" />
           </button>
         )}
-      </div>
-
-      {/* Usage filter */}
-      <div>
-        <p className="mb-1.5 text-xs font-medium text-foreground">使用權限</p>
-        <div className="flex flex-wrap gap-1.5">
-          {[
-            { value: "all", label: "全部推薦" },
-            { value: "commercial", label: "可商業" },
-          ].map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => onUsageFilterChange(opt.value)}
-              className={`h-7 rounded-full px-3 text-xs transition-colors ${
-                usageFilter === opt.value
-                  ? "bg-primary text-primary-foreground"
-                  : "border border-border/70 bg-background text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* View mode */}
-      <div>
-        <p className="mb-1.5 text-xs font-medium text-foreground">顯示模式</p>
-        <div className="flex gap-1.5">
-          {(["standard", "compact"] as const).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => onViewModeChange(mode)}
-              className={`h-7 rounded-full px-3 text-xs transition-colors ${
-                viewMode === mode
-                  ? "bg-primary text-primary-foreground"
-                  : "border border-border/70 bg-background text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {mode === "standard" ? "圖文排版" : "緊湊排版"}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* License shortcuts */}
@@ -139,16 +86,16 @@ export function GalleryFilterPanel({
         <div>
           <p className="mb-1.5 text-xs font-medium text-foreground">分類與標籤</p>
           <div className="relative mb-2">
-            <Search className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
             <input
               type="search"
               value={tagSearch}
               onChange={(e) => onTagSearchChange(e.target.value)}
               placeholder="搜尋標籤..."
-              className="w-full rounded-md border border-border/60 bg-background pl-6 pr-2 py-1 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+              className="w-full rounded-full border border-border/60 bg-muted/40 pl-8 pr-3 py-1.5 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 focus:bg-background transition-colors"
             />
           </div>
-          <div className="flex flex-wrap gap-1 max-h-40 overflow-y-auto">
+          <div className="flex flex-wrap gap-1">
             {displayTags.map((tag) => {
               const active = selectedTags.includes(tag);
               return (
@@ -174,9 +121,9 @@ export function GalleryFilterPanel({
         <button
           type="button"
           onClick={onResetFilters}
-          className="text-xs text-muted-foreground hover:text-foreground underline"
+          className="w-full rounded-full border border-border/60 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:border-border transition-colors"
         >
-          清除篩選
+          清除全部篩選
         </button>
       )}
     </div>

@@ -7,6 +7,9 @@
 
 @layer base {
   :root {
+    /* System font stack — CJK-first, no external network dependency */
+    --font-sans: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "蘋方-繁", "微軟正黑體", system-ui, sans-serif;
+    --font-serif: "Noto Serif TC", "Source Han Serif TC", "PMingLiU", "新細明體", Georgia, serif;
     --background: 250 40% 98%;
     --foreground: 221 39% 11%;
     --card: 0 0% 100%;
@@ -65,6 +68,6 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
   }
 }

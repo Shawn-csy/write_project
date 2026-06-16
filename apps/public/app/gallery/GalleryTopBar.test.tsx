@@ -22,7 +22,7 @@ describe("GalleryTopBar", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "作者" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "作者" })[0]);
     expect(onTabChange).toHaveBeenCalledWith("authors");
   });
 

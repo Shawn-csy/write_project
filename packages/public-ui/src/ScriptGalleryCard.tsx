@@ -319,6 +319,8 @@ function ScriptGalleryCardInner({
   const ARTICLE_CLASS = "group relative overflow-hidden rounded-xl border border-transparent bg-transparent px-2 pb-2 pt-1 shadow-none hover:-translate-y-0.5 hover:border-primary/60 hover:bg-muted/25 hover:shadow-md transition-all duration-200";
 
   // ── Compact variant ──
+  // DOM contract: <article> root, title is <a> with stretched-link (::before covers article),
+  // cover is aria-hidden decorative <a>, author/series/tags are z-10 siblings above the link.
   if (variant === "compact") {
     const handleArticleClick = !href
       ? () => { onView?.(id); onNavigate?.(id); }
@@ -326,32 +328,42 @@ function ScriptGalleryCardInner({
 
     return (
       <article
-        className={`${ARTICLE_CLASS} ${!href ? "cursor-pointer" : ""}`}
+        className={`group relative overflow-hidden rounded-xl bg-transparent transition-all duration-200 ${!href ? "cursor-pointer" : ""}`}
         onClick={handleArticleClick}
       >
-        <div className="mx-2 my-1 flex items-stretch gap-2.5 rounded-lg border border-transparent px-3 py-2 transition-all duration-200 hover:border-primary/35 hover:bg-muted/35">
+        <div className="mx-2 my-0.5 flex items-stretch gap-3 rounded-lg pl-0 pr-3 py-2 border-l-[3px] border-l-transparent transition-all duration-200 group-hover:border-l-primary group-hover:bg-primary/5">
           {/* Cover */}
-          <div className="w-[44px] shrink-0">
-            <div className="aspect-[2/3] w-full overflow-hidden rounded-sm border border-border/40 bg-muted/25 shadow-sm">
-              {coverLinkEl}
+          <div className="w-[40px] shrink-0 ml-3">
+            <div className="aspect-[2/3] w-full overflow-hidden rounded-sm border border-border/40 bg-muted/25 shadow-sm transition-transform duration-300 group-hover:scale-105">
+              {href ? (
+                <a href={href} tabIndex={-1} aria-hidden className="block w-full h-full" onClick={() => onView?.(id)}>
+                  {coverEl}
+                </a>
+              ) : coverEl}
             </div>
           </div>
           {/* Meta */}
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex min-w-0 items-center justify-between gap-2">
-              <div className="min-w-0 text-sm font-semibold leading-tight text-foreground line-clamp-1 group-hover:text-primary">
+              <div className="min-w-0 text-sm font-semibold leading-tight text-foreground line-clamp-1 transition-colors duration-200 group-hover:text-primary">
                 {href ? (
-                  <a href={href} className="text-inherit no-underline" onClick={() => onView?.(id)}>{title}</a>
+                  <a
+                    href={href}
+                    className="text-inherit no-underline before:absolute before:inset-0 before:z-0"
+                    onClick={() => onView?.(id)}
+                  >
+                    {title}
+                  </a>
                 ) : title}
               </div>
-              <div className="shrink-0 text-[10px] text-muted-foreground">
+              <div className="relative z-10 shrink-0 text-[10px] text-muted-foreground">
                 <span className="inline-flex items-center gap-1">
                   <Eye className="h-3 w-3" aria-hidden />
                   <span>{views.toLocaleString()}</span>
                 </span>
               </div>
             </div>
-            <div className="min-w-0 flex items-center gap-2">
+            <div className="relative z-10 min-w-0 flex items-center gap-2">
               {authorEl}
               {seriesEl}
               {!seriesName && (
@@ -364,7 +376,7 @@ function ScriptGalleryCardInner({
                   compact
                 />
               )}
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/70 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden />
+              <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground/40 transition-all duration-200 group-hover:translate-x-1 group-hover:text-primary" aria-hidden />
             </div>
           </div>
         </div>

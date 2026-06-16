@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import { GalleryControlsBar } from "./GalleryControlsBar";
 import { GalleryFilterPanel } from "./GalleryFilterPanel";
 
 interface GalleryMobileSheetProps {
@@ -8,10 +9,6 @@ interface GalleryMobileSheetProps {
   onClose: () => void;
   searchTerm: string;
   onSearchChange: (v: string) => void;
-  usageFilter: string;
-  onUsageFilterChange: (v: string) => void;
-  viewMode: "standard" | "compact";
-  onViewModeChange: (v: "standard" | "compact") => void;
   licenseTagShortcuts: string[];
   allTags: string[];
   selectedTags: string[];
@@ -21,11 +18,20 @@ interface GalleryMobileSheetProps {
   displayTags: string[];
   hasFilters: boolean;
   onResetFilters: () => void;
+  /** Usage + viewMode shown here on mobile since inline bar hides them */
+  usage: string;
+  setUsage: (v: string) => void;
+  viewModeValue: "standard" | "compact";
+  setViewMode: (v: "standard" | "compact") => void;
 }
 
 export function GalleryMobileSheet({
   open,
   onClose,
+  usage,
+  setUsage,
+  viewModeValue,
+  setViewMode,
   ...filterProps
 }: GalleryMobileSheetProps) {
   if (!open) return null;
@@ -45,6 +51,18 @@ export function GalleryMobileSheet({
             <X className="h-4 w-4" />
           </button>
         </div>
+
+        {/* Usage + ViewMode — shown here on mobile (hidden in inline bar) */}
+        <div className="mb-4">
+          <GalleryControlsBar
+            usage={usage}
+            onUsageChange={setUsage}
+            viewMode={viewModeValue}
+            onViewModeChange={setViewMode}
+            layout="stacked"
+          />
+        </div>
+
         <GalleryFilterPanel
           {...filterProps}
           onResetFilters={() => {
