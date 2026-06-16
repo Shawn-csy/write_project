@@ -4,6 +4,8 @@ import type { SeriesChapterNav } from "./useSeriesChapterNav";
 
 interface Props {
   nav: SeriesChapterNav;
+  /** True when the series has a chapter the visitor hasn't seen yet. */
+  hasNewChapter?: boolean;
 }
 
 function chapterLabel(order: number | null, fallbackIndex: number): string {
@@ -12,7 +14,7 @@ function chapterLabel(order: number | null, fallbackIndex: number): string {
   return `第 ${fallbackIndex + 1} 部`;
 }
 
-export function SeriesChapterNavBar({ nav }: Props) {
+export function SeriesChapterNavBar({ nav, hasNewChapter = false }: Props) {
   const {
     seriesName,
     seriesHref,
@@ -38,13 +40,20 @@ export function SeriesChapterNavBar({ nav }: Props) {
       <div className="rounded-xl border border-border/50 bg-muted/20 px-4 py-3 space-y-2">
         {/* Series name + position */}
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <a
-            href={seriesHref}
-            className="flex items-center gap-1.5 text-xs font-medium text-primary hover:underline no-underline"
-          >
-            <span aria-hidden>←</span>
-            <span>{seriesName}</span>
-          </a>
+          <div className="flex items-center gap-2">
+            <a
+              href={seriesHref}
+              className="flex items-center gap-1.5 text-xs font-medium text-primary hover:underline no-underline"
+            >
+              <span aria-hidden>←</span>
+              <span>{seriesName}</span>
+            </a>
+            {hasNewChapter && (
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 leading-none shrink-0">
+                有新章節
+              </span>
+            )}
+          </div>
           <span className="text-[11px] text-muted-foreground">
             {positionLabel && `${positionLabel}・`}{totalLabel}
           </span>
