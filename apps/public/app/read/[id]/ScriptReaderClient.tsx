@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import type { PublicScript } from "@/lib/types";
 import type { RenderBlock, TocEntry, MarkerConfig } from "@write/script-engine";
 import {
@@ -21,6 +21,7 @@ import { usePublicReaderActions } from "./usePublicReaderActions";
 import { buildScriptOverlayProps } from "../../../lib/scriptProjection";
 import { useSeriesChapterNav } from "./useSeriesChapterNav";
 import { SeriesChapterNavBar } from "./SeriesChapterNavBar";
+import { useSeriesProgress } from "./useSeriesProgress";
 
 interface Props {
   scriptId: string;
@@ -67,6 +68,12 @@ export function ScriptReaderClient({
   const readingFontFamily = resolveReaderFontFamily(fontFamily);
 
   const seriesNav = useSeriesChapterNav(initialScript);
+  const { hasNewChapter, markSeen } = useSeriesProgress(scriptId, seriesNav);
+
+  // Mark this series as seen (record last-read + seen latest) on mount
+  useEffect(() => {
+    if (seriesNav) markSeen();
+  }, [seriesNav, markSeen]);
 
   // Derive related scripts from nav chapters (excludes current, preserves order)
   const relatedSeriesScripts = useMemo((): RelatedSeriesScriptItem[] => {
@@ -164,7 +171,7 @@ export function ScriptReaderClient({
       toolbar={<ReaderToolbar readerState={readerState} />}
       header={
         <>
-          {seriesNav && <SeriesChapterNavBar nav={seriesNav} />}
+          {seriesNav && <SeriesChapterNavBar nav={seriesNav} hasNewChapter={hasNewChapter} />}
           {infoOverlay}
           {seriesSection}
         </>
@@ -182,7 +189,7 @@ export function ScriptReaderClient({
               </button>
             </div>
           )}
-          {seriesNav && <SeriesChapterNavBar nav={seriesNav} />}
+          {seriesNav && <SeriesChapterNavBar nav={seriesNav} hasNewChapter={hasNewChapter} />}
           {!seriesNav && initialScript.series?.name && (
             <div className="mb-4">
               <a

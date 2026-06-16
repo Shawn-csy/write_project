@@ -106,6 +106,13 @@ export type {
 export { SeriesGalleryCard } from "./gallery/SeriesGalleryCard";
 export type { SeriesGalleryCardProps } from "./gallery/SeriesGalleryCard";
 
+export { deriveNewChapterHint, buildProgressUpdate } from "./gallery/seriesProgress";
+export type {
+  LocalSeriesProgress,
+  NewChapterHintInput,
+  BuildProgressUpdateInput,
+} from "./gallery/seriesProgress";
+
 export {
   parseGalleryUrlState,
   serializeGalleryUrlState,

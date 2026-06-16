@@ -232,6 +232,8 @@ export interface ChapterNavModel {
   /** Most recently updated chapter — null when current script is already the latest. */
   latestChapter: ChapterNavItem | null;
   isLatest: boolean;
+  /** updatedAt of the latestScript (from group.updatedAt). Used for updated-chapter detection. */
+  latestScriptUpdatedAt: number | string | null;
 }
 
 /**
@@ -267,5 +269,6 @@ export function toChapterNavModel(
         : null,
     latestChapter,
     isLatest,
+    latestScriptUpdatedAt: group.updatedAt,
   };
 }

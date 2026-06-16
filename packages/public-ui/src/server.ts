@@ -62,6 +62,13 @@ export type {
   ChapterNavModel,
 } from "./gallery/seriesModel";
 
+export { deriveNewChapterHint, buildProgressUpdate } from "./gallery/seriesProgress";
+export type {
+  LocalSeriesProgress,
+  NewChapterHintInput,
+  BuildProgressUpdateInput,
+} from "./gallery/seriesProgress";
+
 export {
   parseGalleryUrlState,
   serializeGalleryUrlState,
