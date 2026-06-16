@@ -77,7 +77,7 @@ export function AuthorPageClient({ persona, scripts }: Props) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+      <div className="w-full px-3 sm:px-5 lg:px-8 pb-20">
         {/* Profile header */}
         <div className="relative -mt-16 mb-8 rounded-xl border border-border/60 bg-background p-6 shadow-sm md:p-8">
           <div className="flex flex-col md:flex-row items-start gap-6">

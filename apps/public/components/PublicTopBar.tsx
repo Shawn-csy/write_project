@@ -39,7 +39,7 @@ export function PublicTopBar({
 }: Props) {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/95 backdrop-blur">
-      <div className="flex h-14 items-center gap-3 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <div className="flex h-14 items-center gap-3 px-3 sm:px-5 lg:px-8 w-full">
         {/* Left: logo + back */}
         <div className="flex items-center gap-2 shrink-0">
           {showBack && (
