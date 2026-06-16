@@ -15,6 +15,7 @@
 - `docs/frontend-boundaries.md`：Next public、Vite editor、shared packages 的長期前端邊界與退場規則
 - `docs/public-reader-parity.md`：Next public reader 替換 Vite public reader 的長期架構與 parity checklist
 - `docs/public-homepage-architecture.md`：Next public homepage 的長期架構、URL state、資料契約與 parity 計畫
+- `docs/public-series-aggregation-plan.md`：公開頁系列聚合、章節導覽、更新提示與 SEO 策略
 
 ## 工程與操作
 - `docs/engineering/operations.md`：開發與部署操作手冊
