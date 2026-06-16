@@ -14,6 +14,8 @@ import type {
 import type { GalleryView, GalleryViewMode, GalleryLaneMode } from "./galleryUrlState";
 import { buildNavigationPolicyMap } from "./navigationPolicy";
 import type { ScriptNavigationPolicy } from "./navigationPolicy";
+import { groupScriptsIntoGalleryEntries } from "./seriesModel";
+import type { PublicGalleryEntry } from "./seriesModel";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -24,8 +26,16 @@ export type EmptyStateReason =
   | "none";             // not empty
 
 export interface ScriptLanes {
-  latestPreview: EnrichedGalleryScript[];
-  topViewedPreview: EnrichedGalleryScript[];
+  /**
+   * Series-aware entries for the "最新發布" lane.
+   * Same-series chapters are collapsed into a single PublicSeriesGroup entry.
+   */
+  latestEntriesPreview: PublicGalleryEntry[];
+  /**
+   * Series-aware entries for the "點閱排行" lane.
+   * Same-series chapters are collapsed into a single PublicSeriesGroup entry.
+   */
+  topViewedEntriesPreview: PublicGalleryEntry[];
   featuredSeries: FeaturedSeries[];
   /** Which lane is the primary featured lane. Drives UI emphasis if exposed. */
   activeLaneMode: GalleryLaneMode;
@@ -44,6 +54,12 @@ export interface PublicHomepageModel {
 
   // ── Scripts ───────────────────────────────────────────────────────────────
   filteredScripts: EnrichedGalleryScript[];
+  /**
+   * Series-aggregated view of filteredScripts.
+   * Same scripts, but same-series scripts are collapsed into PublicSeriesGroup entries.
+   * Use this for flat grid rendering (both filtered and default views).
+   */
+  galleryEntries: PublicGalleryEntry[];
   lanes: ScriptLanes;
 
   // ── People ────────────────────────────────────────────────────────────────
@@ -175,9 +191,19 @@ export function buildPublicHomepageModel(
   }
 
   // ── lanes ─────────────────────────────────────────────────────────────────
+  // Group lane scripts into series-aware entries first, then cap at preview size.
+  // This ensures same-series chapters collapse into one card in the lane.
+  const latestEntriesPreview = groupScriptsIntoGalleryEntries(latestScripts).slice(
+    0,
+    LANE_PREVIEW_SIZE
+  );
+  const topViewedEntriesPreview = groupScriptsIntoGalleryEntries(topViewedScripts).slice(
+    0,
+    LANE_PREVIEW_SIZE
+  );
   const lanes: ScriptLanes = {
-    latestPreview: latestScripts.slice(0, LANE_PREVIEW_SIZE),
-    topViewedPreview: topViewedScripts.slice(0, LANE_PREVIEW_SIZE),
+    latestEntriesPreview,
+    topViewedEntriesPreview,
     featuredSeries,
     activeLaneMode: laneMode,
   };
@@ -221,10 +247,13 @@ export function buildPublicHomepageModel(
   );
   const navigationPolicyMap = buildNavigationPolicyMap(dedupedForPolicy, termsRequired);
 
+  const galleryEntries = groupScriptsIntoGalleryEntries(filteredScripts);
+
   return {
     view,
     viewMode,
     filteredScripts,
+    galleryEntries,
     lanes,
     filteredAuthors,
     filteredOrgs,

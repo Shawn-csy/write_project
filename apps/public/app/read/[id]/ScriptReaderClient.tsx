@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo } from "react";
 import type { PublicScript } from "@/lib/types";
 import type { RenderBlock, TocEntry, MarkerConfig } from "@write/script-engine";
 import {
@@ -19,6 +19,8 @@ import { ScriptContentRenderer } from "./ScriptContentRenderer";
 import { ReaderToolbar } from "./ReaderToolbar";
 import { usePublicReaderActions } from "./usePublicReaderActions";
 import { buildScriptOverlayProps } from "../../../lib/scriptProjection";
+import { useSeriesChapterNav } from "./useSeriesChapterNav";
+import { SeriesChapterNavBar } from "./SeriesChapterNavBar";
 
 interface Props {
   scriptId: string;
@@ -26,36 +28,6 @@ interface Props {
   renderBlocks: RenderBlock[];
   markerConfigs: MarkerConfig[];
   toc: TocEntry[];
-}
-
-function useRelatedSeriesScripts(script: PublicScript): RelatedSeriesScriptItem[] {
-  const [related, setRelated] = useState<RelatedSeriesScriptItem[]>([]);
-
-  useEffect(() => {
-    const seriesId = script.seriesId;
-    if (!seriesId) return;
-    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "";
-    fetch(`${apiBase}/api/public-bundle`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => {
-        const all = (data?.scripts ?? []) as PublicScript[];
-        const inSeries = all
-          .filter((s) => s.seriesId === seriesId && s.id !== script.id)
-          .map((s): RelatedSeriesScriptItem => ({
-            id: s.id,
-            title: s.title,
-            coverUrl: s.coverUrl,
-            coverCrop: s.coverCrop,
-            coverDesign: s.coverDesign ?? null,
-            seriesOrder: s.seriesOrder,
-          }))
-          .sort((a, b) => (Number(a.seriesOrder ?? 999)) - (Number(b.seriesOrder ?? 999)));
-        setRelated(inSeries);
-      })
-      .catch(() => {});
-  }, [script.id, script.seriesId]);
-
-  return related;
 }
 
 export function ScriptReaderClient({
@@ -94,7 +66,22 @@ export function ScriptReaderClient({
   useReaderThemeClass(theme);
   const readingFontFamily = resolveReaderFontFamily(fontFamily);
 
-  const relatedSeriesScripts = useRelatedSeriesScripts(initialScript);
+  const seriesNav = useSeriesChapterNav(initialScript);
+
+  // Derive related scripts from nav chapters (excludes current, preserves order)
+  const relatedSeriesScripts = useMemo((): RelatedSeriesScriptItem[] => {
+    if (!seriesNav) return [];
+    return seriesNav.chapters
+      .filter((c) => c.id !== scriptId)
+      .map((c) => ({
+        id: c.id,
+        title: c.title,
+        seriesOrder: c.seriesOrder,
+        coverUrl: undefined,
+        coverCrop: null,
+        coverDesign: null,
+      }));
+  }, [seriesNav, scriptId]);
 
   const handleOpenRelatedScript = useCallback((id: string) => {
     window.location.href = `/read/${id}`;
@@ -177,6 +164,7 @@ export function ScriptReaderClient({
       toolbar={<ReaderToolbar readerState={readerState} />}
       header={
         <>
+          {seriesNav && <SeriesChapterNavBar nav={seriesNav} />}
           {infoOverlay}
           {seriesSection}
         </>
@@ -194,7 +182,8 @@ export function ScriptReaderClient({
               </button>
             </div>
           )}
-          {initialScript.series?.name && (
+          {seriesNav && <SeriesChapterNavBar nav={seriesNav} />}
+          {!seriesNav && initialScript.series?.name && (
             <div className="mb-4">
               <a
                 href={`/series/${encodeURIComponent(initialScript.series.name)}`}
@@ -206,7 +195,7 @@ export function ScriptReaderClient({
           )}
           <a
             href="/"
-            className="text-sm text-muted-foreground hover:text-foreground underline"
+            className="text-sm text-muted-foreground hover:text-foreground underline mt-4 inline-block"
           >
             ← 返回台本列表
           </a>

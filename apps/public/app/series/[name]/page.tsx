@@ -2,6 +2,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import type { PublicScript } from "@/lib/types";
+import { toGalleryInput } from "@/lib/galleryProjection";
+import { enrichScript } from "@write/public-ui/server";
+import {
+  groupScriptsIntoGalleryEntries,
+  findSeriesGroupByName,
+} from "@write/public-ui/server";
 import { SeriesPageClient } from "./SeriesPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { PublicShellActions } from "@/components/PublicShellActions";
@@ -15,23 +21,29 @@ interface BundleResponse {
   scripts?: PublicScript[];
 }
 
-async function fetchSeriesScripts(seriesName: string): Promise<PublicScript[]> {
+interface SeriesData {
+  scripts: PublicScript[];
+  summary?: string;
+  coverUrl?: string;
+  latestScriptId?: string;
+}
+
+async function fetchSeriesData(seriesName: string): Promise<SeriesData> {
   try {
     const bundle = await apiFetch<BundleResponse>("/public-bundle");
-    const normalized = seriesName.toLowerCase();
-    return (bundle.scripts ?? [])
-      .filter((s) => {
-        const sn = (s.series as { name?: string } | null)?.name ?? "";
-        return sn.toLowerCase() === normalized;
-      })
-      .sort((a, b) => {
-        const aOrder = Number(a.seriesOrder ?? Number.MAX_SAFE_INTEGER);
-        const bOrder = Number(b.seriesOrder ?? Number.MAX_SAFE_INTEGER);
-        if (aOrder !== bOrder) return aOrder - bOrder;
-        return Number(b.lastModified ?? b.updatedAt ?? 0) - Number(a.lastModified ?? a.updatedAt ?? 0);
-      });
+    const rawScripts = bundle.scripts ?? [];
+    const allEnriched = rawScripts.map((s) => enrichScript(toGalleryInput(s)));
+    const entries = groupScriptsIntoGalleryEntries(allEnriched);
+    const group = findSeriesGroupByName(entries, seriesName);
+    if (!group) return { scripts: [] };
+    // Map sorted chapters back to PublicScript by id (preserving model order)
+    const byId = new Map(rawScripts.map((s) => [s.id, s]));
+    const scripts = group.scripts
+      .map((s) => byId.get(s.id))
+      .filter((s): s is PublicScript => s != null);
+    return { scripts, summary: group.summary, coverUrl: group.coverUrl, latestScriptId: group.latestScript.id };
   } catch {
-    return [];
+    return { scripts: [] };
   }
 }
 
@@ -42,21 +54,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { name } = await params;
   const seriesName = decodeURIComponent(name);
-  const scripts = await fetchSeriesScripts(seriesName);
+  const { scripts, summary, coverUrl } = await fetchSeriesData(seriesName);
 
   if (scripts.length === 0) return { title: "找不到系列｜Screenplay Reader" };
 
-  const seriesMeta = scripts.find((s) => s.series)?.series as
-    | { name?: string; summary?: string; coverUrl?: string }
-    | null
-    | undefined;
-
   const title = `${seriesName}｜Screenplay Reader`;
-  const description = seriesMeta?.summary
-    ? seriesMeta.summary.slice(0, 200)
+  const description = summary
+    ? summary.slice(0, 200)
     : `${seriesName} 系列共 ${scripts.length} 部台本，免費線上閱讀。`;
   const canonicalUrl = `${BASE_URL}/series/${name}`;
-  const image = seriesMeta?.coverUrl;
 
   return {
     title,
@@ -69,13 +75,13 @@ export async function generateMetadata({
       url: canonicalUrl,
       siteName: "Screenplay Reader",
       locale: "zh_TW",
-      ...(image && { images: [{ url: image, alt: seriesName }] }),
+      ...(coverUrl && { images: [{ url: coverUrl, alt: seriesName }] }),
     },
     twitter: {
-      card: image ? "summary_large_image" : "summary",
+      card: coverUrl ? "summary_large_image" : "summary",
       title,
       description,
-      ...(image && { images: [image] }),
+      ...(coverUrl && { images: [coverUrl] }),
     },
   };
 }
@@ -87,14 +93,9 @@ export default async function SeriesPage({
 }) {
   const { name } = await params;
   const seriesName = decodeURIComponent(name);
-  const scripts = await fetchSeriesScripts(seriesName);
+  const { scripts, summary, coverUrl, latestScriptId } = await fetchSeriesData(seriesName);
 
   if (scripts.length === 0) notFound();
-
-  const seriesMeta = scripts.find((s) => s.series)?.series as
-    | { name?: string; summary?: string; coverUrl?: string }
-    | null
-    | undefined;
 
   const canonicalUrl = `${BASE_URL}/series/${name}`;
   const structuredData = {
@@ -103,14 +104,21 @@ export default async function SeriesPage({
     name: seriesName,
     url: canonicalUrl,
     inLanguage: "zh-Hant",
-    ...(seriesMeta?.summary && { description: seriesMeta.summary }),
-    ...(seriesMeta?.coverUrl && { image: seriesMeta.coverUrl }),
+    ...(summary && { description: summary }),
+    ...(coverUrl && { image: coverUrl }),
     hasPart: scripts.map((s) => ({
       "@type": "CreativeWork",
       name: s.title,
       url: `${BASE_URL}/read/${s.id}`,
       ...(s.seriesOrder != null && { position: s.seriesOrder }),
     })),
+  };
+
+  const seriesMeta = {
+    summary,
+    coverUrl,
+    coverCrop: null,
+    latestScriptId,
   };
 
   return (
@@ -128,7 +136,7 @@ export default async function SeriesPage({
       <noscript>
         <article style={{ maxWidth: 800, margin: "0 auto", padding: "2rem", fontFamily: "serif" }}>
           <h1>{seriesName}</h1>
-          {seriesMeta?.summary && <p>{seriesMeta.summary}</p>}
+          {summary && <p>{summary}</p>}
           <ul>
             {scripts.map((s) => (
               <li key={s.id}>
@@ -138,7 +146,7 @@ export default async function SeriesPage({
           </ul>
         </article>
       </noscript>
-      <SeriesPageClient seriesName={seriesName} scripts={scripts} seriesMeta={seriesMeta ?? null} />
+      <SeriesPageClient seriesName={seriesName} scripts={scripts} seriesMeta={seriesMeta} />
     </>
   );
 }

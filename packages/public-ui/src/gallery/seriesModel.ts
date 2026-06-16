@@ -188,3 +188,84 @@ export function deriveSeriesChapterOrder(
 export function deriveAggregateAgeGate(scripts: EnrichedGalleryScript[]): boolean {
   return scripts.some(scriptRequiresAgeGate);
 }
+
+// ─── getSeriesTimestamp ───────────────────────────────────────────────────────
+
+/**
+ * Exported timestamp extractor — handles both numeric ms and ISO string.
+ * Use this wherever reader/page code needs to compare script recency.
+ */
+export { getTimestamp as getSeriesTimestamp };
+
+// ─── findSeriesGroupByName ────────────────────────────────────────────────────
+
+/**
+ * Finds a PublicSeriesGroup from a pre-built entry list by series name (case-insensitive).
+ * Returns null when no matching series entry exists.
+ */
+export function findSeriesGroupByName(
+  entries: PublicGalleryEntry[],
+  name: string
+): PublicSeriesGroup | null {
+  const key = name.toLowerCase();
+  for (const entry of entries) {
+    if (entry.type === "series" && entry.key === key) return entry;
+  }
+  return null;
+}
+
+// ─── ChapterNavModel ──────────────────────────────────────────────────────────
+
+export interface ChapterNavItem {
+  id: string;
+  title: string;
+  seriesOrder: number | null;
+}
+
+export interface ChapterNavModel {
+  seriesName: string;
+  seriesHref: string;
+  chapters: ChapterNavItem[];
+  currentIndex: number;
+  prev: ChapterNavItem | null;
+  next: ChapterNavItem | null;
+  /** Most recently updated chapter — null when current script is already the latest. */
+  latestChapter: ChapterNavItem | null;
+  isLatest: boolean;
+}
+
+/**
+ * Derives chapter navigation model from a PublicSeriesGroup + current script id.
+ * Pure function — no fetching, no React.
+ */
+export function toChapterNavModel(
+  group: PublicSeriesGroup,
+  currentScriptId: string
+): ChapterNavModel {
+  const chapters: ChapterNavItem[] = group.scripts.map((s) => ({
+    id: s.id,
+    title: String(s.title ?? ""),
+    seriesOrder: s._seriesOrder,
+  }));
+
+  const currentIndex = chapters.findIndex((c) => c.id === currentScriptId);
+  const isLatest = group.latestScript.id === currentScriptId;
+  const latestChapter =
+    !isLatest
+      ? (chapters.find((c) => c.id === group.latestScript.id) ?? null)
+      : null;
+
+  return {
+    seriesName: group.name,
+    seriesHref: `/series/${encodeURIComponent(group.name)}`,
+    chapters,
+    currentIndex,
+    prev: currentIndex > 0 ? chapters[currentIndex - 1] : null,
+    next:
+      currentIndex >= 0 && currentIndex < chapters.length - 1
+        ? chapters[currentIndex + 1]
+        : null,
+    latestChapter,
+    isLatest,
+  };
+}

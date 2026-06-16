@@ -1,0 +1,187 @@
+import React, { useMemo } from "react";
+import { Layers } from "lucide-react";
+import { CoverPlaceholder } from "../cover/CoverPlaceholder";
+import { CoverRenderer } from "../cover/CoverRenderer";
+import { getMediaCropStyle } from "@write/media-crop";
+import type { PublicSeriesGroup } from "./seriesModel";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface SeriesGalleryCardProps {
+  series: PublicSeriesGroup;
+  variant?: "standard" | "compact";
+  /** href for the series index page (e.g. /series/[name]). Required for keyboard/a11y. */
+  href: string;
+  /** Show R-18 age gate indicator when series contains adult content */
+  showAgeGate?: boolean;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatUpdatedAt(updatedAt: number | string | null): string {
+  if (updatedAt == null) return "";
+  const ts = typeof updatedAt === "number" ? updatedAt : Date.parse(updatedAt);
+  if (!Number.isFinite(ts) || ts === 0) return "";
+  const d = new Date(ts);
+  const now = Date.now();
+  const diffMs = now - ts;
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffDays < 1) return "今天";
+  if (diffDays < 7) return `${diffDays} 天前`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} 週前`;
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)} 個月前`;
+  return `${d.getFullYear()}`;
+}
+
+// ─── SeriesGalleryCard ────────────────────────────────────────────────────────
+
+function SeriesGalleryCardInner({
+  series,
+  variant = "standard",
+  href,
+  showAgeGate = false,
+}: SeriesGalleryCardProps): React.JSX.Element {
+  const { name, scripts, leadScript, latestScript, coverUrl, summary, updatedAt } = series;
+
+  const cropCover = getMediaCropStyle(
+    String(coverUrl || leadScript?.coverUrl || ""),
+    null
+  );
+
+  const { latestTitle, chapterCount, updatedLabel } = useMemo(() => {
+    return {
+      latestTitle: latestScript?.title ?? "",
+      chapterCount: scripts.length,
+      updatedLabel: formatUpdatedAt(updatedAt),
+    };
+  }, [scripts.length, latestScript, updatedAt]);
+
+  // Cover element — series cover or lead script cover or design
+  const coverEl = cropCover.src ? (
+    <img
+      src={cropCover.src}
+      style={cropCover.style as React.CSSProperties}
+      alt={name}
+      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+      loading="lazy"
+    />
+  ) : leadScript?.coverDesign ? (
+    <CoverRenderer
+      design={leadScript.coverDesign}
+      title={name}
+      compact
+      responsive
+      className="h-full w-full"
+    />
+  ) : (
+    <CoverPlaceholder title={name} compact />
+  );
+
+  const coverWrapEl = (
+    <a href={href} tabIndex={-1} aria-hidden className="block w-full h-full">
+      {coverEl}
+    </a>
+  );
+
+  const ARTICLE_CLASS =
+    "group relative rounded-xl border border-transparent bg-transparent px-2 pb-2 pt-1 shadow-none hover:-translate-y-0.5 hover:border-primary/60 hover:bg-muted/25 hover:shadow-md transition-all duration-200";
+
+  // ── Compact ──
+  if (variant === "compact") {
+    return (
+      <article className="group relative rounded-xl bg-transparent transition-all duration-200">
+        <div className="mx-2 my-0.5 flex items-stretch gap-3 rounded-lg pl-0 pr-3 py-2 border-l-[3px] border-l-primary/40 transition-all duration-200 group-hover:border-l-primary group-hover:bg-primary/5">
+          {/* Cover stack hint */}
+          <div className="w-[40px] shrink-0 ml-3">
+            <div className="relative aspect-[2/3] w-full overflow-hidden rounded-sm border border-border/40 bg-muted/25 shadow-sm">
+              <div className="absolute inset-0 translate-x-1 translate-y-1 rounded-sm border border-border/30 bg-muted/50" aria-hidden />
+              <div className="absolute inset-0 overflow-hidden rounded-sm">
+                {coverWrapEl}
+              </div>
+              {showAgeGate && (
+                <>
+                  <div className="absolute inset-0 bg-red-900/25 pointer-events-none" aria-hidden />
+                  <span className="absolute top-0.5 left-0.5 z-10 rounded-[2px] bg-red-600 border border-red-400/60 px-1 py-px text-[8px] font-bold leading-none text-white pointer-events-none tracking-wide">R18</span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Meta */}
+          <div className="min-w-0 flex-1 space-y-0.5">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <Layers className="w-3 h-3 shrink-0 text-primary/60" aria-hidden />
+              <span className="text-[10px] text-primary/70 font-medium shrink-0">系列</span>
+              <span className="text-[10px] text-muted-foreground">· {chapterCount} 部</span>
+            </div>
+            <div className="min-w-0 text-sm font-semibold leading-tight text-foreground line-clamp-1 transition-colors duration-200 group-hover:text-primary">
+              <a href={href} className="text-inherit no-underline before:absolute before:inset-0 before:z-0">
+                {name}
+              </a>
+            </div>
+            {latestTitle && (
+              <p className="text-[10px] text-muted-foreground line-clamp-1">
+                最新：{latestTitle}
+              </p>
+            )}
+          </div>
+        </div>
+      </article>
+    );
+  }
+
+  // ── Standard ──
+  return (
+    <article className={ARTICLE_CLASS}>
+      {/* Cover with stack decoration */}
+      <div className="relative aspect-[2/3] w-full">
+        <div className="absolute inset-0 translate-x-1.5 translate-y-1.5 rounded-lg bg-muted/60 border border-border/30" aria-hidden />
+        <div className="absolute inset-0 translate-x-0.5 translate-y-0.5 rounded-lg bg-muted/40 border border-border/20" aria-hidden />
+        <div className="absolute inset-0 overflow-hidden rounded-lg bg-muted shadow-sm group-hover:shadow-md transition-shadow">
+          {coverWrapEl}
+          <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-primary/10 pointer-events-none" aria-hidden />
+          {showAgeGate && (
+            <>
+              <div className="absolute inset-0 bg-red-900/25 pointer-events-none" aria-hidden />
+              <span className="absolute top-1.5 left-1.5 z-10 rounded border border-red-400/60 bg-red-600 px-1.5 py-0.5 text-[11px] font-bold leading-none text-white pointer-events-none tracking-wide">R-18</span>
+            </>
+          )}
+        </div>
+        <div className="absolute top-1.5 right-1.5 z-10 flex items-center gap-1 rounded-md bg-black/55 px-1.5 py-0.5 backdrop-blur-sm">
+          <Layers className="w-3 h-3 text-white/80" aria-hidden />
+          <span className="text-[10px] font-semibold text-white/90 leading-none">{chapterCount}</span>
+        </div>
+      </div>
+
+      {/* Meta */}
+      <div className="pt-2.5 space-y-1">
+        <p className="text-[10px] text-primary/70 font-medium flex items-center gap-1">
+          <Layers className="w-3 h-3" aria-hidden />
+          系列
+        </p>
+        <h3 className="font-serif text-sm md:text-base font-semibold leading-snug line-clamp-2">
+          <a href={href} className="text-foreground group-hover:text-primary transition-colors no-underline">
+            {name}
+          </a>
+        </h3>
+
+        {summary && (
+          <p className="text-[11px] text-muted-foreground line-clamp-2">{summary}</p>
+        )}
+
+        <div className="flex items-center justify-between pt-2 border-t border-border/50 mt-2">
+          <span className="text-xs text-muted-foreground">
+            {chapterCount} 部
+          </span>
+          {updatedLabel && (
+            <span className="text-[10px] text-muted-foreground/70">
+              更新 {updatedLabel}
+            </span>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+export const SeriesGalleryCard = React.memo(SeriesGalleryCardInner);
