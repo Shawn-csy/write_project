@@ -3,6 +3,11 @@ import type React from "react";
 import { createSeries, updateSeries, deleteSeries } from "../../lib/api/series";
 import { updateScript } from "../../lib/api/scripts";
 import type { BaseScriptApi } from "../../types/api";
+import {
+  buildAttachScriptUpdate,
+  buildDetachScriptUpdate,
+  buildReorderScriptUpdate,
+} from "../../lib/publisher/seriesEditorModel";
 
 interface SeriesData {
   id: string;
@@ -115,7 +120,7 @@ export function usePublisherSeriesActions({
   const handleDetachScriptFromSeries = useCallback(async (scriptId: string, seriesId: string) => {
     if (!scriptId || !seriesId) return;
     try {
-      await updateScript(scriptId, { seriesId: null, seriesOrder: null });
+      await updateScript(scriptId, { ...buildDetachScriptUpdate() });
       setScripts((prev: BaseScriptApi[]) =>
         prev.map((script) =>
           script.id === scriptId
@@ -137,10 +142,61 @@ export function usePublisherSeriesActions({
     }
   }, [setScripts, setSeriesList, toast]);
 
+  const handleAttachScriptToSeries = useCallback(async (
+    scriptId: string,
+    seriesId: string,
+    order: number | null,
+  ) => {
+    if (!scriptId || !seriesId) return;
+    try {
+      await updateScript(scriptId, { ...buildAttachScriptUpdate(seriesId, order) });
+      setScripts((prev: BaseScriptApi[]) =>
+        prev.map((script) =>
+          script.id === scriptId
+            ? { ...script, seriesId, seriesOrder: order }
+            : script
+        )
+      );
+      setSeriesList((prev) =>
+        prev.map((series) =>
+          series.id === seriesId
+            ? { ...series, scriptCount: Number(series.scriptCount || 0) + 1 }
+            : series
+        )
+      );
+      toast({ title: "已加入系列" });
+    } catch (error) {
+      console.error("Failed to attach script to series", error);
+      toast({ title: "加入系列失敗", variant: "destructive" });
+    }
+  }, [setScripts, setSeriesList, toast]);
+
+  const handleReorderScriptInSeries = useCallback(async (
+    scriptId: string,
+    order: number | null,
+  ) => {
+    if (!scriptId) return;
+    try {
+      await updateScript(scriptId, { ...buildReorderScriptUpdate(order) });
+      setScripts((prev: BaseScriptApi[]) =>
+        prev.map((script) =>
+          script.id === scriptId
+            ? { ...script, seriesOrder: order }
+            : script
+        )
+      );
+    } catch (error) {
+      console.error("Failed to reorder script in series", error);
+      toast({ title: "更新順序失敗", variant: "destructive" });
+    }
+  }, [setScripts, toast]);
+
   return {
     handleCreateSeries,
     handleUpdateSeries,
     handleDeleteSeries,
     handleDetachScriptFromSeries,
+    handleAttachScriptToSeries,
+    handleReorderScriptInSeries,
   };
 }

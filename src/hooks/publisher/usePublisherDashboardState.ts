@@ -388,7 +388,8 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
     } catch {}
   };
 
-  const { handleCreateSeries, handleUpdateSeries, handleDeleteSeries, handleDetachScriptFromSeries } =
+  const { handleCreateSeries, handleUpdateSeries, handleDeleteSeries, handleDetachScriptFromSeries,
+    handleAttachScriptToSeries, handleReorderScriptInSeries } =
     usePublisherSeriesActions({ selectedSeriesId, seriesDraft, setIsSavingSeries, setSeriesList, setSelectedSeriesId, setSeriesDraft, setScripts, toast });
 
   const { handleInviteMember, handleAcceptRequest, handleDeclineRequest, handleRemoveMember,
@@ -441,6 +442,7 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
     handleSaveProfile, handleSaveOrg, handleCreatePersona, handleDeletePersona, handleCreateOrg, handleDeleteOrg,
     // series
     handleCreateSeries, handleUpdateSeries, handleDeleteSeries, handleDetachScriptFromSeries,
+    handleAttachScriptToSeries, handleReorderScriptInSeries,
     // org members
     handleInviteMember, handleAcceptRequest, handleDeclineRequest, handleRemoveMember,
     handleRemovePersonaMember, handleChangeMemberRole, handleAcceptInvite, handleDeclineInvite,
