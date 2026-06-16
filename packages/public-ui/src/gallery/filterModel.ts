@@ -409,14 +409,29 @@ export interface DerivedTagSets {
   licenseTagShortcuts: string[];
 }
 
+/**
+ * Returns true for any tag that belongs in the "授權篩選" facet.
+ * Covers both enrichScript-derived tags (授權:*) and any raw tags
+ * that a script author manually wrote with the same prefix.
+ */
+export function isLicenseShortcutTag(tag: string): boolean {
+  return tag.startsWith("授權:");
+}
+
 export function deriveTags(scripts: EnrichedGalleryScript[]): DerivedTagSets {
   const allTagsSet = new Set<string>();
   const licenseTagSet = new Set<string>();
   for (const script of scripts) {
     for (const tag of script.tags) {
       const t = String(tag || "");
-      if (t && !RESERVED_SEGMENT_TAGS.has(t.toLowerCase())) allTagsSet.add(t);
+      if (!t || RESERVED_SEGMENT_TAGS.has(t.toLowerCase())) continue;
+      if (isLicenseShortcutTag(t)) {
+        licenseTagSet.add(t);
+      } else {
+        allTagsSet.add(t);
+      }
     }
+    // Also capture derived license tags that may not yet be in script.tags
     for (const lt of script._derivedLicenseTags) {
       const t = String(lt || "");
       if (t) licenseTagSet.add(t);

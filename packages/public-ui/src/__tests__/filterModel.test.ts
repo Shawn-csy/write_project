@@ -5,6 +5,7 @@ import {
   buildFeaturedSeries,
   deriveTags,
   deriveSimpleLicenseTags,
+  isLicenseShortcutTag,
   SEGMENT_KEYS,
   RESERVED_SEGMENT_TAGS,
 } from "../gallery/filterModel";
@@ -420,6 +421,21 @@ describe("buildFeaturedSeries", () => {
   });
 });
 
+// ─── isLicenseShortcutTag ─────────────────────────────────────────────────────
+
+describe("isLicenseShortcutTag", () => {
+  it("returns true for 授權: prefix", () => {
+    expect(isLicenseShortcutTag("授權:可商用")).toBe(true);
+    expect(isLicenseShortcutTag("授權:不可改作")).toBe(true);
+  });
+
+  it("returns false for non-license tags", () => {
+    expect(isLicenseShortcutTag("奇幻")).toBe(false);
+    expect(isLicenseShortcutTag("成人向")).toBe(false);
+    expect(isLicenseShortcutTag("")).toBe(false);
+  });
+});
+
 // ─── deriveTags ───────────────────────────────────────────────────────────────
 
 describe("deriveTags", () => {
@@ -452,13 +468,26 @@ describe("deriveTags", () => {
     expect(licenseTagShortcuts).toContain("授權:可商用");
   });
 
-  it("does not include license shortcut tags in allTags", () => {
-    // License tags like 授權:可商用 are NOT reserved segment tags —
-    // they can appear in allTags because they're in script.tags after enrichment.
-    // But they should appear in licenseTagShortcuts from _derivedLicenseTags.
-    const scripts = [enrichScript(makeScript({ licenseCommercial: "allow" }))];
-    const { licenseTagShortcuts } = deriveTags(scripts);
+  it("does not include license tags in allTags — they appear only in licenseTagShortcuts", () => {
+    // enrichScript merges license tags into script.tags; deriveTags must exclude them from allTags.
+    const scripts = [
+      enrichScript(makeScript({ licenseCommercial: "allow", tags: ["奇幻"] })),
+    ];
+    const { allTags, licenseTagShortcuts } = deriveTags(scripts);
     expect(licenseTagShortcuts).toContain("授權:可商用");
+    expect(allTags).not.toContain("授權:可商用");
+    expect(allTags).toContain("奇幻");
+  });
+
+  it("raw 授權: tag in script.tags routes to licenseTagShortcuts, not allTags", () => {
+    // Edge case: author manually adds 授權:可商用 as a raw tag (not via licenseCommercial field).
+    const scripts = [
+      enrichScript(makeScript({ tags: ["授權:可商用", "奇幻"] })),
+    ];
+    const { allTags, licenseTagShortcuts } = deriveTags(scripts);
+    expect(licenseTagShortcuts).toContain("授權:可商用");
+    expect(allTags).not.toContain("授權:可商用");
+    expect(allTags).toContain("奇幻");
   });
 
   it("deduplicates tags across scripts", () => {

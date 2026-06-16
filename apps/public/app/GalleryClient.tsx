@@ -67,8 +67,10 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
       <div className="flex flex-1 w-full px-3 sm:px-5 lg:px-8 py-5 sm:py-8 pb-20 gap-6">
         {/* Desktop sidebar */}
         {view === "scripts" && (
-          <aside className="hidden lg:block w-56 shrink-0">
-            <GalleryFilterPanel {...filterPanelProps} />
+          <aside className="hidden lg:block w-60 shrink-0">
+            <div className="sticky top-20">
+              <GalleryFilterPanel {...filterPanelProps} variant="sidebar" />
+            </div>
           </aside>
         )}
 
