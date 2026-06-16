@@ -15,7 +15,7 @@ export function toGalleryInput(script: PublicScript): GalleryScriptInput {
     tags: (script.tags ?? []).map((tag) => ({ id: tag.id, name: tag.name })),
     views: script.views,
     lastModified: script.lastModified,
-    updatedAt: typeof script.updatedAt === "number" ? script.updatedAt : undefined,
+    updatedAt: script.updatedAt ?? undefined,
     seriesOrder: script.seriesOrder ?? undefined,
     series: script.series ?? undefined,
     licenseCommercial: script.licenseCommercial ?? undefined,

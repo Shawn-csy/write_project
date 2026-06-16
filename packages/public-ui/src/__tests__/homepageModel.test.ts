@@ -202,20 +202,20 @@ describe("filterChips", () => {
 // ─── lanes ────────────────────────────────────────────────────────────────────
 
 describe("lanes", () => {
-  it("latestPreview capped at 15", () => {
+  it("latestEntriesPreview capped at 15 entries", () => {
     const many = Array.from({ length: 20 }, (_, i) =>
       enrichScript(makeScript({ id: `s${i}`, title: `Script ${i}` }))
     );
     const m = buildPublicHomepageModel({ ...baseInput, latestScripts: many, filteredScripts: many });
-    expect(m.lanes.latestPreview).toHaveLength(15);
+    expect(m.lanes.latestEntriesPreview).toHaveLength(15);
   });
 
-  it("topViewedPreview capped at 15", () => {
+  it("topViewedEntriesPreview capped at 15 entries", () => {
     const many = Array.from({ length: 20 }, (_, i) =>
       enrichScript(makeScript({ id: `s${i}`, title: `Script ${i}` }))
     );
     const m = buildPublicHomepageModel({ ...baseInput, topViewedScripts: many });
-    expect(m.lanes.topViewedPreview).toHaveLength(15);
+    expect(m.lanes.topViewedEntriesPreview).toHaveLength(15);
   });
 
   it("activeLaneMode matches input laneMode", () => {
@@ -228,6 +228,54 @@ describe("lanes", () => {
     const m = buildPublicHomepageModel({ ...baseInput, featuredSeries: series });
     expect(m.lanes.featuredSeries).toHaveLength(1);
     expect(m.lanes.featuredSeries[0].name).toBe("S");
+  });
+
+  it("same-series chapters collapse into one series entry in latestEntriesPreview", () => {
+    const chapter1 = enrichScript(makeScript({ id: "c1", title: "Ch 1", series: { name: "Epic" }, seriesOrder: 1, lastModified: 2000 }));
+    const chapter2 = enrichScript(makeScript({ id: "c2", title: "Ch 2", series: { name: "Epic" }, seriesOrder: 2, lastModified: 1000 }));
+    const solo = enrichScript(makeScript({ id: "solo", title: "Solo" }));
+    const m = buildPublicHomepageModel({
+      ...baseInput,
+      latestScripts: [chapter1, chapter2, solo],
+      filteredScripts: [chapter1, chapter2, solo],
+    });
+    // 3 scripts → 2 entries (1 series + 1 solo)
+    expect(m.lanes.latestEntriesPreview).toHaveLength(2);
+    expect(m.lanes.latestEntriesPreview[0].type).toBe("series");
+    expect((m.lanes.latestEntriesPreview[0] as import("../gallery/seriesModel").PublicSeriesGroup).name).toBe("Epic");
+    expect((m.lanes.latestEntriesPreview[0] as import("../gallery/seriesModel").PublicSeriesGroup).scripts).toHaveLength(2);
+    expect(m.lanes.latestEntriesPreview[1].type).toBe("script");
+  });
+
+  it("same-series chapters collapse into one series entry in topViewedEntriesPreview", () => {
+    const chapter1 = enrichScript(makeScript({ id: "c1", title: "Ch 1", series: { name: "Epic" }, seriesOrder: 1, views: 100, lastModified: 2000 }));
+    const chapter2 = enrichScript(makeScript({ id: "c2", title: "Ch 2", series: { name: "Epic" }, seriesOrder: 2, views: 50, lastModified: 1000 }));
+    const m = buildPublicHomepageModel({
+      ...baseInput,
+      topViewedScripts: [chapter1, chapter2],
+    });
+    expect(m.lanes.topViewedEntriesPreview).toHaveLength(1);
+    expect(m.lanes.topViewedEntriesPreview[0].type).toBe("series");
+  });
+
+  it("15-entry cap counts series as one entry (not per chapter)", () => {
+    // 14 solo scripts + 1 series of 10 chapters = 15 entries before cap, not 24
+    const solos = Array.from({ length: 14 }, (_, i) =>
+      enrichScript(makeScript({ id: `solo${i}`, title: `Solo ${i}` }))
+    );
+    const chapters = Array.from({ length: 10 }, (_, i) =>
+      enrichScript(makeScript({ id: `ch${i}`, title: `Ch ${i}`, series: { name: "Big Series" }, seriesOrder: i }))
+    );
+    const m = buildPublicHomepageModel({
+      ...baseInput,
+      latestScripts: [...solos, ...chapters],
+      filteredScripts: [...solos, ...chapters],
+    });
+    // 14 solos + 1 series = 15 entries — all fit within cap
+    expect(m.lanes.latestEntriesPreview).toHaveLength(15);
+    const seriesEntry = m.lanes.latestEntriesPreview.find((e) => e.type === "series");
+    expect(seriesEntry).toBeDefined();
+    expect((seriesEntry as import("../gallery/seriesModel").PublicSeriesGroup).scripts).toHaveLength(10);
   });
 });
 

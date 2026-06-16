@@ -51,8 +51,16 @@ export {
   groupScriptsIntoGalleryEntries,
   deriveSeriesChapterOrder,
   deriveAggregateAgeGate,
+  getSeriesTimestamp,
+  findSeriesGroupByName,
+  toChapterNavModel,
 } from "./gallery/seriesModel";
-export type { PublicSeriesGroup, PublicGalleryEntry } from "./gallery/seriesModel";
+export type {
+  PublicSeriesGroup,
+  PublicGalleryEntry,
+  ChapterNavItem,
+  ChapterNavModel,
+} from "./gallery/seriesModel";
 
 export {
   parseGalleryUrlState,

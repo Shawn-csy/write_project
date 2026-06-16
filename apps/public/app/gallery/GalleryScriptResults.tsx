@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import {
   ScriptGalleryCard,
+  SeriesGalleryCard,
   HorizontalScrollLane,
   type EnrichedGalleryScript,
   type PublicHomepageModel,
@@ -52,7 +53,7 @@ function CardWithPolicy({
 }
 
 export function GalleryScriptResults({ model, onResetFilters }: GalleryScriptResultsProps) {
-  const { filteredScripts, lanes, showLanes, viewMode, emptyState, navigationPolicyMap } = model;
+  const { filteredScripts, galleryEntries, lanes, showLanes, viewMode, emptyState, navigationPolicyMap } = model;
 
   const handleSeriesClick = useCallback(
     (name: string) => { window.location.href = `/series/${encodeURIComponent(name)}`; },
@@ -76,19 +77,33 @@ export function GalleryScriptResults({ model, onResetFilters }: GalleryScriptRes
   if (viewMode === "compact") {
     return (
       <div className="flex flex-col">
-        {filteredScripts.map((s) => (
-          <CardWithPolicy
-            key={s.id}
-            script={s}
-            policy={navigationPolicyMap.get(s.id)}
-            variant="compact"
-            authorHref={authorHref(s)}
-            seriesHref={seriesHref(s)}
-            onSeriesClick={handleSeriesClick}
-            onTagClick={handleTagClick}
-            onAuthorClick={handleAuthorClick}
-          />
-        ))}
+        {galleryEntries.map((entry) => {
+          if (entry.type === "series") {
+            return (
+              <SeriesGalleryCard
+                key={`series:${entry.key}`}
+                series={entry}
+                variant="compact"
+                href={`/series/${encodeURIComponent(entry.name)}`}
+                showAgeGate={entry.hasAgeGate}
+              />
+            );
+          }
+          const s = entry.script;
+          return (
+            <CardWithPolicy
+              key={s.id}
+              script={s}
+              policy={navigationPolicyMap.get(s.id)}
+              variant="compact"
+              authorHref={authorHref(s)}
+              seriesHref={seriesHref(s)}
+              onSeriesClick={handleSeriesClick}
+              onTagClick={handleTagClick}
+              onAuthorClick={handleAuthorClick}
+            />
+          );
+        })}
         {filteredScripts.length === 0 && emptyState !== "none" && (
           <GalleryEmptyState reason={emptyState === "no-match" ? "no-match" : "no-public-scripts"} onResetFilters={onResetFilters} />
         )}
@@ -103,19 +118,33 @@ export function GalleryScriptResults({ model, onResetFilters }: GalleryScriptRes
         className="grid gap-5 sm:gap-6"
         style={{ gridTemplateColumns: "repeat(auto-fill, minmax(165px, 1fr))" }}
       >
-        {filteredScripts.map((s) => (
-          <CardWithPolicy
-            key={s.id}
-            script={s}
-            policy={navigationPolicyMap.get(s.id)}
-            variant="standard"
-            authorHref={authorHref(s)}
-            seriesHref={seriesHref(s)}
-            onSeriesClick={handleSeriesClick}
-            onTagClick={handleTagClick}
-            onAuthorClick={handleAuthorClick}
-          />
-        ))}
+        {galleryEntries.map((entry) => {
+          if (entry.type === "series") {
+            return (
+              <SeriesGalleryCard
+                key={`series:${entry.key}`}
+                series={entry}
+                variant="standard"
+                href={`/series/${encodeURIComponent(entry.name)}`}
+                showAgeGate={entry.hasAgeGate}
+              />
+            );
+          }
+          const s = entry.script;
+          return (
+            <CardWithPolicy
+              key={s.id}
+              script={s}
+              policy={navigationPolicyMap.get(s.id)}
+              variant="standard"
+              authorHref={authorHref(s)}
+              seriesHref={seriesHref(s)}
+              onSeriesClick={handleSeriesClick}
+              onTagClick={handleTagClick}
+              onAuthorClick={handleAuthorClick}
+            />
+          );
+        })}
         {emptyState !== "none" && (
           <GalleryEmptyState
             reason={emptyState === "no-match" ? "no-match" : "no-public-scripts"}
@@ -130,40 +159,62 @@ export function GalleryScriptResults({ model, onResetFilters }: GalleryScriptRes
   // Default lanes view
   return (
     <div className="space-y-12">
-      {lanes.latestPreview.length > 0 && (
+      {lanes.latestEntriesPreview.length > 0 && (
         <HorizontalScrollLane title="最新發布">
-          {lanes.latestPreview.map((s) => (
-            <div key={s.id} className={CARD_WIDTH}>
-              <CardWithPolicy
-                script={s}
-                policy={navigationPolicyMap.get(s.id)}
-                variant={viewMode}
-                authorHref={authorHref(s)}
-                seriesHref={seriesHref(s)}
-                onSeriesClick={handleSeriesClick}
-                onTagClick={handleTagClick}
-                onAuthorClick={handleAuthorClick}
-              />
-            </div>
-          ))}
+          {lanes.latestEntriesPreview.map((entry) =>
+            entry.type === "series" ? (
+              <div key={`series:${entry.key}`} className={CARD_WIDTH}>
+                <SeriesGalleryCard
+                  series={entry}
+                  variant="standard"
+                  href={`/series/${encodeURIComponent(entry.name)}`}
+                  showAgeGate={entry.hasAgeGate}
+                />
+              </div>
+            ) : (
+              <div key={entry.script.id} className={CARD_WIDTH}>
+                <CardWithPolicy
+                  script={entry.script}
+                  policy={navigationPolicyMap.get(entry.script.id)}
+                  variant={viewMode}
+                  authorHref={authorHref(entry.script)}
+                  seriesHref={seriesHref(entry.script)}
+                  onSeriesClick={handleSeriesClick}
+                  onTagClick={handleTagClick}
+                  onAuthorClick={handleAuthorClick}
+                />
+              </div>
+            )
+          )}
         </HorizontalScrollLane>
       )}
-      {lanes.topViewedPreview.length > 0 && (
+      {lanes.topViewedEntriesPreview.length > 0 && (
         <HorizontalScrollLane title="點閱排行">
-          {lanes.topViewedPreview.map((s) => (
-            <div key={s.id} className={CARD_WIDTH}>
-              <CardWithPolicy
-                script={s}
-                policy={navigationPolicyMap.get(s.id)}
-                variant={viewMode}
-                authorHref={authorHref(s)}
-                seriesHref={seriesHref(s)}
-                onSeriesClick={handleSeriesClick}
-                onTagClick={handleTagClick}
-                onAuthorClick={handleAuthorClick}
-              />
-            </div>
-          ))}
+          {lanes.topViewedEntriesPreview.map((entry) =>
+            entry.type === "series" ? (
+              <div key={`series:${entry.key}`} className={CARD_WIDTH}>
+                <SeriesGalleryCard
+                  series={entry}
+                  variant="standard"
+                  href={`/series/${encodeURIComponent(entry.name)}`}
+                  showAgeGate={entry.hasAgeGate}
+                />
+              </div>
+            ) : (
+              <div key={entry.script.id} className={CARD_WIDTH}>
+                <CardWithPolicy
+                  script={entry.script}
+                  policy={navigationPolicyMap.get(entry.script.id)}
+                  variant={viewMode}
+                  authorHref={authorHref(entry.script)}
+                  seriesHref={seriesHref(entry.script)}
+                  onSeriesClick={handleSeriesClick}
+                  onTagClick={handleTagClick}
+                  onAuthorClick={handleAuthorClick}
+                />
+              </div>
+            )
+          )}
         </HorizontalScrollLane>
       )}
       {lanes.featuredSeries.map((series) => (

@@ -144,6 +144,15 @@ function parseStringArrayLike(input: unknown, fallbackSplitByComma = true): stri
   return raw.split(/,|，/).map((item) => item.trim()).filter(Boolean);
 }
 
+// ─── Timestamp helper ────────────────────────────────────────────────────────
+
+function toTimestamp(v: number | string | undefined | null): number {
+  if (v == null) return 0;
+  if (typeof v === "number") return v;
+  const n = Date.parse(String(v));
+  return Number.isFinite(n) ? n : 0;
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface TagLike {
@@ -192,7 +201,7 @@ export interface GalleryScriptInput {
   tags?: Array<string | TagLike>;
   views?: number;
   lastModified?: number;
-  updatedAt?: number;
+  updatedAt?: number | string;
   coverDesign?: CoverDesign | null;
   coverCrop?: MediaCropLike | null;
   [key: string]: unknown;
@@ -351,7 +360,7 @@ export function filterGalleryScripts(
     })
     .sort(
       (a, b) =>
-        (b.lastModified || b.updatedAt || 0) - (a.lastModified || a.updatedAt || 0)
+        (b.lastModified ?? toTimestamp(b.updatedAt)) - (a.lastModified ?? toTimestamp(a.updatedAt))
     );
 }
 
@@ -380,7 +389,7 @@ export function buildFeaturedSeries(
         const aOrder = (a.seriesOrder ?? a._seriesOrder) ?? Number.MAX_SAFE_INTEGER;
         const bOrder = (b.seriesOrder ?? b._seriesOrder) ?? Number.MAX_SAFE_INTEGER;
         if (aOrder !== bOrder) return (aOrder as number) - (bOrder as number);
-        return (b.lastModified || b.updatedAt || 0) - (a.lastModified || a.updatedAt || 0);
+        return (b.lastModified ?? toTimestamp(b.updatedAt)) - (a.lastModified ?? toTimestamp(a.updatedAt));
       });
       const coverUrl =
         sorted.find((item) =>
