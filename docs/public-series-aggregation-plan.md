@@ -1,6 +1,6 @@
 # Public Series Aggregation Plan
 
-Last updated: 2026-06-16
+Last updated: 2026-06-16 (Phase 1-5 complete)
 
 ## 目的
 
@@ -210,73 +210,119 @@ interface LocalSeriesProgress {
 
 這樣可以保持 policy 的單一執行點：真正閱讀內容時由 reader gate 判斷。
 
-## 實作分期
+## 實作完成紀錄
 
-### Phase 1: Pure Model
+### Phase 1: Pure Model ✓ Done
 
-新增 series aggregation pure functions：
+已新增 series aggregation pure functions：
 
-- group scripts by normalized series name
-- derive `PublicGalleryEntry[]`
-- derive latest script
-- derive lead script
-- derive chapter order
-- derive aggregate policy indicator
+- `groupScriptsIntoGalleryEntries()` groups scripts by normalized series name.
+- `deriveSeriesChapterOrder()` produces deterministic chapter ordering.
+- `deriveAggregateAgeGate()` conservatively aggregates R-18 indicators.
+- `findSeriesGroupByName()` resolves a series group by display name.
+- `toChapterNavModel()` derives reader navigation data from a `PublicSeriesGroup`.
+- `getSeriesTimestamp()` centralizes timestamp comparison and accepts numeric and ISO string timestamps.
 
-測試位置：
+Owner:
 
+- `packages/public-ui/src/gallery/seriesModel.ts`
 - `packages/public-ui/src/__tests__/seriesModel.test.ts`
-- 或 `homepageModel.test.ts`
 
-必要測試：
+Covered behavior:
 
-- 同系列 scripts 只產生一個 series entry。
-- 無系列 scripts 保持 script entry。
-- 章節依 `seriesOrder` 排序。
-- 缺 order 的章節排最後。
-- latest chapter 由更新時間推導。
-- 任一章 R-18 時 series entry 顯示 age indicator。
+- Same-series scripts produce one `type: "series"` entry.
+- No-series scripts remain `type: "script"` entries.
+- `seriesOrder` sorts chapters ascending; missing order goes last.
+- Ties and missing order fall back to updated timestamp descending.
+- Lead/latest scripts are derived by model rules, not component logic.
+- Any adult chapter makes the aggregate series entry show age-gate state.
+- `ChapterNavModel` exposes `latestScriptUpdatedAt`, so reader progress does not reimplement timestamp inference.
 
-### Phase 2: Homepage Rendering
+### Phase 2: Homepage Rendering ✓ Done
 
-調整 `GalleryScriptResults` 或上游 model，讓首頁吃 `PublicGalleryEntry[]`。
+Homepage lanes now consume `PublicGalleryEntry[]` instead of raw per-chapter scripts.
 
-要求：
+Owner:
 
-- series entry 使用 series card。
-- script entry 使用現有 `ScriptGalleryCard`。
-- 搜尋與篩選仍能命中 series 內章節。
-- 點系列卡片進 `/series/[name]`。
+- `packages/public-ui/src/gallery/homepageModel.ts`
+- `apps/public/app/gallery/GalleryScriptResults.tsx`
+- `packages/public-ui/src/ScriptGalleryCard.tsx`
+- `packages/public-ui/src/SeriesGalleryCard.tsx`
 
-### Phase 3: Series Page
+Completed behavior:
 
-強化 `/series/[name]`：
+- Latest/top viewed lanes collapse same-series chapters before slicing, so one series counts as one card.
+- Series entries render through `SeriesGalleryCard`.
+- Script entries continue rendering through `ScriptGalleryCard`.
+- Series cards link to `/series/[name]`.
+- Search and filters still operate on enriched script data before the grouped display model is built.
+- Card DOM remains semantic: `<article>` root, links/buttons as independent interactive elements, no nested anchors.
 
-- chapter list
-- latest chapter badge
-- start reading action
-- latest chapter action
-- no duplicate storage model
+Tests:
 
-### Phase 4: Reader Chapter Navigation
+- `packages/public-ui/src/__tests__/homepageModel.test.ts`
+- `packages/public-ui/src/__tests__/SeriesGalleryCard.test.tsx`
 
-在 `/read/[id]` 加入系列上下文：
+### Phase 3: Series Page ✓ Done
 
-- previous / next
-- back to series
-- latest chapter hint
+`/series/[name]` now uses the shared series model instead of hand-rolled filter/sort logic.
 
-資料來源可以先用同系列 bundle 查詢，不需要一次載入所有內容。
+Owner:
 
-### Phase 5: Reading Progress
+- `apps/public/app/series/[name]/page.tsx`
+- `apps/public/app/series/[name]/SeriesPageClient.tsx`
+- `packages/public-ui/src/gallery/seriesModel.ts`
 
-先做 localStorage：
+Completed behavior:
 
-- 記錄 last read script
-- 記錄 latest seen script
-- 顯示 new chapter hint
+- Series metadata is derived from `PublicSeriesGroup`.
+- Chapter list order comes from `deriveSeriesChapterOrder()`.
+- Latest chapter information comes from `latestScript` / `updatedAt`.
+- Series page no longer owns a duplicate storage or sorting model.
 
-後端同步進度是後續功能，不是本次公開頁聚合的前置需求。
+### Phase 4: Reader Chapter Navigation ✓ Done
+
+`/read/[id]` now shows series context when the current script belongs to a series.
+
+Owner:
+
+- `apps/public/app/read/[id]/useSeriesChapterNav.ts`
+- `apps/public/app/read/[id]/SeriesChapterNavBar.tsx`
+- `apps/public/app/read/[id]/ScriptReaderClient.tsx`
+- `packages/public-ui/src/gallery/seriesModel.ts`
+
+Completed behavior:
+
+- Fetches public bundle through the same-origin BFF route (`/api/public-bundle`), not `NEXT_PUBLIC_API_URL`.
+- Uses `enrichScript()`, `groupScriptsIntoGalleryEntries()`, `findSeriesGroupByName()`, and `toChapterNavModel()` as the single derivation path.
+- Provides previous / next chapter links.
+- Provides back-to-series link.
+- Clears stale navigation state while loading a different script.
+- Does not load all chapter content into the reader; only navigation metadata is used.
+
+### Phase 5: Reading Progress ✓ Done
+
+Local reading progress is implemented for anonymous public readers.
+
+Owner:
+
+- `packages/public-ui/src/gallery/seriesProgress.ts`
+- `packages/public-ui/src/__tests__/seriesProgress.test.ts`
+- `apps/public/app/read/[id]/useSeriesProgress.ts`
+- `apps/public/app/read/[id]/useSeriesProgress.test.ts`
+- `apps/public/app/read/[id]/SeriesChapterNavBar.tsx`
+
+Completed behavior:
+
+- `deriveNewChapterHint()` is a pure model function.
+- `buildProgressUpdate()` constructs the local progress record.
+- `useSeriesProgress()` handles localStorage read/write lifecycle in the app boundary.
+- Stored progress is minimally shape-validated before use.
+- New chapter hint is based on latest script id and latest script updated time.
+- `markSeen()` writes progress but does not clear the badge during the same visit; the badge clears on the next visit after stored progress catches up.
+- `SeriesChapterNavBar` shows `有新章節` when the model reports a new chapter.
+
+後端同步進度仍是後續功能，不是本次公開頁聚合的前置需求。
 
 ## 不建議做法
 
@@ -290,10 +336,19 @@ interface LocalSeriesProgress {
 
 這項調整完成時應滿足：
 
-- 首頁同系列只顯示一張系列卡片。
-- 單篇無系列作品仍正常顯示。
-- 系列頁可選章節。
-- 單章 reader URL 與 SEO 不變。
-- 最新章節可由資料推導提示。
-- 所有系列聚合邏輯有 pure model tests。
-- 不需要改變 script 儲存方式。
+- [x] 首頁同系列只顯示一張系列卡片。
+- [x] 單篇無系列作品仍正常顯示。
+- [x] 系列頁可選章節。
+- [x] 單章 reader URL 與 SEO 不變。
+- [x] 最新章節可由資料推導提示。
+- [x] 所有系列聚合邏輯有 pure model tests。
+- [x] 不需要改變 script 儲存方式。
+
+## 後續非阻塞項
+
+這些項目不阻塞公開頁系列聚合完成，但如果產品需求升級，應以同樣的邊界處理：
+
+- 登入使用者跨裝置 progress sync：新增 backend progress API，不改變目前 `Script` 作為內容最小單位的模型。
+- Series SEO 強化：在 `/series/[name]` 補 `CreativeWorkSeries` / `CollectionPage` JSON-LD 與 `hasPart`。
+- Sitemap series URL：若 sitemap 目前只列單章，補 series canonical URL。
+- Reader 章節導覽 browser QA：桌面 / 手機 / light / dark 都應補正式驗收紀錄。

@@ -18,6 +18,7 @@ import {
 import { StudioTopbarQuickActions } from "../components/layout/StudioTopbarQuickActions";
 import { usePublisherDashboardState } from "../hooks/publisher/usePublisherDashboardState";
 import { openPublicPath } from "../lib/publicNavigation";
+import { deriveChapterRows } from "../lib/publisher/seriesEditorModel";
 
 const ScriptMetadataDialogLazy = React.lazy(async () => {
   const mod = await import("../components/dashboard/ScriptMetadataDialog");
@@ -260,16 +261,15 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                     setSelectedSeriesId={s.setSelectedSeriesId}
                     seriesDraft={s.seriesDraft}
                     setSeriesDraft={s.setSeriesDraft}
-                    seriesScripts={(s.scripts || [])
-                      .filter((script) => script.seriesId === s.selectedSeriesId)
-                      .map((script) => ({ ...script, seriesOrder: script.seriesOrder ?? undefined }))
-                      .sort((a, b) => {
-                        const aOrder = Number.isFinite(Number(a.seriesOrder)) ? Number(a.seriesOrder) : Number.MAX_SAFE_INTEGER;
-                        const bOrder = Number.isFinite(Number(b.seriesOrder)) ? Number(b.seriesOrder) : Number.MAX_SAFE_INTEGER;
-                        if (aOrder !== bOrder) return aOrder - bOrder;
-                        return Number(b.lastModified || 0) - Number(a.lastModified || 0);
-                      })}
+                    seriesScripts={deriveChapterRows(
+                      (s.scripts || []).filter((script) => script.seriesId === s.selectedSeriesId)
+                    )}
+                    attachableScripts={(s.scripts || []).filter(
+                      (script) => !script.seriesId
+                    )}
                     onDetachScript={s.handleDetachScriptFromSeries}
+                    onAttachScript={s.handleAttachScriptToSeries}
+                    onReorderScript={s.handleReorderScriptInSeries}
                     onCreateSeries={s.handleCreateSeries}
                     onUpdateSeries={s.handleUpdateSeries}
                     onDeleteSeries={s.handleDeleteSeries}
