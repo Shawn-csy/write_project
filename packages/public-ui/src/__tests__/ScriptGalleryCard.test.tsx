@@ -212,6 +212,66 @@ describe("ScriptGalleryCard compact — href mode", () => {
   });
 });
 
+// ── showAgeGate ───────────────────────────────────────────────────────────
+
+describe("ScriptGalleryCard showAgeGate", () => {
+  it("standard: renders R-18 badge when showAgeGate=true", () => {
+    const { container } = render(
+      <ScriptGalleryCard script={SCRIPT} href="/read/s1" showAgeGate />
+    );
+    expect(container.querySelector("article")).not.toBeNull();
+    expect(container.textContent).toMatch(/R-18|R18/);
+  });
+
+  it("standard: does not render badge when showAgeGate=false", () => {
+    const { container } = render(
+      <ScriptGalleryCard script={SCRIPT} href="/read/s1" showAgeGate={false} />
+    );
+    expect(container.textContent).not.toMatch(/R-18|R18/);
+  });
+
+  it("compact: renders R-18 badge when showAgeGate=true", () => {
+    const { container } = render(
+      <ScriptGalleryCard script={SCRIPT} variant="compact" href="/read/s1" showAgeGate />
+    );
+    expect(container.textContent).toMatch(/R-18|R18/);
+  });
+
+  it("compact: does not render badge when showAgeGate=false", () => {
+    const { container } = render(
+      <ScriptGalleryCard script={SCRIPT} variant="compact" href="/read/s1" showAgeGate={false} />
+    );
+    expect(container.textContent).not.toMatch(/R-18|R18/);
+  });
+
+  it("standard: no nested interactive elements with showAgeGate=true", () => {
+    const { container } = render(
+      <ScriptGalleryCard
+        script={SCRIPT_WITH_META}
+        href="/read/s2"
+        authorHref="/author/a1"
+        seriesHref="/series/Epic"
+        showAgeGate
+      />
+    );
+    assertNoNestedInteractive(container);
+  });
+
+  it("compact: no nested interactive elements with showAgeGate=true", () => {
+    const { container } = render(
+      <ScriptGalleryCard
+        script={SCRIPT_WITH_META}
+        variant="compact"
+        href="/read/s2"
+        authorHref="/author/a1"
+        seriesHref="/series/Epic"
+        showAgeGate
+      />
+    );
+    assertNoNestedInteractive(container);
+  });
+});
+
 // ── Compact variant — callback mode ──────────────────────────────────────
 
 describe("ScriptGalleryCard compact — callback mode", () => {

@@ -17,14 +17,6 @@ interface GalleryScriptResultsProps {
   onResetFilters: () => void;
 }
 
-function AgeGateBadge() {
-  return (
-    <span className="absolute top-1.5 right-1.5 z-10 rounded-sm bg-black/70 px-1.5 py-0.5 text-[10px] font-medium leading-none text-white pointer-events-none">
-      R-18
-    </span>
-  );
-}
-
 function CardWithPolicy({
   script,
   policy,
@@ -45,19 +37,17 @@ function CardWithPolicy({
   onAuthorClick: (id: string) => void;
 }) {
   return (
-    <div className="relative">
-      {policy?.showGateIndicator && <AgeGateBadge />}
-      <ScriptGalleryCard
-        script={script}
-        variant={variant}
-        href={`/read/${script.id}`}
-        authorHref={authorHref}
-        seriesHref={seriesHref}
-        onSeriesClick={onSeriesClick}
-        onTagClick={onTagClick}
-        onAuthorClick={onAuthorClick}
-      />
-    </div>
+    <ScriptGalleryCard
+      script={script}
+      variant={variant}
+      href={`/read/${script.id}`}
+      authorHref={authorHref}
+      seriesHref={seriesHref}
+      onSeriesClick={onSeriesClick}
+      onTagClick={onTagClick}
+      onAuthorClick={onAuthorClick}
+      showAgeGate={policy?.showGateIndicator ?? false}
+    />
   );
 }
 

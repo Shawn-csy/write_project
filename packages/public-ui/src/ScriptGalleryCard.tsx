@@ -74,6 +74,8 @@ export interface ScriptGalleryCardProps extends PublicLinkConfig {
   href?: string;
   authorHref?: string;
   seriesHref?: string;
+  /** Show R-18 age gate indicator over the cover */
+  showAgeGate?: boolean;
 }
 
 // ─── Internal author badge ─────────────────────────────────────────────────
@@ -192,6 +194,7 @@ function ScriptGalleryCardInner({
   authorHref,
   seriesHref,
   tagHref,
+  showAgeGate = false,
 }: ScriptGalleryCardProps): React.JSX.Element {
   const { id, title, author, coverUrl, coverDesign, tags = [], views = 0, likes = 0, contentLength } = script;
 
@@ -316,7 +319,7 @@ function ScriptGalleryCardInner({
     />
   );
 
-  const ARTICLE_CLASS = "group relative overflow-hidden rounded-xl border border-transparent bg-transparent px-2 pb-2 pt-1 shadow-none hover:-translate-y-0.5 hover:border-primary/60 hover:bg-muted/25 hover:shadow-md transition-all duration-200";
+  const ARTICLE_CLASS = "group relative rounded-xl border border-transparent bg-transparent px-2 pb-2 pt-1 shadow-none hover:-translate-y-0.5 hover:border-primary/60 hover:bg-muted/25 hover:shadow-md transition-all duration-200";
 
   // ── Compact variant ──
   // DOM contract: <article> root, title is <a> with stretched-link (::before covers article),
@@ -328,18 +331,24 @@ function ScriptGalleryCardInner({
 
     return (
       <article
-        className={`group relative overflow-hidden rounded-xl bg-transparent transition-all duration-200 ${!href ? "cursor-pointer" : ""}`}
+        className={`group relative rounded-xl bg-transparent transition-all duration-200 ${!href ? "cursor-pointer" : ""}`}
         onClick={handleArticleClick}
       >
         <div className="mx-2 my-0.5 flex items-stretch gap-3 rounded-lg pl-0 pr-3 py-2 border-l-[3px] border-l-transparent transition-all duration-200 group-hover:border-l-primary group-hover:bg-primary/5">
           {/* Cover */}
           <div className="w-[40px] shrink-0 ml-3">
-            <div className="aspect-[2/3] w-full overflow-hidden rounded-sm border border-border/40 bg-muted/25 shadow-sm transition-transform duration-300 group-hover:scale-105">
+            <div className="relative aspect-[2/3] w-full overflow-hidden rounded-sm border border-border/40 bg-muted/25 shadow-sm transition-transform duration-300 group-hover:scale-105">
               {href ? (
                 <a href={href} tabIndex={-1} aria-hidden className="block w-full h-full" onClick={() => onView?.(id)}>
                   {coverEl}
                 </a>
               ) : coverEl}
+              {showAgeGate && (
+                <>
+                  <div className="absolute inset-0 bg-red-900/25 pointer-events-none" aria-hidden />
+                  <span className="absolute top-0.5 left-0.5 z-10 rounded-[2px] bg-red-600 border border-red-400/60 px-1 py-px text-[8px] font-bold leading-none text-white pointer-events-none tracking-wide">R18</span>
+                </>
+              )}
             </div>
           </div>
           {/* Meta */}
@@ -395,9 +404,15 @@ function ScriptGalleryCardInner({
       onClick={handleArticleClick}
     >
       {/* Cover */}
-      <div className="aspect-[2/3] w-full overflow-hidden rounded-lg bg-muted shadow-sm group-hover:shadow-md transition-shadow">
+      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-muted shadow-sm group-hover:shadow-md transition-shadow">
         {coverLinkEl}
         <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-primary/10 pointer-events-none" aria-hidden />
+        {showAgeGate && (
+          <>
+            <div className="absolute inset-0 bg-red-900/25 pointer-events-none" aria-hidden />
+            <span className="absolute top-1.5 left-1.5 z-10 rounded border border-red-400/60 bg-red-600 px-1.5 py-0.5 text-[11px] font-bold leading-none text-white pointer-events-none tracking-wide">R-18</span>
+          </>
+        )}
       </div>
 
       {/* Meta */}
