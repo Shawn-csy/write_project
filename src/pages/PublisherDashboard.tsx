@@ -261,12 +261,9 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                     setSelectedSeriesId={s.setSelectedSeriesId}
                     seriesDraft={s.seriesDraft}
                     setSeriesDraft={s.setSeriesDraft}
-                    seriesScripts={deriveChapterRows(
-                      (s.scripts || []).filter((script) => script.seriesId === s.selectedSeriesId)
-                    )}
-                    attachableScripts={(s.scripts || []).filter(
-                      (script) => !script.seriesId
-                    )}
+                    seriesScripts={deriveChapterRows(s.selectedSeriesScripts || [])}
+                    selectedSeriesScripts={s.selectedSeriesScripts || []}
+                    attachableScripts={s.attachableScripts || []}
                     onDetachScript={s.handleDetachScriptFromSeries}
                     onAttachScript={s.handleAttachScriptToSeries}
                     onReorderScript={s.handleReorderScriptInSeries}

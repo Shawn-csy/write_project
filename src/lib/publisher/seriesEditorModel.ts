@@ -8,7 +8,7 @@
  */
 
 import { deriveSeriesChapterOrder, getSeriesTimestamp } from "@write/public-ui";
-import type { EnrichedGalleryScript } from "@write/public-ui";
+import type { EnrichedGalleryScript, PublicSeriesGroup } from "@write/public-ui";
 import type { BaseScriptApi } from "../../types/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -255,4 +255,42 @@ export function normalizeEditableSeriesOrder(raw: string): EditableOrderResult {
     return { valid: false, error: "順序不可為負數" };
   }
   return { valid: true, order: n };
+}
+
+// ─── buildPreviewSeriesGroup ──────────────────────────────────────────────────
+
+/**
+ * Converts publisher editor data into a PublicSeriesGroup suitable for
+ * rendering with SeriesGalleryCard and other public-ui components.
+ *
+ * Only covers fields needed for preview rendering — does not include
+ * server-side enrichment (tags, views, coverDesign, etc.).
+ */
+export function buildPreviewSeriesGroup(
+  seriesId: string,
+  name: string,
+  summary: string,
+  coverUrl: string,
+  scripts: BaseScriptApi[]
+): PublicSeriesGroup | null {
+  const enriched = scripts.map(toEnrichedLike);
+  const sorted = deriveSeriesChapterOrder(enriched);
+  if (sorted.length === 0) return null;
+
+  const leadScript = sorted[0];
+  const latestScript = [...sorted].sort((a, b) => getSeriesTimestamp(b) - getSeriesTimestamp(a))[0];
+  const updatedAt = getSeriesTimestamp(latestScript);
+
+  return {
+    type: "series",
+    key: name.toLowerCase(),
+    name,
+    scripts: sorted,
+    leadScript,
+    latestScript,
+    updatedAt,
+    coverUrl: coverUrl || undefined,
+    summary: summary || undefined,
+    hasAgeGate: false,
+  };
 }
