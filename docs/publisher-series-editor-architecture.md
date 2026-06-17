@@ -262,10 +262,8 @@ PublisherSeriesTab
 - `SeriesOverviewPanel` as a distinct overview section.
 - `SeriesAttachScriptDialog`; current attach UI is inline select.
 - `SeriesDangerZone`; delete still lives in metadata form actions.
-- Up/down controls for chapter order.
 - Drag reorder UI.
-- Wiring drag/up-down UI to `handleBatchReorderSeriesScripts()`.
-- Batch reorder UI is not wired yet; backend endpoint and atomicity tests are complete.
+- Up/down controls and drag reorder are wired to `handleBatchReorderSeriesScripts()`; up/down is complete, drag reorder pending.
 
 ## 執行分期
 
@@ -441,10 +439,15 @@ Backend completed:
 - Only after validation, updates all `seriesOrder` values and commits.
 - Tests cover success, `seriesOrder: null`, series not found, script not in series, cross-user rejection, and partial-failure atomicity.
 
+UI completed:
+
+- Up/down move buttons in `SeriesChapterManager` swap adjacent chapter `seriesOrder` values and call `handleBatchReorderSeriesScripts()`.
+- Buttons disabled for first/last chapter, missing-order chapters, and when handler is absent.
+- UI tests cover swap payload, first/last disabled, missing-order neighbour disabled.
+
 UI remaining:
 
-- Add drag reorder or up/down controls in `SeriesChapterManager`.
-- Wire the UI action to `handleBatchReorderSeriesScripts()`.
+- Drag reorder UI (up/down already done).
 
 ## 不建議做法
 
@@ -469,6 +472,7 @@ Series editor 可視為完成時，必須滿足：
 - [ ] Series list 顯示 search、readiness indicator、last updated。
 - [ ] 切換 selected series 時保護未儲存變更。
 - [ ] `SeriesDangerZone` 獨立化。
-- [ ] 上移/下移或 drag reorder UI 完成。
+- [x] 上移/下移 UI 完成，接上 batch reorder endpoint。
+- [ ] Drag reorder UI（上移/下移已完成）。
 - [x] Batch reorder backend endpoint 完成先驗證後更新，並有 partial-failure atomicity test。
 - [ ] Batch reorder UI 接上 backend endpoint。

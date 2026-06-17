@@ -90,6 +90,7 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
     selectedSeriesScripts, attachableScripts,
     handleCreateSeries, handleUpdateSeries, handleDeleteSeries,
     handleDetachScriptFromSeries, handleAttachScriptToSeries, handleReorderScriptInSeries,
+    handleBatchReorderSeriesScripts,
   } = seriesEditor;
 
   const tabsGuideRef = useRef<HTMLDivElement | null>(null);
@@ -445,7 +446,7 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
     handleSaveProfile, handleSaveOrg, handleCreatePersona, handleDeletePersona, handleCreateOrg, handleDeleteOrg,
     // series
     handleCreateSeries, handleUpdateSeries, handleDeleteSeries, handleDetachScriptFromSeries,
-    handleAttachScriptToSeries, handleReorderScriptInSeries,
+    handleAttachScriptToSeries, handleReorderScriptInSeries, handleBatchReorderSeriesScripts,
     // org members
     handleInviteMember, handleAcceptRequest, handleDeclineRequest, handleRemoveMember,
     handleRemovePersonaMember, handleChangeMemberRole, handleAcceptInvite, handleDeclineInvite,

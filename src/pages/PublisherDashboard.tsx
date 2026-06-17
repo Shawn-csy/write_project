@@ -267,6 +267,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                     onDetachScript={s.handleDetachScriptFromSeries}
                     onAttachScript={s.handleAttachScriptToSeries}
                     onReorderScript={s.handleReorderScriptInSeries}
+                    onBatchReorderScripts={s.handleBatchReorderSeriesScripts}
                     onCreateSeries={s.handleCreateSeries}
                     onUpdateSeries={s.handleUpdateSeries}
                     onDeleteSeries={s.handleDeleteSeries}
