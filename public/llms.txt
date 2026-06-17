@@ -1,22 +1,40 @@
-# Screenplay Reader - AI Agent Guide
+# 公開台本｜Screenplay Reader - AI Agent Guide
 
-Screenplay Reader provides AI-friendly access to public screenplay content.
+公開台本｜Screenplay Reader (https://open-scripts.shawnup.com) is a platform for writers to publish and share screenplays.
+AI-friendly endpoints are provided so you can read scripts without parsing React HTML or executing JavaScript.
 
 ## Preferred endpoint for raw content
-- GET /api/public-scripts/{script_id}/raw
-- Returns: text/markdown
 
-## Public reader URL pattern
-- /read/{script_id}
-- /author/{author_id}
-- /org/{org_id}
+GET /api/public-scripts/{script_id}/raw
 
-## Sitemap
-- /sitemap.xml
+- Returns text/markdown
+- {script_id} is the unique identifier found in the public URL: https://open-scripts.shawnup.com/read/{script_id}
+- Private or missing scripts return 404
 
-## Content negotiation support
-- If `Accept: text/markdown` is sent to /read/{script_id}, the server can return markdown directly.
+## Preferred endpoint for structured metadata
+
+GET /api/public-scripts/{script_id}
+
+- Returns application/json
+
+## Content negotiation (backend direct only)
+
+When hitting the API backend directly (not the public nginx URL), GET /read/{script_id} with Accept: text/markdown
+or a recognized AI bot User-Agent (GPTBot, ClaudeBot, Google-Extended, Anthropic, PerplexityBot) returns raw markdown.
+The public site URL (https://open-scripts.shawnup.com/read/{script_id}) routes through Next.js and returns HTML.
+Prefer /api/public-scripts/{script_id}/raw for reliable raw content access.
+
+## Discovery
+
+- Sitemap: https://open-scripts.shawnup.com/sitemap.xml
+- Script page: https://open-scripts.shawnup.com/read/{script_id}
+- Author page: https://open-scripts.shawnup.com/author/{author_id}
+- Organization page: https://open-scripts.shawnup.com/org/{org_id}
+- Series page: https://open-scripts.shawnup.com/series/{series_name}
+- Tag page: https://open-scripts.shawnup.com/tag/{tag_name}
 
 ## Notes
-- Private scripts are not exposed and should return 404.
-- Use public routes only: /read/, /author/, /org/
+
+- Use /api/public-scripts/{script_id}/raw first; do not rely on parsing rendered HTML.
+- Public scripts return 200. Private or missing scripts return 404.
+- Unauthorized AI model training on licensed content is not permitted where content terms restrict it.

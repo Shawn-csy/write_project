@@ -14,6 +14,8 @@
 - `docs/product/script-import-pipeline.md`：匯入與解析流程
 - `docs/frontend-boundaries.md`：Next public、Vite editor、shared packages 的長期前端邊界與退場規則
 - `docs/public-homepage-architecture.md`：Next public homepage 的長期架構、URL state、資料契約與 parity 計畫
+- `docs/seo-homepage-audit-2026-06-17.md`：首頁 SEO 與分享預覽圖問題稽核
+- `docs/seo-homepage-improvement-plan-2026-06-17.md`：首頁 SEO 改善執行計劃
 
 ## 工程與操作
 - `docs/engineering/operations.md`：開發與部署操作手冊

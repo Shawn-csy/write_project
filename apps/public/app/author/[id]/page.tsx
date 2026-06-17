@@ -5,11 +5,10 @@ import type { PublicPersona, PublicScript } from "@/lib/types";
 import { AuthorPageClient } from "./AuthorPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { PublicShellActions } from "@/components/PublicShellActions";
+import { BASE_URL, SITE_NAME, pickPreviewImage, absoluteUrl } from "@/lib/seo";
 
 export const revalidate = 3600;
 export const dynamicParams = true;
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://open-scripts.shawnup.com";
 
 async function fetchPersona(id: string): Promise<PublicPersona | null> {
   try {
@@ -39,7 +38,7 @@ export async function generateMetadata({
   const title = `${persona.displayName}｜Screenplay Reader`;
   const description = (persona.bio || `${persona.displayName} 的公開台本作品`).slice(0, 200);
   const canonicalUrl = `${BASE_URL}/author/${id}`;
-  const image = persona.avatar || persona.bannerUrl;
+  const previewImage = pickPreviewImage(persona.avatar || persona.bannerUrl);
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -47,7 +46,7 @@ export async function generateMetadata({
     name: persona.displayName,
     url: canonicalUrl,
     ...(persona.bio && { description: persona.bio }),
-    ...(image && { image }),
+    ...(persona.avatar && { image: absoluteUrl(persona.avatar) }),
     ...(persona.website && { sameAs: [persona.website] }),
   };
 
@@ -60,15 +59,15 @@ export async function generateMetadata({
       title,
       description,
       url: canonicalUrl,
-      siteName: "Screenplay Reader",
+      siteName: SITE_NAME,
       locale: "zh_TW",
-      ...(image && { images: [{ url: image, alt: persona.displayName }] }),
+      images: [{ url: previewImage, alt: persona.displayName }],
     },
     twitter: {
-      card: image ? "summary_large_image" : "summary",
+      card: "summary_large_image",
       title,
       description,
-      ...(image && { images: [image] }),
+      images: [previewImage],
     },
     other: {
       "application/ld+json": JSON.stringify(structuredData)
@@ -95,7 +94,7 @@ export default async function AuthorPage({
     name: persona.displayName,
     url: `${BASE_URL}/author/${id}`,
     ...(persona.bio && { description: persona.bio }),
-    ...(persona.avatar && { image: persona.avatar }),
+    ...(persona.avatar && { image: absoluteUrl(persona.avatar) }),
     ...(persona.website && { sameAs: [persona.website] }),
   };
 
