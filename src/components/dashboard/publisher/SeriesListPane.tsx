@@ -29,6 +29,7 @@ interface SeriesListPaneProps {
   setSelectedSeriesId: (id: string) => void;
   setSeriesDraft: React.Dispatch<React.SetStateAction<SeriesDraft>>;
   onStartCreate: () => void;
+  isDirty?: boolean;
 }
 
 
@@ -63,14 +64,20 @@ function formatRelativeTime(ms: number): string {
   return new Date(ms).toLocaleDateString("zh-TW", { month: "short", day: "numeric" });
 }
 
+type PendingAction =
+  | { type: "switch"; id: string }
+  | { type: "create" };
+
 export function SeriesListPane({
   seriesList,
   selectedSeriesId,
   setSelectedSeriesId,
   setSeriesDraft,
   onStartCreate,
+  isDirty = false,
 }: SeriesListPaneProps): React.JSX.Element {
   const [query, setQuery] = React.useState("");
+  const [pendingAction, setPendingAction] = React.useState<PendingAction | null>(null);
 
   const filtered = React.useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -78,11 +85,38 @@ export function SeriesListPane({
     return seriesList.filter((s) => (s.name || "").toLowerCase().includes(q));
   }, [seriesList, query]);
 
+  const handleCreate = React.useCallback(() => {
+    if (isDirty) {
+      setPendingAction({ type: "create" });
+      return;
+    }
+    onStartCreate();
+  }, [isDirty, onStartCreate]);
+
+  const confirmDiscard = React.useCallback(() => {
+    if (!pendingAction) return;
+    if (pendingAction.type === "create") {
+      onStartCreate();
+    } else {
+      const target = seriesList.find((s) => s.id === pendingAction.id);
+      if (target) {
+        setSelectedSeriesId(target.id);
+        setSeriesDraft({
+          name: target.name || "",
+          summary: target.summary || "",
+          coverUrl: target.coverUrl || "",
+          coverCrop: target.coverCrop || null,
+        });
+      }
+    }
+    setPendingAction(null);
+  }, [pendingAction, onStartCreate, seriesList, setSelectedSeriesId, setSeriesDraft]);
+
   return (
     <PublisherEntityListPane
       id="publisher-series-list"
       title="系列清單"
-      onCreate={onStartCreate}
+      onCreate={handleCreate}
       createAriaLabel="新增系列"
     >
       {/* Search */}
@@ -111,6 +145,26 @@ export function SeriesListPane({
         )
       ) : null}
 
+      {pendingAction && (
+        <div className="mx-2 mb-1 rounded-md border border-amber-400 bg-amber-50 px-3 py-2 text-xs text-amber-800 space-y-2">
+          <p className="font-medium">有未儲存的變更，確定要捨棄？</p>
+          <div className="flex gap-2">
+            <button
+              className="rounded border border-amber-500 px-2 py-0.5 text-[11px] font-medium hover:bg-amber-100"
+              onClick={confirmDiscard}
+            >
+              捨棄變更並繼續
+            </button>
+            <button
+              className="rounded border px-2 py-0.5 text-[11px] hover:bg-muted"
+              onClick={() => setPendingAction(null)}
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      )}
+
       {filtered.map((series) => {
         const level = series.readinessLevel ?? "empty";
         const subtitle = [
@@ -125,6 +179,11 @@ export function SeriesListPane({
             key={series.id}
             selected={selectedSeriesId === series.id}
             onClick={() => {
+              if (series.id === selectedSeriesId) return;
+              if (isDirty) {
+                setPendingAction({ type: "switch", id: series.id });
+                return;
+              }
               setSelectedSeriesId(series.id);
               setSeriesDraft({
                 name: series.name || "",

@@ -59,6 +59,14 @@ interface UsePublisherSeriesEditorInput {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+type CropLike = { cx?: number; cy?: number; zoom?: number } | null | undefined;
+
+/** Serialize crop to a stable string for dirty comparison. */
+function serializeCrop(c: CropLike): string {
+  if (!c) return "";
+  return `${c.cx ?? 0},${c.cy ?? 0},${c.zoom ?? 1}`;
+}
+
 function computeReadinessLevel(
   s: SeriesEditorData,
   seriesScripts: BaseScriptApi[]
@@ -295,6 +303,27 @@ export function usePublisherSeriesEditor({
     [seriesList, scripts]
   );
 
+  // ─── Dirty tracking ────────────────────────────────────────────────────────
+
+  const selectedSeries = seriesListWithReadiness.find((s) => s.id === selectedSeriesId) ?? null;
+
+  /**
+   * True when draft has unsaved changes.
+   * Edit mode: draft differs from saved series values.
+   * Create mode (no selectedSeriesId): draft has any non-empty content.
+   */
+  const isDirty = selectedSeries
+    ? seriesDraft.name !== (selectedSeries.name ?? "") ||
+      seriesDraft.summary !== (selectedSeries.summary ?? "") ||
+      seriesDraft.coverUrl !== (selectedSeries.coverUrl ?? "") ||
+      serializeCrop(seriesDraft.coverCrop) !== serializeCrop(selectedSeries.coverCrop)
+    : Boolean(
+        seriesDraft.name.trim() ||
+          seriesDraft.summary.trim() ||
+          seriesDraft.coverUrl.trim() ||
+          seriesDraft.coverCrop
+      );
+
   return {
     // State
     seriesList: seriesListWithReadiness,
@@ -305,6 +334,7 @@ export function usePublisherSeriesEditor({
     setSeriesDraft,
     isSavingSeries: isSaving,
     // Derived
+    isDirty,
     selectedSeriesScripts,
     attachableScripts,
     // Handlers

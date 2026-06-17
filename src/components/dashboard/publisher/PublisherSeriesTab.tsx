@@ -34,6 +34,7 @@ interface PublisherSeriesTabProps {
   setSelectedSeriesId: (id: string) => void;
   seriesDraft: SeriesDraft;
   setSeriesDraft: React.Dispatch<React.SetStateAction<SeriesDraft>>;
+  isDirty?: boolean;
   seriesScripts?: SeriesChapterRow[];
   /** Raw BaseScriptApi[] for the selected series — used by SeriesPublicPreview. */
   selectedSeriesScripts?: BaseScriptApi[];
@@ -54,6 +55,7 @@ export function PublisherSeriesTab({
   setSelectedSeriesId,
   seriesDraft,
   setSeriesDraft,
+  isDirty = false,
   seriesScripts = [],
   selectedSeriesScripts = [],
   attachableScripts = [],
@@ -83,6 +85,7 @@ export function PublisherSeriesTab({
           setSelectedSeriesId={setSelectedSeriesId}
           setSeriesDraft={setSeriesDraft}
           onStartCreate={onStartCreate}
+          isDirty={isDirty}
         />
       )}
       header={(
