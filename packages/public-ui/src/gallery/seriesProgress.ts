@@ -2,7 +2,7 @@
  * seriesProgress.ts — pure model for local reading progress.
  * No React, no localStorage access. Use this from a hook that handles I/O.
  *
- * Phase 5 of public-series-aggregation-plan.md
+ * Phase 5 of docs/archive/public-series-aggregation-plan.md
  */
 
 // ─── Types ────────────────────────────────────────────────────────────────────

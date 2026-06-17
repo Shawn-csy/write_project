@@ -12,7 +12,7 @@ Last updated: 2026-06-17
 - 理解建立後才能加入章節、排序、預覽公開頁。
 - 看見目前草稿距離「可公開展示」還缺什麼。
 
-這份文件定義 create mode 的長期 UI/UX 與架構方向。它補充 `docs/publisher-series-editor-architecture.md`，不取代該文件。
+這份文件定義 create mode 的長期 UI/UX 與架構方向。它補充 `docs/archive/publisher-series-editor-architecture.md`，不取代該文件。
 
 ## 現況評估
 
@@ -251,7 +251,7 @@ Completion standard:
 
 Scope:
 
-- 更新 `publisher-series-editor-architecture.md` 的 Current UI Details。
+- 更新 `docs/archive/publisher-series-editor-architecture.md` 的 Current UI Details。
 - Browser QA create flow:
   - empty create mode
   - fill name/summary/cover
@@ -276,4 +276,3 @@ Completion standard:
   - create guide / draft preview / button states：`SeriesCreateWorkspace.test.tsx`
   - dirty guard：`SeriesListPane.test.tsx`
   - create success → selectedSeriesId 更新：`usePublisherSeriesEditor.test.ts`（hook 層覆蓋）
-
