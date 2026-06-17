@@ -6,11 +6,10 @@ import { TagPageClient } from "./TagPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { PublicShellActions } from "@/components/PublicShellActions";
 import { filterScriptsByTag } from "./filterScriptsByTag";
+import { BASE_URL, SITE_NAME, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
 
 export const revalidate = 3600;
 export const dynamicParams = true;
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://open-scripts.shawnup.com";
 
 interface BundleResponse {
   scripts?: PublicScript[];
@@ -49,13 +48,15 @@ export async function generateMetadata({
       title,
       description,
       url: canonicalUrl,
-      siteName: "Screenplay Reader",
+      siteName: SITE_NAME,
       locale: "zh_TW",
+      images: [{ url: DEFAULT_OG_IMAGE_URL, alt: title }],
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title,
       description,
+      images: [DEFAULT_OG_IMAGE_URL],
     },
   };
 }

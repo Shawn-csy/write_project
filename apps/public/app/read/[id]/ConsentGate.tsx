@@ -94,9 +94,11 @@ function getOrCreateVisitorId(): string {
 export interface ConsentGateProps {
   scriptId: string;
   children: React.ReactNode;
+  /** Rendered above the loading spinner and consent form; hidden once accepted. */
+  summary?: React.ReactNode;
 }
 
-export function ConsentGate({ scriptId, children }: ConsentGateProps) {
+export function ConsentGate({ scriptId, children, summary }: ConsentGateProps) {
   // "loading" | "required" | "accepted"
   const [state, setState] = useState<"loading" | "required" | "accepted">("loading");
   const [config, setConfig] = useState<TermsConfig | null>(null);
@@ -122,9 +124,12 @@ export function ConsentGate({ scriptId, children }: ConsentGateProps) {
 
   if (state === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <span className="text-sm text-muted-foreground">載入中…</span>
-      </div>
+      <>
+        {summary}
+        <div className="min-h-screen flex items-center justify-center">
+          <span className="text-sm text-muted-foreground">載入中…</span>
+        </div>
+      </>
     );
   }
 
@@ -154,6 +159,8 @@ export function ConsentGate({ scriptId, children }: ConsentGateProps) {
   };
 
   return (
+    <>
+      {summary}
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-xl rounded-xl border border-border bg-card shadow-sm">
         <div className="p-6 sm:p-8">
@@ -211,5 +218,6 @@ export function ConsentGate({ scriptId, children }: ConsentGateProps) {
         </div>
       </div>
     </div>
+    </>
   );
 }

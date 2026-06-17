@@ -8,14 +8,13 @@ import { parseScreenplay, toRenderBlocks } from "@write/script-engine";
 import { resolveMarkerConfigs } from "@/lib/markerThemeResolver";
 import { getScriptDescription } from "@/lib/scriptDescription";
 import type { RenderBlock, TocEntry, MarkerConfig } from "@write/script-engine";
+import { BASE_URL, SITE_NAME, pickPreviewImage, absoluteUrl } from "@/lib/seo";
 
 // ISR: revalidate daily as fallback; on-demand revalidation handles real-time updates
 export const revalidate = 86400;
 
 // Unknown script IDs are generated on first request, not blocked
 export const dynamicParams = true;
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://open-scripts.shawnup.com";
 
 function getAuthorName(script: PublicScript): string {
   if (script.persona?.displayName) return script.persona.displayName;
@@ -73,9 +72,10 @@ export async function generateMetadata({
     ...(dateModified && { dateModified }),
     ...(authorName && { author: { "@type": "Person", name: authorName } }),
     ...(orgName && { publisher: { "@type": "Organization", name: orgName } }),
-    ...(script.coverUrl && { image: script.coverUrl }),
+    ...(script.coverUrl && { image: absoluteUrl(script.coverUrl) }),
   };
 
+  const previewImage = pickPreviewImage(script.coverUrl);
   return {
     title,
     description,
@@ -85,17 +85,15 @@ export async function generateMetadata({
       title,
       description,
       url: canonicalUrl,
-      siteName: "Screenplay Reader",
+      siteName: SITE_NAME,
       locale: "zh_TW",
-      ...(script.coverUrl && {
-        images: [{ url: script.coverUrl, alt: script.title }],
-      }),
+      images: [{ url: previewImage, alt: script.title }],
     },
     twitter: {
-      card: script.coverUrl ? "summary_large_image" : "summary",
+      card: "summary_large_image",
       title,
       description,
-      ...(script.coverUrl && { images: [script.coverUrl] }),
+      images: [previewImage],
     },
     other: {
       "application/ld+json": JSON.stringify(structuredData)
@@ -138,7 +136,7 @@ export default async function ScriptReaderPage({
     ...(script.organization?.name && {
       publisher: { "@type": "Organization", name: script.organization.name },
     }),
-    ...(script.coverUrl && { image: script.coverUrl }),
+    ...(script.coverUrl && { image: absoluteUrl(script.coverUrl) }),
   };
 
   // Parse content server-side with marker theme (engine is canonical)
@@ -167,8 +165,26 @@ export default async function ScriptReaderPage({
         It receives renderBlocks so it can render the same content both on the
         server (SSR) and after hydration — no duplicate, no flash.
         The client component itself handles the sticky nav + header + content.
+
+        The summary prop renders above the loading spinner and consent form,
+        then disappears once the reader is shown. Googlebot sees it in SSR HTML
+        (ConsentGate SSR = loading state = summary is rendered). It is genuine
+        visible content — not hidden text — consistent with the public API response.
       */}
-      <ConsentGate scriptId={id}>
+      <ConsentGate
+        scriptId={id}
+        summary={
+          <div data-seo-excerpt className="px-4 py-6 max-w-2xl mx-auto">
+            <h1 className="text-2xl font-bold mb-2">{script.title}</h1>
+            {description && <p className="text-muted-foreground mb-3">{description}</p>}
+            <dl className="text-sm text-muted-foreground space-y-1">
+              {authorName && <div><dt className="inline font-medium">作者：</dt><dd className="inline">{authorName}</dd></div>}
+              {script.organization?.name && <div><dt className="inline font-medium">組織：</dt><dd className="inline">{script.organization.name}</dd></div>}
+              {tags.length > 0 && <div><dt className="inline font-medium">標籤：</dt><dd className="inline">{tags.join("、")}</dd></div>}
+            </dl>
+          </div>
+        }
+      >
         <ScriptReaderClient
           scriptId={id}
           initialScript={script}

@@ -5,30 +5,41 @@ import type { PublicScript } from "@/lib/types";
 import { GalleryClient } from "./GalleryClient";
 import type { HeroSlide } from "@write/public-ui/server";
 import { parseBannerSlides } from "@write/public-ui/server";
+import { BASE_URL, SITE_NAME, SITE_TITLE, SITE_DESCRIPTION, DEFAULT_OG_IMAGE_URL, pickPreviewImage } from "@/lib/seo";
 
 export const revalidate = 300; // 5-min ISR; on-demand revalidation handles real-time updates
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://open-scripts.shawnup.com";
+export async function generateMetadata(): Promise<Metadata> {
+  // Use first banner imageUrl as the homepage OG image when available, otherwise fall back to default.
+  let ogImage = DEFAULT_OG_IMAGE_URL;
+  try {
+    const bundle = await apiFetch<{ banner?: unknown }>("/public-bundle");
+    const slides = parseBannerSlides(bundle.banner);
+    const bannerImage = slides?.find((s) => s.imageUrl)?.imageUrl;
+    if (bannerImage) ogImage = pickPreviewImage(bannerImage);
+  } catch { /* noop: metadata falls back to default OG image */ }
 
-export const metadata: Metadata = {
-  title: "免費台本 · 劇本線上閱讀｜Screenplay Reader",
-  description:
-    "免費瀏覽、閱讀與分享創作台本，探索公開作品、配音台本與作者頁面。",
-  alternates: { canonical: BASE_URL },
-  openGraph: {
-    type: "website",
-    title: "免費台本 · 劇本線上閱讀｜Screenplay Reader",
-    description: "免費瀏覽、閱讀與分享創作台本，探索公開作品、配音台本與作者頁面。",
-    url: BASE_URL,
-    siteName: "Screenplay Reader",
-    locale: "zh_TW",
-  },
-  twitter: {
-    card: "summary",
-    title: "免費台本 · 劇本線上閱讀｜Screenplay Reader",
-    description: "免費瀏覽、閱讀與分享創作台本，探索公開作品、配音台本與作者頁面。",
-  },
-};
+  return {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    alternates: { canonical: `${BASE_URL}/` },
+    openGraph: {
+      type: "website",
+      title: SITE_TITLE,
+      description: SITE_DESCRIPTION,
+      url: `${BASE_URL}/`,
+      siteName: SITE_NAME,
+      locale: "zh_TW",
+      images: [{ url: ogImage, alt: SITE_TITLE, width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: SITE_TITLE,
+      description: SITE_DESCRIPTION,
+      images: [ogImage],
+    },
+  };
+}
 
 interface BundleResponse {
   scripts?: PublicScript[];
@@ -53,9 +64,9 @@ export default async function HomePage() {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    name: "Screenplay Reader",
-    url: BASE_URL,
-    description: "免費瀏覽、閱讀與分享創作台本，探索公開作品、配音台本與作者頁面。",
+    name: SITE_NAME,
+    url: `${BASE_URL}/`,
+    description: SITE_DESCRIPTION,
     inLanguage: "zh-Hant",
     potentialAction: {
       "@type": "SearchAction",

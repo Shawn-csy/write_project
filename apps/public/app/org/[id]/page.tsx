@@ -5,11 +5,10 @@ import type { PublicOrg, PublicScript } from "@/lib/types";
 import { OrgPageClient } from "./OrgPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { PublicShellActions } from "@/components/PublicShellActions";
+import { BASE_URL, SITE_NAME, pickPreviewImage, absoluteUrl } from "@/lib/seo";
 
 export const revalidate = 3600;
 export const dynamicParams = true;
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://open-scripts.shawnup.com";
 
 async function fetchOrg(id: string): Promise<PublicOrg | null> {
   try {
@@ -39,7 +38,7 @@ export async function generateMetadata({
   const title = `${org.name}｜Screenplay Reader`;
   const description = (org.description || `${org.name} 的公開台本作品`).slice(0, 200);
   const canonicalUrl = `${BASE_URL}/org/${id}`;
-  const image = org.logoUrl || org.bannerUrl;
+  const previewImage = pickPreviewImage(org.logoUrl || org.bannerUrl);
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -47,8 +46,8 @@ export async function generateMetadata({
     name: org.name,
     url: canonicalUrl,
     ...(org.description && { description: org.description }),
-    ...(org.logoUrl && { logo: org.logoUrl }),
-    ...(image && { image }),
+    ...(org.logoUrl && { logo: absoluteUrl(org.logoUrl) }),
+    ...(org.logoUrl && { image: absoluteUrl(org.logoUrl) }),
     ...(org.website && { sameAs: [org.website] }),
   };
 
@@ -61,15 +60,15 @@ export async function generateMetadata({
       title,
       description,
       url: canonicalUrl,
-      siteName: "Screenplay Reader",
+      siteName: SITE_NAME,
       locale: "zh_TW",
-      ...(image && { images: [{ url: image, alt: org.name }] }),
+      images: [{ url: previewImage, alt: org.name }],
     },
     twitter: {
-      card: image ? "summary_large_image" : "summary",
+      card: "summary_large_image",
       title,
       description,
-      ...(image && { images: [image] }),
+      images: [previewImage],
     },
     other: {
       "application/ld+json": JSON.stringify(structuredData)
@@ -96,7 +95,8 @@ export default async function OrgPage({
     name: org.name,
     url: `${BASE_URL}/org/${id}`,
     ...(org.description && { description: org.description }),
-    ...(org.logoUrl && { logo: org.logoUrl }),
+    ...(org.logoUrl && { logo: absoluteUrl(org.logoUrl) }),
+    ...(org.logoUrl && { image: absoluteUrl(org.logoUrl) }),
     ...(org.website && { sameAs: [org.website] }),
   };
 

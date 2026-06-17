@@ -11,11 +11,10 @@ import {
 import { SeriesPageClient } from "./SeriesPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { PublicShellActions } from "@/components/PublicShellActions";
+import { BASE_URL, SITE_NAME, pickPreviewImage, absoluteUrl } from "@/lib/seo";
 
 export const revalidate = 3600;
 export const dynamicParams = true;
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://open-scripts.shawnup.com";
 
 interface BundleResponse {
   scripts?: PublicScript[];
@@ -64,6 +63,7 @@ export async function generateMetadata({
     : `${seriesName} 系列共 ${scripts.length} 部台本，免費線上閱讀。`;
   const canonicalUrl = `${BASE_URL}/series/${name}`;
 
+  const previewImage = pickPreviewImage(coverUrl);
   return {
     title,
     description,
@@ -73,15 +73,15 @@ export async function generateMetadata({
       title,
       description,
       url: canonicalUrl,
-      siteName: "Screenplay Reader",
+      siteName: SITE_NAME,
       locale: "zh_TW",
-      ...(coverUrl && { images: [{ url: coverUrl, alt: seriesName }] }),
+      images: [{ url: previewImage, alt: seriesName }],
     },
     twitter: {
-      card: coverUrl ? "summary_large_image" : "summary",
+      card: "summary_large_image",
       title,
       description,
-      ...(coverUrl && { images: [coverUrl] }),
+      images: [previewImage],
     },
   };
 }
@@ -105,7 +105,7 @@ export default async function SeriesPage({
     url: canonicalUrl,
     inLanguage: "zh-Hant",
     ...(summary && { description: summary }),
-    ...(coverUrl && { image: coverUrl }),
+    ...(coverUrl && { image: absoluteUrl(coverUrl) }),
     hasPart: scripts.map((s) => ({
       "@type": "CreativeWork",
       name: s.title,
