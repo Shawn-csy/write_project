@@ -45,6 +45,7 @@ interface TabProps {
   onReorderScript?: ReturnType<typeof vi.fn>;
   onAttachScript?: ReturnType<typeof vi.fn>;
   onDetachScript?: ReturnType<typeof vi.fn>;
+  onBatchReorderScripts?: ReturnType<typeof vi.fn>;
   seriesScripts?: SeriesChapterRow[];
   attachableScripts?: BaseScriptApi[];
 }
@@ -53,6 +54,7 @@ function renderTab({
   onReorderScript = vi.fn(),
   onAttachScript = vi.fn(),
   onDetachScript = vi.fn(),
+  onBatchReorderScripts = vi.fn(),
   seriesScripts = [makeRow({ id: "c1", title: "Chapter 1", seriesOrder: 1 })],
   attachableScripts = [],
 }: TabProps = {}) {
@@ -68,12 +70,13 @@ function renderTab({
       onDetachScript={onDetachScript}
       onReorderScript={onReorderScript}
       onAttachScript={onAttachScript}
+      onBatchReorderScripts={onBatchReorderScripts}
       onCreateSeries={vi.fn()}
       onUpdateSeries={vi.fn()}
       onDeleteSeries={vi.fn()}
     />
   );
-  return { onReorderScript, onAttachScript, onDetachScript };
+  return { onReorderScript, onAttachScript, onDetachScript, onBatchReorderScripts };
 }
 
 // ─── Inline order edit ────────────────────────────────────────────────────────
@@ -238,5 +241,52 @@ describe("order conflict warning", () => {
     // "個重複章節順序" only appears in the amber banner, not in the readiness list
     expect(screen.queryByText(/個重複章節順序/)).not.toBeInTheDocument();
     expect(screen.queryByText(/尚未設定章節順序/)).not.toBeInTheDocument();
+  });
+});
+
+// ─── Up / down move ───────────────────────────────────────────────────────────
+
+describe("up/down chapter move", () => {
+  const twoChapters = [
+    makeRow({ id: "c1", title: "Chapter 1", seriesOrder: 1 }),
+    makeRow({ id: "c2", title: "Chapter 2", seriesOrder: 2 }),
+  ];
+
+  it("calls onBatchReorderScripts with swapped orders on move down", () => {
+    const { onBatchReorderScripts } = renderTab({ seriesScripts: twoChapters });
+    fireEvent.click(screen.getByRole("button", { name: "Chapter 1 下移" }));
+    expect(onBatchReorderScripts).toHaveBeenCalledOnce();
+    const [, , targetOrders] = (onBatchReorderScripts as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(targetOrders.get("c1")).toBe(2);
+    expect(targetOrders.get("c2")).toBe(1);
+  });
+
+  it("calls onBatchReorderScripts with swapped orders on move up", () => {
+    const { onBatchReorderScripts } = renderTab({ seriesScripts: twoChapters });
+    fireEvent.click(screen.getByRole("button", { name: "Chapter 2 上移" }));
+    expect(onBatchReorderScripts).toHaveBeenCalledOnce();
+    const [, , targetOrders] = (onBatchReorderScripts as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(targetOrders.get("c1")).toBe(2);
+    expect(targetOrders.get("c2")).toBe(1);
+  });
+
+  it("first chapter up button is disabled", () => {
+    renderTab({ seriesScripts: twoChapters });
+    expect(screen.getByRole("button", { name: "Chapter 1 上移" })).toBeDisabled();
+  });
+
+  it("last chapter down button is disabled", () => {
+    renderTab({ seriesScripts: twoChapters });
+    expect(screen.getByRole("button", { name: "Chapter 2 下移" })).toBeDisabled();
+  });
+
+  it("move button disabled when neighbour has missing order", () => {
+    renderTab({
+      seriesScripts: [
+        makeRow({ id: "c1", title: "Chapter 1", seriesOrder: 1 }),
+        makeRow({ id: "c2", title: "Chapter 2", seriesOrder: null, isMissingOrder: true }),
+      ],
+    });
+    expect(screen.getByRole("button", { name: "Chapter 1 下移" })).toBeDisabled();
   });
 });

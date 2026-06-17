@@ -38,6 +38,7 @@ interface PublisherSeriesTabProps {
   onDetachScript?: (scriptId: string, seriesId: string) => void;
   onAttachScript?: (scriptId: string, seriesId: string, order: number | null) => void;
   onReorderScript?: (scriptId: string, order: number | null) => void;
+  onBatchReorderScripts?: (seriesId: string, currentRows: SeriesChapterRow[], targetOrders: Map<string, number | null>) => void;
   onCreateSeries: () => void;
   onUpdateSeries: () => void;
   onDeleteSeries: () => void;
@@ -56,6 +57,7 @@ export function PublisherSeriesTab({
   onDetachScript,
   onAttachScript,
   onReorderScript,
+  onBatchReorderScripts,
   onCreateSeries,
   onUpdateSeries,
   onDeleteSeries,
@@ -107,6 +109,7 @@ export function PublisherSeriesTab({
               onDetachScript={onDetachScript}
               onAttachScript={onAttachScript}
               onReorderScript={onReorderScript}
+              onBatchReorderScripts={onBatchReorderScripts}
             />
 
             <div className="border-t pt-4">

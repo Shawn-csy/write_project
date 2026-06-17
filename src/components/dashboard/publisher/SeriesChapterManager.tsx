@@ -17,6 +17,7 @@ interface SeriesChapterManagerProps {
   onDetachScript?: (scriptId: string, seriesId: string) => void;
   onAttachScript?: (scriptId: string, seriesId: string, order: number | null) => void;
   onReorderScript?: (scriptId: string, order: number | null) => void;
+  onBatchReorderScripts?: (seriesId: string, currentRows: SeriesChapterRow[], targetOrders: Map<string, number | null>) => void;
 }
 
 export function SeriesChapterManager({
@@ -26,6 +27,7 @@ export function SeriesChapterManager({
   onDetachScript,
   onAttachScript,
   onReorderScript,
+  onBatchReorderScripts,
 }: SeriesChapterManagerProps): React.JSX.Element {
   const [attachScriptId, setAttachScriptId] = React.useState<string>("");
   const [attachOrder, setAttachOrder] = React.useState<string>("");
@@ -39,6 +41,19 @@ export function SeriesChapterManager({
     [conflicts]
   );
   const missingOrderCount = seriesScripts.filter((r) => r.isMissingOrder).length;
+
+  const handleMove = React.useCallback((index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= seriesScripts.length) return;
+    const a = seriesScripts[index];
+    const b = seriesScripts[targetIndex];
+    if (a.seriesOrder === null || b.seriesOrder === null) return;
+    const targetOrders = new Map<string, number | null>([
+      [a.id, b.seriesOrder],
+      [b.id, a.seriesOrder],
+    ]);
+    onBatchReorderScripts?.(seriesId, seriesScripts, targetOrders);
+  }, [seriesId, seriesScripts, onBatchReorderScripts]);
 
   return (
     <div className="border-t pt-3 space-y-4">
@@ -69,7 +84,7 @@ export function SeriesChapterManager({
             <p className="text-xs text-muted-foreground">目前此系列沒有作品。</p>
           ) : (
             <div className="max-h-[400px] space-y-2 overflow-y-auto pr-1">
-              {seriesScripts.map((script) => {
+              {seriesScripts.map((script, index) => {
                 const pendingVal = pendingOrders[script.id];
                 const displayVal =
                   pendingVal !== undefined
@@ -80,6 +95,8 @@ export function SeriesChapterManager({
                 const hasConflict =
                   script.seriesOrder !== null && conflictOrders.has(script.seriesOrder);
                 const orderError = orderErrors[script.id];
+                const canMoveUp = Boolean(onBatchReorderScripts) && index > 0 && !script.isMissingOrder && !seriesScripts[index - 1].isMissingOrder;
+                const canMoveDown = Boolean(onBatchReorderScripts) && index < seriesScripts.length - 1 && !script.isMissingOrder && !seriesScripts[index + 1].isMissingOrder;
 
                 return (
                   <div
@@ -144,6 +161,28 @@ export function SeriesChapterManager({
                               : `第 ${script.seriesOrder} 作`}
                         </span>
                       )}
+                    </div>
+
+                    {/* Up / down */}
+                    <div className="flex shrink-0 flex-col gap-0.5">
+                      <button
+                        type="button"
+                        disabled={!canMoveUp}
+                        onClick={() => handleMove(index, "up")}
+                        className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                        aria-label={`${script.title} 上移`}
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!canMoveDown}
+                        onClick={() => handleMove(index, "down")}
+                        className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                        aria-label={`${script.title} 下移`}
+                      >
+                        ▼
+                      </button>
                     </div>
 
                     {/* Title + status */}
