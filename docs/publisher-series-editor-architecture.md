@@ -253,17 +253,19 @@ PublisherSeriesTab
 - Duplicate order and missing order states are visible.
 - Attach only allows scripts with no existing `seriesId`; cross-series move is intentionally not part of the first UI flow.
 
+### Done (recent)
+
+- `SeriesDangerZone` extracted; delete series no longer lives in metadata form actions.
+- `SeriesListPane` now shows search input, readiness dot (green/amber/grey), and last-updated relative time per series.
+- `SeriesEditorData.updatedAt` added so list can display recency.
+- `SeriesOverviewPanel` added at top of selected series workspace: cover thumbnail, name, summary, chapter count, latest chapter, public URL + open button.
+
 ### Pending
 
-- Series list search.
-- Series list readiness indicator.
-- Series list last-updated display.
 - Unsaved-change protection when switching selected series.
-- `SeriesOverviewPanel` as a distinct overview section.
 - `SeriesAttachScriptDialog`; current attach UI is inline select.
-- `SeriesDangerZone`; delete still lives in metadata form actions.
 - Drag reorder UI.
-- Up/down controls and drag reorder are wired to `handleBatchReorderSeriesScripts()`; up/down is complete, drag reorder pending.
+- Up/down controls are wired to `handleBatchReorderSeriesScripts()`; drag reorder pending.
 
 ## 執行分期
 
@@ -469,10 +471,11 @@ Series editor 可視為完成時，必須滿足：
 - [x] `PublisherSeriesTab` 是組裝層，不是全部邏輯所在地。
 - [x] public preview 使用 shared public-ui model/components。
 - [x] 沒有新增與 public series aggregation 分叉的邏輯。
-- [ ] Series list 顯示 search、readiness indicator、last updated。
+- [x] Series list 顯示 search、readiness indicator、last updated。
+- [x] `SeriesOverviewPanel` 獨立化，顯示封面、名稱、摘要、章節數、最新章節、公開 URL。
 - [ ] 切換 selected series 時保護未儲存變更。
-- [ ] `SeriesDangerZone` 獨立化。
+- [x] `SeriesDangerZone` 獨立化。
 - [x] 上移/下移 UI 完成，接上 batch reorder endpoint。
 - [ ] Drag reorder UI（上移/下移已完成）。
 - [x] Batch reorder backend endpoint 完成先驗證後更新，並有 partial-failure atomicity test。
-- [ ] Batch reorder UI 接上 backend endpoint。
+- [x] Batch reorder UI 接上 batch reorder endpoint（上移/下移）。

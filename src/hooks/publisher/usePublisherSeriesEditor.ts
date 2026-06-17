@@ -8,7 +8,7 @@
  * Phase 3 of publisher-series-editor-architecture.md
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { createSeries, updateSeries, deleteSeries, reorderSeriesScripts } from "../../lib/api/series";
 import { updateScript } from "../../lib/api/scripts";
 import {
@@ -16,6 +16,9 @@ import {
   buildDetachScriptUpdate,
   buildReorderScriptUpdate,
   buildSeriesMutationPlan,
+  deriveChapterRows,
+  detectOrderConflicts,
+  getSeriesReadiness,
 } from "../../lib/publisher/seriesEditorModel";
 import type { SeriesChapterRow } from "../../lib/publisher/seriesEditorModel";
 import type { BaseScriptApi } from "../../types/api";
@@ -29,6 +32,10 @@ export interface SeriesEditorData {
   coverUrl?: string;
   coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
   scriptCount?: number;
+  /** ms epoch from server. */
+  updatedAt?: number;
+  /** Model-derived readiness level for list indicator. */
+  readinessLevel?: "ready" | "partial" | "empty";
 }
 
 interface SeriesDraft {
@@ -48,6 +55,30 @@ interface UsePublisherSeriesEditorInput {
   scripts: BaseScriptApi[];
   setScripts: React.Dispatch<React.SetStateAction<BaseScriptApi[]>>;
   toast: (options: ToastLike) => void;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function computeReadinessLevel(
+  s: SeriesEditorData,
+  seriesScripts: BaseScriptApi[]
+): "ready" | "partial" | "empty" {
+  const chapterRows = deriveChapterRows(seriesScripts);
+  const conflicts = detectOrderConflicts(chapterRows);
+  const r = getSeriesReadiness({
+    name: s.name ?? "",
+    summary: s.summary ?? "",
+    coverUrl: s.coverUrl ?? "",
+    chapterRows,
+    conflicts,
+  });
+  if (r.isReady) return "ready";
+  const anyProgress =
+    Boolean(s.name?.trim()) ||
+    Boolean(s.summary?.trim()) ||
+    Boolean(s.coverUrl?.trim()) ||
+    chapterRows.length > 0;
+  return anyProgress ? "partial" : "empty";
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -254,9 +285,19 @@ export function usePublisherSeriesEditor({
   /** Scripts with no series assigned, eligible for attach. */
   const attachableScripts = scripts.filter((s) => !s.seriesId);
 
+  /** seriesList enriched with model-derived readinessLevel per series. */
+  const seriesListWithReadiness = useMemo(
+    () =>
+      seriesList.map((s) => ({
+        ...s,
+        readinessLevel: computeReadinessLevel(s, scripts.filter((sc) => sc.seriesId === s.id)),
+      })),
+    [seriesList, scripts]
+  );
+
   return {
     // State
-    seriesList,
+    seriesList: seriesListWithReadiness,
     setSeriesList,
     selectedSeriesId,
     setSelectedSeriesId,

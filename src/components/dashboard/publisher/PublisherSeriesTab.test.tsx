@@ -289,4 +289,22 @@ describe("up/down chapter move", () => {
     });
     expect(screen.getByRole("button", { name: "Chapter 1 下移" })).toBeDisabled();
   });
+
+  it("all move buttons disabled when onBatchReorderScripts is not provided", () => {
+    render(
+      <PublisherSeriesTab
+        seriesList={[SERIES]}
+        selectedSeriesId="s1"
+        setSelectedSeriesId={vi.fn()}
+        seriesDraft={DRAFT}
+        setSeriesDraft={vi.fn()}
+        seriesScripts={twoChapters}
+        onCreateSeries={vi.fn()}
+        onUpdateSeries={vi.fn()}
+        onDeleteSeries={vi.fn()}
+      />
+    );
+    expect(screen.getByRole("button", { name: "Chapter 1 下移" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Chapter 2 上移" })).toBeDisabled();
+  });
 });

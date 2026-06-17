@@ -22,7 +22,6 @@ interface SeriesMetadataFormProps {
   isSaving: boolean;
   onCreateSeries: () => void;
   onUpdateSeries: () => void;
-  onDeleteSeries: () => void;
 }
 
 export function SeriesMetadataForm({
@@ -32,7 +31,6 @@ export function SeriesMetadataForm({
   isSaving,
   onCreateSeries,
   onUpdateSeries,
-  onDeleteSeries,
 }: SeriesMetadataFormProps): React.JSX.Element {
   const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState<boolean>(false);
   const [coverPreviewFailed, setCoverPreviewFailed] = React.useState<boolean>(false);
@@ -107,14 +105,9 @@ export function SeriesMetadataForm({
               建立系列
             </Button>
           ) : (
-            <>
-              <Button disabled={isSaving || !seriesDraft.name.trim()} onClick={onUpdateSeries}>
-                儲存變更
-              </Button>
-              <Button variant="destructive" disabled={isSaving} onClick={onDeleteSeries}>
-                刪除系列
-              </Button>
-            </>
+            <Button disabled={isSaving || !seriesDraft.name.trim()} onClick={onUpdateSeries}>
+              儲存變更
+            </Button>
           )}
         </div>
       </PublisherFormRow>

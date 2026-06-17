@@ -174,8 +174,12 @@ export interface SeriesLike {
   id: string;
   name?: string;
   description?: string;
+  summary?: string;
   coverUrl?: string;
   coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
+  slug?: string;
+  scriptCount?: number;
+  updatedAt?: number;
 }
 
 export interface SeriesPayload {
