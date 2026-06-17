@@ -4,6 +4,8 @@ import { PublisherTabHeader } from "./PublisherTabHeader";
 import { SeriesListPane } from "./SeriesListPane";
 import { SeriesMetadataForm } from "./SeriesMetadataForm";
 import { SeriesChapterManager } from "./SeriesChapterManager";
+import { SeriesPublicPreview } from "./SeriesPublicPreview";
+import { detectOrderConflicts } from "../../../lib/publisher/seriesEditorModel";
 import type { SeriesChapterRow } from "../../../lib/publisher/seriesEditorModel";
 import type { BaseScriptApi } from "../../../types/api";
 
@@ -30,6 +32,8 @@ interface PublisherSeriesTabProps {
   seriesDraft: SeriesDraft;
   setSeriesDraft: React.Dispatch<React.SetStateAction<SeriesDraft>>;
   seriesScripts?: SeriesChapterRow[];
+  /** Raw BaseScriptApi[] for the selected series — used by SeriesPublicPreview. */
+  selectedSeriesScripts?: BaseScriptApi[];
   attachableScripts?: BaseScriptApi[];
   onDetachScript?: (scriptId: string, seriesId: string) => void;
   onAttachScript?: (scriptId: string, seriesId: string, order: number | null) => void;
@@ -47,6 +51,7 @@ export function PublisherSeriesTab({
   seriesDraft,
   setSeriesDraft,
   seriesScripts = [],
+  selectedSeriesScripts = [],
   attachableScripts = [],
   onDetachScript,
   onAttachScript,
@@ -57,6 +62,7 @@ export function PublisherSeriesTab({
   isSaving = false,
 }: PublisherSeriesTabProps): React.JSX.Element {
   const selected = seriesList.find((s) => s.id === selectedSeriesId) || null;
+  const conflicts = React.useMemo(() => detectOrderConflicts(seriesScripts), [seriesScripts]);
 
   const onStartCreate = React.useCallback(() => {
     setSelectedSeriesId("");
@@ -93,14 +99,31 @@ export function PublisherSeriesTab({
         />
 
         {selected && (
-          <SeriesChapterManager
-            seriesId={selected.id}
-            seriesScripts={seriesScripts}
-            attachableScripts={attachableScripts}
-            onDetachScript={onDetachScript}
-            onAttachScript={onAttachScript}
-            onReorderScript={onReorderScript}
-          />
+          <>
+            <SeriesChapterManager
+              seriesId={selected.id}
+              seriesScripts={seriesScripts}
+              attachableScripts={attachableScripts}
+              onDetachScript={onDetachScript}
+              onAttachScript={onAttachScript}
+              onReorderScript={onReorderScript}
+            />
+
+            <div className="border-t pt-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                公開預覽
+              </p>
+              <SeriesPublicPreview
+                seriesId={selected.id}
+                name={seriesDraft.name}
+                summary={seriesDraft.summary}
+                coverUrl={seriesDraft.coverUrl}
+                scripts={selectedSeriesScripts}
+                chapterRows={seriesScripts}
+                conflicts={conflicts}
+              />
+            </div>
+          </>
         )}
       </div>
     </PublisherSplitPanel>

@@ -208,14 +208,15 @@ describe("attach script", () => {
 // ─── Conflict warnings ────────────────────────────────────────────────────────
 
 describe("order conflict warning", () => {
-  it("shows amber warning when two chapters share the same order", () => {
+  it("shows amber warning banner when two chapters share the same order", () => {
     renderTab({
       seriesScripts: [
         makeRow({ id: "c1", title: "Chapter 1", seriesOrder: 2 }),
         makeRow({ id: "c2", title: "Chapter 2", seriesOrder: 2 }),
       ],
     });
-    expect(screen.getByText(/重複章節順序/)).toBeInTheDocument();
+    // Match the conflict banner specifically (contains "個重複章節順序")
+    expect(screen.getByText(/個重複章節順序/)).toBeInTheDocument();
   });
 
   it("shows missing order notice when a chapter has no order", () => {
@@ -227,14 +228,15 @@ describe("order conflict warning", () => {
     expect(screen.getByText(/尚未設定章節順序/)).toBeInTheDocument();
   });
 
-  it("shows no warning when all orders are unique and set", () => {
+  it("shows no conflict banner when all orders are unique and set", () => {
     renderTab({
       seriesScripts: [
         makeRow({ id: "c1", title: "Chapter 1", seriesOrder: 1 }),
         makeRow({ id: "c2", title: "Chapter 2", seriesOrder: 2 }),
       ],
     });
-    expect(screen.queryByText(/重複章節順序/)).not.toBeInTheDocument();
+    // "個重複章節順序" only appears in the amber banner, not in the readiness list
+    expect(screen.queryByText(/個重複章節順序/)).not.toBeInTheDocument();
     expect(screen.queryByText(/尚未設定章節順序/)).not.toBeInTheDocument();
   });
 });

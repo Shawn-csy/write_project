@@ -1,15 +1,26 @@
-import { useCallback } from "react";
-import type React from "react";
+/**
+ * usePublisherSeriesEditor — owns all publisher series authoring state.
+ *
+ * Collects: seriesList, selectedSeriesId, seriesDraft, isSaving, and all
+ * series + chapter mutation handlers. Dashboard only needs to pass in the
+ * shared scripts state and toast.
+ *
+ * Phase 3 of publisher-series-editor-architecture.md
+ */
+
+import { useState, useCallback } from "react";
 import { createSeries, updateSeries, deleteSeries } from "../../lib/api/series";
 import { updateScript } from "../../lib/api/scripts";
-import type { BaseScriptApi } from "../../types/api";
 import {
   buildAttachScriptUpdate,
   buildDetachScriptUpdate,
   buildReorderScriptUpdate,
 } from "../../lib/publisher/seriesEditorModel";
+import type { BaseScriptApi } from "../../types/api";
 
-interface SeriesData {
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface SeriesEditorData {
   id: string;
   name?: string;
   summary?: string;
@@ -31,30 +42,34 @@ interface ToastLike {
   variant?: "default" | "destructive";
 }
 
-interface UsePublisherSeriesActionsInput {
-  selectedSeriesId: string;
-  seriesDraft: SeriesDraft;
-  setIsSavingSeries: React.Dispatch<React.SetStateAction<boolean>>;
-  setSeriesList: React.Dispatch<React.SetStateAction<SeriesData[]>>;
-  setSelectedSeriesId: (id: string) => void;
-  setSeriesDraft: React.Dispatch<React.SetStateAction<SeriesDraft>>;
+interface UsePublisherSeriesEditorInput {
+  scripts: BaseScriptApi[];
   setScripts: React.Dispatch<React.SetStateAction<BaseScriptApi[]>>;
   toast: (options: ToastLike) => void;
 }
 
-export function usePublisherSeriesActions({
-  selectedSeriesId,
-  seriesDraft,
-  setIsSavingSeries,
-  setSeriesList,
-  setSelectedSeriesId,
-  setSeriesDraft,
+// ─── Hook ─────────────────────────────────────────────────────────────────────
+
+export function usePublisherSeriesEditor({
+  scripts,
   setScripts,
   toast,
-}: UsePublisherSeriesActionsInput) {
+}: UsePublisherSeriesEditorInput) {
+  const [seriesList, setSeriesList] = useState<SeriesEditorData[]>([]);
+  const [selectedSeriesId, setSelectedSeriesId] = useState("");
+  const [seriesDraft, setSeriesDraft] = useState<SeriesDraft>({
+    name: "",
+    summary: "",
+    coverUrl: "",
+    coverCrop: null,
+  });
+  const [isSaving, setIsSaving] = useState(false);
+
+  // ─── Series CRUD ───────────────────────────────────────────────────────────
+
   const handleCreateSeries = useCallback(async () => {
     if (!seriesDraft.name.trim()) return;
-    setIsSavingSeries(true);
+    setIsSaving(true);
     try {
       const created = await createSeries({
         name: seriesDraft.name.trim(),
@@ -62,20 +77,20 @@ export function usePublisherSeriesActions({
         coverUrl: seriesDraft.coverUrl || "",
         coverCrop: seriesDraft.coverCrop || null,
       });
-      setSeriesList((prev) => [created as SeriesData, ...prev]);
+      setSeriesList((prev) => [created as SeriesEditorData, ...prev]);
       setSelectedSeriesId(created.id);
       toast({ title: "已建立系列" });
     } catch (error) {
       console.error("Failed to create series", error);
       toast({ title: "建立系列失敗", variant: "destructive" });
     } finally {
-      setIsSavingSeries(false);
+      setIsSaving(false);
     }
-  }, [seriesDraft, setIsSavingSeries, setSeriesList, setSelectedSeriesId, toast]);
+  }, [seriesDraft, toast]);
 
   const handleUpdateSeries = useCallback(async () => {
     if (!selectedSeriesId || !seriesDraft.name.trim()) return;
-    setIsSavingSeries(true);
+    setIsSaving(true);
     try {
       const updated = await updateSeries(selectedSeriesId, {
         name: seriesDraft.name.trim(),
@@ -83,25 +98,27 @@ export function usePublisherSeriesActions({
         coverUrl: seriesDraft.coverUrl || "",
         coverCrop: seriesDraft.coverCrop || null,
       });
-      setSeriesList((prev) => prev.map((series) => (series.id === updated.id ? (updated as SeriesData) : series)));
+      setSeriesList((prev) =>
+        prev.map((s) => (s.id === updated.id ? (updated as SeriesEditorData) : s))
+      );
       toast({ title: "已更新系列" });
     } catch (error) {
       console.error("Failed to update series", error);
       toast({ title: "更新系列失敗", variant: "destructive" });
     } finally {
-      setIsSavingSeries(false);
+      setIsSaving(false);
     }
-  }, [selectedSeriesId, seriesDraft, setIsSavingSeries, setSeriesList, toast]);
+  }, [selectedSeriesId, seriesDraft, toast]);
 
   const handleDeleteSeries = useCallback(async () => {
     if (!selectedSeriesId) return;
-    setIsSavingSeries(true);
+    setIsSaving(true);
     try {
       await deleteSeries(selectedSeriesId);
-      setSeriesList((prev) => prev.filter((series) => series.id !== selectedSeriesId));
+      setSeriesList((prev) => prev.filter((s) => s.id !== selectedSeriesId));
       setSelectedSeriesId("");
       setSeriesDraft({ name: "", summary: "", coverUrl: "", coverCrop: null });
-      setScripts((prev: BaseScriptApi[]) =>
+      setScripts((prev) =>
         prev.map((script) =>
           script.seriesId === selectedSeriesId
             ? { ...script, seriesId: undefined, seriesOrder: undefined, series: undefined }
@@ -113,15 +130,20 @@ export function usePublisherSeriesActions({
       console.error("Failed to delete series", error);
       toast({ title: "刪除系列失敗", variant: "destructive" });
     } finally {
-      setIsSavingSeries(false);
+      setIsSaving(false);
     }
-  }, [selectedSeriesId, setIsSavingSeries, setScripts, setSelectedSeriesId, setSeriesDraft, setSeriesList, toast]);
+  }, [selectedSeriesId, setScripts, toast]);
 
-  const handleDetachScriptFromSeries = useCallback(async (scriptId: string, seriesId: string) => {
+  // ─── Chapter mutations ─────────────────────────────────────────────────────
+
+  const handleDetachScriptFromSeries = useCallback(async (
+    scriptId: string,
+    seriesId: string,
+  ) => {
     if (!scriptId || !seriesId) return;
     try {
       await updateScript(scriptId, { ...buildDetachScriptUpdate() });
-      setScripts((prev: BaseScriptApi[]) =>
+      setScripts((prev) =>
         prev.map((script) =>
           script.id === scriptId
             ? { ...script, seriesId: undefined, seriesOrder: undefined, series: undefined }
@@ -129,10 +151,10 @@ export function usePublisherSeriesActions({
         )
       );
       setSeriesList((prev) =>
-        prev.map((series) =>
-          series.id === seriesId
-            ? { ...series, scriptCount: Math.max(0, Number(series.scriptCount || 0) - 1) }
-            : series
+        prev.map((s) =>
+          s.id === seriesId
+            ? { ...s, scriptCount: Math.max(0, Number(s.scriptCount || 0) - 1) }
+            : s
         )
       );
       toast({ title: "已從系列移除作品" });
@@ -140,7 +162,7 @@ export function usePublisherSeriesActions({
       console.error("Failed to detach script from series", error);
       toast({ title: "移除失敗", variant: "destructive" });
     }
-  }, [setScripts, setSeriesList, toast]);
+  }, [setScripts, toast]);
 
   const handleAttachScriptToSeries = useCallback(async (
     scriptId: string,
@@ -150,7 +172,7 @@ export function usePublisherSeriesActions({
     if (!scriptId || !seriesId) return;
     try {
       await updateScript(scriptId, { ...buildAttachScriptUpdate(seriesId, order) });
-      setScripts((prev: BaseScriptApi[]) =>
+      setScripts((prev) =>
         prev.map((script) =>
           script.id === scriptId
             ? { ...script, seriesId, seriesOrder: order }
@@ -158,10 +180,10 @@ export function usePublisherSeriesActions({
         )
       );
       setSeriesList((prev) =>
-        prev.map((series) =>
-          series.id === seriesId
-            ? { ...series, scriptCount: Number(series.scriptCount || 0) + 1 }
-            : series
+        prev.map((s) =>
+          s.id === seriesId
+            ? { ...s, scriptCount: Number(s.scriptCount || 0) + 1 }
+            : s
         )
       );
       toast({ title: "已加入系列" });
@@ -169,7 +191,7 @@ export function usePublisherSeriesActions({
       console.error("Failed to attach script to series", error);
       toast({ title: "加入系列失敗", variant: "destructive" });
     }
-  }, [setScripts, setSeriesList, toast]);
+  }, [setScripts, toast]);
 
   const handleReorderScriptInSeries = useCallback(async (
     scriptId: string,
@@ -178,11 +200,9 @@ export function usePublisherSeriesActions({
     if (!scriptId) return;
     try {
       await updateScript(scriptId, { ...buildReorderScriptUpdate(order) });
-      setScripts((prev: BaseScriptApi[]) =>
+      setScripts((prev) =>
         prev.map((script) =>
-          script.id === scriptId
-            ? { ...script, seriesOrder: order }
-            : script
+          script.id === scriptId ? { ...script, seriesOrder: order } : script
         )
       );
     } catch (error) {
@@ -191,7 +211,29 @@ export function usePublisherSeriesActions({
     }
   }, [setScripts, toast]);
 
+  // ─── Derived ───────────────────────────────────────────────────────────────
+
+  /** Scripts belonging to the currently selected series, for passing to SeriesChapterManager. */
+  const selectedSeriesScripts = scripts.filter(
+    (s) => s.seriesId === selectedSeriesId
+  );
+
+  /** Scripts with no series assigned, eligible for attach. */
+  const attachableScripts = scripts.filter((s) => !s.seriesId);
+
   return {
+    // State
+    seriesList,
+    setSeriesList,
+    selectedSeriesId,
+    setSelectedSeriesId,
+    seriesDraft,
+    setSeriesDraft,
+    isSavingSeries: isSaving,
+    // Derived
+    selectedSeriesScripts,
+    attachableScripts,
+    // Handlers
     handleCreateSeries,
     handleUpdateSeries,
     handleDeleteSeries,
