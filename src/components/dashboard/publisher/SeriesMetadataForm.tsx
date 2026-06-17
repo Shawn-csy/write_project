@@ -14,15 +14,14 @@ interface SeriesDraft {
   coverCrop: { cx?: number; cy?: number; zoom?: number } | null;
 }
 
-interface SeriesMetadataFormProps {
+type SeriesMetadataFormProps = {
   seriesDraft: SeriesDraft;
   setSeriesDraft: React.Dispatch<React.SetStateAction<SeriesDraft>>;
-  /** True when editing an existing series; false when creating a new one. */
-  isEditing: boolean;
   isSaving: boolean;
-  onCreateSeries: () => void;
-  onUpdateSeries: () => void;
-}
+} & (
+  | { isEditing: false; onCreateSeries: () => void; onUpdateSeries?: never }
+  | { isEditing: true; onUpdateSeries: () => void; onCreateSeries?: never }
+);
 
 export function SeriesMetadataForm({
   seriesDraft,

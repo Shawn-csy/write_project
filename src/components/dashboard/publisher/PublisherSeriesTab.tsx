@@ -7,6 +7,7 @@ import { SeriesChapterManager } from "./SeriesChapterManager";
 import { SeriesDangerZone } from "./SeriesDangerZone";
 import { SeriesOverviewPanel } from "./SeriesOverviewPanel";
 import { SeriesPublicPreview } from "./SeriesPublicPreview";
+import { SeriesCreateWorkspace } from "./SeriesCreateWorkspace";
 import { detectOrderConflicts } from "../../../lib/publisher/seriesEditorModel";
 import type { SeriesChapterRow } from "../../../lib/publisher/seriesEditorModel";
 import type { BaseScriptApi } from "../../../types/api";
@@ -91,17 +92,28 @@ export function PublisherSeriesTab({
       header={(
         <PublisherTabHeader
           title={selected ? "編輯系列" : "建立系列"}
-          description="建立系列，設定封面與摘要，並整理每部作品的系列關聯。"
+          description={
+            selected
+              ? "設定封面與摘要，並整理每部作品的系列關聯。"
+              : "先建立系列基本資料，建立後可加入作品、排序章節並預覽公開頁。"
+          }
         />
       )}
     >
+      {!selected ? (
+        <SeriesCreateWorkspace
+          seriesDraft={seriesDraft}
+          setSeriesDraft={setSeriesDraft}
+          isSaving={isSaving}
+          onCreateSeries={onCreateSeries}
+        />
+      ) : (
       <div className={PUBLISHER_CONTENT_STACK_CLASS}>
         <SeriesMetadataForm
           seriesDraft={seriesDraft}
           setSeriesDraft={setSeriesDraft}
-          isEditing={Boolean(selected)}
+          isEditing={true}
           isSaving={isSaving}
-          onCreateSeries={onCreateSeries}
           onUpdateSeries={onUpdateSeries}
         />
 
@@ -144,6 +156,7 @@ export function PublisherSeriesTab({
           </>
         )}
       </div>
+      )}
     </PublisherSplitPanel>
   );
 }
