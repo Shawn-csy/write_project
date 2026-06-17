@@ -11,6 +11,33 @@ vi.mock("../../ui/MediaPicker", () => ({
   MediaPicker: () => null,
 }));
 
+vi.mock("./SeriesAttachScriptDialog", () => ({
+  SeriesAttachScriptDialog: ({
+    open,
+    onAttachScript,
+    seriesId,
+    attachableScripts,
+  }: {
+    open: boolean;
+    onAttachScript: (scriptId: string, seriesId: string, order: number | null) => void;
+    seriesId: string;
+    attachableScripts: { id: string; title: string }[];
+  }) =>
+    open ? (
+      <div data-testid="attach-dialog">
+        {attachableScripts.map((s) => (
+          <button
+            key={s.id}
+            data-testid={`attach-option-${s.id}`}
+            onClick={() => onAttachScript(s.id, seriesId, null)}
+          >
+            {s.title}
+          </button>
+        ))}
+      </div>
+    ) : null,
+}));
+
 vi.mock("../../ui/CoverPlaceholder", () => ({
   CoverPlaceholder: ({ title }: { title: string }) => <div>{title}</div>,
 }));
@@ -196,58 +223,28 @@ describe("inline order edit", () => {
 describe("attach script", () => {
   const attachable = [makeAttachable({ id: "a1", title: "Free Script" })];
 
-  it("calls onAttachScript with selected script and valid order", () => {
-    const { onAttachScript } = renderTab({ attachableScripts: attachable });
-    fireEvent.change(screen.getByRole("combobox", { name: "選擇作品" }), { target: { value: "a1" } });
-    fireEvent.change(screen.getByLabelText("章節順序"), { target: { value: "2" } });
-    fireEvent.click(screen.getByRole("button", { name: "加入" }));
-    expect(onAttachScript).toHaveBeenCalledWith("a1", "s1", 2);
+  it("shows attach button when attachableScripts are present", () => {
+    renderTab({ attachableScripts: attachable });
+    expect(screen.getByRole("button", { name: "加入現有作品…" })).toBeInTheDocument();
   });
 
-  it("calls onAttachScript with null order when order is empty", () => {
+  it("does not show attach button when no attachableScripts", () => {
+    renderTab({ attachableScripts: [] });
+    expect(screen.queryByRole("button", { name: "加入現有作品…" })).not.toBeInTheDocument();
+  });
+
+  it("opens attach dialog on button click", () => {
+    renderTab({ attachableScripts: attachable });
+    expect(screen.queryByTestId("attach-dialog")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "加入現有作品…" }));
+    expect(screen.getByTestId("attach-dialog")).toBeInTheDocument();
+  });
+
+  it("calls onAttachScript via dialog", () => {
     const { onAttachScript } = renderTab({ attachableScripts: attachable });
-    fireEvent.change(screen.getByRole("combobox", { name: "選擇作品" }), { target: { value: "a1" } });
-    fireEvent.click(screen.getByRole("button", { name: "加入" }));
+    fireEvent.click(screen.getByRole("button", { name: "加入現有作品…" }));
+    fireEvent.click(screen.getByTestId("attach-option-a1"));
     expect(onAttachScript).toHaveBeenCalledWith("a1", "s1", null);
-  });
-
-  it("does NOT call onAttachScript when order is invalid", () => {
-    const { onAttachScript } = renderTab({ attachableScripts: attachable });
-    fireEvent.change(screen.getByRole("combobox", { name: "選擇作品" }), { target: { value: "a1" } });
-    fireEvent.change(screen.getByLabelText("章節順序"), { target: { value: "abc" } });
-    fireEvent.click(screen.getByRole("button", { name: "加入" }));
-    expect(onAttachScript).not.toHaveBeenCalled();
-  });
-
-  it("does NOT call onAttachScript when no script selected", () => {
-    const { onAttachScript } = renderTab({ attachableScripts: attachable });
-    fireEvent.change(screen.getByLabelText("章節順序"), { target: { value: "1" } });
-    fireEvent.click(screen.getByRole("button", { name: "加入" }));
-    expect(onAttachScript).not.toHaveBeenCalled();
-  });
-
-  it("shows error text when attach order is invalid", () => {
-    renderTab({ attachableScripts: attachable });
-    fireEvent.change(screen.getByLabelText("章節順序"), { target: { value: "1.5" } });
-    expect(screen.getByText(/請輸入整數/)).toBeInTheDocument();
-  });
-
-  it("disables attach button while order is invalid", () => {
-    renderTab({ attachableScripts: attachable });
-    fireEvent.change(screen.getByRole("combobox", { name: "選擇作品" }), { target: { value: "a1" } });
-    fireEvent.change(screen.getByLabelText("章節順序"), { target: { value: "bad" } });
-    expect(screen.getByRole("button", { name: "加入" })).toBeDisabled();
-  });
-
-  it("clears form after successful attach", () => {
-    renderTab({ attachableScripts: attachable });
-    const select = screen.getByRole("combobox", { name: "選擇作品" });
-    const orderInput = screen.getByLabelText("章節順序");
-    fireEvent.change(select, { target: { value: "a1" } });
-    fireEvent.change(orderInput, { target: { value: "3" } });
-    fireEvent.click(screen.getByRole("button", { name: "加入" }));
-    expect((select as HTMLSelectElement).value).toBe("");
-    expect((orderInput as HTMLInputElement).value).toBe("");
   });
 });
 
