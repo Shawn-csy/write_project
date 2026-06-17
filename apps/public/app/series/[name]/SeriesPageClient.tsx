@@ -42,121 +42,150 @@ export function SeriesPageClient({ seriesName, scripts, seriesMeta }: Props) {
   const latestScriptId = seriesMeta?.latestScriptId;
   const latestScript = scripts.find((s) => s.id === latestScriptId) ?? null;
 
+  const hasCover = Boolean(cover.src);
+
   return (
     <main className="min-h-screen bg-background">
-      <div className="w-full max-w-3xl mx-auto px-3 sm:px-5 py-10 pb-20">
+      {/* Atmospheric banner — blurred cover or gradient fallback, same pattern as AuthorPageClient */}
+      <div className="relative h-48 overflow-hidden bg-gradient-to-r from-slate-900 to-slate-700">
+        {hasCover && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={cover.src}
+            alt=""
+            aria-hidden
+            className="w-full h-full object-cover scale-110 blur-xl opacity-60"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+      </div>
 
-        {/* Series header */}
-        <div className="mb-8 flex gap-5 items-start">
-          {cover.src && (
-            <div className="w-24 h-32 shrink-0 rounded-lg overflow-hidden border border-border/50 shadow-sm">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={cover.src}
-                style={cover.style}
-                alt={seriesName}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium text-primary/70 mb-1 uppercase tracking-wide">系列</p>
-            <h1 className="text-2xl sm:text-3xl font-bold leading-tight">{seriesName}</h1>
-            <p className="text-sm text-muted-foreground mt-1">{scripts.length} 部作品</p>
-            {seriesMeta?.summary && (
-              <p className="mt-3 text-sm text-muted-foreground leading-relaxed max-w-xl">
-                {seriesMeta.summary}
-              </p>
-            )}
-
-            {/* CTA buttons */}
-            {scripts.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {firstScript && (
-                  <a
-                    href={`/read/${firstScript.id}`}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors no-underline"
-                  >
-                    開始閱讀
-                  </a>
-                )}
-                {latestScript && latestScript.id !== firstScript?.id && (
-                  <a
-                    href={`/read/${latestScript.id}`}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border bg-background text-sm font-medium hover:bg-muted/50 transition-colors no-underline"
-                  >
-                    最新章節
-                  </a>
-                )}
+      <div className="w-full px-3 sm:px-5 lg:px-8 pb-20">
+        {/* Header card — overlaps banner, same -mt pattern as AuthorPageClient */}
+        <div className="relative -mt-16 mb-6 rounded-xl border border-border/60 bg-background p-6 shadow-sm md:p-8">
+          <div className="flex flex-col sm:flex-row items-start gap-6">
+            {/* Cover thumbnail */}
+            {hasCover && (
+              <div className="w-24 h-32 sm:w-28 sm:h-40 shrink-0 rounded-lg overflow-hidden border border-border/50 shadow-md">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={cover.src}
+                  style={cover.style}
+                  alt={seriesName}
+                  className="w-full h-full object-cover"
+                />
               </div>
             )}
+
+            <div className="flex-1 space-y-3 pt-1">
+              <p className="text-xs font-medium text-primary/70 uppercase tracking-widest">系列</p>
+              <h1 className="text-3xl sm:text-4xl font-bold font-serif leading-tight">{seriesName}</h1>
+
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <span>{scripts.length} 部作品</span>
+              </div>
+
+              {seriesMeta?.summary && (
+                <p className="text-foreground/80 leading-relaxed max-w-2xl">
+                  {seriesMeta.summary}
+                </p>
+              )}
+
+              {/* CTA buttons */}
+              {scripts.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {firstScript && (
+                    <a
+                      href={`/read/${firstScript.id}`}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors no-underline"
+                    >
+                      開始閱讀
+                    </a>
+                  )}
+                  {latestScript && latestScript.id !== firstScript?.id && (
+                    <a
+                      href={`/read/${latestScript.id}`}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border bg-background text-sm font-medium hover:bg-muted/50 transition-colors no-underline"
+                    >
+                      最新章節
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Chapter list */}
+        {/* Chapter list card */}
         {scripts.length === 0 ? (
-          <div className="py-16 text-center text-muted-foreground">
+          <div className="rounded-xl border border-border/60 bg-muted/20 py-16 text-center text-muted-foreground">
             <p>這個系列目前沒有公開作品。</p>
             <a href="/" className="text-sm underline mt-2 inline-block">返回首頁</a>
           </div>
         ) : (
-          <div className="space-y-1">
-            <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
-              章節列表
-            </h2>
-            {scripts.map((script, index) => {
-              const isLatest = script.id === latestScriptId && scripts.length > 1;
-              const order = script.seriesOrder;
-              const label = chapterLabel(order);
-              const dateLabel = formatDate(script.lastModified ?? script.updatedAt);
+          <section className="rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-6">
+            <div className="flex items-center justify-between border-b border-border/60 pb-3 mb-4">
+              <h2 className="text-xl font-bold">章節列表</h2>
+              <span className="text-xs text-muted-foreground bg-background px-2 py-0.5 rounded-full border border-border/60">
+                {scripts.length} 部
+              </span>
+            </div>
 
-              return (
-                <a
-                  key={script.id}
-                  href={`/read/${script.id}`}
-                  className="group flex items-center gap-4 rounded-xl px-4 py-3 border border-transparent hover:border-primary/30 hover:bg-muted/30 transition-all no-underline"
-                >
-                  {/* Order number */}
-                  <span className="shrink-0 w-8 text-center text-xs text-muted-foreground/60 font-mono tabular-nums">
-                    {order == null ? (index + 1) : order === 0 ? "★" : order}
-                  </span>
+            <div className="space-y-1">
+              {scripts.map((script, index) => {
+                const isLatest = script.id === latestScriptId && scripts.length > 1;
+                const order = script.seriesOrder;
+                const label = chapterLabel(order);
+                const dateLabel = formatDate(script.lastModified ?? script.updatedAt);
 
-                  {/* Title + label */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                        {script.title}
-                      </span>
-                      {isLatest && (
-                        <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 leading-none">
-                          最新
+                return (
+                  <a
+                    key={script.id}
+                    href={`/read/${script.id}`}
+                    className="group flex items-center gap-4 rounded-lg px-3 py-3 hover:bg-background/80 border border-transparent hover:border-border/60 transition-all no-underline"
+                  >
+                    {/* Order number */}
+                    <span className="shrink-0 w-7 text-center text-xs text-muted-foreground/50 font-mono tabular-nums">
+                      {order == null ? (index + 1) : order === 0 ? "★" : order}
+                    </span>
+
+                    {/* Title + label */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                          {script.title}
                         </span>
+                        {isLatest && (
+                          <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 leading-none">
+                            最新
+                          </span>
+                        )}
+                      </div>
+                      {label && (
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{label}</p>
                       )}
                     </div>
-                    {label && (
-                      <p className="text-[11px] text-muted-foreground mt-0.5">{label}</p>
+
+                    {/* Date */}
+                    {dateLabel && (
+                      <span className="shrink-0 text-[11px] text-muted-foreground/60 hidden sm:block">
+                        {dateLabel}
+                      </span>
                     )}
-                  </div>
 
-                  {/* Date */}
-                  {dateLabel && (
-                    <span className="shrink-0 text-[11px] text-muted-foreground/60 hidden sm:block">
-                      {dateLabel}
+                    {/* Arrow */}
+                    <span className="shrink-0 text-muted-foreground/30 group-hover:text-primary/60 transition-colors text-sm" aria-hidden>
+                      →
                     </span>
-                  )}
-
-                  {/* Arrow */}
-                  <span className="shrink-0 text-muted-foreground/30 group-hover:text-primary/60 transition-colors text-sm" aria-hidden>
-                    →
-                  </span>
-                </a>
-              );
-            })}
-          </div>
+                  </a>
+                );
+              })}
+            </div>
+          </section>
         )}
 
-        <div className="mt-10 pt-6 border-t border-border">
-          <a href="/" className="text-sm text-muted-foreground hover:text-foreground underline">
+        <div className="mt-8 pt-6 border-t border-border/60">
+          <a href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             ← 返回台本列表
           </a>
         </div>

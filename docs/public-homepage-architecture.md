@@ -457,6 +457,8 @@ All Phases 1–7 complete. QA verified on `:1090` (next start / production build
 
 Remaining deferred items:
 
+- **Shared public entity layout**: `AuthorPageClient`, `OrgPageClient`, `SeriesPageClient` each hand-code the same banner → overlapping header card → content section pattern. When a fourth entity page is added, or when any of the three diverge again, extract `PublicEntityHero` / `PublicEntityHeaderCard` / `PublicContentSection` into `@write/public-ui`. Not urgent while only three pages exist and render contract tests keep them honest.
+
 - URL-controlled `laneMode`: add `lane` back to `galleryUrlState.ts`, wire in controller and `GalleryScriptResults` UI branching.
 - Phase 5.2: Expand `GalleryView` to `"help" | "license" | "about"` when public shell navigation is unified.
 - Phase 5.3: Promote filter panel / mobile sheet to shared UI if host-specific label strings are resolved.
