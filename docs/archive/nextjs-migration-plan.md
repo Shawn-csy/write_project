@@ -1,5 +1,7 @@
 # Next.js Public Frontend Migration Plan
 
+> **Status: COMPLETE** — All Phases 1–7 implemented and verified. Vite Batch 2 public surface deleted 2026-06-17. This document is retained as implementation record; it is no longer a planning doc.
+
 ## Overview
 
 Split the current monolithic Vite SPA into two independent frontends:
@@ -392,23 +394,22 @@ All public routes fully functional with engine-backed parsing.
 
 ---
 
-## First PR Scope
+## First PR Scope (completed)
 
-Phase 1 only. Do not include UI renderer changes, stats/export changes, editor layout changes.
+Phase 1 only. All items completed.
 
-Checklist:
-- [ ] `packages/script-engine/src/` created with all parser + document modules
-- [ ] `packages/script-engine/src/fixtures/` with 6 fixture files
-- [ ] Vite `tsconfig.json` + `vite.config.ts` path alias `@script-engine` added
-- [ ] Next `apps/public/tsconfig.json` path alias `@script-engine` added
-- [ ] Vite `src/lib/screenplayAST.ts` → thin facade over engine
-- [ ] Vite `src/lib/markerThemeCodec.ts` → re-exports from engine
-- [ ] Next `/read/[id]/page.tsx` uses engine `parseScreenplay`
-- [ ] Next `ScriptContentRenderer` uses engine `parseInline`
-- [ ] `apps/public/lib/scriptParser.ts` deleted
-- [ ] `apps/public/lib/script-parser/` deleted
-- [ ] All 4 verification commands pass
-- [ ] 6 fixture tests pass
+- [x] `packages/script-engine/src/` created with all parser + document modules
+- [x] `packages/script-engine/src/fixtures/` with 6 fixture files
+- [x] Vite `tsconfig.json` + `vite.config.ts` path alias `@write/script-engine` added
+- [x] Next `apps/public/tsconfig.json` path alias `@write/script-engine` added
+- [x] Vite `src/lib/screenplayAST.ts` → thin facade over engine
+- [x] Vite `src/lib/markerThemeCodec.ts` → re-exports from engine
+- [x] Next `/read/[id]/page.tsx` uses engine `parseScreenplay`
+- [x] Next `ScriptContentRenderer` uses engine `parseInline`
+- [x] `apps/public/lib/scriptParser.ts` deleted
+- [x] `apps/public/lib/script-parser/` deleted
+- [x] All verification commands pass
+- [x] 6 fixture tests pass
 
 ---
 
@@ -453,10 +454,10 @@ write_project-backend    FastAPI (unchanged)
 
 ## Success Criteria
 
-- [ ] Same content + markerTheme → identical `parseScreenplay()` output from engine, Vite facade, and Next
-- [ ] All 7 public routes return full HTML to `curl`
-- [ ] Google Search Console indexes new pages within 2 weeks
-- [ ] `/read/:id` ISR cache updates within 5 seconds of script save
-- [ ] Existing workspace (editor, dashboard) fully unaffected
-- [ ] New marker rules modified only in engine → effect visible in both editor and public reader without separate changes
-- [ ] Lighthouse SEO score ≥ 95 on `/read/:id`
+- [x] Same content + markerTheme → identical `parseScreenplay()` output from engine, Vite facade, and Next
+- [x] All public routes return full SSR HTML (`/`, `/read/[id]`, `/author/[id]`, `/org/[id]`, `/series/[name]`, `/tag/[name]`)
+- [ ] Google Search Console indexes new pages within 2 weeks — ongoing, not yet verifiable
+- [ ] `/read/[id]` ISR cache updates within 5 seconds of script save — pending production traffic observation
+- [x] Existing workspace (editor, dashboard) fully unaffected — Vite Batch 2 deletion verified with tsc + vitest
+- [x] New marker rules modified only in engine → effect visible in both editor and public reader
+- [ ] Lighthouse SEO score ≥ 95 on `/read/[id]` — not yet measured

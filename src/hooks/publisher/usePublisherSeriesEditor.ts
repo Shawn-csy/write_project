@@ -5,7 +5,7 @@
  * series + chapter mutation handlers. Dashboard only needs to pass in the
  * shared scripts state and toast.
  *
- * Phase 3 of publisher-series-editor-architecture.md
+ * Phase 3 of docs/archive/publisher-series-editor-architecture.md
  */
 
 import { useState, useCallback, useMemo } from "react";

@@ -2,7 +2,7 @@
  * Phase 5 fixture scenario tests for ScriptReaderClient.
  *
  * Each test corresponds to a required fixture scenario from
- * docs/public-reader-parity.md Phase 5:
+ * docs/archive/public-reader-parity.md Phase 5:
  *
  *   - default script with no custom markers
  *   - custom marker theme

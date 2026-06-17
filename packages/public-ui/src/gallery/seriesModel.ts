@@ -2,7 +2,7 @@
  * seriesModel.ts — pure series aggregation model.
  * No React, no router. Derives PublicGalleryEntry[] from EnrichedGalleryScript[].
  *
- * Phase 1 of public-series-aggregation-plan.md
+ * Phase 1 of docs/archive/public-series-aggregation-plan.md
  */
 
 import { normalizeSeriesName } from "./filterModel";

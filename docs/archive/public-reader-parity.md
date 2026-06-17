@@ -274,12 +274,16 @@ Required verification:
 - Docker production build passes. ✓ (Dockerfile uses root workspace install from the single lockfile; peer deps are hoisted to `/app/node_modules`; dependency install is cached from workspace manifests before source copy; builder stage runs `npm run build:public`; unused deps stage removed)
 - full Vitest has no new reader failures. ✓ (910 tests pass; 14-file count drop vs previous is deduplication of package tests that previously ran twice via apps/public/node_modules symlinks)
 - known unrelated failures are either fixed or explicitly tracked. ✓ (none)
-- mobile and desktop reader screenshots are reviewed. ⚠ Manual — not automated.
-- dark mode and dense marker scripts are reviewed. ⚠ Manual — not automated.
+- mobile and desktop reader screenshots are reviewed. ✓ Verified on `:1090` (nginx+Next standalone) 2026-06-17 — desktop light/dark + mobile 390×844.
+- dark mode and dense marker scripts are reviewed. ✓ Verified on `:1090` 2026-06-17.
 
-## Immediate Next Step
+## Status: Complete (2026-06-17)
 
-Phase 5 automated checks complete. Remaining manual verification: mobile/desktop screenshots and dark mode review before cutover.
+Cutover complete. Vite public reader (`PublicReaderPage.tsx`, `usePublicReaderScript.ts`, `usePublicTerms.ts`, `TermsConsentDialog.tsx`, `R18ConsentDialog.tsx`) deleted in Batch 2. Next.js `/read/[id]` is now the only canonical public reader.
+
+`src/components/reader/*` and `usePublicReaderLayoutState.ts` retained — these are the **editor preview surface** used by `ScriptMetadataDialog`, not the public reader.
+
+Post-deletion verification: `tsc --noEmit` clean; 1380 vitest tests pass.
 
 ## Known Issues
 

@@ -91,7 +91,8 @@ Any remaining Vite public-looking component must be classified as one of:
 
 - editor preview implementation
 - compatibility wrapper around a shared package
-- deprecated public surface pending deletion
+
+Batch 2 deletion (2026-06-17) removed all deprecated public surface from Vite: pages, hooks, and components. `src/hooks/public/usePublicReaderLayoutState.ts` and `src/components/reader/*` are retained as editor preview implementation.
 
 ### `packages/*`
 

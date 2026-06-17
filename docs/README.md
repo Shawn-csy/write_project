@@ -1,5 +1,5 @@
 # 文件索引
-最後更新：2026-05-26（v0.5.0）
+最後更新：2026-06-17（Next public cutover complete）
 
 ## 建議閱讀順序
 1. `docs/engineering/operations.md`：如何啟動、測試、部署
@@ -13,9 +13,7 @@
 - `docs/product/marker-config-guide.md`：標記規則與主題設定
 - `docs/product/script-import-pipeline.md`：匯入與解析流程
 - `docs/frontend-boundaries.md`：Next public、Vite editor、shared packages 的長期前端邊界與退場規則
-- `docs/public-reader-parity.md`：Next public reader 替換 Vite public reader 的長期架構與 parity checklist
 - `docs/public-homepage-architecture.md`：Next public homepage 的長期架構、URL state、資料契約與 parity 計畫
-- `docs/public-series-aggregation-plan.md`：公開頁系列聚合、章節導覽、更新提示與 SEO 策略
 
 ## 工程與操作
 - `docs/engineering/operations.md`：開發與部署操作手冊
@@ -31,6 +29,11 @@
 
 ## 封存
 - `docs/archive/cloud-architecture.md`：舊版架構（封存）
+- `docs/archive/nextjs-migration-plan.md`：Next public frontend migration 執行紀錄（已完成）
+- `docs/archive/public-reader-parity.md`：Next public reader 替換 Vite public reader 的 parity 紀錄（已完成）
+- `docs/archive/public-series-aggregation-plan.md`：公開頁系列聚合、章節導覽、更新提示策略（已完成）
+- `docs/archive/publisher-series-create-flow.md`：發布工作室系列建立流程設計紀錄（已完成）
+- `docs/archive/publisher-series-editor-architecture.md`：發布工作室系列管理架構設計紀錄（已完成）
 
 ## 本次同步重點（2026-05-26）
 - `README.md`：更新 v0.5.0 功能與技術概述
