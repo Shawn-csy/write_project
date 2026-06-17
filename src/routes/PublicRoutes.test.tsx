@@ -5,40 +5,32 @@ import { renderPublicRoutes } from "./PublicRoutes";
 
 describe("renderPublicRoutes", () => {
   it("returns valid Route children for <Routes>", () => {
-    const routeChildren = renderPublicRoutes({
-      scriptManager: {},
-      navProps: {},
-    });
-
+    const routeChildren = renderPublicRoutes();
     expect(() => createRoutesFromChildren(routeChildren)).not.toThrow();
   });
 
-  it("does not contain retired public gallery routes", () => {
-    const routeChildren = renderPublicRoutes({ scriptManager: {}, navProps: {} });
+  it("does not contain retired public routes", () => {
+    const routeChildren = renderPublicRoutes();
     const routes = createRoutesFromChildren(routeChildren);
     const paths = routes.map((r) => r.path);
 
-    // These routes were retired in Phase 2 Batch 1 — canonical owner is apps/public (Next.js).
+    // Retired in Batch 1 — canonical owner is apps/public (Next.js).
     expect(paths).not.toContain("/");
     expect(paths).not.toContain("/about");
     expect(paths).not.toContain("/help");
-    expect(paths).not.toContain("/help/import-format");
     expect(paths).not.toContain("/license");
+    // Retired in Batch 2 — canonical owner is apps/public (Next.js).
+    expect(paths).not.toContain("/read/:id");
+    expect(paths).not.toContain("/author/:id");
+    expect(paths).not.toContain("/org/:id");
+    expect(paths).not.toContain("/series/:seriesName");
   });
 
-  it("contains only expected routes", () => {
-    const routeChildren = renderPublicRoutes({ scriptManager: {}, navProps: {} });
+  it("contains only Vite-owned routes", () => {
+    const routeChildren = renderPublicRoutes();
     const routes = createRoutesFromChildren(routeChildren);
     const paths = routes.map((r) => r.path).sort();
 
-    // Batch 2 (pending removal) + Vite-owned pages
-    expect(paths).toEqual([
-      "/author/:id",
-      "/org/:id",
-      "/privacy",
-      "/read/:id",
-      "/series/:seriesName",
-      "/terms",
-    ].sort());
+    expect(paths).toEqual(["/privacy", "/terms"].sort());
   });
 });

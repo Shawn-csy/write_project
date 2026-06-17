@@ -40,8 +40,3 @@ export interface WorkspaceRoutesProps {
   navigate: NavigateFunction;
 }
 
-/** Props for renderPublicRoutes */
-export interface PublicRoutesProps {
-  scriptManager: ScriptManager;
-  navProps: NavProps;
-}
