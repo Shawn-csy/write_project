@@ -1,4 +1,21 @@
 import React from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Badge } from "../../ui/badge";
@@ -9,6 +26,41 @@ import {
 } from "../../../lib/publisher/seriesEditorModel";
 import type { SeriesChapterRow } from "../../../lib/publisher/seriesEditorModel";
 import type { BaseScriptApi } from "../../../types/api";
+
+// ─── Sortable row wrapper ──────────────────────────────────────────────────────
+
+function DragHandle({ title }: { title: string }) {
+  return (
+    <span
+      className="flex shrink-0 cursor-grab items-center justify-center px-0.5 text-muted-foreground/40 hover:text-muted-foreground active:cursor-grabbing"
+      aria-label={`拖曳 ${title} 重新排序`}
+    >
+      <span aria-hidden>⠿</span>
+    </span>
+  );
+}
+
+interface SortableChapterRowProps {
+  id: string;
+  children: (dragHandleProps: { attributes: object; listeners: object | undefined }) => React.ReactNode;
+}
+
+function SortableChapterRow({ id, children }: SortableChapterRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children({ attributes, listeners })}
+    </div>
+  );
+}
+
+// ─── Main component ────────────────────────────────────────────────────────────
 
 interface SeriesChapterManagerProps {
   seriesId: string;
@@ -41,6 +93,31 @@ export function SeriesChapterManager({
     [conflicts]
   );
   const missingOrderCount = seriesScripts.filter((r) => r.isMissingOrder).length;
+
+  // ─── Drag reorder ────────────────────────────────────────────────────────────
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = React.useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !onBatchReorderScripts) return;
+    const oldIndex = seriesScripts.findIndex((r) => r.id === active.id);
+    const newIndex = seriesScripts.findIndex((r) => r.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    // Guard: refuse to drag through rows with missing orders (same as up/down buttons)
+    if (seriesScripts[oldIndex].isMissingOrder || seriesScripts[newIndex].isMissingOrder) return;
+    // Remap: each item in the reordered array inherits the seriesOrder that was
+    // at its new position in the original array.
+    const reordered = arrayMove(seriesScripts, oldIndex, newIndex);
+    const originalOrders = seriesScripts.map((r) => r.seriesOrder);
+    const targetOrders = new Map<string, number | null>(
+      reordered.map((r, i) => [r.id, originalOrders[i]])
+    );
+    onBatchReorderScripts(seriesId, seriesScripts, targetOrders);
+  }, [seriesId, seriesScripts, onBatchReorderScripts]);
 
   const handleMove = React.useCallback((index: number, direction: "up" | "down") => {
     const targetIndex = direction === "up" ? index - 1 : index + 1;
@@ -83,128 +160,147 @@ export function SeriesChapterManager({
           {seriesScripts.length === 0 ? (
             <p className="text-xs text-muted-foreground">目前此系列沒有作品。</p>
           ) : (
-            <div className="max-h-[400px] space-y-2 overflow-y-auto pr-1">
-              {seriesScripts.map((script, index) => {
-                const pendingVal = pendingOrders[script.id];
-                const displayVal =
-                  pendingVal !== undefined
-                    ? pendingVal
-                    : script.seriesOrder !== null
-                      ? String(script.seriesOrder)
-                      : "";
-                const hasConflict =
-                  script.seriesOrder !== null && conflictOrders.has(script.seriesOrder);
-                const orderError = orderErrors[script.id];
-                const canMoveUp = Boolean(onBatchReorderScripts) && index > 0 && !script.isMissingOrder && !seriesScripts[index - 1].isMissingOrder;
-                const canMoveDown = Boolean(onBatchReorderScripts) && index < seriesScripts.length - 1 && !script.isMissingOrder && !seriesScripts[index + 1].isMissingOrder;
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={seriesScripts.map((r) => r.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="max-h-[400px] space-y-2 overflow-y-auto pr-1">
+                  {seriesScripts.map((script, index) => {
+                    const pendingVal = pendingOrders[script.id];
+                    const displayVal =
+                      pendingVal !== undefined
+                        ? pendingVal
+                        : script.seriesOrder !== null
+                          ? String(script.seriesOrder)
+                          : "";
+                    const hasConflict =
+                      script.seriesOrder !== null && conflictOrders.has(script.seriesOrder);
+                    const orderError = orderErrors[script.id];
+                    const canMoveUp = Boolean(onBatchReorderScripts) && index > 0 && !script.isMissingOrder && !seriesScripts[index - 1].isMissingOrder;
+                    const canMoveDown = Boolean(onBatchReorderScripts) && index < seriesScripts.length - 1 && !script.isMissingOrder && !seriesScripts[index + 1].isMissingOrder;
 
-                return (
-                  <div
-                    key={script.id}
-                    className={`flex items-center gap-3 rounded-md border px-3 py-2 ${hasConflict ? "border-amber-300 bg-amber-50/50 dark:border-amber-700 dark:bg-amber-950/20" : "bg-muted/20"}`}
-                  >
-                    {/* Order input */}
-                    <div className="flex w-16 shrink-0 flex-col items-center gap-0.5">
-                      <Input
-                        className={`h-7 w-full px-1.5 text-center text-xs ${orderError ? "border-destructive" : ""}`}
-                        value={displayVal}
-                        placeholder="順序"
-                        aria-label={`${script.title} 章節順序`}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setPendingOrders((prev) => ({ ...prev, [script.id]: val }));
-                          const result = normalizeEditableSeriesOrder(val);
-                          setOrderErrors((prev) => {
-                            const next = { ...prev };
-                            if (result.valid) delete next[script.id];
-                            else next[script.id] = result.error;
-                            return next;
-                          });
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            (e.target as HTMLInputElement).blur();
-                          }
-                        }}
-                        onBlur={() => {
-                          const raw = pendingOrders[script.id];
-                          if (raw === undefined) return;
-                          const result = normalizeEditableSeriesOrder(raw);
-                          setPendingOrders((prev) => {
-                            const next = { ...prev };
-                            delete next[script.id];
-                            return next;
-                          });
-                          if (!result.valid) {
-                            setOrderErrors((prev) => {
-                              const next = { ...prev };
-                              delete next[script.id];
-                              return next;
-                            });
-                            return;
-                          }
-                          if (result.order !== script.seriesOrder) {
-                            onReorderScript?.(script.id, result.order);
-                          }
-                        }}
-                      />
-                      {orderError ? (
-                        <span className="text-[10px] text-destructive leading-none">
-                          {orderError}
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-muted-foreground leading-none">
-                          {script.isPrologue
-                            ? "設定/背景"
-                            : script.isMissingOrder
-                              ? "未設定"
-                              : `第 ${script.seriesOrder} 作`}
-                        </span>
-                      )}
-                    </div>
+                    return (
+                      <SortableChapterRow key={script.id} id={script.id}>
+                        {({ attributes, listeners }) => (
+                          <div
+                            className={`flex items-center gap-3 rounded-md border px-3 py-2 ${hasConflict ? "border-amber-300 bg-amber-50/50 dark:border-amber-700 dark:bg-amber-950/20" : "bg-muted/20"}`}
+                          >
+                            {/* Drag handle */}
+                            <div {...attributes} {...listeners}>
+                              <DragHandle title={script.title || "Untitled"} />
+                            </div>
 
-                    {/* Up / down */}
-                    <div className="flex shrink-0 flex-col gap-0.5">
-                      <button
-                        type="button"
-                        disabled={!canMoveUp}
-                        onClick={() => handleMove(index, "up")}
-                        className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
-                        aria-label={`${script.title} 上移`}
-                      >
-                        ▲
-                      </button>
-                      <button
-                        type="button"
-                        disabled={!canMoveDown}
-                        onClick={() => handleMove(index, "down")}
-                        className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
-                        aria-label={`${script.title} 下移`}
-                      >
-                        ▼
-                      </button>
-                    </div>
+                            {/* Order input */}
+                            <div className="flex w-16 shrink-0 flex-col items-center gap-0.5">
+                              <Input
+                                className={`h-7 w-full px-1.5 text-center text-xs ${orderError ? "border-destructive" : ""}`}
+                                value={displayVal}
+                                placeholder="順序"
+                                aria-label={`${script.title} 章節順序`}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setPendingOrders((prev) => ({ ...prev, [script.id]: val }));
+                                  const result = normalizeEditableSeriesOrder(val);
+                                  setOrderErrors((prev) => {
+                                    const next = { ...prev };
+                                    if (result.valid) delete next[script.id];
+                                    else next[script.id] = result.error;
+                                    return next;
+                                  });
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    (e.target as HTMLInputElement).blur();
+                                  }
+                                }}
+                                onBlur={() => {
+                                  const raw = pendingOrders[script.id];
+                                  if (raw === undefined) return;
+                                  const result = normalizeEditableSeriesOrder(raw);
+                                  setPendingOrders((prev) => {
+                                    const next = { ...prev };
+                                    delete next[script.id];
+                                    return next;
+                                  });
+                                  if (!result.valid) {
+                                    setOrderErrors((prev) => {
+                                      const next = { ...prev };
+                                      delete next[script.id];
+                                      return next;
+                                    });
+                                    return;
+                                  }
+                                  if (result.order !== script.seriesOrder) {
+                                    onReorderScript?.(script.id, result.order);
+                                  }
+                                }}
+                              />
+                              {orderError ? (
+                                <span className="text-[10px] text-destructive leading-none">
+                                  {orderError}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-muted-foreground leading-none">
+                                  {script.isPrologue
+                                    ? "設定/背景"
+                                    : script.isMissingOrder
+                                      ? "未設定"
+                                      : `第 ${script.seriesOrder} 作`}
+                                </span>
+                              )}
+                            </div>
 
-                    {/* Title + status */}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{script.title || "Untitled"}</p>
-                      <p className="text-xs text-muted-foreground">{script.status || "private"}</p>
-                    </div>
+                            {/* Up / down */}
+                            <div className="flex shrink-0 flex-col gap-0.5">
+                              <button
+                                type="button"
+                                disabled={!canMoveUp}
+                                onClick={() => handleMove(index, "up")}
+                                className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                                aria-label={`${script.title} 上移`}
+                              >
+                                ▲
+                              </button>
+                              <button
+                                type="button"
+                                disabled={!canMoveDown}
+                                onClick={() => handleMove(index, "down")}
+                                className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                                aria-label={`${script.title} 下移`}
+                              >
+                                ▼
+                              </button>
+                            </div>
 
-                    {/* Detach */}
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="shrink-0"
-                      onClick={() => onDetachScript?.(script.id, seriesId)}
-                    >
-                      移出
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
+                            {/* Title + status */}
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium">{script.title || "Untitled"}</p>
+                              <p className="text-xs text-muted-foreground">{script.status || "private"}</p>
+                            </div>
+
+                            {/* Detach */}
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="shrink-0"
+                              onClick={() => onDetachScript?.(script.id, seriesId)}
+                            >
+                              移出
+                            </Button>
+                          </div>
+                        )}
+                      </SortableChapterRow>
+                    );
+                  })}
+                </div>
+              </SortableContext>
+            </DndContext>
           )}
         </div>
       </PublisherFormRow>

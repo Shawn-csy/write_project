@@ -24,7 +24,7 @@ Last updated: 2026-06-17
 | `PublisherSeriesTab` assembly | Done | Tab is now a layout/wiring component. It delegates list, metadata, chapter management, and preview. |
 | `SeriesListPane` | Done | Selection, create-entry, search, readiness indicator, updated time, and unsaved-change protection complete. Guard covers edit-mode dirty, create-mode draft content, and new-series button. |
 | `SeriesMetadataForm` | Done | Owns name, summary, cover URL, media picker, crop-aware preview, create/update/delete actions. |
-| `SeriesChapterManager` | Partial | Inline order edit, attach unassigned script, detach, duplicate-order warning, missing-order notice, up/down move exist. Drag reorder pending. |
+| `SeriesChapterManager` | Done | Inline order edit, attach unassigned script, detach, duplicate-order warning, missing-order notice, up/down move, and drag reorder via @dnd-kit/sortable all complete. |
 | `usePublisherSeriesEditor` | Done | Owns series list, selected series, draft, attach/detach/reorder lifecycle, failure-safe local state updates, and `isDirty` (edit-mode diff + create-mode content check). |
 | `SeriesPublicPreview` | Mostly done | Uses `SeriesGalleryCard`, shared preview model, public URL, chapter order preview, and readiness summary. |
 | Batch reorder frontend contract | Done | `buildSeriesMutationPlan()` and `handleBatchReorderSeriesScripts()` are implemented and tested. Up/down UI calls it. |
@@ -262,8 +262,7 @@ PublisherSeriesTab
 
 ### Pending
 
-- `SeriesAttachScriptDialog`; current attach UI is inline select.
-- Drag reorder UI (up/down complete).
+- `SeriesAttachScriptDialog`; current attach UI is inline select (works, lower priority).
 
 ## 執行分期
 
@@ -474,6 +473,6 @@ Series editor 可視為完成時，必須滿足：
 - [x] 切換 selected series 時保護未儲存變更（含 create mode 草稿與新增系列按鈕）。
 - [x] `SeriesDangerZone` 獨立化。
 - [x] 上移/下移 UI 完成，接上 batch reorder endpoint。
-- [ ] Drag reorder UI（上移/下移已完成）。
+- [x] Drag reorder UI（上移/下移已完成，drag-and-drop via @dnd-kit/sortable 完成）。
 - [x] Batch reorder backend endpoint 完成先驗證後更新，並有 partial-failure atomicity test。
 - [x] Batch reorder UI 接上 batch reorder endpoint（上移/下移）。
