@@ -19,6 +19,49 @@ vi.mock("../../../lib/mediaCropRef", () => ({
   getMediaCropStyle: () => ({ src: "", style: {} }),
 }));
 
+// @dnd-kit cannot run in jsdom. Stub DndContext to capture onDragEnd, and
+// useSortable to return inert refs so sortable rows render normally.
+vi.mock("@dnd-kit/core", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@dnd-kit/core")>();
+  return {
+    ...actual,
+    DndContext: ({
+      children,
+      onDragEnd,
+    }: {
+      children: React.ReactNode;
+      onDragEnd?: (e: unknown) => void;
+    }) => (
+      <div data-testid="dnd-context" data-on-drag-end={String(!!onDragEnd)}>
+        {children}
+      </div>
+    ),
+    useSensor: () => ({}),
+    useSensors: (...args: unknown[]) => args,
+    PointerSensor: class {},
+    KeyboardSensor: class {},
+  };
+});
+
+vi.mock("@dnd-kit/sortable", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@dnd-kit/sortable")>();
+  return {
+    ...actual,
+    SortableContext: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    useSortable: (args: { id: string }) => ({
+      attributes: { "data-sortable-id": args.id },
+      listeners: {},
+      setNodeRef: () => {},
+      transform: null,
+      transition: undefined,
+      isDragging: false,
+    }),
+    sortableKeyboardCoordinates: actual.sortableKeyboardCoordinates,
+    verticalListSortingStrategy: actual.verticalListSortingStrategy,
+    arrayMove: actual.arrayMove,
+  };
+});
+
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
 const SERIES = { id: "s1", name: "Star Voyage", scriptCount: 2 };
