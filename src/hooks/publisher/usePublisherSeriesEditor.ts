@@ -9,13 +9,15 @@
  */
 
 import { useState, useCallback } from "react";
-import { createSeries, updateSeries, deleteSeries } from "../../lib/api/series";
+import { createSeries, updateSeries, deleteSeries, reorderSeriesScripts } from "../../lib/api/series";
 import { updateScript } from "../../lib/api/scripts";
 import {
   buildAttachScriptUpdate,
   buildDetachScriptUpdate,
   buildReorderScriptUpdate,
+  buildSeriesMutationPlan,
 } from "../../lib/publisher/seriesEditorModel";
+import type { SeriesChapterRow } from "../../lib/publisher/seriesEditorModel";
 import type { BaseScriptApi } from "../../types/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -211,6 +213,37 @@ export function usePublisherSeriesEditor({
     }
   }, [setScripts, toast]);
 
+  /**
+   * Batch-reorders all chapters in the selected series via the dedicated
+   * PUT /series/:seriesId/scripts/reorder endpoint.
+   *
+   * Only sends items whose seriesOrder actually changed (diff via
+   * buildSeriesMutationPlan). No-ops when plan is empty.
+   */
+  const handleBatchReorderSeriesScripts = useCallback(async (
+    seriesId: string,
+    currentRows: SeriesChapterRow[],
+    targetOrders: Map<string, number | null>,
+  ) => {
+    if (!seriesId) return;
+    const plan = buildSeriesMutationPlan(currentRows, targetOrders);
+    if (plan.length === 0) return;
+    const planMap = new Map(plan.map((item) => [item.scriptId, item.seriesOrder]));
+    try {
+      await reorderSeriesScripts(seriesId, plan);
+      setScripts((prev) =>
+        prev.map((script) =>
+          planMap.has(script.id)
+            ? { ...script, seriesOrder: planMap.get(script.id)! }
+            : script
+        )
+      );
+    } catch (error) {
+      console.error("Failed to batch reorder series scripts", error);
+      toast({ title: "批次更新順序失敗", variant: "destructive" });
+    }
+  }, [setScripts, toast]);
+
   // ─── Derived ───────────────────────────────────────────────────────────────
 
   /** Scripts belonging to the currently selected series, for passing to SeriesChapterManager. */
@@ -240,5 +273,6 @@ export function usePublisherSeriesEditor({
     handleDetachScriptFromSeries,
     handleAttachScriptToSeries,
     handleReorderScriptInSeries,
+    handleBatchReorderSeriesScripts,
   };
 }
