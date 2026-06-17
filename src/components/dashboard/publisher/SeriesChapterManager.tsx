@@ -20,6 +20,7 @@ import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Badge } from "../../ui/badge";
 import { PublisherFormRow } from "./PublisherFormRow";
+import { SeriesAttachScriptDialog } from "./SeriesAttachScriptDialog";
 import {
   detectOrderConflicts,
   normalizeEditableSeriesOrder,
@@ -81,9 +82,7 @@ export function SeriesChapterManager({
   onReorderScript,
   onBatchReorderScripts,
 }: SeriesChapterManagerProps): React.JSX.Element {
-  const [attachScriptId, setAttachScriptId] = React.useState<string>("");
-  const [attachOrder, setAttachOrder] = React.useState<string>("");
-  const [attachOrderError, setAttachOrderError] = React.useState<string>("");
+  const [attachDialogOpen, setAttachDialogOpen] = React.useState(false);
   const [pendingOrders, setPendingOrders] = React.useState<Record<string, string>>({});
   const [orderErrors, setOrderErrors] = React.useState<Record<string, string>>({});
 
@@ -306,62 +305,24 @@ export function SeriesChapterManager({
       </PublisherFormRow>
 
       {/* Attach existing script */}
-      {attachableScripts.length > 0 && (
-        <PublisherFormRow
-          label="加入現有作品"
-          hint="選擇尚未加入此系列的作品，設定章節順序後加入。"
-        >
-          <div className="flex items-end gap-2">
-            <div className="flex-1 min-w-0">
-              <select
-                className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
-                value={attachScriptId}
-                onChange={(e) => setAttachScriptId(e.target.value)}
-                aria-label="選擇作品"
-              >
-                <option value="">— 選擇作品 —</option>
-                {attachableScripts.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.title || "Untitled"}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <Input
-                className={`h-8 w-20 shrink-0 text-xs ${attachOrderError ? "border-destructive" : ""}`}
-                value={attachOrder}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setAttachOrder(val);
-                  const result = normalizeEditableSeriesOrder(val);
-                  setAttachOrderError(result.valid ? "" : result.error);
-                }}
-                placeholder="順序"
-                aria-label="章節順序"
-              />
-              {attachOrderError && (
-                <span className="text-[10px] text-destructive leading-none">{attachOrderError}</span>
-              )}
-            </div>
-            <Button
-              type="button"
-              size="sm"
-              disabled={!attachScriptId || Boolean(attachOrderError)}
-              onClick={() => {
-                if (!attachScriptId) return;
-                const result = normalizeEditableSeriesOrder(attachOrder);
-                if (!result.valid) return;
-                onAttachScript?.(attachScriptId, seriesId, result.order);
-                setAttachScriptId("");
-                setAttachOrder("");
-                setAttachOrderError("");
-              }}
-            >
-              加入
-            </Button>
-          </div>
-        </PublisherFormRow>
+      {attachableScripts.length > 0 && onAttachScript && (
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setAttachDialogOpen(true)}
+          >
+            加入現有作品…
+          </Button>
+          <SeriesAttachScriptDialog
+            open={attachDialogOpen}
+            onOpenChange={setAttachDialogOpen}
+            seriesId={seriesId}
+            attachableScripts={attachableScripts}
+            onAttachScript={onAttachScript}
+          />
+        </>
       )}
     </div>
   );

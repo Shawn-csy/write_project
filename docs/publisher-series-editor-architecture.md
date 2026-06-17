@@ -259,10 +259,7 @@ PublisherSeriesTab
 - `SeriesListPane` now shows search input, readiness badge (`可公開` / `待補齊` / `空系列`), and last-updated relative time per series.
 - `SeriesEditorData.updatedAt` added so list can display recency.
 - `SeriesOverviewPanel` added at top of selected series workspace: cover thumbnail, name, summary, chapter count, latest chapter, public URL + open button.
-
-### Pending
-
-- `SeriesAttachScriptDialog`; current attach UI is inline select (works, lower priority).
+- `SeriesAttachScriptDialog` extracted: replaces inline `<select>` with a searchable dialog; `SeriesChapterManager` renders a trigger button that opens it.
 
 ## 執行分期
 
@@ -476,3 +473,4 @@ Series editor 可視為完成時，必須滿足：
 - [x] Drag reorder UI（上移/下移已完成，drag-and-drop via @dnd-kit/sortable 完成）。
 - [x] Batch reorder backend endpoint 完成先驗證後更新，並有 partial-failure atomicity test。
 - [x] Batch reorder UI 接上 batch reorder endpoint（上移/下移）。
+- [x] `SeriesAttachScriptDialog` 獨立化，支援搜尋過濾，取代 inline select。
