@@ -240,6 +240,13 @@ class Series(SeriesBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class SeriesReorderItem(BaseModel):
+    scriptId: str
+    seriesOrder: Optional[int] = None
+
+class SeriesReorderRequest(BaseModel):
+    items: List[SeriesReorderItem]
+
 class StudioSeriesSummary(BaseModel):
     id: str
     name: str = ""
