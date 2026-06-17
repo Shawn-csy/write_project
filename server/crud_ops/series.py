@@ -117,10 +117,48 @@ def delete_series(db: Session, series_id: str, owner_id: str):
     return True
 
 
+def reorder_series_scripts(db: Session, series_id: str, items: list[schemas.SeriesReorderItem], owner_id: str):
+    """
+    Batch-update seriesOrder for scripts belonging to the given series.
+
+    Validates all scripts before writing any, so a partial-invalid payload
+    never leaves the DB in a half-updated state.
+
+    Returns (ok, error_code):
+      - (True, None) on success
+      - (False, "series_not_found") when series does not exist or belongs to another owner
+      - (False, "script_not_in_series") when any scriptId is not owned by owner or not in series
+    """
+    db_series = get_series_by_id(db, series_id, owner_id)
+    if not db_series:
+        return False, "series_not_found"
+
+    requested_ids = [item.scriptId for item in items]
+    scripts = (
+        db.query(models.Script)
+        .filter(
+            models.Script.id.in_(requested_ids),
+            models.Script.ownerId == owner_id,
+            models.Script.seriesId == series_id,
+        )
+        .all()
+    )
+    if len(scripts) != len(requested_ids):
+        return False, "script_not_in_series"
+
+    scripts_by_id = {s.id: s for s in scripts}
+    for item in items:
+        scripts_by_id[item.scriptId].seriesOrder = item.seriesOrder
+
+    db.commit()
+    return True, None
+
+
 __all__ = [
     "get_series",
     "get_series_by_id",
     "create_series",
     "update_series",
     "delete_series",
+    "reorder_series_scripts",
 ]

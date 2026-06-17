@@ -1,6 +1,6 @@
 # Publisher Series Editor Architecture
 
-Last updated: 2026-06-16
+Last updated: 2026-06-17
 
 ## 目的
 
@@ -15,15 +15,30 @@ Last updated: 2026-06-16
 
 因此發布工作室不能只提供簡單 metadata form。它必須成為作者管理系列閱讀順序、公開狀態與章節品質的入口。
 
-## 現況診斷
+## Current Implementation Status
 
-目前 `src/components/dashboard/publisher/PublisherSeriesTab.tsx` 具備：
+| Area | Status | Notes |
+|---|---|---|
+| Shared series semantics | Done | Publisher uses `@write/public-ui` sorting via `deriveSeriesChapterOrder()` through `deriveChapterRows()`. |
+| Editor model | Done | `src/lib/publisher/seriesEditorModel.ts` owns normalized rows, conflict detection, readiness, preview group, update builders, and mutation plans. |
+| `PublisherSeriesTab` assembly | Done | Tab is now a layout/wiring component. It delegates list, metadata, chapter management, and preview. |
+| `SeriesListPane` | Partial | Selection and create-entry flow exist. Search, readiness indicator, updated time, and unsaved-change protection are pending. |
+| `SeriesMetadataForm` | Done | Owns name, summary, cover URL, media picker, crop-aware preview, create/update/delete actions. |
+| `SeriesChapterManager` | Partial | Inline order edit, attach unassigned script, detach, duplicate-order warning, missing-order notice exist. Up/down controls and drag reorder are pending. |
+| `usePublisherSeriesEditor` | Done | Owns series list, selected series, draft, attach/detach/reorder lifecycle, and failure-safe local state updates. |
+| `SeriesPublicPreview` | Mostly done | Uses `SeriesGalleryCard`, shared preview model, public URL, chapter order preview, and readiness summary. |
+| Batch reorder frontend contract | Done | `buildSeriesMutationPlan()` and `handleBatchReorderSeriesScripts()` are implemented and tested. No drag/up-down UI calls it yet. |
+| Batch reorder backend endpoint | Done | `PUT /api/series/{series_id}/scripts/reorder` validates series ownership and every requested script before mutating; tests cover partial-failure atomicity. |
+
+## 原始現況診斷
+
+原始 `src/components/dashboard/publisher/PublisherSeriesTab.tsx` 只具備：
 
 - 系列 metadata CRUD：名稱、摘要、封面、封面 crop。
 - 顯示已加入作品。
 - 將作品移出系列。
 
-不足：
+原始不足：
 
 - 章節排序由 `src/pages/PublisherDashboard.tsx` 手寫，沒有使用 `@write/public-ui` 的 series model。
 - 章節列表只讀，不能 inline edit `seriesOrder`。
@@ -32,7 +47,7 @@ Last updated: 2026-06-16
 - 沒有公開頁 preview，作者無法確認讀者看到的 series card / chapter list。
 - `PublisherSeriesTab` 同時處理列表、表單、章節區、媒體 picker，責任過重。
 
-這不是 styling 問題，而是後台 editor model 尚未系統化。
+這不是 styling 問題，而是後台 editor model 尚未系統化。Phase 1-5 已大幅修正這個問題；剩餘工作集中在 list UX、drag/up-down reorder、danger zone、以及把 batch reorder UI 接到已完成的後端 endpoint。
 
 ## 已確認前提
 
@@ -65,7 +80,7 @@ lastModified?: number;
 - detach：`{ seriesId: null, seriesOrder: null }`
 - reorder：`{ seriesOrder }`
 
-目前沒有 batch reorder endpoint。Phase 1 可以用單筆 `updateScript()` 完成，但 UI/model 必須表達「批次 reorder intent」。如果之後有大量章節，應新增後端 batch endpoint，而不是把多筆更新邏輯永久散落在 component。
+目前單筆 `updateScript()` 已支援 attach / detach / inline reorder。前端也已加入 batch reorder client contract，後端 batch endpoint 也已完成。拖曳或上移/下移 UI 接上 batch endpoint 前，必須維持「一次送出 mutation plan、後端先驗證全部再寫入」這個 contract。
 
 ### 3. `@write/public-ui` 可被 Vite 主 app import
 
@@ -128,7 +143,7 @@ usePublisherSeriesEditor()               ← Phase 3
   draft
   chapter edits
   attach/detach/reorder lifecycle
-  buildSeriesMutationPlan()              ← Phase 3/5 candidate
+  buildSeriesMutationPlan()
         ↓
 PublisherSeriesTab
   SeriesListPane
@@ -221,9 +236,40 @@ PublisherSeriesTab
 - 刪除系列不刪作品。
 - 解除系列會清空 script 的 `seriesId` / `seriesOrder`。
 
+## Current UI Details
+
+### Done
+
+- `PublisherSeriesTab` is now an assembly layer.
+- `SeriesListPane` owns the left series list and create-entry button.
+- `SeriesMetadataForm` owns metadata fields, media picker state, cover crop preview, and create/update/delete action buttons.
+- `SeriesChapterManager` owns chapter warnings, inline order editing, attach unassigned script, detach script, and local order input validation.
+- `SeriesPublicPreview` shows:
+  - readiness checklist
+  - public series URL
+  - `SeriesGalleryCard` preview
+  - chapter order preview
+- Invalid order input is rejected through `normalizeEditableSeriesOrder()` and does not dispatch mutations.
+- Duplicate order and missing order states are visible.
+- Attach only allows scripts with no existing `seriesId`; cross-series move is intentionally not part of the first UI flow.
+
+### Pending
+
+- Series list search.
+- Series list readiness indicator.
+- Series list last-updated display.
+- Unsaved-change protection when switching selected series.
+- `SeriesOverviewPanel` as a distinct overview section.
+- `SeriesAttachScriptDialog`; current attach UI is inline select.
+- `SeriesDangerZone`; delete still lives in metadata form actions.
+- Up/down controls for chapter order.
+- Drag reorder UI.
+- Wiring drag/up-down UI to `handleBatchReorderSeriesScripts()`.
+- Batch reorder UI is not wired yet; backend endpoint and atomicity tests are complete.
+
 ## 執行分期
 
-### Phase 1: Model Alignment and Minimal Authoring Upgrade
+### Phase 1: Model Alignment and Minimal Authoring Upgrade ✓ Done
 
 高價值、低風險，先消除後台與公開頁語意分叉。
 
@@ -258,18 +304,31 @@ Completion standard:
 - 作者可以把現有作品加入系列。
 - model tests 覆蓋排序、conflict、attach/detach/reorder payload。
 
-### Phase 2: Component Decomposition
+Completed:
+
+- `src/lib/publisher/seriesEditorModel.ts`
+- `src/lib/publisher/seriesEditorModel.test.ts`
+- `deriveChapterRows()` uses `@write/public-ui` chapter ordering semantics.
+- `detectOrderConflicts()` and `getSeriesReadiness()` are pure.
+- Mutation builders are pure and tested.
+- `normalizeEditableSeriesOrder()` validates editable order inputs.
+- Inline order edit, attach, detach, missing-order notice, and duplicate-order warning are implemented.
+
+### Phase 2: Component Decomposition ✓ Mostly Done
 
 把 `PublisherSeriesTab` 從大型 component 拆成可維護的 workspace。
 
-Components:
+Implemented components:
 
 - `SeriesListPane`
-- `SeriesOverviewPanel`
 - `SeriesMetadataForm`
 - `SeriesChapterManager`
-- `SeriesAttachScriptDialog`
 - `SeriesPublicPreview`
+
+Not yet implemented as separate components:
+
+- `SeriesOverviewPanel`
+- `SeriesAttachScriptDialog`
 - `SeriesDangerZone`
 
 Completion standard:
@@ -278,7 +337,18 @@ Completion standard:
 - 沒有 component 直接重做 series sorting。
 - chapter manager 可以獨立測試。
 
-### Phase 3: `usePublisherSeriesEditor`
+Completion status:
+
+- `PublisherSeriesTab` is layout assembly.
+- `SeriesChapterManager` is separately testable through `PublisherSeriesTab.test.tsx`.
+- No component owns chapter sorting.
+
+Remaining:
+
+- Split direct tests for `SeriesChapterManager` if it gains drag/up-down controls.
+- Add list search and readiness metadata to `SeriesListPane`.
+
+### Phase 3: `usePublisherSeriesEditor` ✓ Done
 
 把 selected series、draft、chapter edits、pending operations、save lifecycle 從 dashboard state 中抽出。
 
@@ -297,7 +367,15 @@ Completion standard:
 - series action tests 不需要 mount dashboard。
 - failed mutation 不會讓 local state 永久漂移。
 
-### Phase 4: Public Preview and Readiness
+Completed:
+
+- `src/hooks/publisher/usePublisherSeriesEditor.ts`
+- `src/hooks/publisher/usePublisherSeriesEditor.test.ts`
+- Hook owns series editor state and mutation lifecycle.
+- API failures do not mutate local script state.
+- `selectedSeriesScripts` and `attachableScripts` are derived by the hook.
+
+### Phase 4: Public Preview and Readiness ✓ Mostly Done
 
 讓作者在發布前看到公開頁效果。
 
@@ -315,7 +393,19 @@ Completion standard:
 - readiness is model-derived, not scattered strings.
 - 作者能明確知道系列是否已適合公開展示。
 
-### Phase 5: Batch Reorder API
+Completed:
+
+- `SeriesPublicPreview` renders readiness summary, public URL, public-ui series card preview, and chapter order preview.
+- `buildPreviewSeriesGroup()` returns `PublicSeriesGroup | null`, so empty chapter state does not fake an invalid group.
+- Readiness is derived through `getSeriesReadiness()`.
+
+Remaining:
+
+- Dedicated `SeriesOverviewPanel`.
+- More explicit missing metadata affordances in list/overview.
+- Browser QA after drag/up-down reorder UI is added.
+
+### Phase 5: Batch Reorder API ✓ Frontend and Backend Done, UI Pending
 
 如果 series chapter 數量上升，新增後端 batch endpoint。
 
@@ -336,7 +426,25 @@ Payload:
 }
 ```
 
-前端 model 應先以 mutation plan 表達這個需求。Phase 1 可以用多筆 `updateScript()` 實作，但不能把多筆更新流程寫死在 UI component。
+Frontend completed:
+
+- `SeriesReorderItem` type.
+- `reorderSeriesScripts(seriesId, items)` API client.
+- `buildSeriesMutationPlan()` emits only changed rows.
+- `handleBatchReorderSeriesScripts()` calls the batch endpoint and updates local state only for items actually sent to backend.
+
+Backend completed:
+
+- `PUT /api/series/{series_id}/scripts/reorder`
+- Validates series ownership.
+- Validates every requested script belongs to the same owner and series before mutating any row.
+- Only after validation, updates all `seriesOrder` values and commits.
+- Tests cover success, `seriesOrder: null`, series not found, script not in series, cross-user rejection, and partial-failure atomicity.
+
+UI remaining:
+
+- Add drag reorder or up/down controls in `SeriesChapterManager`.
+- Wire the UI action to `handleBatchReorderSeriesScripts()`.
 
 ## 不建議做法
 
@@ -351,10 +459,16 @@ Payload:
 
 Series editor 可視為完成時，必須滿足：
 
-- 後台章節順序與公開頁、series page、reader chapter nav 完全一致。
-- 作者可以在 series tab 完成 attach、detach、reorder。
-- 重複 order、缺 order、缺 metadata 都有明確提示。
-- Series editor model 有 pure unit tests。
-- `PublisherSeriesTab` 是組裝層，不是全部邏輯所在地。
-- public preview 使用 shared public-ui model/components。
-- 沒有新增與 public series aggregation 分叉的邏輯。
+- [x] 後台章節順序與公開頁、series page、reader chapter nav 完全一致。
+- [x] 作者可以在 series tab 完成 attach、detach、inline reorder。
+- [x] 重複 order、缺 order 有明確提示。
+- [x] Series editor model 有 pure unit tests。
+- [x] `PublisherSeriesTab` 是組裝層，不是全部邏輯所在地。
+- [x] public preview 使用 shared public-ui model/components。
+- [x] 沒有新增與 public series aggregation 分叉的邏輯。
+- [ ] Series list 顯示 search、readiness indicator、last updated。
+- [ ] 切換 selected series 時保護未儲存變更。
+- [ ] `SeriesDangerZone` 獨立化。
+- [ ] 上移/下移或 drag reorder UI 完成。
+- [x] Batch reorder backend endpoint 完成先驗證後更新，並有 partial-failure atomicity test。
+- [ ] Batch reorder UI 接上 backend endpoint。
