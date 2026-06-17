@@ -261,6 +261,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                     setSelectedSeriesId={s.setSelectedSeriesId}
                     seriesDraft={s.seriesDraft}
                     setSeriesDraft={s.setSeriesDraft}
+                    isDirty={s.isSeriesDraftDirty}
                     seriesScripts={deriveChapterRows(s.selectedSeriesScripts || [])}
                     selectedSeriesScripts={s.selectedSeriesScripts || []}
                     attachableScripts={s.attachableScripts || []}

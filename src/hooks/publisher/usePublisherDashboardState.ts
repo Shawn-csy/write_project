@@ -87,6 +87,7 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
   const {
     seriesList, setSeriesList, selectedSeriesId, setSelectedSeriesId,
     seriesDraft, setSeriesDraft, isSavingSeries,
+    isDirty: isSeriesDraftDirty,
     selectedSeriesScripts, attachableScripts,
     handleCreateSeries, handleUpdateSeries, handleDeleteSeries,
     handleDetachScriptFromSeries, handleAttachScriptToSeries, handleReorderScriptInSeries,
@@ -433,6 +434,7 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
     isWorksLoading, isMetaLoading, isOrgMembersLoading,
     seriesList, setSeriesList, selectedSeriesId, setSelectedSeriesId,
     seriesDraft, setSeriesDraft, isSavingSeries,
+    isSeriesDraftDirty,
     selectedSeriesScripts, attachableScripts,
     orgMembers, orgInvites, orgRequests, myInvites,
     inviteSearchQuery, setInviteSearchQuery,

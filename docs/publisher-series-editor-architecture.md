@@ -22,12 +22,12 @@ Last updated: 2026-06-17
 | Shared series semantics | Done | Publisher uses `@write/public-ui` sorting via `deriveSeriesChapterOrder()` through `deriveChapterRows()`. |
 | Editor model | Done | `src/lib/publisher/seriesEditorModel.ts` owns normalized rows, conflict detection, readiness, preview group, update builders, and mutation plans. |
 | `PublisherSeriesTab` assembly | Done | Tab is now a layout/wiring component. It delegates list, metadata, chapter management, and preview. |
-| `SeriesListPane` | Partial | Selection and create-entry flow exist. Search, readiness indicator, updated time, and unsaved-change protection are pending. |
+| `SeriesListPane` | Done | Selection, create-entry, search, readiness indicator, updated time, and unsaved-change protection complete. Guard covers edit-mode dirty, create-mode draft content, and new-series button. |
 | `SeriesMetadataForm` | Done | Owns name, summary, cover URL, media picker, crop-aware preview, create/update/delete actions. |
-| `SeriesChapterManager` | Partial | Inline order edit, attach unassigned script, detach, duplicate-order warning, missing-order notice exist. Up/down controls and drag reorder are pending. |
-| `usePublisherSeriesEditor` | Done | Owns series list, selected series, draft, attach/detach/reorder lifecycle, and failure-safe local state updates. |
+| `SeriesChapterManager` | Partial | Inline order edit, attach unassigned script, detach, duplicate-order warning, missing-order notice, up/down move exist. Drag reorder pending. |
+| `usePublisherSeriesEditor` | Done | Owns series list, selected series, draft, attach/detach/reorder lifecycle, failure-safe local state updates, and `isDirty` (edit-mode diff + create-mode content check). |
 | `SeriesPublicPreview` | Mostly done | Uses `SeriesGalleryCard`, shared preview model, public URL, chapter order preview, and readiness summary. |
-| Batch reorder frontend contract | Done | `buildSeriesMutationPlan()` and `handleBatchReorderSeriesScripts()` are implemented and tested. No drag/up-down UI calls it yet. |
+| Batch reorder frontend contract | Done | `buildSeriesMutationPlan()` and `handleBatchReorderSeriesScripts()` are implemented and tested. Up/down UI calls it. |
 | Batch reorder backend endpoint | Done | `PUT /api/series/{series_id}/scripts/reorder` validates series ownership and every requested script before mutating; tests cover partial-failure atomicity. |
 
 ## 原始現況診斷
@@ -256,16 +256,14 @@ PublisherSeriesTab
 ### Done (recent)
 
 - `SeriesDangerZone` extracted; delete series no longer lives in metadata form actions.
-- `SeriesListPane` now shows search input, readiness dot (green/amber/grey), and last-updated relative time per series.
+- `SeriesListPane` now shows search input, readiness badge (`可公開` / `待補齊` / `空系列`), and last-updated relative time per series.
 - `SeriesEditorData.updatedAt` added so list can display recency.
 - `SeriesOverviewPanel` added at top of selected series workspace: cover thumbnail, name, summary, chapter count, latest chapter, public URL + open button.
 
 ### Pending
 
-- Unsaved-change protection when switching selected series.
 - `SeriesAttachScriptDialog`; current attach UI is inline select.
-- Drag reorder UI.
-- Up/down controls are wired to `handleBatchReorderSeriesScripts()`; drag reorder pending.
+- Drag reorder UI (up/down complete).
 
 ## 執行分期
 
@@ -473,7 +471,7 @@ Series editor 可視為完成時，必須滿足：
 - [x] 沒有新增與 public series aggregation 分叉的邏輯。
 - [x] Series list 顯示 search、readiness indicator、last updated。
 - [x] `SeriesOverviewPanel` 獨立化，顯示封面、名稱、摘要、章節數、最新章節、公開 URL。
-- [ ] 切換 selected series 時保護未儲存變更。
+- [x] 切換 selected series 時保護未儲存變更（含 create mode 草稿與新增系列按鈕）。
 - [x] `SeriesDangerZone` 獨立化。
 - [x] 上移/下移 UI 完成，接上 batch reorder endpoint。
 - [ ] Drag reorder UI（上移/下移已完成）。

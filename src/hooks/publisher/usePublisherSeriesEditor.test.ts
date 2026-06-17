@@ -288,6 +288,118 @@ function makeChapterRow(id: string, seriesOrder: number | null): SeriesChapterRo
   };
 }
 
+// ─── isDirty ──────────────────────────────────────────────────────────────────
+
+describe("isDirty", () => {
+  it("is false in create mode when draft is empty", () => {
+    const { result } = setup();
+    expect(result.current.isDirty).toBe(false);
+  });
+
+  it("is true in create mode when draft has name content", () => {
+    const { result } = setup();
+    act(() => {
+      result.current.setSeriesDraft({ name: "New Series", summary: "", coverUrl: "", coverCrop: null });
+    });
+    expect(result.current.isDirty).toBe(true);
+  });
+
+  it("is true in create mode when draft has summary content", () => {
+    const { result } = setup();
+    act(() => {
+      result.current.setSeriesDraft({ name: "", summary: "Some summary", coverUrl: "", coverCrop: null });
+    });
+    expect(result.current.isDirty).toBe(true);
+  });
+
+  it("is false immediately after selecting a series (draft matches saved)", () => {
+    const { result } = setup();
+    act(() => { result.current.setSeriesList([SERIES_A]); });
+    act(() => {
+      result.current.setSelectedSeriesId("s1");
+      result.current.setSeriesDraft({ name: "Series A", summary: "", coverUrl: "", coverCrop: null });
+    });
+    expect(result.current.isDirty).toBe(false);
+  });
+
+  it("is true when draft name differs from saved series name", () => {
+    const { result } = setup();
+    act(() => { result.current.setSeriesList([SERIES_A]); });
+    act(() => {
+      result.current.setSelectedSeriesId("s1");
+      result.current.setSeriesDraft({ name: "Changed Name", summary: "", coverUrl: "", coverCrop: null });
+    });
+    expect(result.current.isDirty).toBe(true);
+  });
+
+  it("is true when draft summary differs from saved series summary", () => {
+    const seriesWithSummary = { ...SERIES_A, summary: "Original summary" };
+    const { result } = setup();
+    act(() => { result.current.setSeriesList([seriesWithSummary]); });
+    act(() => {
+      result.current.setSelectedSeriesId("s1");
+      result.current.setSeriesDraft({ name: "Series A", summary: "New summary", coverUrl: "", coverCrop: null });
+    });
+    expect(result.current.isDirty).toBe(true);
+  });
+
+  it("is true in edit mode when coverCrop differs from saved (cx changed)", () => {
+    const seriesWithCrop = { ...SERIES_A, coverCrop: { cx: 10, cy: 20, zoom: 1.5 } };
+    const { result } = setup();
+    act(() => { result.current.setSeriesList([seriesWithCrop]); });
+    act(() => {
+      result.current.setSelectedSeriesId("s1");
+      // Same name/summary/coverUrl but different cx
+      result.current.setSeriesDraft({ name: "Series A", summary: "", coverUrl: "", coverCrop: { cx: 99, cy: 20, zoom: 1.5 } });
+    });
+    expect(result.current.isDirty).toBe(true);
+  });
+
+  it("is false in edit mode when coverCrop values match saved (key order irrelevant)", () => {
+    const seriesWithCrop = { ...SERIES_A, coverCrop: { cx: 10, cy: 20, zoom: 1.5 } };
+    const { result } = setup();
+    act(() => { result.current.setSeriesList([seriesWithCrop]); });
+    act(() => {
+      result.current.setSelectedSeriesId("s1");
+      result.current.setSeriesDraft({ name: "Series A", summary: "", coverUrl: "", coverCrop: { zoom: 1.5, cy: 20, cx: 10 } });
+    });
+    expect(result.current.isDirty).toBe(false);
+  });
+
+  it("is true in edit mode when saved has crop but draft has null", () => {
+    const seriesWithCrop = { ...SERIES_A, coverCrop: { cx: 10, cy: 20, zoom: 1.5 } };
+    const { result } = setup();
+    act(() => { result.current.setSeriesList([seriesWithCrop]); });
+    act(() => {
+      result.current.setSelectedSeriesId("s1");
+      result.current.setSeriesDraft({ name: "Series A", summary: "", coverUrl: "", coverCrop: null });
+    });
+    expect(result.current.isDirty).toBe(true);
+  });
+
+  it("is true in create mode when draft has coverCrop set", () => {
+    const { result } = setup();
+    act(() => {
+      result.current.setSeriesDraft({ name: "", summary: "", coverUrl: "", coverCrop: { cx: 5, cy: 5, zoom: 1.2 } });
+    });
+    expect(result.current.isDirty).toBe(true);
+  });
+
+  it("is false after handleUpdateSeries succeeds (saved values sync)", async () => {
+    vi.mocked(seriesApi.updateSeries).mockResolvedValue({
+      id: "s1", name: "Updated Name", summary: "", coverUrl: "", coverCrop: null,
+    } as never);
+    const { result } = setup();
+    act(() => { result.current.setSeriesList([SERIES_A]); });
+    act(() => {
+      result.current.setSelectedSeriesId("s1");
+      result.current.setSeriesDraft({ name: "Updated Name", summary: "", coverUrl: "", coverCrop: null });
+    });
+    await act(async () => { await result.current.handleUpdateSeries(); });
+    expect(result.current.isDirty).toBe(false);
+  });
+});
+
 describe("handleBatchReorderSeriesScripts", () => {
   beforeEach(() => {
     vi.mocked(seriesApi.reorderSeriesScripts).mockReset();
