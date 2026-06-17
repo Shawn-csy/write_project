@@ -448,12 +448,25 @@ Completion standard:
 
 ## Immediate Next Step
 
-All Phases 1–7 complete. QA verified on `:1090` (next start / production build):
-- scripts view, filter, tag nav, series nav, reader entry: ✓
-- authors view (4 位作者), orgs view (3 個組織): ✓
-- R-18 badge on adult scripts, ConsentGate on reader entry: ✓
-- URL filter reload, browser back/forward: ✓
-- Note: `:3000` dev server has broken HMR WebSocket (ERR_INVALID_HTTP_RESPONSE) that prevents React hydration — env issue, not code. Formal QA target is `next start` or a clean dev port.
+All Phases 1–7 are implemented. **Batch 2 Vite public surface deletion is complete** (2026-06-17).
+
+Deleted in Batch 2:
+- `src/pages/PublicReaderPage.tsx`, `PublicSeriesPage.tsx`, `AuthorProfilePage.tsx`, `OrganizationPage.tsx`
+- `src/hooks/public/usePublicReaderScript.ts`, `usePublicTerms.ts`
+- `src/components/public/TermsConsentDialog.tsx`, `R18ConsentDialog.tsx`, `PublicTopBar.tsx`, `PublicHeroMarquee.tsx`
+- `/read/:id`, `/author/:id`, `/org/:id`, `/series/:seriesName` routes removed from `PublicRoutes.tsx`
+- `PublicRoutesProps` type removed; `renderPublicRoutes()` now takes no args
+
+Post-deletion verification (2026-06-17):
+- `npx tsc --noEmit` — clean
+- `npx vitest run` — 143 files, 1380 tests pass
+- `src/components/reader/*` and `usePublicReaderLayoutState.ts` retained (editor preview surface)
+
+Next boundary-enforcement actions:
+- Enforce that no new Vite routes are added for paths owned by `apps/public`
+- Any new public content pages go into `apps/public/app/` (Next.js App Router), not `src/pages/`
+- `docs/vite-public-surface-audit.md` remains source of truth for surface ownership
+- Keep editor-owned reader preview files out of future public-surface cleanup.
 
 Remaining deferred items:
 

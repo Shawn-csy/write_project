@@ -70,7 +70,7 @@ export function AppRouter({
 
   return (
     <Routes>
-      {renderPublicRoutes({ scriptManager, navProps })}
+      {renderPublicRoutes()}
       {renderWorkspaceRoutes({
         scriptManager,
         nav,
