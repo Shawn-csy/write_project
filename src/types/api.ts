@@ -186,6 +186,11 @@ export interface SeriesPayload {
   coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
 }
 
+export interface SeriesReorderItem {
+  scriptId: string;
+  seriesOrder: number | null;
+}
+
 export interface PublicTermsConfig {
   required?: boolean;
   version?: string;

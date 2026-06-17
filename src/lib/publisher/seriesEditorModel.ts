@@ -231,6 +231,35 @@ export function buildReorderScriptUpdate(order: number | null): ReorderScriptUpd
   return { seriesOrder: order };
 }
 
+// ─── buildSeriesMutationPlan ──────────────────────────────────────────────────
+
+export interface SeriesReorderPlanItem {
+  scriptId: string;
+  seriesOrder: number | null;
+}
+
+/**
+ * Computes the minimal set of reorder updates needed to go from current rows
+ * to a new target order mapping.
+ *
+ * Only emits items whose seriesOrder actually changed, so a no-op diff sends
+ * zero items to the backend.
+ */
+export function buildSeriesMutationPlan(
+  currentRows: SeriesChapterRow[],
+  targetOrders: Map<string, number | null>
+): SeriesReorderPlanItem[] {
+  const plan: SeriesReorderPlanItem[] = [];
+  for (const row of currentRows) {
+    if (!targetOrders.has(row.id)) continue;
+    const next = targetOrders.get(row.id)!;
+    if (next !== row.seriesOrder) {
+      plan.push({ scriptId: row.id, seriesOrder: next });
+    }
+  }
+  return plan;
+}
+
 // ─── Order input validation ───────────────────────────────────────────────────
 
 export type EditableOrderResult =

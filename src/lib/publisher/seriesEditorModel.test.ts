@@ -7,8 +7,10 @@ import {
   buildAttachScriptUpdate,
   buildDetachScriptUpdate,
   buildReorderScriptUpdate,
+  buildSeriesMutationPlan,
   normalizeEditableSeriesOrder,
 } from "./seriesEditorModel";
+import type { SeriesChapterRow } from "./seriesEditorModel";
 import type { BaseScriptApi } from "../../types/api";
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -297,5 +299,57 @@ describe("normalizeEditableSeriesOrder", () => {
 
   it("whitespace-padded valid integer → valid", () => {
     expect(normalizeEditableSeriesOrder("  3  ")).toEqual({ valid: true, order: 3 });
+  });
+});
+
+// ─── buildSeriesMutationPlan ──────────────────────────────────────────────────
+
+function makeRow(id: string, seriesOrder: number | null): SeriesChapterRow {
+  return {
+    id,
+    title: "Chapter",
+    seriesOrder,
+    status: "published",
+    updatedAt: 0,
+    isPrologue: seriesOrder === 0,
+    isMissingOrder: seriesOrder === null,
+  };
+}
+
+describe("buildSeriesMutationPlan", () => {
+  it("returns empty plan when nothing changed", () => {
+    const rows = [makeRow("c1", 1), makeRow("c2", 2)];
+    const target = new Map([["c1", 1], ["c2", 2]]);
+    expect(buildSeriesMutationPlan(rows, target)).toEqual([]);
+  });
+
+  it("returns only changed items", () => {
+    const rows = [makeRow("c1", 1), makeRow("c2", 2), makeRow("c3", 3)];
+    const target = new Map([["c1", 1], ["c2", 5], ["c3", 3]]);
+    const plan = buildSeriesMutationPlan(rows, target);
+    expect(plan).toHaveLength(1);
+    expect(plan[0]).toEqual({ scriptId: "c2", seriesOrder: 5 });
+  });
+
+  it("includes null order changes", () => {
+    const rows = [makeRow("c1", 1)];
+    const target = new Map<string, number | null>([["c1", null]]);
+    const plan = buildSeriesMutationPlan(rows, target);
+    expect(plan).toEqual([{ scriptId: "c1", seriesOrder: null }]);
+  });
+
+  it("ignores rows not in targetOrders map", () => {
+    const rows = [makeRow("c1", 1), makeRow("c2", 2)];
+    const target = new Map([["c1", 3]]); // c2 not in map
+    const plan = buildSeriesMutationPlan(rows, target);
+    expect(plan).toHaveLength(1);
+    expect(plan[0].scriptId).toBe("c1");
+  });
+
+  it("returns all items when all changed", () => {
+    const rows = [makeRow("c1", 1), makeRow("c2", 2)];
+    const target = new Map([["c1", 10], ["c2", 20]]);
+    const plan = buildSeriesMutationPlan(rows, target);
+    expect(plan).toHaveLength(2);
   });
 });
