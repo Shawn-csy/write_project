@@ -6,10 +6,10 @@ import { CoverPlaceholder } from "../../ui/CoverPlaceholder";
 import { CoverRenderer } from "../../ui/CoverRenderer";
 import { CoverDesignerPanel } from "./CoverDesignerPanel";
 import { Input } from "../../ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
 import { getMediaCropStyle } from "../../../lib/mediaCropRef";
 import { useChecklistContext, useContentContext, useExposureContext, usePublicationContext, useUIContext } from "./ScriptMetadataDialogContext";
+import { ScriptMetadataSeriesSection } from "./ScriptMetadataSeriesSection";
 
 interface TagItem {
   id?: string | number;
@@ -157,103 +157,24 @@ export function ScriptMetadataExposureSection({
             {recommendedErrorMap.cover && <p className="text-xs text-[color:var(--license-term-fg)]">{t("metadataDetails.coverTip")}</p>}
           </div>
         </div>
-        <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
-          <div className={getRowLabelClass("recommended")}>
-            <div className="text-sm font-medium text-foreground">系列資訊</div>
-          </div>
-          <div className="space-y-3 p-4">
-            <div className="inline-flex gap-1 rounded-md border bg-background p-1">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className={!seriesExpanded ? "border-primary bg-primary text-primary-foreground ring-2 ring-primary/40" : ""}
-                onClick={() => {
-                  setSeriesExpanded(false);
-                  setSeriesId("");
-                  setSeriesName("");
-                  setSeriesOrder("");
-                  setQuickSeriesName("");
-                  setShowSeriesQuickCreate(false);
-                }}
-              >
-                不加入系列
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className={seriesExpanded ? "border-primary bg-primary text-primary-foreground ring-2 ring-primary/40" : ""}
-                onClick={() => {
-                  setSeriesExpanded(true);
-                  focusSeriesSelect();
-                }}
-              >
-                加入系列
-              </Button>
-            </div>
-            {seriesExpanded && (
-              <div className="space-y-3 rounded-md border border-border/70 bg-muted/10 p-3">
-                <Select
-                  value={seriesId || undefined}
-                  onValueChange={(value) => {
-                    setSeriesId(value);
-                    const selectedSeries = (seriesOptions || []).find((item) => item.id === value);
-                    setSeriesName(selectedSeries?.name || "");
-                    if (value) setShowSeriesQuickCreate(false);
-                  }}
-                >
-                  <SelectTrigger id="metadata-series-name">
-                    <SelectValue placeholder="請選擇系列" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(seriesOptions || []).map((item) => (
-                      <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant={showSeriesQuickCreate ? "outline" : "secondary"}
-                    size="sm"
-                    onClick={() => setShowSeriesQuickCreate((prev: boolean) => !prev)}
-                  >
-                    {showSeriesQuickCreate ? "收合建立區" : "建立新系列"}
-                  </Button>
-                </div>
-                {showSeriesQuickCreate && (
-                  <div className="flex gap-2">
-                    <Input
-                      id="metadata-quick-series-name"
-                      value={quickSeriesName || ""}
-                      onChange={(e) => setQuickSeriesNameInput(e.target.value)}
-                      placeholder="輸入新系列名稱"
-                      onKeyDown={(e) => {
-                        if (e.nativeEvent.isComposing) return;
-                        if (e.key !== "Enter") return;
-                        e.preventDefault();
-                        handleQuickCreateSeries();
-                      }}
-                    />
-                    <Button type="button" variant="secondary" onClick={handleQuickCreateSeries} disabled={!String(quickSeriesName || "").trim() || isCreatingSeries}>
-                      {isCreatingSeries ? "建立中..." : "建立"}
-                    </Button>
-                  </div>
-                )}
-                <Input
-                  id="metadata-series-order"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={seriesOrder}
-                  onChange={(e) => setSeriesOrderInput(e.target.value)}
-                  placeholder="系列順序，例如 0 或 1"
-                />
-              </div>
-            )}
-          </div>
-        </div>
+        <ScriptMetadataSeriesSection
+          rowLabelClassName={getRowLabelClass("recommended")}
+          seriesExpanded={seriesExpanded}
+          setSeriesExpanded={setSeriesExpanded}
+          seriesId={seriesId}
+          setSeriesId={setSeriesId}
+          setSeriesName={setSeriesName}
+          seriesOrder={seriesOrder}
+          setSeriesOrder={setSeriesOrderInput}
+          quickSeriesName={quickSeriesName || ""}
+          setQuickSeriesName={setQuickSeriesNameInput}
+          showSeriesQuickCreate={showSeriesQuickCreate}
+          setShowSeriesQuickCreate={setShowSeriesQuickCreate}
+          focusSeriesSelect={focusSeriesSelect}
+          handleQuickCreateSeries={handleQuickCreateSeries}
+          isCreatingSeries={isCreatingSeries}
+          seriesOptions={seriesOptions || []}
+        />
         <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("recommended")}>
             <div className="text-sm font-medium text-foreground">標籤</div>
