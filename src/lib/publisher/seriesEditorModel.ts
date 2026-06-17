@@ -150,6 +150,14 @@ export function detectOrderConflicts(rows: SeriesChapterRow[]): SeriesOrderConfl
   return conflicts;
 }
 
+// ─── getLatestChapter ─────────────────────────────────────────────────────────
+
+/** Returns the chapter with the highest updatedAt, or null when rows is empty. */
+export function getLatestChapter(rows: SeriesChapterRow[]): SeriesChapterRow | null {
+  if (rows.length === 0) return null;
+  return [...rows].sort((a, b) => b.updatedAt - a.updatedAt)[0];
+}
+
 // ─── getSeriesReadiness ───────────────────────────────────────────────────────
 
 export function getSeriesReadiness(

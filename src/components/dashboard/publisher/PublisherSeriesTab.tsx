@@ -4,6 +4,8 @@ import { PublisherTabHeader } from "./PublisherTabHeader";
 import { SeriesListPane } from "./SeriesListPane";
 import { SeriesMetadataForm } from "./SeriesMetadataForm";
 import { SeriesChapterManager } from "./SeriesChapterManager";
+import { SeriesDangerZone } from "./SeriesDangerZone";
+import { SeriesOverviewPanel } from "./SeriesOverviewPanel";
 import { SeriesPublicPreview } from "./SeriesPublicPreview";
 import { detectOrderConflicts } from "../../../lib/publisher/seriesEditorModel";
 import type { SeriesChapterRow } from "../../../lib/publisher/seriesEditorModel";
@@ -16,6 +18,7 @@ interface SeriesItem {
   coverUrl?: string;
   coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
   scriptCount?: number;
+  updatedAt?: number;
 }
 
 interface SeriesDraft {
@@ -97,11 +100,18 @@ export function PublisherSeriesTab({
           isSaving={isSaving}
           onCreateSeries={onCreateSeries}
           onUpdateSeries={onUpdateSeries}
-          onDeleteSeries={onDeleteSeries}
         />
 
         {selected && (
           <>
+            <SeriesOverviewPanel
+              name={seriesDraft.name}
+              summary={seriesDraft.summary}
+              coverUrl={seriesDraft.coverUrl}
+              coverCrop={seriesDraft.coverCrop}
+              chapterRows={seriesScripts}
+            />
+
             <SeriesChapterManager
               seriesId={selected.id}
               seriesScripts={seriesScripts}
@@ -126,6 +136,8 @@ export function PublisherSeriesTab({
                 conflicts={conflicts}
               />
             </div>
+
+            <SeriesDangerZone seriesName={seriesDraft.name} isSaving={isSaving} onDeleteSeries={onDeleteSeries} />
           </>
         )}
       </div>
