@@ -82,7 +82,7 @@ export function ScriptReaderClient({
     [initialScript, headerStats],
   );
 
-  const { handleExportPdf, pdfReady } = usePublicExport(headerModel);
+  const { handleExportPdf, pdfReady } = usePublicExport(initialScript);
   const { handleShare, copied } = usePublicReaderShare();
 
   return (

@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { exportScriptAsPdf, pickRenderedRoot } from "@write/reader-export";
-import type { ReadWorkHeaderModel } from "@/lib/readWorkHeaderModel";
-import { buildPdfHeaderHtml } from "@/lib/pdfHeaderModel";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { exportScriptAsPdf, pickRenderedRoot, buildExportMetadataHtml } from "@write/reader-export";
+import type { PublicScript } from "@/lib/types";
+import { buildPublicReaderExportMetadata } from "@/lib/publicReaderExportMetadata";
 
-export function usePublicExport(model: ReadWorkHeaderModel) {
+export function usePublicExport(script: PublicScript) {
   const [pdfReady, setPdfReady] = useState(false);
 
   // Poll for .script-renderer presence after mount (it renders client-side).
@@ -22,13 +22,15 @@ export function usePublicExport(model: ReadWorkHeaderModel) {
     return () => window.cancelAnimationFrame(rafId);
   }, []);
 
+  const exportMetadata = useMemo(() => buildPublicReaderExportMetadata(script), [script]);
+
   const handleExportPdf = useCallback(async () => {
     const root = pickRenderedRoot();
     if (!root) return;
     const renderedHtml = root.outerHTML;
-    const headerHtml = buildPdfHeaderHtml(model);
-    await exportScriptAsPdf(model.title, { renderedHtml, headerHtml });
-  }, [model]);
+    const headerHtml = buildExportMetadataHtml(exportMetadata, script.coverUrl);
+    await exportScriptAsPdf(script.title, { renderedHtml, headerHtml });
+  }, [exportMetadata, script.coverUrl, script.title]);
 
   return { handleExportPdf, pdfReady };
 }
