@@ -206,3 +206,114 @@ describe("buildPublicReaderExportMetadata — license special terms", () => {
     expect(meta.rows).toContain("特殊條款：禁止二次改編");
   });
 });
+
+describe("buildPublicReaderExportMetadata — preface fields (Phase 3 fixture)", () => {
+  it("BackgroundInfo appears as 背景資訊", () => {
+    const meta = buildPublicReaderExportMetadata({
+      ...BASE,
+      customMetadata: [{ key: "BackgroundInfo", value: "asdasd" }],
+    });
+    expect(meta.rows).toContain("背景資訊：asdasd");
+  });
+
+  it("OpeningIntro appears as 作品的開頭引言", () => {
+    const meta = buildPublicReaderExportMetadata({
+      ...BASE,
+      customMetadata: [{ key: "OpeningIntro", value: "asdasd" }],
+    });
+    expect(meta.rows).toContain("作品的開頭引言：asdasd");
+  });
+
+  it("PerformanceInstruction JSON multi decoded — no raw JSON", () => {
+    const json = JSON.stringify({ mode: "multi", items: [{ name: "CC", text: "asdasd" }] });
+    const meta = buildPublicReaderExportMetadata({
+      ...BASE,
+      customMetadata: [{ key: "PerformanceInstruction", value: json }],
+    });
+    const row = meta.rows.find((r) => r.startsWith("演繹指示"));
+    expect(row).toContain("CC：asdasd");
+    expect(row).not.toContain('"mode"');
+  });
+
+  it("ChapterSettings JSON chapter_multi decoded correctly", () => {
+    const json = JSON.stringify({ mode: "chapter_multi", items: [{ chapter: "asdasd", environment: "asd", situation: "asd" }] });
+    const meta = buildPublicReaderExportMetadata({
+      ...BASE,
+      customMetadata: [{ key: "ChapterSettings", value: json }],
+    });
+    const row = meta.rows.find((r) => r.startsWith("章節"));
+    expect(row).toContain("asdasd（環境：asd；狀況：asd）");
+    expect(row).not.toContain('"mode"');
+  });
+
+  it("preface keys do NOT appear as raw customField rows", () => {
+    const meta = buildPublicReaderExportMetadata({
+      ...BASE,
+      customMetadata: [
+        { key: "BackgroundInfo", value: "bg" },
+        { key: "PerformanceInstruction", value: "pi" },
+        { key: "ChapterSettings", value: "cs" },
+        { key: "OpeningIntro", value: "oi" },
+      ],
+    });
+    const rawKeyRows = meta.rows.filter((r) =>
+      r.startsWith("BackgroundInfo") || r.startsWith("PerformanceInstruction") ||
+      r.startsWith("ChapterSettings") || r.startsWith("OpeningIntro")
+    );
+    expect(rawKeyRows).toHaveLength(0);
+  });
+
+  it("title fallback to customMetadata.Title when top-level title missing", () => {
+    const meta = buildPublicReaderExportMetadata({
+      ...BASE,
+      title: "",
+      customMetadata: [{ key: "Title", value: "自訂標題" }],
+    });
+    expect(meta.title).toBe("自訂標題");
+  });
+
+  it("metadata-rich fixture — exact preface row output", () => {
+    const json = JSON.stringify({ mode: "multi", items: [{ name: "CC", text: "m" }] });
+    const piJson = JSON.stringify({ mode: "multi", items: [{ name: "CC", text: "asdasd" }] });
+    const chJson = JSON.stringify({ mode: "chapter_multi", items: [{ chapter: "asdasd", environment: "asd", situation: "asd" }] });
+    const meta = buildPublicReaderExportMetadata({
+      ...BASE,
+      title: "AAA",
+      outline: "劇情大綱",
+      owner: undefined,
+      organization: undefined,
+      series: undefined,
+      seriesOrder: undefined,
+      tags: [],
+      licenseCommercial: undefined,
+      licenseDerivative: undefined,
+      licenseNotify: undefined,
+      customMetadata: [
+        { key: "RoleSetting", value: json },
+        { key: "BackgroundInfo", value: "asdasd" },
+        { key: "PerformanceInstruction", value: piJson },
+        { key: "OpeningIntro", value: "asdasd" },
+        { key: "ChapterSettings", value: chJson },
+      ],
+    });
+    expect(meta.title).toBe("AAA");
+    // Extract only preface-related rows for exact equality — locks order and content
+    const prefaceRows = meta.rows.filter((r) =>
+      r.startsWith("大綱") || r.startsWith("角色設定") || r.startsWith("背景資訊") ||
+      r.startsWith("演繹指示") || r.startsWith("作品的開頭引言") || r.startsWith("章節")
+    );
+    expect(prefaceRows).toEqual([
+      "大綱：劇情大綱",
+      "角色設定：CC：m",
+      "背景資訊：asdasd",
+      "演繹指示：CC：asdasd",
+      "作品的開頭引言：asdasd",
+      "章節：asdasd（環境：asd；狀況：asd）",
+    ]);
+  });
+
+  it("top-level outline passed from PublicScript appears as 大綱", () => {
+    const meta = buildPublicReaderExportMetadata({ ...BASE, outline: "故事大綱內容" });
+    expect(meta.rows).toContain("大綱：故事大綱內容");
+  });
+});

@@ -11,6 +11,7 @@ export function buildPublicReaderExportMetadata(script: PublicScript): ExportMet
     {
       title: script.title,
       synopsis: script.synopsis,
+      outline: script.outline,
       coverUrl: script.coverUrl,
       owner: script.owner,
       persona: script.persona,

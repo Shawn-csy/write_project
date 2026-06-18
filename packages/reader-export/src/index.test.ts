@@ -97,6 +97,20 @@ describe("formatStructuredMetadataValue", () => {
   it("returns empty string for empty input", () => {
     expect(formatStructuredMetadataValue("")).toBe("");
   });
+
+  it("decodes chapter_multi JSON to chapter（環境：...；狀況：...）format", () => {
+    const raw = JSON.stringify({ mode: "chapter_multi", items: [{ chapter: "第一章", environment: "學校", situation: "早晨" }] });
+    expect(formatStructuredMetadataValue(raw)).toBe("第一章（環境：學校；狀況：早晨）");
+  });
+
+  it("chapter_multi with multiple chapters joined by ' / '", () => {
+    const raw = JSON.stringify({ mode: "chapter_multi", items: [{ chapter: "A", environment: "e1", situation: "s1" }, { chapter: "B", environment: "e2", situation: "s2" }] });
+    expect(formatStructuredMetadataValue(raw)).toBe("A（環境：e1；狀況：s1） / B（環境：e2；狀況：s2）");
+  });
+
+  it("invalid JSON returns original string unchanged", () => {
+    expect(formatStructuredMetadataValue("{broken")).toBe("{broken");
+  });
 });
 
 // ── buildExportMetadata — metadata depth ─────────────────────────────────────
@@ -171,6 +185,80 @@ describe("buildExportMetadata — metadata depth", () => {
   it("targetAudience from customMetadata (P2 overlay alignment)", () => {
     const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "TargetAudience", value: "女性向" }] });
     expect(meta.rows.find((r) => r.startsWith("觀眾"))).toContain("女性向");
+  });
+
+  it("title fallback to customMetadata.Title when top-level title absent", () => {
+    const meta = buildExportMetadata({ title: "", customMetadata: [{ key: "Title", value: "自訂標題" }] }, "後備");
+    expect(meta.title).toBe("自訂標題");
+  });
+
+  it("top-level title takes precedence over customMetadata.Title", () => {
+    const meta = buildExportMetadata({ title: "正式標題", customMetadata: [{ key: "Title", value: "自訂標題" }] });
+    expect(meta.title).toBe("正式標題");
+  });
+});
+
+// ── preface fields ────────────────────────────────────────────────────────────
+
+describe("buildExportMetadata — preface fields", () => {
+  it("Outline appears as 大綱", () => {
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "Outline", value: "劇情大綱內容" }] });
+    expect(meta.rows).toContain("大綱：劇情大綱內容");
+  });
+
+  it("BackgroundInfo appears as 背景資訊", () => {
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "BackgroundInfo", value: "asdasd" }] });
+    expect(meta.rows).toContain("背景資訊：asdasd");
+  });
+
+  it("EnvironmentInfo accepted as alias for 背景資訊", () => {
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "EnvironmentInfo", value: "學校環境" }] });
+    expect(meta.rows).toContain("背景資訊：學校環境");
+  });
+
+  it("OpeningIntro appears as 作品的開頭引言", () => {
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "OpeningIntro", value: "asdasd" }] });
+    expect(meta.rows).toContain("作品的開頭引言：asdasd");
+  });
+
+  it("PerformanceInstruction plain string appears as 演繹指示", () => {
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "PerformanceInstruction", value: "放慢語速" }] });
+    expect(meta.rows).toContain("演繹指示：放慢語速");
+  });
+
+  it("PerformanceInstruction JSON multi decoded — no raw JSON", () => {
+    const json = JSON.stringify({ mode: "multi", items: [{ name: "CC", text: "asdasd" }] });
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "PerformanceInstruction", value: json }] });
+    const row = meta.rows.find((r) => r.startsWith("演繹指示"));
+    expect(row).toContain("CC：asdasd");
+    expect(row).not.toContain('"mode"');
+  });
+
+  it("ChapterSettings JSON chapter_multi decoded correctly", () => {
+    const json = JSON.stringify({ mode: "chapter_multi", items: [{ chapter: "asdasd", environment: "asd", situation: "asd" }] });
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "ChapterSettings", value: json }] });
+    const row = meta.rows.find((r) => r.startsWith("章節"));
+    expect(row).toContain("asdasd（環境：asd；狀況：asd）");
+    expect(row).not.toContain('"mode"');
+  });
+
+  it("preface keys do NOT appear as customField rows", () => {
+    const meta = buildExportMetadata({ title: "T", customMetadata: [
+      { key: "BackgroundInfo", value: "bg" },
+      { key: "PerformanceInstruction", value: "pi" },
+      { key: "ChapterSettings", value: "cs" },
+      { key: "OpeningIntro", value: "oi" },
+    ] });
+    const rawKeyRows = meta.rows.filter((r) =>
+      r.startsWith("BackgroundInfo") || r.startsWith("PerformanceInstruction") ||
+      r.startsWith("ChapterSettings") || r.startsWith("OpeningIntro")
+    );
+    expect(rawKeyRows).toHaveLength(0);
+  });
+
+  it("invalid JSON for preface field stays readable and does not crash", () => {
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "PerformanceInstruction", value: "{broken" }] });
+    expect(meta.rows).toContain("演繹指示：{broken");
   });
 });
 
