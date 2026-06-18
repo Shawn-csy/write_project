@@ -52,27 +52,27 @@ export function buildPrintHtml({
         display: none !important;
       }
       /* V2 multi-column print overrides */
-      [data-v2-presentation="columns"] {
+      [data-presentation-mode="columns"], [data-v2-presentation="columns"] {
         font-size: 9pt !important;
       }
-      [data-v2-presentation="columns"] p {
+      [data-presentation-mode="columns"], [data-v2-presentation="columns"] p {
         font-size: 9pt !important;
         line-height: 1.3 !important;
       }
       /* Hide line-number gutter */
-      [data-v2-presentation="columns"] .grid > div:first-child:not([data-track-id]) {
+      [data-presentation-mode="columns"], [data-v2-presentation="columns"] .grid > div:first-child:not([data-track-id]) {
         display: none !important;
       }
       /* Collapse gutter column from grid template */
-      [data-v2-presentation="columns"] .grid {
-        grid-template-columns: var(--v2-track-columns) !important;
+      [data-presentation-mode="columns"], [data-v2-presentation="columns"] .grid {
+        grid-template-columns: var(--presentation-track-columns, var(--v2-track-columns)) !important;
       }
       /* Shrink cell padding */
-      [data-v2-presentation="columns"] article {
+      [data-presentation-mode="columns"], [data-v2-presentation="columns"] article {
         padding: 2pt 4pt !important;
       }
       /* Hide sticky header backdrop blur (print doesn't need it) */
-      [data-v2-presentation="columns"] .sticky {
+      [data-presentation-mode="columns"], [data-v2-presentation="columns"] .sticky {
         position: static !important;
         backdrop-filter: none !important;
       }
@@ -87,6 +87,27 @@ export function buildPrintHtml({
       color: black;
       padding: 24px; /* Visible padding in the iframe preview if inspected */
     }
+    /* Presentation-mode grid needs display:grid to work in print iframe */
+    .grid {
+      display: grid;
+    }
+    [data-presentation-mode="columns"] {
+      width: 100%;
+    }
+    /* Utility classes used by presentation renderers */
+    .divide-y > * + * {
+      border-top: 1px solid rgba(0,0,0,0.06);
+    }
+    .space-y-1 > * + * {
+      margin-top: 0.25rem;
+    }
+    .space-y-2 > * + * {
+      margin-top: 0.5rem;
+    }
+    .sticky { position: static; }
+    .break-words { overflow-wrap: break-word; }
+    .whitespace-pre-wrap { white-space: pre-wrap; }
+    .min-w-0 { min-width: 0; }
   </style>
 </head>
 <body>

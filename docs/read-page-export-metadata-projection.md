@@ -31,6 +31,28 @@ ChapterSettings：{"mode":"chapter_multi","items":[...]}
 This is not acceptable as a long-term design. Export output must represent the
 same public-facing metadata the reader sees on screen.
 
+## Current QA Status
+
+Real browser print/PDF output is currently **not accepted**.
+
+Observed output still shows partial metadata and active-theme styling:
+
+```text
+未命名劇本
+組織：NEON VOICE 霓聲工作室
+作者：海聶
+系列：ＡＡＡ #0
+觀眾：男性向・成人向
+角色設定：ＣＣ：ㄇ
+BackgroundInfo：asdasd
+PerformanceInstruction：{"mode":"multi","items":[{"name":"ＣＣ","text":"asdasd"}]}
+OpeningIntro：asdasd
+ChapterSettings：{"mode":"chapter_multi","items":[...]}
+```
+
+This means unit-level projection tests are insufficient. The final acceptance
+standard is the actual print output, not only `buildExportMetadata()` rows.
+
 ## Principle
 
 There must be one public metadata presentation model.
@@ -240,6 +262,20 @@ Use a metadata-rich script and verify print preview output:
 - role/performance/chapter settings are readable;
 - output matches visible public metadata semantics.
 
+### Phase 6 — Light Print Theme Contract
+
+The export must not preserve the active reader theme as the print theme.
+
+Required:
+
+- metadata header uses light theme colors;
+- script body uses white background and black/light-neutral foreground;
+- dark reader background and foreground colors are removed or converted;
+- marker styling is preserved only when readable on white;
+- final print HTML is deterministic regardless of the current app theme.
+
+This belongs in `@write/reader-export`, not route-local Next code.
+
 ## Tests
 
 Required tests:
@@ -273,4 +309,9 @@ Do not:
 - [ ] Screen overlay and PDF export share key alias/formatter helpers or have a
       documented migration step with no behavior drift. (Phase 4 — deferred)
 - [x] Metadata-rich fixture test locks the complete row output.
-- [ ] Browser print preview QA passes for a metadata-rich public script. (Phase 5)
+- [ ] Actual browser print output includes complete metadata, not only partial
+      rows. (Phase 5)
+- [ ] Actual browser print output does not leak raw English public metadata keys
+      or JSON. (Phase 5)
+- [ ] Browser print preview is fully light-themed regardless of active reader
+      theme. (Phase 6)

@@ -15,7 +15,7 @@
  *   - script requiring consent           — covered in ConsentGate.test.tsx
  *   - script with no markers             — covered in ScriptReaderClient.test.tsx
  *
- * These tests verify the full assembly: parse → render blocks → ScriptReaderClient.
+ * These tests verify the full assembly: parse → presentation renderer → ScriptReaderClient.
  * Renderer correctness is covered by RenderBlockRenderer.fixture.test.tsx.
  */
 
@@ -24,7 +24,6 @@ import { render, screen, act } from "@testing-library/react";
 import React from "react";
 import {
   parseScreenplay,
-  toRenderBlocks,
   normalizeMarkerConfigsSchema,
 } from "@write/script-engine";
 import type { MarkerConfig, TocEntry } from "@write/script-engine";
@@ -49,18 +48,18 @@ function renderWith(
   toc: TocEntry[] = [],
 ) {
   const { ast } = parseScreenplay(text, configs);
-  const renderBlocks = toRenderBlocks(ast, configs);
+  const scriptAst = ast;
   const script = { id: "fixture-id", title: "Fixture Script", ...scriptOverride };
   render(
     <ScriptReaderClient
       scriptId="fixture-id"
       initialScript={script as never}
-      renderBlocks={renderBlocks}
+      scriptAst={scriptAst}
       markerConfigs={configs}
       toc={toc}
     />
   );
-  return { renderBlocks };
+  return { scriptAst };
 }
 
 describe("Phase 5 fixture scenarios", () => {

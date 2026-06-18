@@ -1,9 +1,9 @@
 import React from 'react';
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { ScriptRendererV2 } from './ScriptRendererV2';
+import { ScriptPresentationRenderer } from './ScriptPresentationRenderer';
 
-describe('ScriptRendererV2', () => {
+describe('ScriptPresentationRenderer', () => {
   it('renders columns mode by default from AST input', () => {
     const ast = {
       children: [
@@ -13,7 +13,7 @@ describe('ScriptRendererV2', () => {
       ],
     };
 
-    render(<ScriptRendererV2 ast={ast} mode="columns" />);
+    render(<ScriptPresentationRenderer ast={ast} mode="columns" />);
 
     expect(screen.getAllByText('音效').length).toBeGreaterThan(0);
     expect(screen.getAllByText('主對白').length).toBeGreaterThan(0);
@@ -29,7 +29,7 @@ describe('ScriptRendererV2', () => {
       ],
     };
 
-    render(<ScriptRendererV2 ast={ast} mode="timeline" />);
+    render(<ScriptPresentationRenderer ast={ast} mode="timeline" />);
 
     expect(screen.getAllByText('主對白').length).toBeGreaterThan(0);
     expect(screen.getByText('收到。')).toBeInTheDocument();
@@ -56,7 +56,7 @@ describe('ScriptRendererV2', () => {
         ],
       };
 
-      const { container } = render(<ScriptRendererV2 ast={ast} mode="auto" />);
+      const { container } = render(<ScriptPresentationRenderer ast={ast} mode="auto" />);
 
       expect(container.querySelector('[data-presentation-mode="linear"]')).toBeTruthy();
       expect(container.querySelector('[data-presentation-mode="columns"]')).toBeNull();
@@ -85,7 +85,7 @@ describe('ScriptRendererV2', () => {
         style: { fontStyle: 'italic' },
       },
     ];
-    const { container } = render(<ScriptRendererV2 ast={ast} markerConfigs={markerConfigs} mode="columns" />);
+    const { container } = render(<ScriptPresentationRenderer ast={ast} markerConfigs={markerConfigs} mode="columns" />);
 
     expect(container.querySelector('[data-marker-id="tone"]')).toBeTruthy();
   });
@@ -105,7 +105,7 @@ describe('ScriptRendererV2', () => {
         matchMode: 'prefix',
       },
     ];
-    const { container } = render(<ScriptRendererV2 ast={ast} markerConfigs={markerConfigs} mode="columns" />);
+    const { container } = render(<ScriptPresentationRenderer ast={ast} markerConfigs={markerConfigs} mode="columns" />);
 
     expect(container.querySelector('[data-marker-id="dialogue"]')).toBeNull();
     expect(screen.getAllByText('#D 仍然是台詞內容。').length).toBeGreaterThan(0);

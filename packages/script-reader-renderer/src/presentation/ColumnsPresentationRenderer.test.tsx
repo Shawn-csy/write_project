@@ -1,8 +1,8 @@
 import React from 'react';
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { ColumnsRendererV2 } from './ColumnsRendererV2';
-import type { OrchestratedDocument } from '../../../lib/v2';
+import { ColumnsPresentationRenderer } from './ColumnsPresentationRenderer';
+import type { OrchestratedDocument } from './index';
 
 const makeDoc = (): OrchestratedDocument => ({
   version: 2,
@@ -25,10 +25,10 @@ const makeDoc = (): OrchestratedDocument => ({
   unassignedEvents: [],
 });
 
-describe('ColumnsRendererV2', () => {
+describe('ColumnsPresentationRenderer', () => {
   it('renders tracks and emits dynamic desktop column template var', () => {
     const doc = makeDoc();
-    const { container } = render(<ColumnsRendererV2 doc={doc} />);
+    const { container } = render(<ColumnsPresentationRenderer doc={doc} />);
 
     expect(screen.getAllByText('音效').length).toBeGreaterThan(0);
     expect(screen.getAllByText('主對白').length).toBeGreaterThan(0);
@@ -40,7 +40,7 @@ describe('ColumnsRendererV2', () => {
 
   it('aligns events by source line rows instead of stacking each track independently', () => {
     const doc = makeDoc();
-    const { container } = render(<ColumnsRendererV2 doc={doc} />);
+    const { container } = render(<ColumnsPresentationRenderer doc={doc} />);
 
     const rows = container.querySelectorAll('[data-v2-line-row]');
     expect(rows.length).toBe(2);
@@ -61,7 +61,7 @@ describe('ColumnsRendererV2', () => {
     const doc = makeDoc();
     doc.lanes[1].events[0].lineSpan = { start: 4, end: 4 };
 
-    const { container } = render(<ColumnsRendererV2 doc={doc} />);
+    const { container } = render(<ColumnsPresentationRenderer doc={doc} />);
 
     const rows = container.querySelectorAll('[data-v2-line-row]');
     expect(Array.from(rows).map((row) => row.getAttribute('data-v2-line-row'))).toEqual(['1', '2', '3', '4']);
@@ -79,7 +79,7 @@ describe('ColumnsRendererV2', () => {
     doc.lanes[1].events = [{ id: 'a', kind: 'speech', text: '你好', lineSpan: { start: 1, end: 1 } }];
     doc.lanes[2].events = [{ id: 'b', kind: 'speech', text: '我在', lineSpan: { start: 2, end: 2 } }];
 
-    const { container } = render(<ColumnsRendererV2 doc={doc} />);
+    const { container } = render(<ColumnsPresentationRenderer doc={doc} />);
 
     const rows = container.querySelectorAll('[data-v2-line-row]');
     expect(rows.length).toBe(1);

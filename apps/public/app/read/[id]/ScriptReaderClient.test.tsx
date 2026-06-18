@@ -9,15 +9,15 @@
  * Marker hook state logic is covered by:
  *   packages/script-reader-ui/src/__fixtures__/useReaderMarkerVisibility.test.ts
  *
- * Renderer block output is covered by:
- *   packages/script-reader-renderer/src/__fixtures__/RenderBlockRenderer.fixture.test.tsx
+ * Presentation renderer output is covered by:
+ *   packages/script-reader-renderer/src/presentation/ScriptPresentationRenderer.test.tsx
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
-import { parseScreenplay, toRenderBlocks, normalizeMarkerConfigsSchema } from "@write/script-engine";
+import { parseScreenplay, normalizeMarkerConfigsSchema } from "@write/script-engine";
 import type { MarkerConfig } from "@write/script-engine";
 import { ScriptReaderClient } from "./ScriptReaderClient";
 
@@ -34,9 +34,19 @@ vi.mock("@write/reader-export", () => ({
   pickRenderedRoot: () => mockPickRenderedRoot(),
   buildExportMetadataHtml: vi.fn(() => "<div>header</div>"),
   buildExportMetadata: vi.fn((src: unknown) => ({ title: (src as { title?: string })?.title ?? "", synopsis: "", fields: [], rows: [] })),
-  buildPrintHtml: vi.fn(),
-  getRenderedSnapshot: vi.fn(),
-  getRenderedLines: vi.fn(),
+  buildPrintHtml: vi.fn(() => "<html></html>"),
+  getRenderedSnapshot: vi.fn(() => ({ html: "<article></article>", lines: [] })),
+  getRenderedLines: vi.fn(() => []),
+}));
+
+// buildPublicReaderPrintSnapshot calls getRenderedSnapshot (DOM) so mock the whole module.
+vi.mock("@/lib/publicReaderPrintSnapshot", () => ({
+  buildPublicReaderPrintSnapshot: vi.fn((script: { title?: string }) => ({
+    metadata: { title: script.title ?? "", synopsis: "", fields: [], rows: [] },
+    headerHtml: "<div>header</div>",
+    bodyHtml: "<article></article>",
+    printHtml: "<html></html>",
+  })),
 }));
 
 // ---------------------------------------------------------------------------
@@ -75,8 +85,7 @@ const SCRIPT_TEXT = "Line with [[alpha content]] and {{beta content}}.";
 function buildProps() {
   const markerConfigs = normalizeMarkerConfigsSchema(MARKER_CONFIGS_RAW) as MarkerConfig[];
   const { ast } = parseScreenplay(SCRIPT_TEXT, markerConfigs);
-  const renderBlocks = toRenderBlocks(ast, markerConfigs);
-  return { markerConfigs, renderBlocks };
+  return { markerConfigs, scriptAst: ast };
 }
 
 function makeFetchMock() {
@@ -105,13 +114,13 @@ describe("ScriptReaderClient — Next host assembly", () => {
   });
 
   it("renders script title and synopsis from ReadWorkHeader", async () => {
-    const { markerConfigs, renderBlocks } = buildProps();
+    const { markerConfigs, scriptAst } = buildProps();
     await act(async () => {
       render(
         <ScriptReaderClient
           scriptId="test-script-id"
           initialScript={MINIMAL_SCRIPT}
-          renderBlocks={renderBlocks}
+          scriptAst={scriptAst}
           markerConfigs={markerConfigs}
           toc={[]}
         />
@@ -122,13 +131,13 @@ describe("ScriptReaderClient — Next host assembly", () => {
   });
 
   it("renders marker trigger from shared ReaderToolbar (MarkerVisibilityMenu)", async () => {
-    const { markerConfigs, renderBlocks } = buildProps();
+    const { markerConfigs, scriptAst } = buildProps();
     await act(async () => {
       render(
         <ScriptReaderClient
           scriptId="test-script-id"
           initialScript={MINIMAL_SCRIPT}
-          renderBlocks={renderBlocks}
+          scriptAst={scriptAst}
           markerConfigs={markerConfigs}
           toc={[]}
         />
@@ -138,13 +147,13 @@ describe("ScriptReaderClient — Next host assembly", () => {
   });
 
   it("renders all marker content visible initially", async () => {
-    const { markerConfigs, renderBlocks } = buildProps();
+    const { markerConfigs, scriptAst } = buildProps();
     await act(async () => {
       render(
         <ScriptReaderClient
           scriptId="test-script-id"
           initialScript={MINIMAL_SCRIPT}
-          renderBlocks={renderBlocks}
+          scriptAst={scriptAst}
           markerConfigs={markerConfigs}
           toc={[]}
         />
@@ -154,15 +163,45 @@ describe("ScriptReaderClient — Next host assembly", () => {
     expect(screen.queryByText("beta content")).not.toBeNull();
   });
 
-  it("marker toggle via shared toolbar hides content in renderer", async () => {
-    const user = userEvent.setup();
-    const { markerConfigs, renderBlocks } = buildProps();
+  it("uses the shared columns presentation renderer on desktop", async () => {
+    const markerConfigs = normalizeMarkerConfigsSchema([
+      {
+        id: "sfx",
+        label: "音效",
+        start: "#SE",
+        matchMode: "prefix",
+        v2EventKind: "sfx",
+        v2TrackId: "sfx",
+      },
+    ]) as MarkerConfig[];
+    const { ast: scriptAst } = parseScreenplay("#SE 關門聲\n\n角色\n你好。", markerConfigs);
     await act(async () => {
       render(
         <ScriptReaderClient
           scriptId="test-script-id"
           initialScript={MINIMAL_SCRIPT}
-          renderBlocks={renderBlocks}
+          scriptAst={scriptAst}
+          markerConfigs={markerConfigs}
+          toc={[]}
+        />
+      );
+    });
+
+    expect(document.querySelector('[data-presentation-mode="columns"]')).not.toBeNull();
+    expect(screen.queryByText("音效")).not.toBeNull();
+    expect(screen.queryByText("主對白")).not.toBeNull();
+    expect(screen.queryByText("關門聲")).not.toBeNull();
+  });
+
+  it("marker toggle via shared toolbar hides content in renderer", async () => {
+    const user = userEvent.setup();
+    const { markerConfigs, scriptAst } = buildProps();
+    await act(async () => {
+      render(
+        <ScriptReaderClient
+          scriptId="test-script-id"
+          initialScript={MINIMAL_SCRIPT}
+          scriptAst={scriptAst}
           markerConfigs={markerConfigs}
           toc={[]}
         />
@@ -185,13 +224,13 @@ describe("ScriptReaderClient — Next host assembly", () => {
   });
 
   it("does not expose route-local text download even when content is present", async () => {
-    const { markerConfigs, renderBlocks } = buildProps();
+    const { markerConfigs, scriptAst } = buildProps();
     await act(async () => {
       render(
         <ScriptReaderClient
           scriptId="test-script-id"
           initialScript={{ ...MINIMAL_SCRIPT, content: SCRIPT_TEXT }}
-          renderBlocks={renderBlocks}
+          scriptAst={scriptAst}
           markerConfigs={markerConfigs}
           toc={[]}
         />
@@ -203,13 +242,13 @@ describe("ScriptReaderClient — Next host assembly", () => {
   it("no marker trigger when markerConfigs is empty", async () => {
     const emptyConfigs = normalizeMarkerConfigsSchema([]) as MarkerConfig[];
     const { ast } = parseScreenplay("Plain text.", emptyConfigs);
-    const renderBlocks = toRenderBlocks(ast, emptyConfigs);
+    const scriptAst = ast;
     await act(async () => {
       render(
         <ScriptReaderClient
           scriptId="test-script-id"
           initialScript={MINIMAL_SCRIPT}
-          renderBlocks={renderBlocks}
+          scriptAst={scriptAst}
           markerConfigs={emptyConfigs}
           toc={[]}
         />
@@ -236,12 +275,12 @@ describe("ScriptReaderClient — toolbar PDF + share contract", () => {
   });
 
   function renderClient() {
-    const { markerConfigs, renderBlocks } = buildProps();
+    const { markerConfigs, scriptAst } = buildProps();
     return render(
       <ScriptReaderClient
         scriptId="test-script-id"
         initialScript={MINIMAL_SCRIPT}
-        renderBlocks={renderBlocks}
+        scriptAst={scriptAst}
         markerConfigs={markerConfigs}
         toc={[]}
       />

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { buildPrintHtml } from "./printHtml";
-import { getRenderedSnapshot, pickRenderedRoot } from "./exportShared";
+import { getRenderedSnapshot, pickRenderedRoot, isPrintSafeColor } from "./exportShared";
+// isPrintSafeColor is an internal helper — imported directly from exportShared, not from the barrel.
 import { buildExportMetadata, formatStructuredMetadataValue } from "./exportMetadata";
 
 // ── buildPrintHtml ────────────────────────────────────────────────────────────
@@ -259,6 +260,74 @@ describe("buildExportMetadata — preface fields", () => {
   it("invalid JSON for preface field stays readable and does not crash", () => {
     const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "PerformanceInstruction", value: "{broken" }] });
     expect(meta.rows).toContain("演繹指示：{broken");
+  });
+});
+
+// ── pickRenderedRoot ──────────────────────────────────────────────────────────
+
+// ── isPrintSafeColor — dark-theme inline style sanitization ──────────────────
+
+describe("isPrintSafeColor", () => {
+  it("near-white text (dark theme foreground) is not print-safe", () => {
+    // luminance ~0.95 — typical dark theme text color like rgba(250,250,250)
+    expect(isPrintSafeColor("color", "rgb(250, 250, 250)")).toBe(false);
+  });
+
+  it("near-black text (light theme foreground) is print-safe", () => {
+    expect(isPrintSafeColor("color", "rgb(30, 30, 30)")).toBe(true);
+  });
+
+  it("near-black background (dark theme bg) is not print-safe", () => {
+    // luminance ~0.01 — typical dark theme bg like rgb(15, 15, 20)
+    expect(isPrintSafeColor("background-color", "rgb(15, 15, 20)")).toBe(false);
+  });
+
+  it("near-white background is not print-safe (no need to inline white-on-white)", () => {
+    expect(isPrintSafeColor("background-color", "rgb(250, 250, 250)")).toBe(false);
+  });
+
+  it("accent marker color (mid-range) is print-safe", () => {
+    // A readable mid-range color like rgb(220, 100, 50) — marker accent
+    expect(isPrintSafeColor("color", "rgb(220, 100, 50)")).toBe(true);
+  });
+
+  it("marker background (mid-luminance) is print-safe", () => {
+    // e.g. rgb(180, 220, 100) — marker highlight bg, readable on white
+    expect(isPrintSafeColor("background-color", "rgb(180, 220, 100)")).toBe(true);
+  });
+
+  it("transparent background is not print-safe", () => {
+    expect(isPrintSafeColor("background-color", "rgba(0, 0, 0, 0)")).toBe(false);
+  });
+
+  it("oklch color is not print-safe (unknown format stripped)", () => {
+    expect(isPrintSafeColor("color", "oklch(0.9 0.02 240)")).toBe(false);
+  });
+
+  it("var() color is not print-safe (unknown format stripped)", () => {
+    expect(isPrintSafeColor("background-color", "var(--background)")).toBe(false);
+  });
+});
+
+// ── getRenderedSnapshot — dark inline style sanitization ─────────────────────
+
+describe("getRenderedSnapshot — strips dark theme inline colors from renderedHtml", () => {
+  it("near-white text color in renderedHtml is stripped from snapshot", () => {
+    const darkHtml = `<div class="script-renderer"><div class="script-line" style="color:rgb(250,250,250)">line text</div></div>`;
+    const { html } = getRenderedSnapshot({ renderedHtml: darkHtml });
+    expect(html).not.toContain("rgb(250,250,250)");
+  });
+
+  it("near-black background in renderedHtml is stripped from snapshot", () => {
+    const darkHtml = `<div class="script-renderer"><div class="script-line" style="background-color:rgb(15,15,20)">line text</div></div>`;
+    const { html } = getRenderedSnapshot({ renderedHtml: darkHtml });
+    expect(html).not.toContain("rgb(15,15,20)");
+  });
+
+  it("mid-luminance accent color in renderedHtml survives into snapshot", () => {
+    const markerHtml = `<div class="script-renderer"><span class="script-line" style="color:rgb(180,60,60)">marked</span></div>`;
+    const { html } = getRenderedSnapshot({ renderedHtml: markerHtml });
+    expect(html).toContain("rgb(180,60,60)");
   });
 });
 

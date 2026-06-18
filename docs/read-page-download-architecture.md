@@ -28,7 +28,15 @@ metadata rows must stay aligned with the visible public reader metadata model.
 
 ## Implementation Status (2026-06-18)
 
-Phases 1–4 and Phase 6 complete. Phase 5 (browser print preview QA) is next.
+Phases 1–4 are complete. Phase 5 browser QA exposed two blocking gaps:
+
+- the PDF header still shows only part of the public metadata on real output;
+- the script body still inherits reader/theme colors instead of rendering as a
+  full light-theme print document.
+
+Phase 6 is therefore not enough by itself. It has unit-level metadata projection
+coverage, but the browser print output is not accepted until Phase 7 below is
+complete.
 
 | Phase | Status |
 |---|---|
@@ -36,8 +44,9 @@ Phases 1–4 and Phase 6 complete. Phase 5 (browser print preview QA) is next.
 | 2 — Rendered HTML snapshot confirmed | ✓ DONE |
 | 3 — `usePublicExport` + `buildPdfHeaderHtml` | ✓ DONE |
 | 4 — Toolbar wiring + ReadWorkHeader cleanup | ✓ DONE |
-| 5 — Browser print preview QA | ◐ PENDING |
-| 6 — Shared export metadata depth | ✓ DONE |
+| 5 — Browser print preview QA | ✗ FAILED — gaps documented |
+| 6 — Shared export metadata depth | ◐ PARTIAL — unit projection done; real print incomplete |
+| 7 — Print output normalization | ◐ REQUIRED |
 
 ### What was built (Phases 1–4)
 
@@ -58,12 +67,43 @@ Phases 1–4 and Phase 6 complete. Phase 5 (browser print preview QA) is next.
 - `apps/public/app/read/[id]/usePublicExport.ts` — uses `buildPublicReaderExportMetadata` + `buildExportMetadataHtml`. No longer uses `ReadWorkHeaderModel` as PDF source.
 - `apps/public/lib/pdfHeaderModel.ts` — deleted (replaced by shared model).
 
+### Current browser QA findings (2026-06-18)
+
+Observed real PDF/print output still does not meet the product contract:
+
+```text
+未命名劇本
+組織：NEON VOICE 霓聲工作室
+作者：海聶
+系列：ＡＡＡ #0
+觀眾：男性向・成人向
+角色設定：ＣＣ：ㄇ
+BackgroundInfo：asdasd
+PerformanceInstruction：{"mode":"multi","items":[...]}
+OpeningIntro：asdasd
+ChapterSettings：{"mode":"chapter_multi","items":[...]}
+...
+```
+
+Problems:
+
+- incomplete metadata projection in real output;
+- public preface fields are still leaking internal English keys;
+- structured metadata JSON can still leak into output;
+- title fallback can still resolve to `未命名劇本`;
+- script body color/style still inherits the active reader theme.
+
+These findings override any earlier "Phase 6 done" status.
+
 ---
 
-## Phase 6 — Shared Export Metadata Depth ✓ DONE
+## Phase 6 — Shared Export Metadata Depth ◐ PARTIAL
 
 **Goal:** make the Next public reader PDF header as complete as the Vite export
 metadata, while keeping one shared metadata/export contract.
+
+Unit-level model work exists, but real browser output proved that the integration
+is not complete yet.
 
 ### Problem
 
@@ -182,16 +222,60 @@ It should not be the PDF export metadata source.
 - [x] `ReadWorkHeaderModel` is not used as the PDF metadata source.
 - [x] Custom metadata, license, contact, series, tags covered by tests.
 - [x] No duplicated metadata HTML builder remains in `apps/public`.
+- [ ] Real PDF output includes the same public preface metadata as the visible
+      reader overlay.
+- [ ] Real PDF output contains no raw public metadata JSON.
+- [ ] Real PDF output does not show internal English metadata keys for public
+      preface fields.
 
 ---
 
-## Phase 5 — Browser Print Preview QA ◐ PENDING
+## Phase 7 — Print Output Normalization ◐ REQUIRED
+
+**Goal:** make the actual printed document deterministic and light-themed.
+
+The current print/export path clones rendered DOM and computed inline styles.
+That preserves marker styling, but it also preserves active theme colors. For
+public PDF output this is wrong: the document must print as a light document,
+regardless of reader theme.
+
+Required behavior:
+
+- `html`, `body`, `.script-renderer`, and all script text must render on a white
+  background by default;
+- default text color must be black or an explicit light-theme neutral;
+- marker colors may be preserved only if they remain readable on white;
+- dark-mode foreground/background variables must not leak into print output;
+- inline `color`, `background`, and `background-color` copied from DOM must be
+  normalized for print unless they represent an intentional marker style;
+- metadata header and script body must use the same light print baseline.
+
+Implementation direction:
+
+1. Add a print sanitization step in `@write/reader-export`.
+2. Sanitize cloned HTML before it enters `buildPrintHtml()`.
+3. Strip or replace theme-derived dark colors from `.script-renderer` descendants.
+4. Keep semantic inline styles such as bold/italic/underline and marker colors.
+5. Add fixture tests with dark-theme inline styles to verify output is light.
+
+Definition of Done:
+
+- [ ] Dark-theme reader output prints with white background and dark text.
+- [ ] Metadata header prints with white/light neutral colors.
+- [ ] Marker styles remain readable.
+- [ ] No `.dark`, `oklch(...)` dark theme variables, or dark background colors
+      leak into final print HTML.
+- [ ] Browser print preview confirms light output.
+
+---
+
+## Phase 5 — Browser Print Preview QA ✗ FAILED
 
 **Goal:** verify PDF output in real browser conditions.
 
 Prerequisite:
 
-- Phase 6 must be complete before final print preview QA.
+- Phase 6 and Phase 7 must be complete before final print preview QA can pass.
 
 Required checks:
 - PDF header includes title, cover image (when present), author/org.

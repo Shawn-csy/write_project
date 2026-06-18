@@ -26,6 +26,39 @@ const cssColorToArgb = (color: string) => {
   return `FF${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
 };
 
+// Relative luminance (sRGB) of an rgb(r,g,b) string. Returns null if not parseable.
+const rgbLuminance = (color: string): number | null => {
+  const m = color.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+  if (!m) return null;
+  const toLinear = (c: number) => {
+    const s = c / 255;
+    return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * toLinear(+m[1]) + 0.7152 * toLinear(+m[2]) + 0.0722 * toLinear(+m[3]);
+};
+
+// Returns true when a computed color value is print-safe for light-theme output.
+// Dark-theme text colors (near-white, high luminance) and dark backgrounds are stripped
+// so that the CSS baseline (color:black, background:white) takes effect instead.
+// Intentional marker/accent colors (mid-range luminance, clearly non-neutral) are kept.
+// Unknown/unparseable formats (oklch, var(), etc.) are treated as unsafe — stripped.
+const isPrintSafeColor = (key: "color" | "background-color", value: string): boolean => {
+  if (!value || value === "transparent" || /rgba?\(0,\s*0,\s*0,\s*0\)/.test(value)) return false;
+  const lum = rgbLuminance(value);
+  if (lum === null) return false; // oklch/var/unknown — strip, let CSS baseline apply
+  if (key === "color") {
+    // Near-white text (dark theme foreground) — strip
+    if (lum > 0.7) return false;
+  }
+  if (key === "background-color") {
+    // Near-black background (dark theme bg) — strip
+    if (lum < 0.15) return false;
+    // Transparent-ish or white — skip (no value to preserve)
+    if (lum > 0.85) return false;
+  }
+  return true;
+};
+
 const getInlineCss = (el: Element) => {
   const cs = window.getComputedStyle(el);
   const styleKeys = [
@@ -45,7 +78,9 @@ const getInlineCss = (el: Element) => {
     .map((key) => {
       const value = cs.getPropertyValue(key);
       if (!value) return "";
-      if (key === "background-color" && /rgba?\(0,\s*0,\s*0,\s*0\)/.test(value)) return "";
+      if (key === "background-color" || key === "color") {
+        if (!isPrintSafeColor(key as "color" | "background-color", value)) return "";
+      }
       return `${key}:${value};`;
     })
     .filter(Boolean)
@@ -97,12 +132,40 @@ const buildExportDom = (renderedHtml = "", fallbackText = "") => {
   document.body.appendChild(root);
 
   root.querySelectorAll("*").forEach((el) => {
+    // Strip theme-derived color properties from any existing inline style
+    // (the renderedHtml snapshot may already carry dark-theme inline colors).
+    const elStyle = (el as HTMLElement).style;
+    const existingColor = elStyle.getPropertyValue("color");
+    const existingBg = elStyle.getPropertyValue("background-color");
+    const existingBgShorthand = elStyle.getPropertyValue("background");
+    if (existingColor && !isPrintSafeColor("color", existingColor)) elStyle.removeProperty("color");
+    if (existingBg && !isPrintSafeColor("background-color", existingBg)) elStyle.removeProperty("background-color");
+    // background shorthand: strip if it contains any color token that is not print-safe,
+    // including oklch(), var(), hsl(), hwb(), and other non-rgb formats that cannot be
+    // evaluated for luminance and may carry dark-theme values.
+    if (existingBgShorthand) {
+      const rgbHexMatch = existingBgShorthand.match(/rgba?\([^)]+\)|#[0-9a-f]{3,8}/i);
+      const hasUnknownColorToken = /oklch\(|var\(|hsl\(|hwb\(|lab\(|lch\(|color\(/i.test(existingBgShorthand);
+      const unsafeRgbHex = rgbHexMatch && !isPrintSafeColor("background-color", rgbHexMatch[0]);
+      if (hasUnknownColorToken || unsafeRgbHex) {
+        elStyle.removeProperty("background");
+      }
+    }
+    // Append print-safe computed styles (font, spacing, marker accent colors).
     const css = getInlineCss(el);
     if (css) {
       const prev = el.getAttribute("style") || "";
       el.setAttribute("style", `${prev}${prev ? ";" : ""}${css}`);
     }
   });
+
+  // Presentation-mode renderers (columns/timeline/linear) use grid layout, not
+  // .script-line elements. Preserve the grid HTML as-is for print; the print
+  // stylesheet in printHtml.ts handles layout adaptation via @media print rules.
+  const isPresentationMode = !!root.querySelector("[data-presentation-mode]");
+  if (isPresentationMode) {
+    return { root, lines: [], isPresentationMode: true };
+  }
 
   const lines = Array.from(root.querySelectorAll(".script-line"));
   if (lines.length === 0) {
@@ -116,10 +179,10 @@ const buildExportDom = (renderedHtml = "", fallbackText = "") => {
       span.textContent = line;
       wrapper.appendChild(span);
     });
-    return { root, lines: Array.from(wrapper.querySelectorAll(".script-line")) };
+    return { root, lines: Array.from(wrapper.querySelectorAll(".script-line")), isPresentationMode: false };
   }
 
-  return { root, lines };
+  return { root, lines, isPresentationMode: false };
 };
 
 const getRenderedSnapshot = ({ renderedHtml = "", text = "" }: { renderedHtml?: string; text?: string } = {}) => {
@@ -137,6 +200,13 @@ const getRenderedSnapshot = ({ renderedHtml = "", text = "" }: { renderedHtml?: 
         html: line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"),
       })),
     };
+  }
+
+  // Presentation-mode grid HTML: preserve structure, skip line extraction.
+  if (dom.isPresentationMode) {
+    const html = dom.root.innerHTML;
+    dom.root.remove();
+    return { html, lines: [] };
   }
 
   const lines = dom.lines.map((lineEl, index) => ({
@@ -179,5 +249,5 @@ const collectStyledRuns = (root: HTMLElement, inherited: Record<string, unknown>
   return runs.filter((run) => run.text && run.text.length > 0);
 };
 
-export { normalizeText, buildExportDom, getRenderedSnapshot, getRenderedLines, collectStyledRuns, pickRenderedRoot };
+export { normalizeText, buildExportDom, getRenderedSnapshot, getRenderedLines, collectStyledRuns, pickRenderedRoot, isPrintSafeColor };
 export type { StyledTextNode };
