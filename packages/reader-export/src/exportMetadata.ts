@@ -20,6 +20,9 @@ export interface ExportMetadataSource {
   licenseCommercial?: unknown;
   licenseDerivative?: unknown;
   licenseNotify?: unknown;
+  licenseSpecialTerms?: unknown[];
+  targetAudience?: unknown;
+  contentRating?: unknown;
   coverUrl?: unknown;
 }
 
@@ -38,8 +41,13 @@ export type ExportMetadataFieldKey =
   | "date"
   | "series"
   | "tags"
+  | "audience"
+  | "roleSetting"
+  | "situationInfo"
+  | "customField"
   | "contact"
-  | "license";
+  | "license"
+  | "specialTerms";
 
 export interface ExportMetadataField {
   key: ExportMetadataFieldKey;
@@ -55,9 +63,34 @@ export const EXPORT_METADATA_FIELD_ORDER: ExportMetadataFieldKey[] = [
   "date",
   "series",
   "tags",
+  "audience",
+  "roleSetting",
+  "situationInfo",
+  "customField",
   "contact",
   "license",
+  "specialTerms",
 ];
+
+// Keys that are handled by dedicated structured fields above.
+// They must not appear in the generic "customField" rows.
+const RESERVED_META_KEYS = new Set([
+  "author", "authors", "authordisplaymode",
+  "licensecommercial", "licensederivative", "licensenotify",
+  "licensespecialterms", "licensetags",
+  "series", "seriesorder",
+  "marker_legend", "show_legend",
+  "synopsis", "outline",
+  "activityname", "activitybanner", "activitycontent",
+  "activityworkurl", "activitydemolinks", "activitydemourl",
+  "eventname", "eventbanner", "eventcontent",
+  "eventworklink", "eventdemolinks", "eventdemolink",
+  // handled as dedicated fields
+  "rolesetting", "situationinfo",
+  "contact",
+  // tag-derived
+  "targetaudience", "contentrating",
+]);
 
 const escapeHtml = (value: unknown) =>
   String(value ?? "")
@@ -100,7 +133,9 @@ const contactRows = (rawContact: unknown): ExportMetadataField[] => {
 };
 
 export const buildExportMetadata = (source: ExportMetadataSource | null | undefined, fallbackTitle = "Script"): ExportMetadata => {
-  const meta = customMetadataEntriesToMeta(Array.isArray(source?.customMetadata) ? source.customMetadata : []);
+  const rawEntries = Array.isArray(source?.customMetadata) ? source.customMetadata : [];
+  const meta = customMetadataEntriesToMeta(rawEntries);
+
   const authorOverride = normalize(meta.author);
   const authorDisplayMode = normalize(meta.authordisplaymode).toLowerCase();
   const authorName = (
@@ -117,15 +152,53 @@ export const buildExportMetadata = (source: ExportMetadataSource | null | undefi
   );
   const organizationName = normalize(source?.organization?.name || source?.organization?.displayName);
   const seriesName = normalize(source?.series?.name || meta.series || meta.seriesname);
-  const seriesOrder = normalize(source?.seriesOrder || meta.seriesorder);
+  // seriesOrder: 0 is valid — use nullish check, not || fallback
+  const rawSeriesOrder = source?.seriesOrder != null ? source.seriesOrder : meta.seriesorder;
+  const seriesOrder = normalize(rawSeriesOrder);
   const draftDate = normalize(source?.draftDate || meta.draftdate || meta.date);
   const synopsis = normalize(source?.synopsis || meta.synopsis || meta.summary || meta.description || meta.notes);
-  const tags = (source?.tags || [])
-    .map((tag) => normalize(typeof tag === "string" ? tag : tag?.name))
-    .filter(Boolean);
+
+  const allTags = (source?.tags || []).map((tag) => normalize(typeof tag === "string" ? tag : tag?.name)).filter(Boolean);
+  const AUDIENCE_TOKENS = new Set(["男性向", "女性向", "全性向"]);
+  const RATING_TOKENS = new Set(["成人向", "全年齡向"]);
+  const displayTags = allTags.filter((t) => !AUDIENCE_TOKENS.has(t) && !RATING_TOKENS.has(t));
+  const audienceTag = allTags.find((t) => AUDIENCE_TOKENS.has(t)) || "";
+  const ratingTag = allTags.find((t) => RATING_TOKENS.has(t)) || "";
+  const targetAudience = normalize(source?.targetAudience || audienceTag);
+  const contentRating = normalize(source?.contentRating || ratingTag);
+  const audienceValue = [targetAudience, contentRating].filter(Boolean).join("・");
+
   const commercial = normalize(source?.licenseCommercial || meta.licensecommercial || source?.persona?.defaultLicenseCommercial).toLowerCase();
   const derivative = normalize(source?.licenseDerivative || meta.licensederivative || source?.persona?.defaultLicenseDerivative).toLowerCase();
   const notify = normalize(source?.licenseNotify || meta.licensenotify || source?.persona?.defaultLicenseNotify).toLowerCase();
+
+  // licenseSpecialTerms: prefer source top-level, fallback to meta (legacy)
+  const rawSpecialTerms = Array.isArray(source?.licenseSpecialTerms)
+    ? source.licenseSpecialTerms
+    : (() => {
+        const legacyRaw = meta.licensespecialterms;
+        if (!legacyRaw) return [];
+        if (typeof legacyRaw === "string") {
+          try {
+            const parsed = JSON.parse(legacyRaw);
+            if (Array.isArray(parsed)) return parsed;
+          } catch {}
+          return legacyRaw ? [legacyRaw] : [];
+        }
+        return [];
+      })();
+  const specialTerms = (rawSpecialTerms as unknown[])
+    .map((item) => normalize(typeof item === "object" && item !== null ? (item as { text?: string }).text ?? item : item))
+    .filter(Boolean);
+
+  const roleSetting = normalize(meta.rolesetting);
+  const situationInfo = normalize(meta.situationinfo);
+
+  // arbitrary non-reserved customMetadata entries
+  const customFieldRows: ExportMetadataField[] = (rawEntries as Array<{ key?: unknown; value?: unknown }>)
+    .map((entry) => ({ key: normalize(entry?.key).toLowerCase().replace(/\s+/g, ""), label: normalize(entry?.key), value: normalize(entry?.value) }))
+    .filter(({ key, value }) => key && value && !RESERVED_META_KEYS.has(key))
+    .map(({ label, value }) => ({ key: "customField" as const, label, value }));
 
   const fields = [
     { key: "title" as const, label: "標題", value: normalize(source?.title) || fallbackTitle || "Script" },
@@ -133,11 +206,17 @@ export const buildExportMetadata = (source: ExportMetadataSource | null | undefi
     organizationName ? { key: "organization" as const, label: "組織", value: organizationName } : null,
     authorName ? { key: "author" as const, label: "作者", value: authorName } : null,
     draftDate ? { key: "date" as const, label: "日期", value: draftDate } : null,
-    seriesName ? { key: "series" as const, label: "系列", value: `${seriesName}${seriesOrder ? ` #${seriesOrder}` : ""}` } : null,
-    tags.length ? { key: "tags" as const, label: "標籤", value: tags.join("、") } : null,
+    seriesName ? { key: "series" as const, label: "系列", value: `${seriesName}${seriesOrder !== "" ? ` #${seriesOrder}` : ""}` } : null,
+    displayTags.length ? { key: "tags" as const, label: "標籤", value: displayTags.join("、") } : null,
+    audienceValue ? { key: "audience" as const, label: "觀眾", value: audienceValue } : null,
+    roleSetting ? { key: "roleSetting" as const, label: "角色設定", value: roleSetting } : null,
+    situationInfo ? { key: "situationInfo" as const, label: "狀況", value: situationInfo } : null,
+    ...customFieldRows,
     ...contactRows(meta.contact),
     ...formatLicense(commercial, derivative, notify).map((value) => ({ key: "license" as const, label: "授權", value })),
+    ...specialTerms.map((term) => ({ key: "specialTerms" as const, label: "特殊條款", value: term })),
   ].filter(Boolean) as ExportMetadataField[];
+
   const rows = fields
     .filter((field) => field.key !== "title" && field.key !== "synopsis")
     .map((field) => field.key === "license" ? field.value : `${field.label}：${field.value}`);
