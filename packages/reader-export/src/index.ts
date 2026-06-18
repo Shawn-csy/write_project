@@ -7,6 +7,7 @@ export {
   buildExportMetadataHtml,
   buildExportMetadataDocsBlocks,
   buildExportMetadataRows,
+  formatStructuredMetadataValue,
   EXPORT_METADATA_FIELD_ORDER,
 } from "./exportMetadata";
 export type {

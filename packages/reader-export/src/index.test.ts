@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { buildPrintHtml } from "./printHtml";
 import { getRenderedSnapshot, pickRenderedRoot } from "./exportShared";
-import { buildExportMetadata } from "./exportMetadata";
+import { buildExportMetadata, formatStructuredMetadataValue } from "./exportMetadata";
 
 // ── buildPrintHtml ────────────────────────────────────────────────────────────
 
@@ -77,6 +77,28 @@ describe("getRenderedSnapshot — text fallback", () => {
   });
 });
 
+// ── formatStructuredMetadataValue ────────────────────────────────────────────
+
+describe("formatStructuredMetadataValue", () => {
+  it("decodes multi-mode JSON to readable name：text / name：text format", () => {
+    const raw = JSON.stringify({ mode: "multi", items: [{ name: "小雨", text: "冷靜的觀察者" }, { name: "阿哲", text: "衝動但善良" }] });
+    expect(formatStructuredMetadataValue(raw)).toBe("小雨：冷靜的觀察者 / 阿哲：衝動但善良");
+  });
+
+  it("returns plain string unchanged", () => {
+    expect(formatStructuredMetadataValue("主角是學生")).toBe("主角是學生");
+  });
+
+  it("handles single-item multi array", () => {
+    const raw = JSON.stringify({ mode: "multi", items: [{ name: "A", text: "B" }] });
+    expect(formatStructuredMetadataValue(raw)).toBe("A：B");
+  });
+
+  it("returns empty string for empty input", () => {
+    expect(formatStructuredMetadataValue("")).toBe("");
+  });
+});
+
 // ── buildExportMetadata — metadata depth ─────────────────────────────────────
 
 describe("buildExportMetadata — metadata depth", () => {
@@ -115,6 +137,35 @@ describe("buildExportMetadata — metadata depth", () => {
     const meta = buildExportMetadata({ title: "T", licenseSpecialTerms: [{ text: "禁商業" }, { text: "禁改編" }] });
     expect(meta.rows).toContain("特殊條款：禁商業");
     expect(meta.rows).toContain("特殊條款：禁改編");
+  });
+
+  it("RoleSetting JSON multi payload decoded to human-readable form", () => {
+    const roleJson = JSON.stringify({ mode: "multi", items: [{ name: "小雨", text: "冷靜" }, { name: "阿哲", text: "衝動" }] });
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "RoleSetting", value: roleJson }] });
+    const row = meta.rows.find((r) => r.startsWith("角色設定"));
+    expect(row).toContain("小雨：冷靜");
+    expect(row).toContain("阿哲：衝動");
+    expect(row).not.toContain('"mode"');
+  });
+
+  it("activityName and activityContent from source top-level", () => {
+    const meta = buildExportMetadata({ title: "T", activityName: "活動名稱", activityContent: "活動說明文字" });
+    expect(meta.rows).toContain("活動：活動名稱：活動說明文字");
+  });
+
+  it("activityName only (no content)", () => {
+    const meta = buildExportMetadata({ title: "T", activityName: "配音活動" });
+    expect(meta.rows).toContain("活動：配音活動");
+  });
+
+  it("demoLinks from source", () => {
+    const meta = buildExportMetadata({ title: "T", demoLinks: [{ name: "試聽01", url: "https://example.com/demo" }] });
+    expect(meta.rows).toContain("試聽範例：試聽01：https://example.com/demo");
+  });
+
+  it("targetAudience from customMetadata (P2 overlay alignment)", () => {
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "TargetAudience", value: "女性向" }] });
+    expect(meta.rows.find((r) => r.startsWith("觀眾"))).toContain("女性向");
   });
 });
 

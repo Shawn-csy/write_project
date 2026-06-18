@@ -36,11 +36,10 @@ Phases 1–4 and Phase 6 complete. Phase 5 (browser print preview QA) is next.
 | 5 — Browser print preview QA | ◐ PENDING |
 | 6 — Shared export metadata depth | ✓ DONE |
 
-### What was built
+### What was built (Phases 1–4)
 
-- `packages/reader-export` — `exportScriptAsPdf`, `buildPrintHtml`, `getRenderedSnapshot`, `getRenderedLines`, `pickRenderedRoot`. 10 unit tests.
-- `apps/public/lib/pdfHeaderModel.ts` — `buildPdfHeaderHtml(model)` pure fn. 7 unit tests.
-- `apps/public/app/read/[id]/usePublicExport.ts` — polls `pickRenderedRoot()` for readiness; `pdfReady` flag disables button until DOM renderer present.
+- `packages/reader-export` — `exportScriptAsPdf`, `buildPrintHtml`, `getRenderedSnapshot`, `getRenderedLines`, `pickRenderedRoot`, `formatStructuredMetadataValue`, full export metadata API.
+- `apps/public/app/read/[id]/usePublicExport.ts` — rAF-polls `pickRenderedRoot()` for readiness; `pdfReady` flag disables button until DOM renderer present.
 - `apps/public/app/read/[id]/usePublicReaderShare.ts` — share with `navigator.clipboard` + `window.prompt` fallback.
 - `ReadWorkHeader` — standalone actions bar removed. Props: `{ onLike }` only.
 - `ReaderToolbar` — `endSlot` with 分享 + PDF buttons; PDF disabled until `pdfReady`.
@@ -49,10 +48,10 @@ Phases 1–4 and Phase 6 complete. Phase 5 (browser print preview QA) is next.
 
 ### Phase 6 additions (2026-06-18)
 
-- `packages/reader-export/src/exportMetadata.ts` — owns `buildExportMetadata`, `filterExportMetadata`, `buildExportMetadataHtml`, `buildExportMetadataDocsBlocks`, `buildExportMetadataRows`, `EXPORT_METADATA_FIELD_ORDER`, related types.
+- `packages/reader-export/src/exportMetadata.ts` — owns `buildExportMetadata`, `filterExportMetadata`, `buildExportMetadataHtml`, `buildExportMetadataDocsBlocks`, `buildExportMetadataRows`, `formatStructuredMetadataValue`, `EXPORT_METADATA_FIELD_ORDER`, related types. Covers: title, synopsis, org, author, date, series (order 0 safe), tags, audience, roleSetting (JSON decoded), situationInfo, arbitrary customFields, activity, demoLinks, contact, license, specialTerms.
 - `packages/reader-export/src/customMetadata.ts` — pure helpers (`customMetadataEntriesToMeta`, `normalizeCustomMetadataEntries`).
 - `src/lib/exportMetadata.ts` — reduced to re-export shim. Vite call sites unchanged.
-- `apps/public/lib/publicReaderExportMetadata.ts` — `buildPublicReaderExportMetadata(script)` adapter. 8 unit tests.
+- `apps/public/lib/publicReaderExportMetadata.ts` — `buildPublicReaderExportMetadata(script)` adapter; passes activityName, activityContent, activityDemoLinks from PublicScript top-level fields.
 - `apps/public/app/read/[id]/usePublicExport.ts` — uses `buildPublicReaderExportMetadata` + `buildExportMetadataHtml`. No longer uses `ReadWorkHeaderModel` as PDF source.
 - `apps/public/lib/pdfHeaderModel.ts` — deleted (replaced by shared model).
 
