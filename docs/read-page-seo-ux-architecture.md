@@ -543,24 +543,21 @@ Definition of Done:
   primitives.
 - [x] `PublicReaderHeader` does not remain as an unused competing header.
 
-### Phase 3 — Canonical Series Navigation
+### Phase 3 — Canonical Series Navigation ✓ DONE (2026-06-18)
 
 Goal: one series navigation model, multiple visual variants.
 
-Tasks:
+Completed:
 
-- Replace `SeriesChapterNavBar` with `SeriesChapterNavigation`.
-- Support `variant="header"` and `variant="footer"`.
-- Show header variant near the work header for series scripts.
-- Show footer variant after the script body.
-- Use the same `SeriesChapterNav` data in both variants.
-- Do not reintroduce `RelatedSeriesSection` for read-page chapter navigation.
-
-Definition of Done:
-
-- A series script clearly shows current chapter context before reading.
-- Footer still supports next/previous after finishing.
-- No duplicate chapter list or redundant related-section behavior.
+- Replaced `SeriesChapterNavBar` with `SeriesChapterNavigation` (deleted old file).
+- `variant="header"` — compact bar: series link, current position, prev/next, new-chapter badge.
+- `variant="footer"` — full variant: series link, position, latest chapter hint, isLatest message, prev/next.
+- `ScriptReaderClient` renders header variant above `ReadWorkHeader` for series scripts.
+- `ScriptReaderClient` renders footer variant in footer for series scripts.
+- Same `SeriesChapterNav` data model used by both variants.
+- `RelatedSeriesSection` not reintroduced.
+- 13 contract tests in `SeriesChapterNavigation.test.tsx` (header: series link, position, order=0, prev/next hrefs, disabled states, badge; footer: series link, latest chapter, isLatest, badge).
+- `npx tsc --noEmit` clean.
 
 ### Phase 4 — Reading Ergonomics
 
