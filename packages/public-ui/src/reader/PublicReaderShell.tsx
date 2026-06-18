@@ -12,6 +12,15 @@
  */
 import React from "react";
 
+/** Semantic content width presets. */
+export type ContentWidth = "default" | "presentation" | "wide";
+
+const CONTENT_WIDTH_CLASS: Record<ContentWidth, string> = {
+  default: "max-w-4xl",
+  presentation: "max-w-4xl lg:max-w-6xl 2xl:max-w-7xl",
+  wide: "max-w-7xl",
+};
+
 export interface PublicReaderShellProps {
   /** Cover image URL for blurred background. Null = gradient fallback. */
   coverUrl?: string | null;
@@ -25,8 +34,8 @@ export interface PublicReaderShellProps {
   footer?: React.ReactNode;
   /** Extra className on root element */
   className?: string;
-  /** Content column max-width class. Default: "max-w-4xl" */
-  contentMaxWidth?: string;
+  /** Semantic content width. Default: "default" (max-w-4xl reading width). */
+  contentWidth?: ContentWidth;
 }
 
 export function PublicReaderShell({
@@ -36,8 +45,9 @@ export function PublicReaderShell({
   children,
   footer,
   className = "",
-  contentMaxWidth = "max-w-4xl",
+  contentWidth = "default",
 }: PublicReaderShellProps): React.JSX.Element {
+  const contentMaxWidth = CONTENT_WIDTH_CLASS[contentWidth];
   return (
     <div className={`relative w-full h-[100dvh] overflow-hidden flex flex-col bg-background ${className}`}>
       {/* ── Background blur layer ── */}

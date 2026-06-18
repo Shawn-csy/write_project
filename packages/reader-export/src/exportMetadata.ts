@@ -64,6 +64,8 @@ export interface ExportMetadataField {
   key: ExportMetadataFieldKey;
   label: string;
   value: string;
+  /** Original raw value before formatting — present on structured fields (chapterSettings, roleSetting, performanceInstruction). */
+  rawValue?: string;
 }
 
 export const EXPORT_METADATA_FIELD_ORDER: ExportMetadataFieldKey[] = [
@@ -287,11 +289,14 @@ export const buildExportMetadata = (source: ExportMetadataSource | null | undefi
     return "";
   };
   const outlineValue = normalize(source?.outline) || getPreface("outline", "大綱");
-  const roleSetting = formatStructuredMetadataValue(getPreface("rolesetting", "角色設定"));
+  const roleSettingRaw = getPreface("rolesetting", "角色設定");
+  const roleSetting = formatStructuredMetadataValue(roleSettingRaw);
   const backgroundInfo = getPreface("backgroundinfo", "environmentinfo", "背景資訊");
-  const performanceInstruction = formatStructuredMetadataValue(getPreface("performanceinstruction", "演繹指示"));
+  const performanceInstructionRaw = getPreface("performanceinstruction", "演繹指示");
+  const performanceInstruction = formatStructuredMetadataValue(performanceInstructionRaw);
   const openingIntro = getPreface("openingintro", "作品的開頭引言");
-  const chapterSettings = formatStructuredMetadataValue(getPreface("chaptersettings", "章節"));
+  const chapterSettingsRaw = getPreface("chaptersettings", "章節");
+  const chapterSettings = formatStructuredMetadataValue(chapterSettingsRaw);
   const situationInfo = getPreface("situationinfo", "狀況", "狀況資訊", "情境");
 
   // P1b: activity fields — read from source top-level (Next: PublicScript structured fields)
@@ -338,11 +343,11 @@ export const buildExportMetadata = (source: ExportMetadataSource | null | undefi
     displayTags.length ? { key: "tags" as const, label: "標籤", value: displayTags.join("、") } : null,
     audienceValue ? { key: "audience" as const, label: "觀眾", value: audienceValue } : null,
     outlineValue ? { key: "outline" as const, label: "大綱", value: outlineValue } : null,
-    roleSetting ? { key: "roleSetting" as const, label: "角色設定", value: roleSetting } : null,
+    roleSetting ? { key: "roleSetting" as const, label: "角色設定", value: roleSetting, rawValue: roleSettingRaw } : null,
     backgroundInfo ? { key: "backgroundInfo" as const, label: "背景資訊", value: backgroundInfo } : null,
-    performanceInstruction ? { key: "performanceInstruction" as const, label: "演繹指示", value: performanceInstruction } : null,
+    performanceInstruction ? { key: "performanceInstruction" as const, label: "演繹指示", value: performanceInstruction, rawValue: performanceInstructionRaw } : null,
     openingIntro ? { key: "openingIntro" as const, label: "作品的開頭引言", value: openingIntro } : null,
-    chapterSettings ? { key: "chapterSettings" as const, label: "章節", value: chapterSettings } : null,
+    chapterSettings ? { key: "chapterSettings" as const, label: "章節", value: chapterSettings, rawValue: chapterSettingsRaw } : null,
     situationInfo ? { key: "situationInfo" as const, label: "狀況", value: situationInfo } : null,
     ...customFieldRows,
     activityName ? { key: "activity" as const, label: "活動", value: activityContent ? `${activityName}：${activityContent}` : activityName } : null,
@@ -381,9 +386,67 @@ export const filterExportMetadata = (
   };
 };
 
+// Renders a multi-mode JSON field (roleSetting / performanceInstruction) as HTML lines.
+// Each item becomes: label (bold) + value on separate lines, matching overlay card layout.
+const renderMultiFieldHtml = (label: string, rawValue: string): string => {
+  try {
+    const parsed = JSON.parse(rawValue);
+    if (parsed?.mode === "multi" && Array.isArray(parsed.items)) {
+      const items = (parsed.items as Array<{ name?: unknown; text?: unknown }>)
+        .map((item) => {
+          const name = normalize(item.name);
+          const text = normalize(item.text);
+          if (!name && !text) return "";
+          if (name && text) return `<div style="font-size:12px;line-height:1.6;color:#374151;"><span style="font-weight:600;">${escapeHtml(name)}：</span>${escapeHtml(text)}</div>`;
+          return `<div style="font-size:12px;line-height:1.6;color:#374151;">${escapeHtml(name || text)}</div>`;
+        })
+        .filter(Boolean)
+        .join("");
+      if (items) return `<div style="margin-bottom:8px;"><div style="font-size:11px;font-weight:600;color:#6b7280;margin-bottom:3px;">${escapeHtml(label)}</div>${items}</div>`;
+    }
+  } catch {}
+  return `<div style="font-size:12px;line-height:1.6;color:#374151;">${escapeHtml(label)}：${escapeHtml(rawValue)}</div>`;
+};
+
+// Renders a chapter_multi JSON field as HTML cards, matching overlay chapter cards.
+const renderChapterFieldHtml = (label: string, rawValue: string): string => {
+  try {
+    const parsed = JSON.parse(rawValue);
+    if (parsed?.mode === "chapter_multi" && Array.isArray(parsed.items)) {
+      const cards = (parsed.items as Array<{ chapter?: unknown; environment?: unknown; situation?: unknown }>)
+        .map((item, idx) => {
+          const chapter = normalize(item.chapter) || `第${idx + 1}章`;
+          const env = normalize(item.environment);
+          const sit = normalize(item.situation);
+          return `<div style="border:1px solid #d6d9e0;border-radius:6px;padding:8px 10px;margin-bottom:6px;background:#fff;">
+            <div style="font-size:12px;font-weight:600;color:#374151;">${escapeHtml(chapter)}</div>
+            ${env ? `<div style="font-size:11px;font-weight:600;color:#6b7280;margin-top:4px;">環境</div><div style="font-size:12px;color:#374151;">${escapeHtml(env)}</div>` : ""}
+            ${sit ? `<div style="font-size:11px;font-weight:600;color:#6b7280;margin-top:4px;">狀況</div><div style="font-size:12px;color:#374151;">${escapeHtml(sit)}</div>` : ""}
+          </div>`;
+        })
+        .join("");
+      if (cards) return `<div style="margin-bottom:8px;"><div style="font-size:11px;font-weight:600;color:#6b7280;margin-bottom:3px;">${escapeHtml(label)}</div>${cards}</div>`;
+    }
+  } catch {}
+  return `<div style="font-size:12px;line-height:1.6;color:#374151;">${escapeHtml(label)}：${escapeHtml(rawValue)}</div>`;
+};
+
+// Renders a single ExportMetadataField to HTML.
+// Structured fields (chapterSettings, roleSetting, performanceInstruction) use rich multi-line HTML.
+// All other fields render as a flat label：value row.
+const renderFieldHtml = (field: ExportMetadataField): string => {
+  if (field.rawValue) {
+    if (field.key === "chapterSettings") return renderChapterFieldHtml(field.label, field.rawValue);
+    if (field.key === "roleSetting" || field.key === "performanceInstruction") return renderMultiFieldHtml(field.label, field.rawValue);
+  }
+  if (field.key === "license") return `<div style="font-size:12px;line-height:1.6;color:#374151;">${escapeHtml(field.value)}</div>`;
+  return `<div style="font-size:12px;line-height:1.6;color:#374151;">${escapeHtml(field.label)}：${escapeHtml(field.value)}</div>`;
+};
+
 export const buildExportMetadataHtml = (metadata: ExportMetadata, coverUrl?: unknown): string => {
   const safeCoverUrl = normalize(coverUrl);
-  if (!metadata.title && !metadata.synopsis && metadata.rows.length === 0) return "";
+  if (!metadata.title && !metadata.synopsis && metadata.fields.length === 0) return "";
+  const bodyFields = metadata.fields.filter((f) => f.key !== "title" && f.key !== "synopsis");
   return `
     <section style="margin-bottom:20px;">
       ${safeCoverUrl ? `
@@ -393,9 +456,9 @@ export const buildExportMetadataHtml = (metadata: ExportMetadata, coverUrl?: unk
       ` : ""}
       ${metadata.title ? `<h1 style="margin:0 0 8px 0;font-size:28px;line-height:1.25;">${escapeHtml(metadata.title)}</h1>` : ""}
       ${metadata.synopsis ? `<p style="margin:0 0 12px 0;color:#4b5563;white-space:pre-wrap;">${escapeHtml(metadata.synopsis)}</p>` : ""}
-      ${metadata.rows.length ? `
+      ${bodyFields.length ? `
         <div style="padding:10px 12px;border:1px solid #d6d9e0;border-radius:10px;background:#f8fafc;">
-          ${metadata.rows.map((row) => `<div style="font-size:12px;line-height:1.6;color:#374151;">${escapeHtml(row)}</div>`).join("")}
+          ${bodyFields.map(renderFieldHtml).join("")}
         </div>
       ` : ""}
     </section>

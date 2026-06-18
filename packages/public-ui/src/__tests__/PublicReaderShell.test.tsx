@@ -70,3 +70,37 @@ describe("PublicReaderShell — layout slots", () => {
     expect(container.querySelector("img[alt='']")).toBeNull();
   });
 });
+
+describe("PublicReaderShell — contentWidth presets", () => {
+  const getContentWrapper = (container: HTMLElement) => {
+    const content = container.querySelector("p")!;
+    // Walk up to the mx-auto wrapper that carries the max-w class
+    return content.closest(".mx-auto") as HTMLElement;
+  };
+
+  it('default uses max-w-4xl', () => {
+    const { container } = render(
+      <PublicReaderShell><p>Content</p></PublicReaderShell>
+    );
+    const wrapper = getContentWrapper(container);
+    expect(wrapper.className).toContain("max-w-4xl");
+  });
+
+  it('presentation uses responsive desktop-wide preset', () => {
+    const { container } = render(
+      <PublicReaderShell contentWidth="presentation"><p>Content</p></PublicReaderShell>
+    );
+    const wrapper = getContentWrapper(container);
+    expect(wrapper.className).toContain("max-w-4xl");
+    expect(wrapper.className).toContain("lg:max-w-6xl");
+    expect(wrapper.className).toContain("2xl:max-w-7xl");
+  });
+
+  it('wide uses max-w-7xl', () => {
+    const { container } = render(
+      <PublicReaderShell contentWidth="wide"><p>Content</p></PublicReaderShell>
+    );
+    const wrapper = getContentWrapper(container);
+    expect(wrapper.className).toContain("max-w-7xl");
+  });
+});

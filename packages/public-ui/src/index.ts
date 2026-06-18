@@ -22,7 +22,7 @@ export { resolveCoverText, migrateLegacySub, COVER_VAR_KEYS } from "./cover/type
 
 // ── Reader shell ──────────────────────────────────────────────────────────
 export { PublicReaderShell } from "./reader/PublicReaderShell";
-export type { PublicReaderShellProps } from "./reader/PublicReaderShell";
+export type { PublicReaderShellProps, ContentWidth } from "./reader/PublicReaderShell";
 
 export { ActivitySection } from "./reader/ActivitySection";
 export type { ActivitySectionProps } from "./reader/ActivitySection";

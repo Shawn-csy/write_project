@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { exportScriptAsPdf, pickRenderedRoot, buildExportMetadataHtml } from "@write/reader-export";
+import { useCallback, useEffect, useState } from "react";
+import { exportScriptAsPdf, pickRenderedRoot } from "@write/reader-export";
 import type { PublicScript } from "@/lib/types";
-import { buildPublicReaderExportMetadata } from "@/lib/publicReaderExportMetadata";
+import { buildPublicReaderPrintSnapshot } from "@/lib/publicReaderPrintSnapshot";
 
 export function usePublicExport(script: PublicScript) {
   const [pdfReady, setPdfReady] = useState(false);
@@ -22,15 +22,12 @@ export function usePublicExport(script: PublicScript) {
     return () => window.cancelAnimationFrame(rafId);
   }, []);
 
-  const exportMetadata = useMemo(() => buildPublicReaderExportMetadata(script), [script]);
-
   const handleExportPdf = useCallback(async () => {
     const root = pickRenderedRoot();
     if (!root) return;
-    const renderedHtml = root.outerHTML;
-    const headerHtml = buildExportMetadataHtml(exportMetadata, script.coverUrl);
-    await exportScriptAsPdf(script.title, { renderedHtml, headerHtml });
-  }, [exportMetadata, script.coverUrl, script.title]);
+    const { metadata, headerHtml, bodyHtml } = buildPublicReaderPrintSnapshot(script, root.outerHTML);
+    await exportScriptAsPdf(metadata.title || script.title, { renderedHtml: bodyHtml, headerHtml });
+  }, [script]);
 
   return { handleExportPdf, pdfReady };
 }

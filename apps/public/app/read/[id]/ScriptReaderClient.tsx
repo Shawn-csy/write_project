@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo } from "react";
 import type { PublicScript } from "@/lib/types";
-import type { RenderBlock, TocEntry, MarkerConfig } from "@write/script-engine";
+import type { AstNode, TocEntry, MarkerConfig } from "@write/script-engine";
 import {
   useReaderState,
   createLocalStorageReaderStorage,
@@ -24,7 +24,7 @@ import { usePublicReaderShare } from "./usePublicReaderShare";
 interface Props {
   scriptId: string;
   initialScript: PublicScript;
-  renderBlocks: RenderBlock[];
+  scriptAst: AstNode;
   markerConfigs: MarkerConfig[];
   toc: TocEntry[];
 }
@@ -32,7 +32,7 @@ interface Props {
 export function ScriptReaderClient({
   scriptId,
   initialScript,
-  renderBlocks,
+  scriptAst,
   markerConfigs,
   toc,
 }: Props) {
@@ -88,6 +88,7 @@ export function ScriptReaderClient({
   return (
     <PublicReaderShell
       coverUrl={initialScript.coverUrl}
+      contentWidth="presentation"
       toolbar={
         <ReaderToolbar
           readerState={readerState}
@@ -144,7 +145,7 @@ export function ScriptReaderClient({
     >
       <section id="script-body">
         <ScriptContentRenderer
-          blocks={renderBlocks}
+          ast={scriptAst}
           markerConfigs={markerConfigs}
           hiddenMarkerIds={readerState.markerVisibility.hiddenMarkerIds}
           fontSize={fontSize}

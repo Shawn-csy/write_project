@@ -4,9 +4,9 @@ import { apiFetch } from "@/lib/api";
 import type { PublicScript } from "@/lib/types";
 import { ScriptReaderClient } from "./ScriptReaderClient";
 import { ConsentGate } from "./ConsentGate";
-import { parseScreenplay, toRenderBlocks } from "@write/script-engine";
+import { parseScreenplay } from "@write/script-engine";
 import { resolveMarkerConfigs } from "@/lib/markerThemeResolver";
-import type { RenderBlock, TocEntry, MarkerConfig } from "@write/script-engine";
+import type { AstNode, TocEntry } from "@write/script-engine";
 import {
   buildReadPageTitle,
   buildReadPageDescription,
@@ -83,9 +83,7 @@ export default async function ScriptReaderPage({
   const scriptDocument = script.content
     ? parseScreenplay(script.content, markerConfigs)
     : null;
-  const renderBlocks: RenderBlock[] = scriptDocument
-    ? toRenderBlocks(scriptDocument.ast, markerConfigs)
-    : [];
+  const scriptAst: AstNode = scriptDocument?.ast ?? { type: "root", children: [] };
   const toc: TocEntry[] = scriptDocument?.toc ?? [];
 
   return (
@@ -122,7 +120,7 @@ export default async function ScriptReaderPage({
         <ScriptReaderClient
           scriptId={id}
           initialScript={script}
-          renderBlocks={renderBlocks}
+          scriptAst={scriptAst}
           markerConfigs={markerConfigs}
           toc={toc}
         />
