@@ -1,8 +1,8 @@
 /**
  * Integration tests for ReadWorkHeader.
  * Verifies the component renders correctly from a ReadWorkHeaderModel,
- * including title, author/org/tag links, series position, start-reading anchor,
- * secondary actions (share, download), and license/rating metadata.
+ * including title, author/org/tag links, series position, like action, and
+ * license/rating metadata.
  */
 
 import { describe, it, expect, vi } from "vitest";
@@ -24,7 +24,6 @@ const BASE_MODEL: ReadWorkHeaderModel = {
   views: 5,
   likes: 1,
   isLiked: false,
-  canDownload: false,
   durationMinutes: undefined,
   dialogueChars: undefined,
   tags: [],
@@ -42,9 +41,6 @@ const BASE_MODEL: ReadWorkHeaderModel = {
 
 const BASE_ACTIONS = {
   onLike: vi.fn(),
-  onShare: vi.fn(),
-  onDownload: vi.fn(),
-  copied: false,
 };
 
 describe("ReadWorkHeader — title", () => {
@@ -54,63 +50,31 @@ describe("ReadWorkHeader — title", () => {
   });
 });
 
-describe("ReadWorkHeader — start reading anchor", () => {
-  it("renders start-reading anchor pointing to #script-body", () => {
+describe("ReadWorkHeader — route-local CTA removal", () => {
+  it("does not render a start-reading anchor", () => {
     render(<ReadWorkHeader model={BASE_MODEL} actions={BASE_ACTIONS} />);
-    const link = screen.getByRole("link", { name: /開始閱讀/ });
-    expect(link.getAttribute("href")).toBe("#script-body");
+    expect(screen.queryByRole("link", { name: /開始閱讀/ })).toBeNull();
+  });
+
+  it("does not render route-local share or text download buttons", () => {
+    render(<ReadWorkHeader model={BASE_MODEL} actions={BASE_ACTIONS} />);
+    expect(screen.queryByRole("button", { name: /分享/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /下載/i })).toBeNull();
   });
 });
 
-describe("ReadWorkHeader — secondary actions", () => {
-  it("renders share button", () => {
-    render(<ReadWorkHeader model={BASE_MODEL} actions={BASE_ACTIONS} />);
-    expect(screen.queryByRole("button", { name: /分享/ })).not.toBeNull();
-  });
-
-  it("share button calls onShare", async () => {
-    const onShare = vi.fn();
-    const user = userEvent.setup();
-    render(
-      <ReadWorkHeader model={BASE_MODEL} actions={{ ...BASE_ACTIONS, onShare }} />
-    );
-    await user.click(screen.getByRole("button", { name: /分享/ }));
-    expect(onShare).toHaveBeenCalledTimes(1);
-  });
-
-  it("download button hidden when canDownload=false", () => {
-    render(<ReadWorkHeader model={BASE_MODEL} actions={BASE_ACTIONS} />);
-    expect(screen.queryByRole("button", { name: /下載/i })).toBeNull();
-  });
-
-  it("download button visible when canDownload=true", () => {
-    render(
-      <ReadWorkHeader
-        model={{ ...BASE_MODEL, canDownload: true }}
-        actions={BASE_ACTIONS}
-      />
-    );
-    expect(screen.queryByRole("button", { name: /下載/i })).not.toBeNull();
-  });
-
-  it("download button calls onDownload", async () => {
-    const onDownload = vi.fn();
+describe("ReadWorkHeader — like action", () => {
+  it("like button calls onLike", async () => {
+    const onLike = vi.fn();
     const user = userEvent.setup();
     render(
       <ReadWorkHeader
-        model={{ ...BASE_MODEL, canDownload: true }}
-        actions={{ ...BASE_ACTIONS, onDownload }}
+        model={BASE_MODEL}
+        actions={{ onLike }}
       />
     );
-    await user.click(screen.getByRole("button", { name: /下載/i }));
-    expect(onDownload).toHaveBeenCalledTimes(1);
-  });
-
-  it("shows copied state", () => {
-    render(
-      <ReadWorkHeader model={BASE_MODEL} actions={{ ...BASE_ACTIONS, copied: true }} />
-    );
-    expect(screen.queryByText("已複製！")).not.toBeNull();
+    await user.click(screen.getByRole("button", { name: "喜歡" }));
+    expect(onLike).toHaveBeenCalledTimes(1);
   });
 });
 

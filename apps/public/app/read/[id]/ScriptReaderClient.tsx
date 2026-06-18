@@ -18,6 +18,8 @@ import { useSeriesProgress } from "./useSeriesProgress";
 import { SeriesChapterNavigation } from "./SeriesChapterNavigation";
 import { ReadWorkHeader } from "./ReadWorkHeader";
 import { buildReadWorkHeaderModel } from "@/lib/readWorkHeaderModel";
+import { usePublicExport } from "./usePublicExport";
+import { usePublicReaderShare } from "./usePublicReaderShare";
 
 interface Props {
   scriptId: string;
@@ -38,8 +40,6 @@ export function ScriptReaderClient({
     scriptId,
     initialScript.views ?? 0,
     initialScript.likes ?? 0,
-    initialScript.title,
-    initialScript.content ?? "",
   );
 
   const storage = useMemo(
@@ -75,18 +75,28 @@ export function ScriptReaderClient({
     views: actions.views,
     likes: actions.likes,
     liked: actions.liked,
-    canDownload: actions.canDownload,
-  }), [actions.views, actions.likes, actions.liked, actions.canDownload]);
+  }), [actions.views, actions.likes, actions.liked]);
 
   const headerModel = useMemo(
     () => buildReadWorkHeaderModel(initialScript, headerStats),
     [initialScript, headerStats],
   );
 
+  const { handleExportPdf, pdfReady } = usePublicExport(headerModel);
+  const { handleShare, copied } = usePublicReaderShare();
+
   return (
     <PublicReaderShell
       coverUrl={initialScript.coverUrl}
-      toolbar={<ReaderToolbar readerState={readerState} />}
+      toolbar={
+        <ReaderToolbar
+          readerState={readerState}
+          onShare={handleShare}
+          copied={copied}
+          onExportPdf={handleExportPdf}
+          pdfReady={pdfReady}
+        />
+      }
       header={
         <>
           {seriesNav && (
@@ -100,9 +110,6 @@ export function ScriptReaderClient({
             model={headerModel}
             actions={{
               onLike: actions.handleLike,
-              onShare: actions.handleShare,
-              onDownload: actions.handleDownloadTxt,
-              copied: actions.copied,
             }}
           />
         </>

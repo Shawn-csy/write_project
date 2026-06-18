@@ -8,9 +8,6 @@ interface Props {
   model: ReadWorkHeaderModel;
   actions: {
     onLike: () => void;
-    onShare: () => void;
-    onDownload: () => void;
-    copied: boolean;
   };
 }
 
@@ -76,30 +73,6 @@ export function ReadWorkHeader({ model, actions }: Props) {
           )}
         </div>
       )}
-      <div className="flex flex-wrap items-center justify-center gap-2 pb-4">
-        <a
-          href="#script-body"
-          className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/70 px-4 py-2 text-sm font-medium text-foreground hover:bg-background/90 transition-colors"
-        >
-          開始閱讀 ↓
-        </a>
-        <button
-          type="button"
-          onClick={actions.onShare}
-          className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/45 px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-background/70 hover:text-foreground transition-colors"
-        >
-          {actions.copied ? "已複製！" : "分享"}
-        </button>
-        {model.canDownload && (
-          <button
-            type="button"
-            onClick={actions.onDownload}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/45 px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-background/70 hover:text-foreground transition-colors"
-          >
-            下載 .txt
-          </button>
-        )}
-      </div>
     </>
   );
 }
