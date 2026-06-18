@@ -6,21 +6,23 @@ import { ScriptReaderClient } from "./ScriptReaderClient";
 import { ConsentGate } from "./ConsentGate";
 import { parseScreenplay, toRenderBlocks } from "@write/script-engine";
 import { resolveMarkerConfigs } from "@/lib/markerThemeResolver";
-import { getScriptDescription } from "@/lib/scriptDescription";
 import type { RenderBlock, TocEntry, MarkerConfig } from "@write/script-engine";
-import { BASE_URL, SITE_NAME, pickPreviewImage, absoluteUrl } from "@/lib/seo";
+import {
+  buildReadPageTitle,
+  buildReadPageDescription,
+  buildReadPageCanonicalUrl,
+  buildReadPageStructuredData,
+  buildReadPageBreadcrumbData,
+  buildReadPageOpenGraph,
+  buildReadPageTwitterCard,
+} from "@/lib/readPageSeo";
+import { jsonLdSafe } from "@/lib/seo";
 
 // ISR: revalidate daily as fallback; on-demand revalidation handles real-time updates
 export const revalidate = 86400;
 
 // Unknown script IDs are generated on first request, not blocked
 export const dynamicParams = true;
-
-function getAuthorName(script: PublicScript): string {
-  if (script.persona?.displayName) return script.persona.displayName;
-  if (script.owner?.displayName) return script.owner.displayName;
-  return "";
-}
 
 async function fetchScript(id: string): Promise<PublicScript | null> {
   try {
@@ -43,64 +45,16 @@ export async function generateMetadata({
     return { title: "找不到台本｜Screenplay Reader" };
   }
 
-  const title = `${script.title}｜Screenplay Reader`;
-  const description = getScriptDescription(script);
-  const canonicalUrl = `${BASE_URL}/read/${id}`;
-  const authorName = getAuthorName(script);
-  const orgName = script.organization?.name ?? "";
-  const tags = (script.tags ?? []).map((t) => t.name).filter(Boolean);
+  const title = buildReadPageTitle(script);
+  const description = buildReadPageDescription(script);
+  const canonicalUrl = buildReadPageCanonicalUrl(id);
 
-  const dateRaw = script.updatedAt ?? script.lastModified;
-  let dateModified: string | undefined;
-  if (typeof dateRaw === "number" && Number.isFinite(dateRaw)) {
-    try { dateModified = new Date(dateRaw).toISOString(); } catch { /* noop */ }
-  } else if (typeof dateRaw === "string" && dateRaw.trim()) {
-    const parsed = Date.parse(dateRaw);
-    if (!Number.isNaN(parsed)) dateModified = new Date(parsed).toISOString();
-  }
-
-  const structuredData: Record<string, unknown> = {
-    "@context": "https://schema.org",
-    "@type": "CreativeWork",
-    name: script.title,
-    headline: script.title,
-    url: canonicalUrl,
-    inLanguage: "zh-Hant",
-    description,
-    isAccessibleForFree: true,
-    ...(tags.length > 0 && { genre: tags }),
-    ...(dateModified && { dateModified }),
-    ...(authorName && { author: { "@type": "Person", name: authorName } }),
-    ...(orgName && { publisher: { "@type": "Organization", name: orgName } }),
-    ...(script.coverUrl && { image: absoluteUrl(script.coverUrl) }),
-  };
-
-  const previewImage = pickPreviewImage(script.coverUrl);
   return {
     title,
     description,
     alternates: { canonical: canonicalUrl },
-    openGraph: {
-      type: "article",
-      title,
-      description,
-      url: canonicalUrl,
-      siteName: SITE_NAME,
-      locale: "zh_TW",
-      images: [{ url: previewImage, alt: script.title }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [previewImage],
-    },
-    other: {
-      "application/ld+json": JSON.stringify(structuredData)
-        .replace(/</g, "\\u003c")
-        .replace(/>/g, "\\u003e")
-        .replace(/&/g, "\\u0026"),
-    },
+    openGraph: buildReadPageOpenGraph(script, id),
+    twitter: buildReadPageTwitterCard(script),
   };
 }
 
@@ -116,28 +70,13 @@ export default async function ScriptReaderPage({
     notFound();
   }
 
-  const description = getScriptDescription(script);
-  const authorName = getAuthorName(script);
+  const description = buildReadPageDescription(script);
+  const authorName = script.persona?.displayName ?? script.owner?.displayName ?? "";
   const tags = (script.tags ?? []).map((t) => t.name).filter(Boolean);
-  const canonicalUrl = `${BASE_URL}/read/${id}`;
 
-  // JSON-LD injected as a real <script> tag for crawlers
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "CreativeWork",
-    name: script.title,
-    headline: script.title,
-    url: canonicalUrl,
-    inLanguage: "zh-Hant",
-    description,
-    isAccessibleForFree: true,
-    ...(tags.length > 0 && { genre: tags }),
-    ...(authorName && { author: { "@type": "Person", name: authorName } }),
-    ...(script.organization?.name && {
-      publisher: { "@type": "Organization", name: script.organization.name },
-    }),
-    ...(script.coverUrl && { image: absoluteUrl(script.coverUrl) }),
-  };
+  // JSON-LD injected as a real <script> tag for crawlers (same model as generateMetadata)
+  const structuredData = buildReadPageStructuredData(script, id);
+  const breadcrumbData = buildReadPageBreadcrumbData(script, id);
 
   // Parse content server-side with marker theme (engine is canonical)
   const markerConfigs = await resolveMarkerConfigs(script);
@@ -153,12 +92,7 @@ export default async function ScriptReaderPage({
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(structuredData)
-            .replace(/</g, "\\u003c")
-            .replace(/>/g, "\\u003e")
-            .replace(/&/g, "\\u0026"),
-        }}
+        dangerouslySetInnerHTML={{ __html: jsonLdSafe([structuredData, breadcrumbData]) }}
       />
       {/*
         ScriptReaderClient renders the full reader UI.
