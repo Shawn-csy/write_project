@@ -26,7 +26,15 @@ function makeScript(overrides: Partial<GalleryScriptInput> = {}) {
 }
 
 function makeSeries(overrides: Partial<GalleryScriptInput> = {}): PublicSeriesGroup {
-  const ch1 = makeScript({ id: "c1", title: "Chapter 1", series: { name: "My Series" }, seriesOrder: 1, lastModified: 2000, ...overrides });
+  const ch1 = makeScript({
+    id: "c1",
+    title: "Chapter 1",
+    series: { name: "My Series" },
+    seriesOrder: 1,
+    lastModified: 2000,
+    author: { id: "a1", displayName: "Alice" },
+    ...overrides,
+  });
   const ch2 = makeScript({ id: "c2", title: "Chapter 2", series: { name: "My Series" }, seriesOrder: 2, lastModified: 1000 });
   const entries = groupScriptsIntoGalleryEntries([ch1, ch2]);
   return entries[0] as PublicSeriesGroup;
@@ -104,6 +112,18 @@ describe("SeriesGalleryCard — standard", () => {
     render(<SeriesGalleryCard series={seriesWithSummary} variant="standard" href="/series/my-series" />);
     expect(screen.getByText("A great series")).toBeDefined();
   });
+
+  it("shows primary author as a link when authorHref is provided", () => {
+    render(<SeriesGalleryCard series={SERIES} variant="standard" href="/series/my-series" authorHref="/author/a1" />);
+    const authorLink = screen.getByRole("link", { name: "Alice" });
+    expect(authorLink.getAttribute("href")).toBe("/author/a1");
+  });
+
+  it("shows primary author as plain text when authorHref is absent", () => {
+    render(<SeriesGalleryCard series={SERIES} variant="standard" href="/series/my-series" />);
+    expect(screen.getByText("Alice")).toBeDefined();
+    expect(screen.queryByRole("link", { name: "Alice" })).toBeNull();
+  });
 });
 
 // ─── compact variant ──────────────────────────────────────────────────────────
@@ -138,6 +158,12 @@ describe("SeriesGalleryCard — compact", () => {
     render(<SeriesGalleryCard series={SERIES} variant="compact" href="/series/my-series" />);
     // latestScript is ch1 (higher lastModified)
     expect(screen.getByText(/Chapter 1/)).toBeDefined();
+  });
+
+  it("shows primary author in compact mode", () => {
+    render(<SeriesGalleryCard series={SERIES} variant="compact" href="/series/my-series" authorHref="/author/a1" />);
+    const authorLink = screen.getByRole("link", { name: "Alice" });
+    expect(authorLink.getAttribute("href")).toBe("/author/a1");
   });
 });
 

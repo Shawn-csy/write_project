@@ -12,9 +12,7 @@ import {
 import {
   PublicReaderShell,
   PublicScriptInfoOverlay,
-  RelatedSeriesSection,
 } from "@write/public-ui";
-import type { RelatedSeriesScriptItem } from "@write/public-ui";
 import { ScriptContentRenderer } from "./ScriptContentRenderer";
 import { ReaderToolbar } from "./ReaderToolbar";
 import { usePublicReaderActions } from "./usePublicReaderActions";
@@ -75,29 +73,6 @@ export function ScriptReaderClient({
     if (seriesNav) markSeen();
   }, [seriesNav, markSeen]);
 
-  // Derive related scripts from nav chapters (excludes current, preserves order)
-  const relatedSeriesScripts = useMemo((): RelatedSeriesScriptItem[] => {
-    if (!seriesNav) return [];
-    return seriesNav.chapters
-      .filter((c) => c.id !== scriptId)
-      .map((c) => ({
-        id: c.id,
-        title: c.title,
-        seriesOrder: c.seriesOrder,
-        coverUrl: undefined,
-        coverCrop: null,
-        coverDesign: null,
-      }));
-  }, [seriesNav, scriptId]);
-
-  const handleOpenRelatedScript = useCallback((id: string) => {
-    window.location.href = `/read/${id}`;
-  }, []);
-
-  const handleOpenSeries = useCallback((name: string) => {
-    window.location.href = `/series/${encodeURIComponent(name)}`;
-  }, []);
-
   // Derive author/org for overlay
   const author = initialScript.persona
     ? { id: initialScript.persona.id, displayName: initialScript.persona.displayName }
@@ -152,30 +127,11 @@ export function ScriptReaderClient({
     />
   );
 
-  const seriesSection = relatedSeriesScripts.length > 0 ? (
-    <RelatedSeriesSection
-      seriesName={initialScript.series?.name}
-      relatedSeriesScripts={relatedSeriesScripts}
-      scriptHref={(id) => `/read/${id}`}
-      seriesHref={initialScript.series?.name
-        ? `/series/${encodeURIComponent(initialScript.series.name)}`
-        : undefined}
-      onOpenRelatedScript={handleOpenRelatedScript}
-      onOpenSeries={handleOpenSeries}
-    />
-  ) : null;
-
   return (
     <PublicReaderShell
       coverUrl={initialScript.coverUrl}
       toolbar={<ReaderToolbar readerState={readerState} />}
-      header={
-        <>
-          {seriesNav && <SeriesChapterNavBar nav={seriesNav} hasNewChapter={hasNewChapter} />}
-          {infoOverlay}
-          {seriesSection}
-        </>
-      }
+      header={infoOverlay}
       footer={
         <footer className="mt-12 pt-6 border-t border-border/40">
           {actions.canDownload && (

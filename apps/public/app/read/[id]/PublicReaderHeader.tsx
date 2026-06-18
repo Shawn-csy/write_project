@@ -111,15 +111,6 @@ export function PublicReaderHeader({ script, actions }: Props) {
         >
           {actions.copied ? "已複製！" : "分享連結"}
         </button>
-        {actions.canDownload && (
-          <button
-            type="button"
-            onClick={actions.handleDownloadTxt}
-            className="text-xs px-2 py-1 rounded border border-border/60 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            下載 .txt
-          </button>
-        )}
       </div>
     </header>
   );
