@@ -22,6 +22,19 @@ export function buildPublicReaderExportMetadata(script: PublicScript): ExportMet
       licenseDerivative: script.licenseDerivative,
       licenseNotify: script.licenseNotify,
       customMetadata: script.customMetadata,
+      // activity structured fields (PublicScript top-level)
+      activityName: script.activityName,
+      activityContent: script.activityContent,
+      // demoLinks: PublicScript.activityDemoLinks is a JSON string from API
+      demoLinks: (() => {
+        const raw = script.activityDemoLinks;
+        if (!raw) return undefined;
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) return parsed;
+        } catch {}
+        return undefined;
+      })(),
     },
     script.title || "Script"
   );

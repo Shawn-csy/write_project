@@ -23,6 +23,9 @@ export interface ExportMetadataSource {
   licenseSpecialTerms?: unknown[];
   targetAudience?: unknown;
   contentRating?: unknown;
+  activityName?: unknown;
+  activityContent?: unknown;
+  demoLinks?: unknown[];
   coverUrl?: unknown;
 }
 
@@ -45,6 +48,8 @@ export type ExportMetadataFieldKey =
   | "roleSetting"
   | "situationInfo"
   | "customField"
+  | "activity"
+  | "demoLink"
   | "contact"
   | "license"
   | "specialTerms";
@@ -67,13 +72,14 @@ export const EXPORT_METADATA_FIELD_ORDER: ExportMetadataFieldKey[] = [
   "roleSetting",
   "situationInfo",
   "customField",
+  "activity",
+  "demoLink",
   "contact",
   "license",
   "specialTerms",
 ];
 
-// Keys that are handled by dedicated structured fields above.
-// They must not appear in the generic "customField" rows.
+// Keys handled by dedicated structured fields — must not appear as customField rows.
 const RESERVED_META_KEYS = new Set([
   "author", "authors", "authordisplaymode",
   "licensecommercial", "licensederivative", "licensenotify",
@@ -81,11 +87,12 @@ const RESERVED_META_KEYS = new Set([
   "series", "seriesorder",
   "marker_legend", "show_legend",
   "synopsis", "outline",
+  // activity/event keys — handled via dedicated source fields, not customField
   "activityname", "activitybanner", "activitycontent",
   "activityworkurl", "activitydemolinks", "activitydemourl",
   "eventname", "eventbanner", "eventcontent",
   "eventworklink", "eventdemolinks", "eventdemolink",
-  // handled as dedicated fields
+  // dedicated fields
   "rolesetting", "situationinfo",
   "contact",
   // tag-derived
@@ -102,6 +109,52 @@ const escapeHtml = (value: unknown) =>
 
 const normalize = (value: unknown) => String(value ?? "").trim();
 
+/**
+ * Decodes a structured metadata value that may be stored as a JSON string.
+ *
+ * RoleSetting (and ChapterSettings) from the import pipeline are stored as
+ * JSON: { mode: "multi", items: [{name, text}, ...] }.
+ * For display we flatten to "名前：説明 / ..." readable form.
+ * Plain strings are returned as-is.
+ */
+export const formatStructuredMetadataValue = (raw: string): string => {
+  if (!raw) return raw;
+  if (!raw.startsWith("{") && !raw.startsWith("[")) return raw;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      const mode = String(parsed.mode || "");
+      if (mode === "multi" && Array.isArray(parsed.items)) {
+        return (parsed.items as Array<{ name?: unknown; text?: unknown }>)
+          .map((item) => {
+            const name = normalize(item.name);
+            const text = normalize(item.text);
+            if (name && text) return `${name}：${text}`;
+            return name || text;
+          })
+          .filter(Boolean)
+          .join(" / ");
+      }
+      // single-value wrapper { value: "..." }
+      if (parsed.value !== undefined) return normalize(parsed.value);
+    }
+    if (Array.isArray(parsed)) {
+      return (parsed as unknown[])
+        .map((item) => {
+          if (item && typeof item === "object") {
+            const name = normalize((item as { name?: unknown }).name);
+            const text = normalize((item as { text?: unknown }).text);
+            return name && text ? `${name}：${text}` : name || text;
+          }
+          return normalize(item);
+        })
+        .filter(Boolean)
+        .join(" / ");
+    }
+  } catch {}
+  return raw;
+};
+
 const formatLicense = (commercial: string, derivative: string, notify: string) => [
   commercial ? `商業使用：${commercial === "allow" ? "可" : "不可"}` : "",
   derivative ? `改作許可：${derivative === "allow" ? "可" : derivative === "disallow" ? "不可" : "需同意"}` : "",
@@ -112,9 +165,7 @@ const contactRows = (rawContact: unknown): ExportMetadataField[] => {
   let value = rawContact;
   if (!normalize(value)) return [];
   if (typeof value === "string") {
-    try {
-      value = JSON.parse(value);
-    } catch {}
+    try { value = JSON.parse(value); } catch {}
   }
   if (value && typeof value === "object" && !Array.isArray(value)) {
     return Object.entries(value as Record<string, unknown>)
@@ -123,7 +174,8 @@ const contactRows = (rawContact: unknown): ExportMetadataField[] => {
       .map(([key, val]) => ({ key: "contact" as const, label: "聯絡", value: `${key}: ${val}` }));
   }
   if (Array.isArray(value)) {
-    return value.map((item) => normalize(item)).filter(Boolean).map((item) => ({ key: "contact" as const, label: "聯絡", value: item }));
+    return value.map((item) => normalize(item)).filter(Boolean)
+      .map((item) => ({ key: "contact" as const, label: "聯絡", value: item }));
   }
   return normalize(value)
     .split(/\r?\n|\/|\||；|;|，|,/)
@@ -164,8 +216,9 @@ export const buildExportMetadata = (source: ExportMetadataSource | null | undefi
   const displayTags = allTags.filter((t) => !AUDIENCE_TOKENS.has(t) && !RATING_TOKENS.has(t));
   const audienceTag = allTags.find((t) => AUDIENCE_TOKENS.has(t)) || "";
   const ratingTag = allTags.find((t) => RATING_TOKENS.has(t)) || "";
-  const targetAudience = normalize(source?.targetAudience || audienceTag);
-  const contentRating = normalize(source?.contentRating || ratingTag);
+  // P2: also read targetAudience/contentRating from customMetadata (for public overlay alignment)
+  const targetAudience = normalize(source?.targetAudience || meta.targetaudience || audienceTag);
+  const contentRating = normalize(source?.contentRating || meta.contentrating || ratingTag);
   const audienceValue = [targetAudience, contentRating].filter(Boolean).join("・");
 
   const commercial = normalize(source?.licenseCommercial || meta.licensecommercial || source?.persona?.defaultLicenseCommercial).toLowerCase();
@@ -191,13 +244,42 @@ export const buildExportMetadata = (source: ExportMetadataSource | null | undefi
     .map((item) => normalize(typeof item === "object" && item !== null ? (item as { text?: string }).text ?? item : item))
     .filter(Boolean);
 
-  const roleSetting = normalize(meta.rolesetting);
+  // P1a: RoleSetting may be JSON — decode structured payload to human-readable form
+  const roleSetting = formatStructuredMetadataValue(normalize(meta.rolesetting));
   const situationInfo = normalize(meta.situationinfo);
+
+  // P1b: activity fields — read from source top-level (Next: PublicScript structured fields)
+  // then fallback to customMetadata legacy keys
+  const activityName = normalize(source?.activityName || meta.activityname || meta.eventname);
+  const activityContent = normalize(source?.activityContent || meta.activitycontent || meta.eventcontent);
+  const rawDemoLinks: Array<{ name?: unknown; url?: unknown }> = Array.isArray(source?.demoLinks)
+    ? (source.demoLinks as Array<{ name?: unknown; url?: unknown }>)
+    : (() => {
+        const raw = meta.activitydemolinks || meta.activitydemourl || meta.eventdemolinks;
+        if (!raw) return [];
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) return parsed as Array<{ name?: unknown; url?: unknown }>;
+        } catch {}
+        if (raw) return [{ url: raw }];
+        return [];
+      })();
+  const demoLinkRows: ExportMetadataField[] = rawDemoLinks
+    .map((link) => {
+      const url = normalize(link.url);
+      const name = normalize(link.name);
+      return url ? { key: "demoLink" as const, label: "試聽範例", value: name ? `${name}：${url}` : url } : null;
+    })
+    .filter(Boolean) as ExportMetadataField[];
 
   // arbitrary non-reserved customMetadata entries
   const customFieldRows: ExportMetadataField[] = (rawEntries as Array<{ key?: unknown; value?: unknown }>)
-    .map((entry) => ({ key: normalize(entry?.key).toLowerCase().replace(/\s+/g, ""), label: normalize(entry?.key), value: normalize(entry?.value) }))
-    .filter(({ key, value }) => key && value && !RESERVED_META_KEYS.has(key))
+    .map((entry) => ({
+      normalizedKey: normalize(entry?.key).toLowerCase().replace(/\s+/g, ""),
+      label: normalize(entry?.key),
+      value: normalize(entry?.value),
+    }))
+    .filter(({ normalizedKey, value }) => normalizedKey && value && !RESERVED_META_KEYS.has(normalizedKey))
     .map(({ label, value }) => ({ key: "customField" as const, label, value }));
 
   const fields = [
@@ -212,6 +294,9 @@ export const buildExportMetadata = (source: ExportMetadataSource | null | undefi
     roleSetting ? { key: "roleSetting" as const, label: "角色設定", value: roleSetting } : null,
     situationInfo ? { key: "situationInfo" as const, label: "狀況", value: situationInfo } : null,
     ...customFieldRows,
+    activityName ? { key: "activity" as const, label: "活動", value: activityContent ? `${activityName}：${activityContent}` : activityName } : null,
+    activityContent && !activityName ? { key: "activity" as const, label: "活動說明", value: activityContent } : null,
+    ...demoLinkRows,
     ...contactRows(meta.contact),
     ...formatLicense(commercial, derivative, notify).map((value) => ({ key: "license" as const, label: "授權", value })),
     ...specialTerms.map((term) => ({ key: "specialTerms" as const, label: "特殊條款", value: term })),

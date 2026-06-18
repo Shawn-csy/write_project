@@ -165,6 +165,37 @@ describe("buildPublicReaderExportMetadata — audience / content rating", () => 
   });
 });
 
+describe("buildPublicReaderExportMetadata — activity / demo links", () => {
+  it("activityName appears in rows", () => {
+    const meta = buildPublicReaderExportMetadata({ ...BASE, activityName: "配音活動", activityContent: null });
+    expect(meta.rows).toContain("活動：配音活動");
+  });
+
+  it("activityName + activityContent combined in row", () => {
+    const meta = buildPublicReaderExportMetadata({ ...BASE, activityName: "活動X", activityContent: "活動說明" });
+    expect(meta.rows).toContain("活動：活動X：活動說明");
+  });
+
+  it("activityDemoLinks JSON string parsed and emitted as demoLink rows", () => {
+    const meta = buildPublicReaderExportMetadata({
+      ...BASE,
+      activityDemoLinks: JSON.stringify([{ name: "試聽範例", url: "https://example.com/demo" }]),
+    });
+    expect(meta.rows).toContain("試聽範例：試聽範例：https://example.com/demo");
+  });
+
+  it("RoleSetting JSON decoded — no raw JSON in rows", () => {
+    const roleJson = JSON.stringify({ mode: "multi", items: [{ name: "A", text: "B" }] });
+    const meta = buildPublicReaderExportMetadata({
+      ...BASE,
+      customMetadata: [{ key: "RoleSetting", value: roleJson }],
+    });
+    const row = meta.rows.find((r) => r.startsWith("角色設定"));
+    expect(row).toContain("A：B");
+    expect(row).not.toContain('"mode"');
+  });
+});
+
 describe("buildPublicReaderExportMetadata — license special terms", () => {
   it("licenseSpecialTerms from customMetadata (legacy JSON array) appears in rows", () => {
     const meta = buildPublicReaderExportMetadata({
