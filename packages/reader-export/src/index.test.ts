@@ -33,6 +33,16 @@ describe("buildPrintHtml", () => {
     const html = buildPrintHtml({});
     expect(html).toContain('<article class="script-renderer"></article>');
   });
+
+  it("forces light color-scheme to prevent dark-mode bleed in print", () => {
+    const html = buildPrintHtml({});
+    expect(html).toContain("color-scheme: light");
+  });
+
+  it("sets body color: black as light-theme baseline", () => {
+    const html = buildPrintHtml({});
+    expect(html).toContain("color: black");
+  });
 });
 
 // ── getRenderedSnapshot (fallback path, no DOM) ───────────────────────────────

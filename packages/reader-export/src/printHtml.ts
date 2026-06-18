@@ -79,8 +79,12 @@ export function buildPrintHtml({
     }
 
     /* Base Layout for the Print View (before printing) */
+    :root {
+      color-scheme: light;
+    }
     body {
       background: white;
+      color: black;
       padding: 24px; /* Visible padding in the iframe preview if inspected */
     }
   </style>

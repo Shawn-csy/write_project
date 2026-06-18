@@ -38,6 +38,11 @@ export const exportScriptAsPdf = async (
   iframeDoc.close();
   styles.forEach((styleNode) => iframeDoc.head.appendChild(styleNode));
 
+  // Force light theme in print iframe regardless of reader's active dark/light setting.
+  iframeDoc.documentElement.classList.remove("dark");
+  iframeDoc.documentElement.classList.add("light");
+  iframeDoc.documentElement.style.colorScheme = "light";
+
   const waitForImages = (doc: Document, timeoutMs = 2200) =>
     new Promise<void>((resolve) => {
       const images = Array.from(doc.images || []).filter((img) => !img.complete);
