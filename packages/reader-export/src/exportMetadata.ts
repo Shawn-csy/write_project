@@ -255,7 +255,7 @@ export const buildExportMetadata = (source: ExportMetadataSource | null | undefi
   const rawDemoLinks: Array<{ name?: unknown; url?: unknown }> = Array.isArray(source?.demoLinks)
     ? (source.demoLinks as Array<{ name?: unknown; url?: unknown }>)
     : (() => {
-        const raw = meta.activitydemolinks || meta.activitydemourl || meta.eventdemolinks;
+        const raw = meta.activitydemolinks || meta.activitydemourl || meta.eventdemolinks || meta.eventdemolink;
         if (!raw) return [];
         try {
           const parsed = JSON.parse(raw);
