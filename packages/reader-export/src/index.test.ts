@@ -163,6 +163,11 @@ describe("buildExportMetadata — metadata depth", () => {
     expect(meta.rows).toContain("試聽範例：試聽01：https://example.com/demo");
   });
 
+  it("EventDemoLink legacy customMetadata key is emitted as demoLink row", () => {
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "EventDemoLink", value: "https://example.com/legacy-demo" }] });
+    expect(meta.rows).toContain("試聽範例：https://example.com/legacy-demo");
+  });
+
   it("targetAudience from customMetadata (P2 overlay alignment)", () => {
     const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "TargetAudience", value: "女性向" }] });
     expect(meta.rows.find((r) => r.startsWith("觀眾"))).toContain("女性向");
