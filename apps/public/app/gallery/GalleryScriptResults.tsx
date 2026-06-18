@@ -85,6 +85,7 @@ export function GalleryScriptResults({ model, onResetFilters }: GalleryScriptRes
                 series={entry}
                 variant="compact"
                 href={`/series/${encodeURIComponent(entry.name)}`}
+                authorHref={authorHref(entry.leadScript)}
                 showAgeGate={entry.hasAgeGate}
               />
             );
@@ -126,6 +127,7 @@ export function GalleryScriptResults({ model, onResetFilters }: GalleryScriptRes
                 series={entry}
                 variant="standard"
                 href={`/series/${encodeURIComponent(entry.name)}`}
+                authorHref={authorHref(entry.leadScript)}
                 showAgeGate={entry.hasAgeGate}
               />
             );
@@ -168,6 +170,7 @@ export function GalleryScriptResults({ model, onResetFilters }: GalleryScriptRes
                   series={entry}
                   variant="standard"
                   href={`/series/${encodeURIComponent(entry.name)}`}
+                  authorHref={authorHref(entry.leadScript)}
                   showAgeGate={entry.hasAgeGate}
                 />
               </div>
@@ -197,6 +200,7 @@ export function GalleryScriptResults({ model, onResetFilters }: GalleryScriptRes
                   series={entry}
                   variant="standard"
                   href={`/series/${encodeURIComponent(entry.name)}`}
+                  authorHref={authorHref(entry.leadScript)}
                   showAgeGate={entry.hasAgeGate}
                 />
               </div>

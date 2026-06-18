@@ -21,7 +21,7 @@ const ACTIONS: PublicReaderActions = {
   liked: false,
   likeInFlight: false,
   copied: false,
-  canDownload: false,
+  canDownload: true,
   handleLike: () => {},
   handleShare: () => {},
   handleDownloadTxt: () => {},

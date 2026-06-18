@@ -12,6 +12,8 @@ export interface SeriesGalleryCardProps {
   variant?: "standard" | "compact";
   /** href for the series index page (e.g. /series/[name]). Required for keyboard/a11y. */
   href: string;
+  /** href for the primary author page. App-owned so this package stays router-neutral. */
+  authorHref?: string;
   /** Show R-18 age gate indicator when series contains adult content */
   showAgeGate?: boolean;
 }
@@ -39,6 +41,7 @@ function SeriesGalleryCardInner({
   series,
   variant = "standard",
   href,
+  authorHref,
   showAgeGate = false,
 }: SeriesGalleryCardProps): React.JSX.Element {
   const { name, scripts, leadScript, latestScript, coverUrl, summary, updatedAt } = series;
@@ -55,6 +58,26 @@ function SeriesGalleryCardInner({
       updatedLabel: formatUpdatedAt(updatedAt),
     };
   }, [scripts.length, latestScript, updatedAt]);
+
+  const authorName =
+    typeof leadScript.author === "object"
+      ? leadScript.author?.displayName
+      : leadScript.author;
+
+  const authorEl = authorName ? (
+    authorHref ? (
+      <a
+        href={authorHref}
+        className="relative z-10 inline-flex min-w-0 max-w-full text-xs text-muted-foreground hover:text-foreground hover:underline no-underline"
+      >
+        <span className="truncate">{authorName}</span>
+      </a>
+    ) : (
+      <span className="inline-flex min-w-0 max-w-full text-xs text-muted-foreground">
+        <span className="truncate">{authorName}</span>
+      </span>
+    )
+  ) : null;
 
   // Cover element — series cover or lead script cover or design
   const coverEl = cropCover.src ? (
@@ -124,6 +147,7 @@ function SeriesGalleryCardInner({
                 最新：{latestTitle}
               </p>
             )}
+            {authorEl && <div className="pt-0.5">{authorEl}</div>}
           </div>
         </div>
       </article>
@@ -164,6 +188,8 @@ function SeriesGalleryCardInner({
             {name}
           </a>
         </h3>
+
+        {authorEl}
 
         {summary && (
           <p className="text-[11px] text-muted-foreground line-clamp-2">{summary}</p>
