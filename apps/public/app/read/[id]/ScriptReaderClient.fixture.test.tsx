@@ -30,14 +30,6 @@ import {
 import type { MarkerConfig, TocEntry } from "@write/script-engine";
 import { ScriptReaderClient } from "./ScriptReaderClient";
 
-vi.mock("@write/browser-download", () => ({
-  sanitizeBaseFilename: (v: string) => v.toLowerCase().replace(/\s+/g, "_"),
-  buildFilename: (base: string, ext: string) =>
-    `${base.toLowerCase().replace(/\s+/g, "_")}.${ext}`,
-  downloadBlob: vi.fn(),
-  downloadText: vi.fn(),
-}));
-
 function makeFetch() {
   return vi.fn().mockImplementation((url: string) => {
     if (String(url).includes("like-status")) {

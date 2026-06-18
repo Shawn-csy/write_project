@@ -21,11 +21,20 @@ import { parseScreenplay, toRenderBlocks, normalizeMarkerConfigsSchema } from "@
 import type { MarkerConfig } from "@write/script-engine";
 import { ScriptReaderClient } from "./ScriptReaderClient";
 
-vi.mock("@write/browser-download", () => ({
-  sanitizeBaseFilename: (v: string) => v.toLowerCase().replace(/\s+/g, "_"),
-  buildFilename: (base: string, ext: string) => `${base.toLowerCase().replace(/\s+/g, "_")}.${ext}`,
-  downloadBlob: vi.fn(),
-  downloadText: vi.fn(),
+// ---------------------------------------------------------------------------
+// Module mocks
+// ---------------------------------------------------------------------------
+
+const mockExportScriptAsPdf = vi.fn().mockResolvedValue(undefined);
+// Returning a real Element lets usePublicExport set pdfReady=true immediately.
+const mockPickRenderedRoot = vi.fn(() => document.createElement("div"));
+
+vi.mock("@write/reader-export", () => ({
+  exportScriptAsPdf: (...args: unknown[]) => mockExportScriptAsPdf(...args),
+  pickRenderedRoot: () => mockPickRenderedRoot(),
+  buildPrintHtml: vi.fn(),
+  getRenderedSnapshot: vi.fn(),
+  getRenderedLines: vi.fn(),
 }));
 
 // ---------------------------------------------------------------------------
@@ -173,13 +182,13 @@ describe("ScriptReaderClient — Next host assembly", () => {
     });
   });
 
-  it("download button hidden when content is absent", async () => {
+  it("does not expose route-local text download even when content is present", async () => {
     const { markerConfigs, renderBlocks } = buildProps();
     await act(async () => {
       render(
         <ScriptReaderClient
           scriptId="test-script-id"
-          initialScript={{ ...MINIMAL_SCRIPT }}  // no content field
+          initialScript={{ ...MINIMAL_SCRIPT, content: SCRIPT_TEXT }}
           renderBlocks={renderBlocks}
           markerConfigs={markerConfigs}
           toc={[]}
@@ -187,41 +196,6 @@ describe("ScriptReaderClient — Next host assembly", () => {
       );
     });
     expect(screen.queryByRole("button", { name: /下載 .txt/i })).toBeNull();
-  });
-
-  it("download button visible when content is present", async () => {
-    const { markerConfigs, renderBlocks } = buildProps();
-    await act(async () => {
-      render(
-        <ScriptReaderClient
-          scriptId="test-script-id"
-          initialScript={{ ...MINIMAL_SCRIPT, content: SCRIPT_TEXT }}
-          renderBlocks={renderBlocks}
-          markerConfigs={markerConfigs}
-          toc={[]}
-        />
-      );
-    });
-    expect(screen.getByRole("button", { name: /下載 .txt/i })).toBeTruthy();
-  });
-
-  it("download button calls downloadText with script content and sanitized filename", async () => {
-    const { downloadText } = await import("@write/browser-download");
-    const user = userEvent.setup();
-    const { markerConfigs, renderBlocks } = buildProps();
-    await act(async () => {
-      render(
-        <ScriptReaderClient
-          scriptId="test-script-id"
-          initialScript={{ ...MINIMAL_SCRIPT, content: SCRIPT_TEXT }}
-          renderBlocks={renderBlocks}
-          markerConfigs={markerConfigs}
-          toc={[]}
-        />
-      );
-    });
-    await user.click(screen.getByRole("button", { name: /下載 .txt/i }));
-    expect(downloadText).toHaveBeenCalledWith(SCRIPT_TEXT, "test_script_title.txt");
   });
 
   it("no marker trigger when markerConfigs is empty", async () => {
@@ -241,4 +215,78 @@ describe("ScriptReaderClient — Next host assembly", () => {
     });
     expect(screen.queryByText(/標記 \(/)).toBeNull();
   });
+});
+
+describe("ScriptReaderClient — toolbar PDF + share contract", () => {
+  let originalFetch: typeof global.fetch;
+
+  beforeEach(() => {
+    originalFetch = global.fetch;
+    global.fetch = makeFetchMock() as unknown as typeof global.fetch;
+    mockExportScriptAsPdf.mockClear();
+    mockPickRenderedRoot.mockClear();
+    mockPickRenderedRoot.mockReturnValue(document.createElement("div"));
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    vi.restoreAllMocks();
+  });
+
+  function renderClient() {
+    const { markerConfigs, renderBlocks } = buildProps();
+    return render(
+      <ScriptReaderClient
+        scriptId="test-script-id"
+        initialScript={MINIMAL_SCRIPT}
+        renderBlocks={renderBlocks}
+        markerConfigs={markerConfigs}
+        toc={[]}
+      />
+    );
+  }
+
+  it("toolbar renders 分享 button", async () => {
+    await act(async () => { renderClient(); });
+    expect(screen.queryByRole("button", { name: /分享/ })).not.toBeNull();
+  });
+
+  it("toolbar renders PDF button", async () => {
+    await act(async () => { renderClient(); });
+    expect(screen.queryByRole("button", { name: /PDF/ })).not.toBeNull();
+  });
+
+  it("PDF button enabled once pickRenderedRoot returns a node", async () => {
+    await act(async () => { renderClient(); });
+    // rAF fires synchronously in jsdom, so pdfReady should be true after act
+    await waitFor(() => {
+      const btn = screen.getByRole("button", { name: /PDF/ });
+      expect((btn as HTMLButtonElement).disabled).toBe(false);
+    });
+  });
+
+  it("PDF button disabled when pickRenderedRoot returns null", async () => {
+    mockPickRenderedRoot.mockReturnValue(null);
+    await act(async () => { renderClient(); });
+    const btn = screen.getByRole("button", { name: /PDF/ });
+    expect((btn as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("clicking PDF button calls exportScriptAsPdf", async () => {
+    const user = userEvent.setup();
+    await act(async () => { renderClient(); });
+    await waitFor(() => {
+      expect((screen.getByRole("button", { name: /PDF/ }) as HTMLButtonElement).disabled).toBe(false);
+    });
+    await act(async () => {
+      await user.click(screen.getByRole("button", { name: /PDF/ }));
+    });
+    expect(mockExportScriptAsPdf).toHaveBeenCalledTimes(1);
+    expect(mockExportScriptAsPdf).toHaveBeenCalledWith(
+      MINIMAL_SCRIPT.title,
+      expect.objectContaining({ renderedHtml: expect.any(String), headerHtml: expect.any(String) })
+    );
+  });
+
+  // Share clipboard/prompt paths covered by usePublicReaderShare.test.ts.
 });

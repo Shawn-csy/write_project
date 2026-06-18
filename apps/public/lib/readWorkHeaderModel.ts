@@ -12,7 +12,6 @@ export interface ReadWorkHeaderStatsInput {
   views: number;
   likes: number;
   liked: boolean;
-  canDownload: boolean;
 }
 
 // ── sub-types re-exported for consumers ──────────────────────────────────
@@ -52,7 +51,6 @@ export interface ReadWorkHeaderModel {
   views: number;
   likes: number;
   isLiked: boolean;
-  canDownload: boolean;
   durationMinutes: number | undefined;
   dialogueChars: number | undefined;
 
@@ -146,7 +144,6 @@ export function buildReadWorkHeaderModel(
     views: stats.views,
     likes: stats.likes,
     isLiked: stats.liked,
-    canDownload: stats.canDownload,
     durationMinutes,
     dialogueChars,
     tags,

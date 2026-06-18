@@ -7,7 +7,6 @@ const BASE_STATS: ReadWorkHeaderStatsInput = {
   views: 10,
   likes: 3,
   liked: false,
-  canDownload: false,
 };
 
 function baseScript(overrides: Partial<PublicScript> = {}): PublicScript {
@@ -123,12 +122,10 @@ describe("buildReadWorkHeaderModel — stats", () => {
       views: 100,
       likes: 5,
       liked: true,
-      canDownload: true,
     });
     expect(model.views).toBe(100);
     expect(model.likes).toBe(5);
     expect(model.isLiked).toBe(true);
-    expect(model.canDownload).toBe(true);
   });
 });
 

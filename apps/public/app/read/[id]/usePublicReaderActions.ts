@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { buildFilename, downloadText } from "@/lib/download";
 
 function getOrCreateVisitorId(): string {
   try {
@@ -22,25 +21,18 @@ export interface PublicReaderActions {
   likes: number;
   liked: boolean;
   likeInFlight: boolean;
-  copied: boolean;
-  canDownload: boolean;
   handleLike: () => Promise<void>;
-  handleShare: () => Promise<void>;
-  handleDownloadTxt: () => void;
 }
 
 export function usePublicReaderActions(
   scriptId: string,
   initialViews: number,
   initialLikes: number,
-  scriptTitle: string,
-  scriptContent: string,
 ): PublicReaderActions {
   const [views, setViews] = useState(initialViews);
   const [likes, setLikes] = useState(initialLikes);
   const [liked, setLiked] = useState(false);
   const [likeInFlight, setLikeInFlight] = useState(false);
-  const [copied, setCopied] = useState(false);
   const likeRef = useRef(liked);
   likeRef.current = liked;
 
@@ -88,26 +80,8 @@ export function usePublicReaderActions(
     }
   }, [scriptId, likeInFlight]);
 
-  const handleShare = useCallback(async () => {
-    const url = window.location.href;
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-        return;
-      }
-    } catch { /* fallback */ }
-    window.prompt("複製連結：", url);
-  }, []);
-
-  const handleDownloadTxt = useCallback(() => {
-    downloadText(scriptContent, buildFilename(scriptTitle, "txt"));
-  }, [scriptTitle, scriptContent]);
-
   return {
-    views, likes, liked, likeInFlight, copied,
-    canDownload: scriptContent.length > 0,
-    handleLike, handleShare, handleDownloadTxt,
+    views, likes, liked, likeInFlight,
+    handleLike,
   };
 }

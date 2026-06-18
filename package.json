@@ -27,6 +27,7 @@
   "dependencies": {
     "@write/browser-download": "*",
     "@write/media-crop": "*",
+    "@write/reader-export": "*",
     "@write/script-engine": "*",
     "@write/script-reader-renderer": "*",
     "@write/script-reader-ui": "*",

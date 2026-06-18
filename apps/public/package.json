@@ -16,6 +16,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@write/browser-download": "*",
     "@write/media-crop": "*",
+    "@write/reader-export": "*",
     "@write/public-ui": "*",
     "@write/script-engine": "*",
     "@write/script-reader-renderer": "*",
