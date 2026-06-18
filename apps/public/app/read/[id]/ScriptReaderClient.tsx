@@ -14,8 +14,8 @@ import { ScriptContentRenderer } from "./ScriptContentRenderer";
 import { ReaderToolbar } from "./ReaderToolbar";
 import { usePublicReaderActions } from "./usePublicReaderActions";
 import { useSeriesChapterNav } from "./useSeriesChapterNav";
-import { SeriesChapterNavBar } from "./SeriesChapterNavBar";
 import { useSeriesProgress } from "./useSeriesProgress";
+import { SeriesChapterNavigation } from "./SeriesChapterNavigation";
 import { ReadWorkHeader } from "./ReadWorkHeader";
 import { buildReadWorkHeaderModel } from "@/lib/readWorkHeaderModel";
 
@@ -88,19 +88,34 @@ export function ScriptReaderClient({
       coverUrl={initialScript.coverUrl}
       toolbar={<ReaderToolbar readerState={readerState} />}
       header={
-        <ReadWorkHeader
-          model={headerModel}
-          actions={{
-            onLike: actions.handleLike,
-            onShare: actions.handleShare,
-            onDownload: actions.handleDownloadTxt,
-            copied: actions.copied,
-          }}
-        />
+        <>
+          {seriesNav && (
+            <SeriesChapterNavigation
+              nav={seriesNav}
+              hasNewChapter={hasNewChapter}
+              variant="header"
+            />
+          )}
+          <ReadWorkHeader
+            model={headerModel}
+            actions={{
+              onLike: actions.handleLike,
+              onShare: actions.handleShare,
+              onDownload: actions.handleDownloadTxt,
+              copied: actions.copied,
+            }}
+          />
+        </>
       }
       footer={
         <footer className="mt-12 pt-6 border-t border-border/40">
-          {seriesNav && <SeriesChapterNavBar nav={seriesNav} hasNewChapter={hasNewChapter} />}
+          {seriesNav && (
+            <SeriesChapterNavigation
+              nav={seriesNav}
+              hasNewChapter={hasNewChapter}
+              variant="footer"
+            />
+          )}
           {!seriesNav && initialScript.series?.name && (
             <div className="mb-4">
               <a

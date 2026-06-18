@@ -11,7 +11,7 @@ import {
 } from "@write/public-ui";
 import type { ChapterNavModel } from "@write/public-ui";
 
-// Re-export so SeriesChapterNavBar can import from one place
+// Re-export so SeriesChapterNavigation can import from one place
 export type { ChapterNavItem, ChapterNavModel } from "@write/public-ui";
 export type SeriesChapterNav = ChapterNavModel;
 
