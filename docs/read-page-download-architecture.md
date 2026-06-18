@@ -10,6 +10,9 @@
 | Rendered HTML source | Live DOM snapshot of `.script-renderer` via `pickRenderedRoot()`. Same mechanism as Vite. Works client-side in Next.js (same renderer package used). |
 | New package | `packages/reader-export` — extracts the pure PDF/print logic from Vite's `src/lib/`. |
 
+Related design: `docs/read-page-export-metadata-projection.md` defines how PDF
+metadata rows must stay aligned with the visible public reader metadata model.
+
 ## Why PDF, not .txt
 
 - Vite public reader already has PDF as the primary export.

@@ -23,6 +23,7 @@ export interface ExportMetadataSource {
   licenseSpecialTerms?: unknown[];
   targetAudience?: unknown;
   contentRating?: unknown;
+  outline?: unknown;
   activityName?: unknown;
   activityContent?: unknown;
   demoLinks?: unknown[];
@@ -45,7 +46,12 @@ export type ExportMetadataFieldKey =
   | "series"
   | "tags"
   | "audience"
+  | "outline"
   | "roleSetting"
+  | "backgroundInfo"
+  | "performanceInstruction"
+  | "openingIntro"
+  | "chapterSettings"
   | "situationInfo"
   | "customField"
   | "activity"
@@ -69,7 +75,12 @@ export const EXPORT_METADATA_FIELD_ORDER: ExportMetadataFieldKey[] = [
   "series",
   "tags",
   "audience",
+  "outline",
   "roleSetting",
+  "backgroundInfo",
+  "performanceInstruction",
+  "openingIntro",
+  "chapterSettings",
   "situationInfo",
   "customField",
   "activity",
@@ -86,14 +97,22 @@ const RESERVED_META_KEYS = new Set([
   "licensespecialterms", "licensetags",
   "series", "seriesorder",
   "marker_legend", "show_legend",
-  "synopsis", "outline",
+  "synopsis",
   // activity/event keys — handled via dedicated source fields, not customField
   "activityname", "activitybanner", "activitycontent",
   "activityworkurl", "activitydemolinks", "activitydemourl",
   "eventname", "eventbanner", "eventcontent",
   "eventworklink", "eventdemolinks", "eventdemolink",
-  // dedicated fields
-  "rolesetting", "situationinfo",
+  // preface fields — mapped to public labels
+  "outline", "大綱",
+  "rolesetting", "角色設定",
+  "backgroundinfo", "environmentinfo", "背景資訊",
+  "performanceinstruction", "演繹指示",
+  "openingintro", "作品的開頭引言",
+  "chaptersettings", "章節",
+  "situationinfo", "狀況", "狀況資訊", "情境",
+  // title override from customMetadata
+  "title",
   "contact",
   // tag-derived
   "targetaudience", "contentrating",
@@ -131,6 +150,18 @@ export const formatStructuredMetadataValue = (raw: string): string => {
             const text = normalize(item.text);
             if (name && text) return `${name}：${text}`;
             return name || text;
+          })
+          .filter(Boolean)
+          .join(" / ");
+      }
+      if (mode === "chapter_multi" && Array.isArray(parsed.items)) {
+        return (parsed.items as Array<{ chapter?: unknown; environment?: unknown; situation?: unknown }>)
+          .map((item) => {
+            const chapter = normalize(item.chapter);
+            const env = normalize(item.environment);
+            const sit = normalize(item.situation);
+            const parts = [env && `環境：${env}`, sit && `狀況：${sit}`].filter(Boolean).join("；");
+            return chapter ? (parts ? `${chapter}（${parts}）` : chapter) : parts;
           })
           .filter(Boolean)
           .join(" / ");
@@ -188,6 +219,9 @@ export const buildExportMetadata = (source: ExportMetadataSource | null | undefi
   const rawEntries = Array.isArray(source?.customMetadata) ? source.customMetadata : [];
   const meta = customMetadataEntriesToMeta(rawEntries);
 
+  // Title fallback: source → customMetadata.Title → fallbackTitle
+  const titleValue = normalize(source?.title) || normalize(meta.title) || fallbackTitle || "Script";
+
   const authorOverride = normalize(meta.author);
   const authorDisplayMode = normalize(meta.authordisplaymode).toLowerCase();
   const authorName = (
@@ -244,9 +278,21 @@ export const buildExportMetadata = (source: ExportMetadataSource | null | undefi
     .map((item) => normalize(typeof item === "object" && item !== null ? (item as { text?: string }).text ?? item : item))
     .filter(Boolean);
 
-  // P1a: RoleSetting may be JSON — decode structured payload to human-readable form
-  const roleSetting = formatStructuredMetadataValue(normalize(meta.rolesetting));
-  const situationInfo = normalize(meta.situationinfo);
+  // Preface fields — map customMetadata keys to public labels, decode structured JSON
+  const getPreface = (...keys: string[]) => {
+    for (const k of keys) {
+      const v = normalize((meta as Record<string, unknown>)[k]);
+      if (v) return v;
+    }
+    return "";
+  };
+  const outlineValue = normalize(source?.outline) || getPreface("outline", "大綱");
+  const roleSetting = formatStructuredMetadataValue(getPreface("rolesetting", "角色設定"));
+  const backgroundInfo = getPreface("backgroundinfo", "environmentinfo", "背景資訊");
+  const performanceInstruction = formatStructuredMetadataValue(getPreface("performanceinstruction", "演繹指示"));
+  const openingIntro = getPreface("openingintro", "作品的開頭引言");
+  const chapterSettings = formatStructuredMetadataValue(getPreface("chaptersettings", "章節"));
+  const situationInfo = getPreface("situationinfo", "狀況", "狀況資訊", "情境");
 
   // P1b: activity fields — read from source top-level (Next: PublicScript structured fields)
   // then fallback to customMetadata legacy keys
@@ -283,7 +329,7 @@ export const buildExportMetadata = (source: ExportMetadataSource | null | undefi
     .map(({ label, value }) => ({ key: "customField" as const, label, value }));
 
   const fields = [
-    { key: "title" as const, label: "標題", value: normalize(source?.title) || fallbackTitle || "Script" },
+    { key: "title" as const, label: "標題", value: titleValue },
     synopsis ? { key: "synopsis" as const, label: "簡介", value: synopsis } : null,
     organizationName ? { key: "organization" as const, label: "組織", value: organizationName } : null,
     authorName ? { key: "author" as const, label: "作者", value: authorName } : null,
@@ -291,7 +337,12 @@ export const buildExportMetadata = (source: ExportMetadataSource | null | undefi
     seriesName ? { key: "series" as const, label: "系列", value: `${seriesName}${seriesOrder !== "" ? ` #${seriesOrder}` : ""}` } : null,
     displayTags.length ? { key: "tags" as const, label: "標籤", value: displayTags.join("、") } : null,
     audienceValue ? { key: "audience" as const, label: "觀眾", value: audienceValue } : null,
+    outlineValue ? { key: "outline" as const, label: "大綱", value: outlineValue } : null,
     roleSetting ? { key: "roleSetting" as const, label: "角色設定", value: roleSetting } : null,
+    backgroundInfo ? { key: "backgroundInfo" as const, label: "背景資訊", value: backgroundInfo } : null,
+    performanceInstruction ? { key: "performanceInstruction" as const, label: "演繹指示", value: performanceInstruction } : null,
+    openingIntro ? { key: "openingIntro" as const, label: "作品的開頭引言", value: openingIntro } : null,
+    chapterSettings ? { key: "chapterSettings" as const, label: "章節", value: chapterSettings } : null,
     situationInfo ? { key: "situationInfo" as const, label: "狀況", value: situationInfo } : null,
     ...customFieldRows,
     activityName ? { key: "activity" as const, label: "活動", value: activityContent ? `${activityName}：${activityContent}` : activityName } : null,
@@ -307,7 +358,7 @@ export const buildExportMetadata = (source: ExportMetadataSource | null | undefi
     .map((field) => field.key === "license" ? field.value : `${field.label}：${field.value}`);
 
   return {
-    title: normalize(source?.title) || fallbackTitle || "Script",
+    title: titleValue,
     synopsis,
     fields,
     rows,
