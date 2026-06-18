@@ -336,19 +336,68 @@ Initial implementation can remain series-progress only, but the architecture sho
 
 - `page.tsx`
 - `ScriptReaderClient`
+- `ReadWorkHeader`
+- `readWorkHeaderModel.ts`
 - `usePublicReaderActions`
 - `useSeriesChapterNav`
 - `useSeriesProgress`
 - route-specific href builders
 - Next metadata builders or app-local SEO model
 
+`ScriptReaderClient` should be an assembly layer only. It may wire reader state,
+series hooks, action hooks, and render slots, but it should not know how to
+project script metadata into a work header.
+
+`readWorkHeaderModel.ts` owns the app-local public script projection for the read
+header:
+
+- author/org identity
+- semantic href targets
+- tag display and hrefs
+- series label and position text
+- synopsis and cover inputs
+- reading stats
+- rating/license summary
+- preface/demo/custom metadata grouping
+- action availability
+
 ### Candidate for `@write/public-ui`
 
 Only if needed across more public routes:
 
-- router-neutral `PublicReadHeader`
+- router-neutral `ReadWorkHeader` primitives
 - router-neutral `SeriesChapterNavigation`
 - work metadata display primitives
+
+`@write/public-ui` may own visual primitives such as:
+
+- `WorkCover`
+- `WorkIdentity`
+- `WorkMetadataBadges`
+- `WorkLicenseSummary`
+- `WorkPrefaceDetails`
+- `WorkDemoLinks`
+
+It should not own the Next read route model, app-specific hrefs, or SEO data.
+
+### `PublicScriptInfoOverlay` Status
+
+`PublicScriptInfoOverlay` is feature-complete but not the ideal long-term read
+header architecture. It mixes cover rendering, title/synopsis, creator identity,
+engagement metrics, license badges, tags, preface data, demo links, custom fields,
+and layout styling in one component.
+
+Long-term rule:
+
+- Do not make `PublicScriptInfoOverlay` the canonical read-page header.
+- Do not replace it with the app-local `PublicReaderHeader`, which is too small
+  and drops important public metadata.
+- Treat `PublicScriptInfoOverlay` as a transitional source of behavior and visual
+  material while extracting smaller primitives.
+- Once `ReadWorkHeader` owns the canonical composition, either delete
+  `PublicReaderHeader` or convert it into a test-only fixture if still needed.
+- `PublicScriptInfoOverlay` may remain as a compatibility composition only if it
+  is rebuilt from the same smaller primitives used by `ReadWorkHeader`.
 
 ### Keep in `@write/script-reader-ui`
 
@@ -389,25 +438,110 @@ Caveats / not done:
 
 - `generateMetadata().other["application/ld+json"]` approach was intentionally skipped: Next.js `other` produces a `<meta>` tag, not a `<script>` block. JSON-LD is crawler-relevant only via real `<script>` injection in the page component.
 
-### Phase 2 — Read Page Information Hierarchy
+### Phase 2 — Read Work Header Model and Canonical Composition ✓ DONE (2026-06-18)
 
-Goal: turn the read page from "assembled feature blocks" into a deliberate reader page.
+Goal: turn the read page from "assembled feature blocks" into a deliberate,
+model-driven reader page header.
 
-Tasks:
+This phase must not simply wrap `PublicScriptInfoOverlay`. A wrapper would reduce
+local complexity in `ScriptReaderClient`, but it would preserve the wrong
+long-term boundary: one large overlay component owning too many unrelated
+responsibilities.
 
-- Extract `ReadWorkHeader` from `ScriptReaderClient`.
-- Separate primary reading controls from secondary engagement actions.
-- Move like/share/download into a secondary actions group.
-- Keep marker/TOC/preferences in primary reader controls.
-- Add "Start reading" anchor from header to script body.
-- Ensure author/org/tag links remain semantic anchors.
+The desired architecture is:
+
+```tsx
+const headerModel = buildReadWorkHeaderModel({
+  script: initialScript,
+  seriesNav,
+  actions,
+});
+
+return (
+  <PublicReaderShell
+    toolbar={<ReaderToolbar readerState={readerState} />}
+    header={<ReadWorkHeader model={headerModel} actions={actions} />}
+    footer={<ReadFooterNavigation ... />}
+  >
+    <section id="script-body">
+      <ScriptContentRenderer ... />
+    </section>
+  </PublicReaderShell>
+);
+```
+
+Target composition:
+
+```text
+ReadWorkHeader
+  ReadHeroIdentity
+    cover
+    title
+    author/org
+    series position
+    synopsis
+
+  ReadPrimaryActions
+    start reading
+    TOC trigger/reference
+    marker visibility
+    reader preferences
+
+  ReadSecondaryActions
+    like
+    share
+    download
+
+  ReadMetadataSummary
+    tags
+    rating
+    audience
+    license summary
+
+  ReadExpandableDetails
+    preface items
+    role settings
+    chapter settings
+    demo links
+    custom fields
+```
+
+Completed:
+
+- Added `apps/public/lib/readWorkHeaderModel.ts`.
+- Moved author/org/tags projection from `ScriptReaderClient` into the model.
+- Moved duration/dialogue estimate into the model.
+- Moved `buildScriptOverlayProps(initialScript)` consumption into the model via a
+  focused helper called by the model.
+- Added `ReadWorkHeader` as the canonical read-page header composition.
+- Split primary reading controls from secondary engagement actions.
+- Kept like/share/download in a secondary actions group.
+- Kept marker/TOC/preferences in the shared reader toolbar.
+- Added "Start reading" anchor from header to `#script-body`.
+- Ensured author/org/tag links remain semantic anchors.
+- Preserved all metadata currently available through `PublicScriptInfoOverlay`:
+  cover/crop/design, license fields, rating, target audience, preface items,
+  demo links, custom fields, views/likes/stats.
+- Deleted app-local `PublicReaderHeader` and its test.
+- Added `readWorkHeaderModel.test.ts` and `ReadWorkHeader.test.tsx`.
+- Kept downloads on the same canonical browser download pipeline as Vite:
+  `apps/public/lib/download.ts` and `src/lib/download.ts` both re-export
+  `@write/browser-download`.
 
 Definition of Done:
 
-- `ScriptReaderClient` becomes a thin assembly layer.
-- Header answers the work-orientation questions.
-- Script body starts predictably after the header.
-- Download/share/like remain available but do not dominate.
+- [x] `ScriptReaderClient` becomes a thin assembly layer.
+- [x] `ReadWorkHeader` renders from a stable model object, not raw `PublicScript`.
+- [x] The header model is covered by pure tests.
+- [x] Header integration tests cover title, author/org/tag links, series position,
+  start-reading anchor, secondary actions, and license/rating metadata.
+- [x] Header answers the work-orientation questions.
+- [x] Script body starts predictably after the header.
+- [x] Download/share/like remain available but do not dominate.
+- [x] `PublicScriptInfoOverlay` is no longer the canonical read-page header boundary.
+  If it still exists, it is either transitional or rebuilt from smaller shared
+  primitives.
+- [x] `PublicReaderHeader` does not remain as an unused competing header.
 
 ### Phase 3 — Canonical Series Navigation
 
@@ -490,12 +624,10 @@ Do not:
 
 ## Immediate Next Step
 
-Start with Phase 1.
+Start Phase 2 with `readWorkHeaderModel.ts`.
 
 Reason:
 
-- It is high-value and low-risk.
-- It fixes the most concrete SEO gap.
-- It creates a clean model that Phase 2 can reuse for visible title/series labels.
-- It prevents later UI work from drifting away from metadata.
-
+- Phase 1 has already created the SEO model that Phase 2 can reuse for visible title and series labels.
+- The next structural risk is not styling; it is header ownership and projection logic living inside `ScriptReaderClient`.
+- A pure header model lets the UI move toward a canonical read-page composition without making `PublicScriptInfoOverlay` the long-term boundary.

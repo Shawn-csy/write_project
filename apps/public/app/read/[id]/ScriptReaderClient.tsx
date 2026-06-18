@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import type { PublicScript } from "@/lib/types";
 import type { RenderBlock, TocEntry, MarkerConfig } from "@write/script-engine";
 import {
@@ -9,17 +9,15 @@ import {
   resolveReaderFontFamily,
   useReaderThemeClass,
 } from "@write/script-reader-ui";
-import {
-  PublicReaderShell,
-  PublicScriptInfoOverlay,
-} from "@write/public-ui";
+import { PublicReaderShell } from "@write/public-ui";
 import { ScriptContentRenderer } from "./ScriptContentRenderer";
 import { ReaderToolbar } from "./ReaderToolbar";
 import { usePublicReaderActions } from "./usePublicReaderActions";
-import { buildScriptOverlayProps } from "../../../lib/scriptProjection";
 import { useSeriesChapterNav } from "./useSeriesChapterNav";
 import { SeriesChapterNavBar } from "./SeriesChapterNavBar";
 import { useSeriesProgress } from "./useSeriesProgress";
+import { ReadWorkHeader } from "./ReadWorkHeader";
+import { buildReadWorkHeaderModel } from "@/lib/readWorkHeaderModel";
 
 interface Props {
   scriptId: string;
@@ -73,78 +71,35 @@ export function ScriptReaderClient({
     if (seriesNav) markSeen();
   }, [seriesNav, markSeen]);
 
-  // Derive author/org for overlay
-  const author = initialScript.persona
-    ? { id: initialScript.persona.id, displayName: initialScript.persona.displayName }
-    : initialScript.owner
-    ? { id: initialScript.owner.id, displayName: initialScript.owner.displayName }
-    : null;
+  const headerStats = useMemo(() => ({
+    views: actions.views,
+    likes: actions.likes,
+    liked: actions.liked,
+    canDownload: actions.canDownload,
+  }), [actions.views, actions.likes, actions.liked, actions.canDownload]);
 
-  const organization = initialScript.organization
-    ? {
-        id: initialScript.organization.id,
-        name: initialScript.organization.name,
-        logoUrl: initialScript.organization.logoUrl,
-      }
-    : null;
-
-  const tags = (initialScript.tags ?? []).map((t) => t.name).filter(Boolean);
-
-  // Estimate duration from content
-  const contentLength = initialScript.contentLength ?? (initialScript.content?.length ?? 0);
-  const durationMinutes = contentLength > 0 ? Math.round(contentLength / 2 / 200) : undefined;
-  const dialogueChars = contentLength > 0 ? Math.round(contentLength / 2) : undefined;
-
-  const overlayProps = buildScriptOverlayProps(initialScript);
-
-  const infoOverlay = (
-    <PublicScriptInfoOverlay
-      title={initialScript.title}
-      synopsis={initialScript.synopsis ?? undefined}
-      coverUrl={initialScript.coverUrl ?? undefined}
-      coverCrop={initialScript.coverCrop ?? null}
-      coverDesign={initialScript.coverDesign ?? null}
-      author={author}
-      organization={organization}
-      tags={tags}
-      tagHref={(tag) => `/tag/${encodeURIComponent(tag)}`}
-      views={actions.views}
-      likes={actions.likes}
-      isLiked={actions.liked}
-      onLike={actions.handleLike}
-      durationMinutes={durationMinutes}
-      dialogueChars={dialogueChars}
-      prefaceItems={overlayProps.prefaceItems}
-      demoLinks={overlayProps.demoLinks}
-      commercialUse={overlayProps.commercialUse}
-      derivativeUse={overlayProps.derivativeUse}
-      notifyOnModify={overlayProps.notifyOnModify}
-      licenseSpecialTerms={overlayProps.licenseSpecialTerms}
-      targetAudience={overlayProps.targetAudience}
-      contentRating={overlayProps.contentRating}
-      customFields={overlayProps.customFields}
-      license={overlayProps.license}
-    />
+  const headerModel = useMemo(
+    () => buildReadWorkHeaderModel(initialScript, headerStats),
+    [initialScript, headerStats],
   );
 
   return (
     <PublicReaderShell
       coverUrl={initialScript.coverUrl}
       toolbar={<ReaderToolbar readerState={readerState} />}
-      header={infoOverlay}
+      header={
+        <ReadWorkHeader
+          model={headerModel}
+          actions={{
+            onLike: actions.handleLike,
+            onShare: actions.handleShare,
+            onDownload: actions.handleDownloadTxt,
+            copied: actions.copied,
+          }}
+        />
+      }
       footer={
         <footer className="mt-12 pt-6 border-t border-border/40">
-          {actions.canDownload && (
-            <div className="mb-4">
-              <button
-                type="button"
-                onClick={actions.handleDownloadTxt}
-                className="text-xs px-2 py-1 rounded border border-border/60 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                下載 .txt
-              </button>
-            </div>
-          )}
           {seriesNav && <SeriesChapterNavBar nav={seriesNav} hasNewChapter={hasNewChapter} />}
           {!seriesNav && initialScript.series?.name && (
             <div className="mb-4">
@@ -165,15 +120,17 @@ export function ScriptReaderClient({
         </footer>
       }
     >
-      <ScriptContentRenderer
-        blocks={renderBlocks}
-        markerConfigs={markerConfigs}
-        hiddenMarkerIds={readerState.markerVisibility.hiddenMarkerIds}
-        fontSize={fontSize}
-        lineHeight={lineHeight}
-        readingFontFamily={readingFontFamily}
-        className="border-t border-border/40 pt-6"
-      />
+      <section id="script-body">
+        <ScriptContentRenderer
+          blocks={renderBlocks}
+          markerConfigs={markerConfigs}
+          hiddenMarkerIds={readerState.markerVisibility.hiddenMarkerIds}
+          fontSize={fontSize}
+          lineHeight={lineHeight}
+          readingFontFamily={readingFontFamily}
+          className="border-t border-border/40 pt-6"
+        />
+      </section>
     </PublicReaderShell>
   );
 }

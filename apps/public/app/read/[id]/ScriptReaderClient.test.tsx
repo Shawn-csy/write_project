@@ -4,7 +4,7 @@
  * Tests the real component, verifying that:
  *   1. ScriptReaderClient renders shared ReaderToolbar + MarkerVisibilityMenu
  *   2. marker toggle (via shared hook) correctly affects ScriptContentRenderer output
- *   3. PublicReaderHeader renders script metadata
+ *   3. ReadWorkHeader renders script metadata
  *
  * Marker hook state logic is covered by:
  *   packages/script-reader-ui/src/__fixtures__/useReaderMarkerVisibility.test.ts
@@ -93,7 +93,7 @@ describe("ScriptReaderClient — Next host assembly", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders script title and synopsis from PublicReaderHeader", async () => {
+  it("renders script title and synopsis from ReadWorkHeader", async () => {
     const { markerConfigs, renderBlocks } = buildProps();
     await act(async () => {
       render(
