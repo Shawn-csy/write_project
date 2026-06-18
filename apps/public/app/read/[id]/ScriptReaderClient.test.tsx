@@ -32,6 +32,8 @@ const mockPickRenderedRoot = vi.fn(() => document.createElement("div"));
 vi.mock("@write/reader-export", () => ({
   exportScriptAsPdf: (...args: unknown[]) => mockExportScriptAsPdf(...args),
   pickRenderedRoot: () => mockPickRenderedRoot(),
+  buildExportMetadataHtml: vi.fn(() => "<div>header</div>"),
+  buildExportMetadata: vi.fn((src: unknown) => ({ title: (src as { title?: string })?.title ?? "", synopsis: "", fields: [], rows: [] })),
   buildPrintHtml: vi.fn(),
   getRenderedSnapshot: vi.fn(),
   getRenderedLines: vi.fn(),
