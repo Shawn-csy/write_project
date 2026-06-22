@@ -167,6 +167,38 @@ export function groupScriptsIntoGalleryEntries(
   return entries;
 }
 
+// ─── featuredSeriesToGroup ─────────────────────────────────────────────────────
+
+/**
+ * Converts a FeaturedSeries (from filterModel) into a PublicSeriesGroup,
+ * reusing the canonical sortChapters / resolveCoverUrl / resolveSummary helpers.
+ */
+export function featuredSeriesToGroup(fs: {
+  name: string;
+  lead: EnrichedGalleryScript | null;
+  coverUrl: string;
+  scripts: EnrichedGalleryScript[];
+}): PublicSeriesGroup | null {
+  const sorted = sortChapters(fs.scripts);
+  const leadScript = sorted[0] ?? fs.lead;
+  if (!leadScript) return null;
+  const latestScript = [...sorted].sort(
+    (a, b) => getTimestamp(b) - getTimestamp(a)
+  )[0] ?? leadScript;
+  return {
+    type: "series",
+    key: fs.name.toLowerCase(),
+    name: fs.name,
+    scripts: sorted,
+    leadScript,
+    latestScript,
+    updatedAt: getTimestamp(latestScript) || null,
+    coverUrl: resolveCoverUrl(sorted) || fs.coverUrl || undefined,
+    summary: resolveSummary(sorted),
+    hasAgeGate: sorted.some(scriptRequiresAgeGate),
+  };
+}
+
 // ─── deriveSeriesChapterOrder ─────────────────────────────────────────────────
 
 /**

@@ -1,11 +1,11 @@
 # Read Page Export Metadata Projection
 
-Last updated: 2026-06-18
+Last updated: 2026-06-22
 
 ## Problem
 
-The public read page and the PDF export currently project script metadata through
-different paths.
+The public read page and the PDF export historically projected script metadata
+through different paths.
 
 The visible read page uses `PublicScriptInfoOverlay` through app-level projection
 logic. That path understands public reader preface fields such as:
@@ -16,11 +16,12 @@ logic. That path understands public reader preface fields such as:
 - `OpeningIntro`
 - `ChapterSettings`
 
-The PDF export uses `@write/reader-export/buildExportMetadata()`.
+The PDF export uses `@write/reader-export/buildExportMetadata()` through the
+Next adapter `buildPublicReaderPrintSnapshot()`.
 
-That model is now shared between Vite and Next, but it still does not fully share
-the same preface/presentation semantics as the visible overlay. As a result, PDF
-output can show raw implementation keys and JSON payloads:
+That model is now shared between Vite and Next and is tested with a
+metadata-rich public script fixture. The historical failure mode was that PDF
+output could show raw implementation keys and JSON payloads:
 
 ```text
 BackgroundInfo：asdasd
@@ -33,9 +34,11 @@ same public-facing metadata the reader sees on screen.
 
 ## Current QA Status
 
-Real browser print/PDF output is currently **not accepted**.
+Model and snapshot-level output is now accepted. Real browser print/PDF output
+still requires a final print-preview QA pass.
 
-Observed output still shows partial metadata and active-theme styling:
+The failing output below is the 2026-06-18 QA baseline, not the current expected
+output:
 
 ```text
 未命名劇本
@@ -50,8 +53,9 @@ OpeningIntro：asdasd
 ChapterSettings：{"mode":"chapter_multi","items":[...]}
 ```
 
-This means unit-level projection tests are insufficient. The final acceptance
-standard is the actual print output, not only `buildExportMetadata()` rows.
+Current tests assert that these raw keys/JSON/title fallback failures do not
+appear in the generated print snapshot. The final acceptance standard remains
+the actual print output, not only `buildExportMetadata()` rows.
 
 ## Principle
 
@@ -105,12 +109,36 @@ They should not expose internal English keys or raw JSON.
 |---|---|
 | `apps/public` | Next route data loading, adapter from `PublicScript` to shared model input |
 | `@write/reader-export` | Export rendering, PDF/print HTML, export metadata rows |
-| shared public metadata presentation helper | Key aliases, labels, structured JSON formatting, reserved-field filtering |
+| `@write/reader-export/publicMetadataProjection` | Key aliases, labels, structured JSON formatting, reserved-field filtering |
 | `PublicScriptInfoOverlay` | Screen rendering only |
 
-The helper can initially live in `packages/reader-export` if PDF export is the
-only consumer being changed. The long-term target is to make the same helper
-available to the public overlay projection too, so screen and PDF cannot drift.
+The helper currently lives in `packages/reader-export/src/publicMetadataProjection.ts`.
+Both export metadata and the Next public overlay projection use it, so screen and
+PDF cannot drift on preface aliases, structured JSON formatting, or reserved
+custom-field filtering.
+
+## Current Implementation
+
+The current integration point is:
+
+```text
+PublicScript + rendered .script-renderer HTML
+  ↓
+apps/public/lib/publicReaderPrintSnapshot.ts
+  buildPublicReaderPrintSnapshot()
+  ↓
+@write/reader-export
+  buildExportMetadata()
+  buildExportMetadataHtml()
+  getRenderedSnapshot()
+  buildPrintHtml()
+  ↓
+{ metadata, headerHtml, bodyHtml, printHtml }
+```
+
+`buildPublicReaderPrintSnapshot()` is intentionally route-adapter code: it knows
+the `PublicScript` shape, but it does not rebuild metadata rows or print HTML by
+hand.
 
 ## Metadata Rules
 
@@ -203,21 +231,22 @@ Legacy keys that are marked reserved must either be rendered through dedicated
 rows or explicitly documented as intentionally private. They must not be silently
 filtered away.
 
-## Implementation Plan
+## Implementation Plan and Status
 
-### Phase 1 — Shared Presentation Helpers
+### Phase 1 — Shared Presentation Helpers ✓ DONE
 
 Create pure helpers:
 
 - `normalizePublicMetadataKey(key)`
 - `formatStructuredMetadataValue(value)`
-- `buildPublicPrefaceRows(meta)`
-- `isPublicPrefaceMetadataKey(key)`
+- `buildPublicPrefaceItems(meta)`
+- `isPublicMetadataSystemKey(key)`
+- `readPublicPrefaceValue(meta, fieldKey, sourceValue)`
 
-The first implementation may live in `packages/reader-export/src/`, but should
+Implemented in `packages/reader-export/src/publicMetadataProjection.ts`. It does
 not depend on DOM, React, Next.js, or Vite.
 
-### Phase 2 — Export Metadata Uses Presentation Helpers
+### Phase 2 — Export Metadata Uses Presentation Helpers ✓ DONE
 
 Update `buildExportMetadata()` to:
 
@@ -227,7 +256,7 @@ Update `buildExportMetadata()` to:
 - remove preface keys from generic custom field rows;
 - keep current license/contact/activity/demo rows.
 
-### Phase 3 — App Adapter Integration
+### Phase 3 — App Adapter Integration ✓ DONE
 
 Update `apps/public/lib/publicReaderExportMetadata.ts` tests using a realistic
 `PublicScript` fixture that includes:
@@ -244,15 +273,20 @@ Update `apps/public/lib/publicReaderExportMetadata.ts` tests using a realistic
 
 The fixture should assert exact output rows, not only partial containment.
 
-### Phase 4 — Overlay Projection Convergence
+### Phase 4 — Overlay Projection Convergence ✓ DONE
 
-After PDF output is correct, remove duplicated preface rules from
-`apps/public/lib/scriptProjection.ts` and Vite-side public reader projection if
-they still own independent key maps.
+Duplicated preface rules were removed from `apps/public/lib/scriptProjection.ts`.
+The overlay projection now imports the same helper used by PDF export:
 
-Both screen and PDF should call the same key/formatter helpers.
+- `buildPublicPrefaceItems()`
+- `normalizePublicMetadataKey()`
+- `isPublicMetadataSystemKey()`
 
-### Phase 5 — Browser PDF QA
+Overlay tests cover `multi`, `chapter_multi`, `EnvironmentInfo`, and
+`SituationInfo`, so the visible reader header and PDF export share alias and
+formatter semantics.
+
+### Phase 5 — Browser PDF QA ◐ PENDING
 
 Use a metadata-rich script and verify print preview output:
 
@@ -262,11 +296,11 @@ Use a metadata-rich script and verify print preview output:
 - role/performance/chapter settings are readable;
 - output matches visible public metadata semantics.
 
-### Phase 6 — Light Print Theme Contract
+### Phase 6 — Light Print Theme Contract ✓ DONE (model/snapshot)
 
 The export must not preserve the active reader theme as the print theme.
 
-Required:
+Implemented at the generated HTML/snapshot level:
 
 - metadata header uses light theme colors;
 - script body uses white background and black/light-neutral foreground;
@@ -306,12 +340,14 @@ Do not:
 - [x] PDF output uses public labels for all preface fields.
 - [x] PDF output never exposes raw `multi` / `chapter_multi` JSON.
 - [x] Export metadata title fallback includes `customMetadata.Title`.
-- [ ] Screen overlay and PDF export share key alias/formatter helpers or have a
-      documented migration step with no behavior drift. (Phase 4 — deferred)
+- [x] Screen overlay and PDF export share key alias/formatter helpers.
 - [x] Metadata-rich fixture test locks the complete row output.
+- [x] Generated print snapshot includes complete metadata, not only partial rows.
+- [x] Generated print snapshot does not leak raw English public metadata keys or JSON.
+- [x] Generated print HTML is light-themed regardless of active reader theme.
 - [ ] Actual browser print output includes complete metadata, not only partial
-      rows. (Phase 5)
+      rows. (Phase 5 browser QA)
 - [ ] Actual browser print output does not leak raw English public metadata keys
-      or JSON. (Phase 5)
+      or JSON. (Phase 5 browser QA)
 - [ ] Browser print preview is fully light-themed regardless of active reader
-      theme. (Phase 6)
+      theme. (Phase 5 browser QA)

@@ -5,6 +5,7 @@
  */
 import type { PublicScript } from "./types";
 import { buildScriptOverlayProps } from "./scriptProjection";
+import { normalizePublicMetadataKey } from "@write/reader-export";
 
 // ── input type (decoupled from hook interface) ────────────────────────────
 
@@ -75,6 +76,7 @@ export interface ReadWorkHeaderModel {
 // ── non-linkable author id sentinels (from PublicScriptInfoOverlay) ───────
 
 const NON_LINK_AUTHOR_IDS = new Set(["override-author", "header-author-fallback"]);
+const SYNOPSIS_METADATA_KEYS = new Set(["synopsis", "摘要", "summary", "description", "notes"]);
 
 function isNonLinkAuthorId(id: string | undefined): boolean {
   return NON_LINK_AUTHOR_IDS.has(String(id ?? "").trim());
@@ -132,9 +134,23 @@ export function buildReadWorkHeaderModel(
 
   const tags = (script.tags ?? []).map((t) => t.name).filter(Boolean);
 
+  // synopsis fallback: script.synopsis → custom metadata synopsis/summary/description/notes
+  const synopsisFallback = (() => {
+    const direct = (script.synopsis ?? "").trim();
+    if (direct) return direct;
+    for (const entry of script.customMetadata ?? []) {
+      const k = normalizePublicMetadataKey(entry.key);
+      if (SYNOPSIS_METADATA_KEYS.has(k)) {
+        const v = String(entry.value ?? "").trim();
+        if (v) return v;
+      }
+    }
+    return undefined;
+  })();
+
   return {
     title: script.title,
-    synopsis: script.synopsis ?? undefined,
+    synopsis: synopsisFallback,
     coverUrl: script.coverUrl ?? undefined,
     coverCrop: script.coverCrop ?? null,
     coverDesign: script.coverDesign ?? null,

@@ -5,14 +5,14 @@ import { PublicShellActions } from "@/components/PublicShellActions";
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://open-scripts.shawnup.com";
 
 export const metadata: Metadata = {
-  title: "使用說明｜Screenplay Reader",
-  description: "Screenplay Reader 台本平台使用說明：如何閱讀台本、發布作品、使用編輯器功能。",
+  title: "使用說明｜泛用型產品作坊",
+  description: "泛用型產品作坊台本平台使用說明：如何閱讀台本、發布作品、使用編輯器功能。",
   alternates: { canonical: `${BASE_URL}/help` },
   openGraph: {
-    title: "使用說明｜Screenplay Reader",
-    description: "Screenplay Reader 台本平台使用說明：如何閱讀台本、發布作品、使用編輯器功能。",
+    title: "使用說明｜泛用型產品作坊",
+    description: "泛用型產品作坊台本平台使用說明：如何閱讀台本、發布作品、使用編輯器功能。",
     url: `${BASE_URL}/help`,
-    siteName: "Screenplay Reader",
+    siteName: "泛用型產品作坊",
     locale: "zh_TW",
   },
 };
@@ -23,7 +23,7 @@ export default function HelpPage() {
       <PublicTopBar showBack backHref="/" backLabel="返回" trailing={<PublicShellActions />} />
       <div className="max-w-3xl mx-auto px-6 py-16">
         <h1 className="text-3xl font-serif font-bold mb-2">使用說明</h1>
-        <p className="text-sm text-muted-foreground mb-10">Screenplay Reader 平台操作指南</p>
+        <p className="text-sm text-muted-foreground mb-10">泛用型產品作坊平台操作指南</p>
 
         <div className="space-y-8">
           <section>

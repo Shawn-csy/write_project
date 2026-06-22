@@ -5,7 +5,7 @@ import type { PublicScript } from "@/lib/types";
 import { GalleryClient } from "./GalleryClient";
 import type { HeroSlide } from "@write/public-ui/server";
 import { parseBannerSlides } from "@write/public-ui/server";
-import { BASE_URL, SITE_NAME, SITE_TITLE, SITE_DESCRIPTION, DEFAULT_OG_IMAGE_URL, pickPreviewImage } from "@/lib/seo";
+import { BASE_URL, PRODUCT_NAME, SITE_BRAND_NAME, SITE_NAME, SITE_TITLE, SITE_DESCRIPTION, DEFAULT_OG_IMAGE_URL, pickPreviewImage } from "@/lib/seo";
 
 export const revalidate = 300; // 5-min ISR; on-demand revalidation handles real-time updates
 
@@ -65,6 +65,7 @@ export default async function HomePage() {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: SITE_NAME,
+    alternateName: [PRODUCT_NAME, "公開台本"],
     url: `${BASE_URL}/`,
     description: SITE_DESCRIPTION,
     inLanguage: "zh-Hant",
@@ -89,8 +90,8 @@ export default async function HomePage() {
       {/* Static script list for crawlers (hidden visually; GalleryClient renders the real UI) */}
       <noscript>
         <main style={{ maxWidth: 900, margin: "0 auto", padding: "2rem", fontFamily: "serif" }}>
-          <h1>公開台本列表｜Screenplay Reader</h1>
-          <p>免費瀏覽、閱讀與分享創作台本。</p>
+          <h1>公開台本列表｜{SITE_BRAND_NAME}</h1>
+          <p>{SITE_DESCRIPTION}</p>
           <ul>
             {initialScripts.slice(0, 100).map((s) => (
               <li key={s.id}>

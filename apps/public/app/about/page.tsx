@@ -5,14 +5,14 @@ import { PublicShellActions } from "@/components/PublicShellActions";
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://open-scripts.shawnup.com";
 
 export const metadata: Metadata = {
-  title: "關於｜Screenplay Reader",
-  description: "Screenplay Reader 是免費的台本線上閱讀平台，讓創作者輕鬆發布與分享劇本作品。",
+  title: "關於｜泛用型產品作坊",
+  description: "泛用型產品作坊提供免費台本線上閱讀平台，讓創作者輕鬆發布與分享劇本作品。",
   alternates: { canonical: `${BASE_URL}/about` },
   openGraph: {
-    title: "關於｜Screenplay Reader",
-    description: "Screenplay Reader 是免費的台本線上閱讀平台，讓創作者輕鬆發布與分享劇本作品。",
+    title: "關於｜泛用型產品作坊",
+    description: "泛用型產品作坊提供免費台本線上閱讀平台，讓創作者輕鬆發布與分享劇本作品。",
     url: `${BASE_URL}/about`,
-    siteName: "Screenplay Reader",
+    siteName: "泛用型產品作坊",
     locale: "zh_TW",
   },
 };
@@ -39,7 +39,7 @@ export default function AboutPage() {
               <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
             </svg>
           </div>
-          <h1 className="text-3xl font-serif font-bold">關於 Screenplay Reader</h1>
+          <h1 className="text-3xl font-serif font-bold">關於泛用型產品作坊</h1>
           <p className="mt-3 text-lg text-muted-foreground max-w-xl">
             免費的台本線上閱讀與發布平台，讓每位創作者的作品都能被看見。
           </p>
@@ -53,7 +53,7 @@ export default function AboutPage() {
             </h2>
             <div className="text-sm text-muted-foreground leading-relaxed space-y-3">
               <p>
-                Screenplay Reader 由台灣獨立開發者打造，旨在為台本、劇本、小說創作者提供一個免費、開放的展覽與閱讀空間。
+                泛用型產品作坊由台灣獨立開發者打造，旨在為台本、劇本、小說創作者提供一個免費、開放的展覽與閱讀空間。
               </p>
               <ul className="list-disc pl-5 space-y-2 text-foreground/90">
                 <li><strong>公開閱讀</strong>：所有公開台本皆可免費瀏覽，不需登入。</li>

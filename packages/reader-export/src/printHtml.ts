@@ -52,27 +52,33 @@ export function buildPrintHtml({
         display: none !important;
       }
       /* V2 multi-column print overrides */
-      [data-presentation-mode="columns"], [data-v2-presentation="columns"] {
+      [data-presentation-mode="columns"],
+      [data-v2-presentation="columns"] {
         font-size: 9pt !important;
       }
-      [data-presentation-mode="columns"], [data-v2-presentation="columns"] p {
+      [data-presentation-mode="columns"] p,
+      [data-v2-presentation="columns"] p {
         font-size: 9pt !important;
         line-height: 1.3 !important;
       }
       /* Hide line-number gutter */
-      [data-presentation-mode="columns"], [data-v2-presentation="columns"] .grid > div:first-child:not([data-track-id]) {
+      [data-presentation-mode="columns"] .grid > div:first-child:not([data-track-id]),
+      [data-v2-presentation="columns"] .grid > div:first-child:not([data-track-id]) {
         display: none !important;
       }
       /* Collapse gutter column from grid template */
-      [data-presentation-mode="columns"], [data-v2-presentation="columns"] .grid {
+      [data-presentation-mode="columns"] .grid,
+      [data-v2-presentation="columns"] .grid {
         grid-template-columns: var(--presentation-track-columns, var(--v2-track-columns)) !important;
       }
       /* Shrink cell padding */
-      [data-presentation-mode="columns"], [data-v2-presentation="columns"] article {
+      [data-presentation-mode="columns"] article,
+      [data-v2-presentation="columns"] article {
         padding: 2pt 4pt !important;
       }
       /* Hide sticky header backdrop blur (print doesn't need it) */
-      [data-presentation-mode="columns"], [data-v2-presentation="columns"] .sticky {
+      [data-presentation-mode="columns"] .sticky,
+      [data-v2-presentation="columns"] .sticky {
         position: static !important;
         backdrop-filter: none !important;
       }

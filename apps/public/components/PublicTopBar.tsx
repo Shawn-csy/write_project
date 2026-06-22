@@ -6,6 +6,7 @@
  */
 
 import type { ReactNode } from "react";
+import { SITE_BRAND_NAME } from "@/lib/seo";
 
 export interface TopBarTab {
   key: string;
@@ -55,7 +56,7 @@ export function PublicTopBar({
             href="/"
             className="font-serif font-bold text-foreground text-base hover:text-primary transition-colors"
           >
-            Screenplay Reader
+            {SITE_BRAND_NAME}
           </a>
         </div>
 

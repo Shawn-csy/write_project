@@ -26,7 +26,7 @@ describe("GalleryTopBar", () => {
     expect(onTabChange).toHaveBeenCalledWith("authors");
   });
 
-  it("shows mobile filter trigger only on scripts tab", () => {
+  it("shows responsive filter triggers only on scripts tab", () => {
     const onOpenMobileFilter = vi.fn();
     const { rerender } = render(
       <GalleryTopBar
@@ -36,7 +36,9 @@ describe("GalleryTopBar", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "開啟篩選" }));
+    const filterTriggers = screen.getAllByRole("button", { name: "開啟篩選" });
+    expect(filterTriggers).toHaveLength(2);
+    fireEvent.click(filterTriggers[0]);
     expect(onOpenMobileFilter).toHaveBeenCalledTimes(1);
 
     rerender(

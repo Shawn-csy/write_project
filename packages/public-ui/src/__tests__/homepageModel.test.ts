@@ -223,11 +223,35 @@ describe("lanes", () => {
     expect(m.lanes.activeLaneMode).toBe("top");
   });
 
-  it("featuredSeries passed through", () => {
+  it("featuredSeries converted to PublicSeriesGroup", () => {
     const series = [{ name: "S", totalViews: 10, count: 2, lead: enriched[0], coverUrl: "", scripts: enriched }];
     const m = buildPublicHomepageModel({ ...baseInput, featuredSeries: series });
     expect(m.lanes.featuredSeries).toHaveLength(1);
     expect(m.lanes.featuredSeries[0].name).toBe("S");
+    expect(m.lanes.featuredSeries[0].type).toBe("series");
+    expect(m.lanes.featuredSeries[0].leadScript).toBeDefined();
+  });
+
+  it("featuredSeries latestScript resolves from ISO updatedAt when lastModified missing", () => {
+    const older = enrichScript(makeScript({
+      id: "ch1", title: "Ch 1", series: { name: "S" }, seriesOrder: 1,
+      lastModified: undefined as unknown as number, updatedAt: "2025-01-01T00:00:00Z",
+    }));
+    const newer = enrichScript(makeScript({
+      id: "ch2", title: "Ch 2", series: { name: "S" }, seriesOrder: 2,
+      lastModified: undefined as unknown as number, updatedAt: "2025-06-15T00:00:00Z",
+    }));
+    const series = [{ name: "S", totalViews: 0, count: 2, lead: older, coverUrl: "", scripts: [older, newer] }];
+    const m = buildPublicHomepageModel({ ...baseInput, featuredSeries: series });
+    const group = m.lanes.featuredSeries[0];
+    expect(group.latestScript.id).toBe("ch2");
+    expect(group.updatedAt).toBe(Date.parse("2025-06-15T00:00:00Z"));
+  });
+
+  it("invalid empty featuredSeries entries are ignored", () => {
+    const series = [{ name: "Empty", totalViews: 0, count: 0, lead: null, coverUrl: "", scripts: [] }];
+    const m = buildPublicHomepageModel({ ...baseInput, featuredSeries: series });
+    expect(m.lanes.featuredSeries).toEqual([]);
   });
 
   it("same-series chapters collapse into one series entry in latestEntriesPreview", () => {

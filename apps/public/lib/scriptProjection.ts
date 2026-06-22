@@ -4,14 +4,13 @@
  *
  * Mirrors src/lib/publicReaderProjection.ts logic without the Vite deps.
  */
+import {
+  buildPublicPrefaceItems,
+  isPublicMetadataSystemKey,
+  normalizePublicMetadataKey,
+} from "@write/reader-export";
+import type { PublicPrefaceItem } from "@write/reader-export";
 import type { PublicScript } from "./types";
-
-interface PrefaceItem {
-  id?: string;
-  title?: string;
-  value?: string;
-  [key: string]: unknown;
-}
 
 interface DemoLinkItem {
   id?: string;
@@ -21,72 +20,14 @@ interface DemoLinkItem {
   description?: string;
 }
 
-const normalizePrefaceKey = (key = "") =>
-  String(key || "").trim().toLowerCase().replace(/\s+/g, "");
-
-// Keys that are consumed by dedicated overlay fields or preface rules and
-// must NOT appear again in the free-form customFields list.
-const SYSTEM_KEYS = new Set([
-  // preface rule keys
-  "outline", "大綱",
-  "rolesetting", "角色設定",
-  "backgroundinfo", "背景資訊",
-  "performanceinstruction", "演繹指示",
-  "openingintro", "作品的開頭引言",
-  "chaptersettings",
-  // audience / rating / license overlay fields
-  "targetaudience", "觀眾取向",
-  "contentrating", "內容分級",
-  "license", "授權",
-  "licensecommercial",
-  "licensederivative",
-  "licensenotify",
-  "licensespecialterms",
-  "licensetags",
-  // author / series / contact / system metadata injected by backend
-  "author",
-  "authordisplaymode",
-  "seriesorder",
-  "synopsis", "摘要",
-  "contact", "聯絡方式",
-].map(normalizePrefaceKey));
-
-const PREFACE_RULES: Array<{ id: string; title: string; keys: string[] }> = [
-  { id: "outline", title: "大綱", keys: ["outline", "大綱"] },
-  { id: "rolesetting", title: "角色設定", keys: ["rolesetting", "角色設定"] },
-  { id: "backgroundinfo", title: "背景資訊", keys: ["backgroundinfo", "背景資訊"] },
-  { id: "performanceinstruction", title: "演繹指示", keys: ["performanceinstruction", "演繹指示"] },
-  { id: "openingintro", title: "作品的開頭引言", keys: ["openingintro", "作品的開頭引言"] },
-  { id: "chaptersettings", title: "章節", keys: ["chaptersettings"] },
-].map((rule) => ({ ...rule, keys: rule.keys.map(normalizePrefaceKey) }));
-
-function buildPrefaceItems(script: PublicScript): Array<PrefaceItem> {
-  const valueByKey = new Map<string, string>();
-
-  // Top-level outline field
-  if (script.outline) {
-    valueByKey.set("outline", String(script.outline).trim());
-  }
-
-  // customMetadata entries (key/value pairs)
+function buildPrefaceItems(script: PublicScript): PublicPrefaceItem[] {
+  const meta: Record<string, string> = {};
   for (const entry of script.customMetadata ?? []) {
-    const k = normalizePrefaceKey(String(entry.key ?? ""));
-    const v = String(entry.value ?? "").trim();
-    if (k && v && !valueByKey.has(k)) valueByKey.set(k, v);
+    const key = normalizePublicMetadataKey(entry.key);
+    const value = String(entry.value ?? "").trim();
+    if (key && value && meta[key] === undefined) meta[key] = value;
   }
-
-  const items: PrefaceItem[] = [];
-  const seen = new Set<string>();
-  for (const rule of PREFACE_RULES) {
-    const matchedKey = rule.keys.find((k) => valueByKey.has(k));
-    if (!matchedKey) continue;
-    const value = valueByKey.get(matchedKey)!;
-    const sig = `${rule.id}::${value}`;
-    if (!value || seen.has(sig)) continue;
-    seen.add(sig);
-    items.push({ id: rule.id, title: rule.title, value });
-  }
-  return items;
+  return buildPublicPrefaceItems(meta, { outline: script.outline });
 }
 
 function parseDemoLinks(raw: string | null | undefined): DemoLinkItem[] {
@@ -109,7 +50,7 @@ function normalizeLicenseSpecialTerms(raw: unknown[]): string[] {
 }
 
 export interface ScriptOverlayProps {
-  prefaceItems: PrefaceItem[];
+  prefaceItems: PublicPrefaceItem[];
   demoLinks: DemoLinkItem[];
   commercialUse: string;
   derivativeUse: string;
@@ -127,14 +68,14 @@ export function buildScriptOverlayProps(script: PublicScript): ScriptOverlayProp
   // Extract targetAudience, contentRating, license from customMetadata
   const metaByKey = new Map<string, string>();
   for (const entry of customMeta) {
-    const k = normalizePrefaceKey(String(entry.key ?? ""));
+    const k = normalizePublicMetadataKey(entry.key);
     const v = String(entry.value ?? "").trim();
     if (k && v) metaByKey.set(k, v);
   }
 
   // licenseSpecialTerms — may be a custom metadata entry or persona field
   const rawTerms = customMeta
-    .filter((e) => normalizePrefaceKey(String(e.key ?? "")) === "licensespecialterms")
+    .filter((e) => normalizePublicMetadataKey(e.key) === "licensespecialterms")
     .map((e) => String(e.value ?? "").trim())
     .filter(Boolean);
 
@@ -162,6 +103,6 @@ export function buildScriptOverlayProps(script: PublicScript): ScriptOverlayProp
     license: metaByKey.get("license") ?? metaByKey.get("授權") ?? "",
     customFields: customMeta
       .map((e) => ({ key: String(e.key ?? "").trim(), value: String(e.value ?? "").trim() }))
-      .filter((e) => e.key && e.value && !SYSTEM_KEYS.has(normalizePrefaceKey(e.key))),
+      .filter((e) => e.key && e.value && !isPublicMetadataSystemKey(e.key)),
   };
 }

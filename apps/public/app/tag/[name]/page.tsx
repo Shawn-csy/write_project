@@ -6,7 +6,7 @@ import { TagPageClient } from "./TagPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { PublicShellActions } from "@/components/PublicShellActions";
 import { filterScriptsByTag } from "./filterScriptsByTag";
-import { BASE_URL, SITE_NAME, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
+import { BASE_URL, SITE_NAME, TITLE_SUFFIX, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
 
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -33,9 +33,9 @@ export async function generateMetadata({
   const tagName = decodeURIComponent(name);
   const scripts = await fetchTagScripts(tagName);
 
-  if (scripts.length === 0) return { title: "找不到標籤｜Screenplay Reader" };
+  if (scripts.length === 0) return { title: `找不到標籤｜${TITLE_SUFFIX}` };
 
-  const title = `#${tagName}｜Screenplay Reader`;
+  const title = `#${tagName}｜${TITLE_SUFFIX}`;
   const description = `標籤「${tagName}」共 ${scripts.length} 部台本，免費線上閱讀。`;
   const canonicalUrl = `${BASE_URL}/tag/${name}`;
 

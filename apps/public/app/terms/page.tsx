@@ -5,14 +5,14 @@ import { PublicShellActions } from "@/components/PublicShellActions";
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://open-scripts.shawnup.com";
 
 export const metadata: Metadata = {
-  title: "Terms of Service｜Screenplay Reader",
-  description: "Screenplay Reader terms of service — rules and guidelines for using the platform.",
+  title: "Terms of Service｜泛用型產品作坊",
+  description: "泛用型產品作坊 terms of service — rules and guidelines for using the platform.",
   alternates: { canonical: `${BASE_URL}/terms` },
   openGraph: {
-    title: "Terms of Service｜Screenplay Reader",
-    description: "Screenplay Reader terms of service — rules and guidelines for using the platform.",
+    title: "Terms of Service｜泛用型產品作坊",
+    description: "泛用型產品作坊 terms of service — rules and guidelines for using the platform.",
     url: `${BASE_URL}/terms`,
-    siteName: "Screenplay Reader",
+    siteName: "泛用型產品作坊",
   },
 };
 
@@ -27,7 +27,7 @@ export default function TermsPage() {
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3">1. Acceptance of Terms</h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            By accessing or using Screenplay Reader (&ldquo;the Service&rdquo;) at{" "}
+            By accessing or using 泛用型產品作坊 (&ldquo;the Service&rdquo;) at{" "}
             <strong>open-scripts.shawnup.com</strong>, you agree to be bound by these Terms of
             Service. If you do not agree, do not use the Service.
           </p>
@@ -36,7 +36,7 @@ export default function TermsPage() {
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3">2. Description of Service</h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Screenplay Reader is a platform for writing, reading, and sharing screenplays and
+            泛用型產品作坊 is a platform for writing, reading, and sharing screenplays and
             scripts. Features include script creation, public sharing, and export to Google Docs.
           </p>
         </section>

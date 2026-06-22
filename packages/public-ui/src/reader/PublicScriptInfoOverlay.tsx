@@ -11,7 +11,7 @@ interface PrefaceItem {
   id?: string;
   title?: string;
   value?: string;
-  [key: string]: unknown;
+  rawValue?: string;
 }
 
 interface DemoLinkItem {
@@ -137,9 +137,9 @@ export function PublicScriptInfoOverlay({
   const roleSettingItem = itemById.get("rolesetting");
   const performanceItem = itemById.get("performanceinstruction");
   const chapterSettingsItem = itemById.get("chaptersettings");
-  const roleMulti = parseMultiTemplate(roleSettingItem?.value);
-  const performanceMulti = parseMultiTemplate(performanceItem?.value);
-  const chapterMulti = parseChapterTemplate(chapterSettingsItem?.value);
+  const roleMulti = parseMultiTemplate(roleSettingItem?.rawValue ?? roleSettingItem?.value);
+  const performanceMulti = parseMultiTemplate(performanceItem?.rawValue ?? performanceItem?.value);
+  const chapterMulti = parseChapterTemplate(chapterSettingsItem?.rawValue ?? chapterSettingsItem?.value);
   const hasCharacterTemplate = Array.isArray(roleMulti) || Array.isArray(performanceMulti);
   const isNonLinkAuthorId = (id: string | undefined) => {
     const value = String(id || "").trim();

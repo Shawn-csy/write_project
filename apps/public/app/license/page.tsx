@@ -5,14 +5,14 @@ import { PublicShellActions } from "@/components/PublicShellActions";
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://open-scripts.shawnup.com";
 
 export const metadata: Metadata = {
-  title: "授權說明｜Screenplay Reader",
-  description: "Screenplay Reader 台本授權體系說明：CC 授權、商業使用、衍生創作規則。",
+  title: "授權說明｜泛用型產品作坊",
+  description: "泛用型產品作坊台本授權體系說明：CC 授權、商業使用、衍生創作規則。",
   alternates: { canonical: `${BASE_URL}/license` },
   openGraph: {
-    title: "授權說明｜Screenplay Reader",
-    description: "Screenplay Reader 台本授權體系說明：CC 授權、商業使用、衍生創作規則。",
+    title: "授權說明｜泛用型產品作坊",
+    description: "泛用型產品作坊台本授權體系說明：CC 授權、商業使用、衍生創作規則。",
     url: `${BASE_URL}/license`,
-    siteName: "Screenplay Reader",
+    siteName: "泛用型產品作坊",
     locale: "zh_TW",
   },
 };
@@ -29,7 +29,7 @@ export default function LicensePage() {
           <section>
             <h2 className="text-xl font-semibold mb-3">授權原則</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Screenplay Reader 上的台本由創作者自行設定授權條款。
+              泛用型產品作坊上的台本由創作者自行設定授權條款。
               平台提供標準化的授權選項，讓使用者能清楚了解每部台本的使用範圍。
               未特別標示時，所有台本版權歸原作者所有，未經授權不得轉載或改作。
             </p>
@@ -86,7 +86,7 @@ export default function LicensePage() {
           <section>
             <h2 className="text-xl font-semibold mb-3">平台免責聲明</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Screenplay Reader 僅提供技術平台，不對台本內容的授權有效性負責。
+              泛用型產品作坊僅提供技術平台，不對台本內容的授權有效性負責。
               使用者使用台本前應自行確認授權條款。
               若有侵權疑慮，請聯繫我們。
             </p>

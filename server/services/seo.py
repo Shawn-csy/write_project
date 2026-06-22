@@ -4,6 +4,10 @@ import re
 
 import models
 
+SITE_BRAND_NAME = "泛用型產品作坊"
+PRODUCT_NAME = "Screenplay Reader"
+SITE_DESCRIPTION = "泛用型產品作坊提供免費台本線上閱讀、發布與分享，探索公開作品、配音台本與作者頁面。"
+
 
 def meta_escape(text) -> str:
     return html.escape(str(text or ""), quote=True)
@@ -87,7 +91,7 @@ def inject_seo_html(
     html_text = upsert_meta(html_text, prop="og:description", content=description)
     html_text = upsert_meta(html_text, prop="og:type", content=og_type)
     html_text = upsert_meta(html_text, prop="og:url", content=canonical_url)
-    html_text = upsert_meta(html_text, prop="og:site_name", content="Screenplay Reader")
+    html_text = upsert_meta(html_text, prop="og:site_name", content=SITE_BRAND_NAME)
     html_text = upsert_meta(html_text, prop="og:locale", content="zh_TW")
     html_text = upsert_meta(
         html_text,
@@ -169,16 +173,17 @@ def inject_seo_for_route(full_path: str, db, html_template: str, public_base_url
         canonical_url = public_base_url + "/"
         return inject_seo_html(
             html_template,
-            title="免費台本 · 劇本線上閱讀｜Screenplay Reader",
-            description="免費瀏覽、閱讀與分享創作台本。支援 Fountain 格式劇本，探索公開作品、配音台本與作者頁面。",
+            title=f"免費台本 · 劇本線上閱讀｜{SITE_BRAND_NAME}",
+            description=SITE_DESCRIPTION,
             canonical_url=canonical_url,
             og_type="website",
             structured_data={
                 "@context": "https://schema.org",
                 "@type": "WebSite",
-                "name": "Screenplay Reader",
+                "name": SITE_BRAND_NAME,
+                "alternateName": [PRODUCT_NAME, "公開台本"],
                 "url": public_base_url,
-                "description": "免費瀏覽、閱讀與分享創作台本。支援 Fountain 格式劇本。",
+                "description": SITE_DESCRIPTION,
                 "inLanguage": "zh-Hant",
                 "potentialAction": {
                     "@type": "SearchAction",
@@ -192,7 +197,7 @@ def inject_seo_for_route(full_path: str, db, html_template: str, public_base_url
         canonical_url = f"{public_base_url}/gallery"
         return inject_seo_html(
             html_template,
-            title="劇本庫｜Screenplay Reader",
+            title=f"劇本庫｜{SITE_BRAND_NAME}",
             description="瀏覽所有公開劇本、作者與組織，發現精選台本作品。",
             canonical_url=canonical_url,
             og_type="website",
@@ -206,7 +211,7 @@ def inject_seo_for_route(full_path: str, db, html_template: str, public_base_url
         except Exception:
             pass
         canonical_url = f"{public_base_url}/series/{series_name}"
-        title = f"{series_name}｜Screenplay Reader" if series_name else "系列作品｜Screenplay Reader"
+        title = f"{series_name}｜{SITE_BRAND_NAME}" if series_name else f"系列作品｜{SITE_BRAND_NAME}"
         desc = f"{series_name} 系列台本，免費線上閱讀。" if series_name else "免費瀏覽系列台本作品。"
         return inject_seo_html(
             html_template,
@@ -221,7 +226,7 @@ def inject_seo_for_route(full_path: str, db, html_template: str, public_base_url
         script = db.query(models.Script).filter(models.Script.id == script_id).first()
         if script and script.isPublic == 1:
             canonical_url = f"{public_base_url}/read/{script_id}"
-            title = f"{script.title or 'Untitled'}｜Screenplay Reader"
+            title = f"{script.title or 'Untitled'}｜{SITE_BRAND_NAME}"
             desc = _script_description(script) or "公開劇本閱讀頁"
             image_url = _absolute_url(script.coverUrl or "", public_base_url)
             structured = {
@@ -265,7 +270,7 @@ def inject_seo_for_route(full_path: str, db, html_template: str, public_base_url
             same_as = [website] if website else []
             same_as.extend([x.get("url") for x in links if isinstance(x, dict) and x.get("url")])
             canonical_url = f"{public_base_url}/author/{author_id}"
-            page_title = f"{display_name}｜Screenplay Reader"
+            page_title = f"{display_name}｜{SITE_BRAND_NAME}"
             page_desc = str(bio).strip()[:200]
             image_url = _absolute_url(avatar or banner or "", public_base_url)
             structured = {
@@ -294,7 +299,7 @@ def inject_seo_for_route(full_path: str, db, html_template: str, public_base_url
         org = db.query(models.Organization).filter(models.Organization.id == org_id).first()
         if org:
             canonical_url = f"{public_base_url}/org/{org_id}"
-            page_title = f"{(org.name or '組織')}｜Screenplay Reader"
+            page_title = f"{(org.name or '組織')}｜{SITE_BRAND_NAME}"
             page_desc = str(org.description or f"{org.name or '組織'} 的公開作品與成員資訊").strip()[:200]
             image_url = _absolute_url(org.logoUrl or org.bannerUrl or "", public_base_url)
             structured = {
@@ -322,7 +327,7 @@ def inject_seo_for_route(full_path: str, db, html_template: str, public_base_url
 
     if full_path.strip("/") == "about":
         canonical_url = f"{public_base_url}/about"
-        page_title = "關於｜Screenplay Reader"
+        page_title = f"關於｜{SITE_BRAND_NAME}"
         page_desc = "這是一個面向公開閱讀與創作工作室的台本平台。使用者可以輕鬆瀏覽公開作品、建立專屬頁面並線上編輯劇本。"
         return inject_seo_html(
             html_template,

@@ -1,4 +1,10 @@
 import { customMetadataEntriesToMeta } from "./customMetadata";
+import {
+  formatStructuredMetadataValue,
+  isPublicMetadataSystemKey,
+  readPublicPrefaceValue,
+} from "./publicMetadataProjection";
+export { formatStructuredMetadataValue } from "./publicMetadataProjection";
 
 // Minimal interface — enough for buildExportMetadataDocsBlocks return type.
 export interface GoogleDocsBlock {
@@ -92,34 +98,6 @@ export const EXPORT_METADATA_FIELD_ORDER: ExportMetadataFieldKey[] = [
   "specialTerms",
 ];
 
-// Keys handled by dedicated structured fields — must not appear as customField rows.
-const RESERVED_META_KEYS = new Set([
-  "author", "authors", "authordisplaymode",
-  "licensecommercial", "licensederivative", "licensenotify",
-  "licensespecialterms", "licensetags",
-  "series", "seriesorder",
-  "marker_legend", "show_legend",
-  "synopsis",
-  // activity/event keys — handled via dedicated source fields, not customField
-  "activityname", "activitybanner", "activitycontent",
-  "activityworkurl", "activitydemolinks", "activitydemourl",
-  "eventname", "eventbanner", "eventcontent",
-  "eventworklink", "eventdemolinks", "eventdemolink",
-  // preface fields — mapped to public labels
-  "outline", "大綱",
-  "rolesetting", "角色設定",
-  "backgroundinfo", "environmentinfo", "背景資訊",
-  "performanceinstruction", "演繹指示",
-  "openingintro", "作品的開頭引言",
-  "chaptersettings", "章節",
-  "situationinfo", "狀況", "狀況資訊", "情境",
-  // title override from customMetadata
-  "title",
-  "contact",
-  // tag-derived
-  "targetaudience", "contentrating",
-]);
-
 const escapeHtml = (value: unknown) =>
   String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -129,64 +107,6 @@ const escapeHtml = (value: unknown) =>
     .replace(/'/g, "&#39;");
 
 const normalize = (value: unknown) => String(value ?? "").trim();
-
-/**
- * Decodes a structured metadata value that may be stored as a JSON string.
- *
- * RoleSetting (and ChapterSettings) from the import pipeline are stored as
- * JSON: { mode: "multi", items: [{name, text}, ...] }.
- * For display we flatten to "名前：説明 / ..." readable form.
- * Plain strings are returned as-is.
- */
-export const formatStructuredMetadataValue = (raw: string): string => {
-  if (!raw) return raw;
-  if (!raw.startsWith("{") && !raw.startsWith("[")) return raw;
-  try {
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      const mode = String(parsed.mode || "");
-      if (mode === "multi" && Array.isArray(parsed.items)) {
-        return (parsed.items as Array<{ name?: unknown; text?: unknown }>)
-          .map((item) => {
-            const name = normalize(item.name);
-            const text = normalize(item.text);
-            if (name && text) return `${name}：${text}`;
-            return name || text;
-          })
-          .filter(Boolean)
-          .join(" / ");
-      }
-      if (mode === "chapter_multi" && Array.isArray(parsed.items)) {
-        return (parsed.items as Array<{ chapter?: unknown; environment?: unknown; situation?: unknown }>)
-          .map((item) => {
-            const chapter = normalize(item.chapter);
-            const env = normalize(item.environment);
-            const sit = normalize(item.situation);
-            const parts = [env && `環境：${env}`, sit && `狀況：${sit}`].filter(Boolean).join("；");
-            return chapter ? (parts ? `${chapter}（${parts}）` : chapter) : parts;
-          })
-          .filter(Boolean)
-          .join(" / ");
-      }
-      // single-value wrapper { value: "..." }
-      if (parsed.value !== undefined) return normalize(parsed.value);
-    }
-    if (Array.isArray(parsed)) {
-      return (parsed as unknown[])
-        .map((item) => {
-          if (item && typeof item === "object") {
-            const name = normalize((item as { name?: unknown }).name);
-            const text = normalize((item as { text?: unknown }).text);
-            return name && text ? `${name}：${text}` : name || text;
-          }
-          return normalize(item);
-        })
-        .filter(Boolean)
-        .join(" / ");
-    }
-  } catch {}
-  return raw;
-};
 
 const formatLicense = (commercial: string, derivative: string, notify: string) => [
   commercial ? `商業使用：${commercial === "allow" ? "可" : "不可"}` : "",
@@ -280,24 +200,18 @@ export const buildExportMetadata = (source: ExportMetadataSource | null | undefi
     .map((item) => normalize(typeof item === "object" && item !== null ? (item as { text?: string }).text ?? item : item))
     .filter(Boolean);
 
-  // Preface fields — map customMetadata keys to public labels, decode structured JSON
-  const getPreface = (...keys: string[]) => {
-    for (const k of keys) {
-      const v = normalize((meta as Record<string, unknown>)[k]);
-      if (v) return v;
-    }
-    return "";
-  };
-  const outlineValue = normalize(source?.outline) || getPreface("outline", "大綱");
-  const roleSettingRaw = getPreface("rolesetting", "角色設定");
+  // Preface fields — map customMetadata keys to public labels, decode structured JSON.
+  // Uses the same helper as the on-screen public overlay to prevent key/formatter drift.
+  const outlineValue = readPublicPrefaceValue(meta, "outline", source?.outline);
+  const roleSettingRaw = readPublicPrefaceValue(meta, "roleSetting");
   const roleSetting = formatStructuredMetadataValue(roleSettingRaw);
-  const backgroundInfo = getPreface("backgroundinfo", "environmentinfo", "背景資訊");
-  const performanceInstructionRaw = getPreface("performanceinstruction", "演繹指示");
+  const backgroundInfo = readPublicPrefaceValue(meta, "backgroundInfo");
+  const performanceInstructionRaw = readPublicPrefaceValue(meta, "performanceInstruction");
   const performanceInstruction = formatStructuredMetadataValue(performanceInstructionRaw);
-  const openingIntro = getPreface("openingintro", "作品的開頭引言");
-  const chapterSettingsRaw = getPreface("chaptersettings", "章節");
+  const openingIntro = readPublicPrefaceValue(meta, "openingIntro");
+  const chapterSettingsRaw = readPublicPrefaceValue(meta, "chapterSettings");
   const chapterSettings = formatStructuredMetadataValue(chapterSettingsRaw);
-  const situationInfo = getPreface("situationinfo", "狀況", "狀況資訊", "情境");
+  const situationInfo = readPublicPrefaceValue(meta, "situationInfo");
 
   // P1b: activity fields — read from source top-level (Next: PublicScript structured fields)
   // then fallback to customMetadata legacy keys
@@ -330,7 +244,7 @@ export const buildExportMetadata = (source: ExportMetadataSource | null | undefi
       label: normalize(entry?.key),
       value: normalize(entry?.value),
     }))
-    .filter(({ normalizedKey, value }) => normalizedKey && value && !RESERVED_META_KEYS.has(normalizedKey))
+    .filter(({ normalizedKey, value }) => normalizedKey && value && !isPublicMetadataSystemKey(normalizedKey))
     .map(({ label, value }) => ({ key: "customField" as const, label, value }));
 
   const fields = [

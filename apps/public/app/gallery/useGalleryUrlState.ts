@@ -36,7 +36,7 @@ function navigate(
   const next = mergeGalleryUrlState(current, patch);
   const params = serializeGalleryUrlState(next);
   const qs = params.toString();
-  const url = qs ? `?${qs}` : "?";
+  const url = qs ? `/?${qs}` : "/";
   if (method === "replace") {
     router.replace(url, { scroll: false });
   } else {

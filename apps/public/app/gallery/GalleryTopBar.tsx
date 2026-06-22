@@ -22,7 +22,8 @@ export function GalleryTopBar({
       activeTab={activeTab}
       onTabChange={onTabChange}
       onOpenMobileFilter={onOpenMobileFilter}
-      brandName="免費台本"
+      brandName="公開台本"
+      brandSubtitle="泛用型產品作坊"
       trailing={<PublicShellActions />}
     />
   );

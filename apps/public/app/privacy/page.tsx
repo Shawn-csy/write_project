@@ -5,16 +5,16 @@ import { PublicShellActions } from "@/components/PublicShellActions";
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://open-scripts.shawnup.com";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy｜Screenplay Reader",
+  title: "Privacy Policy｜泛用型產品作坊",
   description:
-    "Screenplay Reader privacy policy — how we collect, use, and protect your personal information.",
+    "泛用型產品作坊 privacy policy — how we collect, use, and protect your personal information.",
   alternates: { canonical: `${BASE_URL}/privacy` },
   openGraph: {
-    title: "Privacy Policy｜Screenplay Reader",
+    title: "Privacy Policy｜泛用型產品作坊",
     description:
-      "Screenplay Reader privacy policy — how we collect, use, and protect your personal information.",
+      "泛用型產品作坊 privacy policy — how we collect, use, and protect your personal information.",
     url: `${BASE_URL}/privacy`,
-    siteName: "Screenplay Reader",
+    siteName: "泛用型產品作坊",
   },
 };
 
@@ -29,7 +29,7 @@ export default function PrivacyPage() {
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3">1. Overview</h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            This Privacy Policy describes how Screenplay Reader (&ldquo;we&rdquo;, &ldquo;our&rdquo;,
+            This Privacy Policy describes how 泛用型產品作坊 (&ldquo;we&rdquo;, &ldquo;our&rdquo;,
             or &ldquo;us&rdquo;), operated at <strong>open-scripts.shawnup.com</strong>, collects,
             uses, and protects your personal information when you use our service.
           </p>

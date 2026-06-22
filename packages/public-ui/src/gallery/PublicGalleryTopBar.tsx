@@ -27,8 +27,10 @@ export interface PublicGalleryTopBarProps {
   onOpenMobileFilter?: () => void;
   /** Override default tab definitions (e.g. to add help/license/about in Phase 5). */
   tabs?: PublicGalleryTab[];
-  /** Brand name displayed on the left. */
+  /** Brand name displayed on the left (main title). */
   brandName?: string;
+  /** Subtle subtitle displayed after the brand name. */
+  brandSubtitle?: string;
   /**
    * Trailing slot — host-specific actions rendered at the right end of the bar.
    * Use for studio link, login button, or any host-specific navigation.
@@ -48,16 +50,32 @@ export function PublicGalleryTopBar({
   onOpenMobileFilter,
   tabs = DEFAULT_TABS,
   brandName = "Screenplay Reader",
+  brandSubtitle,
   trailing,
   mobileFilterLabel = "開啟篩選",
 }: PublicGalleryTopBarProps): React.JSX.Element {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/95 backdrop-blur">
       {/* Main row */}
-      <div className="flex h-14 items-center gap-3 px-3 sm:px-5 lg:px-8 w-full">
+      <div className="flex h-14 items-center px-3 sm:px-5 lg:px-8 w-full">
+        {/* Mobile left: filter button (thumb-reach corner) */}
+        <div className="sm:hidden flex items-center justify-start w-10 shrink-0">
+          {activeTab === "scripts" && onOpenMobileFilter ? (
+            <button
+              type="button"
+              onClick={onOpenMobileFilter}
+              aria-label={mobileFilterLabel}
+              className="flex items-center justify-center h-8 w-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+            </button>
+          ) : <span className="w-8" aria-hidden />}
+        </div>
+
+        {/* Brand — centered on mobile, left-aligned on desktop */}
         <a
           href="/"
-          className="flex items-center gap-2 shrink-0 hover:text-primary transition-colors group"
+          className="flex items-center gap-2 shrink-0 hover:text-primary transition-colors group sm:mr-0 mx-auto sm:mx-0"
           aria-label={brandName}
         >
           <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
@@ -67,9 +85,12 @@ export function PublicGalleryTopBar({
             </svg>
           </div>
           <span className="font-serif font-black text-foreground text-lg tracking-tight">{brandName}</span>
+          {brandSubtitle && (
+            <span className="hidden sm:inline text-xs text-muted-foreground/70 font-normal tracking-normal ml-1 self-end mb-0.5">{brandSubtitle}</span>
+          )}
         </a>
 
-        {/* Tabs — hidden on mobile (shown in second row below) */}
+        {/* Desktop tabs — hidden on mobile (shown in second row below) */}
         <nav className="hidden sm:flex items-center ml-3" aria-label="公開頁面導航">
           {tabs.map((tab) => (
             <button
@@ -92,14 +113,15 @@ export function PublicGalleryTopBar({
           ))}
         </nav>
 
-        {/* Right side */}
+        {/* Right side — desktop filter + trailing */}
         <div className="ml-auto flex items-center gap-2 shrink-0">
+          {/* Desktop/tablet filter button (hidden on mobile — moved to left) */}
           {activeTab === "scripts" && onOpenMobileFilter && (
             <button
               type="button"
               onClick={onOpenMobileFilter}
               aria-label={mobileFilterLabel}
-              className="lg:hidden flex items-center justify-center h-8 w-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="hidden sm:flex lg:hidden items-center justify-center h-8 w-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             >
               <SlidersHorizontal className="h-4 w-4" />
             </button>

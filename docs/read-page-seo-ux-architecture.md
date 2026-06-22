@@ -407,8 +407,15 @@ Long-term rule:
 ### Keep in `@write/script-reader-renderer`
 
 - render block renderer
+- presentation renderer (`ScriptPresentationRenderer`)
+- presentation layout model, track routing, row grouping, and table export adapter
 - marker display semantics
 - hidden marker behavior
+
+The old Vite `src/components/renderer/v2/*` and `src/lib/v2/*` paths are
+compatibility facades only. New read-page work should use the `Presentation*`
+API from `@write/script-reader-renderer`; `V2*` names are legacy aliases, not
+the canonical architecture.
 
 ## Execution Plan
 
@@ -633,6 +640,37 @@ SEO validation (both :3000 and :1090):
 - JSON-LD injected via `<script type="application/ld+json">` (not meta tag). ✓
 - Prod build (:1090) SEO output identical to dev build (:3000). ✓
 
+### Phase 6 — Marker-Based Presentation Renderer Canonicalization ✓ DONE (2026-06-22)
+
+Goal: restore marker-driven multi-column reader behavior and prevent Next/Vite
+renderer drift.
+
+Completed:
+
+- Added `@write/script-reader-renderer/src/presentation` as the canonical
+  presentation stack.
+- `ScriptPresentationRenderer` owns columns/timeline/linear mode selection.
+- `ColumnsPresentationRenderer` restores marker/track-based multi-column layout.
+- Presentation model helpers own layout config, marker semantic routing,
+  orchestration, row grouping, and table export.
+- Next read page now passes parsed AST into `ScriptPresentationRenderer` instead
+  of precomputing `RenderBlock[]` for the linear block renderer.
+- `src/components/renderer/v2/*` and `src/lib/v2/*` are compatibility facades
+  around `@write/script-reader-renderer`; they no longer contain independent
+  presentation implementation.
+- Canonical DOM contract is `data-presentation-mode`; `data-v2-presentation`
+  remains supported only as backward compatibility in export/print parsing.
+- `PublicReaderShell` exposes semantic `contentWidth="presentation"` so
+  multi-column desktop layout can widen without hurting mobile reading width.
+
+Verification:
+
+- Shared presentation package tests cover columns, timeline, linear mobile
+  fallback, marker routing, synchronized rows, and table export.
+- Next `ScriptReaderClient` integration test requires
+  `data-presentation-mode="columns"` on desktop.
+- Full test suite passed after the extraction.
+
 ## Anti-Patterns
 
 Do not:
@@ -649,7 +687,8 @@ Do not:
 
 ## Status
 
-All phases complete as of 2026-06-18.
+All read-page SEO/UX phases complete as of 2026-06-22. PDF browser
+print-preview QA remains tracked in `docs/read-page-download-architecture.md`.
 
 | Phase | Status |
 |---|---|
@@ -658,12 +697,13 @@ All phases complete as of 2026-06-18.
 | Phase 3 — Canonical Series Navigation | ✓ DONE |
 | Phase 4 — Reading Ergonomics | ✓ DONE |
 | Phase 5 — Browser QA and SEO Validation | ✓ DONE |
+| Phase 6 — Marker-Based Presentation Renderer Canonicalization | ✓ DONE |
 
 Deferred items (not blockers):
 
 - Marker visibility live QA — requires marker-themed public scripts.
 - Series order `0` live QA — requires test data with `seriesOrder: 0`.
 - Adult/rating tags live QA — requires rated public scripts.
-- Public reader PDF download — must be ported through the canonical Vite reader
-  export/download-option mechanism; no route-local `.txt` fallback. See
-  `docs/read-page-download-architecture.md`.
+- Public reader PDF print-preview QA — PDF toolbar action and shared export
+  pipeline are implemented; final browser print-preview validation is tracked
+  in `docs/read-page-download-architecture.md`.

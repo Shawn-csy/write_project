@@ -1,8 +1,11 @@
 const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL ?? "https://open-scripts.shawnup.com").replace(/\/$/, "");
 
-export const SITE_NAME = "公開台本｜Screenplay Reader";
-export const SITE_TITLE = "免費台本 · 劇本線上閱讀｜Screenplay Reader";
-export const SITE_DESCRIPTION = "免費瀏覽、閱讀與分享創作台本，探索公開作品、配音台本與作者頁面。";
+export const SITE_BRAND_NAME = "泛用型產品作坊";
+export const PRODUCT_NAME = "Screenplay Reader";
+export const SITE_NAME = SITE_BRAND_NAME;
+export const TITLE_SUFFIX = SITE_BRAND_NAME;
+export const SITE_TITLE = `免費台本 · 劇本線上閱讀｜${TITLE_SUFFIX}`;
+export const SITE_DESCRIPTION = "泛用型產品作坊提供免費台本線上閱讀、發布與分享，探索公開作品、配音台本與作者頁面。";
 export { BASE_URL };
 export const DEFAULT_OG_IMAGE_PATH = "/og/homepage.png";
 // NEXT_PUBLIC_DEFAULT_OG_IMAGE_URL must be an absolute URL (https://...).

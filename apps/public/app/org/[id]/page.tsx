@@ -5,7 +5,7 @@ import type { PublicOrg, PublicScript } from "@/lib/types";
 import { OrgPageClient } from "./OrgPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { PublicShellActions } from "@/components/PublicShellActions";
-import { BASE_URL, SITE_NAME, pickPreviewImage, absoluteUrl } from "@/lib/seo";
+import { BASE_URL, SITE_NAME, TITLE_SUFFIX, pickPreviewImage, absoluteUrl } from "@/lib/seo";
 
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -33,9 +33,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const org = await fetchOrg(id);
-  if (!org) return { title: "找不到組織｜Screenplay Reader" };
+  if (!org) return { title: `找不到組織｜${TITLE_SUFFIX}` };
 
-  const title = `${org.name}｜Screenplay Reader`;
+  const title = `${org.name}｜${TITLE_SUFFIX}`;
   const description = (org.description || `${org.name} 的公開台本作品`).slice(0, 200);
   const canonicalUrl = `${BASE_URL}/org/${id}`;
   const previewImage = pickPreviewImage(org.logoUrl || org.bannerUrl);

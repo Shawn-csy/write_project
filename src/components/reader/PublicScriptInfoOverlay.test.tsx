@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { PublicScriptInfoOverlay } from "./PublicScriptInfoOverlay";
 
@@ -88,5 +88,60 @@ describe("PublicScriptInfoOverlay – usage badges", () => {
     );
 
     expect(screen.getByText(/改作許可.+需同意/)).toBeInTheDocument();
+  });
+});
+
+describe("PublicScriptInfoOverlay – shared preface projection", () => {
+  it("uses rawValue to preserve rich character cards when value is already formatted", () => {
+    render(
+      <PublicScriptInfoOverlay
+        title="Test"
+        prefaceItems={[
+          {
+            id: "roleSetting",
+            title: "角色設定",
+            value: "ＣＣ：冷靜",
+            rawValue: JSON.stringify({ mode: "multi", items: [{ name: "ＣＣ", text: "冷靜" }] }),
+          },
+          {
+            id: "performanceInstruction",
+            title: "演繹指示",
+            value: "ＣＣ：低聲",
+            rawValue: JSON.stringify({ mode: "multi", items: [{ name: "ＣＣ", text: "低聲" }] }),
+          },
+        ]}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "展開完整前置資訊" }));
+    expect(screen.getByText("角色 1")).toBeInTheDocument();
+    expect(screen.getByText("ＣＣ")).toBeInTheDocument();
+    expect(screen.getByText("冷靜")).toBeInTheDocument();
+    expect(screen.getByText("低聲")).toBeInTheDocument();
+  });
+
+  it("uses rawValue to preserve rich chapter cards when value is already formatted", () => {
+    render(
+      <PublicScriptInfoOverlay
+        title="Test"
+        prefaceItems={[
+          {
+            id: "chapterSettings",
+            title: "章節",
+            value: "第一章（環境：車站；狀況：告別）",
+            rawValue: JSON.stringify({
+              mode: "chapter_multi",
+              items: [{ chapter: "第一章", environment: "車站", situation: "告別" }],
+            }),
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText("第一章")).toBeInTheDocument();
+    expect(screen.getByText("環境")).toBeInTheDocument();
+    expect(screen.getByText("車站")).toBeInTheDocument();
+    expect(screen.getByText("狀況")).toBeInTheDocument();
+    expect(screen.getByText("告別")).toBeInTheDocument();
   });
 });
