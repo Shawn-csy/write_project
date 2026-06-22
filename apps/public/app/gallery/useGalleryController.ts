@@ -181,6 +181,8 @@ export function useGalleryController({
     displayTags,
     hasFilters: homepageModel.hasFilters,
     onResetFilters: urlActions.resetFilters,
+    usage: urlState.usage,
+    onUsageChange: urlActions.setUsage,
   };
 
   return {
