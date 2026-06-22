@@ -6,17 +6,23 @@ import type { ReaderState } from "@write/script-reader-ui";
 
 interface Props {
   readerState: ReaderState;
+  title?: string;
   onShare?: () => void;
   copied?: boolean;
   onExportPdf?: () => void;
   pdfReady?: boolean;
 }
 
-export function ReaderToolbar({ readerState, onShare, copied, onExportPdf, pdfReady = false }: Props) {
+export function ReaderToolbar({ readerState, title, onShare, copied, onExportPdf, pdfReady = false }: Props) {
   return (
     <SharedReaderToolbar
       readerState={readerState}
       contentClassName="max-w-4xl mx-auto"
+      centerSlot={
+        title ? (
+          <span className="block truncate text-sm text-muted-foreground">{title}</span>
+        ) : undefined
+      }
       startSlot={
         <a
           href="/"
