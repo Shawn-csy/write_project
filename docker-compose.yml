@@ -23,6 +23,10 @@ services:
       - ./server/data:/data
       - ./server/secrets:/secrets:ro
       - ./dist:/app/dist:ro
+    deploy:
+      resources:
+        limits:
+          memory: 384m
 
   write_project-frontend-build:
     image: node:20-alpine
@@ -44,3 +48,7 @@ services:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - write_project-frontend-build
+    deploy:
+      resources:
+        limits:
+          memory: 128m
