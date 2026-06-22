@@ -254,15 +254,11 @@ Definition of Done:
 - Unknown public routes show a localized, branded 404.
 - The page has a clear recovery action.
 
-### Phase 7 — Minor Polish
+### Phase 7 — Minor Polish ✅ (light-mode background needs browser QA)
 
-Lower-priority refinements:
-
-- normalize card hover intensity between script and series cards;
-- evaluate reader toolbar center title on desktop;
-- verify reader light-mode background after theme QA.
-
-These should not block Phase 1-6.
+- ~~normalize card hover intensity between script and series cards~~ — already identical (`hover:-translate-y-0.5 hover:border-primary/60 hover:bg-muted/25 hover:shadow-md`)
+- ~~evaluate reader toolbar center title on desktop~~ — added `centerSlot` to `ReaderToolbar`, shows script title on sm+ screens
+- verify reader light-mode background after theme QA — pending browser verification
 
 ## QA Matrix
 

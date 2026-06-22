@@ -92,6 +92,7 @@ export function ScriptReaderClient({
       toolbar={
         <ReaderToolbar
           readerState={readerState}
+          title={initialScript.title}
           onShare={handleShare}
           copied={copied}
           onExportPdf={handleExportPdf}

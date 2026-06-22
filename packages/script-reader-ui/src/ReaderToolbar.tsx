@@ -9,6 +9,8 @@ export interface ReaderToolbarProps {
   readerState: ReaderState;
   /** Slot rendered at the start (left) of the toolbar. */
   startSlot?: React.ReactNode;
+  /** Centered content between start and controls. Hidden on mobile to save space. */
+  centerSlot?: React.ReactNode;
   /** Slot rendered at the end (right) of the toolbar, after the built-in controls. */
   endSlot?: React.ReactNode;
   /** Called when a TOC item is clicked. */
@@ -22,6 +24,7 @@ export interface ReaderToolbarProps {
 export function ReaderToolbar({
   readerState,
   startSlot,
+  centerSlot,
   endSlot,
   onTocItemClick,
   renderTocItem,
@@ -31,6 +34,11 @@ export function ReaderToolbar({
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/95 backdrop-blur">
       <div className={`relative flex h-12 items-center gap-2 px-4 ${contentClassName}`.trimEnd()}>
         {startSlot && <div className="shrink-0">{startSlot}</div>}
+        {centerSlot && (
+          <div className="hidden sm:block flex-1 min-w-0 overflow-hidden text-center">
+            {centerSlot}
+          </div>
+        )}
         <div className="ml-auto flex items-center gap-2">
           <MarkerVisibilityMenu
             markerConfigs={readerState.markerConfigs}

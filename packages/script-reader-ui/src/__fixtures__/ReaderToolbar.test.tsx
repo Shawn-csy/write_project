@@ -81,4 +81,34 @@ describe("ReaderToolbar — rendering", () => {
     );
     expect(screen.getByTestId("end")).not.toBeNull();
   });
+
+  it("renders centerSlot with hidden sm:block contract", () => {
+    const readerState = renderHook(() =>
+      useReaderState({ markerConfigs: [], toc: [] })
+    ).result.current;
+    render(
+      <ReaderToolbar
+        readerState={readerState}
+        centerSlot={<span data-testid="center">Title</span>}
+      />
+    );
+    const center = screen.getByTestId("center");
+    expect(center).not.toBeNull();
+    // Container must be hidden on mobile, shown on sm+
+    const container = center.parentElement!;
+    expect(container.className).toMatch(/\bhidden\b/);
+    expect(container.className).toMatch(/\bsm:block\b/);
+    expect(container.className).toMatch(/\boverflow-hidden\b/);
+  });
+
+  it("does not render center container when centerSlot omitted", () => {
+    const readerState = renderHook(() =>
+      useReaderState({ markerConfigs: [], toc: [] })
+    ).result.current;
+    const { container } = render(
+      <ReaderToolbar readerState={readerState} />
+    );
+    // No element with the center container classes
+    expect(container.querySelector(".sm\\:block.overflow-hidden")).toBeNull();
+  });
 });

@@ -81,7 +81,7 @@ describe("Phase 5 fixture scenarios", () => {
     await act(async () => {
       renderWith({ title: "Default Script" }, "Act 1\n\nScene one content.", []);
     });
-    expect(screen.queryByText("Default Script")).not.toBeNull();
+    expect(screen.queryAllByText("Default Script").length).toBeGreaterThan(0);
     // no marker trigger shown
     expect(screen.queryByText(/標記 \(/)).toBeNull();
   });
@@ -153,7 +153,7 @@ describe("Phase 5 fixture scenarios", () => {
     await act(async () => {
       renderWith({ title: "Long Script" }, text, []);
     });
-    expect(screen.queryByText("Long Script")).not.toBeNull();
+    expect(screen.queryAllByText("Long Script").length).toBeGreaterThan(0);
     expect(document.body.textContent).toContain("Line 1 content here.");
     expect(document.body.textContent).toContain("Line 120 content here.");
   });

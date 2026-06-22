@@ -130,7 +130,7 @@ describe("ScriptReaderClient — Next host assembly", () => {
         />
       );
     });
-    expect(screen.queryByText("Test Script Title")).not.toBeNull();
+    expect(screen.queryAllByText("Test Script Title").length).toBeGreaterThan(0);
     expect(screen.queryByText("A short synopsis.")).not.toBeNull();
   });
 
