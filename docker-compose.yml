@@ -1,5 +1,24 @@
 
 services:
+  write_project-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: write_project
+      POSTGRES_PASSWORD: write_project
+      POSTGRES_DB: write_project
+    volumes:
+      - ./server/data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "write_project"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
   write_project-backend:
     env_file:
       - .env
@@ -23,6 +42,9 @@ services:
       - ./server/data:/data
       - ./server/secrets:/secrets:ro
       - ./dist:/app/dist:ro
+    depends_on:
+      write_project-postgres:
+        condition: service_healthy
     deploy:
       resources:
         limits:
