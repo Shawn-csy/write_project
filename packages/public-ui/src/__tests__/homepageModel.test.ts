@@ -53,14 +53,34 @@ const baseInput: BuildPublicHomepageModelInput = {
 // ─── hasFilters / showLanes ────────────────────────────────────────────────────
 
 describe("hasFilters / showLanes", () => {
-  it("no filters → hasFilters=false, showLanes=true", () => {
+  it("small catalog, no filters → hasFilters=false, showLanes=false (below threshold)", () => {
     const m = buildPublicHomepageModel(baseInput);
+    expect(m.hasFilters).toBe(false);
+    expect(m.showLanes).toBe(false);
+  });
+
+  it("large catalog, no filters → showLanes=true", () => {
+    const m = buildPublicHomepageModel({ ...baseInput, totalScriptCount: 25 });
     expect(m.hasFilters).toBe(false);
     expect(m.showLanes).toBe(true);
   });
 
+  it("enough distinct entries → showLanes=true even with fewer total scripts", () => {
+    const manyScripts = Array.from({ length: 12 }, (_, i) =>
+      enrichScript(makeScript({ id: `s${i}`, title: `S${i}`, lastModified: 1000 + i }))
+    );
+    const m = buildPublicHomepageModel({
+      ...baseInput,
+      filteredScripts: manyScripts,
+      latestScripts: manyScripts,
+      topViewedScripts: manyScripts,
+      totalScriptCount: 12,
+    });
+    expect(m.showLanes).toBe(true);
+  });
+
   it("q set → hasFilters=true, showLanes=false", () => {
-    const m = buildPublicHomepageModel({ ...baseInput, q: "hello" });
+    const m = buildPublicHomepageModel({ ...baseInput, totalScriptCount: 25, q: "hello" });
     expect(m.hasFilters).toBe(true);
     expect(m.showLanes).toBe(false);
   });
@@ -83,6 +103,11 @@ describe("hasFilters / showLanes", () => {
   it("authorTags set → hasFilters=true", () => {
     const m = buildPublicHomepageModel({ ...baseInput, selectedAuthorTags: ["voice"] });
     expect(m.hasFilters).toBe(true);
+  });
+
+  it("non-scripts view → showLanes=false even with large catalog", () => {
+    const m = buildPublicHomepageModel({ ...baseInput, view: "authors", totalScriptCount: 25 });
+    expect(m.showLanes).toBe(false);
   });
 });
 
@@ -252,6 +277,24 @@ describe("lanes", () => {
     const series = [{ name: "Empty", totalViews: 0, count: 0, lead: null, coverUrl: "", scripts: [] }];
     const m = buildPublicHomepageModel({ ...baseInput, featuredSeries: series });
     expect(m.lanes.featuredSeries).toEqual([]);
+  });
+
+  it("featuredSeries de-duplicates series already in latest/top lanes", () => {
+    const ch1 = enrichScript(makeScript({ id: "c1", title: "Ch 1", series: { name: "Dup" }, seriesOrder: 1, lastModified: 2000 }));
+    const ch2 = enrichScript(makeScript({ id: "c2", title: "Ch 2", series: { name: "Dup" }, seriesOrder: 2, lastModified: 1000 }));
+    const unique = enrichScript(makeScript({ id: "u1", title: "Unique Ch", series: { name: "Unique" }, seriesOrder: 1, lastModified: 500 }));
+    // "Dup" appears in latestScripts (will be grouped into a series entry in the lane)
+    const featured = [
+      { name: "Dup", totalViews: 10, count: 2, lead: ch1, coverUrl: "", scripts: [ch1, ch2] },
+      { name: "Unique", totalViews: 5, count: 1, lead: unique, coverUrl: "", scripts: [unique] },
+    ];
+    const m = buildPublicHomepageModel({
+      ...baseInput,
+      latestScripts: [ch1, ch2],
+      featuredSeries: featured,
+    });
+    // "Dup" should be removed from featured since it appears in latest lane
+    expect(m.lanes.featuredSeries.map((s) => s.name)).toEqual(["Unique"]);
   });
 
   it("same-series chapters collapse into one series entry in latestEntriesPreview", () => {
