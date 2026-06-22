@@ -4,6 +4,7 @@ import { CoverPlaceholder } from "../cover/CoverPlaceholder";
 import { CoverRenderer } from "../cover/CoverRenderer";
 import { getMediaCropStyle } from "@write/media-crop";
 import type { PublicSeriesGroup } from "./seriesModel";
+import { normalizeCardText, normalizeOutlineText, truncateCardText } from "./cardText";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -45,6 +46,9 @@ function SeriesGalleryCardInner({
   showAgeGate = false,
 }: SeriesGalleryCardProps): React.JSX.Element {
   const { name, scripts, leadScript, latestScript, coverUrl, summary, updatedAt } = series;
+  const leadSummary = normalizeCardText(leadScript?._cardSummary || leadScript?.synopsis || "");
+  const leadOutline = normalizeOutlineText(leadScript?._hoverOutline || leadScript?.outline || "");
+  const cardSummary = truncateCardText(summary || leadSummary);
 
   const cropCover = getMediaCropStyle(
     String(coverUrl || leadScript?.coverUrl || ""),
@@ -108,6 +112,15 @@ function SeriesGalleryCardInner({
 
   const ARTICLE_CLASS =
     "group relative rounded-xl border border-transparent bg-transparent px-2 pb-2 pt-1 shadow-none hover:-translate-y-0.5 hover:border-primary/60 hover:bg-muted/25 hover:shadow-md transition-all duration-200";
+  const hoverOutlineEl = leadOutline ? (
+    <div
+      className="pointer-events-none absolute inset-x-2 bottom-2 z-20 hidden rounded-lg border border-border/70 bg-popover/95 p-3 text-left text-xs leading-5 text-popover-foreground opacity-0 shadow-lg backdrop-blur transition-opacity duration-200 group-hover:block group-hover:opacity-100"
+      aria-hidden
+    >
+      <div className="mb-1 text-[10px] font-semibold tracking-wider text-muted-foreground">大綱</div>
+      <p className="max-h-40 overflow-y-auto whitespace-pre-wrap pr-1">{leadOutline}</p>
+    </div>
+  ) : null;
 
   // ── Compact ──
   if (variant === "compact") {
@@ -148,8 +161,14 @@ function SeriesGalleryCardInner({
               </p>
             )}
             {authorEl && <div className="pt-0.5">{authorEl}</div>}
+            {cardSummary && (
+              <p className="text-[10px] text-muted-foreground line-clamp-1">
+                {cardSummary}
+              </p>
+            )}
           </div>
         </div>
+        {hoverOutlineEl}
       </article>
     );
   }
@@ -191,8 +210,8 @@ function SeriesGalleryCardInner({
 
         {authorEl}
 
-        {summary && (
-          <p className="text-[11px] text-muted-foreground line-clamp-2">{summary}</p>
+        {cardSummary && (
+          <p className="text-[11px] text-muted-foreground line-clamp-2">{cardSummary}</p>
         )}
 
         <div className="flex items-center justify-between pt-2 border-t border-border/50 mt-2">
@@ -206,6 +225,7 @@ function SeriesGalleryCardInner({
           )}
         </div>
       </div>
+      {hoverOutlineEl}
     </article>
   );
 }

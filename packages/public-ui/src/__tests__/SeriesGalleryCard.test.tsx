@@ -167,6 +167,123 @@ describe("SeriesGalleryCard — compact", () => {
   });
 });
 
+// ─── card summary and hover outline ──────────────────────────────────────────
+
+describe("SeriesGalleryCard — card summary priority", () => {
+  it("series summary wins over lead script synopsis", () => {
+    const series: PublicSeriesGroup = {
+      ...SERIES,
+      summary: "Series-level summary",
+      leadScript: {
+        ...SERIES.leadScript!,
+        synopsis: "Lead synopsis should not show",
+        _cardSummary: "Lead card summary should not show",
+      } as typeof SERIES.leadScript,
+    };
+    render(<SeriesGalleryCard series={series} variant="standard" href="/series/s" />);
+    expect(screen.getByText("Series-level summary")).toBeDefined();
+    expect(screen.queryByText("Lead synopsis should not show")).toBeNull();
+    expect(screen.queryByText("Lead card summary should not show")).toBeNull();
+  });
+
+  it("falls back to lead script _cardSummary when series summary absent", () => {
+    const series: PublicSeriesGroup = {
+      ...SERIES,
+      summary: undefined,
+      leadScript: {
+        ...SERIES.leadScript!,
+        _cardSummary: "Lead card summary fallback",
+      } as typeof SERIES.leadScript,
+    };
+    render(<SeriesGalleryCard series={series} variant="standard" href="/series/s" />);
+    expect(screen.getByText("Lead card summary fallback")).toBeDefined();
+  });
+
+  it("falls back to lead script synopsis when series summary and _cardSummary absent", () => {
+    const series: PublicSeriesGroup = {
+      ...SERIES,
+      summary: undefined,
+      leadScript: {
+        ...SERIES.leadScript!,
+        _cardSummary: undefined,
+        synopsis: "Lead synopsis fallback",
+      } as typeof SERIES.leadScript,
+    };
+    render(<SeriesGalleryCard series={series} variant="standard" href="/series/s" />);
+    expect(screen.getByText(/Lead synopsis fallback/)).toBeDefined();
+  });
+
+  it("renders nothing for summary when all summary fields absent", () => {
+    const series: PublicSeriesGroup = {
+      ...SERIES,
+      summary: undefined,
+      leadScript: {
+        ...SERIES.leadScript!,
+        _cardSummary: undefined,
+        synopsis: undefined,
+      } as typeof SERIES.leadScript,
+    };
+    const { container } = render(
+      <SeriesGalleryCard series={series} variant="standard" href="/series/s" />
+    );
+    // No summary paragraph with truncated text
+    const paras = container.querySelectorAll("p");
+    const summaryPara = Array.from(paras).find(
+      (p) => p.className.includes("line-clamp") && p.textContent && p.textContent.trim().length > 5
+        && !p.textContent.includes("最新")
+        && !p.textContent.includes("部")
+    );
+    expect(summaryPara).toBeUndefined();
+  });
+});
+
+describe("SeriesGalleryCard — hover outline", () => {
+  it("renders lead outline preview when _hoverOutline present", () => {
+    const series: PublicSeriesGroup = {
+      ...SERIES,
+      leadScript: {
+        ...SERIES.leadScript!,
+        _hoverOutline: "Act structure outline",
+      } as typeof SERIES.leadScript,
+    };
+    const { container } = render(
+      <SeriesGalleryCard series={series} variant="standard" href="/series/s" />
+    );
+    expect(container.textContent).toContain("Act structure outline");
+  });
+
+  it("does not render outline preview when _hoverOutline absent", () => {
+    const series: PublicSeriesGroup = {
+      ...SERIES,
+      leadScript: {
+        ...SERIES.leadScript!,
+        _hoverOutline: undefined,
+        outline: undefined,
+      } as typeof SERIES.leadScript,
+    };
+    const { container } = render(
+      <SeriesGalleryCard series={series} variant="standard" href="/series/s" />
+    );
+    expect(container.textContent).not.toContain("大綱");
+  });
+
+  it("outline container has no interactive elements", () => {
+    const series: PublicSeriesGroup = {
+      ...SERIES,
+      leadScript: {
+        ...SERIES.leadScript!,
+        _hoverOutline: "Outline for series",
+      } as typeof SERIES.leadScript,
+    };
+    const { container } = render(
+      <SeriesGalleryCard series={series} variant="standard" href="/series/s" />
+    );
+    const outlineEl = container.querySelector("[aria-hidden='true'][class*='pointer-events-none']");
+    expect(outlineEl).not.toBeNull();
+    expect(outlineEl!.querySelectorAll("a, button")).toHaveLength(0);
+  });
+});
+
 // ─── root element contract ────────────────────────────────────────────────────
 
 describe("SeriesGalleryCard — root contract", () => {

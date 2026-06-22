@@ -102,6 +102,23 @@ describe("galleryProjection", () => {
     expect(publicScriptsFromBundle({ scripts: "bad" })).toEqual([]);
   });
 
+  it("forwards synopsis and outline from PublicScript", () => {
+    const input = toGalleryInput({
+      id: "s1",
+      title: "Script",
+      synopsis: "Short summary text",
+      outline: "Detailed outline text",
+    });
+    expect(input.synopsis).toBe("Short summary text");
+    expect(input.outline).toBe("Detailed outline text");
+  });
+
+  it("synopsis and outline are undefined when absent on PublicScript", () => {
+    const input = toGalleryInput({ id: "s1", title: "Script" });
+    expect(input.synopsis).toBeUndefined();
+    expect(input.outline).toBeUndefined();
+  });
+
   it("normalizes people responses", () => {
     expect(publicPersonasFromResponse([{ id: "p1", displayName: "P" }])).toEqual([
       { id: "p1", displayName: "P" },

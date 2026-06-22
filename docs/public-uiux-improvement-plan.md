@@ -260,6 +260,86 @@ Definition of Done:
 - ~~evaluate reader toolbar center title on desktop~~ — added `centerSlot` to `ReaderToolbar`, shows script title on sm+ screens
 - verify reader light-mode background after theme QA — pending browser verification
 
+### Phase 8 — Card Summary And Hover Outline ✅
+
+Goal: make homepage/gallery cards carry enough context without bloating the
+default grid.
+
+Product rule:
+
+- Card short summary comes from the script info synopsis (`PublicScript.synopsis`).
+- Hover detail comes from the advanced preface outline (`PublicScript.outline` /
+  public metadata `outline` / `大綱`).
+- Synopsis and outline are different product fields and must not be merged.
+
+Architecture rule:
+
+1. Add gallery display fields at the model boundary:
+   - `GalleryScriptInput.synopsis`
+   - `GalleryScriptInput.outline`
+   - enriched `_cardSummary`
+   - enriched `_hoverOutline`
+2. `apps/public/lib/galleryProjection.ts` maps `PublicScript.synopsis` and
+   `PublicScript.outline` into `GalleryScriptInput`.
+3. `ScriptGalleryCard` and `SeriesGalleryCard` only consume the enriched display
+   fields. They must not parse `customMetadata` themselves.
+4. Series cards use series summary first. If series summary is absent, they may
+   fall back to the lead script synopsis for the short summary. Hover outline may
+   use the lead script outline until a series-level outline exists.
+
+UI contract:
+
+- Standard cards show a short summary under title/author/series metadata.
+- Compact cards may show a shorter one-line summary only if it does not harm
+  scan density.
+- Short summaries are normalized to single-line whitespace and truncated by a
+  shared helper, not ad hoc `slice()` calls inside JSX.
+- Desktop hover may show an outline preview panel.
+- Mobile must not rely on hover as the only way to access synopsis. The synopsis
+  remains visible in the card body when present.
+- If synopsis is empty, no blank summary row is rendered.
+- If outline is empty, no hover panel is rendered.
+- Hover preview must not introduce nested interactive elements and should not
+  intercept card clicks.
+
+Implementation plan:
+
+1. Add pure text helpers near the gallery model or card component:
+   - normalize display text;
+   - truncate short summary with an ellipsis;
+   - preserve readable outline whitespace where useful.
+2. Extend `GalleryScriptInput` / `EnrichedGalleryScript`.
+3. Update Next gallery projection.
+4. Render short summary + hover outline in `ScriptGalleryCard`.
+5. Render series summary/fallback + hover outline in `SeriesGalleryCard`.
+6. Update tests.
+
+Required tests:
+
+- `filterModel`:
+  - `synopsis` becomes `_cardSummary`;
+  - `outline` becomes `_hoverOutline`;
+  - custom metadata fallback only if explicitly supported by the model.
+- `galleryProjection`:
+  - `PublicScript.synopsis` and `PublicScript.outline` are forwarded.
+- `ScriptGalleryCard`:
+  - short summary renders;
+  - long summary truncates;
+  - outline hover preview renders when present;
+  - no hover preview when outline is absent;
+  - no nested interactive elements.
+- `SeriesGalleryCard`:
+  - series summary wins over lead synopsis;
+  - lead synopsis fallback works;
+  - lead outline hover preview renders.
+
+Definition of Done:
+
+- Homepage script cards expose short context from script synopsis.
+- Hover outline uses advanced outline data, not synopsis, tags, or generated copy.
+- The data path is model/projection driven and shared by all gallery surfaces.
+- Card layout remains scannable in both standard and compact modes.
+
 ## QA Matrix
 
 | Area | Required Checks |
@@ -271,6 +351,7 @@ Definition of Done:
 | Hero | bright image, dark image, mobile and desktop readability |
 | Filter panel | long tag list, selected hidden tag, reset filters |
 | 404 | unknown route in light/dark mode |
+| Card summaries | synopsis visible, long text truncated, hover outline shown on desktop |
 
 ## Non-Goals And Anti-Patterns
 
@@ -282,5 +363,8 @@ Do not:
 - add empty placeholder facts to public reader metadata;
 - fix mobile tap targets only in `apps/public` wrappers while leaving shared
   components small;
+- parse `customMetadata` inside card components;
+- use synopsis as hover outline or outline as the short summary unless the
+  model explicitly defines that fallback;
+- make hover-only content the only source of card context on mobile;
 - treat browser QA findings as complete without viewport/theme evidence.
-
