@@ -153,4 +153,45 @@ describe("ReadWorkHeader — license / rating metadata", () => {
     expect(screen.queryByText("全年齡")).not.toBeNull();
     expect(screen.queryByText("普通")).not.toBeNull();
   });
+
+  it("hides audience card when targetAudience is empty", () => {
+    render(
+      <ReadWorkHeader
+        model={{ ...BASE_MODEL, targetAudience: "", contentRating: "普通" }}
+        actions={BASE_ACTIONS}
+      />
+    );
+    expect(screen.queryByText("觀眾取向")).toBeNull();
+    expect(screen.queryByText("普通")).not.toBeNull();
+  });
+
+  it("hides rating card when contentRating is empty", () => {
+    render(
+      <ReadWorkHeader
+        model={{ ...BASE_MODEL, targetAudience: "全年齡", contentRating: "" }}
+        actions={BASE_ACTIONS}
+      />
+    );
+    expect(screen.queryByText("內容分級")).toBeNull();
+    expect(screen.queryByText("全年齡")).not.toBeNull();
+  });
+
+  it("tags and license still render without audience/rating", () => {
+    render(
+      <ReadWorkHeader
+        model={{
+          ...BASE_MODEL,
+          targetAudience: "",
+          contentRating: "",
+          tags: ["配音"],
+          license: "CC BY 4.0",
+        }}
+        actions={BASE_ACTIONS}
+      />
+    );
+    expect(screen.queryByText("觀眾取向")).toBeNull();
+    expect(screen.queryByText("內容分級")).toBeNull();
+    expect(screen.queryByText("配音")).not.toBeNull();
+    expect(screen.queryByText("CC BY 4.0")).not.toBeNull();
+  });
 });

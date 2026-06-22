@@ -128,6 +128,11 @@ export interface BuildPublicHomepageModelInput {
 
 const LANE_PREVIEW_SIZE = 15;
 
+/** Minimum total public scripts before lane layout activates. */
+export const MIN_LANE_SCRIPT_COUNT = 20;
+/** Minimum distinct gallery entries (series-collapsed) before lane layout activates. */
+export const MIN_DISTINCT_LANE_ENTRY_COUNT = 12;
+
 // ─── buildPublicHomepageModel ─────────────────────────────────────────────────
 
 export function buildPublicHomepageModel(
@@ -166,8 +171,15 @@ export function buildPublicHomepageModel(
     segment !== "all" ||
     usage !== "all";
 
-  // ── showLanes: lane layout only when no active filters ────────────────────
-  const showLanes = !hasFilters;
+  // ── galleryEntries (series-collapsed flat list) ──────────────────────────
+  const galleryEntries = groupScriptsIntoGalleryEntries(filteredScripts);
+
+  // ── showLanes: lane layout only when no filters + enough content ──────────
+  const showLanes =
+    !hasFilters &&
+    view === "scripts" &&
+    (totalScriptCount >= MIN_LANE_SCRIPT_COUNT ||
+      galleryEntries.length >= MIN_DISTINCT_LANE_ENTRY_COUNT);
 
   // ── filterChips ───────────────────────────────────────────────────────────
   const filterChips: FilterChip[] = [];
@@ -202,9 +214,18 @@ export function buildPublicHomepageModel(
     LANE_PREVIEW_SIZE
   );
   // Convert FeaturedSeries → PublicSeriesGroup using canonical seriesModel helpers
-  const featuredSeriesGroups: PublicSeriesGroup[] = featuredSeries
+  const allFeaturedGroups: PublicSeriesGroup[] = featuredSeries
     .map(featuredSeriesToGroup)
     .filter((series): series is PublicSeriesGroup => series !== null);
+
+  // De-duplicate: remove series already visible in latest/top lanes
+  const visibleSeriesKeys = new Set<string>();
+  for (const entry of [...latestEntriesPreview, ...topViewedEntriesPreview]) {
+    if (entry.type === "series") visibleSeriesKeys.add(entry.key);
+  }
+  const featuredSeriesGroups = allFeaturedGroups.filter(
+    (s) => !visibleSeriesKeys.has(s.key)
+  );
 
   const lanes: ScriptLanes = {
     latestEntriesPreview,
@@ -251,8 +272,6 @@ export function buildPublicHomepageModel(
     new Map(allEnrichedScripts.map((s) => [s.id, s])).values()
   );
   const navigationPolicyMap = buildNavigationPolicyMap(dedupedForPolicy, termsRequired);
-
-  const galleryEntries = groupScriptsIntoGalleryEntries(filteredScripts);
 
   return {
     view,

@@ -58,18 +58,18 @@ export function PublicGalleryTopBar({
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/95 backdrop-blur">
       {/* Main row */}
       <div className="flex h-14 items-center px-3 sm:px-5 lg:px-8 w-full">
-        {/* Mobile left: filter button (thumb-reach corner) */}
-        <div className="sm:hidden flex items-center justify-start w-10 shrink-0">
+        {/* Mobile left: filter button (thumb-reach corner, 44px touch target) */}
+        <div className="sm:hidden flex items-center justify-start w-11 shrink-0">
           {activeTab === "scripts" && onOpenMobileFilter ? (
             <button
               type="button"
               onClick={onOpenMobileFilter}
               aria-label={mobileFilterLabel}
-              className="flex items-center justify-center h-8 w-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="flex items-center justify-center h-11 w-11 -ml-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             >
               <SlidersHorizontal className="h-4 w-4" />
             </button>
-          ) : <span className="w-8" aria-hidden />}
+          ) : <span className="w-11" aria-hidden />}
         </div>
 
         {/* Brand — centered on mobile, left-aligned on desktop */}
@@ -121,7 +121,7 @@ export function PublicGalleryTopBar({
               type="button"
               onClick={onOpenMobileFilter}
               aria-label={mobileFilterLabel}
-              className="hidden sm:flex lg:hidden items-center justify-center h-8 w-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="hidden sm:flex lg:hidden items-center justify-center h-11 w-11 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             >
               <SlidersHorizontal className="h-4 w-4" />
             </button>

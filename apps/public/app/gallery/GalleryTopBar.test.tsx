@@ -64,4 +64,21 @@ describe("GalleryTopBar", () => {
       "/dashboard"
     );
   });
+
+  it("filter buttons have 44px (h-11 w-11) touch target", () => {
+    render(
+      <GalleryTopBar
+        activeTab="scripts"
+        onTabChange={() => {}}
+        onOpenMobileFilter={() => {}}
+      />
+    );
+
+    const filterButtons = screen.getAllByRole("button", { name: "開啟篩選" });
+    for (const btn of filterButtons) {
+      const classes = btn.className;
+      expect(classes).toMatch(/\bh-11\b/);
+      expect(classes).toMatch(/\bw-11\b/);
+    }
+  });
 });
