@@ -187,6 +187,10 @@ export interface PersonaLike {
 export interface GalleryScriptInput {
   id: string;
   title?: string;
+  /** Short public description from script info. Used for gallery card summaries. */
+  synopsis?: string | null;
+  /** Full outline from advanced metadata. Used for hover detail previews. */
+  outline?: string | null;
   customMetadata?: Array<{ key?: string; value?: string; type?: string }>;
   persona?: Partial<PersonaLike> | null;
   author?: AuthorLike | string | null;
@@ -217,6 +221,8 @@ export interface EnrichedGalleryScript extends GalleryScriptInput {
   _disableAuthorLink: boolean;
   _seriesName: string;
   _seriesOrder: number | null;
+  _cardSummary: string;
+  _hoverOutline: string;
   _searchTitle: string;
   _searchAuthor: string;
   _searchLicenseText: string;
@@ -267,6 +273,12 @@ export function enrichScript(script: GalleryScriptInput): EnrichedGalleryScript 
   const license = meta.license || meta.licenseName || "";
   const seriesName = normalizeSeriesName(script.series?.name || meta.series || meta.seriesname);
   const seriesOrder = parseSeriesOrder(script.seriesOrder ?? meta.seriesorder ?? meta.episode);
+  const cardSummary = String(
+    script.synopsis || meta.synopsis || meta.summary || meta.description || meta.notes || meta["摘要"] || ""
+  ).trim();
+  const hoverOutline = String(
+    script.outline || meta.outline || meta["大綱"] || ""
+  ).trim();
 
   const terms = parseStringArrayLike(
     meta.licensespecialterms || meta.licenseSpecialTerms || "",
@@ -304,6 +316,8 @@ export function enrichScript(script: GalleryScriptInput): EnrichedGalleryScript 
     _disableAuthorLink: useOverrideAuthor,
     _seriesName: seriesName,
     _seriesOrder: seriesOrder,
+    _cardSummary: cardSummary,
+    _hoverOutline: hoverOutline,
     seriesName,
     seriesOrder,
     _searchTitle: String(script.title || "").toLowerCase(),

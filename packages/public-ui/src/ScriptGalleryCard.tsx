@@ -5,6 +5,7 @@ import { CoverRenderer } from "./cover/CoverRenderer";
 import type { CoverDesign } from "./cover/types";
 import type { MediaCropLike as CropRef } from "@write/media-crop";
 import { getMediaCropStyle } from "@write/media-crop";
+import { normalizeCardText, normalizeOutlineText, truncateCardText } from "./gallery/cardText";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -24,6 +25,8 @@ export interface AuthorInfo {
 export interface ScriptGalleryItem {
   id: string;
   title?: string;
+  synopsis?: string | null;
+  outline?: string | null;
   author?: string | AuthorInfo | null;
   coverUrl?: string | null;
   coverDesign?: CoverDesign | null;
@@ -39,7 +42,10 @@ export interface ScriptGalleryItem {
   seriesOrder?: number | string | null;
   _seriesOrder?: number | string | null;
   _derivedLicenseTags?: Array<string | TagLike>;
+  _cardSummary?: string;
+  _hoverOutline?: string;
 }
+
 
 /**
  * Host provides resolved hrefs for navigation targets.
@@ -235,6 +241,8 @@ function ScriptGalleryCardInner({
 
   const [isLiked, setIsLiked] = useState<boolean>(script.isLiked ?? false);
   const [likeCount, setLikeCount] = useState<number>(likes);
+  const cardSummary = truncateCardText(script._cardSummary || script.synopsis || "");
+  const hoverOutline = normalizeOutlineText(script._hoverOutline || script.outline || "");
 
   useEffect(() => {
     setLikeCount(likes);
@@ -321,6 +329,16 @@ function ScriptGalleryCardInner({
 
   const ARTICLE_CLASS = "group relative rounded-xl border border-transparent bg-transparent px-2 pb-2 pt-1 shadow-none hover:-translate-y-0.5 hover:border-primary/60 hover:bg-muted/25 hover:shadow-md transition-all duration-200";
 
+  const hoverOutlineEl = hoverOutline ? (
+    <div
+      className="pointer-events-none absolute inset-x-2 bottom-2 z-20 hidden rounded-lg border border-border/70 bg-popover/95 p-3 text-left text-xs leading-5 text-popover-foreground opacity-0 shadow-lg backdrop-blur transition-opacity duration-200 group-hover:block group-hover:opacity-100"
+      aria-hidden
+    >
+      <div className="mb-1 text-[10px] font-semibold tracking-wider text-muted-foreground">大綱</div>
+      <p className="max-h-40 overflow-y-auto whitespace-pre-wrap pr-1">{hoverOutline}</p>
+    </div>
+  ) : null;
+
   // ── Compact variant ──
   // DOM contract: <article> root, title is <a> with stretched-link (::before covers article),
   // cover is aria-hidden decorative <a>, author/series/tags are z-10 siblings above the link.
@@ -387,8 +405,14 @@ function ScriptGalleryCardInner({
               )}
               <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground/40 transition-all duration-200 group-hover:translate-x-1 group-hover:text-primary" aria-hidden />
             </div>
+            {cardSummary && (
+              <p className="relative z-10 text-[11px] leading-4 text-muted-foreground line-clamp-2">
+                {cardSummary}
+              </p>
+            )}
           </div>
         </div>
+        {hoverOutlineEl}
       </article>
     );
   }
@@ -431,6 +455,12 @@ function ScriptGalleryCardInner({
 
         {seriesEl}
 
+        {cardSummary && (
+          <p className="text-[11px] leading-4 text-muted-foreground line-clamp-2">
+            {cardSummary}
+          </p>
+        )}
+
         <Tags
           primaryTags={primaryTags}
           secondaryTags={secondaryTags}
@@ -454,6 +484,7 @@ function ScriptGalleryCardInner({
           )}
         </div>
       </div>
+      {hoverOutlineEl}
     </article>
   );
 }

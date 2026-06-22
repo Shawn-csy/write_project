@@ -9,6 +9,8 @@ export function toGalleryInput(script: PublicScript): GalleryScriptInput {
   return {
     id: script.id,
     title: script.title,
+    synopsis: script.synopsis ?? undefined,
+    outline: script.outline ?? undefined,
     coverUrl: script.coverUrl ?? undefined,
     coverCrop: script.coverCrop ?? undefined,
     coverDesign: script.coverDesign ?? undefined,

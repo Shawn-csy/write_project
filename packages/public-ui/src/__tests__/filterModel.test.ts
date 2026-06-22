@@ -438,6 +438,76 @@ describe("isLicenseShortcutTag", () => {
 
 // ─── deriveTags ───────────────────────────────────────────────────────────────
 
+// ─── enrichScript – _cardSummary and _hoverOutline ───────────────────────────
+
+describe("enrichScript – _cardSummary", () => {
+  it("uses synopsis field directly", () => {
+    const s = enrichScript(makeScript({ synopsis: "Short summary" }));
+    expect(s._cardSummary).toBe("Short summary");
+  });
+
+  it("falls back to customMetadata synopsis", () => {
+    const s = enrichScript(makeScript({
+      customMetadata: [{ key: "synopsis", value: "Meta summary", type: "text" }],
+    }));
+    expect(s._cardSummary).toBe("Meta summary");
+  });
+
+  it("falls back to customMetadata summary", () => {
+    const s = enrichScript(makeScript({
+      customMetadata: [{ key: "summary", value: "Summary text", type: "text" }],
+    }));
+    expect(s._cardSummary).toBe("Summary text");
+  });
+
+  it("is empty string when no synopsis-like field present", () => {
+    const s = enrichScript(makeScript({ customMetadata: [] }));
+    expect(s._cardSummary).toBe("");
+  });
+
+  it("synopsis field wins over customMetadata synopsis", () => {
+    const s = enrichScript(makeScript({
+      synopsis: "Top-level wins",
+      customMetadata: [{ key: "synopsis", value: "Meta synopsis", type: "text" }],
+    }));
+    expect(s._cardSummary).toBe("Top-level wins");
+  });
+});
+
+describe("enrichScript – _hoverOutline", () => {
+  it("uses outline field directly", () => {
+    const s = enrichScript(makeScript({ outline: "Detailed outline" }));
+    expect(s._hoverOutline).toBe("Detailed outline");
+  });
+
+  it("falls back to customMetadata outline", () => {
+    const s = enrichScript(makeScript({
+      customMetadata: [{ key: "outline", value: "Meta outline", type: "text" }],
+    }));
+    expect(s._hoverOutline).toBe("Meta outline");
+  });
+
+  it("falls back to customMetadata 大綱", () => {
+    const s = enrichScript(makeScript({
+      customMetadata: [{ key: "大綱", value: "大綱 text", type: "text" }],
+    }));
+    expect(s._hoverOutline).toBe("大綱 text");
+  });
+
+  it("is empty string when no outline-like field present", () => {
+    const s = enrichScript(makeScript({ customMetadata: [] }));
+    expect(s._hoverOutline).toBe("");
+  });
+
+  it("outline field wins over customMetadata outline", () => {
+    const s = enrichScript(makeScript({
+      outline: "Top-level outline",
+      customMetadata: [{ key: "outline", value: "Meta outline", type: "text" }],
+    }));
+    expect(s._hoverOutline).toBe("Top-level outline");
+  });
+});
+
 describe("deriveTags", () => {
   it("collects all tags excluding segment tags", () => {
     const scripts = [

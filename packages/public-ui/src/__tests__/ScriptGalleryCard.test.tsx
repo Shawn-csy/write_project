@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
 import { ScriptGalleryCard } from "../ScriptGalleryCard";
 import type { ScriptGalleryItem } from "../ScriptGalleryCard";
+import { CARD_SUMMARY_MAX_CHARS } from "../gallery/cardText";
 
 const SCRIPT: ScriptGalleryItem = {
   id: "s1",
@@ -209,6 +210,84 @@ describe("ScriptGalleryCard compact — href mode", () => {
     render(<ScriptGalleryCard script={SCRIPT} variant="compact" href="/read/s1" />);
     const titleLink = screen.getByRole("link", { name: "Test Script" });
     expect(titleLink.getAttribute("href")).toBe("/read/s1");
+  });
+});
+
+// ── Card summary and hover outline ───────────────────────────────────────
+
+describe("ScriptGalleryCard — card summary", () => {
+  it("renders short summary from _cardSummary", () => {
+    render(
+      <ScriptGalleryCard
+        script={{ ...SCRIPT, _cardSummary: "A short summary" }}
+        href="/read/s1"
+      />
+    );
+    expect(screen.getByText("A short summary")).toBeDefined();
+  });
+
+  it("truncates long _cardSummary with '...' and max length contract", () => {
+    const long = "A".repeat(200);
+    render(
+      <ScriptGalleryCard
+        script={{ ...SCRIPT, _cardSummary: long }}
+        href="/read/s1"
+      />
+    );
+    const text = screen.getByText(/^A+\.\.\.$/);
+    expect(text.textContent).not.toBe(long);
+    expect(text.textContent).toMatch(/\.\.\.$/);
+    expect(text.textContent!.length).toBeLessThanOrEqual(CARD_SUMMARY_MAX_CHARS + 3);
+  });
+
+  it("renders nothing for summary when _cardSummary is absent", () => {
+    const { container } = render(
+      <ScriptGalleryCard script={SCRIPT} href="/read/s1" />
+    );
+    // No summary paragraph rendered — only title/views present
+    expect(container.textContent).not.toMatch(/^.{100,}/);
+  });
+
+  it("falls back to synopsis when _cardSummary is absent", () => {
+    render(
+      <ScriptGalleryCard
+        script={{ ...SCRIPT, synopsis: "Synopsis fallback" }}
+        href="/read/s1"
+      />
+    );
+    expect(screen.getByText(/Synopsis fallback/)).toBeDefined();
+  });
+});
+
+describe("ScriptGalleryCard — hover outline", () => {
+  it("renders outline preview when _hoverOutline present", () => {
+    const { container } = render(
+      <ScriptGalleryCard
+        script={{ ...SCRIPT, _hoverOutline: "Act 1: setup" }}
+        href="/read/s1"
+      />
+    );
+    // Outline container is aria-hidden, find by text content
+    expect(container.textContent).toContain("Act 1: setup");
+  });
+
+  it("does not render outline preview when _hoverOutline absent", () => {
+    const { container } = render(
+      <ScriptGalleryCard script={SCRIPT} href="/read/s1" />
+    );
+    expect(container.textContent).not.toContain("大綱");
+  });
+
+  it("outline container has no interactive elements (pointer-events-none)", () => {
+    const { container } = render(
+      <ScriptGalleryCard
+        script={{ ...SCRIPT, _hoverOutline: "Outline text" }}
+        href="/read/s1"
+      />
+    );
+    const outlineEl = container.querySelector("[aria-hidden='true'][class*='pointer-events-none']");
+    expect(outlineEl).not.toBeNull();
+    expect(outlineEl!.querySelectorAll("a, button")).toHaveLength(0);
   });
 });
 
