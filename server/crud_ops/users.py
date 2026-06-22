@@ -31,6 +31,8 @@ def update_user(db: Session, user_id: str, user_update: schemas.UserCreate):
         update_data["avatarCrop"] = avatar_crop
 
     for key, value in update_data.items():
+        if key == "handle" and db_user.handle:
+            continue
         setattr(db_user, key, value)
 
     db_user.lastLogin = int(time.time() * 1000)

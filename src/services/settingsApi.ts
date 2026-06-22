@@ -61,7 +61,6 @@ export const saveUserSettings = async (currentUser: AuthUser, payload: Record<st
       settings: payload,
       displayName: currentUser.displayName,
       avatar: currentUser.photoURL,
-      handle: currentUser.email?.split("@")[0],
     };
     await fetchApi("/me", {
       method: "PUT",
