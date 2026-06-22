@@ -95,8 +95,8 @@ export function PublicHeroMarquee({
         >
           <div
             className={cn(
-              "relative aspect-[4.5/1] min-h-[100px] sm:min-h-[140px]",
-              fullBleed && "min-h-[140px] sm:min-h-[200px] lg:min-h-[240px]"
+              "relative aspect-[4.5/1] min-h-[100px] sm:min-h-[140px] max-h-[40vh]",
+              fullBleed && "min-h-[140px] sm:min-h-[200px] lg:min-h-[240px] max-h-[45vh]"
             )}
           >
             {safeSlides.map((slide, index) =>
@@ -134,7 +134,7 @@ export function PublicHeroMarquee({
                           );
                         }
                         return hasText ? (
-                          <div className="absolute inset-0 bg-black/30 pointer-events-none" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent pointer-events-none" />
                         ) : null;
                       })()}
                     </>

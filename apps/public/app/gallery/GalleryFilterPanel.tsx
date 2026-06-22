@@ -1,6 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { Search, X } from "lucide-react";
+
+/** Maximum tags shown before collapse. */
+export const DEFAULT_VISIBLE_TAG_COUNT = 8;
+
+const USAGE_OPTIONS = [
+  { value: "all", label: "全部授權" },
+  { value: "commercial", label: "可商用" },
+] as const;
 
 interface GalleryFilterPanelProps {
   searchTerm: string;
@@ -14,6 +23,9 @@ interface GalleryFilterPanelProps {
   displayTags: string[];
   hasFilters: boolean;
   onResetFilters: () => void;
+  /** Usage filter value (moved from inline controls bar). */
+  usage?: string;
+  onUsageChange?: (v: string) => void;
   /** "sidebar" wraps content in a rounded card surface. "sheet" renders flat (for mobile drawers). */
   variant?: "sidebar" | "sheet";
 }
@@ -30,8 +42,31 @@ export function GalleryFilterPanel({
   displayTags,
   hasFilters,
   onResetFilters,
+  usage,
+  onUsageChange,
   variant = "sheet",
 }: GalleryFilterPanelProps) {
+  const [tagsExpanded, setTagsExpanded] = useState(false);
+
+  // When searching tags, show all matches. Otherwise collapse.
+  const isSearching = tagSearch.length > 0;
+  const shouldCollapse = !isSearching && !tagsExpanded && displayTags.length > DEFAULT_VISIBLE_TAG_COUNT;
+
+  // Always keep selected tags visible even when collapsed.
+  const visibleTags = shouldCollapse
+    ? (() => {
+        const firstN = displayTags.slice(0, DEFAULT_VISIBLE_TAG_COUNT);
+        const selectedHidden = displayTags
+          .slice(DEFAULT_VISIBLE_TAG_COUNT)
+          .filter((tag) => selectedTags.includes(tag));
+        // De-dup in case a selected tag is already in firstN
+        const extraSet = new Set(firstN);
+        return [...firstN, ...selectedHidden.filter((t) => !extraSet.has(t))];
+      })()
+    : displayTags;
+
+  const hiddenCount = shouldCollapse ? displayTags.length - visibleTags.length : 0;
+
   const inner = (
     <div className="space-y-5">
       {/* Search */}
@@ -58,6 +93,32 @@ export function GalleryFilterPanel({
           )}
         </div>
       </div>
+
+      {/* Usage filter (moved from inline controls bar) */}
+      {usage !== undefined && onUsageChange && (
+        <div className="border-t border-border/40 pt-4">
+          <p className="mb-2 text-xs font-bold tracking-widest text-muted-foreground uppercase">使用權限</p>
+          <div className="flex flex-wrap gap-1.5">
+            {USAGE_OPTIONS.map((opt) => {
+              const active = usage === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => onUsageChange(opt.value)}
+                  className={`h-6 rounded-full px-2.5 text-xs transition-colors ${
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : "border border-border/60 bg-background/70 text-muted-foreground hover:text-foreground hover:border-primary/40"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* License shortcuts */}
       {licenseTagShortcuts.length > 0 && (
@@ -100,7 +161,7 @@ export function GalleryFilterPanel({
             />
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {displayTags.map((tag) => {
+            {visibleTags.map((tag) => {
               const active = selectedTags.includes(tag);
               return (
                 <button
@@ -118,6 +179,24 @@ export function GalleryFilterPanel({
               );
             })}
           </div>
+          {shouldCollapse && (
+            <button
+              type="button"
+              onClick={() => setTagsExpanded(true)}
+              className="mt-2 text-xs text-primary hover:text-primary/80 transition-colors"
+            >
+              展開更多（{hiddenCount}）
+            </button>
+          )}
+          {tagsExpanded && !isSearching && displayTags.length > DEFAULT_VISIBLE_TAG_COUNT && (
+            <button
+              type="button"
+              onClick={() => setTagsExpanded(false)}
+              className="mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              收合標籤
+            </button>
+          )}
         </div>
       )}
 

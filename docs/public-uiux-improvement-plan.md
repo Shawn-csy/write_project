@@ -124,7 +124,7 @@ Implementation can be covered by unit tests, but acceptance requires browser QA.
 
 ## Execution Plan
 
-### Phase 1 — Homepage Lane Information Architecture
+### Phase 1 — Homepage Lane Information Architecture ✅
 
 Goal: stop repetitive homepage presentation for small catalogs.
 
@@ -156,7 +156,7 @@ Definition of Done:
 - No duplicate series card appears in featured-series lane when already visible
   above.
 
-### Phase 2 — Reader Header Metadata Hygiene
+### Phase 2 — Reader Header Metadata Hygiene ✅
 
 Goal: public reader header only shows meaningful metadata.
 
@@ -176,7 +176,7 @@ Definition of Done:
 - Public read header contains no empty placeholder facts.
 - Metadata-rich scripts still show audience/rating correctly.
 
-### Phase 3 — Mobile Top Bar Touch Contract
+### Phase 3 — Mobile Top Bar Touch Contract ✅ implementation complete; browser QA pending (360/390/430px overlap check)
 
 Goal: make mobile controls easier to tap without changing layout semantics.
 
@@ -196,7 +196,7 @@ Definition of Done:
 - Brand remains centered and readable.
 - No overlap at 360px, 390px, and 430px widths.
 
-### Phase 4 — Hero Banner Readability
+### Phase 4 — Hero Banner Readability ✅ (needs browser QA with real images)
 
 Goal: make banner text readable across real images.
 
@@ -213,7 +213,7 @@ Definition of Done:
 - Desktop hero does not dominate the first viewport when the catalog is small.
 - Mobile hero keeps enough context below the fold.
 
-### Phase 5 — Filter Density And Information Architecture
+### Phase 5 — Filter Density And Information Architecture ✅ (needs browser QA for mobile sheet overflow)
 
 Goal: reduce visual noise from dense tags and overlapping filter controls.
 
@@ -235,7 +235,7 @@ Definition of Done:
 - Sidebar remains scannable with large tag sets.
 - No selected filter becomes invisible or hard to clear.
 
-### Phase 6 — Public 404
+### Phase 6 — Public 404 ✅
 
 Goal: replace generic English Next 404 with product-consistent Chinese UI.
 

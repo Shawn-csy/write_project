@@ -1,7 +1,6 @@
 "use client";
 
 import { X } from "lucide-react";
-import { GalleryControlsBar } from "./GalleryControlsBar";
 import { GalleryFilterPanel } from "./GalleryFilterPanel";
 
 interface GalleryMobileSheetProps {
@@ -18,7 +17,6 @@ interface GalleryMobileSheetProps {
   displayTags: string[];
   hasFilters: boolean;
   onResetFilters: () => void;
-  /** Usage + viewMode shown here on mobile since inline bar hides them */
   usage: string;
   setUsage: (v: string) => void;
   viewModeValue: "standard" | "compact";
@@ -52,19 +50,32 @@ export function GalleryMobileSheet({
           </button>
         </div>
 
-        {/* Usage + ViewMode — shown here on mobile (hidden in inline bar) */}
+        {/* ViewMode — stacked for mobile */}
         <div className="mb-4">
-          <GalleryControlsBar
-            usage={usage}
-            onUsageChange={setUsage}
-            viewMode={viewModeValue}
-            onViewModeChange={setViewMode}
-            layout="stacked"
-          />
+          <p className="mb-1.5 text-xs font-medium text-foreground">顯示模式</p>
+          <div className="flex gap-1.5">
+            {(["standard", "compact"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setViewMode(mode)}
+                className={`h-7 rounded-full px-3 text-xs transition-colors font-medium ${
+                  viewModeValue === mode
+                    ? "bg-foreground text-background"
+                    : "border border-border/60 bg-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                }`}
+              >
+                {mode === "standard" ? "標準" : "密集"}
+              </button>
+            ))}
+          </div>
         </div>
 
+        {/* Filter panel (includes usage, search, tags) */}
         <GalleryFilterPanel
           {...filterProps}
+          usage={usage}
+          onUsageChange={setUsage}
           onResetFilters={() => {
             filterProps.onResetFilters();
             onClose();
