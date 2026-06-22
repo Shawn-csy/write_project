@@ -5,7 +5,7 @@ import type { PublicPersona, PublicScript } from "@/lib/types";
 import { AuthorPageClient } from "./AuthorPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { PublicShellActions } from "@/components/PublicShellActions";
-import { BASE_URL, SITE_NAME, pickPreviewImage, absoluteUrl } from "@/lib/seo";
+import { BASE_URL, SITE_NAME, TITLE_SUFFIX, pickPreviewImage, absoluteUrl } from "@/lib/seo";
 
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -33,9 +33,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const persona = await fetchPersona(id);
-  if (!persona) return { title: "找不到作者｜Screenplay Reader" };
+  if (!persona) return { title: `找不到作者｜${TITLE_SUFFIX}` };
 
-  const title = `${persona.displayName}｜Screenplay Reader`;
+  const title = `${persona.displayName}｜${TITLE_SUFFIX}`;
   const description = (persona.bio || `${persona.displayName} 的公開台本作品`).slice(0, 200);
   const canonicalUrl = `${BASE_URL}/author/${id}`;
   const previewImage = pickPreviewImage(persona.avatar || persona.bannerUrl);

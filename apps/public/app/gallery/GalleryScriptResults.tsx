@@ -221,29 +221,21 @@ export function GalleryScriptResults({ model, onResetFilters }: GalleryScriptRes
           )}
         </HorizontalScrollLane>
       )}
-      {lanes.featuredSeries.map((series) => (
-        <HorizontalScrollLane
-          key={series.name}
-          title={series.name}
-          actionLabel="查看系列"
-          onAction={() => handleSeriesClick(series.name)}
-        >
-          {series.scripts.slice(0, 15).map((s) => (
-            <div key={s.id} className={CARD_WIDTH}>
-              <CardWithPolicy
-                script={s}
-                policy={navigationPolicyMap.get(s.id)}
-                variant={viewMode}
-                authorHref={authorHref(s)}
-                seriesHref={`/series/${encodeURIComponent(series.name)}`}
-                onSeriesClick={handleSeriesClick}
-                onTagClick={handleTagClick}
-                onAuthorClick={handleAuthorClick}
+      {lanes.featuredSeries.length > 0 && (
+        <HorizontalScrollLane title="系列作品">
+          {lanes.featuredSeries.map((series) => (
+            <div key={`series:${series.key}`} className={CARD_WIDTH}>
+              <SeriesGalleryCard
+                series={series}
+                variant="standard"
+                href={`/series/${encodeURIComponent(series.name)}`}
+                authorHref={authorHref(series.leadScript)}
+                showAgeGate={series.hasAgeGate}
               />
             </div>
           ))}
         </HorizontalScrollLane>
-      ))}
+      )}
       {(emptyState === "no-public-scripts" || emptyState === "no-data") && (
         <GalleryEmptyState reason={emptyState} />
       )}

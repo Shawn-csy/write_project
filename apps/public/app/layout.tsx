@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { SITE_DESCRIPTION, SITE_TITLE } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "免費台本 · 劇本線上閱讀｜Screenplay Reader",
-  description: "免費瀏覽、閱讀與分享創作台本。支援 Fountain 格式劇本，探索公開作品、配音台本與作者頁面。",
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_BASE_URL?.startsWith("http")
       ? process.env.NEXT_PUBLIC_BASE_URL

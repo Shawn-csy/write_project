@@ -27,6 +27,39 @@ describe("buildReadWorkHeaderModel — identity", () => {
     const model = buildReadWorkHeaderModel(baseScript(), BASE_STATS);
     expect(model.synopsis).toBeUndefined();
   });
+
+  it("synopsis falls back to custom metadata description", () => {
+    const model = buildReadWorkHeaderModel(
+      baseScript({
+        synopsis: null,
+        customMetadata: [{ key: "description", value: "Custom desc" }],
+      }),
+      BASE_STATS,
+    );
+    expect(model.synopsis).toBe("Custom desc");
+  });
+
+  it("synopsis falls back to custom metadata 摘要", () => {
+    const model = buildReadWorkHeaderModel(
+      baseScript({
+        synopsis: null,
+        customMetadata: [{ key: "摘要", value: "中文摘要" }],
+      }),
+      BASE_STATS,
+    );
+    expect(model.synopsis).toBe("中文摘要");
+  });
+
+  it("script.synopsis takes priority over custom metadata fallback", () => {
+    const model = buildReadWorkHeaderModel(
+      baseScript({
+        synopsis: "Direct synopsis",
+        customMetadata: [{ key: "description", value: "Custom desc" }],
+      }),
+      BASE_STATS,
+    );
+    expect(model.synopsis).toBe("Direct synopsis");
+  });
 });
 
 describe("buildReadWorkHeaderModel — author", () => {

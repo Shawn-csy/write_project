@@ -1,6 +1,6 @@
 # Frontend Runtime Boundaries
 
-Last updated: 2026-06-15
+Last updated: 2026-06-22
 
 ## Purpose
 
@@ -92,7 +92,12 @@ Any remaining Vite public-looking component must be classified as one of:
 - editor preview implementation
 - compatibility wrapper around a shared package
 
-Batch 2 deletion (2026-06-17) removed all deprecated public surface from Vite: pages, hooks, and components. `src/hooks/public/usePublicReaderLayoutState.ts` and `src/components/reader/*` are retained as editor preview implementation.
+Batch 2 deletion (2026-06-17) removed all deprecated public surface from Vite:
+pages, hooks, and components. `src/hooks/public/usePublicReaderLayoutState.ts`
+and `src/components/reader/*` are retained as editor preview implementation.
+The old Vite `src/components/renderer/v2/*` and `src/lib/v2/*` modules are
+compatibility facades around `@write/script-reader-renderer`; the canonical
+presentation implementation now lives in the shared package.
 
 ### `packages/*`
 
@@ -103,7 +108,7 @@ Current package responsibilities:
 | Package | Responsibility |
 |---|---|
 | `@write/script-engine` | marker config normalization, parser, AST, render model, TOC, inline parsing |
-| `@write/script-reader-renderer` | React renderer for script render blocks |
+| `@write/script-reader-renderer` | React renderers for script render blocks and marker-driven presentation layout (columns/timeline/linear), plus presentation routing/row-grouping/export adapters |
 | `@write/script-reader-ui` | public reader state, toolbar primitives, reader preferences |
 | `@write/script-theme` | shared CSS variables and marker theme tokens |
 | `@write/public-ui` | public homepage/discovery models and router-neutral public UI |
@@ -347,4 +352,3 @@ The frontend split is considered stable when:
 - import boundary guard is enforced
 - no public page behavior must be copied from Vite to fix Next
 - browser QA is documented for public route replacement
-

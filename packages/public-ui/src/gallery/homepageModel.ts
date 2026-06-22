@@ -14,8 +14,8 @@ import type {
 import type { GalleryView, GalleryViewMode, GalleryLaneMode } from "./galleryUrlState";
 import { buildNavigationPolicyMap } from "./navigationPolicy";
 import type { ScriptNavigationPolicy } from "./navigationPolicy";
-import { groupScriptsIntoGalleryEntries } from "./seriesModel";
-import type { PublicGalleryEntry } from "./seriesModel";
+import { groupScriptsIntoGalleryEntries, featuredSeriesToGroup } from "./seriesModel";
+import type { PublicGalleryEntry, PublicSeriesGroup } from "./seriesModel";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -36,7 +36,7 @@ export interface ScriptLanes {
    * Same-series chapters are collapsed into a single PublicSeriesGroup entry.
    */
   topViewedEntriesPreview: PublicGalleryEntry[];
-  featuredSeries: FeaturedSeries[];
+  featuredSeries: PublicSeriesGroup[];
   /** Which lane is the primary featured lane. Drives UI emphasis if exposed. */
   activeLaneMode: GalleryLaneMode;
 }
@@ -201,10 +201,15 @@ export function buildPublicHomepageModel(
     0,
     LANE_PREVIEW_SIZE
   );
+  // Convert FeaturedSeries → PublicSeriesGroup using canonical seriesModel helpers
+  const featuredSeriesGroups: PublicSeriesGroup[] = featuredSeries
+    .map(featuredSeriesToGroup)
+    .filter((series): series is PublicSeriesGroup => series !== null);
+
   const lanes: ScriptLanes = {
     latestEntriesPreview,
     topViewedEntriesPreview,
-    featuredSeries,
+    featuredSeries: featuredSeriesGroups,
     activeLaneMode: laneMode,
   };
 

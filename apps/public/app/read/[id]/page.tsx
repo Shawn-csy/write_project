@@ -16,7 +16,7 @@ import {
   buildReadPageOpenGraph,
   buildReadPageTwitterCard,
 } from "@/lib/readPageSeo";
-import { jsonLdSafe } from "@/lib/seo";
+import { TITLE_SUFFIX, jsonLdSafe } from "@/lib/seo";
 
 // ISR: revalidate daily as fallback; on-demand revalidation handles real-time updates
 export const revalidate = 86400;
@@ -42,7 +42,7 @@ export async function generateMetadata({
   const script = await fetchScript(id);
 
   if (!script) {
-    return { title: "找不到台本｜Screenplay Reader" };
+    return { title: `找不到台本｜${TITLE_SUFFIX}` };
   }
 
   const title = buildReadPageTitle(script);

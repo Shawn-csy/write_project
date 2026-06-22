@@ -5,13 +5,15 @@ export const exportScriptAsPdf = async (
   title: string,
   payload: { renderedHtml?: string; text?: string; headerHtml?: string } = {}
 ) => {
-  const snapshot = getRenderedSnapshot(payload);
+  // getRenderedSnapshot handles both standard and presentation-mode HTML:
+  // dark-theme color stripping + grid structure preservation happen inside.
+  const scriptHtml = getRenderedSnapshot(payload).html;
   const headerHtml = payload?.headerHtml || `<h1>${title || "Script"}</h1>`;
   const exportHtml = buildPrintHtml({
     titleName: title || "Script",
     activeFile: title || "Script",
     titleHtml: headerHtml,
-    rawScriptHtml: snapshot.html,
+    rawScriptHtml: scriptHtml,
   });
 
   const styles = Array.from(document.querySelectorAll("style, link[rel=\"stylesheet\"]"))
@@ -21,8 +23,9 @@ export const exportScriptAsPdf = async (
   iframe.style.position = "fixed";
   iframe.style.right = "-9999px";
   iframe.style.bottom = "-9999px";
-  iframe.style.width = "0";
-  iframe.style.height = "0";
+  // Use real dimensions so CSS grid layout computes in the iframe.
+  iframe.style.width = "1200px";
+  iframe.style.height = "800px";
   iframe.style.border = "0";
   document.body.appendChild(iframe);
 

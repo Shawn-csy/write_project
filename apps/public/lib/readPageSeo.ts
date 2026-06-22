@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { PublicScript } from "./types";
 import { getScriptDescription } from "./scriptDescription";
-import { BASE_URL, SITE_NAME, pickPreviewImage, absoluteUrl } from "./seo";
+import { BASE_URL, SITE_NAME, TITLE_SUFFIX, pickPreviewImage, absoluteUrl } from "./seo";
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -33,19 +33,19 @@ export function buildReadPageTitle(script: PublicScript): string {
   if (series?.name) {
     if (typeof order === "number") {
       if (order === 0) {
-        return `${series.name} 設定／背景：${script.title}｜Screenplay Reader`;
+        return `${series.name} 設定／背景：${script.title}｜${TITLE_SUFFIX}`;
       }
-      return `${series.name} 第 ${order} 部：${script.title}｜Screenplay Reader`;
+      return `${series.name} 第 ${order} 部：${script.title}｜${TITLE_SUFFIX}`;
     }
-    return `${script.title}｜${series.name}｜Screenplay Reader`;
+    return `${script.title}｜${series.name}｜${TITLE_SUFFIX}`;
   }
 
   const authorName = getAuthorName(script);
   if (authorName) {
-    return `${script.title}｜${authorName}｜Screenplay Reader`;
+    return `${script.title}｜${authorName}｜${TITLE_SUFFIX}`;
   }
 
-  return `${script.title}｜Screenplay Reader`;
+  return `${script.title}｜${TITLE_SUFFIX}`;
 }
 
 export function buildReadPageDescription(script: PublicScript): string {

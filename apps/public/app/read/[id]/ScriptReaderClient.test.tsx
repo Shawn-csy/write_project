@@ -29,15 +29,19 @@ const mockExportScriptAsPdf = vi.fn().mockResolvedValue(undefined);
 // Returning a real Element lets usePublicExport set pdfReady=true immediately.
 const mockPickRenderedRoot = vi.fn(() => document.createElement("div"));
 
-vi.mock("@write/reader-export", () => ({
-  exportScriptAsPdf: (...args: unknown[]) => mockExportScriptAsPdf(...args),
-  pickRenderedRoot: () => mockPickRenderedRoot(),
-  buildExportMetadataHtml: vi.fn(() => "<div>header</div>"),
-  buildExportMetadata: vi.fn((src: unknown) => ({ title: (src as { title?: string })?.title ?? "", synopsis: "", fields: [], rows: [] })),
-  buildPrintHtml: vi.fn(() => "<html></html>"),
-  getRenderedSnapshot: vi.fn(() => ({ html: "<article></article>", lines: [] })),
-  getRenderedLines: vi.fn(() => []),
-}));
+vi.mock("@write/reader-export", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@write/reader-export")>();
+  return {
+    ...actual,
+    exportScriptAsPdf: (...args: unknown[]) => mockExportScriptAsPdf(...args),
+    pickRenderedRoot: () => mockPickRenderedRoot(),
+    buildExportMetadataHtml: vi.fn(() => "<div>header</div>"),
+    buildExportMetadata: vi.fn((src: unknown) => ({ title: (src as { title?: string })?.title ?? "", synopsis: "", fields: [], rows: [] })),
+    buildPrintHtml: vi.fn(() => "<html></html>"),
+    getRenderedSnapshot: vi.fn(() => ({ html: "<article></article>", lines: [] })),
+    getRenderedLines: vi.fn(() => []),
+  };
+});
 
 // buildPublicReaderPrintSnapshot calls getRenderedSnapshot (DOM) so mock the whole module.
 vi.mock("@/lib/publicReaderPrintSnapshot", () => ({

@@ -11,7 +11,7 @@ import {
 import { SeriesPageClient } from "./SeriesPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { PublicShellActions } from "@/components/PublicShellActions";
-import { BASE_URL, SITE_NAME, pickPreviewImage, absoluteUrl } from "@/lib/seo";
+import { BASE_URL, SITE_NAME, TITLE_SUFFIX, pickPreviewImage, absoluteUrl } from "@/lib/seo";
 
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -55,9 +55,9 @@ export async function generateMetadata({
   const seriesName = decodeURIComponent(name);
   const { scripts, summary, coverUrl } = await fetchSeriesData(seriesName);
 
-  if (scripts.length === 0) return { title: "找不到系列｜Screenplay Reader" };
+  if (scripts.length === 0) return { title: `找不到系列｜${TITLE_SUFFIX}` };
 
-  const title = `${seriesName}｜Screenplay Reader`;
+  const title = `${seriesName}｜${TITLE_SUFFIX}`;
   const description = summary
     ? summary.slice(0, 200)
     : `${seriesName} 系列共 ${scripts.length} 部台本，免費線上閱讀。`;

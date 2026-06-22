@@ -95,9 +95,11 @@ describe("buildScriptOverlayProps — customFields", () => {
         { key: "outline", value: "大綱內容" },
         { key: "rolesetting", value: "角色設定內容" },
         { key: "backgroundinfo", value: "背景" },
+        { key: "environmentinfo", value: "環境" },
         { key: "performanceinstruction", value: "指示" },
         { key: "openingintro", value: "引言" },
         { key: "chaptersettings", value: "章節" },
+        { key: "situationinfo", value: "狀況" },
       ],
     };
     const { customFields } = buildScriptOverlayProps(script);
@@ -208,6 +210,50 @@ describe("buildScriptOverlayProps — dedicated fields", () => {
     const { prefaceItems } = buildScriptOverlayProps(script);
     const item = prefaceItems.find((p) => p.id === "outline");
     expect(item?.value).toBe("大綱內容");
+  });
+
+  it("uses the shared structured formatter for multi preface values", () => {
+    const script: PublicScript = {
+      ...base,
+      customMetadata: [{
+        key: "PerformanceInstruction",
+        value: JSON.stringify({ mode: "multi", items: [{ name: "ＣＣ", text: "asdasd" }] }),
+      }],
+    };
+    const { prefaceItems } = buildScriptOverlayProps(script);
+    const item = prefaceItems.find((p) => p.id === "performanceInstruction");
+    expect(item?.title).toBe("演繹指示");
+    expect(item?.value).toBe("ＣＣ：asdasd");
+    expect(item?.value).not.toContain('"mode"');
+  });
+
+  it("uses the shared structured formatter for chapter_multi preface values", () => {
+    const script: PublicScript = {
+      ...base,
+      customMetadata: [{
+        key: "ChapterSettings",
+        value: JSON.stringify({ mode: "chapter_multi", items: [{ chapter: "asdasd", environment: "asd", situation: "asd" }] }),
+      }],
+    };
+    const { prefaceItems } = buildScriptOverlayProps(script);
+    const item = prefaceItems.find((p) => p.id === "chapterSettings");
+    expect(item?.title).toBe("章節");
+    expect(item?.value).toBe("asdasd（環境：asd；狀況：asd）");
+    expect(item?.value).not.toContain("ChapterSettings");
+  });
+
+  it("accepts shared alias keys for background and situation preface values", () => {
+    const script: PublicScript = {
+      ...base,
+      customMetadata: [
+        { key: "EnvironmentInfo", value: "雨夜城市" },
+        { key: "SituationInfo", value: "角色準備攤牌" },
+      ],
+    };
+    const { prefaceItems, customFields } = buildScriptOverlayProps(script);
+    expect(prefaceItems.find((p) => p.id === "backgroundInfo")?.value).toBe("雨夜城市");
+    expect(prefaceItems.find((p) => p.id === "situationInfo")?.value).toBe("角色準備攤牌");
+    expect(customFields).toHaveLength(0);
   });
 
   it("populates commercialUse from licenseCommercial", () => {
