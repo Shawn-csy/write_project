@@ -44,46 +44,46 @@ function assertNoNestedInteractive(container: HTMLElement) {
 
 describe("ScriptGalleryCard standard — href mode", () => {
   it("root is <article>", () => {
-    const { container } = render(<ScriptGalleryCard script={SCRIPT} href="/read/s1" />);
+    const { container } = render(<ScriptGalleryCard script={SCRIPT} scriptHref="/read/s1" />);
     expect(container.querySelector("article")).not.toBeNull();
   });
 
   it("no nested interactive elements", () => {
     const { container } = render(
-      <ScriptGalleryCard script={SCRIPT_WITH_META} href="/read/s2" seriesHref="/series/Epic" authorHref="/author/a1" onLike={vi.fn()} />
+      <ScriptGalleryCard script={SCRIPT_WITH_META} scriptHref="/read/s2" seriesHref="/series/Epic" authorHref="/author/a1" onLike={vi.fn()} />
     );
     assertNoNestedInteractive(container);
   });
 
   it("title is <a> linking to href", () => {
-    render(<ScriptGalleryCard script={SCRIPT} href="/read/s1" />);
+    render(<ScriptGalleryCard script={SCRIPT} scriptHref="/read/s1" />);
     const titleLink = screen.getByRole("link", { name: "Test Script" });
     expect(titleLink.getAttribute("href")).toBe("/read/s1");
   });
 
   it("cover link is aria-hidden (decorative)", () => {
-    const { container } = render(<ScriptGalleryCard script={SCRIPT} href="/read/s1" />);
+    const { container } = render(<ScriptGalleryCard script={SCRIPT} scriptHref="/read/s1" />);
     const coverLink = container.querySelector("a[aria-hidden='true']");
     expect(coverLink).not.toBeNull();
   });
 
   it("calls onView on cover link click", async () => {
     const onView = vi.fn();
-    const { container } = render(<ScriptGalleryCard script={SCRIPT} href="/read/s1" onView={onView} />);
+    const { container } = render(<ScriptGalleryCard script={SCRIPT} scriptHref="/read/s1" onView={onView} />);
     const coverLink = container.querySelector("a[aria-hidden='true']") as HTMLElement;
     await userEvent.click(coverLink);
     expect(onView).toHaveBeenCalledWith("s1");
   });
 
   it("author renders as <a> when authorHref provided", () => {
-    render(<ScriptGalleryCard script={SCRIPT_WITH_META} href="/read/s2" authorHref="/author/a1" />);
+    render(<ScriptGalleryCard script={SCRIPT_WITH_META} scriptHref="/read/s2" authorHref="/author/a1" />);
     const authorLink = screen.getByRole("link", { name: "Alice" });
     expect(authorLink.getAttribute("href")).toBe("/author/a1");
   });
 
   it("series link is in cover badge — not as a separate body row", () => {
     const { container } = render(
-      <ScriptGalleryCard script={SCRIPT_WITH_META} href="/read/s2" seriesHref="/series/Epic%20Series" variant="standard" />
+      <ScriptGalleryCard script={SCRIPT_WITH_META} scriptHref="/read/s2" seriesHref="/series/Epic%20Series" variant="standard" />
     );
     // Badge link exists with accessible label
     const seriesLink = screen.getByRole("link", { name: /系列：Epic Series/ });
@@ -97,7 +97,7 @@ describe("ScriptGalleryCard standard — href mode", () => {
     const { container } = render(
       <ScriptGalleryCard
         script={SCRIPT_WITH_META}
-        href="/read/s2"
+        scriptHref="/read/s2"
         tagHref={(tag) => `/tag/${tag}`}
       />
     );
@@ -199,7 +199,7 @@ describe("ScriptGalleryCard standard — callback mode", () => {
 
 describe("ScriptGalleryCard compact — href mode", () => {
   it("root is <article>", () => {
-    const { container } = render(<ScriptGalleryCard script={SCRIPT} variant="compact" href="/read/s1" />);
+    const { container } = render(<ScriptGalleryCard script={SCRIPT} variant="compact" scriptHref="/read/s1" />);
     expect(container.querySelector("article")).not.toBeNull();
   });
 
@@ -208,7 +208,7 @@ describe("ScriptGalleryCard compact — href mode", () => {
       <ScriptGalleryCard
         script={SCRIPT_WITH_META}
         variant="compact"
-        href="/read/s2"
+        scriptHref="/read/s2"
         authorHref="/author/a1"
         seriesHref="/series/Epic"
       />
@@ -217,7 +217,7 @@ describe("ScriptGalleryCard compact — href mode", () => {
   });
 
   it("title renders as <a> in compact href mode", () => {
-    render(<ScriptGalleryCard script={SCRIPT} variant="compact" href="/read/s1" />);
+    render(<ScriptGalleryCard script={SCRIPT} variant="compact" scriptHref="/read/s1" />);
     const titleLink = screen.getByRole("link", { name: "Test Script" });
     expect(titleLink.getAttribute("href")).toBe("/read/s1");
   });
@@ -230,7 +230,7 @@ describe("ScriptGalleryCard — card summary", () => {
     render(
       <ScriptGalleryCard
         script={{ ...SCRIPT, _cardSummary: "A short summary" }}
-        href="/read/s1"
+        scriptHref="/read/s1"
       />
     );
     expect(screen.getByText("A short summary")).toBeDefined();
@@ -241,7 +241,7 @@ describe("ScriptGalleryCard — card summary", () => {
     render(
       <ScriptGalleryCard
         script={{ ...SCRIPT, _cardSummary: long }}
-        href="/read/s1"
+        scriptHref="/read/s1"
       />
     );
     const text = screen.getByText(/^A+\.\.\.$/);
@@ -252,7 +252,7 @@ describe("ScriptGalleryCard — card summary", () => {
 
   it("renders nothing for summary when _cardSummary is absent", () => {
     const { container } = render(
-      <ScriptGalleryCard script={SCRIPT} href="/read/s1" />
+      <ScriptGalleryCard script={SCRIPT} scriptHref="/read/s1" />
     );
     // No summary paragraph rendered — only title/views present
     expect(container.textContent).not.toMatch(/^.{100,}/);
@@ -262,7 +262,7 @@ describe("ScriptGalleryCard — card summary", () => {
     render(
       <ScriptGalleryCard
         script={{ ...SCRIPT, synopsis: "Synopsis fallback" }}
-        href="/read/s1"
+        scriptHref="/read/s1"
       />
     );
     expect(screen.getByText(/Synopsis fallback/)).toBeDefined();
@@ -272,13 +272,13 @@ describe("ScriptGalleryCard — card summary", () => {
 describe("ScriptGalleryCard — hover preview events (gallery-level layer)", () => {
   it("no card-internal absolute overlay when _hoverOutline present", () => {
     const { container } = render(
-      <ScriptGalleryCard script={{ ...SCRIPT, _hoverOutline: "Act 1: setup" }} href="/read/s1" />
+      <ScriptGalleryCard script={{ ...SCRIPT, _hoverOutline: "Act 1: setup" }} scriptHref="/read/s1" />
     );
     expect(container.querySelector(".absolute.inset-x-2.bottom-2")).toBeNull();
   });
 
   it("no 查看大綱 button in card DOM", () => {
-    render(<ScriptGalleryCard script={{ ...SCRIPT, _hoverOutline: "Act 1" }} href="/read/s1" />);
+    render(<ScriptGalleryCard script={{ ...SCRIPT, _hoverOutline: "Act 1" }} scriptHref="/read/s1" />);
     expect(screen.queryByRole("button", { name: "查看大綱" })).toBeNull();
   });
 
@@ -287,7 +287,7 @@ describe("ScriptGalleryCard — hover preview events (gallery-level layer)", () 
       <GalleryHoverPreviewProvider>
         <ScriptGalleryCard
           script={{ ...SCRIPT, title: "Test Script", author: { id: "a1", displayName: "Alice" }, _hoverOutline: "The outline body" }}
-          href="/read/s1"
+          scriptHref="/read/s1"
         />
       </GalleryHoverPreviewProvider>
     );
@@ -310,7 +310,7 @@ describe("ScriptGalleryCard — hover preview events (gallery-level layer)", () 
   it("mouseMove updates preview position", () => {
     const { container } = render(
       <GalleryHoverPreviewProvider>
-        <ScriptGalleryCard script={{ ...SCRIPT, _hoverOutline: "Outline" }} href="/read/s1" />
+        <ScriptGalleryCard script={{ ...SCRIPT, _hoverOutline: "Outline" }} scriptHref="/read/s1" />
       </GalleryHoverPreviewProvider>
     );
     const article = container.querySelector("article")!;
@@ -325,7 +325,7 @@ describe("ScriptGalleryCard — hover preview events (gallery-level layer)", () 
   it("mouseLeave hides preview", () => {
     const { container } = render(
       <GalleryHoverPreviewProvider>
-        <ScriptGalleryCard script={{ ...SCRIPT, _hoverOutline: "Gone soon" }} href="/read/s1" />
+        <ScriptGalleryCard script={{ ...SCRIPT, _hoverOutline: "Gone soon" }} scriptHref="/read/s1" />
       </GalleryHoverPreviewProvider>
     );
     const article = container.querySelector("article")!;
@@ -338,7 +338,7 @@ describe("ScriptGalleryCard — hover preview events (gallery-level layer)", () 
   it("preview layer has pointer-events: none", () => {
     const { container } = render(
       <GalleryHoverPreviewProvider>
-        <ScriptGalleryCard script={{ ...SCRIPT, _hoverOutline: "Outline" }} href="/read/s1" />
+        <ScriptGalleryCard script={{ ...SCRIPT, _hoverOutline: "Outline" }} scriptHref="/read/s1" />
       </GalleryHoverPreviewProvider>
     );
     fireEvent.mouseEnter(container.querySelector("article")!, { clientX: 100, clientY: 50 });
@@ -350,7 +350,7 @@ describe("ScriptGalleryCard — hover preview events (gallery-level layer)", () 
   it("no preview emitted when outline absent", () => {
     const { container } = render(
       <GalleryHoverPreviewProvider>
-        <ScriptGalleryCard script={SCRIPT} href="/read/s1" />
+        <ScriptGalleryCard script={SCRIPT} scriptHref="/read/s1" />
       </GalleryHoverPreviewProvider>
     );
     fireEvent.mouseEnter(container.querySelector("article")!, { clientX: 100, clientY: 50 });
@@ -359,7 +359,7 @@ describe("ScriptGalleryCard — hover preview events (gallery-level layer)", () 
 
   it("card works without provider (no preview, no crash)", () => {
     const { container } = render(
-      <ScriptGalleryCard script={{ ...SCRIPT, _hoverOutline: "Outline" }} href="/read/s1" />
+      <ScriptGalleryCard script={{ ...SCRIPT, _hoverOutline: "Outline" }} scriptHref="/read/s1" />
     );
     // mouseEnter without provider — no crash, no preview
     fireEvent.mouseEnter(container.querySelector("article")!, { clientX: 100, clientY: 50 });
@@ -368,7 +368,7 @@ describe("ScriptGalleryCard — hover preview events (gallery-level layer)", () 
 
   it("no nested interactive elements with outline", () => {
     const { container } = render(
-      <ScriptGalleryCard script={{ ...SCRIPT, _hoverOutline: "Outline" }} href="/read/s1" />
+      <ScriptGalleryCard script={{ ...SCRIPT, _hoverOutline: "Outline" }} scriptHref="/read/s1" />
     );
     assertNoNestedInteractive(container);
   });
@@ -380,7 +380,7 @@ describe("ScriptGalleryCard — series cover badge", () => {
       <ScriptGalleryCard
         script={{ ...SCRIPT_WITH_META }}
         variant="standard"
-        href="/read/s2"
+        scriptHref="/read/s2"
         seriesHref="/series/Epic%20Series"
       />
     );
@@ -392,7 +392,7 @@ describe("ScriptGalleryCard — series cover badge", () => {
       <ScriptGalleryCard
         script={{ ...SCRIPT_WITH_META }}
         variant="standard"
-        href="/read/s2"
+        scriptHref="/read/s2"
         seriesHref="/series/Epic%20Series"
       />
     );
@@ -408,7 +408,7 @@ describe("ScriptGalleryCard — series cover badge", () => {
       <ScriptGalleryCard
         script={{ ...SCRIPT_WITH_META }}
         variant="compact"
-        href="/read/s2"
+        scriptHref="/read/s2"
         seriesHref="/series/Epic%20Series"
       />
     );
@@ -422,7 +422,7 @@ describe("ScriptGalleryCard — series cover badge", () => {
 describe("ScriptGalleryCard showAgeGate", () => {
   it("standard: renders R-18 badge when showAgeGate=true", () => {
     const { container } = render(
-      <ScriptGalleryCard script={SCRIPT} href="/read/s1" showAgeGate />
+      <ScriptGalleryCard script={SCRIPT} scriptHref="/read/s1" showAgeGate />
     );
     expect(container.querySelector("article")).not.toBeNull();
     expect(container.textContent).toMatch(/R-18|R18/);
@@ -430,21 +430,21 @@ describe("ScriptGalleryCard showAgeGate", () => {
 
   it("standard: does not render badge when showAgeGate=false", () => {
     const { container } = render(
-      <ScriptGalleryCard script={SCRIPT} href="/read/s1" showAgeGate={false} />
+      <ScriptGalleryCard script={SCRIPT} scriptHref="/read/s1" showAgeGate={false} />
     );
     expect(container.textContent).not.toMatch(/R-18|R18/);
   });
 
   it("compact: renders R-18 badge when showAgeGate=true", () => {
     const { container } = render(
-      <ScriptGalleryCard script={SCRIPT} variant="compact" href="/read/s1" showAgeGate />
+      <ScriptGalleryCard script={SCRIPT} variant="compact" scriptHref="/read/s1" showAgeGate />
     );
     expect(container.textContent).toMatch(/R-18|R18/);
   });
 
   it("compact: does not render badge when showAgeGate=false", () => {
     const { container } = render(
-      <ScriptGalleryCard script={SCRIPT} variant="compact" href="/read/s1" showAgeGate={false} />
+      <ScriptGalleryCard script={SCRIPT} variant="compact" scriptHref="/read/s1" showAgeGate={false} />
     );
     expect(container.textContent).not.toMatch(/R-18|R18/);
   });
@@ -453,7 +453,7 @@ describe("ScriptGalleryCard showAgeGate", () => {
     const { container } = render(
       <ScriptGalleryCard
         script={SCRIPT_WITH_META}
-        href="/read/s2"
+        scriptHref="/read/s2"
         authorHref="/author/a1"
         seriesHref="/series/Epic"
         showAgeGate
@@ -467,7 +467,7 @@ describe("ScriptGalleryCard showAgeGate", () => {
       <ScriptGalleryCard
         script={SCRIPT_WITH_META}
         variant="compact"
-        href="/read/s2"
+        scriptHref="/read/s2"
         authorHref="/author/a1"
         seriesHref="/series/Epic"
         showAgeGate
