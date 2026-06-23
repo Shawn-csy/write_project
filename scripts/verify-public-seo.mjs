@@ -113,12 +113,11 @@ console.log(`\nChecking: ${BASE_URL}/ (Googlebot UA)`);
   text.includes("og:title") ? ok("og:title present for Googlebot") : fail("og:title missing for Googlebot");
 }
 
-// ── /gallery redirect ─────────────────────────────────────────────────────────
+// ── /gallery — retired, must return 410 (not redirect, not 200) ───────────────
 console.log(`\nChecking: ${BASE_URL}/gallery`);
 {
-  const { status, location } = await fetchHead(`${BASE_URL}/gallery`);
-  (status === 301 || status === 308) ? ok(`redirect ${status}`) : fail(`expected redirect, got ${status}`);
-  location === "/" || location === `${BASE_URL}/` ? ok(`redirects to /`) : fail(`unexpected location: ${location}`);
+  const { status } = await fetchHead(`${BASE_URL}/gallery`);
+  status === 410 ? ok(`/gallery returns 410 Gone`) : fail(`expected 410, got ${status}`);
 }
 
 // ── OG image asset (derived from homepage og:image, not hardcoded path) ───────

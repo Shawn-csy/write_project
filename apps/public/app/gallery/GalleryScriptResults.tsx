@@ -41,7 +41,7 @@ function CardWithPolicy({
     <ScriptGalleryCard
       script={script}
       variant={variant}
-      href={`/read/${script.id}`}
+      scriptHref={`/read/${script.id}`}
       authorHref={authorHref}
       seriesHref={seriesHref}
       onSeriesClick={onSeriesClick}

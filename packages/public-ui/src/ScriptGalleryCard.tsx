@@ -77,10 +77,6 @@ export interface PublicLinkConfig {
 export interface ScriptGalleryCardProps extends PublicLinkConfig {
   script: ScriptGalleryItem;
   variant?: "standard" | "compact";
-  // Legacy compat — map to PublicLinkConfig internally
-  href?: string;
-  authorHref?: string;
-  seriesHref?: string;
   /** Show R-18 age gate indicator over the cover */
   showAgeGate?: boolean;
 }
@@ -197,7 +193,7 @@ function ScriptGalleryCardInner({
   onAuthorClick,
   onLike,
   onView,
-  href,
+  scriptHref: href,
   authorHref,
   seriesHref,
   tagHref,
