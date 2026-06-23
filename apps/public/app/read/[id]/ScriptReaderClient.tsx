@@ -7,7 +7,6 @@ import {
   useReaderState,
   createLocalStorageReaderStorage,
   resolveReaderFontFamily,
-  useReaderThemeClass,
 } from "@write/script-reader-ui";
 import { PublicReaderShell } from "@write/public-ui";
 import { ScriptContentRenderer } from "./ScriptContentRenderer";
@@ -20,6 +19,8 @@ import { ReadWorkHeader } from "./ReadWorkHeader";
 import { buildReadWorkHeaderModel } from "@/lib/readWorkHeaderModel";
 import { usePublicExport } from "./usePublicExport";
 import { usePublicReaderShare } from "./usePublicReaderShare";
+import { createAppearanceReaderStorage } from "@/lib/createAppearanceReaderStorage";
+import { usePublicAppearance } from "@/components/PublicAppearanceContext";
 
 interface Props {
   scriptId: string;
@@ -52,16 +53,24 @@ export function ScriptReaderClient({
     []
   );
 
+  const appearanceStorage = useMemo(
+    () => createAppearanceReaderStorage(globalStorage),
+    [globalStorage]
+  );
+
   const readerState = useReaderState({
     markerConfigs,
     toc,
     storage,
-    preferencesStorage: globalStorage,
+    preferencesStorage: appearanceStorage,
   });
 
-  const { theme, fontSize, lineHeight, fontFamily } = readerState.preferences.preferences;
-  useReaderThemeClass(theme);
-  const readingFontFamily = resolveReaderFontFamily(fontFamily);
+  // Typography from PublicAppearanceContext — reactive when appearance menu changes.
+  // ThemeProvider is the sole document.documentElement theme writer; reader does not touch it.
+  const { prefs: appearancePrefs } = usePublicAppearance();
+  const fontSize = appearancePrefs.readerFontSize;
+  const lineHeight = appearancePrefs.readerLineHeight;
+  const readingFontFamily = resolveReaderFontFamily(appearancePrefs.readerFontFamily);
 
   const seriesNav = useSeriesChapterNav(initialScript);
   const { hasNewChapter, markSeen } = useSeriesProgress(scriptId, seriesNav);
