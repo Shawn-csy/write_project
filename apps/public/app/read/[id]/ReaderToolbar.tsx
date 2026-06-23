@@ -3,6 +3,8 @@
 import React from "react";
 import { ReaderToolbar as SharedReaderToolbar } from "@write/script-reader-ui";
 import type { ReaderState } from "@write/script-reader-ui";
+import { PublicAppearanceMenu } from "@/components/PublicAppearanceMenu";
+import { PublicInfoMenu } from "@/components/PublicInfoMenu";
 
 interface Props {
   readerState: ReaderState;
@@ -32,29 +34,29 @@ export function ReaderToolbar({ readerState, title, onShare, copied, onExportPdf
         </a>
       }
       endSlot={
-        (onShare || onExportPdf) ? (
-          <div className="flex items-center gap-1">
-            {onShare && (
-              <button
-                type="button"
-                onClick={onShare}
-                className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors rounded"
-              >
-                {copied ? "已複製！" : "分享"}
-              </button>
-            )}
-            {onExportPdf && (
-              <button
-                type="button"
-                onClick={onExportPdf}
-                disabled={!pdfReady}
-                className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors rounded disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                PDF
-              </button>
-            )}
-          </div>
-        ) : undefined
+        <div className="flex items-center gap-1">
+          {onShare && (
+            <button
+              type="button"
+              onClick={onShare}
+              className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors rounded"
+            >
+              {copied ? "已複製！" : "分享"}
+            </button>
+          )}
+          {onExportPdf && (
+            <button
+              type="button"
+              onClick={onExportPdf}
+              disabled={!pdfReady}
+              className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors rounded disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              PDF
+            </button>
+          )}
+          <PublicAppearanceMenu />
+          <PublicInfoMenu />
+        </div>
       }
     />
   );

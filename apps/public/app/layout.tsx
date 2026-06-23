@@ -24,7 +24,7 @@ export default function RootLayout({
         {/* Blocking script: apply dark class before first paint to prevent flash */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('screenplay-reader-theme');var d=t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme:dark)').matches);if(d)document.documentElement.classList.add('dark')}catch(e){}})()`,
+            __html: `(function(){try{var t;try{var a=localStorage.getItem('public-reader:appearance');if(a){var p=JSON.parse(a);if(p&&typeof p==='object'&&!Array.isArray(p)){var v=p.theme;if(v==='dark'||v==='light'||v==='system')t=v}}}catch(e){}if(!t)t=localStorage.getItem('screenplay-reader-theme');var d=t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme:dark)').matches);if(d)document.documentElement.classList.add('dark')}catch(e){}})()`,
           }}
         />
       </head>
