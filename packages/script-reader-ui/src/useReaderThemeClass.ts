@@ -23,6 +23,11 @@ function setClass(target: Element, className: string, enabled: boolean): void {
  *
  * The hook restores the target's previous class state on cleanup, so reader-only
  * preferences do not leak to the rest of the host app.
+ *
+ * @note Do NOT use this in apps/public (or any host that already has a global
+ * ThemeProvider owning document.documentElement). The cleanup restore will
+ * revert the global theme when the reader unmounts. Use this only in hosts
+ * where the reader is the sole theme authority.
  */
 export function useReaderThemeClass(
   theme: ReaderTheme,

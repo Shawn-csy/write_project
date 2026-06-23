@@ -23,8 +23,10 @@ export interface PublicAppearancePreferences {
 
 export const APPEARANCE_STORAGE_KEY = "public-reader:appearance";
 
-const VALID_THEMES = new Set<string>(["system", "light", "dark"]);
-const VALID_FONT_FAMILIES = new Set<string>(["sans", "serif", "mono"]);
+export const VALID_THEMES = new Set<string>(["system", "light", "dark"]);
+export const VALID_FONT_FAMILIES = new Set<string>(["sans", "serif", "mono"]);
+export const VALID_FONT_SIZES = new Set<number>([12, 14, 16, 18, 20, 24]);
+export const VALID_LINE_HEIGHTS = new Set<number>([1.4, 1.6, 1.8, 2.0]);
 
 // ── Defaults ────────────────────────────────────────────────────────────────
 
