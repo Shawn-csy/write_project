@@ -109,7 +109,7 @@ function AuthorBadgeInternal({ author, authorHref, onAuthorClick }: AuthorBadgeI
 
   const nameEl = <span className="font-medium">{displayName || "未知作者"}</span>;
 
-  const baseClass = "flex items-center gap-1.5 text-xs text-muted-foreground transition-colors bg-muted/40 px-2 py-1 rounded-full";
+  const baseClass = "flex items-center gap-1.5 [font-size:var(--public-font-meta)] text-muted-foreground transition-colors bg-muted/40 px-2 py-1 rounded-full";
 
   if (authorHref) {
     return (
@@ -154,7 +154,7 @@ function Tags({ primaryTags, secondaryTags, totalCount, tagHref, onTagClick, com
   if (primaryTags.length === 0) return null;
 
   const renderTag = (tag: string, key: string, hidden?: boolean) => {
-    const cls = `${hidden ? "hidden sm:inline-flex" : ""} max-w-[110px] px-1.5 py-0 h-5 text-[10px] font-normal border border-primary/20 text-muted-foreground rounded-full truncate`;
+    const cls = `${hidden ? "hidden sm:inline-flex" : ""} max-w-[110px] px-1.5 py-0 h-5 [font-size:var(--public-font-caption)] font-normal border border-primary/20 text-muted-foreground rounded-full truncate`;
     if (tagHref) {
       return <a key={key} href={tagHref(tag)} className={`${cls} hover:bg-secondary no-underline`} title={tag}>{tag}</a>;
     }
@@ -170,7 +170,7 @@ function Tags({ primaryTags, secondaryTags, totalCount, tagHref, onTagClick, com
 
   if (compact) {
     return (
-      <span className="text-[10px] text-muted-foreground line-clamp-1">
+      <span className="[font-size:var(--public-font-caption)] text-muted-foreground line-clamp-1">
         {primaryTags.join(" · ")}
       </span>
     );
@@ -180,8 +180,8 @@ function Tags({ primaryTags, secondaryTags, totalCount, tagHref, onTagClick, com
     <div className="flex flex-wrap gap-1 pt-1">
       {primaryTags.map((tag, i) => renderTag(tag, `p-${i}`))}
       {secondaryTags.map((tag, i) => renderTag(tag, `s-${i}`, true))}
-      {totalCount > 2 && <span className="sm:hidden text-[10px] text-muted-foreground self-center">+{totalCount - 2}</span>}
-      {totalCount > 3 && <span className="hidden sm:inline text-[10px] text-muted-foreground self-center">+{totalCount - 3}</span>}
+      {totalCount > 2 && <span className="sm:hidden [font-size:var(--public-font-caption)] text-muted-foreground self-center">+{totalCount - 2}</span>}
+      {totalCount > 3 && <span className="hidden sm:inline [font-size:var(--public-font-caption)] text-muted-foreground self-center">+{totalCount - 3}</span>}
     </div>
   );
 }
@@ -396,7 +396,7 @@ function ScriptGalleryCardInner({
           {/* Meta */}
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex min-w-0 items-center justify-between gap-2">
-              <div className="min-w-0 text-sm font-semibold leading-tight text-foreground line-clamp-1 transition-colors duration-200 group-hover:text-primary">
+              <div className="min-w-0 [font-size:var(--public-font-card-title)] font-semibold leading-tight text-foreground line-clamp-1 transition-colors duration-200 group-hover:text-primary">
                 {href ? (
                   <a
                     href={href}
@@ -407,7 +407,7 @@ function ScriptGalleryCardInner({
                   </a>
                 ) : title}
               </div>
-              <div className="relative z-10 shrink-0 text-[10px] text-muted-foreground">
+              <div className="relative z-10 shrink-0 [font-size:var(--public-font-caption)] text-muted-foreground">
                 <span className="inline-flex items-center gap-1">
                   <Eye className="h-3 w-3" aria-hidden />
                   <span>{views.toLocaleString()}</span>
@@ -429,7 +429,7 @@ function ScriptGalleryCardInner({
               <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground/40 transition-all duration-200 group-hover:translate-x-1 group-hover:text-primary" aria-hidden />
             </div>
             {cardSummary && (
-              <p className="relative z-10 text-[11px] leading-4 text-muted-foreground line-clamp-2">
+              <p className="relative z-10 [font-size:var(--public-font-meta)] [line-height:var(--public-line-body)] text-muted-foreground line-clamp-2">
                 {cardSummary}
               </p>
             )}
@@ -466,7 +466,7 @@ function ScriptGalleryCardInner({
 
       {/* Meta */}
       <div className="pt-2.5 space-y-1">
-        <h3 className="font-serif text-sm md:text-base font-semibold leading-snug line-clamp-2">
+        <h3 className="font-serif [font-size:var(--public-font-card-title)] font-semibold leading-snug line-clamp-2">
           {href ? (
             <a href={href} className="text-foreground group-hover:text-primary transition-colors no-underline" onClick={() => onView?.(id)}>
               {title}
@@ -479,7 +479,7 @@ function ScriptGalleryCardInner({
         <div className="pt-1">{authorEl}</div>
 
         {cardSummary && (
-          <p className="text-[11px] leading-4 text-muted-foreground line-clamp-2">
+          <p className="[font-size:var(--public-font-meta)] [line-height:var(--public-line-body)] text-muted-foreground line-clamp-2">
             {cardSummary}
           </p>
         )}
@@ -493,7 +493,7 @@ function ScriptGalleryCardInner({
         />
 
         <div className="flex items-center justify-between pt-2 border-t border-border/50 mt-2">
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="flex items-center gap-3 [font-size:var(--public-font-meta)] text-muted-foreground">
             <div className="flex items-center gap-1">
               <Eye className="w-3.5 h-3.5" aria-hidden />
               <span>{views.toLocaleString()}</span>
@@ -501,7 +501,7 @@ function ScriptGalleryCardInner({
             {likeEl}
           </div>
           {estDurationMinutes !== null && estDurationMinutes > 0 && (
-            <span className="text-[10px] text-muted-foreground/70">
+            <span className="[font-size:var(--public-font-caption)] text-muted-foreground/70">
               ⏱ {estDurationMinutes < 1 ? "< 1 分" : `約 ${estDurationMinutes} 分`}
             </span>
           )}
