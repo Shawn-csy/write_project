@@ -95,8 +95,8 @@ export function PublicHeroMarquee({
         >
           <div
             className={cn(
-              "relative aspect-[4.5/1] min-h-[100px] sm:min-h-[140px] max-h-[40vh]",
-              fullBleed && "min-h-[140px] sm:min-h-[200px] lg:min-h-[240px] max-h-[45vh]"
+              "relative aspect-[3/1] min-h-[140px] sm:min-h-[180px] max-h-[44vh]",
+              fullBleed && "min-h-[200px] sm:min-h-[280px] lg:min-h-[340px] max-h-[54vh]"
             )}
           >
             {safeSlides.map((slide, index) =>
@@ -149,29 +149,29 @@ export function PublicHeroMarquee({
                       {String(slide.link || "").trim() ? (
                         <a
                           href={String(slide.link).trim()}
-                          className="relative z-20 max-w-xl rounded-lg border border-white/30 bg-white/65 px-3 py-2 backdrop-blur dark:border-white/15 dark:bg-black/35 pointer-events-auto hover:bg-white/75 dark:hover:bg-black/45 transition-colors"
+                          className="relative z-20 max-w-xl rounded-xl border border-white/25 bg-white/60 px-4 py-3 backdrop-blur-md dark:border-white/10 dark:bg-black/40 pointer-events-auto hover:bg-white/75 dark:hover:bg-black/55 transition-all duration-300 shadow-lg shadow-black/10"
                           aria-label={slide.title || regionLabel}
                         >
                           {String(slide.title || "").trim() ? (
-                            <p className="text-sm sm:text-base font-semibold text-foreground">
+                            <p className="text-sm sm:text-lg font-bold text-foreground tracking-tight">
                               {slide.title}
                             </p>
                           ) : null}
                           {String(slide.subtitle || slide.content || "").trim() ? (
-                            <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
+                            <p className="mt-1 text-xs sm:text-sm text-foreground/70 leading-relaxed">
                               {slide.subtitle || slide.content}
                             </p>
                           ) : null}
                         </a>
                       ) : (
-                        <div className="relative z-20 max-w-xl rounded-lg border border-white/30 bg-white/65 px-3 py-2 backdrop-blur dark:border-white/15 dark:bg-black/35">
+                        <div className="relative z-20 max-w-xl rounded-xl border border-white/25 bg-white/60 px-4 py-3 backdrop-blur-md dark:border-white/10 dark:bg-black/40 shadow-lg shadow-black/10">
                           {String(slide.title || "").trim() ? (
-                            <p className="text-sm sm:text-base font-semibold text-foreground">
+                            <p className="text-sm sm:text-lg font-bold text-foreground tracking-tight">
                               {slide.title}
                             </p>
                           ) : null}
                           {String(slide.subtitle || slide.content || "").trim() ? (
-                            <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
+                            <p className="mt-1 text-xs sm:text-sm text-foreground/70 leading-relaxed">
                               {slide.subtitle || slide.content}
                             </p>
                           ) : null}

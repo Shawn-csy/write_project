@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback } from "react";
+import React, { useCallback } from "react";
 import {
   ScriptGalleryCard,
   SeriesGalleryCard,
   HorizontalScrollLane,
+  useScrollReveal,
   type EnrichedGalleryScript,
   type PublicHomepageModel,
   type ScriptNavigationPolicy,
@@ -55,6 +56,10 @@ function CardWithPolicy({
 export function GalleryScriptResults({ model, onResetFilters }: GalleryScriptResultsProps) {
   const { filteredScripts, galleryEntries, lanes, showLanes, viewMode, emptyState, navigationPolicyMap } = model;
 
+  const revealDeps = [viewMode, galleryEntries.length, showLanes];
+  const compactRef = useScrollReveal(revealDeps) as React.RefObject<HTMLDivElement>;
+  const gridRef = useScrollReveal(revealDeps) as React.RefObject<HTMLDivElement>;
+
   const handleSeriesClick = useCallback(
     (name: string) => { window.location.href = `/series/${encodeURIComponent(name)}`; },
     []
@@ -76,33 +81,35 @@ export function GalleryScriptResults({ model, onResetFilters }: GalleryScriptRes
   // Compact viewMode always shows flat list (filtered or default state)
   if (viewMode === "compact") {
     return (
-      <div className="flex flex-col">
+      <div ref={compactRef} className="flex flex-col">
         {galleryEntries.map((entry) => {
           if (entry.type === "series") {
             return (
-              <SeriesGalleryCard
-                key={`series:${entry.key}`}
-                series={entry}
-                variant="compact"
-                href={`/series/${encodeURIComponent(entry.name)}`}
-                authorHref={authorHref(entry.leadScript)}
-                showAgeGate={entry.hasAgeGate}
-              />
+              <div key={`series:${entry.key}`} data-reveal>
+                <SeriesGalleryCard
+                  series={entry}
+                  variant="compact"
+                  href={`/series/${encodeURIComponent(entry.name)}`}
+                  authorHref={authorHref(entry.leadScript)}
+                  showAgeGate={entry.hasAgeGate}
+                />
+              </div>
             );
           }
           const s = entry.script;
           return (
-            <CardWithPolicy
-              key={s.id}
-              script={s}
-              policy={navigationPolicyMap.get(s.id)}
-              variant="compact"
-              authorHref={authorHref(s)}
-              seriesHref={seriesHref(s)}
-              onSeriesClick={handleSeriesClick}
-              onTagClick={handleTagClick}
-              onAuthorClick={handleAuthorClick}
-            />
+            <div key={s.id} data-reveal>
+              <CardWithPolicy
+                script={s}
+                policy={navigationPolicyMap.get(s.id)}
+                variant="compact"
+                authorHref={authorHref(s)}
+                seriesHref={seriesHref(s)}
+                onSeriesClick={handleSeriesClick}
+                onTagClick={handleTagClick}
+                onAuthorClick={handleAuthorClick}
+              />
+            </div>
           );
         })}
         {filteredScripts.length === 0 && emptyState !== "none" && (
@@ -116,35 +123,38 @@ export function GalleryScriptResults({ model, onResetFilters }: GalleryScriptRes
   if (!showLanes) {
     return (
       <div
+        ref={gridRef}
         className="grid gap-5 sm:gap-6"
         style={{ gridTemplateColumns: "repeat(auto-fill, minmax(165px, 1fr))" }}
       >
         {galleryEntries.map((entry) => {
           if (entry.type === "series") {
             return (
-              <SeriesGalleryCard
-                key={`series:${entry.key}`}
-                series={entry}
-                variant="standard"
-                href={`/series/${encodeURIComponent(entry.name)}`}
-                authorHref={authorHref(entry.leadScript)}
-                showAgeGate={entry.hasAgeGate}
-              />
+              <div key={`series:${entry.key}`} data-reveal>
+                <SeriesGalleryCard
+                  series={entry}
+                  variant="standard"
+                  href={`/series/${encodeURIComponent(entry.name)}`}
+                  authorHref={authorHref(entry.leadScript)}
+                  showAgeGate={entry.hasAgeGate}
+                />
+              </div>
             );
           }
           const s = entry.script;
           return (
-            <CardWithPolicy
-              key={s.id}
-              script={s}
-              policy={navigationPolicyMap.get(s.id)}
-              variant="standard"
-              authorHref={authorHref(s)}
-              seriesHref={seriesHref(s)}
-              onSeriesClick={handleSeriesClick}
-              onTagClick={handleTagClick}
-              onAuthorClick={handleAuthorClick}
-            />
+            <div key={s.id} data-reveal>
+              <CardWithPolicy
+                script={s}
+                policy={navigationPolicyMap.get(s.id)}
+                variant="standard"
+                authorHref={authorHref(s)}
+                seriesHref={seriesHref(s)}
+                onSeriesClick={handleSeriesClick}
+                onTagClick={handleTagClick}
+                onAuthorClick={handleAuthorClick}
+              />
+            </div>
           );
         })}
         {emptyState !== "none" && (
