@@ -10,7 +10,7 @@
  */
 import React, { useId, useMemo, useRef, useCallback, useState, useEffect } from "react";
 import type { CoverDesign, CoverFont, CoverTextLayer, CoverVars } from "./types";
-import { resolveCoverText, migrateLegacySub } from "./types";
+import { resolveCoverText } from "./types";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -486,10 +486,7 @@ function TextOverlay({
     ? resolveCoverText(title.text, vars)
     : vars.title || "劇本標題";
 
-  const layers: CoverTextLayer[] = [
-    ...migrateLegacySub(design),
-    ...(design.layers ?? []),
-  ].filter((l, idx, arr) => arr.findIndex((x) => x.id === l.id) === idx);
+  const layers: CoverTextLayer[] = design.layers ?? [];
 
   // Resolve effective font size: fontSize field takes precedence over size enum
   const titleFontSize = title.fontSize != null

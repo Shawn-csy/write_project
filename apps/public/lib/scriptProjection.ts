@@ -65,29 +65,17 @@ export interface ScriptOverlayProps {
 export function buildScriptOverlayProps(script: PublicScript): ScriptOverlayProps {
   const customMeta = script.customMetadata ?? [];
 
-  // Extract targetAudience, contentRating, license from customMetadata
-  const metaByKey = new Map<string, string>();
-  for (const entry of customMeta) {
-    const k = normalizePublicMetadataKey(entry.key);
-    const v = String(entry.value ?? "").trim();
-    if (k && v) metaByKey.set(k, v);
-  }
-
-  // licenseSpecialTerms — may be a custom metadata entry or persona field
-  const rawTerms = customMeta
-    .filter((e) => normalizePublicMetadataKey(e.key) === "licensespecialterms")
-    .map((e) => String(e.value ?? "").trim())
-    .filter(Boolean);
-
-  let licenseSpecialTerms: string[] = rawTerms;
-  if (rawTerms.length === 1) {
+  // licenseSpecialTerms from canonical field
+  let licenseSpecialTerms: string[] = [];
+  const canonicalTerms = String(script.licenseSpecialTerms ?? "").trim();
+  if (canonicalTerms) {
     try {
-      const parsed = JSON.parse(rawTerms[0]);
-      if (Array.isArray(parsed)) {
-        licenseSpecialTerms = normalizeLicenseSpecialTerms(parsed);
-      }
+      const parsed = JSON.parse(canonicalTerms);
+      licenseSpecialTerms = Array.isArray(parsed)
+        ? normalizeLicenseSpecialTerms(parsed)
+        : [canonicalTerms];
     } catch {
-      // not JSON, use as-is
+      licenseSpecialTerms = [canonicalTerms];
     }
   }
 
@@ -98,9 +86,9 @@ export function buildScriptOverlayProps(script: PublicScript): ScriptOverlayProp
     derivativeUse: String(script.licenseDerivative ?? "").trim(),
     notifyOnModify: String(script.licenseNotify ?? "").trim(),
     licenseSpecialTerms,
-    targetAudience: metaByKey.get("targetaudience") ?? metaByKey.get("觀眾取向") ?? "",
-    contentRating: metaByKey.get("contentrating") ?? metaByKey.get("內容分級") ?? "",
-    license: metaByKey.get("license") ?? metaByKey.get("授權") ?? "",
+    targetAudience: String(script.targetAudience ?? "").trim(),
+    contentRating: String(script.contentRating ?? "").trim(),
+    license: String(script.license ?? "").trim(),
     customFields: customMeta
       .map((e) => ({ key: String(e.key ?? "").trim(), value: String(e.value ?? "").trim() }))
       .filter((e) => e.key && e.value && !isPublicMetadataSystemKey(e.key)),

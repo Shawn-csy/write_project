@@ -28,7 +28,7 @@ describe("buildReadWorkHeaderModel — identity", () => {
     expect(model.synopsis).toBeUndefined();
   });
 
-  it("synopsis falls back to custom metadata description", () => {
+  it("ignores customMetadata description — legacy key no longer read", () => {
     const model = buildReadWorkHeaderModel(
       baseScript({
         synopsis: null,
@@ -36,10 +36,10 @@ describe("buildReadWorkHeaderModel — identity", () => {
       }),
       BASE_STATS,
     );
-    expect(model.synopsis).toBe("Custom desc");
+    expect(model.synopsis).toBeUndefined();
   });
 
-  it("synopsis falls back to custom metadata 摘要", () => {
+  it("ignores customMetadata 摘要 — legacy key no longer read", () => {
     const model = buildReadWorkHeaderModel(
       baseScript({
         synopsis: null,
@@ -47,10 +47,10 @@ describe("buildReadWorkHeaderModel — identity", () => {
       }),
       BASE_STATS,
     );
-    expect(model.synopsis).toBe("中文摘要");
+    expect(model.synopsis).toBeUndefined();
   });
 
-  it("script.synopsis takes priority over custom metadata fallback", () => {
+  it("script.synopsis canonical field takes priority, customMetadata ignored", () => {
     const model = buildReadWorkHeaderModel(
       baseScript({
         synopsis: "Direct synopsis",

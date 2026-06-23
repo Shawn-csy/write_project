@@ -288,6 +288,12 @@ class ScriptCreate(ScriptBase):
     activityWorkUrl: Optional[str] = None
     activityDemoLinks: Optional[str] = None  # JSON string
     customMetadata: Optional[List[Dict[str, Any]]] = None
+    targetAudience: Optional[str] = None
+    contentRating: Optional[str] = None
+    license: Optional[str] = None
+    licenseSpecialTerms: Optional[str] = None  # JSON array string
+    authorDisplayMode: Optional[str] = None
+    authorOverrideName: Optional[str] = None
 
 class ScriptUpdate(BaseModel):
     title: Optional[str] = None
@@ -319,6 +325,12 @@ class ScriptUpdate(BaseModel):
     activityWorkUrl: Optional[str] = None
     activityDemoLinks: Optional[str] = None  # JSON string
     customMetadata: Optional[List[Dict[str, Any]]] = None
+    targetAudience: Optional[str] = None
+    contentRating: Optional[str] = None
+    license: Optional[str] = None
+    licenseSpecialTerms: Optional[str] = None  # JSON array string
+    authorDisplayMode: Optional[str] = None
+    authorOverrideName: Optional[str] = None
 
 class ScriptReorderItem(BaseModel):
     id: str
@@ -373,6 +385,12 @@ class Script(BaseModel):
     hasPublishIdentity: bool = False
     metadataSeriesName: Optional[str] = ""
     publishReadiness: Optional[str] = "needs_work"
+    targetAudience: Optional[str] = None
+    contentRating: Optional[str] = None
+    license: Optional[str] = None
+    licenseSpecialTerms: Optional[str] = None  # JSON array string
+    authorDisplayMode: Optional[str] = None
+    authorOverrideName: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

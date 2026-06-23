@@ -210,26 +210,11 @@ if [ -d "${ROOT_DIR}/dist" ]; then
   cp -a "${ROOT_DIR}/dist" "${ROOT_DIR}/dist.rollback"
 fi
 
-echo "[deploy] building and starting containers (tag: ${DEPLOY_TAG})..."
+echo "[deploy] building and starting backend (tag: ${DEPLOY_TAG})..."
 export DEPLOY_TAG
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up --build -d
-
-# Also tag as 'latest' for convenience
-if docker image inspect "write_project-backend:${DEPLOY_TAG}" >/dev/null 2>&1; then
-  docker tag "write_project-backend:${DEPLOY_TAG}" "write_project-backend:latest"
-fi
-if docker image inspect "write_project-public:${DEPLOY_TAG}" >/dev/null 2>&1; then
-  docker tag "write_project-public:${DEPLOY_TAG}" "write_project-public:latest"
-fi
-
-# Prune backend and public images older than the last 3 versions
-for image_name in write_project-backend write_project-public; do
-  old_images=$(docker images "$image_name" --format "{{.Tag}}" | grep -v "latest" | sort -r | tail -n +4)
-  if [ -n "$old_images" ]; then
-    echo "[deploy] pruning old ${image_name} images: $(echo $old_images | tr '\n' ' ')"
-    echo "$old_images" | xargs -I{} docker rmi "${image_name}:{}" 2>/dev/null || true
-  fi
-done
+# Phase 1: start only data + backend — public/frontend held back until backfill completes.
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up --build -d \
+  write_project-postgres write_project-backend
 
 echo "[deploy] waiting for backend to be ready..."
 BACKEND_CID="$(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps -q write_project-backend 2>/dev/null || true)"
@@ -240,9 +225,17 @@ else
   for i in $(seq 1 30); do
     STATUS="$(docker inspect -f '{{.State.Status}}' "$BACKEND_CID" 2>/dev/null || true)"
     if [ "$STATUS" = "running" ]; then
-      # Check if the server is actually accepting connections (health endpoint).
+      # Check if the server is accepting connections — any HTTP response (incl. 4xx) means it's up.
       if docker exec "$BACKEND_CID" \
-          wget -qO- http://localhost:8080/api/health/auth 2>/dev/null | grep -q "ok\|401\|403\|422"; then
+          python -c "
+import urllib.request, urllib.error, sys
+try:
+    urllib.request.urlopen('http://localhost:1091/api/health/auth')
+except urllib.error.HTTPError:
+    pass  # 4xx/5xx still means server is up
+except Exception:
+    sys.exit(1)
+" 2>/dev/null; then
         READY=1
         break
       fi
@@ -258,6 +251,68 @@ else
     docker logs --tail=40 "$BACKEND_CID" 2>&1 || true
   fi
 fi
+
+# ── Phase 2 data backfill (release gate — must complete before public runtime) ─
+# Scripts are idempotent. Dry-run first; write only when pending records found.
+# Dry-run failure aborts deploy: stale data must not be served without runtime normalization.
+if [ -n "$BACKEND_CID" ] && [ "$READY" = "1" ]; then
+  echo "[deploy] running canonical metadata backfill (dry-run)..."
+  if ! BACKFILL_DRY="$(docker exec "$BACKEND_CID" python /app/scripts/backfill_canonical_metadata.py 2>&1)"; then
+    echo "ERROR: canonical metadata backfill dry-run failed:"
+    echo "$BACKFILL_DRY"
+    exit 1
+  fi
+  echo "$BACKFILL_DRY"
+
+  if echo "$BACKFILL_DRY" | grep -qE "Fields to backfill|fields backfilled"; then
+    echo "[deploy] backfill needed — running write mode..."
+    docker exec "$BACKEND_CID" python /app/scripts/backfill_canonical_metadata.py --write
+    echo "[deploy] canonical metadata backfill complete"
+  else
+    echo "[deploy] canonical metadata backfill: nothing to do"
+  fi
+
+  echo "[deploy] running cover design sub→layers migration (dry-run)..."
+  if ! COVER_DRY="$(docker exec "$BACKEND_CID" python /app/scripts/migrate_cover_sub.py 2>&1)"; then
+    echo "ERROR: cover design migration dry-run failed:"
+    echo "$COVER_DRY"
+    exit 1
+  fi
+  echo "$COVER_DRY"
+
+  if echo "$COVER_DRY" | grep -qE "Records to update: [1-9]"; then
+    echo "[deploy] cover migration needed — running write mode..."
+    docker exec "$BACKEND_CID" python /app/scripts/migrate_cover_sub.py --write
+    echo "[deploy] cover design migration complete"
+  else
+    echo "[deploy] cover design migration: nothing to do"
+  fi
+elif [ -n "$BACKEND_CID" ] && [ "$READY" = "0" ]; then
+  echo "ERROR: backend not ready — cannot run Phase 2 backfill. Deploy aborted."
+  exit 1
+fi
+
+# Phase 2: backfill complete — now start public-facing services.
+echo "[deploy] starting public reader and frontend..."
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up --build -d \
+  write_project-frontend-build write_project-frontend write_project-public
+
+# Tag images as 'latest' for convenience
+if docker image inspect "write_project-backend:${DEPLOY_TAG}" >/dev/null 2>&1; then
+  docker tag "write_project-backend:${DEPLOY_TAG}" "write_project-backend:latest"
+fi
+if docker image inspect "write_project-public:${DEPLOY_TAG}" >/dev/null 2>&1; then
+  docker tag "write_project-public:${DEPLOY_TAG}" "write_project-public:latest"
+fi
+
+# Prune backend and public images older than the last 3 versions
+for image_name in write_project-backend write_project-public; do
+  old_images=$(docker images "$image_name" --format "{{.Tag}}" | grep -v "latest" | sort -r | tail -n +4)
+  if [ -n "$old_images" ]; then
+    echo "[deploy] pruning old ${image_name} images: $(echo "$old_images" | tr '\n' ' ')"
+    echo "$old_images" | xargs -I{} docker rmi "${image_name}:{}" 2>/dev/null || true
+  fi
+done
 
 echo "[deploy] waiting for public reader to be ready..."
 PUBLIC_CID="$(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps -q write_project-public 2>/dev/null || true)"

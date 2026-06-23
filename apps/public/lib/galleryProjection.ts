@@ -20,10 +20,15 @@ export function toGalleryInput(script: PublicScript): GalleryScriptInput {
     updatedAt: script.updatedAt ?? undefined,
     seriesOrder: script.seriesOrder ?? undefined,
     series: script.series ?? undefined,
+    targetAudience: script.targetAudience ?? undefined,
+    contentRating: script.contentRating ?? undefined,
+    license: script.license ?? undefined,
+    licenseSpecialTerms: script.licenseSpecialTerms ?? undefined,
+    authorDisplayMode: script.authorDisplayMode ?? undefined,
+    authorOverrideName: script.authorOverrideName ?? undefined,
     licenseCommercial: script.licenseCommercial ?? undefined,
     licenseDerivative: script.licenseDerivative ?? undefined,
     licenseNotify: script.licenseNotify ?? undefined,
-    customMetadata: script.customMetadata,
     author: script.persona
       ? {
           id: script.persona.id,
