@@ -130,15 +130,15 @@ function GalleryHoverPreviewLayer({ preview }: { preview: PreviewState }) {
       className="overflow-y-auto rounded-lg border border-border bg-popover p-3 text-popover-foreground shadow-lg"
     >
       {data.title && (
-        <p className="mb-0.5 text-sm font-semibold leading-snug text-foreground">{data.title}</p>
+        <p className="mb-0.5 [font-size:var(--public-font-card-title)] font-semibold leading-snug text-foreground">{data.title}</p>
       )}
       {data.author && (
-        <p className="mb-2 text-[11px] text-muted-foreground">{data.author}</p>
+        <p className="mb-2 [font-size:var(--public-font-meta)] text-muted-foreground">{data.author}</p>
       )}
-      <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-muted-foreground">
+      <p className="mb-1.5 [font-size:var(--public-font-caption)] font-semibold tracking-wider text-muted-foreground">
         大綱
       </p>
-      <p className="text-xs leading-5 whitespace-pre-wrap">{data.outline}</p>
+      <p className="[font-size:var(--public-font-body)] [line-height:var(--public-line-body)] whitespace-pre-wrap">{data.outline}</p>
     </div>
   );
 }

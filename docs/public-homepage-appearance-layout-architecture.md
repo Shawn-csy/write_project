@@ -250,29 +250,32 @@ Mobile behavior remains unchanged: use the bottom/mobile sheet.
 - Tests: within-group queries for site text scale; `setSiteTextScale` call; `aria-pressed`
   state; reader labels distinct.
 
-### Phase 4 — Token Adoption In Homepage Components
+### Phase 4 — Token Adoption In Homepage Components ✅ (4a done; 4b pending)
 
-Start with components where text size matters most:
+#### Phase 4a — Gallery Cards + Hover Preview ✅
 
-1. `ScriptGalleryCard`
-   - title;
-   - summary;
-   - metadata row;
-   - hover preview text.
-2. `SeriesGalleryCard`
-   - series title;
-   - chapter count;
-   - summary;
-   - metadata.
-3. `GalleryFilterPanel`
+Completed. All fixed `text-[10px]`, `text-xs`, `text-sm`, `text-[11px]` replaced
+with CSS variable tokens in:
+
+- `ScriptGalleryCard`: title, summary, author badge, stats row, duration,
+  tag pills, tag overflow count (`+N`).
+- `SeriesGalleryCard`: title (both variants), chapter count, 系列 label
+  (compact + standard), summary, updated-at label.
+- `GalleryHoverPreview`: title, author, 大綱 label, outline body.
+
+No layout geometry changed (card dimensions, cover aspect ratio, grid gap untouched).
+
+#### Phase 4b — Filter Panel, People Grid, Result Count (pending)
+
+1. `GalleryFilterPanel`
    - section labels;
    - tag chips;
    - usage controls.
-4. `GalleryPeopleGrid`
+2. `GalleryPeopleGrid`
    - author/org names;
    - descriptions;
    - tag text.
-5. `GalleryClient` result count and empty states.
+3. `GalleryClient` result count and empty states.
 
 Do not change layout geometry during this phase unless a text-scale mode causes
 overflow. If overflow occurs, fix with component constraints, not ad hoc

@@ -86,12 +86,12 @@ function SeriesGalleryCardInner({
     authorHref ? (
       <a
         href={authorHref}
-        className="relative z-10 inline-flex min-w-0 max-w-full text-xs text-muted-foreground hover:text-foreground hover:underline no-underline"
+        className="relative z-10 inline-flex min-w-0 max-w-full [font-size:var(--public-font-meta)] text-muted-foreground hover:text-foreground hover:underline no-underline"
       >
         <span className="truncate">{authorName}</span>
       </a>
     ) : (
-      <span className="inline-flex min-w-0 max-w-full text-xs text-muted-foreground">
+      <span className="inline-flex min-w-0 max-w-full [font-size:var(--public-font-meta)] text-muted-foreground">
         <span className="truncate">{authorName}</span>
       </span>
     )
@@ -152,22 +152,22 @@ function SeriesGalleryCardInner({
           <div className="min-w-0 flex-1 space-y-0.5">
             <div className="flex min-w-0 items-center gap-1.5">
               <Layers className="w-3 h-3 shrink-0 text-primary/60" aria-hidden />
-              <span className="text-[10px] text-primary/70 font-medium shrink-0">系列</span>
-              <span className="text-[10px] text-muted-foreground">· {chapterCount} 部</span>
+              <span className="[font-size:var(--public-font-caption)] text-primary/70 font-medium shrink-0">系列</span>
+              <span className="[font-size:var(--public-font-caption)] text-muted-foreground">· {chapterCount} 部</span>
             </div>
-            <div className="min-w-0 text-sm font-semibold leading-tight text-foreground line-clamp-1 transition-colors duration-200 group-hover:text-primary">
+            <div className="min-w-0 [font-size:var(--public-font-card-title)] font-semibold leading-tight text-foreground line-clamp-1 transition-colors duration-200 group-hover:text-primary">
               <a href={href} className="text-inherit no-underline before:absolute before:inset-0 before:z-0">
                 {name}
               </a>
             </div>
             {latestTitle && (
-              <p className="text-[10px] text-muted-foreground line-clamp-1">
+              <p className="[font-size:var(--public-font-caption)] text-muted-foreground line-clamp-1">
                 最新：{latestTitle}
               </p>
             )}
             {authorEl && <div className="pt-0.5">{authorEl}</div>}
             {cardSummary && (
-              <p className="text-[10px] text-muted-foreground line-clamp-1">
+              <p className="[font-size:var(--public-font-caption)] [line-height:var(--public-line-body)] text-muted-foreground line-clamp-1">
                 {cardSummary}
               </p>
             )}
@@ -202,11 +202,11 @@ function SeriesGalleryCardInner({
 
       {/* Meta */}
       <div className="pt-2.5 space-y-1">
-        <p className="text-[10px] text-primary/70 font-medium flex items-center gap-1">
+        <p className="[font-size:var(--public-font-caption)] text-primary/70 font-medium flex items-center gap-1">
           <Layers className="w-3 h-3" aria-hidden />
           系列
         </p>
-        <h3 className="font-serif text-sm md:text-base font-semibold leading-snug line-clamp-2">
+        <h3 className="font-serif [font-size:var(--public-font-card-title)] font-semibold leading-snug line-clamp-2">
           <a href={href} className="text-foreground group-hover:text-primary transition-colors no-underline">
             {name}
           </a>
@@ -215,15 +215,15 @@ function SeriesGalleryCardInner({
         {authorEl}
 
         {cardSummary && (
-          <p className="text-[11px] text-muted-foreground line-clamp-2">{cardSummary}</p>
+          <p className="[font-size:var(--public-font-meta)] [line-height:var(--public-line-body)] text-muted-foreground line-clamp-2">{cardSummary}</p>
         )}
 
         <div className="flex items-center justify-between pt-2 border-t border-border/50 mt-2">
-          <span className="text-xs text-muted-foreground">
+          <span className="[font-size:var(--public-font-meta)] text-muted-foreground">
             {chapterCount} 部
           </span>
           {updatedLabel && (
-            <span className="text-[10px] text-muted-foreground/70">
+            <span className="[font-size:var(--public-font-caption)] text-muted-foreground/70">
               更新 {updatedLabel}
             </span>
           )}
