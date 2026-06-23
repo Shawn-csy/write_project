@@ -1,8 +1,15 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import {
+  migrateAppearancePreferences,
+  readAppearancePreferences,
+  writeAppearancePreferences,
+  DEFAULT_APPEARANCE,
+} from "@/lib/publicAppearancePreferences";
+import type { AppearanceTheme } from "@/lib/publicAppearancePreferences";
 
-type Theme = "light" | "dark" | "system";
+type Theme = AppearanceTheme;
 
 interface ThemeContextValue {
   theme: Theme;
@@ -15,9 +22,6 @@ export function useTheme() {
   return useContext(ThemeContext);
 }
 
-// Storage key matches Vite app
-const STORAGE_KEY = "screenplay-reader-theme";
-
 function resolveTheme(theme: Theme): "light" | "dark" {
   if (theme !== "system") return theme;
   if (typeof window === "undefined") return "light";
@@ -25,22 +29,21 @@ function resolveTheme(theme: Theme): "light" | "dark" {
 }
 
 function applyTheme(theme: Theme) {
-  const resolved = resolveTheme(theme);
-  document.documentElement.classList.toggle("dark", resolved === "dark");
+  document.documentElement.classList.toggle("dark", resolveTheme(theme) === "dark");
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("system");
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
-    const initial: Theme =
-      stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
+    // Run migration first (no-op if new key already present), then read new key.
+    const migrated = migrateAppearancePreferences();
+    const stored = readAppearancePreferences();
+    const initial: Theme = stored.theme ?? migrated.theme ?? DEFAULT_APPEARANCE.theme;
     setThemeState(initial);
     applyTheme(initial);
   }, []);
 
-  // Listen to OS preference changes when theme === "system"
   useEffect(() => {
     if (theme !== "system") return;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -51,7 +54,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setTheme = useCallback((next: Theme) => {
     setThemeState(next);
-    localStorage.setItem(STORAGE_KEY, next);
+    // Merge theme into current stored preferences (preserve other fields).
+    const current = { ...DEFAULT_APPEARANCE, ...readAppearancePreferences() };
+    writeAppearancePreferences({ ...current, theme: next });
     applyTheme(next);
   }, []);
 
