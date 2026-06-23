@@ -16,23 +16,28 @@ design-token system. It must not reuse reader-only `readerFontSize`,
 
 ## Problem Statement
 
-The current `PublicAppearanceMenu` exposes:
+The public appearance system stores:
 
 - theme;
+- site text scale;
 - reader font family;
 - reader font size;
 - reader line height.
 
-Only the reader page consumes the reader typography fields:
+The homepage topbar should expose only the public-site controls:
+
+- theme;
+- homepage text scale.
+
+Only the reader page and reader toolbar should consume or edit the reader typography fields:
 
 - `readerFontFamily`;
 - `readerFontSize`;
 - `readerLineHeight`.
 
-The homepage does not consume those values. This is technically consistent with
-the current names, but it is a poor product contract because the control appears
-in the public homepage topbar. A user reasonably expects homepage typography to
-change when changing the homepage appearance panel.
+The homepage must not expose reader-only typography controls. If the homepage
+topbar offers typography controls, those controls must affect homepage typography
+through public design tokens.
 
 The correct fix is not to apply reader font size directly to every homepage
 Tailwind class. That would be a fragile global override and would distort badges,
@@ -176,12 +181,10 @@ Recommended structure:
 
 首頁文字
   精簡 / 標準 / 舒適 / 大字
-
-閱讀器文字
-  字體
-  字級
-  行距
 ```
+
+Reader typography controls are not part of the homepage appearance panel. They
+belong in the reader toolbar, where the user sees the script body being changed.
 
 If the panel is too dense after adding site text scale, split it:
 
@@ -242,13 +245,12 @@ Mobile behavior remains unchanged: use the bottom/mobile sheet.
 ### Phase 3 — Appearance Panel UI ✅
 
 - `首頁文字` segmented control (精簡/標準/舒適/大字) added to `PublicAppearanceMenu`
-  between theme and reader section.
-- Reader section now labeled `閱讀器文字` with sub-labels 字體/字級/行距.
-- Reader group aria-labels prefixed `閱讀器字體/字級/行距` to avoid name collision with
-  `首頁文字` `標準` option.
+  below theme controls.
+- Reader typography controls are intentionally not rendered in `PublicAppearanceMenu`.
+  Reader font family, font size, and line height stay in the reader toolbar.
 - All controls use `button[aria-pressed]`.
 - Tests: within-group queries for site text scale; `setSiteTextScale` call; `aria-pressed`
-  state; reader labels distinct.
+  state; no reader-only controls in the public homepage appearance panel.
 
 ### Phase 4 — Token Adoption In Homepage Components ✅ (4a done; 4b pending)
 
@@ -281,31 +283,20 @@ Do not change layout geometry during this phase unless a text-scale mode causes
 overflow. If overflow occurs, fix with component constraints, not ad hoc
 per-page overrides.
 
-### Phase 5 — Desktop Sidebar Collapse Model
+### Phase 5 — Desktop Sidebar Collapse Model ✅
 
-1. Add layout state:
+Completed.
 
-   ```ts
-   desktopFilterSidebarCollapsed: boolean
-   setDesktopFilterSidebarCollapsed(next: boolean): void
-   ```
-
-2. Keep this state out of `galleryUrlState`.
-3. Optional storage adapter:
-   - key: `public-gallery:layout`;
-   - read after mount;
-   - write after user action;
-   - ignore malformed values.
-4. Add UI:
-   - expanded sidebar includes a top-right collapse button;
-   - collapsed rail shows a filter icon, active count, and expand button;
-   - main content expands to fill reclaimed width.
-5. Tests:
-   - expanded sidebar renders filters;
-   - collapse hides filter panel and shows rail;
-   - expand restores filter panel;
-   - active filter count visible in collapsed state;
-   - no URL query changes when toggling.
+- `useGalleryLayoutState` hook: `{ sidebarCollapsed, setSidebarCollapsed }`.
+  - key: `public-gallery:layout` (`{ sidebarCollapsed: boolean }`);
+  - default: `false` (expanded);
+  - reads after mount; writes after user action; ignores malformed values.
+- `GalleryClient` wired: expanded sidebar shows `PanelLeftClose` button (`h-11 w-11`);
+  collapsed rail (`w-11`) shows `PanelLeftOpen` button + active filter count badge.
+  Count sourced from `homepageModel.filterChips.length` (covers q, segment, usage,
+  tags, authorTags, orgTags — not re-derived in component).
+- State not in `galleryUrlState`; main content fills reclaimed width via `flex-1`.
+- 5 unit tests for hook in `useGalleryLayoutState.test.ts`.
 
 ### Phase 6 — Browser QA
 
