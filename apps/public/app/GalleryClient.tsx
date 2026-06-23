@@ -14,6 +14,7 @@ import { GalleryMobileSheet } from "./gallery/GalleryMobileSheet";
 import { GalleryAuthorGrid, GalleryOrgGrid } from "./gallery/GalleryPeopleGrid";
 import { GalleryScriptResults } from "./gallery/GalleryScriptResults";
 import { GalleryTopBar } from "./gallery/GalleryTopBar";
+import { GalleryStaticHero } from "./gallery/GalleryStaticHero";
 import { useGalleryController } from "./gallery/useGalleryController";
 import { useGalleryLayoutState } from "./gallery/useGalleryLayoutState";
 
@@ -65,10 +66,12 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
         onOpenMobileFilter={openMobileFilter}
       />
 
-      {/* Hero banner — only rendered when backend provides slides; no placeholder fallback in production */}
-      {view === "scripts" && bannerSlides && bannerSlides.length > 0 && (
+      {/* Hero — banner when backend provides slides, static brand hero otherwise */}
+      {view === "scripts" && bannerSlides && bannerSlides.length > 0 ? (
         <PublicHeroMarquee slides={bannerSlides} fullBleed />
-      )}
+      ) : view === "scripts" ? (
+        <GalleryStaticHero />
+      ) : null}
 
       <div className="flex flex-1 w-full px-3 sm:px-5 lg:px-8 py-5 sm:py-8 pb-20 gap-6">
         {/* Desktop sidebar */}

@@ -274,6 +274,17 @@ function ScriptGalleryCardInner({
     }
   }, [id, isLiked, onLike]);
 
+  // 3D tilt on cover
+  const handleCoverPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    e.currentTarget.style.transform = `perspective(500px) rotateY(${x * 12}deg) rotateX(${-y * 10}deg) scale(1.03)`;
+  };
+  const handleCoverPointerLeave = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.currentTarget.style.transform = "";
+  };
+
   // Cover: <a> if href, else plain div (card itself is clickable via onNavigate)
   const coverEl = coverUrl ? (
     <img
@@ -448,7 +459,12 @@ function ScriptGalleryCardInner({
       {...hoverPreviewProps}
     >
       {/* Cover */}
-      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-muted shadow-sm group-hover:shadow-md transition-shadow">
+      <div
+        className="relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-muted shadow-sm group-hover:shadow-lg transition-all duration-300"
+        style={{ transformStyle: "preserve-3d", willChange: "transform" }}
+        onPointerMove={handleCoverPointerMove}
+        onPointerLeave={handleCoverPointerLeave}
+      >
         {coverLinkEl}
         <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-primary/10 pointer-events-none" aria-hidden />
         {showAgeGate && (

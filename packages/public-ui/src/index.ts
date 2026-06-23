@@ -105,6 +105,7 @@ export type {
 
 export { GalleryHoverPreviewProvider, useGalleryHoverPreview, clampPreviewPosition } from "./gallery/GalleryHoverPreview";
 export type { PreviewData } from "./gallery/GalleryHoverPreview";
+export { useScrollReveal } from "./gallery/useScrollReveal";
 
 export { SeriesGalleryCard } from "./gallery/SeriesGalleryCard";
 export type { SeriesGalleryCardProps } from "./gallery/SeriesGalleryCard";
