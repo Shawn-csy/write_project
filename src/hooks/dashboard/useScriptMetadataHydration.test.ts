@@ -70,10 +70,15 @@ describe("useScriptMetadataHydration", () => {
         coverUrl: "https://example.com/cover.jpg",
         markerThemeId: "theme-1",
         disableCopy: true,
+        authorDisplayMode: "override",
+        authorOverrideName: "作者甲",
+        targetAudience: "女性向",
+        contentRating: "成人向",
+        licenseSpecialTerms: JSON.stringify(["canonical term"]),
         activityDemoLinks: JSON.stringify([{ name: "A", url: "https://example.com/a" }]),
         customMetadata: [
-          { key: "Author", value: "作者甲" },
-          { key: "AuthorDisplayMode", value: "override" },
+          { key: "Author", value: "舊作者" },
+          { key: "AuthorDisplayMode", value: "badge" },
           { key: "marker_legend", value: "true" },
           { key: "自訂欄位", value: "自訂值" },
         ],
@@ -90,6 +95,7 @@ describe("useScriptMetadataHydration", () => {
     ]);
     expect(params.setTargetAudience).toHaveBeenCalledWith("女性向");
     expect(params.setContentRating).toHaveBeenCalledWith("成人向");
+    expect(params.setLicenseSpecialTerms).toHaveBeenCalledWith(["canonical term"]);
     expect(params.setCustomFields).toHaveBeenCalled();
   });
 

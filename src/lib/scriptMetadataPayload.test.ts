@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyPreservedAuthorEntries, buildCustomMetadataEntries, buildJsonPreviewPayload } from "./scriptMetadataPayload";
+import { buildCustomMetadataEntries, buildJsonPreviewPayload } from "./scriptMetadataPayload";
 
 const baseFields = {
   title: "T",
@@ -60,16 +60,6 @@ describe("scriptMetadataPayload", () => {
     expect(entries.find((entry) => entry.key === "ActivityDemoLinks")).toBeUndefined();
     expect(entries.find((entry) => entry.key === "ActivityDemoUrl")).toBeUndefined();
     expect(entries.find((entry) => entry.key === "ActivityWorkUrl")).toBeUndefined();
-  });
-
-  it("applyPreservedAuthorEntries replaces author-related entries", () => {
-    const entries = buildCustomMetadataEntries(baseFields);
-    const merged = applyPreservedAuthorEntries(entries, [
-      { key: "Author", value: "Preserved" },
-      { key: "AuthorDisplayMode", value: "badge" },
-    ]);
-    expect(merged.find((entry) => entry.key === "Author")?.value).toBe("Preserved");
-    expect(merged.find((entry) => entry.key === "AuthorDisplayMode")?.value).toBe("badge");
   });
 
   it("buildJsonPreviewPayload keeps normalized demo links and tag structure", () => {

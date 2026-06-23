@@ -9,9 +9,8 @@
 
 import { customMetadataEntriesToMeta, customMetadataEntriesToRawEntries, normalizeCustomMetadataEntries } from "./customMetadata";
 import { parseActivityDemoLinks, serializeActivityDemoLinks } from "./activityDemoLinks";
-import { parseBasicLicenseFromMeta } from "./licenseRights";
 import { buildCustomFieldsFromRawEntries } from "../hooks/dashboard/scriptMetadataUtils";
-import { buildCustomMetadataEntries, applyPreservedAuthorEntries } from "./scriptMetadataPayload";
+import { buildCustomMetadataEntries } from "./scriptMetadataPayload";
 import type { BaseScriptApi, ScriptUpdatePayload } from "../types/api";
 import type { ContactField, CustomField, LicenseSpecialTerm, TagLike } from "../hooks/dashboard/types";
 import type { CoverDesign } from "../types/coverDesign";
@@ -110,6 +109,22 @@ export function emptyDraft(): ScriptMetadataDraft {
   };
 }
 
+function parseStringListJson(value: unknown): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || "").trim()).filter(Boolean);
+  }
+  if (typeof value !== "string") return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed)
+      ? parsed.map((item) => String(item || "").trim()).filter(Boolean)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
 // ---------------------------------------------------------------------------
 // fromApiToDraft — primary hydration path
 // ---------------------------------------------------------------------------
@@ -134,9 +149,18 @@ export function fromApiToDraft(
   draft.coverCrop = (api as { coverCrop?: { cx?: number; cy?: number; zoom?: number } | null }).coverCrop ?? null;
   draft.coverDesign = (api as BaseScriptApi).coverDesign ?? null;
   draft.draftDate = String(api.draftDate || "");
-  // disableAuthorAutofill suppresses ALL author population (structured + legacy)
+  // disableAuthorAutofill suppresses ALL author population.
   if (!opts.disableAuthorAutofill) {
-    draft.author = String(api.author && typeof api.author === "string" ? api.author : "");
+    const canonicalAuthorDisplayMode = String(api.authorDisplayMode || "").trim().toLowerCase();
+    const normalizedAuthorDisplayMode =
+      canonicalAuthorDisplayMode === "override" || canonicalAuthorDisplayMode === "badge"
+        ? canonicalAuthorDisplayMode
+        : "badge";
+    const canonicalOverrideName = String(api.authorOverrideName || "").trim();
+    draft.authorDisplayMode = normalizedAuthorDisplayMode;
+    draft.author = normalizedAuthorDisplayMode === "override"
+      ? canonicalOverrideName
+      : String(api.author && typeof api.author === "string" ? api.author : "");
   }
   draft.markerThemeId = String(api.markerThemeId || "default");
   draft.disableCopy = Boolean(api.disableCopy);
@@ -144,6 +168,9 @@ export function fromApiToDraft(
   draft.licenseCommercial = String(api.licenseCommercial || "");
   draft.licenseDerivative = String(api.licenseDerivative || "");
   draft.licenseNotify = String(api.licenseNotify || "");
+  draft.licenseSpecialTerms = parseStringListJson(api.licenseSpecialTerms);
+  draft.targetAudience = String(api.targetAudience || "");
+  draft.contentRating = String(api.contentRating || "");
   draft.seriesId = api.seriesId ?? null;
   draft.seriesOrder = api.seriesOrder ?? "";
   draft.seriesName = String(api.series?.name || "");
@@ -172,52 +199,9 @@ export function fromApiToDraft(
     draft.personaId = preferred ?? "";
   }
 
-  // --- Tags → audience / rating ---
-  const tagNames = draft.currentTags.map((t) => String(t.name || "").toLowerCase());
-  if (tagNames.includes("男性向")) draft.targetAudience = "男性向";
-  else if (tagNames.includes("女性向")) draft.targetAudience = "女性向";
-  else if (tagNames.includes("全性向")) draft.targetAudience = "全性向";
-  if (tagNames.some((n) => ["r-18", "r18", "18+", "成人向"].includes(n))) {
-    draft.contentRating = "成人向";
-  } else if (tagNames.some((n) => ["一般", "一般內容", "全年齡向"].includes(n))) {
-    draft.contentRating = "全年齡向";
-  }
-
-  // --- customMetadata legacy read ---
+  // --- customMetadata read: user-defined/editor-only fields only ---
   const rawEntries = customMetadataEntriesToRawEntries(api.customMetadata || []);
   const meta = customMetadataEntriesToMeta(api.customMetadata || []);
-
-  // title fallback from custom
-  draft.title = draft.title || String(meta.title || "");
-
-  // author from custom (legacy fallback)
-  if (!opts.disableAuthorAutofill) {
-    const legacyAuthor = String(meta.author || meta.authors || "");
-    draft.author = draft.author || legacyAuthor;
-    const rawMode = String(meta.authordisplaymode || meta.authorDisplayMode || "").trim().toLowerCase();
-    draft.authorDisplayMode =
-      rawMode === "override" || rawMode === "badge"
-        ? rawMode
-        : draft.author ? "override" : "badge";
-  }
-
-  // license from custom (legacy fallback — superseded by structured fields)
-  const basicLicense = parseBasicLicenseFromMeta(meta);
-  draft.licenseCommercial = draft.licenseCommercial || String(basicLicense.commercialUse || "");
-  draft.licenseDerivative = draft.licenseDerivative || String(basicLicense.derivativeUse || "");
-  draft.licenseNotify = draft.licenseNotify || String(basicLicense.notifyOnModify || "");
-  const rawSpecialTerms = meta.licensespecialterms ?? meta.licenseSpecialTerms;
-  const legacySpecialTerms: string[] = Array.isArray(rawSpecialTerms)
-    ? (rawSpecialTerms as unknown[]).map((v) => String(v))
-    : [];
-  draft.licenseSpecialTerms = legacySpecialTerms;
-
-  // series from custom (legacy fallback)
-  draft.seriesName = draft.seriesName || String(meta.series || meta.seriesname || "");
-  if (!draft.seriesId) {
-    const legacyOrder = meta.seriesorder ?? meta.seriesOrder;
-    if (legacyOrder !== undefined) draft.seriesOrder = String(legacyOrder);
-  }
 
   // marker legend from custom
   if (meta.marker_legend !== undefined) draft.showMarkerLegend = String(meta.marker_legend) === "true";
@@ -253,7 +237,6 @@ export function fromApiToDraft(
 
 export interface FromDraftOptions {
   preserveAuthor?: boolean;
-  existingAuthorEntries?: Array<{ key: string; value: string }>;
 }
 
 export function fromDraftToPayload(
@@ -265,6 +248,10 @@ export function fromDraftToPayload(
   const effectiveAuthor = String(draft.author || "");
   const persistedAuthor = effectiveAuthorDisplayMode === "override" ? effectiveAuthor : "";
   const shouldPreserve = opts.preserveAuthor === true;
+
+  const normalizedLicenseSpecialTerms = (draft.licenseSpecialTerms || [])
+    .map((term) => String(term || "").trim())
+    .filter(Boolean);
 
   let customMetadata = buildCustomMetadataEntries(
     {
@@ -300,10 +287,6 @@ export function fromDraftToPayload(
       selectedOrgId: draft.organizationId,
       currentTags: draft.currentTags,
       customFields: draft.customFields,
-    },
-    {
-      preserveAuthor: shouldPreserve,
-      existingAuthorEntries: opts.existingAuthorEntries,
     }
   );
 
@@ -312,10 +295,6 @@ export function fromDraftToPayload(
       ...customMetadata,
       { key: "marker_legend", value: "true" },
     ]);
-  }
-
-  if (shouldPreserve && opts.existingAuthorEntries) {
-    customMetadata = applyPreservedAuthorEntries(customMetadata, opts.existingAuthorEntries);
   }
 
   const payload: ScriptUpdatePayload & { author?: string } = {
@@ -331,6 +310,11 @@ export function fromDraftToPayload(
     licenseCommercial: draft.licenseCommercial || "",
     licenseDerivative: draft.licenseDerivative || "",
     licenseNotify: draft.licenseNotify || "",
+    licenseSpecialTerms: normalizedLicenseSpecialTerms.length > 0
+      ? JSON.stringify(normalizedLicenseSpecialTerms)
+      : null,
+    targetAudience: draft.targetAudience || null,
+    contentRating: draft.contentRating || null,
     markerThemeId: draft.markerThemeId,
     disableCopy: draft.disableCopy,
     seriesId: draft.seriesId || null,
@@ -349,6 +333,8 @@ export function fromDraftToPayload(
 
   if (!shouldPreserve) {
     payload.author = persistedAuthor;
+    payload.authorDisplayMode = effectiveAuthorDisplayMode;
+    payload.authorOverrideName = persistedAuthor || null;
   }
 
   return payload;

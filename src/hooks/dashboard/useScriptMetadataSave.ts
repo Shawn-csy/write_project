@@ -170,18 +170,9 @@ export function useScriptMetadataSave({
       const authorEditedValue = (authorEditedRef as { current?: boolean } | null)?.current ?? false;
       const shouldPreserveAuthor = preserveAuthorInternalData && !authorEditedValue;
 
-      const workingMetadata = Array.isArray(workingScript?.customMetadata) ? workingScript.customMetadata : [];
-      const existingAuthorEntries = workingMetadata
-        .filter((entry) => {
-          const key = String(entry?.key || "").trim().toLowerCase().replace(/\s+/g, "");
-          return key === "author" || key === "authors" || key === "authordisplaymode";
-        })
-        .map((e) => ({ key: String(e.key || ""), value: String(e.value || "") }));
-
       const draftWithTags: ScriptMetadataDraft = { ...draft, currentTags: tagsToSave };
-      let payload = fromDraftToPayload(draftWithTags, {
+      const payload = fromDraftToPayload(draftWithTags, {
         preserveAuthor: shouldPreserveAuthor,
-        existingAuthorEntries,
       });
 
       const persisted = saveScript
@@ -225,6 +216,11 @@ export function useScriptMetadataSave({
         licenseCommercial: draft.licenseCommercial || "",
         licenseDerivative: draft.licenseDerivative || "",
         licenseNotify: draft.licenseNotify || "",
+        licenseSpecialTerms: payload.licenseSpecialTerms,
+        targetAudience: payload.targetAudience,
+        contentRating: payload.contentRating,
+        authorDisplayMode: payload.authorDisplayMode ?? String(workingScript?.authorDisplayMode || ""),
+        authorOverrideName: payload.authorOverrideName ?? String(workingScript?.authorOverrideName || ""),
         tags: tagsToSave as Array<{ id?: string; name: string }>,
         markerThemeId: draft.markerThemeId,
         seriesId: payload.seriesId,

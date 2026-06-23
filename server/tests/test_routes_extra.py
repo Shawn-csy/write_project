@@ -612,7 +612,7 @@ def test_read_script_seo_injects_meta(client, db_session, tmp_path, monkeypatch)
     res = client.get(f"/read/{script_id}")
     assert res.status_code == 200
     body = res.text
-    assert "<title>SEO Title｜Screenplay Reader</title>" in body
+    assert "<title>SEO Title｜泛用型產品作坊</title>" in body
     assert "og:title" in body
     assert "SEO Title" in body
 
