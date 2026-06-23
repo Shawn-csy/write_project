@@ -1,11 +1,12 @@
 import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import userEvent from "@testing-library/user-event";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { PublicAppearanceMenu } from "./PublicAppearanceMenu";
 import { DEFAULT_APPEARANCE } from "@/lib/publicAppearancePreferences";
 
 const setTheme = vi.fn();
+const setSiteTextScale = vi.fn();
 const setReaderFontFamily = vi.fn();
 const setReaderFontSize = vi.fn();
 const setReaderLineHeight = vi.fn();
@@ -21,6 +22,7 @@ vi.mock("@/components/PublicAppearanceContext", () => ({
   usePublicAppearance: () => ({
     prefs: DEFAULT_APPEARANCE,
     setTheme,
+    setSiteTextScale,
     setReaderFontFamily,
     setReaderFontSize,
     setReaderLineHeight,
@@ -75,7 +77,32 @@ describe("PublicAppearanceMenu", () => {
     expect(setTheme).toHaveBeenCalledWith("system");
   });
 
-  it("shows font family buttons after open", async () => {
+  it("shows site text scale options after open", async () => {
+    await openPanel();
+    const group = screen.getByRole("group", { name: "首頁文字" });
+    expect(within(group).getByRole("button", { name: "精簡" })).toBeTruthy();
+    expect(within(group).getByRole("button", { name: "標準" })).toBeTruthy();
+    expect(within(group).getByRole("button", { name: "舒適" })).toBeTruthy();
+    expect(within(group).getByRole("button", { name: "大字" })).toBeTruthy();
+  });
+
+  it("clicking 舒適 calls setSiteTextScale('comfortable')", async () => {
+    setSiteTextScale.mockClear();
+    const user = await openPanel();
+    const group = screen.getByRole("group", { name: "首頁文字" });
+    await user.click(within(group).getByRole("button", { name: "舒適" }));
+    expect(setSiteTextScale).toHaveBeenCalledWith("comfortable");
+  });
+
+  it("active site text scale has aria-pressed=true", async () => {
+    // DEFAULT_APPEARANCE.siteTextScale = "default"
+    await openPanel();
+    const group = screen.getByRole("group", { name: "首頁文字" });
+    expect(within(group).getByRole("button", { name: "標準" }).getAttribute("aria-pressed")).toBe("true");
+    expect(within(group).getByRole("button", { name: "精簡" }).getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("shows reader font family buttons after open", async () => {
     await openPanel();
     expect(screen.getByRole("button", { name: "無襯線" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "襯線" })).toBeTruthy();

@@ -2,20 +2,20 @@
  * publicAppearancePreferences — shared appearance preference model for public pages and reader.
  *
  * Storage key: "public-reader:appearance" (JSON object)
- * Migration sources: "screenplay-reader-theme", "public-reader:reader:preferences"
  *
  * Rules:
- * - Read old keys after mount only.
- * - Write new key only after user-triggered or post-migration resolution.
+ * - Only "public-reader:appearance" is read or written. No legacy keys.
  * - Do not overwrite stored preferences with defaults during first render.
- * - Invalid stored values are ignored field-by-field.
+ * - Invalid stored values are ignored field-by-field; missing fields fall back to DEFAULT_APPEARANCE.
  */
 
 export type AppearanceTheme = "system" | "light" | "dark";
 export type ReaderFontFamily = "sans" | "serif" | "mono";
+export type SiteTextScale = "compact" | "default" | "comfortable" | "large";
 
 export interface PublicAppearancePreferences {
   theme: AppearanceTheme;
+  siteTextScale: SiteTextScale;
   readerFontFamily: ReaderFontFamily;
   readerFontSize: number;
   readerLineHeight: number;
@@ -24,6 +24,7 @@ export interface PublicAppearancePreferences {
 export const APPEARANCE_STORAGE_KEY = "public-reader:appearance";
 
 export const VALID_THEMES = new Set<string>(["system", "light", "dark"]);
+export const VALID_SITE_TEXT_SCALES = new Set<string>(["compact", "default", "comfortable", "large"]);
 export const VALID_FONT_FAMILIES = new Set<string>(["sans", "serif", "mono"]);
 export const VALID_FONT_SIZES = new Set<number>([12, 14, 16, 18, 20, 24]);
 export const VALID_LINE_HEIGHTS = new Set<number>([1.4, 1.6, 1.8, 2.0]);
@@ -32,6 +33,7 @@ export const VALID_LINE_HEIGHTS = new Set<number>([1.4, 1.6, 1.8, 2.0]);
 
 export const DEFAULT_APPEARANCE: PublicAppearancePreferences = {
   theme: "system",
+  siteTextScale: "default",
   readerFontFamily: "sans",
   readerFontSize: 16,
   readerLineHeight: 1.8,
@@ -64,6 +66,7 @@ function parseStored(raw: string | null): Partial<PublicAppearancePreferences> {
     const p = parsed as Record<string, unknown>;
     const out: Partial<PublicAppearancePreferences> = {};
     if (VALID_THEMES.has(p.theme as string)) out.theme = p.theme as AppearanceTheme;
+    if (VALID_SITE_TEXT_SCALES.has(p.siteTextScale as string)) out.siteTextScale = p.siteTextScale as SiteTextScale;
     if (VALID_FONT_FAMILIES.has(p.readerFontFamily as string)) out.readerFontFamily = p.readerFontFamily as ReaderFontFamily;
     if (typeof p.readerFontSize === "number" && p.readerFontSize > 0) out.readerFontSize = p.readerFontSize;
     if (typeof p.readerLineHeight === "number" && p.readerLineHeight > 0) out.readerLineHeight = p.readerLineHeight;
@@ -73,7 +76,7 @@ function parseStored(raw: string | null): Partial<PublicAppearancePreferences> {
   }
 }
 
-/** Read from new key. Does NOT consult migration sources — call migrateOnce first. */
+/** Read from storage key. Missing or invalid fields silently return undefined. */
 export function readAppearancePreferences(): Partial<PublicAppearancePreferences> {
   return parseStored(safeGetItem(APPEARANCE_STORAGE_KEY));
 }
@@ -89,53 +92,4 @@ export function writeAppearancePreferences(prefs: PublicAppearancePreferences): 
   } catch {
     // SSR or restricted environment — ignore
   }
-}
-
-// ── Migration ─────────────────────────────────────────────────────────────────
-
-const OLD_THEME_KEY = "screenplay-reader-theme";
-const OLD_READER_PREFS_KEY = "public-reader:reader:preferences";
-
-/**
- * Run once after mount. Reads old keys, merges into new key if new key absent.
- * Returns the resolved preferences after migration.
- * Never overwrites an existing new-key value.
- */
-export function migrateAppearancePreferences(): Partial<PublicAppearancePreferences> {
-  const existing = safeGetItem(APPEARANCE_STORAGE_KEY);
-  if (existing !== null) {
-    // New key already written — skip migration, trust it.
-    return parseStored(existing);
-  }
-
-  const migrated: Partial<PublicAppearancePreferences> = {};
-
-  // 1. Old theme key
-  const oldTheme = safeGetItem(OLD_THEME_KEY);
-  if (oldTheme && VALID_THEMES.has(oldTheme)) {
-    migrated.theme = oldTheme as AppearanceTheme;
-  }
-
-  // 2. Old reader preferences (may contain fontFamily/fontSize/lineHeight/theme)
-  const oldReaderRaw = safeGetItem(OLD_READER_PREFS_KEY);
-  if (oldReaderRaw) {
-    try {
-      const p = JSON.parse(oldReaderRaw) as Record<string, unknown>;
-      // theme in old reader prefs wins over old theme key (more specific)
-      if (VALID_THEMES.has(p.theme as string)) migrated.theme = p.theme as AppearanceTheme;
-      if (VALID_FONT_FAMILIES.has(p.fontFamily as string)) migrated.readerFontFamily = p.fontFamily as ReaderFontFamily;
-      if (typeof p.fontSize === "number" && p.fontSize > 0) migrated.readerFontSize = p.fontSize;
-      if (typeof p.lineHeight === "number" && p.lineHeight > 0) migrated.readerLineHeight = p.lineHeight;
-    } catch {
-      // ignore malformed
-    }
-  }
-
-  if (Object.keys(migrated).length > 0) {
-    // Write merged result to new key
-    const full: PublicAppearancePreferences = { ...DEFAULT_APPEARANCE, ...migrated };
-    safeSetItem(APPEARANCE_STORAGE_KEY, JSON.stringify(full));
-  }
-
-  return migrated;
 }

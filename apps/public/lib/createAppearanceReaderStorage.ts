@@ -11,7 +11,6 @@ import type { ReaderStorageAdapter } from "@write/script-reader-ui";
 import {
   readAppearancePreferences,
   writeAppearancePreferences,
-  migrateAppearancePreferences,
   DEFAULT_APPEARANCE,
   VALID_FONT_FAMILIES,
   VALID_FONT_SIZES,
@@ -33,8 +32,6 @@ export function createAppearanceReaderStorage(
   return {
     get(key: string): string | null {
       if (key !== PREFS_KEY) return fallback.get(key);
-      // Run migration once on first read (safe — no-op if already migrated).
-      migrateAppearancePreferences();
       const prefs = readAppearancePreferences();
       // Map appearance prefs fields → reader prefs shape
       // Only include fields that are set (partial delta, matching useReaderState write format)

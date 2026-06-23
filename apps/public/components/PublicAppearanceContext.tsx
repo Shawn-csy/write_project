@@ -10,7 +10,6 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import {
-  migrateAppearancePreferences,
   readAppearancePreferences,
   writeAppearancePreferences,
   DEFAULT_APPEARANCE,
@@ -20,11 +19,13 @@ import type {
   PublicAppearancePreferences,
   AppearanceTheme,
   ReaderFontFamily,
+  SiteTextScale,
 } from "@/lib/publicAppearancePreferences";
 
 interface PublicAppearanceContextValue {
   prefs: PublicAppearancePreferences;
   setTheme: (v: AppearanceTheme) => void;
+  setSiteTextScale: (v: SiteTextScale) => void;
   setReaderFontFamily: (v: ReaderFontFamily) => void;
   setReaderFontSize: (v: number) => void;
   setReaderLineHeight: (v: number) => void;
@@ -33,6 +34,7 @@ interface PublicAppearanceContextValue {
 const Ctx = createContext<PublicAppearanceContextValue>({
   prefs: DEFAULT_APPEARANCE,
   setTheme: () => {},
+  setSiteTextScale: () => {},
   setReaderFontFamily: () => {},
   setReaderFontSize: () => {},
   setReaderLineHeight: () => {},
@@ -52,11 +54,11 @@ export function PublicAppearanceProvider({ children, onThemeChange }: Props) {
   const [prefs, setPrefs] = useState<PublicAppearancePreferences>(DEFAULT_APPEARANCE);
 
   useEffect(() => {
-    migrateAppearancePreferences();
     const stored = readAppearancePreferences();
     const resolved: PublicAppearancePreferences = { ...DEFAULT_APPEARANCE, ...stored };
     setPrefs(resolved);
     onThemeChange(resolved.theme);
+    document.documentElement.dataset.publicTextScale = resolved.siteTextScale;
 
     // Sync when any same-page writer (e.g. createAppearanceReaderStorage via
     // ReaderPreferencesPanel) calls writeAppearancePreferences().
@@ -65,6 +67,7 @@ export function PublicAppearanceProvider({ children, onThemeChange }: Props) {
       if (!next) return;
       setPrefs(next);
       onThemeChange(next.theme);
+      document.documentElement.dataset.publicTextScale = next.siteTextScale;
     };
     window.addEventListener(APPEARANCE_CHANGE_EVENT, handleExternalWrite);
     return () => window.removeEventListener(APPEARANCE_CHANGE_EVENT, handleExternalWrite);
@@ -76,6 +79,9 @@ export function PublicAppearanceProvider({ children, onThemeChange }: Props) {
     setPrefs((prev) => {
       const next = { ...prev, ...patch };
       writeAppearancePreferences(next);
+      if (patch.siteTextScale) {
+        document.documentElement.dataset.publicTextScale = next.siteTextScale;
+      }
       return next;
     });
   }, []);
@@ -87,12 +93,13 @@ export function PublicAppearanceProvider({ children, onThemeChange }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [update]);
 
+  const setSiteTextScale = useCallback((v: SiteTextScale) => update({ siteTextScale: v }), [update]);
   const setReaderFontFamily = useCallback((v: ReaderFontFamily) => update({ readerFontFamily: v }), [update]);
   const setReaderFontSize = useCallback((v: number) => update({ readerFontSize: v }), [update]);
   const setReaderLineHeight = useCallback((v: number) => update({ readerLineHeight: v }), [update]);
 
   return (
-    <Ctx.Provider value={{ prefs, setTheme, setReaderFontFamily, setReaderFontSize, setReaderLineHeight }}>
+    <Ctx.Provider value={{ prefs, setTheme, setSiteTextScale, setReaderFontFamily, setReaderFontSize, setReaderLineHeight }}>
       {children}
     </Ctx.Provider>
   );
