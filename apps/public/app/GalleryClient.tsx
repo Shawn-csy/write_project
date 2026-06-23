@@ -8,6 +8,7 @@ import {
 } from "@write/public-ui";
 import { GalleryFilterPanel } from "./gallery/GalleryFilterPanel";
 import { GallerySegmentBar } from "./gallery/GallerySegmentBar";
+import { GalleryViewModeToggle } from "./gallery/GalleryViewModeToggle";
 import { GalleryMobileSheet } from "./gallery/GalleryMobileSheet";
 import { GalleryAuthorGrid, GalleryOrgGrid } from "./gallery/GalleryPeopleGrid";
 import { GalleryScriptResults } from "./gallery/GalleryScriptResults";
@@ -83,24 +84,9 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
               <GallerySegmentBar segment={segment} onSegmentChange={setSegment} />
 
               {/* ViewMode row — hidden on mobile (in mobile sheet). Usage moved to sidebar/sheet. */}
-              <div className="hidden md:flex items-center justify-end py-2.5">
+              <div className="relative z-50 hidden md:flex items-center justify-end py-2.5 pointer-events-auto">
                 <span className="mr-2 text-xs text-muted-foreground">顯示模式</span>
-                <div className="flex gap-1.5">
-                  {(["standard", "compact"] as const).map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => setViewMode(mode)}
-                      className={`h-7 rounded-full px-3 text-xs transition-colors font-medium ${
-                        viewMode === mode
-                          ? "bg-foreground text-background"
-                          : "border border-border/60 bg-transparent text-muted-foreground hover:text-foreground hover:border-border"
-                      }`}
-                    >
-                      {mode === "standard" ? "標準" : "密集"}
-                    </button>
-                  ))}
-                </div>
+                <GalleryViewModeToggle value={viewMode} onChange={setViewMode} />
               </div>
             </div>
           )}
