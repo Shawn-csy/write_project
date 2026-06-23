@@ -1,10 +1,11 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
 import { ScriptGalleryCard } from "../ScriptGalleryCard";
 import type { ScriptGalleryItem } from "../ScriptGalleryCard";
 import { CARD_SUMMARY_MAX_CHARS } from "../gallery/cardText";
+import { GalleryHoverPreviewProvider } from "../gallery/GalleryHoverPreview";
 
 const SCRIPT: ScriptGalleryItem = {
   id: "s1",
@@ -80,10 +81,16 @@ describe("ScriptGalleryCard standard — href mode", () => {
     expect(authorLink.getAttribute("href")).toBe("/author/a1");
   });
 
-  it("series renders as <a> when seriesHref provided", () => {
-    render(<ScriptGalleryCard script={SCRIPT_WITH_META} href="/read/s2" seriesHref="/series/Epic%20Series" />);
-    const seriesLink = screen.getByRole("link", { name: /Epic Series/ });
-    expect(seriesLink.getAttribute("href")).toBe("/series/Epic%20Series");
+  it("series link is in cover badge — not as a separate body row", () => {
+    const { container } = render(
+      <ScriptGalleryCard script={SCRIPT_WITH_META} href="/read/s2" seriesHref="/series/Epic%20Series" variant="standard" />
+    );
+    // Badge link exists with accessible label
+    const seriesLink = screen.getByRole("link", { name: /系列：Epic Series/ });
+    expect(seriesLink).not.toBeNull();
+    // It lives inside the cover area (first child div), not the meta body
+    const coverArea = container.querySelector("article > div:first-child");
+    expect(coverArea?.contains(seriesLink)).toBe(true);
   });
 
   it("tags render as <a> when tagHref provided — no button inside link", () => {
@@ -155,12 +162,15 @@ describe("ScriptGalleryCard standard — callback mode", () => {
     expect(onNavigate).not.toHaveBeenCalled();
   });
 
-  it("series renders as <button> when onSeriesClick provided", async () => {
+  it("series button is in cover badge — calls onSeriesClick", async () => {
     const onSeriesClick = vi.fn();
-    render(
-      <ScriptGalleryCard script={SCRIPT_WITH_META} onSeriesClick={onSeriesClick} />
+    const { container } = render(
+      <ScriptGalleryCard script={SCRIPT_WITH_META} onSeriesClick={onSeriesClick} variant="standard" />
     );
-    const seriesBtn = screen.getByRole("button", { name: /Epic Series/ });
+    const seriesBtn = screen.getByRole("button", { name: /系列：Epic Series/ });
+    // Button lives in cover area, not a standalone meta row
+    const coverArea = container.querySelector("article > div:first-child");
+    expect(coverArea?.contains(seriesBtn)).toBe(true);
     await userEvent.click(seriesBtn);
     expect(onSeriesClick).toHaveBeenCalledWith("Epic Series");
   });
@@ -259,35 +269,151 @@ describe("ScriptGalleryCard — card summary", () => {
   });
 });
 
-describe("ScriptGalleryCard — hover outline", () => {
-  it("renders outline preview when _hoverOutline present", () => {
+describe("ScriptGalleryCard — hover preview events (gallery-level layer)", () => {
+  it("no card-internal absolute overlay when _hoverOutline present", () => {
     const { container } = render(
-      <ScriptGalleryCard
-        script={{ ...SCRIPT, _hoverOutline: "Act 1: setup" }}
-        href="/read/s1"
-      />
+      <ScriptGalleryCard script={{ ...SCRIPT, _hoverOutline: "Act 1: setup" }} href="/read/s1" />
     );
-    // Outline container is aria-hidden, find by text content
-    expect(container.textContent).toContain("Act 1: setup");
+    expect(container.querySelector(".absolute.inset-x-2.bottom-2")).toBeNull();
   });
 
-  it("does not render outline preview when _hoverOutline absent", () => {
-    const { container } = render(
-      <ScriptGalleryCard script={SCRIPT} href="/read/s1" />
-    );
-    expect(container.textContent).not.toContain("大綱");
+  it("no 查看大綱 button in card DOM", () => {
+    render(<ScriptGalleryCard script={{ ...SCRIPT, _hoverOutline: "Act 1" }} href="/read/s1" />);
+    expect(screen.queryByRole("button", { name: "查看大綱" })).toBeNull();
   });
 
-  it("outline container has no interactive elements (pointer-events-none)", () => {
+  it("mouseEnter emits preview show with title/author/outline via provider", () => {
     const { container } = render(
+      <GalleryHoverPreviewProvider>
+        <ScriptGalleryCard
+          script={{ ...SCRIPT, title: "Test Script", author: { id: "a1", displayName: "Alice" }, _hoverOutline: "The outline body" }}
+          href="/read/s1"
+        />
+      </GalleryHoverPreviewProvider>
+    );
+    const article = container.querySelector("article")!;
+    fireEvent.mouseEnter(article, { clientX: 200, clientY: 100 });
+    // Layer renders inside the provider — check document.body
+    const layer = document.querySelector("[data-testid='gallery-hover-preview']");
+    expect(layer).not.toBeNull();
+    const text = layer!.textContent ?? "";
+    const titleIdx = text.indexOf("Test Script");
+    const authorIdx = text.indexOf("Alice");
+    const outlineIdx = text.indexOf("The outline body");
+    expect(titleIdx).toBeGreaterThanOrEqual(0);
+    expect(authorIdx).toBeGreaterThanOrEqual(0);
+    expect(titleIdx).toBeLessThan(outlineIdx);
+    expect(authorIdx).toBeLessThan(outlineIdx);
+    expect(text).toContain("大綱");
+  });
+
+  it("mouseMove updates preview position", () => {
+    const { container } = render(
+      <GalleryHoverPreviewProvider>
+        <ScriptGalleryCard script={{ ...SCRIPT, _hoverOutline: "Outline" }} href="/read/s1" />
+      </GalleryHoverPreviewProvider>
+    );
+    const article = container.querySelector("article")!;
+    fireEvent.mouseEnter(article, { clientX: 100, clientY: 50 });
+    fireEvent.mouseMove(article, { clientX: 300, clientY: 200 });
+    const layer = document.querySelector("[data-testid='gallery-hover-preview']") as HTMLElement;
+    expect(layer).not.toBeNull();
+    // Position should follow cursor — left should be near 300+16=316
+    expect(parseInt(layer.style.left)).toBeGreaterThanOrEqual(300);
+  });
+
+  it("mouseLeave hides preview", () => {
+    const { container } = render(
+      <GalleryHoverPreviewProvider>
+        <ScriptGalleryCard script={{ ...SCRIPT, _hoverOutline: "Gone soon" }} href="/read/s1" />
+      </GalleryHoverPreviewProvider>
+    );
+    const article = container.querySelector("article")!;
+    fireEvent.mouseEnter(article, { clientX: 200, clientY: 100 });
+    expect(document.querySelector("[data-testid='gallery-hover-preview']")).not.toBeNull();
+    fireEvent.mouseLeave(article);
+    expect(document.querySelector("[data-testid='gallery-hover-preview']")).toBeNull();
+  });
+
+  it("preview layer has pointer-events: none", () => {
+    const { container } = render(
+      <GalleryHoverPreviewProvider>
+        <ScriptGalleryCard script={{ ...SCRIPT, _hoverOutline: "Outline" }} href="/read/s1" />
+      </GalleryHoverPreviewProvider>
+    );
+    fireEvent.mouseEnter(container.querySelector("article")!, { clientX: 100, clientY: 50 });
+    const layer = document.querySelector("[data-testid='gallery-hover-preview']") as HTMLElement;
+    expect(layer).not.toBeNull();
+    expect(layer.style.pointerEvents).toBe("none");
+  });
+
+  it("no preview emitted when outline absent", () => {
+    const { container } = render(
+      <GalleryHoverPreviewProvider>
+        <ScriptGalleryCard script={SCRIPT} href="/read/s1" />
+      </GalleryHoverPreviewProvider>
+    );
+    fireEvent.mouseEnter(container.querySelector("article")!, { clientX: 100, clientY: 50 });
+    expect(document.querySelector("[data-testid='gallery-hover-preview']")).toBeNull();
+  });
+
+  it("card works without provider (no preview, no crash)", () => {
+    const { container } = render(
+      <ScriptGalleryCard script={{ ...SCRIPT, _hoverOutline: "Outline" }} href="/read/s1" />
+    );
+    // mouseEnter without provider — no crash, no preview
+    fireEvent.mouseEnter(container.querySelector("article")!, { clientX: 100, clientY: 50 });
+    expect(document.querySelector("[data-testid='gallery-hover-preview']")).toBeNull();
+  });
+
+  it("no nested interactive elements with outline", () => {
+    const { container } = render(
+      <ScriptGalleryCard script={{ ...SCRIPT, _hoverOutline: "Outline" }} href="/read/s1" />
+    );
+    assertNoNestedInteractive(container);
+  });
+});
+
+describe("ScriptGalleryCard — series cover badge", () => {
+  it("series badge is accessible — has aria-label with series name", () => {
+    render(
       <ScriptGalleryCard
-        script={{ ...SCRIPT, _hoverOutline: "Outline text" }}
-        href="/read/s1"
+        script={{ ...SCRIPT_WITH_META }}
+        variant="standard"
+        href="/read/s2"
+        seriesHref="/series/Epic%20Series"
       />
     );
-    const outlineEl = container.querySelector("[aria-hidden='true'][class*='pointer-events-none']");
-    expect(outlineEl).not.toBeNull();
-    expect(outlineEl!.querySelectorAll("a, button")).toHaveLength(0);
+    expect(screen.getByRole("link", { name: "系列：Epic Series" })).not.toBeNull();
+  });
+
+  it("series badge lives in cover area, not meta body", () => {
+    const { container } = render(
+      <ScriptGalleryCard
+        script={{ ...SCRIPT_WITH_META }}
+        variant="standard"
+        href="/read/s2"
+        seriesHref="/series/Epic%20Series"
+      />
+    );
+    const coverArea = container.querySelector("article > div:first-child");
+    const metaBody = container.querySelectorAll("article > div")[1];
+    const badge = screen.getByRole("link", { name: "系列：Epic Series" });
+    expect(coverArea?.contains(badge)).toBe(true);
+    expect(metaBody?.contains(badge)).toBe(false);
+  });
+
+  it("compact variant series badge also in cover area", () => {
+    const { container } = render(
+      <ScriptGalleryCard
+        script={{ ...SCRIPT_WITH_META }}
+        variant="compact"
+        href="/read/s2"
+        seriesHref="/series/Epic%20Series"
+      />
+    );
+    const badge = screen.getByRole("link", { name: "系列：Epic Series" });
+    expect(badge).not.toBeNull();
   });
 });
 

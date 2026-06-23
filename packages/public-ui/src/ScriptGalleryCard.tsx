@@ -6,6 +6,7 @@ import type { CoverDesign } from "./cover/types";
 import type { MediaCropLike as CropRef } from "@write/media-crop";
 import { getMediaCropStyle } from "@write/media-crop";
 import { normalizeCardText, normalizeOutlineText, truncateCardText } from "./gallery/cardText";
+import { useGalleryHoverPreview } from "./gallery/GalleryHoverPreview";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -243,6 +244,21 @@ function ScriptGalleryCardInner({
   const [likeCount, setLikeCount] = useState<number>(likes);
   const cardSummary = truncateCardText(script._cardSummary || script.synopsis || "");
   const hoverOutline = normalizeOutlineText(script._hoverOutline || script.outline || "");
+  const authorDisplayName = typeof author === "object" ? author?.displayName : (typeof author === "string" ? author : undefined);
+
+  // Gallery-level hover preview — cards emit show/move/hide, never mount their own portal.
+  const hoverCtx = useGalleryHoverPreview();
+  const previewData = hoverOutline ? { title, author: authorDisplayName, outline: hoverOutline } : null;
+  const hoverPreviewProps: React.HTMLAttributes<HTMLElement> = previewData && hoverCtx ? {
+    onMouseEnter: (e) => hoverCtx.show(previewData, e.clientX, e.clientY),
+    onMouseMove: (e) => hoverCtx.move(e.clientX, e.clientY),
+    onMouseLeave: () => hoverCtx.hide(),
+    onFocus: (e) => {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      hoverCtx.show(previewData, rect.right + 8, rect.top);
+    },
+    onBlur: () => hoverCtx.hide(),
+  } : {};
 
   useEffect(() => {
     setLikeCount(likes);
@@ -285,23 +301,38 @@ function ScriptGalleryCardInner({
     coverEl
   );
 
-  // Series element — <a> or <button>
-  const seriesEl = seriesName ? (
-    seriesHref ? (
-      <a href={seriesHref} className="text-[11px] text-muted-foreground line-clamp-1 hover:text-primary no-underline">
-        {seriesName}{seriesOrderText}
-      </a>
-    ) : onSeriesClick ? (
-      <button
-        type="button"
-        className="text-[11px] text-muted-foreground line-clamp-1 hover:text-primary bg-transparent border-none cursor-pointer text-left p-0"
-        onClick={(e) => { e.stopPropagation(); onSeriesClick(seriesName); }}
-      >
-        {seriesName}{seriesOrderText}
-      </button>
-    ) : (
-      <span className="text-[11px] text-muted-foreground line-clamp-1">{seriesName}{seriesOrderText}</span>
-    )
+  // Series cover badge — overlays the cover image, bottom-left.
+  // Interactive (link/button) when a handler is available, static span otherwise.
+  // Sits at z-10 above the cover but does not nest inside coverLinkEl (which is aria-hidden).
+  const seriesBadgeContent = (
+    <span className="inline-flex max-w-[calc(100%-8px)] items-center rounded bg-black/60 px-1.5 py-0.5 text-[9px] font-medium leading-none text-white/90 backdrop-blur-sm truncate">
+      {seriesName}{seriesOrderText}
+    </span>
+  );
+  const seriesBadgeEl = seriesName ? (
+    <div className="absolute bottom-1.5 left-1.5 z-10 max-w-[calc(100%-8px)]">
+      {seriesHref ? (
+        <a
+          href={seriesHref}
+          className="inline-flex max-w-full no-underline"
+          onClick={(e) => e.stopPropagation()}
+          aria-label={`系列：${seriesName}`}
+        >
+          {seriesBadgeContent}
+        </a>
+      ) : onSeriesClick ? (
+        <button
+          type="button"
+          className="inline-flex max-w-full bg-transparent border-none p-0 cursor-pointer"
+          onClick={(e) => { e.stopPropagation(); onSeriesClick(seriesName); }}
+          aria-label={`系列：${seriesName}`}
+        >
+          {seriesBadgeContent}
+        </button>
+      ) : (
+        <span aria-label={`系列：${seriesName}`}>{seriesBadgeContent}</span>
+      )}
+    </div>
   ) : null;
 
   // Like button — always <button>, disabled when no handler
@@ -329,15 +360,6 @@ function ScriptGalleryCardInner({
 
   const ARTICLE_CLASS = "group relative rounded-xl border border-transparent bg-transparent px-2 pb-2 pt-1 shadow-none hover:-translate-y-0.5 hover:border-primary/60 hover:bg-muted/25 hover:shadow-md transition-all duration-200";
 
-  const hoverOutlineEl = hoverOutline ? (
-    <div
-      className="pointer-events-none absolute inset-x-2 bottom-2 z-20 hidden rounded-lg border border-border/70 bg-popover/95 p-3 text-left text-xs leading-5 text-popover-foreground opacity-0 shadow-lg backdrop-blur transition-opacity duration-200 group-hover:block group-hover:opacity-100"
-      aria-hidden
-    >
-      <div className="mb-1 text-[10px] font-semibold tracking-wider text-muted-foreground">大綱</div>
-      <p className="max-h-40 overflow-y-auto whitespace-pre-wrap pr-1">{hoverOutline}</p>
-    </div>
-  ) : null;
 
   // ── Compact variant ──
   // DOM contract: <article> root, title is <a> with stretched-link (::before covers article),
@@ -351,6 +373,7 @@ function ScriptGalleryCardInner({
       <article
         className={`group relative rounded-xl bg-transparent transition-all duration-200 ${!href ? "cursor-pointer" : ""}`}
         onClick={handleArticleClick}
+        {...hoverPreviewProps}
       >
         <div className="mx-2 my-0.5 flex items-stretch gap-3 rounded-lg pl-0 pr-3 py-2 border-l-[3px] border-l-transparent transition-all duration-200 group-hover:border-l-primary group-hover:bg-primary/5">
           {/* Cover */}
@@ -367,6 +390,7 @@ function ScriptGalleryCardInner({
                   <span className="absolute top-0.5 left-0.5 z-10 rounded-[2px] bg-red-600 border border-red-400/60 px-1 py-px text-[8px] font-bold leading-none text-white pointer-events-none tracking-wide">R18</span>
                 </>
               )}
+              {seriesBadgeEl}
             </div>
           </div>
           {/* Meta */}
@@ -392,7 +416,6 @@ function ScriptGalleryCardInner({
             </div>
             <div className="relative z-10 min-w-0 flex items-center gap-2">
               {authorEl}
-              {seriesEl}
               {!seriesName && (
                 <Tags
                   primaryTags={primaryTags}
@@ -412,7 +435,7 @@ function ScriptGalleryCardInner({
             )}
           </div>
         </div>
-        {hoverOutlineEl}
+
       </article>
     );
   }
@@ -426,6 +449,7 @@ function ScriptGalleryCardInner({
     <article
       className={`${ARTICLE_CLASS} ${!href ? "cursor-pointer" : ""}`}
       onClick={handleArticleClick}
+      {...hoverPreviewProps}
     >
       {/* Cover */}
       <div className="relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-muted shadow-sm group-hover:shadow-md transition-shadow">
@@ -437,6 +461,7 @@ function ScriptGalleryCardInner({
             <span className="absolute top-1.5 left-1.5 z-10 rounded border border-red-400/60 bg-red-600 px-1.5 py-0.5 text-[11px] font-bold leading-none text-white pointer-events-none tracking-wide">R-18</span>
           </>
         )}
+        {seriesBadgeEl}
       </div>
 
       {/* Meta */}
@@ -452,8 +477,6 @@ function ScriptGalleryCardInner({
         </h3>
 
         <div className="pt-1">{authorEl}</div>
-
-        {seriesEl}
 
         {cardSummary && (
           <p className="text-[11px] leading-4 text-muted-foreground line-clamp-2">
@@ -484,7 +507,6 @@ function ScriptGalleryCardInner({
           )}
         </div>
       </div>
-      {hoverOutlineEl}
     </article>
   );
 }

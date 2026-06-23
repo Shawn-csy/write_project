@@ -3,6 +3,7 @@
 import type { PublicScript } from "@/lib/types";
 import {
   PublicHeroMarquee,
+  GalleryHoverPreviewProvider,
   type HeroSlide,
 } from "@write/public-ui";
 import { GalleryFilterPanel } from "./gallery/GalleryFilterPanel";
@@ -115,10 +116,12 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
           </p>
 
           {view === "scripts" && (
-            <GalleryScriptResults
-              model={homepageModel}
-              onResetFilters={filterPanelProps.onResetFilters}
-            />
+            <GalleryHoverPreviewProvider resetKey={[viewMode, segment, usage, filterPanelProps.searchTerm, filterPanelProps.selectedTags?.join(",")].join("|")}>
+              <GalleryScriptResults
+                model={homepageModel}
+                onResetFilters={filterPanelProps.onResetFilters}
+              />
+            </GalleryHoverPreviewProvider>
           )}
 
           {view === "authors" && (

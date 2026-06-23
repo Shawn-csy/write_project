@@ -1,5 +1,6 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { GalleryHoverPreviewProvider } from "../gallery/GalleryHoverPreview";
 import { describe, it, expect } from "vitest";
 import { SeriesGalleryCard } from "../gallery/SeriesGalleryCard";
 import { groupScriptsIntoGalleryEntries } from "../gallery/seriesModel";
@@ -237,50 +238,59 @@ describe("SeriesGalleryCard — card summary priority", () => {
   });
 });
 
-describe("SeriesGalleryCard — hover outline", () => {
-  it("renders lead outline preview when _hoverOutline present", () => {
+describe("SeriesGalleryCard — hover preview events (gallery-level layer)", () => {
+  it("no card-internal absolute overlay when _hoverOutline present", () => {
     const series: PublicSeriesGroup = {
       ...SERIES,
-      leadScript: {
-        ...SERIES.leadScript!,
-        _hoverOutline: "Act structure outline",
-      } as typeof SERIES.leadScript,
+      leadScript: { ...SERIES.leadScript!, _hoverOutline: "Act structure outline" } as typeof SERIES.leadScript,
     };
     const { container } = render(
       <SeriesGalleryCard series={series} variant="standard" href="/series/s" />
     );
-    expect(container.textContent).toContain("Act structure outline");
+    expect(container.querySelector(".absolute.inset-x-2.bottom-2")).toBeNull();
   });
 
-  it("does not render outline preview when _hoverOutline absent", () => {
+  it("no 查看大綱 button in card DOM", () => {
     const series: PublicSeriesGroup = {
       ...SERIES,
-      leadScript: {
-        ...SERIES.leadScript!,
-        _hoverOutline: undefined,
-        outline: undefined,
-      } as typeof SERIES.leadScript,
+      leadScript: { ...SERIES.leadScript!, _hoverOutline: "outline" } as typeof SERIES.leadScript,
     };
-    const { container } = render(
-      <SeriesGalleryCard series={series} variant="standard" href="/series/s" />
-    );
-    expect(container.textContent).not.toContain("大綱");
+    render(<SeriesGalleryCard series={series} variant="standard" href="/series/s" />);
+    expect(screen.queryByRole("button", { name: "查看大綱" })).toBeNull();
   });
 
-  it("outline container has no interactive elements", () => {
+  it("no nested interactive elements with outline", () => {
     const series: PublicSeriesGroup = {
       ...SERIES,
-      leadScript: {
-        ...SERIES.leadScript!,
-        _hoverOutline: "Outline for series",
-      } as typeof SERIES.leadScript,
+      leadScript: { ...SERIES.leadScript!, _hoverOutline: "Outline" } as typeof SERIES.leadScript,
     };
     const { container } = render(
       <SeriesGalleryCard series={series} variant="standard" href="/series/s" />
     );
-    const outlineEl = container.querySelector("[aria-hidden='true'][class*='pointer-events-none']");
-    expect(outlineEl).not.toBeNull();
-    expect(outlineEl!.querySelectorAll("a, button")).toHaveLength(0);
+    assertNoNestedInteractive(container);
+  });
+
+  it("mouseEnter with provider shows preview with series name, author, outline", () => {
+    const series: PublicSeriesGroup = {
+      ...SERIES,
+      leadScript: { ...SERIES.leadScript!, _hoverOutline: "Series outline content" } as typeof SERIES.leadScript,
+    };
+    const { container } = render(
+      <GalleryHoverPreviewProvider>
+        <SeriesGalleryCard series={series} variant="standard" href="/series/s" />
+      </GalleryHoverPreviewProvider>
+    );
+    fireEvent.mouseEnter(container.querySelector("article")!, { clientX: 200, clientY: 100 });
+    const layer = document.querySelector("[data-testid='gallery-hover-preview']");
+    expect(layer).not.toBeNull();
+    const text = layer!.textContent ?? "";
+    const titleIdx = text.indexOf("My Series");
+    const authorIdx = text.indexOf("Alice");
+    const outlineIdx = text.indexOf("Series outline content");
+    expect(titleIdx).toBeGreaterThanOrEqual(0);
+    expect(authorIdx).toBeGreaterThanOrEqual(0);
+    expect(titleIdx).toBeLessThan(outlineIdx);
+    expect(authorIdx).toBeLessThan(outlineIdx);
   });
 });
 

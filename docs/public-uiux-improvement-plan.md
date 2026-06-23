@@ -260,7 +260,7 @@ Definition of Done:
 - ~~evaluate reader toolbar center title on desktop~~ — added `centerSlot` to `ReaderToolbar`, shows script title on sm+ screens
 - verify reader light-mode background after theme QA — pending browser verification
 
-### Phase 8 — Card Summary And Hover Outline ✅
+### Phase 8 — Card Summary And Outline Preview ◐
 
 Goal: make homepage/gallery cards carry enough context without bloating the
 default grid.
@@ -289,20 +289,29 @@ Architecture rule:
 
 UI contract:
 
-- Standard cards show a short summary under title/author/series metadata.
+- Standard cards show a short summary under title/author metadata.
 - Compact cards may show a shorter one-line summary only if it does not harm
   scan density.
+- Script cards that belong to a series should show the series label as a compact
+  badge over the cover image, not as an extra text row under the title. The badge
+  should visually behave like the R-18 badge: it is an over-cover label, not a
+  separate row and not a large bottom banner. It preserves series context while
+  keeping the card body focused on title, author, and synopsis.
 - Short summaries are normalized to single-line whitespace and truncated by a
   shared helper, not ad hoc `slice()` calls inside JSX.
-- Desktop hover may show an outline preview panel.
+- Desktop pointer hover shows the work preview in an external floating panel.
+  The trigger is the card hover state; do not add a visible "details" button.
+  Keyboard focus may also open the same preview for accessibility, but it should
+  not introduce an extra visible control.
 - Mobile must not rely on hover as the only way to access synopsis. The synopsis
-  remains visible in the card body when present.
+  remains visible in the card body when present. Full outline preview may be
+  omitted on touch layouts until there is a deliberate mobile interaction model.
 - If synopsis is empty, no blank summary row is rendered.
-- If outline is empty, no hover panel is rendered.
+- If title/author/outline preview data is empty, no floating preview is rendered.
 - Hover preview must not introduce nested interactive elements and should not
   intercept card clicks.
 
-Implementation plan:
+Implementation plan — Phase 8a completed:
 
 1. Add pure text helpers near the gallery model or card component:
    - normalize display text;
@@ -310,9 +319,64 @@ Implementation plan:
    - preserve readable outline whitespace where useful.
 2. Extend `GalleryScriptInput` / `EnrichedGalleryScript`.
 3. Update Next gallery projection.
-4. Render short summary + hover outline in `ScriptGalleryCard`.
-5. Render series summary/fallback + hover outline in `SeriesGalleryCard`.
+4. Render short summary in `ScriptGalleryCard`.
+5. Render series summary/fallback in `SeriesGalleryCard`.
 6. Update tests.
+
+Implementation plan — Phase 8b required:
+
+1. Remove the current card-internal outline overlay from `ScriptGalleryCard` and
+   `SeriesGalleryCard`.
+2. Do not use Radix Popover/HoverCard for this preview. This is passive
+   contextual information, not an interactive popover. Popover primitives can
+   leave portal/anchor layers open and interfere with gallery controls such as
+   the standard/dense view toggle.
+3. Add a single shared cursor-follow preview system in `@write/public-ui`:
+   - `GalleryHoverPreviewProvider`
+   - `useGalleryHoverPreview`
+   - `GalleryHoverPreviewLayer`
+   - `clampPreviewPosition()` pure helper
+4. The gallery page/shell owns one preview layer. Cards do not mount their own
+   portal/popover instances.
+5. Cards only emit preview events:
+   - `onMouseEnter` / `onFocus`: `show({ title, author, outline }, pointer)`
+   - `onMouseMove`: update pointer position
+   - `onMouseLeave` / `onBlur`: hide
+   - no outline: do not show preview
+6. The preview layer must be `position: fixed` and `pointer-events: none`.
+   It must never block controls, cards, links, tag clicks, or view-mode buttons.
+7. Desktop positioning:
+   - follow the cursor, not the card rectangle;
+   - default position is near the cursor's right/lower side, e.g. `x + 16`,
+     `y + 12`;
+   - if the right side has no room, flip left;
+   - if the bottom has no room, clamp upward;
+   - max width around 360-420px and max height around `min(420px, 70vh)`.
+8. Dense/compact mode uses the same cursor-follow layer. Do not anchor to the
+   compact row/card rectangle, because that caused previews to appear on the
+   wrong side even when visible space existed to the right.
+9. Mobile/touch behavior:
+   - do not add a replacement button just to expose hover-only outline content;
+   - keep the short synopsis visible as the mobile-readable context;
+   - disable the hover preview on coarse pointers/touch layouts unless a
+     deliberate mobile interaction model is designed later.
+10. Move script series context into a cover badge:
+   - badge appears only when `seriesName` exists;
+   - badge sits over the cover image like the R-18 badge, preferably near a cover
+     corner, with compact height and readable translucent background;
+   - badge must not be a full-width bottom strip and must not visually consume the
+     cover as a second title row;
+   - badge text is truncated and does not cover age/rating badges;
+   - click behavior stays on the existing series link semantics if available,
+     without nesting interactive elements.
+11. Preview content model:
+   - first line: work title;
+   - second line: author name when available;
+   - body: outline, with paragraph/newline preservation;
+   - the preview may also show a small "大綱" label, but the title and author
+     should come before the outline body.
+12. Keep preview content non-interactive. The preview is for reading context, not
+   for navigation/actions.
 
 Required tests:
 
@@ -325,13 +389,24 @@ Required tests:
 - `ScriptGalleryCard`:
   - short summary renders;
   - long summary truncates;
-  - outline hover preview renders when present;
-  - no hover preview when outline is absent;
+  - no card-internal outline overlay is rendered;
+  - hover emits preview data when outline is present;
+  - mouse move updates preview position;
+  - preview includes title, author, and outline in that order;
+  - no preview is emitted when outline is absent;
+  - series label renders as a compact cover badge instead of a body text row;
+  - series badge visually shares the same over-cover pattern as age/rating badges;
   - no nested interactive elements.
 - `SeriesGalleryCard`:
   - series summary wins over lead synopsis;
   - lead synopsis fallback works;
-  - lead outline hover preview renders.
+- `GalleryHoverPreviewLayer`:
+  - renders exactly one fixed preview layer for the gallery surface;
+  - has `pointer-events: none`;
+  - follows cursor position and clamps within viewport;
+  - flips left only when the right side lacks room;
+  - hides on mouse leave, blur, view-mode changes, and route/filter resets;
+  - lead title/author/outline data is passed from `SeriesGalleryCard`.
 
 Definition of Done:
 
@@ -339,6 +414,13 @@ Definition of Done:
 - Hover outline uses advanced outline data, not synopsis, tags, or generated copy.
 - The data path is model/projection driven and shared by all gallery surfaces.
 - Card layout remains scannable in both standard and compact modes.
+- Full outline preview does not live inside the card DOM/layout. It is rendered
+  by a single gallery-level passive preview layer.
+- Series context does not consume body text space on script cards; it is rendered
+  as a compact cover badge.
+- Floating preview content includes work title, author name, and outline.
+- Preview follows the cursor, does not block view-mode controls, and clamps within
+  the viewport.
 
 ## QA Matrix
 
@@ -351,7 +433,7 @@ Definition of Done:
 | Hero | bright image, dark image, mobile and desktop readability |
 | Filter panel | long tag list, selected hidden tag, reset filters |
 | 404 | unknown route in light/dark mode |
-| Card summaries | synopsis visible, long text truncated, hover outline shown on desktop |
+| Card summaries | synopsis visible, long text truncated, compact series badge over cover, cursor-follow outline preview does not block controls |
 
 ## Non-Goals And Anti-Patterns
 
@@ -367,4 +449,8 @@ Do not:
 - use synopsis as hover outline or outline as the short summary unless the
   model explicitly defines that fallback;
 - make hover-only content the only source of card context on mobile;
+- use interactive popover primitives for passive hover previews;
+- mount one preview portal per card;
+- position hover previews from the card rectangle when the desired behavior is
+  cursor-relative;
 - treat browser QA findings as complete without viewport/theme evidence.
