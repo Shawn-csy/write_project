@@ -3,8 +3,6 @@
 import React from "react";
 import { ReaderToolbar as SharedReaderToolbar } from "@write/script-reader-ui";
 import type { ReaderState } from "@write/script-reader-ui";
-import { PublicAppearanceMenu } from "@/components/PublicAppearanceMenu";
-import { PublicInfoMenu } from "@/components/PublicInfoMenu";
 
 interface Props {
   readerState: ReaderState;
@@ -19,7 +17,7 @@ export function ReaderToolbar({ readerState, title, onShare, copied, onExportPdf
   return (
     <SharedReaderToolbar
       readerState={readerState}
-      contentClassName="max-w-4xl mx-auto"
+      contentClassName="w-full px-2 sm:px-4"
       centerSlot={
         title ? (
           <span className="block truncate text-sm text-muted-foreground">{title}</span>
@@ -39,7 +37,7 @@ export function ReaderToolbar({ readerState, title, onShare, copied, onExportPdf
             <button
               type="button"
               onClick={onShare}
-              className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors rounded"
+              className="min-h-[44px] px-3 text-xs text-muted-foreground hover:text-foreground transition-colors rounded"
             >
               {copied ? "已複製！" : "分享"}
             </button>
@@ -49,13 +47,11 @@ export function ReaderToolbar({ readerState, title, onShare, copied, onExportPdf
               type="button"
               onClick={onExportPdf}
               disabled={!pdfReady}
-              className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors rounded disabled:opacity-40 disabled:cursor-not-allowed"
+              className="min-h-[44px] px-3 text-xs text-muted-foreground hover:text-foreground transition-colors rounded disabled:opacity-40 disabled:cursor-not-allowed"
             >
               PDF
             </button>
           )}
-          <PublicAppearanceMenu />
-          <PublicInfoMenu />
         </div>
       }
     />

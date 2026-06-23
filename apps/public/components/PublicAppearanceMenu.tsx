@@ -1,14 +1,14 @@
 "use client";
 
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import * as Popover from "@radix-ui/react-popover";
 import { Sun, Moon, Monitor, SlidersHorizontal } from "lucide-react";
 import { usePublicAppearance } from "@/components/PublicAppearanceContext";
 import type { AppearanceTheme, ReaderFontFamily } from "@/lib/publicAppearancePreferences";
 
-const THEME_OPTIONS: { value: AppearanceTheme; label: string; icon: React.FC<{ className?: string; "aria-hidden"?: boolean }> }[] = [
-  { value: "light",  label: "亮色",    icon: Sun },
-  { value: "dark",   label: "暗色",    icon: Moon },
-  { value: "system", label: "跟隨系統", icon: Monitor },
+const THEME_OPTIONS: { value: AppearanceTheme; label: string; Icon: React.FC<{ className?: string }> }[] = [
+  { value: "light",  label: "亮色",    Icon: Sun },
+  { value: "dark",   label: "暗色",    Icon: Moon },
+  { value: "system", label: "跟隨系統", Icon: Monitor },
 ];
 
 const FONT_FAMILY_OPTIONS: { value: ReaderFontFamily; label: string }[] = [
@@ -25,15 +25,17 @@ const LINE_HEIGHT_OPTIONS: { value: number; label: string }[] = [
   { value: 2.0, label: "寬" },
 ];
 
-const labelClass = "px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60";
-const radioItemClass = "flex items-center gap-2.5 px-3 py-2 text-sm outline-none cursor-pointer select-none text-muted-foreground hover:text-foreground hover:bg-muted focus:text-foreground focus:bg-muted transition-colors relative";
+const sectionHeadingClass = "mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60";
+const segBtnBase = "flex-1 rounded py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const segBtnActive = "bg-primary text-primary-foreground";
+const segBtnInactive = "text-muted-foreground hover:text-foreground hover:bg-muted";
 
 export function PublicAppearanceMenu() {
   const { prefs, setTheme, setReaderFontFamily, setReaderFontSize, setReaderLineHeight } = usePublicAppearance();
 
   return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger asChild>
+    <Popover.Root>
+      <Popover.Trigger asChild>
         <button
           type="button"
           aria-label="外觀設定"
@@ -42,66 +44,88 @@ export function PublicAppearanceMenu() {
         >
           <SlidersHorizontal className="h-4 w-4" aria-hidden />
         </button>
-      </DropdownMenu.Trigger>
+      </Popover.Trigger>
 
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content
+      <Popover.Portal>
+        <Popover.Content
           align="end"
-          sideOffset={4}
-          className="z-[101] w-44 rounded-lg border border-border/60 bg-background shadow-md py-1 text-sm"
+          sideOffset={6}
+          className="z-[101] w-72 rounded-xl border border-border/60 bg-background p-4 shadow-lg space-y-4 text-sm"
         >
           {/* Theme */}
-          <DropdownMenu.Label className={labelClass}>主題</DropdownMenu.Label>
-          <DropdownMenu.RadioGroup value={prefs.theme} onValueChange={(v) => setTheme(v as AppearanceTheme)}>
-            {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
-              <DropdownMenu.RadioItem key={value} value={value} className={radioItemClass}>
-                <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                <span>{label}</span>
-                <DropdownMenu.ItemIndicator className="ml-auto text-primary text-xs">✓</DropdownMenu.ItemIndicator>
-              </DropdownMenu.RadioItem>
-            ))}
-          </DropdownMenu.RadioGroup>
-
-          <DropdownMenu.Separator className="my-1 border-t border-border/40" />
+          <section>
+            <p className={sectionHeadingClass}>主題</p>
+            <div className="flex gap-1 rounded-lg bg-muted p-1" role="group" aria-label="主題">
+              {THEME_OPTIONS.map(({ value, label, Icon }) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={prefs.theme === value}
+                  onClick={() => setTheme(value)}
+                  className={`${segBtnBase} flex items-center justify-center gap-1.5 ${prefs.theme === value ? segBtnActive : segBtnInactive}`}
+                >
+                  <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+          </section>
 
           {/* Font family */}
-          <DropdownMenu.Label className={labelClass}>字體</DropdownMenu.Label>
-          <DropdownMenu.RadioGroup value={prefs.readerFontFamily} onValueChange={(v) => setReaderFontFamily(v as ReaderFontFamily)}>
-            {FONT_FAMILY_OPTIONS.map(({ value, label }) => (
-              <DropdownMenu.RadioItem key={value} value={value} className={radioItemClass}>
-                <span>{label}</span>
-                <DropdownMenu.ItemIndicator className="ml-auto text-primary text-xs">✓</DropdownMenu.ItemIndicator>
-              </DropdownMenu.RadioItem>
-            ))}
-          </DropdownMenu.RadioGroup>
-
-          <DropdownMenu.Separator className="my-1 border-t border-border/40" />
+          <section>
+            <p className={sectionHeadingClass}>字體</p>
+            <div className="flex gap-1 rounded-lg bg-muted p-1" role="group" aria-label="字體">
+              {FONT_FAMILY_OPTIONS.map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={prefs.readerFontFamily === value}
+                  onClick={() => setReaderFontFamily(value)}
+                  className={`${segBtnBase} ${prefs.readerFontFamily === value ? segBtnActive : segBtnInactive}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </section>
 
           {/* Font size */}
-          <DropdownMenu.Label className={labelClass}>字級</DropdownMenu.Label>
-          <DropdownMenu.RadioGroup value={String(prefs.readerFontSize)} onValueChange={(v) => setReaderFontSize(Number(v))}>
-            {FONT_SIZE_OPTIONS.map((size) => (
-              <DropdownMenu.RadioItem key={size} value={String(size)} className={radioItemClass}>
-                <span>{size}px</span>
-                <DropdownMenu.ItemIndicator className="ml-auto text-primary text-xs">✓</DropdownMenu.ItemIndicator>
-              </DropdownMenu.RadioItem>
-            ))}
-          </DropdownMenu.RadioGroup>
-
-          <DropdownMenu.Separator className="my-1 border-t border-border/40" />
+          <section>
+            <p className={sectionHeadingClass}>字級</p>
+            <div className="flex gap-1 rounded-lg bg-muted p-1" role="group" aria-label="字級">
+              {FONT_SIZE_OPTIONS.map((size) => (
+                <button
+                  key={size}
+                  type="button"
+                  aria-pressed={prefs.readerFontSize === size}
+                  onClick={() => setReaderFontSize(size)}
+                  className={`${segBtnBase} ${prefs.readerFontSize === size ? segBtnActive : segBtnInactive}`}
+                >
+                  {size}px
+                </button>
+              ))}
+            </div>
+          </section>
 
           {/* Line height */}
-          <DropdownMenu.Label className={labelClass}>行距</DropdownMenu.Label>
-          <DropdownMenu.RadioGroup value={String(prefs.readerLineHeight)} onValueChange={(v) => setReaderLineHeight(Number(v))}>
-            {LINE_HEIGHT_OPTIONS.map(({ value, label }) => (
-              <DropdownMenu.RadioItem key={value} value={String(value)} className={radioItemClass}>
-                <span>{label}</span>
-                <DropdownMenu.ItemIndicator className="ml-auto text-primary text-xs">✓</DropdownMenu.ItemIndicator>
-              </DropdownMenu.RadioItem>
-            ))}
-          </DropdownMenu.RadioGroup>
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
+          <section>
+            <p className={sectionHeadingClass}>行距</p>
+            <div className="flex gap-1 rounded-lg bg-muted p-1" role="group" aria-label="行距">
+              {LINE_HEIGHT_OPTIONS.map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={prefs.readerLineHeight === value}
+                  onClick={() => setReaderLineHeight(value)}
+                  className={`${segBtnBase} ${prefs.readerLineHeight === value ? segBtnActive : segBtnInactive}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </section>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }
