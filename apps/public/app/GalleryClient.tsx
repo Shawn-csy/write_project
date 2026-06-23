@@ -6,6 +6,7 @@ import {
   GalleryHoverPreviewProvider,
   type HeroSlide,
 } from "@write/public-ui";
+import { SlidersHorizontal, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { GalleryFilterPanel } from "./gallery/GalleryFilterPanel";
 import { GallerySegmentBar } from "./gallery/GallerySegmentBar";
 import { GalleryViewModeToggle } from "./gallery/GalleryViewModeToggle";
@@ -14,6 +15,7 @@ import { GalleryAuthorGrid, GalleryOrgGrid } from "./gallery/GalleryPeopleGrid";
 import { GalleryScriptResults } from "./gallery/GalleryScriptResults";
 import { GalleryTopBar } from "./gallery/GalleryTopBar";
 import { useGalleryController } from "./gallery/useGalleryController";
+import { useGalleryLayoutState } from "./gallery/useGalleryLayoutState";
 
 interface Props {
   initialScripts: PublicScript[];
@@ -51,6 +53,9 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
   } = useGalleryController({ initialScripts, initialBannerSlides });
 
   const { view, resultCount, hasFilters } = homepageModel;
+  const { sidebarCollapsed, setSidebarCollapsed } = useGalleryLayoutState();
+
+  const activeFilterCount = homepageModel.filterChips.length;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -67,11 +72,47 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
 
       <div className="flex flex-1 w-full px-3 sm:px-5 lg:px-8 py-5 sm:py-8 pb-20 gap-6">
         {/* Desktop sidebar */}
-        {view === "scripts" && (
-          <aside className="hidden lg:block w-60 shrink-0">
+        {view === "scripts" && !sidebarCollapsed && (
+          <aside className="hidden lg:flex lg:flex-col w-60 shrink-0">
             <div className="sticky top-20">
+              <div className="flex items-center justify-between mb-2 px-1">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">篩選</span>
+                <button
+                  type="button"
+                  onClick={() => setSidebarCollapsed(true)}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                  aria-label="收起篩選欄"
+                >
+                  <PanelLeftClose className="w-4 h-4" />
+                </button>
+              </div>
               <GalleryFilterPanel {...filterPanelProps} variant="sidebar" />
             </div>
+          </aside>
+        )}
+
+        {/* Desktop collapsed rail */}
+        {view === "scripts" && sidebarCollapsed && (
+          <aside className="hidden lg:flex lg:flex-col items-center gap-1 w-11 shrink-0">
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed(false)}
+              className="inline-flex h-11 w-11 items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              aria-label="展開篩選欄"
+            >
+              <PanelLeftOpen className="w-4 h-4" />
+            </button>
+            {activeFilterCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setSidebarCollapsed(false)}
+                className="inline-flex h-11 w-11 flex-col items-center justify-center gap-0.5 rounded text-primary hover:bg-muted/50 transition-colors"
+                aria-label={`已選 ${activeFilterCount} 個篩選`}
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+                <span className="text-[10px] font-semibold leading-none">{activeFilterCount}</span>
+              </button>
+            )}
           </aside>
         )}
 

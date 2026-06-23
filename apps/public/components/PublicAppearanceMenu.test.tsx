@@ -7,9 +7,6 @@ import { DEFAULT_APPEARANCE } from "@/lib/publicAppearancePreferences";
 
 const setTheme = vi.fn();
 const setSiteTextScale = vi.fn();
-const setReaderFontFamily = vi.fn();
-const setReaderFontSize = vi.fn();
-const setReaderLineHeight = vi.fn();
 
 vi.mock("lucide-react", () => ({
   Sun: () => <span data-testid="sun-icon" />,
@@ -23,9 +20,6 @@ vi.mock("@/components/PublicAppearanceContext", () => ({
     prefs: DEFAULT_APPEARANCE,
     setTheme,
     setSiteTextScale,
-    setReaderFontFamily,
-    setReaderFontSize,
-    setReaderLineHeight,
   }),
 }));
 
@@ -100,34 +94,6 @@ describe("PublicAppearanceMenu", () => {
     const group = screen.getByRole("group", { name: "首頁文字" });
     expect(within(group).getByRole("button", { name: "標準" }).getAttribute("aria-pressed")).toBe("true");
     expect(within(group).getByRole("button", { name: "精簡" }).getAttribute("aria-pressed")).toBe("false");
-  });
-
-  it("shows reader font family buttons after open", async () => {
-    await openPanel();
-    expect(screen.getByRole("button", { name: "無襯線" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "襯線" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "等寬" })).toBeTruthy();
-  });
-
-  it("clicking 襯線 calls setReaderFontFamily('serif')", async () => {
-    setReaderFontFamily.mockClear();
-    const user = await openPanel();
-    await user.click(screen.getByRole("button", { name: "襯線" }));
-    expect(setReaderFontFamily).toHaveBeenCalledWith("serif");
-  });
-
-  it("clicking 18px calls setReaderFontSize(18)", async () => {
-    setReaderFontSize.mockClear();
-    const user = await openPanel();
-    await user.click(screen.getByRole("button", { name: "18px" }));
-    expect(setReaderFontSize).toHaveBeenCalledWith(18);
-  });
-
-  it("clicking 寬鬆 calls setReaderLineHeight(1.8)", async () => {
-    setReaderLineHeight.mockClear();
-    const user = await openPanel();
-    await user.click(screen.getByRole("button", { name: "寬鬆" }));
-    expect(setReaderLineHeight).toHaveBeenCalledWith(1.8);
   });
 
   it("does not contain info/nav links", async () => {

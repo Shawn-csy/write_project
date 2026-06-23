@@ -3,7 +3,7 @@
 import * as Popover from "@radix-ui/react-popover";
 import { Sun, Moon, Monitor, SlidersHorizontal } from "lucide-react";
 import { usePublicAppearance } from "@/components/PublicAppearanceContext";
-import type { AppearanceTheme, ReaderFontFamily, SiteTextScale } from "@/lib/publicAppearancePreferences";
+import type { AppearanceTheme, SiteTextScale } from "@/lib/publicAppearancePreferences";
 
 const THEME_OPTIONS: { value: AppearanceTheme; label: string; Icon: React.FC<{ className?: string }> }[] = [
   { value: "light",  label: "亮色",    Icon: Sun },
@@ -18,27 +18,13 @@ const SITE_TEXT_SCALE_OPTIONS: { value: SiteTextScale; label: string }[] = [
   { value: "large",       label: "大字" },
 ];
 
-const FONT_FAMILY_OPTIONS: { value: ReaderFontFamily; label: string }[] = [
-  { value: "sans",  label: "無襯線" },
-  { value: "serif", label: "襯線" },
-  { value: "mono",  label: "等寬" },
-];
-
-const FONT_SIZE_OPTIONS = [14, 16, 18, 20] as const;
-const LINE_HEIGHT_OPTIONS: { value: number; label: string }[] = [
-  { value: 1.4, label: "緊湊" },
-  { value: 1.6, label: "標準" },
-  { value: 1.8, label: "寬鬆" },
-  { value: 2.0, label: "寬" },
-];
-
 const sectionHeadingClass = "mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60";
 const segBtnBase = "flex-1 rounded py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 const segBtnActive = "bg-primary text-primary-foreground";
 const segBtnInactive = "text-muted-foreground hover:text-foreground hover:bg-muted";
 
 export function PublicAppearanceMenu() {
-  const { prefs, setTheme, setSiteTextScale, setReaderFontFamily, setReaderFontSize, setReaderLineHeight } = usePublicAppearance();
+  const { prefs, setTheme, setSiteTextScale } = usePublicAppearance();
 
   return (
     <Popover.Root>
@@ -96,61 +82,6 @@ export function PublicAppearanceMenu() {
             </div>
           </section>
 
-          <hr className="border-border/40" />
-
-          {/* Reader typography */}
-          <p className={sectionHeadingClass}>閱讀器文字</p>
-
-          <section>
-            <p className="mb-1.5 text-xs text-muted-foreground">字體</p>
-            <div className="flex gap-1 rounded-lg bg-muted p-1" role="group" aria-label="閱讀器字體">
-              {FONT_FAMILY_OPTIONS.map(({ value, label }) => (
-                <button
-                  key={value}
-                  type="button"
-                  aria-pressed={prefs.readerFontFamily === value}
-                  onClick={() => setReaderFontFamily(value)}
-                  className={`${segBtnBase} ${prefs.readerFontFamily === value ? segBtnActive : segBtnInactive}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section>
-            <p className="mb-1.5 text-xs text-muted-foreground">字級</p>
-            <div className="flex gap-1 rounded-lg bg-muted p-1" role="group" aria-label="閱讀器字級">
-              {FONT_SIZE_OPTIONS.map((size) => (
-                <button
-                  key={size}
-                  type="button"
-                  aria-pressed={prefs.readerFontSize === size}
-                  onClick={() => setReaderFontSize(size)}
-                  className={`${segBtnBase} ${prefs.readerFontSize === size ? segBtnActive : segBtnInactive}`}
-                >
-                  {size}px
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section>
-            <p className="mb-1.5 text-xs text-muted-foreground">行距</p>
-            <div className="flex gap-1 rounded-lg bg-muted p-1" role="group" aria-label="閱讀器行距">
-              {LINE_HEIGHT_OPTIONS.map(({ value, label }) => (
-                <button
-                  key={value}
-                  type="button"
-                  aria-pressed={prefs.readerLineHeight === value}
-                  onClick={() => setReaderLineHeight(value)}
-                  className={`${segBtnBase} ${prefs.readerLineHeight === value ? segBtnActive : segBtnInactive}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </section>
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
