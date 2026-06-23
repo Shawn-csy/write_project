@@ -5,17 +5,28 @@ Last updated: 2026-06-23
 ## Purpose
 
 This document defines the long-term architecture for the public site's topbar
-actions and the reader toolbar's shared action surface.
+actions and the reader toolbar's action surface.
 
 The goal is to prevent three recurring problems:
 
 - help/about/license links being mixed with appearance settings;
-- public topbars and the reader toolbar growing separate duplicated controls;
 - reader appearance preferences being stored in a page-local or component-local
-  way that does not match the rest of the public site.
+  way that does not match the rest of the public site;
+- global theme writers conflicting with each other on the same page.
 
 This is not a cosmetic task. The shell actions must become a small, explicit
-system shared by public pages and the reader.
+system with a single source of truth for appearance preferences.
+
+**Revised principle (supersedes earlier drafts):**
+
+> Share the *preference model*, not the *controls*.
+>
+> `PublicAppearanceMenu` and `PublicInfoMenu` belong to `PublicShellActions`
+> (public topbars). The reader toolbar owns its own reading task controls and
+> must not duplicate platform navigation or global appearance controls.
+> `ThemeProvider` / `PublicAppearanceContext` is the sole writer to
+> `document.documentElement`; reader components must not call
+> `useReaderThemeClass` or write the dark class independently.
 
 ## Current State
 
@@ -117,49 +128,47 @@ The shared action system should be componentized by responsibility.
 
 ```text
 PublicShellActions
-  PublicAppearanceMenu
-  PublicInfoMenu
+  PublicAppearanceMenu   ← global appearance panel (theme + reader display)
+  PublicInfoMenu         ← platform navigation links
   StudioLink
 
 ReaderToolbar
   BackToGallery
   MarkerVisibility
-  ReaderPreferences
+  ReaderPreferences      ← reader-local shortcut; writes to shared preference model
   Share
   PDF
-  PublicAppearanceMenu
-  PublicInfoMenu
 ```
 
-Public pages and reader pages should not share the entire topbar. The reader
-toolbar is a different shell with reader-specific tools. They should share only
-the global actions:
+Public pages and reader pages do not share toolbar components. They share:
 
-- `PublicAppearanceMenu`
-- `PublicInfoMenu`
-- preference/storage model
-- sizing/accessibility/menu behavior contracts
+- the `PublicAppearancePreferences` storage model and storage key;
+- the `PublicAppearanceContext` which is the single source of truth for all
+  appearance state at runtime;
+- the `writeAppearancePreferences` + `APPEARANCE_CHANGE_EVENT` sync protocol
+  so any writer (including `ReaderPreferencesPanel`) automatically updates the
+  context without knowing about React.
 
-## What Must Be Unified
+## What Is Shared
 
-Unified across public topbars and reader toolbar:
+Shared between public topbars and reader:
 
-- info menu link set;
-- appearance menu theme control;
-- menu item visual treatment;
-- Radix dropdown behavior;
-- 44px minimum hit target for icon buttons;
-- `aria-label`, `aria-pressed`, keyboard behavior;
-- storage keys and preference migration.
+- `PublicAppearancePreferences` model and `public-reader:appearance` key;
+- `PublicAppearanceContext` runtime state;
+- `writeAppearancePreferences` + `APPEARANCE_CHANGE_EVENT` event protocol;
+- migration path from old keys;
+- 44px minimum hit target contract for all icon buttons.
 
-Not unified:
+Not shared (reader toolbar owns these independently):
 
 - reader marker visibility;
+- reader preferences panel (`ReaderPreferencesPanel`);
 - reader PDF export;
 - reader share behavior;
 - chapter navigation;
-- back button semantics;
-- studio link placement on reader pages.
+- back-to-gallery link;
+- platform info/nav links;
+- studio link.
 
 ## Preference Model
 
@@ -241,134 +250,111 @@ Owns composition only:
 
 It should not contain dropdown internals once the menus are extracted.
 
-### Reader Toolbar Integration
+### Reader Toolbar
 
-The reader toolbar should consume:
+The reader toolbar owns reading task controls only:
 
-```tsx
-<PublicAppearanceMenu />
-<PublicInfoMenu />
-```
-
-Reader-specific controls remain in the reader toolbar:
-
+- back to gallery;
 - marker visibility;
-- reader preferences panel until merged;
+- reader preferences panel (`ReaderPreferencesPanel`);
 - share;
 - PDF export;
 - series/chapter navigation.
 
+It must **not** include `PublicAppearanceMenu` or `PublicInfoMenu`. Platform
+navigation and global appearance belong to the public shell, not the reader.
+
+`ReaderPreferencesPanel` writes to the shared `PublicAppearancePreferences`
+model via `createAppearanceReaderStorage`. Changes are broadcast via
+`APPEARANCE_CHANGE_EVENT` and picked up by `PublicAppearanceContext`, which
+updates `ScriptReaderClient` reactively without any direct coupling.
+
+`useReaderThemeClass` must not be called in `apps/public`. `ThemeProvider` is
+the sole `document.documentElement` theme writer.
+
 ## Execution Plan
 
-### Phase 1 — Extract Info Menu
+### Phase 1 — Extract Info Menu ✅
 
-1. Create `PublicInfoMenu`.
-2. Move `/help`, `/license`, `/about`, `/privacy`, `/terms` links into it.
-3. Replace the raw `?` text button with an icon trigger.
-4. Keep the dropdown as a compact link list with one separator before policy
-   links.
-5. Enforce `h-11 w-11` hit target.
-6. Add tests for:
-   - trigger `aria-label`;
-   - all five links;
-   - link order and separator contract;
-   - 44px class contract.
+- Created `PublicInfoMenu` with `CircleHelp` trigger (`h-11 w-11`, `aria-label="說明與平台資訊"`).
+- Compact dropdown: 使用說明 / 授權說明 / 關於我們 / separator / 隱私政策 / 使用條款.
+- `PublicShellActions` updated to thin composition layer.
+- Tests: trigger label, all five hrefs, separator `data-testid`, link order.
 
-Definition of done:
+### Phase 2 — Extract Appearance Menu ✅
 
-- public topbars still show all existing information links;
-- menu meaning is clear without relying on a bare question mark;
-- the menu is a compact navigation list, not a mini documentation surface;
-- no appearance controls live in the info menu.
+- Created `PublicAppearanceMenu` as a Radix **Popover** panel (`w-72`), not a dropdown menu.
+- Four segmented-control sections: 主題 / 字體 / 字級 / 行距.
+- All controls are `button[aria-pressed]` — no `DropdownMenu.RadioItem`.
+- Tests: trigger label, 44px target, all section buttons, `aria-pressed` state,
+  no nav links in panel.
 
-### Phase 2 — Extract Appearance Menu
+### Phase 3 — Reader Toolbar Boundary Cleanup ✅
 
-1. Create `PublicAppearanceMenu`.
-2. Move current theme selector into it.
-3. Keep the existing `ThemeProvider` behavior unchanged.
-4. Update `PublicShellActions` into a thin composition layer.
-5. Add tests for:
-   - trigger `aria-label`;
-   - current theme display;
-   - selecting system/light/dark;
-   - 44px class contract.
+- Removed `PublicAppearanceMenu` and `PublicInfoMenu` from `ReaderToolbar`.
+- Reader toolbar now contains: back link, marker visibility, reader preferences,
+  share, PDF only.
+- `contentClassName` changed from `max-w-4xl mx-auto` (reading-content width)
+  to `w-full px-2 sm:px-4` (full toolbar width).
+- Share and PDF buttons bumped to `min-h-[44px]`.
+- Tests updated to assert menus are absent and back link / title / share / PDF
+  are present.
 
-Definition of done:
+### Phase 4 — Shared Appearance Preferences ✅
 
-- theme is no longer a separate ad hoc button in `PublicShellActions`;
-- info and appearance are two separate concepts in the UI.
+- Defined `PublicAppearancePreferences` model in `apps/public/lib/publicAppearancePreferences.ts`.
+- Storage key `public-reader:appearance`; migration from `screenplay-reader-theme`
+  and `public-reader:reader:preferences`.
+- `PublicAppearanceContext` + `PublicAppearanceProvider` own runtime state.
+- `ThemeProvider` wraps provider; proxies `useTheme()` to context.
+- Blocking inline script in `layout.tsx` reads new key with field-by-field
+  validation, falls back to old theme key.
+- Tests: migration, invalid values, no first-render overwrite (13 tests).
 
-### Phase 3 — Reader Toolbar Uses Shared Menus
+### Phase 5 — Reader Display Controls + Sync ✅
 
-1. Add `PublicAppearanceMenu` and `PublicInfoMenu` to the reader toolbar action
-   area.
-2. Keep reader-specific controls in place.
-3. Decide whether reader pages should show the studio link. Default: no, unless
-   product wants it.
-4. Add tests for:
-   - reader toolbar renders shared info menu;
-   - reader toolbar renders shared appearance menu;
-   - marker/share/PDF controls are unaffected.
+- `createAppearanceReaderStorage` bridges `useReaderState`'s `preferencesStorage`
+  protocol to the shared preference model.
+- `ScriptReaderClient` reads `fontSize / lineHeight / fontFamily` from
+  `usePublicAppearance().prefs` — reactive without page reload.
+- `useReaderThemeClass` removed from `apps/public`; `ThemeProvider` is the sole
+  `document.documentElement` writer.
+- Sync protocol: `writeAppearancePreferences` dispatches `APPEARANCE_CHANGE_EVENT`
+  (`CustomEvent`) on `window`; `PublicAppearanceProvider` listens in its mount
+  effect and calls `setPrefs` + `onThemeChange` — covers `ReaderPreferencesPanel`
+  writes without coupling to React context.
+- Tests: storage bridge mapping (13 tests), event dispatch (1 test).
 
-Definition of done:
+Browser QA checklist:
 
-- reader toolbar and public topbars share global action menus;
-- reader toolbar remains a reader-specific toolbar, not a `PublicTopBar` clone.
-
-### Phase 4 — Shared Appearance Preferences
-
-1. Define `PublicAppearancePreferences`.
-2. Build a storage adapter and migration path.
-3. Move theme persistence to the new model.
-4. Connect reader display preferences to the same model.
-5. Keep compatibility wrappers for old keys until migration is stable.
-6. Add tests for:
-   - old theme key migration;
-   - old reader preference migration;
-   - invalid stored values;
-   - no first-render default overwrite;
-   - reader page applying font size / line height / font family.
-
-Definition of done:
-
-- appearance settings are backed by one coherent preference model;
-- reader and public shell no longer store overlapping display preferences in
-  unrelated places.
-
-### Phase 5 — Add Reader Display Controls To Appearance Menu
-
-1. Add font family control.
-2. Add font size control.
-3. Add line height control.
-4. Remove duplicated reader-only controls if they become redundant, or keep a
-   reader-local shortcut that delegates to the same preference model.
-5. Browser QA:
-   - homepage theme;
-   - author/org/series pages theme;
-   - reader theme;
-   - reader font size;
-   - reader line height;
-   - mobile toolbar overflow.
-
-Definition of done:
-
-- the appearance menu changes real persisted preferences;
-- reader typography updates consistently;
-- there is no fake global font setting that only works on one page.
+- [ ] Homepage theme toggle (亮色 / 暗色 / 跟隨系統)
+- [ ] Author / org / series pages theme
+- [ ] Reader theme follows public appearance panel
+- [ ] Reader font size updates without reload when changed via reader preferences panel
+- [ ] Reader line height updates without reload
+- [ ] Reader font family updates without reload
+- [ ] Mobile toolbar — no overflow
 
 ## Non-Goals
 
 - Do not merge `PublicTopBar` and reader toolbar into one component.
 - Do not put reader marker visibility into public topbars.
 - Do not put PDF export into public topbars.
-- Do not add font controls before the shared preference model exists.
+- Do not put `PublicInfoMenu` or `PublicAppearanceMenu` inside `ReaderToolbar`.
+- Do not call `useReaderThemeClass` in `apps/public`.
 - Do not keep a bare `?` button if the menu contains multiple platform concepts.
 
 ## Acceptance Criteria
 
 - Public pages expose clear, separate info and appearance actions.
-- Reader toolbar exposes the same global info and appearance actions.
+- Reader toolbar contains reading task controls only; no platform nav or global
+  appearance controls.
 - All action triggers have at least a 44px hit target.
-- Info links are defined in one place.
-- Theme and reader display preferences have one long-term storage model.
-- Tests cover component contracts and migration behavior.
+- Info links are defined in one place (`PublicInfoMenu`).
+- Theme and reader display preferences have one long-term storage model
+  (`PublicAppearancePreferences` / `public-reader:appearance`).
+- Any writer to the shared preference model (public appearance menu, reader
+  preferences panel) immediately updates `PublicAppearanceContext` via
+  `APPEARANCE_CHANGE_EVENT` — no page reload required.
+- `ThemeProvider` is the sole writer to `document.documentElement.classList`.
+- Tests cover component contracts, migration behavior, and event sync protocol.

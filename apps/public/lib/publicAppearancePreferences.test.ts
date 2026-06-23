@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   migrateAppearancePreferences,
   readAppearancePreferences,
   writeAppearancePreferences,
   DEFAULT_APPEARANCE,
   APPEARANCE_STORAGE_KEY,
+  APPEARANCE_CHANGE_EVENT,
 } from "./publicAppearancePreferences";
 
 const OLD_THEME_KEY = "screenplay-reader-theme";
@@ -49,6 +50,16 @@ describe("writeAppearancePreferences", () => {
     writeAppearancePreferences({ ...DEFAULT_APPEARANCE, theme: "light" });
     const raw = localStorage.getItem(APPEARANCE_STORAGE_KEY);
     expect(JSON.parse(raw!).theme).toBe("light");
+  });
+
+  it("dispatches APPEARANCE_CHANGE_EVENT with prefs as detail", () => {
+    const listener = vi.fn();
+    window.addEventListener(APPEARANCE_CHANGE_EVENT, listener);
+    const prefs = { ...DEFAULT_APPEARANCE, theme: "dark" as const };
+    writeAppearancePreferences(prefs);
+    window.removeEventListener(APPEARANCE_CHANGE_EVENT, listener);
+    expect(listener).toHaveBeenCalledOnce();
+    expect((listener.mock.calls[0][0] as CustomEvent).detail).toMatchObject({ theme: "dark" });
   });
 });
 

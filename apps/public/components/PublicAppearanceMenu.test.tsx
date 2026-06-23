@@ -27,6 +27,13 @@ vi.mock("@/components/PublicAppearanceContext", () => ({
   }),
 }));
 
+async function openPanel() {
+  const user = userEvent.setup();
+  render(<PublicAppearanceMenu />);
+  await user.click(screen.getByRole("button", { name: "外觀設定" }));
+  return user;
+}
+
 describe("PublicAppearanceMenu", () => {
   it("trigger has aria-label 外觀設定", () => {
     render(<PublicAppearanceMenu />);
@@ -35,88 +42,80 @@ describe("PublicAppearanceMenu", () => {
 
   it("trigger has 44px hit target class", () => {
     render(<PublicAppearanceMenu />);
-    expect(screen.getByRole("button", { name: "外觀設定" }).className).toContain("h-11");
-    expect(screen.getByRole("button", { name: "外觀設定" }).className).toContain("w-11");
+    const btn = screen.getByRole("button", { name: "外觀設定" });
+    expect(btn.className).toContain("h-11");
+    expect(btn.className).toContain("w-11");
   });
 
-  it("shows theme options after open", async () => {
-    const user = userEvent.setup();
-    render(<PublicAppearanceMenu />);
-    await user.click(screen.getByRole("button", { name: "外觀設定" }));
-    expect(screen.getByText("亮色")).toBeTruthy();
-    expect(screen.getByText("暗色")).toBeTruthy();
-    expect(screen.getByText("跟隨系統")).toBeTruthy();
+  it("shows theme buttons after open", async () => {
+    await openPanel();
+    expect(screen.getByRole("button", { name: "亮色" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "暗色" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "跟隨系統" })).toBeTruthy();
   });
 
   it("clicking 亮色 calls setTheme('light')", async () => {
     setTheme.mockClear();
-    const user = userEvent.setup();
-    render(<PublicAppearanceMenu />);
-    await user.click(screen.getByRole("button", { name: "外觀設定" }));
-    await user.click(screen.getByText("亮色"));
+    const user = await openPanel();
+    await user.click(screen.getByRole("button", { name: "亮色" }));
     expect(setTheme).toHaveBeenCalledWith("light");
   });
 
   it("clicking 暗色 calls setTheme('dark')", async () => {
     setTheme.mockClear();
-    const user = userEvent.setup();
-    render(<PublicAppearanceMenu />);
-    await user.click(screen.getByRole("button", { name: "外觀設定" }));
-    await user.click(screen.getByText("暗色"));
+    const user = await openPanel();
+    await user.click(screen.getByRole("button", { name: "暗色" }));
     expect(setTheme).toHaveBeenCalledWith("dark");
   });
 
   it("clicking 跟隨系統 calls setTheme('system')", async () => {
     setTheme.mockClear();
-    const user = userEvent.setup();
-    render(<PublicAppearanceMenu />);
-    await user.click(screen.getByRole("button", { name: "外觀設定" }));
-    await user.click(screen.getByText("跟隨系統"));
+    const user = await openPanel();
+    await user.click(screen.getByRole("button", { name: "跟隨系統" }));
     expect(setTheme).toHaveBeenCalledWith("system");
   });
 
-  it("shows font family options after open", async () => {
-    const user = userEvent.setup();
-    render(<PublicAppearanceMenu />);
-    await user.click(screen.getByRole("button", { name: "外觀設定" }));
-    expect(screen.getByText("無襯線")).toBeTruthy();
-    expect(screen.getByText("襯線")).toBeTruthy();
-    expect(screen.getByText("等寬")).toBeTruthy();
+  it("shows font family buttons after open", async () => {
+    await openPanel();
+    expect(screen.getByRole("button", { name: "無襯線" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "襯線" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "等寬" })).toBeTruthy();
   });
 
   it("clicking 襯線 calls setReaderFontFamily('serif')", async () => {
     setReaderFontFamily.mockClear();
-    const user = userEvent.setup();
-    render(<PublicAppearanceMenu />);
-    await user.click(screen.getByRole("button", { name: "外觀設定" }));
-    await user.click(screen.getByText("襯線"));
+    const user = await openPanel();
+    await user.click(screen.getByRole("button", { name: "襯線" }));
     expect(setReaderFontFamily).toHaveBeenCalledWith("serif");
   });
 
   it("clicking 18px calls setReaderFontSize(18)", async () => {
     setReaderFontSize.mockClear();
-    const user = userEvent.setup();
-    render(<PublicAppearanceMenu />);
-    await user.click(screen.getByRole("button", { name: "外觀設定" }));
-    await user.click(screen.getByText("18px"));
+    const user = await openPanel();
+    await user.click(screen.getByRole("button", { name: "18px" }));
     expect(setReaderFontSize).toHaveBeenCalledWith(18);
   });
 
   it("clicking 寬鬆 calls setReaderLineHeight(1.8)", async () => {
     setReaderLineHeight.mockClear();
-    const user = userEvent.setup();
-    render(<PublicAppearanceMenu />);
-    await user.click(screen.getByRole("button", { name: "外觀設定" }));
-    await user.click(screen.getByText("寬鬆"));
+    const user = await openPanel();
+    await user.click(screen.getByRole("button", { name: "寬鬆" }));
     expect(setReaderLineHeight).toHaveBeenCalledWith(1.8);
   });
 
   it("does not contain info/nav links", async () => {
-    const user = userEvent.setup();
-    render(<PublicAppearanceMenu />);
-    await user.click(screen.getByRole("button", { name: "外觀設定" }));
+    await openPanel();
     expect(screen.queryByText("使用說明")).toBeNull();
     expect(screen.queryByText("關於我們")).toBeNull();
     expect(screen.queryByText("隱私政策")).toBeNull();
+  });
+
+  it("active theme button has aria-pressed=true", async () => {
+    // DEFAULT_APPEARANCE.theme = "system"
+    await openPanel();
+    const systemBtn = screen.getByRole("button", { name: "跟隨系統" });
+    expect(systemBtn.getAttribute("aria-pressed")).toBe("true");
+    const lightBtn = screen.getByRole("button", { name: "亮色" });
+    expect(lightBtn.getAttribute("aria-pressed")).toBe("false");
   });
 });

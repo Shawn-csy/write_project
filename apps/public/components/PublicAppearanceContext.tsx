@@ -14,6 +14,7 @@ import {
   readAppearancePreferences,
   writeAppearancePreferences,
   DEFAULT_APPEARANCE,
+  APPEARANCE_CHANGE_EVENT,
 } from "@/lib/publicAppearancePreferences";
 import type {
   PublicAppearancePreferences,
@@ -56,6 +57,17 @@ export function PublicAppearanceProvider({ children, onThemeChange }: Props) {
     const resolved: PublicAppearancePreferences = { ...DEFAULT_APPEARANCE, ...stored };
     setPrefs(resolved);
     onThemeChange(resolved.theme);
+
+    // Sync when any same-page writer (e.g. createAppearanceReaderStorage via
+    // ReaderPreferencesPanel) calls writeAppearancePreferences().
+    const handleExternalWrite = (e: Event) => {
+      const next = (e as CustomEvent<PublicAppearancePreferences>).detail;
+      if (!next) return;
+      setPrefs(next);
+      onThemeChange(next.theme);
+    };
+    window.addEventListener(APPEARANCE_CHANGE_EVENT, handleExternalWrite);
+    return () => window.removeEventListener(APPEARANCE_CHANGE_EVENT, handleExternalWrite);
   // onThemeChange is stable (defined in ThemeProvider via useCallback)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

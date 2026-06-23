@@ -78,9 +78,17 @@ export function readAppearancePreferences(): Partial<PublicAppearancePreferences
   return parseStored(safeGetItem(APPEARANCE_STORAGE_KEY));
 }
 
-/** Persist to new key only. */
+/** Event name dispatched on window after every write so same-page listeners can sync. */
+export const APPEARANCE_CHANGE_EVENT = "public-appearance-change";
+
+/** Persist to new key only, then notify same-page listeners. */
 export function writeAppearancePreferences(prefs: PublicAppearancePreferences): void {
   safeSetItem(APPEARANCE_STORAGE_KEY, JSON.stringify(prefs));
+  try {
+    window.dispatchEvent(new CustomEvent(APPEARANCE_CHANGE_EVENT, { detail: prefs }));
+  } catch {
+    // SSR or restricted environment — ignore
+  }
 }
 
 // ── Migration ─────────────────────────────────────────────────────────────────
