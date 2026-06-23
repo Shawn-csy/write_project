@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react";
 import { GalleryFilterPanel } from "./GalleryFilterPanel";
+import { GalleryViewModeToggle } from "./GalleryViewModeToggle";
 
 interface GalleryMobileSheetProps {
   open: boolean;
@@ -53,22 +54,7 @@ export function GalleryMobileSheet({
         {/* ViewMode — stacked for mobile */}
         <div className="mb-4">
           <p className="mb-1.5 text-xs font-medium text-foreground">顯示模式</p>
-          <div className="flex gap-1.5">
-            {(["standard", "compact"] as const).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => setViewMode(mode)}
-                className={`h-7 rounded-full px-3 text-xs transition-colors font-medium ${
-                  viewModeValue === mode
-                    ? "bg-foreground text-background"
-                    : "border border-border/60 bg-transparent text-muted-foreground hover:text-foreground hover:border-border"
-                }`}
-              >
-                {mode === "standard" ? "標準" : "密集"}
-              </button>
-            ))}
-          </div>
+          <GalleryViewModeToggle value={viewModeValue} onChange={setViewMode} />
         </div>
 
         {/* Filter panel (includes usage, search, tags) */}
