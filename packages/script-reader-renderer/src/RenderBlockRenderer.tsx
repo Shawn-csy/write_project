@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import type {
   CharacterBlock,
   InlineRun,
@@ -7,12 +7,7 @@ import type {
   RenderBlock,
   TextBlock,
 } from "@write/script-engine";
-import { getMarkerElement, readMarkerAttrs } from "./markerDom";
-
-const TOOLTIP_OFFSET = 14;
-const TOOLTIP_MAX_WIDTH = 280;
-const TOOLTIP_EDGE_PADDING = 8;
-const TOOLTIP_TOP_FALLBACK_THRESHOLD = 96;
+import { useMarkerTooltip, type MarkerConfigLike } from "./useMarkerTooltip";
 
 export const CHARACTER_COLOR_SEQUENCE = [
   "var(--marker-color-russet)",
@@ -29,18 +24,7 @@ export const CHARACTER_COLOR_SEQUENCE = [
   "var(--marker-color-charcoal)",
 ];
 
-export interface MarkerConfigLike {
-  id?: string;
-  label?: string;
-  name?: string;
-  displayName?: string;
-}
-
-interface TooltipState {
-  text: string;
-  x: number;
-  y: number;
-}
+export type { MarkerConfigLike } from "./useMarkerTooltip";
 
 export interface RenderBlockRendererProps {
   blocks: RenderBlock[];
@@ -325,62 +309,17 @@ export const RenderBlockRenderer = React.memo(function RenderBlockRenderer({
   colorCache,
   className,
 }: RenderBlockRendererProps) {
-  const [markerTooltip, setMarkerTooltip] = useState<TooltipState | null>(null);
   const resolvedColorCache = colorCache ?? { current: new Map<string, string>() };
-  const markerLabelById = useMemo(() => {
-    const map = new Map<string, string>();
-    markerConfigs.forEach((cfg) => {
-      const id = String(cfg?.id || "").trim();
-      if (!id) return;
-      map.set(id, String(cfg?.label || cfg?.name || cfg?.displayName || id).trim());
-    });
-    return map;
-  }, [markerConfigs]);
-
-  const resolveMarkerTooltip = (target: EventTarget | null) => {
-    const markerEl = getMarkerElement(target);
-    if (!markerEl) return null;
-    const { markerId, markerLabel: attrLabel } = readMarkerAttrs(markerEl);
-    if (!markerId) return null;
-    const markerLabel = attrLabel || markerLabelById.get(markerId) || markerId;
-    return { markerId, markerLabel };
-  };
-
-  const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
-    if (!showMarkerTooltip) {
-      if (markerTooltip) setMarkerTooltip(null);
-      return;
-    }
-    const resolved = resolveMarkerTooltip(event.target);
-    if (!resolved) {
-      if (markerTooltip) setMarkerTooltip(null);
-      return;
-    }
-    setMarkerTooltip({ text: `${markerTooltipPrefix}: ${resolved.markerLabel}`, x: event.clientX, y: event.clientY });
-  };
-
-  const markerTooltipStyle = useMemo(() => {
-    if (!markerTooltip) return null;
-    const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 1024;
-    const preferTop = markerTooltip.y > TOOLTIP_TOP_FALLBACK_THRESHOLD;
-    const unclampedLeft = markerTooltip.x + TOOLTIP_OFFSET;
-    const maxLeft = Math.max(TOOLTIP_EDGE_PADDING, viewportWidth - TOOLTIP_MAX_WIDTH - TOOLTIP_EDGE_PADDING);
-    const left = Math.min(Math.max(TOOLTIP_EDGE_PADDING, unclampedLeft), maxLeft);
-    const top = preferTop ? markerTooltip.y - TOOLTIP_OFFSET : markerTooltip.y + TOOLTIP_OFFSET;
-    return {
-      left: `${left}px`,
-      top: `${top}px`,
-      maxWidth: `${TOOLTIP_MAX_WIDTH}px`,
-      transform: preferTop ? "translateY(-100%)" : "none",
-    };
-  }, [markerTooltip]);
+  const effectivePrefix = showMarkerTooltip ? markerTooltipPrefix : null;
+  const { markerTooltip, markerTooltipStyle, handlePointerMove, handlePointerLeave, markerLabelById } =
+    useMarkerTooltip(markerConfigs, effectivePrefix);
 
   return (
     <article
       className={`script-renderer render-block-renderer relative${showLineUnderline ? " show-line-underline" : ""}${className ? ` ${className}` : ""}`}
       style={{ fontFamily: readingFontFamily, fontSize, lineHeight }}
       onPointerMove={handlePointerMove}
-      onPointerLeave={() => { if (markerTooltip) setMarkerTooltip(null); }}
+      onPointerLeave={handlePointerLeave}
     >
       <BlockList
         blocks={blocks}

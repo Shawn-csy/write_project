@@ -10,6 +10,7 @@ import { resolveReadingFontStack } from './utils';
 import { ColumnsPresentationRenderer } from './ColumnsPresentationRenderer';
 import { TimelinePresentationRenderer } from './TimelinePresentationRenderer';
 import { LinearPresentationRenderer } from './LinearPresentationRenderer';
+import { useMarkerTooltip } from '../useMarkerTooltip';
 
 const MOBILE_QUERY = '(max-width: 767px)';
 
@@ -58,6 +59,9 @@ export const ScriptPresentationRenderer = ({
   mode = 'auto',
 }: ScriptPresentationRendererProps): React.JSX.Element => {
   const readingFontStack = resolveReadingFontStack(readingFontFamily);
+  const { markerTooltip, markerTooltipStyle, handlePointerMove, handlePointerLeave } =
+    useMarkerTooltip(markerConfigs, markerTooltipPrefix);
+
   const isMobileViewport = useSyncExternalStore(
     subscribeToMobileViewport,
     getMobileViewportSnapshot,
@@ -84,38 +88,31 @@ export const ScriptPresentationRenderer = ({
     ? (isMobileViewport ? 'linear' : orchestrated.layoutConfig.renderMode)
     : mode;
 
+  let content: React.JSX.Element;
   if (renderMode === 'linear') {
-    return (
-      <div style={{ fontFamily: readingFontStack }}>
-        <LinearPresentationRenderer
-          doc={orchestrated}
-          fontSize={fontSize}
-          lineHeight={lineHeight}
-          markerConfigs={markerConfigs}
-          hiddenMarkerIds={hiddenMarkerIds}
-          markerTooltipPrefix={markerTooltipPrefix}
-        />
-      </div>
+    content = (
+      <LinearPresentationRenderer
+        doc={orchestrated}
+        fontSize={fontSize}
+        lineHeight={lineHeight}
+        markerConfigs={markerConfigs}
+        hiddenMarkerIds={hiddenMarkerIds}
+        markerTooltipPrefix={markerTooltipPrefix}
+      />
     );
-  }
-
-  if (renderMode === 'timeline') {
-    return (
-      <div style={{ fontFamily: readingFontStack }}>
-        <TimelinePresentationRenderer
-          doc={orchestrated}
-          fontSize={fontSize}
-          lineHeight={lineHeight}
-          markerConfigs={markerConfigs}
-          hiddenMarkerIds={hiddenMarkerIds}
-          markerTooltipPrefix={markerTooltipPrefix}
-        />
-      </div>
+  } else if (renderMode === 'timeline') {
+    content = (
+      <TimelinePresentationRenderer
+        doc={orchestrated}
+        fontSize={fontSize}
+        lineHeight={lineHeight}
+        markerConfigs={markerConfigs}
+        hiddenMarkerIds={hiddenMarkerIds}
+        markerTooltipPrefix={markerTooltipPrefix}
+      />
     );
-  }
-
-  return (
-    <div style={{ fontFamily: readingFontStack }}>
+  } else {
+    content = (
       <ColumnsPresentationRenderer
         doc={orchestrated}
         fontSize={fontSize}
@@ -124,6 +121,24 @@ export const ScriptPresentationRenderer = ({
         hiddenMarkerIds={hiddenMarkerIds}
         markerTooltipPrefix={markerTooltipPrefix}
       />
+    );
+  }
+
+  return (
+    <div
+      style={{ fontFamily: readingFontStack }}
+      onPointerMove={handlePointerMove}
+      onPointerLeave={handlePointerLeave}
+    >
+      {content}
+      {markerTooltip && (
+        <div
+          className="fixed z-[80] pointer-events-none rounded-md border border-border/60 bg-popover/95 px-2 py-1 text-xs text-popover-foreground shadow-lg backdrop-blur-sm"
+          style={markerTooltipStyle || undefined}
+        >
+          {markerTooltip.text}
+        </div>
+      )}
     </div>
   );
 };

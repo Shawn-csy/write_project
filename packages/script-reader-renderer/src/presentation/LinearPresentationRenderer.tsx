@@ -87,7 +87,6 @@ export const LinearPresentationRenderer = ({
         const mStyle = mCfg?.style && typeof mCfg.style === 'object' ? mCfg.style as React.CSSProperties : undefined;
         const markerLabel = String(mCfg?.label || mCfg?.name || mCfg?.id || event.markerId || '').trim();
         const showTrackBadge = shouldShowTrackBadge(track, event);
-
         return (
           <div
             key={event.id}
