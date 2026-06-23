@@ -156,7 +156,6 @@ Shared between public topbars and reader:
 - `PublicAppearancePreferences` model and `public-reader:appearance` key;
 - `PublicAppearanceContext` runtime state;
 - `writeAppearancePreferences` + `APPEARANCE_CHANGE_EVENT` event protocol;
-- migration path from old keys;
 - 44px minimum hit target contract for all icon buttons.
 
 Not shared (reader toolbar owns these independently):
@@ -180,6 +179,7 @@ Recommended shape:
 ```ts
 interface PublicAppearancePreferences {
   theme: "system" | "light" | "dark";
+  siteTextScale: "compact" | "default" | "comfortable" | "large";
   readerFontFamily: "sans" | "serif" | "mono";
   readerFontSize: number;
   readerLineHeight: number;
@@ -192,16 +192,19 @@ Recommended storage key:
 public-reader:appearance
 ```
 
-Compatibility sources that may need migration:
+Compatibility policy:
 
-- `screenplay-reader-theme`
-- `public-reader:reader:preferences`
+- no legacy preference keys are supported;
+- no migration path is provided;
+- `screenplay-reader-theme` must not be read;
+- `public-reader:reader:preferences` must not be read;
+- missing or malformed `public-reader:appearance` fields resolve to
+  `DEFAULT_APPEARANCE`.
 
-Migration rules:
+Storage rules:
 
-- read old keys after mount only;
-- write the new key only after a user-triggered or post-migration state
-  resolution;
+- read only `public-reader:appearance`;
+- write only `public-reader:appearance`;
 - do not overwrite stored preferences with defaults during first render;
 - invalid stored values must be ignored field-by-field.
 
@@ -303,13 +306,14 @@ the sole `document.documentElement` theme writer.
 ### Phase 4 — Shared Appearance Preferences ✅
 
 - Defined `PublicAppearancePreferences` model in `apps/public/lib/publicAppearancePreferences.ts`.
-- Storage key `public-reader:appearance`; migration from `screenplay-reader-theme`
-  and `public-reader:reader:preferences`.
+- Storage key `public-reader:appearance`; this is the only supported preference source.
+- Legacy keys are intentionally ignored. There is no backwards-compatibility path
+  for `screenplay-reader-theme` or `public-reader:reader:preferences`.
 - `PublicAppearanceContext` + `PublicAppearanceProvider` own runtime state.
 - `ThemeProvider` wraps provider; proxies `useTheme()` to context.
 - Blocking inline script in `layout.tsx` reads new key with field-by-field
-  validation, falls back to old theme key.
-- Tests: migration, invalid values, no first-render overwrite (13 tests).
+  validation only.
+- Tests: new-key parsing, invalid values, no first-render overwrite.
 
 ### Phase 5 — Reader Display Controls + Sync ✅
 
@@ -357,4 +361,4 @@ Browser QA checklist:
   preferences panel) immediately updates `PublicAppearanceContext` via
   `APPEARANCE_CHANGE_EVENT` — no page reload required.
 - `ThemeProvider` is the sole writer to `document.documentElement.classList`.
-- Tests cover component contracts, migration behavior, and event sync protocol.
+- Tests cover component contracts, new-key validation, and event sync protocol.

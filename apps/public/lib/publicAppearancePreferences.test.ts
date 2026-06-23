@@ -1,15 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
-  migrateAppearancePreferences,
   readAppearancePreferences,
   writeAppearancePreferences,
   DEFAULT_APPEARANCE,
   APPEARANCE_STORAGE_KEY,
   APPEARANCE_CHANGE_EVENT,
+  VALID_SITE_TEXT_SCALES,
 } from "./publicAppearancePreferences";
-
-const OLD_THEME_KEY = "screenplay-reader-theme";
-const OLD_READER_PREFS_KEY = "public-reader:reader:preferences";
 
 function store(key: string, value: unknown) {
   localStorage.setItem(key, typeof value === "string" ? value : JSON.stringify(value));
@@ -29,6 +26,16 @@ describe("readAppearancePreferences", () => {
     expect(prefs.readerFontFamily).toBe("serif");
   });
 
+  it("reads valid siteTextScale", () => {
+    store(APPEARANCE_STORAGE_KEY, { siteTextScale: "comfortable" });
+    expect(readAppearancePreferences().siteTextScale).toBe("comfortable");
+  });
+
+  it("ignores invalid siteTextScale", () => {
+    store(APPEARANCE_STORAGE_KEY, { siteTextScale: "huge" });
+    expect(readAppearancePreferences().siteTextScale).toBeUndefined();
+  });
+
   it("ignores invalid theme value", () => {
     store(APPEARANCE_STORAGE_KEY, { theme: "neon" });
     expect(readAppearancePreferences().theme).toBeUndefined();
@@ -42,6 +49,19 @@ describe("readAppearancePreferences", () => {
   it("ignores negative fontSize", () => {
     store(APPEARANCE_STORAGE_KEY, { readerFontSize: -1 });
     expect(readAppearancePreferences().readerFontSize).toBeUndefined();
+  });
+});
+
+describe("VALID_SITE_TEXT_SCALES", () => {
+  it("contains all four scale values", () => {
+    expect(VALID_SITE_TEXT_SCALES.has("compact")).toBe(true);
+    expect(VALID_SITE_TEXT_SCALES.has("default")).toBe(true);
+    expect(VALID_SITE_TEXT_SCALES.has("comfortable")).toBe(true);
+    expect(VALID_SITE_TEXT_SCALES.has("large")).toBe(true);
+  });
+
+  it("DEFAULT_APPEARANCE.siteTextScale is 'default'", () => {
+    expect(DEFAULT_APPEARANCE.siteTextScale).toBe("default");
   });
 });
 
@@ -60,57 +80,5 @@ describe("writeAppearancePreferences", () => {
     window.removeEventListener(APPEARANCE_CHANGE_EVENT, listener);
     expect(listener).toHaveBeenCalledOnce();
     expect((listener.mock.calls[0][0] as CustomEvent).detail).toMatchObject({ theme: "dark" });
-  });
-});
-
-describe("migrateAppearancePreferences", () => {
-  it("no old keys → returns empty, writes nothing", () => {
-    const result = migrateAppearancePreferences();
-    expect(result).toEqual({});
-    expect(localStorage.getItem(APPEARANCE_STORAGE_KEY)).toBeNull();
-  });
-
-  it("migrates old theme key", () => {
-    store(OLD_THEME_KEY, "dark");
-    const result = migrateAppearancePreferences();
-    expect(result.theme).toBe("dark");
-    expect(JSON.parse(localStorage.getItem(APPEARANCE_STORAGE_KEY)!).theme).toBe("dark");
-  });
-
-  it("migrates reader preferences (fontFamily, fontSize, lineHeight)", () => {
-    store(OLD_READER_PREFS_KEY, { fontFamily: "serif", fontSize: 18, lineHeight: 2.0 });
-    const result = migrateAppearancePreferences();
-    expect(result.readerFontFamily).toBe("serif");
-    expect(result.readerFontSize).toBe(18);
-    expect(result.readerLineHeight).toBe(2.0);
-  });
-
-  it("old reader prefs theme wins over old theme key", () => {
-    store(OLD_THEME_KEY, "light");
-    store(OLD_READER_PREFS_KEY, { theme: "dark" });
-    const result = migrateAppearancePreferences();
-    expect(result.theme).toBe("dark");
-  });
-
-  it("does not overwrite existing new key", () => {
-    store(APPEARANCE_STORAGE_KEY, { ...DEFAULT_APPEARANCE, theme: "light" });
-    store(OLD_THEME_KEY, "dark");
-    const result = migrateAppearancePreferences();
-    // new key already present → skip migration, trust existing
-    expect(result.theme).toBe("light");
-    expect(JSON.parse(localStorage.getItem(APPEARANCE_STORAGE_KEY)!).theme).toBe("light");
-  });
-
-  it("ignores invalid values in old reader prefs", () => {
-    store(OLD_READER_PREFS_KEY, { theme: "neon", fontFamily: "wingdings" });
-    const result = migrateAppearancePreferences();
-    expect(result.theme).toBeUndefined();
-    expect(result.readerFontFamily).toBeUndefined();
-  });
-
-  it("does not write new key when old prefs are all invalid", () => {
-    store(OLD_READER_PREFS_KEY, { theme: "neon" });
-    migrateAppearancePreferences();
-    expect(localStorage.getItem(APPEARANCE_STORAGE_KEY)).toBeNull();
   });
 });

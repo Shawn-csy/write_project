@@ -14,6 +14,7 @@
 - `docs/product/script-import-pipeline.md`：匯入與解析流程
 - `docs/frontend-boundaries.md`：Next public、Vite editor、shared packages 的長期前端邊界與退場規則
 - `docs/public-homepage-architecture.md`：Next public homepage 的長期架構、URL state、資料契約與 parity 計畫
+- `docs/public-homepage-appearance-layout-architecture.md`：首頁外觀字級 design token 與桌面篩選 sidebar 收合架構
 - `docs/seo-homepage-audit-2026-06-17.md`：首頁 SEO 與分享預覽圖問題稽核
 - `docs/seo-homepage-improvement-plan-2026-06-17.md`：首頁 SEO 改善執行計劃
 

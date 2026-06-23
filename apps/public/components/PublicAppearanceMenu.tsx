@@ -3,12 +3,19 @@
 import * as Popover from "@radix-ui/react-popover";
 import { Sun, Moon, Monitor, SlidersHorizontal } from "lucide-react";
 import { usePublicAppearance } from "@/components/PublicAppearanceContext";
-import type { AppearanceTheme, ReaderFontFamily } from "@/lib/publicAppearancePreferences";
+import type { AppearanceTheme, ReaderFontFamily, SiteTextScale } from "@/lib/publicAppearancePreferences";
 
 const THEME_OPTIONS: { value: AppearanceTheme; label: string; Icon: React.FC<{ className?: string }> }[] = [
   { value: "light",  label: "亮色",    Icon: Sun },
   { value: "dark",   label: "暗色",    Icon: Moon },
   { value: "system", label: "跟隨系統", Icon: Monitor },
+];
+
+const SITE_TEXT_SCALE_OPTIONS: { value: SiteTextScale; label: string }[] = [
+  { value: "compact",     label: "精簡" },
+  { value: "default",     label: "標準" },
+  { value: "comfortable", label: "舒適" },
+  { value: "large",       label: "大字" },
 ];
 
 const FONT_FAMILY_OPTIONS: { value: ReaderFontFamily; label: string }[] = [
@@ -31,7 +38,7 @@ const segBtnActive = "bg-primary text-primary-foreground";
 const segBtnInactive = "text-muted-foreground hover:text-foreground hover:bg-muted";
 
 export function PublicAppearanceMenu() {
-  const { prefs, setTheme, setReaderFontFamily, setReaderFontSize, setReaderLineHeight } = usePublicAppearance();
+  const { prefs, setTheme, setSiteTextScale, setReaderFontFamily, setReaderFontSize, setReaderLineHeight } = usePublicAppearance();
 
   return (
     <Popover.Root>
@@ -71,10 +78,32 @@ export function PublicAppearanceMenu() {
             </div>
           </section>
 
-          {/* Font family */}
+          {/* Site text scale */}
           <section>
-            <p className={sectionHeadingClass}>字體</p>
-            <div className="flex gap-1 rounded-lg bg-muted p-1" role="group" aria-label="字體">
+            <p className={sectionHeadingClass}>首頁文字</p>
+            <div className="flex gap-1 rounded-lg bg-muted p-1" role="group" aria-label="首頁文字">
+              {SITE_TEXT_SCALE_OPTIONS.map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={prefs.siteTextScale === value}
+                  onClick={() => setSiteTextScale(value)}
+                  className={`${segBtnBase} ${prefs.siteTextScale === value ? segBtnActive : segBtnInactive}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <hr className="border-border/40" />
+
+          {/* Reader typography */}
+          <p className={sectionHeadingClass}>閱讀器文字</p>
+
+          <section>
+            <p className="mb-1.5 text-xs text-muted-foreground">字體</p>
+            <div className="flex gap-1 rounded-lg bg-muted p-1" role="group" aria-label="閱讀器字體">
               {FONT_FAMILY_OPTIONS.map(({ value, label }) => (
                 <button
                   key={value}
@@ -89,10 +118,9 @@ export function PublicAppearanceMenu() {
             </div>
           </section>
 
-          {/* Font size */}
           <section>
-            <p className={sectionHeadingClass}>字級</p>
-            <div className="flex gap-1 rounded-lg bg-muted p-1" role="group" aria-label="字級">
+            <p className="mb-1.5 text-xs text-muted-foreground">字級</p>
+            <div className="flex gap-1 rounded-lg bg-muted p-1" role="group" aria-label="閱讀器字級">
               {FONT_SIZE_OPTIONS.map((size) => (
                 <button
                   key={size}
@@ -107,10 +135,9 @@ export function PublicAppearanceMenu() {
             </div>
           </section>
 
-          {/* Line height */}
           <section>
-            <p className={sectionHeadingClass}>行距</p>
-            <div className="flex gap-1 rounded-lg bg-muted p-1" role="group" aria-label="行距">
+            <p className="mb-1.5 text-xs text-muted-foreground">行距</p>
+            <div className="flex gap-1 rounded-lg bg-muted p-1" role="group" aria-label="閱讀器行距">
               {LINE_HEIGHT_OPTIONS.map(({ value, label }) => (
                 <button
                   key={value}

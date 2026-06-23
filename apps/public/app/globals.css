@@ -63,6 +63,41 @@
     --paper-shadow: rgba(0, 0, 0, 0.4);
   }
 
+  /* Public site typography scale tokens — consumed by gallery and public page components.
+     Controlled by data-public-text-scale on <html>; default values apply when attribute absent. */
+  :root,
+  [data-public-text-scale="default"] {
+    --public-font-caption: 0.75rem;      /* 12px */
+    --public-font-meta: 0.8125rem;       /* 13px */
+    --public-font-body: 0.875rem;        /* 14px */
+    --public-font-card-title: 0.9375rem; /* 15px */
+    --public-line-body: 1.55;
+  }
+
+  [data-public-text-scale="compact"] {
+    --public-font-caption: 0.6875rem;    /* 11px */
+    --public-font-meta: 0.75rem;         /* 12px */
+    --public-font-body: 0.8125rem;       /* 13px */
+    --public-font-card-title: 0.875rem;  /* 14px */
+    --public-line-body: 1.45;
+  }
+
+  [data-public-text-scale="comfortable"] {
+    --public-font-caption: 0.8125rem;    /* 13px */
+    --public-font-meta: 0.875rem;        /* 14px */
+    --public-font-body: 0.9375rem;       /* 15px */
+    --public-font-card-title: 1rem;      /* 16px */
+    --public-line-body: 1.65;
+  }
+
+  [data-public-text-scale="large"] {
+    --public-font-caption: 0.875rem;     /* 14px */
+    --public-font-meta: 0.9375rem;       /* 15px */
+    --public-font-body: 1rem;            /* 16px */
+    --public-font-card-title: 1.0625rem; /* 17px */
+    --public-line-body: 1.7;
+  }
+
   * {
     @apply border-border;
   }

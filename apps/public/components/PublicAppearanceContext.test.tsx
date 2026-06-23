@@ -8,7 +8,10 @@ import {
   APPEARANCE_STORAGE_KEY,
 } from "@/lib/publicAppearancePreferences";
 
-beforeEach(() => localStorage.clear());
+beforeEach(() => {
+  localStorage.clear();
+  delete document.documentElement.dataset.publicTextScale;
+});
 
 function Probe() {
   const { prefs } = usePublicAppearance();
@@ -83,6 +86,31 @@ describe("PublicAppearanceProvider", () => {
 
     expect(screen.getByTestId("probe").dataset.fontFamily).toBe("serif");
     expect(screen.getByTestId("probe").dataset.lineHeight).toBe("2");
+  });
+
+  it("sets data-public-text-scale on documentElement on mount", () => {
+    localStorage.setItem(
+      APPEARANCE_STORAGE_KEY,
+      JSON.stringify({ ...DEFAULT_APPEARANCE, siteTextScale: "comfortable" })
+    );
+    render(
+      <PublicAppearanceProvider onThemeChange={vi.fn()}>
+        <Probe />
+      </PublicAppearanceProvider>
+    );
+    expect(document.documentElement.dataset.publicTextScale).toBe("comfortable");
+  });
+
+  it("updates data-public-text-scale when APPEARANCE_CHANGE_EVENT fires", () => {
+    render(
+      <PublicAppearanceProvider onThemeChange={vi.fn()}>
+        <Probe />
+      </PublicAppearanceProvider>
+    );
+    act(() => {
+      writeAppearancePreferences({ ...DEFAULT_APPEARANCE, siteTextScale: "large" });
+    });
+    expect(document.documentElement.dataset.publicTextScale).toBe("large");
   });
 
   it("setTheme updates prefs and calls onThemeChange", () => {
