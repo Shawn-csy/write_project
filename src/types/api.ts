@@ -50,6 +50,12 @@ export interface BaseScriptApi {
   markerTheme?: { configs?: MarkerConfig[] };
   customMetadata?: Array<{ key?: string; value?: string; type?: string }>;
   tags?: Array<{ id?: string; name: string }>;
+  targetAudience?: string | null;
+  contentRating?: string | null;
+  license?: string | null;
+  licenseSpecialTerms?: string | null;
+  authorDisplayMode?: string | null;
+  authorOverrideName?: string | null;
   views?: number;
   likes?: number;
   seriesId?: string | null;
@@ -312,6 +318,12 @@ export interface ScriptMetadataUpdatePayload {
   licenseCommercial?: string;
   licenseDerivative?: string;
   licenseNotify?: string;
+  targetAudience?: string | null;
+  contentRating?: string | null;
+  license?: string | null;
+  licenseSpecialTerms?: string | null;
+  authorDisplayMode?: string | null;
+  authorOverrideName?: string | null;
   customMetadata?: Array<Record<string, unknown>>;
   tags?: Array<string | TagLike>;
 }

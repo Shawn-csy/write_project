@@ -117,13 +117,6 @@ def _has_public_script_for_persona(db: Session, persona_id: str) -> bool:
     return any(_is_publicly_visible_script(db, script) for script in scripts)
 
 
-def _has_public_script_for_user_fallback(db: Session, user_id: str) -> bool:
-    scripts = db.query(models.Script).filter(
-        models.Script.ownerId == user_id,
-        models.Script.personaId.is_(None),
-    ).all()
-    return any(_is_publicly_visible_script(db, script) for script in scripts)
-
 
 def _has_public_script_for_organization(db: Session, org_id: str) -> bool:
     scripts = db.query(models.Script).filter(models.Script.organizationId == org_id).all()
@@ -160,33 +153,6 @@ def sanitize_public_script(script: models.Script):
             pass
     return script
 
-
-# Helper to convert User to PersonaPublic
-def user_to_persona_public(user: models.User, db: Session) -> schemas.PersonaPublic:
-    # Get Organization if any
-    orgs = []
-    org_ids = crud.list_user_org_ids(db, user.id)
-    if org_ids:
-        org_map = _get_public_org_map(db, org_ids)
-        for org_id in org_ids:
-            org = org_map.get(org_id)
-            if org:
-                orgs.append(org)
-    
-    return schemas.PersonaPublic(
-        id=user.id,
-        ownerId=user.id,
-        displayName=user.displayName or user.handle or "Anonymous",
-        bio=user.bio or "",
-        avatar=user.avatar or "",
-        avatarCrop=user.avatarCrop,
-        website=user.website or "",
-        organizationIds=org_ids,
-        tags=[], # Users don't have tags
-        createdAt=user.createdAt,
-        updatedAt=user.lastLogin, # Use lastLogin as proxy for update
-        organizations=orgs
-    )
 
 
 @router.get("/public-terms-config")
@@ -379,13 +345,6 @@ def get_public_persona(persona_id: str, db: Session = Depends(get_db)):
         result.organizations = orgs
         return result
     
-    # 2. Try User
-    user = db.query(models.User).filter(models.User.id == persona_id).first()
-    if user:
-        if not _has_public_script_for_user_fallback(db, user.id):
-            raise HTTPException(status_code=404, detail="Author not found")
-        return user_to_persona_public(user, db)
-
     raise HTTPException(status_code=404, detail="Author not found")
 
 @router.get("/public-personas", response_model=List[schemas.PersonaPublic])

@@ -25,8 +25,8 @@ def test_seo_tags(client):
             assert response.status_code == 200
             content = response.text
             
-            assert "<title>SEO Script｜Screenplay Reader</title>" in content
-            assert 'content="SEO Script｜Screenplay Reader"' in content  # og:title includes site name
+            assert "<title>SEO Script｜泛用型產品作坊</title>" in content
+            assert 'content="SEO Script｜泛用型產品作坊"' in content  # og:title includes site name
             assert "SEO Script" in content  # title appears somewhere in head
             assert 'content="Great content here"' in content  # description
 

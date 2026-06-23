@@ -57,6 +57,55 @@ describe("fromApiToDraft — structured content fields", () => {
     expect(draft.synopsis).toBe("新簡介");
     expect(draft.activityName).toBe("新活動");
   });
+
+  it("reads public metadata from canonical fields and ignores legacy customMetadata", () => {
+    const draft = fromApiToDraft({
+      id: "s-public-1",
+      title: "T",
+      author: "Badge Author",
+      authorDisplayMode: "override",
+      authorOverrideName: "Canonical Author",
+      targetAudience: "全性向",
+      contentRating: "全年齡向",
+      licenseSpecialTerms: JSON.stringify(["canonical term"]),
+      customMetadata: [
+        { key: "Author", value: "legacy author" },
+        { key: "AuthorDisplayMode", value: "badge" },
+        { key: "TargetAudience", value: "男性向" },
+        { key: "ContentRating", value: "成人向" },
+        { key: "LicenseSpecialTerms", value: JSON.stringify(["legacy term"]) },
+      ],
+      tags: [{ id: "tag-1", name: "成人向" }],
+    });
+
+    expect(draft.author).toBe("Canonical Author");
+    expect(draft.authorDisplayMode).toBe("override");
+    expect(draft.targetAudience).toBe("全性向");
+    expect(draft.contentRating).toBe("全年齡向");
+    expect(draft.licenseSpecialTerms).toEqual(["canonical term"]);
+  });
+
+  it("does not hydrate public metadata from tags or legacy customMetadata when canonical fields are empty", () => {
+    const draft = fromApiToDraft({
+      id: "s-public-2",
+      title: "T",
+      customMetadata: [
+        { key: "Author", value: "legacy author" },
+        { key: "AuthorDisplayMode", value: "override" },
+        { key: "LicenseSpecialTerms", value: JSON.stringify(["legacy term"]) },
+      ],
+      tags: [
+        { id: "tag-1", name: "成人向" },
+        { id: "tag-2", name: "女性向" },
+      ],
+    });
+
+    expect(draft.author).toBe("");
+    expect(draft.authorDisplayMode).toBe("badge");
+    expect(draft.targetAudience).toBe("");
+    expect(draft.contentRating).toBe("");
+    expect(draft.licenseSpecialTerms).toEqual([]);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -176,6 +225,45 @@ describe("fromDraftToPayload — structured content fields in payload", () => {
     expect(payload.activityWorkUrl).toBe("https://example.com/work");
     expect(typeof payload.activityDemoLinks).toBe("string");
     expect(JSON.parse(payload.activityDemoLinks as string)[0].url).toBe("https://example.com/a");
+  });
+
+  it("includes public metadata as top-level canonical payload fields", () => {
+    const draft = {
+      ...emptyDraft(),
+      title: "T",
+      author: "公開筆名",
+      authorDisplayMode: "override",
+      targetAudience: "全性向",
+      contentRating: "全年齡向",
+      licenseSpecialTerms: ["署名", "非商用"],
+    };
+    const payload = fromDraftToPayload(draft);
+    expect(payload.author).toBe("公開筆名");
+    expect(payload.authorDisplayMode).toBe("override");
+    expect(payload.authorOverrideName).toBe("公開筆名");
+    expect(payload.targetAudience).toBe("全性向");
+    expect(payload.contentRating).toBe("全年齡向");
+    expect(payload.licenseSpecialTerms).toBe(JSON.stringify(["署名", "非商用"]));
+  });
+
+  it("omits public metadata legacy keys from customMetadata", () => {
+    const draft = {
+      ...emptyDraft(),
+      title: "T",
+      author: "公開筆名",
+      authorDisplayMode: "override",
+      targetAudience: "全性向",
+      contentRating: "全年齡向",
+      licenseSpecialTerms: ["署名"],
+    };
+    const payload = fromDraftToPayload(draft);
+    const metaKeys = (payload.customMetadata || []).map((e) => String(e.key || "").toLowerCase());
+    expect(metaKeys).not.toContain("author");
+    expect(metaKeys).not.toContain("authors");
+    expect(metaKeys).not.toContain("authordisplaymode");
+    expect(metaKeys).not.toContain("targetaudience");
+    expect(metaKeys).not.toContain("contentrating");
+    expect(metaKeys).not.toContain("licensespecialterms");
   });
 
   it("omits ActivityContent/ActivityDemoLinks/ActivityDemoUrl/ActivityWorkUrl from customMetadata (E6)", () => {
