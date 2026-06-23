@@ -103,6 +103,9 @@ export type {
   ChapterNavModel,
 } from "./gallery/seriesModel";
 
+export { GalleryHoverPreviewProvider, useGalleryHoverPreview, clampPreviewPosition } from "./gallery/GalleryHoverPreview";
+export type { PreviewData } from "./gallery/GalleryHoverPreview";
+
 export { SeriesGalleryCard } from "./gallery/SeriesGalleryCard";
 export type { SeriesGalleryCardProps } from "./gallery/SeriesGalleryCard";
 

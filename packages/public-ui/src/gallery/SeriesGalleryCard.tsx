@@ -5,6 +5,7 @@ import { CoverRenderer } from "../cover/CoverRenderer";
 import { getMediaCropStyle } from "@write/media-crop";
 import type { PublicSeriesGroup } from "./seriesModel";
 import { normalizeCardText, normalizeOutlineText, truncateCardText } from "./cardText";
+import { useGalleryHoverPreview } from "./GalleryHoverPreview";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -50,6 +51,24 @@ function SeriesGalleryCardInner({
   const leadOutline = normalizeOutlineText(leadScript?._hoverOutline || leadScript?.outline || "");
   const cardSummary = truncateCardText(summary || leadSummary);
 
+  const authorName =
+    typeof leadScript.author === "object"
+      ? leadScript.author?.displayName
+      : leadScript.author;
+
+  const hoverCtx = useGalleryHoverPreview();
+  const previewData = leadOutline ? { title: name, author: authorName, outline: leadOutline } : null;
+  const hoverPreviewProps: React.HTMLAttributes<HTMLElement> = previewData && hoverCtx ? {
+    onMouseEnter: (e) => hoverCtx.show(previewData, e.clientX, e.clientY),
+    onMouseMove: (e) => hoverCtx.move(e.clientX, e.clientY),
+    onMouseLeave: () => hoverCtx.hide(),
+    onFocus: (e) => {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      hoverCtx.show(previewData, rect.right + 8, rect.top);
+    },
+    onBlur: () => hoverCtx.hide(),
+  } : {};
+
   const cropCover = getMediaCropStyle(
     String(coverUrl || leadScript?.coverUrl || ""),
     null
@@ -62,11 +81,6 @@ function SeriesGalleryCardInner({
       updatedLabel: formatUpdatedAt(updatedAt),
     };
   }, [scripts.length, latestScript, updatedAt]);
-
-  const authorName =
-    typeof leadScript.author === "object"
-      ? leadScript.author?.displayName
-      : leadScript.author;
 
   const authorEl = authorName ? (
     authorHref ? (
@@ -112,20 +126,11 @@ function SeriesGalleryCardInner({
 
   const ARTICLE_CLASS =
     "group relative rounded-xl border border-transparent bg-transparent px-2 pb-2 pt-1 shadow-none hover:-translate-y-0.5 hover:border-primary/60 hover:bg-muted/25 hover:shadow-md transition-all duration-200";
-  const hoverOutlineEl = leadOutline ? (
-    <div
-      className="pointer-events-none absolute inset-x-2 bottom-2 z-20 hidden rounded-lg border border-border/70 bg-popover/95 p-3 text-left text-xs leading-5 text-popover-foreground opacity-0 shadow-lg backdrop-blur transition-opacity duration-200 group-hover:block group-hover:opacity-100"
-      aria-hidden
-    >
-      <div className="mb-1 text-[10px] font-semibold tracking-wider text-muted-foreground">大綱</div>
-      <p className="max-h-40 overflow-y-auto whitespace-pre-wrap pr-1">{leadOutline}</p>
-    </div>
-  ) : null;
 
   // ── Compact ──
   if (variant === "compact") {
     return (
-      <article className="group relative rounded-xl bg-transparent transition-all duration-200">
+      <article className="group relative rounded-xl bg-transparent transition-all duration-200" {...hoverPreviewProps}>
         <div className="mx-2 my-0.5 flex items-stretch gap-3 rounded-lg pl-0 pr-3 py-2 border-l-[3px] border-l-primary/40 transition-all duration-200 group-hover:border-l-primary group-hover:bg-primary/5">
           {/* Cover stack hint */}
           <div className="w-[40px] shrink-0 ml-3">
@@ -168,14 +173,13 @@ function SeriesGalleryCardInner({
             )}
           </div>
         </div>
-        {hoverOutlineEl}
       </article>
     );
   }
 
   // ── Standard ──
   return (
-    <article className={ARTICLE_CLASS}>
+    <article className={ARTICLE_CLASS} {...hoverPreviewProps}>
       {/* Cover with stack decoration */}
       <div className="relative aspect-[2/3] w-full">
         <div className="absolute inset-0 translate-x-1.5 translate-y-1.5 rounded-lg bg-muted/60 border border-border/30" aria-hidden />
@@ -225,7 +229,6 @@ function SeriesGalleryCardInner({
           )}
         </div>
       </div>
-      {hoverOutlineEl}
     </article>
   );
 }
