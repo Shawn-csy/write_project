@@ -51,6 +51,12 @@ export interface PublicScript {
   persona?: ScriptPersona | null;
   organization?: ScriptOrg | null;
   customMetadata?: Array<{ key?: string; value?: string; [k: string]: unknown }>;
+  targetAudience?: string | null;
+  contentRating?: string | null;
+  license?: string | null;
+  licenseSpecialTerms?: string | null;
+  authorDisplayMode?: string | null;
+  authorOverrideName?: string | null;
   licenseCommercial?: string | null;
   licenseDerivative?: string | null;
   licenseNotify?: string | null;

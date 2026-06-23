@@ -85,22 +85,7 @@ export function deriveSimpleLicenseTags({
   return tags;
 }
 
-// ─── Custom metadata helpers ─────────────────────────────────────────────────
-
-function normKey(key: unknown): string {
-  return String(key || "").trim().toLowerCase().replace(/\s+/g, "");
-}
-
-function customMetadataEntriesToMeta(entries: unknown[]): Record<string, string> {
-  if (!Array.isArray(entries)) return {};
-  const meta: Record<string, string> = {};
-  for (const entry of entries as Array<Record<string, unknown>>) {
-    const key = String(entry?.key || "").trim();
-    if (!key) continue;
-    meta[normKey(key)] = String(entry?.value ?? "");
-  }
-  return meta;
-}
+// ─── License helpers (from structured fields) ──────────────────────────────
 
 function parseBasicLicenseFromMeta(meta: Record<string, unknown> = {}): {
   commercialUse: string;
@@ -121,6 +106,7 @@ export function normalizeSeriesName(value: unknown): string {
 }
 
 export function parseSeriesOrder(value: unknown): number | null {
+  if (value == null) return null;
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed < 0) return null;
   return Math.floor(parsed);
@@ -191,13 +177,17 @@ export interface GalleryScriptInput {
   synopsis?: string | null;
   /** Full outline from advanced metadata. Used for hover detail previews. */
   outline?: string | null;
-  customMetadata?: Array<{ key?: string; value?: string; type?: string }>;
   persona?: Partial<PersonaLike> | null;
   author?: AuthorLike | string | null;
   series?: { name?: string; coverUrl?: string } | null;
   seriesName?: string;
   seriesOrder?: number | null;
-  episode?: number | string;
+  targetAudience?: string | null;
+  contentRating?: string | null;
+  license?: string | null;
+  licenseSpecialTerms?: string | null;
+  authorDisplayMode?: string | null;
+  authorOverrideName?: string | null;
   licenseCommercial?: string;
   licenseDerivative?: string;
   licenseNotify?: string;
@@ -242,14 +232,13 @@ export interface FeaturedSeries {
 // ─── enrichScript ─────────────────────────────────────────────────────────────
 
 export function enrichScript(script: GalleryScriptInput): EnrichedGalleryScript {
-  const meta = customMetadataEntriesToMeta(script.customMetadata || []);
-  const authorOverride = String(meta.author || "").trim();
-  const rawAuthorDisplayMode = String(meta.authordisplaymode || meta.authorDisplayMode || "")
-    .trim()
-    .toLowerCase();
+  // Author override from canonical fields
+  const rawAuthorDisplayMode = String(script.authorDisplayMode || "").trim().toLowerCase();
+  const authorOverride = rawAuthorDisplayMode === "override"
+    ? String(script.authorOverrideName || "").trim()
+    : "";
   const useOverrideAuthor = rawAuthorDisplayMode === "override" && Boolean(authorOverride);
 
-  const basicLicenseFromMeta = parseBasicLicenseFromMeta(meta);
   const personaLicense = parseBasicLicenseFromMeta({
     licensecommercial: script.persona?.defaultLicenseCommercial || "",
     licensederivative: script.persona?.defaultLicenseDerivative || "",
@@ -257,37 +246,24 @@ export function enrichScript(script: GalleryScriptInput): EnrichedGalleryScript 
   });
   const basicLicense = {
     commercialUse:
-      basicLicenseFromMeta.commercialUse ||
       normalizeCommercialChoice(script.licenseCommercial) ||
       personaLicense.commercialUse,
     derivativeUse:
-      basicLicenseFromMeta.derivativeUse ||
       normalizeDerivativeChoice(script.licenseDerivative) ||
       personaLicense.derivativeUse,
     notifyOnModify:
-      basicLicenseFromMeta.notifyOnModify ||
       normalizeNotifyChoice(script.licenseNotify) ||
       personaLicense.notifyOnModify,
   };
 
-  const license = meta.license || meta.licenseName || "";
-  const seriesName = normalizeSeriesName(script.series?.name || meta.series || meta.seriesname);
-  const seriesOrder = parseSeriesOrder(script.seriesOrder ?? meta.seriesorder ?? meta.episode);
-  const cardSummary = String(
-    script.synopsis || meta.synopsis || meta.summary || meta.description || meta.notes || meta["摘要"] || ""
-  ).trim();
-  const hoverOutline = String(
-    script.outline || meta.outline || meta["大綱"] || ""
-  ).trim();
+  const license = String(script.license || "").trim();
+  const seriesName = normalizeSeriesName(script.series?.name);
+  const seriesOrder = parseSeriesOrder(script.seriesOrder);
+  const cardSummary = String(script.synopsis || "").trim();
+  const hoverOutline = String(script.outline || "").trim();
 
-  const terms = parseStringArrayLike(
-    meta.licensespecialterms || meta.licenseSpecialTerms || "",
-    false
-  );
-  const normalizedLicenseTags = parseStringArrayLike(
-    meta.licensetags || meta.licenseTags || [],
-    true
-  );
+  const terms = parseStringArrayLike(script.licenseSpecialTerms || "", false);
+  const normalizedLicenseTags: string[] = [];
   const termsText = terms.join(" ");
   const licenseTags = Array.from(
     new Set([...deriveSimpleLicenseTags(basicLicense), ...normalizedLicenseTags])

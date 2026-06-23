@@ -19,22 +19,22 @@ describe("getScriptDescription", () => {
     expect(getScriptDescription({ ...base, synopsis: long })).toHaveLength(300);
   });
 
-  it("falls back to customMetadata synopsis entry", () => {
+  it("ignores customMetadata synopsis — legacy key no longer read", () => {
     expect(
       getScriptDescription({
         ...base,
         customMetadata: [{ key: "摘要", value: "meta synopsis" }],
       })
-    ).toBe("meta synopsis");
+    ).toBe("公開劇本閱讀頁");
   });
 
-  it("falls back to customMetadata outline entry", () => {
+  it("ignores customMetadata outline — legacy key no longer read", () => {
     expect(
       getScriptDescription({
         ...base,
         customMetadata: [{ key: "outline", value: "outline text" }],
       })
-    ).toBe("outline text");
+    ).toBe("公開劇本閱讀頁");
   });
 
   it("skips <t> marker lines when falling back to content", () => {
@@ -189,20 +189,17 @@ describe("buildScriptOverlayProps — customFields", () => {
 // ---------------------------------------------------------------------------
 
 describe("buildScriptOverlayProps — dedicated fields", () => {
-  it("populates targetAudience from customMetadata", () => {
-    const script: PublicScript = {
-      ...base,
-      customMetadata: [{ key: "targetaudience", value: "成人" }],
-    };
+  it("populates targetAudience from canonical field", () => {
+    const script: PublicScript = { ...base, targetAudience: "成人" };
     expect(buildScriptOverlayProps(script).targetAudience).toBe("成人");
   });
 
-  it("populates targetAudience from 觀眾取向 key", () => {
+  it("ignores customMetadata targetaudience — legacy key no longer read", () => {
     const script: PublicScript = {
       ...base,
       customMetadata: [{ key: "觀眾取向", value: "全年齡" }],
     };
-    expect(buildScriptOverlayProps(script).targetAudience).toBe("全年齡");
+    expect(buildScriptOverlayProps(script).targetAudience).toBe("");
   });
 
   it("populates prefaceItems from outline top-level field", () => {

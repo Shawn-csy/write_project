@@ -197,13 +197,21 @@ describe("buildPublicReaderExportMetadata — activity / demo links", () => {
 });
 
 describe("buildPublicReaderExportMetadata — license special terms", () => {
-  it("licenseSpecialTerms from customMetadata (legacy JSON array) appears in rows", () => {
+  it("licenseSpecialTerms from canonical field (JSON array) appears in rows", () => {
     const meta = buildPublicReaderExportMetadata({
       ...BASE,
-      customMetadata: [{ key: "LicenseSpecialTerms", value: JSON.stringify(["禁止商業配音", "禁止二次改編"]) }],
+      licenseSpecialTerms: JSON.stringify(["禁止商業配音", "禁止二次改編"]),
     });
     expect(meta.rows).toContain("特殊條款：禁止商業配音");
     expect(meta.rows).toContain("特殊條款：禁止二次改編");
+  });
+
+  it("licenseSpecialTerms from customMetadata system key is ignored", () => {
+    const meta = buildPublicReaderExportMetadata({
+      ...BASE,
+      customMetadata: [{ key: "LicenseSpecialTerms", value: JSON.stringify(["禁止商業配音"]) }],
+    });
+    expect(meta.rows).not.toContain("特殊條款：禁止商業配音");
   });
 });
 
@@ -263,13 +271,13 @@ describe("buildPublicReaderExportMetadata — preface fields (Phase 3 fixture)",
     expect(rawKeyRows).toHaveLength(0);
   });
 
-  it("title fallback to customMetadata.Title when top-level title missing", () => {
+  it("title fallback to 'Script' when top-level title missing — customMetadata.Title ignored", () => {
     const meta = buildPublicReaderExportMetadata({
       ...BASE,
       title: "",
       customMetadata: [{ key: "Title", value: "自訂標題" }],
     });
-    expect(meta.title).toBe("自訂標題");
+    expect(meta.title).toBe("Script");
   });
 
   it("metadata-rich fixture — exact preface row output", () => {

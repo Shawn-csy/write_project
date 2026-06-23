@@ -176,14 +176,14 @@ describe("buildPublicReaderPrintSnapshot — dark inline color stripped from bod
 });
 
 describe("buildPublicReaderPrintSnapshot — title fallback", () => {
-  it("customMetadata.Title used when top-level title absent", () => {
+  it("customMetadata.Title ignored — title absent falls back to 'Script'", () => {
     const script: PublicScript = {
       id: "x",
       title: "",
       customMetadata: [{ key: "Title", value: "自訂標題" }],
     };
     const { metadata } = buildPublicReaderPrintSnapshot(script, "");
-    expect(metadata.title).toBe("自訂標題");
+    expect(metadata.title).toBe("Script");
   });
 
   it("top-level title takes precedence over customMetadata.Title", () => {

@@ -17,7 +17,6 @@ function makeScript(overrides: Partial<GalleryScriptInput> = {}): GalleryScriptI
   return {
     id: "s1",
     title: "Test Script",
-    customMetadata: [],
     licenseCommercial: "",
     licenseDerivative: "",
     licenseNotify: "",
@@ -97,14 +96,6 @@ describe("enrichScript – license derivation", () => {
     expect(s._derivedLicenseTags).toContain("授權:修改需告知");
   });
 
-  it("prefers customMetadata license over persona default", () => {
-    const s = enrichScript(makeScript({
-      customMetadata: [{ key: "LicenseCommercial", value: "disallow", type: "text" }],
-      persona: { defaultLicenseCommercial: "allow" },
-    }));
-    expect(s._allowCommercial).toBe(false);
-  });
-
   it("prefers top-level licenseCommercial over persona default", () => {
     const s = enrichScript(makeScript({
       licenseCommercial: "disallow",
@@ -133,12 +124,10 @@ describe("enrichScript – license derivation", () => {
 });
 
 describe("enrichScript – author override", () => {
-  it("uses override author when authordisplaymode=override", () => {
+  it("uses override author when authorDisplayMode=override", () => {
     const s = enrichScript(makeScript({
-      customMetadata: [
-        { key: "author", value: "Override Name", type: "text" },
-        { key: "authorDisplayMode", value: "override", type: "text" },
-      ],
+      authorDisplayMode: "override",
+      authorOverrideName: "Override Name",
       author: { displayName: "Real Author", id: "real" },
     }));
     expect((s.author as { displayName: string }).displayName).toBe("Override Name");
@@ -158,13 +147,6 @@ describe("enrichScript – series", () => {
   it("normalizes series from script.series.name", () => {
     const s = enrichScript(makeScript({ series: { name: "My Series" } }));
     expect(s._seriesName).toBe("My Series");
-  });
-
-  it("normalizes series from customMetadata", () => {
-    const s = enrichScript(makeScript({
-      customMetadata: [{ key: "series", value: "Meta Series", type: "text" }],
-    }));
-    expect(s._seriesName).toBe("Meta Series");
   });
 
   it("parses seriesOrder", () => {
@@ -446,30 +428,13 @@ describe("enrichScript – _cardSummary", () => {
     expect(s._cardSummary).toBe("Short summary");
   });
 
-  it("falls back to customMetadata synopsis", () => {
-    const s = enrichScript(makeScript({
-      customMetadata: [{ key: "synopsis", value: "Meta summary", type: "text" }],
-    }));
-    expect(s._cardSummary).toBe("Meta summary");
-  });
-
-  it("falls back to customMetadata summary", () => {
-    const s = enrichScript(makeScript({
-      customMetadata: [{ key: "summary", value: "Summary text", type: "text" }],
-    }));
-    expect(s._cardSummary).toBe("Summary text");
-  });
-
-  it("is empty string when no synopsis-like field present", () => {
-    const s = enrichScript(makeScript({ customMetadata: [] }));
+  it("is empty string when no synopsis field present", () => {
+    const s = enrichScript(makeScript({}));
     expect(s._cardSummary).toBe("");
   });
 
-  it("synopsis field wins over customMetadata synopsis", () => {
-    const s = enrichScript(makeScript({
-      synopsis: "Top-level wins",
-      customMetadata: [{ key: "synopsis", value: "Meta synopsis", type: "text" }],
-    }));
+  it("uses synopsis field", () => {
+    const s = enrichScript(makeScript({ synopsis: "Top-level wins" }));
     expect(s._cardSummary).toBe("Top-level wins");
   });
 });
@@ -480,31 +445,9 @@ describe("enrichScript – _hoverOutline", () => {
     expect(s._hoverOutline).toBe("Detailed outline");
   });
 
-  it("falls back to customMetadata outline", () => {
-    const s = enrichScript(makeScript({
-      customMetadata: [{ key: "outline", value: "Meta outline", type: "text" }],
-    }));
-    expect(s._hoverOutline).toBe("Meta outline");
-  });
-
-  it("falls back to customMetadata 大綱", () => {
-    const s = enrichScript(makeScript({
-      customMetadata: [{ key: "大綱", value: "大綱 text", type: "text" }],
-    }));
-    expect(s._hoverOutline).toBe("大綱 text");
-  });
-
-  it("is empty string when no outline-like field present", () => {
-    const s = enrichScript(makeScript({ customMetadata: [] }));
+  it("is empty string when no outline field present", () => {
+    const s = enrichScript(makeScript({}));
     expect(s._hoverOutline).toBe("");
-  });
-
-  it("outline field wins over customMetadata outline", () => {
-    const s = enrichScript(makeScript({
-      outline: "Top-level outline",
-      customMetadata: [{ key: "outline", value: "Meta outline", type: "text" }],
-    }));
-    expect(s._hoverOutline).toBe("Top-level outline");
   });
 });
 

@@ -18,7 +18,7 @@ export type {
   CoverAccentShape,
   CoverVarKey,
 } from "./cover/types";
-export { resolveCoverText, migrateLegacySub, COVER_VAR_KEYS } from "./cover/types";
+export { resolveCoverText, COVER_VAR_KEYS } from "./cover/types";
 
 // ── Reader shell ──────────────────────────────────────────────────────────
 export { PublicReaderShell } from "./reader/PublicReaderShell";

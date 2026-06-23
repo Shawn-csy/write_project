@@ -158,6 +158,12 @@ class Script(Base):
     hasPublishIdentity = Column(Boolean, default=False, index=True)
     metadataSeriesName = Column(String, default="")
     publishReadiness = Column(String, default="needs_work", index=True)
+    targetAudience = Column(String, nullable=True)
+    contentRating = Column(String, nullable=True)
+    license = Column(String, nullable=True)
+    licenseSpecialTerms = Column(Text, nullable=True)  # JSON array string
+    authorDisplayMode = Column(String, nullable=True)  # "persona" | "owner" | "override" | ""
+    authorOverrideName = Column(String, nullable=True)
 
     tags = relationship("Tag", secondary="script_tags", back_populates="scripts")
     markerTheme = relationship("MarkerTheme", lazy="joined")

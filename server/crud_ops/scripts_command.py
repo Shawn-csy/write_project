@@ -94,6 +94,12 @@ def create_script(db: Session, script: schemas.ScriptCreate, ownerId: str):
         ("activityContent", script.activityContent),
         ("activityWorkUrl", script.activityWorkUrl),
         ("activityDemoLinks", script.activityDemoLinks),
+        ("targetAudience", script.targetAudience),
+        ("contentRating", script.contentRating),
+        ("license", script.license),
+        ("licenseSpecialTerms", script.licenseSpecialTerms),
+        ("authorDisplayMode", script.authorDisplayMode),
+        ("authorOverrideName", script.authorOverrideName),
     ):
         if _val is not None:
             seed_license[_col] = _val
@@ -147,6 +153,12 @@ def create_script(db: Session, script: schemas.ScriptCreate, ownerId: str):
         activityContent=seed_license.get("activityContent"),
         activityWorkUrl=seed_license.get("activityWorkUrl"),
         activityDemoLinks=seed_license.get("activityDemoLinks"),
+        targetAudience=seed_license.get("targetAudience"),
+        contentRating=seed_license.get("contentRating"),
+        license=seed_license.get("license"),
+        licenseSpecialTerms=seed_license.get("licenseSpecialTerms"),
+        authorDisplayMode=seed_license.get("authorDisplayMode"),
+        authorOverrideName=seed_license.get("authorOverrideName"),
         coverUrl=cover_url,
         coverCrop=cover_crop,
         coverDesign=script.coverDesign,
