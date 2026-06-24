@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { PublicShellActions } from "@/components/PublicShellActions";
 
@@ -97,9 +98,9 @@ export default function HelpPage() {
         </div>
 
         <div className="mt-10 pt-6 border-t border-border flex flex-wrap gap-4 text-sm text-muted-foreground">
-          <a href="/" className="hover:text-foreground underline">← 返回台本列表</a>
-          <a href="/about" className="hover:text-foreground underline">關於我們</a>
-          <a href="/license" className="hover:text-foreground underline">授權說明</a>
+          <Link href="/" className="hover:text-foreground underline">← 返回台本列表</Link>
+          <Link href="/about" className="hover:text-foreground underline">關於我們</Link>
+          <Link href="/license" className="hover:text-foreground underline">授權說明</Link>
         </div>
       </div>
     </div>

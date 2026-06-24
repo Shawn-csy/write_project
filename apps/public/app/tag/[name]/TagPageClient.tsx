@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { PublicScript } from "@/lib/types";
 import { ScriptCard } from "@/components/ScriptCard";
 
@@ -29,12 +30,12 @@ export function TagPageClient({ tagName, scripts }: Props) {
         </div>
 
         <div className="mt-10 pt-6 border-t border-border">
-          <a
+          <Link
             href="/"
             className="text-sm text-muted-foreground hover:text-foreground underline"
           >
             ← 返回台本列表
-          </a>
+          </Link>
         </div>
       </div>
     </main>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo } from "react";
+import Link from "next/link";
 import type { PublicScript } from "@/lib/types";
 import type { AstNode, TocEntry, MarkerConfig } from "@write/script-engine";
 import {
@@ -157,12 +158,12 @@ export function ScriptReaderClient({
               </a>
             </div>
           )}
-          <a
+          <Link
             href="/"
             className="text-sm text-muted-foreground hover:text-foreground underline mt-4 inline-block"
           >
             ← 返回台本列表
-          </a>
+          </Link>
         </footer>
       }
     >

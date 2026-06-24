@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { PublicShellActions } from "@/components/PublicShellActions";
 
@@ -149,9 +150,9 @@ export default function PrivacyPage() {
         </section>
 
         <div className="mt-10 pt-6 border-t border-border">
-          <a href="/" className="text-sm text-muted-foreground hover:text-foreground underline">
+          <Link href="/" className="text-sm text-muted-foreground hover:text-foreground underline">
             ← 返回台本列表
-          </a>
+          </Link>
         </div>
       </div>
     </div>
