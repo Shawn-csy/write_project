@@ -226,6 +226,7 @@ export interface HomepageBannerItem {
   content?: string;
   link?: string;
   imageUrl?: string;
+  imageCrop?: { cx?: number; cy?: number; zoom?: number } | null;
 }
 
 export interface HomepageBanner {

@@ -154,6 +154,7 @@ export const updateHomepageBannerAdmin = async (payload: HomepageBanner = {}): P
         content: String(item?.content || ""),
         link: String(item?.link || ""),
         imageUrl: String(item?.imageUrl || ""),
+        ...(item?.imageCrop != null ? { imageCrop: item.imageCrop } : {}),
       }))
     : [];
   return fetchApi("/admin/homepage-banner", {
