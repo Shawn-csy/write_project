@@ -1,15 +1,14 @@
 import type { NextConfig } from "next";
 import path from "path";
+import { PUBLIC_NEXT_IMAGE_HOST_PATTERNS } from "./lib/publicImageOrigins";
 
-// ── Backend media origin ────────────────────────────────────────────────────
-// BACKEND_API_URL must be available at build time (Dockerfile ARG → ENV) so
-// next/image remotePatterns can whitelist the backend hostname, and at runtime
-// so PublicImage can rewrite /media/ paths to absolute URLs.
-//
-// next/image fetches image sources server-side. Relative /media/ paths resolve
-// to localhost:3000 (the Next.js container itself), which has no media handler.
-// The fix: PublicImage rewrites /media/… to ${BACKEND_API_URL}/media/… and
-// remotePatterns allows that origin. No rewrites() needed.
+// ── Image origins ─────────────────────────────────────────────────────────────
+// 1. Backend /media/ paths: apiFetch resolves them to absolute backend URLs at
+//    the data boundary (server → client). remotePatterns allows the backend
+//    hostname; dangerouslyAllowLocalIP permits Docker-internal private IPs.
+// 2. Known external image origins are allowlisted for next/image. Unknown
+//    user-provided external URLs render through PublicImage's plain <img>
+//    fallback instead of turning the optimizer into an open proxy.
 
 const backendUrl = process.env.BACKEND_API_URL || "http://localhost:1091";
 
@@ -38,20 +37,17 @@ const nextConfig: NextConfig = {
     // private IPs by default; allow them since this is trusted infra.
     dangerouslyAllowLocalIP: true,
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "open-scripts.shawnup.com",
-      },
-      {
-        protocol: "https",
-        hostname: "avatars.githubusercontent.com",
-      },
+      // Backend media (Docker-internal origin)
       {
         protocol: backendPattern.protocol,
         hostname: backendPattern.hostname,
         ...(backendPattern.port && { port: backendPattern.port }),
         pathname: "/media/**",
       },
+      ...PUBLIC_NEXT_IMAGE_HOST_PATTERNS.map((hostname) => ({
+        protocol: "https" as const,
+        hostname,
+      })),
     ],
   },
 };
