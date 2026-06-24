@@ -23,6 +23,12 @@ COPY apps/public/ ./apps/public/
 ARG NEXT_PUBLIC_BASE_URL=https://open-scripts.shawnup.com
 ENV NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
 
+# BACKEND_API_URL must be available at build time so next.config.ts can parse
+# the hostname into images.remotePatterns. It is also set as runtime ENV in
+# docker-compose so PublicImage can rewrite /media/ paths at SSR time.
+ARG BACKEND_API_URL=http://write_project-backend:1091
+ENV BACKEND_API_URL=${BACKEND_API_URL}
+
 # Build the Next.js public app via workspace script
 RUN npm run build:public
 
