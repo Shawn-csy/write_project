@@ -7,6 +7,8 @@ import { ImageCropDialog } from "../ui/ImageCropDialog";
 import { getImageUploadGuide, MEDIA_FILE_ACCEPT, optimizeImageForUpload } from "../../lib/mediaLibrary";
 import { uploadMediaObject } from "../../lib/api/media";
 import { getHomepageBannerAdmin, updateHomepageBannerAdmin } from "../../lib/api/admin";
+import { canApplyPersistentCropRef } from "../../lib/mediaCropRef";
+import type { MediaSelection } from "../ui/MediaPicker";
 
 interface BannerItem {
   id: string;
@@ -14,6 +16,7 @@ interface BannerItem {
   content: string;
   link: string;
   imageUrl: string;
+  imageCrop: { cx?: number; cy?: number; zoom?: number } | null;
 }
 
 interface HomepageBannerResponse {
@@ -25,8 +28,10 @@ interface HomepageBannerResponse {
 }
 
 interface CropSource {
-  file: File;
+  file?: File;
+  url?: string;
   name: string;
+  initialCropRef?: { cx?: number; cy?: number; zoom?: number } | null;
 }
 
 interface ErrorWithMessage {
@@ -56,6 +61,7 @@ export function HomepageBannerSection() {
           content: String(item?.content || ""),
           link: String(item?.link || ""),
           imageUrl: String(item?.imageUrl || ""),
+          imageCrop: item?.imageCrop ?? null,
         })));
       } else {
         const fallback = {
@@ -64,6 +70,7 @@ export function HomepageBannerSection() {
           content: String(payload?.content || ""),
           link: String(payload?.link || ""),
           imageUrl: String(payload?.imageUrl || ""),
+          imageCrop: null,
         };
         setHomepageBannerItems(
           (fallback.title || fallback.content || fallback.link || fallback.imageUrl) ? [fallback] : []
@@ -89,6 +96,7 @@ export function HomepageBannerSection() {
         content: String(item?.content || "").trim(),
         link: String(item?.link || "").trim(),
         imageUrl: String(item?.imageUrl || "").trim(),
+        imageCrop: item?.imageCrop ?? null,
       })).filter((item) => item.title || item.content || item.link || item.imageUrl);
       await updateHomepageBannerAdmin({ items: sanitizedItems });
       const reloaded = await getHomepageBannerAdmin() as HomepageBannerResponse;
@@ -111,11 +119,11 @@ export function HomepageBannerSection() {
   const addHomepageBannerItem = (): void => {
     setHomepageBannerItems((prev: BannerItem[]) => [
       ...prev,
-      { id: `slide-${Date.now()}`, title: "", content: "", link: "", imageUrl: "" },
+      { id: `slide-${Date.now()}`, title: "", content: "", link: "", imageUrl: "", imageCrop: null },
     ]);
   };
 
-  const updateHomepageBannerItem = (index: number, field: keyof BannerItem, value: string): void => {
+  const updateHomepageBannerItem = (index: number, field: keyof BannerItem, value: BannerItem[keyof BannerItem]): void => {
     setHomepageBannerItems((prev: BannerItem[]) => prev.map((item, idx) => (
       idx === index ? { ...item, [field]: value } : item
     )));
@@ -136,6 +144,7 @@ export function HomepageBannerSection() {
       const url = String((uploaded as { url?: string } | null)?.url || "").trim();
       if (!url) throw new Error("上傳成功但沒有取得圖片網址");
       updateHomepageBannerItem(index, "imageUrl", url);
+      updateHomepageBannerItem(index, "imageCrop", null);
     } catch (error: unknown) {
       const typedError = error as ErrorWithMessage;
       setHomepageBannerError(typedError.message || "Banner 圖片上傳失敗");
@@ -213,7 +222,7 @@ export function HomepageBannerSection() {
               <Input placeholder="標題" value={item.title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateHomepageBannerItem(idx, "title", e.target.value)} />
               <Textarea placeholder="內容" value={item.content} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => updateHomepageBannerItem(idx, "content", e.target.value)} rows={3} />
               <Input placeholder="連結（https://...）" value={item.link} onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateHomepageBannerItem(idx, "link", e.target.value)} />
-              <Input placeholder="圖片網址（可手動貼上）" value={item.imageUrl} onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateHomepageBannerItem(idx, "imageUrl", e.target.value)} />
+              <Input placeholder="圖片網址（可手動貼上）" value={item.imageUrl} onChange={(e: React.ChangeEvent<HTMLInputElement>) => { updateHomepageBannerItem(idx, "imageUrl", e.target.value); updateHomepageBannerItem(idx, "imageCrop", null); }} />
               <div className="flex flex-wrap items-center gap-2">
                 <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
                   上傳圖片
@@ -227,6 +236,20 @@ export function HomepageBannerSection() {
                 <Button type="button" variant="secondary" size="sm" onClick={() => setHomepageBannerPickerIndex(idx)}>
                   從媒體庫選擇
                 </Button>
+                {canApplyPersistentCropRef(item.imageUrl) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setHomepageBannerCropIndex(idx);
+                      setHomepageBannerCropSource({ url: item.imageUrl, name: `banner-${idx + 1}`, initialCropRef: item.imageCrop ?? null });
+                      setHomepageBannerCropOpen(true);
+                    }}
+                  >
+                    調整焦點
+                  </Button>
+                )}
               </div>
               <div className="space-y-0.5 text-[11px] text-muted-foreground">
                 <p>{homepageBannerGuide.supported}</p>
@@ -256,9 +279,18 @@ export function HomepageBannerSection() {
       <MediaPicker
         open={homepageBannerPickerIndex !== null}
         onOpenChange={(open) => { if (!open) setHomepageBannerPickerIndex(null); }}
+        cropPurpose="banner"
         onSelect={(url) => {
           if (homepageBannerPickerIndex !== null) {
             updateHomepageBannerItem(homepageBannerPickerIndex, "imageUrl", url);
+            updateHomepageBannerItem(homepageBannerPickerIndex, "imageCrop", null);
+            setHomepageBannerPickerIndex(null);
+          }
+        }}
+        onSelectMedia={(selection: MediaSelection) => {
+          if (homepageBannerPickerIndex !== null) {
+            updateHomepageBannerItem(homepageBannerPickerIndex, "imageUrl", selection.url);
+            updateHomepageBannerItem(homepageBannerPickerIndex, "imageCrop", selection.crop ?? null);
             setHomepageBannerPickerIndex(null);
           }
         }}
@@ -273,6 +305,16 @@ export function HomepageBannerSection() {
           await applyHomepageBannerUpload(homepageBannerCropIndex, croppedFile);
           setHomepageBannerCropIndex(null);
         }}
+        onApplyCropRef={homepageBannerCropSource?.url && homepageBannerCropIndex !== null
+          ? (crop) => {
+              updateHomepageBannerItem(homepageBannerCropIndex!, "imageCrop", crop);
+              setHomepageBannerCropOpen(false);
+              setHomepageBannerCropIndex(null);
+            }
+          : undefined
+        }
+        applyCropRefLabel="套用裁切框"
+        initialCropRef={homepageBannerCropSource?.url ? (homepageBannerCropSource.initialCropRef ?? null) : null}
       />
     </>
   );
