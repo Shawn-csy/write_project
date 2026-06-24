@@ -27,6 +27,7 @@ const PublisherDashboard = lazyWithRefreshRetry(
   "page-studio"
 );
 const SuperAdminPage = lazyWithRefreshRetry(() => import("../pages/SuperAdminPage"), "page-admin");
+const LoginPage = lazyWithRefreshRetry(() => import("../pages/LoginPage"), "page-login");
 
 const routeFallback = <div className="p-8 text-center text-muted-foreground">Loading...</div>;
 
@@ -74,11 +75,20 @@ export function renderWorkspaceRoutes({
   } = scriptManager;
 
   return (
-    <Route
-      path="/*"
-      element={
-        <RequireAuth>
-          <MainLayout
+    <>
+      <Route
+        path="/login"
+        element={
+          <Suspense fallback={routeFallback}>
+            <LoginPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/*"
+        element={
+          <RequireAuth>
+            <MainLayout
             isDesktopSidebarOpen={nav.isDesktopSidebarOpen}
             setIsDesktopSidebarOpen={nav.setIsDesktopSidebarOpen}
             isMobileDrawerOpen={nav.isMobileDrawerOpen}
@@ -229,8 +239,9 @@ export function renderWorkspaceRoutes({
             </main>
             {guideOverlay}
           </MainLayout>
-        </RequireAuth>
-      }
-    />
+          </RequireAuth>
+        }
+      />
+    </>
   );
 }
