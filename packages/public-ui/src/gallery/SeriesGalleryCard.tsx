@@ -125,7 +125,7 @@ function SeriesGalleryCardInner({
   );
 
   const ARTICLE_CLASS =
-    "group relative rounded-xl border border-transparent bg-transparent px-2 pb-2 pt-1 shadow-none hover:-translate-y-0.5 hover:border-primary/60 hover:bg-muted/25 hover:shadow-md transition-all duration-200";
+    "group relative rounded-xl border border-transparent bg-transparent px-2 pb-2 pt-1 shadow-none hover:-translate-y-[3px] hover:border-border hover:bg-card hover:shadow-[0_4px_16px_hsl(var(--foreground)/0.07),0_1px_3px_hsl(var(--foreground)/0.05)] transition-all duration-200";
 
   // ── Compact ──
   if (variant === "compact") {
@@ -184,9 +184,12 @@ function SeriesGalleryCardInner({
       <div className="relative aspect-[2/3] w-full">
         <div className="absolute inset-0 translate-x-1.5 translate-y-1.5 rounded-lg bg-muted/60 border border-border/30" aria-hidden />
         <div className="absolute inset-0 translate-x-0.5 translate-y-0.5 rounded-lg bg-muted/40 border border-border/20" aria-hidden />
-        <div className="absolute inset-0 overflow-hidden rounded-lg bg-muted shadow-sm group-hover:shadow-md transition-shadow">
+        <div
+          className="absolute inset-0 overflow-hidden rounded-lg bg-muted transition-shadow"
+          style={{ boxShadow: "0 1px 4px hsl(var(--foreground)/0.12), 0 0 0 1px hsl(var(--border)/0.6)" }}
+        >
           {coverWrapEl}
-          <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-primary/10 pointer-events-none" aria-hidden />
+          <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-foreground/5 pointer-events-none" aria-hidden />
           {showAgeGate && (
             <>
               <div className="absolute inset-0 bg-red-900/25 pointer-events-none" aria-hidden />

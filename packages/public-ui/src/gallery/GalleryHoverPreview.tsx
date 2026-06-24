@@ -191,21 +191,28 @@ function GalleryHoverPreviewLayer({ preview }: { preview: PreviewState }) {
         pointerEvents: "none",
         zIndex: 50,
         animation: "previewFadeSlide 0.18s ease both",
+        border: "1px solid hsl(var(--border) / 0.7)",
+        background: "hsl(var(--card) / 0.97)",
+        backdropFilter: "blur(16px)",
+        boxShadow: "0 12px 40px hsl(var(--foreground)/0.12), 0 3px 10px hsl(var(--foreground)/0.07), 0 0 0 0.5px hsl(var(--border)/0.5)",
       }}
-      className="overflow-y-auto rounded-xl border border-border/80 bg-popover/95 backdrop-blur-sm p-4 text-popover-foreground shadow-xl shadow-black/10"
+      className="overflow-y-auto rounded-xl p-4 text-popover-foreground"
     >
       {data.title && (
-        <p className="mb-0.5 [font-size:var(--public-font-card-title)] font-bold leading-snug text-foreground">{data.title}</p>
+        <p className="mb-0.5 [font-size:var(--public-font-card-title)] font-bold font-serif leading-snug text-foreground">{data.title}</p>
       )}
       {data.author && (
-        <p className="mb-3 [font-size:var(--public-font-meta)] text-muted-foreground">{data.author}</p>
+        <p className="mb-3 [font-size:var(--public-font-meta)] text-muted-foreground/70">{data.author}</p>
       )}
-      <p className="mb-1.5 [font-size:var(--public-font-caption)] font-semibold tracking-widest uppercase text-muted-foreground/70">
+      <p
+        className="mb-1.5 [font-size:var(--public-font-caption)] font-semibold tracking-[0.14em] uppercase"
+        style={{ color: "hsl(var(--primary) / 0.65)" }}
+      >
         大綱
       </p>
-      <p className="[font-size:var(--public-font-body)] [line-height:var(--public-line-body)] whitespace-pre-wrap">
+      <p className="[font-size:var(--public-font-body)] [line-height:var(--public-line-body)] whitespace-pre-wrap text-foreground/85">
         {displayedOutline}
-        <span className="inline-block w-0.5 h-[1em] bg-foreground/60 ml-px align-middle animate-pulse" aria-hidden />
+        <span className="inline-block w-[1.5px] h-[0.9em] bg-primary/60 ml-px align-middle animate-pulse rounded-full" aria-hidden />
       </p>
     </div>
   );

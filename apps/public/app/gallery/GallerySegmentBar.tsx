@@ -17,8 +17,8 @@ interface GallerySegmentBarProps {
 
 export function GallerySegmentBar({ segment, onSegmentChange }: GallerySegmentBarProps) {
   return (
-    <div className="overflow-x-auto scrollbar-none">
-      <div className="flex items-end gap-0 min-w-max border-b border-border/40">
+    <div className="overflow-x-auto scrollbar-none" style={{ borderBottom: "1px solid hsl(var(--border) / 0.4)" }}>
+      <div className="flex items-end gap-0.5 min-w-max px-0.5 pb-0">
         {SEGMENT_OPTIONS.map((opt) => {
           const active = segment === opt.value;
           return (
@@ -26,15 +26,18 @@ export function GallerySegmentBar({ segment, onSegmentChange }: GallerySegmentBa
               key={opt.value}
               type="button"
               onClick={() => onSegmentChange(opt.value)}
-              className={`relative h-10 shrink-0 px-4 text-sm font-medium transition-colors whitespace-nowrap ${
+              className={`relative h-10 shrink-0 px-3.5 text-[0.8125rem] rounded-t-md transition-all duration-150 whitespace-nowrap ${
                 active
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "text-foreground font-semibold bg-muted/50"
+                  : "text-muted-foreground hover:text-foreground font-normal"
               }`}
             >
               {opt.label}
               {active && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground rounded-full" />
+                <span
+                  className="absolute bottom-0 left-2 right-2 rounded-t-[2px]"
+                  style={{ height: "2px", background: "hsl(var(--primary))" }}
+                />
               )}
             </button>
           );

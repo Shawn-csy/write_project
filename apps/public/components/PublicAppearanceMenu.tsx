@@ -18,10 +18,10 @@ const SITE_TEXT_SCALE_OPTIONS: { value: SiteTextScale; label: string }[] = [
   { value: "large",       label: "大字" },
 ];
 
-const sectionHeadingClass = "mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60";
-const segBtnBase = "flex-1 rounded py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-const segBtnActive = "bg-primary text-primary-foreground";
-const segBtnInactive = "text-muted-foreground hover:text-foreground hover:bg-muted";
+const sectionHeadingClass = "mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/55";
+const segBtnBase = "flex-1 rounded-[5px] py-1.5 text-[0.8rem] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30";
+const segBtnActive = "bg-background text-foreground shadow-sm";
+const segBtnInactive = "text-muted-foreground hover:text-foreground";
 
 export function PublicAppearanceMenu() {
   const { prefs, setTheme, setSiteTextScale } = usePublicAppearance();
@@ -33,7 +33,7 @@ export function PublicAppearanceMenu() {
           type="button"
           aria-label="外觀設定"
           title="外觀設定"
-          className="flex h-11 w-11 items-center justify-center rounded-md border border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-all duration-150"
         >
           <SlidersHorizontal className="h-4 w-4" aria-hidden />
         </button>
@@ -43,12 +43,17 @@ export function PublicAppearanceMenu() {
         <Popover.Content
           align="end"
           sideOffset={6}
-          className="z-[101] w-72 rounded-xl border border-border/60 bg-background p-4 shadow-lg space-y-4 text-sm"
+          className="z-[101] w-72 rounded-xl p-4 space-y-4 text-sm"
+          style={{
+            border: "1px solid hsl(var(--border) / 0.6)",
+            background: "hsl(var(--card))",
+            boxShadow: "0 8px 30px hsl(var(--foreground)/0.1), 0 2px 8px hsl(var(--foreground)/0.06), 0 0 0 0.5px hsl(var(--border)/0.5)",
+          }}
         >
           {/* Theme */}
           <section>
             <p className={sectionHeadingClass}>主題</p>
-            <div className="flex gap-1 rounded-lg bg-muted p-1" role="group" aria-label="主題">
+            <div className="flex gap-0.5 rounded-lg p-0.5 bg-muted" role="group" aria-label="主題">
               {THEME_OPTIONS.map(({ value, label, Icon }) => (
                 <button
                   key={value}
@@ -67,7 +72,7 @@ export function PublicAppearanceMenu() {
           {/* Site text scale */}
           <section>
             <p className={sectionHeadingClass}>首頁文字</p>
-            <div className="flex gap-1 rounded-lg bg-muted p-1" role="group" aria-label="首頁文字">
+            <div className="flex gap-0.5 rounded-lg p-0.5 bg-muted" role="group" aria-label="首頁文字">
               {SITE_TEXT_SCALE_OPTIONS.map(({ value, label }) => (
                 <button
                   key={value}

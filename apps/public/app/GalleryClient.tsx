@@ -83,7 +83,7 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
                 <button
                   type="button"
                   onClick={() => setSidebarCollapsed(true)}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
                   aria-label="收起篩選欄"
                 >
                   <PanelLeftClose className="w-4 h-4" />
@@ -100,7 +100,7 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
             <button
               type="button"
               onClick={() => setSidebarCollapsed(false)}
-              className="inline-flex h-11 w-11 items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
               aria-label="展開篩選欄"
             >
               <PanelLeftOpen className="w-4 h-4" />
@@ -109,7 +109,7 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
               <button
                 type="button"
                 onClick={() => setSidebarCollapsed(false)}
-                className="inline-flex h-11 w-11 flex-col items-center justify-center gap-0.5 rounded text-primary hover:bg-muted/50 transition-colors"
+                className="inline-flex h-9 w-9 flex-col items-center justify-center gap-0.5 rounded-lg text-primary hover:bg-primary/10 transition-colors"
                 aria-label={`已選 ${activeFilterCount} 個篩選`}
               >
                 <SlidersHorizontal className="w-4 h-4" />
@@ -123,7 +123,7 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
         <main className="flex-1 min-w-0">
           {/* Segment + controls bar — scripts view only */}
           {view === "scripts" && (
-            <div className="sticky top-[6.5rem] sm:top-14 z-30 -mx-3 sm:-mx-5 lg:mx-0 mb-4 bg-background/95 backdrop-blur px-3 sm:px-5 lg:px-0">
+            <div className="sticky top-[6.5rem] sm:top-14 z-30 -mx-3 sm:-mx-5 lg:mx-0 mb-4 bg-background/97 backdrop-blur-md px-3 sm:px-5 lg:px-0">
               {/* Segment tabs row */}
               <GallerySegmentBar segment={segment} onSegmentChange={setSegment} />
 
@@ -135,9 +135,12 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
             </div>
           )}
 
-          <p className="text-xs text-muted-foreground mb-4">
+          <p
+            className="mb-4"
+            style={{ fontSize: "0.75rem", color: "hsl(var(--muted-foreground) / 0.7)", letterSpacing: "0.01em" }}
+          >
             {filterPanelProps.searchTerm
-              ? `搜尋「${filterPanelProps.searchTerm}」共 ${resultCount} 筆結果`
+              ? `搜尋「${filterPanelProps.searchTerm}」— ${resultCount} 筆結果`
               : view === "scripts"
               ? `${resultCount} 部公開台本`
               : view === "authors"

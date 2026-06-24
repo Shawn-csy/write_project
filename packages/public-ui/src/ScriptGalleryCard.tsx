@@ -105,7 +105,7 @@ function AuthorBadgeInternal({ author, authorHref, onAuthorClick }: AuthorBadgeI
 
   const nameEl = <span className="font-medium">{displayName || "未知作者"}</span>;
 
-  const baseClass = "flex items-center gap-1.5 [font-size:var(--public-font-meta)] text-muted-foreground transition-colors bg-muted/40 px-2 py-1 rounded-full";
+  const baseClass = "flex items-center gap-1.5 [font-size:var(--public-font-meta)] text-muted-foreground/80 transition-colors";
 
   if (authorHref) {
     return (
@@ -150,7 +150,7 @@ function Tags({ primaryTags, secondaryTags, totalCount, tagHref, onTagClick, com
   if (primaryTags.length === 0) return null;
 
   const renderTag = (tag: string, key: string, hidden?: boolean) => {
-    const cls = `${hidden ? "hidden sm:inline-flex" : ""} max-w-[110px] px-1.5 py-0 h-5 [font-size:var(--public-font-caption)] font-normal border border-primary/20 text-muted-foreground rounded-full truncate`;
+    const cls = `${hidden ? "hidden sm:inline-flex" : ""} max-w-[110px] px-1.5 py-0 h-5 [font-size:var(--public-font-caption)] font-normal text-muted-foreground/80 rounded-[4px] truncate` + " " + "border border-border/40 bg-muted/40";
     if (tagHref) {
       return <a key={key} href={tagHref(tag)} className={`${cls} hover:bg-secondary no-underline`} title={tag}>{tag}</a>;
     }
@@ -365,7 +365,7 @@ function ScriptGalleryCardInner({
     />
   );
 
-  const ARTICLE_CLASS = "group relative rounded-xl border border-transparent bg-transparent px-2 pb-2 pt-1 shadow-none hover:-translate-y-0.5 hover:border-primary/60 hover:bg-muted/25 hover:shadow-md transition-all duration-200";
+  const ARTICLE_CLASS = "group relative rounded-xl border border-transparent bg-transparent px-2 pb-2 pt-1 shadow-none hover:-translate-y-[3px] hover:border-border hover:bg-card hover:shadow-[0_4px_16px_hsl(var(--foreground)/0.07),0_1px_3px_hsl(var(--foreground)/0.05)] transition-all duration-200 cursor-default";
 
 
   // ── Compact variant ──
@@ -382,7 +382,7 @@ function ScriptGalleryCardInner({
         onClick={handleArticleClick}
         {...hoverPreviewProps}
       >
-        <div className="mx-2 my-0.5 flex items-stretch gap-3 rounded-lg pl-0 pr-3 py-2 border-l-[3px] border-l-transparent transition-all duration-200 group-hover:border-l-primary group-hover:bg-primary/5">
+        <div className="mx-1 my-0.5 flex items-stretch gap-3 rounded-lg pl-0 pr-3 py-2 border-l-2 border-l-transparent transition-all duration-150 group-hover:border-l-primary/70 group-hover:bg-muted/50">
           {/* Cover */}
           <div className="w-[40px] shrink-0 ml-3">
             <div className="relative aspect-[2/3] w-full overflow-hidden rounded-sm border border-border/40 bg-muted/25 shadow-sm transition-transform duration-300 group-hover:scale-105">
@@ -460,13 +460,17 @@ function ScriptGalleryCardInner({
     >
       {/* Cover */}
       <div
-        className="relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-muted shadow-sm group-hover:shadow-lg transition-all duration-300"
-        style={{ transformStyle: "preserve-3d", willChange: "transform" }}
+        className="relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-muted transition-all duration-300"
+        style={{
+          transformStyle: "preserve-3d",
+          willChange: "transform",
+          boxShadow: "0 1px 4px hsl(var(--foreground)/0.12), 0 0 0 1px hsl(var(--border)/0.6)",
+        }}
         onPointerMove={handleCoverPointerMove}
         onPointerLeave={handleCoverPointerLeave}
       >
         {coverLinkEl}
-        <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-primary/10 pointer-events-none" aria-hidden />
+        <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-foreground/5 pointer-events-none" aria-hidden />
         {showAgeGate && (
           <>
             <div className="absolute inset-0 bg-red-900/25 pointer-events-none" aria-hidden />
@@ -504,17 +508,20 @@ function ScriptGalleryCardInner({
           onTagClick={onTagClick}
         />
 
-        <div className="flex items-center justify-between pt-2 border-t border-border/50 mt-2">
-          <div className="flex items-center gap-3 [font-size:var(--public-font-meta)] text-muted-foreground">
+        <div
+          className="flex items-center justify-between pt-2 mt-2"
+          style={{ borderTop: "1px solid hsl(var(--border) / 0.45)" }}
+        >
+          <div className="flex items-center gap-3 [font-size:var(--public-font-meta)] text-muted-foreground/80">
             <div className="flex items-center gap-1">
-              <Eye className="w-3.5 h-3.5" aria-hidden />
+              <Eye className="w-3 h-3" aria-hidden />
               <span>{views.toLocaleString()}</span>
             </div>
             {likeEl}
           </div>
           {estDurationMinutes !== null && estDurationMinutes > 0 && (
-            <span className="[font-size:var(--public-font-caption)] text-muted-foreground/70">
-              ⏱ {estDurationMinutes < 1 ? "< 1 分" : `約 ${estDurationMinutes} 分`}
+            <span className="[font-size:var(--public-font-caption)] text-muted-foreground/50">
+              {estDurationMinutes < 1 ? "< 1 分" : `${estDurationMinutes} 分`}
             </span>
           )}
         </div>

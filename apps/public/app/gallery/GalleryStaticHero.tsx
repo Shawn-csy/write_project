@@ -5,67 +5,95 @@ import React from "react";
 export function GalleryStaticHero() {
   return (
     <section
-      className="relative w-full overflow-hidden border-b border-border/40"
+      className="relative w-full overflow-hidden"
       aria-label="網站介紹"
+      style={{ borderBottom: "1px solid hsl(var(--border) / 0.5)" }}
     >
-      {/* Animated gradient background */}
+      {/* Subtle warm wash — not a loud gradient */}
       <div
-        className="absolute inset-0 opacity-60 dark:opacity-40"
+        className="absolute inset-0"
         style={{
-          background:
-            "linear-gradient(135deg, #e0f0ff 0%, #f5e6ff 35%, #fff0e0 65%, #e6f5ee 100%)",
-          backgroundSize: "300% 300%",
-          animation: "heroGradientShift 12s ease infinite",
-        }}
-        aria-hidden
-      />
-      {/* Noise grain overlay */}
-      <div
-        className="absolute inset-0 opacity-[0.03] dark:opacity-[0.06] pointer-events-none"
-        style={{
-          backgroundImage:
-            "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E\")",
-          backgroundRepeat: "repeat",
-          backgroundSize: "128px 128px",
+          background: "linear-gradient(160deg, hsl(var(--surface-2)) 0%, hsl(var(--background)) 60%, hsl(var(--surface-2) / 0.4) 100%)",
         }}
         aria-hidden
       />
 
-      <div className="relative z-10 mx-auto max-w-4xl px-6 py-12 sm:py-16 text-center">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary/60">
+      {/* Decorative ruled lines — editorial newspaper feel */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
+        <div className="absolute left-0 right-0 top-[3.5rem]" style={{ height: "1px", background: "hsl(var(--border) / 0.35)" }} />
+        <div className="absolute left-0 right-0 top-[3.7rem]" style={{ height: "1px", background: "hsl(var(--border) / 0.15)" }} />
+      </div>
+
+      {/* Fine grain texture */}
+      <div
+        className="absolute inset-0 opacity-[0.025] dark:opacity-[0.05] pointer-events-none mix-blend-multiply dark:mix-blend-screen"
+        style={{
+          backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+          backgroundSize: "160px 160px",
+        }}
+        aria-hidden
+      />
+
+      <div className="relative z-10 mx-auto max-w-5xl px-6 sm:px-8 py-10 sm:py-14">
+        {/* Eyebrow — small caps label */}
+        <p
+          className="mb-3 text-[10px] font-semibold tracking-[0.22em] uppercase"
+          style={{ color: "hsl(var(--primary) / 0.75)" }}
+        >
           公開台本平台
         </p>
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-tight">
+
+        {/* Main headline — editorial serif */}
+        <h1
+          className="font-serif font-bold leading-[1.15] tracking-[-0.015em]"
+          style={{ fontSize: "clamp(1.75rem, 5vw, 3.25rem)", color: "hsl(var(--foreground))" }}
+        >
           探索、閱讀、分享
           <br />
           <span
-            className="bg-clip-text text-transparent"
-            style={{
-              backgroundImage:
-                "linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%)",
-              backgroundSize: "200% auto",
-              animation: "heroTextShift 6s linear infinite",
-            }}
+            className="relative inline-block"
+            style={{ color: "hsl(var(--primary))" }}
           >
             創作台本
+            {/* Hairline underline accent */}
+            <span
+              className="absolute left-0 bottom-[0.08em] w-full"
+              style={{
+                height: "2px",
+                background: "hsl(var(--primary) / 0.3)",
+                borderRadius: "1px",
+              }}
+              aria-hidden
+            />
           </span>
         </h1>
-        <p className="mt-4 text-base sm:text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
+
+        {/* Sub-copy */}
+        <p
+          className="mt-4 max-w-lg leading-relaxed"
+          style={{
+            fontSize: "clamp(0.875rem, 2vw, 1rem)",
+            color: "hsl(var(--muted-foreground))",
+          }}
+        >
           支援 Fountain 格式劇本，探索公開作品、配音台本與作者頁面。
         </p>
-      </div>
 
-      <style>{`
-        @keyframes heroGradientShift {
-          0%   { background-position: 0% 50%; }
-          50%  { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-        @keyframes heroTextShift {
-          0%   { background-position: 0% center; }
-          100% { background-position: 200% center; }
-        }
-      `}</style>
+        {/* Decorative counter — adds editorial data feel */}
+        <div className="mt-6 flex items-center gap-5">
+          <div
+            className="h-px flex-1 max-w-[3rem]"
+            style={{ background: "hsl(var(--border))" }}
+            aria-hidden
+          />
+          <span
+            className="text-[11px] tracking-[0.15em] uppercase"
+            style={{ color: "hsl(var(--muted-foreground) / 0.6)" }}
+          >
+            自由創作・開放分享
+          </span>
+        </div>
+      </div>
     </section>
   );
 }

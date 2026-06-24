@@ -56,9 +56,9 @@ const config: Config = {
         },
       },
       borderRadius: {
-        lg: "0.75rem",
-        md: "0.5rem",
-        sm: "0.375rem",
+        lg: "0.875rem",
+        md: "0.625rem",
+        sm: "0.4375rem",
       },
       keyframes: {
         "accordion-down": {

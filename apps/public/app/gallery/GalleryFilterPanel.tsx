@@ -67,37 +67,44 @@ export function GalleryFilterPanel({
 
   const hiddenCount = shouldCollapse ? displayTags.length - visibleTags.length : 0;
 
+  const sectionLabel = "mb-2.5 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted-foreground/60";
+  const divider = "border-t border-border/40 pt-4 mt-1";
+  const activeChip = "bg-primary text-primary-foreground shadow-sm border border-primary";
+  const idleChip = "border border-border/50 bg-transparent text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5";
+  const chipBase = "h-6 rounded-[5px] px-2.5 text-xs font-medium transition-all duration-150";
+
   const inner = (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Search */}
       <div>
-        <p className="mb-2 text-xs font-bold tracking-widest text-muted-foreground uppercase">搜尋</p>
+        <p className={sectionLabel}>搜尋</p>
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
           <input
             type="search"
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="搜尋台本..."
-            className="w-full rounded-full border border-border/70 bg-background/70 pl-9 pr-8 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 focus:bg-background transition-colors"
+            className="w-full rounded-lg border border-border/60 bg-background pl-8.5 pr-7 py-[0.45rem] text-[0.8125rem] placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/15 transition-all duration-150"
+            style={{ paddingLeft: "2.125rem" }}
           />
           {searchTerm && (
             <button
               type="button"
               onClick={() => onSearchChange("")}
               aria-label="清除搜尋"
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground/50 hover:text-foreground hover:bg-muted/60 transition-all"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-3 w-3" />
             </button>
           )}
         </div>
       </div>
 
-      {/* Usage filter (moved from inline controls bar) */}
+      {/* Usage filter */}
       {usage !== undefined && onUsageChange && (
-        <div className="border-t border-border/40 pt-4">
-          <p className="mb-2 text-xs font-bold tracking-widest text-muted-foreground uppercase">使用權限</p>
+        <div className={divider}>
+          <p className={sectionLabel}>使用權限</p>
           <div className="flex flex-wrap gap-1.5">
             {USAGE_OPTIONS.map((opt) => {
               const active = usage === opt.value;
@@ -106,11 +113,7 @@ export function GalleryFilterPanel({
                   key={opt.value}
                   type="button"
                   onClick={() => onUsageChange(opt.value)}
-                  className={`h-6 rounded-full px-2.5 text-xs transition-colors ${
-                    active
-                      ? "bg-primary text-primary-foreground"
-                      : "border border-border/60 bg-background/70 text-muted-foreground hover:text-foreground hover:border-primary/40"
-                  }`}
+                  className={`${chipBase} ${active ? activeChip : idleChip}`}
                 >
                   {opt.label}
                 </button>
@@ -122,8 +125,8 @@ export function GalleryFilterPanel({
 
       {/* License shortcuts */}
       {licenseTagShortcuts.length > 0 && (
-        <div className="border-t border-border/40 pt-4">
-          <p className="mb-2 text-xs font-bold tracking-widest text-muted-foreground uppercase">授權篩選</p>
+        <div className={divider}>
+          <p className={sectionLabel}>授權類型</p>
           <div className="flex flex-wrap gap-1.5">
             {licenseTagShortcuts.map((tag) => {
               const active = selectedTags.includes(tag);
@@ -132,11 +135,7 @@ export function GalleryFilterPanel({
                   key={tag}
                   type="button"
                   onClick={() => onToggleTag(tag)}
-                  className={`h-6 rounded-full px-2.5 text-xs transition-colors ${
-                    active
-                      ? "bg-primary text-primary-foreground"
-                      : "border border-border/60 bg-background/70 text-muted-foreground hover:text-foreground hover:border-primary/40"
-                  }`}
+                  className={`${chipBase} ${active ? activeChip : idleChip}`}
                 >
                   {tag.replace(/^授權:/, "")}
                 </button>
@@ -148,16 +147,17 @@ export function GalleryFilterPanel({
 
       {/* Tag filter */}
       {allTags.length > 0 && (
-        <div className="border-t border-border/40 pt-4">
-          <p className="mb-2 text-xs font-bold tracking-widest text-muted-foreground uppercase">分類與標籤</p>
-          <div className="relative mb-2">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+        <div className={divider}>
+          <p className={sectionLabel}>分類與標籤</p>
+          <div className="relative mb-2.5">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground/50" />
             <input
               type="search"
               value={tagSearch}
               onChange={(e) => onTagSearchChange(e.target.value)}
-              placeholder="搜尋標籤..."
-              className="w-full rounded-full border border-border/60 bg-background/70 pl-8 pr-3 py-1.5 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 focus:bg-background transition-colors"
+              placeholder="篩選標籤..."
+              className="w-full rounded-lg border border-border/50 bg-background/70 py-[0.35rem] text-[0.75rem] placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/10 transition-all duration-150"
+              style={{ paddingLeft: "2rem", paddingRight: "0.75rem" }}
             />
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -168,11 +168,7 @@ export function GalleryFilterPanel({
                   key={tag}
                   type="button"
                   onClick={() => onToggleTag(tag)}
-                  className={`h-6 rounded-full px-2.5 text-xs transition-colors ${
-                    active
-                      ? "bg-primary text-primary-foreground"
-                      : "border border-border/60 bg-background/70 text-muted-foreground hover:text-foreground hover:border-primary/40"
-                  }`}
+                  className={`${chipBase} ${active ? activeChip : idleChip}`}
                 >
                   {tag}
                 </button>
@@ -183,7 +179,7 @@ export function GalleryFilterPanel({
             <button
               type="button"
               onClick={() => setTagsExpanded(true)}
-              className="mt-2 text-xs text-primary hover:text-primary/80 transition-colors"
+              className="mt-2 text-[0.75rem] text-primary/80 hover:text-primary transition-colors"
             >
               展開更多（{hiddenCount}）
             </button>
@@ -192,7 +188,7 @@ export function GalleryFilterPanel({
             <button
               type="button"
               onClick={() => setTagsExpanded(false)}
-              className="mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="mt-2 text-[0.75rem] text-muted-foreground/60 hover:text-foreground transition-colors"
             >
               收合標籤
             </button>
@@ -205,7 +201,7 @@ export function GalleryFilterPanel({
           <button
             type="button"
             onClick={onResetFilters}
-            className="w-full rounded-full border border-border/60 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+            className="w-full rounded-lg border border-border/50 py-1.5 text-[0.75rem] text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-primary/5 transition-all duration-150"
           >
             清除全部篩選
           </button>
@@ -216,7 +212,15 @@ export function GalleryFilterPanel({
 
   if (variant === "sidebar") {
     return (
-      <div className="rounded-xl border border-border/50 bg-muted/40 p-4">
+      <div
+        className="rounded-xl p-4"
+        style={{
+          border: "1px solid hsl(var(--border) / 0.45)",
+          background: "hsl(var(--card) / 0.7)",
+          backdropFilter: "blur(8px)",
+          boxShadow: "0 1px 3px hsl(var(--foreground) / 0.04), 0 1px 2px hsl(var(--foreground) / 0.03)",
+        }}
+      >
         {inner}
       </div>
     );
