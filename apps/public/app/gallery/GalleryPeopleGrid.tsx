@@ -71,7 +71,7 @@ function AuthorCard({ author, onTagClick }: { author: PublicPersona; onTagClick:
       <a href={`/author/${author.id}`} className="flex items-center gap-3 p-4">
         <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0">
           {author.avatar ? (
-            <PublicImage src={author.avatar} alt={author.displayName} sizes="48px" />
+            <PublicImage src={author.avatar} alt={author.displayName} preset="avatar" sizes="48px" />
           ) : (
             <div className={`w-full h-full flex items-center justify-center text-base font-bold ${avatarColor(author.displayName)}`}>
               {author.displayName?.[0]}
@@ -119,7 +119,7 @@ function OrgCard({ org, onTagClick }: { org: PublicOrg; onTagClick: (tag: string
       <a href={`/org/${org.id}`} className="flex items-center gap-3 p-4">
         <div className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0">
           {org.logoUrl ? (
-            <PublicImage src={org.logoUrl} alt={org.name} sizes="48px" />
+            <PublicImage src={org.logoUrl} alt={org.name} preset="logo" sizes="48px" />
           ) : (
             <div className={`w-full h-full flex items-center justify-center text-base font-bold rounded-lg ${avatarColor(org.name)}`}>
               {org.name?.[0]}

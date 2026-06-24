@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import type { PublicOrg, PublicScript } from "@/lib/types";
-import { getMediaCropStyle } from "@write/media-crop";
 import { ScriptCard } from "@/components/ScriptCard";
 import { PublicImage } from "@/components/PublicImage";
 
@@ -21,15 +20,13 @@ type Tab = "works" | "members";
 export function OrgPageClient({ org, scripts }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("works");
   const members = org.members ?? [];
-  const banner = getMediaCropStyle(org.bannerUrl ?? "", org.bannerCrop);
-  const logo = getMediaCropStyle(org.logoUrl ?? "", org.logoCrop);
 
   return (
     <main className="min-h-screen bg-background">
       {/* Banner */}
       <div className="relative h-48 overflow-hidden bg-gradient-to-r from-blue-900 to-slate-900">
-        {banner.src && (
-          <PublicImage src={banner.src} alt="" sizes="100vw" style={banner.style} />
+        {org.bannerUrl && (
+          <PublicImage src={org.bannerUrl} alt="" preset="org-banner" crop={org.bannerCrop} />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
       </div>
@@ -40,8 +37,8 @@ export function OrgPageClient({ org, scripts }: Props) {
           <div className="flex flex-col md:flex-row items-start gap-6">
             {/* Logo */}
             <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-lg border-4 border-background bg-muted overflow-hidden shrink-0 shadow">
-              {logo.src ? (
-                <PublicImage src={logo.src} alt={org.name} sizes="128px" style={logo.style} />
+              {org.logoUrl ? (
+                <PublicImage src={org.logoUrl} alt={org.name} preset="logo" crop={org.logoCrop} />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-muted-foreground">
                   {org.name?.[0]}
@@ -144,7 +141,7 @@ export function OrgPageClient({ org, scripts }: Props) {
                   >
                     <div className="relative w-10 h-10 rounded-full bg-muted overflow-hidden shrink-0">
                       {member.avatar ? (
-                        <PublicImage src={member.avatar} alt={member.displayName} sizes="40px" />
+                        <PublicImage src={member.avatar} alt={member.displayName} preset="avatar" sizes="40px" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-sm font-bold text-muted-foreground">
                           {member.displayName?.[0]}

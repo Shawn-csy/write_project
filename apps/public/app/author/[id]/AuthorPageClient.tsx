@@ -2,7 +2,6 @@
 
 import { useMemo } from "react";
 import type { PublicPersona, PublicScript } from "@/lib/types";
-import { getMediaCropStyle } from "@write/media-crop";
 import { ScriptCard } from "@/components/ScriptCard";
 import { PublicImage } from "@/components/PublicImage";
 
@@ -40,8 +39,6 @@ function getLinkIcon(url = ""): string {
 
 export function AuthorPageClient({ persona, scripts }: Props) {
   const links = parseLinks(persona.links);
-  const banner = getMediaCropStyle(persona.bannerUrl ?? "", persona.bannerCrop);
-  const avatar = getMediaCropStyle(persona.avatar ?? "", persona.avatarCrop);
 
   // Derive series list from scripts
   const authorSeries = useMemo(() => {
@@ -66,8 +63,8 @@ export function AuthorPageClient({ persona, scripts }: Props) {
     <main className="min-h-screen bg-background">
       {/* Banner */}
       <div className="relative h-48 overflow-hidden bg-gradient-to-r from-slate-900 to-slate-700">
-        {banner.src && (
-          <PublicImage src={banner.src} alt="" sizes="100vw" style={banner.style} />
+        {persona.bannerUrl && (
+          <PublicImage src={persona.bannerUrl} alt="" preset="author-banner" crop={persona.bannerCrop} />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
       </div>
@@ -78,8 +75,8 @@ export function AuthorPageClient({ persona, scripts }: Props) {
           <div className="flex flex-col md:flex-row items-start gap-6">
             {/* Avatar */}
             <div className="relative w-28 h-28 md:w-36 md:h-36 rounded-full border-4 border-background bg-muted overflow-hidden shrink-0 shadow">
-              {avatar.src ? (
-                <PublicImage src={avatar.src} alt={persona.displayName} sizes="144px" style={avatar.style} />
+              {persona.avatar ? (
+                <PublicImage src={persona.avatar} alt={persona.displayName} preset="avatar" crop={persona.avatarCrop} />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-muted-foreground">
                   {persona.displayName?.[0]}
@@ -172,7 +169,7 @@ export function AuthorPageClient({ persona, scripts }: Props) {
                 >
                   {series.coverUrl && (
                     <div className="relative w-10 h-14 rounded border border-border/50 shrink-0 overflow-hidden">
-                      <PublicImage src={series.coverUrl} alt={series.name} sizes="40px" />
+                      <PublicImage src={series.coverUrl} alt={series.name} preset="thumbnail" />
                     </div>
                   )}
                   <div className="min-w-0">

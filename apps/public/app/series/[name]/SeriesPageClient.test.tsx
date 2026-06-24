@@ -8,7 +8,6 @@
  *   - "最新章節" CTA shown only when latest !== first
  *   - chapter list: title, order number, latest badge
  *   - empty state shown when no scripts
- *   - hasCover uses cover.src (no raw coverUrl leak)
  */
 
 import { describe, it, expect, vi } from "vitest";
@@ -17,11 +16,8 @@ import React from "react";
 import { SeriesPageClient } from "./SeriesPageClient";
 import type { PublicScript } from "@/lib/types";
 
-vi.mock("@write/media-crop", () => ({
-  getMediaCropStyle: (src: string) => ({
-    src: src || "",
-    style: {},
-  }),
+vi.mock("next/image", () => ({
+  default: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
 }));
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────

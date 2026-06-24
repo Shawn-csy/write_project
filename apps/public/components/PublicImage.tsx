@@ -1,32 +1,45 @@
 /**
- * PublicImage — Next.js image optimization primitive for public site covers/avatars.
+ * PublicImage — preset-based Next.js image renderer for public site.
  *
- * Wraps next/image fill mode. Callers pass src + style from getMediaCropStyle().
- * Falls back to empty state when src is absent.
+ * Pass a named preset; the renderer picks sizes, objectFit, and resolves
+ * crop focal point to objectPosition. No transform:scale — prevents blank
+ * space when combined with next/image fill mode.
+ *
  * Parent must be position:relative with explicit dimensions.
+ *
+ * Phase 3 of docs/public-media-presentation-architecture.md
  */
 
 import Image from "next/image";
+import type { MediaCropLike } from "@write/media-crop";
+import type { PublicImagePreset } from "@/lib/imagePresets";
+import { resolvePresetStyle, getPresetConfig } from "@/lib/imagePresets";
 
 interface Props {
   src: string;
   alt: string;
-  sizes: string;
-  /** object-position / object-fit style from getMediaCropStyle() */
-  style?: React.CSSProperties;
+  preset: PublicImagePreset;
+  crop?: MediaCropLike | null;
+  /** Override sizes when preset default is insufficient (e.g. fixed-pixel avatars) */
+  sizes?: string;
+  priority?: boolean;
   className?: string;
 }
 
-export function PublicImage({ src, alt, sizes, style, className }: Props) {
+export function PublicImage({ src, alt, preset, crop, sizes, priority, className }: Props) {
   if (!src) return null;
+
+  const { src: cleanSrc, style } = resolvePresetStyle(src, preset, crop);
+  const config = getPresetConfig(preset);
 
   return (
     <Image
-      src={src}
+      src={cleanSrc}
       alt={alt}
       fill
-      sizes={sizes}
-      style={{ objectFit: "cover", ...style }}
+      sizes={sizes ?? config.sizes}
+      priority={priority}
+      style={style}
       className={className}
     />
   );
