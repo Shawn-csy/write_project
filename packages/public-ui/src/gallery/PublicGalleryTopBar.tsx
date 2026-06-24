@@ -3,8 +3,8 @@
  * No Next.js, no Vite router, no auth context.
  * Host app provides `onTabChange` (navigation) and `trailing` slot (login/studio/custom actions).
  */
-import React from "react";
-import { SlidersHorizontal } from "lucide-react";
+import React, { useState } from "react";
+import { Search, Menu, X } from "lucide-react";
 import type { GalleryView } from "./galleryUrlState";
 
 export type { GalleryView };
@@ -23,9 +23,9 @@ export const DEFAULT_TABS: PublicGalleryTab[] = [
 export interface PublicGalleryTopBarProps {
   activeTab: GalleryView;
   onTabChange: (tab: GalleryView) => void;
-  /** Called when mobile filter button is pressed (visible on scripts tab only). */
+  /** Called when mobile filter/search button is pressed (visible on scripts tab only). */
   onOpenMobileFilter?: () => void;
-  /** Override default tab definitions (e.g. to add help/license/about in Phase 5). */
+  /** Override default tab definitions. */
   tabs?: PublicGalleryTab[];
   /** Brand name displayed on the left (main title). */
   brandName?: string;
@@ -33,7 +33,7 @@ export interface PublicGalleryTopBarProps {
   brandSubtitle?: string;
   /**
    * Trailing slot — host-specific actions rendered at the right end of the bar.
-   * Use for studio link, login button, or any host-specific navigation.
+   * Use for studio link, login button, appearance menu, etc.
    */
   trailing?: React.ReactNode;
   /** Accessible label for mobile filter button. */
@@ -54,28 +54,37 @@ export function PublicGalleryTopBar({
   trailing,
   mobileFilterLabel = "開啟篩選",
 }: PublicGalleryTopBarProps): React.JSX.Element {
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  const handleTabChange = (tab: GalleryView) => {
+    onTabChange(tab);
+    setMobileNavOpen(false);
+  };
+
   return (
     <header className="sticky top-0 z-40 bg-background/97 backdrop-blur-xl" style={{ borderBottom: "1px solid hsl(var(--border) / 0.6)" }}>
       {/* Main row */}
-      <div className="flex h-[3.5rem] items-center px-4 sm:px-6 lg:px-8 w-full gap-2">
-        {/* Mobile: filter button */}
+      <div className="relative flex h-[3.5rem] items-center px-4 sm:px-6 lg:px-8 w-full gap-2">
+
+        {/* Mobile left: hamburger nav toggle */}
         <div className="sm:hidden flex items-center w-10 shrink-0">
-          {activeTab === "scripts" && onOpenMobileFilter ? (
-            <button
-              type="button"
-              onClick={onOpenMobileFilter}
-              aria-label={mobileFilterLabel}
-              className="flex items-center justify-center h-11 w-11 -ml-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-all duration-150"
-            >
-              <SlidersHorizontal className="h-[15px] w-[15px]" />
-            </button>
-          ) : <span className="w-10" aria-hidden />}
+          <button
+            type="button"
+            onClick={() => setMobileNavOpen((v) => !v)}
+            aria-label={mobileNavOpen ? "關閉導航" : "開啟導航"}
+            aria-expanded={mobileNavOpen}
+            className="flex items-center justify-center h-11 w-11 -ml-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-all duration-150"
+          >
+            {mobileNavOpen
+              ? <X className="h-[15px] w-[15px]" />
+              : <Menu className="h-[15px] w-[15px]" />}
+          </button>
         </div>
 
-        {/* Brand */}
+        {/* Brand — absolutely centred on mobile, flow on desktop */}
         <a
           href="/"
-          className="flex items-center gap-2.5 shrink-0 group sm:mr-0 mx-auto sm:mx-0"
+          className="flex items-center gap-2.5 shrink-0 group absolute left-1/2 -translate-x-1/2 sm:static sm:translate-x-0 sm:mr-0"
           aria-label={brandName}
         >
           {/* Ink-stamp logo mark */}
@@ -95,7 +104,7 @@ export function PublicGalleryTopBar({
           </div>
         </a>
 
-        {/* Divider */}
+        {/* Divider — desktop only */}
         <div className="hidden sm:block w-px h-5 bg-border/60 mx-1 shrink-0" aria-hidden />
 
         {/* Desktop tabs */}
@@ -121,8 +130,20 @@ export function PublicGalleryTopBar({
           ))}
         </nav>
 
-        {/* Right */}
-        <div className="ml-auto flex items-center gap-1.5 shrink-0">
+        {/* Right side */}
+        <div className="ml-auto flex items-center gap-1 shrink-0">
+          {/* Mobile search button (scripts tab only) */}
+          {activeTab === "scripts" && onOpenMobileFilter && (
+            <button
+              type="button"
+              onClick={onOpenMobileFilter}
+              aria-label={mobileFilterLabel}
+              className="sm:hidden flex items-center justify-center h-11 w-11 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-all duration-150"
+            >
+              <Search className="h-[15px] w-[15px]" />
+            </button>
+          )}
+          {/* Tablet filter button (sm, no sidebar) */}
           {activeTab === "scripts" && onOpenMobileFilter && (
             <button
               type="button"
@@ -130,37 +151,42 @@ export function PublicGalleryTopBar({
               aria-label={mobileFilterLabel}
               className="hidden sm:flex lg:hidden items-center justify-center h-11 w-11 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all duration-150"
             >
-              <SlidersHorizontal className="h-[15px] w-[15px]" />
+              <Search className="h-[15px] w-[15px]" />
             </button>
           )}
           {trailing}
         </div>
       </div>
 
-      {/* Mobile tab row */}
-      <div className="sm:hidden overflow-x-auto scrollbar-none" style={{ borderTop: "1px solid hsl(var(--border) / 0.4)" }}>
-        <nav className="flex items-center px-4 gap-0.5 min-w-max h-10" aria-label="公開頁面導航">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => onTabChange(tab.key)}
-              aria-current={tab.key === activeTab ? "page" : undefined}
-              className={cn(
-                "relative h-8 px-3 text-[0.8125rem] rounded-md transition-all duration-150 whitespace-nowrap",
-                tab.key === activeTab
-                  ? "text-foreground font-semibold bg-muted/60"
-                  : "text-muted-foreground hover:text-foreground font-normal"
-              )}
-            >
-              {tab.label}
-              {tab.key === activeTab && (
-                <span className="absolute bottom-[4px] left-1/2 -translate-x-1/2 w-3 h-[2px] bg-primary rounded-full" />
-              )}
-            </button>
-          ))}
-        </nav>
-      </div>
+      {/* Mobile nav drawer */}
+      {mobileNavOpen && (
+        <div
+          className="sm:hidden"
+          style={{ borderTop: "1px solid hsl(var(--border) / 0.4)" }}
+        >
+          <nav className="flex flex-col px-2 py-2 gap-0.5" aria-label="公開頁面導航">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => handleTabChange(tab.key)}
+                aria-current={tab.key === activeTab ? "page" : undefined}
+                className={cn(
+                  "flex items-center h-11 px-3 text-[0.9rem] rounded-lg transition-all duration-150 text-left w-full",
+                  tab.key === activeTab
+                    ? "text-foreground font-semibold bg-muted/60"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/40 font-normal"
+                )}
+              >
+                {tab.label}
+                {tab.key === activeTab && (
+                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary shrink-0" aria-hidden />
+                )}
+              </button>
+            ))}
+          </nav>
+        </div>
+      )}
     </header>
   );
 }

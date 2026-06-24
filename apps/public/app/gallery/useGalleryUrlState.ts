@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   parseGalleryUrlState,
@@ -27,23 +27,6 @@ export interface GalleryUrlStateActions {
   resetOrgTags: () => void;
 }
 
-function navigate(
-  router: ReturnType<typeof useRouter>,
-  current: PublicHomepageUrlState,
-  patch: Partial<PublicHomepageUrlState>,
-  method: "push" | "replace" = "push"
-): void {
-  const next = mergeGalleryUrlState(current, patch);
-  const params = serializeGalleryUrlState(next);
-  const qs = params.toString();
-  const url = qs ? `/?${qs}` : "/";
-  if (method === "replace") {
-    router.replace(url, { scroll: false });
-  } else {
-    router.push(url, { scroll: false });
-  }
-}
-
 export function useGalleryUrlState(): {
   state: PublicHomepageUrlState;
   actions: GalleryUrlStateActions;
@@ -56,83 +39,72 @@ export function useGalleryUrlState(): {
     [searchParams]
   );
 
-  const setView = useCallback(
-    (view: GalleryView) => navigate(router, state, { view }),
-    [router, state]
+  // Always points to latest searchParams so callbacks never close over stale state.
+  const searchParamsRef = useRef(searchParams);
+  searchParamsRef.current = searchParams;
+
+  const nav = useCallback(
+    (patch: Partial<PublicHomepageUrlState>, method: "push" | "replace" = "push") => {
+      const current = parseGalleryUrlState(searchParamsRef.current.toString());
+      const next = mergeGalleryUrlState(current, patch);
+      const params = serializeGalleryUrlState(next);
+      const qs = params.toString();
+      const url = qs ? `/?${qs}` : "/";
+      if (method === "replace") {
+        router.replace(url, { scroll: false });
+      } else {
+        router.push(url, { scroll: false });
+      }
+    },
+    [router]
   );
 
-  const setMode = useCallback(
-    (mode: GalleryViewMode) => navigate(router, state, { mode }),
-    [router, state]
-  );
-
-  const setSegment = useCallback(
-    (segment: string) => navigate(router, state, { segment }),
-    [router, state]
-  );
-
-  const setUsage = useCallback(
-    (usage: string) => navigate(router, state, { usage: usage as "all" | "commercial" }),
-    [router, state]
-  );
-
-  const setQ = useCallback(
-    (q: string) => navigate(router, state, { q }, "replace"),
-    [router, state]
-  );
+  const setView = useCallback((view: GalleryView) => nav({ view }), [nav]);
+  const setMode = useCallback((mode: GalleryViewMode) => nav({ mode }), [nav]);
+  const setSegment = useCallback((segment: string) => nav({ segment }), [nav]);
+  const setUsage = useCallback((usage: string) => nav({ usage: usage as "all" | "commercial" }), [nav]);
+  const setQ = useCallback((q: string) => nav({ q }, "replace"), [nav]);
 
   const toggleTag = useCallback(
     (tag: string) => {
-      const tags = state.tags.includes(tag)
-        ? state.tags.filter((t) => t !== tag)
-        : [...state.tags, tag];
-      navigate(router, state, { tags });
+      const current = parseGalleryUrlState(searchParamsRef.current.toString());
+      const tags = current.tags.includes(tag)
+        ? current.tags.filter((t) => t !== tag)
+        : [...current.tags, tag];
+      nav({ tags });
     },
-    [router, state]
+    [nav]
   );
 
   const toggleAuthorTag = useCallback(
     (tag: string) => {
-      const authorTags = state.authorTags.includes(tag)
-        ? state.authorTags.filter((t) => t !== tag)
-        : [...state.authorTags, tag];
-      navigate(router, state, { authorTags });
+      const current = parseGalleryUrlState(searchParamsRef.current.toString());
+      const authorTags = current.authorTags.includes(tag)
+        ? current.authorTags.filter((t) => t !== tag)
+        : [...current.authorTags, tag];
+      nav({ authorTags });
     },
-    [router, state]
+    [nav]
   );
 
   const toggleOrgTag = useCallback(
     (tag: string) => {
-      const orgTags = state.orgTags.includes(tag)
-        ? state.orgTags.filter((t) => t !== tag)
-        : [...state.orgTags, tag];
-      navigate(router, state, { orgTags });
+      const current = parseGalleryUrlState(searchParamsRef.current.toString());
+      const orgTags = current.orgTags.includes(tag)
+        ? current.orgTags.filter((t) => t !== tag)
+        : [...current.orgTags, tag];
+      nav({ orgTags });
     },
-    [router, state]
+    [nav]
   );
 
   const resetFilters = useCallback(
-    () =>
-      navigate(router, state, {
-        tags: [],
-        authorTags: [],
-        orgTags: [],
-        usage: "all",
-        segment: "all",
-        q: "",
-      }),
-    [router, state]
+    () => nav({ tags: [], authorTags: [], orgTags: [], usage: "all", segment: "all", q: "" }),
+    [nav]
   );
 
-  const resetAuthorTags = useCallback(
-    () => navigate(router, state, { authorTags: [] }),
-    [router, state]
-  );
-
-  const resetOrgTags = useCallback(
-    () => navigate(router, state, { orgTags: [] }),
-    [router, state]
-  );
+  const resetAuthorTags = useCallback(() => nav({ authorTags: [] }), [nav]);
+  const resetOrgTags = useCallback(() => nav({ orgTags: [] }), [nav]);
 
   const actions: GalleryUrlStateActions = useMemo(
     () => ({

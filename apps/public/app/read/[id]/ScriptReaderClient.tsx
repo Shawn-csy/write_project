@@ -7,6 +7,7 @@ import {
   useReaderState,
   createLocalStorageReaderStorage,
   resolveReaderFontFamily,
+  type ReaderTheme,
 } from "@write/script-reader-ui";
 import { PublicReaderShell } from "@write/public-ui";
 import { ScriptContentRenderer } from "./ScriptContentRenderer";
@@ -65,12 +66,24 @@ export function ScriptReaderClient({
     preferencesStorage: appearanceStorage,
   });
 
-  // Typography from PublicAppearanceContext — reactive when appearance menu changes.
+  // Typography + theme from PublicAppearanceContext — reactive when appearance menu changes.
   // ThemeProvider is the sole document.documentElement theme writer; reader does not touch it.
-  const { prefs: appearancePrefs } = usePublicAppearance();
+  const { prefs: appearancePrefs, setTheme: setAppearanceTheme } = usePublicAppearance();
   const fontSize = appearancePrefs.readerFontSize;
   const lineHeight = appearancePrefs.readerLineHeight;
   const readingFontFamily = resolveReaderFontFamily(appearancePrefs.readerFontFamily);
+
+  // Patch readerState.preferences so the ReaderPreferencesPanel theme buttons
+  // wire to PublicAppearanceContext (which drives ThemeProvider) instead of
+  // local useReaderState state that has no path to document.documentElement.
+  const patchedPreferences = useMemo(() => ({
+    ...readerState.preferences,
+    preferences: {
+      ...readerState.preferences.preferences,
+      theme: appearancePrefs.theme as ReaderTheme,
+    },
+    setTheme: (t: ReaderTheme) => setAppearanceTheme(t as typeof appearancePrefs.theme),
+  }), [readerState.preferences, appearancePrefs.theme, setAppearanceTheme]);
 
   const seriesNav = useSeriesChapterNav(initialScript);
   const { hasNewChapter, markSeen } = useSeriesProgress(scriptId, seriesNav);
@@ -100,7 +113,7 @@ export function ScriptReaderClient({
       contentWidth="presentation"
       toolbar={
         <ReaderToolbar
-          readerState={readerState}
+          readerState={{ ...readerState, preferences: patchedPreferences }}
           title={initialScript.title}
           onShare={handleShare}
           copied={copied}
