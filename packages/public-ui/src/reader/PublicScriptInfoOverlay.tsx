@@ -169,7 +169,7 @@ export function PublicScriptInfoOverlay({
         <div className="mt-1 grid gap-2">
           {characterTemplateItems.map((entry, idx) => (
             <div key={`char-${idx}`} className="rounded-md border border-primary/25 bg-background/75 px-3 py-2.5 shadow-sm">
-              <div className="mb-1 inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2 py-1 text-xs font-semibold tracking-wide text-primary">
+              <div className="mb-1 inline-flex items-center rounded-[5px] border border-primary/30 bg-primary/10 px-2 py-1 text-xs font-semibold tracking-wide text-primary">
                 角色 {idx + 1}
               </div>
               <div className="text-base font-bold leading-tight text-foreground md:text-lg">{entry.name}</div>
@@ -258,7 +258,7 @@ export function PublicScriptInfoOverlay({
                 href={item.url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center rounded-md border border-border/60 bg-background px-2.5 py-1 text-xs font-medium text-primary hover:bg-muted"
+                className="inline-flex h-6 items-center rounded-[5px] border border-primary/30 bg-primary/10 px-2.5 text-xs font-medium text-primary transition-all duration-150 hover:bg-primary/15"
               >
                 {item.name || `試聽連結 ${idx + 1}`}
               </a>
@@ -328,7 +328,7 @@ export function PublicScriptInfoOverlay({
 
   return (
     <div className="relative mx-auto flex w-full max-w-4xl flex-col items-center space-y-6 px-6 py-12 text-center md:py-20">
-      <div className={`w-full max-w-2xl overflow-hidden rounded-2xl border border-white/15 shadow-xl backdrop-blur-sm ${hasCover || hasDesignedCover ? "bg-transparent" : "bg-background/40"}`}>
+      <div className={`w-full max-w-2xl overflow-hidden rounded-2xl shadow-xl backdrop-blur-sm ${hasCover || hasDesignedCover ? "bg-transparent" : "bg-background/40"}`} style={{ border: "1px solid hsl(var(--border) / 0.3)" }}>
         {hasCover ? (
           <img
             src={cropCover.src}
@@ -346,25 +346,20 @@ export function PublicScriptInfoOverlay({
           </div>
         ) : (
           <div
-            className="relative flex min-h-[260px] w-full items-center justify-center px-6 py-10 text-center md:min-h-[320px]"
+            className="relative flex min-h-[240px] w-full items-center justify-center px-6 py-10 text-center md:min-h-[300px]"
+            style={{ background: "linear-gradient(135deg, hsl(var(--surface-3)) 0%, hsl(var(--surface-2)) 100%)" }}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-slate-500 via-slate-600 to-slate-700" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.35),transparent_45%),radial-gradient(circle_at_80%_85%,rgba(0,0,0,0.35),transparent_40%)]" />
-            <div className="absolute -left-8 -top-10 h-40 w-40 rounded-full border border-white/35 bg-white/10" />
-            <div className="absolute right-8 top-12 h-24 w-24 rotate-12 border border-white/40 bg-white/10" />
-            <div className="absolute bottom-10 left-1/2 h-16 w-44 -translate-x-1/2 rounded-full border border-white/30 bg-black/10" />
-            <div className="relative max-w-[85%] rounded-xl border border-white/25 bg-black/25 px-5 py-4 backdrop-blur-sm shadow-lg">
-              <div className="absolute -right-6 -top-6 h-12 w-12 rounded-full border border-white/40 bg-amber-200/80" />
-              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-foreground/80">No Cover</div>
+            <div
+              className="relative rounded-xl px-6 py-4 backdrop-blur-sm"
+              style={{ border: "1px solid hsl(var(--border) / 0.5)", background: "hsl(var(--card) / 0.6)" }}
+            >
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">尚無封面</div>
             </div>
           </div>
         )}
       </div>
 
-      <h1
-        className="font-serif font-bold leading-tight tracking-tight text-foreground drop-shadow-sm"
-        style={{ fontSize: "clamp(1.5rem, 3vw + 1rem, 2.75rem)" }}
-      >
+      <h1 className="text-2xl sm:text-4xl lg:text-5xl font-serif font-bold leading-tight text-foreground drop-shadow-sm">
         {title}
       </h1>
 
@@ -393,7 +388,8 @@ export function PublicScriptInfoOverlay({
                 avatarUrl: organization.logoUrl,
               }}
               link={organization.id ? `/org/${organization.id}` : undefined}
-              className="bg-background/30 backdrop-blur-md rounded-full pl-1 pr-4 py-1 border border-white/10 shadow-sm hover:bg-background/40"
+              className="rounded-lg pl-1 pr-3 py-1 shadow-sm hover:bg-muted/60 transition-colors"
+              style={{ border: "1px solid hsl(var(--border) / 0.5)", background: "hsl(var(--card) / 0.7)", backdropFilter: "blur(8px)" }}
             />
           )}
           {author && (
@@ -401,9 +397,10 @@ export function PublicScriptInfoOverlay({
               author={author}
               clickable={isAuthorClickable}
               link={isAuthorClickable && author.id ? `/author/${author.id}` : undefined}
-              className={`bg-background/30 backdrop-blur-md rounded-full pl-1 pr-4 py-1 border border-white/10 shadow-sm ${
-                isAuthorClickable ? "hover:bg-background/40" : ""
+              className={`rounded-lg pl-1 pr-3 py-1 shadow-sm transition-colors ${
+                isAuthorClickable ? "hover:bg-muted/60" : ""
               }`}
+              style={{ border: "1px solid hsl(var(--border) / 0.5)", background: "hsl(var(--card) / 0.7)", backdropFilter: "blur(8px)" }}
             />
           )}
         </div>
@@ -473,11 +470,11 @@ export function PublicScriptInfoOverlay({
               <div className="mt-1 flex flex-wrap gap-1.5">
                 {normalizedTags.map((tag) =>
                   tagHref ? (
-                    <a key={tag} href={tagHref(tag)} className="inline-flex items-center rounded-full border border-transparent bg-secondary text-secondary-foreground px-2.5 py-0.5 text-xs font-semibold transition-colors hover:bg-secondary/80">
+                    <a key={tag} href={tagHref(tag)} className="inline-flex h-6 items-center rounded-[5px] border border-border/50 bg-transparent px-2.5 text-xs font-medium text-muted-foreground transition-all duration-150 hover:border-primary/40 hover:bg-primary/5 hover:text-foreground">
                       {tag}
                     </a>
                   ) : (
-                    <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+                    <span key={tag} className="inline-flex h-6 items-center rounded-[5px] border border-border/40 bg-muted/40 px-2.5 text-xs font-medium text-muted-foreground">{tag}</span>
                   )
                 )}
               </div>

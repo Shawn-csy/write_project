@@ -31,7 +31,7 @@ interface TagFilterChipsProps {
 function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: TagFilterChipsProps) {
   if (allTags.length === 0) return null;
   return (
-    <div className="flex flex-wrap gap-2 mb-4">
+    <div className="flex flex-wrap gap-1.5 mb-4">
       {allTags.map((tag) => {
         const active = selectedTags.includes(tag);
         return (
@@ -39,10 +39,10 @@ function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: 
             key={tag}
             type="button"
             onClick={() => onToggleTag(tag)}
-            className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+            className={`h-6 px-2.5 text-xs font-medium rounded-[5px] border transition-all duration-150 ${
               active
-                ? "border-primary bg-primary/10 text-primary font-medium"
-                : "border-border/60 bg-muted/40 text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                : "border-border/50 bg-transparent text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
             }`}
           >
             {tag}
@@ -53,9 +53,9 @@ function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: 
         <button
           type="button"
           onClick={onResetFilters}
-          className="text-xs px-2.5 py-1 rounded-full border border-border/60 bg-background text-muted-foreground hover:text-foreground transition-colors"
+          className="h-6 px-2.5 text-xs rounded-[5px] border border-border/50 bg-transparent text-muted-foreground hover:text-foreground hover:border-border transition-all duration-150"
         >
-          ✕ 清除篩選
+          清除篩選
         </button>
       )}
     </div>
@@ -66,7 +66,7 @@ function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: 
 
 function AuthorCard({ author, onTagClick }: { author: PublicPersona; onTagClick: (tag: string) => void }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-background overflow-hidden hover:border-border hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+    <div className="rounded-xl border border-border/50 bg-card overflow-hidden hover:-translate-y-[3px] hover:shadow-[0_4px_16px_hsl(var(--foreground)/0.07),0_1px_3px_hsl(var(--foreground)/0.05)] transition-all duration-200">
       <a href={`/author/${author.id}`} className="flex items-center gap-3 p-4">
         <div className="w-12 h-12 rounded-full overflow-hidden shrink-0">
           {author.avatar ? (
@@ -98,7 +98,7 @@ function AuthorCard({ author, onTagClick }: { author: PublicPersona; onTagClick:
               key={tag}
               type="button"
               onClick={() => onTagClick(tag)}
-              className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+              className="text-xs px-2 py-0.5 rounded-[4px] border border-border/40 bg-muted/40 text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
             >
               {tag}
             </button>
@@ -114,7 +114,7 @@ function AuthorCard({ author, onTagClick }: { author: PublicPersona; onTagClick:
 function OrgCard({ org, onTagClick }: { org: PublicOrg; onTagClick: (tag: string) => void }) {
   const memberCount = org.members?.length;
   return (
-    <div className="rounded-xl border border-border/60 bg-background overflow-hidden hover:border-border hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+    <div className="rounded-xl border border-border/50 bg-card overflow-hidden hover:-translate-y-[3px] hover:shadow-[0_4px_16px_hsl(var(--foreground)/0.07),0_1px_3px_hsl(var(--foreground)/0.05)] transition-all duration-200">
       {/* Main org link — no nested anchors inside */}
       <a href={`/org/${org.id}`} className="flex items-center gap-3 p-4">
         <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0">
@@ -159,7 +159,7 @@ function OrgCard({ org, onTagClick }: { org: PublicOrg; onTagClick: (tag: string
               key={tag}
               type="button"
               onClick={() => onTagClick(tag)}
-              className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+              className="text-xs px-2 py-0.5 rounded-[4px] border border-border/40 bg-muted/40 text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
             >
               {tag}
             </button>

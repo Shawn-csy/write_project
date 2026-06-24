@@ -43,7 +43,7 @@ export function ActivitySection({ name, bannerUrl, bannerCrop, content, workUrl 
               href={workUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-2.5 py-1 text-xs font-medium text-primary hover:bg-muted"
+              className="inline-flex h-6 items-center gap-1 rounded-[5px] border border-primary/30 bg-primary/10 px-2.5 text-xs font-medium text-primary transition-all duration-150 hover:bg-primary/15"
             >
               成品連結 ↗
             </a>

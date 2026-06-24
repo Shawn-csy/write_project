@@ -29,7 +29,7 @@ export function GalleryViewModeToggle({ value, onChange }: GalleryViewModeToggle
           type="button"
           onClick={() => onChange(mode.value)}
           aria-pressed={value === mode.value}
-          className={`h-8 rounded-[6px] px-3.5 text-[0.75rem] font-medium transition-all duration-150 ${
+          className={`min-h-[44px] rounded-[6px] px-3.5 text-[0.75rem] font-medium transition-all duration-150 ${
             value === mode.value
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"

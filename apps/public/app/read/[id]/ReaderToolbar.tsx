@@ -26,7 +26,7 @@ export function ReaderToolbar({ readerState, title, onShare, copied, onExportPdf
       startSlot={
         <a
           href="/"
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-1 h-6 px-2.5 rounded-[5px] text-xs font-medium text-muted-foreground border border-border/50 bg-transparent hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
         >
           ← 台本列表
         </a>
@@ -37,7 +37,7 @@ export function ReaderToolbar({ readerState, title, onShare, copied, onExportPdf
             <button
               type="button"
               onClick={onShare}
-              className="min-h-[44px] px-3 text-xs text-muted-foreground hover:text-foreground transition-colors rounded"
+              className="inline-flex items-center min-h-[44px] px-3 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg"
             >
               {copied ? "已複製！" : "分享"}
             </button>
@@ -47,7 +47,7 @@ export function ReaderToolbar({ readerState, title, onShare, copied, onExportPdf
               type="button"
               onClick={onExportPdf}
               disabled={!pdfReady}
-              className="min-h-[44px] px-3 text-xs text-muted-foreground hover:text-foreground transition-colors rounded disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex items-center min-h-[44px] px-3 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
             >
               PDF
             </button>

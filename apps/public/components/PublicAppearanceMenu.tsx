@@ -33,7 +33,7 @@ export function PublicAppearanceMenu() {
           type="button"
           aria-label="外觀設定"
           title="外觀設定"
-          className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-all duration-150"
+          className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-all duration-150"
         >
           <SlidersHorizontal className="h-4 w-4" aria-hidden />
         </button>

@@ -1,85 +1,82 @@
 /* Marker color tokens — shared with @write/script-reader-renderer */
 @import "@write/script-theme/marker-colors.css";
 
-/* Editorial display font — warm, literary character */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;600;700;900&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* System font stack — CJK-first, no external network dependency */
-    --font-sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "蘋方-繁", "微軟正黑體", system-ui, sans-serif;
+    /* CJK system font stack */
+    --font-sans: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "蘋方-繁", "微軟正黑體", system-ui, sans-serif;
     --font-serif: "Noto Serif TC", "Source Han Serif TC", "PMingLiU", "新細明體", Georgia, serif;
 
-    /* ── Warm neutral palette — Claude.ai editorial aesthetic ── */
-    /* Warm parchment white background, not sterile grey */
-    --background: 40 25% 97%;
-    --foreground: 25 15% 10%;
+    /* ── Warm neutral palette — editorial, Claude.ai-adjacent ── */
+    /* Warm near-white background, no blue or orange cast */
+    --background: 40 18% 97%;
+    --foreground: 220 15% 12%;
     --card: 0 0% 100%;
-    --card-foreground: 25 15% 10%;
-    --muted: 35 15% 94%;
-    --muted-strong: 35 12% 89%;
-    --muted-stronger: 35 10% 83%;
-    --muted-foreground: 25 8% 46%;
-    --border: 35 12% 87%;
+    --card-foreground: 220 15% 12%;
+    --muted: 220 10% 95%;
+    --muted-strong: 220 8% 90%;
+    --muted-stronger: 220 7% 84%;
+    --muted-foreground: 220 8% 46%;
+    --border: 220 9% 88%;
 
-    /* Warm terracotta-brown primary — sophisticated, not orange-loud */
-    --primary: 20 65% 42%;
-    --primary-foreground: 40 30% 98%;
+    /* Steel-slate primary — neutral, professional, not orange */
+    --primary: 215 25% 38%;
+    --primary-foreground: 210 30% 98%;
 
     --destructive: 0 72% 56%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Warm brass accent — complements primary */
-    --accent: 35 70% 52%;
-    --accent-foreground: 25 60% 14%;
-    --accent-muted: 38 60% 93%;
-    --accent-strong: 20 60% 36%;
+    /* Subtle teal accent */
+    --accent: 195 40% 46%;
+    --accent-foreground: 195 60% 12%;
+    --accent-muted: 195 30% 93%;
+    --accent-strong: 215 28% 32%;
 
-    --surface-1: 40 25% 97%;
-    --surface-2: 35 15% 94%;
-    --surface-3: 35 12% 89%;
-    --surface-4: 35 10% 83%;
+    --surface-1: 40 18% 97%;
+    --surface-2: 220 10% 95%;
+    --surface-3: 220 8% 90%;
+    --surface-4: 220 7% 84%;
 
     --paper-bg: #ffffff;
-    --paper-border: #e9e3da;
-    --paper-shadow: rgba(30, 20, 10, 0.09);
+    --paper-border: #e3e5e8;
+    --paper-shadow: rgba(10, 15, 25, 0.09);
     --radius: 0.625rem;
   }
 
   .dark {
-    /* Deep warm charcoal — not cold blue-black */
-    --background: 25 8% 8%;
-    --foreground: 38 14% 91%;
-    --card: 25 7% 11%;
-    --card-foreground: 38 14% 91%;
-    --muted: 25 6% 15%;
-    --muted-strong: 25 5% 21%;
-    --muted-stronger: 25 5% 27%;
-    --muted-foreground: 35 8% 58%;
-    --border: 25 5% 20%;
+    /* Deep cool-neutral — not warm brown, not cold blue */
+    --background: 222 12% 8%;
+    --foreground: 210 14% 91%;
+    --card: 222 10% 11%;
+    --card-foreground: 210 14% 91%;
+    --muted: 222 8% 15%;
+    --muted-strong: 222 7% 21%;
+    --muted-stronger: 222 6% 27%;
+    --muted-foreground: 215 8% 58%;
+    --border: 222 7% 20%;
 
-    /* Terracotta — slightly brighter in dark */
-    --primary: 20 68% 58%;
-    --primary-foreground: 25 8% 8%;
+    /* Steel-slate primary — brighter in dark */
+    --primary: 215 40% 62%;
+    --primary-foreground: 222 12% 8%;
 
     --destructive: 0 68% 54%;
     --destructive-foreground: 0 0% 100%;
 
-    --accent-foreground: 38 18% 93%;
-    --accent-muted: 28 18% 16%;
-    --accent-strong: 35 65% 62%;
+    --accent-foreground: 210 18% 93%;
+    --accent-muted: 215 15% 16%;
+    --accent-strong: 195 50% 65%;
 
-    --surface-1: 25 8% 8%;
-    --surface-2: 25 6% 15%;
-    --surface-3: 25 5% 21%;
-    --surface-4: 25 5% 27%;
+    --surface-1: 222 12% 8%;
+    --surface-2: 222 8% 15%;
+    --surface-3: 222 7% 21%;
+    --surface-4: 222 6% 27%;
 
-    --paper-bg: #100f0e;
-    --paper-border: #26231f;
+    --paper-bg: #0d0e11;
+    --paper-border: #1e2028;
     --paper-shadow: rgba(0, 0, 0, 0.45);
   }
 

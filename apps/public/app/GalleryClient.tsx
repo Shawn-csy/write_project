@@ -73,7 +73,7 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
         <GalleryStaticHero />
       ) : null}
 
-      <div className="flex flex-1 w-full px-3 sm:px-5 lg:px-8 py-5 sm:py-8 pb-20 gap-6">
+      <div className="flex flex-1 w-full px-4 sm:px-5 lg:px-8 py-4 sm:py-6 lg:py-8 pb-24 sm:pb-20 gap-6">
         {/* Desktop sidebar */}
         {view === "scripts" && !sidebarCollapsed && (
           <aside className="hidden lg:flex lg:flex-col w-60 shrink-0">
@@ -83,7 +83,7 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
                 <button
                   type="button"
                   onClick={() => setSidebarCollapsed(true)}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
                   aria-label="收起篩選欄"
                 >
                   <PanelLeftClose className="w-4 h-4" />
@@ -100,7 +100,7 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
             <button
               type="button"
               onClick={() => setSidebarCollapsed(false)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
               aria-label="展開篩選欄"
             >
               <PanelLeftOpen className="w-4 h-4" />
@@ -109,7 +109,7 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
               <button
                 type="button"
                 onClick={() => setSidebarCollapsed(false)}
-                className="inline-flex h-9 w-9 flex-col items-center justify-center gap-0.5 rounded-lg text-primary hover:bg-primary/10 transition-colors"
+                className="inline-flex h-11 w-11 flex-col items-center justify-center gap-0.5 rounded-lg text-primary hover:bg-primary/10 transition-colors"
                 aria-label={`已選 ${activeFilterCount} 個篩選`}
               >
                 <SlidersHorizontal className="w-4 h-4" />
@@ -123,7 +123,7 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
         <main className="flex-1 min-w-0">
           {/* Segment + controls bar — scripts view only */}
           {view === "scripts" && (
-            <div className="sticky top-[6.5rem] sm:top-14 z-30 -mx-3 sm:-mx-5 lg:mx-0 mb-4 bg-background/97 backdrop-blur-md px-3 sm:px-5 lg:px-0">
+            <div className="sticky top-24 sm:top-14 z-30 -mx-4 sm:-mx-5 lg:mx-0 mb-4 bg-background/97 backdrop-blur-md px-4 sm:px-5 lg:px-0">
               {/* Segment tabs row */}
               <GallerySegmentBar segment={segment} onSegmentChange={setSegment} />
 
