@@ -13,14 +13,12 @@ describe("GallerySegmentBar", () => {
     expect(screen.getByRole("button", { name: "女性向" })).toBeTruthy();
   });
 
-  it("active segment button has underline indicator", () => {
+  it("active segment button has active styles", () => {
     render(<GallerySegmentBar segment="adult" onSegmentChange={vi.fn()} />);
     const adultBtn = screen.getByRole("button", { name: "成人向" });
-    // active button contains the underline span child
-    expect(adultBtn.querySelector("span")).toBeTruthy();
-    // inactive button has no span child
+    expect(adultBtn.className).toContain("font-semibold");
     const allBtn = screen.getByRole("button", { name: "全部" });
-    expect(allBtn.querySelector("span")).toBeNull();
+    expect(allBtn.className).not.toContain("font-semibold");
   });
 
   it("calls onSegmentChange with correct value when clicking 成人向", () => {
