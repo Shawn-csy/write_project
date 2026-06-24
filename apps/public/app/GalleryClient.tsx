@@ -106,7 +106,7 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
                     <button
                       type="button"
                       onClick={() => setSidebarCollapsed(false)}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
                       aria-label="展開篩選欄"
                     >
                       <PanelLeftOpen className="w-4 h-4" />
@@ -115,7 +115,7 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
                       <button
                         type="button"
                         onClick={() => setSidebarCollapsed(false)}
-                        className="inline-flex h-9 w-9 flex-col items-center justify-center gap-0.5 rounded-lg text-primary hover:bg-primary/10 transition-colors"
+                        className="inline-flex h-11 w-11 flex-col items-center justify-center gap-0.5 rounded-lg text-primary hover:bg-primary/10 transition-colors"
                         aria-label={`已選 ${activeFilterCount} 個篩選`}
                       >
                         <SlidersHorizontal className="w-3.5 h-3.5" />

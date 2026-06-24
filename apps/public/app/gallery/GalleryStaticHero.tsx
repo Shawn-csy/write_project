@@ -34,17 +34,6 @@ export function GalleryStaticHero() {
         aria-hidden
       />
 
-      <style>{`
-        @keyframes hero-fade-up {
-          from { opacity: 0; transform: translateY(14px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        .hero-reveal {
-          opacity: 0;
-          animation: hero-fade-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-        }
-      `}</style>
-
       <div className="relative z-10 mx-auto max-w-5xl px-6 sm:px-8 py-10 sm:py-14">
         {/* Eyebrow */}
         <p
