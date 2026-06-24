@@ -20,13 +20,14 @@ interface AuthorInfo {
 interface AuthorBadgeProps {
   author?: AuthorInfo | string;
   className?: string;
+  style?: React.CSSProperties;
   showAvatar?: boolean;
   link?: string;
   clickable?: boolean;
   onClick?: () => void;
 }
 
-export function AuthorBadge({ author, className = "", showAvatar = true, link, clickable = true, onClick }: AuthorBadgeProps) {
+export function AuthorBadge({ author, className = "", style, showAvatar = true, link, clickable = true, onClick }: AuthorBadgeProps) {
   const displayName = typeof author === "object"
     ? (author?.displayName || author?.name || "")
     : (author || "");
@@ -34,7 +35,7 @@ export function AuthorBadge({ author, className = "", showAvatar = true, link, c
   const avatarCrop = typeof author === "object" ? author?.avatarCrop : null;
   const cropAvatar = getMediaCropStyle(String(avatarUrl || ""), avatarCrop);
 
-  const badgeClass = `flex items-center gap-1.5 text-xs text-muted-foreground transition-colors bg-muted/40 px-2 py-1 rounded-full ${className}`;
+  const badgeClass = `flex items-center gap-1.5 text-xs text-muted-foreground transition-colors px-2 py-1 rounded-lg ${className}`;
   const interactiveClass = "cursor-pointer hover:text-foreground hover:bg-muted";
   const staticClass = "cursor-default";
 
@@ -48,7 +49,7 @@ export function AuthorBadge({ author, className = "", showAvatar = true, link, c
 
   if (link && clickable) {
     return (
-      <a href={link} className={`no-underline ${badgeClass} ${interactiveClass}`}>
+      <a href={link} style={style} className={`no-underline ${badgeClass} ${interactiveClass}`}>
         {avatarEl}
         {nameEl}
       </a>
@@ -57,7 +58,7 @@ export function AuthorBadge({ author, className = "", showAvatar = true, link, c
 
   if (onClick && clickable) {
     return (
-      <button type="button" className={`border-none bg-transparent p-0 ${badgeClass} ${interactiveClass}`} onClick={onClick}>
+      <button type="button" style={style} className={`border-none bg-transparent p-0 ${badgeClass} ${interactiveClass}`} onClick={onClick}>
         {avatarEl}
         {nameEl}
       </button>
@@ -65,7 +66,7 @@ export function AuthorBadge({ author, className = "", showAvatar = true, link, c
   }
 
   return (
-    <span className={`${badgeClass} ${staticClass}`}>
+    <span style={style} className={`${badgeClass} ${staticClass}`}>
       {avatarEl}
       {nameEl}
     </span>

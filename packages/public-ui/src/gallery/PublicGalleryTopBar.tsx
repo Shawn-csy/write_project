@@ -65,7 +65,7 @@ export function PublicGalleryTopBar({
               type="button"
               onClick={onOpenMobileFilter}
               aria-label={mobileFilterLabel}
-              className="flex items-center justify-center h-9 w-9 -ml-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-all duration-150"
+              className="flex items-center justify-center h-11 w-11 -ml-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-all duration-150"
             >
               <SlidersHorizontal className="h-[15px] w-[15px]" />
             </button>
@@ -88,7 +88,7 @@ export function PublicGalleryTopBar({
             </svg>
           </div>
           <div className="flex flex-col justify-center gap-0">
-            <span className="font-serif font-bold text-foreground text-[1.0625rem] leading-none tracking-[-0.01em] group-hover:text-primary transition-colors duration-200">{brandName}</span>
+            <span className="font-serif font-bold text-foreground text-[1.0625rem] leading-none group-hover:text-primary transition-colors duration-200">{brandName}</span>
             {brandSubtitle && (
               <span className="hidden sm:block text-[10px] text-muted-foreground/50 font-normal leading-none mt-0.5 tracking-[0.03em]">{brandSubtitle}</span>
             )}
@@ -128,7 +128,7 @@ export function PublicGalleryTopBar({
               type="button"
               onClick={onOpenMobileFilter}
               aria-label={mobileFilterLabel}
-              className="hidden sm:flex lg:hidden items-center justify-center h-9 w-9 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all duration-150"
+              className="hidden sm:flex lg:hidden items-center justify-center h-11 w-11 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all duration-150"
             >
               <SlidersHorizontal className="h-[15px] w-[15px]" />
             </button>

@@ -44,10 +44,7 @@ export function GalleryStaticHero() {
         </p>
 
         {/* Main headline — editorial serif */}
-        <h1
-          className="font-serif font-bold leading-[1.15] tracking-[-0.015em]"
-          style={{ fontSize: "clamp(1.75rem, 5vw, 3.25rem)", color: "hsl(var(--foreground))" }}
-        >
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold leading-[1.15] text-foreground">
           探索、閱讀、分享
           <br />
           <span
@@ -69,13 +66,7 @@ export function GalleryStaticHero() {
         </h1>
 
         {/* Sub-copy */}
-        <p
-          className="mt-4 max-w-lg leading-relaxed"
-          style={{
-            fontSize: "clamp(0.875rem, 2vw, 1rem)",
-            color: "hsl(var(--muted-foreground))",
-          }}
-        >
+        <p className="mt-4 max-w-lg text-sm sm:text-base leading-relaxed text-muted-foreground">
           支援 Fountain 格式劇本，探索公開作品、配音台本與作者頁面。
         </p>
 

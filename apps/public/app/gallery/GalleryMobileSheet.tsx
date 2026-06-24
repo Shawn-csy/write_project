@@ -37,36 +37,67 @@ export function GalleryMobileSheet({
 
   return (
     <div className="fixed inset-0 z-50 lg:hidden">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="absolute bottom-0 left-0 right-0 rounded-t-2xl bg-background px-4 pt-4 pb-8 max-h-[80vh] overflow-y-auto">
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm font-semibold">篩選與搜尋</p>
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 backdrop-blur-[2px]"
+        style={{ background: "hsl(var(--foreground) / 0.25)" }}
+        onClick={onClose}
+      />
+
+      {/* Sheet */}
+      <div
+        className="absolute bottom-0 left-0 right-0 flex flex-col max-h-[85vh] overflow-hidden"
+        style={{
+          borderRadius: "1rem 1rem 0 0",
+          background: "hsl(var(--background))",
+          boxShadow: "0 -4px 32px hsl(var(--foreground) / 0.12), 0 -1px 0 hsl(var(--border) / 0.5)",
+        }}
+      >
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-1 shrink-0">
+          <div className="w-10 h-1 rounded-full" style={{ background: "hsl(var(--border))" }} aria-hidden />
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3 shrink-0" style={{ borderBottom: "1px solid hsl(var(--border) / 0.4)" }}>
+          <p className="text-[0.9375rem] font-semibold text-foreground">篩選與搜尋</p>
           <button
             type="button"
             onClick={onClose}
             aria-label="關閉篩選"
-            className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-muted"
+            className="h-11 w-11 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all duration-150"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* ViewMode — stacked for mobile */}
-        <div className="mb-4">
-          <p className="mb-1.5 text-xs font-medium text-foreground">顯示模式</p>
-          <GalleryViewModeToggle value={viewModeValue} onChange={setViewMode} />
-        </div>
+        {/* Scrollable content */}
+        <div className="overflow-y-auto flex-1 px-5 py-4 space-y-5">
+          {/* ViewMode */}
+          <div>
+            <p
+              className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em]"
+              style={{ color: "hsl(var(--muted-foreground) / 0.6)" }}
+            >
+              顯示模式
+            </p>
+            <GalleryViewModeToggle value={viewModeValue} onChange={setViewMode} />
+          </div>
 
-        {/* Filter panel (includes usage, search, tags) */}
-        <GalleryFilterPanel
-          {...filterProps}
-          usage={usage}
-          onUsageChange={setUsage}
-          onResetFilters={() => {
-            filterProps.onResetFilters();
-            onClose();
-          }}
-        />
+          {/* Filter panel (search, usage, tags) */}
+          <GalleryFilterPanel
+            {...filterProps}
+            usage={usage}
+            onUsageChange={setUsage}
+            onResetFilters={() => {
+              filterProps.onResetFilters();
+              onClose();
+            }}
+          />
+
+          {/* Safe area bottom spacer */}
+          <div className="h-4" aria-hidden />
+        </div>
       </div>
     </div>
   );
