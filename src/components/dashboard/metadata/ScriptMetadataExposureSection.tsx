@@ -7,8 +7,8 @@ import { CoverRenderer } from "../../ui/CoverRenderer";
 import { CoverDesignerPanel } from "./CoverDesignerPanel";
 import { Input } from "../../ui/input";
 import { getImageUploadGuide, MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
-import { getMediaCropStyle } from "../../../lib/mediaCropRef";
-import { useChecklistContext, useContentContext, useExposureContext, usePublicationContext, useUIContext } from "./ScriptMetadataDialogContext";
+import { getMediaCropStyle, canApplyPersistentCropRef } from "../../../lib/mediaCropRef";
+import { useChecklistContext, useContentContext, useExposureContext, useOverlayContext, usePublicationContext, useUIContext } from "./ScriptMetadataDialogContext";
 import { ScriptMetadataSeriesSection } from "./ScriptMetadataSeriesSection";
 
 interface TagItem {
@@ -38,6 +38,7 @@ export function ScriptMetadataExposureSection({
     showSeriesQuickCreate, handleQuickCreateSeries, isCreatingSeries, seriesOptions, newTagInput, setNewTagInput, handleAddTag,
     currentTags, handleRemoveTag,
   } = useExposureContext();
+  const { openCoverCropFromUrl } = useOverlayContext();
   const setQuickSeriesNameInput = setQuickSeriesName;
   const setSeriesOrderInput = setSeriesOrder;
 
@@ -120,6 +121,11 @@ export function ScriptMetadataExposureSection({
               <Button type="button" variant="secondary" size="sm" className="h-8 text-xs" onClick={openCoverMediaPicker}>
                 從媒體庫選擇
               </Button>
+              {canApplyPersistentCropRef(coverUrl) && (
+                <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={openCoverCropFromUrl}>
+                  {t("mediaLibrary.adjustFocalPoint", "調整焦點")}
+                </Button>
+              )}
             </div>
             <div className="space-y-0.5 text-[11px] text-muted-foreground">
               <p>{coverGuide.supported}</p>

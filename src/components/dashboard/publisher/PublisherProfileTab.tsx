@@ -13,7 +13,7 @@ import {
 import { PersonaProfileChecklist } from "./PersonaProfileChecklist";
 import { PersonaProfileForm } from "./PersonaProfileForm";
 import { usePublisherProfileState } from "../../../hooks/publisher/usePublisherProfileState";
-import { getMediaCropStyle } from "../../../lib/mediaCropRef";
+import { getMediaCropStyle, canApplyPersistentCropRef } from "../../../lib/mediaCropRef";
 import { openPublicPath } from "../../../lib/publicNavigation";
 import type { PersonaItem, PersonaDraft, OrgItem } from "../../../hooks/publisher/usePublisherProfileState";
 
@@ -69,7 +69,7 @@ export function PublisherProfileTab(props: PublisherProfileTabProps): React.JSX.
     cropOpen, setCropOpen, cropPurpose, cropTargetField, cropSource,
     avatarGuide, bannerGuide, hasPersona, filteredTagOptions, safeLinks,
     profileProgress, profileDone, profileNextSteps, missingRequiredFields, suggestedFields,
-    jumpToRequiredField, applyUploadedImage, handleImageUpload, handleRequestJoinOrg, handleMediaPickerSelect, handleMediaPickerSelectMedia,
+    jumpToRequiredField, applyUploadedImage, handleImageUpload, openCropFromUrl, applyCropRef, handleRequestJoinOrg, handleMediaPickerSelect, handleMediaPickerSelectMedia,
   } = state;
 
   const profileChecklistLength = 6; // matches hook's checklist array length
@@ -172,6 +172,8 @@ export function PublisherProfileTab(props: PublisherProfileTabProps): React.JSX.
               handleImageUpload={handleImageUpload}
               onOpenAvatarMediaPicker={() => { setMediaPickerTarget("avatar"); setIsMediaPickerOpen(true); }}
               onOpenBannerMediaPicker={() => { setMediaPickerTarget("banner"); setIsMediaPickerOpen(true); }}
+              onAdjustAvatarFocalPoint={canApplyPersistentCropRef(personaDraft.avatar) ? () => openCropFromUrl("avatar", personaDraft.avatar) : undefined}
+              onAdjustBannerFocalPoint={canApplyPersistentCropRef(personaDraft.bannerUrl) ? () => openCropFromUrl("bannerUrl", personaDraft.bannerUrl) : undefined}
               hasPersona={hasPersona}
               orgSearchQuery={orgSearchQuery} setOrgSearchQuery={setOrgSearchQuery}
               isOrgSearching={isOrgSearching} orgSearchResults={orgSearchResults}
@@ -228,6 +230,9 @@ export function PublisherProfileTab(props: PublisherProfileTabProps): React.JSX.
         open={cropOpen} onOpenChange={setCropOpen}
         source={cropSource} purpose={cropPurpose}
         onConfirm={async (croppedFile) => { if (!cropTargetField) return; await applyUploadedImage(croppedFile, cropTargetField); }}
+        onApplyCropRef={cropSource?.url && cropTargetField ? (crop) => applyCropRef(cropTargetField, crop) : undefined}
+        applyCropRefLabel={t("mediaLibrary.applyCropFrame", "套用裁切框")}
+        initialCropRef={cropSource?.url ? (cropSource.initialCropRef ?? null) : null}
       />
     </PublisherSplitPanel>
   );

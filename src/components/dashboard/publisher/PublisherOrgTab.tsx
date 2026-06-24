@@ -4,7 +4,7 @@ import { Loader2, Trash2, Building2, CircleHelp, ExternalLink, AlertTriangle } f
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
-import { getMediaCropStyle } from "../../../lib/mediaCropRef";
+import { getMediaCropStyle, canApplyPersistentCropRef } from "../../../lib/mediaCropRef";
 import { useI18n } from "../../../contexts/I18nContext";
 import { MediaPicker } from "../../ui/MediaPicker";
 import { PublisherFormRow } from "./PublisherFormRow";
@@ -337,6 +337,11 @@ export function PublisherOrgTab({
                                             >
                                                 {t("mediaLibrary.selectFromLibrary", "從媒體庫選擇")}
                                             </Button>
+                                            {canApplyPersistentCropRef(orgDraft.logoUrl) && (
+                                                <Button type="button" variant="outline" size="sm" className="h-8 text-[11px]" onClick={() => s.openCropFromUrl("logoUrl", orgDraft.logoUrl)}>
+                                                    {t("mediaLibrary.adjustFocalPoint", "調整焦點")}
+                                                </Button>
+                                            )}
                                         </div>
                                         <div className="space-y-0.5 text-[11px] text-muted-foreground">
                                             <p>{s.logoGuide.supported}</p>
@@ -391,6 +396,11 @@ export function PublisherOrgTab({
                                             >
                                                 {t("mediaLibrary.selectFromLibrary", "從媒體庫選擇")}
                                             </Button>
+                                            {canApplyPersistentCropRef(orgDraft.bannerUrl) && (
+                                                <Button type="button" variant="outline" size="sm" className="h-8 text-[11px]" onClick={() => s.openCropFromUrl("bannerUrl", orgDraft.bannerUrl)}>
+                                                    {t("mediaLibrary.adjustFocalPoint", "調整焦點")}
+                                                </Button>
+                                            )}
                                         </div>
                                         <div className="space-y-0.5 text-[11px] text-muted-foreground">
                                             <p>{s.bannerGuide.supported}</p>
@@ -552,6 +562,9 @@ export function PublisherOrgTab({
                 if (!s.cropTargetField || !croppedFile) return;
                 await s.applyUploadedImage(croppedFile, s.cropTargetField);
             }}
+            onApplyCropRef={s.cropSource?.url && s.cropTargetField ? (crop) => s.applyCropRef(s.cropTargetField!, crop) : undefined}
+            applyCropRefLabel={t("mediaLibrary.applyCropFrame", "套用裁切框")}
+            initialCropRef={s.cropSource?.url ? (s.cropSource.initialCropRef ?? null) : null}
         />
         </>
     );
