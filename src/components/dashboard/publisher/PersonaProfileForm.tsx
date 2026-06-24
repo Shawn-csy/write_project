@@ -33,6 +33,8 @@ interface Props {
   handleImageUpload: (field: "avatar" | "bannerUrl") => (event: React.ChangeEvent<HTMLInputElement>) => void;
   onOpenAvatarMediaPicker: () => void;
   onOpenBannerMediaPicker: () => void;
+  onAdjustAvatarFocalPoint?: () => void;
+  onAdjustBannerFocalPoint?: () => void;
   // org
   hasPersona: boolean;
   orgSearchQuery: string;
@@ -57,6 +59,7 @@ export function PersonaProfileForm({
   avatarUploadError, bannerUploadError, avatarUploadWarning, bannerUploadWarning,
   avatarGuide, bannerGuide, handleImageUpload,
   onOpenAvatarMediaPicker, onOpenBannerMediaPicker,
+  onAdjustAvatarFocalPoint, onAdjustBannerFocalPoint,
   hasPersona, orgSearchQuery, setOrgSearchQuery, isOrgSearching,
   orgSearchResults, handleRequestJoinOrg, myOrgRequests,
   personaTagInput, setPersonaTagInput, parseTags, addTags, getTagStyle, filteredTagOptions,
@@ -107,6 +110,11 @@ export function PersonaProfileForm({
             <Button type="button" variant="secondary" size="sm" className="h-8 text-[11px] border bg-primary/5 hover:bg-primary/10 text-primary border-primary/20" onClick={onOpenAvatarMediaPicker}>
               {t("mediaLibrary.selectFromLibrary", "從媒體庫選擇")}
             </Button>
+            {personaDraft.avatar && onAdjustAvatarFocalPoint && (
+              <Button type="button" variant="outline" size="sm" className="h-8 text-[11px]" onClick={onAdjustAvatarFocalPoint}>
+                {t("mediaLibrary.adjustFocalPoint", "調整焦點")}
+              </Button>
+            )}
           </div>
           <div className="space-y-0.5 text-[11px] text-muted-foreground"><p>{avatarGuide.supported}</p><p>{avatarGuide.recommended}</p></div>
           <div className="min-h-[16px] text-[11px]">
@@ -136,6 +144,11 @@ export function PersonaProfileForm({
             <Button type="button" variant="secondary" size="sm" className="h-8 text-[11px] border bg-primary/5 hover:bg-primary/10 text-primary border-primary/20" onClick={onOpenBannerMediaPicker}>
               {t("mediaLibrary.selectFromLibrary", "從媒體庫選擇")}
             </Button>
+            {personaDraft.bannerUrl && onAdjustBannerFocalPoint && (
+              <Button type="button" variant="outline" size="sm" className="h-8 text-[11px]" onClick={onAdjustBannerFocalPoint}>
+                {t("mediaLibrary.adjustFocalPoint", "調整焦點")}
+              </Button>
+            )}
           </div>
           <div className="space-y-0.5 text-[11px] text-muted-foreground"><p>{bannerGuide.supported}</p><p>{bannerGuide.recommended}</p></div>
           <div className="min-h-[16px] text-[11px]">
