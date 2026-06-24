@@ -53,6 +53,7 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
     onToggleOrgTag,
     onResetAuthorTags,
     onResetOrgTags,
+    isPending,
   } = useGalleryController({ initialScripts, initialBannerSlides });
 
   const { view, resultCount, hasFilters } = homepageModel;
@@ -62,7 +63,7 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
   const activeFilterCount = homepageModel.filterChips.length;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className={`min-h-screen bg-background flex flex-col transition-opacity duration-150 ${isPending ? "opacity-60 pointer-events-none" : ""}`}>
       <GalleryTopBar
         activeTab={tab}
         onTabChange={setTab}

@@ -6,6 +6,7 @@
  */
 
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { SITE_BRAND_NAME } from "@/lib/seo";
 
 export interface TopBarTab {
@@ -44,27 +45,27 @@ export function PublicTopBar({
         {/* Left: logo + back */}
         <div className="flex items-center gap-2 shrink-0">
           {showBack && (
-            <a
+            <Link
               href={backHref}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               aria-label={backLabel}
             >
               ←
-            </a>
+            </Link>
           )}
-          <a
+          <Link
             href="/"
             className="font-serif font-bold text-foreground text-base hover:text-primary transition-colors"
           >
             {SITE_BRAND_NAME}
-          </a>
+          </Link>
         </div>
 
         {/* Center: tab nav (hidden on mobile, shown on md+) */}
         {tabs.length > 0 && (
           <nav className="hidden md:flex items-center gap-1 ml-2 shrink-0">
             {tabs.map((tab) => (
-              <a
+              <Link
                 key={tab.key}
                 href={tab.href}
                 className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
@@ -74,7 +75,7 @@ export function PublicTopBar({
                 }`}
               >
                 {tab.label}
-              </a>
+              </Link>
             ))}
           </nav>
         )}
@@ -90,7 +91,7 @@ export function PublicTopBar({
         <div className="md:hidden border-t border-border/40 overflow-x-auto">
           <nav className="flex items-center gap-1 px-4 py-2">
             {tabs.map((tab) => (
-              <a
+              <Link
                 key={tab.key}
                 href={tab.href}
                 className={`px-3 py-1 text-sm rounded-md whitespace-nowrap transition-colors ${
@@ -100,7 +101,7 @@ export function PublicTopBar({
                 }`}
               >
                 {tab.label}
-              </a>
+              </Link>
             ))}
           </nav>
         </div>

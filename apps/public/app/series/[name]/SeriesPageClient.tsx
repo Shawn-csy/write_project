@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { PublicScript } from "@/lib/types";
 import { getMediaCropStyle } from "@write/media-crop";
 
@@ -95,20 +96,20 @@ export function SeriesPageClient({ seriesName, scripts, seriesMeta }: Props) {
               {scripts.length > 0 && (
                 <div className="flex flex-wrap gap-2 pt-1">
                   {firstScript && (
-                    <a
+                    <Link
                       href={`/read/${firstScript.id}`}
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors no-underline"
                     >
                       開始閱讀
-                    </a>
+                    </Link>
                   )}
                   {latestScript && latestScript.id !== firstScript?.id && (
-                    <a
+                    <Link
                       href={`/read/${latestScript.id}`}
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border bg-background text-sm font-medium hover:bg-muted/50 transition-colors no-underline"
                     >
                       最新章節
-                    </a>
+                    </Link>
                   )}
                 </div>
               )}
@@ -120,7 +121,7 @@ export function SeriesPageClient({ seriesName, scripts, seriesMeta }: Props) {
         {scripts.length === 0 ? (
           <div className="rounded-xl border border-border/60 bg-muted/20 py-16 text-center text-muted-foreground">
             <p>這個系列目前沒有公開作品。</p>
-            <a href="/" className="text-sm underline mt-2 inline-block">返回首頁</a>
+            <Link href="/" className="text-sm underline mt-2 inline-block">返回首頁</Link>
           </div>
         ) : (
           <section className="rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-6">
@@ -139,7 +140,7 @@ export function SeriesPageClient({ seriesName, scripts, seriesMeta }: Props) {
                 const dateLabel = formatDate(script.lastModified ?? script.updatedAt);
 
                 return (
-                  <a
+                  <Link
                     key={script.id}
                     href={`/read/${script.id}`}
                     className="group flex items-center gap-4 rounded-lg px-3 py-3 hover:bg-background/80 border border-transparent hover:border-border/60 transition-all no-underline"
@@ -177,7 +178,7 @@ export function SeriesPageClient({ seriesName, scripts, seriesMeta }: Props) {
                     <span className="shrink-0 text-muted-foreground/30 group-hover:text-primary/60 transition-colors text-sm" aria-hidden>
                       →
                     </span>
-                  </a>
+                  </Link>
                 );
               })}
             </div>
@@ -185,9 +186,9 @@ export function SeriesPageClient({ seriesName, scripts, seriesMeta }: Props) {
         )}
 
         <div className="mt-8 pt-6 border-t border-border/60">
-          <a href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             ← 返回台本列表
-          </a>
+          </Link>
         </div>
       </div>
     </main>

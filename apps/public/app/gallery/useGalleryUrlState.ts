@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   parseGalleryUrlState,
@@ -30,9 +30,11 @@ export interface GalleryUrlStateActions {
 export function useGalleryUrlState(): {
   state: PublicHomepageUrlState;
   actions: GalleryUrlStateActions;
+  isPending: boolean;
 } {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
   const state = useMemo(
     () => parseGalleryUrlState(searchParams.toString()),
@@ -50,13 +52,18 @@ export function useGalleryUrlState(): {
       const params = serializeGalleryUrlState(next);
       const qs = params.toString();
       const url = qs ? `/?${qs}` : "/";
-      if (method === "replace") {
-        router.replace(url, { scroll: false });
-      } else {
-        router.push(url, { scroll: false });
-      }
+      // startTransition keeps current UI visible during navigation — prevents
+      // the Suspense boundary from showing fallback={null} (blank screen) while
+      // useSearchParams re-renders on the new URL.
+      startTransition(() => {
+        if (method === "replace") {
+          router.replace(url, { scroll: false });
+        } else {
+          router.push(url, { scroll: false });
+        }
+      });
     },
-    [router]
+    [router, startTransition]
   );
 
   const setView = useCallback((view: GalleryView) => nav({ view }), [nav]);
@@ -123,5 +130,5 @@ export function useGalleryUrlState(): {
     [setView, setMode, setSegment, setUsage, setQ, toggleTag, toggleAuthorTag, toggleOrgTag, resetFilters, resetAuthorTags, resetOrgTags]
   );
 
-  return { state, actions };
+  return { state, actions, isPending };
 }

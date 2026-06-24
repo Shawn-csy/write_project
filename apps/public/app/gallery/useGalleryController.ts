@@ -31,7 +31,7 @@ export function useGalleryController({
   initialScripts,
   initialBannerSlides,
 }: UseGalleryControllerOptions) {
-  const { state: urlState, actions: urlActions } = useGalleryUrlState();
+  const { state: urlState, actions: urlActions, isPending } = useGalleryUrlState();
 
   // ── Server data ────────────────────────────────────────────────────────────
   const [rawScripts, setRawScripts] = useState<PublicScript[]>(initialScripts);
@@ -213,5 +213,6 @@ export function useGalleryController({
     onToggleOrgTag: urlActions.toggleOrgTag,
     onResetAuthorTags: urlActions.resetAuthorTags,
     onResetOrgTags: urlActions.resetOrgTags,
+    isPending,
   };
 }
