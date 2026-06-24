@@ -21,20 +21,30 @@ export function GallerySegmentBar({ segment, onSegmentChange }: GallerySegmentBa
   const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
   const [ready, setReady] = useState(false);
+  const segmentRef = useRef(segment);
+  segmentRef.current = segment;
 
-  useEffect(() => {
-    const btn = buttonRefs.current[segment];
+  const measure = () => {
+    const btn = buttonRefs.current[segmentRef.current];
     const container = containerRef.current;
     if (!btn || !container) return;
     const containerRect = container.getBoundingClientRect();
     const btnRect = btn.getBoundingClientRect();
-    // 8px inset (left-2 right-2 = 0.5rem each side)
-    setIndicator({
-      left: btnRect.left - containerRect.left + 8,
-      width: btnRect.width - 16,
-    });
+    setIndicator({ left: btnRect.left - containerRect.left + 8, width: btnRect.width - 16 });
     setReady(true);
-  }, [segment]);
+  };
+
+  // Re-measure on segment change
+  useEffect(() => { measure(); }, [segment]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-measure on resize (font scale, viewport change)
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="overflow-x-auto scrollbar-none" style={{ borderBottom: "1px solid hsl(var(--border) / 0.4)" }}>
