@@ -34,44 +34,54 @@ export function GalleryStaticHero() {
         aria-hidden
       />
 
+      <style>{`
+        @keyframes hero-fade-up {
+          from { opacity: 0; transform: translateY(14px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .hero-reveal {
+          opacity: 0;
+          animation: hero-fade-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+      `}</style>
+
       <div className="relative z-10 mx-auto max-w-5xl px-6 sm:px-8 py-10 sm:py-14">
-        {/* Eyebrow — small caps label */}
+        {/* Eyebrow */}
         <p
-          className="mb-3 text-[10px] font-semibold tracking-[0.22em] uppercase"
-          style={{ color: "hsl(var(--primary) / 0.75)" }}
+          className="hero-reveal mb-3 text-[10px] font-semibold tracking-[0.22em] uppercase"
+          style={{ color: "hsl(var(--primary) / 0.75)", animationDelay: "0ms" }}
         >
           公開台本平台
         </p>
 
-        {/* Main headline — editorial serif */}
+        {/* Main headline */}
         <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold leading-[1.15] text-foreground">
-          探索、閱讀、分享
-          <br />
+          <span className="hero-reveal block" style={{ animationDelay: "80ms" }}>
+            探索、閱讀、分享
+          </span>
           <span
-            className="relative inline-block"
-            style={{ color: "hsl(var(--primary))" }}
+            className="hero-reveal relative inline-block"
+            style={{ color: "hsl(var(--primary))", animationDelay: "160ms" }}
           >
             創作台本
-            {/* Hairline underline accent */}
             <span
               className="absolute left-0 bottom-[0.08em] w-full"
-              style={{
-                height: "2px",
-                background: "hsl(var(--primary) / 0.3)",
-                borderRadius: "1px",
-              }}
+              style={{ height: "2px", background: "hsl(var(--primary) / 0.3)", borderRadius: "1px" }}
               aria-hidden
             />
           </span>
         </h1>
 
         {/* Sub-copy */}
-        <p className="mt-4 max-w-lg text-sm sm:text-base leading-relaxed text-muted-foreground">
+        <p
+          className="hero-reveal mt-4 max-w-lg text-sm sm:text-base leading-relaxed text-muted-foreground"
+          style={{ animationDelay: "240ms" }}
+        >
           支援 Fountain 格式劇本，探索公開作品、配音台本與作者頁面。
         </p>
 
-        {/* Decorative counter — adds editorial data feel */}
-        <div className="mt-6 flex items-center gap-5">
+        {/* Decorative rule */}
+        <div className="hero-reveal mt-6 flex items-center gap-5" style={{ animationDelay: "320ms" }}>
           <div
             className="h-px flex-1 max-w-[3rem]"
             style={{ background: "hsl(var(--border))" }}

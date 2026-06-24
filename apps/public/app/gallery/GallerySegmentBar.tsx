@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useRef, useEffect, useState } from "react";
 import { SEGMENT_KEYS, type SegmentKey } from "@write/public-ui";
 
 const SEGMENT_OPTIONS: { value: SegmentKey; label: string }[] = [
@@ -16,32 +17,60 @@ interface GallerySegmentBarProps {
 }
 
 export function GallerySegmentBar({ segment, onSegmentChange }: GallerySegmentBarProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const btn = buttonRefs.current[segment];
+    const container = containerRef.current;
+    if (!btn || !container) return;
+    const containerRect = container.getBoundingClientRect();
+    const btnRect = btn.getBoundingClientRect();
+    // 8px inset (left-2 right-2 = 0.5rem each side)
+    setIndicator({
+      left: btnRect.left - containerRect.left + 8,
+      width: btnRect.width - 16,
+    });
+    setReady(true);
+  }, [segment]);
+
   return (
     <div className="overflow-x-auto scrollbar-none" style={{ borderBottom: "1px solid hsl(var(--border) / 0.4)" }}>
-      <div className="flex items-end gap-0.5 min-w-max px-0.5 pb-0">
+      <div ref={containerRef} className="relative flex items-end gap-0.5 min-w-max px-0.5 pb-0">
         {SEGMENT_OPTIONS.map((opt) => {
           const active = segment === opt.value;
           return (
             <button
               key={opt.value}
               type="button"
+              ref={(el) => { buttonRefs.current[opt.value] = el; }}
               onClick={() => onSegmentChange(opt.value)}
-              className={`relative h-10 shrink-0 px-3.5 text-[0.8125rem] rounded-t-md transition-all duration-150 whitespace-nowrap ${
+              className={`relative h-10 shrink-0 px-3.5 text-[0.8125rem] rounded-t-md transition-colors duration-150 whitespace-nowrap ${
                 active
                   ? "text-foreground font-semibold bg-muted/50"
                   : "text-muted-foreground hover:text-foreground font-normal"
               }`}
             >
               {opt.label}
-              {active && (
-                <span
-                  className="absolute bottom-0 left-2 right-2 rounded-t-[2px]"
-                  style={{ height: "2px", background: "hsl(var(--primary))" }}
-                />
-              )}
             </button>
           );
         })}
+        {/* Sliding indicator */}
+        {ready && indicator && (
+          <span
+            aria-hidden
+            className="absolute bottom-0 rounded-t-[2px] pointer-events-none"
+            style={{
+              height: "2px",
+              background: "hsl(var(--primary))",
+              left: indicator.left,
+              width: indicator.width,
+              transition: "left 0.22s cubic-bezier(0.4,0,0.2,1), width 0.22s cubic-bezier(0.4,0,0.2,1)",
+            }}
+          />
+        )}
       </div>
     </div>
   );

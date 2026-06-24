@@ -74,7 +74,7 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
       ) : null}
 
       <div className="flex flex-1 w-full px-4 sm:px-5 lg:px-8 py-4 sm:py-6 lg:py-8 pb-24 sm:pb-20 gap-6">
-        {/* Desktop sidebar */}
+        {/* Desktop sidebar — only when expanded */}
         {view === "scripts" && !sidebarCollapsed && (
           <aside className="hidden lg:flex lg:flex-col w-60 shrink-0">
             <div className="sticky top-20">
@@ -94,38 +94,40 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
           </aside>
         )}
 
-        {/* Desktop collapsed rail */}
-        {view === "scripts" && sidebarCollapsed && (
-          <aside className="hidden lg:flex lg:flex-col items-center gap-1 w-11 shrink-0">
-            <button
-              type="button"
-              onClick={() => setSidebarCollapsed(false)}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-              aria-label="展開篩選欄"
-            >
-              <PanelLeftOpen className="w-4 h-4" />
-            </button>
-            {activeFilterCount > 0 && (
-              <button
-                type="button"
-                onClick={() => setSidebarCollapsed(false)}
-                className="inline-flex h-11 w-11 flex-col items-center justify-center gap-0.5 rounded-lg text-primary hover:bg-primary/10 transition-colors"
-                aria-label={`已選 ${activeFilterCount} 個篩選`}
-              >
-                <SlidersHorizontal className="w-4 h-4" />
-                <span className="text-[10px] font-semibold leading-none">{activeFilterCount}</span>
-              </button>
-            )}
-          </aside>
-        )}
-
         {/* Main content */}
         <main className="flex-1 min-w-0">
           {/* Segment + controls bar — scripts view only */}
           {view === "scripts" && (
             <div className="sticky top-24 sm:top-14 z-30 -mx-4 sm:-mx-5 lg:mx-0 mb-4 bg-background/97 backdrop-blur-md px-4 sm:px-5 lg:px-0">
-              {/* Segment tabs row */}
-              <GallerySegmentBar segment={segment} onSegmentChange={setSegment} />
+              {/* Segment tabs row — with expand button inlined when collapsed */}
+              <div className="flex items-end gap-2">
+                {sidebarCollapsed && (
+                  <div className="hidden lg:flex items-center gap-1 shrink-0 pb-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setSidebarCollapsed(false)}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                      aria-label="展開篩選欄"
+                    >
+                      <PanelLeftOpen className="w-4 h-4" />
+                    </button>
+                    {activeFilterCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setSidebarCollapsed(false)}
+                        className="inline-flex h-9 w-9 flex-col items-center justify-center gap-0.5 rounded-lg text-primary hover:bg-primary/10 transition-colors"
+                        aria-label={`已選 ${activeFilterCount} 個篩選`}
+                      >
+                        <SlidersHorizontal className="w-3.5 h-3.5" />
+                        <span className="text-[9px] font-semibold leading-none">{activeFilterCount}</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <GallerySegmentBar segment={segment} onSegmentChange={setSegment} />
+                </div>
+              </div>
 
               {/* ViewMode row — hidden on mobile (in mobile sheet). Usage moved to sidebar/sheet. */}
               <div className="relative z-50 hidden md:flex items-center justify-end py-2.5 pointer-events-auto">
