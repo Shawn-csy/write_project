@@ -21,7 +21,7 @@ export function PublicShellActions() {
           boxShadow: "0 1px 3px hsl(var(--primary)/0.3), inset 0 0.5px 0 hsl(0 0% 100% / 0.15)",
         }}
       >
-        工作室
+        進入工作室
       </a>
     </div>
   );
