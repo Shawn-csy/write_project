@@ -1,10 +1,8 @@
 /**
  * ScriptCard — shared script card for public SSR pages.
  * Server-renderable: uses <a> tags, no client hooks.
- * Handles coverCrop via getMediaCropStyle.
  */
 
-import { getMediaCropStyle } from "@write/media-crop";
 import { PublicImage } from "@/components/PublicImage";
 
 interface Tag {
@@ -44,10 +42,6 @@ function getAuthorName(script: ScriptCardData): string {
 }
 
 export function ScriptCard({ script, href }: Props) {
-  const { src, style } = getMediaCropStyle(
-    script.coverUrl ?? "",
-    script.coverCrop
-  );
   const tags = (script.tags ?? []).slice(0, 3);
   const authorName = getAuthorName(script);
   const readTarget = href ?? `/read/${script.id}`;
@@ -62,12 +56,12 @@ export function ScriptCard({ script, href }: Props) {
     <article className="flex flex-col rounded-xl border border-border/60 bg-background overflow-hidden hover:border-primary/50 hover:shadow-sm transition-all">
       {/* Cover — full clickable area to read */}
       <a href={readTarget} className="group block aspect-[2/3] bg-muted relative overflow-hidden">
-        {src ? (
+        {script.coverUrl ? (
           <PublicImage
-            src={src}
+            src={script.coverUrl}
             alt={script.title}
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-            style={style}
+            preset="script-cover"
+            crop={script.coverCrop}
             className="transition-transform duration-500 group-hover:scale-105"
           />
         ) : (

@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import type { PublicScript } from "@/lib/types";
-import { getMediaCropStyle } from "@write/media-crop";
 import { PublicImage } from "@/components/PublicImage";
 
 interface SeriesMeta {
@@ -38,13 +37,11 @@ function chapterLabel(order: number | null | undefined): string {
 }
 
 export function SeriesPageClient({ seriesName, scripts, seriesMeta }: Props) {
-  const cover = getMediaCropStyle(seriesMeta?.coverUrl ?? "", seriesMeta?.coverCrop);
-
   const firstScript = scripts[0] ?? null;
   const latestScriptId = seriesMeta?.latestScriptId;
   const latestScript = scripts.find((s) => s.id === latestScriptId) ?? null;
 
-  const hasCover = Boolean(cover.src);
+  const hasCover = Boolean(seriesMeta?.coverUrl);
 
   return (
     <main className="min-h-screen bg-background">
@@ -52,9 +49,9 @@ export function SeriesPageClient({ seriesName, scripts, seriesMeta }: Props) {
       <div className="relative h-48 overflow-hidden bg-gradient-to-r from-slate-900 to-slate-700">
         {hasCover && (
           <PublicImage
-            src={cover.src}
+            src={seriesMeta!.coverUrl!}
             alt=""
-            sizes="100vw"
+            preset="hero-banner"
             className="scale-110 blur-xl opacity-60"
           />
         )}
@@ -69,10 +66,10 @@ export function SeriesPageClient({ seriesName, scripts, seriesMeta }: Props) {
             {hasCover && (
               <div className="relative w-24 h-32 sm:w-28 sm:h-40 shrink-0 rounded-lg overflow-hidden border border-border/50 shadow-md">
                 <PublicImage
-                  src={cover.src}
+                  src={seriesMeta!.coverUrl!}
                   alt={seriesName}
-                  sizes="112px"
-                  style={cover.style}
+                  preset="series-cover"
+                  crop={seriesMeta?.coverCrop}
                 />
               </div>
             )}
