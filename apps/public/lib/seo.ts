@@ -33,10 +33,4 @@ export function pickPreviewImage(entityImage?: string | null): string {
   return DEFAULT_OG_IMAGE_URL;
 }
 
-/** Escapes a JSON-LD payload for safe inline <script> injection. */
-export function jsonLdSafe(payload: unknown): string {
-  return JSON.stringify(payload)
-    .replace(/</g, "\\u003c")
-    .replace(/>/g, "\\u003e")
-    .replace(/&/g, "\\u0026");
-}
+export { jsonLdSafe } from "./jsonLd";

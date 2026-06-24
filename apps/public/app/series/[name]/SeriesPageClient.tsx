@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { PublicScript } from "@/lib/types";
 import { getMediaCropStyle } from "@write/media-crop";
+import { PublicImage } from "@/components/PublicImage";
 
 interface SeriesMeta {
   name?: string;
@@ -50,12 +51,11 @@ export function SeriesPageClient({ seriesName, scripts, seriesMeta }: Props) {
       {/* Atmospheric banner — blurred cover or gradient fallback, same pattern as AuthorPageClient */}
       <div className="relative h-48 overflow-hidden bg-gradient-to-r from-slate-900 to-slate-700">
         {hasCover && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <PublicImage
             src={cover.src}
             alt=""
-            aria-hidden
-            className="w-full h-full object-cover scale-110 blur-xl opacity-60"
+            sizes="100vw"
+            className="scale-110 blur-xl opacity-60"
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -67,13 +67,12 @@ export function SeriesPageClient({ seriesName, scripts, seriesMeta }: Props) {
           <div className="flex flex-col sm:flex-row items-start gap-6">
             {/* Cover thumbnail */}
             {hasCover && (
-              <div className="w-24 h-32 sm:w-28 sm:h-40 shrink-0 rounded-lg overflow-hidden border border-border/50 shadow-md">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+              <div className="relative w-24 h-32 sm:w-28 sm:h-40 shrink-0 rounded-lg overflow-hidden border border-border/50 shadow-md">
+                <PublicImage
                   src={cover.src}
-                  style={cover.style}
                   alt={seriesName}
-                  className="w-full h-full object-cover"
+                  sizes="112px"
+                  style={cover.style}
                 />
               </div>
             )}

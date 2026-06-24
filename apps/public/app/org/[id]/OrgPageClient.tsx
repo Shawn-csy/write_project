@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { PublicOrg, PublicScript } from "@/lib/types";
 import { getMediaCropStyle } from "@write/media-crop";
 import { ScriptCard } from "@/components/ScriptCard";
+import { PublicImage } from "@/components/PublicImage";
 
 interface OrgWithCrop extends PublicOrg {
   bannerCrop?: { cx?: number | null; cy?: number | null; zoom?: number | null } | null;
@@ -28,13 +29,7 @@ export function OrgPageClient({ org, scripts }: Props) {
       {/* Banner */}
       <div className="relative h-48 overflow-hidden bg-gradient-to-r from-blue-900 to-slate-900">
         {banner.src && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={banner.src}
-            style={banner.style}
-            alt=""
-            className="w-full h-full object-cover"
-          />
+          <PublicImage src={banner.src} alt="" sizes="100vw" style={banner.style} />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
       </div>
@@ -44,15 +39,9 @@ export function OrgPageClient({ org, scripts }: Props) {
         <div className="relative -mt-16 mb-8 rounded-xl border border-border/60 bg-background p-6 shadow-sm md:p-8">
           <div className="flex flex-col md:flex-row items-start gap-6">
             {/* Logo */}
-            <div className="w-24 h-24 md:w-32 md:h-32 rounded-lg border-4 border-background bg-muted overflow-hidden shrink-0 shadow">
+            <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-lg border-4 border-background bg-muted overflow-hidden shrink-0 shadow">
               {logo.src ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={logo.src}
-                  style={logo.style}
-                  alt={org.name}
-                  className="w-full h-full object-cover"
-                />
+                <PublicImage src={logo.src} alt={org.name} sizes="128px" style={logo.style} />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-muted-foreground">
                   {org.name?.[0]}
@@ -153,14 +142,9 @@ export function OrgPageClient({ org, scripts }: Props) {
                     href={`/author/${member.id}`}
                     className="flex items-center gap-3 rounded-lg border border-border/60 bg-background p-4 hover:border-primary/50 transition-colors"
                   >
-                    <div className="w-10 h-10 rounded-full bg-muted overflow-hidden shrink-0">
+                    <div className="relative w-10 h-10 rounded-full bg-muted overflow-hidden shrink-0">
                       {member.avatar ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={member.avatar}
-                          alt={member.displayName}
-                          className="w-full h-full object-cover"
-                        />
+                        <PublicImage src={member.avatar} alt={member.displayName} sizes="40px" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-sm font-bold text-muted-foreground">
                           {member.displayName?.[0]}

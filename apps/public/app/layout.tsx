@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { publicSans, publicSerif } from "./fonts";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { SITE_DESCRIPTION, SITE_TITLE } from "@/lib/seo";
 
@@ -19,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-Hant" className="h-full antialiased">
+    <html lang="zh-Hant" className={`h-full antialiased ${publicSans.variable} ${publicSerif.variable}`}>
       <head>
         {/* Blocking script: apply dark class before first paint to prevent flash */}
         <script

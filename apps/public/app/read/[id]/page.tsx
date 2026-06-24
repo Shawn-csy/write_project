@@ -16,7 +16,8 @@ import {
   buildReadPageOpenGraph,
   buildReadPageTwitterCard,
 } from "@/lib/readPageSeo";
-import { TITLE_SUFFIX, jsonLdSafe } from "@/lib/seo";
+import { TITLE_SUFFIX } from "@/lib/seo";
+import { JsonLdScript } from "@/lib/jsonLd";
 
 // ISR: revalidate daily as fallback; on-demand revalidation handles real-time updates
 export const revalidate = 86400;
@@ -88,10 +89,7 @@ export default async function ScriptReaderPage({
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: jsonLdSafe([structuredData, breadcrumbData]) }}
-      />
+      <JsonLdScript data={[structuredData, breadcrumbData]} />
       {/*
         ScriptReaderClient renders the full reader UI.
         It receives renderBlocks so it can render the same content both on the

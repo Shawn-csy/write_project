@@ -5,6 +5,7 @@
  */
 
 import { getMediaCropStyle } from "@write/media-crop";
+import { PublicImage } from "@/components/PublicImage";
 
 interface Tag {
   id?: string;
@@ -62,13 +63,12 @@ export function ScriptCard({ script, href }: Props) {
       {/* Cover — full clickable area to read */}
       <a href={readTarget} className="group block aspect-[2/3] bg-muted relative overflow-hidden">
         {src ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <PublicImage
             src={src}
-            style={style}
             alt={script.title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+            style={style}
+            className="transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center p-3">

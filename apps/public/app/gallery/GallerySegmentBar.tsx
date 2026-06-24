@@ -47,7 +47,7 @@ export function GallerySegmentBar({ segment, onSegmentChange }: GallerySegmentBa
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="overflow-x-auto scrollbar-none" style={{ borderBottom: "1px solid hsl(var(--border) / 0.4)" }}>
+    <div className="overflow-x-auto scrollbar-none editorial-border-b">
       <div ref={containerRef} className="relative flex items-end gap-0.5 min-w-max px-0.5 pb-0">
         {SEGMENT_OPTIONS.map((opt) => {
           const active = segment === opt.value;
@@ -71,10 +71,8 @@ export function GallerySegmentBar({ segment, onSegmentChange }: GallerySegmentBa
         {ready && indicator && (
           <span
             aria-hidden
-            className="absolute bottom-0 rounded-t-[2px] pointer-events-none"
+            className="absolute bottom-0 rounded-t-[2px] pointer-events-none editorial-indicator"
             style={{
-              height: "2px",
-              background: "hsl(var(--primary))",
               left: indicator.left,
               width: indicator.width,
               transition: "left 0.22s cubic-bezier(0.4,0,0.2,1), width 0.22s cubic-bezier(0.4,0,0.2,1)",
