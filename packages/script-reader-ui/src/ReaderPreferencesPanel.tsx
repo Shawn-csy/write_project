@@ -74,7 +74,7 @@ export function ReaderPreferencesPanel({
                     onClick={() => setTheme(opt.value)}
                     className={`flex-1 text-xs py-1 rounded border transition-colors ${
                       prefs.theme === opt.value
-                        ? "border-foreground bg-foreground text-background"
+                        ? "border-primary bg-primary text-primary-foreground"
                         : "border-border/60 text-muted-foreground hover:text-foreground hover:border-border"
                     }`}
                   >
@@ -95,7 +95,7 @@ export function ReaderPreferencesPanel({
                     onClick={() => setFontFamily(family as ReaderFontFamily)}
                     className={`flex-1 text-xs py-1 rounded border transition-colors ${
                       prefs.fontFamily === family
-                        ? "border-foreground bg-foreground text-background"
+                        ? "border-primary bg-primary text-primary-foreground"
                         : "border-border/60 text-muted-foreground hover:text-foreground hover:border-border"
                     }`}
                   >
@@ -130,7 +130,7 @@ export function ReaderPreferencesPanel({
                       type="button"
                       onClick={() => setFontSize(size)}
                       className={`flex-1 h-1.5 rounded-full transition-colors ${
-                        prefs.fontSize === size ? "bg-foreground" : "bg-muted hover:bg-muted-foreground/40"
+                        prefs.fontSize === size ? "bg-primary" : "bg-muted hover:bg-muted-foreground/40"
                       }`}
                       aria-label={`${size}px`}
                     />
@@ -164,7 +164,7 @@ export function ReaderPreferencesPanel({
                     onClick={() => setLineHeight(lh as ReaderLineHeight)}
                     className={`flex-1 text-xs py-1 rounded border transition-colors ${
                       prefs.lineHeight === lh
-                        ? "border-foreground bg-foreground text-background"
+                        ? "border-primary bg-primary text-primary-foreground"
                         : "border-border/60 text-muted-foreground hover:text-foreground hover:border-border"
                     }`}
                   >

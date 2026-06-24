@@ -1,15 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import type { PublicScript } from "@/lib/types";
 import {
   PublicHeroMarquee,
   GalleryHoverPreviewProvider,
   type HeroSlide,
 } from "@write/public-ui";
-import { SlidersHorizontal, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { SlidersHorizontal, PanelLeftClose, PanelLeftOpen, List } from "lucide-react";
 import { GalleryFilterPanel } from "./gallery/GalleryFilterPanel";
 import { GallerySegmentBar } from "./gallery/GallerySegmentBar";
 import { GalleryViewModeToggle } from "./gallery/GalleryViewModeToggle";
+import { GalleryListOverlay } from "./gallery/GalleryListOverlay";
 import { GalleryMobileSheet } from "./gallery/GalleryMobileSheet";
 import { GalleryAuthorGrid, GalleryOrgGrid } from "./gallery/GalleryPeopleGrid";
 import { GalleryScriptResults } from "./gallery/GalleryScriptResults";
@@ -55,6 +57,7 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
 
   const { view, resultCount, hasFilters } = homepageModel;
   const { sidebarCollapsed, setSidebarCollapsed } = useGalleryLayoutState();
+  const [showList, setShowList] = useState(false);
 
   const activeFilterCount = homepageModel.filterChips.length;
 
@@ -129,10 +132,32 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
                 </div>
               </div>
 
-              {/* ViewMode row — hidden on mobile (in mobile sheet). Usage moved to sidebar/sheet. */}
-              <div className="relative z-50 hidden md:flex items-center justify-end py-2.5 pointer-events-auto">
-                <span className="mr-2 text-xs text-muted-foreground">顯示模式</span>
-                <GalleryViewModeToggle value={viewMode} onChange={setViewMode} />
+              {/* ViewMode + list row — desktop only */}
+              <div className="relative z-50 hidden md:flex items-center justify-end gap-3 py-2.5 pointer-events-auto">
+                <button
+                  type="button"
+                  onClick={() => setShowList(true)}
+                  className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-[5px] text-xs font-medium text-muted-foreground border border-border/50 bg-transparent hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
+                  aria-label="開啟台本一覽表"
+                >
+                  <List className="w-3.5 h-3.5" />
+                  一覽表
+                </button>
+                <span className="text-xs text-muted-foreground">顯示模式</span>
+                <GalleryViewModeToggle value={viewMode} onChange={setViewMode} compact />
+              </div>
+
+              {/* Mobile list button row */}
+              <div className="flex md:hidden items-center justify-end py-1.5 pointer-events-auto">
+                <button
+                  type="button"
+                  onClick={() => setShowList(true)}
+                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[5px] text-xs font-medium text-muted-foreground border border-border/50 bg-transparent hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
+                  aria-label="開啟台本一覽表"
+                >
+                  <List className="w-3.5 h-3.5" />
+                  一覽表
+                </button>
               </div>
             </div>
           )}
@@ -186,6 +211,14 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
           )}
         </main>
       </div>
+
+      {/* List overlay */}
+      {showList && (
+        <GalleryListOverlay
+          scripts={homepageModel.filteredScripts}
+          onClose={() => setShowList(false)}
+        />
+      )}
 
       {/* Mobile filter sheet */}
       <GalleryMobileSheet

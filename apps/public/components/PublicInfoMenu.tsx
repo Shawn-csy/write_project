@@ -25,7 +25,7 @@ export function PublicInfoMenu() {
           type="button"
           aria-label="說明與平台資訊"
           title="說明與平台資訊"
-          className="flex h-11 w-11 items-center justify-center rounded-md border border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         >
           <CircleHelp className="h-4 w-4" aria-hidden />
         </button>
