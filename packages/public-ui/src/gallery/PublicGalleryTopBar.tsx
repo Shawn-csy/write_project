@@ -55,43 +55,51 @@ export function PublicGalleryTopBar({
   mobileFilterLabel = "開啟篩選",
 }: PublicGalleryTopBarProps): React.JSX.Element {
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/95 backdrop-blur">
+    <header className="sticky top-0 z-40 bg-background/97 backdrop-blur-xl" style={{ borderBottom: "1px solid hsl(var(--border) / 0.6)" }}>
       {/* Main row */}
-      <div className="flex h-14 items-center px-3 sm:px-5 lg:px-8 w-full">
-        {/* Mobile left: filter button (thumb-reach corner, 44px touch target) */}
-        <div className="sm:hidden flex items-center justify-start w-11 shrink-0">
+      <div className="flex h-[3.5rem] items-center px-4 sm:px-6 lg:px-8 w-full gap-2">
+        {/* Mobile: filter button */}
+        <div className="sm:hidden flex items-center w-10 shrink-0">
           {activeTab === "scripts" && onOpenMobileFilter ? (
             <button
               type="button"
               onClick={onOpenMobileFilter}
               aria-label={mobileFilterLabel}
-              className="flex items-center justify-center h-11 w-11 -ml-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="flex items-center justify-center h-9 w-9 -ml-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-all duration-150"
             >
-              <SlidersHorizontal className="h-4 w-4" />
+              <SlidersHorizontal className="h-[15px] w-[15px]" />
             </button>
-          ) : <span className="w-11" aria-hidden />}
+          ) : <span className="w-10" aria-hidden />}
         </div>
 
-        {/* Brand — centered on mobile, left-aligned on desktop */}
+        {/* Brand */}
         <a
           href="/"
-          className="flex items-center gap-2 shrink-0 hover:text-primary transition-colors group sm:mr-0 mx-auto sm:mx-0"
+          className="flex items-center gap-2.5 shrink-0 group sm:mr-0 mx-auto sm:mx-0"
           aria-label={brandName}
         >
-          <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-            <svg viewBox="0 0 32 32" fill="none" className="w-4 h-4 text-primary" aria-hidden="true">
-              <path d="M18 5 C20 5 22 7 21 10 L19 24 C18.5 26 17 27 15.5 26" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <line x1="12" y1="16" x2="21" y2="16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          {/* Ink-stamp logo mark */}
+          <div className="relative w-7 h-7 shrink-0">
+            <div className="absolute inset-0 rounded-[6px] bg-foreground/90 group-hover:bg-foreground transition-colors duration-200" />
+            <svg viewBox="0 0 28 28" fill="none" className="absolute inset-0 w-full h-full p-[5px] text-background" aria-hidden="true">
+              <path d="M16 4.5 C17.5 4.5 19 6 18.5 8.5 L17 21.5 C16.5 23 15.5 24 14 23" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              <line x1="10" y1="14" x2="18" y2="14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              <line x1="10" y1="18" x2="15" y2="18" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
             </svg>
           </div>
-          <span className="font-serif font-black text-foreground text-lg tracking-tight">{brandName}</span>
-          {brandSubtitle && (
-            <span className="hidden sm:inline text-xs text-muted-foreground/70 font-normal tracking-normal ml-1 self-end mb-0.5">{brandSubtitle}</span>
-          )}
+          <div className="flex flex-col justify-center gap-0">
+            <span className="font-serif font-bold text-foreground text-[1.0625rem] leading-none tracking-[-0.01em] group-hover:text-primary transition-colors duration-200">{brandName}</span>
+            {brandSubtitle && (
+              <span className="hidden sm:block text-[10px] text-muted-foreground/50 font-normal leading-none mt-0.5 tracking-[0.03em]">{brandSubtitle}</span>
+            )}
+          </div>
         </a>
 
-        {/* Desktop tabs — hidden on mobile (shown in second row below) */}
-        <nav className="hidden sm:flex items-center ml-3" aria-label="公開頁面導航">
+        {/* Divider */}
+        <div className="hidden sm:block w-px h-5 bg-border/60 mx-1 shrink-0" aria-hidden />
+
+        {/* Desktop tabs */}
+        <nav className="hidden sm:flex items-center gap-0.5" aria-label="公開頁面導航">
           {tabs.map((tab) => (
             <button
               key={tab.key}
@@ -99,40 +107,39 @@ export function PublicGalleryTopBar({
               onClick={() => onTabChange(tab.key)}
               aria-current={tab.key === activeTab ? "page" : undefined}
               className={cn(
-                "relative h-14 px-4 text-sm transition-colors whitespace-nowrap",
+                "relative h-9 px-3.5 text-[0.8125rem] rounded-md transition-all duration-150 whitespace-nowrap",
                 tab.key === activeTab
-                  ? "text-foreground font-medium"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "text-foreground font-semibold bg-muted/60"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/40 font-normal"
               )}
             >
               {tab.label}
               {tab.key === activeTab && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground rounded-full" />
+                <span className="absolute bottom-[5px] left-1/2 -translate-x-1/2 w-4 h-[2px] bg-primary rounded-full" />
               )}
             </button>
           ))}
         </nav>
 
-        {/* Right side — desktop filter + trailing */}
-        <div className="ml-auto flex items-center gap-2 shrink-0">
-          {/* Desktop/tablet filter button (hidden on mobile — moved to left) */}
+        {/* Right */}
+        <div className="ml-auto flex items-center gap-1.5 shrink-0">
           {activeTab === "scripts" && onOpenMobileFilter && (
             <button
               type="button"
               onClick={onOpenMobileFilter}
               aria-label={mobileFilterLabel}
-              className="hidden sm:flex lg:hidden items-center justify-center h-11 w-11 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="hidden sm:flex lg:hidden items-center justify-center h-9 w-9 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all duration-150"
             >
-              <SlidersHorizontal className="h-4 w-4" />
+              <SlidersHorizontal className="h-[15px] w-[15px]" />
             </button>
           )}
           {trailing}
         </div>
       </div>
 
-      {/* Mobile tab row — only on small screens */}
-      <div className="sm:hidden border-t border-border/40 overflow-x-auto scrollbar-none">
-        <nav className="flex items-end px-3 gap-0 min-w-max" aria-label="公開頁面導航">
+      {/* Mobile tab row */}
+      <div className="sm:hidden overflow-x-auto scrollbar-none" style={{ borderTop: "1px solid hsl(var(--border) / 0.4)" }}>
+        <nav className="flex items-center px-4 gap-0.5 min-w-max h-10" aria-label="公開頁面導航">
           {tabs.map((tab) => (
             <button
               key={tab.key}
@@ -140,15 +147,15 @@ export function PublicGalleryTopBar({
               onClick={() => onTabChange(tab.key)}
               aria-current={tab.key === activeTab ? "page" : undefined}
               className={cn(
-                "relative h-9 px-4 text-sm transition-colors whitespace-nowrap",
+                "relative h-8 px-3 text-[0.8125rem] rounded-md transition-all duration-150 whitespace-nowrap",
                 tab.key === activeTab
-                  ? "text-foreground font-medium"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "text-foreground font-semibold bg-muted/60"
+                  : "text-muted-foreground hover:text-foreground font-normal"
               )}
             >
               {tab.label}
               {tab.key === activeTab && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground rounded-full" />
+                <span className="absolute bottom-[4px] left-1/2 -translate-x-1/2 w-3 h-[2px] bg-primary rounded-full" />
               )}
             </button>
           ))}

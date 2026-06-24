@@ -1,6 +1,9 @@
 /* Marker color tokens — shared with @write/script-reader-renderer */
 @import "@write/script-theme/marker-colors.css";
 
+/* Editorial display font — warm, literary character */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;600;700;900&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,59 +11,76 @@
 @layer base {
   :root {
     /* System font stack — CJK-first, no external network dependency */
-    --font-sans: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "蘋方-繁", "微軟正黑體", system-ui, sans-serif;
+    --font-sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "蘋方-繁", "微軟正黑體", system-ui, sans-serif;
     --font-serif: "Noto Serif TC", "Source Han Serif TC", "PMingLiU", "新細明體", Georgia, serif;
-    --background: 250 40% 98%;
-    --foreground: 221 39% 11%;
+
+    /* ── Warm neutral palette — Claude.ai editorial aesthetic ── */
+    /* Warm parchment white background, not sterile grey */
+    --background: 40 25% 97%;
+    --foreground: 25 15% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 221 39% 11%;
-    --muted: 220 14% 96%;
-    --muted-strong: 220 14% 92%;
-    --muted-stronger: 220 14% 88%;
-    --muted-foreground: 220 9% 42%;
-    --border: 221 13% 88%;
-    --primary: 200 24% 40%;
-    --primary-foreground: 210 20% 96%;
-    --destructive: 0 84% 60%;
+    --card-foreground: 25 15% 10%;
+    --muted: 35 15% 94%;
+    --muted-strong: 35 12% 89%;
+    --muted-stronger: 35 10% 83%;
+    --muted-foreground: 25 8% 46%;
+    --border: 35 12% 87%;
+
+    /* Warm terracotta-brown primary — sophisticated, not orange-loud */
+    --primary: 20 65% 42%;
+    --primary-foreground: 40 30% 98%;
+
+    --destructive: 0 72% 56%;
     --destructive-foreground: 0 0% 100%;
-    --accent: 160 84% 39%;
-    --accent-foreground: 154 44% 16%;
-    --accent-muted: 160 60% 92%;
-    --accent-strong: 160 78% 34%;
-    --surface-1: 250 40% 98%;
-    --surface-2: 220 14% 96%;
-    --surface-3: 220 14% 92%;
-    --surface-4: 220 14% 88%;
+
+    /* Warm brass accent — complements primary */
+    --accent: 35 70% 52%;
+    --accent-foreground: 25 60% 14%;
+    --accent-muted: 38 60% 93%;
+    --accent-strong: 20 60% 36%;
+
+    --surface-1: 40 25% 97%;
+    --surface-2: 35 15% 94%;
+    --surface-3: 35 12% 89%;
+    --surface-4: 35 10% 83%;
+
     --paper-bg: #ffffff;
-    --paper-border: #e2e8f0;
-    --paper-shadow: rgba(0, 0, 0, 0.12);
-    --radius: 0.5rem;
+    --paper-border: #e9e3da;
+    --paper-shadow: rgba(30, 20, 10, 0.09);
+    --radius: 0.625rem;
   }
 
   .dark {
-    --background: 220 8% 10%;
-    --foreground: 210 15% 92%;
-    --card: 220 8% 12%;
-    --card-foreground: 210 15% 92%;
-    --muted: 220 6% 16%;
-    --muted-strong: 220 6% 22%;
-    --muted-stronger: 220 6% 28%;
-    --muted-foreground: 220 10% 68%;
-    --border: 220 6% 24%;
-    --primary: 200 32% 70%;
-    --primary-foreground: 210 18% 14%;
-    --destructive: 0 72% 55%;
+    /* Deep warm charcoal — not cold blue-black */
+    --background: 25 8% 8%;
+    --foreground: 38 14% 91%;
+    --card: 25 7% 11%;
+    --card-foreground: 38 14% 91%;
+    --muted: 25 6% 15%;
+    --muted-strong: 25 5% 21%;
+    --muted-stronger: 25 5% 27%;
+    --muted-foreground: 35 8% 58%;
+    --border: 25 5% 20%;
+
+    /* Terracotta — slightly brighter in dark */
+    --primary: 20 68% 58%;
+    --primary-foreground: 25 8% 8%;
+
+    --destructive: 0 68% 54%;
     --destructive-foreground: 0 0% 100%;
-    --accent-foreground: 210 24% 94%;
-    --accent-muted: 160 20% 18%;
-    --accent-strong: 160 72% 60%;
-    --surface-1: 220 8% 10%;
-    --surface-2: 220 6% 16%;
-    --surface-3: 220 6% 22%;
-    --surface-4: 220 6% 28%;
-    --paper-bg: #0d0d0f;
-    --paper-border: #1f1f24;
-    --paper-shadow: rgba(0, 0, 0, 0.4);
+
+    --accent-foreground: 38 18% 93%;
+    --accent-muted: 28 18% 16%;
+    --accent-strong: 35 65% 62%;
+
+    --surface-1: 25 8% 8%;
+    --surface-2: 25 6% 15%;
+    --surface-3: 25 5% 21%;
+    --surface-4: 25 5% 27%;
+
+    --paper-bg: #100f0e;
+    --paper-border: #26231f;
+    --paper-shadow: rgba(0, 0, 0, 0.45);
   }
 
   /* Public site typography scale tokens — consumed by gallery and public page components.
@@ -104,5 +124,33 @@
 
   body {
     @apply bg-background text-foreground font-sans;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Refined focus ring */
+  :focus-visible {
+    outline: 2px solid hsl(var(--primary) / 0.6);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Warm text selection */
+  ::selection {
+    background-color: hsl(var(--primary) / 0.18);
+    color: hsl(var(--foreground));
+  }
+
+  /* Thin, tasteful scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
   }
 }
