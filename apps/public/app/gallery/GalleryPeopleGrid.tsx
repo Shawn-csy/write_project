@@ -3,6 +3,7 @@
 import type { AuthorLike, OrgLike } from "@write/public-ui";
 import type { PublicOrg, PublicPersona } from "@/lib/types";
 import { BuildingIcon, LinkIcon } from "./GalleryIcons";
+import { PublicImage } from "@/components/PublicImage";
 
 const AVATAR_COLORS = [
   "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
@@ -68,10 +69,9 @@ function AuthorCard({ author, onTagClick }: { author: PublicPersona; onTagClick:
   return (
     <div className="rounded-xl border border-border/50 bg-card overflow-hidden hover:-translate-y-[3px] hover:shadow-[0_4px_16px_hsl(var(--foreground)/0.07),0_1px_3px_hsl(var(--foreground)/0.05)] transition-all duration-200">
       <a href={`/author/${author.id}`} className="flex items-center gap-3 p-4">
-        <div className="w-12 h-12 rounded-full overflow-hidden shrink-0">
+        <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0">
           {author.avatar ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={author.avatar} alt={author.displayName} className="w-full h-full object-cover" />
+            <PublicImage src={author.avatar} alt={author.displayName} sizes="48px" />
           ) : (
             <div className={`w-full h-full flex items-center justify-center text-base font-bold ${avatarColor(author.displayName)}`}>
               {author.displayName?.[0]}
@@ -117,10 +117,9 @@ function OrgCard({ org, onTagClick }: { org: PublicOrg; onTagClick: (tag: string
     <div className="rounded-xl border border-border/50 bg-card overflow-hidden hover:-translate-y-[3px] hover:shadow-[0_4px_16px_hsl(var(--foreground)/0.07),0_1px_3px_hsl(var(--foreground)/0.05)] transition-all duration-200">
       {/* Main org link — no nested anchors inside */}
       <a href={`/org/${org.id}`} className="flex items-center gap-3 p-4">
-        <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0">
+        <div className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0">
           {org.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={org.logoUrl} alt={org.name} className="w-full h-full object-cover" />
+            <PublicImage src={org.logoUrl} alt={org.name} sizes="48px" />
           ) : (
             <div className={`w-full h-full flex items-center justify-center text-base font-bold rounded-lg ${avatarColor(org.name)}`}>
               {org.name?.[0]}

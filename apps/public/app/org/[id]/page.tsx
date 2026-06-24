@@ -6,6 +6,7 @@ import { OrgPageClient } from "./OrgPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { PublicShellActions } from "@/components/PublicShellActions";
 import { BASE_URL, SITE_NAME, TITLE_SUFFIX, pickPreviewImage, absoluteUrl } from "@/lib/seo";
+import { JsonLdScript } from "@/lib/jsonLd";
 
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -70,12 +71,6 @@ export async function generateMetadata({
       description,
       images: [previewImage],
     },
-    other: {
-      "application/ld+json": JSON.stringify(structuredData)
-        .replace(/</g, "\\u003c")
-        .replace(/>/g, "\\u003e")
-        .replace(/&/g, "\\u0026"),
-    },
   };
 }
 
@@ -102,15 +97,7 @@ export default async function OrgPage({
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(structuredData)
-            .replace(/</g, "\\u003c")
-            .replace(/>/g, "\\u003e")
-            .replace(/&/g, "\\u0026"),
-        }}
-      />
+      <JsonLdScript data={structuredData} />
       <PublicTopBar activeTab="orgs" trailing={<PublicShellActions />} />
       <noscript>
         <article style={{ maxWidth: 800, margin: "0 auto", padding: "2rem", fontFamily: "serif" }}>

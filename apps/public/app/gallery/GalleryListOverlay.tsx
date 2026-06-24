@@ -57,8 +57,7 @@ export function GalleryListOverlay({ scripts, onClose }: GalleryListOverlayProps
     <div className="fixed inset-0 z-50 flex flex-col" role="dialog" aria-modal="true" aria-label="台本一覽表">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 backdrop-blur-[2px]"
-        style={{ background: "hsl(var(--foreground) / 0.3)" }}
+        className="absolute inset-0 backdrop-blur-[2px] editorial-scrim"
         onClick={onClose}
         aria-hidden
       />
@@ -75,8 +74,7 @@ export function GalleryListOverlay({ scripts, onClose }: GalleryListOverlayProps
       >
         {/* Header */}
         <div
-          className="flex shrink-0 items-center justify-between px-5 py-4"
-          style={{ borderBottom: "1px solid hsl(var(--border) / 0.4)" }}
+          className="flex shrink-0 items-center justify-between px-5 py-4 editorial-border-b"
         >
           <div>
             <p className="text-[0.9375rem] font-semibold text-foreground">台本一覽表</p>
@@ -98,7 +96,7 @@ export function GalleryListOverlay({ scripts, onClose }: GalleryListOverlayProps
         <div className="overflow-y-auto flex-1">
           <table className="w-full text-sm border-collapse">
             <thead>
-              <tr style={{ borderBottom: "1px solid hsl(var(--border) / 0.35)" }}>
+              <tr className="editorial-border-b">
                 <th className="sticky top-0 bg-background/95 backdrop-blur-sm w-10 py-2.5 pl-5 pr-2 text-left text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60">#</th>
                 <th className="sticky top-0 bg-background/95 backdrop-blur-sm py-2.5 px-3 text-left text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60 w-[45%] md:w-[40%]">台本名稱</th>
                 <th className="sticky top-0 bg-background/95 backdrop-blur-sm py-2.5 px-3 text-left text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60 hidden sm:table-cell w-[20%]">作者</th>

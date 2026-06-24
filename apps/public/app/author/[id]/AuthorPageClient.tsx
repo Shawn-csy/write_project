@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import type { PublicPersona, PublicScript } from "@/lib/types";
 import { getMediaCropStyle } from "@write/media-crop";
 import { ScriptCard } from "@/components/ScriptCard";
+import { PublicImage } from "@/components/PublicImage";
 
 interface Props {
   persona: PublicPersona & {
@@ -66,13 +67,7 @@ export function AuthorPageClient({ persona, scripts }: Props) {
       {/* Banner */}
       <div className="relative h-48 overflow-hidden bg-gradient-to-r from-slate-900 to-slate-700">
         {banner.src && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={banner.src}
-            style={banner.style}
-            alt=""
-            className="w-full h-full object-cover"
-          />
+          <PublicImage src={banner.src} alt="" sizes="100vw" style={banner.style} />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
       </div>
@@ -82,15 +77,9 @@ export function AuthorPageClient({ persona, scripts }: Props) {
         <div className="relative -mt-16 mb-8 rounded-xl border border-border/60 bg-background p-6 shadow-sm md:p-8">
           <div className="flex flex-col md:flex-row items-start gap-6">
             {/* Avatar */}
-            <div className="w-28 h-28 md:w-36 md:h-36 rounded-full border-4 border-background bg-muted overflow-hidden shrink-0 shadow">
+            <div className="relative w-28 h-28 md:w-36 md:h-36 rounded-full border-4 border-background bg-muted overflow-hidden shrink-0 shadow">
               {avatar.src ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={avatar.src}
-                  style={avatar.style}
-                  alt={persona.displayName}
-                  className="w-full h-full object-cover"
-                />
+                <PublicImage src={avatar.src} alt={persona.displayName} sizes="144px" style={avatar.style} />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-muted-foreground">
                   {persona.displayName?.[0]}
@@ -182,12 +171,9 @@ export function AuthorPageClient({ persona, scripts }: Props) {
                   className="flex items-center gap-3 rounded-lg border border-border/60 bg-background p-3 hover:border-primary/50 transition-colors"
                 >
                   {series.coverUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={series.coverUrl}
-                      alt={series.name}
-                      className="w-10 h-14 object-cover rounded border border-border/50 shrink-0"
-                    />
+                    <div className="relative w-10 h-14 rounded border border-border/50 shrink-0 overflow-hidden">
+                      <PublicImage src={series.coverUrl} alt={series.name} sizes="40px" />
+                    </div>
                   )}
                   <div className="min-w-0">
                     <p className="text-sm font-semibold line-clamp-1">{series.name}</p>

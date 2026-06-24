@@ -12,6 +12,7 @@ import { SeriesPageClient } from "./SeriesPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { PublicShellActions } from "@/components/PublicShellActions";
 import { BASE_URL, SITE_NAME, TITLE_SUFFIX, pickPreviewImage, absoluteUrl } from "@/lib/seo";
+import { JsonLdScript } from "@/lib/jsonLd";
 
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -123,15 +124,7 @@ export default async function SeriesPage({
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(structuredData)
-            .replace(/</g, "\\u003c")
-            .replace(/>/g, "\\u003e")
-            .replace(/&/g, "\\u0026"),
-        }}
-      />
+      <JsonLdScript data={structuredData} />
       <PublicTopBar activeTab="scripts" showBack backHref="/" backLabel="返回" trailing={<PublicShellActions />} />
       <noscript>
         <article style={{ maxWidth: 800, margin: "0 auto", padding: "2rem", fontFamily: "serif" }}>

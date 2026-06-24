@@ -7,6 +7,7 @@ import { PublicTopBar } from "@/components/PublicTopBar";
 import { PublicShellActions } from "@/components/PublicShellActions";
 import { filterScriptsByTag } from "./filterScriptsByTag";
 import { BASE_URL, SITE_NAME, TITLE_SUFFIX, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
+import { JsonLdScript } from "@/lib/jsonLd";
 
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -89,15 +90,7 @@ export default async function TagPage({
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(structuredData)
-            .replace(/</g, "\\u003c")
-            .replace(/>/g, "\\u003e")
-            .replace(/&/g, "\\u0026"),
-        }}
-      />
+      <JsonLdScript data={structuredData} />
       <PublicTopBar activeTab="scripts" showBack backHref="/" backLabel="返回" trailing={<PublicShellActions />} />
       <noscript>
         <article style={{ maxWidth: 800, margin: "0 auto", padding: "2rem", fontFamily: "serif" }}>

@@ -4,19 +4,9 @@ import React from "react";
 
 export function GalleryStaticHero() {
   return (
-    <section
-      className="relative w-full overflow-hidden"
-      aria-label="網站介紹"
-      style={{ borderBottom: "1px solid hsl(var(--border) / 0.5)" }}
-    >
+    <section className="relative w-full overflow-hidden editorial-border-b-strong" aria-label="網站介紹">
       {/* Subtle warm wash — not a loud gradient */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: "linear-gradient(160deg, hsl(var(--surface-2)) 0%, hsl(var(--background)) 60%, hsl(var(--surface-2) / 0.4) 100%)",
-        }}
-        aria-hidden
-      />
+      <div className="absolute inset-0 editorial-hero-wash" aria-hidden />
 
       {/* Decorative ruled lines — editorial newspaper feel */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
@@ -25,20 +15,13 @@ export function GalleryStaticHero() {
       </div>
 
       {/* Fine grain texture */}
-      <div
-        className="absolute inset-0 opacity-[0.025] dark:opacity-[0.05] pointer-events-none mix-blend-multiply dark:mix-blend-screen"
-        style={{
-          backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
-          backgroundSize: "160px 160px",
-        }}
-        aria-hidden
-      />
+      <div className="absolute inset-0 pointer-events-none editorial-grain" aria-hidden />
 
       <div className="relative z-10 mx-auto max-w-5xl px-6 sm:px-8 py-10 sm:py-14">
         {/* Eyebrow */}
         <p
-          className="hero-reveal mb-3 text-[10px] font-semibold tracking-[0.22em] uppercase"
-          style={{ color: "hsl(var(--primary) / 0.75)", animationDelay: "0ms" }}
+          className="hero-reveal editorial-eyebrow mb-3 text-[10px] font-semibold tracking-[0.22em] uppercase"
+          style={{ animationDelay: "0ms" }}
         >
           公開台本平台
         </p>
@@ -49,15 +32,11 @@ export function GalleryStaticHero() {
             探索、閱讀、分享
           </span>
           <span
-            className="hero-reveal relative inline-block"
-            style={{ color: "hsl(var(--primary))", animationDelay: "160ms" }}
+            className="hero-reveal relative inline-block text-primary"
+            style={{ animationDelay: "160ms" }}
           >
             創作台本
-            <span
-              className="absolute left-0 bottom-[0.08em] w-full"
-              style={{ height: "2px", background: "hsl(var(--primary) / 0.3)", borderRadius: "1px" }}
-              aria-hidden
-            />
+            <span className="absolute left-0 bottom-[0.08em] w-full editorial-accent-rule" aria-hidden />
           </span>
         </h1>
 
@@ -71,15 +50,8 @@ export function GalleryStaticHero() {
 
         {/* Decorative rule */}
         <div className="hero-reveal mt-6 flex items-center gap-5" style={{ animationDelay: "320ms" }}>
-          <div
-            className="h-px flex-1 max-w-[3rem]"
-            style={{ background: "hsl(var(--border))" }}
-            aria-hidden
-          />
-          <span
-            className="text-[11px] tracking-[0.15em] uppercase"
-            style={{ color: "hsl(var(--muted-foreground) / 0.6)" }}
-          >
+          <div className="h-px flex-1 max-w-[3rem] editorial-rule" aria-hidden />
+          <span className="editorial-dim text-[11px] tracking-[0.15em] uppercase">
             自由創作・開放分享
           </span>
         </div>

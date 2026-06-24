@@ -7,6 +7,7 @@ import Loading from "./loading";
 import type { HeroSlide } from "@write/public-ui/server";
 import { parseBannerSlides } from "@write/public-ui/server";
 import { BASE_URL, PRODUCT_NAME, SITE_BRAND_NAME, SITE_NAME, SITE_TITLE, SITE_DESCRIPTION, DEFAULT_OG_IMAGE_URL, pickPreviewImage } from "@/lib/seo";
+import { JsonLdScript } from "@/lib/jsonLd";
 
 export const revalidate = 300; // 5-min ISR; on-demand revalidation handles real-time updates
 
@@ -79,15 +80,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(structuredData)
-            .replace(/</g, "\\u003c")
-            .replace(/>/g, "\\u003e")
-            .replace(/&/g, "\\u0026"),
-        }}
-      />
+      <JsonLdScript data={structuredData} />
       {/* Static script list for crawlers (hidden visually; GalleryClient renders the real UI) */}
       <noscript>
         <main style={{ maxWidth: 900, margin: "0 auto", padding: "2rem", fontFamily: "serif" }}>

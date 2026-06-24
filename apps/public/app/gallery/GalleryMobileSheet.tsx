@@ -39,8 +39,7 @@ export function GalleryMobileSheet({
     <div className="fixed inset-0 z-50 lg:hidden">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 backdrop-blur-[2px]"
-        style={{ background: "hsl(var(--foreground) / 0.25)" }}
+        className="absolute inset-0 backdrop-blur-[2px] editorial-scrim"
         onClick={onClose}
       />
 
@@ -55,11 +54,11 @@ export function GalleryMobileSheet({
       >
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-10 h-1 rounded-full" style={{ background: "hsl(var(--border))" }} aria-hidden />
+          <div className="w-10 h-1 rounded-full editorial-handle" aria-hidden />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 shrink-0" style={{ borderBottom: "1px solid hsl(var(--border) / 0.4)" }}>
+        <div className="flex items-center justify-between px-5 py-3 shrink-0 editorial-border-b">
           <p className="text-[0.9375rem] font-semibold text-foreground">篩選與搜尋</p>
           <button
             type="button"
@@ -75,10 +74,7 @@ export function GalleryMobileSheet({
         <div className="overflow-y-auto flex-1 px-5 py-4 space-y-5">
           {/* ViewMode */}
           <div>
-            <p
-              className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em]"
-              style={{ color: "hsl(var(--muted-foreground) / 0.6)" }}
-            >
+            <p className="editorial-dim mb-2 text-[10px] font-semibold uppercase tracking-[0.18em]">
               顯示模式
             </p>
             <GalleryViewModeToggle value={viewModeValue} onChange={setViewMode} />

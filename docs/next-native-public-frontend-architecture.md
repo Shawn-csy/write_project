@@ -2,6 +2,16 @@
 
 Last updated: 2026-06-24
 
+## Phase Status
+
+| Phase | Title                    | Status  |
+|-------|--------------------------|---------|
+| 1     | Font System              | Done    |
+| 2     | Image Primitive          | Done    |
+| 3     | JSON-LD Output Contract  | Done    |
+| 4     | Editorial Design Primitives | Done    |
+| 5     | Route Boundaries         | Done    |
+
 ## Purpose
 
 This document defines the long-term architecture for making `apps/public`
@@ -29,11 +39,11 @@ The public app already uses important Next.js features correctly:
 
 The remaining gaps are not page-level features. They are infrastructure gaps:
 
-- fonts are not centralized through `next/font`;
-- many images still render through direct `<img>`;
-- JSON-LD output is manually escaped in more than one style;
-- editorial styling still has too much one-off inline style;
-- route-level loading/error/not-found states are incomplete.
+- fonts are not centralized through `next/font` — **done (Phase 1)**;
+- images optimized through `PublicImage` primitive — **done (Phase 2)**;
+- JSON-LD output is manually escaped in more than one style — **done (Phase 3)**;
+- editorial styling consolidated into `@layer components` primitives — **done (Phase 4)**;
+- route-level loading/error/not-found states are incomplete — **done (Phase 5)**.
 
 ## Principles
 
@@ -45,6 +55,8 @@ The remaining gaps are not page-level features. They are infrastructure gaps:
 6. Prefer measured migration over broad mechanical replacement.
 
 ## Phase 1 — Font System
+
+Status: Done
 
 Goal: all public-site fonts are controlled by Next.js, not CSS `@import`.
 
@@ -78,6 +90,13 @@ export const publicSerif = ...
 - Keep the existing Tailwind `fontFamily` mapping.
 - Verify homepage, reader, print/PDF output, and dark mode.
 
+### Implementation Notes
+
+- `apps/public/app/fonts.ts` — `Noto_Sans_TC` (400/500/700) + `Noto_Serif_TC` (400/700) via `next/font/google`.
+- Variables `--font-public-sans` / `--font-public-serif` attached to `<html>` in `layout.tsx`.
+- `globals.css` `--font-sans`/`--font-serif` reference the Next.js variables with CJK system stack as fallback.
+- `preload: false` is intentional: Noto TC is a large CJK font; preloading the latin subset offers minimal benefit while adding link overhead. The system CJK stack (`PingFang TC`, `Noto Sans TC`) covers CJK glyphs without download.
+
 ### Non-Goals
 
 - Do not change the editorial font direction.
@@ -85,31 +104,28 @@ export const publicSerif = ...
 
 ## Phase 2 — Image Primitive
 
+Status: Done
+
 Goal: image optimization is adopted through a shared primitive instead of
 directly replacing `<img>` everywhere.
 
 ### Target Architecture
 
-Create a public image primitive that wraps `next/image`:
+`PublicImage` wraps `next/image` in `fill` mode. Callers call `getMediaCropStyle()` first and pass the resulting `style` prop:
 
 ```tsx
-<PublicImage
-  src={src}
-  alt={alt}
-  crop={crop}
-  fill
-  sizes="..."
-  fallback={...}
-/>
+const { src, style } = getMediaCropStyle(coverUrl, coverCrop);
+
+<div className="relative w-24 h-32 overflow-hidden">
+  <PublicImage src={src} alt={title} sizes="96px" style={style} />
+</div>
 ```
 
-Responsibilities:
+`PublicImage` does not accept a raw crop object. Crop-to-CSS conversion stays in `getMediaCropStyle`. `PublicImage` is responsible for:
 
-- Next image optimization;
-- `sizes` and responsive loading;
-- crop/object-position integration;
-- fallback handling;
-- alt text contract.
+- Next.js image optimization and `sizes`-based responsive loading;
+- applying `objectFit: "cover"` merged with caller-provided `style`;
+- returning `null` when `src` is empty.
 
 ### Migration Order
 
@@ -127,13 +143,20 @@ Responsibilities:
 - Keep decorative images `aria-hidden` where appropriate.
 - Keep meaningful covers and avatars with real alt text.
 
+### Implementation Notes
+
+- `apps/public/components/PublicImage.tsx` — `next/image` `fill` mode wrapper; accepts `src`, `alt`, `sizes`, `style` (from `getMediaCropStyle`).
+- Image hostnames served from `open-scripts.shawnup.com/media/...` via nginx static serving, already in `remotePatterns`.
+- Migrated: `ScriptCard` covers, `SeriesPageClient` banner + cover thumbnail, `AuthorPageClient` banner + avatar + series thumbnails, `OrgPageClient` banner + logo + member avatars, `GalleryPeopleGrid` author avatars + org logos.
+- `packages/public-ui` `<img>` tags not migrated — package does not depend on Next.js and cannot use `next/image`.
+
 ## Phase 3 — JSON-LD Output Contract
+
+Status: Done
 
 Goal: all structured data output uses one escape/render path.
 
 ### Target Architecture
-
-Create:
 
 ```ts
 // apps/public/lib/jsonLd.tsx
@@ -141,14 +164,13 @@ export function jsonLdSafe(value: unknown): string
 export function JsonLdScript({ data }: { data: unknown }): React.ReactElement
 ```
 
-All pages render JSON-LD through `JsonLdScript`.
+All pages render JSON-LD through `JsonLdScript`. `lib/seo.ts` re-exports `jsonLdSafe` from `jsonLd` for backward compatibility.
 
-### Required Work
+### Implementation Notes
 
-- Replace inline `JSON.stringify(...).replace(...)` snippets.
-- Keep model construction page-local when it is page-specific.
-- Keep escaping centralized.
-- Support arrays for graph-like payloads.
+- All 6 page components (`/`, `/read/[id]`, `/series/[name]`, `/tag/[name]`, `/author/[id]`, `/org/[id]`) use `<JsonLdScript data={...} />`.
+- `generateMetadata().other` does not carry JSON-LD — that was a prior misuse; removed from `author` and `org` pages.
+- `lib/seo.ts` `jsonLdSafe` is now a re-export; the canonical impl lives in `lib/jsonLd.tsx`.
 
 ### Tests
 
@@ -157,6 +179,8 @@ All pages render JSON-LD through `JsonLdScript`.
 - Does not double-escape valid JSON.
 
 ## Phase 4 — Editorial Design Primitives
+
+Status: Done
 
 Goal: preserve the current preferred editorial style while reducing inline
 style drift.
@@ -192,7 +216,15 @@ Use CSS variables for:
   reason.
 - Hit targets remain at least 44px even when the visible control is compact.
 
+### Implementation Notes
+
+- Classes added to `globals.css` `@layer components`: `.editorial-border-b`, `.editorial-border-b-strong`, `.editorial-hero-wash`, `.editorial-grain`, `.editorial-accent-rule`, `.editorial-rule`, `.editorial-eyebrow`, `.editorial-dim`, `.editorial-indicator`, `.editorial-scrim`, `.editorial-handle`.
+- Migrated: `GalleryStaticHero`, `GallerySegmentBar`, `GalleryMobileSheet`, `GalleryListOverlay`.
+- Dynamic values (animation delays, sliding indicator `left`/`width`, crop styles) remain inline per the rules.
+
 ## Phase 5 — Route Boundaries
+
+Status: Done
 
 Goal: App Router route states are deliberate and branded.
 
@@ -218,6 +250,13 @@ Route-level:
 - Error states are in Traditional Chinese.
 - Error states include retry or navigation actions.
 - 404 is branded and links back to the public homepage.
+
+### Implementation Notes
+
+- Global: `app/error.tsx`, `app/loading.tsx`, `app/not-found.tsx` — all present.
+- Route-level: `read/[id]/loading.tsx`, `read/[id]/error.tsx`, `series/[name]/loading.tsx`, `author/[id]/loading.tsx`, `org/[id]/loading.tsx`.
+- Error components use the stable `reset` prop (not `unstable_retry`).
+- `not-found.tsx` includes topbar + branded 404 + link to `/`.
 
 ## Execution Order
 

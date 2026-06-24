@@ -7,9 +7,9 @@
 
 @layer base {
   :root {
-    /* CJK system font stack */
-    --font-sans: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "蘋方-繁", "微軟正黑體", system-ui, sans-serif;
-    --font-serif: "Noto Serif TC", "Source Han Serif TC", "PMingLiU", "新細明體", Georgia, serif;
+    /* Font variables — controlled by next/font; CJK system stack as fallback */
+    --font-sans: var(--font-public-sans), "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "蘋方-繁", "微軟正黑體", system-ui, sans-serif;
+    --font-serif: var(--font-public-serif), "Noto Serif TC", "Source Han Serif TC", "PMingLiU", "新細明體", Georgia, serif;
 
     /* ── Warm neutral palette — editorial, Claude.ai-adjacent ── */
     /* Warm near-white background, no blue or orange cast */
@@ -149,6 +149,78 @@
   }
   ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.5);
+  }
+}
+
+/* ── Editorial design primitives ── */
+@layer components {
+  /* Subtle bottom rule used on hero, segment bar, sheet header */
+  .editorial-border-b {
+    border-bottom: 1px solid hsl(var(--border) / 0.4);
+  }
+  .editorial-border-b-strong {
+    border-bottom: 1px solid hsl(var(--border) / 0.5);
+  }
+
+  /* Hero background wash */
+  .editorial-hero-wash {
+    background: linear-gradient(
+      160deg,
+      hsl(var(--surface-2)) 0%,
+      hsl(var(--background)) 60%,
+      hsl(var(--surface-2) / 0.4) 100%
+    );
+  }
+
+  /* Fine grain texture overlay — aria-hidden decorative */
+  .editorial-grain {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 160px 160px;
+    opacity: 0.025;
+    mix-blend-mode: multiply;
+  }
+  .dark .editorial-grain {
+    opacity: 0.05;
+    mix-blend-mode: screen;
+  }
+
+  /* Thin accent underline beneath primary headline word */
+  .editorial-accent-rule {
+    height: 2px;
+    background: hsl(var(--primary) / 0.3);
+    border-radius: 1px;
+  }
+
+  /* Horizontal divider rule (decorative) */
+  .editorial-rule {
+    height: 1px;
+    background: hsl(var(--border));
+  }
+
+  /* Muted overline / eyebrow color */
+  .editorial-eyebrow {
+    color: hsl(var(--primary) / 0.75);
+  }
+
+  /* Dim label color */
+  .editorial-dim {
+    color: hsl(var(--muted-foreground) / 0.6);
+  }
+
+  /* Primary sliding indicator (GallerySegmentBar) */
+  .editorial-indicator {
+    height: 2px;
+    background: hsl(var(--primary));
+  }
+
+  /* Backdrop scrim */
+  .editorial-scrim {
+    background: hsl(var(--foreground) / 0.25);
+  }
+
+  /* Sheet drag handle */
+  .editorial-handle {
+    background: hsl(var(--border));
   }
 }
 
