@@ -75,6 +75,8 @@ services:
     build:
       context: .
       dockerfile: apps/public/Dockerfile
+      args:
+        BACKEND_API_URL: ${BACKEND_API_URL:-http://write_project-backend:1091}
     restart: unless-stopped
     environment:
       - BACKEND_API_URL=${BACKEND_API_URL:-http://write_project-backend:1091}
