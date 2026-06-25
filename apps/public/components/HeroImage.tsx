@@ -24,6 +24,10 @@
  *   a cropped one. Set alongside ultraWideCrop to control which part of the
  *   image the background blur layer emphasises.
  *
+ * Hero art direction opts into crop.zoom because homepage banners are authored
+ * placements. Other public image placements still ignore zoom by default to
+ * avoid accidental blank-space states.
+ *
  * Phase 10 of docs/public-media-presentation-architecture.md
  */
 "use client";
@@ -96,6 +100,7 @@ export function HeroImage({ image, priority, slideTitle }: Props) {
           alt=""
           preset="hero-banner"
           crop={image.ultraWideCrop ?? image.desktopCrop ?? image.crop}
+          respectCropZoom
           className="scale-[1.4] blur-xl opacity-60"
         />
       )}
@@ -108,6 +113,7 @@ export function HeroImage({ image, priority, slideTitle }: Props) {
         crop={activeCrop}
         priority={priority}
         objectFit={blurFill ? "contain" : undefined}
+        respectCropZoom
       />
     </>
   );

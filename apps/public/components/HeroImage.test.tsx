@@ -11,6 +11,7 @@ vi.mock("./PublicImage", () => ({
     crop,
     objectFit,
     priority,
+    respectCropZoom,
     className,
   }: {
     src: string;
@@ -18,6 +19,7 @@ vi.mock("./PublicImage", () => ({
     crop?: MediaCropLike | null;
     objectFit?: string;
     priority?: boolean;
+    respectCropZoom?: boolean;
     className?: string;
   }) => (
     <img
@@ -26,6 +28,7 @@ vi.mock("./PublicImage", () => ({
       data-crop={crop ? JSON.stringify(crop) : undefined}
       data-object-fit={objectFit ?? "cover"}
       data-priority={priority ? "true" : undefined}
+      data-respect-crop-zoom={respectCropZoom ? "true" : undefined}
       className={className}
     />
   ),
@@ -187,6 +190,14 @@ describe("HeroImage — blur-fill mode", () => {
     expect(decorative?.className).toContain("blur-xl");
   });
 
+  it("background blur layer opts into crop zoom", () => {
+    const { container } = render(
+      <HeroImage image={{ ...baseImage, backgroundMode: "blur-fill" }} />
+    );
+    const decorative = container.querySelector("img[alt='']") as HTMLElement;
+    expect(decorative?.getAttribute("data-respect-crop-zoom")).toBe("true");
+  });
+
   it("background blur layer does NOT receive priority (decorative, not LCP)", () => {
     const { container } = render(
       <HeroImage image={{ ...baseImage, backgroundMode: "blur-fill" }} priority />
@@ -222,6 +233,11 @@ describe("HeroImage — priority prop", () => {
   it("passes priority to foreground image", () => {
     const { container } = render(<HeroImage image={baseImage} priority />);
     expect(getForeground(container).getAttribute("data-priority")).toBe("true");
+  });
+
+  it("foreground opts into crop zoom for authored hero placement", () => {
+    const { container } = render(<HeroImage image={baseImage} />);
+    expect(getForeground(container).getAttribute("data-respect-crop-zoom")).toBe("true");
   });
 
   it("does not set priority when not provided", () => {

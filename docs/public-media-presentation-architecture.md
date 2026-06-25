@@ -126,7 +126,12 @@ Status: Done
 - `resolvePresetStyle()` in `apps/public/lib/imagePresets.ts` converts `MediaCropRef` (cx/cy `-1..1`) to `objectPosition` using the full 0–100% range: `pos = (c + 1) / 2 * 100`.
 - No `transform: scale()` — the old `getMediaCropStyle()` applied a CSS scale which exposed empty container areas when combined with `next/image fill`. Removed.
 - `contain-safe` presets (logo) skip focal-point calculation; no `objectPosition` applied.
-- `zoom` field in `MediaCropRef` is intentionally ignored in public renderer. `objectFit: cover` + focal `objectPosition` eliminates blank space without scale transforms. Zoom will remain ignored until a per-preset crop editor exists that can preview zoom effect per placement (Phase 4/5). Do not infer zoom support from `MediaCropRef.zoom` being present in the data model.
+- `zoom` field in `MediaCropRef` is ignored by default. `objectFit: cover` +
+  focal `objectPosition` eliminates blank space without scale transforms for
+  general cards, avatars, and banners.
+- Placement renderers can opt in to zoom when the placement has its own preview
+  and authoring contract. Homepage hero does this because its art direction
+  needs tighter framing at ultra-wide sizes.
 
 The crop model should represent intent, not raw CSS transforms.
 
