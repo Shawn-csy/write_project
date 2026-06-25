@@ -101,7 +101,8 @@ export function HeroImage({ image, priority, slideTitle }: Props) {
           preset="hero-banner"
           crop={image.ultraWideCrop ?? image.desktopCrop ?? image.crop}
           respectCropZoom
-          className="scale-[1.4] blur-xl opacity-60"
+          overscanScale={1.4}
+          className="blur-xl opacity-60"
         />
       )}
       {/* Foreground: contain when blur-fill is active (shows full art without

@@ -12,6 +12,7 @@ vi.mock("./PublicImage", () => ({
     objectFit,
     priority,
     respectCropZoom,
+    overscanScale,
     className,
   }: {
     src: string;
@@ -20,6 +21,7 @@ vi.mock("./PublicImage", () => ({
     objectFit?: string;
     priority?: boolean;
     respectCropZoom?: boolean;
+    overscanScale?: number;
     className?: string;
   }) => (
     <img
@@ -29,6 +31,7 @@ vi.mock("./PublicImage", () => ({
       data-object-fit={objectFit ?? "cover"}
       data-priority={priority ? "true" : undefined}
       data-respect-crop-zoom={respectCropZoom ? "true" : undefined}
+      data-overscan-scale={overscanScale !== undefined ? String(overscanScale) : undefined}
       className={className}
     />
   ),
@@ -228,6 +231,17 @@ describe("HeroImage — blur-fill mode", () => {
     );
     const decorative = container.querySelector("img[alt='']") as HTMLElement;
     expect(getCropAttr(decorative)).toEqual(ultraWideCrop);
+  });
+
+  it("background blur layer uses overscanScale=1.4 (not a scale className) to avoid transform conflict", () => {
+    const { container } = render(
+      <HeroImage image={{ ...baseImage, backgroundMode: "blur-fill" }} />
+    );
+    const decorative = container.querySelector("img[alt='']") as HTMLElement;
+    // overscanScale prop must be set so resolvePresetStyle can compose it with zoom.
+    expect(decorative?.getAttribute("data-overscan-scale")).toBe("1.4");
+    // className must NOT contain scale-[ to avoid CSS specificity conflict with inline transform.
+    expect(decorative?.className).not.toMatch(/scale-\[/);
   });
 });
 

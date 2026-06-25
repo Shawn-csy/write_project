@@ -126,6 +126,48 @@ describe("no transform output", () => {
     expect((style as Record<string, unknown>).transform).toBeUndefined();
   });
 
+  it("overscanScale alone (no crop zoom) produces scale(N) transform", () => {
+    const { style } = resolvePresetStyle(
+      "https://example.com/img.jpg",
+      "hero-banner",
+      { cx: 0.0, cy: 0.0, zoom: 1 },
+      { overscanScale: 1.4 }
+    );
+    expect((style as Record<string, unknown>).transform).toBe("scale(1.4)");
+    expect((style as Record<string, unknown>).transformOrigin).toBe("center center");
+  });
+
+  it("overscanScale + crop zoom compose into single transform string", () => {
+    const { style } = resolvePresetStyle(
+      "https://example.com/img.jpg",
+      "hero-banner",
+      { cx: 0.5, cy: -0.3, zoom: 2 },
+      { overscanScale: 1.4 }
+    );
+    expect((style as Record<string, unknown>).transform).toBe("scale(1.4) scale(2)");
+    expect((style as Record<string, unknown>).transformOrigin).toBe("center center");
+  });
+
+  it("overscanScale without crop still applies scale transform", () => {
+    const { style } = resolvePresetStyle(
+      "https://example.com/img.jpg",
+      "hero-banner",
+      null,
+      { overscanScale: 1.4 }
+    );
+    expect((style as Record<string, unknown>).transform).toBe("scale(1.4)");
+  });
+
+  it("overscanScale=1 is a no-op (neutral scale omitted)", () => {
+    const { style } = resolvePresetStyle(
+      "https://example.com/img.jpg",
+      "hero-banner",
+      { cx: 0, cy: 0, zoom: 1 },
+      { overscanScale: 1 }
+    );
+    expect((style as Record<string, unknown>).transform).toBeUndefined();
+  });
+
   it("logo preset: style has no transform", () => {
     const { style } = resolvePresetStyle("https://example.com/logo.png", "logo", { cx: 0, cy: 0, zoom: 1.5 });
     expect((style as Record<string, unknown>).transform).toBeUndefined();

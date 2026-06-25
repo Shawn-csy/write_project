@@ -8,24 +8,17 @@ import { getImageUploadGuide, MEDIA_FILE_ACCEPT, optimizeImageForUpload } from "
 import { uploadMediaObject } from "../../lib/api/media";
 import { getHomepageBannerAdmin, updateHomepageBannerAdmin } from "../../lib/api/admin";
 import { canApplyPersistentCropRef } from "../../lib/mediaCropRef";
+import { normalizeMediaCropLike } from "@write/media-crop";
+import {
+  buildHomepageHeroPlacementModel,
+  buildHomepageHeroPreviewFrames,
+  validateHomepageHeroPlacement,
+} from "../../lib/admin/homepageHeroModel";
 import type { MediaSelection } from "../ui/MediaPicker";
+import type { HomepageBannerItem } from "../../types/api";
+import type { HeroPreviewViewport } from "../../lib/admin/homepageHeroModel";
 
-interface BannerItem {
-  id: string;
-  title: string;
-  content: string;
-  link: string;
-  imageUrl: string;
-  imageCrop: { cx?: number; cy?: number; zoom?: number } | null;
-}
-
-interface HomepageBannerResponse {
-  title?: string;
-  content?: string;
-  link?: string;
-  imageUrl?: string;
-  items?: BannerItem[];
-}
+type CropFieldKey = "imageCrop" | "imageMobileCrop" | "imageDesktopCrop" | "imageUltraWideCrop";
 
 interface CropSource {
   file?: File;
@@ -38,174 +31,197 @@ interface ErrorWithMessage {
   message?: string;
 }
 
-export function HomepageBannerSection() {
-  const [homepageBannerItems, setHomepageBannerItems] = useState<BannerItem[]>([]);
-  const [isSavingHomepageBanner, setIsSavingHomepageBanner] = useState<boolean>(false);
-  const [homepageBannerError, setHomepageBannerError] = useState<string>("");
-  const [homepageBannerStatus, setHomepageBannerStatus] = useState<string>("");
-  const [homepageBannerPickerIndex, setHomepageBannerPickerIndex] = useState<number | null>(null);
-  const [homepageBannerApiCheckResult, setHomepageBannerApiCheckResult] = useState<string>("");
-  const [homepageBannerCropOpen, setHomepageBannerCropOpen] = useState<boolean>(false);
-  const [homepageBannerCropSource, setHomepageBannerCropSource] = useState<CropSource | null>(null);
-  const [homepageBannerCropIndex, setHomepageBannerCropIndex] = useState<number | null>(null);
-  const homepageBannerGuide = useMemo(() => getImageUploadGuide("banner"), []);
+interface HomepageBannerResponse {
+  title?: string;
+  content?: string;
+  link?: string;
+  imageUrl?: string;
+  items?: HomepageBannerItem[];
+}
 
-  const loadHomepageBanner = async (): Promise<void> => {
+const VIEWPORT_CROP_FIELDS: Array<{
+  viewport: HeroPreviewViewport;
+  cropKey: CropFieldKey;
+  label: string;
+}> = [
+  { viewport: "mobile", cropKey: "imageMobileCrop", label: "手機焦點" },
+  { viewport: "desktop", cropKey: "imageDesktopCrop", label: "桌面焦點" },
+  { viewport: "ultra-wide", cropKey: "imageUltraWideCrop", label: "超寬焦點" },
+];
+
+function itemToHomepageBannerItem(item: HomepageBannerItem, idx: number): HomepageBannerItem {
+  return {
+    id: String(item?.id || `slide-${idx + 1}`),
+    title: String(item?.title || ""),
+    content: String(item?.content || ""),
+    link: String(item?.link || ""),
+    imageUrl: String(item?.imageUrl || ""),
+    imageAlt: String(item?.imageAlt || ""),
+    imageCrop: item?.imageCrop ?? null,
+    imageMobileCrop: item?.imageMobileCrop ?? null,
+    imageDesktopCrop: item?.imageDesktopCrop ?? null,
+    imageUltraWideCrop: item?.imageUltraWideCrop ?? null,
+    imageBackgroundMode: item?.imageBackgroundMode ?? undefined,
+  };
+}
+
+export function HomepageBannerSection() {
+  const [items, setItems] = useState<HomepageBannerItem[]>([]);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+  const [status, setStatus] = useState<string>("");
+  const [pickerIndex, setPickerIndex] = useState<number | null>(null);
+  const [cropOpen, setCropOpen] = useState<boolean>(false);
+  const [cropSource, setCropSource] = useState<CropSource | null>(null);
+  const [cropIndex, setCropIndex] = useState<number | null>(null);
+  const [cropField, setCropField] = useState<CropFieldKey>("imageCrop");
+  const [previewViewports, setPreviewViewports] = useState<Record<number, HeroPreviewViewport>>({});
+  const guide = useMemo(() => getImageUploadGuide("banner"), []);
+
+  const loadBanner = async (): Promise<void> => {
     try {
       const payload = await getHomepageBannerAdmin() as HomepageBannerResponse;
       const rows = Array.isArray(payload?.items) ? payload.items : [];
       if (rows.length > 0) {
-        setHomepageBannerItems(rows.map((item, idx) => ({
-          id: String(item?.id || `slide-${idx + 1}`),
-          title: String(item?.title || ""),
-          content: String(item?.content || ""),
-          link: String(item?.link || ""),
-          imageUrl: String(item?.imageUrl || ""),
-          imageCrop: item?.imageCrop ?? null,
-        })));
+        setItems(rows.map((item, idx) => itemToHomepageBannerItem(item as HomepageBannerItem, idx)));
       } else {
-        const fallback = {
+        const fallback: HomepageBannerItem = {
           id: "slide-1",
           title: String(payload?.title || ""),
           content: String(payload?.content || ""),
           link: String(payload?.link || ""),
           imageUrl: String(payload?.imageUrl || ""),
-          imageCrop: null,
         };
-        setHomepageBannerItems(
-          (fallback.title || fallback.content || fallback.link || fallback.imageUrl) ? [fallback] : []
-        );
+        setItems((fallback.title || fallback.content || fallback.link || fallback.imageUrl) ? [fallback] : []);
       }
-      setHomepageBannerStatus("");
-    } catch (error: unknown) {
-      console.error("Failed to load homepage banner", error);
-      setHomepageBannerStatus("載入首頁 Banner 設定失敗，請確認後端已部署最新版本。");
+      setStatus("");
+    } catch (err: unknown) {
+      console.error("Failed to load homepage banner", err);
+      setStatus("載入首頁 Banner 設定失敗，請確認後端已部署最新版本。");
     }
   };
 
-  useEffect(() => { loadHomepageBanner(); }, []);
+  useEffect(() => { loadBanner(); }, []);
 
-  const handleSaveHomepageBanner = async (): Promise<void> => {
-    setIsSavingHomepageBanner(true);
-    setHomepageBannerError("");
-    setHomepageBannerStatus("");
+  const handleSave = async (): Promise<void> => {
+    setIsSaving(true);
+    setError("");
+    setStatus("");
     try {
-      const sanitizedItems = (homepageBannerItems || []).map((item, idx) => ({
-        id: String(item?.id || `slide-${idx + 1}`),
-        title: String(item?.title || "").trim(),
-        content: String(item?.content || "").trim(),
-        link: String(item?.link || "").trim(),
-        imageUrl: String(item?.imageUrl || "").trim(),
-        imageCrop: item?.imageCrop ?? null,
-      })).filter((item) => item.title || item.content || item.link || item.imageUrl);
-      await updateHomepageBannerAdmin({ items: sanitizedItems });
-      const reloaded = await getHomepageBannerAdmin() as HomepageBannerResponse;
-      const reloadedItems = Array.isArray(reloaded?.items) ? reloaded.items : [];
-      if (sanitizedItems.length > 1 && reloadedItems.length <= 1) {
-        setHomepageBannerItems(reloadedItems.length ? reloadedItems : sanitizedItems);
-        setHomepageBannerError("目前後端仍為舊版（未支援 items 多張儲存）。請重新部署最新後端後再試。");
+      // Filter empty/blank slides first — only non-empty slides are validated and sent.
+      const sanitized = items
+        .map((item, idx) => ({
+          ...item,
+          id: String(item?.id || `slide-${idx + 1}`),
+          title: String(item?.title || "").trim(),
+          content: String(item?.content || "").trim(),
+          link: String(item?.link || "").trim(),
+          imageUrl: String(item?.imageUrl || "").trim(),
+          imageAlt: String(item?.imageAlt || "").trim(),
+        }))
+        .filter((item) => item.title || item.content || item.link || item.imageUrl);
+      // Block if any publishable slide has placement errors (missing imageUrl or backgroundMode).
+      const blockingSlides = sanitized.filter((item) => {
+        const model = buildHomepageHeroPlacementModel(item);
+        return validateHomepageHeroPlacement(model).some((i) => i.severity === "error");
+      });
+      if (blockingSlides.length > 0) {
+        setError(`部分 Banner 有必填項目尚未完成，請選擇顯示模式並填入圖片網址後再儲存。`);
+        setIsSaving(false);
         return;
       }
-      setHomepageBannerItems(reloadedItems.length > 0 ? reloadedItems : sanitizedItems);
-      setHomepageBannerStatus("首頁 Banner 已儲存。");
-    } catch (error: unknown) {
-      const typedError = error as ErrorWithMessage;
-      setHomepageBannerError(typedError.message || "儲存首頁 Banner 失敗");
+      await updateHomepageBannerAdmin({ items: sanitized });
+      const reloaded = await getHomepageBannerAdmin() as HomepageBannerResponse;
+      const reloadedItems = Array.isArray(reloaded?.items) ? reloaded.items as HomepageBannerItem[] : [];
+      if (sanitized.length > 1 && reloadedItems.length <= 1) {
+        setItems(reloadedItems.length ? reloadedItems : sanitized);
+        setError("目前後端仍為舊版（未支援 items 多張儲存）。請重新部署最新後端後再試。");
+        return;
+      }
+      setItems(reloadedItems.length > 0 ? reloadedItems : sanitized);
+      setStatus("首頁 Banner 已儲存。");
+    } catch (err: unknown) {
+      const typedError = err as ErrorWithMessage;
+      setError(typedError.message || "儲存首頁 Banner 失敗");
     } finally {
-      setIsSavingHomepageBanner(false);
+      setIsSaving(false);
     }
   };
 
-  const addHomepageBannerItem = (): void => {
-    setHomepageBannerItems((prev: BannerItem[]) => [
+  const addItem = (): void => {
+    setItems((prev) => [
       ...prev,
-      { id: `slide-${Date.now()}`, title: "", content: "", link: "", imageUrl: "", imageCrop: null },
+      { id: `slide-${Date.now()}`, title: "", content: "", link: "", imageUrl: "" },
     ]);
   };
 
-  const updateHomepageBannerItem = (index: number, field: keyof BannerItem, value: BannerItem[keyof BannerItem]): void => {
-    setHomepageBannerItems((prev: BannerItem[]) => prev.map((item, idx) => (
-      idx === index ? { ...item, [field]: value } : item
-    )));
+  const updateItem = (index: number, patch: Partial<HomepageBannerItem>): void => {
+    setItems((prev) => prev.map((item, idx) => idx === index ? { ...item, ...patch } : item));
   };
 
-  const removeHomepageBannerItem = (index: number): void => {
-    setHomepageBannerItems((prev: BannerItem[]) => prev.filter((_, idx) => idx !== index));
+  const removeItem = (index: number): void => {
+    setItems((prev) => prev.filter((_, idx) => idx !== index));
   };
 
-  const applyHomepageBannerUpload = async (index: number, file: File): Promise<void> => {
-    if (!file || index === null || index === undefined) return;
-    setHomepageBannerError("");
-    setHomepageBannerStatus("");
+  const applyUpload = async (index: number, file: File): Promise<void> => {
+    setError("");
+    setStatus("");
     try {
       const optimized = await optimizeImageForUpload(file, "banner");
       if (!optimized?.ok || !optimized?.file) throw new Error(optimized?.error || "圖片處理失敗");
       const uploaded = await uploadMediaObject(optimized.file, "banner");
       const url = String((uploaded as { url?: string } | null)?.url || "").trim();
       if (!url) throw new Error("上傳成功但沒有取得圖片網址");
-      updateHomepageBannerItem(index, "imageUrl", url);
-      updateHomepageBannerItem(index, "imageCrop", null);
-    } catch (error: unknown) {
-      const typedError = error as ErrorWithMessage;
-      setHomepageBannerError(typedError.message || "Banner 圖片上傳失敗");
+      updateItem(index, { imageUrl: url, imageCrop: null, imageMobileCrop: null, imageDesktopCrop: null, imageUltraWideCrop: null });
+    } catch (err: unknown) {
+      const typedError = err as ErrorWithMessage;
+      setError(typedError.message || "Banner 圖片上傳失敗");
     }
   };
 
-  const handleHomepageBannerUpload = async (
-    index: number,
-    event: React.ChangeEvent<HTMLInputElement>
-  ): Promise<void> => {
+  const handleFileUpload = async (index: number, event: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
-    setHomepageBannerCropIndex(index);
-    setHomepageBannerCropSource({ file, name: file.name });
-    setHomepageBannerCropOpen(true);
+    setCropIndex(index);
+    setCropField("imageCrop");
+    setCropSource({ file, name: file.name });
+    setCropOpen(true);
   };
 
-  const checkHomepageBannerApiVersion = async (): Promise<void> => {
-    setHomepageBannerApiCheckResult("檢查中...");
-    try {
-      const payload = await getHomepageBannerAdmin() as HomepageBannerResponse;
-      const items = Array.isArray(payload?.items) ? payload.items : [];
-      if (items.length > 1) {
-        setHomepageBannerApiCheckResult("目前後端支援多張 Banner（items）。");
-      } else if (items.length === 1) {
-        setHomepageBannerApiCheckResult("目前後端可讀取 items，但資料目前僅 1 張。");
-      } else if (payload && "items" in payload) {
-        setHomepageBannerApiCheckResult("目前後端支援 items，但尚未儲存資料。");
-      } else {
-        setHomepageBannerApiCheckResult("目前後端看起來是舊版（未回傳 items）。");
-      }
-    } catch (error: unknown) {
-      const typedError = error as ErrorWithMessage;
-      setHomepageBannerApiCheckResult(typedError.message || "檢查失敗");
-    }
+  const openCrop = (index: number, field: CropFieldKey): void => {
+    const item = items[index];
+    if (!item?.imageUrl) return;
+    setCropIndex(index);
+    setCropField(field);
+    setCropSource({
+      url: item.imageUrl,
+      name: `banner-${index + 1}`,
+      initialCropRef: item[field] ?? null,
+    });
+    setCropOpen(true);
   };
 
   return (
     <>
       <div className="space-y-3">
         <div className="flex justify-between items-center">
-          <div className="text-xs text-muted-foreground">目前 {homepageBannerItems.length} 張</div>
-          <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={checkHomepageBannerApiVersion}>
-              檢查 API 版本
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={addHomepageBannerItem}>
-              新增一張 Banner
-            </Button>
-          </div>
+          <div className="text-xs text-muted-foreground">目前 {items.length} 張</div>
+          <Button type="button" variant="outline" size="sm" onClick={addItem}>
+            新增一張 Banner
+          </Button>
         </div>
-        {homepageBannerApiCheckResult && (
-          <div className="text-xs text-muted-foreground">{homepageBannerApiCheckResult}</div>
-        )}
-        {homepageBannerItems.length === 0 && (
+        {items.length === 0 && (
           <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
             尚未設定 Banner。可新增後儲存，公開首頁即會顯示輪播。
           </div>
         )}
-        {homepageBannerItems.map((item, idx) => (
+        {items.map((item, idx) => {
+          const model = buildHomepageHeroPlacementModel(item);
+          const issues = validateHomepageHeroPlacement(model);
+          const hasError = issues.some((i) => i.severity === "error");
+          const warnings = issues.filter((i) => i.severity === "warning");
+          return (
             <div key={item.id || idx} className="rounded-md border p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="text-xs font-medium text-muted-foreground">第 {idx + 1} 張</div>
@@ -214,15 +230,67 @@ export function HomepageBannerSection() {
                   variant="ghost"
                   size="sm"
                   className="text-destructive hover:text-destructive"
-                  onClick={() => removeHomepageBannerItem(idx)}
+                  onClick={() => removeItem(idx)}
                 >
                   刪除
                 </Button>
               </div>
-              <Input placeholder="標題" value={item.title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateHomepageBannerItem(idx, "title", e.target.value)} />
-              <Textarea placeholder="內容" value={item.content} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => updateHomepageBannerItem(idx, "content", e.target.value)} rows={3} />
-              <Input placeholder="連結（https://...）" value={item.link} onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateHomepageBannerItem(idx, "link", e.target.value)} />
-              <Input placeholder="圖片網址（可手動貼上）" value={item.imageUrl} onChange={(e: React.ChangeEvent<HTMLInputElement>) => { updateHomepageBannerItem(idx, "imageUrl", e.target.value); updateHomepageBannerItem(idx, "imageCrop", null); }} />
+
+              {/* Identity fields */}
+              <Input
+                placeholder="標題"
+                value={item.title ?? ""}
+                onChange={(e) => updateItem(idx, { title: e.target.value })}
+              />
+              <Textarea
+                placeholder="內容"
+                value={item.content ?? ""}
+                onChange={(e) => updateItem(idx, { content: e.target.value })}
+                rows={3}
+              />
+              <Input
+                placeholder="連結（https://...）"
+                value={item.link ?? ""}
+                onChange={(e) => updateItem(idx, { link: e.target.value })}
+              />
+
+              {/* Image URL */}
+              <Input
+                placeholder="圖片網址（可手動貼上）"
+                value={item.imageUrl ?? ""}
+                onChange={(e) => updateItem(idx, { imageUrl: e.target.value, imageCrop: null, imageMobileCrop: null, imageDesktopCrop: null, imageUltraWideCrop: null })}
+              />
+
+              {/* Alt text */}
+              <Input
+                placeholder="圖片替代文字（無障礙，非裝飾圖必填）"
+                value={item.imageAlt ?? ""}
+                onChange={(e) => updateItem(idx, { imageAlt: e.target.value })}
+              />
+
+              {/* Background mode */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">顯示模式</span>
+                {(["cover", "blur-fill"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => updateItem(idx, { imageBackgroundMode: mode })}
+                    className={`rounded-md border px-3 py-1 text-xs transition-colors ${
+                      item.imageBackgroundMode === mode
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-input bg-background text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {mode === "cover" ? "裁切填滿" : "模糊補邊"}
+                  </button>
+                ))}
+                {!item.imageBackgroundMode && (
+                  <span className="text-[11px] text-destructive">（必選）</span>
+                )}
+              </div>
+
+              {/* Image actions */}
               <div className="flex flex-wrap items-center gap-2">
                 <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
                   上傳圖片
@@ -230,91 +298,189 @@ export function HomepageBannerSection() {
                     type="file"
                     accept={MEDIA_FILE_ACCEPT}
                     className="hidden"
-                    onChange={(event) => handleHomepageBannerUpload(idx, event)}
+                    onChange={(e) => handleFileUpload(idx, e)}
                   />
                 </label>
-                <Button type="button" variant="secondary" size="sm" onClick={() => setHomepageBannerPickerIndex(idx)}>
+                <Button type="button" variant="secondary" size="sm" onClick={() => setPickerIndex(idx)}>
                   從媒體庫選擇
                 </Button>
-                {canApplyPersistentCropRef(item.imageUrl) && (
+              </div>
+
+              {/* Per-viewport crop buttons */}
+              {canApplyPersistentCropRef(item.imageUrl ?? "") && (
+                <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      setHomepageBannerCropIndex(idx);
-                      setHomepageBannerCropSource({ url: item.imageUrl, name: `banner-${idx + 1}`, initialCropRef: item.imageCrop ?? null });
-                      setHomepageBannerCropOpen(true);
-                    }}
+                    onClick={() => openCrop(idx, "imageCrop")}
                   >
-                    調整焦點
+                    通用焦點
                   </Button>
-                )}
-              </div>
-              <div className="space-y-0.5 text-[11px] text-muted-foreground">
-                <p>{homepageBannerGuide.supported}</p>
-                <p>{homepageBannerGuide.recommended}</p>
-              </div>
-              {item.imageUrl && (
-                <div className="overflow-hidden rounded-md border bg-muted/20">
-                  <img
-                    src={item.imageUrl}
-                    alt={item.title || `banner-${idx + 1}`}
-                    className="h-32 w-full object-cover"
-                    loading="lazy"
-                  />
+                  {VIEWPORT_CROP_FIELDS.map(({ cropKey, label }) => (
+                    <Button
+                      key={cropKey}
+                      type="button"
+                      variant={item[cropKey] ? "secondary" : "outline"}
+                      size="sm"
+                      onClick={() => openCrop(idx, cropKey)}
+                    >
+                      {label}{item[cropKey] ? " ✓" : ""}
+                    </Button>
+                  ))}
                 </div>
               )}
+
+              <div className="space-y-0.5 text-[11px] text-muted-foreground">
+                <p>{guide.supported}</p>
+                <p>{guide.recommended}</p>
+              </div>
+
+              {/* Readiness panel */}
+              {issues.length > 0 && (
+                <div className={`rounded-md border p-2 space-y-1 text-[11px] ${hasError ? "border-destructive/50 bg-destructive/5" : "border-yellow-400/40 bg-yellow-50/10"}`}>
+                  {issues.map((issue) => (
+                    <p key={issue.code} className={issue.severity === "error" ? "text-destructive" : "text-yellow-600 dark:text-yellow-400"}>
+                      {issue.severity === "error" ? "✗" : "!"} {issue.message}
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              {/* Viewport preview panel */}
+              {item.imageUrl && (() => {
+                const frames = buildHomepageHeroPreviewFrames(model);
+                const activeVp: HeroPreviewViewport = previewViewports[idx] ?? "desktop";
+                const frame = frames.find((f) => f.viewport === activeVp)!;
+                const VP_LABELS: Record<HeroPreviewViewport, string> = {
+                  mobile: "手機 390×220",
+                  desktop: "桌面 1440×450",
+                  "ultra-wide": "超寬 2560×800",
+                };
+                // Scale preview frame to fit ~320px width while keeping aspect ratio.
+                const previewW = 320;
+                const previewH = Math.round((frame.height / frame.width) * previewW);
+                const isBlurFill = item.imageBackgroundMode === "blur-fill";
+
+                // Pure helper: matches resolvePresetStyle(overscanScale) semantics exactly.
+                // cx/cy [-1,1] → objectPosition [0%,100%].
+                // overscanScale + zoom > 1 → composed single transform (same as resolvePresetStyle in imagePresets.ts).
+                const cropToImgStyle = (rawCrop: typeof frame.effectiveCrop, overscanScale?: number): React.CSSProperties => {
+                  const c = normalizeMediaCropLike(rawCrop);
+                  const applyZoom = c && c.zoom > 1;
+                  const parts: string[] = [];
+                  if (overscanScale && overscanScale !== 1) parts.push(`scale(${overscanScale})`);
+                  if (applyZoom) parts.push(`scale(${c!.zoom})`);
+                  return {
+                    ...(c ? { objectPosition: `${((c.cx + 1) / 2 * 100).toFixed(1)}% ${((c.cy + 1) / 2 * 100).toFixed(1)}%` } : {}),
+                    ...(parts.length > 0 ? { transform: parts.join(" "), transformOrigin: "center center" } : {}),
+                  };
+                };
+
+                // blur-fill bg layer uses the same crop source as HeroImage.tsx line 102:
+                // ultraWideCrop ?? desktopCrop ?? crop (not the per-viewport active crop).
+                // Overscan=1.4 matches public overscanScale={1.4} on PublicImage bg layer.
+                // blur(24px) = blur-xl; opacity 0.6 = opacity-60.
+                const bgCrop = model.ultraWideCrop ?? model.desktopCrop ?? model.crop;
+
+                return (
+                  <div className="space-y-1.5">
+                    <div className="flex gap-1">
+                      {(["mobile", "desktop", "ultra-wide"] as HeroPreviewViewport[]).map((vp) => (
+                        <button
+                          key={vp}
+                          type="button"
+                          onClick={() => setPreviewViewports((prev) => ({ ...prev, [idx]: vp }))}
+                          className={`rounded px-2 py-0.5 text-[11px] transition-colors ${
+                            activeVp === vp
+                              ? "bg-primary text-primary-foreground"
+                              : "border border-input bg-background hover:bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {vp === "mobile" ? "手機" : vp === "desktop" ? "桌面" : "超寬"}
+                        </button>
+                      ))}
+                      <span className="ml-auto text-[10px] text-muted-foreground self-center">{VP_LABELS[activeVp]}</span>
+                    </div>
+                    <div
+                      className="relative overflow-hidden rounded-md border bg-black"
+                      style={{ width: previewW, height: previewH }}
+                    >
+                      {isBlurFill && (
+                        <img
+                          src={item.imageUrl}
+                          alt=""
+                          aria-hidden
+                          className="absolute inset-0 h-full w-full object-cover"
+                          style={{ filter: "blur(24px)", opacity: 0.6, ...cropToImgStyle(bgCrop, 1.4) }}
+                        />
+                      )}
+                      <img
+                        src={item.imageUrl}
+                        alt={item.imageAlt || item.title || `banner-${idx + 1}`}
+                        className="absolute inset-0 h-full w-full"
+                        style={{
+                          objectFit: isBlurFill ? "contain" : "cover",
+                          ...cropToImgStyle(frame.effectiveCrop),
+                        }}
+                        loading="lazy"
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
-          ))}
-        {homepageBannerError && <div className="text-xs text-destructive">{homepageBannerError}</div>}
-        {homepageBannerStatus && <div className="text-xs text-muted-foreground">{homepageBannerStatus}</div>}
+          );
+        })}
+        {error && <div className="text-xs text-destructive">{error}</div>}
+        {status && <div className="text-xs text-muted-foreground">{status}</div>}
         <div className="flex justify-end">
-          <Button onClick={handleSaveHomepageBanner} disabled={isSavingHomepageBanner}>
-            {isSavingHomepageBanner ? "儲存中..." : "儲存首頁 Banner"}
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? "儲存中..." : "儲存首頁 Banner"}
           </Button>
         </div>
       </div>
 
       <MediaPicker
-        open={homepageBannerPickerIndex !== null}
-        onOpenChange={(open) => { if (!open) setHomepageBannerPickerIndex(null); }}
+        open={pickerIndex !== null}
+        onOpenChange={(open) => { if (!open) setPickerIndex(null); }}
         cropPurpose="banner"
         onSelect={(url) => {
-          if (homepageBannerPickerIndex !== null) {
-            updateHomepageBannerItem(homepageBannerPickerIndex, "imageUrl", url);
-            updateHomepageBannerItem(homepageBannerPickerIndex, "imageCrop", null);
-            setHomepageBannerPickerIndex(null);
+          if (pickerIndex !== null) {
+            // Clear all crops when image changes — crop refs are image-specific.
+            // imageBackgroundMode is intentionally retained: it is placement intent, not image-specific.
+            updateItem(pickerIndex, { imageUrl: url, imageCrop: null, imageMobileCrop: null, imageDesktopCrop: null, imageUltraWideCrop: null });
+            setPickerIndex(null);
           }
         }}
         onSelectMedia={(selection: MediaSelection) => {
-          if (homepageBannerPickerIndex !== null) {
-            updateHomepageBannerItem(homepageBannerPickerIndex, "imageUrl", selection.url);
-            updateHomepageBannerItem(homepageBannerPickerIndex, "imageCrop", selection.crop ?? null);
-            setHomepageBannerPickerIndex(null);
+          if (pickerIndex !== null) {
+            // Same as onSelect: clear viewport crops, retain mode.
+            updateItem(pickerIndex, { imageUrl: selection.url, imageCrop: selection.crop ?? null, imageMobileCrop: null, imageDesktopCrop: null, imageUltraWideCrop: null });
+            setPickerIndex(null);
           }
         }}
       />
       <ImageCropDialog
-        open={homepageBannerCropOpen}
-        onOpenChange={setHomepageBannerCropOpen}
-        source={homepageBannerCropSource}
+        open={cropOpen}
+        onOpenChange={setCropOpen}
+        source={cropSource}
         purpose="banner"
         onConfirm={async (croppedFile) => {
-          if (homepageBannerCropIndex === null) return;
-          await applyHomepageBannerUpload(homepageBannerCropIndex, croppedFile);
-          setHomepageBannerCropIndex(null);
+          if (cropIndex === null) return;
+          await applyUpload(cropIndex, croppedFile);
+          setCropIndex(null);
         }}
-        onApplyCropRef={homepageBannerCropSource?.url && homepageBannerCropIndex !== null
+        onApplyCropRef={cropSource?.url && cropIndex !== null
           ? (crop) => {
-              updateHomepageBannerItem(homepageBannerCropIndex!, "imageCrop", crop);
-              setHomepageBannerCropOpen(false);
-              setHomepageBannerCropIndex(null);
+              updateItem(cropIndex!, { [cropField]: crop });
+              setCropOpen(false);
+              setCropIndex(null);
             }
           : undefined
         }
         applyCropRefLabel="套用裁切框"
-        initialCropRef={homepageBannerCropSource?.url ? (homepageBannerCropSource.initialCropRef ?? null) : null}
+        initialCropRef={cropSource?.url ? (cropSource.initialCropRef ?? null) : null}
       />
     </>
   );
