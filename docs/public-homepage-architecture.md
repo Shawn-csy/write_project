@@ -47,10 +47,18 @@ This document defines the long-term architecture and execution plan for the publ
 
 - `lane` URL param is parsed, serialized, and wired through `useGalleryUrlState` → `useGalleryController` → `buildPublicHomepageModel`. `ScriptLanes.ordered` is a ranked `LaneDescriptor[]` where active lane is always first; render layer for-loops over it. `setLaneMode` is exposed from the controller for a future lane switcher UI (not yet rendered). Lane UI switcher (tab/button to change `lane` param) is the remaining gap.
 - Next production banner fallback is clean: missing backend banner data does not render placeholder slides. By default, the app-owned brand hero still renders unless superadmin config disables it. Vite legacy `src/components/public/PublicHeroMarquee.tsx` still contains old placeholder fallback and should be treated as non-canonical until Vite public gallery retires or imports `@write/public-ui`.
-- Homepage hero now has two content sources:
-  - `brand` slide: app-owned brand introduction content rendered inside the shared carousel frame.
-  - backend banner slides: superadmin-managed campaign/editorial slides.
-- `homepageConfig.showBrandHero` is a superadmin/backend homepage setting. It is not a user appearance preference and must not appear in `PublicAppearanceMenu`.
+- Homepage hero pipeline: `buildHomepageHeroSlides(bannerSlides?, showBrandHero?)` is the single composition point. Brand slide is always index 0 when enabled. Data flow is strictly one-way:
+  ```
+  superadmin settings
+    → backend public-bundle.homepageConfig.showBrandHero
+    → apps/public/app/page.tsx
+    → GalleryClient showBrandHero prop
+    → buildHomepageHeroSlides(banners, showBrandHero)
+    → PublicHeroMarquee slides
+  ```
+- `showBrandHero` is a superadmin/backend homepage setting. It is **not** a user appearance preference and must not appear in `PublicAppearanceMenu` or be persisted as `public-reader:appearance`.
+- `HeroSlide.background` contract: `"default"` (banner gradient) or `"none"` (frame is `bg-background`, slide injects its own full-bleed background via `renderSlideContent`). The brand slide uses `background: "none"` so `GalleryBrandHeroSlide` fully owns its visual without fighting the carousel frame's gradient.
+- `GalleryBrandHeroSlide` is brand content only — not a workaround. It renders `absolute inset-0 editorial-hero-wash` as the intended brand visual, not to suppress a parent layer.
 - Topbar/product navigation is not yet a canonical public shell. Next currently has a simpler topbar than the Vite reference.
 - Help, license, about, and other public informational views are route pages, but not yet part of a unified homepage navigation model.
 - Consent/age gates for script navigation from discovery are not yet represented as homepage navigation policy.

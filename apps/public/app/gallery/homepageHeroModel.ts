@@ -5,13 +5,18 @@
  * This keeps the GalleryClient hero pipeline unified through a single
  * PublicHeroMarquee instead of branching between StaticHero and carousel.
  */
-import type { HeroSlide } from "@write/public-ui";
+import type { HeroSlide, HeroSlideBackground } from "@write/public-ui";
 
 export interface BrandHeroSlide {
   type: "brand";
   id: "brand-intro";
   /** Accessible label for carousel aria and dot navigation */
   title: string;
+  /**
+   * Tells PublicHeroMarquee to suppress its default banner gradient.
+   * GalleryBrandHeroSlide renders its own full-bleed background.
+   */
+  background: HeroSlideBackground;
 }
 
 export type HomepageHeroSlide = BrandHeroSlide | (HeroSlide & { type?: "image" });
@@ -20,6 +25,7 @@ export const BRAND_SLIDE: BrandHeroSlide = {
   type: "brand",
   id: "brand-intro",
   title: "探索、閱讀、分享創作台本",
+  background: "none",
 };
 
 /**

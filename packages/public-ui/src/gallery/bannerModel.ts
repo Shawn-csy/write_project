@@ -37,12 +37,26 @@ export const DEV_PLACEHOLDER_SLIDES: readonly {
   },
 ] as const;
 
+/**
+ * Controls the carousel frame background behind a slide.
+ * - "default": applies the standard banner gradient (from-/via-/to- colors).
+ * - "none":    no gradient; frame is bg-background. Use when the slide injects
+ *              its own full-bleed background via renderSlideContent.
+ */
+export type HeroSlideBackground = "default" | "none";
+
 export interface HeroSlide {
   id?: string | number;
   title?: string;
   subtitle?: string;
   content?: string;
+  /** Per-slide Tailwind gradient classes. Only used when background === "default". */
   className?: string;
+  /**
+   * Frame background policy. Defaults to "default" (banner gradient).
+   * Set to "none" when the slide renders its own full-bleed background.
+   */
+  background?: HeroSlideBackground;
   link?: string;
   /**
    * Structured image data with optional art-direction crops per viewport.

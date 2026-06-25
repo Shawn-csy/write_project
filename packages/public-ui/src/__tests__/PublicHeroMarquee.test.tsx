@@ -272,3 +272,49 @@ describe("PublicHeroMarquee — renderSlideContent slot", () => {
     vi.useRealTimers();
   });
 });
+
+describe("PublicHeroMarquee — HeroSlide.background contract", () => {
+  it("default slide has bg-gradient-to-r class on frame", () => {
+    render(
+      <PublicHeroMarquee slides={[{ id: "s1", title: "Banner" }]} fallbackToDefault={false} />
+    );
+    const frame = screen.getAllByTestId("hero-slide-frame")[0];
+    expect(frame.className).toContain("bg-gradient-to-r");
+  });
+
+  it("background='default' slide has bg-gradient-to-r class on frame", () => {
+    render(
+      <PublicHeroMarquee
+        slides={[{ id: "s1", title: "Banner", background: "default" }]}
+        fallbackToDefault={false}
+      />
+    );
+    const frame = screen.getAllByTestId("hero-slide-frame")[0];
+    expect(frame.className).toContain("bg-gradient-to-r");
+  });
+
+  it("background='none' slide has bg-background class and no bg-gradient-to-r on frame", () => {
+    render(
+      <PublicHeroMarquee
+        slides={[{ id: "brand", title: "Brand", background: "none" }]}
+        fallbackToDefault={false}
+      />
+    );
+    const frame = screen.getAllByTestId("hero-slide-frame")[0];
+    expect(frame.className).not.toContain("bg-gradient-to-r");
+    expect(frame.className).toContain("bg-background");
+  });
+
+  it("renderSlideContent does not affect frame background", () => {
+    render(
+      <PublicHeroMarquee
+        slides={[{ id: "brand", title: "Brand", background: "none" }]}
+        renderSlideContent={() => <div data-testid="custom" />}
+        fallbackToDefault={false}
+      />
+    );
+    const frame = screen.getAllByTestId("hero-slide-frame")[0];
+    expect(frame.className).not.toContain("bg-gradient-to-r");
+    expect(screen.getByTestId("custom")).toBeTruthy();
+  });
+});
