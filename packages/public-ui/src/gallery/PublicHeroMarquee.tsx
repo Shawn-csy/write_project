@@ -10,6 +10,18 @@ import { DEV_PLACEHOLDER_SLIDES } from "./bannerModel";
 
 export type { HeroSlide } from "./bannerModel";
 
+/**
+ * Host-injected image renderer for hero slides.
+ * Receives slide image data and slide index; returns a React node.
+ * Next.js apps should inject PublicImage with preset="hero-banner".
+ * Defaults to plain <img> when not provided.
+ */
+export type HeroImageRenderer = (
+  image: NonNullable<HeroSlide["image"]>,
+  slide: HeroSlide,
+  index: number
+) => React.ReactNode;
+
 export interface PublicHeroMarqueeProps {
   slides?: HeroSlide[];
   intervalMs?: number;
@@ -27,6 +39,12 @@ export interface PublicHeroMarqueeProps {
     next?: string;
     jumpTo?: (index: number) => string;
   };
+  /**
+   * Host renderer for slide images. Inject PublicImage from the Next.js app to
+   * use next/image optimization and the hero-banner preset with focal crop.
+   * Defaults to plain <img> so the package stays framework-neutral.
+   */
+  renderImage?: HeroImageRenderer;
 }
 
 function cn(...classes: (string | undefined | false | null)[]): string {
@@ -39,6 +57,7 @@ export function PublicHeroMarquee({
   fallbackToDefault = false,
   fullBleed = false,
   labels,
+  renderImage,
 }: PublicHeroMarqueeProps): React.JSX.Element | null {
   const safeSlides =
     Array.isArray(slides) && slides.length > 0
@@ -111,14 +130,20 @@ export function PublicHeroMarquee({
                     String(slide.link || "").trim() ? "cursor-pointer" : ""
                   )}
                 >
-                  {String(slide.imageUrl || "").trim() && (
+                  {(slide.image?.url || String(slide.imageUrl || "").trim()) && (
                     <>
-                      <img
-                        src={String(slide.imageUrl).trim()}
-                        alt={slide.title || "banner"}
-                        className="absolute inset-0 h-full w-full object-cover"
-                        loading={index === 0 ? "eager" : "lazy"}
-                      />
+                      {slide.image?.url && renderImage ? (
+                        <div className="absolute inset-0">
+                          {renderImage(slide.image, slide, index)}
+                        </div>
+                      ) : (
+                        <img
+                          src={slide.image?.url || String(slide.imageUrl).trim()}
+                          alt={slide.image?.alt || slide.title || "banner"}
+                          className="absolute inset-0 h-full w-full object-cover"
+                          loading={index === 0 ? "eager" : "lazy"}
+                        />
+                      )}
                       {(() => {
                         const hasText =
                           String(slide.title || "").trim() ||
