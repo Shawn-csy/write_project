@@ -7,10 +7,9 @@
  *
  * Parent must be position:relative with explicit dimensions.
  *
- * /media/ path resolution: apiFetch resolves /media/ paths to absolute
- * backend URLs at the data boundary. resolveMediaSrc here is a safety net
- * for any code path that bypasses apiFetch (only effective during SSR where
- * BACKEND_API_URL is available; no-op in client bundle).
+ * /media/ path resolution: public API data stays browser-facing so shared
+ * public-ui <img> components can load it. PublicImage is the only place that
+ * upgrades /media/ to the backend origin for next/image's server-side optimizer.
  */
 
 import Image from "next/image";
