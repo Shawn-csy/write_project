@@ -148,7 +148,7 @@ export function PublicHeroMarquee({
         >
           <div
             className={cn(
-              "relative aspect-[3/1] min-h-[140px] sm:min-h-[180px] max-h-[44vh]",
+              "relative w-full aspect-[3/1] min-h-[140px] sm:min-h-[180px] max-h-[44vh]",
               fullBleed && "min-h-[200px] sm:min-h-[280px] lg:min-h-[340px] max-h-[54vh]"
             )}
           >

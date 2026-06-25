@@ -2,16 +2,17 @@
 
 Last updated: 2026-06-25
 
-This document defines the long-term architecture for homepage hero banners.
+This document defines the long-term architecture for the homepage hero.
 The goal is to stop treating the hero as a plain `imageUrl` carousel and make
 it a first-class media placement with explicit art direction, superadmin
-preview, and publish-time validation.
+preview, publish-time validation, and a distinct brand-slide rendering contract.
 
-## Current Finding
+## Current Findings
 
-The homepage black edge is not a carousel CSS leak.
+The homepage black-edge symptom has two separate causes and must stay separated.
 
-Runtime inspection showed the active hero image fills the hero frame:
+For image banner slides, runtime inspection showed the active hero image fills
+the hero frame:
 
 - the active banner `<img>` has the same width and height as the slide frame;
 - `object-fit: cover` is applied;
@@ -19,16 +20,26 @@ Runtime inspection showed the active hero image fills the hero frame:
 - it does not return `imageBackgroundMode`, `imageDesktopCrop`, or
   `imageUltraWideCrop`.
 
-Therefore, when a banner still shows a black area at ultra-wide viewport width,
-that black area is part of the source image composition or the missing hero
-placement data. The fix belongs in the banner data model and superadmin editing
-flow, not in per-page CSS.
+Therefore, when an image banner still shows a black area at ultra-wide viewport
+width, that black area is part of the source image composition or the missing
+hero placement data. The fix belongs in the banner data model and superadmin
+editing flow, not in per-page CSS.
+
+For the brand slide (`GalleryBrandHeroSlide`), there is no image. Its slide uses
+`background="none"`, which suppresses the shared banner gradient. That means the
+brand slide must own a full-frame backdrop. If its backdrop is incomplete, the
+carousel frame exposes the near-black page background on ultra-wide screens.
+
+Brand-slide black edges are therefore a brand-slide rendering contract bug, not
+a banner crop bug.
 
 ## Existing System
 
 Already implemented:
 
 - `PublicHeroMarquee` supports a host `renderImage` slot.
+- `PublicHeroMarquee` supports a host `renderSlideContent` slot for brand-slide
+  content.
 - `HeroImage` supports viewport-specific crop fields and `blur-fill`.
 - `PublicImage` supports the `hero-banner` preset.
 - `parseBannerSlides()` can parse:
@@ -38,6 +49,8 @@ Already implemented:
   - `imageUltraWideCrop`
   - `imageBackgroundMode`
   - `imageAlt`
+- `GalleryBrandHeroSlide` renders a full-frame backdrop through
+  `.editorial-brand-hero-backdrop` when `background="none"` is used.
 
 Still incomplete:
 
@@ -89,7 +102,7 @@ desktop     → imageDesktopCrop ?? imageCrop
 ultra-wide  → imageUltraWideCrop ?? imageDesktopCrop ?? imageCrop
 ```
 
-## Product Rule
+## Product Rules
 
 Production hero banners must not rely on implicit center crop.
 
@@ -100,6 +113,13 @@ A slide can be published only when one of these is true:
 
 This is stricter than other public image placements because the homepage hero is
 full-bleed, first-viewport, and LCP-relevant.
+
+Brand slides must not rely on the carousel frame background.
+
+When a slide sets `background="none"`, the injected slide content must render an
+absolute `inset-0` backdrop layer that covers the entire hero frame. The shared
+carousel may provide layout, timing, controls, and frame clipping, but it must
+not be responsible for hiding missing brand-slide background coverage.
 
 ## Superadmin UX
 
@@ -182,6 +202,8 @@ Ownership:
 - `server/utils.py`: backend normalization and compatibility.
 - `packages/public-ui/src/gallery/bannerModel.ts`: public projection only.
 - `apps/public/components/HeroImage.tsx`: public rendering only.
+- `apps/public/app/gallery/GalleryBrandHeroSlide.tsx`: brand-slide content and
+  full-frame brand backdrop only.
 
 Do not put validation or banner-specific business rules inside
 `PublicHeroMarquee`.
@@ -298,8 +320,9 @@ Add screenshot QA only after the manual workflow is stable.
 Implemented in `tests-e2e/hero-banner-ultra-wide.spec.ts`:
 
 - sets viewport to 2560×900;
-- waits for the active `[data-testid="hero-slide-frame"]` and its images
-  to load;
+- waits for the active `[data-testid="hero-slide-frame"]`;
+- waits for images inside the active slide when present; brand slides are tested
+  even though they have no images;
 - screenshots the left and right 20px edge bands;
 - fails if either band is > 85% dark pixels (< 30/255 per channel).
 
@@ -324,6 +347,8 @@ thresholds. The editor preview remains the source of truth.
 - Do not duplicate hero preview math in multiple components.
 - Do not treat this as a Next image optimizer problem when the DOM image already
   fills the frame.
+- Do not use `PublicHeroMarquee` frame background as the visual fallback for a
+  `background="none"` brand slide.
 
 ## Definition Of Done
 
@@ -337,4 +362,3 @@ This work is complete when:
 - editor preview and public runtime share the same placement semantics;
 - ultra-wide QA confirms the current banner no longer shows unintended black
   edge content unless that is intentionally part of the uploaded artwork.
-

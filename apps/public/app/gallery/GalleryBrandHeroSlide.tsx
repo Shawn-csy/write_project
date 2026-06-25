@@ -6,7 +6,9 @@
  */
 export function GalleryBrandHeroSlide() {
   return (
-    <div className="absolute inset-0 editorial-hero-wash overflow-hidden">
+    <div className="absolute inset-0 overflow-hidden bg-background" data-testid="brand-hero-slide">
+      <div className="absolute inset-0 pointer-events-none editorial-brand-hero-backdrop" data-testid="brand-hero-backdrop" aria-hidden />
+
       {/* Decorative ruled lines */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
         <div className="absolute left-0 right-0 top-[3.5rem]" style={{ height: "1px", background: "hsl(var(--border) / 0.35)" }} />

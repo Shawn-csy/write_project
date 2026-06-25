@@ -1,10 +1,11 @@
 /**
- * Phase 6 — Hero banner ultra-wide black-band smoke test
+ * Phase 6 — Homepage hero ultra-wide black-band smoke test
  *
  * Renders the public homepage hero at 2560×900 and checks that the ACTIVE
  * slide's left and right edge bands (20px wide) are not predominantly black.
- * A mostly-dark edge band is the visual symptom of a missing ultra-wide crop
- * on a cover-mode banner.
+ * A mostly-dark edge band is the visual symptom of either a missing ultra-wide
+ * crop on an image banner or a brand slide whose full-frame backdrop does not
+ * cover the carousel edge.
  *
  * This is a smoke test, not a full visual QA. It catches the specific failure
  * class described in docs/homepage-hero-banner-placement-plan.md: edge bands
@@ -13,10 +14,11 @@
  * the manual QA checklist in the plan doc.
  *
  * Requirements:
- *   PUBLIC_APP_URL env var must point to a running public Next.js instance.
+ *   PUBLIC_APP_URL or PLAYWRIGHT_BASE_URL env var must point to a running
+ *   public Next.js instance.
  *
- * Skipped when PUBLIC_APP_URL is not set so it never blocks CI that only
- * runs the Vite admin dev server.
+ * Skipped when neither env var is set so it never blocks CI that only runs the
+ * Vite admin dev server.
  *
  * To run:
  *   PUBLIC_APP_URL=http://localhost:3000 npx playwright test hero-banner-ultra-wide
@@ -25,7 +27,7 @@
 import { test, expect } from '@playwright/test';
 import { PNG } from 'pngjs';
 
-const PUBLIC_APP_URL = process.env.PUBLIC_APP_URL ?? '';
+const PUBLIC_APP_URL = process.env.PUBLIC_APP_URL ?? process.env.PLAYWRIGHT_BASE_URL ?? '';
 
 /** Band width in logical pixels sampled from each edge. */
 const BAND_WIDTH = 20;
@@ -49,8 +51,8 @@ function darkFractionFromPng(buf: Buffer): number {
   return total > 0 ? dark / total : 0;
 }
 
-test.describe('Hero banner — ultra-wide black-band smoke test', () => {
-  test.skip(!PUBLIC_APP_URL, 'PUBLIC_APP_URL not set — skipping public-app e2e');
+test.describe('Homepage hero — ultra-wide black-band smoke test', () => {
+  test.skip(!PUBLIC_APP_URL, 'PUBLIC_APP_URL/PLAYWRIGHT_BASE_URL not set — skipping public-app e2e');
 
   test('active slide has no black side bands at 2560px width', async ({ page }) => {
     await page.setViewportSize({ width: 2560, height: 900 });
@@ -60,12 +62,13 @@ test.describe('Hero banner — ultra-wide black-band smoke test', () => {
     const activeFrame = page.locator('[data-testid="hero-slide-frame"][data-active="true"]');
     await expect(activeFrame).toBeVisible({ timeout: 10_000 });
 
-    // Wait for images inside the ACTIVE slide only.
+    // Wait for images inside the ACTIVE slide only. Brand slides may contain no
+    // images; those should still be inspected for black side bands.
     await page.waitForFunction(() => {
       const frame = document.querySelector('[data-testid="hero-slide-frame"][data-active="true"]');
       if (!frame) return false;
       const imgs = frame.querySelectorAll('img');
-      return imgs.length > 0 && Array.from(imgs).every((img) => (img as HTMLImageElement).complete);
+      return imgs.length === 0 || Array.from(imgs).every((img) => (img as HTMLImageElement).complete);
     }, undefined, { timeout: 15_000 });
 
     const box = await activeFrame.boundingBox();
@@ -87,13 +90,13 @@ test.describe('Hero banner — ultra-wide black-band smoke test', () => {
     expect(
       leftDark,
       `Left edge band is ${(leftDark * 100).toFixed(0)}% dark pixels. ` +
-      `Set 超寬焦點 or switch to 模糊補邊 on this banner slide.`,
+      `For image slides, set 超寬焦點 or switch to 模糊補邊. For brand slides, fix the full-frame backdrop.`,
     ).toBeLessThan(MAX_DARK_FRACTION);
 
     expect(
       rightDark,
       `Right edge band is ${(rightDark * 100).toFixed(0)}% dark pixels. ` +
-      `Set 超寬焦點 or switch to 模糊補邊 on this banner slide.`,
+      `For image slides, set 超寬焦點 or switch to 模糊補邊. For brand slides, fix the full-frame backdrop.`,
     ).toBeLessThan(MAX_DARK_FRACTION);
   });
 });
