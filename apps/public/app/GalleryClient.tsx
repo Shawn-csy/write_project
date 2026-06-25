@@ -8,7 +8,7 @@ import {
   type HeroSlide,
   type HeroImageRenderer,
 } from "@write/public-ui";
-import { PublicImage } from "@/components/PublicImage";
+import { HeroImage } from "@/components/HeroImage";
 import { SlidersHorizontal, PanelLeftClose, PanelLeftOpen, List } from "lucide-react";
 import { GalleryFilterPanel } from "./gallery/GalleryFilterPanel";
 import { GallerySegmentBar } from "./gallery/GallerySegmentBar";
@@ -28,68 +28,13 @@ interface Props {
 }
 
 // Module-level: stable reference, no re-creation on render.
-//
-// Art direction: viewport-specific crops are applied via CSS visibility so no
-// JS resize listener or hydration mismatch is introduced.
-//   mobile  (<md)     → mobileCrop ?? crop
-//   desktop (md–2xl)  → desktopCrop ?? crop
-//   ultra-wide (≥2xl) → ultraWideCrop ?? desktopCrop ?? crop
-//
-// blur-fill mode: a blurred, scale-enlarged background copy fills edge areas
-// that the primary image cannot cover at ultra-wide viewport ratios.
-const heroImageRenderer: HeroImageRenderer = (image, _slide, index) => {
-  const priority = index === 0;
-  const blurFill = image.backgroundMode === "blur-fill";
-
-  // Viewport-specific crops (fall through to generic crop when absent)
-  const mobileCrop = image.mobileCrop ?? image.crop ?? null;
-  const desktopCrop = image.desktopCrop ?? image.crop ?? null;
-  const ultraWideCrop = image.ultraWideCrop ?? image.desktopCrop ?? image.crop ?? null;
-
-  const hasViewportCrops = image.mobileCrop || image.desktopCrop || image.ultraWideCrop;
-
-  return (
-    <>
-      {/* blur-fill background layer — only when backgroundMode="blur-fill" */}
-      {blurFill && (
-        <PublicImage
-          src={image.url}
-          alt=""
-          preset="hero-banner"
-          crop={image.crop}
-          priority={priority}
-          className="object-cover scale-110 blur-md opacity-60"
-        />
-      )}
-
-      {/* Primary image — viewport-aware crops via CSS breakpoints */}
-      {hasViewportCrops ? (
-        <>
-          {/* mobile: <md */}
-          <span className="absolute inset-0 md:hidden">
-            <PublicImage src={image.url} alt={image.alt ?? ""} preset="hero-banner" crop={mobileCrop} priority={priority} />
-          </span>
-          {/* desktop: md–2xl */}
-          <span className="absolute inset-0 hidden md:block 2xl:hidden">
-            <PublicImage src={image.url} alt={image.alt ?? ""} preset="hero-banner" crop={desktopCrop} priority={priority} />
-          </span>
-          {/* ultra-wide: ≥2xl */}
-          <span className="absolute inset-0 hidden 2xl:block">
-            <PublicImage src={image.url} alt={image.alt ?? ""} preset="hero-banner" crop={ultraWideCrop} priority={priority} />
-          </span>
-        </>
-      ) : (
-        <PublicImage
-          src={image.url}
-          alt={image.alt ?? ""}
-          preset="hero-banner"
-          crop={image.crop ?? null}
-          priority={priority}
-        />
-      )}
-    </>
-  );
-};
+const heroImageRenderer: HeroImageRenderer = (image, slide, index) => (
+  <HeroImage
+    image={image}
+    priority={index === 0}
+    slideTitle={slide.title}
+  />
+);
 
 export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
   const {

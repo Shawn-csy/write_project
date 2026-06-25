@@ -74,6 +74,27 @@ export interface HeroSlide {
   overlayOpacity?: number;
 }
 
+/** Parse all hero image placement fields from a raw banner item. */
+function parseHeroImage(raw: Record<string, unknown>): HeroSlide["image"] | undefined {
+  const url = raw.imageUrl as string | undefined;
+  if (!url) return undefined;
+  const crop = (raw.imageCrop ?? null) as MediaCropLike | null;
+  const mobileCrop = (raw.imageMobileCrop ?? null) as MediaCropLike | null;
+  const desktopCrop = (raw.imageDesktopCrop ?? null) as MediaCropLike | null;
+  const ultraWideCrop = (raw.imageUltraWideCrop ?? null) as MediaCropLike | null;
+  const alt = raw.imageAlt as string | undefined;
+  const backgroundMode = raw.imageBackgroundMode === "blur-fill" ? "blur-fill" : undefined;
+  return {
+    url,
+    ...(alt ? { alt } : {}),
+    ...(crop ? { crop } : {}),
+    ...(mobileCrop ? { mobileCrop } : {}),
+    ...(desktopCrop ? { desktopCrop } : {}),
+    ...(ultraWideCrop ? { ultraWideCrop } : {}),
+    ...(backgroundMode ? { backgroundMode } : {}),
+  };
+}
+
 /**
  * Convert a raw API HomepageBanner payload (unknown shape) into HeroSlide[].
  * Single source of truth shared by Next.js server page and client re-fetch.
@@ -85,28 +106,26 @@ export function parseBannerSlides(banner: unknown): HeroSlide[] | undefined {
   const valid = items.filter((item) => item.title || item.content || item.link || item.imageUrl);
   if (valid.length > 0) {
     return valid.map((item, idx) => {
-      const imageUrl = item.imageUrl as string | undefined;
-      const imageCrop = item.imageCrop as MediaCropLike | null | undefined;
+      const image = parseHeroImage(item);
       return {
         id: (item.id as string | undefined) ?? `banner-${idx + 1}`,
         title: item.title as string | undefined,
         subtitle: item.content as string | undefined,
         link: item.link as string | undefined,
-        imageUrl,
-        ...(imageUrl ? { image: { url: imageUrl, crop: imageCrop ?? null } } : {}),
+        imageUrl: item.imageUrl as string | undefined,
+        ...(image ? { image } : {}),
       };
     });
   }
   if (b.title || b.content || b.link || b.imageUrl) {
-    const imageUrl = b.imageUrl as string | undefined;
-    const imageCrop = b.imageCrop as MediaCropLike | null | undefined;
+    const image = parseHeroImage(b);
     return [{
       id: "banner-0",
       title: b.title as string | undefined,
       subtitle: b.content as string | undefined,
       link: b.link as string | undefined,
-      imageUrl,
-      ...(imageUrl ? { image: { url: imageUrl, crop: imageCrop ?? null } } : {}),
+      imageUrl: b.imageUrl as string | undefined,
+      ...(image ? { image } : {}),
     }];
   }
   return undefined;

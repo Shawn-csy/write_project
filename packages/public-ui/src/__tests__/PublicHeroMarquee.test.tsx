@@ -112,3 +112,65 @@ describe("PublicHeroMarquee", () => {
     vi.useRealTimers();
   });
 });
+
+describe("PublicHeroMarquee — renderImage slot", () => {
+  const imageSlide = {
+    id: "img1",
+    title: "Banner",
+    image: { url: "/media/hero.webp", alt: "Hero alt" },
+  };
+
+  it("calls renderImage when slide has image and renderImage is provided", () => {
+    const renderImage = vi.fn(() => <img src="/media/hero.webp" alt="custom" />);
+    render(
+      <PublicHeroMarquee
+        slides={[imageSlide]}
+        renderImage={renderImage}
+      />
+    );
+    expect(renderImage).toHaveBeenCalledOnce();
+    expect(renderImage).toHaveBeenCalledWith(
+      imageSlide.image,
+      imageSlide,
+      0
+    );
+  });
+
+  it("falls back to plain <img> when renderImage is not provided", () => {
+    render(<PublicHeroMarquee slides={[imageSlide]} />);
+    const img = document.querySelector("img") as HTMLImageElement;
+    expect(img).toBeTruthy();
+    expect(img.src).toContain("/media/hero.webp");
+  });
+
+  it("falls back to plain <img> using image.alt when available", () => {
+    render(<PublicHeroMarquee slides={[imageSlide]} />);
+    const img = document.querySelector("img") as HTMLImageElement;
+    expect(img.alt).toBe("Hero alt");
+  });
+
+  it("falls back to slide.title as alt when image.alt is absent", () => {
+    const slide = { id: "i2", title: "My Slide", image: { url: "/media/b.webp" } };
+    render(<PublicHeroMarquee slides={[slide]} />);
+    const img = document.querySelector("img") as HTMLImageElement;
+    expect(img.alt).toBe("My Slide");
+  });
+
+  it("uses legacy imageUrl as plain <img> fallback when image is absent", () => {
+    const legacySlide = { id: "l1", title: "Legacy", imageUrl: "/media/legacy.webp" };
+    render(<PublicHeroMarquee slides={[legacySlide]} />);
+    const img = document.querySelector("img") as HTMLImageElement;
+    expect(img.src).toContain("/media/legacy.webp");
+  });
+
+  it("does not call renderImage when slide has no image (text-only slide)", () => {
+    const renderImage = vi.fn(() => null);
+    render(
+      <PublicHeroMarquee
+        slides={[{ id: "t1", title: "Text only" }]}
+        renderImage={renderImage}
+      />
+    );
+    expect(renderImage).not.toHaveBeenCalled();
+  });
+});
