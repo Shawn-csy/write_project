@@ -90,7 +90,7 @@ export function HeroImage({ image, priority, slideTitle }: Props) {
   const blurFill = image.backgroundMode === "blur-fill";
 
   return (
-    <>
+    <div className="absolute inset-0 overflow-hidden">
       {/* blur-fill background layer: blurred oversized copy fills letterbox bars.
           Rendered behind the foreground contain image; visible only in the bars
           that object-fit: contain leaves uncovered at the sides or top/bottom. */}
@@ -115,6 +115,6 @@ export function HeroImage({ image, priority, slideTitle }: Props) {
         objectFit={blurFill ? "contain" : undefined}
         respectCropZoom
       />
-    </>
+    </div>
   );
 }

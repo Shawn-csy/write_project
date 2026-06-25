@@ -133,7 +133,7 @@ export function PublicHeroMarquee({
                   {(slide.image?.url || String(slide.imageUrl || "").trim()) && (
                     <>
                       {slide.image?.url && renderImage ? (
-                        <div className="absolute inset-0">
+                        <div className="absolute inset-0 overflow-hidden">
                           {renderImage(slide.image, slide, index)}
                         </div>
                       ) : (

@@ -136,6 +136,19 @@ describe("PublicHeroMarquee — renderImage slot", () => {
     );
   });
 
+  it("wraps injected image renderer in a clipping fill container", () => {
+    render(
+      <PublicHeroMarquee
+        slides={[imageSlide]}
+        renderImage={() => <div data-testid="hero-renderer" />}
+      />
+    );
+    const wrapper = screen.getByTestId("hero-renderer").parentElement;
+    expect(wrapper?.className).toContain("absolute");
+    expect(wrapper?.className).toContain("inset-0");
+    expect(wrapper?.className).toContain("overflow-hidden");
+  });
+
   it("falls back to plain <img> when renderImage is not provided", () => {
     render(<PublicHeroMarquee slides={[imageSlide]} />);
     const img = document.querySelector("img") as HTMLImageElement;
