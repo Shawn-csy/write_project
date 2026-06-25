@@ -157,6 +157,7 @@ export function PublicHeroMarquee({
                 <div
                   key={slide.id || index}
                   data-testid="hero-slide-frame"
+                  data-active={activeIndex === index ? "true" : undefined}
                   className={cn(
                     "absolute inset-0 p-4 sm:p-6 transition-opacity duration-500",
                     slideFrameClass(slide),
