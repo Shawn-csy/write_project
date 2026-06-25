@@ -291,15 +291,26 @@ Manual QA checklist (before publishing a banner update):
 
 ### Phase 6 — Optional Automation
 
-Status: Planned
+Status: Done
 
 Add screenshot QA only after the manual workflow is stable.
 
-Possible checks:
+Implemented in `tests-e2e/hero-banner-ultra-wide.spec.ts`:
 
-- render current homepage hero at 2560 width;
-- sample right/left edge bands;
-- flag mostly-black or mostly-transparent side bands.
+- sets viewport to 2560×900;
+- waits for the active `[data-testid="hero-slide-frame"]` and its images
+  to load;
+- screenshots the left and right 20px edge bands;
+- fails if either band is > 85% dark pixels (< 30/255 per channel).
+
+The spec is skipped unless `PUBLIC_APP_URL` is set, so it never blocks
+CI that only runs the Vite admin dev server.
+
+To run against a live public app:
+
+```sh
+PUBLIC_APP_URL=http://localhost:3000 npx playwright test hero-banner-ultra-wide
+```
 
 This is optional because visual composition cannot be fully solved by pixel
 thresholds. The editor preview remains the source of truth.
