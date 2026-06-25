@@ -37,12 +37,15 @@ interface Props {
   sizes?: string;
   priority?: boolean;
   className?: string;
+  /** Override object-fit from preset default (e.g. "contain" for blur-fill foreground) */
+  objectFit?: "cover" | "contain";
 }
 
-export function PublicImage({ src, alt, preset, crop, sizes, priority, className }: Props) {
+export function PublicImage({ src, alt, preset, crop, sizes, priority, className, objectFit }: Props) {
   if (!src) return null;
 
-  const { src: cleanSrc, style } = resolvePresetStyle(src, preset, crop);
+  const { src: cleanSrc, style: presetStyle } = resolvePresetStyle(src, preset, crop);
+  const style = objectFit ? { ...presetStyle, objectFit } : presetStyle;
   const config = getPresetConfig(preset);
   const resolvedSrc = resolveMediaSrc(cleanSrc);
 
