@@ -97,7 +97,8 @@ function parseHeroImage(raw: Record<string, unknown>): HeroSlide["image"] | unde
   const desktopCrop = (raw.imageDesktopCrop ?? null) as MediaCropLike | null;
   const ultraWideCrop = (raw.imageUltraWideCrop ?? null) as MediaCropLike | null;
   const alt = raw.imageAlt as string | undefined;
-  const backgroundMode = raw.imageBackgroundMode === "blur-fill" ? "blur-fill" : undefined;
+  const rawMode = raw.imageBackgroundMode;
+  const backgroundMode = rawMode === "cover" || rawMode === "blur-fill" ? rawMode : undefined;
   return {
     url,
     ...(alt ? { alt } : {}),

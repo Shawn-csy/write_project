@@ -172,6 +172,25 @@
     );
   }
 
+  /* Brand hero owns a full-frame backdrop when rendered inside the carousel.
+     The right edge intentionally resolves to surface color instead of the
+     near-black page background, so ultra-wide screens never expose a black band. */
+  .editorial-brand-hero-backdrop {
+    background:
+      linear-gradient(
+        90deg,
+        hsl(var(--surface-2)) 0%,
+        hsl(var(--background)) 42%,
+        hsl(var(--surface-3) / 0.72) 76%,
+        hsl(var(--surface-4) / 0.92) 100%
+      ),
+      linear-gradient(
+        180deg,
+        hsl(var(--background) / 0.08) 0%,
+        hsl(var(--background) / 0.34) 100%
+      );
+  }
+
   /* Fine grain texture overlay — aria-hidden decorative */
   .editorial-grain {
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");

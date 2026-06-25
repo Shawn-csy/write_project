@@ -55,6 +55,13 @@ describe("parseBannerSlides", () => {
     expect(slides?.[0].image?.backgroundMode).toBe("blur-fill");
   });
 
+  it("preserves backgroundMode cover", () => {
+    const slides = parseBannerSlides({
+      items: [{ id: "s1", title: "T", imageUrl: "/media/a.webp", imageBackgroundMode: "cover" }],
+    });
+    expect(slides?.[0].image?.backgroundMode).toBe("cover");
+  });
+
   it("does not set backgroundMode for unknown values", () => {
     const slides = parseBannerSlides({
       items: [{ id: "s1", title: "T", imageUrl: "/media/a.webp", imageBackgroundMode: "unknown" }],
