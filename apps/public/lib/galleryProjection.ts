@@ -49,6 +49,7 @@ export function toGalleryInput(script: PublicScript): GalleryScriptInput {
           defaultLicenseNotify: script.persona.defaultLicenseNotify,
         }
       : null,
+    customMetadata: script.customMetadata ?? undefined,
   };
 }
 
