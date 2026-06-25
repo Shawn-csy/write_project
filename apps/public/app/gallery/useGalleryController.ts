@@ -18,9 +18,9 @@ import {
   toOrgLike,
 } from "@/lib/galleryProjection";
 import { useGalleryUrlState } from "./useGalleryUrlState";
-import type { GalleryView, GalleryViewMode } from "./useGalleryUrlState";
+import type { GalleryView, GalleryViewMode, GalleryLaneMode } from "./useGalleryUrlState";
 
-export type { GalleryView, GalleryViewMode, PublicHomepageModel };
+export type { GalleryView, GalleryViewMode, GalleryLaneMode, PublicHomepageModel };
 
 interface UseGalleryControllerOptions {
   initialScripts: PublicScript[];
@@ -106,7 +106,6 @@ export function useGalleryController({
     selectedOrgTags: urlState.orgTags,
     segmentFilter: urlState.segment,
     usageFilter: urlState.usage,
-    featuredLaneMode: "latest",
   });
 
   // ── Homepage model (pure — all display semantics here) ────────────────────
@@ -115,7 +114,7 @@ export function useGalleryController({
       buildPublicHomepageModel({
         view: urlState.view,
         viewMode: urlState.mode,
-        laneMode: "latest",
+        laneMode: urlState.lane,
         filteredScripts: filterResult.filteredScripts,
         topViewedScripts: filterResult.topViewedScripts,
         latestScripts: filterResult.latestScripts,
@@ -138,6 +137,7 @@ export function useGalleryController({
     [
       urlState.view,
       urlState.mode,
+      urlState.lane,
       urlState.tags,
       urlState.authorTags,
       urlState.orgTags,
@@ -194,6 +194,8 @@ export function useGalleryController({
     setUsage: urlActions.setUsage,
     viewMode: urlState.mode,
     setViewMode: urlActions.setMode,
+    laneMode: urlState.lane,
+    setLaneMode: urlActions.setLane,
     bannerSlides,
     authors,
     orgs,

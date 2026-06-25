@@ -32,10 +32,17 @@ describe("PublicHeroMarquee", () => {
     expect(screen.getByRole("region")).toBeTruthy();
   });
 
-  it("renders prev/next buttons", () => {
+  it("renders prev/next buttons when multiple slides", () => {
     render(<PublicHeroMarquee slides={slides} fallbackToDefault={false} />);
     expect(screen.getByLabelText("上一張")).toBeTruthy();
     expect(screen.getByLabelText("下一張")).toBeTruthy();
+  });
+
+  it("hides prev/next/dots when only one slide", () => {
+    render(<PublicHeroMarquee slides={[slides[0]]} fallbackToDefault={false} />);
+    expect(screen.queryByLabelText("上一張")).toBeNull();
+    expect(screen.queryByLabelText("下一張")).toBeNull();
+    expect(screen.queryByLabelText("切換到第 1 張")).toBeNull();
   });
 
   it("renders dot buttons for each slide", () => {
@@ -185,5 +192,83 @@ describe("PublicHeroMarquee — renderImage slot", () => {
       />
     );
     expect(renderImage).not.toHaveBeenCalled();
+  });
+});
+
+describe("PublicHeroMarquee — renderSlideContent slot", () => {
+  const textSlide = { id: "t1", title: "Text Slide", subtitle: "Body copy" };
+  const brandSlide = { id: "brand-intro", type: "brand" } as { id: string; type: string };
+
+  it("calls renderSlideContent for each slide", () => {
+    const renderSlideContent = vi.fn((_slide, _index, defaultContent) => defaultContent);
+    render(
+      <PublicHeroMarquee
+        slides={[textSlide]}
+        renderSlideContent={renderSlideContent}
+        fallbackToDefault={false}
+      />
+    );
+    expect(renderSlideContent).toHaveBeenCalledOnce();
+    expect(renderSlideContent).toHaveBeenCalledWith(textSlide, 0, expect.anything());
+  });
+
+  it("renders custom content returned by renderSlideContent", () => {
+    render(
+      <PublicHeroMarquee
+        slides={[brandSlide as never]}
+        renderSlideContent={(slide) =>
+          (slide as { type?: string }).type === "brand"
+            ? <div data-testid="brand-content">Brand Hero</div>
+            : null
+        }
+        fallbackToDefault={false}
+      />
+    );
+    expect(screen.getByTestId("brand-content")).toBeTruthy();
+    expect(screen.getByTestId("brand-content").textContent).toBe("Brand Hero");
+  });
+
+  it("renders defaultContent when renderSlideContent returns it unchanged", () => {
+    render(
+      <PublicHeroMarquee
+        slides={[textSlide]}
+        renderSlideContent={(_slide, _index, defaultContent) => defaultContent}
+        fallbackToDefault={false}
+      />
+    );
+    expect(screen.getByText("Text Slide")).toBeTruthy();
+    expect(screen.getByText("Body copy")).toBeTruthy();
+  });
+
+  it("suppresses content when renderSlideContent returns null", () => {
+    render(
+      <PublicHeroMarquee
+        slides={[textSlide]}
+        renderSlideContent={() => null}
+        fallbackToDefault={false}
+      />
+    );
+    expect(screen.queryByText("Text Slide")).toBeNull();
+  });
+
+  it("uses default content when renderSlideContent is not provided", () => {
+    render(
+      <PublicHeroMarquee slides={[textSlide]} fallbackToDefault={false} />
+    );
+    expect(screen.getByText("Text Slide")).toBeTruthy();
+  });
+
+  it("does not auto-play when only brand slide (single slide)", () => {
+    vi.useFakeTimers();
+    render(
+      <PublicHeroMarquee
+        slides={[brandSlide as never]}
+        intervalMs={100}
+        renderSlideContent={() => <div data-testid="brand" />}
+        fallbackToDefault={false}
+      />
+    );
+    expect(() => vi.advanceTimersByTime(500)).not.toThrow();
+    vi.useRealTimers();
   });
 });

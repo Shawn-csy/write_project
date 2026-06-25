@@ -25,19 +25,23 @@ export type EmptyStateReason =
   | "no-public-scripts" // data loaded, but no public scripts exist
   | "none";             // not empty
 
+export type LaneId = "latest" | "top" | "series";
+
+export interface LaneDescriptor {
+  id: LaneId;
+  title: string;
+  /** Series-aware entries, capped at LANE_PREVIEW_SIZE. */
+  entries: PublicGalleryEntry[];
+  /** True when this lane is the URL-selected active lane. */
+  isActive: boolean;
+}
+
 export interface ScriptLanes {
   /**
-   * Series-aware entries for the "最新發布" lane.
-   * Same-series chapters are collapsed into a single PublicSeriesGroup entry.
+   * Ordered lane list — rendered in order.
+   * Order is determined by activeLaneMode (active lane is always first).
    */
-  latestEntriesPreview: PublicGalleryEntry[];
-  /**
-   * Series-aware entries for the "點閱排行" lane.
-   * Same-series chapters are collapsed into a single PublicSeriesGroup entry.
-   */
-  topViewedEntriesPreview: PublicGalleryEntry[];
-  featuredSeries: PublicSeriesGroup[];
-  /** Which lane is the primary featured lane. Drives UI emphasis if exposed. */
+  ordered: LaneDescriptor[];
   activeLaneMode: GalleryLaneMode;
 }
 
@@ -205,34 +209,38 @@ export function buildPublicHomepageModel(
   // ── lanes ─────────────────────────────────────────────────────────────────
   // Group lane scripts into series-aware entries first, then cap at preview size.
   // This ensures same-series chapters collapse into one card in the lane.
-  const latestEntriesPreview = groupScriptsIntoGalleryEntries(latestScripts).slice(
-    0,
-    LANE_PREVIEW_SIZE
-  );
-  const topViewedEntriesPreview = groupScriptsIntoGalleryEntries(topViewedScripts).slice(
-    0,
-    LANE_PREVIEW_SIZE
-  );
+  const latestEntries = groupScriptsIntoGalleryEntries(latestScripts).slice(0, LANE_PREVIEW_SIZE);
+  const topEntries = groupScriptsIntoGalleryEntries(topViewedScripts).slice(0, LANE_PREVIEW_SIZE);
+
   // Convert FeaturedSeries → PublicSeriesGroup using canonical seriesModel helpers
   const allFeaturedGroups: PublicSeriesGroup[] = featuredSeries
     .map(featuredSeriesToGroup)
     .filter((series): series is PublicSeriesGroup => series !== null);
 
-  // De-duplicate: remove series already visible in latest/top lanes
+  // De-duplicate series: remove any already visible in latest/top lanes
   const visibleSeriesKeys = new Set<string>();
-  for (const entry of [...latestEntriesPreview, ...topViewedEntriesPreview]) {
+  for (const entry of [...latestEntries, ...topEntries]) {
     if (entry.type === "series") visibleSeriesKeys.add(entry.key);
   }
-  const featuredSeriesGroups = allFeaturedGroups.filter(
-    (s) => !visibleSeriesKeys.has(s.key)
-  );
+  const seriesEntries: PublicGalleryEntry[] = allFeaturedGroups
+    .filter((s) => !visibleSeriesKeys.has(s.key));
 
-  const lanes: ScriptLanes = {
-    latestEntriesPreview,
-    topViewedEntriesPreview,
-    featuredSeries: featuredSeriesGroups,
-    activeLaneMode: laneMode,
-  };
+  // Build all three canonical lanes.
+  // isActive = user *explicitly* selected this lane via URL (non-default).
+  // "latest" is the default lane — no URL param set — so it is never "active" in the emphasis sense.
+  // "featured" is a meta-mode (editorial ordering); no single lane is "active".
+  const latestLane: LaneDescriptor = { id: "latest", title: "最新發布", entries: latestEntries, isActive: false };
+  const topLane: LaneDescriptor    = { id: "top",    title: "點閱排行", entries: topEntries,    isActive: laneMode === "top" };
+  const seriesLane: LaneDescriptor = { id: "series", title: "系列作品", entries: seriesEntries, isActive: laneMode === "series" };
+
+  // Active lane is always first; "featured" promotes editorial order (top+series before latest)
+  const ordered =
+    laneMode === "top"      ? [topLane, latestLane, seriesLane] :
+    laneMode === "series"   ? [seriesLane, latestLane, topLane] :
+    laneMode === "featured" ? [topLane, seriesLane, latestLane] :
+                              [latestLane, topLane, seriesLane];
+
+  const lanes: ScriptLanes = { ordered, activeLaneMode: laneMode };
 
   // ── resultCount ───────────────────────────────────────────────────────────
   const resultCount =

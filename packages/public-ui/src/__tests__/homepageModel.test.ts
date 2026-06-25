@@ -226,21 +226,28 @@ describe("filterChips", () => {
 
 // ─── lanes ────────────────────────────────────────────────────────────────────
 
+// Helpers to extract a specific lane from ordered list by id
+function laneById(m: ReturnType<typeof buildPublicHomepageModel>, id: "latest" | "top" | "series") {
+  const lane = m.lanes.ordered.find((l) => l.id === id);
+  if (!lane) throw new Error(`Lane "${id}" not found in ordered list`);
+  return lane;
+}
+
 describe("lanes", () => {
-  it("latestEntriesPreview capped at 15 entries", () => {
+  it("latest lane entries capped at 15", () => {
     const many = Array.from({ length: 20 }, (_, i) =>
       enrichScript(makeScript({ id: `s${i}`, title: `Script ${i}` }))
     );
     const m = buildPublicHomepageModel({ ...baseInput, latestScripts: many, filteredScripts: many });
-    expect(m.lanes.latestEntriesPreview).toHaveLength(15);
+    expect(laneById(m, "latest").entries).toHaveLength(15);
   });
 
-  it("topViewedEntriesPreview capped at 15 entries", () => {
+  it("top lane entries capped at 15", () => {
     const many = Array.from({ length: 20 }, (_, i) =>
       enrichScript(makeScript({ id: `s${i}`, title: `Script ${i}` }))
     );
     const m = buildPublicHomepageModel({ ...baseInput, topViewedScripts: many });
-    expect(m.lanes.topViewedEntriesPreview).toHaveLength(15);
+    expect(laneById(m, "top").entries).toHaveLength(15);
   });
 
   it("activeLaneMode matches input laneMode", () => {
@@ -248,13 +255,63 @@ describe("lanes", () => {
     expect(m.lanes.activeLaneMode).toBe("top");
   });
 
-  it("featuredSeries converted to PublicSeriesGroup", () => {
+  it("active lane isActive=true, others isActive=false", () => {
+    const m = buildPublicHomepageModel({ ...baseInput, laneMode: "top" });
+    expect(laneById(m, "top").isActive).toBe(true);
+    expect(laneById(m, "latest").isActive).toBe(false);
+    expect(laneById(m, "series").isActive).toBe(false);
+  });
+
+  it("latest lane isActive=false even when laneMode=latest (latest is default, not explicit selection)", () => {
+    const m = buildPublicHomepageModel({ ...baseInput, laneMode: "latest" });
+    expect(laneById(m, "latest").isActive).toBe(false);
+  });
+
+  it("laneMode=latest → ordered [latest, top, series]", () => {
+    const m = buildPublicHomepageModel({ ...baseInput, laneMode: "latest" });
+    expect(m.lanes.ordered.map((l) => l.id)).toEqual(["latest", "top", "series"]);
+  });
+
+  it("laneMode=top → ordered [top, latest, series]", () => {
+    const m = buildPublicHomepageModel({ ...baseInput, laneMode: "top" });
+    expect(m.lanes.ordered.map((l) => l.id)).toEqual(["top", "latest", "series"]);
+  });
+
+  it("laneMode=series → ordered [series, latest, top]", () => {
+    const m = buildPublicHomepageModel({ ...baseInput, laneMode: "series" });
+    expect(m.lanes.ordered.map((l) => l.id)).toEqual(["series", "latest", "top"]);
+  });
+
+  it("laneMode=featured → ordered [top, series, latest]", () => {
+    const m = buildPublicHomepageModel({ ...baseInput, laneMode: "featured" });
+    expect(m.lanes.ordered.map((l) => l.id)).toEqual(["top", "series", "latest"]);
+  });
+
+  it("series lane isActive=true only for laneMode=series", () => {
+    const ms = buildPublicHomepageModel({ ...baseInput, laneMode: "series" });
+    const mf = buildPublicHomepageModel({ ...baseInput, laneMode: "featured" });
+    expect(laneById(ms, "series").isActive).toBe(true);
+    // featured is a meta-mode (editorial ordering) — no single lane is explicitly active
+    expect(laneById(mf, "series").isActive).toBe(false);
+    expect(laneById(mf, "top").isActive).toBe(false);
+    expect(laneById(mf, "latest").isActive).toBe(false);
+  });
+
+  it("series lane has correct title", () => {
+    const m = buildPublicHomepageModel({ ...baseInput, laneMode: "latest" });
+    expect(laneById(m, "series").title).toBe("系列作品");
+    expect(laneById(m, "latest").title).toBe("最新發布");
+    expect(laneById(m, "top").title).toBe("點閱排行");
+  });
+
+  it("featuredSeries converted to PublicSeriesGroup in series lane", () => {
     const series = [{ name: "S", totalViews: 10, count: 2, lead: enriched[0], coverUrl: "", scripts: enriched }];
     const m = buildPublicHomepageModel({ ...baseInput, featuredSeries: series });
-    expect(m.lanes.featuredSeries).toHaveLength(1);
-    expect(m.lanes.featuredSeries[0].name).toBe("S");
-    expect(m.lanes.featuredSeries[0].type).toBe("series");
-    expect(m.lanes.featuredSeries[0].leadScript).toBeDefined();
+    const seriesLane = laneById(m, "series");
+    expect(seriesLane.entries).toHaveLength(1);
+    expect(seriesLane.entries[0].type).toBe("series");
+    expect((seriesLane.entries[0] as import("../gallery/seriesModel").PublicSeriesGroup).name).toBe("S");
+    expect((seriesLane.entries[0] as import("../gallery/seriesModel").PublicSeriesGroup).leadScript).toBeDefined();
   });
 
   it("featuredSeries latestScript resolves from ISO updatedAt when lastModified missing", () => {
@@ -268,36 +325,33 @@ describe("lanes", () => {
     }));
     const series = [{ name: "S", totalViews: 0, count: 2, lead: older, coverUrl: "", scripts: [older, newer] }];
     const m = buildPublicHomepageModel({ ...baseInput, featuredSeries: series });
-    const group = m.lanes.featuredSeries[0];
+    const group = laneById(m, "series").entries[0] as import("../gallery/seriesModel").PublicSeriesGroup;
     expect(group.latestScript.id).toBe("ch2");
     expect(group.updatedAt).toBe(Date.parse("2025-06-15T00:00:00Z"));
   });
 
-  it("invalid empty featuredSeries entries are ignored", () => {
+  it("invalid empty featuredSeries entries are ignored (series lane empty)", () => {
     const series = [{ name: "Empty", totalViews: 0, count: 0, lead: null, coverUrl: "", scripts: [] }];
     const m = buildPublicHomepageModel({ ...baseInput, featuredSeries: series });
-    expect(m.lanes.featuredSeries).toEqual([]);
+    expect(laneById(m, "series").entries).toEqual([]);
   });
 
-  it("featuredSeries de-duplicates series already in latest/top lanes", () => {
+  it("featuredSeries de-duplicates series already in latest lane", () => {
     const ch1 = enrichScript(makeScript({ id: "c1", title: "Ch 1", series: { name: "Dup" }, seriesOrder: 1, lastModified: 2000 }));
     const ch2 = enrichScript(makeScript({ id: "c2", title: "Ch 2", series: { name: "Dup" }, seriesOrder: 2, lastModified: 1000 }));
     const unique = enrichScript(makeScript({ id: "u1", title: "Unique Ch", series: { name: "Unique" }, seriesOrder: 1, lastModified: 500 }));
-    // "Dup" appears in latestScripts (will be grouped into a series entry in the lane)
     const featured = [
       { name: "Dup", totalViews: 10, count: 2, lead: ch1, coverUrl: "", scripts: [ch1, ch2] },
       { name: "Unique", totalViews: 5, count: 1, lead: unique, coverUrl: "", scripts: [unique] },
     ];
-    const m = buildPublicHomepageModel({
-      ...baseInput,
-      latestScripts: [ch1, ch2],
-      featuredSeries: featured,
-    });
-    // "Dup" should be removed from featured since it appears in latest lane
-    expect(m.lanes.featuredSeries.map((s) => s.name)).toEqual(["Unique"]);
+    const m = buildPublicHomepageModel({ ...baseInput, latestScripts: [ch1, ch2], featuredSeries: featured });
+    const names = laneById(m, "series").entries.map(
+      (e) => (e as import("../gallery/seriesModel").PublicSeriesGroup).name
+    );
+    expect(names).toEqual(["Unique"]);
   });
 
-  it("same-series chapters collapse into one series entry in latestEntriesPreview", () => {
+  it("same-series chapters collapse into one series entry in latest lane", () => {
     const chapter1 = enrichScript(makeScript({ id: "c1", title: "Ch 1", series: { name: "Epic" }, seriesOrder: 1, lastModified: 2000 }));
     const chapter2 = enrichScript(makeScript({ id: "c2", title: "Ch 2", series: { name: "Epic" }, seriesOrder: 2, lastModified: 1000 }));
     const solo = enrichScript(makeScript({ id: "solo", title: "Solo" }));
@@ -306,27 +360,25 @@ describe("lanes", () => {
       latestScripts: [chapter1, chapter2, solo],
       filteredScripts: [chapter1, chapter2, solo],
     });
+    const entries = laneById(m, "latest").entries;
     // 3 scripts → 2 entries (1 series + 1 solo)
-    expect(m.lanes.latestEntriesPreview).toHaveLength(2);
-    expect(m.lanes.latestEntriesPreview[0].type).toBe("series");
-    expect((m.lanes.latestEntriesPreview[0] as import("../gallery/seriesModel").PublicSeriesGroup).name).toBe("Epic");
-    expect((m.lanes.latestEntriesPreview[0] as import("../gallery/seriesModel").PublicSeriesGroup).scripts).toHaveLength(2);
-    expect(m.lanes.latestEntriesPreview[1].type).toBe("script");
+    expect(entries).toHaveLength(2);
+    expect(entries[0].type).toBe("series");
+    expect((entries[0] as import("../gallery/seriesModel").PublicSeriesGroup).name).toBe("Epic");
+    expect((entries[0] as import("../gallery/seriesModel").PublicSeriesGroup).scripts).toHaveLength(2);
+    expect(entries[1].type).toBe("script");
   });
 
-  it("same-series chapters collapse into one series entry in topViewedEntriesPreview", () => {
+  it("same-series chapters collapse into one series entry in top lane", () => {
     const chapter1 = enrichScript(makeScript({ id: "c1", title: "Ch 1", series: { name: "Epic" }, seriesOrder: 1, views: 100, lastModified: 2000 }));
     const chapter2 = enrichScript(makeScript({ id: "c2", title: "Ch 2", series: { name: "Epic" }, seriesOrder: 2, views: 50, lastModified: 1000 }));
-    const m = buildPublicHomepageModel({
-      ...baseInput,
-      topViewedScripts: [chapter1, chapter2],
-    });
-    expect(m.lanes.topViewedEntriesPreview).toHaveLength(1);
-    expect(m.lanes.topViewedEntriesPreview[0].type).toBe("series");
+    const m = buildPublicHomepageModel({ ...baseInput, topViewedScripts: [chapter1, chapter2] });
+    const entries = laneById(m, "top").entries;
+    expect(entries).toHaveLength(1);
+    expect(entries[0].type).toBe("series");
   });
 
   it("15-entry cap counts series as one entry (not per chapter)", () => {
-    // 14 solo scripts + 1 series of 10 chapters = 15 entries before cap, not 24
     const solos = Array.from({ length: 14 }, (_, i) =>
       enrichScript(makeScript({ id: `solo${i}`, title: `Solo ${i}` }))
     );
@@ -338,9 +390,10 @@ describe("lanes", () => {
       latestScripts: [...solos, ...chapters],
       filteredScripts: [...solos, ...chapters],
     });
+    const entries = laneById(m, "latest").entries;
     // 14 solos + 1 series = 15 entries — all fit within cap
-    expect(m.lanes.latestEntriesPreview).toHaveLength(15);
-    const seriesEntry = m.lanes.latestEntriesPreview.find((e) => e.type === "series");
+    expect(entries).toHaveLength(15);
+    const seriesEntry = entries.find((e) => e.type === "series");
     expect(seriesEntry).toBeDefined();
     expect((seriesEntry as import("../gallery/seriesModel").PublicSeriesGroup).scripts).toHaveLength(10);
   });

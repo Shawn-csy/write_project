@@ -39,7 +39,7 @@ export { AuthorBadge } from "./reader/InlineAuthorBadge";
 export { PublicHeroMarquee } from "./gallery/PublicHeroMarquee";
 export { PublicGalleryTopBar, DEFAULT_TABS } from "./gallery/PublicGalleryTopBar";
 export type { PublicGalleryTopBarProps, PublicGalleryTab } from "./gallery/PublicGalleryTopBar";
-export type { PublicHeroMarqueeProps, HeroImageRenderer } from "./gallery/PublicHeroMarquee";
+export type { PublicHeroMarqueeProps, HeroImageRenderer, HeroSlideContentRenderer } from "./gallery/PublicHeroMarquee";
 export { parseBannerSlides, DEV_PLACEHOLDER_SLIDES } from "./gallery/bannerModel";
 export type { HeroSlide } from "./gallery/bannerModel";
 export {
@@ -85,6 +85,8 @@ export type {
   PublicHomepageModel,
   BuildPublicHomepageModelInput,
   ScriptLanes,
+  LaneDescriptor,
+  LaneId,
   FilterChip,
   EmptyStateReason,
 } from "./gallery/homepageModel";

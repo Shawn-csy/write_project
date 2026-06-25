@@ -1,6 +1,6 @@
 # Public Homepage Architecture Plan
 
-Last updated: 2026-06-11
+Last updated: 2026-06-25
 
 ## Purpose
 
@@ -45,10 +45,12 @@ This document defines the long-term architecture and execution plan for the publ
 
 ### Remaining structural gaps
 
-- Homepage URL state is established for Phase 2 (`view`, tags, author/org tags, usage, segment, mode, search). Lane state is intentionally deferred until the homepage model owns lane selection.
-- `featuredLaneMode` is currently hard-coded to `"latest"` in the Next controller until Phase 4 introduces `buildPublicHomepageModel()`.
-- Script tags are modeled, but author/org tag filters are not wired into the Next controller.
-- Next production banner fallback is clean: missing backend banner data renders no banner. Vite legacy `src/components/public/PublicHeroMarquee.tsx` still contains old placeholder fallback and should be treated as non-canonical until Vite public gallery retires or imports `@write/public-ui`.
+- `lane` URL param is parsed, serialized, and wired through `useGalleryUrlState` → `useGalleryController` → `buildPublicHomepageModel`. `ScriptLanes.ordered` is a ranked `LaneDescriptor[]` where active lane is always first; render layer for-loops over it. `setLaneMode` is exposed from the controller for a future lane switcher UI (not yet rendered). Lane UI switcher (tab/button to change `lane` param) is the remaining gap.
+- Next production banner fallback is clean: missing backend banner data does not render placeholder slides. By default, the app-owned brand hero still renders unless superadmin config disables it. Vite legacy `src/components/public/PublicHeroMarquee.tsx` still contains old placeholder fallback and should be treated as non-canonical until Vite public gallery retires or imports `@write/public-ui`.
+- Homepage hero now has two content sources:
+  - `brand` slide: app-owned brand introduction content rendered inside the shared carousel frame.
+  - backend banner slides: superadmin-managed campaign/editorial slides.
+- `homepageConfig.showBrandHero` is a superadmin/backend homepage setting. It is not a user appearance preference and must not appear in `PublicAppearanceMenu`.
 - Topbar/product navigation is not yet a canonical public shell. Next currently has a simpler topbar than the Vite reference.
 - Help, license, about, and other public informational views are route pages, but not yet part of a unified homepage navigation model.
 - Consent/age gates for script navigation from discovery are not yet represented as homepage navigation policy.
@@ -165,14 +167,14 @@ The following state should be representable in the URL because it affects what t
 
 | Query Param | Values | Owner | Status |
 |---|---|---|---|
-| `view` | `scripts`, `authors`, `orgs`, `help`, `license`, `about` | `apps/public` URL adapter + shared type | Not done |
-| `tag` | repeated or encoded script tag values | shared URL model | Partial |
-| `authorTag` | repeated or encoded author tag values | shared URL model | Not done |
-| `orgTag` | repeated or encoded org tag values | shared URL model | Not done |
-| `usage` | `all`, `commercial` | shared URL model | Local state only |
-| `segment` | `all`, `all-ages`, `adult`, `male`, `female` | shared URL model | Local state only |
-| `mode` | `standard`, `compact` | shared URL model | Local state only |
-| `lane` | `featured`, `top`, `latest`, `series` | shared URL model | Hard-coded |
+| `view` | `scripts`, `authors`, `orgs` | `apps/public` URL adapter + shared type | Done (`help`/`license`/`about` deferred — Phase 5.2) |
+| `tag` | repeated script tag values | shared URL model | Done |
+| `authorTag` | repeated author tag values | shared URL model | Done |
+| `orgTag` | repeated org tag values | shared URL model | Done |
+| `usage` | `all`, `commercial` | shared URL model | Done |
+| `segment` | `all`, `all-ages`, `adult`, `male`, `female` | shared URL model | Done |
+| `mode` | `standard`, `compact` | shared URL model | Done |
+| `lane` | `featured`, `top`, `latest`, `series` | shared URL model | URL wiring done; lane switcher UI pending |
 
 Implementation requirements:
 
@@ -256,18 +258,18 @@ The public homepage is considered replacement-ready only when these categories a
 
 | Category | Required Capability | Owner | Status |
 |---|---|---|---|
-| Server data | SSR receives scripts and banner payload | `apps/public` | Partial |
-| Banner | Backend banner parsed through one pure model | `@write/public-ui/server` | Partial |
+| Server data | SSR receives scripts and banner payload | `apps/public` | Done (ISR 5min + on-demand revalidation) |
+| Banner | Backend banner parsed through one pure model | `@write/public-ui/server` | Done (`parseBannerSlides` + `buildHomepageHeroSlides`) |
 | Banner fallback | No placeholder slides in production fallback | `@write/public-ui` + `apps/public` | Done |
-| Script filtering | Search, segment, usage, license tags | `@write/public-ui` | Mostly done |
-| Author/org filtering | Author and org tag filters | `@write/public-ui` + `apps/public` | Model done; UI pending |
-| URL state | Shareable view/filter/mode/lane state | shared model + `apps/public` | Done |
-| Featured lanes | Featured/latest/top/series modes | shared homepage model | Partial |
+| Script filtering | Search, segment, usage, license tags | `@write/public-ui` | Done |
+| Author/org filtering | Author and org tag filters | `@write/public-ui` + `apps/public` | Done |
+| URL state | Shareable view/filter/mode/lane state | shared model + `apps/public` | Partial — `lane` not yet in URL |
+| Featured lanes | Featured/latest/top/series modes | shared homepage model | Partial — model ready; UI always `"latest"` |
 | Cards | Valid semantic card DOM and href/callback support | `@write/public-ui` | Done |
-| Topbar | Canonical public navigation shell | `@write/public-ui` + `apps/public` | Mostly done |
-| Info views | Help/license/about reachable from public shell | `apps/public` | Partial |
+| Topbar | Canonical public navigation shell | `@write/public-ui` + `apps/public` | Done |
+| Info views | Help/license/about reachable from public shell | `apps/public` | Partial — routes exist as pages; not yet view tabs |
 | Navigation policy | Terms/R18 gates from discovery to reader | `apps/public` | Done |
-| SEO | Homepage metadata and no-script fallback | `apps/public` | Partial |
+| SEO | Homepage metadata and no-script fallback | `apps/public` | Done (generateMetadata, canonical, OG, Twitter, JSON-LD, noscript) |
 | Browser QA | Desktop/mobile/light/dark checked | manual + future visual tests | Done (verified on :1090/next start; :3000 dev HMR WebSocket broken — env issue, not code) |
 
 ## Execution Plan
@@ -314,28 +316,59 @@ Completion standard met:
 - Default homepage URL remains clean (no query params).
 - Tests cover parse/serialize round trips, whitespace normalization, deduplication, and invalid value handling.
 
-### Phase 3: Banner Contract Cleanup ✓ Done
+### Phase 3: Homepage Hero Contract ✓ Done
 
-Goal: remove placeholder-driven behavior and make banner data a real product contract.
+Goal: remove placeholder-driven behavior and make homepage hero data a real product contract.
+
+Current model:
+
+```ts
+type HomepageHeroSlide =
+  | { type: "brand"; id: "brand-intro"; title: string }
+  | (HeroSlide & { type?: "image" });
+```
+
+Composition rule:
+
+- `buildHomepageHeroSlides(bannerSlides, showBrandHero)` is the only place that decides the final carousel slide list.
+- `showBrandHero === true` → `[brandSlide, ...bannerSlides]`.
+- `showBrandHero === false` → `bannerSlides` only.
+- `showBrandHero === false` and no banner slides → no hero section.
+- Missing `homepageConfig.showBrandHero` defaults to `true`.
+
+Ownership:
+
+- `brandSlide` is app-owned homepage brand content.
+- `bannerSlides` are backend/superadmin-managed editorial content.
+- `showBrandHero` belongs to backend/superadmin homepage settings (`bundle.homepageConfig.showBrandHero`).
+- `showBrandHero` must not be stored in `public-reader:appearance`, `PublicAppearanceContext`, or any normal-user topbar setting.
 
 Work completed:
 
 1. `parseBannerSlides` already returns only backend-provided slides (returns `undefined` for absent/malformed input).
 2. `DEV_PLACEHOLDER_SLIDES` extracted from `PublicHeroMarquee` into `bannerModel.ts` with explicit dev-only doc comment. Exported from `@write/public-ui` for Storybook/test use.
 3. `PublicHeroMarquee` `fallbackToDefault` default changed from `true` to `false`. Component renders nothing when no slides provided.
-4. `GalleryClient.tsx` renders `<PublicHeroMarquee>` only when `bannerSlides` is non-empty. No `fallbackToDefault` prop passed.
-5. Tests updated: 2 new tests for absent-banner no-render behavior; existing fallbackToDefault=true test renamed to clarify it is dev/Storybook only.
+4. `GalleryStaticHero` was replaced by `GalleryBrandHeroSlide`, which renders inside `PublicHeroMarquee` via `renderSlideContent`.
+5. `PublicHeroMarquee` exposes:
+   - `renderImage` slot for host image optimization and hero art direction.
+   - `renderSlideContent` slot for app-owned brand slide content.
+6. `GalleryClient.tsx` renders one `<PublicHeroMarquee>` pipeline for both brand and image slides.
+7. Carousel controls render only when there is more than one slide.
+8. Tests cover hero slide composition, single-slide control suppression, `renderImage`, and `renderSlideContent`.
 
 Completion standard met:
 
 - Production homepage never shows "Marquee Placeholder" content.
-- Missing banner data → no banner section rendered, no layout breakage.
+- Missing banner data → brand hero renders by default, no layout breakage.
+- Superadmin can suppress the brand hero through `homepageConfig.showBrandHero=false`.
+- Suppressed brand hero with no banner data → no hero section, no empty carousel.
 - Server and client refresh paths use the same `parseBannerSlides` parser.
-- 15 PublicHeroMarquee tests pass, 133 total package tests pass.
+- Brand slide and backend slides share the same carousel frame and navigation behavior.
 
 Known caveat:
 
 - Vite legacy `src/components/public/PublicHeroMarquee.tsx` still has embedded placeholder fallback. This is not the canonical public homepage path; do not copy it forward. Either retire the Vite public gallery or make it import `@write/public-ui` before treating Vite as parity evidence again.
+- Superadmin UI and backend persistence for `homepageConfig.showBrandHero` must be implemented in the homepage settings surface. Do not expose this control in normal public appearance settings.
 
 ### Phase 4: Public Homepage Model ✓ Done
 
@@ -459,7 +492,7 @@ Deleted in Batch 2:
 
 Post-deletion verification (2026-06-17):
 - `npx tsc --noEmit` — clean
-- `npx vitest run` — 143 files, 1380 tests pass
+- `npx vitest run` — 143 files, 1380 tests pass (as of batch 2; 177 files / 1849 tests as of 2026-06-25)
 - `src/components/reader/*` and `usePublicReaderLayoutState.ts` retained (editor preview surface)
 
 Next boundary-enforcement actions:

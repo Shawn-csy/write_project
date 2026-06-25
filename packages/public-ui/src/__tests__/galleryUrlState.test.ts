@@ -54,10 +54,12 @@ describe("parseGalleryUrlState — valid values", () => {
   it("segment=female", () => expect(parse("segment=female").segment).toBe("female"));
   it("usage=commercial", () => expect(parse("usage=commercial").usage).toBe("commercial"));
   it("mode=compact", () => expect(parse("mode=compact").mode).toBe("compact"));
-  it("unknown lane param is ignored (lane not in Phase 2 URL state)", () => {
-    // lane is reserved for Phase 4; parsed state has no lane field
-    const state = parse("lane=top");
-    expect(state).not.toHaveProperty("lane");
+  it("lane=top", () => expect(parse("lane=top").lane).toBe("top"));
+  it("lane=featured", () => expect(parse("lane=featured").lane).toBe("featured"));
+  it("lane=series", () => expect(parse("lane=series").lane).toBe("series"));
+  it("lane=latest", () => expect(parse("lane=latest").lane).toBe("latest"));
+  it("unknown lane normalizes to default (latest)", () => {
+    expect(parse("lane=unknown").lane).toBe("latest");
   });
   it("q is trimmed", () => expect(parse("q=%20hello%20").q).toBe("hello"));
 });
@@ -112,6 +114,7 @@ describe("round trip — serialize then parse", () => {
       segment: "adult",
       mode: "compact",
       q: "search term",
+      lane: "top",
     };
     const qs = serialize(state);
     const parsed = parse(qs.replace(/^\?/, ""));
@@ -123,6 +126,7 @@ describe("round trip — serialize then parse", () => {
     expect(parsed.segment).toBe("adult");
     expect(parsed.mode).toBe("compact");
     expect(parsed.q).toBe("search term");
+    expect(parsed.lane).toBe("top");
   });
 
   it("serialize omits default view", () => {
@@ -149,6 +153,17 @@ describe("round trip — serialize then parse", () => {
   it("serialize normalizes dirty tag array: trim, dedupe, filter empty", () => {
     const qs = serialize({ ...DEFAULT_URL_STATE, tags: [" Drama ", "Drama", ""] });
     expect(qs).toBe("?tag=Drama");
+  });
+
+  it("serialize omits default lane", () => {
+    const state = { ...DEFAULT_URL_STATE, q: "x" };
+    expect(serialize(state)).not.toContain("lane=");
+  });
+
+  it("serialize includes non-default lane", () => {
+    expect(serialize({ ...DEFAULT_URL_STATE, lane: "top" })).toContain("lane=top");
+    expect(serialize({ ...DEFAULT_URL_STATE, lane: "featured" })).toContain("lane=featured");
+    expect(serialize({ ...DEFAULT_URL_STATE, lane: "series" })).toContain("lane=series");
   });
 });
 
@@ -194,6 +209,10 @@ describe("isDefaultGalleryUrlState", () => {
 
   it("non-default segment is not default", () => {
     expect(isDefaultGalleryUrlState({ ...DEFAULT_URL_STATE, segment: "adult" })).toBe(false);
+  });
+
+  it("non-default lane is not default", () => {
+    expect(isDefaultGalleryUrlState({ ...DEFAULT_URL_STATE, lane: "top" })).toBe(false);
   });
 });
 

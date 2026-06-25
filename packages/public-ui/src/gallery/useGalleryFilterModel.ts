@@ -32,7 +32,6 @@ export interface UseGalleryFilterModelInput {
   selectedOrgTags?: string[];
   segmentFilter: string;
   usageFilter: string;
-  featuredLaneMode?: "top" | "latest" | string | boolean;
 }
 
 export interface UseGalleryFilterModelResult {
@@ -40,9 +39,6 @@ export interface UseGalleryFilterModelResult {
   filteredScripts: EnrichedGalleryScript[];
   topViewedScripts: EnrichedGalleryScript[];
   latestScripts: EnrichedGalleryScript[];
-  topViewedScriptsPreview: EnrichedGalleryScript[];
-  latestScriptsPreview: EnrichedGalleryScript[];
-  featuredLaneScripts: EnrichedGalleryScript[];
   featuredSeries: FeaturedSeries[];
   allTags: string[];
   licenseTagShortcuts: string[];
@@ -62,7 +58,6 @@ export function useGalleryFilterModel({
   selectedOrgTags = [],
   segmentFilter,
   usageFilter,
-  featuredLaneMode = false,
 }: UseGalleryFilterModelInput): UseGalleryFilterModelResult {
   const sourceScripts = scripts || [];
   const [backgroundEnriched, setBackgroundEnriched] = useState<EnrichedGalleryScript[]>([]);
@@ -123,19 +118,6 @@ export function useGalleryFilterModel({
 
   const latestScripts = filteredScripts;
 
-  const topViewedScriptsPreview = useMemo(
-    () => topViewedScripts.slice(0, 15),
-    [topViewedScripts]
-  );
-
-  const latestScriptsPreview = useMemo(() => latestScripts.slice(0, 15), [latestScripts]);
-
-  const featuredLaneScripts = useMemo(() => {
-    if (featuredLaneMode === "top") return topViewedScripts;
-    if (featuredLaneMode === "latest") return latestScripts;
-    return filteredScripts;
-  }, [featuredLaneMode, topViewedScripts, latestScripts, filteredScripts]);
-
   const featuredSeries = useMemo(
     () => buildFeaturedSeries(scriptsWithMeta),
     [scriptsWithMeta]
@@ -191,9 +173,6 @@ export function useGalleryFilterModel({
     filteredScripts,
     topViewedScripts,
     latestScripts,
-    topViewedScriptsPreview,
-    latestScriptsPreview,
-    featuredLaneScripts,
     featuredSeries,
     allTags,
     licenseTagShortcuts,
