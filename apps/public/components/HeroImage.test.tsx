@@ -77,6 +77,13 @@ describe("HeroImage — crop selection", () => {
   beforeEach(() => mockViewport("desktop"));
   afterEach(() => vi.restoreAllMocks());
 
+  it("renders an absolute fill wrapper for next/image fill containment", () => {
+    const { container } = render(<HeroImage image={baseImage} />);
+    expect(container.firstElementChild?.className).toContain("absolute");
+    expect(container.firstElementChild?.className).toContain("inset-0");
+    expect(container.firstElementChild?.className).toContain("overflow-hidden");
+  });
+
   it("uses desktopCrop on desktop viewport", () => {
     const { container } = render(
       <HeroImage image={{ ...baseImage, mobileCrop, desktopCrop, ultraWideCrop, crop: genericCrop }} />
