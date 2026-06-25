@@ -46,22 +46,27 @@ export async function generateMetadata(): Promise<Metadata> {
 interface BundleResponse {
   scripts?: PublicScript[];
   banner?: unknown;
+  homepageConfig?: {
+    /** When false, suppresses the brand hero slide (e.g. if a full-bleed banner covers it). */
+    showBrandHero?: boolean;
+  };
 }
 
-async function fetchBundle(): Promise<{ scripts: PublicScript[]; bannerSlides: HeroSlide[] | undefined }> {
+async function fetchBundle(): Promise<{ scripts: PublicScript[]; bannerSlides: HeroSlide[] | undefined; showBrandHero: boolean }> {
   try {
     const bundle = await apiFetch<BundleResponse>("/public-bundle");
     return {
       scripts: (bundle.scripts ?? []).filter((s): s is PublicScript => Boolean(s?.id)),
       bannerSlides: parseBannerSlides(bundle.banner),
+      showBrandHero: bundle.homepageConfig?.showBrandHero !== false,
     };
   } catch {
-    return { scripts: [], bannerSlides: undefined };
+    return { scripts: [], bannerSlides: undefined, showBrandHero: true };
   }
 }
 
 export default async function HomePage() {
-  const { scripts: initialScripts, bannerSlides } = await fetchBundle();
+  const { scripts: initialScripts, bannerSlides, showBrandHero } = await fetchBundle();
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -97,7 +102,7 @@ export default async function HomePage() {
         </main>
       </noscript>
       <Suspense fallback={<Loading />}>
-        <GalleryClient initialScripts={initialScripts} initialBannerSlides={bannerSlides} />
+        <GalleryClient initialScripts={initialScripts} initialBannerSlides={bannerSlides} showBrandHero={showBrandHero} />
       </Suspense>
     </>
   );

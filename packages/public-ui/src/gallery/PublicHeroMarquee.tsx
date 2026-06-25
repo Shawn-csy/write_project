@@ -22,6 +22,19 @@ export type HeroImageRenderer = (
   index: number
 ) => React.ReactNode;
 
+/**
+ * Host-injected slide content renderer.
+ * Called instead of the default text/link content block for every slide.
+ * Return null to suppress default content entirely.
+ * The defaultContent argument is the component's own rendered output —
+ * return it unchanged to use default rendering for that slide.
+ */
+export type HeroSlideContentRenderer = (
+  slide: HeroSlide,
+  index: number,
+  defaultContent: React.ReactNode
+) => React.ReactNode;
+
 export interface PublicHeroMarqueeProps {
   slides?: HeroSlide[];
   intervalMs?: number;
@@ -45,6 +58,13 @@ export interface PublicHeroMarqueeProps {
    * Defaults to plain <img> so the package stays framework-neutral.
    */
   renderImage?: HeroImageRenderer;
+  /**
+   * Host renderer for slide content overlay (text, links, brand content).
+   * Called for every slide. Return defaultContent to keep default rendering,
+   * return custom JSX to override (e.g. inject GalleryBrandHeroSlide for
+   * brand slides), or return null to suppress content entirely.
+   */
+  renderSlideContent?: HeroSlideContentRenderer;
 }
 
 function cn(...classes: (string | undefined | false | null)[]): string {
@@ -58,6 +78,7 @@ export function PublicHeroMarquee({
   fullBleed = false,
   labels,
   renderImage,
+  renderSlideContent,
 }: PublicHeroMarqueeProps): React.JSX.Element | null {
   const safeSlides =
     Array.isArray(slides) && slides.length > 0
@@ -164,106 +185,106 @@ export function PublicHeroMarquee({
                       })()}
                     </>
                   )}
-                  {/* Text content — wraps in <a> when slide has a link so the entire
-                      text block is clickable without a transparent overlay blocking
-                      the prev/next/dot controls. pointer-events-none on siblings
-                      ensures controls remain interactive. */}
-                  {(String(slide.title || "").trim() ||
-                    String(slide.subtitle || slide.content || "").trim()) ? (
-                    <div className="flex h-full items-end pointer-events-none">
-                      {String(slide.link || "").trim() ? (
-                        <a
-                          href={String(slide.link).trim()}
-                          className="relative z-20 max-w-xl rounded-xl border border-white/25 bg-white/60 px-4 py-3 backdrop-blur-md dark:border-white/10 dark:bg-black/40 pointer-events-auto hover:bg-white/75 dark:hover:bg-black/55 transition-all duration-300 shadow-lg shadow-black/10"
-                          aria-label={slide.title || regionLabel}
-                        >
-                          {String(slide.title || "").trim() ? (
-                            <p className="text-sm sm:text-lg font-bold text-foreground tracking-tight">
-                              {slide.title}
-                            </p>
-                          ) : null}
-                          {String(slide.subtitle || slide.content || "").trim() ? (
-                            <p className="mt-1 text-xs sm:text-sm text-foreground/70 leading-relaxed">
-                              {slide.subtitle || slide.content}
-                            </p>
-                          ) : null}
-                        </a>
-                      ) : (
-                        <div className="relative z-20 max-w-xl rounded-xl border border-white/25 bg-white/60 px-4 py-3 backdrop-blur-md dark:border-white/10 dark:bg-black/40 shadow-lg shadow-black/10">
-                          {String(slide.title || "").trim() ? (
-                            <p className="text-sm sm:text-lg font-bold text-foreground tracking-tight">
-                              {slide.title}
-                            </p>
-                          ) : null}
-                          {String(slide.subtitle || slide.content || "").trim() ? (
-                            <p className="mt-1 text-xs sm:text-sm text-foreground/70 leading-relaxed">
-                              {slide.subtitle || slide.content}
-                            </p>
-                          ) : null}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    /* No text — full-slide link covers entire clickable area */
-                    String(slide.link || "").trim() ? (
+                  {/* Text/link content block.
+                      renderSlideContent can override per-slide (e.g. brand slide).
+                      defaultContent follows standard text+link layout. */}
+                  {(() => {
+                    const hasTitle = String(slide.title || "").trim();
+                    const hasBody = String(slide.subtitle || slide.content || "").trim();
+                    const hasLink = String(slide.link || "").trim();
+
+                    const defaultContent: React.ReactNode = (hasTitle || hasBody) ? (
+                      <div className="flex h-full items-end pointer-events-none">
+                        {hasLink ? (
+                          <a
+                            href={String(slide.link).trim()}
+                            className="relative z-20 max-w-xl rounded-xl border border-white/25 bg-white/60 px-4 py-3 backdrop-blur-md dark:border-white/10 dark:bg-black/40 pointer-events-auto hover:bg-white/75 dark:hover:bg-black/55 transition-all duration-300 shadow-lg shadow-black/10"
+                            aria-label={slide.title || regionLabel}
+                          >
+                            {hasTitle ? (
+                              <p className="text-sm sm:text-lg font-bold text-foreground tracking-tight">{slide.title}</p>
+                            ) : null}
+                            {hasBody ? (
+                              <p className="mt-1 text-xs sm:text-sm text-foreground/70 leading-relaxed">{slide.subtitle || slide.content}</p>
+                            ) : null}
+                          </a>
+                        ) : (
+                          <div className="relative z-20 max-w-xl rounded-xl border border-white/25 bg-white/60 px-4 py-3 backdrop-blur-md dark:border-white/10 dark:bg-black/40 shadow-lg shadow-black/10">
+                            {hasTitle ? (
+                              <p className="text-sm sm:text-lg font-bold text-foreground tracking-tight">{slide.title}</p>
+                            ) : null}
+                            {hasBody ? (
+                              <p className="mt-1 text-xs sm:text-sm text-foreground/70 leading-relaxed">{slide.subtitle || slide.content}</p>
+                            ) : null}
+                          </div>
+                        )}
+                      </div>
+                    ) : hasLink ? (
+                      /* No text — full-slide link overlay */
                       <a
                         href={String(slide.link).trim()}
                         className="absolute inset-0 z-10"
                         aria-label={slide.title || regionLabel}
                       />
-                    ) : null
-                  )}
+                    ) : null;
+
+                    return renderSlideContent
+                      ? renderSlideContent(slide, index, defaultContent)
+                      : defaultContent;
+                  })()}
                 </div>
               ) : null
             )}
           </div>
 
-          {/* Prev button */}
-          <div className="absolute inset-y-0 left-2 z-30 flex items-center">
-            <button
-              type="button"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-input bg-background/70 text-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              onClick={() => goTo(activeIndex - 1)}
-              aria-label={prevLabel}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-          </div>
+          {/* Prev / Next / Dots — only when there are multiple slides to navigate */}
+          {safeSlides.length > 1 && (
+            <>
+              <div className="absolute inset-y-0 left-2 z-30 flex items-center">
+                <button
+                  type="button"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-input bg-background/70 text-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  onClick={() => goTo(activeIndex - 1)}
+                  aria-label={prevLabel}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+              </div>
 
-          {/* Next button */}
-          <div className="absolute inset-y-0 right-2 z-30 flex items-center">
-            <button
-              type="button"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-input bg-background/70 text-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              onClick={() => goTo(activeIndex + 1)}
-              aria-label={nextLabel}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
+              <div className="absolute inset-y-0 right-2 z-30 flex items-center">
+                <button
+                  type="button"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-input bg-background/70 text-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  onClick={() => goTo(activeIndex + 1)}
+                  aria-label={nextLabel}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
 
-          {/* Dot navigation */}
-          <div className="absolute bottom-2 left-1/2 z-30 flex -translate-x-1/2 items-center gap-1.5">
-            {safeSlides.map((slide, index) => (
-              <button
-                key={`dot-${slide.id || index}`}
-                type="button"
-                className={cn(
-                  "inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-white/20",
-                  activeIndex === index ? "bg-white/15" : "bg-transparent"
-                )}
-                onClick={() => goTo(index)}
-                aria-label={jumpToLabel(index)}
-              >
-                <span
-                  className={cn(
-                    "h-1.5 rounded-full bg-white/80 transition-all",
-                    activeIndex === index ? "w-5" : "w-2.5 opacity-60"
-                  )}
-                />
-              </button>
-            ))}
-          </div>
+              <div className="absolute bottom-2 left-1/2 z-30 flex -translate-x-1/2 items-center gap-1.5">
+                {safeSlides.map((slide, index) => (
+                  <button
+                    key={`dot-${slide.id || index}`}
+                    type="button"
+                    className={cn(
+                      "inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-white/20",
+                      activeIndex === index ? "bg-white/15" : "bg-transparent"
+                    )}
+                    onClick={() => goTo(index)}
+                    aria-label={jumpToLabel(index)}
+                  >
+                    <span
+                      className={cn(
+                        "h-1.5 rounded-full bg-white/80 transition-all",
+                        activeIndex === index ? "w-5" : "w-2.5 opacity-60"
+                      )}
+                    />
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </section>

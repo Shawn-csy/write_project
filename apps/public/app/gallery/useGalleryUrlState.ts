@@ -8,13 +8,14 @@ import {
   mergeGalleryUrlState,
   type PublicHomepageUrlState,
 } from "@write/public-ui";
-import type { GalleryView, GalleryViewMode } from "@write/public-ui";
+import type { GalleryView, GalleryViewMode, GalleryLaneMode } from "@write/public-ui";
 
-export type { GalleryView, GalleryViewMode, PublicHomepageUrlState };
+export type { GalleryView, GalleryViewMode, GalleryLaneMode, PublicHomepageUrlState };
 
 export interface GalleryUrlStateActions {
   setView: (view: GalleryView) => void;
   setMode: (mode: GalleryViewMode) => void;
+  setLane: (lane: GalleryLaneMode) => void;
   setSegment: (segment: string) => void;
   setUsage: (usage: string) => void;
   /** Uses router.replace — search fires on every keystroke; must not pollute history. */
@@ -68,6 +69,7 @@ export function useGalleryUrlState(): {
 
   const setView = useCallback((view: GalleryView) => nav({ view }), [nav]);
   const setMode = useCallback((mode: GalleryViewMode) => nav({ mode }), [nav]);
+  const setLane = useCallback((lane: GalleryLaneMode) => nav({ lane }), [nav]);
   const setSegment = useCallback((segment: string) => nav({ segment }), [nav]);
   const setUsage = useCallback((usage: string) => nav({ usage: usage as "all" | "commercial" }), [nav]);
   const setQ = useCallback((q: string) => nav({ q }, "replace"), [nav]);
@@ -117,6 +119,7 @@ export function useGalleryUrlState(): {
     () => ({
       setView,
       setMode,
+      setLane,
       setSegment,
       setUsage,
       setQ,
@@ -127,7 +130,7 @@ export function useGalleryUrlState(): {
       resetAuthorTags,
       resetOrgTags,
     }),
-    [setView, setMode, setSegment, setUsage, setQ, toggleTag, toggleAuthorTag, toggleOrgTag, resetFilters, resetAuthorTags, resetOrgTags]
+    [setView, setMode, setLane, setSegment, setUsage, setQ, toggleTag, toggleAuthorTag, toggleOrgTag, resetFilters, resetAuthorTags, resetOrgTags]
   );
 
   return { state, actions, isPending };

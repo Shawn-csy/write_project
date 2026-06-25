@@ -10,12 +10,11 @@ import type { SegmentKey, UsageFilter } from "./filterModel";
 
 /**
  * Discovery views representable in the URL.
- * Phase 5 will expand this to include "help" | "license" | "about"
+ * Phase 5.2 will expand this to include "help" | "license" | "about"
  * once public shell navigation is unified.
  */
 export type GalleryView = "scripts" | "authors" | "orgs";
 export type GalleryViewMode = "standard" | "compact";
-/** Reserved for Phase 4 when UI lane selection is wired to the homepage model. */
 export type GalleryLaneMode = "featured" | "top" | "latest" | "series";
 
 export interface PublicHomepageUrlState {
@@ -27,6 +26,7 @@ export interface PublicHomepageUrlState {
   segment: SegmentKey;
   mode: GalleryViewMode;
   q: string;
+  lane: GalleryLaneMode;
 }
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
@@ -40,6 +40,7 @@ export const DEFAULT_URL_STATE: PublicHomepageUrlState = {
   segment: SEGMENT_KEYS.all,
   mode: "standard",
   q: "",
+  lane: "latest",
 };
 
 // ─── Validators ───────────────────────────────────────────────────────────────
@@ -48,6 +49,7 @@ const VALID_VIEWS = new Set<GalleryView>(["scripts", "authors", "orgs"]);
 const VALID_MODES = new Set<GalleryViewMode>(["standard", "compact"]);
 const VALID_USAGES = new Set<UsageFilter>(["all", "commercial"]);
 const VALID_SEGMENTS = new Set<SegmentKey>(Object.values(SEGMENT_KEYS));
+const VALID_LANES = new Set<GalleryLaneMode>(["featured", "top", "latest", "series"]);
 
 function safeView(v: string | null): GalleryView {
   return VALID_VIEWS.has(v as GalleryView) ? (v as GalleryView) : DEFAULT_URL_STATE.view;
@@ -63,6 +65,10 @@ function safeUsage(v: string | null): UsageFilter {
 
 function safeSegment(v: string | null): SegmentKey {
   return VALID_SEGMENTS.has(v as SegmentKey) ? (v as SegmentKey) : DEFAULT_URL_STATE.segment;
+}
+
+function safeLane(v: string | null): GalleryLaneMode {
+  return VALID_LANES.has(v as GalleryLaneMode) ? (v as GalleryLaneMode) : DEFAULT_URL_STATE.lane;
 }
 
 /** Normalize a repeated query param value into a trimmed, deduplicated, sorted string array. */
@@ -97,6 +103,7 @@ export function parseGalleryUrlState(
     segment: safeSegment(params.get("segment")),
     mode: safeMode(params.get("mode")),
     q: (params.get("q") ?? "").trim(),
+    lane: safeLane(params.get("lane")),
   };
 }
 
@@ -130,6 +137,9 @@ export function serializeGalleryUrlState(
   }
   if (state.q !== "") {
     params.set("q", state.q);
+  }
+  if (state.lane !== DEFAULT_URL_STATE.lane) {
+    params.set("lane", state.lane);
   }
 
   return params;
@@ -165,6 +175,7 @@ export function mergeGalleryUrlState(
     segment: patch.segment != null ? safeSegment(patch.segment) : current.segment,
     mode: patch.mode != null ? safeMode(patch.mode) : current.mode,
     q: patch.q != null ? patch.q.trim() : current.q,
+    lane: patch.lane != null ? safeLane(patch.lane) : current.lane,
   };
 }
 
@@ -180,6 +191,7 @@ export function isDefaultGalleryUrlState(state: PublicHomepageUrlState): boolean
     state.usage === DEFAULT_URL_STATE.usage &&
     state.segment === DEFAULT_URL_STATE.segment &&
     state.mode === DEFAULT_URL_STATE.mode &&
-    state.q === ""
+    state.q === "" &&
+    state.lane === DEFAULT_URL_STATE.lane
   );
 }

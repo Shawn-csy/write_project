@@ -9,6 +9,8 @@ import {
   type EnrichedGalleryScript,
   type PublicHomepageModel,
   type ScriptNavigationPolicy,
+  type PublicGalleryEntry,
+  type GalleryViewMode,
 } from "@write/public-ui";
 import { GalleryEmptyState } from "./GalleryEmptyState";
 
@@ -54,7 +56,7 @@ function CardWithPolicy({
 }
 
 export function GalleryScriptResults({ model, onResetFilters }: GalleryScriptResultsProps) {
-  const { filteredScripts, galleryEntries, lanes, showLanes, viewMode, emptyState, navigationPolicyMap } = model;
+  const { galleryEntries, lanes, showLanes, viewMode, emptyState, navigationPolicyMap } = model;
 
   const revealDeps = [viewMode, galleryEntries.length, showLanes];
   const compactRef = useScrollReveal(revealDeps) as React.RefObject<HTMLDivElement>;
@@ -72,11 +74,16 @@ export function GalleryScriptResults({ model, onResetFilters }: GalleryScriptRes
     (authorId: string) => { window.location.href = `/author/${authorId}`; },
     []
   );
-
-  const authorHref = (s: EnrichedGalleryScript) =>
-    typeof s.author === "object" && s.author?.id ? `/author/${s.author.id}` : undefined;
-  const seriesHref = (s: EnrichedGalleryScript) =>
-    s.seriesName ? `/series/${encodeURIComponent(s.seriesName)}` : undefined;
+  const authorHref = useCallback(
+    (s: EnrichedGalleryScript) =>
+      typeof s.author === "object" && s.author?.id ? `/author/${s.author.id}` : undefined,
+    []
+  );
+  const seriesHref = useCallback(
+    (s: EnrichedGalleryScript) =>
+      s.seriesName ? `/series/${encodeURIComponent(s.seriesName)}` : undefined,
+    []
+  );
 
   // Compact viewMode always shows flat list (filtered or default state)
   if (viewMode === "compact") {
@@ -112,7 +119,7 @@ export function GalleryScriptResults({ model, onResetFilters }: GalleryScriptRes
             </div>
           );
         })}
-        {filteredScripts.length === 0 && emptyState !== "none" && (
+        {emptyState !== "none" && (
           <GalleryEmptyState reason={emptyState === "no-match" ? "no-match" : "no-public-scripts"} onResetFilters={onResetFilters} />
         )}
       </div>
@@ -168,87 +175,77 @@ export function GalleryScriptResults({ model, onResetFilters }: GalleryScriptRes
     );
   }
 
-  // Default lanes view
+  // Default lanes view — ordered by activeLaneMode (active lane first)
   return (
     <div className="space-y-12">
-      {lanes.latestEntriesPreview.length > 0 && (
-        <HorizontalScrollLane title="最新發布">
-          {lanes.latestEntriesPreview.map((entry) =>
-            entry.type === "series" ? (
-              <div key={`series:${entry.key}`} className={CARD_WIDTH}>
-                <SeriesGalleryCard
-                  series={entry}
-                  variant="standard"
-                  href={`/series/${encodeURIComponent(entry.name)}`}
-                  authorHref={authorHref(entry.leadScript)}
-                  showAgeGate={entry.hasAgeGate}
-                />
-              </div>
-            ) : (
-              <div key={entry.script.id} className={CARD_WIDTH}>
-                <CardWithPolicy
-                  script={entry.script}
-                  policy={navigationPolicyMap.get(entry.script.id)}
-                  variant={viewMode}
-                  authorHref={authorHref(entry.script)}
-                  seriesHref={seriesHref(entry.script)}
-                  onSeriesClick={handleSeriesClick}
-                  onTagClick={handleTagClick}
-                  onAuthorClick={handleAuthorClick}
-                />
-              </div>
-            )
-          )}
-        </HorizontalScrollLane>
-      )}
-      {lanes.topViewedEntriesPreview.length > 0 && (
-        <HorizontalScrollLane title="點閱排行">
-          {lanes.topViewedEntriesPreview.map((entry) =>
-            entry.type === "series" ? (
-              <div key={`series:${entry.key}`} className={CARD_WIDTH}>
-                <SeriesGalleryCard
-                  series={entry}
-                  variant="standard"
-                  href={`/series/${encodeURIComponent(entry.name)}`}
-                  authorHref={authorHref(entry.leadScript)}
-                  showAgeGate={entry.hasAgeGate}
-                />
-              </div>
-            ) : (
-              <div key={entry.script.id} className={CARD_WIDTH}>
-                <CardWithPolicy
-                  script={entry.script}
-                  policy={navigationPolicyMap.get(entry.script.id)}
-                  variant={viewMode}
-                  authorHref={authorHref(entry.script)}
-                  seriesHref={seriesHref(entry.script)}
-                  onSeriesClick={handleSeriesClick}
-                  onTagClick={handleTagClick}
-                  onAuthorClick={handleAuthorClick}
-                />
-              </div>
-            )
-          )}
-        </HorizontalScrollLane>
-      )}
-      {lanes.featuredSeries.length > 0 && (
-        <HorizontalScrollLane title="系列作品">
-          {lanes.featuredSeries.map((series) => (
-            <div key={`series:${series.key}`} className={CARD_WIDTH}>
-              <SeriesGalleryCard
-                series={series}
-                variant="standard"
-                href={`/series/${encodeURIComponent(series.name)}`}
-                authorHref={authorHref(series.leadScript)}
-                showAgeGate={series.hasAgeGate}
-              />
-            </div>
-          ))}
-        </HorizontalScrollLane>
+      {lanes.ordered.map((lane) =>
+        lane.entries.length > 0 ? (
+          <HorizontalScrollLane
+            key={lane.id}
+            title={
+              lane.isActive ? (
+                <span className="font-semibold">{lane.title}</span>
+              ) : (
+                lane.title
+              )
+            }
+          >
+            {renderLaneEntries(lane.entries, {
+              viewMode,
+              navigationPolicyMap,
+              authorHref,
+              seriesHref,
+              onSeriesClick: handleSeriesClick,
+              onTagClick: handleTagClick,
+              onAuthorClick: handleAuthorClick,
+            })}
+          </HorizontalScrollLane>
+        ) : null
       )}
       {(emptyState === "no-public-scripts" || emptyState === "no-data") && (
         <GalleryEmptyState reason={emptyState} />
       )}
     </div>
+  );
+}
+
+// ─── Lane entry renderer ──────────────────────────────────────────────────────
+
+interface LaneRenderOptions {
+  viewMode: GalleryViewMode;
+  navigationPolicyMap: Map<string, ScriptNavigationPolicy>;
+  authorHref: (s: EnrichedGalleryScript) => string | undefined;
+  seriesHref: (s: EnrichedGalleryScript) => string | undefined;
+  onSeriesClick: (name: string) => void;
+  onTagClick: (tag: string) => void;
+  onAuthorClick: (id: string) => void;
+}
+
+function renderLaneEntries(entries: PublicGalleryEntry[], opts: LaneRenderOptions) {
+  return entries.map((entry) =>
+    entry.type === "series" ? (
+      <div key={`series:${entry.key}`} className={CARD_WIDTH}>
+        <SeriesGalleryCard
+          series={entry}
+          variant="standard"
+          href={`/series/${encodeURIComponent(entry.name)}`}
+          authorHref={opts.authorHref(entry.leadScript)}
+          showAgeGate={entry.hasAgeGate}
+        />
+      </div>
+    ) : (
+      <div key={entry.script.id} className={CARD_WIDTH}>
+        <CardWithPolicy
+          script={entry.script}
+          policy={opts.navigationPolicyMap.get(entry.script.id)}
+          variant={opts.viewMode}
+          authorHref={opts.authorHref(entry.script)}
+          seriesHref={opts.seriesHref(entry.script)}
+          onSeriesClick={opts.onSeriesClick}
+          onTagClick={opts.onTagClick}
+          onAuthorClick={opts.onAuthorClick}
+        />
+      </div>
+    )
   );
 }

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { PublicScript } from "@/lib/types";
 import {
   PublicHeroMarquee,
   GalleryHoverPreviewProvider,
   type HeroSlide,
   type HeroImageRenderer,
+  type HeroSlideContentRenderer,
 } from "@write/public-ui";
 import { HeroImage } from "@/components/HeroImage";
 import { SlidersHorizontal, PanelLeftClose, PanelLeftOpen, List } from "lucide-react";
@@ -18,16 +19,18 @@ import { GalleryMobileSheet } from "./gallery/GalleryMobileSheet";
 import { GalleryAuthorGrid, GalleryOrgGrid } from "./gallery/GalleryPeopleGrid";
 import { GalleryScriptResults } from "./gallery/GalleryScriptResults";
 import { GalleryTopBar } from "./gallery/GalleryTopBar";
-import { GalleryStaticHero } from "./gallery/GalleryStaticHero";
+import { GalleryBrandHeroSlide } from "./gallery/GalleryBrandHeroSlide";
+import { buildHomepageHeroSlides } from "./gallery/homepageHeroModel";
 import { useGalleryController } from "./gallery/useGalleryController";
 import { useGalleryLayoutState } from "./gallery/useGalleryLayoutState";
 
 interface Props {
   initialScripts: PublicScript[];
   initialBannerSlides?: HeroSlide[];
+  showBrandHero?: boolean;
 }
 
-// Module-level: stable reference, no re-creation on render.
+// Module-level stable references — no re-creation on render.
 const heroImageRenderer: HeroImageRenderer = (image, slide, index) => (
   <HeroImage
     image={image}
@@ -36,7 +39,14 @@ const heroImageRenderer: HeroImageRenderer = (image, slide, index) => (
   />
 );
 
-export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
+const heroSlideContentRenderer: HeroSlideContentRenderer = (slide, _index, defaultContent) => {
+  if ((slide as { type?: string }).type === "brand") {
+    return <GalleryBrandHeroSlide />;
+  }
+  return defaultContent;
+};
+
+export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHero = true }: Props) {
   const {
     tab,
     setTab,
@@ -72,6 +82,10 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
   const [showList, setShowList] = useState(false);
 
   const activeFilterCount = homepageModel.filterChips.length;
+  const heroSlides = useMemo(
+    () => buildHomepageHeroSlides(bannerSlides ?? undefined, showBrandHero),
+    [bannerSlides, showBrandHero]
+  );
 
   return (
     <div className={`min-h-screen bg-background flex flex-col transition-opacity duration-150 ${isPending ? "opacity-60 pointer-events-none" : ""}`}>
@@ -81,12 +95,15 @@ export function GalleryClient({ initialScripts, initialBannerSlides }: Props) {
         onOpenMobileFilter={openMobileFilter}
       />
 
-      {/* Hero — banner when backend provides slides, static brand hero otherwise */}
-      {view === "scripts" && bannerSlides && bannerSlides.length > 0 ? (
-        <PublicHeroMarquee slides={bannerSlides} fullBleed renderImage={heroImageRenderer} />
-      ) : view === "scripts" ? (
-        <GalleryStaticHero />
-      ) : null}
+      {/* Hero — superadmin config controls whether the brand slide is prepended. */}
+      {view === "scripts" && heroSlides.length > 0 && (
+        <PublicHeroMarquee
+          slides={heroSlides}
+          fullBleed
+          renderImage={heroImageRenderer}
+          renderSlideContent={heroSlideContentRenderer}
+        />
+      )}
 
       <div className="flex flex-1 w-full px-4 sm:px-5 lg:px-8 py-4 sm:py-6 lg:py-8 pb-24 sm:pb-20 gap-6">
         {/* Desktop sidebar — only when expanded */}

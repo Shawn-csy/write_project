@@ -1,14 +1,13 @@
 "use client";
 
-import React from "react";
-
-export function GalleryStaticHero() {
+/**
+ * Brand hero slide content — renders inside PublicHeroMarquee's carousel frame.
+ * No outer <section> or height control: the carousel container owns dimensions.
+ */
+export function GalleryBrandHeroSlide() {
   return (
-    <section className="relative w-full overflow-hidden editorial-border-b-strong" aria-label="網站介紹">
-      {/* Subtle warm wash — not a loud gradient */}
-      <div className="absolute inset-0 editorial-hero-wash" aria-hidden />
-
-      {/* Decorative ruled lines — editorial newspaper feel */}
+    <div className="absolute inset-0 editorial-hero-wash overflow-hidden">
+      {/* Decorative ruled lines */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
         <div className="absolute left-0 right-0 top-[3.5rem]" style={{ height: "1px", background: "hsl(var(--border) / 0.35)" }} />
         <div className="absolute left-0 right-0 top-[3.7rem]" style={{ height: "1px", background: "hsl(var(--border) / 0.15)" }} />
@@ -17,12 +16,9 @@ export function GalleryStaticHero() {
       {/* Fine grain texture */}
       <div className="absolute inset-0 pointer-events-none editorial-grain" aria-hidden />
 
-      <div className="relative z-10 mx-auto max-w-5xl px-6 sm:px-8 py-10 sm:py-14">
+      <div className="relative z-10 h-full flex flex-col justify-center mx-auto max-w-5xl px-6 sm:px-8 py-10 sm:py-14">
         {/* Eyebrow */}
-        <p
-          className="hero-reveal editorial-eyebrow mb-3 text-[10px] font-semibold tracking-[0.22em] uppercase"
-          style={{ animationDelay: "0ms" }}
-        >
+        <p className="hero-reveal editorial-eyebrow mb-3 text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ animationDelay: "0ms" }}>
           公開台本平台
         </p>
 
@@ -31,20 +27,14 @@ export function GalleryStaticHero() {
           <span className="hero-reveal block" style={{ animationDelay: "80ms" }}>
             探索、閱讀、分享
           </span>
-          <span
-            className="hero-reveal relative inline-block text-primary"
-            style={{ animationDelay: "160ms" }}
-          >
+          <span className="hero-reveal relative inline-block text-primary" style={{ animationDelay: "160ms" }}>
             創作台本
             <span className="absolute left-0 bottom-[0.08em] w-full editorial-accent-rule" aria-hidden />
           </span>
         </h1>
 
         {/* Sub-copy */}
-        <p
-          className="hero-reveal mt-4 max-w-lg text-sm sm:text-base leading-relaxed text-muted-foreground"
-          style={{ animationDelay: "240ms" }}
-        >
+        <p className="hero-reveal mt-4 max-w-lg text-sm sm:text-base leading-relaxed text-muted-foreground" style={{ animationDelay: "240ms" }}>
           支援 Fountain 格式劇本，探索公開作品、配音台本與作者頁面。
         </p>
 
@@ -56,6 +46,6 @@ export function GalleryStaticHero() {
           </span>
         </div>
       </div>
-    </section>
+    </div>
   );
 }
