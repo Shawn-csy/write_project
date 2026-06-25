@@ -32,6 +32,14 @@ const nextConfig: NextConfig = {
   output: "standalone",
   outputFileTracingRoot: path.resolve(__dirname, "../.."),
   transpilePackages: ["@write/browser-download", "@write/media-crop", "@write/public-ui", "@write/reader-export", "@write/script-engine", "@write/script-reader-renderer", "@write/script-reader-ui"],
+  async rewrites() {
+    return [
+      {
+        source: "/media/:path*",
+        destination: `${backendUrl.replace(/\/+$/, "")}/media/:path*`,
+      },
+    ];
+  },
   images: {
     // Backend runs on Docker-internal network (private IP). next/image blocks
     // private IPs by default; allow them since this is trusted infra.

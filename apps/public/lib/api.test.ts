@@ -1,50 +1,50 @@
-import { describe, expect, it } from "vitest";
-import { resolveMediaUrlsInPublicResponse, resolvePublicMediaUrl } from "./api";
+/**
+ * API boundary regression: public media URLs must pass through apiFetch
+ * unchanged so browser-facing <img> components and public-ui can load them.
+ * Docker-internal URL rewriting belongs in PublicImage, not here.
+ */
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { apiFetch } from "./api";
 
-describe("public API media URL resolution", () => {
-  const backendOrigin = (process.env.BACKEND_API_URL ?? "http://write_project-backend:1091").replace(/\/+$/, "");
+const mockFetch = vi.fn();
+vi.stubGlobal("fetch", mockFetch);
 
-  it("resolves backend media paths for known media URL fields", () => {
-    expect(resolvePublicMediaUrl("/media/covers/a.jpg#crop=abc")).toBe(
-      `${backendOrigin}/media/covers/a.jpg#crop=abc`
-    );
+beforeEach(() => {
+  mockFetch.mockReset();
+});
+
+function respondWith(body: unknown) {
+  mockFetch.mockResolvedValueOnce({
+    ok: true,
+    json: () => Promise.resolve(body),
+  });
+}
+
+describe("apiFetch media URL boundary", () => {
+  it("returns /media/ paths unchanged — no Docker-internal rewrite", async () => {
+    const payload = {
+      scripts: [
+        {
+          id: "abc",
+          coverUrl: "/media/user123/cover/abc.webp",
+          persona: { avatar: "/media/user123/avatar/xyz.jpg" },
+        },
+      ],
+    };
+    respondWith(payload);
+
+    const result = await apiFetch<typeof payload>("/public-bundle");
+
+    expect(result.scripts[0].coverUrl).toBe("/media/user123/cover/abc.webp");
+    expect(result.scripts[0].persona.avatar).toBe("/media/user123/avatar/xyz.jpg");
   });
 
-  it("recursively resolves only media URL fields", () => {
-    const resolved = resolveMediaUrlsInPublicResponse({
-      content: "/media/this-is-script-text-not-an-image",
-      coverUrl: "/media/covers/cover.jpg",
-      persona: {
-        avatar: "/media/avatars/a.png",
-      },
-      links: [
-        { label: "download", url: "/media/not-a-public-image-field.pdf" },
-      ],
-      banner: {
-        imageUrl: "/media/banners/home.webp#crop=1",
-      },
-    });
+  it("returns external URLs unchanged", async () => {
+    const payload = { avatar: "https://avatars.githubusercontent.com/u/123?v=4" };
+    respondWith(payload);
 
-    expect(resolved).toEqual({
-      content: "/media/this-is-script-text-not-an-image",
-      coverUrl: `${backendOrigin}/media/covers/cover.jpg`,
-      persona: {
-        avatar: `${backendOrigin}/media/avatars/a.png`,
-      },
-      links: [
-        { label: "download", url: "/media/not-a-public-image-field.pdf" },
-      ],
-      banner: {
-        imageUrl: `${backendOrigin}/media/banners/home.webp#crop=1`,
-      },
-    });
-  });
+    const result = await apiFetch<typeof payload>("/public-personas/123");
 
-  it("leaves absolute external media URL fields untouched", () => {
-    const resolved = resolveMediaUrlsInPublicResponse({
-      avatarUrl: "https://avatars.githubusercontent.com/u/1",
-    });
-
-    expect(resolved.avatarUrl).toBe("https://avatars.githubusercontent.com/u/1");
+    expect(result.avatar).toBe("https://avatars.githubusercontent.com/u/123?v=4");
   });
 });
