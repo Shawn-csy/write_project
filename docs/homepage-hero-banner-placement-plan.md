@@ -263,15 +263,31 @@ Completion criteria:
 
 ### Phase 5 — Publish Readiness
 
-Status: Planned
+Status: Done
 
 Add readiness checks to the superadmin banner section.
 
 Completion criteria:
 
-- incomplete hero placement is visibly marked;
-- published banner slides have explicit display mode;
+- incomplete hero placement is visibly marked; ✓ per-slide readiness
+  panel shows error/warning icons and messages.
+- published banner slides have explicit display mode; ✓ save is blocked
+  when any non-empty slide is missing `imageBackgroundMode`
+  (`missing_background_mode` error).
 - manual QA checklist includes 390, 1440, and 2560 viewport previews.
+  ✓ three-size preview panel built into the editor.
+
+Manual QA checklist (before publishing a banner update):
+
+1. Open superadmin → Homepage Banner.
+2. For each slide: confirm no red ✗ errors in the readiness panel.
+3. Switch preview tab to 手機 (390×220): subject visible, no cropping
+   issues.
+4. Switch to 桌面 (1440×450): confirm intended focal point is centred.
+5. Switch to 超寬 (2560×800): confirm no black side bands.
+   - If black bands appear in cover mode: set 超寬焦點 or switch to
+     模糊補邊.
+6. Save. Reload the public homepage at each viewport to confirm.
 
 ### Phase 6 — Optional Automation
 
