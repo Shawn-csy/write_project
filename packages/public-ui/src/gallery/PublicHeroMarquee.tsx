@@ -8,7 +8,20 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { HeroSlide } from "./bannerModel";
 import { DEV_PLACEHOLDER_SLIDES } from "./bannerModel";
 
-export type { HeroSlide } from "./bannerModel";
+export type { HeroSlide, HeroSlideBackground } from "./bannerModel";
+
+const DEFAULT_HERO_GRADIENT =
+  "from-[#e7f4ff] via-[#f2fbff] to-[#fff9f2] dark:from-[#16314b] dark:via-[#13313c] dark:to-[#3b2a1e]";
+
+/**
+ * Returns the Tailwind classes that control the carousel slide frame background.
+ * background="none" → neutral bg-background (slide renders its own full-bleed bg).
+ * background="default" or unset → standard banner gradient.
+ */
+function slideFrameClass(slide: HeroSlide): string {
+  if (slide.background === "none") return "bg-background";
+  return cn("bg-gradient-to-r", slide.className || DEFAULT_HERO_GRADIENT);
+}
 
 /**
  * Host-injected image renderer for hero slides.
@@ -143,10 +156,10 @@ export function PublicHeroMarquee({
               visibleSlideIndexes.has(index) ? (
                 <div
                   key={slide.id || index}
+                  data-testid="hero-slide-frame"
                   className={cn(
-                    "absolute inset-0 bg-gradient-to-r p-4 sm:p-6 transition-opacity duration-500",
-                    slide.className ||
-                      "from-[#e7f4ff] via-[#f2fbff] to-[#fff9f2] dark:from-[#16314b] dark:via-[#13313c] dark:to-[#3b2a1e]",
+                    "absolute inset-0 p-4 sm:p-6 transition-opacity duration-500",
+                    slideFrameClass(slide),
                     activeIndex === index ? "opacity-100" : "opacity-0 pointer-events-none",
                     String(slide.link || "").trim() ? "cursor-pointer" : ""
                   )}

@@ -41,7 +41,7 @@ export { PublicGalleryTopBar, DEFAULT_TABS } from "./gallery/PublicGalleryTopBar
 export type { PublicGalleryTopBarProps, PublicGalleryTab } from "./gallery/PublicGalleryTopBar";
 export type { PublicHeroMarqueeProps, HeroImageRenderer, HeroSlideContentRenderer } from "./gallery/PublicHeroMarquee";
 export { parseBannerSlides, DEV_PLACEHOLDER_SLIDES } from "./gallery/bannerModel";
-export type { HeroSlide } from "./gallery/bannerModel";
+export type { HeroSlide, HeroSlideBackground } from "./gallery/bannerModel";
 export {
   SEGMENT_KEYS,
   SEGMENT_TAGS,

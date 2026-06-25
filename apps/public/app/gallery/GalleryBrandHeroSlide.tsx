@@ -35,7 +35,7 @@ export function GalleryBrandHeroSlide() {
 
         {/* Sub-copy */}
         <p className="hero-reveal mt-4 max-w-lg text-sm sm:text-base leading-relaxed text-muted-foreground" style={{ animationDelay: "240ms" }}>
-          支援 Fountain 格式劇本，探索公開作品、配音台本與作者頁面。
+          探索公開作品、配音台本與作者頁面。
         </p>
 
         {/* Decorative rule */}
