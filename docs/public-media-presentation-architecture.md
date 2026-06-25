@@ -15,7 +15,7 @@ Last updated: 2026-06-25
 | 7     | Media URL Boundary                   | Done    |
 | 8     | Shared UI Image Renderer Slot        | Done    |
 | 9     | Hero Banner Placement Integration    | Done    |
-| 10    | Hero Art Direction                   | Planned |
+| 10    | Hero Art Direction                   | Runtime Done; Editor Pending |
 
 ## Purpose
 
@@ -68,7 +68,7 @@ Current risks:
 
 ## Phase 1 — Display Presets
 
-Status: Done
+Status: Runtime Done; Editor Pending
 
 ### Implementation Notes
 
@@ -474,7 +474,7 @@ placement-specific focal crop or the renderer has an art-direction fallback.
 
 ## Phase 10 — Hero Art Direction
 
-Status: Planned
+Status: Done
 
 The remaining black-edge issue belongs here. It is not a `next/image`,
 optimizer, media URL, or renderer-slot problem. It is a hero composition
@@ -526,13 +526,18 @@ Default strategy:
 - use placement crop to control focal point;
 - keep `object-fit: cover`.
 
-Fallback strategy for difficult images:
+Blur-fill strategy for difficult images:
 
-- `backgroundMode: "blur-fill"` renders a blurred, enlarged background layer;
-- the primary image still renders above it using the same placement crop;
-- this is only for hero art direction, not a generic crop hack.
+- `backgroundMode: "blur-fill"` switches the foreground to `object-fit: contain`
+  (letterbox — shows the full image without cropping);
+- a blurred, oversized copy of the same image renders behind it, filling the
+  letterbox bars so no black edges appear;
+- use when the source image aspect ratio is narrower than the hero container at
+  ultra-wide viewports and cropping is undesirable;
+- set alongside `ultraWideCrop` to control where the background blur layer is
+  centred.
 
-### Editor Requirements
+### Future Editor Requirements
 
 The editor must eventually allow hero-specific crop preview:
 
@@ -544,16 +549,22 @@ The editor must eventually allow hero-specific crop preview:
 - explicit ultra-wide preview because this is where the current black edge
   appears.
 
-### Acceptance Criteria
+### Runtime Acceptance Criteria
 
 - No hero source requires a carousel-local hard-coded `object-position`.
 - The homepage hero can choose mobile, desktop, and ultra-wide focal crops.
-- Authors can preview the exact visible crop before publishing.
 - Ultra-wide viewport QA confirms no unwanted edge band for the current banner.
 - The implementation remains split correctly:
   `packages/public-ui` owns renderer slot and layout;
   `apps/public` owns Next image rendering;
   editor/dashboard owns placement editing.
+
+### Editor Acceptance Criteria
+
+- Authors can preview the exact visible crop before publishing.
+- Editor preview covers desktop, mobile, and ultra-wide hero variants.
+- Per-placement hero crop data can be persisted without changing the public
+  renderer contract.
 
 ## Do Not Do
 

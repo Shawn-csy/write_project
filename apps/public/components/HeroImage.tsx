@@ -1,20 +1,28 @@
 /**
  * HeroImage — art-direction-aware hero banner renderer for PublicHeroMarquee.
  *
- * Renders a single PublicImage node whose crop is chosen by viewport breakpoint:
+ * Default mode renders one PublicImage whose crop is chosen by viewport breakpoint:
  *   <768px   (mobile)     → mobileCrop ?? crop
  *   768–1535px (desktop)  → desktopCrop ?? crop
  *   ≥1536px (ultra-wide)  → ultraWideCrop ?? desktopCrop ?? crop
  *
- * Uses matchMedia so only one <img> element is in the DOM at any time.
- * No hydration mismatch: component is only used inside "use client" parents.
+ * Uses matchMedia so default mode keeps one foreground image in the DOM.
+ * blur-fill mode renders one decorative background layer plus the foreground.
+ * Crop hydration: Next.js App Router may pre-render Client Components on the
+ * server, so the initial breakpoint resolves to "desktop" (window is absent).
+ * On mobile or ultra-wide viewports the correct crop is applied after hydration
+ * — there is a single-frame repaint cost. This is acceptable for hero art
+ * direction; the correct long-term solution is CSS custom properties driven by
+ * media queries (no JS state needed). Document this if LCP measurements flag it.
  *
- * blur-fill mode: a blurred, heavily scaled background copy of the same image
- * fills edge areas that the focal crop cannot cover at extreme aspect ratios.
- * The background is visible because the primary image uses object-fit: cover
- * and is fully opaque — blur-fill is only meaningful when the container is
- * wider than the source image's natural composition allows. Authors should
- * set blur-fill alongside an ultraWideCrop that frames the subject tightly.
+ * blur-fill mode:
+ *   The foreground image switches to object-fit: contain (letterbox).
+ *   A blurred, oversized copy of the same image fills the letterbox bars
+ *   behind it, hiding the empty black edges.
+ *   Use blur-fill when the source image aspect ratio is narrower than the
+ *   hero container at ultra-wide viewports and you prefer a filled look over
+ *   a cropped one. Set alongside ultraWideCrop to control which part of the
+ *   image the background blur layer emphasises.
  *
  * Phase 10 of docs/public-media-presentation-architecture.md
  */
@@ -79,25 +87,27 @@ export function HeroImage({ image, priority, slideTitle }: Props) {
 
   return (
     <>
-      {/* blur-fill background: blurred, oversized copy fills edge areas.
-          Only useful when the primary image's composition leaves dark/empty
-          edges at ultra-wide ratios. Set alongside ultraWideCrop. */}
+      {/* blur-fill background layer: blurred oversized copy fills letterbox bars.
+          Rendered behind the foreground contain image; visible only in the bars
+          that object-fit: contain leaves uncovered at the sides or top/bottom. */}
       {blurFill && (
         <PublicImage
           src={image.url}
           alt=""
           preset="hero-banner"
           crop={image.ultraWideCrop ?? image.desktopCrop ?? image.crop}
-          priority={priority}
-          className="scale-[1.4] blur-xl opacity-50 object-cover"
+          className="scale-[1.4] blur-xl opacity-60"
         />
       )}
+      {/* Foreground: contain when blur-fill is active (shows full art without
+          cropping); cover otherwise (fills container with focal-point crop). */}
       <PublicImage
         src={image.url}
         alt={alt}
         preset="hero-banner"
         crop={activeCrop}
         priority={priority}
+        objectFit={blurFill ? "contain" : undefined}
       />
     </>
   );
