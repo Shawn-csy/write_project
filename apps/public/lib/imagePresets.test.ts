@@ -100,6 +100,27 @@ describe("no transform output", () => {
     expect((style as Record<string, unknown>).transform).toBeUndefined();
   });
 
+  it("respectZoom opt-in applies scale for zoom > 1", () => {
+    const { style } = resolvePresetStyle(
+      "https://example.com/img.jpg",
+      "hero-banner",
+      { cx: 0.5, cy: -0.3, zoom: 2 },
+      { respectZoom: true }
+    );
+    expect((style as Record<string, unknown>).transform).toBe("scale(2)");
+    expect((style as Record<string, unknown>).transformOrigin).toBe("center center");
+  });
+
+  it("respectZoom ignores zoom <= 1 to avoid blank-space states", () => {
+    const { style } = resolvePresetStyle(
+      "https://example.com/img.jpg",
+      "hero-banner",
+      { cx: 0, cy: 0, zoom: 0.5 },
+      { respectZoom: true }
+    );
+    expect((style as Record<string, unknown>).transform).toBeUndefined();
+  });
+
   it("no crop case: style has no transform", () => {
     const { style } = resolvePresetStyle("https://example.com/img.jpg", "series-cover");
     expect((style as Record<string, unknown>).transform).toBeUndefined();

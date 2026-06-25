@@ -2,8 +2,9 @@
  * PublicImage — preset-based Next.js image renderer for public site.
  *
  * Pass a named preset; the renderer picks sizes, objectFit, and resolves
- * crop focal point to objectPosition. No transform:scale — prevents blank
- * space when combined with next/image fill mode.
+ * crop focal point to objectPosition. Crop zoom is ignored by default to
+ * prevent blank space when combined with next/image fill mode; hero art
+ * direction can opt in to zoom when it intentionally wants tighter framing.
  *
  * Parent must be position:relative with explicit dimensions.
  *
@@ -39,12 +40,26 @@ interface Props {
   className?: string;
   /** Override object-fit from preset default (e.g. "contain" for blur-fill foreground) */
   objectFit?: "cover" | "contain";
+  /** Opt in to crop.zoom transforms for placement-specific art direction. */
+  respectCropZoom?: boolean;
 }
 
-export function PublicImage({ src, alt, preset, crop, sizes, priority, className, objectFit }: Props) {
+export function PublicImage({
+  src,
+  alt,
+  preset,
+  crop,
+  sizes,
+  priority,
+  className,
+  objectFit,
+  respectCropZoom,
+}: Props) {
   if (!src) return null;
 
-  const { src: cleanSrc, style: presetStyle } = resolvePresetStyle(src, preset, crop);
+  const { src: cleanSrc, style: presetStyle } = resolvePresetStyle(src, preset, crop, {
+    respectZoom: respectCropZoom,
+  });
   const style = objectFit ? { ...presetStyle, objectFit } : presetStyle;
   const config = getPresetConfig(preset);
   const resolvedSrc = resolveMediaSrc(cleanSrc);

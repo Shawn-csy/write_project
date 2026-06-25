@@ -66,6 +66,7 @@ export function resolvePresetStyle(
   url: string,
   preset: PublicImagePreset,
   cropOverride?: MediaCropLike | null,
+  options?: { respectZoom?: boolean },
 ): ResolvedImageStyle {
   const { src, crop: hashCrop } = decodeMediaCropRef(url ?? "");
   const config = getPresetConfig(preset);
@@ -86,6 +87,12 @@ export function resolvePresetStyle(
     style: {
       objectFit,
       objectPosition: `${x.toFixed(1)}% ${y.toFixed(1)}%`,
+      ...(options?.respectZoom && crop.zoom > 1
+        ? {
+            transform: `scale(${crop.zoom})`,
+            transformOrigin: "center center",
+          }
+        : {}),
     },
   };
 }
