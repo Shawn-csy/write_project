@@ -8,10 +8,10 @@ import { getImageUploadGuide, MEDIA_FILE_ACCEPT, optimizeImageForUpload } from "
 import { uploadMediaObject } from "../../lib/api/media";
 import { getHomepageBannerAdmin, updateHomepageBannerAdmin } from "../../lib/api/admin";
 import { canApplyPersistentCropRef } from "../../lib/mediaCropRef";
-import { normalizeMediaCropLike } from "@write/media-crop";
 import {
   buildHomepageHeroPlacementModel,
   buildHomepageHeroPreviewFrames,
+  resolveHeroPreviewImageStyle,
   validateHomepageHeroPlacement,
 } from "../../lib/admin/homepageHeroModel";
 import type { MediaSelection } from "../ui/MediaPicker";
@@ -362,23 +362,7 @@ export function HomepageBannerSection() {
                 const previewH = Math.round((frame.height / frame.width) * previewW);
                 const isBlurFill = item.imageBackgroundMode === "blur-fill";
 
-                // Pure helper: matches resolvePresetStyle(overscanScale) semantics exactly.
-                // cx/cy [-1,1] → objectPosition [0%,100%].
-                // overscanScale + zoom > 1 → composed single transform (same as resolvePresetStyle in imagePresets.ts).
-                const cropToImgStyle = (rawCrop: typeof frame.effectiveCrop, overscanScale?: number): React.CSSProperties => {
-                  const c = normalizeMediaCropLike(rawCrop);
-                  const applyZoom = c && c.zoom > 1;
-                  const parts: string[] = [];
-                  if (overscanScale && overscanScale !== 1) parts.push(`scale(${overscanScale})`);
-                  if (applyZoom) parts.push(`scale(${c!.zoom})`);
-                  return {
-                    ...(c ? { objectPosition: `${((c.cx + 1) / 2 * 100).toFixed(1)}% ${((c.cy + 1) / 2 * 100).toFixed(1)}%` } : {}),
-                    ...(parts.length > 0 ? { transform: parts.join(" "), transformOrigin: "center center" } : {}),
-                  };
-                };
-
-                // blur-fill bg layer uses the same crop source as HeroImage.tsx line 102:
-                // ultraWideCrop ?? desktopCrop ?? crop (not the per-viewport active crop).
+                // blur-fill bg layer crop: mirrors HeroImage.tsx line 102.
                 // Overscan=1.4 matches public overscanScale={1.4} on PublicImage bg layer.
                 // blur(24px) = blur-xl; opacity 0.6 = opacity-60.
                 const bgCrop = model.ultraWideCrop ?? model.desktopCrop ?? model.crop;
@@ -412,7 +396,7 @@ export function HomepageBannerSection() {
                           alt=""
                           aria-hidden
                           className="absolute inset-0 h-full w-full object-cover"
-                          style={{ filter: "blur(24px)", opacity: 0.6, ...cropToImgStyle(bgCrop, 1.4) }}
+                          style={{ filter: "blur(24px)", opacity: 0.6, ...resolveHeroPreviewImageStyle(bgCrop, 1.4) }}
                         />
                       )}
                       <img
@@ -421,7 +405,7 @@ export function HomepageBannerSection() {
                         className="absolute inset-0 h-full w-full"
                         style={{
                           objectFit: isBlurFill ? "contain" : "cover",
-                          ...cropToImgStyle(frame.effectiveCrop),
+                          ...resolveHeroPreviewImageStyle(frame.effectiveCrop),
                         }}
                         loading="lazy"
                       />

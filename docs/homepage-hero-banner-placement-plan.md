@@ -243,7 +243,7 @@ Completion criteria:
 
 ### Phase 4 — Renderer-Parity Preview
 
-Status: Planned
+Status: Done
 
 The editor preview should use a shared preview renderer that follows the same
 placement contract as `HeroImage`.

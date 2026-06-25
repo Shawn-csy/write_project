@@ -4,6 +4,7 @@ import {
   buildHomepageHeroPreviewFrames,
   isHomepageHeroPlacementReady,
   resolveHeroCropForViewport,
+  resolveHeroPreviewImageStyle,
   validateHomepageHeroPlacement,
 } from "./homepageHeroModel";
 import type { HomepageBannerItem } from "../../types/api";
@@ -260,5 +261,77 @@ describe("isHomepageHeroPlacementReady", () => {
     // Missing ultra-wide crop + no alt → 2 warnings, 0 errors
     const m = buildHomepageHeroPlacementModel({ ...BASE_ITEM });
     expect(isHomepageHeroPlacementReady(m)).toBe(true);
+  });
+});
+
+describe("resolveHeroPreviewImageStyle — cover mode", () => {
+  it("no crop: returns empty style", () => {
+    expect(resolveHeroPreviewImageStyle(null)).toEqual({});
+  });
+
+  it("crop at center: objectPosition 50% 50%", () => {
+    const s = resolveHeroPreviewImageStyle({ cx: 0, cy: 0, zoom: 1 });
+    expect(s.objectPosition).toBe("50.0% 50.0%");
+    expect(s.transform).toBeUndefined();
+  });
+
+  it("crop top-left: objectPosition 0% 0%", () => {
+    const s = resolveHeroPreviewImageStyle({ cx: -1, cy: -1, zoom: 1 });
+    expect(s.objectPosition).toBe("0.0% 0.0%");
+  });
+
+  it("crop bottom-right: objectPosition 100% 100%", () => {
+    const s = resolveHeroPreviewImageStyle({ cx: 1, cy: 1, zoom: 1 });
+    expect(s.objectPosition).toBe("100.0% 100.0%");
+  });
+
+  it("zoom > 1: adds scale transform", () => {
+    const s = resolveHeroPreviewImageStyle({ cx: 0, cy: 0, zoom: 1.5 });
+    expect(s.transform).toBe("scale(1.5)");
+    expect(s.transformOrigin).toBe("center center");
+  });
+
+  it("zoom <= 1: no transform", () => {
+    const s = resolveHeroPreviewImageStyle({ cx: 0.2, cy: -0.3, zoom: 0.8 });
+    expect(s.transform).toBeUndefined();
+  });
+});
+
+describe("resolveHeroPreviewImageStyle — blur-fill background overscan", () => {
+  it("overscanScale alone produces scale(N) transform", () => {
+    const s = resolveHeroPreviewImageStyle({ cx: 0, cy: 0, zoom: 1 }, 1.4);
+    expect(s.transform).toBe("scale(1.4)");
+    expect(s.transformOrigin).toBe("center center");
+  });
+
+  it("overscanScale + crop zoom compose into single transform", () => {
+    const s = resolveHeroPreviewImageStyle({ cx: 0.5, cy: -0.3, zoom: 2 }, 1.4);
+    expect(s.transform).toBe("scale(1.4) scale(2)");
+  });
+
+  it("overscanScale without crop still applies scale", () => {
+    const s = resolveHeroPreviewImageStyle(null, 1.4);
+    expect(s.transform).toBe("scale(1.4)");
+    expect(s.objectPosition).toBeUndefined();
+  });
+
+  it("overscanScale=1 is no-op", () => {
+    const s = resolveHeroPreviewImageStyle({ cx: 0, cy: 0, zoom: 1 }, 1);
+    expect(s.transform).toBeUndefined();
+  });
+
+  it("bg crop uses ultraWideCrop ?? desktopCrop ?? crop resolution", () => {
+    // Mirrors HeroImage.tsx line 102 and admin preview bgCrop derivation.
+    const model = buildHomepageHeroPlacementModel({
+      ...BASE_ITEM,
+      imageCrop: CROP_A,
+      imageDesktopCrop: CROP_B,
+      imageUltraWideCrop: CROP_C,
+    });
+    const bgCrop = model.ultraWideCrop ?? model.desktopCrop ?? model.crop;
+    expect(bgCrop).toEqual(CROP_C);
+    const s = resolveHeroPreviewImageStyle(bgCrop, 1.4);
+    // CROP_C = { cx: 0.2, cy: 0.1, zoom: 1.2 }; zoom > 1 → composed transform
+    expect(s.transform).toBe("scale(1.4) scale(1.2)");
   });
 });

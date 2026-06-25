@@ -10,6 +10,7 @@
  */
 import type { HomepageBannerItem } from "../../types/api";
 import type { MediaCropLike } from "@write/media-crop";
+import { normalizeMediaCropLike } from "@write/media-crop";
 
 export type HeroBackgroundMode = "cover" | "blur-fill";
 
@@ -176,4 +177,37 @@ export function validateHomepageHeroPlacement(
  */
 export function isHomepageHeroPlacementReady(model: HeroPlacementModel): boolean {
   return validateHomepageHeroPlacement(model).every((i) => i.severity !== "error");
+}
+
+/**
+ * Resolve CSS style properties for a preview <img> element, matching the
+ * semantics of resolvePresetStyle() in apps/public/lib/imagePresets.ts.
+ *
+ * cx/cy [-1,1] → objectPosition [0%,100%].
+ * overscanScale and crop zoom > 1 are composed into a single transform string
+ * so they don't conflict (no Tailwind class vs inline-style specificity issue).
+ *
+ * Used by the admin preview panel instead of inlining the math in the
+ * render closure, so public runtime and admin preview share one canonical
+ * transform contract.
+ */
+export interface HeroPreviewImageStyle {
+  objectPosition?: string;
+  transform?: string;
+  transformOrigin?: string;
+}
+
+export function resolveHeroPreviewImageStyle(
+  crop: MediaCropLike | null | undefined,
+  overscanScale?: number,
+): HeroPreviewImageStyle {
+  const c = normalizeMediaCropLike(crop);
+  const applyZoom = c && c.zoom > 1;
+  const parts: string[] = [];
+  if (overscanScale && overscanScale !== 1) parts.push(`scale(${overscanScale})`);
+  if (applyZoom) parts.push(`scale(${c!.zoom})`);
+  return {
+    ...(c ? { objectPosition: `${(((c.cx + 1) / 2) * 100).toFixed(1)}% ${(((c.cy + 1) / 2) * 100).toFixed(1)}%` } : {}),
+    ...(parts.length > 0 ? { transform: parts.join(" "), transformOrigin: "center center" } : {}),
+  };
 }
