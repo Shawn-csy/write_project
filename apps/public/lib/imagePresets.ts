@@ -66,7 +66,18 @@ export function resolvePresetStyle(
   url: string,
   preset: PublicImagePreset,
   cropOverride?: MediaCropLike | null,
-  options?: { respectZoom?: boolean },
+  options?: {
+    respectZoom?: boolean;
+    /**
+     * When set, the overscan scale is composed with the crop zoom into a single
+     * transform string: scale(overscanScale) [scale(zoom)]. This avoids the
+     * CSS specificity conflict where an inline style.transform from zoom would
+     * silently override a Tailwind scale-[N] className.
+     *
+     * Use this instead of applying a scale className on the same element.
+     */
+    overscanScale?: number;
+  },
 ): ResolvedImageStyle {
   const { src, crop: hashCrop } = decodeMediaCropRef(url ?? "");
   const config = getPresetConfig(preset);
@@ -75,6 +86,9 @@ export function resolvePresetStyle(
   const objectFit = config.objectFit;
 
   if (!crop || config.cropMode === "contain-safe") {
+    if (options?.overscanScale && options.overscanScale !== 1) {
+      return { src, style: { objectFit, transform: `scale(${options.overscanScale})`, transformOrigin: "center center" } };
+    }
     return { src, style: { objectFit } };
   }
 
@@ -82,16 +96,18 @@ export function resolvePresetStyle(
   const x = ((crop.cx + 1) / 2) * 100;
   const y = ((crop.cy + 1) / 2) * 100;
 
+  const applyZoom = (options?.respectZoom || !!options?.overscanScale) && crop.zoom > 1;
+  const parts: string[] = [];
+  if (options?.overscanScale && options.overscanScale !== 1) parts.push(`scale(${options.overscanScale})`);
+  if (applyZoom) parts.push(`scale(${crop.zoom})`);
+
   return {
     src,
     style: {
       objectFit,
       objectPosition: `${x.toFixed(1)}% ${y.toFixed(1)}%`,
-      ...(options?.respectZoom && crop.zoom > 1
-        ? {
-            transform: `scale(${crop.zoom})`,
-            transformOrigin: "center center",
-          }
+      ...(parts.length > 0
+        ? { transform: parts.join(" "), transformOrigin: "center center" }
         : {}),
     },
   };

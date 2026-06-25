@@ -22,6 +22,17 @@ def normalize_homepage_banner_value(raw_value: str) -> dict:
                 "link": str(item.get("link") or "").strip(),
                 "imageUrl": str(item.get("imageUrl") or "").strip(),
             }
+            # Hero placement fields — preserve as-is (None if absent).
+            image_alt = item.get("imageAlt")
+            if isinstance(image_alt, str) and image_alt.strip():
+                normalized["imageAlt"] = image_alt.strip()
+            for crop_key in ("imageCrop", "imageMobileCrop", "imageDesktopCrop", "imageUltraWideCrop"):
+                crop = item.get(crop_key)
+                if isinstance(crop, dict):
+                    normalized[crop_key] = crop
+            bg_mode = item.get("imageBackgroundMode")
+            if bg_mode in ("cover", "blur-fill"):
+                normalized["imageBackgroundMode"] = bg_mode
             if normalized["title"] or normalized["content"] or normalized["link"] or normalized["imageUrl"]:
                 items.append(normalized)
 
@@ -33,6 +44,16 @@ def normalize_homepage_banner_value(raw_value: str) -> dict:
             "link": str(parsed.get("link") or "").strip(),
             "imageUrl": str(parsed.get("imageUrl") or "").strip(),
         }
+        image_alt = parsed.get("imageAlt")
+        if isinstance(image_alt, str) and image_alt.strip():
+            fallback["imageAlt"] = image_alt.strip()
+        for crop_key in ("imageCrop", "imageMobileCrop", "imageDesktopCrop", "imageUltraWideCrop"):
+            crop = parsed.get(crop_key)
+            if isinstance(crop, dict):
+                fallback[crop_key] = crop
+        bg_mode = parsed.get("imageBackgroundMode")
+        if bg_mode in ("cover", "blur-fill"):
+            fallback["imageBackgroundMode"] = bg_mode
         if fallback["title"] or fallback["content"] or fallback["link"] or fallback["imageUrl"]:
             items = [fallback]
 

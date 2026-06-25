@@ -294,6 +294,17 @@ def update_homepage_banner(
             "link": str(getattr(item, "link", "") or "").strip(),
             "imageUrl": str(getattr(item, "imageUrl", "") or "").strip(),
         }
+        # Hero placement fields — preserve as-is.
+        image_alt = getattr(item, "imageAlt", None)
+        if isinstance(image_alt, str) and image_alt.strip():
+            normalized["imageAlt"] = image_alt.strip()
+        for crop_key in ("imageCrop", "imageMobileCrop", "imageDesktopCrop", "imageUltraWideCrop"):
+            crop = getattr(item, crop_key, None)
+            if isinstance(crop, dict):
+                normalized[crop_key] = crop
+        bg_mode = getattr(item, "imageBackgroundMode", None)
+        if bg_mode in ("cover", "blur-fill"):
+            normalized["imageBackgroundMode"] = bg_mode
         if normalized["title"] or normalized["content"] or normalized["link"] or normalized["imageUrl"]:
             normalized_items.append(normalized)
 
@@ -329,6 +340,11 @@ def update_homepage_banner(
         row.updatedBy = ownerId
         row.updatedAt = now_ms
     db.commit()
+    # Invalidate public-route caches so the next public read reflects the update immediately.
+    import routers.public as _public_router
+    _public_router._banner_cache = None
+    import routers.public_bundle as _public_bundle_router
+    _public_bundle_router._bundle_cache = None
     return schemas.HomepageBannerSetting(**clean)
 
 

@@ -657,6 +657,12 @@ class HomepageBannerItem(BaseModel):
     content: str = ""
     link: str = ""
     imageUrl: str = ""
+    imageAlt: Optional[str] = None
+    imageCrop: Optional[dict] = None
+    imageMobileCrop: Optional[dict] = None
+    imageDesktopCrop: Optional[dict] = None
+    imageUltraWideCrop: Optional[dict] = None
+    imageBackgroundMode: Optional[str] = None
 
 
 class HomepageBannerSetting(BaseModel):

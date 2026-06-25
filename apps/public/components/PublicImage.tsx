@@ -42,6 +42,12 @@ interface Props {
   objectFit?: "cover" | "contain";
   /** Opt in to crop.zoom transforms for placement-specific art direction. */
   respectCropZoom?: boolean;
+  /**
+   * Compose an overscan scale with crop zoom into a single transform.
+   * Use instead of a scale-[N] className to avoid CSS specificity conflicts
+   * where inline style.transform (from zoom) would override the class.
+   */
+  overscanScale?: number;
 }
 
 export function PublicImage({
@@ -54,11 +60,13 @@ export function PublicImage({
   className,
   objectFit,
   respectCropZoom,
+  overscanScale,
 }: Props) {
   if (!src) return null;
 
   const { src: cleanSrc, style: presetStyle } = resolvePresetStyle(src, preset, crop, {
     respectZoom: respectCropZoom,
+    overscanScale,
   });
   const style = objectFit ? { ...presetStyle, objectFit } : presetStyle;
   const config = getPresetConfig(preset);

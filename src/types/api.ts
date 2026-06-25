@@ -226,7 +226,12 @@ export interface HomepageBannerItem {
   content?: string;
   link?: string;
   imageUrl?: string;
+  imageAlt?: string;
   imageCrop?: { cx?: number; cy?: number; zoom?: number } | null;
+  imageMobileCrop?: { cx?: number; cy?: number; zoom?: number } | null;
+  imageDesktopCrop?: { cx?: number; cy?: number; zoom?: number } | null;
+  imageUltraWideCrop?: { cx?: number; cy?: number; zoom?: number } | null;
+  imageBackgroundMode?: "cover" | "blur-fill";
 }
 
 export interface HomepageBanner {
