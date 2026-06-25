@@ -1,17 +1,21 @@
 # Public Media Presentation Architecture
 
-Last updated: 2026-06-24
+Last updated: 2026-06-25
 
 ## Phase Status
 
-| Phase | Title                    | Status  |
-|-------|--------------------------|---------|
-| 1     | Display Presets          | Done    |
-| 2     | Crop Model               | Done    |
-| 3     | Public Image Renderer    | Done    |
-| 4     | Editor Preview Panel     | Planned |
-| 5     | Per-Preset Overrides     | Planned |
-| 6     | Migration Plan           | Done    |
+| Phase | Title                                | Status  |
+|-------|--------------------------------------|---------|
+| 1     | Display Presets                      | Done    |
+| 2     | Crop Model                           | Done    |
+| 3     | Public Image Renderer                | Done    |
+| 4     | Editor Preview Panel                 | Planned |
+| 5     | Per-Preset Overrides                 | Planned |
+| 6     | Migration Plan                       | Done    |
+| 7     | Media URL Boundary                   | Done    |
+| 8     | Shared UI Image Renderer Slot        | Done    |
+| 9     | Hero Banner Placement Integration    | Done    |
+| 10    | Hero Art Direction                   | Planned |
 
 ## Purpose
 
@@ -41,6 +45,10 @@ Current risks:
 - `next/image fill` and transform-based crop style can interact badly;
 - components choose their own aspect ratio, `sizes`, fallback, and crop behavior;
 - authors cannot preview how the same image will look in each public placement.
+- shared public UI components render plain `<img>` while Next-owned components use
+  `PublicImage`; media URLs must work in both contexts;
+- homepage hero now uses the `hero-banner` preset through a renderer slot, but
+  it still needs hero-specific art direction for ultra-wide compositions.
 
 ## Principles
 
@@ -51,6 +59,12 @@ Current risks:
 5. Dynamic crop/focal values can remain data-driven; static visual treatment
    belongs in shared primitives.
 6. Packages that are not Next.js apps must not depend on `next/image`.
+7. API/BFF responses must return browser-facing media URLs, not Docker-internal
+   backend URLs.
+8. `next/image` optimization is an app-level renderer concern, not a data-layer
+   rewrite concern.
+9. Shared UI components that need host-specific image behavior must accept an
+   image renderer slot/context instead of importing host renderer implementations.
 
 ## Phase 1 — Display Presets
 
@@ -158,6 +172,10 @@ Status: Done
 - `apps/public/components/PublicImage.tsx` — accepts `src`, `alt`, `preset`, `crop?`, `sizes?` (override), `priority?`, `className?`.
 - `sizes` defaults to preset config value; caller can override for fixed-pixel contexts (e.g. 48px avatar in list).
 - Callers no longer call `getMediaCropStyle()` — crop is passed as raw `MediaCropLike` and resolved internally.
+- `PublicImage` is the only boundary that upgrades browser-facing `/media/...`
+  URLs to the backend origin for `next/image`'s server-side optimizer.
+- Unknown external image hosts fall back to plain `<img>` instead of going through
+  `next/image`; this avoids an open optimizer/proxy surface.
 - **Fallback contract (current):** `if (!src) return null`. No placeholder slot. Callers are responsible for rendering their own empty state. The "consistent fallback contract" target in Phase 3 is partially met — blank-space is prevented by `objectFit: cover`, but a visual placeholder/skeleton for missing images is not yet implemented. This is acceptable until Phase 4 editor preview requires a shared empty state.
 - `packages/public-ui` `<img>` tags remain unchanged — package boundary, no Next.js dependency.
 
@@ -280,6 +298,263 @@ Status: Done
 6. Add per-preset override persistence.
 7. Migrate reader backdrop and related sections.
 
+## Phase 7 — Media URL Boundary
+
+Status: Done
+
+### Contract
+
+Public API data must keep media URLs browser-facing:
+
+```ts
+coverUrl: "/media/user/cover.webp"
+avatar: "/media/user/avatar.jpg"
+```
+
+It must not rewrite them to Docker-internal origins:
+
+```ts
+// Do not emit this from API/BFF data:
+coverUrl: "http://write_project-backend:1091/media/user/cover.webp"
+```
+
+Reason:
+
+- `@write/public-ui` components intentionally render plain `<img>` and run in the
+  browser.
+- Browsers cannot resolve Docker-internal hostnames.
+- Next's optimizer is the only consumer that needs backend-internal absolute URLs.
+
+### Runtime Routing
+
+- Production nginx serves `/media/...` by proxying to backend.
+- Next dev/standalone uses `next.config.ts` rewrites for `/media/:path*`.
+- `/api/public-*` routes are routed to the Next BFF in nginx so deployment method
+  does not change public frontend API behavior.
+
+### Implementation Notes
+
+- `apps/public/lib/api.ts` returns backend JSON unchanged.
+- `apps/public/components/PublicImage.tsx` resolves `/media/...` to backend origin
+  only for `next/image`.
+- `apps/public/lib/publicImageOrigins.ts` owns the allowlist for external origins
+  that can use `next/image`.
+
+## Phase 8 — Shared UI Image Renderer Slot
+
+Status: Done
+
+`packages/public-ui` must remain framework-neutral. It cannot import
+`next/image`, `PublicImage`, or app-local Next helpers.
+
+For components that need host-specific image behavior, use a renderer slot:
+
+```tsx
+type PublicImageRenderer = (input: {
+  src: string;
+  alt: string;
+  preset: PublicImagePreset;
+  crop?: MediaCropLike | null;
+  priority?: boolean;
+  className?: string;
+}) => React.ReactNode;
+```
+
+Shared components should default to plain `<img>` fallback but allow the Next app
+to inject `PublicImage`.
+
+Targets:
+
+- `PublicHeroMarquee`;
+- `ScriptGalleryCard`;
+- `SeriesGalleryCard`;
+- reader related sections that show covers or banners.
+
+Initial priority is `PublicHeroMarquee`, because homepage hero is the visible
+place where image aspect and focal crop currently diverge from the preset system.
+
+### Completed Scope
+
+- `HeroSlide.image` is available as the structured image field.
+- `PublicHeroMarquee` accepts a `renderImage` slot.
+- `packages/public-ui` still has no dependency on `next/image` or app-local
+  `PublicImage`.
+- The plain `<img>` fallback remains for non-Next hosts.
+
+## Phase 9 — Hero Banner Placement Integration
+
+Status: Done
+
+Homepage hero must be treated as a first-class image placement, not a standalone
+carousel with hand-written `<img className="object-cover">`.
+
+### Data Model
+
+Target `HeroSlide` shape:
+
+```ts
+interface HeroSlide {
+  id?: string | number;
+  title?: string;
+  subtitle?: string;
+  content?: string;
+  link?: string;
+  image?: {
+    url: string;
+    crop?: MediaCropLike | null;
+    alt?: string;
+  };
+  overlayOpacity?: number;
+}
+```
+
+Compatibility adapters may still read legacy `imageUrl`, but the internal model
+should be `image`.
+
+### Renderer Contract
+
+`PublicHeroMarquee` should accept a renderer slot:
+
+```tsx
+<PublicHeroMarquee
+  slides={slides}
+  fullBleed
+  renderImage={(image, slide, index) => (
+    <PublicImage
+      src={image.url}
+      crop={image.crop}
+      preset="hero-banner"
+      alt={image.alt || slide.title || "banner"}
+      priority={index === 0}
+    />
+  )}
+/>
+```
+
+Fallback behavior without `renderImage`:
+
+- render a plain `<img>`;
+- use the same semantic `image.url` / `image.crop` data;
+- never import Next-specific code.
+
+### What This Solves
+
+The current hero image path is:
+
+```txt
+GalleryClient → PublicHeroMarquee → raw <img object-cover>
+```
+
+It does not know about `hero-banner`, focal crop, or per-placement overrides.
+On ultra-wide viewports, this can expose undesirable parts of the source image
+or make poor source composition obvious.
+
+The target path is:
+
+```txt
+GalleryClient → PublicHeroMarquee renderImage slot → PublicImage(hero-banner)
+```
+
+This uses the same placement preset and focal-point policy as the rest of the
+public media system.
+
+This phase solves the renderer boundary problem. It does **not** guarantee that
+every uploaded source image composes well in an ultra-wide full-bleed hero. If
+the source image has dark or empty content near one side, `object-fit: cover`
+will still faithfully show that content unless the author provides a
+placement-specific focal crop or the renderer has an art-direction fallback.
+
+### Completed Scope
+
+- `GalleryClient` injects `PublicImage` for homepage hero slides.
+- Homepage hero uses the `hero-banner` preset through the host renderer slot.
+- The first slide is marked `priority` for LCP.
+- `parseBannerSlides` projects legacy `imageUrl` plus optional `imageCrop` into
+  `HeroSlide.image`.
+
+## Phase 10 — Hero Art Direction
+
+Status: Planned
+
+The remaining black-edge issue belongs here. It is not a `next/image`,
+optimizer, media URL, or renderer-slot problem. It is a hero composition
+problem.
+
+### Problem
+
+Full-bleed hero banners are intentionally wider than most uploaded artwork. At
+maximum desktop widths, a source image can expose one of these states:
+
+- dark or empty source content on one side;
+- a subject positioned too close to the edge;
+- a source aspect ratio that works for cards but not for ultra-wide hero;
+- no hero-specific focal crop, so the generic center crop is used.
+
+Changing `object-fit`, hard-coding `object-position`, or adding per-page scale
+would only hide the symptom for one image and break another. The fix must be a
+placement-aware hero composition model.
+
+### Target Contract
+
+Hero images should support explicit hero placement data:
+
+```ts
+interface HeroImagePlacement {
+  url: string;
+  alt?: string;
+  crop?: MediaCropLike | null;
+  mobileCrop?: MediaCropLike | null;
+  desktopCrop?: MediaCropLike | null;
+  ultraWideCrop?: MediaCropLike | null;
+  backgroundMode?: "cover" | "blur-fill";
+}
+```
+
+The public renderer should choose the most specific crop by viewport class:
+
+```txt
+mobile viewport      → mobileCrop ?? crop
+desktop viewport     → desktopCrop ?? crop
+ultra-wide viewport  → ultraWideCrop ?? desktopCrop ?? crop
+```
+
+### Rendering Strategy
+
+Default strategy:
+
+- render one `PublicImage(preset="hero-banner")` as the primary image;
+- use placement crop to control focal point;
+- keep `object-fit: cover`.
+
+Fallback strategy for difficult images:
+
+- `backgroundMode: "blur-fill"` renders a blurred, enlarged background layer;
+- the primary image still renders above it using the same placement crop;
+- this is only for hero art direction, not a generic crop hack.
+
+### Editor Requirements
+
+The editor must eventually allow hero-specific crop preview:
+
+- desktop wide preview;
+- current hero ratio preview;
+- mobile hero preview;
+- warning when image composition is poor for full-bleed hero;
+- optional `hero-banner` placement override;
+- explicit ultra-wide preview because this is where the current black edge
+  appears.
+
+### Acceptance Criteria
+
+- No hero source requires a carousel-local hard-coded `object-position`.
+- The homepage hero can choose mobile, desktop, and ultra-wide focal crops.
+- Authors can preview the exact visible crop before publishing.
+- Ultra-wide viewport QA confirms no unwanted edge band for the current banner.
+- The implementation remains split correctly:
+  `packages/public-ui` owns renderer slot and layout;
+  `apps/public` owns Next image rendering;
+  editor/dashboard owns placement editing.
+
 ## Do Not Do
 
 - Do not use per-page `scale-110` to fix crop blank space. Decorative blurred backdrops (e.g. series header atmospheric layer) may use explicit overscan (`scale-110`) if the intent is visual blur overscan, not crop compensation, and it is documented at the call site.
@@ -287,6 +562,13 @@ Status: Done
 - Do not pass raw crop transform styles through multiple components.
 - Do not let each page define its own `sizes` and aspect-ratio semantics.
 - Do not duplicate preview rendering outside the canonical renderer.
+- Do not rewrite `/media/...` API data to Docker-internal backend URLs.
+- Do not use `remotePatterns: [{ hostname: "**" }]` for `next/image`.
+- Do not import `next/image` or app-local `PublicImage` from `packages/public-ui`.
+- Do not fix homepage hero full-width issues by hard-coding `object-position`
+  in the carousel. Hero must use `hero-banner` preset and image renderer slot.
+- Do not treat the remaining hero black edge as a media URL, optimizer, or
+  `object-fit` issue. It requires hero art direction.
 
 ## Definition Of Done
 
@@ -298,4 +580,9 @@ The media system is complete when:
 - authors can inspect at least card, banner, avatar/logo, and mobile previews;
 - per-preset overrides are supported for advanced cases;
 - `next/image` remains isolated to the Next public app boundary;
+- `/media/...` works for both browser `<img>` and Next image optimizer;
+- shared UI image components support host renderer injection where needed;
+- homepage hero uses the `hero-banner` preset through the host renderer slot;
+- hero art direction supports placement-specific crops for mobile, desktop, and
+  ultra-wide hero previews;
 - browser QA confirms no blank space on homepage cards/banners at common widths.

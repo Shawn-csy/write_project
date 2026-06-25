@@ -1,6 +1,7 @@
 /**
  * Pure banner conversion helpers — no React, server-safe.
  */
+import type { MediaCropLike } from "@write/media-crop";
 
 /**
  * Placeholder slides for development / Storybook / test fixtures only.
@@ -43,6 +44,31 @@ export interface HeroSlide {
   content?: string;
   className?: string;
   link?: string;
+  /**
+   * Structured image data with optional art-direction crops per viewport.
+   * Host apps inject a preset-aware renderer via PublicHeroMarqueeProps.renderImage.
+   * Preferred over the legacy imageUrl field.
+   *
+   * Crop resolution order (most specific wins):
+   *   mobile viewport      → mobileCrop ?? crop
+   *   desktop viewport     → desktopCrop ?? crop
+   *   ultra-wide viewport  → ultraWideCrop ?? desktopCrop ?? crop
+   *
+   * backgroundMode "blur-fill": host renderer should render a blurred enlarged
+   * background layer beneath the primary image to fill edge areas on ultra-wide
+   * displays. The primary image still uses its placement crop.
+   */
+  image?: {
+    url: string;
+    alt?: string;
+    /** Generic focal crop — fallback when no viewport-specific crop is set. */
+    crop?: MediaCropLike | null;
+    mobileCrop?: MediaCropLike | null;
+    desktopCrop?: MediaCropLike | null;
+    ultraWideCrop?: MediaCropLike | null;
+    backgroundMode?: "cover" | "blur-fill";
+  };
+  /** @deprecated Use image.url instead. Kept for backwards compatibility. */
   imageUrl?: string;
   /** 0-100. Undefined = auto (show overlay only when text present). 0 = no overlay. */
   overlayOpacity?: number;
@@ -58,21 +84,29 @@ export function parseBannerSlides(banner: unknown): HeroSlide[] | undefined {
   const items = Array.isArray(b.items) ? (b.items as Record<string, unknown>[]) : [];
   const valid = items.filter((item) => item.title || item.content || item.link || item.imageUrl);
   if (valid.length > 0) {
-    return valid.map((item, idx) => ({
-      id: (item.id as string | undefined) ?? `banner-${idx + 1}`,
-      title: item.title as string | undefined,
-      subtitle: item.content as string | undefined,
-      link: item.link as string | undefined,
-      imageUrl: item.imageUrl as string | undefined,
-    }));
+    return valid.map((item, idx) => {
+      const imageUrl = item.imageUrl as string | undefined;
+      const imageCrop = item.imageCrop as MediaCropLike | null | undefined;
+      return {
+        id: (item.id as string | undefined) ?? `banner-${idx + 1}`,
+        title: item.title as string | undefined,
+        subtitle: item.content as string | undefined,
+        link: item.link as string | undefined,
+        imageUrl,
+        ...(imageUrl ? { image: { url: imageUrl, crop: imageCrop ?? null } } : {}),
+      };
+    });
   }
   if (b.title || b.content || b.link || b.imageUrl) {
+    const imageUrl = b.imageUrl as string | undefined;
+    const imageCrop = b.imageCrop as MediaCropLike | null | undefined;
     return [{
       id: "banner-0",
       title: b.title as string | undefined,
       subtitle: b.content as string | undefined,
       link: b.link as string | undefined,
-      imageUrl: b.imageUrl as string | undefined,
+      imageUrl,
+      ...(imageUrl ? { image: { url: imageUrl, crop: imageCrop ?? null } } : {}),
     }];
   }
   return undefined;
