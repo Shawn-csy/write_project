@@ -27,7 +27,7 @@ export { createLocalStorageReaderStorage } from "./readerStorage";
 
 // Shared UI components
 export { ReaderPreferencesPanel } from "./ReaderPreferencesPanel";
-export type { ReaderPreferencesPanelProps } from "./ReaderPreferencesPanel";
+export type { ReaderPreferencesPanelProps, SegmentRenderProp } from "./ReaderPreferencesPanel";
 export { MarkerVisibilityMenu } from "./MarkerVisibilityMenu";
 export type { MarkerVisibilityMenuProps } from "./MarkerVisibilityMenu";
 export { TocMenu } from "./TocMenu";

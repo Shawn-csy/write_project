@@ -35,17 +35,32 @@ const DefaultTrigger = React.forwardRef<HTMLButtonElement, { label: string }>(
   }
 );
 
+/** Render prop for a segmented control row. Host may inject an animated variant. */
+export type SegmentRenderProp = (
+  options: { value: string; label: string }[],
+  value: string,
+  onChange: (v: string) => void,
+  groupLabel: string,
+) => React.ReactNode;
+
 export interface ReaderPreferencesPanelProps {
   preferences: ReaderPreferencesState;
   /** Label for the trigger button. Default: "閱讀設定" */
   triggerLabel?: string;
   align?: "start" | "center" | "end";
+  /**
+   * Optional host-injected renderer for segmented controls (theme, font, line-height).
+   * Receives (options, value, onChange, groupLabel). Return null to fall back to default buttons.
+   * Keeps this package dependency-free from animation libraries.
+   */
+  renderSegment?: SegmentRenderProp;
 }
 
 export function ReaderPreferencesPanel({
   preferences,
   triggerLabel = "閱讀設定",
   align = "end",
+  renderSegment,
 }: ReaderPreferencesPanelProps) {
   const { preferences: prefs, setTheme, setFontSize, setLineHeight, setFontFamily } = preferences;
 
@@ -66,43 +81,56 @@ export function ReaderPreferencesPanel({
             {/* Theme */}
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-1.5">主題</div>
-              <div className="flex gap-1">
-                {THEME_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setTheme(opt.value)}
-                    className={`flex-1 text-xs py-1 rounded border transition-colors ${
-                      prefs.theme === opt.value
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border/60 text-muted-foreground hover:text-foreground hover:border-border"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
+              {renderSegment
+                ? renderSegment(THEME_OPTIONS, prefs.theme, (v) => setTheme(v as ReaderTheme), "主題")
+                : (
+                  <div className="flex gap-1">
+                    {THEME_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setTheme(opt.value)}
+                        className={`flex-1 text-xs py-1 rounded border transition-colors ${
+                          prefs.theme === opt.value
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border/60 text-muted-foreground hover:text-foreground hover:border-border"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
             </div>
 
             {/* Font family */}
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-1.5">字型</div>
-              <div className="flex gap-1">
-                {READER_FONT_FAMILIES.map((family) => (
-                  <button
-                    key={family}
-                    type="button"
-                    onClick={() => setFontFamily(family as ReaderFontFamily)}
-                    className={`flex-1 text-xs py-1 rounded border transition-colors ${
-                      prefs.fontFamily === family
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border/60 text-muted-foreground hover:text-foreground hover:border-border"
-                    }`}
-                  >
-                    {FONT_FAMILY_LABELS[family as ReaderFontFamily]}
-                  </button>
-                ))}
-              </div>
+              {renderSegment
+                ? renderSegment(
+                    READER_FONT_FAMILIES.map((f) => ({ value: f, label: FONT_FAMILY_LABELS[f as ReaderFontFamily] })),
+                    prefs.fontFamily,
+                    (v) => setFontFamily(v as ReaderFontFamily),
+                    "字型",
+                  )
+                : (
+                  <div className="flex gap-1">
+                    {READER_FONT_FAMILIES.map((family) => (
+                      <button
+                        key={family}
+                        type="button"
+                        onClick={() => setFontFamily(family as ReaderFontFamily)}
+                        className={`flex-1 text-xs py-1 rounded border transition-colors ${
+                          prefs.fontFamily === family
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border/60 text-muted-foreground hover:text-foreground hover:border-border"
+                        }`}
+                      >
+                        {FONT_FAMILY_LABELS[family as ReaderFontFamily]}
+                      </button>
+                    ))}
+                  </div>
+                )}
             </div>
 
             {/* Font size */}
@@ -156,22 +184,31 @@ export function ReaderPreferencesPanel({
               <div className="text-xs font-medium text-muted-foreground mb-1.5">
                 行距 ({prefs.lineHeight})
               </div>
-              <div className="flex gap-1">
-                {READER_LINE_HEIGHTS.map((lh) => (
-                  <button
-                    key={lh}
-                    type="button"
-                    onClick={() => setLineHeight(lh as ReaderLineHeight)}
-                    className={`flex-1 text-xs py-1 rounded border transition-colors ${
-                      prefs.lineHeight === lh
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border/60 text-muted-foreground hover:text-foreground hover:border-border"
-                    }`}
-                  >
-                    {lh}
-                  </button>
-                ))}
-              </div>
+              {renderSegment
+                ? renderSegment(
+                    READER_LINE_HEIGHTS.map((lh) => ({ value: String(lh), label: String(lh) })),
+                    String(prefs.lineHeight),
+                    (v) => setLineHeight(Number(v) as ReaderLineHeight),
+                    "行距",
+                  )
+                : (
+                  <div className="flex gap-1">
+                    {READER_LINE_HEIGHTS.map((lh) => (
+                      <button
+                        key={lh}
+                        type="button"
+                        onClick={() => setLineHeight(lh as ReaderLineHeight)}
+                        className={`flex-1 text-xs py-1 rounded border transition-colors ${
+                          prefs.lineHeight === lh
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border/60 text-muted-foreground hover:text-foreground hover:border-border"
+                        }`}
+                      >
+                        {lh}
+                      </button>
+                    ))}
+                  </div>
+                )}
             </div>
 
             {/* Reset */}

@@ -8,12 +8,15 @@ describe("GalleryBrandHeroSlide", () => {
     render(<GalleryBrandHeroSlide />);
     const slide = screen.getByTestId("brand-hero-slide");
     const backdrop = screen.getByTestId("brand-hero-backdrop");
+    const scriptSea = screen.getByTestId("brand-script-sea");
 
     expect(slide.className).toContain("absolute");
     expect(slide.className).toContain("inset-0");
     expect(backdrop.className).toContain("absolute");
     expect(backdrop.className).toContain("inset-0");
     expect(backdrop.className).toContain("editorial-brand-hero-backdrop");
+    expect(scriptSea.getAttribute("aria-hidden")).toBe("true");
+    expect(scriptSea.className).toContain("pointer-events-none");
   });
 
   it("keeps the brand copy inside the carousel-owned frame", () => {

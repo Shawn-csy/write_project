@@ -3,16 +3,20 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ReaderToolbar } from "./ReaderToolbar";
 
-vi.mock("@write/script-reader-ui", () => ({
-  ReaderToolbar: ({ startSlot, centerSlot, endSlot, contentClassName }: {
-    startSlot?: React.ReactNode;
-    centerSlot?: React.ReactNode;
-    endSlot?: React.ReactNode;
-    contentClassName?: string;
-  }) => (
-    <div data-testid="shared-toolbar" data-content-class={contentClassName}>{startSlot}{centerSlot}{endSlot}</div>
-  ),
-}));
+vi.mock("@write/script-reader-ui", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@write/script-reader-ui")>();
+  return {
+    ...actual,
+    ReaderToolbar: ({ startSlot, centerSlot, endSlot, contentClassName }: {
+      startSlot?: React.ReactNode;
+      centerSlot?: React.ReactNode;
+      endSlot?: React.ReactNode;
+      contentClassName?: string;
+    }) => (
+      <div data-testid="shared-toolbar" data-content-class={contentClassName}>{startSlot}{centerSlot}{endSlot}</div>
+    ),
+  };
+});
 
 const fakeState = {} as Parameters<typeof ReaderToolbar>[0]["readerState"];
 
