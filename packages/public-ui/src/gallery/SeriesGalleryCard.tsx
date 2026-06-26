@@ -152,7 +152,7 @@ function SeriesGalleryCardInner({
           <div className="min-w-0 flex-1 space-y-0.5">
             <div className="flex min-w-0 items-center gap-1.5">
               <Layers className="w-3 h-3 shrink-0 text-primary/60" aria-hidden />
-              <span className="[font-size:var(--public-font-caption)] text-primary/70 font-medium shrink-0">系列</span>
+              <span className="[font-size:var(--public-font-caption)] text-primary font-medium shrink-0">系列</span>
               <span className="[font-size:var(--public-font-caption)] text-muted-foreground">· {chapterCount} 部</span>
             </div>
             <div className="min-w-0 [font-size:var(--public-font-card-title)] font-semibold leading-tight text-foreground line-clamp-1 transition-colors duration-200 group-hover:text-primary">
@@ -205,15 +205,15 @@ function SeriesGalleryCardInner({
 
       {/* Meta */}
       <div className="pt-2.5 space-y-1">
-        <p className="[font-size:var(--public-font-caption)] text-primary/70 font-medium flex items-center gap-1">
+        <p className="[font-size:var(--public-font-caption)] text-primary font-medium flex items-center gap-1">
           <Layers className="w-3 h-3" aria-hidden />
           系列
         </p>
-        <h3 className="font-serif [font-size:var(--public-font-card-title)] font-semibold leading-snug line-clamp-2">
+        <h2 className="font-serif [font-size:var(--public-font-card-title)] font-semibold leading-snug line-clamp-2">
           <a href={href} className="text-foreground group-hover:text-primary transition-colors no-underline">
             {name}
           </a>
-        </h3>
+        </h2>
 
         {authorEl}
 
@@ -226,7 +226,7 @@ function SeriesGalleryCardInner({
             {chapterCount} 部
           </span>
           {updatedLabel && (
-            <span className="[font-size:var(--public-font-caption)] text-muted-foreground/70">
+            <span className="[font-size:var(--public-font-caption)] text-muted-foreground">
               更新 {updatedLabel}
             </span>
           )}

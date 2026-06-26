@@ -85,7 +85,6 @@ export function PublicGalleryTopBar({
         <a
           href="/"
           className="flex items-center gap-2.5 shrink-0 group absolute left-1/2 -translate-x-1/2 sm:static sm:translate-x-0 sm:mr-0"
-          aria-label={brandName}
         >
           {/* Ink-stamp logo mark */}
           <div className="relative w-7 h-7 shrink-0">

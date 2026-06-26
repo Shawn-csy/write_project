@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { apiFetch } from "@/lib/api";
@@ -11,13 +12,13 @@ import { JsonLdScript } from "@/lib/jsonLd";
 export const revalidate = 3600;
 export const dynamicParams = true;
 
-async function fetchOrg(id: string): Promise<PublicOrg | null> {
+const fetchOrg = cache(async (id: string): Promise<PublicOrg | null> => {
   try {
     return await apiFetch<PublicOrg>(`/public-organizations/${id}`);
   } catch {
     return null;
   }
-}
+});
 
 async function fetchScripts(orgId: string): Promise<PublicScript[]> {
   try {

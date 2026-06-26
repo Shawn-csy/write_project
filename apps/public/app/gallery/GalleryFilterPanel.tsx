@@ -67,7 +67,7 @@ export function GalleryFilterPanel({
 
   const hiddenCount = shouldCollapse ? displayTags.length - visibleTags.length : 0;
 
-  const sectionLabel = "mb-2.5 [font-size:var(--public-font-caption)] font-semibold tracking-[0.18em] uppercase text-muted-foreground/60";
+  const sectionLabel = "mb-2.5 [font-size:var(--public-font-caption)] font-semibold tracking-[0.18em] uppercase text-muted-foreground";
   const divider = "border-t border-border/40 pt-4 mt-1";
   const activeChip = "bg-primary text-primary-foreground shadow-sm border border-primary";
   const idleChip = "border border-border/50 bg-transparent text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5";
@@ -179,7 +179,7 @@ export function GalleryFilterPanel({
             <button
               type="button"
               onClick={() => setTagsExpanded(true)}
-              className="mt-2 [font-size:var(--public-font-caption)] text-primary/80 hover:text-primary transition-colors"
+              className="mt-2 [font-size:var(--public-font-caption)] text-primary hover:text-primary/80 transition-colors"
             >
               展開更多（{hiddenCount}）
             </button>
@@ -188,7 +188,7 @@ export function GalleryFilterPanel({
             <button
               type="button"
               onClick={() => setTagsExpanded(false)}
-              className="mt-2 [font-size:var(--public-font-caption)] text-muted-foreground/60 hover:text-foreground transition-colors"
+              className="mt-2 [font-size:var(--public-font-caption)] text-muted-foreground hover:text-foreground transition-colors"
             >
               收合標籤
             </button>

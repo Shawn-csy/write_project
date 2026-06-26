@@ -68,7 +68,7 @@ describe("SeriesGalleryCard — standard", () => {
     const { container } = render(
       <SeriesGalleryCard series={SERIES} variant="standard" href="/series/my-series" />
     );
-    const titleLink = container.querySelector("h3 a") as HTMLAnchorElement;
+    const titleLink = container.querySelector("h2 a") as HTMLAnchorElement;
     expect(titleLink).not.toBeNull();
     expect(titleLink.href).toContain("/series/my-series");
   });

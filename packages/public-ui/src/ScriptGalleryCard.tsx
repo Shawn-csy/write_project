@@ -98,14 +98,14 @@ function AuthorBadgeInternal({ author, authorHref, onAuthorClick }: AuthorBadgeI
   );
 
   const avatarEl = avatarUrl ? (
-    <img src={cropAvatar.src} style={cropAvatar.style as React.CSSProperties} alt={displayName} className="w-4 h-4 rounded-full object-cover" />
+    <img src={cropAvatar.src} style={cropAvatar.style as React.CSSProperties} alt="" className="w-4 h-4 rounded-full object-cover" aria-hidden="true" />
   ) : (
     <span className="w-3.5 h-3.5 inline-block" aria-hidden />
   );
 
   const nameEl = <span className="font-medium">{displayName || "未知作者"}</span>;
 
-  const baseClass = "flex items-center gap-1.5 [font-size:var(--public-font-meta)] text-muted-foreground/80 transition-colors";
+  const baseClass = "flex items-center gap-1.5 [font-size:var(--public-font-meta)] text-muted-foreground transition-colors";
 
   if (authorHref) {
     return (
@@ -150,7 +150,7 @@ function Tags({ primaryTags, secondaryTags, totalCount, tagHref, onTagClick, com
   if (primaryTags.length === 0) return null;
 
   const renderTag = (tag: string, key: string, hidden?: boolean) => {
-    const cls = `${hidden ? "hidden sm:inline-flex" : ""} max-w-[110px] px-1.5 py-0 h-5 [font-size:var(--public-font-caption)] font-normal text-muted-foreground/80 rounded-[4px] truncate` + " " + "border border-border/40 bg-muted/40";
+    const cls = `${hidden ? "hidden sm:inline-flex" : ""} max-w-[110px] px-1.5 py-0 h-5 [font-size:var(--public-font-caption)] font-normal text-muted-foreground rounded-[4px] truncate` + " " + "border border-border/40 bg-muted/40";
     if (tagHref) {
       return <a key={key} href={tagHref(tag)} className={`${cls} hover:bg-secondary no-underline`} title={tag}>{tag}</a>;
     }
@@ -293,6 +293,7 @@ function ScriptGalleryCardInner({
       alt={title}
       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
       loading="lazy"
+      sizes="(max-width: 640px) 45vw, (max-width: 1024px) 25vw, 180px"
     />
   ) : coverDesign ? (
     <CoverRenderer design={coverDesign} title={title ?? ""} compact responsive className="h-full w-full" />
@@ -349,11 +350,11 @@ function ScriptGalleryCardInner({
       className={`flex items-center gap-1 bg-transparent border-none p-0 ${onLike ? "cursor-pointer transition-colors" : "cursor-default"} ${isLiked ? "text-destructive" : "hover:text-foreground"}`}
       onClick={onLike ? handleLike : undefined}
       disabled={!onLike}
-      aria-label={isLiked ? "取消喜歡" : "喜歡"}
+      aria-label={isLiked ? `取消喜歡（${likeCount}）` : `喜歡（${likeCount}）`}
       aria-pressed={isLiked}
     >
-      <Heart className={`w-3.5 h-3.5 ${isLiked ? "fill-current" : ""}`} />
-      <span>{likeCount.toLocaleString()}</span>
+      <Heart className={`w-3.5 h-3.5 ${isLiked ? "fill-current" : ""}`} aria-hidden="true" />
+      <span aria-hidden="true">{likeCount.toLocaleString()}</span>
     </button>
   );
 
@@ -482,7 +483,7 @@ function ScriptGalleryCardInner({
 
       {/* Meta */}
       <div className="pt-2.5 space-y-1">
-        <h3 className="font-serif [font-size:var(--public-font-card-title)] font-semibold leading-snug line-clamp-2">
+        <h2 className="font-serif [font-size:var(--public-font-card-title)] font-semibold leading-snug line-clamp-2">
           {href ? (
             <a href={href} className="text-foreground group-hover:text-primary transition-colors no-underline" onClick={() => onView?.(id)}>
               {title}
@@ -490,7 +491,7 @@ function ScriptGalleryCardInner({
           ) : (
             <span className="text-foreground group-hover:text-primary transition-colors">{title}</span>
           )}
-        </h3>
+        </h2>
 
         <div className="pt-1">{authorEl}</div>
 
@@ -512,7 +513,7 @@ function ScriptGalleryCardInner({
           className="flex items-center justify-between pt-2 mt-2"
           style={{ borderTop: "1px solid hsl(var(--border) / 0.45)" }}
         >
-          <div className="flex items-center gap-3 [font-size:var(--public-font-meta)] text-muted-foreground/80">
+          <div className="flex items-center gap-3 [font-size:var(--public-font-meta)] text-muted-foreground">
             <div className="flex items-center gap-1">
               <Eye className="w-3 h-3" aria-hidden />
               <span>{views.toLocaleString()}</span>
@@ -520,7 +521,7 @@ function ScriptGalleryCardInner({
             {likeEl}
           </div>
           {estDurationMinutes !== null && estDurationMinutes > 0 && (
-            <span className="[font-size:var(--public-font-caption)] text-muted-foreground/50">
+            <span className="[font-size:var(--public-font-caption)] text-muted-foreground">
               {estDurationMinutes < 1 ? "< 1 分" : `${estDurationMinutes} 分`}
             </span>
           )}
