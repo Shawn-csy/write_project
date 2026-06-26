@@ -3,6 +3,7 @@
 import * as Popover from "@radix-ui/react-popover";
 import { Sun, Moon, Monitor, SlidersHorizontal } from "lucide-react";
 import { usePublicAppearance } from "@/components/PublicAppearanceContext";
+import { AnimatedSegment } from "@/components/AnimatedSegment";
 import type { AppearanceTheme, SiteTextScale } from "@/lib/publicAppearancePreferences";
 
 const THEME_OPTIONS: { value: AppearanceTheme; label: string; Icon: React.FC<{ className?: string }> }[] = [
@@ -19,9 +20,6 @@ const SITE_TEXT_SCALE_OPTIONS: { value: SiteTextScale; label: string }[] = [
 ];
 
 const sectionHeadingClass = "mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/55";
-const segBtnBase = "flex-1 rounded-[5px] py-1.5 text-[0.8rem] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30";
-const segBtnActive = "bg-background text-foreground shadow-sm";
-const segBtnInactive = "text-muted-foreground hover:text-foreground";
 
 export function PublicAppearanceMenu() {
   const { prefs, setTheme, setSiteTextScale } = usePublicAppearance();
@@ -53,38 +51,32 @@ export function PublicAppearanceMenu() {
           {/* Theme */}
           <section>
             <p className={sectionHeadingClass}>主題</p>
-            <div className="flex gap-0.5 rounded-lg p-0.5 bg-muted" role="group" aria-label="主題">
-              {THEME_OPTIONS.map(({ value, label, Icon }) => (
-                <button
-                  key={value}
-                  type="button"
-                  aria-pressed={prefs.theme === value}
-                  onClick={() => setTheme(value)}
-                  className={`${segBtnBase} flex items-center justify-center gap-1.5 ${prefs.theme === value ? segBtnActive : segBtnInactive}`}
-                >
-                  <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                  <span>{label}</span>
-                </button>
-              ))}
-            </div>
+            <AnimatedSegment
+              options={THEME_OPTIONS}
+              value={prefs.theme}
+              onChange={setTheme}
+              label="主題"
+              renderOption={(opt) => {
+                const full = THEME_OPTIONS.find((o) => o.value === opt.value)!;
+                return (
+                  <span className="flex items-center justify-center gap-1.5">
+                    <full.Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    <span>{opt.label}</span>
+                  </span>
+                );
+              }}
+            />
           </section>
 
           {/* Site text scale */}
           <section>
             <p className={sectionHeadingClass}>首頁文字</p>
-            <div className="flex gap-0.5 rounded-lg p-0.5 bg-muted" role="group" aria-label="首頁文字">
-              {SITE_TEXT_SCALE_OPTIONS.map(({ value, label }) => (
-                <button
-                  key={value}
-                  type="button"
-                  aria-pressed={prefs.siteTextScale === value}
-                  onClick={() => setSiteTextScale(value)}
-                  className={`${segBtnBase} ${prefs.siteTextScale === value ? segBtnActive : segBtnInactive}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <AnimatedSegment
+              options={SITE_TEXT_SCALE_OPTIONS}
+              value={prefs.siteTextScale}
+              onChange={setSiteTextScale}
+              label="首頁文字"
+            />
           </section>
 
         </Popover.Content>

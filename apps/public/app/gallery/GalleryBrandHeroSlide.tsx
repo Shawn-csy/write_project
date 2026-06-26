@@ -1,5 +1,7 @@
 "use client";
 
+import { BrandScriptSea } from "./BrandScriptSea";
+
 /**
  * Brand hero slide content — renders inside PublicHeroMarquee's carousel frame.
  * No outer <section> or height control: the carousel container owns dimensions.
@@ -8,6 +10,7 @@ export function GalleryBrandHeroSlide() {
   return (
     <div className="absolute inset-0 overflow-hidden bg-background" data-testid="brand-hero-slide">
       <div className="absolute inset-0 pointer-events-none editorial-brand-hero-backdrop" data-testid="brand-hero-backdrop" aria-hidden />
+      <BrandScriptSea />
 
       {/* Decorative ruled lines */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>

@@ -19,6 +19,11 @@ export interface ReaderToolbarProps {
   renderTocItem?: (entry: TocStateEntry, close: () => void) => React.ReactNode;
   /** className applied to the inner content row. Use to constrain width (e.g. "max-w-4xl mx-auto"). */
   contentClassName?: string;
+  /**
+   * Host-injected segmented control renderer passed to ReaderPreferencesPanel.
+   * Allows animated variants without adding animation dependencies to this package.
+   */
+  renderSegment?: import("./ReaderPreferencesPanel").SegmentRenderProp;
 }
 
 export function ReaderToolbar({
@@ -29,6 +34,7 @@ export function ReaderToolbar({
   onTocItemClick,
   renderTocItem,
   contentClassName = "",
+  renderSegment,
 }: ReaderToolbarProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/95 backdrop-blur">
@@ -49,7 +55,7 @@ export function ReaderToolbar({
             onItemClick={onTocItemClick}
             renderItem={renderTocItem}
           />
-          <ReaderPreferencesPanel preferences={readerState.preferences} />
+          <ReaderPreferencesPanel preferences={readerState.preferences} renderSegment={renderSegment} />
           {endSlot}
         </div>
       </div>
