@@ -402,8 +402,8 @@ Reasoning:
 - [x] Sitemap includes canonical series pages.
 - [x] Sitemap excludes retired `/gallery`.
 - [x] Static pages use shared SEO constants/helpers.
-- [ ] JSON-LD is emitted only through `JsonLdScript`. (Phase 6 — pending audit)
-- [ ] Query URLs canonicalize to the base public route. (Phase 7 — pending audit)
+- [x] JSON-LD is emitted only through `JsonLdScript`. (Phase 6 — audited: all 6 routes correct)
+- [x] Query URLs canonicalize to the base public route. (Phase 7 — audited: all generateMetadata use path-only canonical)
 - [x] SEO contract tests cover sitemap, robots, OG fallback, and representative metadata.
 - [ ] Production Search Console validation is recorded after deploy. (Phase 9 — post-deploy)
 
