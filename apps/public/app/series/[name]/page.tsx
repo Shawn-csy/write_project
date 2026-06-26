@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { apiFetch } from "@/lib/api";
@@ -28,7 +29,7 @@ interface SeriesData {
   latestScriptId?: string;
 }
 
-async function fetchSeriesData(seriesName: string): Promise<SeriesData> {
+const fetchSeriesData = cache(async (seriesName: string): Promise<SeriesData> => {
   try {
     const bundle = await apiFetch<BundleResponse>("/public-bundle");
     const rawScripts = bundle.scripts ?? [];
@@ -45,7 +46,7 @@ async function fetchSeriesData(seriesName: string): Promise<SeriesData> {
   } catch {
     return { scripts: [] };
   }
-}
+});
 
 export async function generateMetadata({
   params,

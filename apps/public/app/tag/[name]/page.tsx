@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { apiFetch } from "@/lib/api";
@@ -16,14 +17,14 @@ interface BundleResponse {
   scripts?: PublicScript[];
 }
 
-async function fetchTagScripts(tagName: string): Promise<PublicScript[]> {
+const fetchTagScripts = cache(async (tagName: string): Promise<PublicScript[]> => {
   try {
     const bundle = await apiFetch<BundleResponse>("/public-bundle");
     return filterScriptsByTag(bundle.scripts ?? [], tagName);
   } catch {
     return [];
   }
-}
+});
 
 export async function generateMetadata({
   params,

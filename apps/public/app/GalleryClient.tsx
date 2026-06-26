@@ -192,8 +192,8 @@ export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHe
           )}
 
           <p
-            className="mb-4 [font-size:var(--public-font-caption)]"
-            style={{ color: "hsl(var(--muted-foreground) / 0.7)", letterSpacing: "0.01em" }}
+            className="mb-4 [font-size:var(--public-font-caption)] text-muted-foreground"
+            style={{ letterSpacing: "0.01em" }}
           >
             {filterPanelProps.searchTerm
               ? `搜尋「${filterPanelProps.searchTerm}」— ${resultCount} 筆結果`
