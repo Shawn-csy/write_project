@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { PublicShellActions } from "@/components/PublicShellActions";
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://open-scripts.shawnup.com";
+import { BASE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Terms of Service｜泛用型產品作坊",
