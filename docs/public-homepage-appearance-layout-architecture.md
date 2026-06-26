@@ -252,7 +252,7 @@ Mobile behavior remains unchanged: use the bottom/mobile sheet.
 - Tests: within-group queries for site text scale; `setSiteTextScale` call; `aria-pressed`
   state; no reader-only controls in the public homepage appearance panel.
 
-### Phase 4 — Token Adoption In Homepage Components ✅ (4a done; 4b pending)
+### Phase 4 — Token Adoption In Homepage Components ✅
 
 #### Phase 4a — Gallery Cards + Hover Preview ✅
 
@@ -267,7 +267,7 @@ with CSS variable tokens in:
 
 No layout geometry changed (card dimensions, cover aspect ratio, grid gap untouched).
 
-#### Phase 4b — Filter Panel, People Grid, Result Count (pending)
+#### Phase 4b — Filter Panel, People Grid, Result Count ✅
 
 1. `GalleryFilterPanel`
    - section labels;
