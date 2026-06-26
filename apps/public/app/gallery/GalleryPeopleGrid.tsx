@@ -40,7 +40,7 @@ function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: 
             key={tag}
             type="button"
             onClick={() => onToggleTag(tag)}
-            className={`h-6 px-2.5 text-xs font-medium rounded-[5px] border transition-all duration-150 ${
+            className={`h-6 px-2.5 [font-size:var(--public-font-caption)] font-medium rounded-[5px] border transition-all duration-150 ${
               active
                 ? "border-primary bg-primary text-primary-foreground shadow-sm"
                 : "border-border/50 bg-transparent text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
@@ -54,7 +54,7 @@ function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: 
         <button
           type="button"
           onClick={onResetFilters}
-          className="h-6 px-2.5 text-xs rounded-[5px] border border-border/50 bg-transparent text-muted-foreground hover:text-foreground hover:border-border transition-all duration-150"
+          className="h-6 px-2.5 [font-size:var(--public-font-caption)] rounded-[5px] border border-border/50 bg-transparent text-muted-foreground hover:text-foreground hover:border-border transition-all duration-150"
         >
           清除篩選
         </button>
@@ -79,12 +79,12 @@ function AuthorCard({ author, onTagClick }: { author: PublicPersona; onTagClick:
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-medium text-sm truncate">{author.displayName}</p>
+          <p className="font-medium [font-size:var(--public-font-body)] truncate">{author.displayName}</p>
           {author.bio && (
-            <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{author.bio}</p>
+            <p className="[font-size:var(--public-font-caption)] text-muted-foreground line-clamp-2 mt-0.5">{author.bio}</p>
           )}
           {author.organizations && author.organizations.length > 0 && (
-            <p className="text-xs text-muted-foreground mt-0.5 truncate flex items-center gap-1">
+            <p className="[font-size:var(--public-font-caption)] text-muted-foreground mt-0.5 truncate flex items-center gap-1">
               <BuildingIcon />
               {author.organizations.map((o) => o.name).join("、")}
             </p>
@@ -98,7 +98,7 @@ function AuthorCard({ author, onTagClick }: { author: PublicPersona; onTagClick:
               key={tag}
               type="button"
               onClick={() => onTagClick(tag)}
-              className="text-xs px-2 py-0.5 rounded-[4px] border border-border/40 bg-muted/40 text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
+              className="[font-size:var(--public-font-caption)] px-2 py-0.5 rounded-[4px] border border-border/40 bg-muted/40 text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
             >
               {tag}
             </button>
@@ -127,12 +127,12 @@ function OrgCard({ org, onTagClick }: { org: PublicOrg; onTagClick: (tag: string
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-medium text-sm truncate">{org.name}</p>
+          <p className="font-medium [font-size:var(--public-font-body)] truncate">{org.name}</p>
           {org.description && (
-            <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{org.description}</p>
+            <p className="[font-size:var(--public-font-caption)] text-muted-foreground line-clamp-2 mt-0.5">{org.description}</p>
           )}
           {memberCount != null && memberCount > 0 && (
-            <p className="text-xs text-muted-foreground mt-0.5">{memberCount} 位成員</p>
+            <p className="[font-size:var(--public-font-caption)] text-muted-foreground mt-0.5">{memberCount} 位成員</p>
           )}
         </div>
       </a>
@@ -143,7 +143,7 @@ function OrgCard({ org, onTagClick }: { org: PublicOrg; onTagClick: (tag: string
             href={org.website}
             target="_blank"
             rel="noreferrer"
-            className="text-xs text-primary hover:underline truncate flex items-center gap-1"
+            className="[font-size:var(--public-font-caption)] text-primary hover:underline truncate flex items-center gap-1"
           >
             <LinkIcon />
             {org.website}
@@ -158,7 +158,7 @@ function OrgCard({ org, onTagClick }: { org: PublicOrg; onTagClick: (tag: string
               key={tag}
               type="button"
               onClick={() => onTagClick(tag)}
-              className="text-xs px-2 py-0.5 rounded-[4px] border border-border/40 bg-muted/40 text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
+              className="[font-size:var(--public-font-caption)] px-2 py-0.5 rounded-[4px] border border-border/40 bg-muted/40 text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
             >
               {tag}
             </button>
@@ -174,14 +174,14 @@ function OrgCard({ org, onTagClick }: { org: PublicOrg; onTagClick: (tag: string
 type PeopleStatus = "idle" | "loading" | "loaded" | "error";
 
 function PeopleLoading() {
-  return <p className="text-sm text-muted-foreground py-16 text-center">載入中...</p>;
+  return <p className="[font-size:var(--public-font-body)] text-muted-foreground py-16 text-center">載入中...</p>;
 }
 
 function PeopleError({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="py-16 text-center">
-      <p className="text-sm text-muted-foreground">載入失敗</p>
-      <button type="button" onClick={onRetry} className="mt-2 text-sm text-primary underline">重試</button>
+      <p className="[font-size:var(--public-font-body)] text-muted-foreground">載入失敗</p>
+      <button type="button" onClick={onRetry} className="mt-2 [font-size:var(--public-font-body)] text-primary underline">重試</button>
     </div>
   );
 }
@@ -227,7 +227,7 @@ export function GalleryAuthorGrid({
           return <AuthorCard key={author.id} author={author} onTagClick={onToggleTag} />;
         })}
         {filteredAuthors.length === 0 && (
-          <p className="col-span-full py-16 text-center text-muted-foreground text-sm">
+          <p className="col-span-full py-16 text-center text-muted-foreground [font-size:var(--public-font-body)]">
             找不到符合的作者
           </p>
         )}
@@ -277,7 +277,7 @@ export function GalleryOrgGrid({
           return <OrgCard key={org.id} org={org} onTagClick={onToggleTag} />;
         })}
         {filteredOrgs.length === 0 && (
-          <p className="col-span-full py-16 text-center text-muted-foreground text-sm">
+          <p className="col-span-full py-16 text-center text-muted-foreground [font-size:var(--public-font-body)]">
             找不到符合的組織
           </p>
         )}

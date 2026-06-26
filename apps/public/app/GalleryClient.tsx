@@ -111,7 +111,7 @@ export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHe
           <aside className="hidden lg:flex lg:flex-col w-60 shrink-0">
             <div className="sticky top-20">
               <div className="flex items-center justify-between mb-2 px-1">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">篩選</span>
+                <span className="[font-size:var(--public-font-caption)] font-semibold text-muted-foreground uppercase tracking-widest">篩選</span>
                 <button
                   type="button"
                   onClick={() => setSidebarCollapsed(true)}
@@ -151,7 +151,7 @@ export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHe
                         aria-label={`已選 ${activeFilterCount} 個篩選`}
                       >
                         <SlidersHorizontal className="w-3.5 h-3.5" />
-                        <span className="text-[9px] font-semibold leading-none">{activeFilterCount}</span>
+                        <span className="[font-size:var(--public-font-caption)] font-semibold leading-none">{activeFilterCount}</span>
                       </button>
                     )}
                   </div>
@@ -166,13 +166,13 @@ export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHe
                 <button
                   type="button"
                   onClick={() => setShowList(true)}
-                  className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-[5px] text-xs font-medium text-muted-foreground border border-border/50 bg-transparent hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
+                  className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-[5px] [font-size:var(--public-font-caption)] font-medium text-muted-foreground border border-border/50 bg-transparent hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
                   aria-label="開啟台本一覽表"
                 >
                   <List className="w-3.5 h-3.5" />
                   一覽表
                 </button>
-                <span className="text-xs text-muted-foreground">顯示模式</span>
+                <span className="[font-size:var(--public-font-caption)] text-muted-foreground">顯示模式</span>
                 <GalleryViewModeToggle value={viewMode} onChange={setViewMode} compact />
               </div>
 
@@ -181,7 +181,7 @@ export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHe
                 <button
                   type="button"
                   onClick={() => setShowList(true)}
-                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[5px] text-xs font-medium text-muted-foreground border border-border/50 bg-transparent hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
+                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[5px] [font-size:var(--public-font-caption)] font-medium text-muted-foreground border border-border/50 bg-transparent hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
                   aria-label="開啟台本一覽表"
                 >
                   <List className="w-3.5 h-3.5" />
@@ -192,8 +192,8 @@ export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHe
           )}
 
           <p
-            className="mb-4"
-            style={{ fontSize: "0.75rem", color: "hsl(var(--muted-foreground) / 0.7)", letterSpacing: "0.01em" }}
+            className="mb-4 [font-size:var(--public-font-caption)]"
+            style={{ color: "hsl(var(--muted-foreground) / 0.7)", letterSpacing: "0.01em" }}
           >
             {filterPanelProps.searchTerm
               ? `搜尋「${filterPanelProps.searchTerm}」— ${resultCount} 筆結果`

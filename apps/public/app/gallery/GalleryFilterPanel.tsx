@@ -67,11 +67,11 @@ export function GalleryFilterPanel({
 
   const hiddenCount = shouldCollapse ? displayTags.length - visibleTags.length : 0;
 
-  const sectionLabel = "mb-2.5 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted-foreground/60";
+  const sectionLabel = "mb-2.5 [font-size:var(--public-font-caption)] font-semibold tracking-[0.18em] uppercase text-muted-foreground/60";
   const divider = "border-t border-border/40 pt-4 mt-1";
   const activeChip = "bg-primary text-primary-foreground shadow-sm border border-primary";
   const idleChip = "border border-border/50 bg-transparent text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5";
-  const chipBase = "h-6 rounded-[5px] px-2.5 text-xs font-medium transition-all duration-150";
+  const chipBase = "h-6 rounded-[5px] px-2.5 [font-size:var(--public-font-caption)] font-medium transition-all duration-150";
 
   const inner = (
     <div className="space-y-4">
@@ -85,7 +85,7 @@ export function GalleryFilterPanel({
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="搜尋台本..."
-            className="w-full rounded-lg border border-border/60 bg-background pl-8.5 pr-7 py-[0.45rem] text-[0.8125rem] placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/15 transition-all duration-150"
+            className="w-full rounded-lg border border-border/60 bg-background pl-8.5 pr-7 py-[0.45rem] [font-size:var(--public-font-meta)] placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/15 transition-all duration-150"
             style={{ paddingLeft: "2.125rem" }}
           />
           {searchTerm && (
@@ -156,7 +156,7 @@ export function GalleryFilterPanel({
               value={tagSearch}
               onChange={(e) => onTagSearchChange(e.target.value)}
               placeholder="篩選標籤..."
-              className="w-full rounded-lg border border-border/50 bg-background/70 py-[0.35rem] text-[0.75rem] placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/10 transition-all duration-150"
+              className="w-full rounded-lg border border-border/50 bg-background/70 py-[0.35rem] [font-size:var(--public-font-caption)] placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/10 transition-all duration-150"
               style={{ paddingLeft: "2rem", paddingRight: "0.75rem" }}
             />
           </div>
@@ -179,7 +179,7 @@ export function GalleryFilterPanel({
             <button
               type="button"
               onClick={() => setTagsExpanded(true)}
-              className="mt-2 text-[0.75rem] text-primary/80 hover:text-primary transition-colors"
+              className="mt-2 [font-size:var(--public-font-caption)] text-primary/80 hover:text-primary transition-colors"
             >
               展開更多（{hiddenCount}）
             </button>
@@ -188,7 +188,7 @@ export function GalleryFilterPanel({
             <button
               type="button"
               onClick={() => setTagsExpanded(false)}
-              className="mt-2 text-[0.75rem] text-muted-foreground/60 hover:text-foreground transition-colors"
+              className="mt-2 [font-size:var(--public-font-caption)] text-muted-foreground/60 hover:text-foreground transition-colors"
             >
               收合標籤
             </button>
@@ -201,7 +201,7 @@ export function GalleryFilterPanel({
           <button
             type="button"
             onClick={onResetFilters}
-            className="w-full rounded-lg border border-border/50 py-1.5 text-[0.75rem] text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-primary/5 transition-all duration-150"
+            className="w-full rounded-lg border border-border/50 py-1.5 [font-size:var(--public-font-caption)] text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-primary/5 transition-all duration-150"
           >
             清除全部篩選
           </button>
