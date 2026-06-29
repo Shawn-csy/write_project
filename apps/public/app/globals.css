@@ -1,6 +1,3 @@
-/* Marker color tokens — shared with @write/script-reader-renderer */
-@import "@write/script-theme/marker-colors.css";
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,7 +5,7 @@
 @layer base {
   :root {
     /* Font variables — controlled by next/font; CJK system stack as fallback */
-    --font-sans: var(--font-public-sans), "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "蘋方-繁", "微軟正黑體", system-ui, sans-serif;
+    --font-sans: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "蘋方-繁", "微軟正黑體", system-ui, sans-serif;
     --font-serif: "Noto Serif TC", "Source Han Serif TC", "PMingLiU", "新細明體", Georgia, serif;
 
     /* ── Warm neutral palette — editorial, Claude.ai-adjacent ── */
