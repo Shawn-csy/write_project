@@ -9,7 +9,7 @@
   :root {
     /* Font variables — controlled by next/font; CJK system stack as fallback */
     --font-sans: var(--font-public-sans), "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "蘋方-繁", "微軟正黑體", system-ui, sans-serif;
-    --font-serif: var(--font-public-serif), "Noto Serif TC", "Source Han Serif TC", "PMingLiU", "新細明體", Georgia, serif;
+    --font-serif: "Noto Serif TC", "Source Han Serif TC", "PMingLiU", "新細明體", Georgia, serif;
 
     /* ── Warm neutral palette — editorial, Claude.ai-adjacent ── */
     /* Warm near-white background, no blue or orange cast */
