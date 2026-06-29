@@ -87,14 +87,9 @@ describe("sitemap", () => {
     expect(urls.some((u) => u.includes("/tag/"))).toBe(false);
   });
 
-  it("returns static pages when API fails", async () => {
+  it("fails closed when API fails instead of returning a static-only sitemap", async () => {
     vi.mocked(apiFetch).mockRejectedValue(new Error("network error"));
-    const entries = await getSitemap();
-    const urls = entries.map((e) => e.url);
-    expect(urls).toContain(`${BASE}/`);
-    expect(urls).toContain(`${BASE}/about`);
-    // No dynamic pages
-    expect(urls.some((u) => u.includes("/read/"))).toBe(false);
+    await expect(getSitemap()).rejects.toThrow("network error");
   });
 
   it("de-duplicates persona entries across multiple scripts", async () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { BrandScriptSea } from "./BrandScriptSea";
+import { BrandScriptDesk } from "./BrandScriptDesk";
 
 /**
  * Brand hero slide content — renders inside PublicHeroMarquee's carousel frame.
@@ -10,7 +10,7 @@ export function GalleryBrandHeroSlide() {
   return (
     <div className="absolute inset-0 overflow-hidden bg-background" data-testid="brand-hero-slide">
       <div className="absolute inset-0 pointer-events-none editorial-brand-hero-backdrop" data-testid="brand-hero-backdrop" aria-hidden />
-      <BrandScriptSea />
+      <BrandScriptDesk />
 
       {/* Decorative ruled lines */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
@@ -30,17 +30,17 @@ export function GalleryBrandHeroSlide() {
         {/* Main headline */}
         <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold leading-[1.15] text-foreground">
           <span className="hero-reveal block" style={{ animationDelay: "80ms" }}>
-            探索、閱讀、分享
+            嘗試、閱讀、創作
           </span>
           <span className="hero-reveal relative inline-block text-primary" style={{ animationDelay: "160ms" }}>
-            創作台本
+            公開台本
             <span className="absolute left-0 bottom-[0.08em] w-full editorial-accent-rule" aria-hidden />
           </span>
         </h1>
 
         {/* Sub-copy */}
         <p className="hero-reveal mt-4 max-w-lg text-sm sm:text-base leading-relaxed text-muted-foreground" style={{ animationDelay: "240ms" }}>
-          探索公開作品、配音台本與作者頁面。
+          探索公開作品、配音台本與各種奇妙的東西。
         </p>
 
         {/* Decorative rule */}

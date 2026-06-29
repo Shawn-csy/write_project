@@ -10,11 +10,11 @@ import { BASE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "關於｜泛用型產品作坊",
-  description: "泛用型產品作坊提供免費台本線上閱讀平台，讓創作者輕鬆發布與分享劇本作品。",
+  description: "泛用型產品作坊提供免費台本線上閱讀平台，讓創作者輕鬆發布與分享台本作品。",
   alternates: { canonical: `${BASE_URL}/about` },
   openGraph: {
     title: "關於｜泛用型產品作坊",
-    description: "泛用型產品作坊提供免費台本線上閱讀平台，讓創作者輕鬆發布與分享劇本作品。",
+    description: "泛用型產品作坊提供免費台本線上閱讀平台，讓創作者輕鬆發布與分享台本作品。",
     url: `${BASE_URL}/about`,
     siteName: "泛用型產品作坊",
     locale: "zh_TW",

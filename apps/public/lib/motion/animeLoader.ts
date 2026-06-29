@@ -5,7 +5,7 @@
  * All motion hooks import getAnimate() from here so the first press/trigger
  * on ANY hook pre-warms the module for every other hook.
  */
-let cache: Promise<{ animate: typeof import("animejs")["animate"] }> | null = null;
+let cache: Promise<typeof import("animejs")> | null = null;
 
 export function getAnimate() {
   if (!cache) cache = import("animejs");

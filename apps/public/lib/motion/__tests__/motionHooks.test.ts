@@ -41,7 +41,7 @@ describe("useReducedMotion", () => {
 
 // Mock animejs at module level — vi.mock is hoisted so all hooks pick it up.
 // The shared animeLoader.ts re-exports this same module, so one mock covers all three hooks.
-const animeMock = { animate: vi.fn() };
+const animeMock = { animate: vi.fn(), stagger: vi.fn().mockReturnValue(0) };
 vi.mock("animejs", () => animeMock);
 
 describe("useAnimePressFeedback", () => {
@@ -157,6 +157,195 @@ describe("useAnimePrewarm", () => {
         (window as unknown as Record<string, unknown>).requestIdleCallback = originalRic;
       }
     }
+  });
+});
+
+// ── useHeroBrandAnimation ─────────────────────────────────────────────────────
+
+describe("useHeroBrandAnimation", () => {
+  beforeEach(() => {
+    animeMock.animate.mockClear();
+    animeMock.stagger.mockClear();
+    animeMock.animate.mockReturnValue({ pause: vi.fn() });
+    animeMock.stagger.mockReturnValue(0);
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  function makeContainer() {
+    const container = document.createElement("div");
+
+    // 3 page stack entrance wrappers (right side)
+    for (let i = 0; i < 3; i++) {
+      const w = document.createElement("div");
+      w.setAttribute("data-script-page-enter", "");
+      container.appendChild(w);
+    }
+    // light sweep
+    const sweep = document.createElement("div");
+    sweep.setAttribute("data-light-sweep", "");
+    container.appendChild(sweep);
+
+    document.body.appendChild(container);
+    return container;
+  }
+
+  it("bypasses Anime.js when reduced motion is active", async () => {
+    Object.defineProperty(window, "matchMedia", { writable: true, value: mockMatchMedia(true) });
+    const { useHeroBrandAnimation } = await import("../useHeroBrandAnimation");
+    const container = makeContainer();
+    const ref = { current: container };
+
+    await act(async () => {
+      renderHook(() => useHeroBrandAnimation(ref));
+      await Promise.resolve();
+    });
+
+    expect(animeMock.animate).not.toHaveBeenCalled();
+    document.body.removeChild(container);
+  });
+
+  it("uses getAnimate (not direct animejs import) — animate is called via mock", async () => {
+    Object.defineProperty(window, "matchMedia", { writable: true, value: mockMatchMedia(false) });
+
+    // Warm the shared animeLoader cache so getAnimate() resolves synchronously
+    const { getAnimate: warmCache } = await import("../animeLoader");
+    await warmCache();
+
+    const { useHeroBrandAnimation } = await import("../useHeroBrandAnimation");
+    const container = makeContainer();
+    const ref = { current: container };
+
+    await act(async () => {
+      renderHook(() => useHeroBrandAnimation(ref));
+      // flush: effect → run() → await getAnimate() → animate calls
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // getAnimate() routes through vi.mock("animejs") — animate is called.
+    expect(animeMock.animate).toHaveBeenCalled();
+    document.body.removeChild(container);
+  });
+
+  it("only animates wrapper nodes — never layout properties", async () => {
+    Object.defineProperty(window, "matchMedia", { writable: true, value: mockMatchMedia(false) });
+    animeMock.animate.mockReturnValue({ pause: vi.fn() });
+
+    const { useHeroBrandAnimation } = await import("../useHeroBrandAnimation");
+    const container = makeContainer();
+    const ref = { current: container };
+
+    await act(async () => {
+      renderHook(() => useHeroBrandAnimation(ref));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const LAYOUT_PROPS = ["width", "height", "left", "top", "right", "bottom", "rotate", "rotateY"];
+    for (const call of animeMock.animate.mock.calls) {
+      const props = call[1] as Record<string, unknown>;
+      for (const key of LAYOUT_PROPS) {
+        expect(props, `animate() must not contain "${key}"`).not.toHaveProperty(key);
+      }
+    }
+    document.body.removeChild(container);
+  });
+
+  it("sets data-hero-motion=entering only after Anime ready, removes it after", async () => {
+    Object.defineProperty(window, "matchMedia", { writable: true, value: mockMatchMedia(false) });
+
+    const { useHeroBrandAnimation } = await import("../useHeroBrandAnimation");
+    const container = makeContainer();
+    const ref = { current: container };
+
+    let attrDuringAnimate = "";
+    animeMock.animate.mockImplementation(() => {
+      // Attribute must be present during animate() — set after getAnimate() resolved
+      if (!attrDuringAnimate) {
+        attrDuringAnimate = container.getAttribute("data-hero-motion") ?? "";
+      }
+      return { pause: vi.fn() };
+    });
+
+    await act(async () => {
+      renderHook(() => useHeroBrandAnimation(ref));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(attrDuringAnimate).toBe("entering");
+    // Removed after Anime takes over via inline style
+    expect(container.hasAttribute("data-hero-motion")).toBe(false);
+    document.body.removeChild(container);
+  });
+
+  it("restores scene visibility if getAnimate() rejects", async () => {
+    Object.defineProperty(window, "matchMedia", { writable: true, value: mockMatchMedia(false) });
+
+    // Override the animeLoader to reject
+    const animeLoaderMod = await import("../animeLoader");
+    const originalGetAnimate = animeLoaderMod.getAnimate;
+    vi.spyOn(animeLoaderMod, "getAnimate").mockRejectedValue(new Error("chunk failed"));
+
+    const { useHeroBrandAnimation } = await import("../useHeroBrandAnimation");
+    const container = makeContainer();
+    const ref = { current: container };
+
+    await act(async () => {
+      renderHook(() => useHeroBrandAnimation(ref));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // Attribute must not be set — scene stays visible statically
+    expect(container.hasAttribute("data-hero-motion")).toBe(false);
+    expect(animeMock.animate).not.toHaveBeenCalled();
+
+    vi.spyOn(animeLoaderMod, "getAnimate").mockRestore?.();
+    // Restore original to not pollute other tests
+    Object.defineProperty(animeLoaderMod, "getAnimate", { value: originalGetAnimate, writable: true });
+    document.body.removeChild(container);
+  });
+
+  it("source: uses getAnimate(), does not import animejs directly", async () => {
+    const { readFileSync } = await import("fs");
+    const { join } = await import("path");
+    const src = readFileSync(join(__dirname, "../useHeroBrandAnimation.ts"), "utf-8");
+    expect(src).toContain("getAnimate");
+    expect(src).not.toMatch(/import\(["']animejs["']\)/);
+  });
+
+  it("cleanup pauses all instances and resets wrapper visibility", async () => {
+    Object.defineProperty(window, "matchMedia", { writable: true, value: mockMatchMedia(false) });
+    const pauseSpy = vi.fn();
+    animeMock.animate.mockReturnValue({ pause: pauseSpy });
+
+    const { useHeroBrandAnimation } = await import("../useHeroBrandAnimation");
+    const container = makeContainer();
+    const ref = { current: container };
+
+    let unmount: () => void;
+    await act(async () => {
+      ({ unmount } = renderHook(() => useHeroBrandAnimation(ref)));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // Force wrappers into mid-animation state
+    container.setAttribute("data-hero-motion", "entering");
+    container.querySelectorAll<HTMLElement>("[data-script-page-enter]")
+      .forEach((el) => { el.style.opacity = "0.5"; });
+
+    await act(async () => { unmount!(); });
+
+    expect(pauseSpy).toHaveBeenCalled();
+    expect(container.hasAttribute("data-hero-motion")).toBe(false);
+    const wrappers = container.querySelectorAll<HTMLElement>("[data-script-page-enter]");
+    wrappers.forEach((el) => {
+      expect(el.style.opacity).toBe("");
+    });
+    document.body.removeChild(container);
   });
 });
 
