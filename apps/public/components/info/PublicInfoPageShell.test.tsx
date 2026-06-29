@@ -2,25 +2,7 @@ import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
-import type { PublicShellTopBarProps } from "@write/public-ui/PublicShellTopBar";
-
-let capturedProps: PublicShellTopBarProps | null = null;
-
-vi.mock("@write/public-ui/PublicShellTopBar", () => ({
-  PublicShellTopBar: (props: PublicShellTopBarProps) => {
-    capturedProps = props;
-    return (
-      <header>
-        <a href={props.brandHref ?? "/"}>{props.brandName ?? "Brand"}</a>
-        <div data-testid="trailing">{props.trailing}</div>
-      </header>
-    );
-  },
-}));
-
-vi.mock("@/components/PublicShellActions", () => ({
-  PublicShellActions: () => <div data-testid="shell-actions" />,
-}));
+vi.mock("@/lib/seo", () => ({ SITE_BRAND_NAME: "泛用型產品作坊" }));
 
 vi.mock("next/link", () => ({
   default: ({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) => (
@@ -28,12 +10,9 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-import { beforeEach } from "vitest";
 import { PublicInfoPageShell } from "./PublicInfoPageShell";
 
 describe("PublicInfoPageShell", () => {
-  beforeEach(() => { capturedProps = null; });
-
   it("renders title", () => {
     render(<PublicInfoPageShell title="關於我們"><p>content</p></PublicInfoPageShell>);
     expect(screen.getByRole("heading", { level: 1, name: "關於我們" })).toBeTruthy();
@@ -87,14 +66,9 @@ describe("PublicInfoPageShell", () => {
     expect(container.querySelector("footer")).toBeNull();
   });
 
-  it("passes PublicShellActions to topbar trailing slot", () => {
-    render(<PublicInfoPageShell title="T"><p>c</p></PublicInfoPageShell>);
-    expect(screen.getByTestId("shell-actions")).toBeTruthy();
-  });
-
   it("brand link points to home", () => {
     render(<PublicInfoPageShell title="T"><p>c</p></PublicInfoPageShell>);
-    const brand = screen.getByRole("link", { name: "公開台本" });
+    const brand = screen.getByRole("link", { name: /泛用型產品作坊/ });
     expect(brand.getAttribute("href")).toBe("/");
   });
 
@@ -113,17 +87,38 @@ describe("PublicInfoPageShell", () => {
     }
   });
 
-  it("passes info tabs with /about /help /license hrefs to topbar", () => {
+  it("renders /about /help /license nav links", () => {
     render(<PublicInfoPageShell title="T"><p>c</p></PublicInfoPageShell>);
-    const tabs = capturedProps?.tabs ?? [];
-    const hrefs = tabs.map((t) => t.href);
+    const links = screen.getAllByRole("link");
+    const hrefs = Array.from(links).map((l) => l.getAttribute("href"));
     expect(hrefs).toContain("/about");
     expect(hrefs).toContain("/help");
     expect(hrefs).toContain("/license");
   });
 
-  it("passes activeKey as activeTab to topbar", () => {
+  it("active tab has aria-current=page", () => {
     render(<PublicInfoPageShell title="T" activeKey="help"><p>c</p></PublicInfoPageShell>);
-    expect(capturedProps?.activeTab).toBe("help");
+    const activeLinks = screen
+      .getAllByRole("link")
+      .filter((l) => l.getAttribute("aria-current") === "page");
+    expect(activeLinks.length).toBeGreaterThan(0);
+    expect(activeLinks[0].getAttribute("href")).toBe("/help");
+  });
+
+  it("does not render PublicShellTopBar or PublicShellActions", () => {
+    const source = require("fs").readFileSync(
+      __filename.replace(".test.tsx", ".tsx"),
+      "utf-8"
+    );
+    expect(source).not.toContain("PublicShellTopBar");
+    expect(source).not.toContain("PublicShellActions");
+  });
+
+  it("studio link points to /dashboard", () => {
+    render(<PublicInfoPageShell title="T"><p>c</p></PublicInfoPageShell>);
+    const studioLinks = screen.getAllByRole("link").filter(
+      (l) => l.getAttribute("href") === "/dashboard"
+    );
+    expect(studioLinks.length).toBeGreaterThan(0);
   });
 });

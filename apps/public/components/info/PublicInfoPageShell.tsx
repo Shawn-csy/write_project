@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { PublicShellTopBar } from "@write/public-ui/PublicShellTopBar";
-import { PublicShellActions } from "@/components/PublicShellActions";
+import { PublicInfoTopBar } from "@/components/info/PublicInfoTopBar";
 
 interface RelatedLink {
   href: string;
@@ -16,12 +15,6 @@ export interface PublicInfoPageShellProps {
   relatedLinks?: RelatedLink[];
 }
 
-const INFO_TABS = [
-  { key: "about", label: "關於", href: "/about" },
-  { key: "help", label: "說明", href: "/help" },
-  { key: "license", label: "授權", href: "/license" },
-];
-
 export function PublicInfoPageShell({
   title,
   description,
@@ -31,13 +24,7 @@ export function PublicInfoPageShell({
 }: PublicInfoPageShellProps) {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <PublicShellTopBar
-        tabs={INFO_TABS}
-        activeTab={activeKey}
-        brandName="公開台本"
-        brandSubtitle="泛用型產品作坊"
-        trailing={<PublicShellActions />}
-      />
+      <PublicInfoTopBar activeKey={activeKey as "about" | "help" | "license" | undefined} />
 
       <main className="max-w-3xl mx-auto px-6 py-16">
         {/* Hero */}
