@@ -19,6 +19,7 @@ import {
 } from "@/lib/galleryProjection";
 import { useGalleryUrlState } from "./useGalleryUrlState";
 import type { GalleryView, GalleryViewMode, GalleryLaneMode } from "./useGalleryUrlState";
+import { arePublicScriptsEquivalent, areHeroSlidesEquivalent } from "@/lib/refreshDiff";
 
 export type { GalleryView, GalleryViewMode, GalleryLaneMode, PublicHomepageModel };
 
@@ -63,10 +64,16 @@ export function useGalleryController({
       .then((response) => (response.ok ? response.json() : null))
       .then((data) => {
         if (data && typeof data === "object" && "scripts" in data) {
-          setRawScripts(publicScriptsFromBundle(data));
+          const next = publicScriptsFromBundle(data);
+          setRawScripts((prev) =>
+            arePublicScriptsEquivalent(prev, next) ? prev : next
+          );
         }
         if (data && typeof data === "object" && "banner" in data) {
-          setBannerSlides(parseBannerSlides((data as { banner?: unknown }).banner));
+          const next = parseBannerSlides((data as { banner?: unknown }).banner);
+          setBannerSlides((prev) =>
+            areHeroSlidesEquivalent(prev, next) ? prev : next
+          );
         }
       })
       .catch(() => {});
