@@ -8,6 +8,7 @@
 import { PublicAppearanceMenu } from "@/components/PublicAppearanceMenu";
 import { PublicInfoMenu } from "@/components/PublicInfoMenu";
 import { useAnimePressFeedback } from "@/lib/motion/useAnimePressFeedback";
+import { useAnimePrewarm } from "@/lib/motion/useAnimePrewarm";
 
 function StudioLink() {
   const { ref, handlers } = useAnimePressFeedback<HTMLAnchorElement>();
@@ -28,6 +29,7 @@ function StudioLink() {
 }
 
 export function PublicShellActions() {
+  useAnimePrewarm();
   return (
     // min-w reserves stable space before hydration to prevent action-slot width shift.
     // Mobile: 2 icon buttons × 44px + 1 gap × 8px = 96px (StudioLink hidden on mobile).

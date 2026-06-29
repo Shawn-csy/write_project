@@ -400,25 +400,29 @@ requestIdleCallback
 
 Definition of Done:
 
-- [ ] First press on shell controls does not visibly pause.
-- [ ] Anime.js still stays out of initial critical path.
-- [ ] Reduced-motion path skips animation work.
-- [ ] Tests cover prewarm guard behavior if implemented.
+- [x] First press on shell controls does not visibly pause. (prewarm implemented: `useAnimePrewarm` in `PublicShellActions` schedules `getAnimate()` via `requestIdleCallback` / conservative 1200ms fallback; browser QA pending for perceived pause)
+- [x] Anime.js still stays out of initial critical path. (prewarm is idle-scheduled, not inline; `getAnimate()` is still a lazy `import()`)
+- [x] Reduced-motion path skips animation work. (`window.matchMedia("(prefers-reduced-motion: reduce)")` checked before scheduling)
+- [x] Tests cover prewarm guard behavior. (`motionHooks.test.ts` — 4 new tests: schedules rIC, skips on reduced-motion, cancels on unmount, setTimeout fallback)
 
 ### Phase 6 — Browser QA Matrix
 
-Manual checks:
+Manual checks required. All automated tests pass (570/570 as of Phase 5 completion).
 
-| Surface | Desktop | Mobile | Light/Dark | Notes |
-|---|---|---|---|---|
-| Info menu open/close | [ ] | [ ] | [ ] | no layout shift |
-| Appearance menu open/close | [ ] | [ ] | [ ] | no panel jump |
-| Scripts/authors/orgs tabs | [ ] | [ ] | [ ] | no blank frame |
-| Standard/compact toggle | [ ] | [ ] | [ ] | button remains clickable |
-| Segment filters | [ ] | [ ] | [ ] | no long freeze |
-| Tag filters | [ ] | [ ] | [ ] | no layout collapse |
-| Mobile filter sheet | N/A | [ ] | [ ] | no overflow |
-| Homepage refresh after load | [ ] | [ ] | [ ] | no content flash |
+What to look for per surface:
+
+| Surface | Desktop | Mobile | Light/Dark | What changed | What to verify |
+|---|---|---|---|---|---|
+| Info menu open/close | [ ] | [ ] | [ ] | Phase 1: Popover + next/link; Phase 3: stable trigger 44px | No layout shift; links navigate without full reload; panel aligns correctly |
+| Appearance menu open/close | [ ] | [ ] | [ ] | No code change; suspected stable | No panel jump on open; trigger stays 44px; light/dark switch applies immediately |
+| Scripts/authors/orgs tabs | [ ] | [ ] | [ ] | No code change; `startTransition` already in place | No blank frame during tab switch; `opacity-60` dim is brief and not jarring |
+| Standard/compact toggle | [ ] | [ ] | [ ] | No code change | Button remains clickable during `isPending`; layout does not collapse |
+| Segment filters | [ ] | [ ] | [ ] | No code change | No long freeze; filter results update without blank screen |
+| Tag filters | [ ] | [ ] | [ ] | No code change | No layout collapse; selected state reflects immediately even before URL updates |
+| Mobile filter sheet | N/A | [ ] | [ ] | No code change | No horizontal overflow; sheet dismisses cleanly |
+| Homepage refresh after load | [ ] | [ ] | [ ] | Phase 4: diff guard on `setRawScripts` / `setBannerSlides` | No content flash when SSR data unchanged; hero does not repaint on identical refresh |
+| Studio link first press | [ ] | [ ] | N/A | Phase 5: `useAnimePrewarm` in shell | No visible pause on first click; press scale animation plays immediately |
+| Info page → homepage → info page | [ ] | [ ] | [ ] | Phases 2–5: unified shell, stable actions slot | Topbar height and brand position stay consistent across navigation |
 
 Definition of Done:
 
