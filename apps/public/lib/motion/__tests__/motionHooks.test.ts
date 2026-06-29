@@ -92,6 +92,74 @@ describe("useAnimeSuccessFeedback", () => {
   });
 });
 
+// ── useAnimePrewarm ───────────────────────────────────────────────────────────
+//
+// These tests check scheduling behaviour only — not the animejs import itself,
+// since animejs is already mocked at module scope above and getAnimate() shares
+// the same cached promise across all tests in this file.
+
+describe("useAnimePrewarm", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("schedules requestIdleCallback when motion is not reduced", async () => {
+    Object.defineProperty(window, "matchMedia", { writable: true, value: mockMatchMedia(false) });
+
+    const ricSpy = vi.fn().mockReturnValue(1);
+    vi.stubGlobal("requestIdleCallback", ricSpy);
+    vi.stubGlobal("cancelIdleCallback", vi.fn());
+
+    const { useAnimePrewarm } = await import("../useAnimePrewarm");
+    renderHook(() => useAnimePrewarm());
+
+    expect(ricSpy).toHaveBeenCalledWith(expect.any(Function));
+  });
+
+  it("does not schedule requestIdleCallback when prefers-reduced-motion is active", async () => {
+    Object.defineProperty(window, "matchMedia", { writable: true, value: mockMatchMedia(true) });
+
+    const ricSpy = vi.fn().mockReturnValue(1);
+    vi.stubGlobal("requestIdleCallback", ricSpy);
+
+    const { useAnimePrewarm } = await import("../useAnimePrewarm");
+    renderHook(() => useAnimePrewarm());
+
+    expect(ricSpy).not.toHaveBeenCalled();
+  });
+
+  it("cancels idle callback on unmount", async () => {
+    Object.defineProperty(window, "matchMedia", { writable: true, value: mockMatchMedia(false) });
+
+    const cancelRic = vi.fn();
+    vi.stubGlobal("requestIdleCallback", () => 42);
+    vi.stubGlobal("cancelIdleCallback", cancelRic);
+
+    const { useAnimePrewarm } = await import("../useAnimePrewarm");
+    const { unmount } = renderHook(() => useAnimePrewarm());
+    unmount();
+
+    expect(cancelRic).toHaveBeenCalledWith(42);
+  });
+
+  it("falls back to setTimeout with FALLBACK_PREWARM_DELAY_MS when requestIdleCallback is absent", async () => {
+    Object.defineProperty(window, "matchMedia", { writable: true, value: mockMatchMedia(false) });
+
+    const originalRic = (window as unknown as Record<string, unknown>).requestIdleCallback;
+    delete (window as unknown as Record<string, unknown>).requestIdleCallback;
+
+    const setTimeoutSpy = vi.spyOn(window, "setTimeout");
+
+    try {
+      const { useAnimePrewarm, FALLBACK_PREWARM_DELAY_MS } = await import("../useAnimePrewarm");
+      renderHook(() => useAnimePrewarm());
+      expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), FALLBACK_PREWARM_DELAY_MS);
+    } finally {
+      if (originalRic !== undefined) {
+        (window as unknown as Record<string, unknown>).requestIdleCallback = originalRic;
+      }
+    }
+  });
+});
+
 // ── useAnimeSegmentIndicator ──────────────────────────────────────────────────
 
 describe("useAnimeSegmentIndicator", () => {
