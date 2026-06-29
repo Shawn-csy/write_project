@@ -74,11 +74,35 @@ export interface PublicLinkConfig {
   onLike?: (id: string, currentLiked: boolean) => Promise<{ liked: boolean; likes: number }> | void;
 }
 
+/**
+ * Render prop for the cover image.
+ * Allows apps/public to inject next/image (with srcset + sizes) while keeping
+ * packages/public-ui free of Next.js dependencies. Falls back to plain <img>.
+ *
+ * The renderer receives the raw src and crop data; it is responsible for
+ * resolving the final URL and outputting the image element. The rendered output
+ * must fill its container (position:absolute inset-0 h-full w-full or similar).
+ */
+export interface CoverImageRendererProps {
+  src: string;
+  crop: import("@write/media-crop").MediaCropLike | null;
+  alt: string;
+  /** Tailwind class applied to the plain-<img> fallback — renderer may ignore */
+  className?: string;
+}
+export type CoverImageRenderer = (props: CoverImageRendererProps) => React.ReactNode;
+
 export interface ScriptGalleryCardProps extends PublicLinkConfig {
   script: ScriptGalleryItem;
   variant?: "standard" | "compact";
   /** Show R-18 age gate indicator over the cover */
   showAgeGate?: boolean;
+  /**
+   * Optional renderer for the cover image. When provided, the card delegates
+   * image rendering to the host (e.g. next/image with srcset). Falls back to
+   * plain <img> when absent.
+   */
+  coverImageRenderer?: CoverImageRenderer;
 }
 
 // ─── Internal author badge ─────────────────────────────────────────────────
@@ -198,6 +222,7 @@ function ScriptGalleryCardInner({
   seriesHref,
   tagHref,
   showAgeGate = false,
+  coverImageRenderer,
 }: ScriptGalleryCardProps): React.JSX.Element {
   const { id, title, author, coverUrl, coverDesign, tags = [], views = 0, likes = 0, contentLength } = script;
 
@@ -287,14 +312,23 @@ function ScriptGalleryCardInner({
 
   // Cover: <a> if href, else plain div (card itself is clickable via onNavigate)
   const coverEl = coverUrl ? (
-    <img
-      src={cropCover.src}
-      style={cropCover.style as React.CSSProperties}
-      alt={title}
-      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-      loading="lazy"
-      sizes="(max-width: 640px) 45vw, (max-width: 1024px) 25vw, 180px"
-    />
+    coverImageRenderer
+      ? coverImageRenderer({
+          src: coverUrl,
+          crop: script.coverCrop ?? null,
+          alt: title ?? "",
+          className: "h-full w-full object-cover transition-transform duration-500 group-hover:scale-105",
+        })
+      : (
+        <img
+          src={cropCover.src}
+          style={cropCover.style as React.CSSProperties}
+          alt={title}
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
+          sizes="(max-width: 640px) 45vw, (max-width: 1024px) 25vw, 180px"
+        />
+      )
   ) : coverDesign ? (
     <CoverRenderer design={coverDesign} title={title ?? ""} compact responsive className="h-full w-full" />
   ) : (

@@ -208,11 +208,12 @@ npx lighthouse http://localhost:1090/ --chrome-flags="--headless --no-sandbox" -
 
 ### Definition Of Done
 
-- [ ] LCP image candidates reviewed for priority and sizing.
-- [ ] No decorative image layer uses priority.
-- [ ] No avoidable large client-only model logic remains on server-renderable routes.
-- [ ] Motion hooks pass reduced-motion behavior.
-- [ ] Route cache/revalidate strategy is documented.
+- [x] LCP image candidates reviewed for priority and sizing. (`CoverImageRenderer` slot added to `ScriptGalleryCard` and `SeriesGalleryCard`; `GalleryScriptResults` injects `galleryCoverImageRenderer` backed by `next/image` — gives proper `srcset` on gallery covers. `sizes` on plain `<img>` without `srcset` has no effect; those attributes kept only as hints for future src-set-aware renderers. `ActivitySection`/`RelatedSeriesSection` remain plain `<img>` — lower priority, not LCP candidates.)
+- [x] No decorative image layer uses priority. (Decorative blur/stack layers use `aria-hidden`; only hero index-0 image uses `priority`)
+- [x] No avoidable large client-only model logic remains on server-renderable routes. (`GalleryListOverlay` lazy-loaded via `React.lazy`; `exportScriptAsPdf` dynamically imported on PDF button click; `React.cache` deduplicates entity page fetches)
+- [x] Motion hooks pass reduced-motion behavior. (Anime.js lazy-loaded; `useAnimePressFeedback` bypasses when `prefers-reduced-motion`)
+- [x] Route cache/revalidate strategy is documented. (homepage 5m, read 1d, entity 1h, sitemap 1h, static pages = static; on-demand revalidation via `/api/revalidate`)
+- Note: render-blocking CSS (Tailwind CSS chunks in head) and unused-CSS (~172KB) are structural Next.js/Tailwind limitations — not fixable without CSS-in-JS or per-route CSS splitting. Lighthouse inflates unused-CSS for component-based apps using shared bundles.
 
 ## Phase 3 — Accessibility Hardening
 

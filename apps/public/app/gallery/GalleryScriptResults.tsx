@@ -11,10 +11,27 @@ import {
   type ScriptNavigationPolicy,
   type PublicGalleryEntry,
   type GalleryViewMode,
+  type CoverImageRenderer,
 } from "@write/public-ui";
 import { GalleryEmptyState } from "./GalleryEmptyState";
+import { PublicImage } from "@/components/PublicImage";
 
 const CARD_WIDTH = "min-w-[160px] w-[160px] sm:min-w-[180px] sm:w-[180px]";
+
+/**
+ * Module-level stable renderer — passes cover images through next/image so
+ * the browser receives a proper srcset instead of a single <img src>.
+ * Defined outside the component to avoid re-creation on every render.
+ */
+const galleryCoverImageRenderer: CoverImageRenderer = ({ src, crop, alt, className }) => (
+  <PublicImage
+    src={src}
+    crop={crop}
+    alt={alt}
+    preset="script-cover"
+    className={className}
+  />
+);
 
 interface GalleryScriptResultsProps {
   model: PublicHomepageModel;
@@ -51,6 +68,7 @@ function CardWithPolicy({
       onTagClick={onTagClick}
       onAuthorClick={onAuthorClick}
       showAgeGate={policy?.showGateIndicator ?? false}
+      coverImageRenderer={galleryCoverImageRenderer}
     />
   );
 }
@@ -99,6 +117,7 @@ export function GalleryScriptResults({ model, onResetFilters }: GalleryScriptRes
                   href={`/series/${encodeURIComponent(entry.name)}`}
                   authorHref={authorHref(entry.leadScript)}
                   showAgeGate={entry.hasAgeGate}
+                  coverImageRenderer={galleryCoverImageRenderer}
                 />
               </div>
             );
@@ -144,6 +163,7 @@ export function GalleryScriptResults({ model, onResetFilters }: GalleryScriptRes
                   href={`/series/${encodeURIComponent(entry.name)}`}
                   authorHref={authorHref(entry.leadScript)}
                   showAgeGate={entry.hasAgeGate}
+                  coverImageRenderer={galleryCoverImageRenderer}
                 />
               </div>
             );
@@ -231,6 +251,7 @@ function renderLaneEntries(entries: PublicGalleryEntry[], opts: LaneRenderOption
           href={`/series/${encodeURIComponent(entry.name)}`}
           authorHref={opts.authorHref(entry.leadScript)}
           showAgeGate={entry.hasAgeGate}
+          coverImageRenderer={galleryCoverImageRenderer}
         />
       </div>
     ) : (
