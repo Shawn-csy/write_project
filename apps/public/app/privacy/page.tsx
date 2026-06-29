@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { PublicTopBar } from "@/components/PublicTopBar";
-import { PublicShellActions } from "@/components/PublicShellActions";
+import { PublicInfoPageShell } from "@/components/info/PublicInfoPageShell";
 import { BASE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
@@ -20,36 +18,36 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <PublicTopBar showBack backHref="/" backLabel="返回" trailing={<PublicShellActions />} />
-      <div className="max-w-3xl mx-auto px-6 py-16">
-        <h1 className="text-3xl font-bold mb-2">Privacy Policy</h1>
-        <p className="text-sm text-muted-foreground mb-10">Last updated: May 27, 2026</p>
-
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-3">1. Overview</h2>
-          <p className="text-sm leading-relaxed text-muted-foreground">
+    <PublicInfoPageShell
+      title="Privacy Policy"
+      description="Last updated: May 27, 2026"
+      relatedLinks={[{ href: "/", label: "← 返回台本列表" }]}
+    >
+      <div className="space-y-8 text-sm leading-relaxed text-muted-foreground">
+        <section>
+          <h2 className="text-xl font-semibold mb-3 text-foreground">1. Overview</h2>
+          <p>
             This Privacy Policy describes how 泛用型產品作坊 (&ldquo;we&rdquo;, &ldquo;our&rdquo;,
             or &ldquo;us&rdquo;), operated at <strong>open-scripts.shawnup.com</strong>, collects,
             uses, and protects your personal information when you use our service.
           </p>
         </section>
 
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-3">2. Information We Collect</h2>
-          <p className="text-sm leading-relaxed text-muted-foreground mb-3">
+        <section>
+          <h2 className="text-xl font-semibold mb-3 text-foreground">2. Information We Collect</h2>
+          <p className="mb-3">
             When you sign in with Google, we receive the following information from your Google account:
           </p>
-          <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+          <ul className="list-disc list-inside space-y-1">
             <li>Email address</li>
             <li>Display name</li>
             <li>Profile photo URL</li>
           </ul>
-          <p className="text-sm leading-relaxed text-muted-foreground mt-3">
+          <p className="mt-3">
             When you use the &ldquo;Export to Google Docs&rdquo; feature, we request a temporary
             OAuth access token for the following Google API scopes:
           </p>
-          <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
+          <ul className="list-disc list-inside space-y-1 mt-2">
             <li>
               <code className="text-xs bg-muted px-1 py-0.5 rounded">
                 https://www.googleapis.com/auth/documents
@@ -63,14 +61,14 @@ export default function PrivacyPage() {
               &mdash; to save exported files to your Google Drive
             </li>
           </ul>
-          <p className="text-sm leading-relaxed text-muted-foreground mt-3">
+          <p className="mt-3">
             These tokens are used only during the export operation and are not stored on our servers.
           </p>
         </section>
 
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-3">3. How We Use Your Information</h2>
-          <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+        <section>
+          <h2 className="text-xl font-semibold mb-3 text-foreground">3. How We Use Your Information</h2>
+          <ul className="list-disc list-inside space-y-1">
             <li>To identify you and maintain your account</li>
             <li>To display your profile within the application</li>
             <li>To associate scripts and content you create with your account</li>
@@ -78,9 +76,9 @@ export default function PrivacyPage() {
           </ul>
         </section>
 
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-3">4. Data Storage and Security</h2>
-          <p className="text-sm leading-relaxed text-muted-foreground">
+        <section>
+          <h2 className="text-xl font-semibold mb-3 text-foreground">4. Data Storage and Security</h2>
+          <p>
             Your account data (email, display name, profile photo URL) is stored in Firebase
             Firestore, operated by Google LLC. We do not store Google Docs or Drive access tokens
             beyond the duration of the export request. We take reasonable precautions to protect
@@ -88,18 +86,18 @@ export default function PrivacyPage() {
           </p>
         </section>
 
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-3">5. Data Sharing</h2>
-          <p className="text-sm leading-relaxed text-muted-foreground">
+        <section>
+          <h2 className="text-xl font-semibold mb-3 text-foreground">5. Data Sharing</h2>
+          <p>
             We do not sell, trade, or share your personal information with third parties, except as
             required to operate the service (e.g., Firebase/Google infrastructure) or as required by
             law.
           </p>
         </section>
 
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-3">6. Google API Services</h2>
-          <p className="text-sm leading-relaxed text-muted-foreground">
+        <section>
+          <h2 className="text-xl font-semibold mb-3 text-foreground">6. Google API Services</h2>
+          <p>
             Our use of information received from Google APIs adheres to the{" "}
             <a
               href="https://developers.google.com/terms/api-services-user-data-policy"
@@ -113,9 +111,9 @@ export default function PrivacyPage() {
           </p>
         </section>
 
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-3">7. Your Rights</h2>
-          <p className="text-sm leading-relaxed text-muted-foreground">
+        <section>
+          <h2 className="text-xl font-semibold mb-3 text-foreground">7. Your Rights</h2>
+          <p>
             You may request deletion of your account and associated data at any time by contacting
             us. You can revoke Google OAuth permissions at any time via your{" "}
             <a
@@ -130,30 +128,24 @@ export default function PrivacyPage() {
           </p>
         </section>
 
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-3">8. Changes to This Policy</h2>
-          <p className="text-sm leading-relaxed text-muted-foreground">
+        <section>
+          <h2 className="text-xl font-semibold mb-3 text-foreground">8. Changes to This Policy</h2>
+          <p>
             We may update this policy from time to time. Changes will be posted on this page with an
             updated date. Continued use of the service after changes constitutes acceptance.
           </p>
         </section>
 
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-3">9. Contact</h2>
-          <p className="text-sm leading-relaxed text-muted-foreground">
+        <section>
+          <h2 className="text-xl font-semibold mb-3 text-foreground">9. Contact</h2>
+          <p>
             For questions or data deletion requests, contact us at:{" "}
             <a href="mailto:silence0603@gmail.com" className="underline hover:text-foreground">
               silence0603@gmail.com
             </a>
           </p>
         </section>
-
-        <div className="mt-10 pt-6 border-t border-border">
-          <Link href="/" className="text-sm text-muted-foreground hover:text-foreground underline">
-            ← 返回台本列表
-          </Link>
-        </div>
       </div>
-    </div>
+    </PublicInfoPageShell>
   );
 }
