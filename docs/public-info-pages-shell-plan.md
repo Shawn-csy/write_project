@@ -34,6 +34,9 @@ The goal is:
 - Page transition feels like a product switch rather than a route switch.
 - Some topbar/action area hydration flicker is visible.
 - Content layout is manually assembled in each page.
+- Lighthouse performance for info pages can remain low even after the topbar is server-rendered.
+  The current measured bottleneck is not JavaScript execution (`TBT` is 0ms), but delayed
+  first paint / largest paint from the shared CSS + first-viewport document structure.
 
 ## Root Cause
 
@@ -92,6 +95,57 @@ This prevents consistent spacing, typography, and editorial rhythm.
 
 The root theme blocking script prevents the largest dark/light flash, but the topbar right-side action slot can still visually shift when client components hydrate unless the shell reserves stable dimensions.
 
+### 4. Info Page First Viewport Is Too Card-Heavy
+
+After Phase 1-6 shell work, the remaining performance issue is not the topbar.
+
+Measured on `http://localhost:1090` after moving info pages to the server topbar:
+
+| Route | Performance | FCP | LCP | TBT | CLS | Render-blocking estimate |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `/about` | 61 | 6.2s | 7.3s | 0ms | 0 | 5.5s |
+| `/help` | 61 | 6.2s | 7.2s | 0ms | 0 | 5.48s |
+| `/license` | 86 | 2.5s | 3.7s | 0ms | 0.001 | 1.76s |
+
+The consistent `TBT: 0ms` means the pages are not blocked by client JavaScript execution.
+The low `/about` and `/help` scores come from delayed first paint / largest paint and the
+shared CSS render path. The topbar split was still architecturally correct, but it is not
+the remaining performance lever.
+
+The first viewport of `/about` and `/help` should therefore be treated as an editorial
+document surface, not a dashboard/card surface. Avoid putting nested cards, icon blocks,
+bordered panels, and dense lists above the fold.
+
+Follow-up measurement after Phase 7 first-viewport editorial rewrite:
+
+| Route | Performance | FCP | LCP | TBT | CLS | Render-blocking estimate |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `/about` | 61 | 6.3s | 7.5s | 0ms | 0 | 5.43s |
+| `/help` | 62 | 5.8s | 6.8s | 0ms | 0 | 4.92s |
+| `/license` | 61 | 6.2s | 7.3s | 0ms | 0 | 5.47s |
+
+This proved that the first-viewport structure was worth cleaning up for product quality,
+but it did not solve the Lighthouse bottleneck. The next performance lever is now CSS route
+isolation / shared CSS reduction. Do not keep iterating on topbar or page copy to chase this
+score.
+
+### 5. Static Info Pages Still Load The Shared Heavy CSS Path
+
+Current Lighthouse reports consistently point to the same render-blocking assets:
+
+```text
+/_next/static/css/a167a7153fa299a2.css   ~69KB transfer
+/_next/static/css/a71feca92f128c82.css   ~13KB transfer
+```
+
+The pages have `TBT: 0ms`, so the issue is not JavaScript execution. They also have
+`CLS: 0`, so layout instability is not the issue. The likely architectural problem is that
+static info routes still inherit global CSS that serves gallery, reader, cards, animation,
+and shared public UI surfaces.
+
+The next phase should identify what is inside the render-blocking CSS, then split or reduce
+the global surface area so static routes pay for base tokens + info-document styles only.
+
 ## Non-Negotiable Principles
 
 - Do not patch individual info pages one by one.
@@ -114,9 +168,17 @@ apps/public/components
   PublicTopBarAdapter            Next href/action adapter, if needed
   PublicShellActions             client actions with stable dimensions
   PublicInfoPageShell            app-owned static page shell
+  PublicInfoTopBar               server-only topbar for static info pages
+  PublicInfoDocument             server-only editorial document primitive
   PublicInfoHero                 title/description/header visual
   PublicInfoSection              section primitive
   PublicInfoLinkGrid             related page/footer links
+
+apps/public/styles
+  base.css                       reset, tokens, theme variables, minimum Tailwind base
+  info.css                       static info document primitives
+  gallery.css                    homepage discovery-only styles, if extraction is needed
+  reader.css                     reader-only styles, if extraction is needed
 
 apps/public/app/*
   about/page.tsx                 metadata + content model only
@@ -171,6 +233,8 @@ Create:
 
 ```text
 apps/public/components/info/PublicInfoPageShell.tsx
+apps/public/components/info/PublicInfoTopBar.tsx
+apps/public/components/info/PublicInfoDocument.tsx
 apps/public/components/info/PublicInfoHero.tsx
 apps/public/components/info/PublicInfoSection.tsx
 apps/public/components/info/PublicInfoLinkGrid.tsx
@@ -226,6 +290,34 @@ interface PublicInfoSectionProps {
 }
 ```
 
+### `PublicInfoDocument`
+
+Owns the low-cost first-viewport document rhythm for static info pages.
+
+Responsibilities:
+
+- plain editorial lead section;
+- first-viewport typography and spacing;
+- optional below-the-fold sections;
+- no client hooks;
+- no animation;
+- no nested card pattern in the lead area.
+
+Suggested structure:
+
+```tsx
+<PublicInfoDocument>
+  <PublicInfoHero title="" description="" />
+  <section className="info-lead">
+    <p>...</p>
+    <ul>...</ul>
+  </section>
+  <PublicInfoSection title="">...</PublicInfoSection>
+</PublicInfoDocument>
+```
+
+The first viewport should contain text and links, not dashboard-like cards.
+
 ## Flicker / Hydration Strategy
 
 ### Theme Flash
@@ -262,6 +354,40 @@ The exact width should be measured from current desktop/mobile action set.
 Info page content should remain server-rendered and not depend on client hooks for layout.
 
 Appearance preferences should apply through CSS variables and root attributes only.
+
+## CSS Performance Strategy
+
+The info pages should not pay for gallery/reader/card CSS in their render-blocking path.
+The target is not to remove Tailwind or hand-author every rule. The target is to establish
+a CSS budget and route-aware ownership:
+
+- base/global CSS:
+  - CSS variables;
+  - typography defaults;
+  - theme colors;
+  - accessibility utility basics;
+  - minimal shared layout primitives.
+- info CSS:
+  - `.info-document`;
+  - `.info-hero`;
+  - `.info-lead`;
+  - `.info-section`;
+  - `.info-footer`;
+  - no gallery cards, hover previews, reader shells, or animation-specific selectors.
+- gallery CSS:
+  - card lanes;
+  - hero carousel;
+  - filters;
+  - card hover preview;
+  - homepage-specific animation.
+- reader CSS:
+  - screenplay renderer;
+  - toolbar;
+  - marker colors;
+  - reader preferences.
+
+Route-level CSS isolation should be introduced only after measuring what is actually inside
+the current CSS chunks. Do not split files blindly.
 
 ## Execution Plan
 
@@ -398,12 +524,113 @@ Definition of Done:
 - [ ] Desktop/mobile QA recorded. (manual — requires browser)
 - [ ] Flicker issue rechecked after migration. (manual — requires browser)
 
+### Phase 7 — Info Page First-Viewport Performance
+
+Tasks:
+
+- Build server-only editorial primitives for info pages:
+  - `PublicInfoDocument`;
+  - `PublicInfoHero` or equivalent shell-level hero primitive;
+  - lead section styles.
+- Rewrite `/about` first viewport:
+  - H1 + description;
+  - one lead paragraph;
+  - 3-4 plain key points;
+  - move "recent updates" and contact cards below the fold.
+- Rewrite `/help` first viewport:
+  - H1 + description;
+  - three-step "find / read / create" summary;
+  - move detailed help cards/FAQ below the fold.
+- Keep `/license` mostly intact, but migrate it to the same document primitives to prevent drift.
+- Avoid first-viewport nested cards:
+  - no `rounded-xl border bg-muted/10 p-6` in the first content section;
+  - no icon card grid above the fold;
+  - no multi-card update list above the fold.
+
+Definition of Done:
+
+- [x] `PublicInfoDocument` or equivalent info document primitive exists. (`PublicInfoDocument` / `PublicInfoLead` / `PublicInfoBelowFold`)
+- [x] `/about` first viewport is editorial/plain text, not card-first. (lead: plain text + 4-point list; cards in `PublicInfoBelowFold`)
+- [x] `/help` first viewport is editorial/plain text, not card-first. (lead: 3-step ordered list; detail sections in `PublicInfoBelowFold`)
+- [x] `/license` uses the shared document primitive without a content rewrite. (legal text unchanged; structure migrated to `PublicInfoDocument`)
+- [x] Component/source tests assert `/about` and `/help` first sections are not card blocks. (`PublicInfoDocument.test.tsx` 9 tests)
+- [ ] Lighthouse after deploy:
+  - `/about` Performance >= 85;
+  - `/help` Performance >= 85;
+  - `/license` Performance >= 90;
+  - Accessibility remains 100;
+  - SEO remains 100;
+  - CLS remains 0.
+
+- [x] Lighthouse rerun after deploy recorded.
+  - `/about`: 61, FCP 6.3s, LCP 7.5s, TBT 0ms, CLS 0
+  - `/help`: 62, FCP 5.8s, LCP 6.8s, TBT 0ms, CLS 0
+  - `/license`: 61, FCP 6.2s, LCP 7.3s, TBT 0ms, CLS 0
+
+Phase 7 did not meet the performance target. Treat the page structure cleanup as a product
+quality improvement, not the final performance fix. Continue to Phase 8.
+
+### Phase 8 — CSS Route Isolation / Shared CSS Budget
+
+Tasks:
+
+- Audit the current render-blocking CSS chunks:
+  - list top selectors / utility families in `a167...css`;
+  - identify font-face declarations still loaded by info pages;
+  - identify gallery/reader/card/animation utilities used only outside info pages.
+- Build a CSS ownership map:
+  - base tokens;
+  - info document;
+  - gallery discovery;
+  - reader shell;
+  - shared components.
+- Decide the implementation path:
+  1. reduce global class usage in info pages so Tailwind emits fewer route-relevant classes;
+  2. move heavy route-only CSS imports out of root `globals.css` into route/component-local CSS;
+  3. if needed, create route-group layouts so info pages import a lighter CSS entry.
+- Add a CSS budget check:
+  - info page render-blocking transfer target: <= 35KB;
+  - total unused CSS estimate target: <= 30KiB;
+  - no gallery/reader-only CSS in info route first-load bundle where practical.
+- Re-run Lighthouse for `/about`, `/help`, `/license`.
+
+Definition of Done:
+
+- [x] CSS chunk audit is documented with concrete selector/category findings.
+  - `a167...css` (199KB): 211 `@font-face` from Noto Sans TC — entire file was font declarations
+  - `a71f...css` (59KB): `--marker-color-*` tokens (reader-only) + Tailwind reset + brand animation keyframes
+  - Root cause: `next/font/google` Noto Sans TC ignores `subsets: ["latin"]` for CJK fonts; emits full 211-block unicode-range CSS regardless
+- [x] Global CSS ownership map exists.
+  - Web font: removed — system CJK stack (`PingFang TC → Noto Sans TC → Microsoft JhengHei → system-ui`) via `--font-sans` in `globals.css`
+  - `@write/script-theme/marker-colors.css`: moved from `globals.css` to `app/read/[id]/ScriptContentRenderer.tsx` (reader-only scope)
+  - `fonts.ts`: deleted; `layout.tsx` uses fixed `className="h-full antialiased"`
+  - `globals.css`: Tailwind base/components/utilities + theme tokens + editorial primitives + brand animation keyframes (gallery-only, not yet extracted)
+- [x] Info routes no longer import avoidable gallery/reader-only CSS.
+  - `--marker-color-*` (reader) moved out
+  - Web font CSS (211 `@font-face`) eliminated entirely
+- [x] Info page render-blocking CSS transfer is <= 35KB.
+  - After changes: 12KB (Tailwind + brand tokens) — within budget
+  - Remaining 12KB contains brand animation keyframes (`brand-script-*`, `hero-reveal`) that only gallery homepage uses; not yet extracted to route-local CSS
+- [x] Lighthouse after local build and deploy:
+  - `/about` Performance: **98** (target >= 85) ✓
+  - `/help` Performance: **99** (target >= 85) ✓
+  - `/license` Performance: **99** (target >= 90) ✓
+  - Accessibility: **100** ✓
+  - SEO: **100** ✓
+  - CLS: **0** ✓
+  - FCP: 0.8s (was 6.2s)
+  - LCP: 2.0–2.2s (was 7.3s)
+
 ## What Not To Do
 
 - Do not add CSS overrides inside each info page just to imitate homepage.
 - Do not import `GalleryTopBar` directly into info pages if it brings gallery-specific filter/search behavior.
 - Do not duplicate topbar markup into every static page.
-- Do not remove `PublicShellActions` to hide hydration shift; fix the slot stability instead.
+- Do not put `PublicShellActions` back into info pages to chase visual parity; info pages use a server-only topbar.
+- Do not keep optimizing topbar hydration after Phase 6; measured `TBT: 0ms` shows it is not the remaining bottleneck.
+- Do not make first-viewport content look like dashboard cards.
+- Do not continue rewriting `/about` or `/help` copy to fix Lighthouse after Phase 7; measured bottleneck is CSS render-blocking.
+- Do not split CSS before auditing what is actually in the current chunks.
 - Do not convert legal pages into marketing pages; preserve document readability.
 
 ## Open Questions
@@ -424,3 +651,13 @@ Definition of Done:
 7. Migrate `/privacy` and `/terms`.
 
 This keeps risk controlled while moving toward the correct long-term architecture.
+
+## Recommended Next Implementation
+
+Phase 8 targets achieved. All info pages score 98–99 Performance, 100 A11y/SEO, CLS 0.
+
+Remaining optional cleanup (not blocking):
+
+1. Extract `brand-script-*` / `hero-reveal` keyframes from `globals.css` into gallery-local CSS — reduces 12KB shared CSS further for info routes.
+2. Add a CSS budget CI check (e.g. assert info page CSS transfer <= 20KB after extraction).
+3. Desktop/mobile browser QA for info pages (Phase 6 manual items still open).

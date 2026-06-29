@@ -1,5 +1,7 @@
 "use client";
 
+// Marker color tokens — only needed by the reader surface
+import "@write/script-theme/marker-colors.css";
 import type { AstNode, MarkerConfig } from "@write/script-engine";
 import { ScriptPresentationRenderer } from "@write/script-reader-renderer";
 
