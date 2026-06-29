@@ -55,6 +55,7 @@ export function GalleryViewModeToggle({ value, onChange, compact = false }: Gall
       className="flex gap-0.5 p-0.5 rounded-lg"
       role="group"
       aria-label="顯示模式"
+      data-testid="gallery-view-mode-toggle"
       style={{
         background: "hsl(var(--muted))",
         border: "1px solid hsl(var(--border) / 0.5)",

@@ -43,9 +43,8 @@ test.describe("View mode toggle", () => {
     await mockBundle(page);
     await page.goto("/");
 
-    // Find the view mode toggle — aria-label contains "緊湊" or "格狀" / use data-testid if available
-    // The toggle group has two buttons; click the non-default one.
-    const toggleGroup = page.locator('[role="group"]').filter({ has: page.locator('button[aria-pressed]') }).first();
+    // Find the view mode toggle via stable data-testid.
+    const toggleGroup = page.locator('[data-testid="gallery-view-mode-toggle"]').first();
     await expect(toggleGroup).toBeVisible({ timeout: 10_000 });
 
     const buttons = toggleGroup.locator("button[aria-pressed]");

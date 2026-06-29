@@ -6,6 +6,7 @@ import { getMediaCropStyle } from "@write/media-crop";
 import type { PublicSeriesGroup } from "./seriesModel";
 import { normalizeCardText, normalizeOutlineText, truncateCardText } from "./cardText";
 import { useGalleryHoverPreview } from "./GalleryHoverPreview";
+import type { CoverImageRenderer } from "../ScriptGalleryCard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -18,6 +19,12 @@ export interface SeriesGalleryCardProps {
   authorHref?: string;
   /** Show R-18 age gate indicator when series contains adult content */
   showAgeGate?: boolean;
+  /**
+   * Optional renderer for the cover image. When provided, the card delegates
+   * image rendering to the host (e.g. next/image with srcset). Falls back to
+   * plain <img> when absent.
+   */
+  coverImageRenderer?: CoverImageRenderer;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -45,6 +52,7 @@ function SeriesGalleryCardInner({
   href,
   authorHref,
   showAgeGate = false,
+  coverImageRenderer,
 }: SeriesGalleryCardProps): React.JSX.Element {
   const { name, scripts, leadScript, latestScript, coverUrl, summary, updatedAt } = series;
   const leadSummary = normalizeCardText(leadScript?._cardSummary || leadScript?.synopsis || "");
@@ -98,14 +106,25 @@ function SeriesGalleryCardInner({
   ) : null;
 
   // Cover element — series cover or lead script cover or design
-  const coverEl = cropCover.src ? (
-    <img
-      src={cropCover.src}
-      style={cropCover.style as React.CSSProperties}
-      alt={name}
-      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-      loading="lazy"
-    />
+  const rawCoverSrc = String(coverUrl || leadScript?.coverUrl || "");
+  const coverEl = rawCoverSrc ? (
+    coverImageRenderer
+      ? coverImageRenderer({
+          src: rawCoverSrc,
+          crop: null,
+          alt: name,
+          className: "h-full w-full object-cover transition-transform duration-500 group-hover:scale-105",
+        })
+      : (
+        <img
+          src={cropCover.src}
+          style={cropCover.style as React.CSSProperties}
+          alt={name}
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
+          sizes="(max-width: 640px) 45vw, (max-width: 1024px) 25vw, 180px"
+        />
+      )
   ) : leadScript?.coverDesign ? (
     <CoverRenderer
       design={leadScript.coverDesign}

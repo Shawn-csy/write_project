@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, lazy, Suspense } from "react";
 import type { PublicScript } from "@/lib/types";
 import {
   PublicHeroMarquee,
@@ -14,7 +14,7 @@ import { SlidersHorizontal, PanelLeftClose, PanelLeftOpen, List } from "lucide-r
 import { GalleryFilterPanel } from "./gallery/GalleryFilterPanel";
 import { GallerySegmentBar } from "./gallery/GallerySegmentBar";
 import { GalleryViewModeToggle } from "./gallery/GalleryViewModeToggle";
-import { GalleryListOverlay } from "./gallery/GalleryListOverlay";
+const GalleryListOverlay = lazy(() => import("./gallery/GalleryListOverlay").then(m => ({ default: m.GalleryListOverlay })));
 import { GalleryMobileSheet } from "./gallery/GalleryMobileSheet";
 import { GalleryAuthorGrid, GalleryOrgGrid } from "./gallery/GalleryPeopleGrid";
 import { GalleryScriptResults } from "./gallery/GalleryScriptResults";
@@ -241,12 +241,14 @@ export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHe
         </main>
       </div>
 
-      {/* List overlay */}
+      {/* List overlay — lazy-loaded, only mounted on user request */}
       {showList && (
-        <GalleryListOverlay
-          scripts={homepageModel.filteredScripts}
-          onClose={() => setShowList(false)}
-        />
+        <Suspense fallback={null}>
+          <GalleryListOverlay
+            scripts={homepageModel.filteredScripts}
+            onClose={() => setShowList(false)}
+          />
+        </Suspense>
       )}
 
       {/* Mobile filter sheet */}

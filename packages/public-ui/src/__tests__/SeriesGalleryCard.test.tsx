@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { GalleryHoverPreviewProvider } from "../gallery/GalleryHoverPreview";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { SeriesGalleryCard } from "../gallery/SeriesGalleryCard";
 import { groupScriptsIntoGalleryEntries } from "../gallery/seriesModel";
 import type { PublicSeriesGroup } from "../gallery/seriesModel";
@@ -313,5 +313,80 @@ describe("SeriesGalleryCard — root contract", () => {
     // article should not be a link or button
     expect(article?.tagName).not.toBe("A");
     expect(article?.tagName).not.toBe("BUTTON");
+  });
+});
+
+// ─── coverImageRenderer ───────────────────────────────────────────────────────
+
+describe("SeriesGalleryCard — coverImageRenderer", () => {
+  const SERIES_WITH_COVER = makeSeries({ coverUrl: "https://cdn.example.com/series-cover.jpg" });
+
+  it("calls renderer when coverImageRenderer provided and coverUrl present", () => {
+    const renderer = vi.fn(() => <span data-testid="custom-series-cover" />);
+    render(
+      <SeriesGalleryCard
+        series={SERIES_WITH_COVER}
+        variant="standard"
+        href="/series/my-series"
+        coverImageRenderer={renderer}
+      />
+    );
+    expect(renderer).toHaveBeenCalledOnce();
+    expect(screen.getByTestId("custom-series-cover")).toBeDefined();
+  });
+
+  it("passes src, alt, className to renderer — crop is always null for series", () => {
+    const renderer = vi.fn(() => <span />);
+    render(
+      <SeriesGalleryCard
+        series={SERIES_WITH_COVER}
+        variant="standard"
+        href="/series/my-series"
+        coverImageRenderer={renderer}
+      />
+    );
+    const args = renderer.mock.calls[0][0];
+    expect(args.src).toBe("https://cdn.example.com/series-cover.jpg");
+    expect(args.alt).toBe("My Series");
+    expect(args.crop).toBeNull();
+    expect(typeof args.className).toBe("string");
+  });
+
+  it("falls back to plain <img> when coverImageRenderer not provided", () => {
+    const { container } = render(
+      <SeriesGalleryCard
+        series={SERIES_WITH_COVER}
+        variant="standard"
+        href="/series/my-series"
+      />
+    );
+    expect(container.querySelector("img")).not.toBeNull();
+  });
+
+  it("does not call renderer when no coverUrl exists", () => {
+    const renderer = vi.fn(() => <span data-testid="custom-series-cover" />);
+    render(
+      <SeriesGalleryCard
+        series={SERIES}
+        variant="standard"
+        href="/series/my-series"
+        coverImageRenderer={renderer}
+      />
+    );
+    expect(renderer).not.toHaveBeenCalled();
+  });
+
+  it("compact variant: renderer called when coverUrl present", () => {
+    const renderer = vi.fn(() => <span data-testid="compact-series-cover" />);
+    render(
+      <SeriesGalleryCard
+        series={SERIES_WITH_COVER}
+        variant="compact"
+        href="/series/my-series"
+        coverImageRenderer={renderer}
+      />
+    );
+    expect(renderer).toHaveBeenCalledOnce();
+    expect(screen.getByTestId("compact-series-cover")).toBeDefined();
   });
 });

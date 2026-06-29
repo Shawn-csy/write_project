@@ -508,3 +508,102 @@ describe("ScriptGalleryCard compact — callback mode", () => {
     expect(onNavigate).toHaveBeenCalledWith("s1");
   });
 });
+
+// ── coverImageRenderer ────────────────────────────────────────────────────
+
+describe("ScriptGalleryCard — coverImageRenderer", () => {
+  const SCRIPT_WITH_COVER: ScriptGalleryItem = {
+    id: "s3",
+    title: "Cover Script",
+    views: 0,
+    likes: 0,
+    coverUrl: "https://cdn.example.com/cover.jpg",
+  };
+
+  it("calls renderer when coverImageRenderer provided and coverUrl present", () => {
+    const renderer = vi.fn(() => <span data-testid="custom-cover" />);
+    render(
+      <ScriptGalleryCard
+        script={SCRIPT_WITH_COVER}
+        scriptHref="/read/s3"
+        coverImageRenderer={renderer}
+      />
+    );
+    expect(renderer).toHaveBeenCalledOnce();
+    expect(screen.getByTestId("custom-cover")).toBeDefined();
+  });
+
+  it("passes src, alt, className to renderer", () => {
+    const renderer = vi.fn(() => <span />);
+    render(
+      <ScriptGalleryCard
+        script={SCRIPT_WITH_COVER}
+        scriptHref="/read/s3"
+        coverImageRenderer={renderer}
+      />
+    );
+    const args = renderer.mock.calls[0][0];
+    expect(args.src).toBe("https://cdn.example.com/cover.jpg");
+    expect(args.alt).toBe("Cover Script");
+    expect(typeof args.className).toBe("string");
+  });
+
+  it("passes coverCrop to renderer", () => {
+    const crop = { x: 10, y: 20, width: 100, height: 150 };
+    const renderer = vi.fn(() => <span />);
+    render(
+      <ScriptGalleryCard
+        script={{ ...SCRIPT_WITH_COVER, coverCrop: crop }}
+        scriptHref="/read/s3"
+        coverImageRenderer={renderer}
+      />
+    );
+    expect(renderer.mock.calls[0][0].crop).toEqual(crop);
+  });
+
+  it("passes null crop when script has no coverCrop", () => {
+    const renderer = vi.fn(() => <span />);
+    render(
+      <ScriptGalleryCard
+        script={SCRIPT_WITH_COVER}
+        scriptHref="/read/s3"
+        coverImageRenderer={renderer}
+      />
+    );
+    expect(renderer.mock.calls[0][0].crop).toBeNull();
+  });
+
+  it("falls back to plain <img> when coverImageRenderer not provided", () => {
+    const { container } = render(
+      <ScriptGalleryCard script={SCRIPT_WITH_COVER} scriptHref="/read/s3" />
+    );
+    const img = container.querySelector("img");
+    expect(img).not.toBeNull();
+  });
+
+  it("does not call renderer when coverUrl absent (uses coverDesign or placeholder)", () => {
+    const renderer = vi.fn(() => <span data-testid="custom-cover" />);
+    render(
+      <ScriptGalleryCard
+        script={SCRIPT}
+        scriptHref="/read/s1"
+        coverImageRenderer={renderer}
+      />
+    );
+    expect(renderer).not.toHaveBeenCalled();
+  });
+
+  it("compact variant: renderer called when coverUrl present", () => {
+    const renderer = vi.fn(() => <span data-testid="custom-cover-compact" />);
+    render(
+      <ScriptGalleryCard
+        script={SCRIPT_WITH_COVER}
+        variant="compact"
+        scriptHref="/read/s3"
+        coverImageRenderer={renderer}
+      />
+    );
+    expect(renderer).toHaveBeenCalledOnce();
+    expect(screen.getByTestId("custom-cover-compact")).toBeDefined();
+  });
+});

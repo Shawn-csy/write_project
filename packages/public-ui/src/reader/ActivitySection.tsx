@@ -28,6 +28,7 @@ export function ActivitySection({ name, bannerUrl, bannerCrop, content, workUrl 
               alt={name || "activity banner"}
               className="max-h-64 w-full object-cover"
               loading="lazy"
+              sizes="(max-width: 896px) 100vw, 896px"
               onError={() => setBannerLoadFailed(true)}
             />
           </div>

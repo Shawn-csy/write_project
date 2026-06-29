@@ -80,6 +80,7 @@ export function RelatedSeriesSection({
                     alt={item.title}
                     className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
                     loading="lazy"
+                    sizes="80px"
                   />
                 ) : item.coverDesign ? (
                   <div className="flex h-full w-full items-center justify-center">
