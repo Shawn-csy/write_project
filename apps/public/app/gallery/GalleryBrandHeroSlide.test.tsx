@@ -8,21 +8,21 @@ describe("GalleryBrandHeroSlide", () => {
     render(<GalleryBrandHeroSlide />);
     const slide = screen.getByTestId("brand-hero-slide");
     const backdrop = screen.getByTestId("brand-hero-backdrop");
-    const scriptSea = screen.getByTestId("brand-script-sea");
+    const scriptDesk = screen.getByTestId("brand-script-desk");
 
     expect(slide.className).toContain("absolute");
     expect(slide.className).toContain("inset-0");
     expect(backdrop.className).toContain("absolute");
     expect(backdrop.className).toContain("inset-0");
     expect(backdrop.className).toContain("editorial-brand-hero-backdrop");
-    expect(scriptSea.getAttribute("aria-hidden")).toBe("true");
-    expect(scriptSea.className).toContain("pointer-events-none");
+    expect(scriptDesk.getAttribute("aria-hidden")).toBe("true");
+    expect(scriptDesk.className).toContain("pointer-events-none");
   });
 
   it("keeps the brand copy inside the carousel-owned frame", () => {
     render(<GalleryBrandHeroSlide />);
     expect(screen.getByText("公開台本平台")).toBeTruthy();
-    expect(screen.getByText("探索、閱讀、分享")).toBeTruthy();
-    expect(screen.getByText("創作台本")).toBeTruthy();
+    expect(screen.getByText("嘗試、閱讀、創作")).toBeTruthy();
+    expect(screen.getByText("公開台本")).toBeTruthy();
   });
 });

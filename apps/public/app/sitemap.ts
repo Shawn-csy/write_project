@@ -13,16 +13,18 @@ import {
   toSitemapDate,
 } from "@/lib/publicSeoModel";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 3600; // regenerate hourly
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Fetch all public scripts — they drive every dynamic URL in the sitemap.
-  let scripts: PublicScript[] = [];
-  try {
-    scripts = await apiFetch<PublicScript[]>("/public-scripts");
-  } catch {
-    // If the fetch fails, return static pages only rather than blocking.
-  }
+  //
+  // Important: do not silently fall back to a static-only sitemap. The public
+  // reader's SEO contract depends on /read/* URLs being discoverable. Returning
+  // a partial sitemap during a transient backend failure can be cached by
+  // Next/nginx/crawlers and effectively hide every work page until the next
+  // successful crawl.
+  const scripts = await apiFetch<PublicScript[]>("/public-scripts");
 
   const now = new Date().toISOString();
 
