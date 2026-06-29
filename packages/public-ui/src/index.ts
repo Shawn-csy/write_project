@@ -37,6 +37,8 @@ export { AuthorBadge } from "./reader/InlineAuthorBadge";
 
 // ── Gallery ───────────────────────────────────────────────────────────────
 export { PublicHeroMarquee } from "./gallery/PublicHeroMarquee";
+export { PublicShellTopBar } from "./gallery/PublicShellTopBar";
+export type { PublicShellTopBarProps, PublicShellTab } from "./gallery/PublicShellTopBar";
 export { PublicGalleryTopBar, DEFAULT_TABS } from "./gallery/PublicGalleryTopBar";
 export type { PublicGalleryTopBarProps, PublicGalleryTab } from "./gallery/PublicGalleryTopBar";
 export type { PublicHeroMarqueeProps, HeroImageRenderer, HeroSlideContentRenderer } from "./gallery/PublicHeroMarquee";

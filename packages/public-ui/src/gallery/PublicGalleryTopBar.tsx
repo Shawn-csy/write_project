@@ -1,11 +1,14 @@
 /**
  * PublicGalleryTopBar — router-neutral public discovery shell topbar.
- * No Next.js, no Vite router, no auth context.
- * Host app provides `onTabChange` (navigation) and `trailing` slot (login/studio/custom actions).
+ * Wraps PublicShellTopBar and adds gallery-specific behavior:
+ *   - SPA onTabChange callback (no hrefs)
+ *   - Mobile filter/search button (scripts tab only)
  */
-import React, { useState } from "react";
-import { Search, Menu, X } from "lucide-react";
+import React from "react";
+import { Search } from "lucide-react";
 import type { GalleryView } from "./galleryUrlState";
+import { PublicShellTopBar } from "./PublicShellTopBar";
+import type { PublicShellTab } from "./PublicShellTopBar";
 
 export type { GalleryView };
 
@@ -40,10 +43,6 @@ export interface PublicGalleryTopBarProps {
   mobileFilterLabel?: string;
 }
 
-function cn(...classes: (string | undefined | false | null)[]): string {
-  return classes.filter(Boolean).join(" ");
-}
-
 export function PublicGalleryTopBar({
   activeTab,
   onTabChange,
@@ -54,138 +53,47 @@ export function PublicGalleryTopBar({
   trailing,
   mobileFilterLabel = "開啟篩選",
 }: PublicGalleryTopBarProps): React.JSX.Element {
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const shellTabs: PublicShellTab[] = tabs.map((t) => ({
+    key: t.key,
+    label: t.label,
+    onSelect: () => onTabChange(t.key),
+  }));
 
-  const handleTabChange = (tab: GalleryView) => {
-    onTabChange(tab);
-    setMobileNavOpen(false);
-  };
+  const filterButtons = activeTab === "scripts" && onOpenMobileFilter ? (
+    <>
+      {/* Mobile filter button */}
+      <button
+        type="button"
+        onClick={onOpenMobileFilter}
+        aria-label={mobileFilterLabel}
+        className="sm:hidden flex items-center justify-center h-11 w-11 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-all duration-150"
+      >
+        <Search className="h-[15px] w-[15px]" />
+      </button>
+      {/* Tablet filter button */}
+      <button
+        type="button"
+        onClick={onOpenMobileFilter}
+        aria-label={mobileFilterLabel}
+        className="hidden sm:flex lg:hidden items-center justify-center h-11 w-11 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all duration-150"
+      >
+        <Search className="h-[15px] w-[15px]" />
+      </button>
+    </>
+  ) : null;
 
   return (
-    <header className="sticky top-0 z-40 bg-background/97 backdrop-blur-xl" style={{ borderBottom: "1px solid hsl(var(--border) / 0.6)" }}>
-      {/* Main row */}
-      <div className="relative flex h-[3.5rem] items-center px-4 sm:px-6 lg:px-8 w-full gap-2">
-
-        {/* Mobile left: hamburger nav toggle */}
-        <div className="sm:hidden flex items-center w-10 shrink-0">
-          <button
-            type="button"
-            onClick={() => setMobileNavOpen((v) => !v)}
-            aria-label={mobileNavOpen ? "關閉導航" : "開啟導航"}
-            aria-expanded={mobileNavOpen}
-            className="flex items-center justify-center h-11 w-11 -ml-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-all duration-150"
-          >
-            {mobileNavOpen
-              ? <X className="h-[15px] w-[15px]" />
-              : <Menu className="h-[15px] w-[15px]" />}
-          </button>
-        </div>
-
-        {/* Brand — absolutely centred on mobile, flow on desktop */}
-        <a
-          href="/"
-          className="flex items-center gap-2.5 shrink-0 group absolute left-1/2 -translate-x-1/2 sm:static sm:translate-x-0 sm:mr-0"
-        >
-          {/* Ink-stamp logo mark */}
-          <div className="relative w-7 h-7 shrink-0">
-            <div className="absolute inset-0 rounded-[6px] bg-foreground/90 group-hover:bg-foreground transition-colors duration-200" />
-            <svg viewBox="0 0 28 28" fill="none" className="absolute inset-0 w-full h-full p-[5px] text-background" aria-hidden="true">
-              <path d="M16 4.5 C17.5 4.5 19 6 18.5 8.5 L17 21.5 C16.5 23 15.5 24 14 23" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              <line x1="10" y1="14" x2="18" y2="14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              <line x1="10" y1="18" x2="15" y2="18" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-            </svg>
-          </div>
-          <div className="flex flex-col justify-center gap-0">
-            <span className="font-serif font-bold text-foreground text-[1.0625rem] leading-none group-hover:text-primary transition-colors duration-200">{brandName}</span>
-            {brandSubtitle && (
-              <span className="hidden sm:block text-[10px] text-muted-foreground/50 font-normal leading-none mt-0.5 tracking-[0.03em]">{brandSubtitle}</span>
-            )}
-          </div>
-        </a>
-
-        {/* Divider — desktop only */}
-        <div className="hidden sm:block w-px h-5 bg-border/60 mx-1 shrink-0" aria-hidden />
-
-        {/* Desktop tabs */}
-        <nav className="hidden sm:flex items-center gap-0.5" aria-label="公開頁面導航">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => onTabChange(tab.key)}
-              aria-current={tab.key === activeTab ? "page" : undefined}
-              className={cn(
-                "relative h-9 px-3.5 text-[0.8125rem] rounded-md transition-all duration-150 whitespace-nowrap",
-                tab.key === activeTab
-                  ? "text-foreground font-semibold bg-muted/60"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/40 font-normal"
-              )}
-            >
-              {tab.label}
-              {tab.key === activeTab && (
-                <span className="absolute bottom-[5px] left-1/2 -translate-x-1/2 w-4 h-[2px] bg-primary rounded-full" />
-              )}
-            </button>
-          ))}
-        </nav>
-
-        {/* Right side */}
-        <div className="ml-auto flex items-center gap-1 shrink-0">
-          {/* Mobile search button (scripts tab only) */}
-          {activeTab === "scripts" && onOpenMobileFilter && (
-            <button
-              type="button"
-              onClick={onOpenMobileFilter}
-              aria-label={mobileFilterLabel}
-              className="sm:hidden flex items-center justify-center h-11 w-11 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-all duration-150"
-            >
-              <Search className="h-[15px] w-[15px]" />
-            </button>
-          )}
-          {/* Tablet filter button (sm, no sidebar) */}
-          {activeTab === "scripts" && onOpenMobileFilter && (
-            <button
-              type="button"
-              onClick={onOpenMobileFilter}
-              aria-label={mobileFilterLabel}
-              className="hidden sm:flex lg:hidden items-center justify-center h-11 w-11 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all duration-150"
-            >
-              <Search className="h-[15px] w-[15px]" />
-            </button>
-          )}
+    <PublicShellTopBar
+      activeTab={activeTab}
+      tabs={shellTabs}
+      brandName={brandName}
+      brandSubtitle={brandSubtitle}
+      trailing={
+        <>
+          {filterButtons}
           {trailing}
-        </div>
-      </div>
-
-      {/* Mobile nav drawer */}
-      {mobileNavOpen && (
-        <div
-          className="sm:hidden"
-          style={{ borderTop: "1px solid hsl(var(--border) / 0.4)" }}
-        >
-          <nav className="flex flex-col px-2 py-2 gap-0.5" aria-label="公開頁面導航">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => handleTabChange(tab.key)}
-                aria-current={tab.key === activeTab ? "page" : undefined}
-                className={cn(
-                  "flex items-center h-11 px-3 text-[0.9rem] rounded-lg transition-all duration-150 text-left w-full",
-                  tab.key === activeTab
-                    ? "text-foreground font-semibold bg-muted/60"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/40 font-normal"
-                )}
-              >
-                {tab.label}
-                {tab.key === activeTab && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary shrink-0" aria-hidden />
-                )}
-              </button>
-            ))}
-          </nav>
-        </div>
-      )}
-    </header>
+        </>
+      }
+    />
   );
 }

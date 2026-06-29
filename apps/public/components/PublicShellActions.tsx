@@ -29,7 +29,10 @@ function StudioLink() {
 
 export function PublicShellActions() {
   return (
-    <div className="flex items-center gap-2">
+    // min-w reserves stable space before hydration to prevent action-slot width shift.
+    // Mobile: 2 icon buttons × 44px + 1 gap × 8px = 96px (StudioLink hidden on mobile).
+    // sm+: adds StudioLink ~80px + gap = ~184px → 12rem covers it.
+    <div className="flex items-center gap-2 min-w-24 sm:min-w-[12rem] justify-end">
       <PublicAppearanceMenu />
       <PublicInfoMenu />
       <StudioLink />
