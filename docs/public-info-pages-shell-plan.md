@@ -282,8 +282,14 @@ Tasks:
 Definition of Done:
 
 - [x] This document exists.
-- [ ] Current topbar differences documented with screenshots or notes.
-- [ ] Flicker source categorized as theme flash, action hydration shift, or layout mismatch.
+- [x] Current topbar differences documented with screenshots or notes.
+  - `PublicGalleryTopBar`: h-[3.5rem], ink-stamp logo mark, mobile hamburger drawer, desktop underline indicator, bg-background/97 backdrop-blur-xl
+  - `PublicTopBar` (old): h-14, font-serif text brand only, mobile horizontal scroll tab row, bg-background/95 backdrop-blur
+  - Differences: brand visual (logo mark vs text), mobile nav (drawer vs tab row), active tab style (underline vs bg-primary pill)
+- [x] Flicker source categorized as theme flash, action hydration shift, or layout mismatch.
+  - Theme flash: handled by root blocking script + ThemeProvider (pre-existing)
+  - Action hydration shift: `PublicShellActions` had no stable container width → fixed in Phase 3 (`min-w-24 sm:min-w-[12rem]`)
+  - Layout mismatch: each info page assembled its own layout → fixed in Phase 4 (`PublicInfoPageShell`)
 
 ### Phase 2 — Extract Generic `PublicShellTopBar`
 
@@ -387,10 +393,10 @@ Browser QA:
 
 Definition of Done:
 
-- [ ] Component tests added.
-- [ ] Route smoke tests added or updated.
-- [ ] Desktop/mobile QA recorded.
-- [ ] Flicker issue rechecked after migration.
+- [x] Component tests added. (`PublicInfoPageShell`: 9 tests; `PublicInfoSection`: 8 tests)
+- [x] Route smoke tests added or updated. (4 tests each for `/about`, `/help`, `/license`, `/privacy`, `/terms` — canonical href, title, OG url, no /gallery links)
+- [ ] Desktop/mobile QA recorded. (manual — requires browser)
+- [ ] Flicker issue rechecked after migration. (manual — requires browser)
 
 ## What Not To Do
 
