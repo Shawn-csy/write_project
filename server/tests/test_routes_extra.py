@@ -424,7 +424,7 @@ def test_admin_user_search_and_engagement_routes(client, db_session):
     partial_ids = {u["id"] for u in search_partial_id_res.json()}
     assert "u-search" in partial_ids
 
-    script_res = client.post("/api/scripts", json={"title": "Engage"}, headers=headers)
+    script_res = client.post("/api/scripts", json={"title": "Engage", "isPublic": True}, headers=headers)
     assert script_res.status_code == 200
     script_id = script_res.json()["id"]
 

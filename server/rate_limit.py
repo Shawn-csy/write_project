@@ -3,6 +3,15 @@ try:
 except Exception:
     Limiter = None
 
+
+class _NoopLimiter:
+    """Fallback limiter used when slowapi is not installed. Decorators are no-ops."""
+    def limit(self, _rule):
+        def decorator(func):
+            return func
+        return decorator
+
+
 def get_client_ip(request):
     # Prefer Cloudflare's connecting IP when behind Tunnel
     cf_ip = request.headers.get("cf-connecting-ip")
@@ -14,16 +23,10 @@ def get_client_ip(request):
         return xff.split(",")[0].strip()
     return request.client.host if request.client else "unknown"
 
+
 if Limiter:
     limiter = Limiter(key_func=get_client_ip)
     RATE_LIMIT_ENABLED = True
 else:
     RATE_LIMIT_ENABLED = False
-
-    class _NoopLimiter:
-        def limit(self, _rule):
-            def decorator(func):
-                return func
-            return decorator
-
     limiter = _NoopLimiter()

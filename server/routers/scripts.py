@@ -118,7 +118,11 @@ def transfer_script(script_id: str, payload: schemas.ScriptTransferRequest, db: 
 
 # Engagement
 @router.post("/{script_id}/view")
-def increment_view(script_id: str, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def increment_view(request: Request, script_id: str, db: Session = Depends(get_db)):
+    script = db.query(models.Script).filter(models.Script.id == script_id).first()
+    if not crud.is_publicly_visible(db, script):
+        raise HTTPException(status_code=404, detail="Script not found")
     crud.increment_script_view(db, script_id)
     return {"success": True}
 

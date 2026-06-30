@@ -1,3 +1,4 @@
+from .publish_state import has_public_parent_folder, is_publicly_visible
 from .common import (
     _ensure_list,
     ensure_folder_tree,
@@ -76,6 +77,8 @@ from .transfers import (
 from .users import get_user, search_users, update_user
 
 __all__ = [
+    "has_public_parent_folder",
+    "is_publicly_visible",
     "_ensure_list",
     "ensure_folder_tree",
     "ensure_folders_for_owner",
