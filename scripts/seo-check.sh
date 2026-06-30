@@ -15,14 +15,21 @@
 #
 # Usage:
 #   bash scripts/seo-check.sh [BASE_URL]
-#   BASE_URL=https://open-scripts.shawnup.com bash scripts/seo-check.sh
+#   bash scripts/seo-check.sh                        # production
+#   bash scripts/seo-check.sh local                  # localhost:1090
 #   bash scripts/seo-check.sh https://staging.example.com
+#   BASE_URL=https://open-scripts.shawnup.com bash scripts/seo-check.sh
 #
 # Bot UA: Googlebot — same UA used for crawl simulation
 
 set -euo pipefail
 
-BASE_URL="${1:-${BASE_URL:-https://open-scripts.shawnup.com}}"
+_ARG="${1:-${BASE_URL:-https://open-scripts.shawnup.com}}"
+# Shorthand: "local" or "localhost" → localhost:1090
+case "$_ARG" in
+  local|localhost) BASE_URL="http://localhost:1090" ;;
+  *)               BASE_URL="${_ARG}" ;;
+esac
 BASE_URL="${BASE_URL%/}"  # strip trailing slash
 
 GOOGLEBOT_UA="Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
@@ -42,48 +49,35 @@ FAIL_COUNT=0
 WARN_COUNT=0
 
 # ── Fetch helper ──────────────────────────────────────────────────────────────
-# fetch_page URL → prints HTML body; also sets:
-#   HTTP_STATUS, RESPONSE_TIME_MS, REDIRECT_URL, CACHE_CONTROL, CONTENT_TYPE, X_ROBOTS
+# fetch_page URL
+# Sets globals: HTTP_STATUS, RESPONSE_TIME_MS, CACHE_CONTROL, CONTENT_TYPE, X_ROBOTS, FETCH_BODY
+# FETCH_BODY holds the response body (avoids subshell — side-effect globals survive).
+_FETCH_TMP_BODY="$(mktemp)"
+_FETCH_TMP_HEADERS="$(mktemp)"
+trap 'rm -f "$_FETCH_TMP_BODY" "$_FETCH_TMP_HEADERS"' EXIT
+
 fetch_page() {
   local url="$1"
-  local tmp_headers
-  tmp_headers="$(mktemp)"
+  local start_ms end_ms st
 
-  local start_ns end_ns
-  # macOS: gdate (from coreutils) or python fallback for nanoseconds
-  if command -v gdate &>/dev/null; then
-    start_ns=$(gdate +%s%N)
-  else
-    start_ns=$(python3 -c 'import time; print(int(time.time()*1000))')
-  fi
+  start_ms=$(python3 -c 'import time; print(int(time.time()*1000))')
 
-  local body
-  body=$(curl -sL \
+  st=$(curl -sL \
     --max-time "$TIMEOUT" \
     --user-agent "$GOOGLEBOT_UA" \
-    --dump-header "$tmp_headers" \
-    --write-out "" \
-    "$url" 2>/dev/null) || { HTTP_STATUS="ERR"; RESPONSE_TIME_MS=0; rm -f "$tmp_headers"; echo ""; return; }
+    --dump-header "$_FETCH_TMP_HEADERS" \
+    -o "$_FETCH_TMP_BODY" \
+    -w "%{http_code}" \
+    "$url" 2>/dev/null) || st="0"
 
-  if command -v gdate &>/dev/null; then
-    end_ns=$(gdate +%s%N)
-    RESPONSE_TIME_MS=$(( (end_ns - start_ns) / 1000000 ))
-  else
-    end_ns=$(python3 -c 'import time; print(int(time.time()*1000))')
-    RESPONSE_TIME_MS=$(( end_ns - start_ns ))
-  fi
+  end_ms=$(python3 -c 'import time; print(int(time.time()*1000))')
 
-  # Parse status from first header line
-  HTTP_STATUS=$(head -1 "$tmp_headers" | grep -oE '[0-9]{3}' | head -1 || echo "0")
-  # If redirected, curl -L follows — grab last status
-  HTTP_STATUS=$(grep -E '^HTTP/' "$tmp_headers" | tail -1 | grep -oE '[0-9]{3}' || echo "$HTTP_STATUS")
-
-  CACHE_CONTROL=$(grep -i '^cache-control:' "$tmp_headers" | tail -1 | sed 's/^[^:]*: *//' | tr -d '\r' || echo "")
-  CONTENT_TYPE=$(grep -i '^content-type:' "$tmp_headers" | tail -1 | sed 's/^[^:]*: *//' | tr -d '\r' || echo "")
-  X_ROBOTS=$(grep -i '^x-robots-tag:' "$tmp_headers" | tail -1 | sed 's/^[^:]*: *//' | tr -d '\r' || echo "")
-
-  rm -f "$tmp_headers"
-  echo "$body"
+  HTTP_STATUS="${st:-0}"
+  RESPONSE_TIME_MS=$(( end_ms - start_ms ))
+  CACHE_CONTROL=$(grep -i '^cache-control:' "$_FETCH_TMP_HEADERS" | tail -1 | sed 's/^[^:]*: *//' | tr -d '\r' 2>/dev/null || echo "")
+  CONTENT_TYPE=$(grep -i '^content-type:' "$_FETCH_TMP_HEADERS" | tail -1 | sed 's/^[^:]*: *//' | tr -d '\r' 2>/dev/null || echo "")
+  X_ROBOTS=$(grep -i '^x-robots-tag:' "$_FETCH_TMP_HEADERS" | tail -1 | sed 's/^[^:]*: *//' | tr -d '\r' 2>/dev/null || echo "")
+  FETCH_BODY=$(cat "$_FETCH_TMP_BODY")
 }
 
 # Extract first match of an HTML attribute or tag value
@@ -103,8 +97,8 @@ check_page() {
   echo -e "\n${BOLD}▶ ${label}${RESET}"
   echo -e "  ${CYAN}${url}${RESET}"
 
-  local html
-  html=$(fetch_page "$url")
+  fetch_page "$url"
+  local html="$FETCH_BODY"
 
   # Status
   if [[ "$HTTP_STATUS" == "200" ]]; then
@@ -231,10 +225,12 @@ check_page() {
   [[ -n "$og_desc" ]]  && pass "og:description present" || warn "og:description missing"
   if [[ -n "$og_image" ]]; then
     pass "og:image: $og_image"
-    # Verify image reachable
-    local img_status
-    img_status=$(curl -sI --max-time 8 --user-agent "$GOOGLEBOT_UA" "$og_image" 2>/dev/null | head -1 | grep -oE '[0-9]{3}' | head -1 || echo "ERR")
-    [[ "$img_status" == "200" ]] && pass "og:image reachable (HTTP $img_status)" || warn "og:image HTTP $img_status: $og_image"
+    # Rewrite og:image host to BASE_URL so localhost audits don't check production
+    local img_path img_check_url img_status
+    img_path=$(echo "$og_image" | sed -E 's|^https?://[^/]+||')
+    img_check_url="${BASE_URL}${img_path}"
+    img_status=$(curl -sL -o /dev/null -w "%{http_code}" --max-time 8 --user-agent "$GOOGLEBOT_UA" "$img_check_url" 2>/dev/null || echo "0")
+    [[ "$img_status" == "200" ]] && pass "og:image reachable (HTTP $img_status)" || warn "og:image HTTP $img_status: $img_check_url"
   else
     warn "og:image missing"
   fi
@@ -315,7 +311,8 @@ check_infra() {
   echo -e "\n${BOLD}▶ robots.txt${RESET}"
   local robots_body robots_status
   HTTP_STATUS="0"
-  robots_body=$(fetch_page "${BASE_URL}/robots.txt")
+  fetch_page "${BASE_URL}/robots.txt"
+  robots_body="$FETCH_BODY"
   if [[ "$HTTP_STATUS" == "200" ]]; then
     pass "robots.txt reachable"
     if echo "$robots_body" | grep -qi "sitemap"; then
@@ -342,7 +339,8 @@ check_infra() {
   echo -e "\n${BOLD}▶ sitemap.xml${RESET}"
   HTTP_STATUS="0"
   local sitemap_body
-  sitemap_body=$(fetch_page "${BASE_URL}/sitemap.xml")
+  fetch_page "${BASE_URL}/sitemap.xml"
+  sitemap_body="$FETCH_BODY"
   if [[ "$HTTP_STATUS" == "200" ]]; then
     pass "sitemap.xml reachable (HTTP 200)"
     local url_count
@@ -364,7 +362,7 @@ check_infra() {
   # /gallery redirect → 410
   echo -e "\n${BOLD}▶ /gallery (retired route)${RESET}"
   HTTP_STATUS="0"
-  fetch_page "${BASE_URL}/gallery" >/dev/null
+  fetch_page "${BASE_URL}/gallery"
   if [[ "$HTTP_STATUS" == "410" ]]; then
     pass "/gallery returns 410 Gone (correct)"
   elif [[ "$HTTP_STATUS" == "301" || "$HTTP_STATUS" == "302" ]]; then
@@ -437,10 +435,10 @@ check_page "Terms (/terms)"        "${BASE_URL}/terms"     ""
 header "Dynamic Page Sample"
 SAMPLE_READ_URL=""
 HTTP_STATUS="0"
-sitemap_sample=$(fetch_page "${BASE_URL}/sitemap.xml" 2>/dev/null || echo "")
-if [[ -n "$sitemap_sample" ]]; then
+fetch_page "${BASE_URL}/sitemap.xml"
+if [[ -n "$FETCH_BODY" ]]; then
   # Extract first /read/ URL from sitemap
-  SAMPLE_READ_URL=$(echo "$sitemap_sample" | grep -oE "${BASE_URL}/read/[^<]+" | head -1 || echo "")
+  SAMPLE_READ_URL=$(echo "$FETCH_BODY" | grep -oE "${BASE_URL}/read/[^<]+" | head -1 || echo "")
 fi
 
 if [[ -n "$SAMPLE_READ_URL" ]]; then

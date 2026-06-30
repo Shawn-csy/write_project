@@ -6,7 +6,7 @@ import {
   PublicInfoLead,
   PublicInfoBelowFold,
 } from "@/components/info/PublicInfoDocument";
-import { BASE_URL } from "@/lib/seo";
+import { BASE_URL, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "授權說明｜泛用型產品作坊",
@@ -18,6 +18,7 @@ export const metadata: Metadata = {
     url: `${BASE_URL}/license`,
     siteName: "泛用型產品作坊",
     locale: "zh_TW",
+    images: [{ url: DEFAULT_OG_IMAGE_URL, width: 1200, height: 630 }],
   },
 };
 

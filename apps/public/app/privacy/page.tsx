@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { PublicInfoPageShell } from "@/components/info/PublicInfoPageShell";
-import { BASE_URL } from "@/lib/seo";
+import { BASE_URL, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Privacy Policy｜泛用型產品作坊",
@@ -13,6 +13,7 @@ export const metadata: Metadata = {
       "泛用型產品作坊 privacy policy — how we collect, use, and protect your personal information.",
     url: `${BASE_URL}/privacy`,
     siteName: "泛用型產品作坊",
+    images: [{ url: DEFAULT_OG_IMAGE_URL, width: 1200, height: 630 }],
   },
 };
 
