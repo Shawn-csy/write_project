@@ -48,6 +48,7 @@ describe("PublicImage", () => {
     const img = screen.getByAltText("external");
     expect(img).not.toHaveAttribute("data-next-image");
     expect(img).toHaveAttribute("src", "https://example.com/user-upload.jpg");
+    expect(img).toHaveAttribute("referrerpolicy", "no-referrer");
   });
 
   it("ignores crop zoom by default", () => {

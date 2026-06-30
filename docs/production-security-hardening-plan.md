@@ -272,9 +272,11 @@ if (typeof path === "string" && path.startsWith("/")) {
 
 驗收：
 
-- [ ] 未知外部圖片不會無聲載入追蹤來源，除非產品明確允許。
-- [ ] allowlist 行為有單元測試。
-- [ ] UI 有合理 fallback。
+- [x] 未知外部圖片不走 Next.js optimizer（不產生 SSRF proxy）。未知 host 走 `<img>` fallback with `referrerPolicy="no-referrer"`，不送 Referer 給第三方。
+- [x] allowlist 行為有單元測試（`publicImageOrigins.test.ts` 4 個測試）。
+- [x] UI 有合理 fallback（`<img>` 直接渲染，非靜默失敗）。
+- [x] `PublicImage.test.tsx` 補 `referrerpolicy="no-referrer"` assertion，鎖住 fallback contract。
+- [ ] save/metadata layer URL 驗證（backend Phase，尚未實作）。
 
 ### Phase 6 — Security Regression Suite
 

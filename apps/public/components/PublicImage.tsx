@@ -79,6 +79,7 @@ export function PublicImage({
         alt={alt}
         loading={priority ? "eager" : "lazy"}
         decoding="async"
+        referrerPolicy="no-referrer"
         style={style}
         className={`absolute inset-0 h-full w-full ${className ?? ""}`.trim()}
       />
