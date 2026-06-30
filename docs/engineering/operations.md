@@ -37,14 +37,26 @@ docker compose -f docker-compose.dev.yml up --build
 - Backend：`http://localhost:1091`
 
 ## 4. Docker 正式模式（本機模擬）
+
+**必填環境變數（production 不提供即啟動失敗）：**
+- `POSTGRES_PASSWORD`：Postgres 密碼，無預設值
+- `DATABASE_URL`：後端 DB 連線字串
+
+```bash
+POSTGRES_PASSWORD=yourpassword DATABASE_URL=postgresql+psycopg://... docker compose -f docker-compose.prod.yml up --build -d
+```
+
+或在 `.env` 設定後再執行：
 ```bash
 docker compose -f docker-compose.prod.yml up --build -d
 ```
 
 服務組成：
-- `write_project-frontend`（Nginx，1090）
-- `write_project-backend`（FastAPI，1091）
-- `write_project-postgres`（PostgreSQL，預設 1092 對外映射）
+- `write_project-frontend`（Nginx，對外唯一入口，1090）
+- `write_project-backend`（FastAPI，僅限 internal network，不對外 publish）
+- `write_project-postgres`（PostgreSQL，僅限 internal network，不對外 publish）
+
+> **注意**：production compose 只有 nginx（1090）對外。若需直接連後端或 DB 進行維運，請使用 `docker exec` 或 SSH tunnel，不要在 production compose 加 `ports`。
 
 ## 5. 測試與驗證
 前端單元測試：
@@ -92,7 +104,8 @@ bash scripts/deploy.sh
 範例：
 ```bash
 bash scripts/deploy.sh ci=1 force=1
-bash scripts/deploy.sh migrate_pg=1 target_db='postgresql+psycopg://user:pass@127.0.0.1:1092/write_project'
+bash scripts/deploy.sh migrate_pg=1 target_db='postgresql+psycopg://user:pass@127.0.0.1:5432/write_project'
+# 注意：production DB 不對外 publish port，migration 需透過 SSH tunnel 或 docker exec 執行
 ```
 
 ## 7. 重要環境變數

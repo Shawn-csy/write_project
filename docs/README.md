@@ -29,6 +29,7 @@
 
 ## 安全
 - `docs/security-protection.md`：安全防護實作與注意事項
+- `docs/production-security-hardening-plan.md`：正式環境資安硬化計畫（部署邊界、公開寫入 API、防濫用、revalidate、依賴掃描）
 - `docs/weak-scan-2026-02-05.md`：弱點掃描歷史報告
 
 ## 封存
