@@ -24,36 +24,36 @@
 - Desktop/tablet 可保留較豐富動效；mobile/coarse pointer 預設靜態。
 - Shared `@write/public-ui` primitive 保持 router-neutral；Next app 負責 host-specific actions。
 
-## Phase 1 — Mobile Shell Overlay Contract
+## Phase 1 — Mobile Shell Nav
 
 ### 目標
 
-把 `PublicShellTopBar` 的 mobile nav 從 inline drawer 改為 portal overlay。
+把 `PublicShellTopBar` 的 mobile nav 從 inline drawer / hamburger overlay 改為 inline tabs。
 
-### 建議實作
+### 實作（已完成，2026-07-01 重構）
 
-- `PublicShellTopBar` mobile hamburger 開啟 overlay，而不是在 header 下方插入 DOM block。
-- 使用 Radix `Dialog` 或同等 focus-managed primitive。
-- Overlay 內容：
-  - tabs：台本 / 作者 / 組織，或 info page 對應 tabs；
-  - close button；
-  - optional action slot；
-  - 不包含會改變 page flow 的 inline content。
-- Overlay 開啟時：
-  - focus trap；
-  - Esc / click outside 關閉；
-  - 背景不可因 nav 展開被推動；
-  - body scroll policy 明確。
+> ⚠️ 架構已從「hamburger overlay」升級為「no-hamburger inline tabs」。
+
+**新架構：**
+- `PublicShellTopBar` 改為雙列 header：
+  - Row 1（全尺寸）：品牌 + desktop tabs + `mobileLeadingAction` / `mobileTrailingAction` slots + desktop trailing
+  - Row 2（`sm:hidden`）：mobile inline tab bar，台本 / 作者 / 組織 直接可見可點
+- 移除：hamburger button、`MobileNavOverlay`、`mobileStudioHref`、`mobileOverlayExtra` 所有 props
+- 新增：`mobileLeadingAction`（filter button）、`mobileTrailingAction`（more button）generic slots
+
+**`PublicGalleryTopBar`：**
+- filter button → `mobileLeadingAction`（mobile/tablet），保留 desktop trailing
+- 新增 `mobileTrailingAction` pass-through
 
 ### 驗收
 
 > 實作完成（2026-07-01）。Browser QA pending。
 
-- [x] mobile nav 開啟後，主內容 top offset 不變。（portal overlay，不推 layout）
-- [x] mobile nav 使用 portal/dialog contract，有 `role="dialog"` 或等效可測 contract。
-- [x] tab click 後 overlay 關閉。
-- [x] desktop tabs 行為不變。
-- [ ] Browser QA：375px / 390px / 430px 驗證 nav 展開不推 hero。
+- [x] mobile nav inline，主內容 top offset 不變（無 overlay / 無 layout shift）
+- [x] hamburger 不存在（test 鎖住）
+- [x] tab click 直接切換（無 overlay 中間層）
+- [x] desktop tabs 行為不變
+- [ ] Browser QA：375px / 390px / 430px 驗證 inline tabs 可見、可點
 
 ## Phase 2 — Mobile Studio Entry
 
@@ -61,24 +61,29 @@
 
 手機版公開頁必須能進入工作室，不依賴 desktop-only `StudioLink`。
 
-### 建議方案
+### 實作（已完成，2026-07-01 重構）
 
-採用一個明確入口，避免 topbar 過度擁擠：
+> ⚠️ 入口從「hamburger overlay 內的 studio link」改為「mobile action sheet（更多選單）底部 CTA」。
 
-- Hamburger overlay 內放 primary action：`進入工作室` → `/dashboard`
-- `PublicShellActions` 保留外觀與說明兩顆 icon。
-- `StudioLink` desktop 繼續顯示在 topbar 右側。
-- info pages 的 `PublicInfoTopBar` 已有 mobile 工作室入口，後續需要和 shell overlay 語意對齊。
+**新架構：**
+- `GalleryTopBar` 新增 `MobileActionSheet`（bottom sheet，portal）：
+  - 外觀設定（accordion）
+  - 說明與資訊（accordion）
+  - 底部 primary CTA：進入工作室 → `/dashboard`（h-11，full-width）
+- "更多" button（`MoreHorizontal`）放在 topbar row 1 右側，`sm:hidden`
+- `PublicShellActions` 改為 desktop-only（移除 mobile StudioLink / `hidden sm:` 混排）
+- `MobileActionSheet` 有 Esc 關閉、backdrop 關閉、focus trap、body scroll lock + restore
 
 ### 驗收
 
 > 實作完成（2026-07-01）。Browser QA pending。
 
-- [x] 390px viewport 可進入 `/dashboard`。（gallery: overlay 內 `<a href="/dashboard">`；entity pages: `PublicShellActions` mobile icon link）
-- [x] overlay 中的工作室入口是 `<a href="/dashboard">`，不是 JS-only navigation。
-- [x] desktop topbar 的 `進入工作室` 保持不變。
-- [ ] Browser QA：390px 實機驗證 gallery + author/org/series/tag/not-found 頁面皆可進入工作室。
-- [ ] 長期：`PublicTopBar` 與 `PublicShellTopBar` 收斂成單一 shell primitive（目前雙軌並存）。
+- [x] 390px viewport 可進入 `/dashboard`（更多 sheet 底部 `<a href="/dashboard">`）
+- [x] 工作室入口是 `<a href="/dashboard">`，不是 JS-only navigation
+- [x] desktop topbar 的 `進入工作室` 保持不變（`PublicShellActions` desktop-only）
+- [x] MobileActionSheet：role=dialog、Esc、backdrop close、body scroll lock + restore、focus trap Tab/Shift+Tab（test 鎖住）
+- [ ] Browser QA：390px 實機驗證 gallery 頁面可進入工作室
+- [ ] 長期：`PublicTopBar` 與 `PublicShellTopBar` 收斂成單一 shell primitive（目前雙軌並存）
 
 ## Phase 3 — Mobile Hero Motion Policy
 
@@ -116,7 +121,7 @@
 
 | 用途 | Mobile pattern | Desktop pattern |
 |---|---|---|
-| Shell nav | Dialog / full-width overlay | Inline tabs |
+| Shell nav | Inline tabs (no overlay) | Inline tabs |
 | Filter | Bottom sheet | Sidebar / inline controls |
 | Appearance | Popover or sheet；不得推 layout | Popover |
 | Info menu | Popover or sheet；不得推 layout | Popover |
@@ -142,8 +147,9 @@
 
 > 實作完成（2026-07-01）。
 
-- [x] `PublicShellTopBar.test.tsx` — overlay contract, `/dashboard` link, tab closes overlay, desktop inline, Esc close
-- [x] `PublicShellActions.test.tsx` — desktop StudioLink, mobile icon link (h-11 w-11), both `/dashboard`
+- [x] `PublicShellTopBar.test.tsx` — mobile tabs inline, no hamburger, `mobileLeadingAction`/`mobileTrailingAction` slots, desktop nav, tab dispatch
+- [x] `GalleryTopBar.test.tsx` — inline tabs visible, no hamburger, filter trigger, more sheet open/close/Esc/backdrop/scroll-lock+restore, Tab/Shift+Tab trap, studio CTA, touch targets
+- [x] `PublicShellActions.test.tsx` — desktop-only: appearance/info/studio, `/dashboard`, no duplicate mobile link
 - [x] `GalleryBrandHeroSlide.test.tsx` — mobile: BrandScriptDesk not mounted; desktop: mounted + aria-hidden
 - [x] `useHeroBrandAnimation.test.ts` — reduced-motion / coarse pointer / mobile viewport guard blocks `getAnimate()`
 - [x] `GalleryMobileSheet.test.tsx` — role=dialog, Esc close, backdrop click, close button, body scroll lock + restore, Tab/Shift+Tab wrap
@@ -164,13 +170,13 @@
   - hero animation present；
   - resize mobile→desktop 自動關閉 overlay（已實作，待驗）。
 
-## 建議執行順序
+## 執行紀錄
 
-1. 改 `PublicShellTopBar` mobile nav 為 overlay。
-2. 在 mobile overlay 內加入工作室入口。
-3. 關閉 mobile hero decorative animation。
-4. 補 overlay/motion tests。
-5. 做手機 viewport browser QA。
+1. ✅ `PublicShellTopBar` mobile nav → inline tabs（移除 hamburger overlay）
+2. ✅ 工作室入口 → `MobileActionSheet` 底部 CTA（移除 overlay studio link）
+3. ✅ 關閉 mobile hero decorative animation
+4. ✅ 補 shell / motion / action sheet tests
+5. ⬜ 手機 viewport browser QA
 
 ## 不做的事
 
