@@ -50,6 +50,11 @@ export interface PublicShellTopBarProps {
    * Pass "/dashboard". Not shown on desktop (StudioLink in trailing handles desktop).
    */
   mobileStudioHref?: string;
+  /**
+   * Extra content rendered inside the mobile nav overlay, below the tab list.
+   * Use for appearance controls, info links, etc. Not rendered on desktop.
+   */
+  mobileOverlayExtra?: React.ReactNode;
 }
 
 function cn(...classes: (string | undefined | false | null)[]): string {
@@ -143,12 +148,14 @@ function MobileNavOverlay({
   tabs,
   activeTab,
   mobileStudioHref,
+  mobileOverlayExtra,
   triggerRef,
   onClose,
 }: {
   tabs: PublicShellTab[];
   activeTab?: string;
   mobileStudioHref?: string;
+  mobileOverlayExtra?: React.ReactNode;
   triggerRef: React.RefObject<HTMLButtonElement | null>;
   onClose: () => void;
 }) {
@@ -211,9 +218,10 @@ function MobileNavOverlay({
 
   const content = (
     <>
-      {/* Backdrop */}
+      {/* Backdrop — matches editorial-scrim value */}
       <div
-        className="fixed inset-0 z-50 bg-background/60 backdrop-blur-sm"
+        className="fixed inset-0 z-50"
+        style={{ background: "hsl(var(--foreground) / 0.25)" }}
         aria-hidden
         onClick={onClose}
       />
@@ -226,7 +234,7 @@ function MobileNavOverlay({
         className="fixed inset-x-0 top-0 z-50 bg-background"
         style={{ borderBottom: "1px solid hsl(var(--border) / 0.5)" }}
       >
-        {/* Header row */}
+        {/* Header row — matches topbar h-[3.5rem] */}
         <div className="flex h-[3.5rem] items-center px-4 gap-2">
           <button
             type="button"
@@ -237,7 +245,7 @@ function MobileNavOverlay({
             <X className="h-[15px] w-[15px]" />
           </button>
         </div>
-        {/* Nav items */}
+        {/* Nav items — editorial-border-b value */}
         <nav
           className="flex flex-col px-2 pb-3 gap-0.5"
           aria-label="公開頁面導航"
@@ -252,16 +260,19 @@ function MobileNavOverlay({
             />
           ))}
         </nav>
-        {/* Studio entry */}
+        {/* Extra content slot (appearance, info, etc.) */}
+        {mobileOverlayExtra && (
+          <div style={{ borderTop: "1px solid hsl(var(--border) / 0.4)" }}>
+            {mobileOverlayExtra}
+          </div>
+        )}
+        {/* Studio entry — matches PublicInfoTopBar mobile style */}
         {mobileStudioHref && (
-          <div className="px-3 pb-4 pt-1" style={{ borderTop: "1px solid hsl(var(--border) / 0.3)" }}>
+          <div className="px-3 pb-4 pt-2" style={{ borderTop: "1px solid hsl(var(--border) / 0.4)" }}>
             <a
               href={mobileStudioHref}
-              className="flex items-center justify-center h-11 w-full rounded-lg text-[0.9rem] font-semibold text-primary-foreground transition-all duration-150 hover:opacity-90"
-              style={{
-                background: "hsl(var(--primary))",
-                boxShadow: "0 1px 3px hsl(var(--primary)/0.3), inset 0 0.5px 0 hsl(0 0% 100% / 0.15)",
-              }}
+              className="flex items-center justify-center h-11 w-full rounded-lg text-[0.8125rem] font-semibold text-primary-foreground hover:opacity-90 transition-opacity duration-150"
+              style={{ background: "hsl(var(--primary))" }}
             >
               進入工作室
             </a>
@@ -285,10 +296,12 @@ export function PublicShellTopBar({
   leadingTrailing,
   mobileNavLabel,
   mobileStudioHref,
+  mobileOverlayExtra,
 }: PublicShellTopBarProps): React.JSX.Element {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const hasTabs = tabs.length > 0;
   const hamburgerRef = useRef<HTMLButtonElement>(null);
+  const close = () => setMobileNavOpen(false);
 
   return (
     <header
@@ -387,8 +400,9 @@ export function PublicShellTopBar({
           tabs={tabs}
           activeTab={activeTab}
           mobileStudioHref={mobileStudioHref}
+          mobileOverlayExtra={mobileOverlayExtra}
           triggerRef={hamburgerRef}
-          onClose={() => setMobileNavOpen(false)}
+          onClose={close}
         />
       )}
     </header>

@@ -41,6 +41,37 @@ const groupHeadingClass =
 const linkClass =
   "flex flex-col gap-0.5 px-3 py-2.5 rounded-lg transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
+/** Shareable inner content — used by popover (desktop) and nav overlay (mobile). */
+export function InfoMenuContent() {
+  return (
+    <div>
+      <p className={groupHeadingClass} aria-hidden>說明與平台資訊</p>
+      <nav aria-label="說明與平台資訊">
+        {PLATFORM_LINKS.map(({ href, label, description }) => (
+          <Link key={href} href={href} className={linkClass}>
+            <span className="text-sm font-medium text-foreground">{label}</span>
+            <span className="text-xs text-muted-foreground leading-snug">{description}</span>
+          </Link>
+        ))}
+      </nav>
+      <div
+        className="my-1.5 mx-3 border-t border-border/40"
+        data-testid="public-info-menu-separator"
+        aria-hidden
+      />
+      <p className={groupHeadingClass} aria-hidden>法務與政策</p>
+      <nav aria-label="法務與政策">
+        {POLICY_LINKS.map(({ href, label, description }) => (
+          <Link key={href} href={href} className={linkClass}>
+            <span className="text-sm font-medium text-foreground">{label}</span>
+            <span className="text-xs text-muted-foreground leading-snug">{description}</span>
+          </Link>
+        ))}
+      </nav>
+    </div>
+  );
+}
+
 export function PublicInfoMenu() {
   return (
     <Popover.Root>
@@ -67,34 +98,7 @@ export function PublicInfoMenu() {
               "0 8px 30px hsl(var(--foreground)/0.1), 0 2px 8px hsl(var(--foreground)/0.06), 0 0 0 0.5px hsl(var(--border)/0.5)",
           }}
         >
-          {/* Platform links */}
-          <p className={groupHeadingClass} aria-hidden>說明與平台資訊</p>
-          <nav aria-label="說明與平台資訊">
-            {PLATFORM_LINKS.map(({ href, label, description }) => (
-              <Link key={href} href={href} className={linkClass}>
-                <span className="text-sm font-medium text-foreground">{label}</span>
-                <span className="text-xs text-muted-foreground leading-snug">{description}</span>
-              </Link>
-            ))}
-          </nav>
-
-          {/* Divider */}
-          <div
-            className="my-1.5 mx-3 border-t border-border/40"
-            data-testid="public-info-menu-separator"
-            aria-hidden
-          />
-
-          {/* Policy links */}
-          <p className={groupHeadingClass} aria-hidden>法務與政策</p>
-          <nav aria-label="法務與政策">
-            {POLICY_LINKS.map(({ href, label, description }) => (
-              <Link key={href} href={href} className={linkClass}>
-                <span className="text-sm font-medium text-foreground">{label}</span>
-                <span className="text-xs text-muted-foreground leading-snug">{description}</span>
-              </Link>
-            ))}
-          </nav>
+          <InfoMenuContent />
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>

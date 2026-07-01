@@ -19,10 +19,9 @@ describe("PublicShellActions", () => {
     render(<PublicShellActions />);
     expect(screen.getByRole("button", { name: "外觀設定" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "說明與平台資訊" })).toBeTruthy();
-    // desktop text link + mobile icon link both present
-    const studioLinks = screen.getAllByRole("link", { name: /進入工作室/ });
-    expect(studioLinks.length).toBe(2);
-    studioLinks.forEach((l) => expect(l.getAttribute("href")).toBe("/dashboard"));
+    // mobile: "工作室", desktop: "進入工作室"
+    expect(screen.getByRole("link", { name: "工作室" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "進入工作室" })).toBeTruthy();
   });
 
   it("container has stable min-width classes", () => {
@@ -44,18 +43,20 @@ describe("PublicShellActions", () => {
 
   it("all studio links point to /dashboard", () => {
     render(<PublicShellActions />);
-    screen.getAllByRole("link", { name: /進入工作室/ }).forEach((l) => {
-      expect(l.getAttribute("href")).toBe("/dashboard");
-    });
+    expect(screen.getByRole("link", { name: "工作室" }).getAttribute("href")).toBe("/dashboard");
+    expect(screen.getByRole("link", { name: "進入工作室" }).getAttribute("href")).toBe("/dashboard");
   });
 
-  it("mobile studio link meets 44px touch target (h-11 w-11)", () => {
+  it("mobile studio link has sm:hidden and 44px touch target (h-11)", () => {
     render(<PublicShellActions />);
-    // mobile link has sm:hidden; desktop link has hidden sm:inline-flex
-    const links = screen.getAllByRole("link", { name: /進入工作室/ });
-    const mobileLink = links.find((l) => l.className.includes("sm:hidden"));
-    expect(mobileLink).toBeTruthy();
-    expect(mobileLink!.className).toMatch(/h-11/);
-    expect(mobileLink!.className).toMatch(/w-11/);
+    const mobileLink = screen.getByRole("link", { name: "工作室" });
+    expect(mobileLink.className).toMatch(/sm:hidden/);
+    // Outer <a> must be h-11 (44px touch target)
+    expect(mobileLink.className).toMatch(/\bh-11\b/);
+    // Visual pill is in the child span
+    const pill = mobileLink.querySelector("span")!;
+    expect(pill.className).toMatch(/text-\[0\.8125rem\]/);
+    expect(pill.className).toMatch(/font-semibold/);
+    expect(pill.className).toMatch(/bg-primary/);
   });
 });
