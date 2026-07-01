@@ -88,24 +88,26 @@ export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHe
   );
 
   return (
-    <div className={`min-h-screen bg-background flex flex-col transition-opacity duration-150 ${isPending ? "opacity-60 pointer-events-none" : ""}`}>
+    <div className="min-h-screen bg-background flex flex-col">
       <GalleryTopBar
         activeTab={tab}
         onTabChange={setTab}
         onOpenMobileFilter={openMobileFilter}
       />
 
-      {/* Hero — superadmin config controls whether the brand slide is prepended. */}
-      {view === "scripts" && heroSlides.length > 0 && (
-        <PublicHeroMarquee
-          slides={heroSlides}
-          fullBleed
-          renderImage={heroImageRenderer}
-          renderSlideContent={heroSlideContentRenderer}
-        />
-      )}
+      {/* pending scope: only content fades/blocks — topbar, overlays, mobile sheet stay interactive */}
+      <div className={`flex flex-col flex-1 transition-opacity duration-150 ${isPending ? "opacity-60 pointer-events-none" : ""}`}>
+        {/* Hero — superadmin config controls whether the brand slide is prepended. */}
+        {view === "scripts" && heroSlides.length > 0 && (
+          <PublicHeroMarquee
+            slides={heroSlides}
+            fullBleed
+            renderImage={heroImageRenderer}
+            renderSlideContent={heroSlideContentRenderer}
+          />
+        )}
 
-      <div className="flex flex-1 w-full px-4 sm:px-5 lg:px-8 py-4 sm:py-6 lg:py-8 pb-24 sm:pb-20 gap-6">
+        <div className="flex flex-1 w-full px-4 sm:px-5 lg:px-8 py-4 sm:py-6 lg:py-8 pb-24 sm:pb-20 gap-6">
         {/* Desktop sidebar — only when expanded */}
         {view === "scripts" && !sidebarCollapsed && (
           <aside className="hidden lg:flex lg:flex-col w-60 shrink-0">
@@ -239,6 +241,7 @@ export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHe
             />
           )}
         </main>
+        </div>
       </div>
 
       {/* List overlay — lazy-loaded, only mounted on user request */}

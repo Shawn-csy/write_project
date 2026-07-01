@@ -4,19 +4,18 @@
  * PublicShellTopBar — router-neutral public shell topbar primitive.
  * No Next.js, no Vite router, no auth context, no gallery-specific behavior.
  *
+ * Layout:
+ *   Row 1 (all viewports): brand + desktop tabs + trailing
+ *   Row 2 (mobile only, when tabs exist): inline tab bar
+ *
  * Tabs support two navigation modes:
  *   href  → renders <a> (SSR-safe, works on info pages)
  *   onSelect → renders <button> (SPA callback, used by gallery)
  *
- * Host app provides `trailing` slot for studio link, appearance menu, etc.
- * Host app provides `brandHref` for the brand link (defaults to "/").
- *
- * Mobile nav uses a portal overlay (role="dialog") — does not push page layout.
- * Pass `mobileStudioHref` to include a studio entry link inside the overlay.
+ * Host app provides `trailing` slot for desktop actions (studio link, appearance menu, etc.).
+ * Mobile actions use `mobileLeadingAction` / `mobileTrailingAction` slots in row 1.
  */
-import React, { useState, useEffect, useRef } from "react";
-import ReactDOM from "react-dom";
-import { Menu, X } from "lucide-react";
+import React from "react";
 
 export interface PublicShellTab {
   key: string;
@@ -37,24 +36,16 @@ export interface PublicShellTopBarProps {
   /** href for the brand logo link. Defaults to "/". */
   brandHref?: string;
   /**
-   * Trailing slot — host-specific actions at the right end of the bar.
+   * Trailing slot — host-specific actions at the right end of the bar (desktop).
    * Wrap in a stable-width container to prevent hydration shift.
    */
   trailing?: React.ReactNode;
   /** Optional extra content inserted to the right of tabs (desktop). */
   leadingTrailing?: React.ReactNode;
-  /** Accessible label for the mobile nav toggle. */
-  mobileNavLabel?: string;
-  /**
-   * If provided, a "進入工作室" link is shown inside the mobile nav overlay.
-   * Pass "/dashboard". Not shown on desktop (StudioLink in trailing handles desktop).
-   */
-  mobileStudioHref?: string;
-  /**
-   * Extra content rendered inside the mobile nav overlay, below the tab list.
-   * Use for appearance controls, info links, etc. Not rendered on desktop.
-   */
-  mobileOverlayExtra?: React.ReactNode;
+  /** Mobile row 1 — leading action slot (left side, next to brand). Typically filter button. */
+  mobileLeadingAction?: React.ReactNode;
+  /** Mobile row 1 — trailing action slot (right side). Typically "more" button. */
+  mobileTrailingAction?: React.ReactNode;
 }
 
 function cn(...classes: (string | undefined | false | null)[]): string {
@@ -98,192 +89,32 @@ function TabItem({ tab, isActive }: { tab: PublicShellTab; isActive: boolean }) 
   );
 }
 
-function MobileTabItem({
-  tab,
-  isActive,
-  onAfterSelect,
-}: {
-  tab: PublicShellTab;
-  isActive: boolean;
-  onAfterSelect: () => void;
-}) {
+function MobileTabItem({ tab, isActive }: { tab: PublicShellTab; isActive: boolean }) {
   const className = cn(
-    "flex items-center h-11 px-3 text-[0.9rem] rounded-lg transition-all duration-150 text-left w-full",
+    "relative flex items-center justify-center h-11 px-4 text-[0.8125rem] whitespace-nowrap transition-all duration-150",
     isActive
-      ? "text-foreground font-semibold bg-muted/60"
-      : "text-muted-foreground hover:text-foreground hover:bg-muted/40 font-normal"
+      ? "text-foreground font-semibold"
+      : "text-muted-foreground font-normal"
   );
-  const dot = isActive && (
-    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary shrink-0" aria-hidden />
+  const indicator = isActive && (
+    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-[2px] bg-primary rounded-full" />
   );
 
   if (tab.href) {
     return (
-      <a
-        href={tab.href}
-        aria-current={isActive ? "page" : undefined}
-        className={className}
-        onClick={onAfterSelect}
-      >
+      <a href={tab.href} aria-current={isActive ? "page" : undefined} className={className}>
         {tab.label}
-        {dot}
+        {indicator}
       </a>
     );
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => { tab.onSelect?.(); onAfterSelect(); }}
-      aria-current={isActive ? "page" : undefined}
-      className={className}
-    >
+    <button type="button" onClick={tab.onSelect} aria-current={isActive ? "page" : undefined} className={className}>
       {tab.label}
-      {dot}
+      {indicator}
     </button>
   );
-}
-
-function MobileNavOverlay({
-  tabs,
-  activeTab,
-  mobileStudioHref,
-  mobileOverlayExtra,
-  triggerRef,
-  onClose,
-}: {
-  tabs: PublicShellTab[];
-  activeTab?: string;
-  mobileStudioHref?: string;
-  mobileOverlayExtra?: React.ReactNode;
-  triggerRef: React.RefObject<HTMLButtonElement | null>;
-  onClose: () => void;
-}) {
-  // Esc closes; focus trap keeps Tab inside overlay
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") { onClose(); return; }
-      if (e.key !== "Tab") return;
-      const overlay = document.getElementById("mobile-nav-overlay");
-      if (!overlay) return;
-      const focusable = Array.from(
-        overlay.querySelectorAll<HTMLElement>(
-          'a[href],button:not([disabled]),[tabindex]:not([tabindex="-1"])'
-        )
-      );
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (e.shiftKey) {
-        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
-      } else {
-        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
-      }
-    }
-    document.addEventListener("keydown", onKeyDown);
-
-    // Move focus to first focusable item; cancel rAF on cleanup
-    const rafId = requestAnimationFrame(() => {
-      const overlay = document.getElementById("mobile-nav-overlay");
-      const first = overlay?.querySelector<HTMLElement>(
-        'a[href],button:not([disabled]),[tabindex]:not([tabindex="-1"])'
-      );
-      first?.focus();
-    });
-
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      cancelAnimationFrame(rafId);
-      // Restore focus to trigger button
-      triggerRef.current?.focus();
-    };
-  }, [onClose, triggerRef]);
-
-  // Lock body scroll
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
-  }, []);
-
-  // Close when resized to desktop (sm breakpoint = 640px)
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mq = window.matchMedia("(min-width: 640px)");
-    if (mq.matches) { onClose(); return; }
-    const handler = (e: MediaQueryListEvent) => { if (e.matches) onClose(); };
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, [onClose]);
-
-  const content = (
-    <>
-      {/* Backdrop — matches editorial-scrim value */}
-      <div
-        className="fixed inset-0 z-50"
-        style={{ background: "hsl(var(--foreground) / 0.25)" }}
-        aria-hidden
-        onClick={onClose}
-      />
-      {/* Panel */}
-      <div
-        id="mobile-nav-overlay"
-        role="dialog"
-        aria-modal="true"
-        aria-label="導航選單"
-        className="fixed inset-x-0 top-0 z-50 bg-background"
-        style={{ borderBottom: "1px solid hsl(var(--border) / 0.5)" }}
-      >
-        {/* Header row — matches topbar h-[3.5rem] */}
-        <div className="flex h-[3.5rem] items-center px-4 gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="關閉導航"
-            className="flex items-center justify-center h-11 w-11 -ml-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-all duration-150"
-          >
-            <X className="h-[15px] w-[15px]" />
-          </button>
-        </div>
-        {/* Nav items — editorial-border-b value */}
-        <nav
-          className="flex flex-col px-2 pb-3 gap-0.5"
-          aria-label="公開頁面導航"
-          style={{ borderTop: "1px solid hsl(var(--border) / 0.4)" }}
-        >
-          {tabs.map((tab) => (
-            <MobileTabItem
-              key={tab.key}
-              tab={tab}
-              isActive={tab.key === activeTab}
-              onAfterSelect={onClose}
-            />
-          ))}
-        </nav>
-        {/* Extra content slot (appearance, info, etc.) */}
-        {mobileOverlayExtra && (
-          <div style={{ borderTop: "1px solid hsl(var(--border) / 0.4)" }}>
-            {mobileOverlayExtra}
-          </div>
-        )}
-        {/* Studio entry — matches PublicInfoTopBar mobile style */}
-        {mobileStudioHref && (
-          <div className="px-3 pb-4 pt-2" style={{ borderTop: "1px solid hsl(var(--border) / 0.4)" }}>
-            <a
-              href={mobileStudioHref}
-              className="flex items-center justify-center h-11 w-full rounded-lg text-[0.8125rem] font-semibold text-primary-foreground hover:opacity-90 transition-opacity duration-150"
-              style={{ background: "hsl(var(--primary))" }}
-            >
-              進入工作室
-            </a>
-          </div>
-        )}
-      </div>
-    </>
-  );
-
-  if (typeof document === "undefined") return null;
-  return ReactDOM.createPortal(content, document.body);
 }
 
 export function PublicShellTopBar({
@@ -294,53 +125,23 @@ export function PublicShellTopBar({
   brandHref = "/",
   trailing,
   leadingTrailing,
-  mobileNavLabel,
-  mobileStudioHref,
-  mobileOverlayExtra,
+  mobileLeadingAction,
+  mobileTrailingAction,
 }: PublicShellTopBarProps): React.JSX.Element {
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const hasTabs = tabs.length > 0;
-  const hamburgerRef = useRef<HTMLButtonElement>(null);
-  const close = () => setMobileNavOpen(false);
 
   return (
     <header
       className="sticky top-0 z-40 bg-background/97 backdrop-blur-xl"
       style={{ borderBottom: "1px solid hsl(var(--border) / 0.6)" }}
     >
-      {/* Main row */}
+      {/* Row 1: brand + actions */}
       <div className="relative flex h-[3.5rem] items-center px-4 sm:px-6 lg:px-8 w-full gap-2">
 
-        {/* Mobile: hamburger (only when tabs exist) */}
-        {hasTabs && (
-          <div className="sm:hidden flex items-center w-10 shrink-0">
-            <button
-              ref={hamburgerRef}
-              type="button"
-              onClick={() => setMobileNavOpen((v) => !v)}
-              aria-label={
-                mobileNavLabel ?? (mobileNavOpen ? "關閉選單" : "開啟導航")
-              }
-              aria-expanded={mobileNavOpen}
-              aria-controls="mobile-nav-overlay"
-              className="flex items-center justify-center h-11 w-11 -ml-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-all duration-150"
-            >
-              {mobileNavOpen
-                ? <X className="h-[15px] w-[15px]" />
-                : <Menu className="h-[15px] w-[15px]" />}
-            </button>
-          </div>
-        )}
-
-        {/* Brand — centred on mobile (with tabs), left-aligned otherwise */}
+        {/* Brand — left-aligned */}
         <a
           href={brandHref}
-          className={cn(
-            "flex items-center gap-2.5 shrink-0 group",
-            hasTabs
-              ? "absolute left-1/2 -translate-x-1/2 sm:static sm:translate-x-0"
-              : ""
-          )}
+          className="flex items-center gap-2.5 shrink-0 group"
         >
           {/* Ink-stamp logo mark */}
           <div className="relative w-7 h-7 shrink-0">
@@ -388,22 +189,37 @@ export function PublicShellTopBar({
 
         {leadingTrailing}
 
-        {/* Right: trailing slot */}
-        <div className="ml-auto flex items-center gap-1 shrink-0">
+        {/* Mobile leading action (e.g. filter button) — between brand and trailing on mobile */}
+        {mobileLeadingAction && (
+          <div className="sm:hidden ml-auto flex items-center shrink-0">
+            {mobileLeadingAction}
+          </div>
+        )}
+
+        {/* Mobile trailing action (e.g. more button) */}
+        {mobileTrailingAction && (
+          <div className={cn("sm:hidden flex items-center shrink-0", !mobileLeadingAction && "ml-auto")}>
+            {mobileTrailingAction}
+          </div>
+        )}
+
+        {/* Desktop trailing slot */}
+        <div className={cn("hidden sm:flex ml-auto items-center gap-1 shrink-0")}>
           {trailing}
         </div>
       </div>
 
-      {/* Mobile nav — portal overlay (does not push layout) */}
-      {hasTabs && mobileNavOpen && (
-        <MobileNavOverlay
-          tabs={tabs}
-          activeTab={activeTab}
-          mobileStudioHref={mobileStudioHref}
-          mobileOverlayExtra={mobileOverlayExtra}
-          triggerRef={hamburgerRef}
-          onClose={close}
-        />
+      {/* Row 2: mobile inline tabs */}
+      {hasTabs && (
+        <nav
+          className="sm:hidden flex items-center px-2 gap-0.5"
+          aria-label="公開頁面導航"
+          style={{ borderTop: "1px solid hsl(var(--border) / 0.3)" }}
+        >
+          {tabs.map((tab) => (
+            <MobileTabItem key={tab.key} tab={tab} isActive={tab.key === activeTab} />
+          ))}
+        </nav>
       )}
     </header>
   );

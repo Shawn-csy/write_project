@@ -2,7 +2,8 @@
  * PublicGalleryTopBar — router-neutral public discovery shell topbar.
  * Wraps PublicShellTopBar and adds gallery-specific behavior:
  *   - SPA onTabChange callback (no hrefs)
- *   - Mobile filter/search button (scripts tab only)
+ *   - Mobile filter button (scripts tab only) via mobileLeadingAction slot
+ *   - Mobile "more" action via mobileTrailingAction slot
  */
 import React from "react";
 import { Search } from "lucide-react";
@@ -35,16 +36,14 @@ export interface PublicGalleryTopBarProps {
   /** Subtle subtitle displayed after the brand name. */
   brandSubtitle?: string;
   /**
-   * Trailing slot — host-specific actions rendered at the right end of the bar.
+   * Trailing slot — host-specific actions rendered at the right end of the bar (desktop).
    * Use for studio link, login button, appearance menu, etc.
    */
   trailing?: React.ReactNode;
   /** Accessible label for mobile filter button. */
   mobileFilterLabel?: string;
-  /** Passed to PublicShellTopBar — shows studio entry inside mobile nav overlay. */
-  mobileStudioHref?: string;
-  /** Passed to PublicShellTopBar — extra content in mobile nav overlay (appearance, info, etc.). */
-  mobileOverlayExtra?: React.ReactNode;
+  /** Mobile trailing action (e.g. "more" button opening a bottom sheet). */
+  mobileTrailingAction?: React.ReactNode;
 }
 
 export function PublicGalleryTopBar({
@@ -56,8 +55,7 @@ export function PublicGalleryTopBar({
   brandSubtitle,
   trailing,
   mobileFilterLabel = "開啟篩選",
-  mobileStudioHref,
-  mobileOverlayExtra,
+  mobileTrailingAction,
 }: PublicGalleryTopBarProps): React.JSX.Element {
   const shellTabs: PublicShellTab[] = tabs.map((t) => ({
     key: t.key,
@@ -65,27 +63,28 @@ export function PublicGalleryTopBar({
     onSelect: () => onTabChange(t.key),
   }));
 
-  const filterButtons = activeTab === "scripts" && onOpenMobileFilter ? (
-    <>
-      {/* Mobile filter button */}
-      <button
-        type="button"
-        onClick={onOpenMobileFilter}
-        aria-label={mobileFilterLabel}
-        className="sm:hidden flex items-center justify-center h-11 w-11 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-all duration-150"
-      >
-        <Search className="h-[15px] w-[15px]" />
-      </button>
-      {/* Tablet filter button */}
-      <button
-        type="button"
-        onClick={onOpenMobileFilter}
-        aria-label={mobileFilterLabel}
-        className="hidden sm:flex lg:hidden items-center justify-center h-11 w-11 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all duration-150"
-      >
-        <Search className="h-[15px] w-[15px]" />
-      </button>
-    </>
+  // Filter button — only on scripts tab, shown on mobile + tablet (hidden on lg+)
+  const filterButton = activeTab === "scripts" && onOpenMobileFilter ? (
+    <button
+      type="button"
+      onClick={onOpenMobileFilter}
+      aria-label={mobileFilterLabel}
+      className="flex items-center justify-center h-11 w-11 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-all duration-150"
+    >
+      <Search className="h-[15px] w-[15px]" />
+    </button>
+  ) : null;
+
+  // Tablet filter button — visible sm–lg only (desktop has sidebar)
+  const tabletFilterButton = activeTab === "scripts" && onOpenMobileFilter ? (
+    <button
+      type="button"
+      onClick={onOpenMobileFilter}
+      aria-label={mobileFilterLabel}
+      className="hidden sm:flex lg:hidden items-center justify-center h-11 w-11 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all duration-150"
+    >
+      <Search className="h-[15px] w-[15px]" />
+    </button>
   ) : null;
 
   return (
@@ -94,11 +93,11 @@ export function PublicGalleryTopBar({
       tabs={shellTabs}
       brandName={brandName}
       brandSubtitle={brandSubtitle}
-      mobileStudioHref={mobileStudioHref}
-      mobileOverlayExtra={mobileOverlayExtra}
+      mobileLeadingAction={filterButton}
+      mobileTrailingAction={mobileTrailingAction}
       trailing={
         <>
-          {filterButtons}
+          {tabletFilterButton}
           {trailing}
         </>
       }

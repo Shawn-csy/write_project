@@ -56,13 +56,13 @@ export function GalleryBrandHeroSlide() {
           </span>
         </h1>
 
-        {/* Sub-copy */}
-        <p className="hero-reveal mt-4 max-w-lg text-sm sm:text-base leading-relaxed text-muted-foreground" style={{ animationDelay: "240ms" }}>
+        {/* Sub-copy — hidden on mobile to keep hero compact */}
+        <p className="hero-reveal hidden sm:block mt-4 max-w-lg text-sm sm:text-base leading-relaxed text-muted-foreground" style={{ animationDelay: "240ms" }}>
           探索公開作品、配音台本與各種奇妙的東西。
         </p>
 
-        {/* Decorative rule */}
-        <div className="hero-reveal mt-6 flex items-center gap-5" style={{ animationDelay: "320ms" }}>
+        {/* Decorative rule — hidden on mobile */}
+        <div className="hero-reveal hidden sm:flex mt-6 items-center gap-5" style={{ animationDelay: "320ms" }}>
           <div className="h-px flex-1 max-w-[3rem] editorial-rule" aria-hidden />
           <span className="editorial-dim text-[11px] tracking-[0.15em] uppercase">
             自由創作・開放分享
