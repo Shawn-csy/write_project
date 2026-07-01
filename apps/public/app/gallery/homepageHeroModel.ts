@@ -24,7 +24,7 @@ export type HomepageHeroSlide = BrandHeroSlide | (HeroSlide & { type?: "image" }
 export const BRAND_SLIDE: BrandHeroSlide = {
   type: "brand",
   id: "brand-intro",
-  title: "探索、閱讀、分享創作台本",
+  title: "配音、閱讀、創作公開台本",
   background: "none",
 };
 
