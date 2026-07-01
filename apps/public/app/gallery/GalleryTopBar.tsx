@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import ReactDOM from "react-dom";
-import { MoreHorizontal, X, ChevronDown } from "lucide-react";
+import { MoreHorizontal, X } from "lucide-react";
 import { PublicGalleryTopBar } from "@write/public-ui";
 import type { GalleryView } from "@write/public-ui";
 import { PublicShellActions } from "@/components/PublicShellActions";
@@ -13,38 +13,8 @@ export type { GalleryView };
 
 // ── Bottom action sheet ──────────────────────────────────────────────────
 
-const sectionHeadingClass =
-  "flex w-full items-center justify-between px-5 py-3 text-[0.8125rem] font-semibold text-foreground";
-const sectionChevronClass =
-  "h-3.5 w-3.5 text-muted-foreground transition-transform duration-150";
-
-function SheetSection({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div style={{ borderBottom: "1px solid hsl(var(--border) / 0.3)" }}>
-      <button
-        type="button"
-        className={sectionHeadingClass}
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-      >
-        {label}
-        <ChevronDown
-          className={sectionChevronClass}
-          style={{ transform: open ? "rotate(180deg)" : undefined }}
-          aria-hidden
-        />
-      </button>
-      {open && <div className="px-5 pb-4">{children}</div>}
-    </div>
-  );
-}
+const sheetSectionTitleClass =
+  "mb-2 px-1 [font-size:var(--public-font-caption)] font-semibold uppercase tracking-[0.16em] text-muted-foreground/65";
 
 function MobileActionSheet({ onClose }: { onClose: () => void }) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -127,18 +97,8 @@ function MobileActionSheet({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        {/* Scrollable content */}
-        <div className="overflow-y-auto flex-1">
-          <SheetSection label="外觀設定">
-            <AppearanceMenuContent />
-          </SheetSection>
-          <SheetSection label="說明與資訊">
-            <InfoMenuContent />
-          </SheetSection>
-        </div>
-
         {/* Studio CTA */}
-        <div className="px-5 pb-4 pt-2 shrink-0" style={{ borderTop: "1px solid hsl(var(--border) / 0.4)" }}>
+        <div className="px-5 pt-4 pb-3 shrink-0">
           <a
             href="/dashboard"
             className="flex items-center justify-center h-11 w-full rounded-lg text-[0.8125rem] font-semibold text-primary-foreground hover:opacity-90 transition-opacity duration-150"
@@ -146,6 +106,23 @@ function MobileActionSheet({ onClose }: { onClose: () => void }) {
           >
             進入工作室
           </a>
+        </div>
+
+        {/* Scrollable content */}
+        <div className="overflow-y-auto flex-1 px-5 pb-4 space-y-5">
+          <section>
+            <p className={sheetSectionTitleClass}>外觀設定</p>
+            <div className="rounded-xl border border-border/45 bg-card/45 p-4">
+              <AppearanceMenuContent />
+            </div>
+          </section>
+
+          <section>
+            <p className={sheetSectionTitleClass}>說明與資訊</p>
+            <div className="rounded-xl border border-border/45 bg-card/45 p-2">
+              <InfoMenuContent />
+            </div>
+          </section>
         </div>
 
         {/* Safe area spacer */}

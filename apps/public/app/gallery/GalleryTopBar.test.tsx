@@ -128,6 +128,23 @@ describe("GalleryTopBar", () => {
     expect(studioLink.getAttribute("href")).toBe("/dashboard");
   });
 
+  it("more sheet shows appearance and info content directly", () => {
+    render(
+      <GalleryTopBar
+        activeTab="scripts"
+        onTabChange={() => {}}
+        onOpenMobileFilter={() => {}}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "更多選項" }));
+
+    expect(screen.getByText("外觀設定")).toBeTruthy();
+    expect(screen.getByTestId("appearance-content")).toBeTruthy();
+    expect(screen.getByText("說明與資訊")).toBeTruthy();
+    expect(screen.getByTestId("info-content")).toBeTruthy();
+  });
+
   it("more sheet closes on Esc", () => {
     render(
       <GalleryTopBar

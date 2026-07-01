@@ -28,6 +28,8 @@ interface GalleryFilterPanelProps {
   onUsageChange?: (v: string) => void;
   /** "sidebar" wraps content in a rounded card surface. "sheet" renders flat (for mobile drawers). */
   variant?: "sidebar" | "sheet";
+  /** Mobile sheet owns the primary search field and reuses this panel for advanced filters only. */
+  showSearch?: boolean;
 }
 
 export function GalleryFilterPanel({
@@ -45,6 +47,7 @@ export function GalleryFilterPanel({
   usage,
   onUsageChange,
   variant = "sheet",
+  showSearch = true,
 }: GalleryFilterPanelProps) {
   const [tagsExpanded, setTagsExpanded] = useState(false);
 
@@ -76,30 +79,32 @@ export function GalleryFilterPanel({
   const inner = (
     <div className="space-y-4">
       {/* Search */}
-      <div>
-        <p className={sectionLabel}>搜尋</p>
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
-          <input
-            type="search"
-            value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="搜尋台本..."
-            className="w-full rounded-lg border border-border/60 bg-background pl-8.5 pr-7 py-[0.45rem] [font-size:var(--public-font-meta)] placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/15 transition-all duration-150"
-            style={{ paddingLeft: "2.125rem" }}
-          />
-          {searchTerm && (
-            <button
-              type="button"
-              onClick={() => onSearchChange("")}
-              aria-label="清除搜尋"
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground/50 hover:text-foreground hover:bg-muted/60 transition-all"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          )}
+      {showSearch && (
+        <div>
+          <p className={sectionLabel}>搜尋</p>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="搜尋台本..."
+              className="w-full rounded-lg border border-border/60 bg-background pl-8.5 pr-7 py-[0.45rem] [font-size:var(--public-font-meta)] placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/15 transition-all duration-150"
+              style={{ paddingLeft: "2.125rem" }}
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => onSearchChange("")}
+                aria-label="清除搜尋"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground/50 hover:text-foreground hover:bg-muted/60 transition-all"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Usage filter */}
       {usage !== undefined && onUsageChange && (

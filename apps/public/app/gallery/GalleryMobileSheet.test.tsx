@@ -3,6 +3,7 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
 import { describe, it, expect, vi, afterEach } from "vitest";
 
 vi.mock("lucide-react", () => ({
+  ChevronDown: () => <span data-testid="chevron-icon" />,
   Search: () => <span data-testid="search-icon" />,
   X: () => <span data-testid="x-icon" />,
 }));
@@ -54,6 +55,70 @@ describe("GalleryMobileSheet", () => {
     render(<GalleryMobileSheet {...BASE_PROPS} onClose={onClose} />);
     fireEvent.click(screen.getByRole("button", { name: "關閉篩選" }));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders a quick search field before advanced filters", () => {
+    render(<GalleryMobileSheet {...BASE_PROPS} />);
+
+    expect(screen.getByText("搜尋台本")).toBeTruthy();
+    expect(screen.getByPlaceholderText("輸入作品、作者、標籤...")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "進階篩選" })).toBeTruthy();
+    expect(screen.queryByTestId("view-mode-toggle")).toBeNull();
+  });
+
+  it("typing in quick search calls onSearchChange", () => {
+    const onSearchChange = vi.fn();
+    render(<GalleryMobileSheet {...BASE_PROPS} onSearchChange={onSearchChange} />);
+
+    fireEvent.change(screen.getByPlaceholderText("輸入作品、作者、標籤..."), {
+      target: { value: "女朋友" },
+    });
+
+    expect(onSearchChange).toHaveBeenCalledWith("女朋友");
+  });
+
+  it("clear search button clears the quick search", () => {
+    const onSearchChange = vi.fn();
+    render(
+      <GalleryMobileSheet
+        {...BASE_PROPS}
+        searchTerm="女朋友"
+        onSearchChange={onSearchChange}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "清除搜尋" }));
+    expect(onSearchChange).toHaveBeenCalledWith("");
+  });
+
+  it("opens advanced filters on demand", () => {
+    render(<GalleryMobileSheet {...BASE_PROPS} />);
+
+    const advancedButton = screen.getByRole("button", { name: "進階篩選" });
+    expect(advancedButton.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByTestId("view-mode-toggle")).toBeNull();
+
+    fireEvent.click(advancedButton);
+
+    expect(advancedButton.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByTestId("view-mode-toggle")).toBeTruthy();
+    expect(screen.queryByPlaceholderText("搜尋台本...")).toBeNull();
+  });
+
+  it("auto-opens advanced filters when advanced conditions are active", () => {
+    render(
+      <GalleryMobileSheet
+        {...BASE_PROPS}
+        selectedTags={["甜蜜"]}
+        usage="commercial"
+      />
+    );
+
+    expect(screen.getByText("已套用 2 個進階條件")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /進階篩選/ }).getAttribute("aria-expanded")).toBe(
+      "true"
+    );
+    expect(screen.getByTestId("view-mode-toggle")).toBeTruthy();
   });
 
   it("Esc calls onClose", () => {
