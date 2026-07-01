@@ -5,10 +5,25 @@ import { GalleryTopBar } from "./GalleryTopBar";
 
 vi.mock("lucide-react", () => ({
   SlidersHorizontal: () => <span data-testid="sliders-icon" />,
+  Search: () => <span />,
+  ChevronDown: () => <span />,
+  Sun: () => <span />,
+  Moon: () => <span />,
+  Monitor: () => <span />,
 }));
 
 vi.mock("@/components/PublicShellActions", () => ({
   PublicShellActions: () => <a href="/dashboard">工作室</a>,
+}));
+
+vi.mock("@/components/PublicAppearanceMenu", () => ({
+  PublicAppearanceMenu: () => <button aria-label="外觀設定" />,
+  AppearanceMenuContent: () => <div data-testid="appearance-content" />,
+}));
+
+vi.mock("@/components/PublicInfoMenu", () => ({
+  PublicInfoMenu: () => <button aria-label="說明與平台資訊" />,
+  InfoMenuContent: () => <div data-testid="info-content" />,
 }));
 
 describe("GalleryTopBar", () => {

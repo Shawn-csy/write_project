@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { GalleryFilterPanel } from "./GalleryFilterPanel";
 import { GalleryViewModeToggle } from "./GalleryViewModeToggle";
@@ -33,6 +34,46 @@ export function GalleryMobileSheet({
   setViewMode,
   ...filterProps
 }: GalleryMobileSheetProps) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Esc closes; focus trap; body scroll lock
+  useEffect(() => {
+    if (!open) return;
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") { onClose(); return; }
+      if (e.key !== "Tab") return;
+      const sheet = document.getElementById("gallery-mobile-sheet");
+      if (!sheet) return;
+      const focusable = Array.from(
+        sheet.querySelectorAll<HTMLElement>(
+          'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'
+        )
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    // Initial focus on close button
+    const rafId = requestAnimationFrame(() => closeButtonRef.current?.focus());
+
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      cancelAnimationFrame(rafId);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open, onClose]);
+
   if (!open) return null;
 
   return (
@@ -45,6 +86,10 @@ export function GalleryMobileSheet({
 
       {/* Sheet */}
       <div
+        id="gallery-mobile-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-label="篩選與搜尋"
         className="absolute bottom-0 left-0 right-0 flex flex-col max-h-[85vh] overflow-hidden"
         style={{
           borderRadius: "1rem 1rem 0 0",
@@ -61,6 +106,7 @@ export function GalleryMobileSheet({
         <div className="flex items-center justify-between px-5 py-3 shrink-0 editorial-border-b">
           <p className="text-[0.9375rem] font-semibold text-foreground">篩選與搜尋</p>
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={onClose}
             aria-label="關閉篩選"

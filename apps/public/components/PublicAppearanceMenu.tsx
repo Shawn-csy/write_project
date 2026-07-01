@@ -21,9 +21,43 @@ const SITE_TEXT_SCALE_OPTIONS: { value: SiteTextScale; label: string }[] = [
 
 const sectionHeadingClass = "mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/55";
 
-export function PublicAppearanceMenu() {
+/** Shareable inner content — used by popover (desktop) and nav overlay (mobile). */
+export function AppearanceMenuContent() {
   const { prefs, setTheme, setSiteTextScale } = usePublicAppearance();
+  return (
+    <div className="space-y-4 text-sm">
+      <section>
+        <p className={sectionHeadingClass}>主題</p>
+        <AnimatedSegment
+          options={THEME_OPTIONS}
+          value={prefs.theme}
+          onChange={setTheme}
+          label="主題"
+          renderOption={(opt) => {
+            const full = THEME_OPTIONS.find((o) => o.value === opt.value)!;
+            return (
+              <span className="flex items-center justify-center gap-1.5">
+                <full.Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                <span>{opt.label}</span>
+              </span>
+            );
+          }}
+        />
+      </section>
+      <section>
+        <p className={sectionHeadingClass}>首頁文字</p>
+        <AnimatedSegment
+          options={SITE_TEXT_SCALE_OPTIONS}
+          value={prefs.siteTextScale}
+          onChange={setSiteTextScale}
+          label="首頁文字"
+        />
+      </section>
+    </div>
+  );
+}
 
+export function PublicAppearanceMenu() {
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
@@ -41,44 +75,14 @@ export function PublicAppearanceMenu() {
         <Popover.Content
           align="end"
           sideOffset={6}
-          className="z-[101] w-72 rounded-xl p-4 space-y-4 text-sm"
+          className="z-[101] w-72 rounded-xl p-4"
           style={{
             border: "1px solid hsl(var(--border) / 0.6)",
             background: "hsl(var(--card))",
             boxShadow: "0 8px 30px hsl(var(--foreground)/0.1), 0 2px 8px hsl(var(--foreground)/0.06), 0 0 0 0.5px hsl(var(--border)/0.5)",
           }}
         >
-          {/* Theme */}
-          <section>
-            <p className={sectionHeadingClass}>主題</p>
-            <AnimatedSegment
-              options={THEME_OPTIONS}
-              value={prefs.theme}
-              onChange={setTheme}
-              label="主題"
-              renderOption={(opt) => {
-                const full = THEME_OPTIONS.find((o) => o.value === opt.value)!;
-                return (
-                  <span className="flex items-center justify-center gap-1.5">
-                    <full.Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    <span>{opt.label}</span>
-                  </span>
-                );
-              }}
-            />
-          </section>
-
-          {/* Site text scale */}
-          <section>
-            <p className={sectionHeadingClass}>首頁文字</p>
-            <AnimatedSegment
-              options={SITE_TEXT_SCALE_OPTIONS}
-              value={prefs.siteTextScale}
-              onChange={setSiteTextScale}
-              label="首頁文字"
-            />
-          </section>
-
+          <AppearanceMenuContent />
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>

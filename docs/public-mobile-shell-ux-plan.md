@@ -124,13 +124,17 @@
 
 ### 驗收
 
-> 規則已文件化（2026-07-01）。Shell nav overlay 已實作；filter/appearance/info overlay 統一待後續。
+> 實作完成（2026-07-01）。Browser QA pending。
 
-- [x] Shell nav overlay 不改變主內容 flow。
-- [ ] Filter / Appearance / Info overlay 統一行為（pending）。
+- [x] Shell nav overlay 不改變主內容 flow。（portal，不推 layout）
+- [x] Filter sheet (`GalleryMobileSheet`) — `role="dialog" aria-modal`、Esc 關閉、focus trap (含 select/textarea/disabled 排除)、body scroll lock + cleanup。
+- [x] Appearance overlay — Radix Popover Portal，不推 layout，Radix 管理 focus/Esc。
+- [x] Info overlay — Radix Popover Portal，不推 layout，Radix 管理 focus/Esc。
 - [x] Shell nav trigger 有 accessible name。
-- [x] Shell nav overlay 可鍵盤關閉（Esc + focus trap）。
+- [x] 所有 overlay 可鍵盤關閉。
 - [x] mobile 觸擊目標不小於 44px。（所有 icon button h-11 w-11）
+- [x] Card hover preview on coarse pointer — `GalleryHoverPreviewProvider` line 83 已有 coarse guard，mobile 不啟用。
+- [ ] Browser QA：所有 overlay 手機實機驗收。
 
 ## Phase 5 — Tests And Browser QA
 
@@ -142,6 +146,7 @@
 - [x] `PublicShellActions.test.tsx` — desktop StudioLink, mobile icon link (h-11 w-11), both `/dashboard`
 - [x] `GalleryBrandHeroSlide.test.tsx` — mobile: BrandScriptDesk not mounted; desktop: mounted + aria-hidden
 - [x] `useHeroBrandAnimation.test.ts` — reduced-motion / coarse pointer / mobile viewport guard blocks `getAnimate()`
+- [x] `GalleryMobileSheet.test.tsx` — role=dialog, Esc close, backdrop click, close button, body scroll lock + restore, Tab/Shift+Tab wrap
 
 ### Browser QA
 
