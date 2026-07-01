@@ -74,7 +74,6 @@ export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHe
     onToggleOrgTag,
     onResetAuthorTags,
     onResetOrgTags,
-    isPending,
   } = useGalleryController({ initialScripts, initialBannerSlides });
 
   const { view, resultCount, hasFilters } = homepageModel;
@@ -95,8 +94,7 @@ export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHe
         onOpenMobileFilter={openMobileFilter}
       />
 
-      {/* pending scope: only content fades/blocks — topbar, overlays, mobile sheet stay interactive */}
-      <div className={`flex flex-col flex-1 transition-opacity duration-150 ${isPending ? "opacity-60 pointer-events-none" : ""}`}>
+      <div className="flex flex-col flex-1">
         {/* Hero — superadmin config controls whether the brand slide is prepended. */}
         {view === "scripts" && heroSlides.length > 0 && (
           <PublicHeroMarquee

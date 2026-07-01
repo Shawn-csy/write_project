@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useTransition } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useMemo, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   parseGalleryUrlState,
   serializeGalleryUrlState,
@@ -18,7 +18,7 @@ export interface GalleryUrlStateActions {
   setLane: (lane: GalleryLaneMode) => void;
   setSegment: (segment: string) => void;
   setUsage: (usage: string) => void;
-  /** Uses router.replace — search fires on every keystroke; must not pollute history. */
+  /** Uses history.replaceState — search fires on every keystroke; must not pollute history. */
   setQ: (q: string) => void;
   toggleTag: (tag: string) => void;
   toggleAuthorTag: (tag: string) => void;
@@ -31,40 +31,41 @@ export interface GalleryUrlStateActions {
 export function useGalleryUrlState(): {
   state: PublicHomepageUrlState;
   actions: GalleryUrlStateActions;
-  isPending: boolean;
 } {
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-
   const state = useMemo(
     () => parseGalleryUrlState(searchParams.toString()),
     [searchParams]
   );
 
-  // Always points to latest searchParams so callbacks never close over stale state.
-  const searchParamsRef = useRef(searchParams);
-  searchParamsRef.current = searchParams;
+  // Always points to the latest effective state. It is updated optimistically
+  // after history writes so rapid consecutive clicks merge against the latest
+  // intended URL, not the previous render's searchParams snapshot.
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   const nav = useCallback(
     (patch: Partial<PublicHomepageUrlState>, method: "push" | "replace" = "push") => {
-      const current = parseGalleryUrlState(searchParamsRef.current.toString());
+      const current = stateRef.current;
       const next = mergeGalleryUrlState(current, patch);
       const params = serializeGalleryUrlState(next);
       const qs = params.toString();
       const url = qs ? `/?${qs}` : "/";
-      // startTransition keeps current UI visible during navigation — prevents
-      // the Suspense boundary from showing fallback={null} (blank screen) while
-      // useSearchParams re-renders on the new URL.
-      startTransition(() => {
-        if (method === "replace") {
-          router.replace(url, { scroll: false });
-        } else {
-          router.push(url, { scroll: false });
-        }
-      });
+
+      // Homepage filters are client-owned URL state, not route navigation.
+      // Native History API keeps interactions synchronous and still integrates
+      // with Next's useSearchParams, avoiding App Router transition stalls.
+      if (typeof window === "undefined") return;
+      const currentUrl = `${window.location.pathname}${window.location.search}`;
+      if (currentUrl === url) return;
+      if (method === "replace") {
+        window.history.replaceState(null, "", url);
+      } else {
+        window.history.pushState(null, "", url);
+      }
+      stateRef.current = next;
     },
-    [router, startTransition]
+    []
   );
 
   const setView = useCallback((view: GalleryView) => nav({ view }), [nav]);
@@ -76,7 +77,7 @@ export function useGalleryUrlState(): {
 
   const toggleTag = useCallback(
     (tag: string) => {
-      const current = parseGalleryUrlState(searchParamsRef.current.toString());
+      const current = stateRef.current;
       const tags = current.tags.includes(tag)
         ? current.tags.filter((t) => t !== tag)
         : [...current.tags, tag];
@@ -87,7 +88,7 @@ export function useGalleryUrlState(): {
 
   const toggleAuthorTag = useCallback(
     (tag: string) => {
-      const current = parseGalleryUrlState(searchParamsRef.current.toString());
+      const current = stateRef.current;
       const authorTags = current.authorTags.includes(tag)
         ? current.authorTags.filter((t) => t !== tag)
         : [...current.authorTags, tag];
@@ -98,7 +99,7 @@ export function useGalleryUrlState(): {
 
   const toggleOrgTag = useCallback(
     (tag: string) => {
-      const current = parseGalleryUrlState(searchParamsRef.current.toString());
+      const current = stateRef.current;
       const orgTags = current.orgTags.includes(tag)
         ? current.orgTags.filter((t) => t !== tag)
         : [...current.orgTags, tag];
@@ -133,5 +134,5 @@ export function useGalleryUrlState(): {
     [setView, setMode, setLane, setSegment, setUsage, setQ, toggleTag, toggleAuthorTag, toggleOrgTag, resetFilters, resetAuthorTags, resetOrgTags]
   );
 
-  return { state, actions, isPending };
+  return { state, actions };
 }

@@ -24,6 +24,19 @@ const BASE_PROPS = {
   onResetFilters: vi.fn(),
 };
 
+describe("GalleryFilterPanel — search slot", () => {
+  it("renders search by default", () => {
+    render(<GalleryFilterPanel {...BASE_PROPS} />);
+    expect(screen.getByPlaceholderText("搜尋台本...")).toBeTruthy();
+  });
+
+  it("can hide search when a parent sheet owns the primary search field", () => {
+    render(<GalleryFilterPanel {...BASE_PROPS} showSearch={false} />);
+    expect(screen.queryByPlaceholderText("搜尋台本...")).toBeNull();
+    expect(screen.getByText("分類與標籤")).toBeTruthy();
+  });
+});
+
 describe("GalleryFilterPanel — tag collapse", () => {
   it("shows only DEFAULT_VISIBLE_TAG_COUNT tags when collapsed", () => {
     render(<GalleryFilterPanel {...BASE_PROPS} />);
