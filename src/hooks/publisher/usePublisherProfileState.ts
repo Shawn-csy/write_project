@@ -1,5 +1,4 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import { useI18n } from "../../contexts/I18nContext";
 import { useToast } from "../../components/ui/toast";
 import { searchOrganizations, requestToJoinOrganization, getMyOrganizationRequests } from "../../lib/api/organizations";
@@ -103,7 +102,6 @@ export function usePublisherProfileState({
 }: UsePublisherProfileStateProps) {
   const { t } = useI18n();
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   const [viewMode, setViewMode] = React.useState<"edit" | "create">("edit");
   const [orgSearchQuery, setOrgSearchQuery] = React.useState<string>("");
@@ -121,7 +119,7 @@ export function usePublisherProfileState({
   const [cropOpen, setCropOpen] = React.useState<boolean>(false);
   const [cropPurpose, setCropPurpose] = React.useState<"avatar" | "banner">("avatar");
   const [cropTargetField, setCropTargetField] = React.useState<"avatar" | "bannerUrl" | null>(null);
-  const [cropSource, setCropSource] = React.useState<{ file: File; name: string } | null>(null);
+  const [cropSource, setCropSource] = React.useState<{ file?: File; url?: string; name: string; initialCropRef?: { cx?: number; cy?: number; zoom?: number } | null } | null>(null);
 
   const avatarGuide = React.useMemo(() => getImageUploadGuide("avatar"), []);
   const bannerGuide = React.useMemo(() => getImageUploadGuide("banner"), []);
@@ -244,6 +242,20 @@ export function usePublisherProfileState({
     event.target.value = "";
   };
 
+  const openCropFromUrl = React.useCallback((field: "avatar" | "bannerUrl", url: string) => {
+    if (!url) return;
+    const currentCrop = field === "avatar" ? personaDraft.avatarCrop : personaDraft.bannerCrop;
+    setCropTargetField(field);
+    setCropPurpose(field === "avatar" ? "avatar" : "banner");
+    setCropSource({ url, name: field, initialCropRef: currentCrop ?? null });
+    setCropOpen(true);
+  }, [personaDraft.avatarCrop, personaDraft.bannerCrop]);
+
+  const applyCropRef = React.useCallback((field: "avatar" | "bannerUrl", crop: { cx?: number; cy?: number; zoom?: number }) => {
+    const cropField = field === "avatar" ? "avatarCrop" : "bannerCrop";
+    setPersonaDraft(prev => ({ ...prev, [cropField]: crop }));
+  }, [setPersonaDraft]);
+
   const onStartCreate = () => {
     setSelectedPersonaId(null);
     setPersonaDraft({
@@ -296,7 +308,7 @@ export function usePublisherProfileState({
   };
 
   return {
-    t, navigate,
+    t,
     viewMode, setViewMode, onStartCreate,
     orgSearchQuery, setOrgSearchQuery,
     orgSearchResults, isOrgSearching,
@@ -318,6 +330,8 @@ export function usePublisherProfileState({
     jumpToRequiredField,
     applyUploadedImage,
     handleImageUpload,
+    openCropFromUrl,
+    applyCropRef,
     handleRequestJoinOrg,
     handleMediaPickerSelect,
     handleMediaPickerSelectMedia,

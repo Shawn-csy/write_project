@@ -16,10 +16,12 @@ interface MediaHandlerState {
     setIsMediaPickerOpen: (v: boolean) => void;
     setMediaPickerTarget: (v: string) => void;
     mediaPickerTarget: string;
-    setCropSource: (v: { file: File; name: string } | null) => void;
+    setCropSource: (v: { file?: File; url?: string; name: string; initialCropRef?: { cx?: number; cy?: number; zoom?: number } | null } | null) => void;
     setCropTarget: (v: string) => void;
     setCropPurpose: (v: "avatar" | "logo" | "cover" | "banner" | "generic") => void;
     setCropOpen: (v: boolean) => void;
+    coverUrl: string;
+    coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
 }
 
 export function useScriptMetadataMediaHandlers({
@@ -27,6 +29,8 @@ export function useScriptMetadataMediaHandlers({
     setActivityBannerUrl, setActivityBannerPreviewFailed, setActivityBannerUploadError, setActivityBannerUploadWarning,
     setIsMediaPickerOpen, setMediaPickerTarget, mediaPickerTarget,
     setCropSource, setCropTarget, setCropPurpose, setCropOpen,
+    coverUrl,
+    coverCrop,
 }: MediaHandlerState) {
 
     const applyCroppedUpload = useCallback(async (file: File, target: string) => {
@@ -98,6 +102,19 @@ export function useScriptMetadataMediaHandlers({
         setIsMediaPickerOpen(true);
     }, [setMediaPickerTarget, setIsMediaPickerOpen]);
 
+    // Non-destructive focal-point adjust for already-uploaded cover URL
+    const openCoverCropFromUrl = useCallback(() => {
+        if (!coverUrl) return;
+        setCropSource({ url: coverUrl, name: "cover", initialCropRef: coverCrop ?? null });
+        setCropTarget("cover");
+        setCropPurpose("cover");
+        setCropOpen(true);
+    }, [coverUrl, coverCrop, setCropSource, setCropTarget, setCropPurpose, setCropOpen]);
+
+    const applyCoverCropRef = useCallback((crop: { cx?: number; cy?: number; zoom?: number }) => {
+        setCoverCrop(crop);
+    }, [setCoverCrop]);
+
     const openActivityBannerMediaPicker = useCallback(() => {
         setMediaPickerTarget("activityBanner");
         setIsMediaPickerOpen(true);
@@ -147,6 +164,8 @@ export function useScriptMetadataMediaHandlers({
         handleActivityBannerUpload,
         openCoverMediaPicker,
         openActivityBannerMediaPicker,
+        openCoverCropFromUrl,
+        applyCoverCropRef,
         handleMediaPickerSelect,
         handleMediaPickerSelectMedia,
     };

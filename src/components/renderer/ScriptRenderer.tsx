@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { parseInline } from '../../lib/parsers/inlineParser';
+import { parseInline } from '@write/script-engine';
 import { isInlineLike } from '../../lib/markerRules';
 import { useI18n } from '../../contexts/I18nContext';
 import { resolveReadingFontStack } from '../../constants/readingFonts';

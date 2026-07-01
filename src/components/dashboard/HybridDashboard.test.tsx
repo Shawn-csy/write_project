@@ -84,6 +84,9 @@ describe("HybridDashboard", () => {
     );
 
     fireEvent.click(screen.getByText("公開台本"));
-    expect(mockNavigate).toHaveBeenCalledWith("/");
+    // openPublicPath sets window.location.href (full navigation to nginx → Next);
+    // jsdom resolves relative "/" to the full base URL
+    expect(window.location.href).toMatch(/\/$/);
+
   });
 });

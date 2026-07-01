@@ -424,7 +424,7 @@ def test_admin_user_search_and_engagement_routes(client, db_session):
     partial_ids = {u["id"] for u in search_partial_id_res.json()}
     assert "u-search" in partial_ids
 
-    script_res = client.post("/api/scripts", json={"title": "Engage"}, headers=headers)
+    script_res = client.post("/api/scripts", json={"title": "Engage", "isPublic": True}, headers=headers)
     assert script_res.status_code == 200
     script_id = script_res.json()["id"]
 
@@ -612,7 +612,7 @@ def test_read_script_seo_injects_meta(client, db_session, tmp_path, monkeypatch)
     res = client.get(f"/read/{script_id}")
     assert res.status_code == 200
     body = res.text
-    assert "<title>SEO Title｜Screenplay Reader</title>" in body
+    assert "<title>SEO Title｜泛用型產品作坊</title>" in body
     assert "og:title" in body
     assert "SEO Title" in body
 

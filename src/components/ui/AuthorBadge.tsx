@@ -1,9 +1,9 @@
 import React from "react";
 import { User } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { cn } from "../../lib/utils";
 import { useI18n } from "../../contexts/I18nContext";
 import { getMediaCropStyle } from "../../lib/mediaCropRef";
+import { openPublicPath } from "../../lib/publicNavigation";
 
 interface AuthorInfo {
   id?: string;
@@ -23,15 +23,14 @@ interface AuthorBadgeProps {
 
 export function AuthorBadge({ author, className, showAvatar = true, link, clickable = true }: AuthorBadgeProps) {
   const { t } = useI18n();
-  const navigate = useNavigate();
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!clickable) return;
     e.stopPropagation();
     if (link) {
-        navigate(link);
+      openPublicPath(link);
     } else if (typeof author === "object" && author?.id) {
-      navigate(`/author/${author.id}`);
+      openPublicPath(`/author/${author.id}`);
     }
   };
 

@@ -5,6 +5,42 @@ from sqlalchemy.orm import Session
 import models
 
 
+# ---------------------------------------------------------------------------
+# Public visibility predicate — single source of truth for whether a script
+# is publicly accessible. Used by view, like, like-status, stats, read, raw,
+# and terms-acceptance endpoints so all routes enforce identical visibility rules.
+# ---------------------------------------------------------------------------
+
+def has_public_parent_folder(db: Session, script: models.Script) -> bool:
+    """Return True if the script's immediate parent folder is marked isPublic."""
+    if script.folder == "/":
+        return True
+    parts = script.folder.strip("/").split("/")
+    folder_title = parts[-1]
+    folder_parent = "/" + "/".join(parts[:-1])
+    if folder_parent != "/" and not folder_parent.startswith("/"):
+        folder_parent = "/" + folder_parent
+    folder_script = db.query(models.Script).filter(
+        models.Script.ownerId == script.ownerId,
+        models.Script.title == folder_title,
+        models.Script.folder == folder_parent,
+        models.Script.type == "folder",
+        models.Script.isPublic == 1,
+    ).first()
+    return folder_script is not None
+
+
+def is_publicly_visible(db: Session, script: models.Script) -> bool:
+    """Return True if a script is publicly accessible (explicitly public or in a public folder)."""
+    if not script:
+        return False
+    if bool(getattr(script, "isPublic", 0)):
+        return True
+    if str(getattr(script, "folder", "/") or "/") == "/":
+        return False
+    return has_public_parent_folder(db, script)
+
+
 AUDIENCE_TAG_GROUP = {"全年齡", "青少年", "成人", "親子", "一般向", "男性向", "女性向", "兒童"}
 RATING_TAG_GROUP = {"普遍級", "保護級", "輔導級", "限制級", "G", "PG", "PG-13", "R", "NC-17"}
 PUBLISH_READINESS_VALUES = {"needs_work", "ready", "published"}

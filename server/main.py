@@ -177,32 +177,47 @@ def create_app() -> FastAPI:
     @app.get("/llms.txt", response_class=Response)
     @app.get("/.well-known/llms.txt", response_class=Response)
     async def get_llms_txt():
-        content = """# Screenplay Reader - AI Agent Documentation
+        base = public_base_url()
+        content = f"""# 公開台本｜Screenplay Reader - AI Agent Guide
 
-Welcome, AI Agent! This is the documentation for Screenplay Reader, a platform for writers to publish and share screenplays.
-We provide dedicated, AI-friendly endpoints so you can read scripts without parsing complex React HTML or executing JavaScript.
+公開台本｜Screenplay Reader ({base}) is a platform for writers to publish and share screenplays.
+AI-friendly endpoints are provided so you can read scripts without parsing React HTML or executing JavaScript.
 
-## Reading Public Scripts
+## Preferred endpoint for raw content
 
-To retrieve the raw text (Fountain/Markdown format) of any publicly available script, you can use the following API endpoint:
+GET /api/public-scripts/{{script_id}}/raw
 
-**Endpoint:** `GET /api/public-scripts/{script_id}/raw`
+- Returns text/markdown
+- {{script_id}} is the unique identifier found in the public URL: {base}/read/{{script_id}}
+- Private or missing scripts return 404
 
-- `{script_id}` is the unique identifier of the script, usually found in the URL like `https://scripts.shawnup.com/read/{script_id}`.
-- This endpoint returns `text/markdown`.
-- If a script is private, it will return a 404 error.
+## Preferred endpoint for structured metadata
 
-## Public Discovery Routes
+GET /api/public-scripts/{{script_id}}
 
-- Script page: `/read/{script_id}`
-- Author page: `/author/{author_id}`
-- Organization page: `/org/{org_id}`
-- Sitemap: `/sitemap.xml`
+- Returns application/json
 
-## Content Negotiation on Web Routes
+## Content negotiation (backend direct only)
 
-Alternatively, if you are browsing the standard web URL `https://scripts.shawnup.com/read/{script_id}`, we support content negotiation.
-If you send the `Accept: text/markdown` header, or if you identify as an AI bot in your `User-Agent` (e.g., `GPTBot`, `ClaudeBot`), we will automatically bypass the SPA HTML and serve you the raw markdown content directly.
+When hitting this backend directly, GET /read/{{script_id}} with Accept: text/markdown
+or a recognized AI bot User-Agent (GPTBot, ClaudeBot, Google-Extended, Anthropic, PerplexityBot) returns raw markdown.
+The public site URL ({base}/read/{{script_id}}) routes through the Next.js frontend and returns HTML.
+Prefer /api/public-scripts/{{script_id}}/raw for reliable raw content access.
+
+## Discovery
+
+- Sitemap: {base}/sitemap.xml
+- Script page: {base}/read/{{script_id}}
+- Author page: {base}/author/{{author_id}}
+- Organization page: {base}/org/{{org_id}}
+- Series page: {base}/series/{{series_name}}
+- Tag page: {base}/tag/{{tag_name}}
+
+## Notes
+
+- Use /api/public-scripts/{{script_id}}/raw first; do not rely on parsing rendered HTML.
+- Public scripts return 200. Private or missing scripts return 404.
+- Unauthorized AI model training on licensed content is not permitted where content terms restrict it.
 """
         return Response(content=content, media_type="text/markdown")
 
@@ -231,7 +246,6 @@ If you send the `Accept: text/markdown` header, or if you identify as an AI bot 
         # Static pages
         urls.append(url_entry(f"{base_url}/", changefreq="weekly", priority="0.8"))
         urls.append(url_entry(f"{base_url}/about", changefreq="monthly", priority="0.5"))
-        urls.append(url_entry(f"{base_url}/gallery", changefreq="weekly", priority="0.7"))
 
         # Public scripts
         scripts_rows = db.query(

@@ -12,6 +12,7 @@ import { usePersistMarkerTheme } from "../../hooks/usePersistMarkerTheme";
 import { useInitialScroll } from "../../hooks/useInitialScroll";
 import { updateScript } from "../../lib/api/scripts";
 import { trackPageView } from "../../lib/firebase";
+import { openPublicPath } from "../../lib/publicNavigation";
 
 import { ScriptViewProvider } from "../../contexts/ScriptViewContext";
 import { useTextLocator } from "../../hooks/useTextLocator";
@@ -150,15 +151,9 @@ export function EditorShell() {
     const script = activeCloudScriptRef.current;
     if (script) {
       if (location.pathname.startsWith("/read/")) {
-        // Visitor Mode
-        if (script.folder && script.folder !== "/") {
-          const targetExpand = `${script.ownerId}:${script.folder}`;
-          navigate(`/?tab=read&public_expand=${encodeURIComponent(targetExpand)}`);
-          return;
-        } else {
-          navigate("/?tab=read");
-          return;
-        }
+        // Visitor Mode — /read/ is Next.js; return to Next.js gallery
+        openPublicPath("/");
+        return;
       } else {
         // Editor Mode
         if (script.folder) {

@@ -2,7 +2,6 @@ import React from "react";
 import { Routes, useNavigate } from "react-router-dom";
 import { useI18n } from "./contexts/I18nContext";
 import { useCrossModeReadGuide } from "./hooks/useCrossModeReadGuide";
-import { renderPublicRoutes } from "./routes/PublicRoutes";
 import { renderWorkspaceRoutes } from "./routes/WorkspaceRoutes";
 import type { ScriptManager } from "./hooks/useScriptManager.types";
 import type { Nav, NavProps } from "./types/nav";
@@ -70,7 +69,6 @@ export function AppRouter({
 
   return (
     <Routes>
-      {renderPublicRoutes({ scriptManager, navProps })}
       {renderWorkspaceRoutes({
         scriptManager,
         nav,

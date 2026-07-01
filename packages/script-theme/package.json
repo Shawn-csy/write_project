@@ -1,0 +1,8 @@
+{
+  "name": "@write/script-theme",
+  "version": "0.0.1",
+  "private": true,
+  "exports": {
+    "./marker-colors.css": "./src/marker-colors.css"
+  }
+}

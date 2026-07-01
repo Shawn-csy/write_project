@@ -78,6 +78,22 @@ get_env_value() {
   awk -F= -v k="$key" '$1 == k {sub(/^[^=]*=/, ""); print; exit}' "$ENV_FILE"
 }
 
+require_env_value() {
+  local key="$1"
+  local value
+  value="$(get_env_value "$key")"
+  if [ -z "$value" ]; then
+    echo "ERROR: missing required production env: $key"
+    echo "       Add $key to $ENV_FILE before deploying with $COMPOSE_FILE."
+    return 1
+  fi
+}
+
+if [ "$(basename "$COMPOSE_FILE")" = "docker-compose.prod.yml" ]; then
+  require_env_value POSTGRES_PASSWORD
+  require_env_value DATABASE_URL
+fi
+
 ensure_postgres_data_dir_seeded() {
   local target_dir="$ROOT_DIR/$POSTGRES_DATA_DIR"
   local project_name old_volume_name
@@ -210,21 +226,11 @@ if [ -d "${ROOT_DIR}/dist" ]; then
   cp -a "${ROOT_DIR}/dist" "${ROOT_DIR}/dist.rollback"
 fi
 
-echo "[deploy] building and starting containers (tag: ${DEPLOY_TAG})..."
+echo "[deploy] building and starting backend (tag: ${DEPLOY_TAG})..."
 export DEPLOY_TAG
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up --build -d
-
-# Also tag as 'latest' for convenience
-if docker image inspect "write_project-backend:${DEPLOY_TAG}" >/dev/null 2>&1; then
-  docker tag "write_project-backend:${DEPLOY_TAG}" "write_project-backend:latest"
-fi
-
-# Prune backend images older than the last 3 versions
-backend_images=$(docker images write_project-backend --format "{{.Tag}}" | grep -v "latest" | sort -r | tail -n +4)
-if [ -n "$backend_images" ]; then
-  echo "[deploy] pruning old backend images: $(echo $backend_images | tr '\n' ' ')"
-  echo "$backend_images" | xargs -I{} docker rmi "write_project-backend:{}" 2>/dev/null || true
-fi
+# Phase 1: start only data + backend — public/frontend held back until backfill completes.
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up --build -d \
+  write_project-postgres write_project-backend
 
 echo "[deploy] waiting for backend to be ready..."
 BACKEND_CID="$(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps -q write_project-backend 2>/dev/null || true)"
@@ -235,9 +241,17 @@ else
   for i in $(seq 1 30); do
     STATUS="$(docker inspect -f '{{.State.Status}}' "$BACKEND_CID" 2>/dev/null || true)"
     if [ "$STATUS" = "running" ]; then
-      # Check if the server is actually accepting connections (health endpoint).
+      # Check if the server is accepting connections — any HTTP response (incl. 4xx) means it's up.
       if docker exec "$BACKEND_CID" \
-          wget -qO- http://localhost:8080/api/health/auth 2>/dev/null | grep -q "ok\|401\|403\|422"; then
+          python -c "
+import urllib.request, urllib.error, sys
+try:
+    urllib.request.urlopen('http://localhost:1091/api/health/auth')
+except urllib.error.HTTPError:
+    pass  # 4xx/5xx still means server is up
+except Exception:
+    sys.exit(1)
+" 2>/dev/null; then
         READY=1
         break
       fi
@@ -251,6 +265,93 @@ else
   else
     echo "WARN: backend did not become ready in time — showing last 40 log lines:"
     docker logs --tail=40 "$BACKEND_CID" 2>&1 || true
+  fi
+fi
+
+# ── Phase 2 data backfill (release gate — must complete before public runtime) ─
+# Scripts are idempotent. Dry-run first; write only when pending records found.
+# Dry-run failure aborts deploy: stale data must not be served without runtime normalization.
+if [ -n "$BACKEND_CID" ] && [ "$READY" = "1" ]; then
+  echo "[deploy] running canonical metadata backfill (dry-run)..."
+  if ! BACKFILL_DRY="$(docker exec "$BACKEND_CID" python /app/scripts/backfill_canonical_metadata.py 2>&1)"; then
+    echo "ERROR: canonical metadata backfill dry-run failed:"
+    echo "$BACKFILL_DRY"
+    exit 1
+  fi
+  echo "$BACKFILL_DRY"
+
+  if echo "$BACKFILL_DRY" | grep -qE "Fields to backfill|fields backfilled"; then
+    echo "[deploy] backfill needed — running write mode..."
+    docker exec "$BACKEND_CID" python /app/scripts/backfill_canonical_metadata.py --write
+    echo "[deploy] canonical metadata backfill complete"
+  else
+    echo "[deploy] canonical metadata backfill: nothing to do"
+  fi
+
+  echo "[deploy] running cover design sub→layers migration (dry-run)..."
+  if ! COVER_DRY="$(docker exec "$BACKEND_CID" python /app/scripts/migrate_cover_sub.py 2>&1)"; then
+    echo "ERROR: cover design migration dry-run failed:"
+    echo "$COVER_DRY"
+    exit 1
+  fi
+  echo "$COVER_DRY"
+
+  if echo "$COVER_DRY" | grep -qE "Records to update: [1-9]"; then
+    echo "[deploy] cover migration needed — running write mode..."
+    docker exec "$BACKEND_CID" python /app/scripts/migrate_cover_sub.py --write
+    echo "[deploy] cover design migration complete"
+  else
+    echo "[deploy] cover design migration: nothing to do"
+  fi
+elif [ -n "$BACKEND_CID" ] && [ "$READY" = "0" ]; then
+  echo "ERROR: backend not ready — cannot run Phase 2 backfill. Deploy aborted."
+  exit 1
+fi
+
+# Phase 2: backfill complete — now start public-facing services.
+echo "[deploy] starting public reader and frontend..."
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up --build -d \
+  write_project-frontend-build write_project-frontend write_project-public
+
+# Tag images as 'latest' for convenience
+if docker image inspect "write_project-backend:${DEPLOY_TAG}" >/dev/null 2>&1; then
+  docker tag "write_project-backend:${DEPLOY_TAG}" "write_project-backend:latest"
+fi
+if docker image inspect "write_project-public:${DEPLOY_TAG}" >/dev/null 2>&1; then
+  docker tag "write_project-public:${DEPLOY_TAG}" "write_project-public:latest"
+fi
+
+# Prune backend and public images older than the last 3 versions
+for image_name in write_project-backend write_project-public; do
+  old_images=$(docker images "$image_name" --format "{{.Tag}}" | grep -v "latest" | sort -r | tail -n +4)
+  if [ -n "$old_images" ]; then
+    echo "[deploy] pruning old ${image_name} images: $(echo "$old_images" | tr '\n' ' ')"
+    echo "$old_images" | xargs -I{} docker rmi "${image_name}:{}" 2>/dev/null || true
+  fi
+done
+
+echo "[deploy] waiting for public reader to be ready..."
+PUBLIC_CID="$(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps -q write_project-public 2>/dev/null || true)"
+if [ -z "$PUBLIC_CID" ]; then
+  echo "WARN: cannot find write_project-public container — skipping readiness check"
+else
+  PUBLIC_READY=0
+  for i in $(seq 1 30); do
+    STATUS="$(docker inspect -f '{{.State.Status}}' "$PUBLIC_CID" 2>/dev/null || true)"
+    if [ "$STATUS" = "running" ]; then
+      if docker exec "$PUBLIC_CID" node -e "fetch('http://127.0.0.1:3000/about').then(r => { if (r.ok) process.exit(0); process.exit(1); }).catch(() => process.exit(1));" >/dev/null 2>&1; then
+        PUBLIC_READY=1
+        break
+      fi
+    fi
+    sleep 2
+  done
+
+  if [ "$PUBLIC_READY" = "1" ]; then
+    echo "[deploy] public reader is up"
+  else
+    echo "WARN: public reader did not become ready in time — showing last 80 log lines:"
+    docker logs --tail=80 "$PUBLIC_CID" 2>&1 || true
   fi
 fi
 

@@ -38,29 +38,13 @@ export interface ScriptMetadataPayloadFields {
   customFields: CustomField[];
 }
 
-interface BuildCustomMetadataOptions {
-  preserveAuthor?: boolean;
-  existingAuthorEntries?: Array<{ key: string; value: string }>;
-}
-
-const normalizeMetaKey = (key: unknown) => String(key || "").trim().toLowerCase().replace(/\s+/g, "");
-const isAuthorMetaKey = (key: unknown) => {
-  const normalized = normalizeMetaKey(key);
-  return normalized === "author" || normalized === "authors" || normalized === "authordisplaymode";
-};
-
 export function buildCustomMetadataEntries(
-  fields: ScriptMetadataPayloadFields,
-  options: BuildCustomMetadataOptions = {}
+  fields: ScriptMetadataPayloadFields
 ): Array<{ key: string; value: string }> {
-  const preserveAuthor = options.preserveAuthor === true;
-  const effectiveAuthorDisplayMode = fields.authorDisplayMode === "override" ? "override" : "badge";
-  const effectiveAuthor = String(fields.author || "");
   const orderedEntries: Array<{ key: string; value: string }> = [];
 
   // Author and AuthorDisplayMode are RESERVED_CUSTOM_KEYS owned by structured api.author field.
   // Do NOT write Author or AuthorDisplayMode into customMetadata.
-  // (preserveAuthor path handled separately via applyPreservedAuthorEntries in the save hook.)
   // Synopsis/Outline/ActivityName/ActivityBanner/ActivityContent/ActivityWorkUrl/ActivityDemoLinks
   // are RESERVED_CUSTOM_KEYS — owned by structured fields (E1-E6). Do NOT write them into customMetadata.
   if (fields.roleSetting) orderedEntries.push({ key: "RoleSetting", value: fields.roleSetting });
@@ -94,16 +78,6 @@ export function buildCustomMetadataEntries(
   });
 
   return normalizeCustomMetadataEntries(orderedEntries);
-}
-
-export function applyPreservedAuthorEntries(
-  entries: Array<{ key: string; value: string }>,
-  existingAuthorEntries: Array<{ key: string; value: string }>
-): Array<{ key: string; value: string }> {
-  return normalizeCustomMetadataEntries([
-    ...entries.filter((entry) => !isAuthorMetaKey(entry?.key)),
-    ...existingAuthorEntries,
-  ]);
 }
 
 export function buildJsonPreviewPayload(fields: ScriptMetadataPayloadFields): Record<string, unknown> {

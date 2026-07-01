@@ -15,6 +15,7 @@ export function ScriptMetadataDialogOverlays() {
         cropOpen, setCropOpen,
         cropSource, cropPurpose, cropTarget,
         applyCroppedUpload,
+        applyCoverCropRef,
         showPersonaSetupDialog,
         handlePersonaSetupDialogOpenChange,
         handleGoToAuthorProfile,
@@ -37,6 +38,9 @@ export function ScriptMetadataDialogOverlays() {
                 onConfirm={async (croppedFile) => {
                     await applyCroppedUpload(croppedFile, cropTarget);
                 }}
+                onApplyCropRef={cropSource?.url && cropTarget === "cover" ? applyCoverCropRef : undefined}
+                applyCropRefLabel={t("mediaLibrary.applyCropFrame", "套用裁切框")}
+                initialCropRef={cropSource?.url ? (cropSource.initialCropRef ?? null) : null}
             />
             <SpotlightGuideOverlay
                 open={showGuide && Boolean(currentGuide)}

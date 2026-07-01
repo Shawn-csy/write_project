@@ -1,6 +1,6 @@
 import pytest
 import time
-from models import User, Script, Persona, Organization, OrganizationMembership, PersonaOrganizationMembership
+from models import User, Script, Persona, Organization, PersonaOrganizationMembership
 
 def setup_data(db_session):
     now = int(time.time() * 1000)
@@ -61,16 +61,11 @@ def setup_data(db_session):
                 script_folder_private, script_in_priv_folder, script_in_priv_explicit_false, script_org_public])
     db_session.commit()
 
-def test_get_public_persona_user_fallback(client, db_session):
+def test_get_public_persona_user_id_returns_404(client, db_session):
     setup_data(db_session)
-    # /api/public-personas/{id} should fallback to User if Persona not found
+    # User IDs are not valid persona IDs — no fallback, always 404
     response = client.get("/api/public-personas/user-no-persona")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["id"] == "user-no-persona"
-    assert len(data["organizations"]) == 1
-    assert data["organizations"][0]["id"] == "org-public-1"
-    assert data["organizations"][0]["tags"] == ["studio"] # DB string converted back to list
+    assert response.status_code == 404
 
 def test_get_public_persona_json_parsing(client, db_session):
     setup_data(db_session)
@@ -319,19 +314,11 @@ def test_public_persona_uses_persona_org_membership_table(client, db_session):
     assert data["organizations"][0]["id"] == "org-public-1"
 
 
-def test_user_fallback_uses_user_org_membership_table(client, db_session):
+def test_user_id_without_persona_returns_404(client, db_session):
     setup_data(db_session)
     now = int(time.time() * 1000)
     user = User(id="user-membership-fallback", handle="member-fallback", organizationId=None)
-    membership = OrganizationMembership(
-        id="om-1",
-        orgId="org-public-1",
-        userId="user-membership-fallback",
-        createdAt=now,
-        updatedAt=now,
-    )
     db_session.add(user)
-    db_session.add(membership)
     db_session.add(
         Script(
             id="pub-user-fallback-1",
@@ -344,12 +331,9 @@ def test_user_fallback_uses_user_org_membership_table(client, db_session):
     )
     db_session.commit()
 
+    # User IDs no longer accepted — must use persona ID
     response = client.get("/api/public-personas/user-membership-fallback")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["organizationIds"] == ["org-public-1"]
-    assert len(data["organizations"]) == 1
-    assert data["organizations"][0]["id"] == "org-public-1"
+    assert response.status_code == 404
 
 
 def test_get_public_persona_without_public_scripts_returns_404(client, db_session):

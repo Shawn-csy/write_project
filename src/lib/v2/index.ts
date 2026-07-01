@@ -1,8 +1,3 @@
-export * from './types';
-export * from './defaultLayoutConfig';
-export * from './layoutConfig';
-export * from './markerSemantics';
-export * from './orchestrator';
-export * from './astAdapter';
-export * from './exportAdapter';
-export * from './rowGrouping';
+export * from "@write/script-reader-renderer";
+export { buildPresentationDocumentFromAst as buildScriptDocumentV2FromAst } from "@write/script-reader-renderer";
+export type { PresentationDocument as ScriptDocumentV2 } from "@write/script-reader-renderer";

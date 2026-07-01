@@ -1,0 +1,390 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Font variables — controlled by next/font; CJK system stack as fallback */
+    --font-sans: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "蘋方-繁", "微軟正黑體", system-ui, sans-serif;
+    --font-serif: "Noto Serif TC", "Source Han Serif TC", "PMingLiU", "新細明體", Georgia, serif;
+
+    /* ── Warm neutral palette — editorial, Claude.ai-adjacent ── */
+    /* Warm near-white background, no blue or orange cast */
+    --background: 40 18% 97%;
+    --foreground: 220 15% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 12%;
+    --muted: 220 10% 95%;
+    --muted-strong: 220 8% 90%;
+    --muted-stronger: 220 7% 84%;
+    --muted-foreground: 220 8% 46%;
+    --border: 220 9% 88%;
+
+    /* Steel-slate primary — neutral, professional, not orange */
+    --primary: 215 25% 38%;
+    --primary-foreground: 210 30% 98%;
+
+    --destructive: 0 72% 56%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Subtle teal accent */
+    --accent: 195 40% 46%;
+    --accent-foreground: 195 60% 12%;
+    --accent-muted: 195 30% 93%;
+    --accent-strong: 215 28% 32%;
+
+    --surface-1: 40 18% 97%;
+    --surface-2: 220 10% 95%;
+    --surface-3: 220 8% 90%;
+    --surface-4: 220 7% 84%;
+
+    --paper-bg: #ffffff;
+    --paper-border: #e3e5e8;
+    --paper-shadow: rgba(10, 15, 25, 0.09);
+    --radius: 0.625rem;
+  }
+
+  .dark {
+    /* Deep cool-neutral — not warm brown, not cold blue */
+    --background: 222 12% 8%;
+    --foreground: 210 14% 91%;
+    --card: 222 10% 11%;
+    --card-foreground: 210 14% 91%;
+    --muted: 222 8% 15%;
+    --muted-strong: 222 7% 21%;
+    --muted-stronger: 222 6% 27%;
+    --muted-foreground: 215 8% 58%;
+    --border: 222 7% 20%;
+
+    /* Steel-slate primary — brighter in dark */
+    --primary: 215 40% 62%;
+    --primary-foreground: 222 12% 8%;
+
+    --destructive: 0 68% 54%;
+    --destructive-foreground: 0 0% 100%;
+
+    --accent-foreground: 210 18% 93%;
+    --accent-muted: 215 15% 16%;
+    --accent-strong: 195 50% 65%;
+
+    --surface-1: 222 12% 8%;
+    --surface-2: 222 8% 15%;
+    --surface-3: 222 7% 21%;
+    --surface-4: 222 6% 27%;
+
+    --paper-bg: #0d0e11;
+    --paper-border: #1e2028;
+    --paper-shadow: rgba(0, 0, 0, 0.45);
+  }
+
+  /* Public site typography scale tokens — consumed by gallery and public page components.
+     Controlled by data-public-text-scale on <html>; default values apply when attribute absent. */
+  :root,
+  [data-public-text-scale="default"] {
+    --public-font-caption: 0.75rem;      /* 12px */
+    --public-font-meta: 0.8125rem;       /* 13px */
+    --public-font-body: 0.875rem;        /* 14px */
+    --public-font-card-title: 0.9375rem; /* 15px */
+    --public-line-body: 1.55;
+  }
+
+  [data-public-text-scale="compact"] {
+    --public-font-caption: 0.6875rem;    /* 11px */
+    --public-font-meta: 0.75rem;         /* 12px */
+    --public-font-body: 0.8125rem;       /* 13px */
+    --public-font-card-title: 0.875rem;  /* 14px */
+    --public-line-body: 1.45;
+  }
+
+  [data-public-text-scale="comfortable"] {
+    --public-font-caption: 0.8125rem;    /* 13px */
+    --public-font-meta: 0.875rem;        /* 14px */
+    --public-font-body: 0.9375rem;       /* 15px */
+    --public-font-card-title: 1rem;      /* 16px */
+    --public-line-body: 1.65;
+  }
+
+  [data-public-text-scale="large"] {
+    --public-font-caption: 0.875rem;     /* 14px */
+    --public-font-meta: 0.9375rem;       /* 15px */
+    --public-font-body: 1rem;            /* 16px */
+    --public-font-card-title: 1.0625rem; /* 17px */
+    --public-line-body: 1.7;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Refined focus ring */
+  :focus-visible {
+    outline: 2px solid hsl(var(--primary) / 0.6);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Warm text selection */
+  ::selection {
+    background-color: hsl(var(--primary) / 0.18);
+    color: hsl(var(--foreground));
+  }
+
+  /* Thin, tasteful scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+}
+
+/* ── Editorial design primitives ── */
+@layer components {
+  /* Subtle bottom rule used on hero, segment bar, sheet header */
+  .editorial-border-b {
+    border-bottom: 1px solid hsl(var(--border) / 0.4);
+  }
+  .editorial-border-b-strong {
+    border-bottom: 1px solid hsl(var(--border) / 0.5);
+  }
+
+  /* Hero background wash */
+  .editorial-hero-wash {
+    background: linear-gradient(
+      160deg,
+      hsl(var(--surface-2)) 0%,
+      hsl(var(--background)) 60%,
+      hsl(var(--surface-2) / 0.4) 100%
+    );
+  }
+
+  /* Brand hero owns a full-frame backdrop when rendered inside the carousel.
+     The right edge intentionally resolves to surface color instead of the
+     near-black page background, so ultra-wide screens never expose a black band. */
+  .editorial-brand-hero-backdrop {
+    background:
+      linear-gradient(
+        90deg,
+        hsl(var(--surface-2)) 0%,
+        hsl(var(--background)) 42%,
+        hsl(var(--surface-3) / 0.72) 76%,
+        hsl(var(--surface-4) / 0.92) 100%
+      ),
+      linear-gradient(
+        180deg,
+        hsl(var(--background) / 0.08) 0%,
+        hsl(var(--background) / 0.34) 100%
+      );
+  }
+
+  /* Fine grain texture overlay — aria-hidden decorative */
+  .editorial-grain {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 160px 160px;
+    opacity: 0.025;
+    mix-blend-mode: multiply;
+  }
+  .dark .editorial-grain {
+    opacity: 0.05;
+    mix-blend-mode: screen;
+  }
+
+  /* Thin accent underline beneath primary headline word */
+  .editorial-accent-rule {
+    height: 2px;
+    background: hsl(var(--primary) / 0.3);
+    border-radius: 1px;
+  }
+
+  /* Horizontal divider rule (decorative) */
+  .editorial-rule {
+    height: 1px;
+    background: hsl(var(--border));
+  }
+
+  /* Muted overline / eyebrow color */
+  .editorial-eyebrow {
+    color: hsl(var(--primary) / 0.75);
+  }
+
+  /* Dim label color */
+  .editorial-dim {
+    color: hsl(var(--muted-foreground) / 0.6);
+  }
+
+  /* Primary sliding indicator (GallerySegmentBar) */
+  .editorial-indicator {
+    height: 2px;
+    background: hsl(var(--primary));
+  }
+
+  /* Backdrop scrim */
+  .editorial-scrim {
+    background: hsl(var(--foreground) / 0.25);
+  }
+
+  /* Sheet drag handle */
+  .editorial-handle {
+    background: hsl(var(--border));
+  }
+}
+
+/* ── Editorial reveal animation ── */
+@keyframes hero-fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+
+.hero-reveal {
+  opacity: 0;
+  animation: hero-fade-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* ── Brand Script Desk — Cinematic Script Desk scene ── */
+
+/* Entrance wrappers — animate translateY + opacity only (page stack).
+   Inner nodes (.brand-desk-page-*) own all static composition transforms.
+   Static-first: wrappers are visible by default.
+   JS hook sets data-hero-motion="entering" on the container before Anime runs;
+   CSS hides wrappers only while that attribute is present so the scene degrades
+   gracefully when JS is absent, blocked, or Anime fails to load. */
+.brand-desk-page-enter {
+  position: absolute;
+  inset: 0;
+}
+
+[data-hero-motion="entering"] [data-script-page-enter] {
+  opacity: 0;
+}
+
+/* Page stack container */
+.brand-desk-stack {
+  position: absolute;
+  right: clamp(0.5rem, 4vw, 5rem);
+  top: 50%;
+  width: min(42vw, 22rem);
+  height: min(62%, 20rem);
+  transform: translateY(-50%);
+  filter: drop-shadow(0 20px 36px hsl(0 0% 0% / 0.18));
+}
+
+/* Shared page style */
+.brand-desk-page {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border: 1px solid hsl(var(--border) / 0.4);
+  border-radius: 0.5rem;
+  background:
+    linear-gradient(135deg, hsl(var(--card) / 0.78), hsl(var(--background) / 0.52));
+  padding: clamp(0.75rem, 2vw, 1.25rem);
+}
+
+.brand-desk-page-back {
+  transform: translateY(12px) translateX(10px) rotate(3deg);
+  opacity: 0.55;
+  z-index: 1;
+}
+
+.brand-desk-page-middle {
+  transform: translateY(6px) translateX(5px) rotate(1.5deg);
+  opacity: 0.75;
+  z-index: 2;
+}
+
+.brand-desk-page-front {
+  transform: rotate(-1deg);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Ruled lines inside back/middle pages */
+.brand-desk-ruled-line {
+  height: 1.5px;
+  background: hsl(var(--border) / 0.3);
+  border-radius: 1px;
+  margin-bottom: 0.6rem;
+}
+
+/* Script lines on front page */
+.brand-desk-script-line {
+  height: 1.5px;
+  background: hsl(var(--muted-foreground) / 0.22);
+  border-radius: 1px;
+  transform-origin: left center;
+}
+
+/* Typewriter reveal — lines grow from 0 width, then hold */
+@keyframes desk-script-type {
+  0%   { transform: scaleX(0); opacity: 0; }
+  15%  { opacity: 1; }
+  60%  { transform: scaleX(1); }
+  100% { transform: scaleX(1); }
+}
+
+.brand-desk-script-line-type {
+  animation: desk-script-type 1.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--desk-line-delay, 0ms);
+}
+
+
+/* Light sweep — decorative, one-shot via Anime.js on mount */
+.brand-desk-sweep {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 0%,
+    hsl(var(--primary) / 0.06) 40%,
+    hsl(var(--primary) / 0.12) 55%,
+    transparent 75%
+  );
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Texture rule line */
+.brand-desk-rule {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 3.5rem;
+  height: 1px;
+  background: hsl(var(--border) / 0.3);
+}
+
+/* Mask — fade left edge where brand copy is */
+.brand-desk-stack {
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 18%, black 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, black 18%, black 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-reveal {
+    animation: none;
+    opacity: 1;
+  }
+
+  .brand-desk-script-line-type {
+    animation: none;
+  }
+
+  .brand-desk-script-line-type {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}

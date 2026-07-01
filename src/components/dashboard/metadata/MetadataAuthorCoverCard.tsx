@@ -7,7 +7,7 @@ import { ImageCropDialog } from "../../ui/ImageCropDialog";
 import { MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
 import { useI18n } from "../../../contexts/I18nContext";
 import { useMetadataCoverUpload } from "../../../hooks/dashboard/useMetadataCoverUpload";
-import { getMediaCropStyle } from "../../../lib/mediaCropRef";
+import { getMediaCropStyle, canApplyPersistentCropRef } from "../../../lib/mediaCropRef";
 
 interface Props {
   author: string;
@@ -27,8 +27,9 @@ export function MetadataAuthorCoverCard({ author, setAuthor, coverUrl, setCoverU
     coverUploadError, coverUploadWarning,
     isMediaPickerOpen, setIsMediaPickerOpen,
     cropOpen, setCropOpen, cropSource,
-    coverGuide, applyCoverUpload, handleCoverUpload, handleMediaPickerSelect, handleMediaPickerSelectMedia,
-  } = useMetadataCoverUpload({ setCoverUrl, setCoverCrop });
+    coverGuide, applyCoverUpload, handleCoverUpload, openCropFromUrl, applyCoverCropRef,
+    handleMediaPickerSelect, handleMediaPickerSelectMedia,
+  } = useMetadataCoverUpload({ setCoverUrl, setCoverCrop, coverCrop });
 
   const normalizedCoverUrl = String(coverUrl || "");
   const cropCover = getMediaCropStyle(normalizedCoverUrl, coverCrop);
@@ -53,6 +54,11 @@ export function MetadataAuthorCoverCard({ author, setAuthor, coverUrl, setCoverU
             <Button type="button" variant="secondary" size="sm" className="h-8 text-xs border bg-primary/5 hover:bg-primary/10 text-primary border-primary/20" onClick={() => setIsMediaPickerOpen(true)}>
               {t("mediaLibrary.selectFromLibrary", "從媒體庫選擇")}
             </Button>
+            {canApplyPersistentCropRef(normalizedCoverUrl) && (
+              <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={() => openCropFromUrl(normalizedCoverUrl)}>
+                {t("mediaLibrary.adjustFocalPoint", "調整焦點")}
+              </Button>
+            )}
           </div>
           <div className="space-y-0.5 text-[11px] text-muted-foreground">
             <p>{coverGuide.supported}</p>
@@ -74,7 +80,16 @@ export function MetadataAuthorCoverCard({ author, setAuthor, coverUrl, setCoverU
       </div>
 
       <MediaPicker open={isMediaPickerOpen} onOpenChange={setIsMediaPickerOpen} cropPurpose="cover" onSelect={handleMediaPickerSelect} onSelectMedia={handleMediaPickerSelectMedia} />
-      <ImageCropDialog open={cropOpen} onOpenChange={setCropOpen} source={cropSource} purpose="cover" onConfirm={applyCoverUpload} />
+      <ImageCropDialog
+        open={cropOpen}
+        onOpenChange={setCropOpen}
+        source={cropSource}
+        purpose="cover"
+        onConfirm={applyCoverUpload}
+        onApplyCropRef={cropSource?.url ? applyCoverCropRef : undefined}
+        applyCropRefLabel={t("mediaLibrary.applyCropFrame", "套用裁切框")}
+        initialCropRef={cropSource?.url ? (cropSource.initialCropRef ?? null) : null}
+      />
     </>
   );
 }

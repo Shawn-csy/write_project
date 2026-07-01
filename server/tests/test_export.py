@@ -284,6 +284,7 @@ def test_create_google_doc_table_uses_table_range_cell_location(monkeypatch):
             "columnWidths": [28, 72],
             "defaultCellStyle": {"paddingTop": 4, "paddingRight": 8, "paddingBottom": 4, "paddingLeft": 8},
         },
+        metadata_rows=None,
         google_access_token="tok",
         folder_id=None,
     )

@@ -4,11 +4,15 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 import crud_ops as crud
+import models
 import schemas
 from dependencies import get_db
 from routers import public as public_router
+from utils import normalize_homepage_banner_value
 
 router = APIRouter(prefix="/api", tags=["public"])
+
+HOMEPAGE_BANNER_SETTING_KEY = "homepage_banner"
 
 # In-memory cache: (payload, expires_at)
 _bundle_cache: tuple[dict, float] | None = None
@@ -42,6 +46,13 @@ def _serialize_bundle_script(script):
     return data
 
 
+def _get_banner(db: Session) -> dict:
+    row = db.query(models.SiteSetting).filter(models.SiteSetting.key == HOMEPAGE_BANNER_SETTING_KEY).first()
+    if not row or not str(getattr(row, "value", "") or "").strip():
+        return {"items": []}
+    return normalize_homepage_banner_value(row.value)
+
+
 def _build_bundle(db: Session) -> dict:
     scripts = [public_router.sanitize_public_script(s) for s in crud.get_public_scripts(db)]
     serialized_scripts = [_serialize_bundle_script(s) for s in scripts]
@@ -62,6 +73,7 @@ def _build_bundle(db: Session) -> dict:
         "personas": personas,
         "organizations": orgs,
         "topTags": top_tags,
+        "banner": _get_banner(db),
     })
 
 

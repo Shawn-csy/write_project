@@ -1,3 +1,4 @@
+from .publish_state import has_public_parent_folder, is_publicly_visible
 from .common import (
     _ensure_list,
     ensure_folder_tree,
@@ -48,7 +49,7 @@ from .scripts import (
     toggle_script_like,
     update_script,
 )
-from .series import create_series, delete_series, get_series, get_series_by_id, update_series
+from .series import create_series, delete_series, get_series, get_series_by_id, reorder_series_scripts, update_series
 from .tags import add_tag_to_script, create_tag, delete_tag, get_tags, remove_tag_from_script
 from .studio import get_studio_bootstrap, get_studio_publish_context, list_studio_scripts
 from .themes import (
@@ -76,6 +77,8 @@ from .transfers import (
 from .users import get_user, search_users, update_user
 
 __all__ = [
+    "has_public_parent_folder",
+    "is_publicly_visible",
     "_ensure_list",
     "ensure_folder_tree",
     "ensure_folders_for_owner",
@@ -130,6 +133,7 @@ __all__ = [
     "delete_series",
     "get_series",
     "get_series_by_id",
+    "reorder_series_scripts",
     "update_series",
     "add_tag_to_script",
     "create_tag",

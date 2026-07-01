@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route } from "react-router-dom";
 import AppRouter from "./AppRouter";
-import { renderPublicRoutes } from "./routes/PublicRoutes";
 import { renderWorkspaceRoutes } from "./routes/WorkspaceRoutes";
 
 vi.mock("./contexts/I18nContext", () => ({
@@ -25,10 +24,6 @@ vi.mock("./hooks/useCrossModeReadGuide", () => ({
   }),
 }));
 
-vi.mock("./routes/PublicRoutes", () => ({
-  renderPublicRoutes: vi.fn(),
-}));
-
 vi.mock("./routes/WorkspaceRoutes", () => ({
   renderWorkspaceRoutes: vi.fn(),
 }));
@@ -36,7 +31,6 @@ vi.mock("./routes/WorkspaceRoutes", () => ({
 describe("AppRouter", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    renderPublicRoutes.mockReturnValue(<Route path="/" element={<div>public route</div>} />);
     renderWorkspaceRoutes.mockReturnValue(<Route path="/*" element={<div>workspace route</div>} />);
   });
 
@@ -84,8 +78,7 @@ describe("AppRouter", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText("public route")).toBeInTheDocument();
-    expect(renderPublicRoutes).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("workspace route")).toBeInTheDocument();
     expect(renderWorkspaceRoutes).toHaveBeenCalledTimes(1);
   });
 });

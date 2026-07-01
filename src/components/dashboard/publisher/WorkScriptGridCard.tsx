@@ -8,6 +8,7 @@ import { CoverRenderer } from "../../ui/CoverRenderer";
 import { useI18n } from "../../../contexts/I18nContext";
 import { getMediaCropStyle } from "../../../lib/mediaCropRef";
 import type { PublishReadiness, PublisherScriptItem } from "../../../hooks/publisher/usePublisherWorksTabState";
+import { openPublicPath } from "../../../lib/publicNavigation";
 
 const warningBadgeClass = "h-5 border-[color:var(--license-term-border)] bg-[color:var(--license-term-bg)] text-[10px] font-semibold text-[color:var(--license-term-fg)]";
 const errorBadgeClass = "h-5 border-destructive/40 bg-destructive/10 text-[10px] font-semibold text-destructive";
@@ -23,7 +24,6 @@ interface WorkScriptGridCardProps {
   formatDate: (value?: number) => string;
   onContinueEdit?: (script: PublisherScriptItem) => void;
   setEditingScript: (script: PublisherScriptItem) => void;
-  navigate: (to: string) => void;
 }
 
 export function WorkScriptGridCard({
@@ -37,7 +37,6 @@ export function WorkScriptGridCard({
   formatDate,
   onContinueEdit,
   setEditingScript,
-  navigate,
 }: WorkScriptGridCardProps): React.JSX.Element {
   const { t } = useI18n();
   const cropCover = getMediaCropStyle(String(script.coverUrl || ""));
@@ -110,7 +109,7 @@ export function WorkScriptGridCard({
                 variant="ghost"
                 size="sm"
                 className="h-7 px-2 text-muted-foreground/60 hover:text-foreground"
-                onClick={() => navigate(`/read/${script.id}`)}
+                onClick={() => openPublicPath(`/read/${script.id}`)}
                 title={t("publisherWorksTab.viewPublicPage")}
               >
                 <Eye className="h-3 w-3" />

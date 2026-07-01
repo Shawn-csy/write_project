@@ -35,7 +35,7 @@ describe('ColumnsRendererV2', () => {
 
     const grid = container.firstElementChild as HTMLElement;
     expect(grid).toBeTruthy();
-    expect(grid.style.getPropertyValue('--v2-track-columns')).toContain('minmax(0,');
+    expect(grid.style.getPropertyValue('--presentation-track-columns')).toContain('minmax(0,');
   });
 
   it('aligns events by source line rows instead of stacking each track independently', () => {

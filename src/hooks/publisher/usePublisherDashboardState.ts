@@ -10,7 +10,7 @@ import { getMorandiTagStyle } from "../../lib/tagColors";
 import { MORANDI_STUDIO_TONE_VARS } from "../../constants/morandiPanelTones";
 import { normalizeOrgIds } from "../dashboard/scriptMetadataUtils";
 import { useStudioGuide } from "./useStudioGuide";
-import { usePublisherSeriesActions } from "./usePublisherSeriesActions";
+import { usePublisherSeriesEditor } from "./usePublisherSeriesEditor";
 import { usePublisherOrgMemberActions } from "./usePublisherOrgMemberActions";
 import { usePublisherOrgQueues } from "./usePublisherOrgQueues";
 import { usePublisherCrudActions } from "./usePublisherCrudActions";
@@ -82,10 +82,18 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
   const [orgTagInput, setOrgTagInput] = useState("");
   const [isWorksLoading, setIsWorksLoading] = useState(true);
   const [isMetaLoading, setIsMetaLoading] = useState(true);
-  const [seriesList, setSeriesList] = useState<SeriesData[]>([]);
-  const [selectedSeriesId, setSelectedSeriesId] = useState("");
-  const [seriesDraft, setSeriesDraft] = useState({ name: "", summary: "", coverUrl: "", coverCrop: null as { cx?: number; cy?: number; zoom?: number } | null });
-  const [isSavingSeries, setIsSavingSeries] = useState(false);
+
+  const seriesEditor = usePublisherSeriesEditor({ scripts, setScripts, toast });
+  const {
+    seriesList, setSeriesList, selectedSeriesId, setSelectedSeriesId,
+    seriesDraft, setSeriesDraft, isSavingSeries,
+    isDirty: isSeriesDraftDirty,
+    selectedSeriesScripts, attachableScripts,
+    handleCreateSeries, handleUpdateSeries, handleDeleteSeries,
+    handleDetachScriptFromSeries, handleAttachScriptToSeries, handleReorderScriptInSeries,
+    handleBatchReorderSeriesScripts,
+  } = seriesEditor;
+
   const tabsGuideRef = useRef<HTMLDivElement | null>(null);
   const bootstrapRequestedRef = useRef(false);
   const worksQueryRef = useRef(worksQuery);
@@ -388,9 +396,6 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
     } catch {}
   };
 
-  const { handleCreateSeries, handleUpdateSeries, handleDeleteSeries, handleDetachScriptFromSeries } =
-    usePublisherSeriesActions({ selectedSeriesId, seriesDraft, setIsSavingSeries, setSeriesList, setSelectedSeriesId, setSeriesDraft, setScripts, toast });
-
   const { handleInviteMember, handleAcceptRequest, handleDeclineRequest, handleRemoveMember,
     handleRemovePersonaMember, handleChangeMemberRole, handleAcceptInvite, handleDeclineInvite } =
     usePublisherOrgMemberActions({
@@ -429,6 +434,8 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
     isWorksLoading, isMetaLoading, isOrgMembersLoading,
     seriesList, setSeriesList, selectedSeriesId, setSelectedSeriesId,
     seriesDraft, setSeriesDraft, isSavingSeries,
+    isSeriesDraftDirty,
+    selectedSeriesScripts, attachableScripts,
     orgMembers, orgInvites, orgRequests, myInvites,
     inviteSearchQuery, setInviteSearchQuery,
     inviteSearchResults, isInviteSearching,
@@ -441,6 +448,7 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
     handleSaveProfile, handleSaveOrg, handleCreatePersona, handleDeletePersona, handleCreateOrg, handleDeleteOrg,
     // series
     handleCreateSeries, handleUpdateSeries, handleDeleteSeries, handleDetachScriptFromSeries,
+    handleAttachScriptToSeries, handleReorderScriptInSeries, handleBatchReorderSeriesScripts,
     // org members
     handleInviteMember, handleAcceptRequest, handleDeclineRequest, handleRemoveMember,
     handleRemovePersonaMember, handleChangeMemberRole, handleAcceptInvite, handleDeclineInvite,

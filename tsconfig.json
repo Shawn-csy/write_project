@@ -30,7 +30,7 @@
     "resolveJsonModule": true,
     "ignoreDeprecations": "6.0"
   },
-  "include": ["src"],
+  "include": ["src", "packages/script-engine/src"],
   "exclude": [
     "node_modules",
     "dist",
