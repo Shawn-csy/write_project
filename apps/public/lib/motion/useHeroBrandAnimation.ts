@@ -28,14 +28,23 @@ function resetEnterWrappers(container: HTMLElement) {
     .forEach((el) => { el.style.opacity = ""; el.style.transform = ""; });
 }
 
+function useShouldSkipAnimation(): boolean {
+  if (typeof window === "undefined") return true;
+  return (
+    window.matchMedia("(pointer: coarse)").matches ||
+    window.matchMedia("(max-width: 639px)").matches
+  );
+}
+
 export function useHeroBrandAnimation(
   containerRef: React.RefObject<HTMLElement | null>
 ) {
   const reduced = useReducedMotion();
+  const skipMotion = useShouldSkipAnimation();
   const instancesRef = useRef<AnimeInstance[]>([]);
 
   useEffect(() => {
-    if (reduced || !containerRef.current) return;
+    if (reduced || skipMotion || !containerRef.current) return;
 
     const container = containerRef.current;
     let cancelled = false;
@@ -102,5 +111,5 @@ export function useHeroBrandAnimation(
       container.removeAttribute("data-hero-motion");
       resetEnterWrappers(container);
     };
-  }, [reduced]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [reduced, skipMotion]); // eslint-disable-line react-hooks/exhaustive-deps
 }

@@ -1,16 +1,34 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { BrandScriptDesk } from "./BrandScriptDesk";
+
+const DESKTOP_MQ = "(min-width: 640px)";
 
 /**
  * Brand hero slide content — renders inside PublicHeroMarquee's carousel frame.
  * No outer <section> or height control: the carousel container owns dimensions.
+ * BrandScriptDesk is conditionally mounted only on desktop (min-width:640px)
+ * so mobile does not pay the component + Anime.js cost at all.
  */
 export function GalleryBrandHeroSlide() {
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia(DESKTOP_MQ);
+    setIsDesktop(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
   return (
     <div className="absolute inset-0 overflow-hidden bg-background" data-testid="brand-hero-slide">
       <div className="absolute inset-0 pointer-events-none editorial-brand-hero-backdrop" data-testid="brand-hero-backdrop" aria-hidden />
-      <BrandScriptDesk />
+      <div data-testid="brand-script-desk-wrapper" aria-hidden>
+        {isDesktop && <BrandScriptDesk />}
+      </div>
 
       {/* Decorative ruled lines */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>

@@ -15,18 +15,20 @@ vi.mock("@/lib/motion/useAnimePressFeedback", () => ({
 import { PublicShellActions } from "./PublicShellActions";
 
 describe("PublicShellActions", () => {
-  it("renders AppearanceMenu, InfoMenu, and StudioLink", () => {
+  it("renders AppearanceMenu, InfoMenu, and studio links", () => {
     render(<PublicShellActions />);
     expect(screen.getByRole("button", { name: "外觀設定" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "說明與平台資訊" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "進入工作室" })).toBeTruthy();
+    // desktop text link + mobile icon link both present
+    const studioLinks = screen.getAllByRole("link", { name: /進入工作室/ });
+    expect(studioLinks.length).toBe(2);
+    studioLinks.forEach((l) => expect(l.getAttribute("href")).toBe("/dashboard"));
   });
 
   it("container has stable min-width classes", () => {
     const { container } = render(<PublicShellActions />);
     const wrapper = container.firstChild as HTMLElement;
-    // min-w-24 for mobile, sm:min-w-[12rem] for desktop
-    expect(wrapper.className).toMatch(/min-w-24/);
+    expect(wrapper.className).toMatch(/min-w-\[10rem\]/);
     expect(wrapper.className).toMatch(/sm:min-w-\[12rem\]/);
   });
 
@@ -40,9 +42,20 @@ describe("PublicShellActions", () => {
     expect(screen.getByRole("button", { name: "說明與平台資訊" })).toBeTruthy();
   });
 
-  it("StudioLink points to /dashboard", () => {
+  it("all studio links point to /dashboard", () => {
     render(<PublicShellActions />);
-    const link = screen.getByRole("link", { name: "進入工作室" });
-    expect(link.getAttribute("href")).toBe("/dashboard");
+    screen.getAllByRole("link", { name: /進入工作室/ }).forEach((l) => {
+      expect(l.getAttribute("href")).toBe("/dashboard");
+    });
+  });
+
+  it("mobile studio link meets 44px touch target (h-11 w-11)", () => {
+    render(<PublicShellActions />);
+    // mobile link has sm:hidden; desktop link has hidden sm:inline-flex
+    const links = screen.getAllByRole("link", { name: /進入工作室/ });
+    const mobileLink = links.find((l) => l.className.includes("sm:hidden"));
+    expect(mobileLink).toBeTruthy();
+    expect(mobileLink!.className).toMatch(/h-11/);
+    expect(mobileLink!.className).toMatch(/w-11/);
   });
 });

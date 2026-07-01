@@ -10,8 +10,12 @@
  *
  * Host app provides `trailing` slot for studio link, appearance menu, etc.
  * Host app provides `brandHref` for the brand link (defaults to "/").
+ *
+ * Mobile nav uses a portal overlay (role="dialog") — does not push page layout.
+ * Pass `mobileStudioHref` to include a studio entry link inside the overlay.
  */
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import ReactDOM from "react-dom";
 import { Menu, X } from "lucide-react";
 
 export interface PublicShellTab {
@@ -41,6 +45,11 @@ export interface PublicShellTopBarProps {
   leadingTrailing?: React.ReactNode;
   /** Accessible label for the mobile nav toggle. */
   mobileNavLabel?: string;
+  /**
+   * If provided, a "進入工作室" link is shown inside the mobile nav overlay.
+   * Pass "/dashboard". Not shown on desktop (StudioLink in trailing handles desktop).
+   */
+  mobileStudioHref?: string;
 }
 
 function cn(...classes: (string | undefined | false | null)[]): string {
@@ -130,6 +139,142 @@ function MobileTabItem({
   );
 }
 
+function MobileNavOverlay({
+  tabs,
+  activeTab,
+  mobileStudioHref,
+  triggerRef,
+  onClose,
+}: {
+  tabs: PublicShellTab[];
+  activeTab?: string;
+  mobileStudioHref?: string;
+  triggerRef: React.RefObject<HTMLButtonElement | null>;
+  onClose: () => void;
+}) {
+  // Esc closes; focus trap keeps Tab inside overlay
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") { onClose(); return; }
+      if (e.key !== "Tab") return;
+      const overlay = document.getElementById("mobile-nav-overlay");
+      if (!overlay) return;
+      const focusable = Array.from(
+        overlay.querySelectorAll<HTMLElement>(
+          'a[href],button:not([disabled]),[tabindex]:not([tabindex="-1"])'
+        )
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+
+    // Move focus to first focusable item; cancel rAF on cleanup
+    const rafId = requestAnimationFrame(() => {
+      const overlay = document.getElementById("mobile-nav-overlay");
+      const first = overlay?.querySelector<HTMLElement>(
+        'a[href],button:not([disabled]),[tabindex]:not([tabindex="-1"])'
+      );
+      first?.focus();
+    });
+
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      cancelAnimationFrame(rafId);
+      // Restore focus to trigger button
+      triggerRef.current?.focus();
+    };
+  }, [onClose, triggerRef]);
+
+  // Lock body scroll
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  // Close when resized to desktop (sm breakpoint = 640px)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(min-width: 640px)");
+    if (mq.matches) { onClose(); return; }
+    const handler = (e: MediaQueryListEvent) => { if (e.matches) onClose(); };
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, [onClose]);
+
+  const content = (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 z-50 bg-background/60 backdrop-blur-sm"
+        aria-hidden
+        onClick={onClose}
+      />
+      {/* Panel */}
+      <div
+        id="mobile-nav-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-label="導航選單"
+        className="fixed inset-x-0 top-0 z-50 bg-background"
+        style={{ borderBottom: "1px solid hsl(var(--border) / 0.5)" }}
+      >
+        {/* Header row */}
+        <div className="flex h-[3.5rem] items-center px-4 gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="關閉導航"
+            className="flex items-center justify-center h-11 w-11 -ml-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-all duration-150"
+          >
+            <X className="h-[15px] w-[15px]" />
+          </button>
+        </div>
+        {/* Nav items */}
+        <nav
+          className="flex flex-col px-2 pb-3 gap-0.5"
+          aria-label="公開頁面導航"
+          style={{ borderTop: "1px solid hsl(var(--border) / 0.4)" }}
+        >
+          {tabs.map((tab) => (
+            <MobileTabItem
+              key={tab.key}
+              tab={tab}
+              isActive={tab.key === activeTab}
+              onAfterSelect={onClose}
+            />
+          ))}
+        </nav>
+        {/* Studio entry */}
+        {mobileStudioHref && (
+          <div className="px-3 pb-4 pt-1" style={{ borderTop: "1px solid hsl(var(--border) / 0.3)" }}>
+            <a
+              href={mobileStudioHref}
+              className="flex items-center justify-center h-11 w-full rounded-lg text-[0.9rem] font-semibold text-primary-foreground transition-all duration-150 hover:opacity-90"
+              style={{
+                background: "hsl(var(--primary))",
+                boxShadow: "0 1px 3px hsl(var(--primary)/0.3), inset 0 0.5px 0 hsl(0 0% 100% / 0.15)",
+              }}
+            >
+              進入工作室
+            </a>
+          </div>
+        )}
+      </div>
+    </>
+  );
+
+  if (typeof document === "undefined") return null;
+  return ReactDOM.createPortal(content, document.body);
+}
+
 export function PublicShellTopBar({
   activeTab,
   tabs = [],
@@ -139,9 +284,11 @@ export function PublicShellTopBar({
   trailing,
   leadingTrailing,
   mobileNavLabel,
+  mobileStudioHref,
 }: PublicShellTopBarProps): React.JSX.Element {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const hasTabs = tabs.length > 0;
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
 
   return (
     <header
@@ -155,12 +302,14 @@ export function PublicShellTopBar({
         {hasTabs && (
           <div className="sm:hidden flex items-center w-10 shrink-0">
             <button
+              ref={hamburgerRef}
               type="button"
               onClick={() => setMobileNavOpen((v) => !v)}
               aria-label={
-                mobileNavLabel ?? (mobileNavOpen ? "關閉導航" : "開啟導航")
+                mobileNavLabel ?? (mobileNavOpen ? "關閉選單" : "開啟導航")
               }
               aria-expanded={mobileNavOpen}
+              aria-controls="mobile-nav-overlay"
               className="flex items-center justify-center h-11 w-11 -ml-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-all duration-150"
             >
               {mobileNavOpen
@@ -232,23 +381,15 @@ export function PublicShellTopBar({
         </div>
       </div>
 
-      {/* Mobile nav drawer */}
+      {/* Mobile nav — portal overlay (does not push layout) */}
       {hasTabs && mobileNavOpen && (
-        <div
-          className="sm:hidden"
-          style={{ borderTop: "1px solid hsl(var(--border) / 0.4)" }}
-        >
-          <nav className="flex flex-col px-2 py-2 gap-0.5" aria-label="公開頁面導航">
-            {tabs.map((tab) => (
-              <MobileTabItem
-                key={tab.key}
-                tab={tab}
-                isActive={tab.key === activeTab}
-                onAfterSelect={() => setMobileNavOpen(false)}
-              />
-            ))}
-          </nav>
-        </div>
+        <MobileNavOverlay
+          tabs={tabs}
+          activeTab={activeTab}
+          mobileStudioHref={mobileStudioHref}
+          triggerRef={hamburgerRef}
+          onClose={() => setMobileNavOpen(false)}
+        />
       )}
     </header>
   );
