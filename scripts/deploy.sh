@@ -78,6 +78,22 @@ get_env_value() {
   awk -F= -v k="$key" '$1 == k {sub(/^[^=]*=/, ""); print; exit}' "$ENV_FILE"
 }
 
+require_env_value() {
+  local key="$1"
+  local value
+  value="$(get_env_value "$key")"
+  if [ -z "$value" ]; then
+    echo "ERROR: missing required production env: $key"
+    echo "       Add $key to $ENV_FILE before deploying with $COMPOSE_FILE."
+    return 1
+  fi
+}
+
+if [ "$(basename "$COMPOSE_FILE")" = "docker-compose.prod.yml" ]; then
+  require_env_value POSTGRES_PASSWORD
+  require_env_value DATABASE_URL
+fi
+
 ensure_postgres_data_dir_seeded() {
   local target_dir="$ROOT_DIR/$POSTGRES_DATA_DIR"
   local project_name old_volume_name

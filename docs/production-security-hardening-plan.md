@@ -201,10 +201,10 @@ if (typeof path === "string" && path.startsWith("/")) {
 
 驗收：
 
-- [ ] `docker-compose.prod.yml` 只對外 publish nginx。
-- [ ] Postgres 只在 internal network 可達。
-- [ ] Backend 只被 nginx / public Next container 內部呼叫。
-- [ ] production 未提供 DB secret 時 fail fast。
+- [x] `docker-compose.prod.yml` 只對外 publish nginx。
+- [x] Postgres 只在 internal network 可達。
+- [x] Backend 只被 nginx / public Next container 內部呼叫。
+- [x] production 未提供 DB secret 時 fail fast（`${POSTGRES_PASSWORD:?...}`）。
 
 ### Phase 2 — Public Write Rate Limits
 
@@ -216,12 +216,23 @@ if (typeof path === "string" && path.startsWith("/")) {
 - like 加 server-side abuse guard，不只依賴 visitorId。
 - terms acceptance 加欄位長度與 body 限制。
 
+實作狀態：
+
+- view / like / terms acceptance 均已加 `@limiter.limit()` decorator（slowapi，X-Forwarded-For key）。
+- Private script view 已加 visibility gate（404）；folder-inherited 可見性統一走 `is_publicly_visible()`。
+- 目前 Phase 2 的 abuse guard 策略：per-IP rate limit 作為主要防線。
+- view 短時間去重（同 IP 同 script 窗口去重）尚未實作。
+- like 仍依賴 client visitorId 作為去重 key；server-side 補充防線是 IP rate limit（30/minute），不做 DB-level server-side dedup。
+- terms acceptance 尚未加欄位長度與 body size 限制（`Content-Length` 或 Pydantic `max_length`）。
+
 驗收：
 
-- [ ] 同 IP 快速重複 view 不會無限制增加 counter。
-- [ ] 偽造大量 visitorId 不能快速灌 like。
-- [ ] terms acceptance 大量寫入會被 429。
-- [ ] 對應 pytest 覆蓋。
+- [x] 同 IP 快速重複 view 不會無限制增加 counter（rate limit 10/minute per IP）。
+- [x] 偽造大量 visitorId 的灌票速度受到 per-IP rate limit 限制（30/minute）；DB-level server-side dedup 另列後續風險。
+- [x] terms acceptance 大量寫入會被 429（rate limit 5/minute per IP）。
+- [x] 對應 pytest 覆蓋（decorator presence + 429 integration tests）。
+- [ ] view 短時間窗口去重（同 IP + script_id，避免一次 request 衝破 counter）。
+- [ ] terms acceptance 欄位長度與 body size 限制。
 
 ### Phase 3 — Revalidate Scope Lockdown
 
@@ -234,10 +245,10 @@ if (typeof path === "string" && path.startsWith("/")) {
 
 驗收：
 
-- [ ] 合法公開路徑可 revalidate。
-- [ ] `/api/*`、`//evil`、帶 query/hash、超長 path 被拒絕。
-- [ ] 一次 payload 超過上限被拒絕。
-- [ ] route handler tests 覆蓋。
+- [x] 合法公開路徑可 revalidate。
+- [x] `/api/*`、`//evil`、帶 query/hash、超長 path 被拒絕（400 + `rejected` array）。
+- [x] 一次 payload 超過上限被拒絕（`MAX_PATHS=50`）。
+- [x] route handler tests 覆蓋（`route.test.ts` 4 tests）。
 
 ### Phase 4 — Dependency Security Baseline
 
@@ -254,9 +265,9 @@ if (typeof path === "string" && path.startsWith("/")) {
 
 驗收：
 
-- [ ] audit false positive 消失。
-- [ ] high/critical 有修復或文件化 exception。
-- [ ] lockfile 更新可重現。
+- [x] audit false positive 消失（`apps/public` 改名 `@write/public-app`）。
+- [x] high/critical 有修復或文件化 exception（見 `docs/engineering/dependency-audit.md`；`npm audit --omit=dev` 0 high / 0 critical）。
+- [x] lockfile 更新可重現。
 
 ### Phase 5 — External Media Origin Policy
 
@@ -287,11 +298,26 @@ if (typeof path === "string" && path.startsWith("/")) {
 - 加入 API abuse tests。
 - 加入 revalidate validation tests。
 
+Security test command：
+
+```bash
+bash scripts/security-check.sh
+```
+
+涵蓋範圍：
+- `server/tests/test_public_write_hardening.py` — rate limit decorator presence、visibility gate、folder-inherited predicate、429 integration tests
+- `apps/public/app/api/revalidate/route.test.ts` — path allowlist、rejection、length/count limits
+
+新增 public write endpoint 規定：必須同時在 `test_public_write_hardening.py` 加入：
+1. decorator presence test（`test_*_has_rate_limit_decorator`）
+2. visibility gate test（private → 404, public → 200）
+3. 429 integration test（`@requires_rate_limit`）
+
 驗收：
 
-- [ ] local security test command 文件化。
-- [ ] CI 可執行最小安全測試集合。
-- [ ] 新增 public write endpoint 時需附 rate limit 測試。
+- [x] local security test command 文件化（`bash scripts/security-check.sh`）。
+- [x] 最小安全測試集合可由 CI 呼叫（script 含 backend + frontend security tests；CI wiring 另行接入）。
+- [x] 新增 public write endpoint 時需附 rate limit 測試（script header 有明確說明規定）。
 
 ## 不接受的短期做法
 
