@@ -36,7 +36,7 @@ describe("GalleryBrandHeroSlide", () => {
   it("keeps brand copy visible on all viewports", () => {
     render(<GalleryBrandHeroSlide />);
     expect(screen.getByText("公開台本平台")).toBeTruthy();
-    expect(screen.getByText("嘗試、閱讀、創作")).toBeTruthy();
+    expect(screen.getByText("配音、閱讀、創作")).toBeTruthy();
     expect(screen.getByText("公開台本")).toBeTruthy();
   });
 

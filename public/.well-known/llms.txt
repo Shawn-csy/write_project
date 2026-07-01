@@ -1,6 +1,6 @@
 # 公開台本｜Screenplay Reader - AI Agent Guide
 
-公開台本｜Screenplay Reader (https://open-scripts.shawnup.com) is a platform for writers to publish and share screenplays.
+[公開台本｜Screenplay Reader](https://open-scripts.shawnup.com) is a platform for writers to publish and share screenplays.
 AI-friendly endpoints are provided so you can read scripts without parsing React HTML or executing JavaScript.
 
 ## Preferred endpoint for raw content
@@ -26,7 +26,7 @@ Prefer /api/public-scripts/{script_id}/raw for reliable raw content access.
 
 ## Discovery
 
-- Sitemap: https://open-scripts.shawnup.com/sitemap.xml
+- Sitemap: [sitemap.xml](https://open-scripts.shawnup.com/sitemap.xml)
 - Script page: https://open-scripts.shawnup.com/read/{script_id}
 - Author page: https://open-scripts.shawnup.com/author/{author_id}
 - Organization page: https://open-scripts.shawnup.com/org/{org_id}

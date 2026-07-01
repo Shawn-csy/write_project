@@ -48,7 +48,7 @@ export function GalleryBrandHeroSlide() {
         {/* Main headline */}
         <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold leading-[1.15] text-foreground">
           <span className="hero-reveal block" style={{ animationDelay: "80ms" }}>
-            嘗試、閱讀、創作
+            配音、閱讀、創作
           </span>
           <span className="hero-reveal relative inline-block text-primary" style={{ animationDelay: "160ms" }}>
             公開台本
