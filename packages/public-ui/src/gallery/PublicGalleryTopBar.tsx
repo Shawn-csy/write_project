@@ -41,6 +41,8 @@ export interface PublicGalleryTopBarProps {
   trailing?: React.ReactNode;
   /** Accessible label for mobile filter button. */
   mobileFilterLabel?: string;
+  /** Passed to PublicShellTopBar — shows studio entry inside mobile nav overlay. */
+  mobileStudioHref?: string;
 }
 
 export function PublicGalleryTopBar({
@@ -52,6 +54,7 @@ export function PublicGalleryTopBar({
   brandSubtitle,
   trailing,
   mobileFilterLabel = "開啟篩選",
+  mobileStudioHref,
 }: PublicGalleryTopBarProps): React.JSX.Element {
   const shellTabs: PublicShellTab[] = tabs.map((t) => ({
     key: t.key,
@@ -88,6 +91,7 @@ export function PublicGalleryTopBar({
       tabs={shellTabs}
       brandName={brandName}
       brandSubtitle={brandSubtitle}
+      mobileStudioHref={mobileStudioHref}
       trailing={
         <>
           {filterButtons}

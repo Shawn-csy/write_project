@@ -1,6 +1,6 @@
 import React from "react";
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { PublicShellTopBar } from "../gallery/PublicShellTopBar";
 
 describe("PublicShellTopBar", () => {
@@ -65,13 +65,78 @@ describe("PublicShellTopBar", () => {
         tabs={[{ key: "about", label: "關於", href: "/about" }]}
       />
     );
-    // mobile nav drawer not visible initially (rendered via display none via sm: class,
-    // but the toggle button should exist)
     const toggle = screen.getByRole("button", { name: "開啟導航" });
     fireEvent.click(toggle);
-    expect(screen.getByRole("button", { name: "關閉導航" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "關閉導航" }));
+    // Overlay close button inside dialog
+    const dialog = screen.getByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "關閉導航" }));
     expect(screen.getByRole("button", { name: "開啟導航" })).toBeTruthy();
+  });
+
+  it("mobile nav uses overlay contract — role=dialog", () => {
+    render(
+      <PublicShellTopBar
+        tabs={[{ key: "about", label: "關於", href: "/about" }]}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "開啟導航" }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    // main content top offset not affected — no inline drawer in header
+    const header = screen.getByRole("banner");
+    // overlay is portalled outside header; header only has the topbar row
+    expect(header.querySelector('[role="dialog"]')).toBeNull();
+  });
+
+  it("mobile overlay includes /dashboard studio link when mobileStudioHref given", () => {
+    render(
+      <PublicShellTopBar
+        tabs={[{ key: "about", label: "關於", href: "/about" }]}
+        mobileStudioHref="/dashboard"
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "開啟導航" }));
+    const studioLink = screen.getByRole("link", { name: "進入工作室" });
+    expect(studioLink.getAttribute("href")).toBe("/dashboard");
+  });
+
+  it("tab click closes mobile overlay", () => {
+    const handler = vi.fn();
+    render(
+      <PublicShellTopBar
+        tabs={[{ key: "scripts", label: "台本", onSelect: handler }]}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "開啟導航" }));
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toBeTruthy();
+    // Click the tab button inside the overlay
+    fireEvent.click(within(dialog).getByRole("button", { name: "台本" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("Esc closes mobile overlay", () => {
+    render(
+      <PublicShellTopBar
+        tabs={[{ key: "about", label: "關於", href: "/about" }]}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "開啟導航" }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("desktop tabs still render inline (not inside dialog)", () => {
+    render(
+      <PublicShellTopBar
+        tabs={[{ key: "about", label: "關於", href: "/about" }]}
+        activeTab="about"
+      />
+    );
+    // Nav inside header (not inside a dialog) should exist even without overlay open
+    const header = screen.getByRole("banner");
+    const nav = header.querySelector('nav[aria-label="公開頁面導航"]');
+    expect(nav).toBeTruthy();
   });
 
   it("no tabs = no hamburger button", () => {

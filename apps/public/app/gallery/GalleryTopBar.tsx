@@ -24,6 +24,7 @@ export function GalleryTopBar({
       onOpenMobileFilter={onOpenMobileFilter}
       brandName="公開台本"
       brandSubtitle="泛用型產品作坊"
+      mobileStudioHref="/dashboard"
       trailing={<PublicShellActions />}
     />
   );
