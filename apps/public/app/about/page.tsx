@@ -56,6 +56,13 @@ export default function AboutPage() {
           <PublicInfoSection title="近期更新" description="持續開發中，歡迎回報問題或建議。" icon="↻" card>
             <ul className="space-y-3 text-sm">
               <li className="rounded-lg border bg-muted/20 p-3">
+                <div className="text-xs text-muted-foreground">2026 年 7 月</div>
+                <div className="mt-1 font-medium text-foreground">介面全面重設計</div>
+                <div className="mt-1 text-muted-foreground">
+                  台本列表與閱讀頁採用全新視覺設計，行動版導覽與操作介面同步更新。
+                </div>
+              </li>
+              <li className="rounded-lg border bg-muted/20 p-3">
                 <div className="text-xs text-muted-foreground">2026 年 6 月</div>
                 <div className="mt-1 font-medium text-foreground">SEO 架構升級</div>
                 <div className="mt-1 text-muted-foreground">
