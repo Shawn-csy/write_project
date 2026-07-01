@@ -1,16 +1,10 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { PublicScriptInfoOverlay } from "./PublicScriptInfoOverlay";
 
 vi.mock("../ui/AuthorBadge", () => ({
   AuthorBadge: ({ author }) => <span data-testid="author-badge">{author?.displayName}</span>,
-}));
-
-vi.mock("../ui/badge", () => ({
-  Badge: ({ children, style }) => (
-    <span data-testid="badge" style={style}>{children}</span>
-  ),
 }));
 
 describe("PublicScriptInfoOverlay – licenseSpecialTerms", () => {
@@ -76,17 +70,16 @@ describe("PublicScriptInfoOverlay – usage badges", () => {
       />
     );
 
-    const badges = screen.getAllByTestId("badge");
-    const labels = badges.map((b) => b.textContent);
-    expect(labels.some((l) => l.includes("商業使用") && l.includes("可"))).toBe(true);
-    expect(labels.some((l) => l.includes("改作許可") && l.includes("不可"))).toBe(true);
-    expect(labels.some((l) => l.includes("修改須通知作者"))).toBe(true);
+    expect(screen.getByText(/商業使用.+可/)).toBeInTheDocument();
+    expect(screen.getByText(/改作許可.+不可/)).toBeInTheDocument();
+    expect(screen.getByText(/修改須通知作者/)).toBeInTheDocument();
   });
 
   it("renders no usage badges when all license fields are empty", () => {
     render(<PublicScriptInfoOverlay title="Test" />);
 
-    expect(screen.queryAllByTestId("badge")).toHaveLength(0);
+    expect(screen.queryByText(/商業使用/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/改作許可/)).not.toBeInTheDocument();
   });
 
   it("renders derivative badge with caution style for 'limited'", () => {
@@ -94,8 +87,61 @@ describe("PublicScriptInfoOverlay – usage badges", () => {
       <PublicScriptInfoOverlay title="Test" derivativeUse="limited" />
     );
 
-    const badges = screen.getAllByTestId("badge");
-    const derivativeBadge = badges.find((b) => b.textContent.includes("改作許可"));
-    expect(derivativeBadge?.textContent).toContain("需同意");
+    expect(screen.getByText(/改作許可.+需同意/)).toBeInTheDocument();
+  });
+});
+
+describe("PublicScriptInfoOverlay – shared preface projection", () => {
+  it("uses rawValue to preserve rich character cards when value is already formatted", () => {
+    render(
+      <PublicScriptInfoOverlay
+        title="Test"
+        prefaceItems={[
+          {
+            id: "roleSetting",
+            title: "角色設定",
+            value: "ＣＣ：冷靜",
+            rawValue: JSON.stringify({ mode: "multi", items: [{ name: "ＣＣ", text: "冷靜" }] }),
+          },
+          {
+            id: "performanceInstruction",
+            title: "演繹指示",
+            value: "ＣＣ：低聲",
+            rawValue: JSON.stringify({ mode: "multi", items: [{ name: "ＣＣ", text: "低聲" }] }),
+          },
+        ]}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "展開完整前置資訊" }));
+    expect(screen.getByText("角色 1")).toBeInTheDocument();
+    expect(screen.getByText("ＣＣ")).toBeInTheDocument();
+    expect(screen.getByText("冷靜")).toBeInTheDocument();
+    expect(screen.getByText("低聲")).toBeInTheDocument();
+  });
+
+  it("uses rawValue to preserve rich chapter cards when value is already formatted", () => {
+    render(
+      <PublicScriptInfoOverlay
+        title="Test"
+        prefaceItems={[
+          {
+            id: "chapterSettings",
+            title: "章節",
+            value: "第一章（環境：車站；狀況：告別）",
+            rawValue: JSON.stringify({
+              mode: "chapter_multi",
+              items: [{ chapter: "第一章", environment: "車站", situation: "告別" }],
+            }),
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText("第一章")).toBeInTheDocument();
+    expect(screen.getByText("環境")).toBeInTheDocument();
+    expect(screen.getByText("車站")).toBeInTheDocument();
+    expect(screen.getByText("狀況")).toBeInTheDocument();
+    expect(screen.getByText("告別")).toBeInTheDocument();
   });
 });

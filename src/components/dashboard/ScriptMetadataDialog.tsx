@@ -114,7 +114,7 @@ function ScriptMetadataPreviewDialog({ open, onOpenChange }: { open: boolean; on
                 setResolvedMarkerConfigs(normalizeMarkerConfigsSchema(localTheme.configs));
                 return;
             }
-            // 2. Fetch from public themes API (same as PublicReaderPage)
+            // 2. Fetch from public themes API (same as Next /read/[id] page)
             try {
                 const themes = await getPublicThemes();
                 if (cancelled) return;

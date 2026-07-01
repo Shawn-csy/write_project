@@ -1,4 +1,5 @@
 import React from "react";
+import { openPublicPath } from "../../lib/publicNavigation";
 import { useNavigate, useLocation } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -170,8 +171,8 @@ function Sidebar({
                       <NavItem
                           icon={Library}
                           label={t("nav.gallery")}
-                          onClick={() => { navigate("/"); closeSidebarIfMobile(); }}
-                          isActive={location.pathname === "/"}
+                          onClick={() => { openPublicPath("/"); }}
+                          isActive={false}
                           className="bg-primary/5 border border-primary/20"
                       />
                   </div>

@@ -17,6 +17,8 @@ import {
 } from "../components/layout/studioTopbarTokens";
 import { StudioTopbarQuickActions } from "../components/layout/StudioTopbarQuickActions";
 import { usePublisherDashboardState } from "../hooks/publisher/usePublisherDashboardState";
+import { openPublicPath } from "../lib/publicNavigation";
+import { deriveChapterRows } from "../lib/publisher/seriesEditorModel";
 
 const ScriptMetadataDialogLazy = React.lazy(async () => {
   const mod = await import("../components/dashboard/ScriptMetadataDialog");
@@ -76,7 +78,7 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
             <div className={STUDIO_TOPBAR_ACTIONS_CLASS}>
               <StudioTopbarQuickActions
                 onOpenGuide={s.handleStartStudioGuide}
-                onOpenGallery={() => s.navigate("/")}
+                onOpenGallery={() => openPublicPath("/")}
                 guideLabel={s.t("publisher.guide")}
                 galleryLabel={s.t("nav.gallery", "公開台本")}
                 languageLabel={s.t("settings.language")}
@@ -148,7 +150,6 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 scripts={s.scripts}
                 personas={s.personas}
                 setEditingScript={s.setEditingScript}
-                navigate={s.navigate}
                 formatDate={s.formatDate}
                 onContinueEdit={(script) => s.navigate(`/edit/${script.id}?mode=edit`)}
                 serverCounts={s.scriptCounts}
@@ -260,16 +261,14 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                     setSelectedSeriesId={s.setSelectedSeriesId}
                     seriesDraft={s.seriesDraft}
                     setSeriesDraft={s.setSeriesDraft}
-                    seriesScripts={(s.scripts || [])
-                      .filter((script) => script.seriesId === s.selectedSeriesId)
-                      .map((script) => ({ ...script, seriesOrder: script.seriesOrder ?? undefined }))
-                      .sort((a, b) => {
-                        const aOrder = Number.isFinite(Number(a.seriesOrder)) ? Number(a.seriesOrder) : Number.MAX_SAFE_INTEGER;
-                        const bOrder = Number.isFinite(Number(b.seriesOrder)) ? Number(b.seriesOrder) : Number.MAX_SAFE_INTEGER;
-                        if (aOrder !== bOrder) return aOrder - bOrder;
-                        return Number(b.lastModified || 0) - Number(a.lastModified || 0);
-                      })}
+                    isDirty={s.isSeriesDraftDirty}
+                    seriesScripts={deriveChapterRows(s.selectedSeriesScripts || [])}
+                    selectedSeriesScripts={s.selectedSeriesScripts || []}
+                    attachableScripts={s.attachableScripts || []}
                     onDetachScript={s.handleDetachScriptFromSeries}
+                    onAttachScript={s.handleAttachScriptToSeries}
+                    onReorderScript={s.handleReorderScriptInSeries}
+                    onBatchReorderScripts={s.handleBatchReorderSeriesScripts}
                     onCreateSeries={s.handleCreateSeries}
                     onUpdateSeries={s.handleUpdateSeries}
                     onDeleteSeries={s.handleDeleteSeries}

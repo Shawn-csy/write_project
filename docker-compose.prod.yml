@@ -5,11 +5,9 @@ services:
     environment:
       - POSTGRES_DB=${POSTGRES_DB:-write_project}
       - POSTGRES_USER=${POSTGRES_USER:-write_project}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-write_project}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in production}
     volumes:
       - ./server/data/postgres:/var/lib/postgresql/data
-    ports:
-      - "${POSTGRES_PORT:-1092}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-write_project} -d ${POSTGRES_DB:-write_project}"]
       interval: 5s
@@ -21,10 +19,8 @@ services:
     build:
       context: ./server
     restart: unless-stopped
-    ports:
-      - "1091:1091"
     environment:
-      - DATABASE_URL=${DATABASE_URL:-postgresql+psycopg://${POSTGRES_USER:-write_project}:${POSTGRES_PASSWORD:-write_project}@write_project-postgres:5432/${POSTGRES_DB:-write_project}}
+      - DATABASE_URL=${DATABASE_URL:?DATABASE_URL must be set in production}
       - DB_PATH=/data/scripts.db
       - DB_AUTO_CREATE_TABLES=${DB_AUTO_CREATE_TABLES:-1}
       - DB_RUN_LEGACY_MIGRATIONS=${DB_RUN_LEGACY_MIGRATIONS:-1}
@@ -38,6 +34,8 @@ services:
       - ADMIN_USER_IDS=${ADMIN_USER_IDS}
       - ADMIN_USER_EMAILS=${ADMIN_USER_EMAILS}
       - VITE_API_URL=${VITE_API_URL}
+      - NEXTJS_REVALIDATE_URL=http://write_project-public:3000/api/revalidate
+      - REVALIDATE_SECRET=${REVALIDATE_SECRET}
     volumes:
       - ./server/data:/data
       - ./server/secrets:/secrets:ro
@@ -66,3 +64,19 @@ services:
     depends_on:
       - write_project-frontend-build
       - write_project-backend
+      - write_project-public
+
+  write_project-public:
+    image: write_project-public:${DEPLOY_TAG:-latest}
+    build:
+      context: .
+      dockerfile: apps/public/Dockerfile
+      args:
+        BACKEND_API_URL: ${BACKEND_API_URL:-http://write_project-backend:1091}
+    restart: unless-stopped
+    environment:
+      - BACKEND_API_URL=${BACKEND_API_URL:-http://write_project-backend:1091}
+      - NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL:-https://open-scripts.shawnup.com}
+      - REVALIDATE_SECRET=${REVALIDATE_SECRET}
+      - PORT=3000
+      - HOSTNAME=0.0.0.0

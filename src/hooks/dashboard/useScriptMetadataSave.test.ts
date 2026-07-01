@@ -49,8 +49,8 @@ const baseDraft = (): ScriptMetadataDraft => ({
   showMarkerLegend: true,
   disableCopy: false,
   currentTags: [{ id: "tag-new", name: "新標籤" }],
-  targetAudience: "",
-  contentRating: "",
+  targetAudience: "全性向",
+  contentRating: "全年齡向",
   synopsis: "簡介",
   outline: "大綱",
   roleSetting: "",
@@ -123,6 +123,15 @@ describe("useScriptMetadataSave", () => {
     expect(updateScript).toHaveBeenCalledTimes(1);
     const [, payload] = (updateScript as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(payload.title).toBe("新標題");
+    expect(payload.author).toBe("作者");
+    expect(payload.authorDisplayMode).toBe("override");
+    expect(payload.authorOverrideName).toBe("作者");
+    expect(payload.targetAudience).toBe("全性向");
+    expect(payload.contentRating).toBe("全年齡向");
+    expect(payload.licenseSpecialTerms).toBe(JSON.stringify(["條款 A"]));
+    expect(payload.customMetadata.some((entry) => entry.key === "Author")).toBe(false);
+    expect(payload.customMetadata.some((entry) => entry.key === "AuthorDisplayMode")).toBe(false);
+    expect(payload.customMetadata.some((entry) => entry.key === "LicenseSpecialTerms")).toBe(false);
     // ActivityDemoLinks/ActivityDemoUrl are now structured fields (E6) — not in customMetadata
     expect(payload.customMetadata.some((entry) => entry.key === "ActivityDemoLinks")).toBe(false);
     expect(payload.customMetadata.some((entry) => entry.key === "ActivityDemoUrl")).toBe(false);
@@ -158,8 +167,10 @@ describe("useScriptMetadataSave", () => {
 
     const [, payload] = (updateScript as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(Object.prototype.hasOwnProperty.call(payload, "author")).toBe(false);
-    expect(payload.customMetadata.some((entry) => entry.key === "Author" && entry.value === "原作者")).toBe(true);
-    expect(payload.customMetadata.some((entry) => entry.key === "AuthorDisplayMode" && entry.value === "override")).toBe(true);
+    expect(Object.prototype.hasOwnProperty.call(payload, "authorDisplayMode")).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(payload, "authorOverrideName")).toBe(false);
+    expect(payload.customMetadata.some((entry) => entry.key === "Author")).toBe(false);
+    expect(payload.customMetadata.some((entry) => entry.key === "AuthorDisplayMode")).toBe(false);
   });
 
   it("keeps author field unchanged when source author is empty and preserves metadata", async () => {
@@ -186,11 +197,13 @@ describe("useScriptMetadataSave", () => {
 
     const [, payload] = (updateScript as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(Object.prototype.hasOwnProperty.call(payload, "author")).toBe(false);
-    expect(payload.customMetadata.some((entry) => entry.key === "Authors" && entry.value === "workingScript作者")).toBe(true);
-    expect(payload.customMetadata.some((entry) => entry.key === "AuthorDisplayMode" && entry.value === "override")).toBe(true);
+    expect(Object.prototype.hasOwnProperty.call(payload, "authorDisplayMode")).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(payload, "authorOverrideName")).toBe(false);
+    expect(payload.customMetadata.some((entry) => entry.key === "Authors")).toBe(false);
+    expect(payload.customMetadata.some((entry) => entry.key === "AuthorDisplayMode")).toBe(false);
   });
 
-  it("keeps original author metadata entries instead of regenerated ones", async () => {
+  it("does not keep original author metadata entries when author is preserved", async () => {
     const props = baseProps();
     props.activeScript = {
       ...props.activeScript,
@@ -214,9 +227,6 @@ describe("useScriptMetadataSave", () => {
     const authorLike = payload.customMetadata.filter((entry) =>
       ["author", "authors", "authordisplaymode"].includes(String(entry.key || "").toLowerCase().replace(/\s+/g, ""))
     );
-    expect(authorLike).toEqual([
-      { key: "Authors", value: "來源作者", type: "text" },
-      { key: "AuthorDisplayMode", value: "override", type: "text" },
-    ]);
+    expect(authorLike).toEqual([]);
   });
 });

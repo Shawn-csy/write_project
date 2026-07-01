@@ -4,7 +4,7 @@ import { LayerNode } from './nodes/LayerNode';
 import { DualDialogueNode } from './nodes/DualDialogueNode';
 import { SpeechNode } from './nodes/SpeechNode';
 import { RangeNode } from './nodes/RangeNode';
-import { parseInline } from '../../lib/parsers/inlineParser';
+import { parseInline } from '@write/script-engine';
 import type { MarkerConfig } from '../../types/script';
 import type { MarkerConfigLike, InlineNodeLike } from '../../types/renderer';
 

@@ -96,7 +96,7 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
     const [cropOpen, setCropOpen] = useState<boolean>(false);
     const [cropPurpose, setCropPurpose] = useState<"avatar" | "logo" | "cover" | "banner" | "generic">("cover");
     const [cropTarget, setCropTarget] = useState<string>("cover");
-    const [cropSource, setCropSource] = useState<{ file: File; name: string } | null>(null);
+    const [cropSource, setCropSource] = useState<{ file?: File; url?: string; name: string; initialCropRef?: { cx?: number; cy?: number; zoom?: number } | null } | null>(null);
     const [activityBannerPreviewFailed, setActivityBannerPreviewFailed] = useState(false);
     const [activityBannerUploadError, setActivityBannerUploadError] = useState("");
     const [activityBannerUploadWarning, setActivityBannerUploadWarning] = useState("");
@@ -329,6 +329,8 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         handleActivityBannerUpload,
         openCoverMediaPicker,
         openActivityBannerMediaPicker,
+        openCoverCropFromUrl,
+        applyCoverCropRef,
         handleMediaPickerSelect,
         handleMediaPickerSelectMedia,
     } = useScriptMetadataMediaHandlers({
@@ -336,6 +338,8 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         setActivityBannerUrl, setActivityBannerPreviewFailed, setActivityBannerUploadError, setActivityBannerUploadWarning,
         setIsMediaPickerOpen, setMediaPickerTarget, mediaPickerTarget,
         setCropSource, setCropTarget, setCropPurpose, setCropOpen,
+        coverUrl,
+        coverCrop,
     });
 
     const hydrateScriptState = useScriptMetadataHydration({
@@ -591,6 +595,8 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         cropSource, cropPurpose,
         cropTarget,
         applyCroppedUpload,
+        openCoverCropFromUrl,
+        applyCoverCropRef,
         // persona / overlays
         showPersonaSetupDialog,
         handlePersonaSetupDialogOpenChange,

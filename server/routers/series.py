@@ -34,3 +34,20 @@ def delete_series(series_id: str, db: Session = Depends(get_db), owner_id: str =
     if not ok:
         raise HTTPException(status_code=404, detail="Series not found")
     return {"success": True}
+
+
+@router.put("/{series_id}/scripts/reorder")
+def reorder_series_scripts(
+    series_id: str,
+    payload: schemas.SeriesReorderRequest,
+    db: Session = Depends(get_db),
+    owner_id: str = Depends(get_current_user_id),
+):
+    ok, error_code = crud.reorder_series_scripts(db, series_id, payload.items, owner_id)
+    if not ok:
+        if error_code == "series_not_found":
+            raise HTTPException(status_code=404, detail="Series not found")
+        if error_code == "script_not_in_series":
+            raise HTTPException(status_code=404, detail="One or more scripts not found in series")
+        raise HTTPException(status_code=422, detail=error_code)
+    return {"success": True}

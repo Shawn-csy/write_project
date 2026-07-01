@@ -100,18 +100,6 @@ export interface CoverDesign {
   };
   /** Extra text layers (author, sub-title, publisher, etc.) */
   layers?: CoverTextLayer[];
-  /** @deprecated use layers instead */
-  sub?: {
-    text: string;
-    direction: "horizontal" | "vertical";
-    font: CoverFont;
-    size: "xs" | "sm" | "md";
-    color: string;
-    x?: number;
-    y?: number;
-    align: CoverAlign;
-    visible: boolean;
-  };
   frame?: {
     type: CoverFrameType;
     color: string;
@@ -140,27 +128,6 @@ export function resolveCoverText(template: string, vars: CoverVars): string {
 
 export function makeCoverLayerId(): string {
   return `layer_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-}
-
-/** Migrate legacy `sub` field to a CoverTextLayer */
-export function migrateLegacySub(design: CoverDesign): CoverTextLayer[] {
-  const existing = design.layers ?? [];
-  if (!design.sub?.visible) return existing;
-  const sub = design.sub;
-  const legacyLayer: CoverTextLayer = {
-    id: makeCoverLayerId(),
-    text: sub.text,
-    direction: sub.direction,
-    font: sub.font,
-    size: sub.size as CoverTextLayer["size"],
-    letterSpacing: 0.06,
-    effect: "none",
-    color: sub.color,
-    x: sub.x ?? 0.5,
-    y: sub.y ?? 0.9,
-    visible: sub.visible,
-  };
-  return [...existing, legacyLayer];
 }
 
 // ---------------------------------------------------------------------------

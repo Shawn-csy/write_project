@@ -4,7 +4,8 @@ import { Button } from "./button";
 import { Slider } from "./slider";
 import { Loader2 } from "lucide-react";
 import { useI18n } from "../../contexts/I18nContext";
-import type { MediaCropRef } from "../../lib/mediaCropRef";
+import type { MediaCropRef, MediaCropLike } from "../../lib/mediaCropRef";
+import { normalizeInitialCropRef } from "../../lib/mediaCropRef";
 
 const PURPOSE_PRESETS = {
   avatar: { aspect: 1, outputWidth: 512, outputHeight: 512 },
@@ -39,9 +40,11 @@ interface ImageCropDialogProps {
   confirmLabel?: string;
   onApplyCropRef?: (crop: MediaCropRef) => void;
   applyCropRefLabel?: string;
+  initialCropRef?: MediaCropLike | null;
 }
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
+
 
 function loadImageFromSource(source: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -70,6 +73,7 @@ export function ImageCropDialog({
   confirmLabel,
   onApplyCropRef,
   applyCropRefLabel,
+  initialCropRef,
 }: ImageCropDialogProps): React.JSX.Element {
   const { t } = useI18n();
   const preset = PURPOSE_PRESETS[purpose] || PURPOSE_PRESETS.generic;
@@ -86,14 +90,19 @@ export function ImageCropDialog({
   const [showSafeArea, setShowSafeArea] = React.useState<boolean>(true);
   const dragStartRef = React.useRef<{ x: number; y: number; ox: number; oy: number }>({ x: 0, y: 0, ox: 0, oy: 0 });
   const frameRef = React.useRef<HTMLDivElement | null>(null);
+  // Pending focal restore: set after image loads, cleared once applied to offset.
+  const pendingCropRestoreRef = React.useRef<{ cx: number; cy: number } | null>(null);
 
   React.useEffect(() => {
     if (!open || !source) return undefined;
     let revoked = "";
     let cancelled = false;
     setErrorText("");
-    setZoom(1);
+    // Restore zoom from initialCropRef; offset restored after image loads via pendingCropRestoreRef.
+    const normalized = normalizeInitialCropRef(initialCropRef);
+    setZoom(normalized?.zoom ?? 1);
     setOffset({ x: 0, y: 0 });
+    pendingCropRestoreRef.current = normalized ? { cx: normalized.cx, cy: normalized.cy } : null;
     setBackgroundMode("transparent");
     setShowSafeArea(true);
     setIsLoading(true);
@@ -120,6 +129,7 @@ export function ImageCropDialog({
       cancelled = true;
       if (revoked) URL.revokeObjectURL(revoked);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, source]);
 
   const frameSize = React.useMemo(() => {
@@ -162,6 +172,20 @@ export function ImageCropDialog({
       setOffset({ x: computed.clampedX, y: computed.clampedY });
     }
   }, [computed, offset.x, offset.y]);
+
+  // Restore focal-point offset once image is loaded and maxX/maxY are known.
+  React.useEffect(() => {
+    const pending = pendingCropRestoreRef.current;
+    if (!pending || !computed) return;
+    // Always clear: restore is a one-shot. When image fits exactly (maxX/maxY=0)
+    // there is no movable range, so offset stays at 0 — but pending must not linger.
+    pendingCropRestoreRef.current = null;
+    if (computed.maxX === 0 && computed.maxY === 0) return;
+    setOffset({
+      x: clamp(pending.cx * computed.maxX, -computed.maxX, computed.maxX),
+      y: clamp(pending.cy * computed.maxY, -computed.maxY, computed.maxY),
+    });
+  }, [computed]);
 
   const startDrag = (clientX: number, clientY: number) => {
     if (!computed) return;

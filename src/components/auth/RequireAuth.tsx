@@ -19,7 +19,7 @@ export function RequireAuth({ children }: RequireAuthProps) {
   }
 
   if (!currentUser) {
-    return <Navigate to="/" state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   return children;

@@ -5,15 +5,16 @@ import { uploadMediaObject } from "../../lib/api/media";
 interface Props {
   setCoverUrl: (value: string) => void;
   setCoverCrop?: (value: { cx?: number; cy?: number; zoom?: number } | null) => void;
+  coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
 }
 
-export function useMetadataCoverUpload({ setCoverUrl, setCoverCrop }: Props) {
+export function useMetadataCoverUpload({ setCoverUrl, setCoverCrop, coverCrop }: Props) {
   const [coverPreviewFailed, setCoverPreviewFailed] = React.useState(false);
   const [coverUploadError, setCoverUploadError] = React.useState("");
   const [coverUploadWarning, setCoverUploadWarning] = React.useState("");
   const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState(false);
   const [cropOpen, setCropOpen] = React.useState(false);
-  const [cropSource, setCropSource] = React.useState<{ file: File; name: string } | null>(null);
+  const [cropSource, setCropSource] = React.useState<{ file?: File; url?: string; name: string; initialCropRef?: { cx?: number; cy?: number; zoom?: number } | null } | null>(null);
   const coverGuide = React.useMemo(() => getImageUploadGuide("cover"), []);
 
   const applyCoverUpload = async (file: File): Promise<void> => {
@@ -46,6 +47,17 @@ export function useMetadataCoverUpload({ setCoverUrl, setCoverCrop }: Props) {
     event.target.value = "";
   };
 
+  // Non-destructive: open crop dialog from existing URL to save focal point without re-uploading
+  const openCropFromUrl = React.useCallback((url: string) => {
+    if (!url) return;
+    setCropSource({ url, name: "cover", initialCropRef: coverCrop ?? null });
+    setCropOpen(true);
+  }, [coverCrop]);
+
+  const applyCoverCropRef = React.useCallback((crop: { cx?: number; cy?: number; zoom?: number }) => {
+    setCoverCrop?.(crop);
+  }, [setCoverCrop]);
+
   const handleMediaPickerSelect = (url: string) => {
     setCoverUrl(url);
     setCoverCrop?.(null);
@@ -68,6 +80,7 @@ export function useMetadataCoverUpload({ setCoverUrl, setCoverCrop }: Props) {
     isMediaPickerOpen, setIsMediaPickerOpen,
     cropOpen, setCropOpen, cropSource,
     coverGuide,
-    applyCoverUpload, handleCoverUpload, handleMediaPickerSelect, handleMediaPickerSelectMedia,
+    applyCoverUpload, handleCoverUpload, openCropFromUrl, applyCoverCropRef,
+    handleMediaPickerSelect, handleMediaPickerSelectMedia,
   };
 }

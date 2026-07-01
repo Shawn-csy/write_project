@@ -1,6 +1,8 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 
+const SITE_BRAND_NAME = "泛用型產品作坊";
+
 interface ActiveFileLike {
   name?: string;
 }
@@ -35,10 +37,10 @@ export function MetaTags({
     
   const description =
     summary.slice(0, 200) ||
-    "免費瀏覽、閱讀與分享創作台本，探索公開作品、配音台本與作者頁面。";
+    "泛用型產品作坊提供免費台本線上閱讀、發布與分享，探索公開作品、配音台本與作者頁面。";
     
-  const shareTitle = titleName || (typeof activeFile === 'string' ? activeFile : activeFile?.name) || "免費台本 · 劇本線上閱讀｜Screenplay Reader";
-  const fullTitle = titleName ? `${titleName}｜Screenplay Reader` : shareTitle;
+  const shareTitle = titleName || (typeof activeFile === 'string' ? activeFile : activeFile?.name) || `免費台本 · 劇本線上閱讀｜${SITE_BRAND_NAME}`;
+  const fullTitle = titleName ? `${titleName}｜${SITE_BRAND_NAME}` : shareTitle;
   const rawUrl = typeof window !== "undefined" ? window.location.href : "";
   const resolvedCanonicalUrl = (() => {
     if (typeof window === "undefined") return "";
@@ -75,7 +77,7 @@ export function MetaTags({
       <meta property="og:description" content={description} />
       <meta property="og:url" content={shareUrl} />
       <meta property="og:type" content={isArticle ? "article" : "website"} />
-      <meta property="og:site_name" content="Screenplay Reader" />
+      <meta property="og:site_name" content={SITE_BRAND_NAME} />
       <meta property="og:locale" content="zh_TW" />
       
       {/* Twitter Card */}

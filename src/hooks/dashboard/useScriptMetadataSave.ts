@@ -3,7 +3,6 @@ import { updateScript, addTagToScript, removeTagFromScript } from "../../lib/api
 import { createTag } from "../../lib/api/tags";
 import { fromDraftToPayload } from "../../lib/scriptMetadataAdapter";
 import type { ScriptMetadataDraft } from "../../lib/scriptMetadataAdapter";
-import { AUDIENCE_TAG_GROUP, RATING_TAG_GROUP, syncGroupedTagSelection } from "./tagGroupUtils";
 import type { BaseScriptApi, ScriptUpdatePayload } from "../../types/api";
 import type {
   ScriptLike, TagLike, SeriesOption,
@@ -130,38 +129,8 @@ export function useScriptMetadataSave({
 
     setIsSaving(true);
     try {
-      // --- Tag sync for audience / rating ---
-      let tagsToSave = [...currentTags];
-      if (targetAudience) {
-        try {
-          tagsToSave = await syncGroupedTagSelection({
-            currentTags: tagsToSave,
-            availableTags,
-            selectedName: targetAudience,
-            groupNames: AUDIENCE_TAG_GROUP,
-            createTag: createTag as (name: string, color: string, ownerIdQuery?: string) => Promise<TagLike>,
-            resolveColor: () => "bg-gray-500",
-            onTagCreated: () => {},
-          });
-        } catch (error) {
-          console.warn("Failed to sync audience tag, continue saving without blocking", error);
-        }
-      }
-      if (contentRating) {
-        try {
-          tagsToSave = await syncGroupedTagSelection({
-            currentTags: tagsToSave,
-            availableTags,
-            selectedName: contentRating,
-            groupNames: RATING_TAG_GROUP,
-            createTag: createTag as (name: string, color: string, ownerIdQuery?: string) => Promise<TagLike>,
-            resolveColor: (name) => (name === "成人向" ? "bg-red-500" : "bg-gray-500"),
-            onTagCreated: () => {},
-          });
-        } catch (error) {
-          console.warn("Failed to sync content rating tag, continue saving without blocking", error);
-        }
-      }
+      // targetAudience and contentRating are canonical DB fields — no tag sync needed.
+      const tagsToSave = [...currentTags];
 
       const workingScript = activeScript || script;
       if (!workingScript) return;
@@ -170,18 +139,9 @@ export function useScriptMetadataSave({
       const authorEditedValue = (authorEditedRef as { current?: boolean } | null)?.current ?? false;
       const shouldPreserveAuthor = preserveAuthorInternalData && !authorEditedValue;
 
-      const workingMetadata = Array.isArray(workingScript?.customMetadata) ? workingScript.customMetadata : [];
-      const existingAuthorEntries = workingMetadata
-        .filter((entry) => {
-          const key = String(entry?.key || "").trim().toLowerCase().replace(/\s+/g, "");
-          return key === "author" || key === "authors" || key === "authordisplaymode";
-        })
-        .map((e) => ({ key: String(e.key || ""), value: String(e.value || "") }));
-
       const draftWithTags: ScriptMetadataDraft = { ...draft, currentTags: tagsToSave };
-      let payload = fromDraftToPayload(draftWithTags, {
+      const payload = fromDraftToPayload(draftWithTags, {
         preserveAuthor: shouldPreserveAuthor,
-        existingAuthorEntries,
       });
 
       const persisted = saveScript
@@ -225,6 +185,11 @@ export function useScriptMetadataSave({
         licenseCommercial: draft.licenseCommercial || "",
         licenseDerivative: draft.licenseDerivative || "",
         licenseNotify: draft.licenseNotify || "",
+        licenseSpecialTerms: payload.licenseSpecialTerms,
+        targetAudience: payload.targetAudience,
+        contentRating: payload.contentRating,
+        authorDisplayMode: payload.authorDisplayMode ?? String(workingScript?.authorDisplayMode || ""),
+        authorOverrideName: payload.authorOverrideName ?? String(workingScript?.authorOverrideName || ""),
         tags: tagsToSave as Array<{ id?: string; name: string }>,
         markerThemeId: draft.markerThemeId,
         seriesId: payload.seriesId,
@@ -232,14 +197,7 @@ export function useScriptMetadataSave({
       });
       setCurrentTags(tagsToSave);
 
-      if ((targetAudience || contentRating) && tagsToSave.length === currentTags.length) {
-        toast({
-          title: t("scriptMetadataDialog.saved"),
-          description: "內容已儲存；分級/取向標籤同步失敗，請稍後重試或手動補上。",
-        });
-      } else {
-        toast({ title: t("scriptMetadataDialog.saved") });
-      }
+      toast({ title: t("scriptMetadataDialog.saved") });
       setShowValidationHints(false);
       onOpenChange(false);
     } catch (error) {

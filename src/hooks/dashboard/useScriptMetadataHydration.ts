@@ -142,10 +142,7 @@ export function useScriptMetadataHydration({
         setLicenseCommercial((prev) => draft.licenseCommercial || prev || "");
         setLicenseDerivative((prev) => draft.licenseDerivative || prev || "");
         setLicenseNotify((prev) => draft.licenseNotify || prev || "");
-        setLicenseSpecialTerms((prev) => {
-          if (draft.licenseSpecialTerms.length > 0) return draft.licenseSpecialTerms;
-          return Array.isArray(prev) ? prev : [];
-        });
+        if (draft.licenseSpecialTerms.length > 0) setLicenseSpecialTerms(draft.licenseSpecialTerms);
         setCopyright(draft.copyright);
         setCustomFields(draft.customFields);
       } catch (error) {

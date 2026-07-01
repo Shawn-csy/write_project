@@ -1,0 +1,355 @@
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { buildPrintHtml } from "./printHtml";
+import { getRenderedSnapshot, pickRenderedRoot, isPrintSafeColor } from "./exportShared";
+// isPrintSafeColor is an internal helper — imported directly from exportShared, not from the barrel.
+import { buildExportMetadata, formatStructuredMetadataValue } from "./exportMetadata";
+
+// ── buildPrintHtml ────────────────────────────────────────────────────────────
+
+describe("buildPrintHtml", () => {
+  it("returns valid HTML string containing script content", () => {
+    const html = buildPrintHtml({ titleName: "My Script", rawScriptHtml: "<p>Line 1</p>" });
+    expect(html).toContain("<!doctype html>");
+    expect(html).toContain("My Script");
+    expect(html).toContain("<p>Line 1</p>");
+  });
+
+  it("wraps rawScriptHtml in .script-renderer article", () => {
+    const html = buildPrintHtml({ rawScriptHtml: "<span>text</span>" });
+    expect(html).toContain('<article class="script-renderer">');
+    expect(html).toContain("<span>text</span>");
+  });
+
+  it("includes print @media CSS", () => {
+    const html = buildPrintHtml({});
+    expect(html).toContain("@media print");
+    expect(html).toContain("background: white");
+  });
+
+  it("uses activeFile as title fallback", () => {
+    const html = buildPrintHtml({ activeFile: "FallbackTitle" });
+    expect(html).toContain("FallbackTitle");
+  });
+
+  it("renders empty body when no rawScriptHtml", () => {
+    const html = buildPrintHtml({});
+    expect(html).toContain('<article class="script-renderer"></article>');
+  });
+
+  it("forces light color-scheme to prevent dark-mode bleed in print", () => {
+    const html = buildPrintHtml({});
+    expect(html).toContain("color-scheme: light");
+  });
+
+  it("sets body color: black as light-theme baseline", () => {
+    const html = buildPrintHtml({});
+    expect(html).toContain("color: black");
+  });
+});
+
+// ── getRenderedSnapshot (fallback path, no DOM) ───────────────────────────────
+
+describe("getRenderedSnapshot — text fallback", () => {
+  it("returns lines from plain text when no DOM renderer", () => {
+    const { lines } = getRenderedSnapshot({ text: "Line A\nLine B" });
+    expect(lines).toHaveLength(2);
+    expect(lines[0].text).toBe("Line A");
+    expect(lines[1].text).toBe("Line B");
+    expect(lines[0].line).toBe(1);
+    expect(lines[1].line).toBe(2);
+  });
+
+  it("html wraps each line in div with white-space:pre-wrap", () => {
+    const { html } = getRenderedSnapshot({ text: "Hello" });
+    expect(html).toContain("white-space:pre-wrap");
+    expect(html).toContain("Hello");
+  });
+
+  it("empty text yields one blank line", () => {
+    const { lines } = getRenderedSnapshot({ text: "" });
+    expect(lines).toHaveLength(1);
+    expect(lines[0].text).toBe("");
+  });
+
+  it("normalizes CRLF to LF", () => {
+    const { lines } = getRenderedSnapshot({ text: "A\r\nB" });
+    expect(lines).toHaveLength(2);
+    expect(lines[0].text).toBe("A");
+  });
+});
+
+// ── formatStructuredMetadataValue ────────────────────────────────────────────
+
+describe("formatStructuredMetadataValue", () => {
+  it("decodes multi-mode JSON to readable name：text / name：text format", () => {
+    const raw = JSON.stringify({ mode: "multi", items: [{ name: "小雨", text: "冷靜的觀察者" }, { name: "阿哲", text: "衝動但善良" }] });
+    expect(formatStructuredMetadataValue(raw)).toBe("小雨：冷靜的觀察者 / 阿哲：衝動但善良");
+  });
+
+  it("returns plain string unchanged", () => {
+    expect(formatStructuredMetadataValue("主角是學生")).toBe("主角是學生");
+  });
+
+  it("handles single-item multi array", () => {
+    const raw = JSON.stringify({ mode: "multi", items: [{ name: "A", text: "B" }] });
+    expect(formatStructuredMetadataValue(raw)).toBe("A：B");
+  });
+
+  it("returns empty string for empty input", () => {
+    expect(formatStructuredMetadataValue("")).toBe("");
+  });
+
+  it("decodes chapter_multi JSON to chapter（環境：...；狀況：...）format", () => {
+    const raw = JSON.stringify({ mode: "chapter_multi", items: [{ chapter: "第一章", environment: "學校", situation: "早晨" }] });
+    expect(formatStructuredMetadataValue(raw)).toBe("第一章（環境：學校；狀況：早晨）");
+  });
+
+  it("chapter_multi with multiple chapters joined by ' / '", () => {
+    const raw = JSON.stringify({ mode: "chapter_multi", items: [{ chapter: "A", environment: "e1", situation: "s1" }, { chapter: "B", environment: "e2", situation: "s2" }] });
+    expect(formatStructuredMetadataValue(raw)).toBe("A（環境：e1；狀況：s1） / B（環境：e2；狀況：s2）");
+  });
+
+  it("invalid JSON returns original string unchanged", () => {
+    expect(formatStructuredMetadataValue("{broken")).toBe("{broken");
+  });
+});
+
+// ── buildExportMetadata — metadata depth ─────────────────────────────────────
+
+describe("buildExportMetadata — metadata depth", () => {
+  it("seriesOrder 0 is preserved, not treated as falsy", () => {
+    const meta = buildExportMetadata({ title: "T", series: { name: "S" }, seriesOrder: 0 });
+    expect(meta.rows).toContain("系列：S #0");
+  });
+
+  it("role setting from customMetadata key RoleSetting", () => {
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "RoleSetting", value: "主角：A" }] });
+    expect(meta.rows).toContain("角色設定：主角：A");
+  });
+
+  it("situation info from customMetadata key SituationInfo", () => {
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "SituationInfo", value: "夜晚教室" }] });
+    expect(meta.rows).toContain("狀況：夜晚教室");
+  });
+
+  it("arbitrary custom field appears and is not filtered out", () => {
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "備注", value: "演出重點" }] });
+    expect(meta.rows).toContain("備注：演出重點");
+  });
+
+  it("reserved key 'synopsis' in customMetadata does NOT create customField row", () => {
+    const meta = buildExportMetadata({ title: "T", synopsis: "直接簡介", customMetadata: [{ key: "Synopsis", value: "custom路徑" }] });
+    expect(meta.rows.filter((r) => r.startsWith("Synopsis"))).toHaveLength(0);
+  });
+
+  it("licenseSpecialTerms from JSON array string in meta", () => {
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "LicenseSpecialTerms", value: JSON.stringify(["條款A", "條款B"]) }] });
+    expect(meta.rows).toContain("特殊條款：條款A");
+    expect(meta.rows).toContain("特殊條款：條款B");
+  });
+
+  it("licenseSpecialTerms from source top-level array of objects with .text", () => {
+    const meta = buildExportMetadata({ title: "T", licenseSpecialTerms: [{ text: "禁商業" }, { text: "禁改編" }] });
+    expect(meta.rows).toContain("特殊條款：禁商業");
+    expect(meta.rows).toContain("特殊條款：禁改編");
+  });
+
+  it("RoleSetting JSON multi payload decoded to human-readable form", () => {
+    const roleJson = JSON.stringify({ mode: "multi", items: [{ name: "小雨", text: "冷靜" }, { name: "阿哲", text: "衝動" }] });
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "RoleSetting", value: roleJson }] });
+    const row = meta.rows.find((r) => r.startsWith("角色設定"));
+    expect(row).toContain("小雨：冷靜");
+    expect(row).toContain("阿哲：衝動");
+    expect(row).not.toContain('"mode"');
+  });
+
+  it("activityName and activityContent from source top-level", () => {
+    const meta = buildExportMetadata({ title: "T", activityName: "活動名稱", activityContent: "活動說明文字" });
+    expect(meta.rows).toContain("活動：活動名稱：活動說明文字");
+  });
+
+  it("activityName only (no content)", () => {
+    const meta = buildExportMetadata({ title: "T", activityName: "配音活動" });
+    expect(meta.rows).toContain("活動：配音活動");
+  });
+
+  it("demoLinks from source", () => {
+    const meta = buildExportMetadata({ title: "T", demoLinks: [{ name: "試聽01", url: "https://example.com/demo" }] });
+    expect(meta.rows).toContain("試聽範例：試聽01：https://example.com/demo");
+  });
+
+  it("EventDemoLink legacy customMetadata key is emitted as demoLink row", () => {
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "EventDemoLink", value: "https://example.com/legacy-demo" }] });
+    expect(meta.rows).toContain("試聽範例：https://example.com/legacy-demo");
+  });
+
+  it("targetAudience from customMetadata (P2 overlay alignment)", () => {
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "TargetAudience", value: "女性向" }] });
+    expect(meta.rows.find((r) => r.startsWith("觀眾"))).toContain("女性向");
+  });
+
+  it("title fallback to customMetadata.Title when top-level title absent", () => {
+    const meta = buildExportMetadata({ title: "", customMetadata: [{ key: "Title", value: "自訂標題" }] }, "後備");
+    expect(meta.title).toBe("自訂標題");
+  });
+
+  it("top-level title takes precedence over customMetadata.Title", () => {
+    const meta = buildExportMetadata({ title: "正式標題", customMetadata: [{ key: "Title", value: "自訂標題" }] });
+    expect(meta.title).toBe("正式標題");
+  });
+});
+
+// ── preface fields ────────────────────────────────────────────────────────────
+
+describe("buildExportMetadata — preface fields", () => {
+  it("Outline appears as 大綱", () => {
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "Outline", value: "劇情大綱內容" }] });
+    expect(meta.rows).toContain("大綱：劇情大綱內容");
+  });
+
+  it("BackgroundInfo appears as 背景資訊", () => {
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "BackgroundInfo", value: "asdasd" }] });
+    expect(meta.rows).toContain("背景資訊：asdasd");
+  });
+
+  it("EnvironmentInfo accepted as alias for 背景資訊", () => {
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "EnvironmentInfo", value: "學校環境" }] });
+    expect(meta.rows).toContain("背景資訊：學校環境");
+  });
+
+  it("OpeningIntro appears as 作品的開頭引言", () => {
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "OpeningIntro", value: "asdasd" }] });
+    expect(meta.rows).toContain("作品的開頭引言：asdasd");
+  });
+
+  it("PerformanceInstruction plain string appears as 演繹指示", () => {
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "PerformanceInstruction", value: "放慢語速" }] });
+    expect(meta.rows).toContain("演繹指示：放慢語速");
+  });
+
+  it("PerformanceInstruction JSON multi decoded — no raw JSON", () => {
+    const json = JSON.stringify({ mode: "multi", items: [{ name: "CC", text: "asdasd" }] });
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "PerformanceInstruction", value: json }] });
+    const row = meta.rows.find((r) => r.startsWith("演繹指示"));
+    expect(row).toContain("CC：asdasd");
+    expect(row).not.toContain('"mode"');
+  });
+
+  it("ChapterSettings JSON chapter_multi decoded correctly", () => {
+    const json = JSON.stringify({ mode: "chapter_multi", items: [{ chapter: "asdasd", environment: "asd", situation: "asd" }] });
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "ChapterSettings", value: json }] });
+    const row = meta.rows.find((r) => r.startsWith("章節"));
+    expect(row).toContain("asdasd（環境：asd；狀況：asd）");
+    expect(row).not.toContain('"mode"');
+  });
+
+  it("preface keys do NOT appear as customField rows", () => {
+    const meta = buildExportMetadata({ title: "T", customMetadata: [
+      { key: "BackgroundInfo", value: "bg" },
+      { key: "PerformanceInstruction", value: "pi" },
+      { key: "ChapterSettings", value: "cs" },
+      { key: "OpeningIntro", value: "oi" },
+    ] });
+    const rawKeyRows = meta.rows.filter((r) =>
+      r.startsWith("BackgroundInfo") || r.startsWith("PerformanceInstruction") ||
+      r.startsWith("ChapterSettings") || r.startsWith("OpeningIntro")
+    );
+    expect(rawKeyRows).toHaveLength(0);
+  });
+
+  it("invalid JSON for preface field stays readable and does not crash", () => {
+    const meta = buildExportMetadata({ title: "T", customMetadata: [{ key: "PerformanceInstruction", value: "{broken" }] });
+    expect(meta.rows).toContain("演繹指示：{broken");
+  });
+});
+
+// ── pickRenderedRoot ──────────────────────────────────────────────────────────
+
+// ── isPrintSafeColor — dark-theme inline style sanitization ──────────────────
+
+describe("isPrintSafeColor", () => {
+  it("near-white text (dark theme foreground) is not print-safe", () => {
+    // luminance ~0.95 — typical dark theme text color like rgba(250,250,250)
+    expect(isPrintSafeColor("color", "rgb(250, 250, 250)")).toBe(false);
+  });
+
+  it("near-black text (light theme foreground) is print-safe", () => {
+    expect(isPrintSafeColor("color", "rgb(30, 30, 30)")).toBe(true);
+  });
+
+  it("near-black background (dark theme bg) is not print-safe", () => {
+    // luminance ~0.01 — typical dark theme bg like rgb(15, 15, 20)
+    expect(isPrintSafeColor("background-color", "rgb(15, 15, 20)")).toBe(false);
+  });
+
+  it("near-white background is not print-safe (no need to inline white-on-white)", () => {
+    expect(isPrintSafeColor("background-color", "rgb(250, 250, 250)")).toBe(false);
+  });
+
+  it("accent marker color (mid-range) is print-safe", () => {
+    // A readable mid-range color like rgb(220, 100, 50) — marker accent
+    expect(isPrintSafeColor("color", "rgb(220, 100, 50)")).toBe(true);
+  });
+
+  it("marker background (mid-luminance) is print-safe", () => {
+    // e.g. rgb(180, 220, 100) — marker highlight bg, readable on white
+    expect(isPrintSafeColor("background-color", "rgb(180, 220, 100)")).toBe(true);
+  });
+
+  it("transparent background is not print-safe", () => {
+    expect(isPrintSafeColor("background-color", "rgba(0, 0, 0, 0)")).toBe(false);
+  });
+
+  it("oklch color is not print-safe (unknown format stripped)", () => {
+    expect(isPrintSafeColor("color", "oklch(0.9 0.02 240)")).toBe(false);
+  });
+
+  it("var() color is not print-safe (unknown format stripped)", () => {
+    expect(isPrintSafeColor("background-color", "var(--background)")).toBe(false);
+  });
+});
+
+// ── getRenderedSnapshot — dark inline style sanitization ─────────────────────
+
+describe("getRenderedSnapshot — strips dark theme inline colors from renderedHtml", () => {
+  it("near-white text color in renderedHtml is stripped from snapshot", () => {
+    const darkHtml = `<div class="script-renderer"><div class="script-line" style="color:rgb(250,250,250)">line text</div></div>`;
+    const { html } = getRenderedSnapshot({ renderedHtml: darkHtml });
+    expect(html).not.toContain("rgb(250,250,250)");
+  });
+
+  it("near-black background in renderedHtml is stripped from snapshot", () => {
+    const darkHtml = `<div class="script-renderer"><div class="script-line" style="background-color:rgb(15,15,20)">line text</div></div>`;
+    const { html } = getRenderedSnapshot({ renderedHtml: darkHtml });
+    expect(html).not.toContain("rgb(15,15,20)");
+  });
+
+  it("mid-luminance accent color in renderedHtml survives into snapshot", () => {
+    const markerHtml = `<div class="script-renderer"><span class="script-line" style="color:rgb(180,60,60)">marked</span></div>`;
+    const { html } = getRenderedSnapshot({ renderedHtml: markerHtml });
+    expect(html).toContain("rgb(180,60,60)");
+  });
+});
+
+// ── pickRenderedRoot ──────────────────────────────────────────────────────────
+
+describe("pickRenderedRoot", () => {
+  let div: HTMLDivElement;
+
+  beforeEach(() => {
+    div = document.createElement("div");
+    div.className = "script-renderer";
+    div.textContent = "content";
+    document.body.appendChild(div);
+  });
+
+  afterEach(() => {
+    div.remove();
+  });
+
+  it("finds .script-renderer element in DOM", () => {
+    const root = pickRenderedRoot();
+    expect(root).not.toBeNull();
+    expect(root?.className).toContain("script-renderer");
+  });
+});

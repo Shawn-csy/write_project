@@ -1,0 +1,122 @@
+import { cache } from "react";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { apiFetch } from "@/lib/api";
+import type { PublicPersona, PublicScript } from "@/lib/types";
+import { AuthorPageClient } from "./AuthorPageClient";
+import { PublicTopBar } from "@/components/PublicTopBar";
+import { PublicShellActions } from "@/components/PublicShellActions";
+import { BASE_URL, SITE_NAME, TITLE_SUFFIX, pickPreviewImage, absoluteUrl } from "@/lib/seo";
+import { JsonLdScript } from "@/lib/jsonLd";
+
+export const revalidate = 3600;
+export const dynamicParams = true;
+
+const fetchPersona = cache(async (id: string): Promise<PublicPersona | null> => {
+  try {
+    return await apiFetch<PublicPersona>(`/public-personas/${id}`);
+  } catch {
+    return null;
+  }
+});
+
+async function fetchScripts(personaId: string): Promise<PublicScript[]> {
+  try {
+    return await apiFetch<PublicScript[]>(`/public-scripts?personaId=${personaId}`);
+  } catch {
+    return [];
+  }
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const persona = await fetchPersona(id);
+  if (!persona) return { title: `找不到作者｜${TITLE_SUFFIX}` };
+
+  const title = `${persona.displayName}｜${TITLE_SUFFIX}`;
+  const description = (persona.bio || `${persona.displayName} 的公開台本作品`).slice(0, 200);
+  const canonicalUrl = `${BASE_URL}/author/${id}`;
+  const previewImage = pickPreviewImage(persona.avatar || persona.bannerUrl);
+
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: persona.displayName,
+    url: canonicalUrl,
+    ...(persona.bio && { description: persona.bio }),
+    ...(persona.avatar && { image: absoluteUrl(persona.avatar) }),
+    ...(persona.website && { sameAs: [persona.website] }),
+  };
+
+  return {
+    title,
+    description,
+    alternates: { canonical: canonicalUrl },
+    openGraph: {
+      type: "profile",
+      title,
+      description,
+      url: canonicalUrl,
+      siteName: SITE_NAME,
+      locale: "zh_TW",
+      images: [{ url: previewImage, alt: persona.displayName }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [previewImage],
+    },
+  };
+}
+
+export default async function AuthorPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const [persona, scripts] = await Promise.all([fetchPersona(id), fetchScripts(id)]);
+
+  if (!persona) notFound();
+
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: persona.displayName,
+    url: `${BASE_URL}/author/${id}`,
+    ...(persona.bio && { description: persona.bio }),
+    ...(persona.avatar && { image: absoluteUrl(persona.avatar) }),
+    ...(persona.website && { sameAs: [persona.website] }),
+  };
+
+  return (
+    <>
+      <JsonLdScript data={structuredData} />
+      <PublicTopBar activeTab="authors" trailing={<PublicShellActions />} />
+      <noscript>
+        <article style={{ maxWidth: 800, margin: "0 auto", padding: "2rem", fontFamily: "serif" }}>
+          <h1>{persona.displayName}</h1>
+          {persona.bio && <p>{persona.bio}</p>}
+          {scripts.length > 0 && (
+            <>
+              <h2>公開作品</h2>
+              <ul>
+                {scripts.map((s) => (
+                  <li key={s.id}>
+                    <a href={`/read/${s.id}`}>{s.title}</a>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </article>
+      </noscript>
+      <AuthorPageClient persona={persona} scripts={scripts} />
+    </>
+  );
+}

@@ -56,7 +56,7 @@ export function usePublisherOrgTabState({ orgs, selectedOrgId, setSelectedOrgId,
   const [cropOpen, setCropOpen] = React.useState(false);
   const [cropPurpose, setCropPurpose] = React.useState<"logo" | "banner">("logo");
   const [cropTargetField, setCropTargetField] = React.useState<"logoUrl" | "bannerUrl" | null>(null);
-  const [cropSource, setCropSource] = React.useState<{ file: File; name: string } | null>(null);
+  const [cropSource, setCropSource] = React.useState<{ file?: File; url?: string; name: string; initialCropRef?: { cx?: number; cy?: number; zoom?: number } | null } | null>(null);
 
   const logoGuide = React.useMemo(() => getImageUploadGuide("logo"), []);
   const bannerGuide = React.useMemo(() => getImageUploadGuide("banner"), []);
@@ -117,6 +117,20 @@ export function usePublisherOrgTabState({ orgs, selectedOrgId, setSelectedOrgId,
     event.target.value = "";
   };
 
+  const openCropFromUrl = React.useCallback((field: "logoUrl" | "bannerUrl", url: string) => {
+    if (!url) return;
+    const currentCrop = field === "logoUrl" ? orgDraft.logoCrop : orgDraft.bannerCrop;
+    setCropTargetField(field);
+    setCropPurpose(field === "logoUrl" ? "logo" : "banner");
+    setCropSource({ url, name: field, initialCropRef: currentCrop ?? null });
+    setCropOpen(true);
+  }, [orgDraft.logoCrop, orgDraft.bannerCrop]);
+
+  const applyCropRef = React.useCallback((field: "logoUrl" | "bannerUrl", crop: { cx?: number; cy?: number; zoom?: number }) => {
+    const cropField = field === "logoUrl" ? "logoCrop" : "bannerCrop";
+    setOrgDraft(prev => ({ ...prev, [cropField]: crop }));
+  }, [setOrgDraft]);
+
   const handleMediaPickerSelect = (url: string) => {
     if (mediaPickerTarget === "logo") {
       setOrgDraft(prev => ({ ...prev, logoUrl: url, logoCrop: null }));
@@ -173,7 +187,7 @@ export function usePublisherOrgTabState({ orgs, selectedOrgId, setSelectedOrgId,
     cropOpen, setCropOpen, cropPurpose, cropTargetField, cropSource,
     logoGuide, bannerGuide, filteredTagOptions,
     orgChecklist, orgDone, orgProgress, orgNextSteps,
-    applyUploadedImage, handleImageUpload, handleMediaPickerSelect, handleMediaPickerSelectMedia,
+    applyUploadedImage, handleImageUpload, openCropFromUrl, applyCropRef, handleMediaPickerSelect, handleMediaPickerSelectMedia,
     ...guide,
   };
 }

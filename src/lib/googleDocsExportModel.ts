@@ -1,7 +1,7 @@
 import { parseScreenplay } from "./screenplayAST";
-import { parseInline } from "./parsers/inlineParser";
+import { toRenderBlocks } from "@write/script-engine";
+import type { RenderBlock, InlineRun, LayerBlock, RangeBlock } from "@write/script-engine";
 import type { MarkerConfig } from "../types/script";
-import { isInlineLike } from "./markerRules";
 import { resolveMarkerColorToken } from "./markerStyleResolver";
 
 export interface GoogleDocsRun {
@@ -78,8 +78,6 @@ const mergeStyle = (base: Omit<GoogleDocsRun, "text">, override: Omit<GoogleDocs
   color: override.color || base.color,
 });
 
-const splitLines = (text: string) => String(text || "").split("\n");
-
 const makeContinuityPrefix = (depth: number): string => {
   if (!Number.isFinite(depth) || depth <= 0) return "";
   return `${Array.from({ length: depth }).map(() => "│").join(" ")} `;
@@ -93,200 +91,102 @@ const withContinuityPrefix = (runs: GoogleDocsRun[], depth: number): GoogleDocsR
   return [{ ...first, text: `${prefix}${first.text}` }, ...runs.slice(1)];
 };
 
-const pushTextLine = (blocks: GoogleDocsBlock[], text: string, style: Omit<GoogleDocsRun, "text"> = {}, continuityDepth = 0) => {
-  blocks.push({ runs: withContinuityPrefix([{ text, ...style }], continuityDepth) });
-};
-
-const pushInlineLines = (
-  blocks: GoogleDocsBlock[],
-  text: string,
-  inlineConfigs: MarkerConfig[],
-  baseStyle: Omit<GoogleDocsRun, "text"> = {},
-  continuityDepth = 0
-) => {
-  const lines = splitLines(text);
-  lines.forEach((line) => {
-    const nodes = (parseInline(line, inlineConfigs) as Array<Record<string, unknown>>) || [];
-    const runs: GoogleDocsRun[] = [];
-    nodes.forEach((node) => {
-      const type = String(node?.type || "");
-      const content = String(node?.content ?? "");
-      if (!content) return;
-      if (type === "text") {
-        runs.push({ text: content, ...baseStyle });
-        return;
-      }
-      const id = String(node?.id || "");
-      const inlineCfg = inlineConfigs.find((cfg) => String(cfg?.id || "") === id);
-      const inlineStyle = styleFromCss((inlineCfg?.style as Record<string, unknown>) || {});
-      let displayText = content;
-      const tpl = String((inlineCfg as any)?.renderer?.template || "");
-      if (tpl) {
-        displayText = tpl.replace("{{content}}", content);
-      } else if ((inlineCfg as any)?.start && (inlineCfg as any)?.end && (inlineCfg as any)?.showDelimiters) {
-        displayText = `${String((inlineCfg as any).start)}${content}${String((inlineCfg as any).end)}`;
-      }
-      runs.push({ text: displayText, ...mergeStyle(baseStyle, inlineStyle) });
-    });
-    const lineRuns = runs.length > 0 ? runs : [{ text: line, ...baseStyle }];
-    blocks.push({ runs: withContinuityPrefix(lineRuns, continuityDepth) });
-  });
-};
-
-const buildRunsFromInlineNodes = (
-  nodes: Array<Record<string, unknown>>,
-  inlineConfigs: MarkerConfig[],
+// Convert engine InlineRun[] → GoogleDocsRun[], applying base style
+const inlineRunsToDocRuns = (
+  runs: InlineRun[],
   baseStyle: Omit<GoogleDocsRun, "text"> = {}
-): GoogleDocsRun[] => {
-  const runs: GoogleDocsRun[] = [];
-  nodes.forEach((node) => {
-    const type = String(node?.type || "");
-    const content = String(node?.content ?? "");
-    if (!content) return;
-    if (type === "text") {
-      runs.push({ text: content, ...baseStyle });
-      return;
-    }
-    const id = String(node?.id || "");
-    const inlineCfg = inlineConfigs.find((cfg) => String(cfg?.id || "") === id);
-    const inlineStyle = styleFromCss((inlineCfg?.style as Record<string, unknown>) || {});
-    let displayText = content;
-    const tpl = String((inlineCfg as any)?.renderer?.template || "");
-    if (tpl) {
-      displayText = tpl.replace("{{content}}", content);
-    } else if ((inlineCfg as any)?.start && (inlineCfg as any)?.end && (inlineCfg as any)?.showDelimiters) {
-      displayText = `${String((inlineCfg as any).start)}${content}${String((inlineCfg as any).end)}`;
-    }
-    runs.push({ text: displayText, ...mergeStyle(baseStyle, inlineStyle) });
+): GoogleDocsRun[] =>
+  runs.map((r) => {
+    const s = styleFromCss(r.style as Record<string, unknown> | undefined || {});
+    return { text: r.text, ...mergeStyle(baseStyle, s) };
   });
-  return runs;
-};
 
-const traverseNodes = (
-  nodes: Array<Record<string, unknown>>,
-  markerConfigs: MarkerConfig[],
-  inlineConfigs: MarkerConfig[],
-  blocks: GoogleDocsBlock[],
+// Convert engine RenderBlock tree → GoogleDocsBlock[], with continuity depth
+const renderBlocksToDocBlocks = (
+  blocks: RenderBlock[],
   characterColors: Map<string, string>,
-  inheritedStyle: Omit<GoogleDocsRun, "text"> = {},
-  continuityDepth = 0
-) => {
-  const findCfg = (node: Record<string, unknown>) => {
-    const markerId = String(node?.markerId || "");
-    if (markerId) {
-      const found = markerConfigs.find((cfg) => String(cfg?.id || "") === markerId);
-      if (found) return found;
-    }
-    const layerType = String(node?.layerType || "");
-    if (layerType) {
-      const found = markerConfigs.find((cfg) => String(cfg?.id || "") === layerType);
-      if (found) return found;
-    }
-    return undefined;
-  };
+  depth = 0
+): GoogleDocsBlock[] => {
+  const out: GoogleDocsBlock[] = [];
 
-  nodes.forEach((node) => {
-    const type = String(node?.type || "");
-    const text = String(node?.text || "");
-    const cfg = findCfg(node);
-    const cfgStyle = styleFromCss((cfg?.style as Record<string, unknown>) || {});
-    const nodeRangeStyle = styleFromCss((node?.rangeStyle as Record<string, unknown>) || {});
-    const effectiveStyle = mergeStyle(mergeStyle(inheritedStyle, cfgStyle), nodeRangeStyle);
+  for (const block of blocks) {
+    const baseStyle = styleFromCss((block.style as Record<string, unknown>) || {});
 
-    if (type === "root" || type === "range" || type === "layer") {
-      if (type === "range") {
-        const nextDepth = continuityDepth + 1;
-        const startNode = (node?.startNode as Record<string, unknown>) || null;
-        const endNode = (node?.endNode as Record<string, unknown>) || null;
-        if (startNode) {
-          traverseNodes([startNode], markerConfigs, inlineConfigs, blocks, characterColors, effectiveStyle, nextDepth);
-        }
-        traverseNodes(
-          (node?.children as Array<Record<string, unknown>>) || [],
-          markerConfigs,
-          inlineConfigs,
-          blocks,
-          characterColors,
-          effectiveStyle,
-          nextDepth
-        );
-        if (endNode) {
-          traverseNodes([endNode], markerConfigs, inlineConfigs, blocks, characterColors, effectiveStyle, nextDepth);
-        }
-        return;
+    switch (block.kind) {
+      case "scene_heading": {
+        const s = mergeStyle({ bold: true }, baseStyle);
+        out.push({ runs: withContinuityPrefix([{ text: block.text, ...s }], depth) });
+        break;
       }
-      if (type === "layer") {
-        const template = String((cfg as any)?.renderer?.template || "");
-        const labelInline = Array.isArray(node?.inlineLabel) ? (node.inlineLabel as Array<Record<string, unknown>>) : [];
-        const labelText = String(node?.text || node?.label || "");
-        if (labelInline.length > 0) {
-          const labelRuns = buildRunsFromInlineNodes(labelInline, inlineConfigs, effectiveStyle);
-          if (template && labelRuns.length > 0) {
-            const contentText = labelRuns.map((r) => r.text).join("");
-            const merged = template.replace("{{content}}", contentText);
-            blocks.push({ runs: withContinuityPrefix([{ text: merged, ...effectiveStyle }], continuityDepth) });
-          } else {
-            blocks.push({ runs: withContinuityPrefix(labelRuns, continuityDepth) });
-          }
-        } else if (labelText) {
-          const display = template ? template.replace("{{content}}", labelText) : labelText;
-          blocks.push({ runs: withContinuityPrefix([{ text: display, ...effectiveStyle }], continuityDepth) });
+
+      case "character": {
+        const key = normalizeCharacterKey(block.text);
+        if (key && !characterColors.has(key)) {
+          characterColors.set(key, CHARACTER_COLOR_SEQUENCE[characterColors.size % CHARACTER_COLOR_SEQUENCE.length]);
         }
+        const roleColor = key ? characterColors.get(key) : undefined;
+        const s = mergeStyle({ bold: true }, baseStyle);
+        if (roleColor) s.color = roleColor;
+        out.push({ runs: withContinuityPrefix([{ text: block.text, ...s }], depth) });
+        break;
       }
-      traverseNodes(
-        (node?.children as Array<Record<string, unknown>>) || [],
-        markerConfigs,
-        inlineConfigs,
-        blocks,
-        characterColors,
-        effectiveStyle,
-        continuityDepth
-      );
-      return;
-    }
-    if (type === "dual_dialogue") {
-      traverseNodes((node?.left as Array<Record<string, unknown>>) || [], markerConfigs, inlineConfigs, blocks, characterColors, effectiveStyle, continuityDepth);
-      traverseNodes((node?.right as Array<Record<string, unknown>>) || [], markerConfigs, inlineConfigs, blocks, characterColors, effectiveStyle, continuityDepth);
-      return;
-    }
-    if (type === "speech") {
-      traverseNodes((node?.children as Array<Record<string, unknown>>) || [], markerConfigs, inlineConfigs, blocks, characterColors, effectiveStyle, continuityDepth);
-      return;
-    }
-    if (type === "blank" || type === "whitespace") {
-      blocks.push({ runs: [{ text: "" }] });
-      return;
-    }
-    if (type === "character") {
-      const key = normalizeCharacterKey(text);
-      if (key && !characterColors.has(key)) {
-        characterColors.set(key, CHARACTER_COLOR_SEQUENCE[characterColors.size % CHARACTER_COLOR_SEQUENCE.length]);
+
+      case "dialogue":
+      case "action":
+      case "parenthetical":
+      case "transition":
+      case "centered": {
+        for (const lineRuns of block.lines) {
+          const docRuns = inlineRunsToDocRuns(lineRuns, baseStyle);
+          const lineOut = docRuns.length > 0 ? docRuns : [{ text: "" }];
+          out.push({ runs: withContinuityPrefix(lineOut, depth) });
+        }
+        break;
       }
-      const roleColor = key ? characterColors.get(key) : undefined;
-      pushTextLine(blocks, text, mergeStyle({ bold: true }, { ...effectiveStyle, color: roleColor || effectiveStyle.color }), continuityDepth);
-      return;
+
+      case "blank":
+        out.push({ runs: [{ text: "" }] });
+        break;
+
+      case "layer": {
+        const labelDocRuns = inlineRunsToDocRuns((block as LayerBlock).labelRuns, baseStyle);
+        if (labelDocRuns.length > 0) {
+          out.push({ runs: withContinuityPrefix(labelDocRuns, depth) });
+        }
+        if ((block as LayerBlock).children && (block as LayerBlock).children!.length > 0) {
+          out.push(...renderBlocksToDocBlocks((block as LayerBlock).children!, characterColors, depth));
+        }
+        break;
+      }
+
+      case "range": {
+        const rb = block as RangeBlock;
+        const nextDepth = depth + 1;
+        if (rb.startBlock) {
+          out.push(...renderBlocksToDocBlocks([rb.startBlock], characterColors, nextDepth));
+        }
+        out.push(...renderBlocksToDocBlocks(rb.children, characterColors, nextDepth));
+        if (rb.endBlock) {
+          out.push(...renderBlocksToDocBlocks([rb.endBlock], characterColors, nextDepth));
+        }
+        break;
+      }
+
+      case "unknown":
+        if (block.text) out.push({ runs: withContinuityPrefix([{ text: block.text, ...baseStyle }], depth) });
+        break;
     }
-    if (type === "scene_heading") {
-      pushTextLine(blocks, text, mergeStyle({ bold: true }, effectiveStyle), continuityDepth);
-      return;
-    }
-    if (type === "action" || type === "dialogue" || type === "parenthetical" || type === "transition" || type === "centered") {
-      pushInlineLines(blocks, text, inlineConfigs, effectiveStyle, continuityDepth);
-      return;
-    }
-    if (type === "note") return;
-    if (text) pushTextLine(blocks, text, effectiveStyle, continuityDepth);
-  });
+  }
+
+  return out;
 };
 
 export const buildGoogleDocsBlocksFromScript = (content: string, markerConfigs: MarkerConfig[] = []): GoogleDocsBlock[] => {
   const safeMarkerConfigs = Array.isArray(markerConfigs) ? markerConfigs : [];
-  const parsed = parseScreenplay(content || "", safeMarkerConfigs) as { ast?: { children?: Array<Record<string, unknown>> } };
-  const nodes = parsed?.ast?.children || [];
-  const inlineConfigs = safeMarkerConfigs.filter((cfg) => isInlineLike(cfg));
-  const blocks: GoogleDocsBlock[] = [];
+  const { ast } = parseScreenplay(content || "", safeMarkerConfigs);
+  const renderBlocks = toRenderBlocks(ast, safeMarkerConfigs);
   const characterColors = new Map<string, string>();
-  traverseNodes(nodes, safeMarkerConfigs, inlineConfigs, blocks, characterColors);
+  const blocks = renderBlocksToDocBlocks(renderBlocks, characterColors);
   return blocks.length > 0 ? blocks : [{ runs: [{ text: content || "" }] }];
 };
 

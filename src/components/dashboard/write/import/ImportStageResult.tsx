@@ -1,8 +1,9 @@
 import React from "react";
 import { CheckCircle2 } from "lucide-react";
+import { toRenderBlocks } from "@write/script-engine";
 import { Input } from "../../../ui/input";
 import { ScrollArea } from "../../../ui/scroll-area";
-import { ScriptRenderer } from "../../../renderer/ScriptRenderer";
+import { RenderBlockRenderer } from "../../../renderer/RenderBlockRenderer";
 import { useI18n } from "../../../../contexts/I18nContext";
 import type { MarkerConfigLike } from "../../../../types/renderer";
 
@@ -16,6 +17,11 @@ interface Props {
 
 export function ImportStageResult({ title, setTitle, cleanedText, previewAst, previewMarkerConfigs }: Props) {
   const { t } = useI18n();
+  const renderBlocks = React.useMemo(() => {
+    if (!previewAst || typeof previewAst !== "object") return [];
+    return toRenderBlocks(previewAst as Parameters<typeof toRenderBlocks>[0], previewMarkerConfigs as Parameters<typeof toRenderBlocks>[1]);
+  }, [previewAst, previewMarkerConfigs]);
+
   return (
     <div className="flex flex-col gap-4 h-full">
       <div className="text-sm text-green-600 font-medium flex items-center gap-2">
@@ -44,10 +50,9 @@ export function ImportStageResult({ title, setTitle, cleanedText, previewAst, pr
           </div>
           <ScrollArea className="h-[calc(100%-33px)] absolute inset-x-0 bottom-0 top-[33px]">
             <div className="p-4">
-              {previewAst ? (
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                <ScriptRenderer
-                  ast={previewAst as any}
+              {renderBlocks.length > 0 ? (
+                <RenderBlockRenderer
+                  blocks={renderBlocks}
                   markerConfigs={previewMarkerConfigs}
                   colorCache={{ current: new Map() }}
                   fontSize={14}

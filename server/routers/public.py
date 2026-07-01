@@ -10,7 +10,9 @@ import uuid
 import crud_ops as crud
 import schemas
 import models
+from crud_ops.publish_state import is_publicly_visible as _is_publicly_visible_script, has_public_parent_folder as _has_public_parent_folder
 from dependencies import get_db
+from rate_limit import limiter
 from utils import normalize_homepage_banner_value, safe_json_list
 
 router = APIRouter(prefix="/api", tags=["public"])
@@ -84,44 +86,8 @@ def _extract_client_ip(request: Request) -> tuple[str, str]:
     return (request_ip or ""), ""
 
 
-def _has_public_parent_folder(db: Session, script: models.Script) -> bool:
-    if script.folder == "/":
-        return True
-    parts = script.folder.strip("/").split("/")
-    folder_title = parts[-1]
-    folder_parent = "/" + "/".join(parts[:-1])
-    if folder_parent != "/" and not folder_parent.startswith("/"):
-        folder_parent = "/" + folder_parent
-    folder_script = db.query(models.Script).filter(
-        models.Script.ownerId == script.ownerId,
-        models.Script.title == folder_title,
-        models.Script.folder == folder_parent,
-        models.Script.type == "folder",
-        models.Script.isPublic == 1,
-    ).first()
-    return folder_script is not None
-
-
-def _is_publicly_visible_script(db: Session, script: models.Script) -> bool:
-    if not script:
-        return False
-    if bool(getattr(script, "isPublic", 0)):
-        return True
-    if str(getattr(script, "folder", "/") or "/") == "/":
-        return False
-    return _has_public_parent_folder(db, script)
-
-
 def _has_public_script_for_persona(db: Session, persona_id: str) -> bool:
     scripts = db.query(models.Script).filter(models.Script.personaId == persona_id).all()
-    return any(_is_publicly_visible_script(db, script) for script in scripts)
-
-
-def _has_public_script_for_user_fallback(db: Session, user_id: str) -> bool:
-    scripts = db.query(models.Script).filter(
-        models.Script.ownerId == user_id,
-        models.Script.personaId.is_(None),
-    ).all()
     return any(_is_publicly_visible_script(db, script) for script in scripts)
 
 
@@ -161,33 +127,6 @@ def sanitize_public_script(script: models.Script):
     return script
 
 
-# Helper to convert User to PersonaPublic
-def user_to_persona_public(user: models.User, db: Session) -> schemas.PersonaPublic:
-    # Get Organization if any
-    orgs = []
-    org_ids = crud.list_user_org_ids(db, user.id)
-    if org_ids:
-        org_map = _get_public_org_map(db, org_ids)
-        for org_id in org_ids:
-            org = org_map.get(org_id)
-            if org:
-                orgs.append(org)
-    
-    return schemas.PersonaPublic(
-        id=user.id,
-        ownerId=user.id,
-        displayName=user.displayName or user.handle or "Anonymous",
-        bio=user.bio or "",
-        avatar=user.avatar or "",
-        avatarCrop=user.avatarCrop,
-        website=user.website or "",
-        organizationIds=org_ids,
-        tags=[], # Users don't have tags
-        createdAt=user.createdAt,
-        updatedAt=user.lastLogin, # Use lastLogin as proxy for update
-        organizations=orgs
-    )
-
 
 @router.get("/public-terms-config")
 def read_public_terms_config():
@@ -212,9 +151,10 @@ def read_public_homepage_banner(db: Session = Depends(get_db)):
 
 
 @router.post("/public-terms-acceptances", response_model=schemas.PublicTermsAcceptanceResponse)
+@limiter.limit("5/minute")
 def create_public_terms_acceptance(
-    payload: schemas.PublicTermsAcceptanceCreate,
     request: Request,
+    payload: schemas.PublicTermsAcceptanceCreate,
     db: Session = Depends(get_db),
 ):
     config = _load_public_terms_config()
@@ -379,13 +319,6 @@ def get_public_persona(persona_id: str, db: Session = Depends(get_db)):
         result.organizations = orgs
         return result
     
-    # 2. Try User
-    user = db.query(models.User).filter(models.User.id == persona_id).first()
-    if user:
-        if not _has_public_script_for_user_fallback(db, user.id):
-            raise HTTPException(status_code=404, detail="Author not found")
-        return user_to_persona_public(user, db)
-
     raise HTTPException(status_code=404, detail="Author not found")
 
 @router.get("/public-personas", response_model=List[schemas.PersonaPublic])
@@ -496,13 +429,12 @@ class PublicLikePayload(BaseModel):
 
 
 @router.post("/public-scripts/{script_id}/like")
-def public_toggle_like(script_id: str, payload: PublicLikePayload, db: Session = Depends(get_db)):
+@limiter.limit("30/minute")
+def public_toggle_like(request: Request, script_id: str, payload: PublicLikePayload, db: Session = Depends(get_db)):
     if not payload.visitorId or len(payload.visitorId) > 128:
         raise HTTPException(status_code=400, detail="Invalid visitorId")
-    script = db.query(models.Script).filter(
-        models.Script.id == script_id, models.Script.isPublic == 1
-    ).first()
-    if not script:
+    script = db.query(models.Script).filter(models.Script.id == script_id).first()
+    if not _is_publicly_visible_script(db, script):
         raise HTTPException(status_code=404, detail="Script not found")
     result = crud.toggle_script_like(db, script_id, visitor_id=payload.visitorId)
     if result is None:
@@ -513,10 +445,8 @@ def public_toggle_like(script_id: str, payload: PublicLikePayload, db: Session =
 
 @router.get("/public-scripts/{script_id}/like-status")
 def public_like_status(script_id: str, visitorId: str, db: Session = Depends(get_db)):
-    script = db.query(models.Script).filter(
-        models.Script.id == script_id, models.Script.isPublic == 1
-    ).first()
-    if not script:
+    script = db.query(models.Script).filter(models.Script.id == script_id).first()
+    if not _is_publicly_visible_script(db, script):
         raise HTTPException(status_code=404, detail="Script not found")
     liked = crud.get_script_like_status(db, script_id, visitor_id=visitorId)
     return {"liked": liked, "likes": script.likes or 0}
@@ -524,14 +454,8 @@ def public_like_status(script_id: str, visitorId: str, db: Session = Depends(get
 
 @router.get("/public-scripts/{script_id}/stats")
 def public_script_stats(script_id: str, db: Session = Depends(get_db)):
-    script = db.query(models.Script).filter(
-        models.Script.id == script_id, models.Script.isPublic == 1
-    ).with_entities(
-        models.Script.content,
-        models.Script.views,
-        models.Script.likes,
-    ).first()
-    if not script:
+    script = db.query(models.Script).filter(models.Script.id == script_id).first()
+    if not _is_publicly_visible_script(db, script):
         raise HTTPException(status_code=404, detail="Script not found")
     content = script.content or ""
     content_length = len(content)

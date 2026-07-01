@@ -69,7 +69,7 @@ export function useChecklistContext() {
 /** Overlay state: media picker, crop, persona dialog. Nearly static during editing. */
 export type OverlayContextValue = Pick<AllState,
     "isMediaPickerOpen" | "setIsMediaPickerOpen" | "mediaPickerTarget" | "handleMediaPickerSelect" | "handleMediaPickerSelectMedia" |
-    "cropOpen" | "setCropOpen" | "cropSource" | "cropPurpose" | "cropTarget" | "applyCroppedUpload" |
+    "cropOpen" | "setCropOpen" | "cropSource" | "cropPurpose" | "cropTarget" | "applyCroppedUpload" | "openCoverCropFromUrl" | "applyCoverCropRef" |
     "showPersonaSetupDialog" | "handlePersonaSetupDialogOpenChange" | "handleGoToAuthorProfile"
 >;
 const OverlayContext = React.createContext<OverlayContextValue | null>(null);
@@ -194,7 +194,7 @@ export function ScriptMetadataDialogProvider({
         startGuide, handleGuideNext, handleGuidePrev, finishGuide,
         guideIndex, guideSteps, guideSpotlightRect, currentGuide,
         isMediaPickerOpen, setIsMediaPickerOpen, mediaPickerTarget, handleMediaPickerSelect, handleMediaPickerSelectMedia,
-        cropOpen, setCropOpen, cropSource, cropPurpose, cropTarget, applyCroppedUpload,
+        cropOpen, setCropOpen, cropSource, cropPurpose, cropTarget, applyCroppedUpload, openCoverCropFromUrl, applyCoverCropRef,
         showPersonaSetupDialog, handlePersonaSetupDialogOpenChange, handleGoToAuthorProfile,
         requiredErrorMap, recommendedErrorMap, missingRequiredMap,
         renderRowLabel, getRowLabelClass,
@@ -235,7 +235,7 @@ export function ScriptMetadataDialogProvider({
 
     const overlay: OverlayContextValue = useMemo(() => ({
         isMediaPickerOpen, setIsMediaPickerOpen, mediaPickerTarget, handleMediaPickerSelect, handleMediaPickerSelectMedia,
-        cropOpen, setCropOpen, cropSource, cropPurpose, cropTarget, applyCroppedUpload,
+        cropOpen, setCropOpen, cropSource, cropPurpose, cropTarget, applyCroppedUpload, openCoverCropFromUrl, applyCoverCropRef,
         showPersonaSetupDialog, handlePersonaSetupDialogOpenChange, handleGoToAuthorProfile,
     }), [
         isMediaPickerOpen, setIsMediaPickerOpen, mediaPickerTarget, handleMediaPickerSelect, handleMediaPickerSelectMedia,
@@ -259,7 +259,7 @@ export function ScriptMetadataDialogProvider({
         isMediaPickerOpen: _impo, setIsMediaPickerOpen: _simpo,
         mediaPickerTarget: _mpt, handleMediaPickerSelect: _hmps, handleMediaPickerSelectMedia: _hmpm,
         cropOpen: _co, setCropOpen: _sco, cropSource: _cso, cropPurpose: _cpu,
-        cropTarget: _ct, applyCroppedUpload: _acu,
+        cropTarget: _ct, applyCroppedUpload: _acu, openCoverCropFromUrl: _occfu, applyCoverCropRef: _accr,
         showPersonaSetupDialog: _spsd,
         handlePersonaSetupDialogOpenChange: _hpsdoc,
         handleGoToAuthorProfile: _hgtap,
