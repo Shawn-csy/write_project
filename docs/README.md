@@ -40,6 +40,7 @@
 ## 待完成（Backend Blocked）
 - `docs/pending/production-security-hardening-plan.md`：正式環境資安硬化計畫（view 去重、body size 限制、URL 驗證）
 - `docs/pending/public-metadata-contract-migration-plan.md`：公開頁 metadata 欄位正規化遷移計畫
+- `docs/pending/public-agent-discovery-plan.md`：公開頁 agent discovery、Link headers、API catalog 與 well-known soft-404 修正計畫
 
 ## 版本紀錄
 - `docs/release-version-map-after-v0.5.0.md`：v0.5.0 之後各版本 commit 對應表
