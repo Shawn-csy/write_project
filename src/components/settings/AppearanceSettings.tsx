@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Sun, Moon, Palette, Check, AlignJustify, Type, Monitor } from "lucide-react";
+import { Sun, Moon, Check, AlignJustify, Type, Monitor, BookOpen, Columns3 } from "lucide-react";
 import { Separator } from "../ui/separator";
 import { Slider } from "../ui/slider";
 import { Input } from "../ui/input";
@@ -31,6 +31,7 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
     uiFontFamily, setUiFontFamily,
     showMarkers, setShowMarkers,
     showLineUnderline, setShowLineUnderline,
+    usePresentationRenderer, setUsePresentationRenderer,
   } = useSettings();
 
   const [showAdvancedFont, setShowAdvancedFont] = useState(false);
@@ -69,10 +70,11 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
 
   return (
     <div ref={sectionRef} className="space-y-5">
+      {/* ── 1. 閱讀文字 — Typography ──────────────────────────────────────── */}
       <SettingsSectionCard
         icon={<Type className="w-4 h-4" />}
-        title={t("appearance.readingAppearance")}
-        description={t("appearance.readingAppearanceDesc")}
+        title={t("appearance.readingText")}
+        description={t("appearance.readingTextDesc")}
       >
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
             <div className="space-y-5">
@@ -106,6 +108,8 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
                           return (
                             <button
                               key={opt.value}
+                              type="button"
+                              aria-pressed={isActive}
                               onClick={() => setReadingSize(opt.value)}
                               className={cn(
                                 "py-1.5 text-xs font-medium rounded-md transition-all",
@@ -127,6 +131,8 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
                           return (
                             <button
                               key={opt.value}
+                              type="button"
+                              aria-pressed={isActive}
                               onClick={() => setReadingLineHeight(opt.value)}
                               className={cn(
                                 "flex-1 py-1.5 text-xs font-medium rounded-md transition-all",
@@ -142,6 +148,7 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
                   </div>
 
                   <button
+                    type="button"
                     onClick={() => setShowAdvancedFont(!showAdvancedFont)}
                     className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground hover:text-foreground transition-colors"
                   >
@@ -220,39 +227,6 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
                   )}
                 </div>
               </PublisherFormRow>
-
-              <Separator className="bg-border/40" />
-
-              <PublisherFormRow
-                label={t("appearance.display")}
-                className="md:grid-cols-[160px_minmax(0,1fr)]"
-              >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between rounded-lg border border-border/60 bg-background px-3 py-2">
-                    <span className="text-xs font-medium text-foreground">{t("appearance.showMarkers")}</span>
-                    <Switch checked={showMarkers} onCheckedChange={setShowMarkers} />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowLineUnderline(!showLineUnderline)}
-                    aria-pressed={showLineUnderline}
-                    className={cn(
-                      "flex w-full items-center justify-between p-3 rounded-lg border text-xs font-medium transition-all group",
-                      showLineUnderline
-                        ? "bg-primary/5 border-primary/40 text-primary"
-                        : "bg-background border-border/60 text-muted-foreground hover:border-border hover:bg-muted/10"
-                    )}
-                  >
-                    <span className="flex items-center gap-2">
-                      <AlignJustify className="w-4 h-4 opacity-70" />
-                      {t("appearance.lineGuide")}
-                    </span>
-                    <div className={cn("w-8 h-4 rounded-full relative transition-colors", showLineUnderline ? "bg-primary" : "bg-muted-foreground/30")}>
-                      <div className={cn("absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-200", showLineUnderline ? "left-[18px]" : "left-0.5")} />
-                    </div>
-                  </button>
-                </div>
-              </PublisherFormRow>
             </div>
 
             <div className="xl:sticky xl:top-0 h-fit rounded-lg border border-border/60 bg-background/70 p-3">
@@ -269,6 +243,69 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
           </div>
       </SettingsSectionCard>
 
+      {/* ── 2. 閱讀輔助 — Reading Guides ─────────────────────────────────── */}
+      <SettingsSectionCard
+        icon={<BookOpen className="w-4 h-4" />}
+        title={t("appearance.readingGuides")}
+        description={t("appearance.readingGuidesDesc")}
+      >
+        <div className="space-y-2">
+          <div className="flex items-center justify-between rounded-lg border border-border/60 bg-background px-3 py-2">
+            <span className="text-xs font-medium text-foreground">{t("appearance.showMarkers")}</span>
+            <Switch checked={showMarkers} onCheckedChange={setShowMarkers} aria-label={t("appearance.showMarkers")} />
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowLineUnderline(!showLineUnderline)}
+            aria-pressed={showLineUnderline}
+            className={cn(
+              "flex w-full items-center justify-between p-3 rounded-lg border text-xs font-medium transition-all",
+              showLineUnderline
+                ? "bg-primary/5 border-primary/40 text-primary"
+                : "bg-background border-border/60 text-muted-foreground hover:border-border hover:bg-muted/10"
+            )}
+          >
+            <span className="flex items-center gap-2">
+              <AlignJustify className="w-4 h-4 opacity-70" />
+              {t("appearance.lineGuide")}
+            </span>
+            <div className={cn("w-8 h-4 rounded-full relative transition-colors", showLineUnderline ? "bg-primary" : "bg-muted-foreground/30")}>
+              <div className={cn("absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-200", showLineUnderline ? "left-[18px]" : "left-0.5")} />
+            </div>
+          </button>
+        </div>
+      </SettingsSectionCard>
+
+      {/* ── 3. 多欄版面 — Presentation Layout ───────────────────────────── */}
+      <SettingsSectionCard
+        icon={<Columns3 className="w-4 h-4" />}
+        title={t("appearance.presentationLayout")}
+        description={t("appearance.presentationLayoutDesc")}
+      >
+        <button
+          type="button"
+          onClick={() => setUsePresentationRenderer(!usePresentationRenderer)}
+          aria-pressed={usePresentationRenderer}
+          className={cn(
+            "flex w-full items-center justify-between p-3 rounded-lg border text-xs font-medium transition-all",
+            usePresentationRenderer
+              ? "bg-primary/5 border-primary/40 text-primary"
+              : "bg-background border-border/60 text-muted-foreground hover:border-border hover:bg-muted/10"
+          )}
+        >
+          <span className="flex items-center gap-2">
+            <Columns3 className="w-4 h-4 opacity-70" />
+            <span>
+              <span className="block">{t("appearance.presentationLayoutEnabled")}</span>
+              <span className="block font-normal text-[11px] opacity-70 mt-0.5">{t("appearance.presentationLayoutEnabledDesc")}</span>
+            </span>
+          </span>
+          <div className={cn("w-8 h-4 rounded-full relative transition-colors shrink-0 ml-3", usePresentationRenderer ? "bg-primary" : "bg-muted-foreground/30")}>
+            <div className={cn("absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-200", usePresentationRenderer ? "left-[18px]" : "left-0.5")} />
+          </div>
+        </button>
+      </SettingsSectionCard>
+
       <SettingsSectionCard
         icon={<Monitor className="w-4 h-4" />}
         title={t("appearance.interfaceAppearance")}
@@ -283,6 +320,8 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center bg-muted/40 p-1 rounded-lg border border-border/40 shrink-0">
                 <button
+                  type="button"
+                  aria-pressed={!isDark}
                   onClick={() => setTheme("light")}
                   className={cn(
                     "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
@@ -292,6 +331,8 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
                   <Sun className="w-3.5 h-3.5" /> {t("appearance.light")}
                 </button>
                 <button
+                  type="button"
+                  aria-pressed={isDark}
                   onClick={() => setTheme("dark")}
                   className={cn(
                     "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
@@ -311,6 +352,8 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
                   return (
                     <button
                       key={opt.value}
+                      type="button"
+                      aria-pressed={active}
                       onClick={() => setAccent(opt.value as "emerald" | "indigo" | "amber")}
                       className={cn(
                         "w-7 h-7 rounded-full flex items-center justify-center transition-all ring-offset-2 ring-offset-card",
@@ -362,6 +405,7 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
                     <button
                       key={opt.label}
                       type="button"
+                      aria-pressed={active}
                       onClick={() => setDesktopUiScale(opt.value)}
                       className={cn(
                         "rounded-md py-1.5 text-xs font-medium transition-all",
