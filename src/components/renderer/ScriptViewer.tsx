@@ -11,6 +11,7 @@ import { cloneDefaultLayoutConfig, type LayoutConfig } from '../../lib/v2';
 import { getMarkerElement, readMarkerAttrs } from '../../lib/markerDom';
 import { useScriptDocument, type ScriptDocAstNode, type ScriptDocSceneItem, type ScriptDocTitleEntry } from '../../hooks/useScriptDocument';
 import { useRenderedSnapshot } from '../../hooks/useRenderedSnapshot';
+import type { ReaderDisplayPreferences } from '@write/script-reader-renderer';
 
 interface ScriptViewerProps {
   text: string;
@@ -33,21 +34,31 @@ interface ScriptViewerProps {
   onScenes?: (scenes: ScriptDocSceneItem[]) => void;
   scrollToScene?: string | null;
   theme?: string;
-  fontSize?: number;
-  bodyFontSize?: number;
-  dialogueFontSize?: number;
-  readingFontFamily?: string;
-  focusContentMode?: string;
   accentColor?: string;
   type?: string;
   markerConfigs?: Array<{ id?: string; [key: string]: unknown }>;
   hiddenMarkerIds?: string[];
-  showMarkers?: boolean;
-  lineHeight?: number;
-  showLineUnderline?: boolean;
-  useV2Renderer?: boolean;
-  v2LayoutConfig?: LayoutConfig;
+  focusContentMode?: string;
+  usePresentationRenderer?: boolean;
+  presentationLayoutConfig?: LayoutConfig;
   useRenderModelRenderer?: boolean;
+  /**
+   * Structured display preferences (Phase 3 — preferred path).
+   * When provided, typography/guides/markers groups are sourced from here.
+   * Individual flat props (bodyFontSize, showLineUnderline, etc.) override
+   * the corresponding displayPreferences field when explicitly set, allowing
+   * gradual migration and backward compatibility with ScriptSurface spread.
+   */
+  displayPreferences?: ReaderDisplayPreferences;
+  // Flat props — kept for backward compat with ScriptSurface viewerProps spread.
+  // Prefer displayPreferences for new call sites.
+  fontSize?: number;
+  bodyFontSize?: number;
+  dialogueFontSize?: number;
+  readingFontFamily?: string;
+  lineHeight?: number;
+  showMarkers?: boolean;
+  showLineUnderline?: boolean;
 }
 
 const TOOLTIP_OFFSET = 14;
@@ -77,31 +88,42 @@ function ScriptViewer({
   onTitleNote,
   onSummary,
   onHasTitle,
-  onRawHtml, // Add this line
-
+  onRawHtml,
   onProcessedHtml,
   onScenes,
   scrollToScene,
   theme,
-  fontSize = 14,
-  bodyFontSize = 14,
-  dialogueFontSize = 14,
-  readingFontFamily = "serif",
-  focusContentMode = "all",
-
   accentColor,
   type = 'script',
   markerConfigs = [],
   hiddenMarkerIds = [],
-  showMarkers = true,
-  lineHeight = 1.4,
-  showLineUnderline = false,
-  useV2Renderer = false,
-  v2LayoutConfig,
+  focusContentMode = "all",
+  usePresentationRenderer = false,
+  presentationLayoutConfig,
   useRenderModelRenderer = false,
+  displayPreferences,
+  // Flat props — override displayPreferences when explicitly provided.
+  fontSize,
+  bodyFontSize,
+  dialogueFontSize,
+  readingFontFamily,
+  lineHeight,
+  showMarkers,
+  showLineUnderline,
 }: ScriptViewerProps) {
+  // Resolve display values: explicit flat prop wins → displayPreferences group → hardcoded default.
+  // `fontSize` is a legacy scalar kept for backward compat with old call sites; it is NOT
+  // a flat-prop override of displayPreferences. It falls after displayPreferences in the chain
+  // so that passing displayPreferences + fontSize does not let fontSize silently win.
+  // New call sites should use displayPreferences.typography.bodyFontSize or the bodyFontSize flat prop.
+  const _bodyFontSize      = bodyFontSize      ?? displayPreferences?.typography.bodyFontSize      ?? fontSize ?? 14;
+  const _dialogueFontSize  = dialogueFontSize  ?? displayPreferences?.typography.dialogueFontSize  ?? _bodyFontSize;
+  const _readingFontFamily = readingFontFamily ?? displayPreferences?.typography.readingFontFamily ?? "serif";
+  const _lineHeight        = lineHeight        ?? displayPreferences?.typography.lineHeight        ?? 1.4;
+  const _showMarkers       = showMarkers       ?? displayPreferences?.markers.showMarkers          ?? true;
+  const _showLineUnderline = showLineUnderline ?? displayPreferences?.guides.showLineUnderline     ?? false;
   const { t } = useI18n();
-  const readingFontStack = resolveReadingFontStack(readingFontFamily);
+  const readingFontStack = resolveReadingFontStack(_readingFontFamily);
   const colorCache = useRef<Map<string, string>>(new Map());
   const [markerTooltip, setMarkerTooltip] = useState<TooltipState | null>(null);
 
@@ -166,12 +188,8 @@ function ScriptViewer({
     onScenes(sceneList);
   }, [sceneList, onScenes]);
 
-  const effectiveBodyFontSize = Number.isFinite(Number(bodyFontSize))
-    ? Number(bodyFontSize)
-    : Number(fontSize) || 14;
-  const effectiveDialogueFontSize = Number.isFinite(Number(dialogueFontSize))
-    ? Number(dialogueFontSize)
-    : effectiveBodyFontSize;
+  const effectiveBodyFontSize = _bodyFontSize;
+  const effectiveDialogueFontSize = _dialogueFontSize;
 
   const renderScriptNode = (
     currentAst: { children?: ScriptDocAstNode[] } | null,
@@ -190,29 +208,29 @@ function ScriptViewer({
         <RenderBlockRenderer
           blocks={effectiveBlocks}
           fontSize={effectiveBodyFontSize}
-          lineHeight={lineHeight}
+          lineHeight={_lineHeight}
           readingFontFamily={readingFontStack}
           markerConfigs={normalizedMarkerConfigs}
           hiddenMarkerIds={effectiveHiddenMarkerIds}
-          showMarkerTooltip={showMarkers}
+          showMarkerTooltip={_showMarkers}
           markerTooltipPrefix={t("scriptRenderer.markerTooltipPrefix", "標記")}
-          showLineUnderline={showLineUnderline}
+          showLineUnderline={_showLineUnderline}
           colorCache={colorCache}
         />
       );
     }
-    if (useV2Renderer) {
+    if (usePresentationRenderer) {
       return (
         <ScriptRendererV2
           ast={currentAst}
-          layoutConfig={v2LayoutConfig || cloneDefaultLayoutConfig()}
+          layoutConfig={presentationLayoutConfig || cloneDefaultLayoutConfig()}
           markerConfigs={markerConfigs as any}
           fontSize={effectiveBodyFontSize}
-          lineHeight={lineHeight}
-          readingFontFamily={readingFontFamily}
+          lineHeight={_lineHeight}
+          readingFontFamily={_readingFontFamily}
           hiddenMarkerIds={effectiveHiddenMarkerIds}
-          markerTooltipPrefix={showMarkers ? t("scriptRenderer.markerTooltipPrefix", "標記") : null}
-          showLineUnderline={showLineUnderline}
+          markerTooltipPrefix={_showMarkers ? t("scriptRenderer.markerTooltipPrefix", "標記") : null}
+          showLineUnderline={_showLineUnderline}
           mode="auto"
         />
       );
@@ -222,8 +240,8 @@ function ScriptViewer({
         ast={currentAst}
         fontSize={effectiveBodyFontSize}
         dialogueFontSize={effectiveDialogueFontSize}
-        lineHeight={lineHeight}
-        readingFontFamily={readingFontFamily}
+        lineHeight={_lineHeight}
+        readingFontFamily={_readingFontFamily}
         filterCharacter={options?.filterCharacterValue ?? filterCharacter}
         focusMode={options?.focusModeValue ?? focusMode}
         focusEffect={focusEffect}
@@ -232,8 +250,8 @@ function ScriptViewer({
         colorCache={colorCache}
         markerConfigs={markerConfigs}
         hiddenMarkerIds={effectiveHiddenMarkerIds}
-        showMarkerTooltip={showMarkers}
-        showLineUnderline={showLineUnderline}
+        showMarkerTooltip={_showMarkers}
+        showLineUnderline={_showLineUnderline}
       />
     );
   };
@@ -259,7 +277,7 @@ function ScriptViewer({
   };
 
   const handleV2PointerMove = (event: React.PointerEvent<HTMLElement>) => {
-    if (!useV2Renderer || !showMarkers) {
+    if (!usePresentationRenderer || !_showMarkers) {
       if (markerTooltip) setMarkerTooltip(null);
       return;
     }
@@ -270,7 +288,7 @@ function ScriptViewer({
   };
 
   const handleV2PointerLeave = () => {
-    if (!useV2Renderer) return;
+    if (!usePresentationRenderer) return;
     if (markerTooltip) setMarkerTooltip(null);
   };
 
@@ -334,7 +352,7 @@ function ScriptViewer({
       onPointerLeave={handleV2PointerLeave}
     >
       {renderScriptNode(ast)}
-      {useV2Renderer && markerTooltip && typeof document !== "undefined"
+      {usePresentationRenderer && markerTooltip && typeof document !== "undefined"
         ? createPortal(
             <div
               className="fixed z-[80] pointer-events-none rounded-md border border-border/60 bg-popover/95 px-2 py-1 text-xs text-popover-foreground shadow-lg backdrop-blur-sm"

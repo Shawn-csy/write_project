@@ -10,7 +10,7 @@ const mockSettings = {
   lineHeight: 1.4,
   showMarkers: true,
   showLineUnderline: false,
-  useV2Renderer: true,
+  usePresentationRenderer: true,
 };
 
 vi.mock("../contexts/SettingsContext", () => ({
@@ -29,7 +29,7 @@ describe("useReaderPreferences", () => {
       lineHeight: 1.4,
       showMarkers: true,
       showLineUnderline: false,
-      useV2Renderer: true,
+      usePresentationRenderer: true,
     });
   });
 
@@ -37,7 +37,7 @@ describe("useReaderPreferences", () => {
     const { result } = renderHook(() => useReaderPreferences());
     expect(result.current).toEqual({
       ...DEFAULT_READER_DISPLAY_PREFERENCES,
-      presentation: { enabled: true }, // useV2Renderer=true
+      presentation: { enabled: true }, // usePresentationRenderer=true
     });
   });
 

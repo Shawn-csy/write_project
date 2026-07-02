@@ -189,12 +189,12 @@ describe("ScriptViewer useRenderModelRenderer", () => {
     expect(article?.className).toContain("show-line-underline");
   });
 
-  it("passes showLineUnderline to the v2 renderer branch", () => {
+  it("passes showLineUnderline to the presentation renderer branch", () => {
     const { container } = render(
       <ScriptViewer
         text="角色\n台詞第一行。\n\n角色\n台詞第二行。"
         showLineUnderline
-        useV2Renderer
+        usePresentationRenderer
       />
     );
 
@@ -206,7 +206,7 @@ describe("ScriptViewer useRenderModelRenderer", () => {
       <ScriptViewer
         text="角色\n台詞第一行。\n\n角色\n台詞第二行。"
         showLineUnderline={false}
-        useV2Renderer
+        usePresentationRenderer
       />
     );
 
@@ -241,5 +241,89 @@ describe("ScriptViewer useRenderModelRenderer", () => {
     const label = screen.getByText(/夜晚街景/);
     fireEvent.pointerMove(label, { clientX: 100, clientY: 80 });
     expect(screen.queryByText(/背景音開始/)).toBeNull();
+  });
+});
+
+describe("ScriptViewer displayPreferences prop (Phase 3)", () => {
+  const prefs = {
+    typography: { readingFontFamily: "serif", bodyFontSize: 14, dialogueFontSize: 14, lineHeight: 1.4 },
+    guides:     { showLineUnderline: false },
+    markers:    { showMarkers: true },
+    presentation: { enabled: false },
+  };
+
+  it("displayPreferences.guides.showLineUnderline=true reaches render-block-renderer branch", () => {
+    const { container } = render(
+      <ScriptViewer
+        text="plain text"
+        useRenderModelRenderer
+        displayPreferences={{ ...prefs, guides: { showLineUnderline: true } }}
+      />
+    );
+    const article = container.querySelector(".render-block-renderer");
+    expect(article?.className).toContain("show-line-underline");
+  });
+
+  it("displayPreferences.guides.showLineUnderline=false keeps render-block-renderer without guide", () => {
+    const { container } = render(
+      <ScriptViewer
+        text="plain text"
+        useRenderModelRenderer
+        displayPreferences={prefs}
+      />
+    );
+    const article = container.querySelector(".render-block-renderer");
+    expect(article?.className).not.toContain("show-line-underline");
+  });
+
+  it("displayPreferences.guides.showLineUnderline=true reaches presentation renderer (columns mode)", () => {
+    const { container } = render(
+      <ScriptViewer
+        text="角色\n台詞。"
+        usePresentationRenderer
+        displayPreferences={{ ...prefs, guides: { showLineUnderline: true } }}
+      />
+    );
+    expect(container.querySelector('[data-line-underlines="true"]')).not.toBeNull();
+  });
+
+  it("flat showLineUnderline prop overrides displayPreferences", () => {
+    const { container } = render(
+      <ScriptViewer
+        text="plain text"
+        useRenderModelRenderer
+        showLineUnderline={false}
+        displayPreferences={{ ...prefs, guides: { showLineUnderline: true } }}
+      />
+    );
+    const article = container.querySelector(".render-block-renderer");
+    expect(article?.className).not.toContain("show-line-underline");
+  });
+
+  it("displayPreferences.markers.showMarkers=false disables tooltip in legacy branch", () => {
+    scriptRendererSpy.mockClear();
+    render(
+      <ScriptViewer
+        text={sample}
+        displayPreferences={{ ...prefs, markers: { showMarkers: false } }}
+      />
+    );
+    const props = scriptRendererSpy.mock.calls.at(-1)?.[0] as { showMarkerTooltip?: boolean } | undefined;
+    expect(props?.showMarkerTooltip).toBe(false);
+  });
+
+  it("legacy fontSize does NOT override displayPreferences.typography.bodyFontSize", () => {
+    // fontSize is a backward-compat fallback, not a flat-prop override of displayPreferences.
+    // When both are present, displayPreferences wins over fontSize.
+    scriptRendererSpy.mockClear();
+    render(
+      <ScriptViewer
+        text={sample}
+        fontSize={99}
+        displayPreferences={{ ...prefs, typography: { ...prefs.typography, bodyFontSize: 18 } }}
+      />
+    );
+    const props = scriptRendererSpy.mock.calls.at(-1)?.[0] as { fontSize?: number } | undefined;
+    expect(props?.fontSize).toBe(18); // displayPreferences wins; fontSize=99 is ignored
   });
 });

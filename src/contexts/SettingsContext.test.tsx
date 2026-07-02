@@ -47,26 +47,26 @@ vi.mock("../hooks/useMarkerThemes", () => ({
 }));
 
 function Probe() {
-  const { useV2Renderer, setUseV2Renderer, currentThemeId, switchTheme } = useSettings();
+  const { usePresentationRenderer, setUsePresentationRenderer, currentThemeId, switchTheme } = useSettings();
   return (
     <div>
       <div data-testid="theme">{currentThemeId}</div>
-      <div data-testid="v2">{String(useV2Renderer)}</div>
-      <button onClick={() => setUseV2Renderer(true)}>on</button>
-      <button onClick={() => setUseV2Renderer(false)}>off</button>
+      <div data-testid="v2">{String(usePresentationRenderer)}</div>
+      <button onClick={() => setUsePresentationRenderer(true)}>on</button>
+      <button onClick={() => setUsePresentationRenderer(false)}>off</button>
       <button onClick={() => switchTheme("theme-a")}>theme-a</button>
       <button onClick={() => switchTheme("theme-b")}>theme-b</button>
     </div>
   );
 }
 
-describe("SettingsProvider useV2Renderer", () => {
+describe("SettingsProvider usePresentationRenderer", () => {
   beforeEach(() => {
     localStorage.clear();
   });
 
   it("stores multi-column enabled state per theme", () => {
-    localStorage.setItem(STORAGE_KEYS.USE_V2_RENDERER, "off");
+    localStorage.setItem(STORAGE_KEYS.USE_PRESENTATION_RENDERER, "off");
 
     render(
       <SettingsProvider>

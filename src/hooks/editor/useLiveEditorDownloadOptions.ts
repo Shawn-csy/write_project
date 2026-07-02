@@ -20,7 +20,7 @@ interface UseLiveEditorDownloadOptionsParams {
   ensureRenderedHtml?: () => Promise<string>;
   markerConfigs?: MarkerConfig[];
   orchestratedDoc?: OrchestratedDocument | null;
-  isV2RendererEnabled?: boolean;
+  isPresentationRendererEnabled?: boolean;
   metadataSource?: ExportMetadataSource | null;
 }
 
@@ -32,7 +32,7 @@ export function useLiveEditorDownloadOptions({
   ensureRenderedHtml,
   markerConfigs = [],
   orchestratedDoc,
-  isV2RendererEnabled = false,
+  isPresentationRendererEnabled = false,
   metadataSource,
 }: UseLiveEditorDownloadOptionsParams) {
   const getRenderedHtml = useCallback(async () => {
@@ -63,7 +63,7 @@ export function useLiveEditorDownloadOptions({
     markerConfigs,
     getRenderedHtml,
     preferTableForGoogleDocs: !!orchestratedDoc,
-    enableGoogleDocsTable: isV2RendererEnabled && !!orchestratedDoc,
+    enableGoogleDocsTable: isPresentationRendererEnabled && !!orchestratedDoc,
     fallbackToClassicWhenTableMissing: true,
     showGoogleDocsTableOption: true,
     exportMetadata,

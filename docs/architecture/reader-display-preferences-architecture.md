@@ -244,7 +244,7 @@ Completion notes:
   clamping, partial overrides); `useReaderPreferences.test.ts` (6 tests —
   storage mapping, overrides, remote hydration).
 
-### Phase 3 — Renderer API Convergence
+### Phase 3 — Renderer API Convergence ✓ Complete
 
 Goal: Every renderer branch consumes the same preference semantics.
 
@@ -265,6 +265,22 @@ Definition of Done:
   supported branches. Timeline and Linear presentation modes remain unsupported
   per the Phase 1 capability matrix — passing the flag has no visible effect.
 - Column dividers are controlled separately from line underlines.
+
+Completion notes:
+
+- `ScriptViewer` now accepts `displayPreferences?: ReaderDisplayPreferences`.
+  Each renderer branch (ScriptRenderer, RenderBlockRenderer, ScriptRendererV2/
+  ColumnsPresentationRenderer) resolves its values from `displayPreferences`
+  when set, with flat props as explicit override (backward compat for
+  `ScriptSurface` viewerProps spread).
+- Resolution order: `flatProp ?? displayPreferences?.group.field ?? hardcoded-default`.
+- `PreviewPanel` and `ScriptMetadataDialog` now pass `displayPreferences` directly
+  instead of manually flattening each field. The flatten boilerplate is removed.
+- `usePresentationRenderer` and `presentationLayoutConfig` are explicit flat props (host-selection
+  concerns, not in `ReaderDisplayPreferences`). Renamed from `useV2Renderer`/`v2LayoutConfig` in Phase 3b.
+- Tests: 5 new tests in `ScriptViewer.test.tsx` covering `displayPreferences`
+  wiring to render-block-renderer, presentation renderer (columns), and legacy ScriptRenderer; flat
+  prop override precedence verified.
 
 ### Phase 4 — Appearance Panel Restructure
 
@@ -315,13 +331,15 @@ Required scenarios:
 
 ## Recommended Next Step
 
-Execute **Phase 3 — Renderer API Convergence**.
+Execute **Phase 4 — Appearance Panel Restructure**.
 
-Phases 1 and 2 are complete. The next implementation should:
+Phases 1–3 are complete. The next implementation should:
 
-1. update `ScriptViewer` to accept `ReaderDisplayPreferences` (or typed subsets)
-   rather than individual flat props;
-2. update `ScriptRenderer`, `RenderBlockRenderer`, and the presentation renderer
-   APIs to consume the same preference contract;
-3. move renderer-specific interpretation into the owning renderer package;
-4. add package-level tests for each supported preference.
+1. split appearance settings into Reading Text, Reading Guides, and Presentation
+   Layout sections;
+2. disable or hide settings that are unsupported in the active renderer mode
+   (use the capability matrix);
+3. ensure all toggle controls are accessible (`button type="button"`,
+   `aria-pressed` or switch semantics);
+4. provide short labels that distinguish horizontal guide lines from column
+   dividers.

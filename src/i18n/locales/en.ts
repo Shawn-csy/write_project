@@ -808,8 +808,8 @@ const messages = {
     "unsaved": "Unsaved",
     "savedAt": "Saved {time}",
     "synced": "Synced",
-    "v2RendererOffWarning": "Multi-column marker settings were detected, but Column Display is currently off. Column routing and same-row synchronization may not preview correctly.",
-    "enableV2RendererNow": "Enable Column Display Now"
+    "presentationRendererOffWarning": "Multi-column marker settings were detected, but Column Display is currently off. Column routing and same-row synchronization may not preview correctly.",
+    "enablePresentationRendererNow": "Enable Column Display Now"
   },
   "markerSettingsHeader": {
     "title": "Custom Marker Rules",
@@ -1845,7 +1845,7 @@ const messages = {
   "markerLogic": {
     "title": "Matching Rules",
     "matchMode": "Match mode",
-    "semanticTitle": "V2 Semantic Rules",
+    "semanticTitle": "Column Semantic Rules",
     "eventKind": "Event kind",
     "eventKindAuto": "Auto detect",
     "defaultTrack": "Output column",

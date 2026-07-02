@@ -808,8 +808,8 @@ const messages = {
     "unsaved": "未保存",
     "savedAt": "{time} に保存",
     "synced": "同期済み",
-    "v2RendererOffWarning": "複数欄マーカー設定が検出されましたが、現在は分欄表示がオフです。欄位ルーティングや同行同期のプレビューが正しく表示されない可能性があります。",
-    "enableV2RendererNow": "今すぐ分欄表示を有効化"
+    "presentationRendererOffWarning": "複数欄マーカー設定が検出されましたが、現在は分欄表示がオフです。欄位ルーティングや同行同期のプレビューが正しく表示されない可能性があります。",
+    "enablePresentationRendererNow": "今すぐ分欄表示を有効化"
   },
   "markerSettingsHeader": {
     "title": "カスタムマーカールール",
@@ -1848,7 +1848,7 @@ const messages = {
   "markerLogic": {
     "title": "一致ルール",
     "matchMode": "マッチモード",
-    "semanticTitle": "V2 セマンティックルール",
+    "semanticTitle": "欄位セマンティックルール",
     "eventKind": "イベント種別",
     "eventKindAuto": "自動判定",
     "defaultTrack": "既定トラックID",

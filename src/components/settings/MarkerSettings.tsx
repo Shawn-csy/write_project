@@ -60,10 +60,10 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
     renameTheme,
     updateThemeDescription,
     updateThemePublicity,
-    useV2Renderer,
-    setUseV2Renderer,
-    v2LayoutConfig,
-    setV2LayoutConfig,
+    usePresentationRenderer,
+    setUsePresentationRenderer,
+    presentationLayoutConfig,
+    setPresentationLayoutConfig,
   } = useSettings();
   const readOnly = !isAdmin && currentThemeId === "default";
 
@@ -96,23 +96,23 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
 
   // Layout config draft — mirrors marker configs' draft pattern.
   // Changes are local until the shared Save button is pressed.
-  const [localLayoutConfig, setLocalLayoutConfig] = useState<LayoutConfig>(v2LayoutConfig);
+  const [localLayoutConfig, setLocalLayoutConfig] = useState<LayoutConfig>(presentationLayoutConfig);
   const committedThemeIdRef = useRef(currentThemeId);
   useEffect(() => {
     // Reset draft whenever the active theme changes (switchTheme / initial load)
     if (committedThemeIdRef.current !== currentThemeId) {
       committedThemeIdRef.current = currentThemeId;
-      setLocalLayoutConfig(v2LayoutConfig);
+      setLocalLayoutConfig(presentationLayoutConfig);
     }
-  }, [currentThemeId, v2LayoutConfig]);
+  }, [currentThemeId, presentationLayoutConfig]);
 
   const handleLayoutChange = useCallback((config: LayoutConfig) => {
     setLocalLayoutConfig(config);
   }, []);
 
   const layoutDirty = useMemo(
-    () => JSON.stringify(localLayoutConfig) !== JSON.stringify(v2LayoutConfig),
-    [localLayoutConfig, v2LayoutConfig]
+    () => JSON.stringify(localLayoutConfig) !== JSON.stringify(presentationLayoutConfig),
+    [localLayoutConfig, presentationLayoutConfig]
   );
 
   const anyDirty = isDirty || layoutDirty;
@@ -121,12 +121,12 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
   const handleSave = useCallback(async () => {
     if (!canSave) return;
     if (layoutDirty) {
-      setV2LayoutConfig(localLayoutConfig);
+      setPresentationLayoutConfig(localLayoutConfig);
     }
     if (isDirty) {
       await saveMarkerConfigs();
     }
-  }, [canSave, layoutDirty, isDirty, localLayoutConfig, setV2LayoutConfig, saveMarkerConfigs]);
+  }, [canSave, layoutDirty, isDirty, localLayoutConfig, setPresentationLayoutConfig, saveMarkerConfigs]);
 
   const selectedConfig = useMemo<MarkerConfig | null>(
     () => localConfigs.find((c) => (c.id || c._tempId) === expandedId) || null,
@@ -224,10 +224,10 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
               )}
               <button
                 type="button"
-                onClick={() => setUseV2Renderer(!useV2Renderer)}
+                onClick={() => setUsePresentationRenderer(!usePresentationRenderer)}
                 className={cn(
                   "ml-1 flex h-7 items-center gap-1.5 rounded-md border px-2 text-xs transition-colors",
-                  useV2Renderer
+                  usePresentationRenderer
                     ? "border-primary/40 bg-primary/5 text-primary"
                     : "border-border/60 bg-background text-muted-foreground hover:bg-muted/40 hover:text-foreground"
                 )}
@@ -263,15 +263,15 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
           setMoreOpen={setThemeMoreOpen}
         />
 
-        {hasMultiTrackMarkers && !useV2Renderer && (
+        {hasMultiTrackMarkers && !usePresentationRenderer && (
           <div className="mx-3 mb-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-            <div>{t("markerSettings.v2RendererOffWarning")}</div>
+            <div>{t("markerSettings.presentationRendererOffWarning")}</div>
             <button
               type="button"
-              onClick={() => setUseV2Renderer(true)}
+              onClick={() => setUsePresentationRenderer(true)}
               className="mt-1 font-medium underline decoration-destructive/70 underline-offset-2 hover:decoration-destructive"
             >
-              {t("markerSettings.enableV2RendererNow")}
+              {t("markerSettings.enablePresentationRendererNow")}
             </button>
           </div>
         )}
