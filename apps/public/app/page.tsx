@@ -6,7 +6,7 @@ import { GalleryClient } from "./GalleryClient";
 import Loading from "./loading";
 import type { HeroSlide } from "@write/public-ui/server";
 import { parseBannerSlides } from "@write/public-ui/server";
-import { BASE_URL, PRODUCT_NAME, SITE_BRAND_NAME, SITE_NAME, SITE_TITLE, SITE_DESCRIPTION, DEFAULT_OG_IMAGE_URL, pickPreviewImage } from "@/lib/seo";
+import { BASE_URL, PRODUCT_NAME, SITE_NAME, SITE_TITLE, SITE_DESCRIPTION, DEFAULT_OG_IMAGE_URL, pickPreviewImage } from "@/lib/seo";
 import { JsonLdScript } from "@/lib/jsonLd";
 
 export const revalidate = 300; // 5-min ISR; on-demand revalidation handles real-time updates
@@ -86,24 +86,39 @@ export default async function HomePage() {
   return (
     <>
       <JsonLdScript data={structuredData} />
-      {/* Static script list for crawlers (hidden visually; GalleryClient renders the real UI) */}
-      <noscript>
-        <main style={{ maxWidth: 900, margin: "0 auto", padding: "2rem", fontFamily: "serif" }}>
-          <h1>公開台本列表｜{SITE_BRAND_NAME}</h1>
-          <p>{SITE_DESCRIPTION}</p>
-          <ul>
-            {initialScripts.slice(0, 100).map((s) => (
-              <li key={s.id}>
-                <a href={`/read/${s.id}`}>{s.title}</a>
-                {s.synopsis && <span> — {s.synopsis.slice(0, 80)}</span>}
-              </li>
-            ))}
-          </ul>
-        </main>
-      </noscript>
       <Suspense fallback={<Loading />}>
         <GalleryClient initialScripts={initialScripts} initialBannerSlides={bannerSlides} showBrandHero={showBrandHero} />
       </Suspense>
+      {/*
+        SSR script list — server-rendered below the client gallery.
+        GalleryClient bails out of SSR when useSearchParams triggers
+        BAILOUT_TO_CLIENT_SIDE_RENDERING, so without this section the initial HTML
+        has no /read/ links for Googlebot. This section is real visible content:
+        users who scroll past the gallery find it; Googlebot indexes it naturally.
+        No hiding tricks — the section is just further down the page.
+      */}
+      {initialScripts.length > 0 && (
+        <section aria-label="最新公開台本" className="px-4 sm:px-8 py-10 border-t border-border/30">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-4">
+            最新公開台本
+          </h2>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2">
+            {initialScripts.slice(0, 12).map((s) => (
+              <li key={s.id}>
+                <a
+                  href={`/read/${s.id}`}
+                  className="text-sm text-foreground hover:text-primary hover:underline transition-colors"
+                >
+                  {s.title}
+                </a>
+                {s.persona?.displayName && (
+                  <span className="text-xs text-muted-foreground ml-1.5">— {s.persona.displayName}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </>
   );
 }
