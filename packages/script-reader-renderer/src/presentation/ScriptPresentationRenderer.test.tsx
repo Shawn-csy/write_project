@@ -124,6 +124,36 @@ describe('ScriptPresentationRenderer', () => {
     }
   });
 
+  // Phase 6 QA: column dividers are fixed-on structure; showLineUnderline is a separate preference.
+  // Both can be active simultaneously and must not interfere with each other.
+  it('columns mode: track header cells present regardless of showLineUnderline state', () => {
+    const ast = {
+      children: [
+        { type: 'character', text: '阿哲', lineStart: 1, lineEnd: 1 },
+        { type: 'dialogue', text: '收到。', lineStart: 2, lineEnd: 2 },
+      ],
+    };
+
+    const { container: withUnderline } = render(
+      <ScriptPresentationRenderer ast={ast} mode="columns" showLineUnderline />,
+    );
+    const { container: withoutUnderline } = render(
+      <ScriptPresentationRenderer ast={ast} mode="columns" showLineUnderline={false} />,
+    );
+
+    // Line underline attribute reflects the prop in both cases
+    expect(withUnderline.querySelector('[data-line-underlines="true"]')).not.toBeNull();
+    expect(withoutUnderline.querySelector('[data-line-underlines="false"]')).not.toBeNull();
+
+    // Track header cells ([data-track-id] in the sticky header row) are fixed-on structure.
+    // They are present in both underline states, proving showLineUnderline does not remove
+    // the column structure. Count must match between both renders.
+    const headersWithUnderline = withUnderline.querySelectorAll('[data-presentation-mode="columns"] [data-track-id]');
+    const headersWithoutUnderline = withoutUnderline.querySelectorAll('[data-presentation-mode="columns"] [data-track-id]');
+    expect(headersWithUnderline.length).toBeGreaterThan(0);
+    expect(headersWithoutUnderline.length).toBe(headersWithUnderline.length);
+  });
+
   it('renders inline marker styling inside v2 event text', () => {
     const ast = {
       children: [

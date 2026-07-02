@@ -32,7 +32,19 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
     showMarkers, setShowMarkers,
     showLineUnderline, setShowLineUnderline,
     usePresentationRenderer, setUsePresentationRenderer,
+    presentationLayoutConfig,
   } = useSettings();
+
+  // showLineUnderline is supported in the columns presentation mode and in
+  // the legacy/render-block renderer branches.
+  // Config-level gating: when the presentation renderer is configured to timeline
+  // mode, the setting has no effect and is disabled here.
+  // Note: mobile viewports auto-switch to linear mode at runtime regardless of
+  // this config (ScriptPresentationRenderer mode="auto"). That runtime switch is
+  // not reflected here — gating is config-level only. Linear is not a user-selectable
+  // config value (LayoutRenderMode = "columns" | "timeline"), so no gating is possible
+  // for the auto-linear case without a runtime mode signal.
+  const lineGuideSupported = !usePresentationRenderer || presentationLayoutConfig.renderMode === "columns";
 
   const [showAdvancedFont, setShowAdvancedFont] = useState(false);
 
@@ -256,21 +268,25 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
           </div>
           <button
             type="button"
-            onClick={() => setShowLineUnderline(!showLineUnderline)}
-            aria-pressed={showLineUnderline}
+            onClick={() => lineGuideSupported && setShowLineUnderline(!showLineUnderline)}
+            aria-pressed={lineGuideSupported ? showLineUnderline : false}
+            aria-disabled={!lineGuideSupported}
+            title={lineGuideSupported ? undefined : t("appearance.lineGuideUnsupported")}
             className={cn(
               "flex w-full items-center justify-between p-3 rounded-lg border text-xs font-medium transition-all",
-              showLineUnderline
-                ? "bg-primary/5 border-primary/40 text-primary"
-                : "bg-background border-border/60 text-muted-foreground hover:border-border hover:bg-muted/10"
+              !lineGuideSupported
+                ? "opacity-40 cursor-not-allowed bg-background border-border/60 text-muted-foreground"
+                : showLineUnderline
+                  ? "bg-primary/5 border-primary/40 text-primary"
+                  : "bg-background border-border/60 text-muted-foreground hover:border-border hover:bg-muted/10"
             )}
           >
             <span className="flex items-center gap-2">
               <AlignJustify className="w-4 h-4 opacity-70" />
               {t("appearance.lineGuide")}
             </span>
-            <div className={cn("w-8 h-4 rounded-full relative transition-colors", showLineUnderline ? "bg-primary" : "bg-muted-foreground/30")}>
-              <div className={cn("absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-200", showLineUnderline ? "left-[18px]" : "left-0.5")} />
+            <div className={cn("w-8 h-4 rounded-full relative transition-colors", lineGuideSupported && showLineUnderline ? "bg-primary" : "bg-muted-foreground/30")}>
+              <div className={cn("absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-200", lineGuideSupported && showLineUnderline ? "left-[18px]" : "left-0.5")} />
             </div>
           </button>
         </div>
