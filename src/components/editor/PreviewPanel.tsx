@@ -1,6 +1,7 @@
 import React, { forwardRef } from "react";
 import ScriptSurface from "./ScriptSurface";
 import { useReaderPreferences } from "../../hooks/useReaderPreferences";
+import { useSettings } from "../../contexts/SettingsContext";
 import { useI18n } from "../../contexts/I18nContext";
 import type { MarkerConfig } from "../../types/script";
 
@@ -60,13 +61,13 @@ export const PreviewPanel = forwardRef(function PreviewPanel({
   scrollClassName
 }: PreviewPanelProps, ref: React.ForwardedRef<HTMLDivElement>) {
   const { t } = useI18n();
+  const { v2LayoutConfig } = useSettings();
   const readerPreferences = useReaderPreferences({
-    theme,
-    fontSize,
-    bodyFontSize,
-    dialogueFontSize,
-    lineHeight,
-    accentColor,
+    typography: {
+      bodyFontSize: bodyFontSize ?? fontSize,
+      dialogueFontSize,
+      lineHeight,
+    },
   });
 
   return (
@@ -98,7 +99,17 @@ export const PreviewPanel = forwardRef(function PreviewPanel({
         onProcessedHtml,
         scrollToScene: initialSceneId,
         onScenes,
-        ...readerPreferences,
+        // flatten ReaderDisplayPreferences → ScriptViewer flat props
+        readingFontFamily: readerPreferences.typography.readingFontFamily,
+        bodyFontSize:      readerPreferences.typography.bodyFontSize,
+        dialogueFontSize:  readerPreferences.typography.dialogueFontSize,
+        lineHeight:        readerPreferences.typography.lineHeight,
+        showLineUnderline: readerPreferences.guides.showLineUnderline,
+        showMarkers:       readerPreferences.markers.showMarkers,
+        useV2Renderer:     readerPreferences.presentation.enabled,
+        v2LayoutConfig,
+        theme,
+        accentColor,
         markerConfigs,
         hiddenMarkerIds: hiddenMarkerIds || [],
       }}
