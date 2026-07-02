@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { apiFetch } from "@/lib/api";
 import type { PublicScript } from "@/lib/types";
 import { ScriptReaderClient } from "./ScriptReaderClient";
@@ -22,16 +23,22 @@ import { JsonLdScript } from "@/lib/jsonLd";
 // ISR: revalidate daily as fallback; on-demand revalidation handles real-time updates
 export const revalidate = 86400;
 
+// Keep unknown script IDs generated on first request, but make the generated
+// reader page cacheable by Next.js instead of treating every request as SSR.
+export const dynamic = "force-static";
+
 // Unknown script IDs are generated on first request, not blocked
 export const dynamicParams = true;
 
-async function fetchScript(id: string): Promise<PublicScript | null> {
+const fetchScript = cache(async (id: string): Promise<PublicScript | null> => {
   try {
-    return await apiFetch<PublicScript>(`/public-scripts/${id}`);
+    return await apiFetch<PublicScript>(`/public-scripts/${id}`, {
+      next: { revalidate },
+    });
   } catch {
     return null;
   }
-}
+});
 
 
 export async function generateMetadata({
