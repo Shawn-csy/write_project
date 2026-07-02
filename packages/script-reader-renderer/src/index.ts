@@ -11,6 +11,20 @@ export { LinearPresentationRenderer } from "./presentation/LinearPresentationRen
 export { TimelinePresentationRenderer } from "./presentation/TimelinePresentationRenderer";
 export { PresentationEventText, applyDisplayTemplate } from "./presentation/PresentationEventText";
 export {
+  PRESENTATION_MODE_CAPABILITY_MATRIX,
+  COLUMNS_RENDERER_CAPABILITY,
+  TIMELINE_RENDERER_CAPABILITY,
+  LINEAR_RENDERER_CAPABILITY,
+  SCRIPT_PRESENTATION_RENDERER_CAPABILITY,
+} from "./presentation/rendererCapabilityMatrix";
+export type {
+  CapabilityState,
+  RendererCapability,
+  AggregateCapability,
+  PresentationRendererMode,
+  RendererName,
+} from "./presentation/rendererCapabilityMatrix";
+export {
   applyMarkerSemanticRoutes,
   buildPresentationTableExport,
   buildPresentationTableExportFromRenderedHtml,

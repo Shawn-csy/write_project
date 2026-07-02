@@ -212,6 +212,7 @@ function ScriptViewer({
           readingFontFamily={readingFontFamily}
           hiddenMarkerIds={effectiveHiddenMarkerIds}
           markerTooltipPrefix={showMarkers ? t("scriptRenderer.markerTooltipPrefix", "標記") : null}
+          showLineUnderline={showLineUnderline}
           mode="auto"
         />
       );

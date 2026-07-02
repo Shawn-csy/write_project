@@ -1,0 +1,299 @@
+# Reader Display Preferences Architecture
+
+Status: Planned  
+Scope: Vite workspace editor preview, shared script reader renderer, and future public reader preference parity.
+
+## Problem
+
+Reader display preferences currently cross several boundaries:
+
+- Vite workspace settings live in `src/contexts/SettingsContext.tsx`.
+- Editor preview reads those settings through `src/hooks/useReaderPreferences.ts`.
+- Vite renderer entry is `src/components/renderer/ScriptViewer.tsx`.
+- Legacy/render-model output lives in `ScriptRenderer` and `RenderBlockRenderer`.
+- Presentation output lives in `@write/script-reader-renderer`.
+- Public reader preferences live in `@write/script-reader-ui` and the Next public app.
+
+This makes settings like line underline, marker display, typography, line height,
+and presentation layout easy to drift. A setting may look available in the UI but
+only affect one renderer branch. The long-term goal is not to patch each symptom,
+but to define one display-preference contract that every renderer branch either
+supports explicitly or declares unsupported.
+
+## Non-Goals
+
+- Do not add renderer-specific CSS overrides from app code.
+- Do not store display preferences separately per renderer branch.
+- Do not add new one-off toggles inside `ScriptViewer` or presentation renderers.
+- Do not make Vite public pages canonical again; Vite remains the workspace/editor host.
+- Do not treat column structure lines as the same feature as reader line underlines.
+
+## Definitions
+
+| Term | Meaning | Owner |
+|---|---|---|
+| Reader display preferences | User-facing visual preferences for reading/editing preview | Shared model, consumed by Vite and public reader |
+| Typography preferences | Font family, body/dialogue size, line height | Shared preference model |
+| Reading guides | Optional visual aids such as horizontal line underline | Shared preference model + renderer support |
+| Presentation structure | Multi-column layout, column dividers, track headers, line numbers | Presentation renderer/layout config |
+| Marker visibility | Whether marker content/tooltips are visible | Reader state / renderer input |
+| Renderer capability | What a renderer branch can render from the preference model | Renderer package |
+
+## Target Architecture
+
+```mermaid
+flowchart TD
+  A["Settings storage / remote user settings"] --> B["ReaderDisplayPreferences model"]
+  B --> C["Vite useReaderPreferences adapter"]
+  B --> D["Public reader preferences adapter"]
+  C --> E["ScriptViewer assembly"]
+  E --> F["Legacy ScriptRenderer"]
+  E --> G["RenderBlockRenderer"]
+  E --> H["@write/script-reader-renderer presentation renderer"]
+  H --> I["Columns / Timeline / Linear renderers"]
+```
+
+The key rule: `ScriptViewer` is an assembly layer. It may select the renderer
+branch, but it should not reinterpret individual display settings. Renderer
+branches must receive the same typed display contract and decide only how to
+render supported features.
+
+## Preference Model
+
+Create a shared, pure model before adding more UI:
+
+```ts
+export interface ReaderDisplayPreferences {
+  typography: {
+    readingFontFamily: string;
+    bodyFontSize: number;
+    dialogueFontSize: number;
+    lineHeight: number;
+  };
+  guides: {
+    showLineUnderline: boolean;
+  };
+  markers: {
+    showMarkers: boolean;
+    hiddenMarkerIds: string[];
+  };
+  presentation: {
+    enabled: boolean;
+    showColumnDividers: boolean;
+    showLineNumbers: boolean;
+    showTrackHeaders: boolean;
+  };
+}
+```
+
+The exact type can be smaller at first, but it must be explicit about feature
+ownership:
+
+- `guides.showLineUnderline` controls horizontal reading aid lines.
+- `presentation.showColumnDividers` controls column structure dividers.
+- `presentation.showLineNumbers` controls source-line gutters.
+- `markers.showMarkers` controls marker display/tooltips, not layout structure.
+
+## Renderer Contract
+
+Each renderer must accept a common display-preference input or a clearly named
+subset:
+
+| Renderer | Required support |
+|---|---|
+| `ScriptRenderer` | typography, marker tooltip visibility, horizontal line underline |
+| `RenderBlockRenderer` | typography, marker hidden ids, marker tooltip visibility, horizontal line underline |
+| `ScriptPresentationRenderer` | typography, marker hidden ids, marker tooltip visibility, guide preferences, presentation structure preferences |
+| `ColumnsPresentationRenderer` | horizontal row underline, column dividers, track headers, line numbers |
+| `TimelinePresentationRenderer` | typography, marker visibility; structural card borders remain layout unless modeled |
+| `LinearPresentationRenderer` | typography, marker visibility; optional guide support if UX requires it |
+
+Unsupported features must be intentional and tested. A renderer must not silently
+ignore a user-visible setting unless the capability table marks it unsupported.
+
+## Storage Contract
+
+Long-term storage rules:
+
+- One canonical default object owns every default.
+- Vite local storage and remote user settings serialize that object or a stable
+  projection of it.
+- Public reader storage maps to the same semantic fields.
+- Migration, if needed later, belongs at storage boundaries, not inside renderer
+  components.
+
+Recommended model:
+
+```ts
+export const DEFAULT_READER_DISPLAY_PREFERENCES = {
+  typography: {
+    readingFontFamily: "serif",
+    bodyFontSize: 14,
+    dialogueFontSize: 14,
+    lineHeight: 1.4,
+  },
+  guides: {
+    showLineUnderline: false,
+  },
+  markers: {
+    showMarkers: true,
+    hiddenMarkerIds: [],
+  },
+  presentation: {
+    enabled: true,
+    showColumnDividers: true,
+    showLineNumbers: true,
+    showTrackHeaders: true,
+  },
+} as const;
+```
+
+## UI Contract
+
+The appearance panel should expose settings by semantic group:
+
+1. **閱讀文字**
+   - reading font
+   - body/dialogue size
+   - line height
+2. **閱讀輔助**
+   - horizontal line underline
+   - marker tooltip/display behavior
+   - blank-line visibility if retained
+3. **多欄版面**
+   - enable presentation renderer
+   - column dividers
+   - line numbers
+   - track headers
+
+The UI must not present a setting unless it is wired to every renderer branch
+declared as supported by the capability table.
+
+## Execution Plan
+
+### Phase 1 — Contract Matrix ✓ Complete
+
+Goal: Define the full display-preference capability matrix before more UI work.
+
+Tasks:
+
+- Audit current renderer branches and list supported/unsupported preference fields.
+- Add a source-level matrix near the shared preference type or in renderer tests.
+- Decide whether `TimelinePresentationRenderer` and `LinearPresentationRenderer`
+  should support horizontal guide lines or explicitly not support them.
+- Decide whether column dividers, line numbers, and track headers become user
+  preferences or remain fixed presentation structure.
+
+Definition of Done:
+
+- There is one documented capability table.
+- Every existing display preference maps to a renderer contract.
+- No UI setting is listed without an owner and supported renderer branches.
+
+Completion notes:
+
+- `packages/script-reader-renderer/src/presentation/rendererCapabilityMatrix.ts`
+  is the authoritative source. Uses `CapabilityState = "supported" | "unsupported" |
+  "fixed-on" | "n/a"` (not boolean) to distinguish fixed structure from unsupported.
+- `ScriptPresentationRenderer` capability is expressed as a per-mode map
+  (`AggregateCapability`) rather than a flat union, to preserve conditional
+  `showLineUnderline` semantics across columns / timeline / linear paths.
+- Host-owned renderer branches (ScriptRenderer, RenderBlockRenderer) are described
+  in `src/types/rendererCapabilityMatrix.ts` (Vite app), not in the shared package.
+- Decisions: Timeline and Linear do not support `showLineUnderline` (explicit,
+  tested). Column dividers, line numbers, and track headers remain fixed
+  presentation structure; no user preferences added.
+
+### Phase 2 — Shared Preference Model
+
+Goal: Replace loose preference objects with a typed shared model.
+
+Tasks:
+
+- Create `ReaderDisplayPreferences` and defaults in a shared location.
+- Add validators/normalizers for persisted values.
+- Update `useReaderPreferences` to return the shared model or a stable adapter.
+- Keep `SettingsContext` as storage/orchestration, not the source of renderer
+  semantics.
+
+Definition of Done:
+
+- Defaults are not duplicated across settings context and renderer props.
+- Invalid persisted values normalize to the shared default.
+- Tests cover defaults, persisted values, and remote settings hydration.
+
+### Phase 3 — Renderer API Convergence
+
+Goal: Every renderer branch consumes the same preference semantics.
+
+Tasks:
+
+- Update `ScriptViewer` to pass one display-preference object or typed subsets.
+- Update `ScriptRenderer`, `RenderBlockRenderer`, and presentation renderer APIs.
+- Move renderer-specific interpretation into the owning renderer package.
+- Add package-level tests for each supported preference.
+
+Definition of Done:
+
+- Switching renderer branch does not change preference semantics.
+- `showLineUnderline=false` means no horizontal guide lines in supported branches.
+- `showLineUnderline=true` means horizontal guide lines appear in supported branches.
+- Column dividers are controlled separately from line underlines.
+
+### Phase 4 — Appearance Panel Restructure
+
+Goal: UI matches the semantic model.
+
+Tasks:
+
+- Split appearance settings into Reading Text, Reading Guides, and Presentation Layout.
+- Disable or hide settings that are unsupported in the active renderer mode.
+- Make all toggle controls accessible (`button type="button"`, `aria-pressed` or switch semantics).
+- Provide short labels that distinguish horizontal guide lines from column dividers.
+
+Definition of Done:
+
+- Users can predict what each setting affects.
+- Changing a setting updates the active preview immediately.
+- Reload preserves the same values.
+
+### Phase 5 — Public Reader Parity
+
+Goal: Public reader and Vite editor preview use the same semantic preference model.
+
+Tasks:
+
+- Map public reader preferences to `ReaderDisplayPreferences`.
+- Confirm Next reader storage uses the same field names or an explicit adapter.
+- Add parity tests for typography and guide preferences between public reader and editor preview.
+
+Definition of Done:
+
+- Public reader and Vite editor preview do not drift in preference semantics.
+- Adapters are explicit where storage keys differ.
+
+### Phase 6 — QA Contract
+
+Goal: Prevent regression across renderer modes.
+
+Required scenarios:
+
+- New user defaults: horizontal line underline off.
+- Legacy renderer: underline off/on works.
+- Render model renderer: underline off/on works.
+- Presentation columns: horizontal guide off/on works.
+- Presentation columns: column dividers remain separate from horizontal guide.
+- Presentation linear/timeline: behavior matches capability table.
+- Settings panel toggle updates preview without reload.
+- Reload persists user choice.
+
+## Recommended Next Step
+
+Execute **Phase 2 — Shared Preference Model**.
+
+Phase 1 is complete. The next implementation should:
+
+1. create `ReaderDisplayPreferences` with nested `typography / guides / markers /
+   presentation` groups in a shared location;
+2. update `useReaderPreferences` to return the shared model or a stable adapter;
+3. add tests covering defaults, persisted values, and remote settings hydration.

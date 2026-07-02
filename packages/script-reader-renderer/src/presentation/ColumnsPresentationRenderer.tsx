@@ -11,6 +11,7 @@ interface ColumnsPresentationRendererProps {
   markerConfigs?: MarkerConfig[];
   hiddenMarkerIds?: string[];
   markerTooltipPrefix?: string | null;
+  showLineUnderline?: boolean;
 }
 
 export const ColumnsPresentationRenderer = ({
@@ -20,6 +21,7 @@ export const ColumnsPresentationRenderer = ({
   markerConfigs = [],
   hiddenMarkerIds = [],
   markerTooltipPrefix = '標記',
+  showLineUnderline = false,
 }: ColumnsPresentationRendererProps): React.JSX.Element => {
   const hiddenMarkerIdSet = useMemo(
     () => new Set((hiddenMarkerIds || []).map((id) => String(id || "").trim()).filter(Boolean)),
@@ -107,7 +109,10 @@ export const ColumnsPresentationRenderer = ({
         </div>
 
         {/* Content rows */}
-        <div className="divide-y divide-border/10">
+        <div
+          className={cn(showLineUnderline && "divide-y divide-border/10")}
+          data-line-underlines={showLineUnderline ? "true" : "false"}
+        >
           {lineRows.map((row) => (
             <div
               key={row.line}

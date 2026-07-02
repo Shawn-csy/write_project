@@ -233,7 +233,9 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
                     <Switch checked={showMarkers} onCheckedChange={setShowMarkers} />
                   </div>
                   <button
+                    type="button"
                     onClick={() => setShowLineUnderline(!showLineUnderline)}
+                    aria-pressed={showLineUnderline}
                     className={cn(
                       "flex w-full items-center justify-between p-3 rounded-lg border text-xs font-medium transition-all group",
                       showLineUnderline
