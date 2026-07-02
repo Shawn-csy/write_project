@@ -44,6 +44,7 @@ interface ScriptPresentationRendererProps {
   hiddenMarkerIds?: string[];
   markerTooltipPrefix?: string | null;
   mode?: PresentationMode;
+  showLineUnderline?: boolean;
 }
 
 export const ScriptPresentationRenderer = ({
@@ -57,6 +58,7 @@ export const ScriptPresentationRenderer = ({
   hiddenMarkerIds = [],
   markerTooltipPrefix = '標記',
   mode = 'auto',
+  showLineUnderline = false,
 }: ScriptPresentationRendererProps): React.JSX.Element => {
   const readingFontStack = resolveReadingFontStack(readingFontFamily);
   const { markerTooltip, markerTooltipStyle, handlePointerMove, handlePointerLeave } =
@@ -120,6 +122,7 @@ export const ScriptPresentationRenderer = ({
         markerConfigs={markerConfigs}
         hiddenMarkerIds={hiddenMarkerIds}
         markerTooltipPrefix={markerTooltipPrefix}
+        showLineUnderline={showLineUnderline}
       />
     );
   }

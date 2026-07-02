@@ -13,4 +13,3 @@ export interface ReaderPreferences {
   useV2Renderer: boolean;
   v2LayoutConfig: LayoutConfig;
 }
-

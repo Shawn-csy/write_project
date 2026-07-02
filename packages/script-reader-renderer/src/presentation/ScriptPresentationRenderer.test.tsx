@@ -21,6 +21,36 @@ describe('ScriptPresentationRenderer', () => {
     expect(screen.getAllByText('你來了。').length).toBeGreaterThan(0);
   });
 
+  it('keeps v2 row underlines off by default', () => {
+    const ast = {
+      children: [
+        { type: 'dialogue', text: '第一行。', lineStart: 1, lineEnd: 1 },
+        { type: 'dialogue', text: '第二行。', lineStart: 2, lineEnd: 2 },
+      ],
+    };
+
+    const { container } = render(<ScriptPresentationRenderer ast={ast} mode="columns" />);
+
+    const lineGuideContainer = container.querySelector('[data-line-underlines]');
+    expect(lineGuideContainer?.getAttribute('data-line-underlines')).toBe('false');
+    expect(lineGuideContainer?.className || '').not.toContain('divide-y');
+  });
+
+  it('enables v2 row underlines only when requested', () => {
+    const ast = {
+      children: [
+        { type: 'dialogue', text: '第一行。', lineStart: 1, lineEnd: 1 },
+        { type: 'dialogue', text: '第二行。', lineStart: 2, lineEnd: 2 },
+      ],
+    };
+
+    const { container } = render(<ScriptPresentationRenderer ast={ast} mode="columns" showLineUnderline />);
+
+    const lineGuideContainer = container.querySelector('[data-line-underlines]');
+    expect(lineGuideContainer?.getAttribute('data-line-underlines')).toBe('true');
+    expect(lineGuideContainer?.className || '').toContain('divide-y');
+  });
+
   it('renders timeline mode rows', () => {
     const ast = {
       children: [
@@ -33,6 +63,32 @@ describe('ScriptPresentationRenderer', () => {
 
     expect(screen.getAllByText('主對白').length).toBeGreaterThan(0);
     expect(screen.getByText('收到。')).toBeInTheDocument();
+  });
+
+  // Capability matrix: showLineUnderline unsupported in timeline and linear modes.
+  // These tests lock the unsupported contract so regressions are caught.
+  it('timeline mode does not render data-line-underlines attribute (unsupported)', () => {
+    const ast = {
+      children: [
+        { type: 'dialogue', text: '第一行。', lineStart: 1, lineEnd: 1 },
+      ],
+    };
+    const { container } = render(
+      <ScriptPresentationRenderer ast={ast} mode="timeline" showLineUnderline />
+    );
+    expect(container.querySelector('[data-line-underlines]')).toBeNull();
+  });
+
+  it('linear mode does not render data-line-underlines attribute (unsupported)', () => {
+    const ast = {
+      children: [
+        { type: 'dialogue', text: '第一行。', lineStart: 1, lineEnd: 1 },
+      ],
+    };
+    const { container } = render(
+      <ScriptPresentationRenderer ast={ast} mode="linear" showLineUnderline />
+    );
+    expect(container.querySelector('[data-line-underlines]')).toBeNull();
   });
 
   it('renders linear mode for mobile auto presentation', () => {

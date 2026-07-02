@@ -21,6 +21,7 @@
 - `docs/architecture/public-media-presentation-architecture.md`：公開頁圖片/媒體呈現架構
 - `docs/architecture/public-motion-system.md`：公開頁動態系統架構
 - `docs/architecture/read-page-seo-ux-architecture.md`：閱讀頁 SEO 與 UX 架構
+- `docs/architecture/reader-display-preferences-architecture.md`：閱讀顯示偏好、Vite 編輯預覽與 renderer contract 長期架構
 - `docs/architecture/read-page-export-metadata-projection.md`：閱讀頁匯出 metadata 投影
 - `docs/architecture/read-page-download-architecture.md`：閱讀頁下載架構
 - `docs/architecture/seo-google-content-visibility-contract.md`：Google 搜尋與 AI 爬蟲可見性契約

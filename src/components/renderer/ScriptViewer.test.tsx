@@ -189,6 +189,31 @@ describe("ScriptViewer useRenderModelRenderer", () => {
     expect(article?.className).toContain("show-line-underline");
   });
 
+  it("passes showLineUnderline to the v2 renderer branch", () => {
+    const { container } = render(
+      <ScriptViewer
+        text="角色\n台詞第一行。\n\n角色\n台詞第二行。"
+        showLineUnderline
+        useV2Renderer
+      />
+    );
+
+    expect(container.querySelector('[data-line-underlines="true"]')).not.toBeNull();
+  });
+
+  it("keeps v2 row underlines off when showLineUnderline is false", () => {
+    const { container } = render(
+      <ScriptViewer
+        text="角色\n台詞第一行。\n\n角色\n台詞第二行。"
+        showLineUnderline={false}
+        useV2Renderer
+      />
+    );
+
+    expect(container.querySelector('[data-line-underlines="false"]')).not.toBeNull();
+    expect(container.querySelector('[data-line-underlines="true"]')).toBeNull();
+  });
+
   it("shows marker tooltip with i18n prefix in useRenderModelRenderer branch", () => {
     render(
       <ScriptViewer
