@@ -5,7 +5,7 @@ const AI_BOTS = ["GPTBot", "ClaudeBot", "PerplexityBot", "Google-Extended"];
 
 const AI_BOT_RULES = {
   allow: ["/read/", "/author/", "/org/", "/series/", "/tag/", "/llms.txt", "/.well-known/llms.txt", "/api/public-scripts/"],
-  disallow: ["/dashboard", "/studio", "/edit", "/settings", "/admin", "/api/"],
+  disallow: ["/dashboard", "/studio", "/edit", "/settings", "/admin", "/api/revalidate", "/api/public-bundle"],
 };
 
 export default function robots(): MetadataRoute.Robots {
