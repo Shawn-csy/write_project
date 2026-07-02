@@ -92,7 +92,7 @@ function ScriptMetadataPreviewDialog({ open, onOpenChange }: { open: boolean; on
     } = useFormContext();
     const [viewport, setViewport] = React.useState<"desktop" | "mobile">("desktop");
     const readerPreferences = useReaderPreferences();
-    const { markerThemes: globalMarkerThemes } = useSettings();
+    const { markerThemes: globalMarkerThemes, v2LayoutConfig } = useSettings();
 
     const [resolvedMarkerConfigs, setResolvedMarkerConfigs] = React.useState(
         () => normalizeMarkerConfigsSchema(defaultMarkerConfigs)
@@ -305,7 +305,17 @@ function ScriptMetadataPreviewDialog({ open, onOpenChange }: { open: boolean; on
                             validMarkerConfigs={resolvedMarkerConfigs}
                             hiddenMarkerIds={[]}
                             onToggleMarker={() => {}}
-                            viewerProps={{ ...readerPreferences, markerConfigs: resolvedMarkerConfigs }}
+                            viewerProps={{
+                                readingFontFamily: readerPreferences.typography.readingFontFamily,
+                                bodyFontSize:      readerPreferences.typography.bodyFontSize,
+                                dialogueFontSize:  readerPreferences.typography.dialogueFontSize,
+                                lineHeight:        readerPreferences.typography.lineHeight,
+                                showLineUnderline: readerPreferences.guides.showLineUnderline,
+                                showMarkers:       readerPreferences.markers.showMarkers,
+                                useV2Renderer:     readerPreferences.presentation.enabled,
+                                v2LayoutConfig,
+                                markerConfigs: resolvedMarkerConfigs,
+                            }}
                             embeddedPreview
                         />
                     </div>

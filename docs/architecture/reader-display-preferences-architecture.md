@@ -204,7 +204,7 @@ Completion notes:
   tested). Column dividers, line numbers, and track headers remain fixed
   presentation structure; no user preferences added.
 
-### Phase 2 — Shared Preference Model
+### Phase 2 — Shared Preference Model ✓ Complete
 
 Goal: Replace loose preference objects with a typed shared model.
 
@@ -222,6 +222,28 @@ Definition of Done:
 - Invalid persisted values normalize to the shared default.
 - Tests cover defaults, persisted values, and remote settings hydration.
 
+Completion notes:
+
+- `ReaderDisplayPreferences` nested model (typography / guides / markers /
+  presentation groups) and `DEFAULT_READER_DISPLAY_PREFERENCES` live in
+  `packages/script-reader-renderer/src/presentation/readerDisplayPreferences.ts`,
+  exported from the package barrel.
+- `normalizeReaderDisplayPreferences` handles invalid/out-of-range persisted
+  values; clamps font sizes to [8, 72] and line height to [0.9, 2.4].
+- `useReaderPreferences` now returns `ReaderDisplayPreferences`; accepts
+  `ReaderDisplayPreferencesInput` overrides (explicit deep-partial type, not a
+  generic `DeepPartial`). Both storage values and caller overrides pass through
+  `normalizeReaderDisplayPreferences` — invalid values from either source are
+  caught by the same rules. SettingsContext remains the storage/orchestration
+  layer; this hook is the adapter.
+- The old flat `src/types/readerPreferences.ts` file has been removed.
+- Consumers (`PreviewPanel`, `ScriptMetadataDialog`) flatten the nested model
+  to ScriptViewer flat props at the call site; ScriptViewer API stays flat
+  until Phase 3.
+- Tests: `readerDisplayPreferences.test.ts` (9 tests — defaults, normalization,
+  clamping, partial overrides); `useReaderPreferences.test.ts` (6 tests —
+  storage mapping, overrides, remote hydration).
+
 ### Phase 3 — Renderer API Convergence
 
 Goal: Every renderer branch consumes the same preference semantics.
@@ -236,8 +258,12 @@ Tasks:
 Definition of Done:
 
 - Switching renderer branch does not change preference semantics.
-- `showLineUnderline=false` means no horizontal guide lines in supported branches.
-- `showLineUnderline=true` means horizontal guide lines appear in supported branches.
+- `showLineUnderline=false` means no horizontal guide lines in branches that
+  declare `showLineUnderline: "supported"` in the capability matrix (ScriptRenderer,
+  RenderBlockRenderer, ColumnsPresentationRenderer).
+- `showLineUnderline=true` means horizontal guide lines appear in those same
+  supported branches. Timeline and Linear presentation modes remain unsupported
+  per the Phase 1 capability matrix — passing the flag has no visible effect.
 - Column dividers are controlled separately from line underlines.
 
 ### Phase 4 — Appearance Panel Restructure
@@ -289,11 +315,13 @@ Required scenarios:
 
 ## Recommended Next Step
 
-Execute **Phase 2 — Shared Preference Model**.
+Execute **Phase 3 — Renderer API Convergence**.
 
-Phase 1 is complete. The next implementation should:
+Phases 1 and 2 are complete. The next implementation should:
 
-1. create `ReaderDisplayPreferences` with nested `typography / guides / markers /
-   presentation` groups in a shared location;
-2. update `useReaderPreferences` to return the shared model or a stable adapter;
-3. add tests covering defaults, persisted values, and remote settings hydration.
+1. update `ScriptViewer` to accept `ReaderDisplayPreferences` (or typed subsets)
+   rather than individual flat props;
+2. update `ScriptRenderer`, `RenderBlockRenderer`, and the presentation renderer
+   APIs to consume the same preference contract;
+3. move renderer-specific interpretation into the owning renderer package;
+4. add package-level tests for each supported preference.

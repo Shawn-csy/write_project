@@ -1,35 +1,47 @@
 import { useSettings } from "../contexts/SettingsContext";
-import type { ReaderPreferences } from "../types/readerPreferences";
+import {
+  normalizeReaderDisplayPreferences,
+  type ReaderDisplayPreferences,
+  type ReaderDisplayPreferencesInput,
+} from "@write/script-reader-renderer";
 
-type ReaderPreferencesOverrides = Partial<ReaderPreferences>;
-
-export const useReaderPreferences = (overrides: ReaderPreferencesOverrides = {}): ReaderPreferences => {
+/**
+ * Returns validated reader display preferences assembled from SettingsContext.
+ *
+ * Flow:
+ *   1. Normalize raw storage values (clamp/validate via normalizeReaderDisplayPreferences).
+ *   2. Merge caller overrides on top (deep merge at group level).
+ *   3. Normalize the merged result — ensures invalid overrides (e.g. bodyFontSize: 999
+ *      from a parent prop) are caught by the same rules as storage values.
+ *
+ * SettingsContext remains the storage/orchestration layer.
+ */
+export const useReaderPreferences = (
+  overrides: ReaderDisplayPreferencesInput = {}
+): ReaderDisplayPreferences => {
   const {
-    isDark,
-    fontSize,
     bodyFontSize,
     dialogueFontSize,
     readingFontFamily,
     lineHeight,
-    accentConfig,
     showMarkers,
     showLineUnderline,
     useV2Renderer,
-    v2LayoutConfig,
   } = useSettings();
 
-  return {
-    theme: overrides.theme ?? (isDark ? "dark" : "light"),
-    fontSize: overrides.fontSize ?? fontSize,
-    bodyFontSize: overrides.bodyFontSize ?? bodyFontSize,
-    dialogueFontSize: overrides.dialogueFontSize ?? dialogueFontSize,
-    readingFontFamily: overrides.readingFontFamily ?? readingFontFamily,
-    lineHeight: overrides.lineHeight ?? lineHeight,
-    accentColor: overrides.accentColor ?? accentConfig?.accent,
-    showMarkers: overrides.showMarkers ?? showMarkers ?? true,
-    showLineUnderline: overrides.showLineUnderline ?? showLineUnderline ?? false,
-    useV2Renderer: overrides.useV2Renderer ?? useV2Renderer ?? false,
-    v2LayoutConfig: overrides.v2LayoutConfig ?? v2LayoutConfig,
-  };
-};
+  // Step 1: normalize raw storage values.
+  const fromStorage = normalizeReaderDisplayPreferences({
+    typography: { readingFontFamily, bodyFontSize, dialogueFontSize, lineHeight },
+    guides:     { showLineUnderline },
+    markers:    { showMarkers },
+    presentation: { enabled: useV2Renderer },
+  });
 
+  // Step 2+3: deep-merge overrides then normalize the result.
+  return normalizeReaderDisplayPreferences({
+    typography: { ...fromStorage.typography, ...overrides.typography },
+    guides:     { ...fromStorage.guides,     ...overrides.guides },
+    markers:    { ...fromStorage.markers,    ...overrides.markers },
+    presentation: { ...fromStorage.presentation, ...overrides.presentation },
+  });
+};

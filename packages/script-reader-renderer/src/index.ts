@@ -11,6 +11,11 @@ export { LinearPresentationRenderer } from "./presentation/LinearPresentationRen
 export { TimelinePresentationRenderer } from "./presentation/TimelinePresentationRenderer";
 export { PresentationEventText, applyDisplayTemplate } from "./presentation/PresentationEventText";
 export {
+  DEFAULT_READER_DISPLAY_PREFERENCES,
+  normalizeReaderDisplayPreferences,
+} from "./presentation/readerDisplayPreferences";
+export type { ReaderDisplayPreferences, ReaderDisplayPreferencesInput } from "./presentation/readerDisplayPreferences";
+export {
   PRESENTATION_MODE_CAPABILITY_MATRIX,
   COLUMNS_RENDERER_CAPABILITY,
   TIMELINE_RENDERER_CAPABILITY,

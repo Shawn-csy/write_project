@@ -10,6 +10,7 @@ import {
 import { STORAGE_KEYS } from "../constants/storageKeys";
 import { apiCall as serviceApiCall, fetchUserSettings, saveUserSettings, fetchUserThemes } from "../services/settingsApi";
 import { DEFAULT_READING_FONT, DEFAULT_UI_FONT, normalizeReadingFont, normalizeUiFont, resolveUiFontStack } from "../constants/readingFonts";
+import { DEFAULT_READER_DISPLAY_PREFERENCES as RDPD } from "@write/script-reader-renderer";
 
 import { useMarkerThemes } from "../hooks/useMarkerThemes";
 import { usePersistentState } from "../hooks/usePersistentState";
@@ -165,10 +166,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   // setAccentRaw is already stable from usePersistentState; expose directly as setAccent
   const setAccent = setAccentRaw;
 
-  // Font Sizes
-  const [fontSize, setFontSize] = usePersistentState(STORAGE_KEYS.FONT_SIZE, 14, 'number');
-  const [bodyFontSize, setBodyFontSize] = usePersistentState(STORAGE_KEYS.BODY_FONT, 14, 'number');
-  const [dialogueFontSize, setDialogueFontSize] = usePersistentState(STORAGE_KEYS.DIALOGUE_FONT, 14, 'number');
+  // Font Sizes — defaults derived from shared DEFAULT_READER_DISPLAY_PREFERENCES
+  const [fontSize, setFontSize] = usePersistentState(STORAGE_KEYS.FONT_SIZE, RDPD.typography.bodyFontSize, 'number');
+  const [bodyFontSize, setBodyFontSize] = usePersistentState(STORAGE_KEYS.BODY_FONT, RDPD.typography.bodyFontSize, 'number');
+  const [dialogueFontSize, setDialogueFontSize] = usePersistentState(STORAGE_KEYS.DIALOGUE_FONT, RDPD.typography.dialogueFontSize, 'number');
   const [readingFontFamilyRaw, setReadingFontFamilyRaw] = usePersistentState(STORAGE_KEYS.READING_FONT, DEFAULT_READING_FONT);
   const readingFontFamily = normalizeReadingFont(readingFontFamilyRaw);
   const setReadingFontFamily = useCallback(
@@ -182,8 +183,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     [setUiFontFamilyRaw]
   );
 
-  // Line Height (1.2 ~ 2.0, default 1.4)
-  const [lineHeight, setLineHeight] = usePersistentState(STORAGE_KEYS.LINE_HEIGHT, 1.4, 'number');
+  const [lineHeight, setLineHeight] = usePersistentState(STORAGE_KEYS.LINE_HEIGHT, RDPD.typography.lineHeight, 'number');
   const [desktopUiScaleRaw, setDesktopUiScaleRaw] = usePersistentState(STORAGE_KEYS.DESKTOP_UI_SCALE, 1, 'number');
   const desktopUiScale = Number.isFinite(Number(desktopUiScaleRaw))
     ? Math.min(1.5, Math.max(0.75, Number(desktopUiScaleRaw)))
@@ -202,14 +202,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     [setTransparentBgStr]
   );
 
-  const [showLineUnderlineStr, setShowLineUnderlineStr] = usePersistentState(STORAGE_KEYS.SHOW_UNDERLINE, "off");
+  const [showLineUnderlineStr, setShowLineUnderlineStr] = usePersistentState(STORAGE_KEYS.SHOW_UNDERLINE, RDPD.guides.showLineUnderline ? "on" : "off");
   const showLineUnderline = showLineUnderlineStr === "on";
   const setShowLineUnderline = useCallback(
     (val: boolean) => setShowLineUnderlineStr(val ? "on" : "off"),
     [setShowLineUnderlineStr]
   );
 
-  const [useV2RendererStr, setUseV2RendererStr] = usePersistentState(STORAGE_KEYS.USE_V2_RENDERER, "on");
+  const [useV2RendererStr, setUseV2RendererStr] = usePersistentState(STORAGE_KEYS.USE_V2_RENDERER, RDPD.presentation.enabled ? "on" : "off");
   const [useV2RendererByTheme, setUseV2RendererByTheme] = usePersistentState<Record<string, boolean>>(
     STORAGE_KEYS.USE_V2_RENDERER_BY_THEME,
     {}
@@ -252,7 +252,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     (val: boolean) => setHideWhitespaceStr(val ? "on" : "off"),
     [setHideWhitespaceStr]
   );
-  const [showMarkersStr, setShowMarkersStr] = usePersistentState(STORAGE_KEYS.SHOW_MARKERS, "on");
+  const [showMarkersStr, setShowMarkersStr] = usePersistentState(STORAGE_KEYS.SHOW_MARKERS, RDPD.markers.showMarkers ? "on" : "off");
   const showMarkers = showMarkersStr !== "off";
   const setShowMarkers = useCallback(
     (val: boolean) => setShowMarkersStr(val ? "on" : "off"),
