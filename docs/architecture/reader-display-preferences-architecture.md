@@ -282,22 +282,41 @@ Completion notes:
   wiring to render-block-renderer, presentation renderer (columns), and legacy ScriptRenderer; flat
   prop override precedence verified.
 
-### Phase 4 — Appearance Panel Restructure
+### Phase 4 — Appearance Panel Restructure ✓ Complete
 
 Goal: UI matches the semantic model.
 
 Tasks:
 
-- Split appearance settings into Reading Text, Reading Guides, and Presentation Layout.
-- Disable or hide settings that are unsupported in the active renderer mode.
-- Make all toggle controls accessible (`button type="button"`, `aria-pressed` or switch semantics).
-- Provide short labels that distinguish horizontal guide lines from column dividers.
+- Split appearance settings into Reading Text, Reading Guides, and Presentation Layout. ✓
+- Disable or hide settings that are unsupported in the active renderer mode. → deferred to Phase 6 (requires runtime mode detection; capability matrix is defined but not yet wired to UI gating).
+- Make all interactive controls in `AppearanceSettings` accessible (`button type="button"`, `aria-pressed` or switch semantics). ✓
+- Provide short labels that distinguish horizontal guide lines from column dividers. ✓
 
 Definition of Done:
 
-- Users can predict what each setting affects.
-- Changing a setting updates the active preview immediately.
-- Reload preserves the same values.
+- Users can predict what each setting affects. ✓
+- Changing a setting updates the active preview immediately. ✓ (SettingsContext is reactive)
+- Reload preserves the same values. ✓ (usePersistentState)
+
+Completion notes:
+
+- `AppearanceSettings` restructured into three `SettingsSectionCard` sections:
+  1. **閱讀文字 / Reading Text** — font family, size presets, line height (with advanced sliders).
+  2. **閱讀輔助 / Reading Guides** — `showMarkers` (Switch) + `showLineUnderline` (toggle button).
+     Label "行底線輔助 / Line Guide" explicitly names the horizontal reading aid, distinct from column dividers.
+  3. **多欄版面 / Presentation Layout** — `usePresentationRenderer` toggle.
+     Description links to Marker Settings for column routing/widths (capability boundary explicit).
+- All buttons in `AppearanceSettings` now have `type="button"` and `aria-pressed` where applicable:
+  font size presets, line height presets, desktop scale presets, theme (light/dark), accent swatches,
+  `showLineUnderline` toggle, `usePresentationRenderer` toggle.
+- `showMarkers` uses `<Switch aria-label={t("appearance.showMarkers")}>` (Radix switch role; explicit label required because the adjacent `<span>` is not a `<label>`).
+- Capability-aware gating (hide `showLineUnderline` when renderer is timeline/linear) deferred:
+  requires runtime mode from `ScriptViewer` or `SettingsContext`; no cross-cutting signal exists yet.
+  Tracked in Phase 6 QA contract scenarios.
+- `usePresentationRenderer` also remains in MarkerSettings header as contextual shortcut; AppearanceSettings is the canonical home.
+- i18n keys added: `readingText`, `readingTextDesc`, `readingGuides`, `readingGuidesDesc`,
+  `presentationLayout`, `presentationLayoutDesc`, `presentationLayoutEnabled`, `presentationLayoutEnabledDesc` (zh-TW, en, ja).
 
 ### Phase 5 — Public Reader Parity
 
@@ -331,15 +350,10 @@ Required scenarios:
 
 ## Recommended Next Step
 
-Execute **Phase 4 — Appearance Panel Restructure**.
+Execute **Phase 5 — Public Reader Parity**.
 
-Phases 1–3 are complete. The next implementation should:
+Phases 1–4 are complete. The next implementation should:
 
-1. split appearance settings into Reading Text, Reading Guides, and Presentation
-   Layout sections;
-2. disable or hide settings that are unsupported in the active renderer mode
-   (use the capability matrix);
-3. ensure all toggle controls are accessible (`button type="button"`,
-   `aria-pressed` or switch semantics);
-4. provide short labels that distinguish horizontal guide lines from column
-   dividers.
+1. map public reader preferences (Next.js app) to `ReaderDisplayPreferences`;
+2. confirm Next reader storage uses the same field names or add an explicit adapter;
+3. add parity tests for typography and guide preferences between public reader and editor preview.
