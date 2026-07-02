@@ -29,7 +29,10 @@ export async function resolveMarkerConfigs(script: PublicScript): Promise<Marker
   const themeId = s.markerThemeId;
   if (themeId && themeId !== "default") {
     try {
-      const themes = await apiFetch<Array<{ id?: string; configs?: unknown }>>("/themes/public");
+      const themes = await apiFetch<Array<{ id?: string; configs?: unknown }>>(
+        "/themes/public",
+        { next: { revalidate: 3600 } },
+      );
       const matched = themes.find((t) => String(t.id ?? "") === themeId);
       if (matched?.configs) {
         const normalized = normalizeMarkerConfigsSchema(matched.configs);
