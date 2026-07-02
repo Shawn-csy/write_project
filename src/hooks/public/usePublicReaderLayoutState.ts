@@ -49,7 +49,7 @@ interface PublicReaderScriptData {
 interface ViewerProps {
   onProcessedHtml?: (html: string) => void;
   onRawHtml?: (html: string) => void;
-  useV2Renderer?: boolean;
+  usePresentationRenderer?: boolean;
   sceneList?: Array<{ id: string; label: string }>;
   scenes?: Array<{ id: string; label: string }>;
   activeSceneId?: string;
@@ -216,7 +216,7 @@ export function usePublicReaderLayoutState({ script, isLoading, viewerProps, scr
     showDocx: false,
     showXlsx: false,
     showGoogleDocs: false,
-    enableGoogleDocsTable: !!mergedViewerProps?.useV2Renderer,
+    enableGoogleDocsTable: !!mergedViewerProps?.usePresentationRenderer,
     showGoogleDocsTableOption: false,
     resolveTableExport: (html) => buildV2TableExportFromRenderedHtml(html),
   });

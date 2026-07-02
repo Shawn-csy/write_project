@@ -44,10 +44,10 @@ export interface AppearanceContextValue {
   setTransparentBg: (value: boolean) => void;
   showLineUnderline: boolean;
   setShowLineUnderline: (value: boolean) => void;
-  useV2Renderer: boolean;
-  setUseV2Renderer: (value: boolean) => void;
-  v2LayoutConfig: LayoutConfig;
-  setV2LayoutConfig: (config: LayoutConfig) => void;
+  usePresentationRenderer: boolean;
+  setUsePresentationRenderer: (value: boolean) => void;
+  presentationLayoutConfig: LayoutConfig;
+  setPresentationLayoutConfig: (config: LayoutConfig) => void;
   exportMode?: string;
 }
 

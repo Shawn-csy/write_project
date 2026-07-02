@@ -77,8 +77,8 @@ export function useLiveEditorState({
 }: Props) {
   const {
     theme = "system", fontSize, bodyFontSize, dialogueFontSize, lineHeight,
-    accentConfig, markerConfigs, markerThemes = [], currentThemeId = "default", v2LayoutConfig,
-    switchTheme = () => {}, useV2Renderer,
+    accentConfig, markerConfigs, markerThemes = [], currentThemeId = "default", presentationLayoutConfig,
+    switchTheme = () => {}, usePresentationRenderer,
   } = useSettings();
   const scriptView = useScriptView();
   const activeMarkerConfigs = (scriptView?.markerConfigs && scriptView.markerConfigs.length > 0)
@@ -222,18 +222,18 @@ export function useLiveEditorState({
 
   const orchestratedDoc = useMemo(() => {
     const layoutConfig = applyMarkerSemanticRoutes(
-      normalizeLayoutConfig(v2LayoutConfig || cloneDefaultLayoutConfig()),
+      normalizeLayoutConfig(presentationLayoutConfig || cloneDefaultLayoutConfig()),
       activeMarkerConfigs as any
     );
     const parsed = parseScreenplay(deferredContent || "", activeMarkerConfigs) as { ast?: { children?: Array<Record<string, unknown>> } };
     const v2doc = buildScriptDocumentV2FromAst(parsed.ast, { layoutConfig, markerConfigs: activeMarkerConfigs as any });
     return orchestrateDocument(v2doc);
-  }, [deferredContent, activeMarkerConfigs, v2LayoutConfig]);
+  }, [deferredContent, activeMarkerConfigs, presentationLayoutConfig]);
 
   const normalizedDownloadOptions = useLiveEditorDownloadOptions({
     t, title, content, renderedHtmlRef, ensureRenderedHtml, markerConfigs: activeMarkerConfigs as any,
     orchestratedDoc,
-    isV2RendererEnabled: !!useV2Renderer,
+    isPresentationRendererEnabled: !!usePresentationRenderer,
     metadataSource: { ...(initialData || {}), title },
   });
 

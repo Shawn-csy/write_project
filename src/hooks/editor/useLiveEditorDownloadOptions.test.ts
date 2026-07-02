@@ -96,7 +96,7 @@ describe("useLiveEditorDownloadOptions", () => {
         content: "C",
         renderedHtmlRef: baseRef,
         orchestratedDoc: mockOrchestratedDoc,
-        isV2RendererEnabled: true,
+        isPresentationRendererEnabled: true,
       })
     );
 
@@ -111,7 +111,7 @@ describe("useLiveEditorDownloadOptions", () => {
         content: "C",
         renderedHtmlRef: baseRef,
         orchestratedDoc: mockOrchestratedDoc,
-        isV2RendererEnabled: false,
+        isPresentationRendererEnabled: false,
       })
     );
 
@@ -126,7 +126,7 @@ describe("useLiveEditorDownloadOptions", () => {
         content: "C",
         renderedHtmlRef: baseRef,
         orchestratedDoc: null,
-        isV2RendererEnabled: true,
+        isPresentationRendererEnabled: true,
       })
     );
 

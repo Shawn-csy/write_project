@@ -808,8 +808,8 @@ const messages = {
     "unsaved": "尚未儲存",
     "savedAt": "已儲存 {time}",
     "synced": "已同步",
-    "v2RendererOffWarning": "已偵測到多欄標記設定，但目前分欄位顯示為關閉，可能無法正確預覽欄位落點與同行同步。",
-    "enableV2RendererNow": "立即啟用分欄位顯示"
+    "presentationRendererOffWarning": "已偵測到多欄標記設定，但目前分欄位顯示為關閉，可能無法正確預覽欄位落點與同行同步。",
+    "enablePresentationRendererNow": "立即啟用分欄位顯示"
   },
   "markerSettingsHeader": {
     "title": "自訂標記規則",
@@ -1845,7 +1845,7 @@ const messages = {
   "markerLogic": {
     "title": "匹配規則",
     "matchMode": "觸發模式",
-    "semanticTitle": "V2 語義規則",
+    "semanticTitle": "分欄語義規則",
     "eventKind": "事件類型",
     "eventKindAuto": "自動判斷",
     "defaultTrack": "輸出欄位",

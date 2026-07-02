@@ -210,7 +210,7 @@ export function PublicReaderLayout({
           }
           outerClassName="h-full min-h-0 relative z-10"
           scrollClassName="h-full min-h-0 overflow-y-auto overflow-x-hidden touch-pan-y overscroll-y-contain scrollbar-hide perspective-1000"
-          contentClassName={Boolean(viewerProps?.useV2Renderer)
+          contentClassName={Boolean(viewerProps?.usePresentationRenderer)
             ? (embeddedPreview
               ? `public-reader-content mx-auto w-full px-3 pb-20 pt-4 sm:px-4 min-h-full`
               : `public-reader-content mx-auto w-full px-3 pb-32 pt-16 sm:w-[92vw] sm:px-4 lg:w-[80vw] lg:max-w-7xl min-h-[100dvh]`)

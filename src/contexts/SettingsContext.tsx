@@ -76,10 +76,10 @@ interface SettingsContextValue {
   setTransparentBg: (value: boolean) => void;
   showLineUnderline: boolean;
   setShowLineUnderline: (value: boolean) => void;
-  useV2Renderer: boolean;
-  setUseV2Renderer: (value: boolean) => void;
-  v2LayoutConfig: LayoutConfig;
-  setV2LayoutConfig: (config: LayoutConfig) => void;
+  usePresentationRenderer: boolean;
+  setUsePresentationRenderer: (value: boolean) => void;
+  presentationLayoutConfig: LayoutConfig;
+  setPresentationLayoutConfig: (config: LayoutConfig) => void;
   statsConfig: StatsConfig;
   setStatsConfig: (value: StatsConfig) => void;
   markerThemes: MarkerTheme[];
@@ -209,9 +209,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     [setShowLineUnderlineStr]
   );
 
-  const [useV2RendererStr, setUseV2RendererStr] = usePersistentState(STORAGE_KEYS.USE_V2_RENDERER, RDPD.presentation.enabled ? "on" : "off");
-  const [useV2RendererByTheme, setUseV2RendererByTheme] = usePersistentState<Record<string, boolean>>(
-    STORAGE_KEYS.USE_V2_RENDERER_BY_THEME,
+  const [usePresentationRendererStr, setUsePresentationRendererStr] = usePersistentState(STORAGE_KEYS.USE_PRESENTATION_RENDERER, RDPD.presentation.enabled ? "on" : "off");
+  const [usePresentationRendererByTheme, setUsePresentationRendererByTheme] = usePersistentState<Record<string, boolean>>(
+    STORAGE_KEYS.USE_PRESENTATION_RENDERER_BY_THEME,
     {}
   );
 
@@ -294,18 +294,18 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   // --- Theme Hook ---
   const themes = useMarkerThemes(currentUser, Boolean(profile?.isAdmin));
 
-  // v2LayoutConfig lives in the active marker theme, not in global settings
-  const v2LayoutConfig = themes.activeLayoutConfig;
-  const setV2LayoutConfig = useCallback((config: LayoutConfig) => {
+  // presentationLayoutConfig lives in the active marker theme, not in global settings
+  const presentationLayoutConfig = themes.activeLayoutConfig;
+  const setPresentationLayoutConfig = useCallback((config: LayoutConfig) => {
     themes.updateThemeLayoutConfig(themes.currentThemeId, config);
   }, [themes.updateThemeLayoutConfig, themes.currentThemeId]);
-  const useV2Renderer = useV2RendererByTheme[themes.currentThemeId] ?? (useV2RendererStr === "on");
-  const setUseV2Renderer = useCallback(
+  const usePresentationRenderer = usePresentationRendererByTheme[themes.currentThemeId] ?? (usePresentationRendererStr === "on");
+  const setUsePresentationRenderer = useCallback(
     (val: boolean) => {
-      const next = { ...useV2RendererByTheme, [themes.currentThemeId]: val };
-      setUseV2RendererByTheme(next);
+      const next = { ...usePresentationRendererByTheme, [themes.currentThemeId]: val };
+      setUsePresentationRendererByTheme(next);
     },
-    [useV2RendererByTheme, themes.currentThemeId, setUseV2RendererByTheme]
+    [usePresentationRendererByTheme, themes.currentThemeId, setUsePresentationRendererByTheme]
   );
 
   // API Helper
@@ -394,9 +394,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                       if (typeof s.transparentBg === "boolean") setTransparentBg(s.transparentBg);
                       if (typeof s.showLineUnderline === "boolean") setShowLineUnderline(s.showLineUnderline);
                       if (s.useV2RendererByTheme && typeof s.useV2RendererByTheme === "object") {
-                        setUseV2RendererByTheme(s.useV2RendererByTheme as Record<string, boolean>);
+                        setUsePresentationRendererByTheme(s.useV2RendererByTheme as Record<string, boolean>);
                       }
-                      if (typeof s.useV2Renderer === "boolean") setUseV2RendererStr(s.useV2Renderer ? "on" : "off");
+                      if (typeof s.useV2Renderer === "boolean") setUsePresentationRendererStr(s.useV2Renderer ? "on" : "off");
                       if (s.statsConfig && typeof s.statsConfig === "object") setStatsConfig(s.statsConfig as StatsConfig);
                       if (Array.isArray(s.coverPresets)) setCoverPresets(s.coverPresets as CoverPreset[]);
 
@@ -438,8 +438,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                           desktopUiScale,
                           transparentBg,
                           showLineUnderline,
-                          useV2Renderer,
-                          useV2RendererByTheme,
+                          useV2Renderer: usePresentationRenderer,
+                          useV2RendererByTheme: usePresentationRendererByTheme,
                           currentThemeId: themes.currentThemeId,
                           coverPresets,
                       };
@@ -477,8 +477,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           desktopUiScale,
           transparentBg,
           showLineUnderline,
-          useV2Renderer,
-          useV2RendererByTheme,
+          useV2Renderer: usePresentationRenderer,
+          useV2RendererByTheme: usePresentationRendererByTheme,
           statsConfig,
           currentThemeId: themes.currentThemeId,
           coverPresets,
@@ -502,8 +502,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       desktopUiScale,
       transparentBg,
       showLineUnderline,
-      useV2Renderer,
-      useV2RendererByTheme,
+      usePresentationRenderer,
+      usePresentationRendererByTheme,
       statsConfig,
       themes.currentThemeId,
       coverPresets,
@@ -532,8 +532,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     showMarkers, setShowMarkers,
     transparentBg, setTransparentBg,
     showLineUnderline, setShowLineUnderline,
-    useV2Renderer, setUseV2Renderer,
-    v2LayoutConfig, setV2LayoutConfig,
+    usePresentationRenderer, setUsePresentationRenderer,
+    presentationLayoutConfig, setPresentationLayoutConfig,
   }), [
     resolvedTheme, themeMode, isDark, setTheme,
     accent, setAccent, accentConfig,
@@ -549,8 +549,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     showMarkers, setShowMarkers,
     transparentBg, setTransparentBg,
     showLineUnderline, setShowLineUnderline,
-    useV2Renderer, setUseV2Renderer,
-    v2LayoutConfig, setV2LayoutConfig,
+    usePresentationRenderer, setUsePresentationRenderer,
+    presentationLayoutConfig, setPresentationLayoutConfig,
   ]);
 
   const statsConfigValue = useMemo(() => ({
@@ -589,8 +589,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     showMarkers, setShowMarkers,
     transparentBg, setTransparentBg,
     showLineUnderline, setShowLineUnderline,
-    useV2Renderer, setUseV2Renderer,
-    v2LayoutConfig, setV2LayoutConfig,
+    usePresentationRenderer, setUsePresentationRenderer,
+    presentationLayoutConfig, setPresentationLayoutConfig,
 
     // Stats Config
     statsConfig,
@@ -618,8 +618,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     showMarkers, setShowMarkers,
     transparentBg, setTransparentBg,
     showLineUnderline, setShowLineUnderline,
-    useV2Renderer, setUseV2Renderer,
-    v2LayoutConfig, setV2LayoutConfig,
+    usePresentationRenderer, setUsePresentationRenderer,
+    presentationLayoutConfig, setPresentationLayoutConfig,
     statsConfig, setStatsConfig,
     coverPresets, saveCoverPreset, deleteCoverPreset,
     themes,

@@ -26,7 +26,7 @@ export const useReaderPreferences = (
     lineHeight,
     showMarkers,
     showLineUnderline,
-    useV2Renderer,
+    usePresentationRenderer,
   } = useSettings();
 
   // Step 1: normalize raw storage values.
@@ -34,7 +34,7 @@ export const useReaderPreferences = (
     typography: { readingFontFamily, bodyFontSize, dialogueFontSize, lineHeight },
     guides:     { showLineUnderline },
     markers:    { showMarkers },
-    presentation: { enabled: useV2Renderer },
+    presentation: { enabled: usePresentationRenderer },
   });
 
   // Step 2+3: deep-merge overrides then normalize the result.

@@ -16,7 +16,7 @@ export const STORAGE_KEYS = {
   SHOW_MARKERS: "screenplay-reader-show-markers",
   TRANSPARENT_BG: "screenplay-reader-transparent-bg",
   SHOW_UNDERLINE: "screenplay-reader-show-underline",
-  USE_V2_RENDERER: "screenplay-reader-use-v2-renderer",
-  USE_V2_RENDERER_BY_THEME: "screenplay-reader-use-v2-renderer-by-theme",
-  V2_LAYOUT_CONFIG: "screenplay-reader-v2-layout-config",
+  USE_PRESENTATION_RENDERER: "screenplay-reader-use-v2-renderer",
+  USE_PRESENTATION_RENDERER_BY_THEME: "screenplay-reader-use-v2-renderer-by-theme",
+  PRESENTATION_LAYOUT_CONFIG: "screenplay-reader-v2-layout-config",
 };

@@ -5,7 +5,7 @@
  * adds host-owned renderer branches (ScriptRenderer, RenderBlockRenderer).
  * ScriptViewer is the host facade that selects between these branches.
  *
- * theme / accentColor / useV2Renderer / v2LayoutConfig are host-selection
+ * theme / accentColor / usePresentationRenderer / presentationLayoutConfig are host-selection
  * concerns owned by SettingsContext; they are intentionally absent from all
  * capability descriptors.
  */

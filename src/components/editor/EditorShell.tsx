@@ -56,7 +56,7 @@ export function EditorShell() {
   const scriptManager = useScriptManager(initialParamsRef, markerConfigs);
   const nav = useAppNavigation();
   const { t } = useI18n();
-  const { useV2Renderer } = useSettings();
+  const { usePresentationRenderer } = useSettings();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -202,8 +202,8 @@ export function EditorShell() {
     disableDocx: !exportContent,
     disableXlsx: !exportContent,
     disableGoogleDocs: !exportContent,
-    preferTableForGoogleDocs: !!useV2Renderer,
-    enableGoogleDocsTable: !!useV2Renderer,
+    preferTableForGoogleDocs: !!usePresentationRenderer,
+    enableGoogleDocsTable: !!usePresentationRenderer,
     showGoogleDocsTableOption: true,
     fallbackToClassicWhenTableMissing: true,
     resolveTableExport: (html) => buildV2TableExportFromRenderedHtml(html),

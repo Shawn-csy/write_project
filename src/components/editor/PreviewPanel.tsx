@@ -61,7 +61,7 @@ export const PreviewPanel = forwardRef(function PreviewPanel({
   scrollClassName
 }: PreviewPanelProps, ref: React.ForwardedRef<HTMLDivElement>) {
   const { t } = useI18n();
-  const { v2LayoutConfig } = useSettings();
+  const { presentationLayoutConfig } = useSettings();
   const readerPreferences = useReaderPreferences({
     typography: {
       bodyFontSize: bodyFontSize ?? fontSize,
@@ -99,15 +99,9 @@ export const PreviewPanel = forwardRef(function PreviewPanel({
         onProcessedHtml,
         scrollToScene: initialSceneId,
         onScenes,
-        // flatten ReaderDisplayPreferences → ScriptViewer flat props
-        readingFontFamily: readerPreferences.typography.readingFontFamily,
-        bodyFontSize:      readerPreferences.typography.bodyFontSize,
-        dialogueFontSize:  readerPreferences.typography.dialogueFontSize,
-        lineHeight:        readerPreferences.typography.lineHeight,
-        showLineUnderline: readerPreferences.guides.showLineUnderline,
-        showMarkers:       readerPreferences.markers.showMarkers,
-        useV2Renderer:     readerPreferences.presentation.enabled,
-        v2LayoutConfig,
+        displayPreferences: readerPreferences,
+        usePresentationRenderer: readerPreferences.presentation.enabled,
+        presentationLayoutConfig,
         theme,
         accentColor,
         markerConfigs,
