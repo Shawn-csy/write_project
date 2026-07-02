@@ -24,14 +24,23 @@ or a recognized AI bot User-Agent (GPTBot, ClaudeBot, Google-Extended, Anthropic
 The public site URL (https://open-scripts.shawnup.com/read/{script_id}) routes through Next.js and returns HTML.
 Prefer /api/public-scripts/{script_id}/raw for reliable raw content access.
 
-## Discovery
+## Machine Discovery
 
+- API catalog: [/.well-known/api-catalog](https://open-scripts.shawnup.com/.well-known/api-catalog) — application/linkset+json
 - Sitemap: [sitemap.xml](https://open-scripts.shawnup.com/sitemap.xml)
+- This file: [/llms.txt](https://open-scripts.shawnup.com/llms.txt) and [/.well-known/llms.txt](https://open-scripts.shawnup.com/.well-known/llms.txt)
+
+## Public URL Patterns
+
 - Script page: https://open-scripts.shawnup.com/read/{script_id}
 - Author page: https://open-scripts.shawnup.com/author/{author_id}
 - Organization page: https://open-scripts.shawnup.com/org/{org_id}
 - Series page: https://open-scripts.shawnup.com/series/{series_name}
 - Tag page: https://open-scripts.shawnup.com/tag/{tag_name}
+
+## Unsupported Protocols
+
+OAuth, OIDC, MCP, WebMCP, agent skills, and commerce discovery are not currently exposed.
 
 ## Notes
 

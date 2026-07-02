@@ -40,6 +40,31 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async headers() {
+    const discoveryLinks = [
+      '</llms.txt>; rel="service-doc"; type="text/plain"',
+      '</.well-known/llms.txt>; rel="service-doc"; type="text/plain"',
+      '</.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+json"',
+      '</sitemap.xml>; rel="sitemap"; type="application/xml"',
+    ].join(", ");
+    const publicRoutes = [
+      "/",
+      "/read/:path*",
+      "/author/:path*",
+      "/org/:path*",
+      "/series/:path*",
+      "/tag/:path*",
+      "/about",
+      "/help",
+      "/license",
+      "/privacy",
+      "/terms",
+    ];
+    return publicRoutes.map((source) => ({
+      source,
+      headers: [{ key: "Link", value: discoveryLinks }],
+    }));
+  },
   images: {
     // Backend runs on Docker-internal network (private IP). next/image blocks
     // private IPs by default; allow them since this is trusted infra.
