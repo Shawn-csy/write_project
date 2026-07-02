@@ -11,10 +11,16 @@ curl -sI https://open-scripts.shawnup.com/favicon.ico | head -5
 Expected: `HTTP/2 200`, `content-type: image/x-icon` (or `image/vnd.microsoft.icon`).
 
 ```bash
+curl -sI https://open-scripts.shawnup.com/favicon.svg | head -5
+```
+
+Expected: `HTTP/2 200`, `content-type: image/svg+xml`.
+
+```bash
 curl -sI https://open-scripts.shawnup.com/apple-touch-icon.png | head -5
 ```
 
-Expected: `HTTP/2 200` when `apps/public/app/apple-icon.png` exists; `404` is acceptable until the file is added.
+Expected: `HTTP/2 200`, `content-type: image/png`.
 
 ## 2. robots.txt
 

@@ -18,7 +18,7 @@ import {
   toOrgLike,
 } from "@/lib/galleryProjection";
 import { useGalleryUrlState } from "./useGalleryUrlState";
-import type { GalleryView, GalleryViewMode, GalleryLaneMode } from "./useGalleryUrlState";
+import type { GalleryView, GalleryViewMode, GalleryLaneMode, PublicHomepageUrlState } from "./useGalleryUrlState";
 import { arePublicScriptsEquivalent, areHeroSlidesEquivalent } from "@/lib/refreshDiff";
 
 export type { GalleryView, GalleryViewMode, GalleryLaneMode, PublicHomepageModel };
@@ -26,13 +26,15 @@ export type { GalleryView, GalleryViewMode, GalleryLaneMode, PublicHomepageModel
 interface UseGalleryControllerOptions {
   initialScripts: PublicScript[];
   initialBannerSlides?: HeroSlide[];
+  initialUrlState: PublicHomepageUrlState;
 }
 
 export function useGalleryController({
   initialScripts,
   initialBannerSlides,
+  initialUrlState,
 }: UseGalleryControllerOptions) {
-  const { state: urlState, actions: urlActions } = useGalleryUrlState();
+  const { state: urlState, actions: urlActions } = useGalleryUrlState(initialUrlState);
 
   // ── Server data ────────────────────────────────────────────────────────────
   const [rawScripts, setRawScripts] = useState<PublicScript[]>(initialScripts);
