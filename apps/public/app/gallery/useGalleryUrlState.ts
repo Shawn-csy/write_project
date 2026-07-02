@@ -1,9 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
-  parseGalleryUrlState,
   serializeGalleryUrlState,
   mergeGalleryUrlState,
   type PublicHomepageUrlState,
@@ -28,15 +26,13 @@ export interface GalleryUrlStateActions {
   resetOrgTags: () => void;
 }
 
-export function useGalleryUrlState(): {
+export function useGalleryUrlState(initialState: PublicHomepageUrlState): {
   state: PublicHomepageUrlState;
   actions: GalleryUrlStateActions;
 } {
-  const searchParams = useSearchParams();
-  const state = useMemo(
-    () => parseGalleryUrlState(searchParams.toString()),
-    [searchParams]
-  );
+  // Initial state comes from server-parsed searchParams (page.tsx).
+  // Subsequent URL changes use history.pushState/replaceState; no useSearchParams() needed.
+  const [state, setClientState] = useState(initialState);
 
   // Always points to the latest effective state. It is updated optimistically
   // after history writes so rapid consecutive clicks merge against the latest
@@ -53,8 +49,9 @@ export function useGalleryUrlState(): {
       const url = qs ? `/?${qs}` : "/";
 
       // Homepage filters are client-owned URL state, not route navigation.
-      // Native History API keeps interactions synchronous and still integrates
-      // with Next's useSearchParams, avoiding App Router transition stalls.
+      // Native History API keeps interactions synchronous, avoiding App Router
+      // transition stalls. React state is updated alongside so the component
+      // re-renders without depending on useSearchParams().
       if (typeof window === "undefined") return;
       const currentUrl = `${window.location.pathname}${window.location.search}`;
       if (currentUrl === url) return;
@@ -64,6 +61,7 @@ export function useGalleryUrlState(): {
         window.history.pushState(null, "", url);
       }
       stateRef.current = next;
+      setClientState(next);
     },
     []
   );

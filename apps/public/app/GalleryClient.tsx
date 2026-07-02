@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, lazy, Suspense } from "react";
+import { useMemo, useState, useEffect, lazy, Suspense } from "react";
 import type { PublicScript } from "@/lib/types";
 import {
   PublicHeroMarquee,
@@ -23,11 +23,15 @@ import { GalleryBrandHeroSlide } from "./gallery/GalleryBrandHeroSlide";
 import { buildHomepageHeroSlides } from "./gallery/homepageHeroModel";
 import { useGalleryController } from "./gallery/useGalleryController";
 import { useGalleryLayoutState } from "./gallery/useGalleryLayoutState";
+import type { PublicHomepageUrlState } from "./gallery/useGalleryUrlState";
 
 interface Props {
   initialScripts: PublicScript[];
   initialBannerSlides?: HeroSlide[];
   showBrandHero?: boolean;
+  initialUrlState: PublicHomepageUrlState;
+  /** SSR card grid — shown before hydration, hidden once client mounts. */
+  children?: React.ReactNode;
 }
 
 // Module-level stable references — no re-creation on render.
@@ -46,7 +50,7 @@ const heroSlideContentRenderer: HeroSlideContentRenderer = (slide, _index, defau
   return defaultContent;
 };
 
-export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHero = true }: Props) {
+export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHero = true, initialUrlState, children }: Props) {
   const {
     tab,
     setTab,
@@ -74,11 +78,14 @@ export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHe
     onToggleOrgTag,
     onResetAuthorTags,
     onResetOrgTags,
-  } = useGalleryController({ initialScripts, initialBannerSlides });
+  } = useGalleryController({ initialScripts, initialBannerSlides, initialUrlState });
 
   const { view, resultCount, hasFilters } = homepageModel;
   const { sidebarCollapsed, setSidebarCollapsed } = useGalleryLayoutState();
   const [showList, setShowList] = useState(false);
+  // Hide the SSR static grid once client has mounted and taken over.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => { setHydrated(true); }, []);
 
   const activeFilterCount = homepageModel.filterChips.length;
   const heroSlides = useMemo(
@@ -88,6 +95,16 @@ export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHe
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* SSR static card grid — always server-rendered so Googlebot sees /read/ links.
+          Visually hidden once client hydrates and the interactive gallery takes over. */}
+      {children && (
+        <div
+          aria-hidden={hydrated}
+          className={hydrated ? "hidden" : "px-4 sm:px-5 lg:px-8 py-6"}
+        >
+          {children}
+        </div>
+      )}
       <GalleryTopBar
         activeTab={tab}
         onTabChange={setTab}

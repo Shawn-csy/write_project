@@ -1,24 +1,13 @@
 import React from "react";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useSearchParams } from "next/navigation";
 import { useGalleryUrlState } from "./useGalleryUrlState";
-
-vi.mock("next/navigation", () => ({
-  useSearchParams: vi.fn(),
-}));
-
-const mockedUseSearchParams = vi.mocked(useSearchParams);
-
-function setSearch(search: string) {
-  mockedUseSearchParams.mockReturnValue(new URLSearchParams(search) as ReturnType<typeof useSearchParams>);
-  window.history.replaceState(null, "", search ? `/?${search}` : "/");
-}
+import { DEFAULT_URL_STATE } from "@write/public-ui";
 
 describe("useGalleryUrlState", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    setSearch("");
+    window.history.replaceState(null, "", "/");
   });
 
   afterEach(() => {
@@ -28,7 +17,7 @@ describe("useGalleryUrlState", () => {
   it("updates segment with native history.pushState, not App Router navigation", () => {
     const pushSpy = vi.spyOn(window.history, "pushState");
     const replaceSpy = vi.spyOn(window.history, "replaceState");
-    const { result } = renderHook(() => useGalleryUrlState());
+    const { result } = renderHook(() => useGalleryUrlState(DEFAULT_URL_STATE));
 
     act(() => result.current.actions.setSegment("female"));
 
@@ -39,7 +28,7 @@ describe("useGalleryUrlState", () => {
   it("updates search with native history.replaceState so typing does not create history entries", () => {
     const pushSpy = vi.spyOn(window.history, "pushState");
     const replaceSpy = vi.spyOn(window.history, "replaceState");
-    const { result } = renderHook(() => useGalleryUrlState());
+    const { result } = renderHook(() => useGalleryUrlState(DEFAULT_URL_STATE));
 
     act(() => result.current.actions.setQ("hello"));
 
@@ -48,9 +37,9 @@ describe("useGalleryUrlState", () => {
   });
 
   it("does not write duplicate history entries for the current URL", () => {
-    setSearch("segment=female");
+    window.history.replaceState(null, "", "/?segment=female");
     const pushSpy = vi.spyOn(window.history, "pushState");
-    const { result } = renderHook(() => useGalleryUrlState());
+    const { result } = renderHook(() => useGalleryUrlState({ ...DEFAULT_URL_STATE, segment: "female" }));
 
     act(() => result.current.actions.setSegment("female"));
 
@@ -59,7 +48,7 @@ describe("useGalleryUrlState", () => {
 
   it("merges rapid consecutive updates against the latest intended URL", () => {
     const pushSpy = vi.spyOn(window.history, "pushState");
-    const { result } = renderHook(() => useGalleryUrlState());
+    const { result } = renderHook(() => useGalleryUrlState(DEFAULT_URL_STATE));
 
     act(() => {
       result.current.actions.setSegment("female");
