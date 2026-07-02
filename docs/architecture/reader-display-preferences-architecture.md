@@ -376,10 +376,10 @@ Capability-aware gating:
 - `AppearanceSettings` gates the `showLineUnderline` toggle at config level: when `usePresentationRenderer=true` and `presentationLayoutConfig.renderMode === "timeline"`, the button is `aria-disabled`, `cursor-not-allowed`, and click has no effect.
 - `lineGuideUnsupported` i18n key added (zh-TW, en, ja) for the `title` tooltip on the disabled button.
 - Tests: `AppearanceSettings.test.tsx` (6 tests — enabled/disabled states, click suppression, aria-pressed when gated).
-- Known limitation: `LayoutRenderMode = "columns" | "timeline"` — linear is not a user config value. Mobile viewports auto-switch to linear via `ScriptPresentationRenderer mode="auto"` at runtime. That runtime effective mode is not reflected in the settings gating. Runtime gating for auto-linear would require a cross-cutting mode signal (e.g. from `ScriptViewer` via context or callback) and is deferred.
+- `useIsMobileViewport` extracted from `ScriptPresentationRenderer` internals into `packages/script-reader-renderer/src/presentation/useIsMobileViewport.ts`, exported from the package barrel. Used by both `ScriptPresentationRenderer` (refactored to import it) and `AppearanceSettings`.
+- Effective mode = `isMobileViewport ? "linear" : presentationLayoutConfig.renderMode`. Mobile viewport (auto-linear) is now gated alongside configured-timeline.
+- Tests: 2 new tests in `AppearanceSettings.test.tsx` — mobile viewport disables toggle even when config is columns; click suppressed on mobile.
 
 ## Recommended Next Step
 
-All planned implementation phases complete. One deferred enhancement remains open:
-
-- **Runtime auto-linear gating**: `AppearanceSettings` gates `showLineUnderline` at config level only (timeline config). Mobile viewports auto-switch to linear at runtime via `ScriptPresentationRenderer mode="auto"`, which is not reflected in the settings toggle. Gating the auto-linear case requires a cross-cutting runtime mode signal (e.g. from `ScriptViewer` via context or callback) not yet implemented.
+All planned implementation phases complete. No open implementation tasks.

@@ -1,4 +1,4 @@
-import React, { useMemo, useSyncExternalStore } from 'react';
+import React, { useMemo } from 'react';
 import { buildPresentationDocumentFromAst } from './astAdapter';
 import { cloneDefaultLayoutConfig } from './defaultLayoutConfig';
 import { normalizeLayoutConfig } from './layoutConfig';
@@ -11,25 +11,7 @@ import { ColumnsPresentationRenderer } from './ColumnsPresentationRenderer';
 import { TimelinePresentationRenderer } from './TimelinePresentationRenderer';
 import { LinearPresentationRenderer } from './LinearPresentationRenderer';
 import { useMarkerTooltip } from '../useMarkerTooltip';
-
-const MOBILE_QUERY = '(max-width: 767px)';
-
-const subscribeToMobileViewport = (onStoreChange: () => void) => {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => {};
-  const media = window.matchMedia(MOBILE_QUERY);
-  if (typeof media.addEventListener === 'function') {
-    media.addEventListener('change', onStoreChange);
-    return () => media.removeEventListener('change', onStoreChange);
-  }
-  media.addListener?.(onStoreChange);
-  return () => media.removeListener?.(onStoreChange);
-};
-
-const getMobileViewportSnapshot = () => {
-  if (typeof window === 'undefined') return false;
-  if (typeof window.matchMedia === 'function') return window.matchMedia(MOBILE_QUERY).matches;
-  return window.innerWidth < 768;
-};
+import { useIsMobileViewport } from './useIsMobileViewport';
 
 export type PresentationMode = 'auto' | 'columns' | 'timeline' | 'linear';
 
@@ -64,11 +46,7 @@ export const ScriptPresentationRenderer = ({
   const { markerTooltip, markerTooltipStyle, handlePointerMove, handlePointerLeave } =
     useMarkerTooltip(markerConfigs, markerTooltipPrefix);
 
-  const isMobileViewport = useSyncExternalStore(
-    subscribeToMobileViewport,
-    getMobileViewportSnapshot,
-    () => false
-  );
+  const isMobileViewport = useIsMobileViewport();
   const effectiveDoc = useMemo(() => {
     if (document) return document;
     const effectiveLayoutConfig = applyMarkerSemanticRoutes(
