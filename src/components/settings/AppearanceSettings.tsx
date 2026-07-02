@@ -11,6 +11,7 @@ import { cn } from "../../lib/utils";
 import { PublisherFormRow } from "../dashboard/publisher/PublisherFormRow";
 import { READING_FONT_OPTIONS, UI_FONT_OPTIONS, resolveReadingFontStack } from "../../constants/readingFonts";
 import { SettingsSectionCard } from "./SettingsSectionCard";
+import { useIsMobileViewport } from "@write/script-reader-renderer";
 
 interface AppearanceSettingsProps {
   sectionRef?: React.Ref<HTMLDivElement>;
@@ -35,16 +36,15 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
     presentationLayoutConfig,
   } = useSettings();
 
-  // showLineUnderline is supported in the columns presentation mode and in
+  const isMobileViewport = useIsMobileViewport();
+
+  // showLineUnderline is supported only in the columns presentation mode and in
   // the legacy/render-block renderer branches.
-  // Config-level gating: when the presentation renderer is configured to timeline
-  // mode, the setting has no effect and is disabled here.
-  // Note: mobile viewports auto-switch to linear mode at runtime regardless of
-  // this config (ScriptPresentationRenderer mode="auto"). That runtime switch is
-  // not reflected here — gating is config-level only. Linear is not a user-selectable
-  // config value (LayoutRenderMode = "columns" | "timeline"), so no gating is possible
-  // for the auto-linear case without a runtime mode signal.
-  const lineGuideSupported = !usePresentationRenderer || presentationLayoutConfig.renderMode === "columns";
+  // Effective mode accounts for mobile auto-linear: when the viewport is narrow,
+  // ScriptPresentationRenderer (mode="auto") switches to linear regardless of
+  // presentationLayoutConfig.renderMode. In that case the setting has no effect.
+  const effectivePresentationMode = isMobileViewport ? "linear" : presentationLayoutConfig.renderMode;
+  const lineGuideSupported = !usePresentationRenderer || effectivePresentationMode === "columns";
 
   const [showAdvancedFont, setShowAdvancedFont] = useState(false);
 

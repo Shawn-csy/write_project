@@ -2,16 +2,13 @@
  * AppearanceSettings — Phase 6 QA contract tests.
  *
  * Covers capability-aware gating: showLineUnderline toggle is disabled when
- * the presentation renderer is configured to timeline mode (unsupported per
- * the capability matrix). It remains enabled for columns mode and for
+ * the effective presentation renderer mode is timeline or linear (unsupported
+ * per the capability matrix). It remains enabled for columns mode and for
  * non-presentation renderer branches.
  *
- * Gating is config-level only (presentationLayoutConfig.renderMode).
- * LayoutRenderMode = "columns" | "timeline" — "linear" is not a user-selectable
- * config value. Mobile viewports auto-switch to linear at runtime via
- * ScriptPresentationRenderer mode="auto", which is not reflected in settings.
- * Runtime-mode gating for auto-linear would require a separate cross-cutting
- * signal and is out of scope here.
+ * Effective mode = mobile viewport auto-linear takes precedence over config
+ * renderMode. useIsMobileViewport (from @write/script-reader-renderer) is mocked
+ * here to simulate both desktop and mobile conditions.
  */
 
 import React from "react";
@@ -116,11 +113,19 @@ vi.mock("../../contexts/SettingsContext", () => ({
   useSettings: vi.fn(),
 }));
 
+vi.mock("@write/script-reader-renderer", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@write/script-reader-renderer")>();
+  return { ...actual, useIsMobileViewport: vi.fn(() => false) };
+});
+
 import { useSettings } from "../../contexts/SettingsContext";
+import { useIsMobileViewport } from "@write/script-reader-renderer";
 const mockUseSettings = vi.mocked(useSettings);
+const mockUseIsMobileViewport = vi.mocked(useIsMobileViewport);
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockUseIsMobileViewport.mockReturnValue(false);
 });
 
 describe("AppearanceSettings — Phase 6 capability gating", () => {
@@ -168,5 +173,23 @@ describe("AppearanceSettings — Phase 6 capability gating", () => {
     render(<AppearanceSettings />);
     const btn = screen.getByRole("button", { name: /appearance\.lineGuide/ });
     expect(btn).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("line guide toggle is disabled on mobile viewport even when config renderMode is columns (auto-linear)", () => {
+    mockUseIsMobileViewport.mockReturnValue(true);
+    mockUseSettings.mockReturnValue(makeSettings({ usePresentationRenderer: true, renderMode: "columns" }) as ReturnType<typeof useSettings>);
+    render(<AppearanceSettings />);
+    const btn = screen.getByRole("button", { name: /appearance\.lineGuide/ });
+    expect(btn).toHaveAttribute("aria-disabled", "true");
+    expect(btn).toHaveClass("cursor-not-allowed");
+  });
+
+  it("clicking line guide toggle on mobile viewport does not call setShowLineUnderline", async () => {
+    mockUseIsMobileViewport.mockReturnValue(true);
+    mockUseSettings.mockReturnValue(makeSettings({ usePresentationRenderer: true, renderMode: "columns" }) as ReturnType<typeof useSettings>);
+    render(<AppearanceSettings />);
+    const btn = screen.getByRole("button", { name: /appearance\.lineGuide/ });
+    await userEvent.click(btn);
+    expect(mockSetShowLineUnderline).not.toHaveBeenCalled();
   });
 });

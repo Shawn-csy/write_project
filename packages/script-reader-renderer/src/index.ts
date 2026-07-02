@@ -6,6 +6,7 @@ export {
   ScriptPresentationRenderer,
   type PresentationMode,
 } from "./presentation/ScriptPresentationRenderer";
+export { useIsMobileViewport } from "./presentation/useIsMobileViewport";
 export { ColumnsPresentationRenderer } from "./presentation/ColumnsPresentationRenderer";
 export { LinearPresentationRenderer } from "./presentation/LinearPresentationRenderer";
 export { TimelinePresentationRenderer } from "./presentation/TimelinePresentationRenderer";
