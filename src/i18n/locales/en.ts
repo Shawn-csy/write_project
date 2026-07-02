@@ -1615,6 +1615,7 @@ const messages = {
     "desktopScale": "Desktop UI Scale",
     "desktopScaleDesc": "Desktop-only. Increase overall interface text size.",
     "lineGuide": "Line Guide",
+    "lineGuideUnsupported": "Line guide is not supported in the current layout mode",
     "multiTrackRenderer": "Multi-Column Mode",
     "trackConfigTitle": "Column layout",
     "trackConfigDesc": "Define column order and width ratios for multi-column rendering.",

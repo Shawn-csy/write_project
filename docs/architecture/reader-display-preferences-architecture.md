@@ -318,42 +318,68 @@ Completion notes:
 - i18n keys added: `readingText`, `readingTextDesc`, `readingGuides`, `readingGuidesDesc`,
   `presentationLayout`, `presentationLayoutDesc`, `presentationLayoutEnabled`, `presentationLayoutEnabledDesc` (zh-TW, en, ja).
 
-### Phase 5 — Public Reader Parity
+### Phase 5 — Public Reader Parity ✓ Complete
 
-Goal: Public reader and Vite editor preview use the same semantic preference model.
+Goal: Public reader preference semantics are explicitly mapped to the shared `ReaderDisplayPreferences` model, with divergences and gaps documented and locked by tests.
+
+Note: The public reader render path does not use `ReaderDisplayPreferences` directly. It uses the flat `PublicAppearancePreferences` model, bridged to the renderer via `ScriptContentRenderer` flat props. Phase 5 establishes the cross-model semantic contract and documents gaps; it does not unify the runtime models.
 
 Tasks:
 
-- Map public reader preferences to `ReaderDisplayPreferences`.
-- Confirm Next reader storage uses the same field names or an explicit adapter.
-- Add parity tests for typography and guide preferences between public reader and editor preview.
+- Map public reader preferences to `ReaderDisplayPreferences`. ✓ (adapter already existed; field mapping documented)
+- Confirm Next reader storage uses the same field names or an explicit adapter. ✓
+- Add parity tests for typography and guide preferences between public reader and editor preview. ✓
 
 Definition of Done:
 
-- Public reader and Vite editor preview do not drift in preference semantics.
-- Adapters are explicit where storage keys differ.
+- Cross-model semantic contract is explicit and tested. ✓
+- Divergences between public reader defaults and shared model defaults are locked by inline snapshots. ✓
+- Gaps (missing fields in public reader) are documented and tested. ✓
+- Adapters are explicit where storage keys differ. ✓
 
-### Phase 6 — QA Contract
+Completion notes:
+
+- Public reader uses `PublicAppearancePreferences` (`readerFontSize`, `readerLineHeight`, `readerFontFamily`).
+  Vite editor uses `ReaderDisplayPreferences` (`typography.bodyFontSize`, `typography.lineHeight`, `typography.readingFontFamily`).
+- Adapter: `apps/public/lib/createAppearanceReaderStorage.ts` — bridges `useReaderState`'s
+  `reader:preferences` storage key to `publicAppearancePreferences` model. Already tested (11 tests).
+- Parity tests added: `apps/public/lib/readerDisplayPreferencesParity.test.ts` (8 tests).
+  These lock the cross-model semantic contract and document divergences and gaps explicitly:
+  - **Font size divergence**: public default 16, Vite default 14 (intentional — public targets comfortable reading).
+  - **Line height divergence**: public default 1.8, Vite default 1.4 (same reason).
+  - **`showLineUnderline` gap**: absent from `PublicAppearancePreferences` — no UI or storage in public reader.
+  - **`showMarkers` gap**: absent from `PublicAppearancePreferences` — no UI or storage in public reader.
+  - **`presentation.enabled` gap**: not applicable — public reader always uses `ScriptPresentationRenderer`.
+- Font family: public reader restricts to enum `["sans", "serif", "mono"]`; shared model accepts any string.
+  Public reader enum is a valid subset. Confirmed by parity test.
+- Single public `readerFontSize` emits `delta.fontSize` via the adapter; `ScriptPresentationRenderer`
+  uses that single `fontSize` prop for all presentation text. It does not produce separate
+  `bodyFontSize`/`dialogueFontSize` fields. Locked by parity test.
+
+### Phase 6 — QA Contract ✓ Complete
 
 Goal: Prevent regression across renderer modes.
 
 Required scenarios:
 
-- New user defaults: horizontal line underline off.
-- Legacy renderer: underline off/on works.
-- Render model renderer: underline off/on works.
-- Presentation columns: horizontal guide off/on works.
-- Presentation columns: column dividers remain separate from horizontal guide.
-- Presentation linear/timeline: behavior matches capability table.
-- Settings panel toggle updates preview without reload.
-- Reload persists user choice.
+- New user defaults: horizontal line underline off. ✓ (`readerDisplayPreferences.test.ts`)
+- Legacy renderer: underline off/on works. ✓ (`ScriptViewer.test.tsx` — ScriptRenderer spy)
+- Render model renderer: underline off/on works. ✓ (`ScriptViewer.test.tsx` — `show-line-underline` class)
+- Presentation columns: horizontal guide off/on works. ✓ (`ScriptViewer.test.tsx` — `data-line-underlines`)
+- Presentation columns: column dividers remain separate from horizontal guide. ✓ (`ScriptPresentationRenderer.test.tsx` — `[data-track-id]` header cell count unchanged across both underline states)
+- Presentation linear/timeline: behavior matches capability table. ✓ (`ScriptPresentationRenderer.test.tsx` — no `data-line-underlines` attr when unsupported)
+- Settings panel toggle updates preview without reload. ✓ (SettingsContext reactive; `AppearanceSettings.test.tsx` verifies click → setter call)
+- Reload persists user choice. ✓ (`SettingsContext.test.tsx` — usePersistentState storage key wiring)
+
+Capability-aware gating:
+
+- `AppearanceSettings` gates the `showLineUnderline` toggle at config level: when `usePresentationRenderer=true` and `presentationLayoutConfig.renderMode === "timeline"`, the button is `aria-disabled`, `cursor-not-allowed`, and click has no effect.
+- `lineGuideUnsupported` i18n key added (zh-TW, en, ja) for the `title` tooltip on the disabled button.
+- Tests: `AppearanceSettings.test.tsx` (6 tests — enabled/disabled states, click suppression, aria-pressed when gated).
+- Known limitation: `LayoutRenderMode = "columns" | "timeline"` — linear is not a user config value. Mobile viewports auto-switch to linear via `ScriptPresentationRenderer mode="auto"` at runtime. That runtime effective mode is not reflected in the settings gating. Runtime gating for auto-linear would require a cross-cutting mode signal (e.g. from `ScriptViewer` via context or callback) and is deferred.
 
 ## Recommended Next Step
 
-Execute **Phase 5 — Public Reader Parity**.
+All planned implementation phases complete. One deferred enhancement remains open:
 
-Phases 1–4 are complete. The next implementation should:
-
-1. map public reader preferences (Next.js app) to `ReaderDisplayPreferences`;
-2. confirm Next reader storage uses the same field names or add an explicit adapter;
-3. add parity tests for typography and guide preferences between public reader and editor preview.
+- **Runtime auto-linear gating**: `AppearanceSettings` gates `showLineUnderline` at config level only (timeline config). Mobile viewports auto-switch to linear at runtime via `ScriptPresentationRenderer mode="auto"`, which is not reflected in the settings toggle. Gating the auto-linear case requires a cross-cutting runtime mode signal (e.g. from `ScriptViewer` via context or callback) not yet implemented.

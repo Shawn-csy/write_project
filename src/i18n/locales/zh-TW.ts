@@ -1615,6 +1615,7 @@ const messages = {
     "desktopScale": "桌面字體倍率",
     "desktopScaleDesc": "僅在桌面版生效，用於放大整體介面文字。",
     "lineGuide": "行底線輔助",
+    "lineGuideUnsupported": "目前版面模式不支援行底線輔助",
     "multiTrackRenderer": "多欄模式",
     "trackConfigTitle": "欄位版面配置",
     "trackConfigDesc": "定義分欄渲染的欄位順序與寬度比例。",
