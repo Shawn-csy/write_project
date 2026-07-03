@@ -7,6 +7,7 @@ import { RangeNode } from './nodes/RangeNode';
 import { parseInline } from '@write/script-engine';
 import type { MarkerConfig } from '../../types/script';
 import type { MarkerConfigLike, InlineNodeLike } from '../../types/renderer';
+import { getRendererNodeKey } from './rendererNodeKey';
 
 export interface RendererNode {
   type: string;
@@ -50,14 +51,6 @@ export interface NodeRenderContext {
   whitespaceLabels: Record<string, string>;
   markerTooltipPrefix: string | null;
 }
-
-// Stable sibling key: prefer node id, then source line; index only as tiebreak/fallback.
-// Keeps React reconciliation from remounting every sibling after an insertion.
-const nodeKey = (node: RendererNode, i: number): string => {
-  if (node.id) return `id-${node.id}`;
-  const line = node.lineStart ?? node.line;
-  return typeof line === "number" ? `L${line}-${node.type}` : `i-${i}`;
-};
 
 const CHARACTER_COLOR_SEQUENCE = [
   'var(--marker-color-russet)',
@@ -170,7 +163,7 @@ export const NodeRenderer = React.memo(function NodeRenderer({
 
   switch (node.type) {
     case 'root':
-      return <>{(node.children || []).map((child, i) => <NodeRenderer key={nodeKey(child, i)} node={child} context={context} />)}</>;
+      return <>{(node.children || []).map((child, i) => <NodeRenderer key={getRendererNodeKey(child, i)} node={child} context={context} />)}</>;
 
     case 'range':
       return (
