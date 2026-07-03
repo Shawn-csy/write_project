@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { apiFetch } from "@/lib/api";
 import type { PublicScript } from "@/lib/types";
 import { GalleryClient } from "./GalleryClient";
-import { GalleryServerContent } from "./gallery/GalleryServerContent";
 import type { HeroSlide } from "@write/public-ui/server";
 import { parseBannerSlides, parseGalleryUrlState } from "@write/public-ui/server";
 import { BASE_URL, PRODUCT_NAME, SITE_NAME, SITE_TITLE, SITE_DESCRIPTION, DEFAULT_OG_IMAGE_URL, pickPreviewImage } from "@/lib/seo";
@@ -119,9 +118,7 @@ export default async function HomePage({
         initialBannerSlides={bannerSlides}
         showBrandHero={showBrandHero}
         initialUrlState={initialUrlState}
-      >
-        <GalleryServerContent scripts={initialScripts} />
-      </GalleryClient>
+      />
     </>
   );
 }
