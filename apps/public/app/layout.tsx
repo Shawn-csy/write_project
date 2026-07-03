@@ -6,6 +6,13 @@ import { SITE_DESCRIPTION, SITE_TITLE } from "@/lib/seo";
 export const metadata: Metadata = {
   title: SITE_TITLE,
   description: SITE_DESCRIPTION,
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_BASE_URL?.startsWith("http")
       ? process.env.NEXT_PUBLIC_BASE_URL
