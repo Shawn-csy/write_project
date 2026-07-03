@@ -4,6 +4,10 @@ import { render, screen } from "@testing-library/react";
 
 vi.mock("@/lib/seo", () => ({ SITE_BRAND_NAME: "泛用型產品作坊" }));
 
+vi.mock("@/components/PublicFooter", () => ({
+  PublicFooter: () => <footer data-testid="public-footer" />,
+}));
+
 vi.mock("next/link", () => ({
   default: ({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) => (
     <a href={href} className={className}>{children}</a>
@@ -59,11 +63,15 @@ describe("PublicInfoPageShell", () => {
     expect(aboutLink.getAttribute("href")).toBe("/about");
   });
 
-  it("omits footer when no relatedLinks", () => {
-    const { container } = render(
-      <PublicInfoPageShell title="T"><p>c</p></PublicInfoPageShell>
-    );
-    expect(container.querySelector("footer")).toBeNull();
+  it("omits relatedLinks block when not provided", () => {
+    const { container } = render(<PublicInfoPageShell title="T"><p>c</p></PublicInfoPageShell>);
+    // No underline-styled link (the class used only in relatedLinks)
+    expect(container.querySelector("a.underline")).toBeNull();
+  });
+
+  it("always renders PublicFooter", () => {
+    render(<PublicInfoPageShell title="T"><p>c</p></PublicInfoPageShell>);
+    expect(document.querySelector("[data-testid='public-footer']")).not.toBeNull();
   });
 
   it("brand link points to home", () => {

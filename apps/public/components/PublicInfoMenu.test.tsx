@@ -27,15 +27,21 @@ describe("PublicInfoMenu", () => {
     expect(btn.className).toContain("w-11");
   });
 
-  it("renders all five links after open", async () => {
+  it("renders help and license links after open", async () => {
     const user = userEvent.setup();
     render(<PublicInfoMenu />);
     await user.click(screen.getByRole("button", { name: "說明與平台資訊" }));
     expect(screen.getByRole("link", { name: /使用說明/ })).toBeTruthy();
     expect(screen.getByRole("link", { name: /授權說明/ })).toBeTruthy();
-    expect(screen.getByRole("link", { name: /關於我們/ })).toBeTruthy();
-    expect(screen.getByRole("link", { name: /隱私政策/ })).toBeTruthy();
-    expect(screen.getByRole("link", { name: /使用條款/ })).toBeTruthy();
+  });
+
+  it("does not render about/privacy/terms links (moved to footer)", async () => {
+    const user = userEvent.setup();
+    render(<PublicInfoMenu />);
+    await user.click(screen.getByRole("button", { name: "說明與平台資訊" }));
+    expect(screen.queryByRole("link", { name: /關於我們/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /隱私政策/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /使用條款/ })).toBeNull();
   });
 
   it("link hrefs are correct", async () => {
@@ -44,29 +50,17 @@ describe("PublicInfoMenu", () => {
     await user.click(screen.getByRole("button", { name: "說明與平台資訊" }));
     expect(screen.getByRole("link", { name: /使用說明/ }).getAttribute("href")).toBe("/help");
     expect(screen.getByRole("link", { name: /授權說明/ }).getAttribute("href")).toBe("/license");
-    expect(screen.getByRole("link", { name: /關於我們/ }).getAttribute("href")).toBe("/about");
-    expect(screen.getByRole("link", { name: /隱私政策/ }).getAttribute("href")).toBe("/privacy");
-    expect(screen.getByRole("link", { name: /使用條款/ }).getAttribute("href")).toBe("/terms");
   });
 
-  it("each top-level link has a description", async () => {
+  it("each link has a description", async () => {
     const user = userEvent.setup();
     render(<PublicInfoMenu />);
     await user.click(screen.getByRole("button", { name: "說明與平台資訊" }));
     expect(screen.getByText("閱讀、發布與工作室操作")).toBeTruthy();
     expect(screen.getByText("台本使用、改作與商業使用規則")).toBeTruthy();
-    expect(screen.getByText("平台理念與聯絡方式")).toBeTruthy();
   });
 
-  it("each policy link has a description", async () => {
-    const user = userEvent.setup();
-    render(<PublicInfoMenu />);
-    await user.click(screen.getByRole("button", { name: "說明與平台資訊" }));
-    expect(screen.getByText("資料使用與 Google API 說明")).toBeTruthy();
-    expect(screen.getByText("平台使用規範")).toBeTruthy();
-  });
-
-  it("order: 使用說明 → 授權說明 → 關於我們 → 隱私政策 → 使用條款", async () => {
+  it("order: 使用說明 → 授權說明", async () => {
     const user = userEvent.setup();
     render(<PublicInfoMenu />);
     await user.click(screen.getByRole("button", { name: "說明與平台資訊" }));
@@ -74,16 +68,13 @@ describe("PublicInfoMenu", () => {
     const labels = links.map((el) => el.textContent ?? "");
     const idx = (text: string) => labels.findIndex((l) => l.includes(text));
     expect(idx("使用說明")).toBeLessThan(idx("授權說明"));
-    expect(idx("授權說明")).toBeLessThan(idx("關於我們"));
-    expect(idx("關於我們")).toBeLessThan(idx("隱私政策"));
-    expect(idx("隱私政策")).toBeLessThan(idx("使用條款"));
   });
 
-  it("has separator between groups", async () => {
+  it("no separator between groups", async () => {
     const user = userEvent.setup();
     render(<PublicInfoMenu />);
     await user.click(screen.getByRole("button", { name: "說明與平台資訊" }));
-    expect(document.querySelector("[data-testid='public-info-menu-separator']")).not.toBeNull();
+    expect(document.querySelector("[data-testid='public-info-menu-separator']")).toBeNull();
   });
 
   it("does not contain theme or appearance controls", async () => {

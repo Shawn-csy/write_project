@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { PublicInfoTopBar } from "@/components/info/PublicInfoTopBar";
+import { PublicFooter } from "@/components/PublicFooter";
 
 interface RelatedLink {
   href: string;
@@ -38,17 +39,18 @@ export function PublicInfoPageShell({
         {/* Content */}
         {children}
 
-        {/* Footer links */}
+        {/* Page-specific back/related links */}
         {relatedLinks && relatedLinks.length > 0 && (
-          <footer className="mt-10 pt-6 border-t border-border flex flex-wrap gap-4 text-sm text-muted-foreground">
+          <div className="mt-10 pt-6 border-t border-border flex flex-wrap gap-4 text-sm text-muted-foreground">
             {relatedLinks.map((link) => (
               <Link key={link.href} href={link.href} className="hover:text-foreground underline">
                 {link.label}
               </Link>
             ))}
-          </footer>
+          </div>
         )}
       </main>
+      <PublicFooter />
     </div>
   );
 }
