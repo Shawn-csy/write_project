@@ -4,44 +4,33 @@ import type { PublicScript } from "@/lib/types";
 import { GalleryClient } from "./GalleryClient";
 import type { HeroSlide } from "@write/public-ui/server";
 import { parseBannerSlides, parseGalleryUrlState } from "@write/public-ui/server";
-import { BASE_URL, PRODUCT_NAME, SITE_NAME, SITE_TITLE, SITE_DESCRIPTION, DEFAULT_OG_IMAGE_URL, pickPreviewImage } from "@/lib/seo";
+import { BASE_URL, PRODUCT_NAME, SITE_NAME, SITE_TITLE, SITE_DESCRIPTION, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
 import { JsonLdScript } from "@/lib/jsonLd";
 
 // Phase 2: force-dynamic prevents build-time empty homepage when backend is unavailable.
 // Switch to ISR (export const revalidate = N) only after deploy scripts revalidate / on backend health.
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata(): Promise<Metadata> {
-  // Use first banner imageUrl as the homepage OG image when available, otherwise fall back to default.
-  let ogImage = DEFAULT_OG_IMAGE_URL;
-  try {
-    const bundle = await apiFetch<{ banner?: unknown }>("/public-bundle");
-    const slides = parseBannerSlides(bundle.banner);
-    const bannerImage = slides?.find((s) => s.imageUrl)?.imageUrl;
-    if (bannerImage) ogImage = pickPreviewImage(bannerImage);
-  } catch { /* noop: metadata falls back to default OG image */ }
-
-  return {
+export const metadata: Metadata = {
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  alternates: { canonical: `${BASE_URL}/` },
+  openGraph: {
+    type: "website",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    alternates: { canonical: `${BASE_URL}/` },
-    openGraph: {
-      type: "website",
-      title: SITE_TITLE,
-      description: SITE_DESCRIPTION,
-      url: `${BASE_URL}/`,
-      siteName: SITE_NAME,
-      locale: "zh_TW",
-      images: [{ url: ogImage, alt: SITE_TITLE, width: 1200, height: 630 }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: SITE_TITLE,
-      description: SITE_DESCRIPTION,
-      images: [ogImage],
-    },
-  };
-}
+    url: `${BASE_URL}/`,
+    siteName: SITE_NAME,
+    locale: "zh_TW",
+    images: [{ url: DEFAULT_OG_IMAGE_URL, alt: SITE_TITLE, width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: [DEFAULT_OG_IMAGE_URL],
+  },
+};
 
 interface BundleResponse {
   scripts?: PublicScript[];
