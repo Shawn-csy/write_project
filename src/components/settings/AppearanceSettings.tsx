@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { Sun, Moon, Check, AlignJustify, Type, Monitor, BookOpen, Columns3 } from "lucide-react";
-import { Separator } from "../ui/separator";
+import { Sun, Moon, Check, Type, Monitor, BookOpen, Columns3 } from "lucide-react";
 import { Slider } from "../ui/slider";
 import { Input } from "../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
@@ -8,9 +7,9 @@ import { Switch } from "../ui/switch";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useI18n } from "../../contexts/I18nContext";
 import { cn } from "../../lib/utils";
-import { PublisherFormRow } from "../dashboard/publisher/PublisherFormRow";
 import { READING_FONT_OPTIONS, UI_FONT_OPTIONS, resolveReadingFontStack } from "../../constants/readingFonts";
 import { SettingsSectionCard } from "./SettingsSectionCard";
+import { SettingRow } from "./SettingRow";
 import { useIsMobileViewport } from "@write/script-reader-renderer";
 
 interface AppearanceSettingsProps {
@@ -88,171 +87,161 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
         title={t("appearance.readingText")}
         description={t("appearance.readingTextDesc")}
       >
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="space-y-5">
-              <PublisherFormRow
-                label={t("appearance.typography")}
-                className="md:grid-cols-[160px_minmax(0,1fr)]"
-              >
-                <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <span className="text-xs text-muted-foreground ml-1">{t("appearance.fontFamily")}</span>
-                    <Select value={readingFontFamily} onValueChange={setReadingFontFamily}>
-                      <SelectTrigger className="h-9 bg-background/70">
-                        <SelectValue placeholder={t("appearance.fontFamily")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {READING_FONT_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="divide-y divide-border/40">
+            <SettingRow label={t("appearance.fontFamily")}>
+              <Select value={readingFontFamily} onValueChange={setReadingFontFamily}>
+                <SelectTrigger className="h-9 w-full bg-background/70 sm:w-56">
+                  <SelectValue placeholder={t("appearance.fontFamily")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {READING_FONT_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </SettingRow>
 
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <span className="text-xs text-muted-foreground ml-1">{t("appearance.fontSize")}</span>
-                      <div className="grid grid-cols-5 gap-1 bg-muted/30 p-1 rounded-lg border border-border/40">
-                        {fontPresets.map((opt) => {
-                          const isActive = bodyFontSize === opt.value && dialogueFontSize === opt.value;
-                          return (
-                            <button
-                              key={opt.value}
-                              type="button"
-                              aria-pressed={isActive}
-                              onClick={() => setReadingSize(opt.value)}
-                              className={cn(
-                                "py-1.5 text-xs font-medium rounded-md transition-all",
-                                isActive ? "bg-background shadow-sm text-primary font-bold" : "text-muted-foreground hover:bg-background/50 hover:text-foreground"
-                              )}
-                            >
-                              {opt.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <span className="text-xs text-muted-foreground ml-1">{t("appearance.lineHeight")}</span>
-                      <div className="flex items-center gap-1 bg-muted/30 p-1 rounded-lg border border-border/40">
-                        {lineHeightOptions.map((opt) => {
-                          const isActive = Math.abs(lineHeight - opt.value) < 0.1;
-                          return (
-                            <button
-                              key={opt.value}
-                              type="button"
-                              aria-pressed={isActive}
-                              onClick={() => setReadingLineHeight(opt.value)}
-                              className={cn(
-                                "flex-1 py-1.5 text-xs font-medium rounded-md transition-all",
-                                isActive ? "bg-background shadow-sm text-primary font-bold" : "text-muted-foreground hover:bg-background/50 hover:text-foreground"
-                              )}
-                            >
-                              {opt.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowAdvancedFont(!showAdvancedFont)}
-                    className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {showAdvancedFont ? t("appearance.simple") : t("appearance.advanced")}
-                  </button>
-
-                  {showAdvancedFont && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1 animate-in fade-in slide-in-from-top-1">
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between px-1">
-                          <span className="text-[10px] text-muted-foreground">{t("appearance.body")}: {bodyFontSize}px</span>
-                          <Input
-                            type="number"
-                            value={bodyFontSize}
-                            onChange={(event) => setBodyReadingSize(Number(event.target.value))}
-                            min={8}
-                            max={72}
-                            step={1}
-                            className="h-6 w-16 px-2 text-[10px]"
-                          />
-                        </div>
-                        <Slider
-                          value={[bodyFontSize]}
-                          onValueChange={([v]) => setBodyReadingSize(v)}
-                          min={8}
-                          max={72}
-                          step={1}
-                          className="py-1"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between px-1">
-                          <span className="text-[10px] text-muted-foreground">{t("appearance.dialogue")}: {dialogueFontSize}px</span>
-                          <Input
-                            type="number"
-                            value={dialogueFontSize}
-                            onChange={(event) => setDialogueReadingSize(Number(event.target.value))}
-                            min={8}
-                            max={72}
-                            step={1}
-                            className="h-6 w-16 px-2 text-[10px]"
-                          />
-                        </div>
-                        <Slider
-                          value={[dialogueFontSize]}
-                          onValueChange={([v]) => setDialogueReadingSize(v)}
-                          min={8}
-                          max={72}
-                          step={1}
-                          className="py-1"
-                        />
-                      </div>
-                      <div className="space-y-1.5 sm:col-span-2">
-                        <div className="flex justify-between px-1">
-                          <span className="text-[10px] text-muted-foreground">{t("appearance.lineHeight")}: {lineHeight.toFixed(2)}</span>
-                          <Input
-                            type="number"
-                            value={lineHeight}
-                            onChange={(event) => setReadingLineHeight(Number(event.target.value))}
-                            min={0.9}
-                            max={2.4}
-                            step={0.05}
-                            className="h-6 w-16 px-2 text-[10px]"
-                          />
-                        </div>
-                        <Slider
-                          value={[lineHeight]}
-                          onValueChange={([v]) => setReadingLineHeight(v)}
-                          min={0.9}
-                          max={2.4}
-                          step={0.05}
-                          className="py-1"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </PublisherFormRow>
-            </div>
-
-            <div className="xl:sticky xl:top-0 h-fit rounded-lg border border-border/60 bg-background/70 p-3">
-              <div className="rounded-md border border-border/60 bg-background p-3" style={{ fontFamily: readingFontStack, lineHeight }}>
-                <div className="text-xs font-semibold text-muted-foreground mb-1">{t("appearance.previewReading")}</div>
-                <p style={{ fontSize: `${bodyFontSize}px` }}>
-                  {t("appearance.previewBody")}
-                </p>
-                <p className="mt-2 font-semibold" style={{ fontSize: `${dialogueFontSize}px` }}>
-                  {t("appearance.previewDialogue")}
-                </p>
+            <SettingRow label={t("appearance.fontSize")}>
+              <div className="grid w-full grid-cols-5 gap-1 rounded-lg border border-border/40 bg-muted/30 p-1 sm:w-64">
+                {fontPresets.map((opt) => {
+                  const isActive = bodyFontSize === opt.value && dialogueFontSize === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      aria-pressed={isActive}
+                      onClick={() => setReadingSize(opt.value)}
+                      className={cn(
+                        "py-1.5 text-xs font-medium rounded-md transition-all",
+                        isActive ? "bg-background shadow-sm text-primary font-bold" : "text-muted-foreground hover:bg-background/50 hover:text-foreground"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
               </div>
+            </SettingRow>
+
+            <SettingRow label={t("appearance.lineHeight")}>
+              <div className="flex w-full items-center gap-1 rounded-lg border border-border/40 bg-muted/30 p-1 sm:w-64">
+                {lineHeightOptions.map((opt) => {
+                  const isActive = Math.abs(lineHeight - opt.value) < 0.1;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      aria-pressed={isActive}
+                      onClick={() => setReadingLineHeight(opt.value)}
+                      className={cn(
+                        "flex-1 py-1.5 text-xs font-medium rounded-md transition-all",
+                        isActive ? "bg-background shadow-sm text-primary font-bold" : "text-muted-foreground hover:bg-background/50 hover:text-foreground"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </SettingRow>
+
+            <div className="space-y-3 pt-3.5">
+              <button
+                type="button"
+                onClick={() => setShowAdvancedFont(!showAdvancedFont)}
+                className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showAdvancedFont ? t("appearance.simple") : t("appearance.advanced")}
+              </button>
+
+              {showAdvancedFont && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1 animate-in fade-in slide-in-from-top-1">
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between px-1">
+                      <span className="text-[10px] text-muted-foreground">{t("appearance.body")}: {bodyFontSize}px</span>
+                      <Input
+                        type="number"
+                        value={bodyFontSize}
+                        onChange={(event) => setBodyReadingSize(Number(event.target.value))}
+                        min={8}
+                        max={72}
+                        step={1}
+                        className="h-6 w-16 px-2 text-[10px]"
+                      />
+                    </div>
+                    <Slider
+                      value={[bodyFontSize]}
+                      onValueChange={([v]) => setBodyReadingSize(v)}
+                      min={8}
+                      max={72}
+                      step={1}
+                      className="py-1"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between px-1">
+                      <span className="text-[10px] text-muted-foreground">{t("appearance.dialogue")}: {dialogueFontSize}px</span>
+                      <Input
+                        type="number"
+                        value={dialogueFontSize}
+                        onChange={(event) => setDialogueReadingSize(Number(event.target.value))}
+                        min={8}
+                        max={72}
+                        step={1}
+                        className="h-6 w-16 px-2 text-[10px]"
+                      />
+                    </div>
+                    <Slider
+                      value={[dialogueFontSize]}
+                      onValueChange={([v]) => setDialogueReadingSize(v)}
+                      min={8}
+                      max={72}
+                      step={1}
+                      className="py-1"
+                    />
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <div className="flex justify-between px-1">
+                      <span className="text-[10px] text-muted-foreground">{t("appearance.lineHeight")}: {lineHeight.toFixed(2)}</span>
+                      <Input
+                        type="number"
+                        value={lineHeight}
+                        onChange={(event) => setReadingLineHeight(Number(event.target.value))}
+                        min={0.9}
+                        max={2.4}
+                        step={0.05}
+                        className="h-6 w-16 px-2 text-[10px]"
+                      />
+                    </div>
+                    <Slider
+                      value={[lineHeight]}
+                      onValueChange={([v]) => setReadingLineHeight(v)}
+                      min={0.9}
+                      max={2.4}
+                      step={0.05}
+                      className="py-1"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
+
+          <div className="xl:sticky xl:top-0 h-fit rounded-lg border border-border/60 bg-background/70 p-3">
+            <div className="rounded-md border border-border/60 bg-background p-3" style={{ fontFamily: readingFontStack, lineHeight }}>
+              <div className="text-xs font-semibold text-muted-foreground mb-1">{t("appearance.previewReading")}</div>
+              <p style={{ fontSize: `${bodyFontSize}px` }}>
+                {t("appearance.previewBody")}
+              </p>
+              <p className="mt-2 font-semibold" style={{ fontSize: `${dialogueFontSize}px` }}>
+                {t("appearance.previewDialogue")}
+              </p>
+            </div>
+          </div>
+        </div>
       </SettingsSectionCard>
 
       {/* ── 2. 閱讀輔助 — Reading Guides ─────────────────────────────────── */}
@@ -261,34 +250,21 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
         title={t("appearance.readingGuides")}
         description={t("appearance.readingGuidesDesc")}
       >
-        <div className="space-y-2">
-          <div className="flex items-center justify-between rounded-lg border border-border/60 bg-background px-3 py-2">
-            <span className="text-xs font-medium text-foreground">{t("appearance.showMarkers")}</span>
+        <div className="divide-y divide-border/40">
+          <SettingRow label={t("appearance.showMarkers")}>
             <Switch checked={showMarkers} onCheckedChange={setShowMarkers} aria-label={t("appearance.showMarkers")} />
-          </div>
-          <button
-            type="button"
-            onClick={() => lineGuideSupported && setShowLineUnderline(!showLineUnderline)}
-            aria-pressed={lineGuideSupported ? showLineUnderline : false}
-            aria-disabled={!lineGuideSupported}
-            title={lineGuideSupported ? undefined : t("appearance.lineGuideUnsupported")}
-            className={cn(
-              "flex w-full items-center justify-between p-3 rounded-lg border text-xs font-medium transition-all",
-              !lineGuideSupported
-                ? "opacity-40 cursor-not-allowed bg-background border-border/60 text-muted-foreground"
-                : showLineUnderline
-                  ? "bg-primary/5 border-primary/40 text-primary"
-                  : "bg-background border-border/60 text-muted-foreground hover:border-border hover:bg-muted/10"
-            )}
+          </SettingRow>
+          <SettingRow
+            label={t("appearance.lineGuide")}
+            description={lineGuideSupported ? undefined : t("appearance.lineGuideUnsupported")}
           >
-            <span className="flex items-center gap-2">
-              <AlignJustify className="w-4 h-4 opacity-70" />
-              {t("appearance.lineGuide")}
-            </span>
-            <div className={cn("w-8 h-4 rounded-full relative transition-colors", lineGuideSupported && showLineUnderline ? "bg-primary" : "bg-muted-foreground/30")}>
-              <div className={cn("absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-200", lineGuideSupported && showLineUnderline ? "left-[18px]" : "left-0.5")} />
-            </div>
-          </button>
+            <Switch
+              checked={lineGuideSupported && showLineUnderline}
+              disabled={!lineGuideSupported}
+              onCheckedChange={(value) => lineGuideSupported && setShowLineUnderline(value)}
+              aria-label={t("appearance.lineGuide")}
+            />
+          </SettingRow>
         </div>
       </SettingsSectionCard>
 
@@ -298,41 +274,26 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
         title={t("appearance.presentationLayout")}
         description={t("appearance.presentationLayoutDesc")}
       >
-        <button
-          type="button"
-          onClick={() => setUsePresentationRenderer(!usePresentationRenderer)}
-          aria-pressed={usePresentationRenderer}
-          className={cn(
-            "flex w-full items-center justify-between p-3 rounded-lg border text-xs font-medium transition-all",
-            usePresentationRenderer
-              ? "bg-primary/5 border-primary/40 text-primary"
-              : "bg-background border-border/60 text-muted-foreground hover:border-border hover:bg-muted/10"
-          )}
+        <SettingRow
+          label={t("appearance.presentationLayoutEnabled")}
+          description={t("appearance.presentationLayoutEnabledDesc")}
         >
-          <span className="flex items-center gap-2">
-            <Columns3 className="w-4 h-4 opacity-70" />
-            <span>
-              <span className="block">{t("appearance.presentationLayoutEnabled")}</span>
-              <span className="block font-normal text-[11px] opacity-70 mt-0.5">{t("appearance.presentationLayoutEnabledDesc")}</span>
-            </span>
-          </span>
-          <div className={cn("w-8 h-4 rounded-full relative transition-colors shrink-0 ml-3", usePresentationRenderer ? "bg-primary" : "bg-muted-foreground/30")}>
-            <div className={cn("absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-200", usePresentationRenderer ? "left-[18px]" : "left-0.5")} />
-          </div>
-        </button>
+          <Switch
+            checked={usePresentationRenderer}
+            onCheckedChange={setUsePresentationRenderer}
+            aria-label={t("appearance.presentationLayoutEnabled")}
+          />
+        </SettingRow>
       </SettingsSectionCard>
 
+      {/* ── 4. 介面外觀 — Interface Appearance ──────────────────────────── */}
       <SettingsSectionCard
         icon={<Monitor className="w-4 h-4" />}
         title={t("appearance.interfaceAppearance")}
         description={t("appearance.interfaceAppearanceDesc")}
-        contentClassName="space-y-5"
       >
-          <PublisherFormRow
-            label={t("appearance.theme")}
-            hint={t("appearance.subtitle")}
-            className="md:grid-cols-[160px_minmax(0,1fr)]"
-          >
+        <div className="divide-y divide-border/40">
+          <SettingRow label={t("appearance.theme")} description={t("appearance.subtitle")}>
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center bg-muted/40 p-1 rounded-lg border border-border/40 shrink-0">
                 <button
@@ -359,8 +320,6 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
                 </button>
               </div>
 
-              <div className="h-6 w-px bg-border/60 mx-1" />
-
               <div className="flex items-center gap-1.5 flex-wrap">
                 {accentOptions.map((opt) => {
                   const active = accent === opt.value;
@@ -384,16 +343,11 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
                 })}
               </div>
             </div>
-          </PublisherFormRow>
+          </SettingRow>
 
-          <Separator className="bg-border/40" />
-
-          <PublisherFormRow
-            label={t("appearance.uiFont")}
-            className="md:grid-cols-[160px_minmax(0,1fr)]"
-          >
+          <SettingRow label={t("appearance.uiFont")}>
             <Select value={uiFontFamily} onValueChange={setUiFontFamily}>
-              <SelectTrigger className="h-9 bg-background/70">
+              <SelectTrigger className="h-9 w-full bg-background/70 sm:w-56">
                 <SelectValue placeholder={t("appearance.uiFont")} />
               </SelectTrigger>
               <SelectContent>
@@ -404,14 +358,12 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
                 ))}
               </SelectContent>
             </Select>
-          </PublisherFormRow>
+          </SettingRow>
 
-          <Separator className="bg-border/40" />
-
-          <PublisherFormRow
+          <SettingRow
             label={t("appearance.desktopScale")}
-            hint={t("appearance.desktopScaleDesc")}
-            className="md:grid-cols-[160px_minmax(0,1fr)]"
+            description={t("appearance.desktopScaleDesc")}
+            stacked
           >
             <div className="space-y-3">
               <div className="grid grid-cols-5 gap-1 rounded-lg border border-border/40 bg-background/70 p-1">
@@ -454,7 +406,8 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
                 />
               </div>
             </div>
-          </PublisherFormRow>
+          </SettingRow>
+        </div>
       </SettingsSectionCard>
     </div>
   );

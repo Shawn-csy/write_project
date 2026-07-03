@@ -5,7 +5,7 @@ import { useI18n } from '../../contexts/I18nContext';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { useToast } from '../ui/toast';
-import { PublisherFormRow } from "../dashboard/publisher/PublisherFormRow";
+import { SettingRow } from "./SettingRow";
 import { SettingsSectionCard } from "./SettingsSectionCard";
 
 export function ProfileSettings() {
@@ -77,43 +77,36 @@ export function ProfileSettings() {
                     </div>
                 </div>
 
-                <div className="grid gap-4">
-                     <PublisherFormRow
+                <div className="divide-y divide-border/40">
+                    <SettingRow
                         label={t("profile.displayName")}
-                        className="md:grid-cols-[180px_minmax(0,1fr)]"
-                     >
-                        <div className="grid gap-2">
-                        <Input
-                            value={displayName}
-                            onChange={(e) => setDisplayName(e.target.value)}
-                            placeholder={t("profile.displayNamePlaceholder")}
-                            maxLength={60}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                            {t("profile.accountSource")}
-                        </p>
-                        {normalizedDisplayName.length === 0 && (
-                            <p className="text-xs text-destructive">{t("profile.displayNameRequired")}</p>
-                        )}
-                        <div>
-                            <Button onClick={handleSave} disabled={!canSave || isSaving}>
-                                {isSaving ? t("profile.saving") : t("profile.saveChanges")}
-                            </Button>
+                        description={t("profile.accountSource")}
+                    >
+                        <div className="grid w-full gap-2 sm:w-72">
+                            <Input
+                                value={displayName}
+                                onChange={(e) => setDisplayName(e.target.value)}
+                                placeholder={t("profile.displayNamePlaceholder")}
+                                maxLength={60}
+                            />
+                            {normalizedDisplayName.length === 0 && (
+                                <p className="text-xs text-destructive">{t("profile.displayNameRequired")}</p>
+                            )}
+                            <div>
+                                <Button onClick={handleSave} disabled={!canSave || isSaving}>
+                                    {isSaving ? t("profile.saving") : t("profile.saveChanges")}
+                                </Button>
+                            </div>
                         </div>
-                        </div>
-                    </PublisherFormRow>
-                    
-                    <PublisherFormRow label={t("profile.email")} className="md:grid-cols-[180px_minmax(0,1fr)]">
-                        <div className="grid gap-2 opacity-80 pointer-events-none">
-                            <Input value={currentUser.email || ""} readOnly disabled />
-                        </div>
-                    </PublisherFormRow>
+                    </SettingRow>
 
-                    <PublisherFormRow label={t("profile.userId")} className="md:grid-cols-[180px_minmax(0,1fr)]">
-                        <div className="grid gap-2 opacity-80 pointer-events-none">
-                            <Input value={currentUser.uid} readOnly disabled className="font-mono text-xs" />
-                        </div>
-                    </PublisherFormRow>
+                    <SettingRow label={t("profile.email")}>
+                        <Input value={currentUser.email || ""} readOnly disabled className="w-full sm:w-72" />
+                    </SettingRow>
+
+                    <SettingRow label={t("profile.userId")}>
+                        <Input value={currentUser.uid} readOnly disabled className="w-full font-mono text-xs sm:w-72" />
+                    </SettingRow>
                 </div>
         </SettingsSectionCard>
     );

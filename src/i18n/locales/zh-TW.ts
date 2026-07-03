@@ -809,7 +809,8 @@ const messages = {
     "savedAt": "已儲存 {time}",
     "synced": "已同步",
     "presentationRendererOffWarning": "已偵測到多欄標記設定，但目前分欄位顯示為關閉，可能無法正確預覽欄位落點與同行同步。",
-    "enablePresentationRendererNow": "立即啟用分欄位顯示"
+    "enablePresentationRendererNow": "立即啟用分欄位顯示",
+    "readOnlyThemeNotice": "預設主題為唯讀，請先建立或切換到自訂主題再編輯"
   },
   "markerSettingsHeader": {
     "title": "自訂標記規則",
@@ -932,6 +933,7 @@ const messages = {
     "theme": "主題",
     "copySuffix": "副本",
     "currentTheme": "目前主題",
+    "systemDefault": "系統預設",
     "newTheme": "新建主題",
     "duplicateCurrent": "複製目前主題",
     "publicTitleOn": "已公開，點擊改為私人",
@@ -1909,7 +1911,10 @@ const messages = {
     "v2SyncRows": "同步對齊列",
     "v2SyncRowsDesc": "啟用後，搭配指定範圍並排模式，此區間內不同欄位的內容會對齊到同一列。",
     "v2RangeOwnsContent": "區間內容歸屬此欄",
-    "v2RangeOwnsContentDesc": "啟用後，區間內所有事件都分配到此區間指定的欄位。適合角色分軌（如 @1/@2），持續音效等背景區間請勿啟用。"
+    "v2RangeOwnsContentDesc": "啟用後，區間內所有事件都分配到此區間指定的欄位。適合角色分軌（如 @1/@2），持續音效等背景區間請勿啟用。",
+    "rangeBlockHint": "區間為跨行區塊，內容無法與原句同一行內嵌。",
+    "groupingMismatchWarning": "已啟用同步區間，但目前欄位分組模式不是 marker_dialogue，不會同列對齊。",
+    "goFixLayout": "前往版面設定修正"
   }
 };
 

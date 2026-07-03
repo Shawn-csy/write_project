@@ -41,18 +41,12 @@ vi.mock("../ui/select", () => ({
   SelectItem: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 vi.mock("../ui/switch", () => ({
-  Switch: ({ checked, onCheckedChange, "aria-label": label }: { checked?: boolean; onCheckedChange?: (v: boolean) => void; "aria-label"?: string }) => (
-    <button role="switch" aria-checked={checked} aria-label={label} onClick={() => onCheckedChange?.(!checked)} />
+  Switch: ({ checked, disabled, onCheckedChange, "aria-label": label }: { checked?: boolean; disabled?: boolean; onCheckedChange?: (v: boolean) => void; "aria-label"?: string }) => (
+    <button role="switch" aria-checked={checked} disabled={disabled} aria-label={label} onClick={() => !disabled && onCheckedChange?.(!checked)} />
   ),
 }));
 vi.mock("../ui/input", () => ({
   Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
-}));
-vi.mock("../ui/separator", () => ({
-  Separator: () => <hr />,
-}));
-vi.mock("../dashboard/publisher/PublisherFormRow", () => ({
-  PublisherFormRow: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 vi.mock("./SettingsSectionCard", () => ({
   SettingsSectionCard: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -128,68 +122,60 @@ beforeEach(() => {
   mockUseIsMobileViewport.mockReturnValue(false);
 });
 
+// Line guide is a Switch (role="switch"): gating is expressed via disabled + aria-checked.
+const getLineGuideSwitch = () => screen.getByRole("switch", { name: /appearance\.lineGuide/ });
+
 describe("AppearanceSettings — Phase 6 capability gating", () => {
   it("line guide toggle is enabled when presentation renderer is off", () => {
     mockUseSettings.mockReturnValue(makeSettings({ usePresentationRenderer: false }) as ReturnType<typeof useSettings>);
     render(<AppearanceSettings />);
-    const btn = screen.getByRole("button", { name: /appearance\.lineGuide/ });
-    expect(btn).not.toHaveAttribute("aria-disabled", "true");
-    expect(btn).not.toHaveClass("cursor-not-allowed");
+    expect(getLineGuideSwitch()).not.toBeDisabled();
   });
 
   it("line guide toggle is enabled in columns presentation mode (supported)", () => {
     mockUseSettings.mockReturnValue(makeSettings({ usePresentationRenderer: true, renderMode: "columns" }) as ReturnType<typeof useSettings>);
     render(<AppearanceSettings />);
-    const btn = screen.getByRole("button", { name: /appearance\.lineGuide/ });
-    expect(btn).not.toHaveAttribute("aria-disabled", "true");
+    expect(getLineGuideSwitch()).not.toBeDisabled();
   });
 
   it("line guide toggle is disabled in timeline presentation mode (unsupported)", () => {
     mockUseSettings.mockReturnValue(makeSettings({ usePresentationRenderer: true, renderMode: "timeline" }) as ReturnType<typeof useSettings>);
     render(<AppearanceSettings />);
-    const btn = screen.getByRole("button", { name: /appearance\.lineGuide/ });
-    expect(btn).toHaveAttribute("aria-disabled", "true");
-    expect(btn).toHaveClass("cursor-not-allowed");
+    expect(getLineGuideSwitch()).toBeDisabled();
   });
 
   it("clicking line guide toggle in unsupported mode does not call setShowLineUnderline", async () => {
     mockUseSettings.mockReturnValue(makeSettings({ usePresentationRenderer: true, renderMode: "timeline" }) as ReturnType<typeof useSettings>);
     render(<AppearanceSettings />);
-    const btn = screen.getByRole("button", { name: /appearance\.lineGuide/ });
-    await userEvent.click(btn);
+    await userEvent.click(getLineGuideSwitch());
     expect(mockSetShowLineUnderline).not.toHaveBeenCalled();
   });
 
   it("clicking line guide toggle in supported mode calls setShowLineUnderline", async () => {
     mockUseSettings.mockReturnValue(makeSettings({ usePresentationRenderer: false, showLineUnderline: false }) as ReturnType<typeof useSettings>);
     render(<AppearanceSettings />);
-    const btn = screen.getByRole("button", { name: /appearance\.lineGuide/ });
-    await userEvent.click(btn);
+    await userEvent.click(getLineGuideSwitch());
     expect(mockSetShowLineUnderline).toHaveBeenCalledWith(true);
   });
 
-  it("aria-pressed is false when gated (even if showLineUnderline=true in storage)", () => {
+  it("aria-checked is false when gated (even if showLineUnderline=true in storage)", () => {
     mockUseSettings.mockReturnValue(makeSettings({ usePresentationRenderer: true, renderMode: "timeline", showLineUnderline: true }) as ReturnType<typeof useSettings>);
     render(<AppearanceSettings />);
-    const btn = screen.getByRole("button", { name: /appearance\.lineGuide/ });
-    expect(btn).toHaveAttribute("aria-pressed", "false");
+    expect(getLineGuideSwitch()).toHaveAttribute("aria-checked", "false");
   });
 
   it("line guide toggle is disabled on mobile viewport even when config renderMode is columns (auto-linear)", () => {
     mockUseIsMobileViewport.mockReturnValue(true);
     mockUseSettings.mockReturnValue(makeSettings({ usePresentationRenderer: true, renderMode: "columns" }) as ReturnType<typeof useSettings>);
     render(<AppearanceSettings />);
-    const btn = screen.getByRole("button", { name: /appearance\.lineGuide/ });
-    expect(btn).toHaveAttribute("aria-disabled", "true");
-    expect(btn).toHaveClass("cursor-not-allowed");
+    expect(getLineGuideSwitch()).toBeDisabled();
   });
 
   it("clicking line guide toggle on mobile viewport does not call setShowLineUnderline", async () => {
     mockUseIsMobileViewport.mockReturnValue(true);
     mockUseSettings.mockReturnValue(makeSettings({ usePresentationRenderer: true, renderMode: "columns" }) as ReturnType<typeof useSettings>);
     render(<AppearanceSettings />);
-    const btn = screen.getByRole("button", { name: /appearance\.lineGuide/ });
-    await userEvent.click(btn);
+    await userEvent.click(getLineGuideSwitch());
     expect(mockSetShowLineUnderline).not.toHaveBeenCalled();
   });
 });

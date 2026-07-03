@@ -24,62 +24,64 @@ export function MarkerSettingsHeader({ viewMode, setViewMode, statusText, isDirt
 
   return (
     <CardHeader className="px-4 py-2 border-b bg-muted/20 shrink-0">
-      <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <div className={cn(
-            "flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-semibold",
-            viewMode === "ui" ? "bg-primary/10 text-primary" : "bg-muted/60 text-muted-foreground"
-          )}>
-            <FileText className="h-3.5 w-3.5" />
-            {viewMode === "json" ? "JSON" : viewMode === "guide" ? t("markerSettingsHeader.viewGuide") : t("markerSettingsHeader.viewRules")}
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <div className={cn(
+              "flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-semibold",
+              viewMode === "ui" ? "bg-primary/10 text-primary" : "bg-muted/60 text-muted-foreground"
+            )}>
+              <FileText className="h-3.5 w-3.5" />
+              {viewMode === "json" ? "JSON" : viewMode === "guide" ? t("markerSettingsHeader.viewGuide") : t("markerSettingsHeader.viewRules")}
+            </div>
+            {viewMode !== "ui" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setViewMode("ui")}
+                className="h-7 px-2 text-xs"
+              >
+                {t("markerSettingsHeader.viewRules")}
+              </Button>
+            )}
+            <div className="inline-flex items-center gap-1 rounded-lg border border-border/50 bg-muted/40 p-0.5">
+              {secondaryModes.map((mode) => {
+                const Icon = mode.icon;
+                return (
+                  <Button
+                    key={mode.id}
+                    variant={viewMode === mode.id ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => setViewMode(mode.id)}
+                    className={cn("h-7 text-xs gap-1.5", viewMode === mode.id && "shadow-sm")}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {mode.label}
+                  </Button>
+                );
+              })}
+            </div>
           </div>
-          {viewMode !== "ui" && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setViewMode("ui")}
-              className="h-7 px-2 text-xs"
-            >
-              {t("markerSettingsHeader.viewRules")}
-            </Button>
-          )}
-          {controls ? <div className="min-w-0 flex-1">{controls}</div> : null}
-        </div>
-        <div className="flex flex-wrap items-center gap-2 xl:justify-end">
-          <div className="inline-flex items-center gap-1 rounded-lg border border-border/50 bg-muted/40 p-0.5">
-            {secondaryModes.map((mode) => {
-              const Icon = mode.icon;
-              return (
-                <Button
-                  key={mode.id}
-                  variant={viewMode === mode.id ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewMode(mode.id)}
-                  className={cn("h-7 text-xs gap-1.5", viewMode === mode.id && "shadow-sm")}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {mode.label}
-                </Button>
-              );
-            })}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground">{statusText}</span>
+            {onSave && (
+              <Button
+                size="sm"
+                variant={isDirty ? "default" : "ghost"}
+                onClick={onSave}
+                disabled={!isDirty || isSaving}
+                className="h-7 px-2 gap-1.5 text-xs"
+              >
+                {isSaving
+                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                  : <Save className="w-3 h-3" />
+                }
+                {t("common.save")}
+              </Button>
+            )}
           </div>
-          <span className="text-xs text-muted-foreground">{statusText}</span>
-          {onSave && (
-            <Button
-              size="sm"
-              variant={isDirty ? "default" : "ghost"}
-              onClick={onSave}
-              disabled={!isDirty || isSaving}
-              className="h-7 px-2 gap-1.5 text-xs"
-            >
-              {isSaving
-                ? <Loader2 className="w-3 h-3 animate-spin" />
-                : <Save className="w-3 h-3" />
-              }
-              {t("common.save")}
-            </Button>
-          )}
         </div>
+        {controls ? <div className="min-w-0">{controls}</div> : null}
       </div>
     </CardHeader>
   );

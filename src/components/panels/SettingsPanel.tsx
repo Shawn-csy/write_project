@@ -1,17 +1,42 @@
-import React, { useRef, useState } from "react";
-import { AppearanceSettings } from "../settings/AppearanceSettings";
-import { ProfileSettings } from "../settings/ProfileSettings";
-import { MarkerSettings } from "../settings/MarkerSettings";
-import { MediaLibrarySettings } from "../settings/MediaLibrarySettings";
-import SuperAdminPage from "../../pages/SuperAdminPage";
+import React, { Suspense, useRef, useState } from "react";
 import { cn } from "../../lib/utils";
 import { useI18n } from "../../contexts/I18nContext";
 import { LanguageSwitcher } from "../common/LanguageSwitcher";
-import { MORANDI_STUDIO_TONE_VARS, SETTINGS_TAB_MORANDI_TONE } from "../../constants/morandiPanelTones";
+import { lazyWithRefreshRetry } from "../../lib/lazyWithRefreshRetry";
 
 import { X } from "lucide-react";
 
 import { useAuth } from "../../contexts/AuthContext";
+
+const AppearanceSettings = lazyWithRefreshRetry(async () => {
+  const mod = await import("../settings/AppearanceSettings");
+  return { default: mod.AppearanceSettings };
+}, "settings-appearance");
+const ProfileSettings = lazyWithRefreshRetry(async () => {
+  const mod = await import("../settings/ProfileSettings");
+  return { default: mod.ProfileSettings };
+}, "settings-profile");
+const MarkerSettings = lazyWithRefreshRetry(async () => {
+  const mod = await import("../settings/MarkerSettings");
+  return { default: mod.MarkerSettings };
+}, "settings-markers");
+const MediaLibrarySettings = lazyWithRefreshRetry(async () => {
+  const mod = await import("../settings/MediaLibrarySettings");
+  return { default: mod.MediaLibrarySettings };
+}, "settings-media");
+const SuperAdminPage = lazyWithRefreshRetry(
+  () => import("../../pages/SuperAdminPage"),
+  "settings-transfer"
+);
+
+function TabFallback(): React.JSX.Element {
+  const { t } = useI18n();
+  return (
+    <div className="p-8 text-center text-sm text-muted-foreground">
+      {t("common.loading", "載入中...")}
+    </div>
+  );
+}
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -20,22 +45,19 @@ interface SettingsPanelProps {
 }
 
 type SettingsTabKey = "display" | "transfer" | "media" | "markers" | "profile";
-type ToneKey = keyof typeof MORANDI_STUDIO_TONE_VARS;
-const resolveToneVars = (toneKey: string | undefined) =>
-  MORANDI_STUDIO_TONE_VARS[(toneKey as ToneKey) || "works"] || MORANDI_STUDIO_TONE_VARS.works;
 
 function SettingsPanel({ onClose, activeTab, onTabChange }: SettingsPanelProps): React.JSX.Element {
   const { currentUser, profile } = useAuth();
   const { t } = useI18n();
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const [internalTab, setInternalTab] = useState<SettingsTabKey>("display");
-  
+
   const currentTab = (activeTab as SettingsTabKey | undefined) || internalTab;
   const setTab: (tab: SettingsTabKey) => void = (nextTab) => {
     if (onTabChange) onTabChange(nextTab);
     else setInternalTab(nextTab);
   };
-  
+
   const isAdmin = Boolean(profile?.isAdmin);
   const allTabs: Array<{ key: SettingsTabKey; label: string; authRequired?: boolean; adminOnly?: boolean }> = [
     { key: "display", label: t("settings.display") },
@@ -50,9 +72,6 @@ function SettingsPanel({ onClose, activeTab, onTabChange }: SettingsPanelProps):
       (!tab.authRequired || currentUser) &&
       (!tab.adminOnly || isAdmin)
   );
-  const activeToneKey = SETTINGS_TAB_MORANDI_TONE[currentTab];
-  const activeToneVars = resolveToneVars(activeToneKey);
-  const activeTabLabel = tabs.find((item) => item.key === currentTab)?.label || tabs[0]?.label || "";
 
   React.useEffect(() => {
     if (!tabs.some((tab) => tab.key === currentTab) && tabs[0]) {
@@ -63,7 +82,7 @@ function SettingsPanel({ onClose, activeTab, onTabChange }: SettingsPanelProps):
   return (
     <div className="w-full h-full overflow-hidden border border-border/40 bg-background/60 backdrop-blur-xl shadow-sm flex flex-col">
         <div className="flex items-center gap-4 px-6 py-4 border-b border-border/50 bg-background/80 backdrop-blur-md shrink-0">
-            <button 
+            <button
                 onClick={onClose}
                 className="p-2 -ml-2 rounded-full hover:bg-muted/80 transition-colors text-muted-foreground hover:text-foreground"
                 title={t("common.close")}
@@ -74,81 +93,87 @@ function SettingsPanel({ onClose, activeTab, onTabChange }: SettingsPanelProps):
             <LanguageSwitcher />
         </div>
 
-        <div className="flex-1 min-h-0 overflow-hidden">
-        <div className="h-full flex flex-col min-h-0">
-          <div
-            style={activeToneVars}
-            className="flex items-center gap-1 overflow-x-auto border-b border-[color:var(--morandi-tone-panel-border)] bg-background/60 px-3 py-1.5 scrollbar-hide shrink-0"
-          >
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col sm:flex-row">
+          {/* Mobile: horizontal category bar */}
+          <div className="flex items-center gap-1 overflow-x-auto border-b border-border/50 bg-background/60 px-3 py-1.5 scrollbar-hide shrink-0 sm:hidden">
             {tabs.map((item) => (
               <button
                 key={item.key}
                 onClick={() => setTab(item.key)}
-                style={resolveToneVars(SETTINGS_TAB_MORANDI_TONE[item.key])}
                 className={cn(
-                  "px-3 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap",
+                  "px-3 py-1 rounded-md text-xs font-medium transition-colors whitespace-nowrap",
                   currentTab === item.key
-                    ? "bg-[color:var(--morandi-tone-trigger-bg)] text-[color:var(--morandi-tone-trigger-fg)]"
-                    : "text-muted-foreground hover:bg-[color:var(--morandi-tone-helper-bg)] hover:text-[color:var(--morandi-tone-helper-fg)]"
+                    ? "bg-muted text-foreground"
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                 )}
               >
                 {item.label}
               </button>
             ))}
-            <div className="ml-auto hidden min-w-0 items-center sm:flex">
-              <span
-                style={activeToneVars}
-                className="truncate rounded-full border border-[color:var(--morandi-tone-helper-border)] bg-[color:var(--morandi-tone-helper-bg)] px-2 py-0.5 text-[11px] font-medium text-[color:var(--morandi-tone-helper-fg)]"
-              >
-                {activeTabLabel}
-              </span>
-            </div>
           </div>
 
+          {/* Desktop: left sidebar nav */}
+          <nav className="hidden sm:flex w-48 shrink-0 flex-col gap-0.5 border-r border-border/50 bg-background/40 p-3 overflow-y-auto">
+            {tabs.map((item) => (
+              <button
+                key={item.key}
+                onClick={() => setTab(item.key)}
+                className={cn(
+                  "w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                  currentTab === item.key
+                    ? "bg-muted text-foreground"
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                )}
+              >
+                {item.label}
+              </button>
+            ))}
+          </nav>
+
           <div
-            style={activeToneVars}
             className={cn(
               "flex-1 min-h-0",
               currentTab === "markers"
-                ? "flex-1 h-full"
-                : "overflow-y-auto bg-[color:var(--morandi-tone-panel-bg)] p-4 sm:p-6 scrollbar-hide"
+                ? "h-full"
+                : "overflow-y-auto p-4 sm:p-6 scrollbar-hide"
             )}
             ref={scrollContainerRef}
           >
-            {currentTab === "transfer" && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="flex items-center gap-2 pb-2 border-b border-border/40">
-                  <h3 className="text-lg font-semibold tracking-tight text-foreground/90">{t("settings.transfer")}</h3>
+            <Suspense fallback={<TabFallback />}>
+              {currentTab === "transfer" && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="flex items-center gap-2 pb-2 border-b border-border/40">
+                    <h3 className="text-lg font-semibold tracking-tight text-foreground/90">{t("settings.transfer")}</h3>
+                  </div>
+                  <div className="rounded-lg border bg-background/50">
+                    <SuperAdminPage />
+                  </div>
                 </div>
-                <div className="rounded-lg border bg-background/50">
-                  <SuperAdminPage />
+              )}
+
+              {currentTab === "display" && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <AppearanceSettings sectionRef={scrollContainerRef} />
                 </div>
-              </div>
-            )}
+              )}
 
-            {currentTab === "display" && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <AppearanceSettings sectionRef={scrollContainerRef} />
-              </div>
-            )}
+              {currentTab === "markers" && (
+                <MarkerSettings />
+              )}
 
-            {currentTab === "markers" && (
-              <MarkerSettings />
-            )}
+              {currentTab === "media" && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <MediaLibrarySettings />
+                </div>
+              )}
 
-            {currentTab === "media" && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <MediaLibrarySettings />
-              </div>
-            )}
-
-            {currentTab === "profile" && (
-              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <ProfileSettings />
-              </div>
-            )}
+              {currentTab === "profile" && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <ProfileSettings />
+                </div>
+              )}
+            </Suspense>
           </div>
-        </div>
         </div>
     </div>
   );

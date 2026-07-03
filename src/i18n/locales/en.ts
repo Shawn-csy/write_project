@@ -809,7 +809,8 @@ const messages = {
     "savedAt": "Saved {time}",
     "synced": "Synced",
     "presentationRendererOffWarning": "Multi-column marker settings were detected, but Column Display is currently off. Column routing and same-row synchronization may not preview correctly.",
-    "enablePresentationRendererNow": "Enable Column Display Now"
+    "enablePresentationRendererNow": "Enable Column Display Now",
+    "readOnlyThemeNotice": "The default theme is read-only. Create or switch to a custom theme to edit."
   },
   "markerSettingsHeader": {
     "title": "Custom Marker Rules",
@@ -932,6 +933,7 @@ const messages = {
     "theme": "Theme",
     "copySuffix": "Copy",
     "currentTheme": "Current Theme",
+    "systemDefault": "System Default",
     "newTheme": "New Theme",
     "duplicateCurrent": "Duplicate Current",
     "publicTitleOn": "Public now, click to set private",
@@ -1909,7 +1911,10 @@ const messages = {
     "v2SyncRows": "Sync rows across columns",
     "v2SyncRowsDesc": "When enabled with Marker-scoped row grouping, events in different columns inside this range are aligned to the same row.",
     "v2RangeOwnsContent": "Range owns content",
-    "v2RangeOwnsContentDesc": "When enabled, all events inside this range are assigned to the range's column. Use for character-split ranges (e.g. @1/@2). Leave off for background ranges like continuous SFX."
+    "v2RangeOwnsContentDesc": "When enabled, all events inside this range are assigned to the range's column. Use for character-split ranges (e.g. @1/@2). Leave off for background ranges like continuous SFX.",
+    "rangeBlockHint": "Range is a multi-line block; content cannot be embedded inline within the original line.",
+    "groupingMismatchWarning": "Row sync is enabled, but the current row grouping mode is not marker_dialogue, so rows will not align.",
+    "goFixLayout": "Open layout settings to fix"
   }
 };
 

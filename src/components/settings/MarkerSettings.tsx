@@ -7,13 +7,19 @@ import { useMarkerSettingsState } from "../../hooks/settings/useMarkerSettingsSt
 import { MarkerThemeHeader } from "./marker/MarkerThemeHeader";
 import { MarkerSettingsHeader } from "./marker/layout/MarkerSettingsHeader";
 import { MarkerSettingsModeContent } from "./marker/layout/MarkerSettingsModeContent";
-import { V2LayoutPreviewEditor } from "./marker/V2LayoutPreviewEditor";
+import { lazyWithRefreshRetry } from "../../lib/lazyWithRefreshRetry";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../ui/sheet";
 import { useI18n } from "../../contexts/I18nContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { cn } from "../../lib/utils";
 import type { MarkerConfig } from "../../types/script";
 import type { LayoutConfig } from "../../lib/v2";
+
+// Loaded only when the full layout editor sheet is opened.
+const V2LayoutPreviewEditor = lazyWithRefreshRetry(async () => {
+  const mod = await import("./marker/V2LayoutPreviewEditor");
+  return { default: mod.V2LayoutPreviewEditor };
+}, "marker-layout-editor");
 
 interface FormatSaveStatusArgs {
   isSaving: boolean;
@@ -144,12 +150,11 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
     [localConfigs]
   );
   const statusText = formatSaveStatus({ isSaving, parseError, isDirty: anyDirty, lastSavedAt, t });
-  const readonlyStatusText = readOnly ? "預設主題為唯讀，請先建立或切換到自訂主題再編輯" : statusText;
   const currentTheme = markerThemes.find((theme) => theme.id === currentThemeId);
   const canDeleteTheme = markerThemes.length > 1 && currentTheme?.id !== "default";
   const themeLabel = (theme: { id?: string; name?: string } | undefined) => {
     if (!theme) return "";
-    if (theme.id === "default") return "系統預設";
+    if (theme.id === "default") return t("markerThemeHeader.systemDefault");
     const raw = String(theme.name || theme.id || "").trim();
     return raw || t("markerThemeHeader.theme");
   };
@@ -167,7 +172,7 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
         <MarkerSettingsHeader
           viewMode={viewMode}
           setViewMode={setViewMode}
-          statusText={readonlyStatusText}
+          statusText={statusText}
           isDirty={canSave}
           onSave={handleSave}
           isSaving={isSaving}
@@ -263,6 +268,12 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
           setMoreOpen={setThemeMoreOpen}
         />
 
+        {readOnly && (
+          <div className="mx-3 mb-2 rounded-md border border-border/60 bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+            {t("markerSettings.readOnlyThemeNotice")}
+          </div>
+        )}
+
         {hasMultiTrackMarkers && !usePresentationRenderer && (
           <div className="mx-3 mb-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
             <div>{t("markerSettings.presentationRendererOffWarning")}</div>
@@ -311,13 +322,15 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
             <SheetDescription>{t("markerLayoutContext.fullEditorDescription")}</SheetDescription>
           </SheetHeader>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <V2LayoutPreviewEditor
-              layoutConfig={localLayoutConfig}
-              onChange={handleLayoutChange}
-              markerConfigs={localConfigs}
-              selectedConfig={selectedConfig}
-              t={t}
-            />
+            <React.Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">{t("common.loading", "載入中...")}</div>}>
+              <V2LayoutPreviewEditor
+                layoutConfig={localLayoutConfig}
+                onChange={handleLayoutChange}
+                markerConfigs={localConfigs}
+                selectedConfig={selectedConfig}
+                t={t}
+              />
+            </React.Suspense>
           </div>
         </SheetContent>
       </Sheet>
