@@ -23,10 +23,10 @@ interface MarkerDetailEditorProps {
 function Row({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
     return (
         <div className="flex items-start gap-3 py-2 border-b border-border/20 last:border-0">
-            <span className="w-20 shrink-0 pt-1.5 text-[11px] text-muted-foreground leading-none">{label}</span>
+            <span className="w-20 shrink-0 pt-1.5 text-xs text-muted-foreground leading-none">{label}</span>
             <div className="flex-1 min-w-0">
                 {children}
-                {hint && <p className="mt-1 text-[10px] text-muted-foreground/50 leading-relaxed">{hint}</p>}
+                {hint && <p className="mt-1 text-[11px] text-muted-foreground/70 leading-relaxed">{hint}</p>}
             </div>
         </div>
     );
@@ -36,21 +36,18 @@ function Row({ label, children, hint }: { label: string; children: React.ReactNo
 function SectionLabel({ label }: { label: string }) {
     return (
         <div className="pt-3 pb-1">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/40">{label}</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">{label}</span>
         </div>
     );
 }
 
-const TYPE_OPTIONS = [
-    { value: "inline", exampleNode: <span><span className="text-muted-foreground/40">你</span><span className="rounded bg-primary/20 text-primary px-0.5">很累</span><span className="text-muted-foreground/40">啊</span></span> },
-    { value: "block",  exampleNode: <span className="flex flex-col gap-0.5 leading-tight"><span className="text-primary/50">/旁白</span><span className="rounded bg-primary/10 text-foreground/70 px-1">場景文字</span></span> },
-] as const;
+const TYPE_OPTIONS = ["inline", "block"] as const;
 
 const MATCH_MODES = [
-    { id: "enclosure", example: "文字[內容]文字", sample: "「旁白」", descKey: "enclosureDesc" },
-    { id: "prefix",    example: "#SE 內容", sample: "#SE 敲門聲", descKey: "prefixDesc" },
-    { id: "range",     example: ">>SE\\n多行內容\\n<<SE", sample: ">>SE ... <<SE", descKey: "rangeDesc" },
-    { id: "regex",     example: "/^SE:/", sample: "SE: 敲門", descKey: "regexDesc" },
+    { id: "enclosure", descKey: "enclosureDesc" },
+    { id: "prefix",    descKey: "prefixDesc" },
+    { id: "range",     descKey: "rangeDesc" },
+    { id: "regex",     descKey: "regexDesc" },
 ] as const;
 
 export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false, tracks = [], layoutConfig, onOpenFullLayoutEditor }: MarkerDetailEditorProps): React.JSX.Element {
@@ -71,18 +68,11 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
     const isBlock = currentType === "block";
     const enabledTracks = tracks.filter((tr) => tr.enabled).sort((a, b) => a.order - b.order);
     const availableTypeOptions = matchMode === "prefix"
-        ? TYPE_OPTIONS.filter((opt) => opt.value === "inline")
+        ? TYPE_OPTIONS.filter((opt) => opt === "inline")
         : TYPE_OPTIONS;
     const groupingEnabled = Boolean((config.v2SyncRows || config.enableColumnGrouping) && config.matchMode === "range");
     const isMarkerDialogueGrouping = layoutConfig?.rowGrouping === "marker_dialogue";
 
-
-    const updateStyle = (field: string, value: string | undefined) => {
-        const next = { ...(config.style || {}) } as Record<string, string>;
-        if (value === undefined || value === "") delete next[field];
-        else next[field] = value;
-        updateMarker(idx, "style", next);
-    };
 
     const updateMatchMode = (mode: typeof MATCH_MODES[number]["id"]) => {
         if (mode === "prefix") {
@@ -106,7 +96,7 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                 className="w-full px-4 py-2.5 border-b flex items-center gap-3 bg-muted/20 shrink-0 min-w-0 hover:bg-muted/30 transition-colors text-left"
             >
                 <span className="text-sm font-semibold text-foreground truncate shrink-0 max-w-[120px]">{config.label || t("markerDetailEditor.unnamedMarker")}</span>
-                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">
+                <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">
                     {matchMode === "range"
                         ? t("markerDetailEditor.badgeRange")
                         : isBlock
@@ -126,7 +116,7 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                     {/* Column placement if tracks available */}
                     {enabledTracks.length > 0 && (
                         <div>
-                            <div className="text-[10px] text-muted-foreground/40 mb-1">{t("markerDetailEditor.trackPreview")}</div>
+                            <div className="text-[11px] text-muted-foreground/40 mb-1">{t("markerDetailEditor.trackPreview")}</div>
                             <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${enabledTracks.length}, minmax(0, 1fr))` }}>
                                 {enabledTracks.map((track) => {
                                     const isTarget = config.v2TrackId ? config.v2TrackId === track.id : false;
@@ -160,29 +150,27 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                 <Row label={t("markerGeneral.type")}>
                     <div className="flex gap-1.5">
                         {availableTypeOptions.map((opt) => {
-                            const isActive = currentType === opt.value;
+                            const isActive = currentType === opt;
                             return (
                                 <button
-                                    key={opt.value}
+                                    key={opt}
                                     type="button"
-                                    onClick={() => updateMarker(idx, { type: opt.value, isBlock: opt.value === "block" })}
+                                    onClick={() => updateMarker(idx, { type: opt, isBlock: opt === "block" })}
                                     className={cn(
-                                        "flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-left transition-all text-[11px] font-medium",
+                                        "rounded-md border px-2.5 py-1.5 text-left transition-all",
                                         isActive
                                             ? "border-primary bg-primary/8 text-primary ring-1 ring-primary/30"
                                             : "border-border/50 text-foreground/70 hover:border-border hover:bg-muted/20"
                                     )}
                                 >
-                                    <span className={cn("font-mono text-[9px] rounded px-1 py-0.5", isActive ? "bg-background/80" : "bg-muted/40")}>
-                                        {opt.exampleNode}
-                                    </span>
-                                    {t(`markerGeneral.${opt.value}`)}
+                                    <span className="block text-xs font-medium">{t(`markerGeneral.${opt}`)}</span>
+                                    <span className="mt-0.5 block text-[11px] text-muted-foreground">{t(`markerGeneral.${opt}Desc`)}</span>
                                 </button>
                             );
                         })}
                     </div>
                     {matchMode === "prefix" && (
-                        <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
+                        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground/70">
                             {t("markerLogic.prefixNoBlockHint")}
                         </p>
                     )}
@@ -211,15 +199,14 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                                         <span className="text-xs font-semibold">{t(`modeSelector.${mode.id}`)}</span>
                                         {isActive && <Check className="h-3.5 w-3.5 shrink-0" />}
                                     </span>
-                                    <span className="mt-1 block whitespace-pre-line font-mono text-[10px] text-muted-foreground">{mode.example}</span>
-                                    <span className="mt-1 block text-[10px] leading-snug text-muted-foreground/70">{t(`modeSelector.${mode.descKey}`)}</span>
+                                    <span className="mt-1 block text-[11px] leading-snug text-muted-foreground/80">{t(`modeSelector.${mode.descKey}`)}</span>
                                 </button>
                             );
                         })}
                     </div>
                     {matchMode === "range" && (
-                        <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
-                            range 為區塊模式，內容會以跨行區段呈現，無法與原句同一行內嵌。
+                        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground/70">
+                            {t("markerLogic.rangeBlockHint")}
                         </p>
                     )}
                 </Row>
@@ -240,7 +227,7 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                             <div className="rounded-md border border-border/50 bg-muted/15 p-2">
                                 <div className="grid grid-cols-2 gap-1.5">
                                     <div>
-                                        <div className="mb-1 text-[10px] text-muted-foreground">{t("markerLogic.rangeStartLabel")}</div>
+                                        <div className="mb-1 text-[11px] text-muted-foreground">{t("markerLogic.rangeStartLabel")}</div>
                                         <Input
                                             value={config.start || ""}
                                             onChange={(e) => updateMarker(idx, "start", e.target.value)}
@@ -249,7 +236,7 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                                         />
                                     </div>
                                     <div>
-                                        <div className="mb-1 text-[10px] text-muted-foreground">{t("markerLogic.rangeEndLabel")}</div>
+                                        <div className="mb-1 text-[11px] text-muted-foreground">{t("markerLogic.rangeEndLabel")}</div>
                                         <Input
                                             value={config.end || ""}
                                             onChange={(e) => updateMarker(idx, "end", e.target.value)}
@@ -258,7 +245,7 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                                         />
                                     </div>
                                 </div>
-                                <div className="mt-2 rounded bg-background/70 px-2 py-1.5 font-mono text-[10px] leading-5 text-muted-foreground">
+                                <div className="mt-2 rounded bg-background/70 px-2 py-1.5 font-mono text-[11px] leading-5 text-muted-foreground">
                                     <div><span className="text-primary">{config.start || ">>SE"}</span> <span>{t("markerLogic.rangePreviewStart")}</span></div>
                                     <div className="border-l border-primary/30 pl-2 text-foreground/70">{t("markerLogic.rangeContentHint")}</div>
                                     <div><span className="text-primary">{config.end || "<<SE"}</span> <span>{t("markerLogic.rangePreviewEnd")}</span></div>
@@ -299,7 +286,7 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                                     <>
                                         <div className="grid grid-cols-[minmax(90px,0.8fr)_minmax(120px,1fr)] items-end gap-1.5">
                                             <div>
-                                                <div className="mb-1 text-[10px] text-muted-foreground">{t("markerLogic.prefixSymbolLabel")}</div>
+                                                <div className="mb-1 text-[11px] text-muted-foreground">{t("markerLogic.prefixSymbolLabel")}</div>
                                                 <Input
                                                     value={config.start || ""}
                                                     onChange={(e) => updateMarker(idx, "start", e.target.value)}
@@ -307,7 +294,7 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                                                     placeholder="#SE"
                                                 />
                                             </div>
-                                            <div className="rounded bg-background/70 px-2 py-2 font-mono text-[10px] text-muted-foreground">
+                                            <div className="rounded bg-background/70 px-2 py-2 font-mono text-[11px] text-muted-foreground">
                                                 <span className="text-primary">{config.start || "#SE"}</span>
                                                 <span> {t("markerLogic.prefixPreviewContent")}</span>
                                             </div>
@@ -317,7 +304,7 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                                     <>
                                         <div className="grid grid-cols-[minmax(70px,0.8fr)_minmax(90px,1fr)_minmax(70px,0.8fr)] items-center gap-1.5">
                                             <div>
-                                                <div className="mb-1 text-[10px] text-muted-foreground">{t("markerLogic.startLabel")}</div>
+                                                <div className="mb-1 text-[11px] text-muted-foreground">{t("markerLogic.startLabel")}</div>
                                                 <Input
                                                     value={config.start || ""}
                                                     onChange={(e) => updateMarker(idx, "start", e.target.value)}
@@ -325,11 +312,11 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                                                     placeholder="("
                                                 />
                                             </div>
-                                            <div className="pt-5 text-center text-[10px] text-muted-foreground/70">
+                                            <div className="pt-5 text-center text-[11px] text-muted-foreground/70">
                                                 {t("markerLogic.enclosedContentHint")}
                                             </div>
                                             <div>
-                                                <div className="mb-1 text-[10px] text-muted-foreground">{t("markerLogic.endLabel")}</div>
+                                                <div className="mb-1 text-[11px] text-muted-foreground">{t("markerLogic.endLabel")}</div>
                                                 <Input
                                                     value={config.end || ""}
                                                     onChange={(e) => updateMarker(idx, "end", e.target.value)}
@@ -338,7 +325,7 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                                                 />
                                             </div>
                                         </div>
-                                        <div className="mt-2 rounded bg-background/70 px-2 py-1.5 font-mono text-[10px] text-muted-foreground">
+                                        <div className="mt-2 rounded bg-background/70 px-2 py-1.5 font-mono text-[11px] text-muted-foreground">
                                             <span>{t("markerLogic.enclosurePreviewPrefix")}</span>
                                             <span className="text-primary">{config.start || "("}</span>
                                             <span>{t("markerLogic.enclosedPreviewContent")}</span>
@@ -370,17 +357,15 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                 <SectionLabel label={t("markerDetailEditor.sectionOutput")} />
 
                 {groupingEnabled && !isMarkerDialogueGrouping && (
-                    <div className="mb-2 rounded-md border border-destructive/40 bg-destructive/10 px-2.5 py-2 text-[10px] leading-relaxed text-destructive">
-                        <div>
-                            已啟用同步區間，但目前欄位分組模式不是 <span className="font-mono">marker_dialogue</span>，不會同列對齊。
-                        </div>
+                    <div className="mb-2 rounded-md border border-destructive/40 bg-destructive/10 px-2.5 py-2 text-xs leading-relaxed text-destructive">
+                        <div>{t("markerLogic.groupingMismatchWarning")}</div>
                         {onOpenFullLayoutEditor && (
                             <button
                                 type="button"
                                 onClick={onOpenFullLayoutEditor}
                                 className="mt-1 inline-flex items-center gap-1 underline decoration-destructive/60 underline-offset-2 hover:decoration-destructive"
                             >
-                                前往版面設定修正
+                                {t("markerLogic.goFixLayout")}
                             </button>
                         )}
                     </div>
@@ -390,12 +375,12 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                     {enabledTracks.length > 0 ? (
                         <>
                         <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-[10px] text-muted-foreground/50">{t("markerDetailEditor.trackPreview")}</span>
+                            <span className="text-[11px] text-muted-foreground/50">{t("markerDetailEditor.trackPreview")}</span>
                             {onOpenFullLayoutEditor && (
                                 <button
                                     type="button"
                                     onClick={onOpenFullLayoutEditor}
-                                    className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                                    className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
                                 >
                                     <Maximize2 className="h-2.5 w-2.5" />
                                     {t("markerDetailEditor.editLayout")}
@@ -407,17 +392,15 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                                 type="button"
                                 onClick={() => updateMarker(idx, "v2TrackId", undefined)}
                                 className={cn(
-                                    "rounded border px-2 py-1 text-left text-[9px] transition-colors",
+                                    "flex items-center justify-between gap-1 rounded border px-2 py-1.5 text-left text-[11px] transition-colors",
                                     !config.v2TrackId
                                         ? "border-primary/50 bg-primary/10 text-primary"
-                                        : "border-border/30 bg-background/50 text-muted-foreground/50 hover:border-border hover:text-foreground"
+                                        : "border-border/30 bg-background/50 text-muted-foreground/60 hover:border-border hover:text-foreground"
                                 )}
+                                title={t("markerDetailEditor.trackAutoHint")}
                             >
-                                <div className="flex items-center justify-between gap-1">
-                                    <span className="font-semibold truncate">{t("markerLogic.trackAuto")}</span>
-                                    {!config.v2TrackId && <Check className="h-3 w-3 shrink-0" />}
-                                </div>
-                                <div className="mt-0.5 text-[8px] leading-tight text-muted-foreground/60">{t("markerDetailEditor.trackAutoHint")}</div>
+                                <span className="font-semibold truncate">{t("markerLogic.trackAuto")}</span>
+                                {!config.v2TrackId && <Check className="h-3 w-3 shrink-0" />}
                             </button>
                             {enabledTracks.map((track) => {
                                 const isTarget = config.v2TrackId ? config.v2TrackId === track.id : false;
@@ -427,22 +410,15 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                                         type="button"
                                         onClick={() => updateMarker(idx, "v2TrackId", track.id)}
                                         className={cn(
-                                            "rounded border px-2 py-1 text-left text-[9px] transition-colors",
+                                            "flex items-center justify-between gap-1 rounded border px-2 py-1.5 text-left text-[11px] transition-colors",
                                             isTarget
                                                 ? "border-primary/50 bg-primary/10 text-primary"
-                                                : "border-border/30 bg-background/50 text-muted-foreground/50 hover:border-border hover:text-foreground"
+                                                : "border-border/30 bg-background/50 text-muted-foreground/60 hover:border-border hover:text-foreground"
                                         )}
+                                        title={track.id}
                                     >
-                                        <div className="flex items-center justify-between gap-1">
-                                            <span className="font-semibold truncate">{track.name}</span>
-                                            {isTarget && <Check className="h-3 w-3 shrink-0" />}
-                                        </div>
-                                        <div className="mt-0.5 font-mono text-[8px] text-muted-foreground/60">{track.id}</div>
-                                        {isTarget && (
-                                            <div className="mt-0.5 rounded bg-primary/10 px-1 py-0.5 truncate font-mono">
-                                                {config.label || config.id}
-                                            </div>
-                                        )}
+                                        <span className="font-semibold truncate">{track.name}</span>
+                                        {isTarget && <Check className="h-3 w-3 shrink-0" />}
                                     </button>
                                 );
                             })}
@@ -464,7 +440,7 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
 
                 {/* ── 進階（折疊）── */}
                 <details className="group mt-2">
-                    <summary className="flex cursor-pointer list-none items-center justify-between py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors select-none">
+                    <summary className="flex cursor-pointer list-none items-center justify-between py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors select-none">
                         <span>{t("markerDetailEditor.sectionAdvanced")}</span>
                         <span className="font-normal normal-case group-open:hidden">{t("markerDetailEditor.expand")}</span>
                         <span className="font-normal normal-case hidden group-open:inline">{t("markerDetailEditor.collapse")}</span>

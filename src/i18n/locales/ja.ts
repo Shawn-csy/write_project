@@ -809,7 +809,8 @@ const messages = {
     "savedAt": "{time} に保存",
     "synced": "同期済み",
     "presentationRendererOffWarning": "複数欄マーカー設定が検出されましたが、現在は分欄表示がオフです。欄位ルーティングや同行同期のプレビューが正しく表示されない可能性があります。",
-    "enablePresentationRendererNow": "今すぐ分欄表示を有効化"
+    "enablePresentationRendererNow": "今すぐ分欄表示を有効化",
+    "readOnlyThemeNotice": "既定テーマは読み取り専用です。編集するにはカスタムテーマを作成または切り替えてください。"
   },
   "markerSettingsHeader": {
     "title": "カスタムマーカールール",
@@ -935,6 +936,7 @@ const messages = {
     "theme": "テーマ",
     "copySuffix": "コピー",
     "currentTheme": "現在のテーマ",
+    "systemDefault": "システム標準",
     "newTheme": "新しいテーマ",
     "duplicateCurrent": "現在のテーマを複製",
     "publicTitleOn": "現在公開中。クリックで非公開へ",
@@ -1911,7 +1913,10 @@ const messages = {
     "v2SyncRows": "行を同期整列",
     "v2SyncRowsDesc": "有効にすると、マーカー範囲並べモードと組み合わせて、この範囲内の異なる欄のイベントが同じ行に整列されます。",
     "v2RangeOwnsContent": "範囲がコンテンツを所有",
-    "v2RangeOwnsContentDesc": "有効にすると、この範囲内のすべてのイベントが指定した欄に割り当てられます。キャラクター分割範囲（@1/@2 など）に使用し、効果音などの背景範囲には使用しないでください。"
+    "v2RangeOwnsContentDesc": "有効にすると、この範囲内のすべてのイベントが指定した欄に割り当てられます。キャラクター分割範囲（@1/@2 など）に使用し、効果音などの背景範囲には使用しないでください。",
+    "rangeBlockHint": "区間は複数行ブロックのため、元の行内には埋め込めません。",
+    "groupingMismatchWarning": "同期区間が有効ですが、現在の行グループ化モードが marker_dialogue ではないため、同一行に揃いません。",
+    "goFixLayout": "レイアウト設定で修正"
   }
 };
 

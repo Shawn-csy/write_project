@@ -67,11 +67,10 @@ export function MarkerPreview({ config, compact = false, expanded = false }: Mar
     if (compact) {
         return (
             <div className="flex items-center gap-2 min-w-0">
-                <span className="text-[10px] text-muted-foreground/50 shrink-0">{t("markerPreview.livePreview")}</span>
+                <span className="text-[11px] text-muted-foreground/70 shrink-0">{t("markerPreview.livePreview")}</span>
                 <span className="rounded border border-border/30 bg-background/60 px-2 py-0.5 text-sm font-mono truncate">
                     <span style={previewStyle}>{example.rendered}</span>
                 </span>
-                <span className="text-[10px] font-mono text-muted-foreground/40 truncate hidden xl:block">{example.raw}</span>
             </div>
         );
     }
@@ -79,7 +78,7 @@ export function MarkerPreview({ config, compact = false, expanded = false }: Mar
     if (expanded) {
         return (
             <div className="space-y-2">
-                <div className="text-[10px] font-mono text-muted-foreground/50 truncate">{example.raw}</div>
+                <div className="text-[11px] font-mono text-muted-foreground/60 truncate">{example.raw}</div>
                 {/* Light bg */}
                 <div className="rounded-md border border-border/30 bg-white px-3 py-2 text-sm leading-relaxed">
                     <span className="text-gray-300 select-none">… </span>
