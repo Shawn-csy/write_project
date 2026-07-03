@@ -24,6 +24,7 @@ import { buildHomepageHeroSlides } from "./gallery/homepageHeroModel";
 import { useGalleryController } from "./gallery/useGalleryController";
 import { useGalleryLayoutState } from "./gallery/useGalleryLayoutState";
 import type { PublicHomepageUrlState } from "./gallery/useGalleryUrlState";
+import { PublicFooter } from "@/components/PublicFooter";
 
 interface Props {
   initialScripts: PublicScript[];
@@ -264,6 +265,8 @@ export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHe
         viewModeValue={viewMode}
         setViewMode={setViewMode}
       />
+
+      <PublicFooter />
     </div>
   );
 }
