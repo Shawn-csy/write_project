@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { auth, googleProvider, initAnalytics } from "../lib/firebase";
-import { signInWithPopup, signOut, onAuthStateChanged, type User } from "firebase/auth";
+import { loadFirebaseAuth, initAnalytics } from "../lib/firebase";
+import type { User } from "firebase/auth";
 import { getUserProfile, updateUserProfile } from "../lib/api/user";
 
 interface LocalUser {
@@ -65,22 +65,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Safe with [] today: this callback only uses stable module-level references.
   // Revisit deps if login starts reading mutable local state or runtime env values.
-  const login = useCallback(() => {
+  const login = useCallback(async () => {
     if (localAuthEnabled) {
       setCurrentUser(getLocalUser());
-      return Promise.resolve();
+      return;
     }
-    return signInWithPopup(auth, googleProvider);
+    const { auth, authApi } = await loadFirebaseAuth();
+    return authApi.signInWithPopup(auth, new authApi.GoogleAuthProvider());
   }, []);
 
   // Safe with [] today: this callback only uses stable module-level references.
   // Revisit deps if logout starts reading mutable local state or runtime env values.
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     if (localAuthEnabled) {
       setCurrentUser(null);
-      return Promise.resolve();
+      return;
     }
-    return signOut(auth);
+    const { auth, authApi } = await loadFirebaseAuth();
+    return authApi.signOut(auth);
   }, []);
 
   const syncUserProfile = async (user: User | LocalUser) => {
@@ -134,15 +136,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       syncUserProfile(user);
       return;
     }
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      setLoading(false);
-      if (user) {
-        syncUserProfile(user);
-      }
+    let unsubscribe: (() => void) | undefined;
+    let cancelled = false;
+
+    loadFirebaseAuth().then(({ auth, authApi }) => {
+      if (cancelled) return;
+      unsubscribe = authApi.onAuthStateChanged(auth, (user) => {
+        setCurrentUser(user);
+        setLoading(false);
+        if (user) {
+          syncUserProfile(user);
+        }
+      });
     });
 
-    return unsubscribe;
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
   }, []);
 
   const value = useMemo(() => ({

@@ -175,9 +175,10 @@ describe("renderWorkspaceRoutes", () => {
     expect(screen.getByTestId("reader-header")).toBeInTheDocument();
   });
 
-  it("shows stats panel when showStats and showReaderHeader are both true", () => {
+  it("shows stats panel when showStats and showReaderHeader are both true", async () => {
     renderRoutes(makeProps({ showStats: true, showReaderHeader: true }));
-    expect(screen.getByTestId("stats-panel")).toBeInTheDocument();
+    // StatisticsPanel is lazy-loaded, so wait for the Suspense resolve.
+    expect(await screen.findByTestId("stats-panel")).toBeInTheDocument();
   });
 
   it("does not show stats panel when showReaderHeader is false", () => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ScriptRenderer } from './ScriptRenderer';
 import { ScriptRendererV2 } from './v2/ScriptRendererV2';
@@ -191,7 +191,7 @@ function ScriptViewer({
   const effectiveBodyFontSize = _bodyFontSize;
   const effectiveDialogueFontSize = _dialogueFontSize;
 
-  const renderScriptNode = (
+  const renderScriptNode = useCallback((
     currentAst: { children?: ScriptDocAstNode[] } | null,
     // filterCharacterValue: render model path uses this to detect snapshot override (null → raw blocks).
     // focusModeValue: only used by the legacy ScriptRenderer path below; render model ignores it.
@@ -254,7 +254,13 @@ function ScriptViewer({
         showLineUnderline={_showLineUnderline}
       />
     );
-  };
+  }, [
+    useRenderModelRenderer, renderBlocks, markerConfigs, normalizedMarkerConfigs,
+    effectiveBodyFontSize, effectiveDialogueFontSize, _lineHeight, readingFontStack,
+    _readingFontFamily, effectiveHiddenMarkerIds, _showMarkers, _showLineUnderline, t,
+    usePresentationRenderer, presentationLayoutConfig,
+    filterCharacter, focusMode, focusEffect, focusContentMode, theme,
+  ]);
 
   const markerLabelById = useMemo(() => {
     const map = new Map<string, string>();

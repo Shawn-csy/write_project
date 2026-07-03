@@ -109,7 +109,13 @@ export const LayerNode = ({ node, context, NodeRenderer, styleOverride }: LayerN
                 </span>
              </div>
              <div className="layer-content">
-                {(node.children || []).map((child, i) => <NodeRenderer key={i} node={child} context={context} />)}
+                {(node.children || []).map((child, i) => {
+                    // Stable sibling key by source line; index fallback (mirrors NodeRenderer.nodeKey).
+                    const c = child as { id?: string; lineStart?: number; line?: number; type?: string };
+                    const line = c?.lineStart ?? c?.line;
+                    const key = c?.id ? `id-${c.id}` : typeof line === "number" ? `L${line}-${c?.type}` : `i-${i}`;
+                    return <NodeRenderer key={key} node={child} context={context} />;
+                })}
              </div>
              {showEndLabel && (
                 <div className={`${node.layerType}-continuous-footer layer-footer text-xs opacity-70 font-mono mt-1`}>
