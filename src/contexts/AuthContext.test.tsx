@@ -7,19 +7,25 @@ import { AuthProvider, useAuth } from "./AuthContext";
 let authStateCallback = null;
 
 vi.mock("../lib/firebase", () => ({
-  auth: { currentUser: null },
-  googleProvider: {},
+  loadFirebaseAuth: vi.fn().mockResolvedValue({
+    auth: { currentUser: null },
+    authApi: {
+      signInWithPopup: vi.fn().mockResolvedValue({ user: { uid: "u1" } }),
+      signOut: vi.fn().mockResolvedValue(undefined),
+      GoogleAuthProvider: vi.fn(),
+      onAuthStateChanged: (auth, cb) => {
+        authStateCallback = cb;
+        return vi.fn(); // unsubscribe
+      },
+    },
+  }),
   initAnalytics: vi.fn(),
 }));
 
-vi.mock("firebase/auth", () => ({
-  signInWithPopup: vi.fn().mockResolvedValue({ user: { uid: "u1" } }),
-  signOut: vi.fn().mockResolvedValue(undefined),
-  onAuthStateChanged: vi.fn((auth, cb) => {
-    authStateCallback = cb;
-    return vi.fn(); // unsubscribe
-  }),
-}));
+// Auth subscription is set up async (lazy firebase load); wait until it registers.
+const flush = () => waitFor(() => {
+  if (typeof authStateCallback !== "function") throw new Error("auth subscription not ready");
+});
 
 vi.mock("../lib/api/user", () => ({
   getUserProfile: vi.fn().mockResolvedValue(null),
@@ -48,12 +54,14 @@ describe("AuthContext", () => {
 
   it("resolves to no-user when auth fires with null", async () => {
     wrap();
+    await flush();
     await act(async () => { authStateCallback(null); });
     expect(screen.getByText("no-user")).toBeInTheDocument();
   });
 
   it("resolves to user when auth fires with a user object", async () => {
     wrap();
+    await flush();
     await act(async () => { authStateCallback({ uid: "abc123", email: "a@b.com", displayName: "A", photoURL: "" }); });
     await waitFor(() => expect(screen.getByText("user:abc123")).toBeInTheDocument());
   });
@@ -88,6 +96,7 @@ describe("AuthContext", () => {
     }
 
     render(<AuthProvider><SaveConsumer /></AuthProvider>);
+    await flush();
     await act(async () => { authStateCallback({ uid: "u1", email: "a@b.com", displayName: "Old", photoURL: "" }); });
 
     const btn = screen.getByText("save");

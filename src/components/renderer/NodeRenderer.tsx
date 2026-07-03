@@ -51,6 +51,14 @@ export interface NodeRenderContext {
   markerTooltipPrefix: string | null;
 }
 
+// Stable sibling key: prefer node id, then source line; index only as tiebreak/fallback.
+// Keeps React reconciliation from remounting every sibling after an insertion.
+const nodeKey = (node: RendererNode, i: number): string => {
+  if (node.id) return `id-${node.id}`;
+  const line = node.lineStart ?? node.line;
+  return typeof line === "number" ? `L${line}-${node.type}` : `i-${i}`;
+};
+
 const CHARACTER_COLOR_SEQUENCE = [
   'var(--marker-color-russet)',
   'var(--marker-color-slate-blue)',
@@ -162,7 +170,7 @@ export const NodeRenderer = React.memo(function NodeRenderer({
 
   switch (node.type) {
     case 'root':
-      return <>{(node.children || []).map((child, i) => <NodeRenderer key={i} node={child} context={context} />)}</>;
+      return <>{(node.children || []).map((child, i) => <NodeRenderer key={nodeKey(child, i)} node={child} context={context} />)}</>;
 
     case 'range':
       return (

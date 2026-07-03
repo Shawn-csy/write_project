@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../firebase", () => ({
-  auth: { currentUser: null },
+  getLoadedAuth: vi.fn(() => ({ currentUser: null })),
+  loadFirebaseAuth: vi.fn().mockResolvedValue({ auth: { currentUser: null } }),
 }));
 
 vi.mock("../apiHealth", () => ({

@@ -12,10 +12,16 @@ import ReaderHeader from "../components/header/ReaderHeader";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { LanguageSwitcher } from "../components/common/LanguageSwitcher";
-import { StatisticsPanel } from "../components/statistics/StatisticsPanel";
 import { RequireAuth } from "../components/auth/RequireAuth";
 
 const SettingsPanel = lazyWithRefreshRetry(() => import("../components/panels/SettingsPanel"), "settings-panel");
+const StatisticsPanel = lazyWithRefreshRetry(
+  async () => {
+    const mod = await import("../components/statistics/StatisticsPanel");
+    return { default: mod.StatisticsPanel };
+  },
+  "stats-panel"
+);
 const AboutPanelLazy = lazyWithRefreshRetry(() => import("../components/panels/AboutPanel"), "about-panel");
 const DashboardPage = lazyWithRefreshRetry(() => import("../pages/DashboardPage"), "page-dashboard");
 const CloudEditorPage = lazyWithRefreshRetry(() => import("../pages/CloudEditorPage"), "page-cloud-editor");
@@ -228,11 +234,13 @@ export function renderWorkspaceRoutes({
                     <h3 className="font-semibold text-sm">統計分析面板</h3>
                   </div>
                   <div className="flex-1 min-h-0 overflow-hidden">
-                    <StatisticsPanel
-                      rawScript={rawScript}
-                      scriptAst={ast as AstNode | null}
-                      onLocateText={navProps.handleLocateText ?? navProps.onLocateText}
-                    />
+                    <Suspense fallback={routeFallback}>
+                      <StatisticsPanel
+                        rawScript={rawScript}
+                        scriptAst={ast as AstNode | null}
+                        onLocateText={navProps.handleLocateText ?? navProps.onLocateText}
+                      />
+                    </Suspense>
                   </div>
                 </div>
               )}

@@ -1,4 +1,4 @@
-import React, { forwardRef } from "react";
+import React, { forwardRef, useMemo } from "react";
 import ScriptSurface from "./ScriptSurface";
 import { useReaderPreferences } from "../../hooks/useReaderPreferences";
 import { useSettings } from "../../contexts/SettingsContext";
@@ -62,13 +62,44 @@ export const PreviewPanel = forwardRef(function PreviewPanel({
 }: PreviewPanelProps, ref: React.ForwardedRef<HTMLDivElement>) {
   const { t } = useI18n();
   const { presentationLayoutConfig } = useSettings();
-  const readerPreferences = useReaderPreferences({
-    typography: {
-      bodyFontSize: bodyFontSize ?? fontSize,
-      dialogueFontSize,
-      lineHeight,
-    },
-  });
+  const preferenceOverrides = useMemo(
+    () => ({
+      typography: {
+        bodyFontSize: bodyFontSize ?? fontSize,
+        dialogueFontSize,
+        lineHeight,
+      },
+    }),
+    [bodyFontSize, fontSize, dialogueFontSize, lineHeight]
+  );
+  const readerPreferences = useReaderPreferences(preferenceOverrides);
+
+  const viewerProps = useMemo(
+    () => ({
+      type,
+      onTitle: onTitleHtml,
+      onHasTitle,
+      onTitleNote,
+      onSummary: onTitleSummary,
+      onTitleName,
+      onRawHtml,
+      onProcessedHtml,
+      scrollToScene: initialSceneId,
+      onScenes,
+      displayPreferences: readerPreferences,
+      usePresentationRenderer: readerPreferences.presentation.enabled,
+      presentationLayoutConfig,
+      theme,
+      accentColor,
+      markerConfigs,
+      hiddenMarkerIds: hiddenMarkerIds || [],
+    }),
+    [
+      type, onTitleHtml, onHasTitle, onTitleNote, onTitleSummary, onTitleName,
+      onRawHtml, onProcessedHtml, initialSceneId, onScenes, readerPreferences,
+      presentationLayoutConfig, theme, accentColor, markerConfigs, hiddenMarkerIds,
+    ]
+  );
 
   return (
     <ScriptSurface
@@ -88,25 +119,7 @@ export const PreviewPanel = forwardRef(function PreviewPanel({
           ? t("previewPanel.emptyReadOnly")
           : t("previewPanel.emptyEditable")
       }
-      viewerProps={{
-        type,
-        onTitle: onTitleHtml,
-        onHasTitle,
-        onTitleNote,
-        onSummary: onTitleSummary,
-        onTitleName,
-        onRawHtml,
-        onProcessedHtml,
-        scrollToScene: initialSceneId,
-        onScenes,
-        displayPreferences: readerPreferences,
-        usePresentationRenderer: readerPreferences.presentation.enabled,
-        presentationLayoutConfig,
-        theme,
-        accentColor,
-        markerConfigs,
-        hiddenMarkerIds: hiddenMarkerIds || [],
-      }}
+      viewerProps={viewerProps}
     />
   );
 });

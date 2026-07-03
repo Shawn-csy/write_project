@@ -7,6 +7,9 @@ import {
   normalizeLang,
   type SupportedLang,
 } from "../i18n";
+// Default locale is bundled statically so first paint isn't blocked on an
+// async chunk load (I18nProvider used to render null until the locale arrived).
+import defaultMessages from "../i18n/locales/zh-TW";
 
 const STORAGE_KEY = "app_lang_v1";
 
@@ -59,8 +62,11 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     return DEFAULT_LANG;
   });
 
-  const [activeMessages, setActiveMessages] = React.useState<I18nMessages>(emptyMessages);
-  const [ready, setReady] = React.useState(false);
+  const [activeMessages, setActiveMessages] = React.useState<I18nMessages>(() =>
+    lang === DEFAULT_LANG ? (defaultMessages as I18nMessages) : emptyMessages
+  );
+  // Default language renders immediately; other languages gate one async tick.
+  const [ready, setReady] = React.useState(lang === DEFAULT_LANG);
 
   React.useEffect(() => {
     let cancelled = false;

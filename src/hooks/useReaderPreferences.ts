@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useSettings } from "../contexts/SettingsContext";
 import {
   normalizeReaderDisplayPreferences,
@@ -16,8 +17,10 @@ import {
  *
  * SettingsContext remains the storage/orchestration layer.
  */
+const EMPTY_OVERRIDES: ReaderDisplayPreferencesInput = {};
+
 export const useReaderPreferences = (
-  overrides: ReaderDisplayPreferencesInput = {}
+  overrides: ReaderDisplayPreferencesInput = EMPTY_OVERRIDES
 ): ReaderDisplayPreferences => {
   const {
     bodyFontSize,
@@ -29,19 +32,27 @@ export const useReaderPreferences = (
     usePresentationRenderer,
   } = useSettings();
 
-  // Step 1: normalize raw storage values.
-  const fromStorage = normalizeReaderDisplayPreferences({
-    typography: { readingFontFamily, bodyFontSize, dialogueFontSize, lineHeight },
-    guides:     { showLineUnderline },
-    markers:    { showMarkers },
-    presentation: { enabled: usePresentationRenderer },
-  });
+  // Memoized so consumers get a stable object identity when nothing changed
+  // (keeps React.memo / useMemo chains downstream intact). Callers passing
+  // overrides must provide a stable (memoized) object.
+  return useMemo(() => {
+    // Step 1: normalize raw storage values.
+    const fromStorage = normalizeReaderDisplayPreferences({
+      typography: { readingFontFamily, bodyFontSize, dialogueFontSize, lineHeight },
+      guides:     { showLineUnderline },
+      markers:    { showMarkers },
+      presentation: { enabled: usePresentationRenderer },
+    });
 
-  // Step 2+3: deep-merge overrides then normalize the result.
-  return normalizeReaderDisplayPreferences({
-    typography: { ...fromStorage.typography, ...overrides.typography },
-    guides:     { ...fromStorage.guides,     ...overrides.guides },
-    markers:    { ...fromStorage.markers,    ...overrides.markers },
-    presentation: { ...fromStorage.presentation, ...overrides.presentation },
-  });
+    // Step 2+3: deep-merge overrides then normalize the result.
+    return normalizeReaderDisplayPreferences({
+      typography: { ...fromStorage.typography, ...overrides.typography },
+      guides:     { ...fromStorage.guides,     ...overrides.guides },
+      markers:    { ...fromStorage.markers,    ...overrides.markers },
+      presentation: { ...fromStorage.presentation, ...overrides.presentation },
+    });
+  }, [
+    bodyFontSize, dialogueFontSize, readingFontFamily, lineHeight,
+    showMarkers, showLineUnderline, usePresentationRenderer, overrides,
+  ]);
 };

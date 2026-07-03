@@ -1,4 +1,4 @@
-import { auth } from "../firebase";
+import { getLoadedAuth, loadFirebaseAuth } from "../firebase";
 import { isApiOffline, markApiOffline, clearApiOffline } from "../apiHealth";
 
 interface FetchApiOptions {
@@ -36,13 +36,15 @@ const publicInflight = new Map<string, Promise<unknown>>();
 
 const getUserKey = () => {
   if (localAuthEnabled) return localAuthUserId;
-  return auth.currentUser?.uid || "anon";
+  // Sync peek is enough for cache keys; before firebase loads there is no user anyway.
+  return getLoadedAuth()?.currentUser?.uid || "anon";
 };
 
 export async function getAuthHeaders(): Promise<Record<string, string>> {
   if (localAuthEnabled) {
     return { "X-User-ID": localAuthUserId };
   }
+  const { auth } = await loadFirebaseAuth();
   if (auth.currentUser?.getIdToken) {
     const token = await auth.currentUser.getIdToken();
     if (token) {

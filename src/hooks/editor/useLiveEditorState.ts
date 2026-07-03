@@ -221,6 +221,9 @@ export function useLiveEditorState({
   }, [content, title, t]);
 
   const orchestratedDoc = useMemo(() => {
+    // Only the presentation renderer / table export consumes this; skip the
+    // parse + build + orchestrate pipeline entirely when it's disabled.
+    if (!usePresentationRenderer) return null;
     const layoutConfig = applyMarkerSemanticRoutes(
       normalizeLayoutConfig(presentationLayoutConfig || cloneDefaultLayoutConfig()),
       activeMarkerConfigs as any
@@ -228,7 +231,7 @@ export function useLiveEditorState({
     const parsed = parseScreenplay(deferredContent || "", activeMarkerConfigs) as { ast?: { children?: Array<Record<string, unknown>> } };
     const v2doc = buildScriptDocumentV2FromAst(parsed.ast, { layoutConfig, markerConfigs: activeMarkerConfigs as any });
     return orchestrateDocument(v2doc);
-  }, [deferredContent, activeMarkerConfigs, presentationLayoutConfig]);
+  }, [deferredContent, activeMarkerConfigs, presentationLayoutConfig, usePresentationRenderer]);
 
   const normalizedDownloadOptions = useLiveEditorDownloadOptions({
     t, title, content, renderedHtmlRef, ensureRenderedHtml, markerConfigs: activeMarkerConfigs as any,
