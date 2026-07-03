@@ -1,18 +1,18 @@
 /**
- * Homepage server component contract tests — Phase 1–3.
+ * Homepage server component contract tests — Phase 1–4.
  *
- * Phase 1 (done): force-dynamic, fetchBundle partial failure isolation.
- * Phase 2 (done): useSearchParams() removed; server parses searchParams.
- * Phase 3 (transitional): GalleryServerContent passes /read/ links as children
- *   to GalleryClient, which hides them after hydration. This is not the final
- *   architecture — see docs/public-homepage-ssr-data-architecture.md Phase 4.
+ * Phase 1: force-dynamic, fetchBundle partial failure isolation.
+ * Phase 2: useSearchParams() removed; server parses searchParams.
+ * Phase 3: (superseded by Phase 4)
+ * Phase 4: ScriptGalleryCardFrame shared between server SSR and client hydration.
+ *   GalleryClient SSRs its full card grid (no BAILOUT_TO_CLIENT_SIDE_RENDERING).
+ *   No separate GalleryServerContent / children pattern needed.
  *
  * Tests here verify:
- * - GalleryClient receives initialScripts from server.
- * - GalleryServerContent /read/ links are present in initial render (via children).
+ * - GalleryClient receives initialScripts and initialUrlState from server.
  * - Banner parse failure does not affect initialScripts.
  * - Network failure renders without crash.
- * - No 最新公開台本 fallback section (removed in Phase 1).
+ * - No 最新公開台本 fallback section.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -28,11 +28,10 @@ vi.mock("@/lib/jsonLd", () => ({
   JsonLdScript: () => null,
 }));
 vi.mock("./GalleryClient", () => ({
-  GalleryClient: ({ initialScripts, children }: { initialScripts: unknown[]; children?: React.ReactNode }) => (
-    <div data-testid="gallery-client" data-script-count={initialScripts.length}>{children}</div>
+  GalleryClient: ({ initialScripts, initialUrlState }: { initialScripts: unknown[]; initialUrlState: unknown }) => (
+    <div data-testid="gallery-client" data-script-count={initialScripts.length} data-has-url-state={initialUrlState != null} />
   ),
 }));
-vi.mock("./loading", () => ({ default: () => <div /> }));
 
 import { apiFetch } from "@/lib/api";
 import { parseBannerSlides } from "@write/public-ui/server";
@@ -66,6 +65,13 @@ describe("homepage server component", () => {
     expect(client.getAttribute("data-script-count")).toBe("2");
   });
 
+  it("passes initialUrlState to GalleryClient (server-parsed searchParams)", async () => {
+    mockApiFetch.mockResolvedValue({ scripts: SCRIPTS });
+    await renderPage();
+    const client = screen.getByTestId("gallery-client");
+    expect(client.getAttribute("data-has-url-state")).toBe("true");
+  });
+
   it("banner parse failure does not affect initialScripts passed to GalleryClient", async () => {
     mockApiFetch.mockResolvedValue({ scripts: SCRIPTS, banner: { corrupt: true } });
     mockParseBannerSlides.mockImplementation(() => { throw new Error("bad banner"); });
@@ -81,21 +87,9 @@ describe("homepage server component", () => {
     expect(client.getAttribute("data-script-count")).toBe("0");
   });
 
-  it("no 最新公開台本 fallback section in DOM (removed in Phase 1)", async () => {
+  it("no 最新公開台本 fallback section in DOM", async () => {
     mockApiFetch.mockResolvedValue({ scripts: SCRIPTS });
     const { container } = await renderPage();
     expect(container.querySelector("section[aria-label='最新公開台本']")).toBeNull();
-  });
-
-  it("GalleryServerContent /read/ links present in initial render as children (Phase 3 transitional)", async () => {
-    mockApiFetch.mockResolvedValue({ scripts: SCRIPTS });
-    const { container } = await renderPage();
-    // GalleryServerContent renders inside GalleryClient children.
-    // Mock passes children through so links are in the DOM.
-    const links = container.querySelectorAll("a[href^='/read/']");
-    expect(links.length).toBe(2);
-    const hrefs = Array.from(links).map((l) => l.getAttribute("href"));
-    expect(hrefs).toContain("/read/script-1");
-    expect(hrefs).toContain("/read/script-2");
   });
 });

@@ -2,7 +2,10 @@ export { HorizontalScrollLane } from "./HorizontalScrollLane";
 export type { HorizontalScrollLaneProps } from "./HorizontalScrollLane";
 
 export { ScriptGalleryCard } from "./ScriptGalleryCard";
-export type { ScriptGalleryCardProps, ScriptGalleryItem, AuthorInfo, TagLike, PublicLinkConfig, CoverImageRenderer, CoverImageRendererProps } from "./ScriptGalleryCard";
+export type { ScriptGalleryCardProps, ScriptGalleryItem, AuthorInfo, TagLike, PublicLinkConfig } from "./ScriptGalleryCard";
+
+export { ScriptGalleryCardFrame } from "./ScriptGalleryCardFrame";
+export type { ScriptGalleryCardFrameProps, CardAuthorDisplay, CoverImageRenderer, CoverImageRendererProps } from "./ScriptGalleryCardFrame";
 
 export { CoverPlaceholder } from "./cover/CoverPlaceholder";
 export { CoverRenderer, COVER_W, COVER_H, COVER_COMPACT_W, COVER_COMPACT_H } from "./cover/CoverRenderer";

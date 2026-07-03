@@ -58,19 +58,16 @@ homepage.
 - `page.tsx` parses `searchParams` on the server and passes `initialUrlState`
   into `GalleryClient`.
 
-### Transitional, Not Final
+### Phase 4 Complete
 
-`GalleryServerContent` currently renders a static server card grid and passes it
-as `children` to `GalleryClient`; `GalleryClient` hides it after hydration.
+With `useSearchParams()` removed, `GalleryClient` SSRs its full card grid
+directly — `useState` initial values render on the server, producing real
+`/read/[id]` links in initial HTML. No separate server content component or
+hide-after-hydrate pattern is needed.
 
-This is an improvement over a separate "最新公開台本" footer fallback, but it is
-not the final architecture. It still has two render paths:
-
-1. static SSR grid for initial HTML
-2. client gallery after hydration
-
-The final architecture must remove this replacement pattern and make the
-server-rendered gallery the same primary content that users keep seeing.
+`ScriptGalleryCardFrame` is the shared pure presentational component used by
+both `ScriptGalleryCard` (client wrapper with hooks) and any future server-side
+card rendering. `GalleryServerContent` was deleted as dead code.
 
 ## Target Architecture
 
@@ -145,38 +142,37 @@ Acceptance criteria:
 
 ### Phase 3 — Transitional SSR Discovery Grid
 
-Status: partial / transitional.
+Status: complete (superseded by Phase 4).
 
 Acceptance criteria:
 
 - [x] The old "最新公開台本" footer fallback section is removed.
-- [x] Initial HTML can include `/read/[id]` links through
-      `GalleryServerContent`.
-- [ ] The SSR grid is not hidden after hydration.
-- [ ] There is one primary gallery render path, not a static grid replaced by a
+- [x] Initial HTML can include `/read/[id]` links through `GalleryClient` SSR.
+- [x] The SSR grid is not hidden after hydration.
+- [x] There is one primary gallery render path, not a static grid replaced by a
       client gallery.
 
-### Phase 4 — Final Server Gallery Shell
+### Phase 4 — Shared Card Frame & Single Render Path
 
-Replace the transitional `GalleryServerContent` slot with a server-rendered
-gallery shell that remains visible after hydration.
+Status: complete.
 
-Implementation direction:
+Implementation:
 
-- Extract a server-safe renderer for the initial script view.
-- Reuse shared card primitives or a shared card model so server and client do
-  not drift.
-- Keep client controls separate from initial content.
-- Hydration should attach controls and update state, not hide server content.
+- Extracted `ScriptGalleryCardFrame` — pure presentational component (no hooks,
+  no `"use client"`, no context). Server-safe, exported from `@write/public-ui/server`.
+- `ScriptGalleryCard` is now a thin client wrapper over `ScriptGalleryCardFrame`.
+- `GalleryClient` removed `children`, `hydrated` state, and hide-after-hydrate
+  pattern. It SSRs directly with `initialScripts` + `initialUrlState`.
+- `GalleryServerContent` deleted (no longer needed).
 
 Acceptance criteria:
 
-- [ ] Initial HTML has script cards with `/read/[id]` links.
-- [ ] The same cards remain visible after hydration.
-- [ ] No homepage content is hidden solely because the client mounted.
-- [ ] No duplicate script card UI appears.
+- [x] Initial HTML has script cards with `/read/[id]` links.
+- [x] The same cards remain visible after hydration.
+- [x] No homepage content is hidden solely because the client mounted.
+- [x] No duplicate script card UI appears.
 - [ ] `curl -sA "Googlebot" https://open-scripts.shawnup.com/ | grep -c '/read/'`
-      returns at least the intended SSR card count.
+      returns at least the intended SSR card count (pending Phase 5 deploy).
 
 ### Phase 5 — Production Verification
 
@@ -225,9 +221,9 @@ If ISR is reintroduced:
 - [x] Banner parse failure cannot erase script links.
 - [x] Homepage rendering policy is explicit: dynamic now, controlled ISR later.
 - [x] URL state no longer depends on `useSearchParams()`.
-- [ ] Initial homepage HTML contains `/read/` links from the primary gallery.
-- [ ] Server-rendered gallery content remains visible after hydration.
-- [ ] No duplicate homepage script card UI.
+- [x] Initial homepage HTML contains `/read/` links from the primary gallery.
+- [x] Server-rendered gallery content remains visible after hydration.
+- [x] No duplicate homepage script card UI.
 - [ ] SEO checklist verifies homepage discovery links before Search Console
       submission.
 - [ ] Production verification confirms read pages remain SSR healthy.
