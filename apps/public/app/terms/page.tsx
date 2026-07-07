@@ -4,11 +4,11 @@ import { BASE_URL, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Terms of Service｜泛用型產品作坊",
-  description: "泛用型產品作坊 terms of service — rules and guidelines for using the platform.",
+  description: "泛用型產品作坊 terms of service — rules and guidelines for using the script and audio script platform.",
   alternates: { canonical: `${BASE_URL}/terms` },
   openGraph: {
     title: "Terms of Service｜泛用型產品作坊",
-    description: "泛用型產品作坊 terms of service — rules and guidelines for using the platform.",
+    description: "泛用型產品作坊 terms of service — rules and guidelines for using the script and audio script platform.",
     url: `${BASE_URL}/terms`,
     siteName: "泛用型產品作坊",
     images: [{ url: DEFAULT_OG_IMAGE_URL, width: 1200, height: 630 }],
@@ -35,8 +35,9 @@ export default function TermsPage() {
         <section>
           <h2 className="text-xl font-semibold mb-3 text-foreground">2. Description of Service</h2>
           <p>
-            泛用型產品作坊 is a platform for writing, reading, and sharing screenplays and
-            scripts. Features include script creation, public sharing, and export to Google Docs.
+            泛用型產品作坊 is a platform for writing, reading, and sharing screenplays,
+            voice scripts, audio drama scripts, and related script works. Features include
+            script creation, public sharing, and export to Google Docs.
           </p>
         </section>
 

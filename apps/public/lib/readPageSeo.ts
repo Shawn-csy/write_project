@@ -61,11 +61,11 @@ export function buildReadPageDescription(script: PublicScript): string {
     const orderPart =
       typeof order === "number" && order > 0 ? `第 ${order} 部，` : "";
     const authorPart = authorName ? `作者 ${authorName} 的` : "";
-    return `${series.name}${orderPart}${authorPart}公開台本。`;
+    return `${series.name}${orderPart}${authorPart}公開台本與音聲台本。`;
   }
 
   if (authorName) {
-    return `${authorName} 的公開台本。`;
+    return `${authorName} 的公開台本與音聲台本。`;
   }
 
   return base;
@@ -78,6 +78,7 @@ export function buildReadPageStructuredData(
   const canonicalUrl = buildReadPageCanonicalUrl(scriptId);
   const authorName = getAuthorName(script);
   const tags = (script.tags ?? []).map((t) => t.name).filter(Boolean);
+  const keywords = Array.from(new Set(["台本", "音聲台本", "配音台本", ...tags]));
   const dateModified = parseDateModified(script);
   const description = buildReadPageDescription(script);
 
@@ -100,6 +101,7 @@ export function buildReadPageStructuredData(
     description,
     isAccessibleForFree: true,
     ...(tags.length > 0 && { genre: tags }),
+    keywords,
     ...(dateModified && { dateModified }),
     ...(authorName && { author: { "@type": "Person", name: authorName } }),
     ...(script.organization?.name && {

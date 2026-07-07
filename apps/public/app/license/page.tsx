@@ -10,11 +10,11 @@ import { BASE_URL, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "授權說明｜泛用型產品作坊",
-  description: "泛用型產品作坊台本授權體系說明：CC 授權、商業使用、衍生創作規則。",
+  description: "泛用型產品作坊台本與音聲台本授權體系說明：CC 授權、商業使用、衍生創作規則。",
   alternates: { canonical: `${BASE_URL}/license` },
   openGraph: {
     title: "授權說明｜泛用型產品作坊",
-    description: "泛用型產品作坊台本授權體系說明：CC 授權、商業使用、衍生創作規則。",
+    description: "泛用型產品作坊台本與音聲台本授權體系說明：CC 授權、商業使用、衍生創作規則。",
     url: `${BASE_URL}/license`,
     siteName: "泛用型產品作坊",
     locale: "zh_TW",
@@ -26,7 +26,7 @@ export default function LicensePage() {
   return (
     <PublicInfoPageShell
       title="授權說明"
-      description="台本創作授權體系"
+      description="台本與音聲台本創作授權體系"
       activeKey="license"
       relatedLinks={[
         { href: "/", label: "← 返回台本列表" },
@@ -38,7 +38,7 @@ export default function LicensePage() {
         {/* Lead — plain text overview */}
         <PublicInfoLead>
           <p>
-            泛用型產品作坊上的台本由創作者自行設定授權條款。
+            泛用型產品作坊上的台本與音聲台本由創作者自行設定授權條款。
             平台提供標準化的授權選項，讓使用者能清楚了解每部台本的使用範圍。
             未特別標示時，所有台本版權歸原作者所有，未經授權不得轉載或改作。
           </p>

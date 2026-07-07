@@ -65,18 +65,18 @@ describe("buildReadPageDescription series-aware fallback", () => {
       persona: { displayName: "作者A" },
     });
     expect(buildReadPageDescription(script)).toBe(
-      "黑夜系列第 2 部，作者 作者A 的公開台本。"
+      "黑夜系列第 2 部，作者 作者A 的公開台本與音聲台本。"
     );
   });
 
   it("series fallback without order", () => {
     const script = baseScript({ series: { name: "黑夜系列" } });
-    expect(buildReadPageDescription(script)).toBe("黑夜系列公開台本。");
+    expect(buildReadPageDescription(script)).toBe("黑夜系列公開台本與音聲台本。");
   });
 
   it("author-only fallback", () => {
     const script = baseScript({ owner: { displayName: "作者B" } });
-    expect(buildReadPageDescription(script)).toBe("作者B 的公開台本。");
+    expect(buildReadPageDescription(script)).toBe("作者B 的公開台本與音聲台本。");
   });
 });
 
@@ -105,6 +105,15 @@ describe("buildReadPageStructuredData isPartOf / position", () => {
     const data = buildReadPageStructuredData(script, "s1");
     expect(data.isPartOf).toBeDefined();
     expect(data.position).toBeUndefined();
+  });
+
+  it("adds script and audio-script keywords to structured data", () => {
+    const data = buildReadPageStructuredData(
+      baseScript({ tags: [{ name: "女性向" }, { name: "ASMR" }] }),
+      "s1"
+    );
+
+    expect(data.keywords).toEqual(["台本", "音聲台本", "配音台本", "女性向", "ASMR"]);
   });
 });
 
