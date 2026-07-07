@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { PublicScript } from "@/lib/types";
-import { ScriptCard } from "@/components/ScriptCard";
+import { EntityScriptGrid } from "@/components/EntityScriptGrid";
 
 interface Props {
   tagName: string;
@@ -20,14 +20,7 @@ export function TagPageClient({ tagName, scripts }: Props) {
           <p className="text-sm text-muted-foreground mt-1">{scripts.length} 部</p>
         </div>
 
-        <div
-          className="grid gap-4"
-          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}
-        >
-          {scripts.map((script) => (
-            <ScriptCard key={script.id} script={script} />
-          ))}
-        </div>
+        <EntityScriptGrid scripts={scripts} />
 
         <div className="mt-10 pt-6 border-t border-border">
           <Link

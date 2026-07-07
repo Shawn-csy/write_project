@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import type { PublicOrg, PublicScript } from "@/lib/types";
-import { ScriptCard } from "@/components/ScriptCard";
+import { buildOrgEntityModel } from "@/lib/publicEntityPageModel";
+import { EntityScriptGrid } from "@/components/EntityScriptGrid";
 import { PublicImage } from "@/components/PublicImage";
 
 interface OrgWithCrop extends PublicOrg {
@@ -18,6 +19,7 @@ interface Props {
 type Tab = "works" | "members";
 
 export function OrgPageClient({ org, scripts }: Props) {
+  const model = buildOrgEntityModel(org, scripts);
   const [activeTab, setActiveTab] = useState<Tab>("works");
   const members = org.members ?? [];
 
@@ -55,17 +57,19 @@ export function OrgPageClient({ org, scripts }: Props) {
                 </p>
               )}
 
-              {org.tags && org.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {org.tags.map((tag, i) => (
-                    <a
-                      key={i}
-                      href={`/tag/${encodeURIComponent(tag)}`}
-                      className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-colors"
-                    >
-                      {tag}
-                    </a>
-                  ))}
+              {model.profileTags.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">組織標籤</p>
+                  <div className="flex flex-wrap gap-2">
+                    {model.profileTags.map((tag, i) => (
+                      <span
+                        key={i}
+                        className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -112,14 +116,7 @@ export function OrgPageClient({ org, scripts }: Props) {
                 目前沒有公開作品
               </p>
             ) : (
-              <div
-                className="grid gap-4"
-                style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}
-              >
-                {scripts.map((script) => (
-                  <ScriptCard key={script.id} script={script} />
-                ))}
-              </div>
+              <EntityScriptGrid scripts={scripts} />
             )}
           </section>
         )}
