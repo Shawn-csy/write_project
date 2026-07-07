@@ -46,7 +46,7 @@ describe("robots", () => {
     expect(agents).toContain("Google-Extended");
   });
 
-  it("AI-bot rules allow /read/, /author/, /llms.txt, /.well-known/llms.txt, /api/public-scripts/", () => {
+  it("AI-bot rules allow public pages, discovery docs, sitemap, and public script APIs", () => {
     const r = robots();
     const rules = Array.isArray(r.rules) ? r.rules : [r.rules];
     const botRule = rules.find((rule) => rule.userAgent === "GPTBot");
@@ -54,8 +54,11 @@ describe("robots", () => {
     const allowed = Array.isArray(botRule!.allow) ? botRule!.allow : botRule!.allow ? [botRule!.allow] : [];
     expect(allowed).toContain("/read/");
     expect(allowed).toContain("/author/");
+    expect(allowed).toContain("/sitemap.xml");
     expect(allowed).toContain("/llms.txt");
     expect(allowed).toContain("/.well-known/llms.txt");
+    expect(allowed).toContain("/.well-known/api-catalog");
+    expect(allowed).toContain("/api/public-scripts");
     expect(allowed).toContain("/api/public-scripts/");
   });
 });

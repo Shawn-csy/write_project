@@ -4,7 +4,19 @@ import { BASE_URL } from "@/lib/seo";
 const AI_BOTS = ["GPTBot", "ClaudeBot", "PerplexityBot", "Google-Extended"];
 
 const AI_BOT_RULES = {
-  allow: ["/read/", "/author/", "/org/", "/series/", "/tag/", "/llms.txt", "/.well-known/llms.txt", "/api/public-scripts/"],
+  allow: [
+    "/read/",
+    "/author/",
+    "/org/",
+    "/series/",
+    "/tag/",
+    "/sitemap.xml",
+    "/llms.txt",
+    "/.well-known/llms.txt",
+    "/.well-known/api-catalog",
+    "/api/public-scripts",
+    "/api/public-scripts/",
+  ],
   disallow: ["/dashboard", "/studio", "/edit", "/settings", "/admin", "/api/revalidate", "/api/public-bundle"],
 };
 

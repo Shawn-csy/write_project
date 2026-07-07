@@ -4,7 +4,15 @@ import type { PublicScript } from "@/lib/types";
 import { GalleryClient } from "./GalleryClient";
 import type { HeroSlide } from "@write/public-ui/server";
 import { parseBannerSlides, parseGalleryUrlState } from "@write/public-ui/server";
-import { BASE_URL, PRODUCT_NAME, SITE_NAME, SITE_TITLE, SITE_DESCRIPTION, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
+import {
+  BASE_URL,
+  PRODUCT_NAME,
+  SITE_NAME,
+  SITE_TITLE,
+  SITE_DESCRIPTION,
+  SITE_KEYWORDS,
+  DEFAULT_OG_IMAGE_URL,
+} from "@/lib/seo";
 import { JsonLdScript } from "@/lib/jsonLd";
 
 // Phase 2: force-dynamic prevents build-time empty homepage when backend is unavailable.
@@ -14,6 +22,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: SITE_TITLE,
   description: SITE_DESCRIPTION,
+  keywords: SITE_KEYWORDS,
   alternates: { canonical: `${BASE_URL}/` },
   openGraph: {
     type: "website",
@@ -88,7 +97,7 @@ export default async function HomePage({
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: SITE_NAME,
-    alternateName: [PRODUCT_NAME, "公開台本"],
+    alternateName: [PRODUCT_NAME, "公開台本", "音聲台本", "配音台本"],
     url: `${BASE_URL}/`,
     description: SITE_DESCRIPTION,
     inLanguage: "zh-Hant",

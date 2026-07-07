@@ -10,11 +10,11 @@ import { BASE_URL, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "關於｜泛用型產品作坊",
-  description: "泛用型產品作坊提供免費台本線上閱讀平台，讓創作者輕鬆發布與分享台本作品。",
+  description: "泛用型產品作坊提供免費台本、音聲台本與配音台本線上閱讀平台，讓創作者輕鬆發布與分享台本作品。",
   alternates: { canonical: `${BASE_URL}/about` },
   openGraph: {
     title: "關於｜泛用型產品作坊",
-    description: "泛用型產品作坊提供免費台本線上閱讀平台，讓創作者輕鬆發布與分享台本作品。",
+    description: "泛用型產品作坊提供免費台本、音聲台本與配音台本線上閱讀平台，讓創作者輕鬆發布與分享台本作品。",
     url: `${BASE_URL}/about`,
     siteName: "泛用型產品作坊",
     locale: "zh_TW",
@@ -26,7 +26,7 @@ export default function AboutPage() {
   return (
     <PublicInfoPageShell
       title="關於泛用型產品作坊"
-      description="免費的台本線上閱讀與發布平台，讓每位創作者的作品都能被看見。"
+      description="免費的台本、音聲台本與配音台本線上閱讀與發布平台，讓每位創作者的作品都能被看見。"
       activeKey="about"
       relatedLinks={[
         { href: "/", label: "← 返回台本列表" },
@@ -38,7 +38,7 @@ export default function AboutPage() {
         {/* Lead — plain text, first viewport */}
         <PublicInfoLead>
           <p>
-            泛用型產品作坊由台灣獨立開發者打造，為台本、劇本、小說創作者提供一個免費、開放的展覽與閱讀空間。
+            泛用型產品作坊由台灣獨立開發者打造，為台本、音聲台本、配音台本、劇本與小說創作者提供一個免費、開放的展覽與閱讀空間。
           </p>
           <ul className="list-disc pl-5 space-y-2 text-foreground/90">
             <li><strong>公開閱讀</strong>：所有公開台本可免費瀏覽，不需登入。</li>

@@ -13,14 +13,23 @@ export function GET() {
           { href: `${BASE_URL}/.well-known/llms.txt`, type: "text/plain" },
         ],
         sitemap: [{ href: `${BASE_URL}/sitemap.xml`, type: "application/xml" }],
+        collection: [
+          {
+            href: `${BASE_URL}/api/public-scripts`,
+            type: "application/json",
+            title: "Public script collection",
+          },
+        ],
         item: [
           {
             href: `${BASE_URL}/api/public-scripts/{script_id}`,
             type: "application/json",
+            title: "Public script metadata",
           },
           {
             href: `${BASE_URL}/api/public-scripts/{script_id}/raw`,
             type: "text/markdown",
+            title: "Public script raw markdown",
           },
         ],
       },

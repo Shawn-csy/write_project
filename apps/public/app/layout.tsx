@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { SITE_DESCRIPTION, SITE_TITLE } from "@/lib/seo";
+import { SITE_DESCRIPTION, SITE_KEYWORDS, SITE_TITLE } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: SITE_TITLE,
   description: SITE_DESCRIPTION,
+  keywords: SITE_KEYWORDS,
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
