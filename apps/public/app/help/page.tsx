@@ -11,11 +11,11 @@ import { BASE_URL, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "使用說明｜泛用型產品作坊",
-  description: "泛用型產品作坊台本與音聲台本平台使用說明：如何閱讀台本、發布作品、使用編輯器功能。",
+  description: "泛用型產品作坊音聲台本平台使用說明：如何閱讀台本、發布作品、使用編輯器功能。",
   alternates: { canonical: `${BASE_URL}/help` },
   openGraph: {
     title: "使用說明｜泛用型產品作坊",
-    description: "泛用型產品作坊台本與音聲台本平台使用說明：如何閱讀台本、發布作品、使用編輯器功能。",
+    description: "泛用型產品作坊音聲台本平台使用說明：如何閱讀台本、發布作品、使用編輯器功能。",
     url: `${BASE_URL}/help`,
     siteName: "泛用型產品作坊",
     locale: "zh_TW",
@@ -33,7 +33,7 @@ export default function HelpPage() {
         name: "如何撰寫音聲台本或 ASMR 劇本？",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "音聲台本需要把聽覺細節寫清楚，包含角色動作、音效 SFX、距離感、情緒起伏與停頓。常見主題包含哄睡、戀愛情境、日常對話、奇幻冒險與恐怖驚悚。",
+          text: "音聲台本需要把聽覺細節寫清楚，包含角色動作、音效 SFX、距離感、情緒起伏與停頓，連貫性。常見主題包含哄睡、戀愛情境、日常對話、奇幻冒險與恐怖驚悚。",
         },
       },
       {
@@ -62,7 +62,7 @@ export default function HelpPage() {
       <PublicInfoDocument>
         {/* Lead — three-step summary, first viewport */}
         <PublicInfoLead>
-          <p>泛用型產品作坊讓你免費閱讀台本、音聲台本與配音台本，管理作品，以及與其他創作者合作。</p>
+          <p>泛用型產品作坊提供免費音聲台本，公開台本與 ASMR 台本、配音台本，並可管理作品。</p>
           <ol className="list-decimal pl-5 space-y-2 text-foreground/90">
             <li>
               <strong>找台本</strong>——在首頁瀏覽公開台本、音聲台本與配音台本，不需登入。
@@ -93,17 +93,18 @@ export default function HelpPage() {
             </div>
           </PublicInfoSection>
 
-          <PublicInfoSection title="音聲台本與 ASMR 劇本寫作">
+          <PublicInfoSection title="音聲台本與 ASMR 劇本 以下摘錄ai說明">
             <div className="text-sm text-muted-foreground leading-relaxed space-y-3">
               <p>
-                音聲台本與 ASMR 劇本不只寫台詞，也需要把「聽得到的畫面」標註清楚。
-                建議在台詞旁補上角色動作、距離感、音效（SFX）、情緒起伏與停頓，
-                讓聲優、配音員或創作者能直接理解錄製節奏。
+                音聲台本與 ASMR 劇本不只寫台詞，需要把聽得到的畫面標註清楚。
+                所以會在台詞旁補上角色動作、距離感、音效（SFX）、情緒起伏與停頓，
+                讓聲優、配音員或創作者能直接理解錄製節奏，也讓後製清楚該怎麼做。
+                但就算不加也沒關係，就是個人習慣的一種表現方式。
               </p>
               <ul className="list-disc pl-5 space-y-1 text-foreground/90">
-                <li><strong>聽覺細節</strong>：耳語、腳步、翻頁、雨聲、衣料摩擦、環境音。</li>
-                <li><strong>角色狀態</strong>：溫柔、撒嬌、緊張、壓低聲音、靠近或遠離麥克風。</li>
-                <li><strong>常見類型</strong>：哄睡、戀愛情境、日常對話、奇幻冒險、恐怖驚悚。</li>
+                <li><strong>聽覺細節(音效)</strong>：耳語、腳步、翻頁、雨聲、衣料摩擦、環境音。</li>
+                <li><strong>角色狀態(情緒)</strong>：溫柔、撒嬌、緊張、壓低聲音、靠近或遠離麥克風。</li>
+                <li><strong>常見類型(主題)</strong>：哄睡、戀愛情境、日常對話、奇幻冒險、恐怖驚悚。</li>
                 <li><strong>授權標註</strong>：若作品可供 YouTube、直播、配音或音聲投稿使用，請在授權欄位清楚標示。</li>
               </ul>
             </div>
@@ -112,7 +113,7 @@ export default function HelpPage() {
           <PublicInfoSection title="尋找免費公開台本">
             <div className="text-sm text-muted-foreground leading-relaxed space-y-3">
               <p>
-                首頁會列出公開作品，包含一般台本、音聲台本、配音台本、ASMR 台本與聲劇台本。
+                首頁會列出公開作品，包含一般台本、音聲台本、配音台本、ASMR 台本與廣播劇劇本。
                 你可以依標籤、作者、組織或系列尋找適合朗讀、配音、直播或錄音的內容。
               </p>
               <p>

@@ -3,7 +3,7 @@
 Status: draft inventory only. No git tags have been created.
 
 Base tag: `v0.5.0`
-Head reviewed: `d6047028 Sync brand hero copy`
+Head reviewed: `d7341e44 Improve audio script SEO discovery`
 
 ## Suggested Release Lanes
 
@@ -20,7 +20,7 @@ Head reviewed: `d6047028 Sync brand hero copy`
 | `0.5.9` | `990f1442..5f5433be` | Patch | Remove public backward compatibility routes, legacy metadata runtime support, User-to-Persona fallback. |
 | `0.5.10` | `8aef0f04..23e191ed` | Patch | Editorial redesign for gallery and read page, workspace login entry, Next-native public primitives. |
 | `0.5.11` | `c190e239..4e1a5f06` | Patch | Public media presets, focal-point editor, hero art direction pipeline, image URL hardening. |
-| `0.6.0` | `1e3e9b55..d6047028` | Minor | Hero placement, motion system, SEO completion, perf hardening, info pages, security, mobile shell. |
+| `0.6.0` | `1e3e9b55..d7341e44` | Minor | Hero placement, motion system, SEO/AI discovery, perf hardening, info pages, security, mobile shell, reader preferences, homepage SSR, entity cards. |
 
 ## Commit Classification
 
@@ -201,6 +201,30 @@ Head reviewed: `d6047028 Sync brand hero copy`
 | `ac6fdb4f` | `0.6.0` | feat | Redesign public mobile shell navigation. |
 | `df93f4c2` | `0.6.0` | refine | Mobile gallery controls. |
 | `d6047028` | `0.6.0` | chore | Sync brand hero copy. |
+| `05dc445e` | `0.6.0` | docs | Organize project documentation. |
+| `8aeca3b8` | `0.6.0` | merge | Merge public frontend feature branch into dev. |
+| `fb5809da` | `0.6.0` | security/perf | Prevent Cloudflare HTML script injection. |
+| `e94ae770` | `0.6.0` | fix | Remove conflicting `/api/` disallow for AI bots. |
+| `2a5dc2c0` | `0.6.0` | docs | Document public agent discovery plan. |
+| `82bf4f31` | `0.6.0` | feat | Add public agent discovery endpoints. |
+| `ef55836d` | `0.6.0` | perf | Cache public reader pages. |
+| `d94c1678` | `0.6.0` | architecture | Define reader display preference contracts. |
+| `d6815b96` | `0.6.0` | refactor | Extract reader display preferences model. |
+| `df030ffb` | `0.6.0` | refactor | Rename presentation renderer settings API. |
+| `f09c02d0` | `0.6.0` | refactor | Restructure appearance reader preferences. |
+| `8eab7391` | `0.6.0` | test | Complete reader preference parity QA. |
+| `5aa0b9aa` | `0.6.0` | fix | Gate reader line guide by effective mode. |
+| `71aea22c` | `0.6.0` | fix | Fix favicon and SEO preindex checks. |
+| `7d5537f4` | `0.6.0` | fix/seo | Remove homepage CSR bailout and stabilize data boundary. |
+| `fab9b2fc` | `0.6.0` | refactor | Unify public homepage SSR card rendering. |
+| `f6a218c3` | `0.6.0` | asset | Add public favicon assets. |
+| `ce6ae764` | `0.6.0` | refactor | Move public info links to footer. |
+| `e6b049db` | `0.6.0` | release | Prepare v0.6.0 editor performance release. |
+| `890d17a2` | `0.6.0` | fix | Stabilize renderer sibling keys. |
+| `7f0d3a00` | `0.6.0` | refine | Refine settings panel structure. |
+| `2b8ef4a5` | `0.6.0` | seo | Stabilize homepage SEO metadata. |
+| `0608d250` | `0.6.0` | refactor | Unify public entity script cards. |
+| `d7341e44` | `0.6.0` | seo/ai | Improve audio script SEO discovery. |
 
 ## Notes
 
