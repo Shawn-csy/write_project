@@ -1,6 +1,6 @@
 # 公開台本平台 (`write_project`)
 
-最後更新：2026-06-22（v0.5.0）
+最後更新：2026-07-07（v0.6.0 release candidate）
 
 本專案是一個台本創作、發布與公開閱讀平台。現在的前端已拆成兩個 runtime：
 
@@ -79,7 +79,7 @@ Public app BFF routes live under `apps/public/app/api/*` and proxy backend data 
 - `packages/public-ui` owns router-neutral public models and UI components. It exports a client barrel (`index.ts`) and a server-safe barrel (`server.ts`).
 - `packages/reader-export` owns PDF/print export and public metadata projection for exported documents.
 
-See [docs/frontend-boundaries.md](./docs/frontend-boundaries.md) for the full boundary rules.
+See [docs/architecture/frontend-boundaries.md](./docs/architecture/frontend-boundaries.md) for the full boundary rules.
 
 ## 快速開始
 
@@ -130,13 +130,14 @@ npm run test:e2e         # Playwright E2E
 
 ## 主要文件入口
 
-- [Frontend Runtime Boundaries](./docs/frontend-boundaries.md)
-- [Public Homepage Architecture](./docs/public-homepage-architecture.md)
-- [Read Page SEO/UX Architecture](./docs/read-page-seo-ux-architecture.md)
-- [Read Page Download Architecture](./docs/read-page-download-architecture.md)
-- [Read Page Export Metadata Projection](./docs/read-page-export-metadata-projection.md)
-- [SEO Google Content Visibility Contract](./docs/seo-google-content-visibility-contract.md)
-- [Security Protection](./docs/security-protection.md)
+- [Changelog](./CHANGELOG.md)
+- [Frontend Runtime Boundaries](./docs/architecture/frontend-boundaries.md)
+- [Public Homepage Architecture](./docs/architecture/public-homepage-architecture.md)
+- [Read Page SEO/UX Architecture](./docs/architecture/read-page-seo-ux-architecture.md)
+- [Read Page Download Architecture](./docs/architecture/read-page-download-architecture.md)
+- [Read Page Export Metadata Projection](./docs/architecture/read-page-export-metadata-projection.md)
+- [SEO Google Content Visibility Contract](./docs/architecture/seo-google-content-visibility-contract.md)
+- [Security Protection](./docs/architecture/security-protection.md)
 
 ## 環境變數與認證
 

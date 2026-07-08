@@ -1,10 +1,24 @@
-# Release Notes — v0.6.0
+# Changelog
 
-Released: 2026-07-02
+All notable product-facing changes are documented here.
+
+For the commit-level inventory between `v0.5.0` and `v0.6.0`, see `docs/release-version-map-after-v0.5.0.md`.
+
+## [Unreleased]
+
+- No unreleased changes yet.
+
+## [0.6.0] - release candidate
+
+Status: draft for release candidate
+Base: `v0.5.0`
+Reviewed through: `d7341e44 Improve audio script SEO discovery`
 
 ## Overview
 
-v0.6.0 是 v0.5.0 之後的第一個 minor release，涵蓋公開前端全面切換至 Next.js SSR、Vite 公開頁退役、系列功能、editorial 設計語言重塑、媒體系統、行動版 shell 重設計，以及 SEO、安全與效能的完整落地。
+v0.6.0 是 v0.5.0 之後的第一個 minor release，將公開站從 Vite SPA 重建為 Next.js SSR/SEO-first 前台，並同步重構台本閱讀器、公開頁設計系統、系列功能、媒體裁切、PDF 匯出、SEO/AI discovery、行動版 UX、資安與部署邊界。
+
+這版的產品定位也從「免費台本／劇本線上閱讀」擴展為「免費台本、音聲台本、配音台本與 ASMR 台本的公開閱讀與發布平台」。Google 搜尋與 AI assistant 可透過 SSR 頁面、JSON-LD、sitemap、robots、`llms.txt` 與 `/.well-known/api-catalog` 正確發現公開作品與 raw content endpoint。
 
 ---
 
@@ -22,6 +36,12 @@ v0.6.0 是 v0.5.0 之後的第一個 minor release，涵蓋公開前端全面切
 - User-to-Persona fallback 已移除。
 - 公開頁所有 metadata 來自 canonical backend fields。
 
+### 公開資料來源收斂
+
+- 作者頁、組織頁、系列頁與標籤頁改用 canonical public API/entity model。
+- Profile tags 與 work tags 分離，作者／組織身份標籤不再誤連到作品標籤。
+- 公開作品卡片統一走 shared card frame，避免首頁、作者頁、組織頁、標籤頁顯示邏輯漂移。
+
 ---
 
 ## 新功能
@@ -33,6 +53,8 @@ v0.6.0 是 v0.5.0 之後的第一個 minor release，涵蓋公開前端全面切
 - Shared `@write/script-engine` package 統一解析與渲染。
 - Marker-based reader presentation。
 - Public reader PDF export pipeline。
+- 首頁移除 CSR bailout，初始作品卡片可由 Next SSR 輸出，提升 crawler 可見性。
+- `ScriptGalleryCardFrame` 成為 server-safe card DOM 單一來源，client wrapper 僅負責互動。
 
 ### 系列功能
 
@@ -73,6 +95,16 @@ v0.6.0 是 v0.5.0 之後的第一個 minor release，涵蓋公開前端全面切
 - Homepage appearance scale model（text scale tokens）。
 - Shared appearance preferences 跨 gallery 與 reader。
 - Reader toolbar title slot。
+- Reader display preferences 抽成 shared nested model，並建立 renderer capability matrix。
+- `V2` 命名逐步改為 presentation renderer API。
+- 行底線輔助依實際 presentation mode 與 mobile auto-linear mode gating。
+
+### 公開資訊頁與 Footer
+
+- `PublicInfoPageShell` 統一 about/help/license/privacy/terms layout。
+- Info pages 使用 server topbar，降低 client JS 與閃爍。
+- 關於、使用說明、授權、隱私政策、使用條款收斂到 public footer。
+- 使用說明頁新增音聲台本／ASMR 劇本寫作指引與 FAQ structured data。
 
 ---
 
@@ -85,6 +117,11 @@ v0.6.0 是 v0.5.0 之後的第一個 minor release，涵蓋公開前端全面切
 - `llms.txt` 符合 llmstxt.org 規範（Markdown 連結格式）。
 - `robots.txt` AI bot rules 修正（`Allow: /api/public-scripts/` 不再被 `Disallow: /api/` 覆蓋）。
 - Lighthouse SEO 100、Accessibility 100、Best Practices 100、Agentic Browsing 100（本地 + 正式）。
+- favicon / apple-touch-icon 由 Next 與 nginx exact-match route 正確提供。
+- `/.well-known/api-catalog` 提供 `application/linkset+json`，列出 sitemap、`llms.txt`、public script collection、metadata 與 raw markdown endpoint。
+- `llms.txt` 與 `/.well-known/llms.txt` 補上 whole-site extraction workflow。
+- 站台 SEO 語彙補上「音聲台本」「免費音聲台本」「配音台本」「ASMR 台本」「ASMR劇本」「聲音台本」。
+- 作品頁 CreativeWork JSON-LD 補 `keywords`，fallback description 改為「公開台本與音聲台本」。
 
 ---
 
@@ -105,6 +142,9 @@ v0.6.0 是 v0.5.0 之後的第一個 minor release，涵蓋公開前端全面切
 - 公開頁字體 payload 減少（subset + preload 優化）。
 - Public info pages render path 優化（server topbar、font split）。
 - Route cache 策略：首頁 5m、read 1d、entity 1h、sitemap 1h。
+- Public reader pages 加上 cache policy。
+- Homepage metadata 與 SSR data boundary 穩定化，避免 build-time empty homepage。
+- Renderer sibling keys 穩定化，降低重新渲染與 hydration 風險。
 
 ---
 
@@ -125,6 +165,8 @@ v0.6.0 是 v0.5.0 之後的第一個 minor release，涵蓋公開前端全面切
 - Gallery URL state model（tab/view mode 持久化）。
 - Workspace 登入入口從公開頁可達。
 - `about` 頁近期更新條目同步。
+- Project docs 重新整理為 `architecture/`、`archive/`、`pending/`、`engineering/` 分層。
+- `docs/release-version-map-after-v0.5.0.md` 保留為 v0.5.0 後變更盤點。
 
 ---
 
@@ -133,3 +175,7 @@ v0.6.0 是 v0.5.0 之後的第一個 minor release，涵蓋公開前端全面切
 - `/gallery` 現在回傳 **410**，不會重導向至首頁。如有外部連結請更新。
 - `customMetadata` runtime fallback 已移除。依賴此欄位的自訂整合需更新至 canonical fields。
 - nginx `/.well-known/` 路由須 proxy 至 Next（見 `nginx.conf`），否則 `/.well-known/llms.txt` 等機器文件會 404。
+
+## [0.5.0] - baseline
+
+`v0.5.0` is the baseline tag for this changelog. Earlier changes are not reconstructed here.

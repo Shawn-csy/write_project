@@ -1,15 +1,13 @@
 # 文件索引
-最後更新：2026-07-01（v0.6.0 pre-release）
+最後更新：2026-07-07（v0.6.0 release candidate）
 
 ## 建議閱讀順序
 1. `docs/engineering/operations.md`：如何啟動、測試、部署
-2. `docs/product/architecture.md`：目前系統模組與分層
-3. `docs/product/data-flows.md`：關鍵功能資料流（前後端對應）
+2. `docs/architecture/frontend-boundaries.md`：Next public、Vite editor、shared packages 的前端邊界
+3. `docs/architecture/public-homepage-architecture.md`：Next public homepage 架構、URL state、資料契約
 4. `docs/engineering/testing.md`：測試策略與指令
 
 ## 產品與功能
-- `docs/product/architecture.md`：系統架構與目錄對應
-- `docs/product/data-flows.md`：公開頁/工作室/後台的主要資料流
 - `docs/product/marker-config-guide.md`：標記規則與主題設定
 - `docs/product/script-import-pipeline.md`：匯入與解析流程
 
@@ -44,6 +42,7 @@
 - `docs/pending/public-agent-discovery-plan.md`：公開頁 agent discovery、Link headers、API catalog 與 well-known soft-404 修正計畫
 
 ## 版本紀錄
+- `CHANGELOG.md`：完整版本變更紀錄
 - `docs/release-version-map-after-v0.5.0.md`：v0.5.0 之後各版本 commit 對應表
 
 ## 封存

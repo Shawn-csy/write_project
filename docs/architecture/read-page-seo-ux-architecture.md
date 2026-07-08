@@ -688,7 +688,7 @@ Do not:
 ## Status
 
 All read-page SEO/UX phases complete as of 2026-06-22. PDF browser
-print-preview QA remains tracked in `docs/read-page-download-architecture.md`.
+print-preview QA remains tracked in `docs/architecture/read-page-download-architecture.md`.
 
 | Phase | Status |
 |---|---|
@@ -706,4 +706,4 @@ Deferred items (not blockers):
 - Adult/rating tags live QA — requires rated public scripts.
 - Public reader PDF print-preview QA — PDF toolbar action and shared export
   pipeline are implemented; final browser print-preview validation is tracked
-  in `docs/read-page-download-architecture.md`.
+  in `docs/architecture/read-page-download-architecture.md`.
