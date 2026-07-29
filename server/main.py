@@ -14,6 +14,11 @@ from dependencies import get_current_user_id, get_db
 from rate_limit import RATE_LIMIT_ENABLED, limiter
 from routers import analysis, scripts, users, orgs, personas, tags, themes, admin, public, seo, media, series, studio
 from routers import public_bundle, export
+from services.route_contract import (
+    is_legacy_public_html_path,
+    is_workspace_spa_path,
+    normalize_route_path,
+)
 from services.seo import inject_seo_for_route
 
 try:
@@ -315,11 +320,21 @@ Prefer /api/public-scripts/{{script_id}}/raw for reliable raw content access.
 
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str, request: Request, db: database.SessionLocal = Depends(get_db)):
-        if full_path.startswith("api/"):
+        normalized_path = normalize_route_path(full_path)
+
+        if normalized_path == "gallery":
+            return Response(status_code=410)
+
+        if normalized_path.startswith("api/"):
             raise HTTPException(status_code=404, detail="API endpoint not found")
 
-        if full_path.startswith("read/"):
-            script_id = full_path.strip("/").split("/")[-1]
+        is_workspace_path = is_workspace_spa_path(normalized_path)
+        is_public_html_path = is_legacy_public_html_path(normalized_path)
+        if not is_workspace_path and not is_public_html_path:
+            raise HTTPException(status_code=404, detail="Page not found")
+
+        if normalized_path.startswith("read/"):
+            script_id = normalized_path.split("/", 1)[1]
             accept_header = request.headers.get("accept", "")
             user_agent = request.headers.get("user-agent", "").lower()
             is_ai_bot = any(bot in user_agent for bot in ["gptbot", "claudebot", "google-extended", "anthropic", "perplexitybot"])
@@ -349,11 +364,14 @@ Prefer /api/public-scripts/{{script_id}}/raw for reliable raw content access.
                 return Response(content="Internal Server Error", status_code=500)
 
             user_agent = request.headers.get("user-agent", "").lower()
-            seo_html = inject_seo_for_route(full_path, db, html_template, public_base_url(), user_agent=user_agent)
+            seo_html = inject_seo_for_route(normalized_path, db, html_template, public_base_url(), user_agent=user_agent)
             if seo_html is not None:
                 return HTMLResponse(content=seo_html)
 
-            return HTMLResponse(content=html_template)
+            if is_workspace_path:
+                return HTMLResponse(content=html_template)
+
+            raise HTTPException(status_code=404, detail="Page not found")
 
         return {"error": "Frontend not built"}
 

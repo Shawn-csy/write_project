@@ -120,6 +120,14 @@ console.log(`\nChecking: ${BASE_URL}/gallery`);
   status === 410 ? ok(`/gallery returns 410 Gone`) : fail(`expected 410, got ${status}`);
 }
 
+// ── Unknown routes — must be real 404s, never the Vite SPA shell ──────────────
+for (const route of ["/__routing-contract-probe__", "/openapi.json", "/dashboard/not-a-route"]) {
+  console.log(`\nChecking unknown route: ${BASE_URL}${route}`);
+  const { status, text } = await fetchText(`${BASE_URL}${route}`);
+  status === 404 ? ok(`${route} returns 404`) : fail(`${route} returned ${status}`);
+  !text.includes('id="root"') ? ok(`${route} does not return SPA shell`) : fail(`${route} returned SPA shell`);
+}
+
 // ── OG image asset (derived from homepage og:image, not hardcoded path) ───────
 {
   // Re-fetch homepage HTML to extract the actual og:image URL.

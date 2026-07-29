@@ -54,7 +54,7 @@ def test_spa_read_markdown_error_returns_500(client, db_session, monkeypatch):
         raise RuntimeError("forced query failure")
 
     monkeypatch.setattr(db_session, "query", boom)
-    response = client.get("/read/any/extra", headers={"Accept": "text/markdown"})
+    response = client.get("/read/any", headers={"Accept": "text/markdown"})
     assert response.status_code == 500
     assert response.text == "Internal Server Error"
 
