@@ -8,6 +8,20 @@ For the commit-level inventory between `v0.5.0` and `v0.6.0`, see `docs/release-
 
 - No unreleased changes yet.
 
+## [0.6.1] - 2026-07-29
+
+### SEO 與社群預覽
+
+- 首頁 Open Graph 圖改用正式網站 Hero 畫面，修正原圖片中文字缺字方框。
+- 音聲台本探索詞彙由「聲劇台本」調整為「廣播劇劇本」，同步網站 metadata 與 `llms.txt`。
+
+### 路由與索引品質
+
+- 建立 Nginx、Vite 工作區與後端共用的路由所有權契約。
+- 僅允許正式工作區路由取得 SPA shell；未知路徑一律回傳真正的 `404`，避免 soft-404、錯誤 canonical 與 `noindex` 噪音。
+- 退役 `/gallery` 在入口與後端層皆維持 `410 Gone`。
+- 新增路由契約測試與正式環境 SEO 驗證項目。
+
 ## [0.6.0] - release candidate
 
 Status: draft for release candidate

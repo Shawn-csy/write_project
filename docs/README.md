@@ -1,5 +1,5 @@
 # 文件索引
-最後更新：2026-07-07（v0.6.0 release candidate）
+最後更新：2026-07-29（v0.6.1）
 
 ## 建議閱讀順序
 1. `docs/engineering/operations.md`：如何啟動、測試、部署
