@@ -40,6 +40,12 @@ services:
       - ./server/data:/data
       - ./server/secrets:/secrets:ro
       - ./dist:/app/dist:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; response = urllib.request.urlopen('http://127.0.0.1:1091/api/health/ready', timeout=3); raise SystemExit(0 if response.status == 200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     depends_on:
       write_project-postgres:
         condition: service_healthy
@@ -61,10 +67,19 @@ services:
     volumes:
       - ./dist:/usr/share/nginx/html:ro
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
     depends_on:
-      - write_project-frontend-build
-      - write_project-backend
-      - write_project-public
+      write_project-frontend-build:
+        condition: service_completed_successfully
+      write_project-backend:
+        condition: service_healthy
+      write_project-public:
+        condition: service_healthy
 
   write_project-public:
     image: write_project-public:${DEPLOY_TAG:-latest}
@@ -80,3 +95,12 @@ services:
       - REVALIDATE_SECRET=${REVALIDATE_SECRET}
       - PORT=3000
       - HOSTNAME=0.0.0.0
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health/ready').then(response => process.exit(response.status === 200 ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      write_project-backend:
+        condition: service_healthy

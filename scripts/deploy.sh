@@ -241,14 +241,14 @@ else
   for i in $(seq 1 30); do
     STATUS="$(docker inspect -f '{{.State.Status}}' "$BACKEND_CID" 2>/dev/null || true)"
     if [ "$STATUS" = "running" ]; then
-      # Check if the server is accepting connections — any HTTP response (incl. 4xx) means it's up.
+      # Readiness must be a successful 2xx response and includes a database check.
       if docker exec "$BACKEND_CID" \
           python -c "
-import urllib.request, urllib.error, sys
+import urllib.request, sys
 try:
-    urllib.request.urlopen('http://localhost:1091/api/health/auth')
-except urllib.error.HTTPError:
-    pass  # 4xx/5xx still means server is up
+    response = urllib.request.urlopen('http://127.0.0.1:1091/api/health/ready', timeout=3)
+    if response.status != 200:
+        sys.exit(1)
 except Exception:
     sys.exit(1)
 " 2>/dev/null; then
@@ -339,7 +339,7 @@ else
   for i in $(seq 1 30); do
     STATUS="$(docker inspect -f '{{.State.Status}}' "$PUBLIC_CID" 2>/dev/null || true)"
     if [ "$STATUS" = "running" ]; then
-      if docker exec "$PUBLIC_CID" node -e "fetch('http://127.0.0.1:3000/about').then(r => { if (r.ok) process.exit(0); process.exit(1); }).catch(() => process.exit(1));" >/dev/null 2>&1; then
+      if docker exec "$PUBLIC_CID" node -e "fetch('http://127.0.0.1:3000/api/health/ready').then(r => { if (r.status === 200) process.exit(0); process.exit(1); }).catch(() => process.exit(1));" >/dev/null 2>&1; then
         PUBLIC_READY=1
         break
       fi

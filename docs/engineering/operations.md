@@ -1,5 +1,5 @@
 # 操作手冊（開發 / 測試 / 部署）
-最後更新：2026-05-15
+最後更新：2026-07-30
 
 ## 1. 環境需求
 - Node.js：`20.19+`
@@ -121,3 +121,24 @@ bash scripts/deploy.sh migrate_pg=1 target_db='postgresql+psycopg://user:pass@12
 - 後端啟動但 DB 錯誤：先確認 `DATABASE_URL`，再檢查 Postgres 容器健康狀態。
 - E2E 啟動失敗：確認 Playwright 瀏覽器是否安裝（`npx playwright install`）。
 - 權限錯誤（媒體上傳）：確認 `MEDIA_STORAGE_ROOT` 或 `server/data/media` 寫入權限。
+
+## 9. Health endpoints
+
+Backend（FastAPI）：
+
+- `GET /api/health/live`：只檢查 process 是否能回應。
+- `GET /api/health/ready`：檢查資料庫連線與核心 schema；失敗回 `503`。
+- `GET /api/health`：`ready` 的相容入口。
+- `GET /api/health/auth`：需有效登入憑證的 Firebase Auth smoke test，不供容器探測。
+
+Public（Next.js container internal port 3000）：
+
+- `GET /api/health/live`：只檢查 Next.js process。
+- `GET /api/health/ready`：連鎖檢查 Backend readiness；失敗回 `503`。
+- `GET /api/health`：`ready` 的相容入口。
+
+Nginx 對外入口：
+
+- `GET /healthz`：只檢查 Nginx process。完整依賴狀態請看 readiness endpoints。
+
+所有 health response 都使用 `Cache-Control: no-store`。Docker Compose 與部署腳本只接受 readiness 的 HTTP `200`，`4xx/5xx` 不視為健康。

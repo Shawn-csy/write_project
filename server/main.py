@@ -10,9 +10,9 @@ from fastapi.staticfiles import StaticFiles
 import database
 import migration
 import models
-from dependencies import get_current_user_id, get_db
+from dependencies import get_db
 from rate_limit import RATE_LIMIT_ENABLED, limiter
-from routers import analysis, scripts, users, orgs, personas, tags, themes, admin, public, seo, media, series, studio
+from routers import analysis, scripts, users, orgs, personas, tags, themes, admin, public, seo, media, series, studio, health
 from routers import public_bundle, export
 from services.route_contract import (
     is_legacy_public_html_path,
@@ -174,10 +174,7 @@ def create_app() -> FastAPI:
     app.include_router(series.router)
     app.include_router(studio.router)
     app.include_router(export.router)
-
-    @app.get("/api/health/auth")
-    async def auth_health_check(user_id: str = Depends(get_current_user_id)):
-        return {"ok": True, "uid": user_id}
+    app.include_router(health.router)
 
     @app.get("/llms.txt", response_class=Response)
     @app.get("/.well-known/llms.txt", response_class=Response)
