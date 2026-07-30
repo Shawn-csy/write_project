@@ -23,4 +23,10 @@ services:
       - FIREBASE_CREDENTIALS_JSON=${FIREBASE_CREDENTIALS_JSON}
       - ADMIN_USER_IDS=${ADMIN_USER_IDS}
       - ADMIN_USER_EMAILS=${ADMIN_USER_EMAILS}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; response = urllib.request.urlopen('http://127.0.0.1:1091/api/health/ready', timeout=3); raise SystemExit(0 if response.status == 200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     command: uvicorn main:app --host 0.0.0.0 --port 1091 --reload
