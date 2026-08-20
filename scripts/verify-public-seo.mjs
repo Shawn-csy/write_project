@@ -60,7 +60,12 @@ function checkCanonical(text, expectedUrl) {
   const canonical = linkTags.find((tag) => /rel=["']canonical["']/.test(tag));
   if (!canonical) { fail("canonical link missing"); return; }
   const href = extractAttr(canonical, "href");
-  href === expectedUrl ? ok(`canonical: ${href}`) : fail(`canonical mismatch: got ${href}, want ${expectedUrl}`);
+  // Next normalizes the root canonical to the origin with no trailing slash.
+  // Both forms are equivalent to crawlers, so compare without it.
+  const norm = (u) => (u ?? "").replace(/\/+$/, "");
+  norm(href) === norm(expectedUrl)
+    ? ok(`canonical: ${href}`)
+    : fail(`canonical mismatch: got ${href}, want ${expectedUrl}`);
 }
 
 function checkNoGalleryInSitemap(sitemapText) {
@@ -169,7 +174,10 @@ console.log(`\nChecking: ${BASE_URL}/llms.txt`);
   const { status, contentType, text } = await fetchText(`${BASE_URL}/llms.txt`);
   status === 200 ? ok("status 200") : fail(`status ${status}`);
   (contentType.includes("text/markdown") || contentType.includes("text/plain")) ? ok(`content-type: ${contentType}`) : fail(`unexpected content-type: ${contentType}`);
-  !text.includes("scripts.shawnup.com") ? ok("no stale scripts.shawnup.com domain") : fail("stale scripts.shawnup.com domain found");
+  // Must match the stale host only — a bare substring check also matches the
+  // correct host (open-scripts.shawnup.com contains scripts.shawnup.com), so
+  // this check could never pass.
+  !/\/\/scripts\.shawnup\.com/.test(text) ? ok("no stale scripts.shawnup.com domain") : fail("stale scripts.shawnup.com domain found");
   text.includes("/api/public-scripts/") ? ok("raw API endpoint documented") : fail("raw API endpoint missing");
 }
 

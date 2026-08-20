@@ -74,7 +74,7 @@ from .transfers import (
     transfer_script_ownership,
     transfer_script_ownership_admin,
 )
-from .users import get_user, search_users, update_user
+from .users import HandleConflictError, get_user, search_users, update_user
 
 __all__ = [
     "has_public_parent_folder",
@@ -160,5 +160,6 @@ __all__ = [
     "transfer_script_ownership_admin",
     "get_user",
     "search_users",
+    "HandleConflictError",
     "update_user",
 ]

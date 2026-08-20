@@ -11,9 +11,16 @@
 
 ## 2) 資料持久化位置
 - PostgreSQL data dir（容器內）：`/var/lib/postgresql/data`
-- PostgreSQL data dir（主機 bind mount）：`server/data/postgres`
+- PostgreSQL data dir（主機 bind mount）：
+  - 正式（`docker-compose.prod.yml`）：`server/data/postgres`
+  - 開發（`docker-compose.yml`）：`server/data/postgres-dev`，對外埠 `15432`
 
 > 重點：資料現在是放在專案內 `server/data/postgres`，不是 SQLite 檔案。
+
+> ⚠️ 兩份 compose **不可共用資料目錄**。2026-08-17 之前兩者都指向
+> `server/data/postgres`，於是在跑著正式站的機器上執行 dev 的 `docker compose down`
+> 就等同對正式資料庫強制關機 —— WAL 遺失造成 `scripts` 表索引與 heap 不同步
+> （15 筆列從索引消失、主鍵重複），4 篇公開台本損毀，最後以 dump/restore 邏輯重建修復。
 
 ## 3) DB 啟動與初始化流程
 - 由 `docker-compose.prod.yml` 啟動 Postgres（含 healthcheck）。

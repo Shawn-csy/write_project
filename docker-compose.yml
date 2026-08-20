@@ -2,16 +2,23 @@
 services:
   write_project-postgres:
     image: postgres:16-alpine
-    # 注意：這個資料目錄與 docker-compose.prod.yml 共用。在正式站運行中的機器上
-    # 起停這個 service，等同於直接操作正式資料庫。
-    # 寬限期拉長的理由見 docker-compose.prod.yml 的同名設定（2026-08-17 事故）。
+    # 開發環境必須使用獨立的資料目錄。
+    #
+    # 2026-08-17 之前這裡與 docker-compose.prod.yml 共用 ./server/data/postgres，
+    # 於是在跑著正式站的機器上執行 `docker compose down`（dev）就等同對正式資料庫
+    # 強制關機。當時 Docker 預設 10s 寬限期送出 SIGKILL，關機 checkpoint 未完成，
+    # WAL 遺失導致 scripts 表 15 筆列從索引消失、主鍵出現重複值，4 篇公開台本損毀。
+    #
+    # 埠號也錯開，避免本機 psql 連錯資料庫。
     stop_grace_period: 120s
     environment:
       POSTGRES_USER: write_project
       POSTGRES_PASSWORD: write_project
       POSTGRES_DB: write_project
+    ports:
+      - "15432:5432"
     volumes:
-      - ./server/data/postgres:/var/lib/postgresql/data
+      - ./server/data/postgres-dev:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "write_project"]
       interval: 5s

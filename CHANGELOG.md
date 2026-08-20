@@ -6,6 +6,31 @@ For the commit-level inventory between `v0.5.0` and `v0.6.0`, see `docs/release-
 
 ## [Unreleased]
 
+### 維運與資安
+
+- **開發環境改用獨立的 Postgres 資料目錄** `server/data/postgres-dev`（對外埠 15432）。
+  先前 `docker-compose.yml` 與 `docker-compose.prod.yml` 共用 `server/data/postgres`，
+  在跑著正式站的機器上執行 dev 的 `docker compose down` 等同對正式資料庫強制關機 ——
+  這是 2026-08-17 WAL 遺失事故最可能的觸發原因。
+- 正式站四個服務加上記憶體上限（postgres 512m / backend 768m / public 512m /
+  frontend 128m）。先前完全無上限，任一服務失控會拖垮整台主機。
+- `scripts/ci.sh` 加入 `npm audit --omit=dev` 與 `npm run typecheck`。
+  critical 直接讓 CI 失敗，high 顯示警告數量。原本仰賴的「每季人工 audit」已逾期近兩個月。
+- 憑證檔權限由 644 收緊為 600（`.env`、`server/secrets/firebase-service-account.json`）。
+- `.env` 移除重複的 `DATABASE_URL` 定義。
+
+### 修正
+
+- **handle 唯一性判斷**。先前以字串比對 `"UNIQUE constraint failed"` 辨識衝突，
+  那是 SQLite 的錯誤訊息；正式站的 Postgres 回的是
+  `duplicate key value violates unique constraint`，因此衝突一律落到 500 而非 409。
+  改為明確的可用性檢查加上 `IntegrityError` 後備防線。
+  同時，handle 一旦設定就不可變更的規則原本是靜默忽略並回 200（使用者以為修改成功），
+  現在會明確回 409。
+- `scripts/verify-public-seo.mjs` 兩個永遠不會通過的檢查：
+  舊網域比對誤把 `open-scripts.shawnup.com` 當成 `scripts.shawnup.com`；
+  canonical 比對未考慮 Next 會正規化掉根路徑的尾斜線。
+
 ### 快取與內容更新
 
 - 收斂 ISR 快取視窗：`next.config.ts` 設定 `expireTime: 7200`，台本頁 `revalidate`
