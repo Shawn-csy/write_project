@@ -6,7 +6,19 @@ For the commit-level inventory between `v0.5.0` and `v0.6.0`, see `docs/release-
 
 ## [Unreleased]
 
-- No unreleased changes yet.
+### 路由與索引品質
+
+- 移除所有 `loading.tsx`（根目錄與 `read` / `author` / `org` / `series` / `tag` 動態路由）。
+  這些 Suspense 邊界會讓 Next 在頁面解析完成前就送出 HTTP 200，導致 `notFound()`
+  無法改寫狀態碼，所有「路由正確但實體不存在」的網址都變成 soft-404。移除後五個路由
+  全部回真 404，正常頁面維持 200。`scripts/verify-public-seo.mjs` 新增對應迴歸檢查。
+
+### 維運
+
+- Postgres 的 `stop_grace_period` 設為 120s。原本沿用 Docker 預設的 10s，關機
+  checkpoint 來不及完成就被 SIGKILL，WAL 遺失造成 `scripts` 表索引與 heap 不同步。
+- 新增 `scripts/backup-db.sh` 每日備份（含 gzip 完整性驗證、資料表數檢查、索引健康度
+  監測、14 天輪替），搭配 `scripts/com.shawnup.write-project-backup.plist` 排程。
 
 ## [0.6.1] - 2026-07-29
 

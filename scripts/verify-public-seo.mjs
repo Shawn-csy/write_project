@@ -128,6 +128,23 @@ for (const route of ["/__routing-contract-probe__", "/openapi.json", "/dashboard
   !text.includes('id="root"') ? ok(`${route} does not return SPA shell`) : fail(`${route} returned SPA shell`);
 }
 
+// ── Valid route, missing entity — must be a real 404, never a soft-404 ───────
+// A loading.tsx anywhere above these pages (including app/loading.tsx) flushes
+// the shell with 200 before the page can call notFound(). See apps/public/app/layout.tsx.
+for (const route of [
+  "/read/00000000-0000-0000-0000-000000000000",
+  "/author/00000000-0000-0000-0000-000000000000",
+  "/org/00000000-0000-0000-0000-000000000000",
+  "/tag/__no-such-tag__",
+  "/series/__no-such-series__",
+]) {
+  console.log(`\nChecking missing entity: ${BASE_URL}${route}`);
+  const { status } = await fetchText(`${BASE_URL}${route}`);
+  status === 404
+    ? ok(`${route} returns 404`)
+    : fail(`${route} returned ${status} — soft-404, check for a reintroduced loading.tsx`);
+}
+
 // ── OG image asset (derived from homepage og:image, not hardcoded path) ───────
 {
   // Re-fetch homepage HTML to extract the actual og:image URL.
