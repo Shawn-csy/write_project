@@ -212,3 +212,55 @@ def test_update_settings_cannot_set_is_admin(client, db_session):
 
     assert response.status_code == 200
     assert response.json().get("isAdmin") is False
+
+
+def _fake_firebase(monkeypatch, claims):
+    import dependencies
+
+    class _FakeAuth:
+        def verify_id_token(self, token, check_revoked=False):
+            return claims
+
+    monkeypatch.setattr(dependencies, "_init_firebase_auth", lambda: _FakeAuth())
+
+
+def test_email_is_written_from_verified_token(client, db_session, monkeypatch):
+    """email 由後端從已驗證的 token 寫入。
+
+    前端 AuthContext.syncUserProfile 登入時會送 email，這是 users.email 的
+    實際來源。改為信任 token 而非 request body 後，功能必須維持。
+    """
+    from models import User
+
+    _fake_firebase(monkeypatch, {"uid": "tokenuser", "email": "Real@Example.com", "email_verified": True})
+
+    response = client.put(
+        "/api/me",
+        json={"displayName": "n", "email": "spoofed-admin@example.com"},
+        headers={"Authorization": "Bearer valid"},
+    )
+
+    assert response.status_code == 200
+    db_session.expire_all()
+    stored = db_session.query(User).filter(User.id == "tokenuser").first()
+    assert stored.email == "real@example.com", "應採用 token 的 email 並正規化為小寫"
+
+
+def test_unverified_token_email_is_not_written(client, db_session, monkeypatch):
+    """未驗證的 email 不可信 —— 攻擊者能以任意 email 註冊，
+    若採信即可冒充 ADMIN_USER_EMAILS 中的管理者。"""
+    from models import User
+
+    _fake_firebase(
+        monkeypatch,
+        {"uid": "unverified", "email": "admin@example.com", "email_verified": False},
+    )
+
+    response = client.put(
+        "/api/me", json={"displayName": "n"}, headers={"Authorization": "Bearer valid"}
+    )
+
+    assert response.status_code == 200
+    db_session.expire_all()
+    stored = db_session.query(User).filter(User.id == "unverified").first()
+    assert not stored.email, "未驗證的 email 不得寫入"
