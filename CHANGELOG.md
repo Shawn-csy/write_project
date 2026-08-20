@@ -6,6 +6,18 @@ For the commit-level inventory between `v0.5.0` and `v0.6.0`, see `docs/release-
 
 ## [Unreleased]
 
+### 快取與內容更新
+
+- 收斂 ISR 快取視窗：`next.config.ts` 設定 `expireTime: 7200`，台本頁 `revalidate`
+  由 86400 改為 3600。原本 Next 送出的是
+  `s-maxage=86400, stale-while-revalidate=31449600`，等同允許 CDN 供應舊版本近一年 ——
+  2026-08-20 資料庫事故期間，三篇台本頁的 404 就是這樣被 Cloudflare 鎖住，源站修好後
+  訪客仍持續看到錯誤頁。現為 `s-maxage=3600, stale-while-revalidate=3600`，
+  最壞情況的陳舊時間由一年降到約兩小時。
+- 補上部署環境的 `REVALIDATE_SECRET`。後端在台本更新時本來就會呼叫 Next 的
+  `/api/revalidate`，但該變數從未設定，呼叫一律被擋在 500，主動更新等同失效，
+  只能等 ISR 逾時。現已可正常觸發。
+
 ### 路由與索引品質
 
 - 移除所有 `loading.tsx`（根目錄與 `read` / `author` / `org` / `series` / `tag` 動態路由）。

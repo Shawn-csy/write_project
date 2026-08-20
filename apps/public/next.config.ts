@@ -31,6 +31,14 @@ const backendPattern = parseBackendPattern();
 const nextConfig: NextConfig = {
   output: "standalone",
   outputFileTracingRoot: path.resolve(__dirname, "../.."),
+  // ISR 頁面的 Cache-Control 由 Next 依下列公式產生：
+  //   s-maxage=<revalidate>, stale-while-revalidate=<expireTime - revalidate>
+  // expireTime 預設是 31536000（一年），代表快取過期後 CDN 仍可供應舊版本將近一年。
+  // 2026-08-20 資料庫事故期間，三篇台本頁的 404 就是被 Cloudflare 以這個視窗鎖住，
+  // 源站修好後訪客仍持續看到錯誤頁。
+  // 收斂為 7200：各路由 revalidate 皆為 3600，故 stale-while-revalidate 也是 3600，
+  // 最壞情況的內容陳舊時間從一年降到約兩小時。
+  expireTime: 7200,
   transpilePackages: ["@write/browser-download", "@write/media-crop", "@write/public-ui", "@write/reader-export", "@write/script-engine", "@write/script-reader-renderer", "@write/script-reader-ui"],
   async rewrites() {
     return [
