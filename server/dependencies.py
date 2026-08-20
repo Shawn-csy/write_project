@@ -1,8 +1,11 @@
 from fastapi import Header, HTTPException
 from typing import Optional
 import json
+import logging
 import os
 from database import SessionLocal
+
+logger = logging.getLogger(__name__)
 
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID")
 FIREBASE_CREDENTIALS = os.getenv("FIREBASE_CREDENTIALS")  # path to service account json
@@ -102,7 +105,20 @@ async def get_current_user_id(
         if not token:
             raise HTTPException(status_code=401, detail="Missing bearer token")
         fb_auth = _init_firebase_auth()
-        decoded = fb_auth.verify_id_token(token, check_revoked=True)
+        try:
+            decoded = fb_auth.verify_id_token(token, check_revoked=True)
+        except Exception as exc:
+            # 未捕捉時，任何格式錯誤／過期／已撤銷的 token 都會變成 500。
+            # 這不是繞過（請求仍被拒），但語意錯誤，而且會讓外部 status 監測
+            # 看到大量假的伺服器錯誤，把真正的故障蓋掉。
+            #
+            # 憑證抓取失敗屬於相依服務不可用（Google 端），不是呼叫端的錯，
+            # 回 503 讓監測能與「壞 token」區分開來。
+            if type(exc).__name__ == "CertificateFetchError":
+                logger.error("firebase certificate fetch failed: %s", exc)
+                raise HTTPException(status_code=503, detail="Auth provider unavailable")
+            logger.info("rejected token: %s", type(exc).__name__)
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
         uid = decoded.get("uid")
         if not uid:
             raise HTTPException(status_code=401, detail="Invalid token payload")
