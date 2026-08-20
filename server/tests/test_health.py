@@ -151,3 +151,42 @@ def test_integrity_result_is_cached(client, monkeypatch):
         assert client.get("/api/health/integrity").status_code == 200
 
     assert calls["n"] == 1
+
+
+def test_malformed_bearer_token_returns_401_not_500(client, monkeypatch):
+    """壞 token 必須回 401。
+
+    未捕捉例外時會變成 500 —— 不是繞過（請求仍被拒），但語意錯誤，
+    而且會讓外部 status 監測看到大量假的伺服器錯誤，把真正的故障蓋掉。
+    """
+    import dependencies
+
+    class _FakeAuth:
+        def verify_id_token(self, token, check_revoked=False):
+            raise ValueError("Illegal ID token provided")
+
+    monkeypatch.setattr(dependencies, "_init_firebase_auth", lambda: _FakeAuth())
+
+    response = client.get("/api/health/auth", headers={"Authorization": "Bearer not.a.token"})
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid or expired token"
+
+
+def test_certificate_fetch_failure_returns_503(client, monkeypatch):
+    """Google 憑證端點不可用屬於相依服務故障，不是呼叫端的錯 ——
+    回 503 讓監測能與「壞 token」區分開來。"""
+    import dependencies
+
+    class CertificateFetchError(Exception):
+        pass
+
+    class _FakeAuth:
+        def verify_id_token(self, token, check_revoked=False):
+            raise CertificateFetchError("could not reach google")
+
+    monkeypatch.setattr(dependencies, "_init_firebase_auth", lambda: _FakeAuth())
+
+    response = client.get("/api/health/auth", headers={"Authorization": "Bearer whatever"})
+
+    assert response.status_code == 503
