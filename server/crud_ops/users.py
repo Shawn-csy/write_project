@@ -28,7 +28,12 @@ def get_user(db: Session, user_id: str):
     return db.query(models.User).filter(models.User.id == user_id).first()
 
 
-def update_user(db: Session, user_id: str, user_update: schemas.UserCreate):
+def update_user(
+    db: Session,
+    user_id: str,
+    user_update: schemas.UserCreate,
+    verified_email: str | None = None,
+):
     db_user = get_user(db, user_id)
     if not db_user:
         db_user = models.User(id=user_id)
@@ -49,6 +54,12 @@ def update_user(db: Session, user_id: str, user_update: schemas.UserCreate):
     # email 應由後端從已驗證的 Firebase token 或管理流程寫入。
     for server_controlled_field in ("email", "isAdmin"):
         update_data.pop(server_controlled_field, None)
+
+    # email 只從已驗證的 Firebase token 寫入。前端 AuthContext.syncUserProfile
+    # 登入時本來就會送 email，這是 users.email 的實際來源；改為由後端從 token
+    # 取得，功能維持不變但不再信任客戶端輸入。
+    if verified_email:
+        db_user.email = verified_email
     if "settings" in update_data:
         db_user.settings = json.dumps(update_data.pop("settings"))
     if "avatar" in update_data or "avatarCrop" in update_data:

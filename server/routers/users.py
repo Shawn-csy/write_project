@@ -5,7 +5,13 @@ import crud_ops as crud
 import schemas
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from dependencies import get_db, get_current_user_id, is_admin_user
+from dependencies import (
+    get_db,
+    get_current_user_id,
+    get_current_user_claims,
+    is_admin_user,
+    verified_email_from_claims,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +52,14 @@ def read_users_me(db: Session = Depends(get_db), ownerId: str = Depends(get_curr
     }
 
 @router.put("", response_model=schemas.User)
-def update_user_me(user: schemas.UserCreate, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+def update_user_me(
+    user: schemas.UserCreate,
+    db: Session = Depends(get_db),
+    claims: dict = Depends(get_current_user_claims),
+):
+    ownerId = claims["uid"]
     try:
-        crud.update_user(db, ownerId, user)
+        crud.update_user(db, ownerId, user, verified_email=verified_email_from_claims(claims))
     except crud.HandleConflictError as e:
         raise HTTPException(status_code=409, detail=e.detail)
     except IntegrityError as e:
