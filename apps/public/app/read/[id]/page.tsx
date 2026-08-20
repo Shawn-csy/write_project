@@ -20,8 +20,14 @@ import {
 import { TITLE_SUFFIX } from "@/lib/seo";
 import { JsonLdScript } from "@/lib/jsonLd";
 
-// ISR: revalidate daily as fallback; on-demand revalidation handles real-time updates
-export const revalidate = 86400;
+// ISR: hourly fallback; on-demand revalidation handles real-time updates.
+//
+// 原本是 86400（一天）。Next 送出的 Cache-Control 是
+//   s-maxage=<revalidate>, stale-while-revalidate=<expireTime - revalidate>
+// 搭配預設 expireTime（一年）等於告訴 Cloudflare「過期後仍可供應舊版最多一年」。
+// 2026-08-20 資料庫事故期間，三篇台本的 404 就是這樣被 CDN 鎖住的。
+// 改為 1 小時，並在 next.config.ts 收斂 expireTime。
+export const revalidate = 3600;
 
 // Keep unknown script IDs generated on first request, but make the generated
 // reader page cacheable by Next.js instead of treating every request as SSR.
