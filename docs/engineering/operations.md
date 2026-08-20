@@ -130,6 +130,38 @@ Backend（FastAPI）：
 - `GET /api/health/ready`：檢查資料庫連線與核心 schema；失敗回 `503`。
 - `GET /api/health`：`ready` 的相容入口。
 - `GET /api/health/auth`：需有效登入憑證的 Firebase Auth smoke test，不供容器探測。
+- `GET /api/health/integrity`：資料完整性檢查，**供外部 status 監測輪詢**。
+
+### `/api/health/integrity`
+
+比對 `scripts` 表的 heap 實際列數與索引可見列數，並檢查主鍵是否有重複值。
+
+```json
+{"status":"ok","service":"backend",
+ "checks":{"scripts":{"status":"ok","heapRows":82,"indexRows":82,"duplicateIds":0}}}
+```
+
+不一致時回 **503**：
+
+```json
+{"status":"degraded","service":"backend",
+ "checks":{"scripts":{"status":"degraded","heapRows":84,"indexRows":83,"duplicateIds":2,
+ "reason":"index and heap disagree — likely index corruption; rebuild required (REINDEX may not suffice)"}}}
+```
+
+**為什麼不併進 `/ready`**：`/ready` 是 Docker healthcheck 在用的。索引損壞無法靠重啟修復，
+若讓它影響 `/ready`，容器只會進入重啟迴圈並讓整站下線。這個端點回 503 是要讓**人**知道，
+不是要讓編排系統動作。已有測試釘住這個分界（`test_integrity_does_not_affect_readiness`）。
+
+**由來**：2026-08-17 Postgres 被 SIGKILL 中斷關機 checkpoint，WAL 遺失導致 `scripts` 表
+heap 有 84 列而索引只認得 69 列、主鍵出現重複值，4 篇公開台本從網站消失或點進去 404 ——
+**三天後才靠肉眼發現**。heap 與索引筆數不一致正是當時最早可觀察到的訊號。
+此檢查邏輯已對留存的損壞資料庫實測，能正確回報 degraded。
+
+**注意**：
+- 端點會跑全表掃描，結果以 60 秒 TTL 快取，避免公開輪詢放大成 DB 負載。
+- 規劃器提示（`enable_seqscan` 等）是 Postgres 專屬；其他 dialect 回 `status: skipped`。
+- `scripts/backup-db.sh` 每日備份時也會做同一項檢查並寫入 log。
 
 Public（Next.js container internal port 3000）：
 
