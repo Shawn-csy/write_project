@@ -2,6 +2,11 @@ services:
   write_project-postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    # 2026-08-17 事故：Docker 預設只給 10s 寬限期就 SIGKILL，關機 checkpoint 沒
+    # 做完就被砍，WAL 遺失導致 scripts 表索引與 heap 不同步（15 筆列從索引消失、
+    # 主鍵出現重複值）。image 的 STOPSIGNAL 已是 SIGINT（fast shutdown），
+    # 缺的是足夠的時間把 checkpoint 寫完。
+    stop_grace_period: 120s
     environment:
       - POSTGRES_DB=${POSTGRES_DB:-write_project}
       - POSTGRES_USER=${POSTGRES_USER:-write_project}

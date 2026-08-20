@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  write_project 資料庫每日備份（macOS launchd）
+
+  安裝：
+    cp scripts/com.shawnup.write-project-backup.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.shawnup.write-project-backup.plist
+
+  立即試跑一次：
+    launchctl start com.shawnup.write-project-backup
+
+  查看狀態 / 停用：
+    launchctl list | grep write-project
+    launchctl unload ~/Library/LaunchAgents/com.shawnup.write-project-backup.plist
+
+  備份輸出：~/write_project_backups/（保留 14 天，另有 backup.log）
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.shawnup.write-project-backup</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/shanti/Desktop/write_project/scripts/backup-db.sh</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/shanti/Desktop/write_project</string>
+
+    <!-- OrbStack 的 docker CLI 不在 launchd 的預設 PATH 裡 -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/Users/shanti/.orbstack/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+
+    <!-- 每天 04:00 -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>4</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <!-- 若排程時間電腦在睡眠，醒來後補跑 -->
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/shanti/write_project_backups/launchd.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/shanti/write_project_backups/launchd.err.log</string>
+</dict>
+</plist>

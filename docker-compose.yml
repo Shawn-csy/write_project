@@ -2,6 +2,10 @@
 services:
   write_project-postgres:
     image: postgres:16-alpine
+    # 注意：這個資料目錄與 docker-compose.prod.yml 共用。在正式站運行中的機器上
+    # 起停這個 service，等同於直接操作正式資料庫。
+    # 寬限期拉長的理由見 docker-compose.prod.yml 的同名設定（2026-08-17 事故）。
+    stop_grace_period: 120s
     environment:
       POSTGRES_USER: write_project
       POSTGRES_PASSWORD: write_project
