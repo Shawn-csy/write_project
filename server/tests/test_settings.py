@@ -163,3 +163,52 @@ def test_read_me_does_not_dirty_user_settings_before_other_writes(client, db_ses
     # mutated ORM user.settings from JSON string to dict in-session.
     create_res = client.post("/api/scripts", json={"title": "AfterMe"}, headers=headers)
     assert create_res.status_code == 200
+
+
+def test_update_settings_cannot_set_email(client, db_session):
+    """權限提升防護：PUT /api/me 不得改寫 users.email。
+
+    is_admin_user() 以 users.email 比對 ADMIN_USER_EMAILS 授予管理權限，
+    若 email 可由客戶端寫入，任何已登入使用者只要送出管理者信箱即可提權。
+    """
+    import time
+
+    from models import User
+
+    now = int(time.time() * 1000)
+    db_session.add(
+        User(id="attacker", email="attacker@example.com", createdAt=now, lastLogin=now)
+    )
+    db_session.commit()
+
+    response = client.put(
+        "/api/me",
+        json={"email": "admin@example.com", "displayName": "attacker"},
+        headers={"X-User-ID": "attacker"},
+    )
+
+    assert response.status_code == 200
+    db_session.expire_all()
+    stored = db_session.query(User).filter(User.id == "attacker").first()
+    assert stored.email == "attacker@example.com", "email 不得被客戶端改寫"
+    assert stored.displayName == "attacker", "其他欄位仍應正常更新"
+
+
+def test_update_settings_cannot_set_is_admin(client, db_session):
+    """isAdmin 同樣不接受客戶端提供（目前無對應資料表欄位，仍明確擋下）。"""
+    import time
+
+    from models import User
+
+    now = int(time.time() * 1000)
+    db_session.add(User(id="attacker2", createdAt=now, lastLogin=now))
+    db_session.commit()
+
+    response = client.put(
+        "/api/me",
+        json={"isAdmin": True, "displayName": "x"},
+        headers={"X-User-ID": "attacker2"},
+    )
+
+    assert response.status_code == 200
+    assert response.json().get("isAdmin") is False

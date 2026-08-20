@@ -35,6 +35,20 @@ def update_user(db: Session, user_id: str, user_update: schemas.UserCreate):
         db.add(db_user)
 
     update_data = user_update.model_dump(exclude_unset=True)
+
+    # 權限提升防護：email 與 isAdmin 一律不接受客戶端提供。
+    #
+    # schemas.UserBase 含 email 與 isAdmin，而下方是用 setattr 逐一寫入，
+    # 因此 PUT /api/me 原本可以直接改寫 users.email。而 dependencies.is_admin_user()
+    # 會拿 users.email 比對 ADMIN_USER_EMAILS 來授予管理權限 —— 等於任何已登入
+    # 使用者送出 {"email": "<管理者信箱>"} 就能取得 admin。正式環境確實有設定
+    # ADMIN_USER_EMAILS，且管理者信箱在公開頁的作者聯絡資訊中可查得。
+    #
+    # 正規前端（saveUserSettings）只送 settings / displayName / avatar，
+    # 從未使用這條路徑，移除不影響任何既有功能。
+    # email 應由後端從已驗證的 Firebase token 或管理流程寫入。
+    for server_controlled_field in ("email", "isAdmin"):
+        update_data.pop(server_controlled_field, None)
     if "settings" in update_data:
         db_user.settings = json.dumps(update_data.pop("settings"))
     if "avatar" in update_data or "avatarCrop" in update_data:
