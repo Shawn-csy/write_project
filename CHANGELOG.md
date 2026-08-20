@@ -6,6 +6,23 @@ For the commit-level inventory between `v0.5.0` and `v0.6.0`, see `docs/release-
 
 ## [Unreleased]
 
+### 相依套件與資安
+
+- 升級 `next` 16.2.7 → 16.3.1、`react-router-dom` 7.18.1 → 7.18.2，並套用
+  `npm audit fix`。生產相依漏洞由 **0 critical / 7 high / 3 moderate**
+  降為 **0 / 0 / 2**，剩餘兩項為文件已記錄的可接受風險。
+  其中 `sharp`（libvips CVE）是唯一有實際暴露面的一條 —— `next/image` 會處理
+  使用者上傳的封面圖。
+- `scripts/ci.sh` 的相依稽核門檻由 critical 收緊為 **high**。
+- `apps/public/tsconfig.json` 排除測試檔，與 root `tsconfig.json` 既有慣例一致。
+  正式建置只檢查 app 程式碼，測試由 vitest 執行。
+- 新增 `apps/public/test-setup.tsx` 集中 mock `next/link`。
+  next 16.3.1 起改為巢狀安裝在 `apps/public/node_modules`，其 CJS client 元件
+  內部以 `require("react")` 解析而繞過 Vite 的 alias/dedupe，導致測試中同時
+  存在 React 19（next）與 React 18（renderer）。升級前能通過是安裝佈局的巧合。
+  根本解法是統一 React 版本，阻擋項目為不支援 React 19 的 `react-helmet-async`，
+  詳見 `docs/engineering/dependency-audit.md`。
+
 ### 維運與資安
 
 - **開發環境改用獨立的 Postgres 資料目錄** `server/data/postgres-dev`（對外埠 15432）。
