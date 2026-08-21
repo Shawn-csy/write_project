@@ -1,6 +1,6 @@
 # 公開台本平台 (`write_project`)
 
-最後更新：2026-07-29（v0.6.1）
+最後更新：2026-08-21（v0.7.0）
 
 本專案是一個台本創作、發布與公開閱讀平台。現在的前端已拆成兩個 runtime：
 
@@ -20,8 +20,8 @@
 
 | 層 | 技術 |
 |---|---|
-| 工作室前端 | Vite, React, TypeScript, React Router |
-| 公開站 | Next.js App Router, React, TypeScript, SSR/ISR |
+| 工作室前端 | Vite, React 19, TypeScript, React Router |
+| 公開站 | Next.js 16 App Router, React 19, TypeScript, SSR/ISR |
 | 共享套件 | npm workspaces under `packages/*` |
 | 後端 | FastAPI, SQLAlchemy |
 | DB | PostgreSQL（SQLite 僅用於遷移/除錯） |
