@@ -1,7 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import { HelmetProvider } from 'react-helmet-async';
 import App from './App';
 import './index.css';
 import { ThemeProvider } from './components/theme-provider';
@@ -16,19 +15,17 @@ if (staticFooter) staticFooter.style.display = 'none';
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <HelmetProvider>
-        <ThemeProvider defaultTheme="system" storageKey="screenplay-reader-theme">
-          <I18nProvider>
-            <AuthProvider>
-              <SettingsProvider>
-                <ToastProvider>
-                  <App />
-                </ToastProvider>
-              </SettingsProvider>
-            </AuthProvider>
-          </I18nProvider>
-        </ThemeProvider>
-      </HelmetProvider>
+      <ThemeProvider defaultTheme="system" storageKey="screenplay-reader-theme">
+        <I18nProvider>
+          <AuthProvider>
+            <SettingsProvider>
+              <ToastProvider>
+                <App />
+              </ToastProvider>
+            </SettingsProvider>
+          </AuthProvider>
+        </I18nProvider>
+      </ThemeProvider>
     </BrowserRouter>
   </React.StrictMode>,
 );

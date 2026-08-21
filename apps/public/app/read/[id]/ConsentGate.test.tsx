@@ -170,8 +170,8 @@ describe("ConsentGate", () => {
     await user.click(screen.getByRole("button", { name: "同意並進入閱讀" }));
     await waitFor(() => expect(screen.queryByText("script content")).not.toBeNull());
 
-    const postCall = fetchMock.mock.calls.find(([url]: [string]) =>
-      String(url).includes("public-terms-acceptances")
+    const postCall = fetchMock.mock.calls.find((call: unknown[]) =>
+      String(call[0]).includes("public-terms-acceptances")
     );
     expect(postCall).toBeDefined();
     const body = JSON.parse(postCall![1].body as string);
