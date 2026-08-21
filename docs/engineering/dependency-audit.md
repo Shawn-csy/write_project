@@ -29,8 +29,9 @@ renderWithHooks           → node_modules/react-dom           (18.3.1)
 
 也就是說，升級前能通過是安裝佈局的巧合，不是設計。
 
-處置：於 `apps/public/test-setup.tsx` 集中 mock `next/link`（專案既有做法，
-`PublicInfoMenu.test.tsx` 等已各自 mock），改為集中避免逐檔重複。
+當時的處置是集中 mock `next/link` 作為權宜措施。統一 React 版本後已驗證
+不再需要（移除 mock 後 `--project public` 62 檔 / 656 測試全過），該 mock
+與相關的 `resolve.alias` / `dedupe` 皆已移除，`vitest.config.ts` 回復原狀。
 
 **2. 測試檔進入正式建置的型別檢查**
 
@@ -41,17 +42,35 @@ renderWithHooks           → node_modules/react-dom           (18.3.1)
 處置：`apps/public/tsconfig.json` 排除測試檔，與 root `tsconfig.json` 的既有
 慣例一致（root 同樣排除 `**/*.test.ts`、`__tests__/**`）。測試由 vitest 執行。
 
-### 根本解法（尚未執行）
+### 根本解法：統一 React 版本（2026-08-21 完成）
 
-兩份 React 的來源是 root（Vite SPA，React 18）與 `apps/public`（Next 16，React 19）
-宣告不同版本。統一到 React 19 即可根除這一類問題。
+兩份 React 的來源是 root（Vite SPA）與 `apps/public`（Next 16）宣告不同版本，
+npm 因而巢狀安裝。統一到 **React 19.2.4** 後 `apps/public` 不再有巢狀副本，
+這一類問題從源頭消失。
 
-阻擋項目：**`react-helmet-async` 不支援 React 19**（peer 僅到 `^18.0.0`），
-使用處為 `src/main.tsx` 與 `src/components/common/MetaTags.tsx`。
+唯一的阻擋是 **`react-helmet-async` 不支援 React 19**（peer 僅到 `^18.0.0`）。
+已以 `src/lib/useHeadTags.ts` 取代 —— 命令式套用 title 與 head 標籤、卸載時還原，
+輸出與原本完全一致並於正式站實測比對。唯一使用處 `EditorShell` 是純 client、
+登入後的工作區路由，用不到 helmet 的巢狀覆寫 / SSR 收集 / 優先序合併。
+
 其餘 React 相依套件（`@dnd-kit/*` `>=16.8.0`、`@uiw/react-codemirror` `>=17.0.0`、
-`react-router-dom` `>=18`、`@write/*` `>=18`）皆允許 19。
+`react-router-dom` `>=18`、`@write/*` `>=18`）本來就允許 19，升級後測試與建置
+皆未出現相容性問題。
 
-公開頁 SEO 已由 Next 接手，工作區 SPA 是否仍需要 helmet 值得重新評估。
+#### 順帶暴露的既有測試型別問題
+
+vitest 4.1 起 `Assertion` 型別收斂，不再隱式套用 matcher，也讓原本鬆散的斷言
+變成嚴格檢查，翻出 5 個既有問題（皆已修正）：
+
+| 問題 | 實際情況 |
+|---|---|
+| `TocEntry` fixture 使用 `level` / `blockIndex` | 實際型別為 `lineStart`，fixture 過時 |
+| `pickRenderedRoot` mock 未宣告可為 null | 但 `usePublicExport.ts` 就是以 falsy 判斷 |
+| `fetchMock.mock.calls` 解構成 `[string]` | 過窄，實際為 `any[]` |
+| `coverDesign` fixture 形狀不符 | 實際為 `{ bg, title, ... }` |
+| `renderHook` 的 `initialProps` 用 `as const` | 過度窄化成字面量，`rerender` 無法傳其他值 |
+
+另新增 `apps/public/vitest-env.d.ts` 引用 jest-dom 型別。
 
 ## 已接受風險（Accepted Risk）
 
@@ -84,6 +103,7 @@ renderWithHooks           → node_modules/react-dom           (18.3.1)
 | `postcss` (root devDep) | moderate | 升到 ^8.5.10 | 2026-06-30 |
 | `next` → `postcss` / `sharp` | XSS, libvips CVE (high) | 升 next 到 16.3.1 | 2026-08-20 |
 | `brace-expansion` / `nanoid` | DoS (high) | npm audit fix | 2026-08-20 |
+| `react-helmet-async` | 不支援 React 19，阻擋版本統一 | **移除**：以 `src/lib/useHeadTags.ts` 取代 | 2026-08-21 |
 
 ## 每季 Audit 流程
 
