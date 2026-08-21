@@ -29,6 +29,17 @@ if IS_SQLITE:
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, **engine_kwargs
 )
+
+# 註：main 分支（v0.5.0 發佈線）曾在此註冊一個 connect 事件監聽器，對每條連線
+# 執行 SQLite PRAGMA（journal_mode/synchronous/busy_timeout/cache_size/
+# foreign_keys）。那段程式碼沒有 IS_SQLITE 保護，而正式環境已改用 Postgres：
+#
+#   postgres=# PRAGMA journal_mode=WAL;
+#   ERROR:  syntax error at or near "PRAGMA"
+#
+# 亦即每次建立連線都會拋錯。該段是 SQLite 時代的遺留，於 main 併入 dev 時
+# 一併移除。目前 SQLite 僅用於測試的記憶體模式，用不到這些調校。
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
