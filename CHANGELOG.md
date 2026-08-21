@@ -6,43 +6,84 @@ For the commit-level inventory between `v0.5.0` and `v0.6.0`, see `docs/release-
 
 ## [Unreleased]
 
-### 相依套件與資安
+- No unreleased changes yet.
+
+## [0.7.0] - 2026-08-21
+
+本版以 2026-08-17 的資料庫損壞事故為起點，涵蓋事故修復、根因處理、
+一輪資安檢視，以及相依套件升級。
+
+### 資安
+
+- **修正權限提升漏洞**：`PUT /api/me` 先前接受客戶端提供的 `email`，
+  並以 `setattr` 直接寫入 `users.email`；而管理權限判定會拿該欄位比對
+  `ADMIN_USER_EMAILS`。任何已登入使用者皆可藉此取得管理權限。
+  現一律拒絕客戶端提供的 `email` 與 `isAdmin`。
+  已檢查現有帳號，無遭利用跡象。
+- `users.email` 改由後端從**已驗證的 Firebase token** 取得，並要求
+  `email_verified` 為真。未驗證的 email 不可信 —— 攻擊者能以任意 email 註冊帳號。
+- 格式錯誤／過期／已撤銷的 token 由 **500 改回 401**。先前 `verify_id_token`
+  的例外未被捕捉。這不是繞過（請求仍被拒），但會讓外部監測看到大量假的
+  伺服器錯誤而掩蓋真正的故障。憑證抓取失敗另回 503 以資區別。
+- 憑證檔權限由 644 收緊為 600（`.env`、`server/secrets/firebase-service-account.json`）。
+- `.env` 移除重複的 `DATABASE_URL` 定義。
+
+### 事故修復與防護
+
+- **Postgres `stop_grace_period` 設為 120s**。原本沿用 Docker 預設的 10s，
+  關機 checkpoint 來不及完成就被 SIGKILL，WAL 遺失造成 `scripts` 表索引與
+  heap 不同步（15 筆列從索引消失、主鍵出現重複值），4 篇公開台本損毀。
+- **開發環境改用獨立的 Postgres 資料目錄** `server/data/postgres-dev`（對外埠 15432）。
+  先前兩份 compose 共用 `server/data/postgres`，在跑著正式站的機器上執行 dev 的
+  `docker compose down` 等同對正式資料庫強制關機 —— 這是事故最可能的觸發原因。
+- 新增 **`GET /api/health/integrity`**：比對 `scripts` 表的 heap 與索引筆數並
+  檢查主鍵重複，不一致時回 503，供外部 status 監測輪詢。
+  刻意與 `/ready` 分開 —— 索引損壞無法靠重啟修復，若影響容器 healthcheck
+  只會造成重啟迴圈。結果以 60 秒 TTL 快取。
+- 新增 `scripts/backup-db.sh` 每日備份（gzip 完整性驗證、資料表數檢查、
+  索引健康度監測、14 天輪替）與 `scripts/com.shawnup.write-project-backup.plist` 排程。
+- 新增 `scripts/safe-deploy.sh`：部署前備份、以足夠寬限期安全關閉 Postgres
+  並驗證關機日誌無 WAL 遺失，才交給 `deploy.sh`。
+- 新增 `scripts/cf-purge.sh`：Cloudflare 快取清除，Token 只從環境變數讀取。
+- 正式站四個服務加上記憶體上限（postgres 512m / backend 768m / public 512m /
+  frontend 128m）。先前完全無上限，任一服務失控會拖垮整台主機。
+
+### 相依套件
 
 - 升級 `next` 16.2.7 → 16.3.1、`react-router-dom` 7.18.1 → 7.18.2，並套用
   `npm audit fix`。生產相依漏洞由 **0 critical / 7 high / 3 moderate**
-  降為 **0 / 0 / 2**，剩餘兩項為文件已記錄的可接受風險。
-  其中 `sharp`（libvips CVE）是唯一有實際暴露面的一條 —— `next/image` 會處理
-  使用者上傳的封面圖。
-- `scripts/ci.sh` 的相依稽核門檻由 critical 收緊為 **high**，並加入 `npm run typecheck`。
+  降為 **0 / 0 / 2**，剩餘兩項為 `docs/engineering/dependency-audit.md`
+  已記錄的可接受風險。其中 `sharp`（libvips CVE）是唯一有實際暴露面的一條 ——
+  `next/image` 會處理使用者上傳的封面圖。
 - **統一 React 版本為 19.2.4**。先前 root（Vite 工作區 SPA）宣告 React 18、
-  `apps/public`（Next 16）宣告 React 19，npm 因而巢狀安裝兩份。
-  next 16.3.1 起 `next` 改為巢狀安裝在 `apps/public/node_modules`，其 CJS client
-  元件內部以 `require("react")` 解析而繞過 Vite 的 alias/dedupe，導致測試中
-  next/link 取得 React 19、renderer 卻是 React 18，拋
-  `Cannot read properties of null (reading 'useContext')`。
-  升級前能通過只是安裝佈局的巧合。統一後 `apps/public` 不再有巢狀副本。
-- **移除 `react-helmet-async`**，改用 `src/lib/useHeadTags.ts`。
-  該套件 peer 僅到 `^18.0.0`，是統一 React 版本的唯一阻擋。
-  新實作命令式套用 title 與 head 標籤、卸載時還原，輸出與原本完全一致
-  （title / description / robots / canonical / og:* / twitter:*）。
-- 修正 5 個既有的測試型別問題（vitest 4.1 型別收斂後才暴露）：
-  `TocEntry` fixture 欄位過時、`pickRenderedRoot` mock 未宣告可為 null、
-  `fetchMock.mock.calls` 解構過窄、`coverDesign` fixture 形狀不符、
-  `renderHook` 的 `as const` 過度窄化。另新增 `apps/public/vitest-env.d.ts`
-  引用 jest-dom 型別。
+  `apps/public`（Next 16）宣告 React 19，npm 因而巢狀安裝兩份。next 16.3.1 起
+  `next` 改為巢狀安裝，其 CJS client 元件內部以 `require("react")` 解析而繞過
+  Vite 的 alias/dedupe，導致測試中 next/link 取得 React 19、renderer 卻是
+  React 18。升級前能通過只是安裝佈局的巧合。統一後不再有巢狀副本。
+- **移除 `react-helmet-async`**，改用 `src/lib/useHeadTags.ts`。該套件 peer
+  僅到 `^18.0.0`，是統一 React 版本的唯一阻擋。新實作命令式套用 title 與
+  head 標籤、卸載時還原，輸出與原本完全一致。
+- `scripts/ci.sh` 加入 `npm audit --omit=dev`（**high 以上讓 CI 失敗**）
+  與 `npm run typecheck`。原本仰賴的「每季人工 audit」已逾期近兩個月。
 
-### 維運與資安
+### 路由與索引品質
 
-- **開發環境改用獨立的 Postgres 資料目錄** `server/data/postgres-dev`（對外埠 15432）。
-  先前 `docker-compose.yml` 與 `docker-compose.prod.yml` 共用 `server/data/postgres`，
-  在跑著正式站的機器上執行 dev 的 `docker compose down` 等同對正式資料庫強制關機 ——
-  這是 2026-08-17 WAL 遺失事故最可能的觸發原因。
-- 正式站四個服務加上記憶體上限（postgres 512m / backend 768m / public 512m /
-  frontend 128m）。先前完全無上限，任一服務失控會拖垮整台主機。
-- `scripts/ci.sh` 加入 `npm audit --omit=dev` 與 `npm run typecheck`。
-  critical 直接讓 CI 失敗，high 顯示警告數量。原本仰賴的「每季人工 audit」已逾期近兩個月。
-- 憑證檔權限由 644 收緊為 600（`.env`、`server/secrets/firebase-service-account.json`）。
-- `.env` 移除重複的 `DATABASE_URL` 定義。
+- **移除所有 `loading.tsx`**（根目錄與 `read` / `author` / `org` / `series` / `tag`
+  動態路由）。這些 Suspense 邊界會讓 Next 在頁面解析完成前就送出 HTTP 200，
+  導致 `notFound()` 無法改寫狀態碼，所有「路由正確但實體不存在」的網址都變成
+  soft-404。移除後五個路由全部回真 404，正常頁面維持 200。
+  代價是失去載入骨架；ISR 快取過的頁面本來就不會顯示骨架。
+  `scripts/verify-public-seo.mjs` 新增對應迴歸檢查。
+
+### 快取與內容更新
+
+- 收斂 ISR 快取視窗：`next.config.ts` 設定 `expireTime: 7200`，台本頁
+  `revalidate` 由 86400 改為 3600。原本送出的是
+  `s-maxage=86400, stale-while-revalidate=31449600`，等同允許 CDN 供應舊版本
+  近一年 —— 事故期間三篇台本頁的 404 就是這樣被 CDN 鎖住，源站修好後訪客
+  仍持續看到錯誤頁。現為 `s-maxage=3600, stale-while-revalidate=3600`。
+- 補上部署環境的 `REVALIDATE_SECRET`。後端在台本更新時本來就會呼叫 Next 的
+  `/api/revalidate`，但該變數從未設定，呼叫一律被擋在 500，主動更新等同失效。
 
 ### 修正
 
@@ -50,37 +91,26 @@ For the commit-level inventory between `v0.5.0` and `v0.6.0`, see `docs/release-
   那是 SQLite 的錯誤訊息；正式站的 Postgres 回的是
   `duplicate key value violates unique constraint`，因此衝突一律落到 500 而非 409。
   改為明確的可用性檢查加上 `IntegrityError` 後備防線。
-  同時，handle 一旦設定就不可變更的規則原本是靜默忽略並回 200（使用者以為修改成功），
-  現在會明確回 409。
-- `scripts/verify-public-seo.mjs` 兩個永遠不會通過的檢查：
-  舊網域比對誤把 `open-scripts.shawnup.com` 當成 `scripts.shawnup.com`；
+  同時，handle 一旦設定就不可變更的規則原本是靜默忽略並回 200（使用者以為
+  修改成功），現在會明確回 409。
+- 移除 `server/database.py` 中未加 dialect 保護的 SQLite PRAGMA 監聽器
+  （隨 main 發佈線併入時一併處理）。正式環境已改用 Postgres，該段會使每條
+  連線都拋 `syntax error at or near "PRAGMA"`。
+- `scripts/verify-public-seo.mjs` 兩個永遠不會通過的檢查：舊網域比對誤把
+  `open-scripts.shawnup.com` 當成 `scripts.shawnup.com`（子字串）；
   canonical 比對未考慮 Next 會正規化掉根路徑的尾斜線。
+- 修正 5 個既有的測試型別問題（vitest 4.1 型別收斂後才暴露）：`TocEntry`
+  fixture 欄位過時、`pickRenderedRoot` mock 未宣告可為 null、
+  `fetchMock.mock.calls` 解構過窄、`coverDesign` fixture 形狀不符、
+  `renderHook` 的 `as const` 過度窄化。
 
-### 快取與內容更新
+### 升級注意
 
-- 收斂 ISR 快取視窗：`next.config.ts` 設定 `expireTime: 7200`，台本頁 `revalidate`
-  由 86400 改為 3600。原本 Next 送出的是
-  `s-maxage=86400, stale-while-revalidate=31449600`，等同允許 CDN 供應舊版本近一年 ——
-  2026-08-20 資料庫事故期間，三篇台本頁的 404 就是這樣被 Cloudflare 鎖住，源站修好後
-  訪客仍持續看到錯誤頁。現為 `s-maxage=3600, stale-while-revalidate=3600`，
-  最壞情況的陳舊時間由一年降到約兩小時。
-- 補上部署環境的 `REVALIDATE_SECRET`。後端在台本更新時本來就會呼叫 Next 的
-  `/api/revalidate`，但該變數從未設定，呼叫一律被擋在 500，主動更新等同失效，
-  只能等 ISR 逾時。現已可正常觸發。
-
-### 路由與索引品質
-
-- 移除所有 `loading.tsx`（根目錄與 `read` / `author` / `org` / `series` / `tag` 動態路由）。
-  這些 Suspense 邊界會讓 Next 在頁面解析完成前就送出 HTTP 200，導致 `notFound()`
-  無法改寫狀態碼，所有「路由正確但實體不存在」的網址都變成 soft-404。移除後五個路由
-  全部回真 404，正常頁面維持 200。`scripts/verify-public-seo.mjs` 新增對應迴歸檢查。
-
-### 維運
-
-- Postgres 的 `stop_grace_period` 設為 120s。原本沿用 Docker 預設的 10s，關機
-  checkpoint 來不及完成就被 SIGKILL，WAL 遺失造成 `scripts` 表索引與 heap 不同步。
-- 新增 `scripts/backup-db.sh` 每日備份（含 gzip 完整性驗證、資料表數檢查、索引健康度
-  監測、14 天輪替），搭配 `scripts/com.shawnup.write-project-backup.plist` 排程。
+- `docker-compose.yml`（開發）現在使用 `server/data/postgres-dev` 與埠 `15432`。
+  首次啟動會建立空的資料庫，與正式資料完全分離。
+- 部署請改用 `scripts/safe-deploy.sh`，而非直接執行 `scripts/deploy.sh` ——
+  後者的 `docker compose down` 會使用容器建立當下的 `stop_grace_period`。
+- 需在 `.env` 設定 `REVALIDATE_SECRET`，否則 on-demand revalidation 無法運作。
 
 ## [0.6.1] - 2026-07-29
 
