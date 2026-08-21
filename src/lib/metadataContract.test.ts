@@ -8,7 +8,7 @@
  *   4. Pollution guard — customMetadata containing reserved keys must not affect structured fields
  *
  * This suite is the canonical regression gate for the boundary defined in
- * docs/refactor/metadata-boundary.md.
+ * docs/archive/metadata-boundary.md.
  */
 
 import { describe, expect, it } from "vitest";
