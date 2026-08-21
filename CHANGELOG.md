@@ -2,7 +2,7 @@
 
 All notable product-facing changes are documented here.
 
-For the commit-level inventory between `v0.5.0` and `v0.6.0`, see `docs/release-version-map-after-v0.5.0.md`.
+For the commit-level inventory between `v0.5.0` and `v0.6.0`, see `docs/archive/release-version-map-after-v0.5.0.md`.
 
 ## [Unreleased]
 
@@ -284,7 +284,7 @@ v0.6.0 是 v0.5.0 之後的第一個 minor release，將公開站從 Vite SPA �
 - Workspace 登入入口從公開頁可達。
 - `about` 頁近期更新條目同步。
 - Project docs 重新整理為 `architecture/`、`archive/`、`pending/`、`engineering/` 分層。
-- `docs/release-version-map-after-v0.5.0.md` 保留為 v0.5.0 後變更盤點。
+- `docs/archive/release-version-map-after-v0.5.0.md` 保留為 v0.5.0 後變更盤點。
 
 ---
 

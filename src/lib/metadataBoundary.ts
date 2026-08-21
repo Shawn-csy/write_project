@@ -4,7 +4,7 @@
  * any new code path.  They are kept here solely so legacy-read adapters can
  * recognize and drain them during hydration.
  *
- * See docs/refactor/metadata-boundary.md for the full boundary RFC.
+ * See docs/archive/metadata-boundary.md for the full boundary RFC.
  */
 export const RESERVED_CUSTOM_KEYS = new Set([
   "author",

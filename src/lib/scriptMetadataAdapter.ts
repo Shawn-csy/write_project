@@ -4,7 +4,7 @@
  * Single mapping layer between API shape ↔ draft state ↔ save payload.
  * All hydration and save logic should flow through these pure functions.
  *
- * See docs/refactor/metadata-boundary.md for the boundary rules.
+ * See docs/archive/metadata-boundary.md for the boundary rules.
  */
 
 import { customMetadataEntriesToMeta, customMetadataEntriesToRawEntries, normalizeCustomMetadataEntries } from "./customMetadata";
