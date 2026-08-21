@@ -396,7 +396,7 @@ describe("useAnimeSegmentIndicator", () => {
       // Single renderHook instance.
       const { result, rerender } = renderHook(
         ({ v }: { v: "a" | "b" }) => useAnimeSegmentIndicator(v),
-        { initialProps: { v: "a" as const } },
+        { initialProps: { v: "a" as "a" | "b" } },
       );
 
       // Attach refs to the hook's own ref objects.

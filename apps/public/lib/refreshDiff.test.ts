@@ -104,8 +104,11 @@ describe("arePublicScriptsEquivalent", () => {
 
   // coverDesign
   it("different coverDesign → not equivalent", () => {
-    const a = [s({ id: "1", coverDesign: { style: "solid", color: "#ff0000" } as PublicScript["coverDesign"] })];
-    const b = [s({ id: "1", coverDesign: { style: "solid", color: "#0000ff" } as PublicScript["coverDesign"] })];
+    // CoverDesign 的實際形狀是 { bg, title, ... }；此測試只需要兩個不同的值。
+    const cover = (colorA: string) =>
+      ({ bg: { type: "solid", colorA }, title: {} }) as unknown as PublicScript["coverDesign"];
+    const a = [s({ id: "1", coverDesign: cover("#ff0000") })];
+    const b = [s({ id: "1", coverDesign: cover("#0000ff") })];
     expect(arePublicScriptsEquivalent(a, b)).toBe(false);
   });
 

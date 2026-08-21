@@ -1,5 +1,4 @@
-import React from 'react';
-import { Helmet } from 'react-helmet-async';
+import { useHeadTags, type HeadTag } from '@/lib/useHeadTags';
 
 const SITE_BRAND_NAME = "泛用型產品作坊";
 
@@ -65,25 +64,26 @@ export function MetaTags({
     : "noindex,nofollow,noarchive";
   const isArticle = forceArticle || Boolean(activeFile);
 
-  return (
-    <Helmet>
-      <title>{fullTitle}</title>
-      <meta name="description" content={description} />
-      <meta name="robots" content={robotsValue} />
-      <link rel="canonical" href={shareUrl} />
-      
-      {/* Open Graph */}
-      <meta property="og:title" content={shareTitle} />
-      <meta property="og:description" content={description} />
-      <meta property="og:url" content={shareUrl} />
-      <meta property="og:type" content={isArticle ? "article" : "website"} />
-      <meta property="og:site_name" content={SITE_BRAND_NAME} />
-      <meta property="og:locale" content="zh_TW" />
-      
-      {/* Twitter Card */}
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content={shareTitle} />
-      <meta name="twitter:description" content={description} />
-    </Helmet>
-  );
+  const tags: HeadTag[] = [
+    { kind: 'meta', attr: 'name', key: 'description', content: description },
+    { kind: 'meta', attr: 'name', key: 'robots', content: robotsValue },
+    { kind: 'link', rel: 'canonical', href: shareUrl },
+
+    // Open Graph
+    { kind: 'meta', attr: 'property', key: 'og:title', content: shareTitle },
+    { kind: 'meta', attr: 'property', key: 'og:description', content: description },
+    { kind: 'meta', attr: 'property', key: 'og:url', content: shareUrl },
+    { kind: 'meta', attr: 'property', key: 'og:type', content: isArticle ? 'article' : 'website' },
+    { kind: 'meta', attr: 'property', key: 'og:site_name', content: SITE_BRAND_NAME },
+    { kind: 'meta', attr: 'property', key: 'og:locale', content: 'zh_TW' },
+
+    // Twitter Card
+    { kind: 'meta', attr: 'name', key: 'twitter:card', content: 'summary_large_image' },
+    { kind: 'meta', attr: 'name', key: 'twitter:title', content: shareTitle },
+    { kind: 'meta', attr: 'name', key: 'twitter:description', content: description },
+  ];
+
+  useHeadTags(fullTitle, tags);
+
+  return null;
 }

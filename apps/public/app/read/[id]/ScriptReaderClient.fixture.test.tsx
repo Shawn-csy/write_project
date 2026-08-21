@@ -133,8 +133,8 @@ describe("Phase 5 fixture scenarios", () => {
 
   it("TOC entries — TOC trigger rendered when entries present", async () => {
     const toc: TocEntry[] = [
-      { id: "scene-1", label: "Scene 1", level: 1, blockIndex: 0 },
-      { id: "scene-2", label: "Scene 2", level: 1, blockIndex: 5 },
+      { id: "scene-1", label: "Scene 1", lineStart: 0 },
+      { id: "scene-2", label: "Scene 2", lineStart: 5 },
     ];
     const text = "## Scene 1\n\nContent.\n\n## Scene 2\n\nMore content.";
     const configs = normalizeMarkerConfigsSchema([]) as MarkerConfig[];

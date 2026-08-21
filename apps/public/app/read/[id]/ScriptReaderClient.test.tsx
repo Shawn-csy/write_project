@@ -27,7 +27,11 @@ import { ScriptReaderClient } from "./ScriptReaderClient";
 
 const mockExportScriptAsPdf = vi.fn().mockResolvedValue(undefined);
 // Returning a real Element lets usePublicExport set pdfReady=true immediately.
-const mockPickRenderedRoot = vi.fn(() => document.createElement("div"));
+// 真實的 pickRenderedRoot 會被以 falsy 判斷（usePublicExport.ts），回傳可為 null。
+// 若讓 TS 由實作推斷成 HTMLDivElement，mockReturnValue(null) 會型別錯誤。
+const mockPickRenderedRoot = vi.fn<() => HTMLElement | null>(() =>
+  document.createElement("div")
+);
 
 vi.mock("@write/reader-export", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@write/reader-export")>();
