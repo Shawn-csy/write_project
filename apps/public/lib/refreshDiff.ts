@@ -4,7 +4,7 @@
  * Prevents calling setState when the refreshed data is equivalent to what
  * the SSR already delivered, avoiding unnecessary re-renders and flicker.
  *
- * Both signatures include timestamp fields (lastModified / updatedAt) AND
+ * Both signatures include publication and modification timestamps AND
  * explicitly enumerate every public render-relevant field. Refresh correctness
  * does not rely solely on the backend bumping timestamps — the signature detects
  * any change to a displayed field regardless of timestamp discipline.
@@ -23,7 +23,10 @@ function publicScriptRefreshSignature(s: PublicScript): string {
     // identity + timestamps
     s.id,
     s.title,
-    s.lastModified ?? s.updatedAt,
+    s.createdAt,
+    s.draftDate,
+    s.lastModified,
+    s.updatedAt,
     // display presentation
     s.synopsis,
     s.outline,

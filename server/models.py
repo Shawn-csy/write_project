@@ -280,3 +280,44 @@ class SiteSetting(Base):
     value = Column(Text, default="")
     updatedBy = Column(String, ForeignKey("users.id"), nullable=True)
     updatedAt = Column(BigInteger, default=lambda: int(time.time() * 1000), index=True)
+
+
+class ExternalPublicScript(Base):
+    """A public-script entry curated from an external source.
+
+    The source page remains authoritative for the full work.  We only keep a
+    metadata snapshot (plus optional admin overrides) so the public gallery can
+    present the work without copying its content into this service.
+    """
+
+    __tablename__ = "external_public_scripts"
+
+    id = Column(String, primary_key=True, index=True)
+    sourceUrl = Column(Text, nullable=False, unique=True, index=True)
+    canonicalUrl = Column(Text, default="", index=True)
+    sourceDomain = Column(String, default="")
+    sourceName = Column(String, default="")
+    authorName = Column(String, default="")
+    authorBio = Column(Text, default="")
+    authorUrl = Column(Text, default="")
+    authorAvatarUrl = Column(Text, default="")
+    organizationName = Column(String, default="")
+    organizationUrl = Column(Text, default="")
+    organizationAvatarUrl = Column(Text, default="")
+
+    remoteTitle = Column(Text, default="")
+    remoteSummary = Column(Text, default="")
+    remoteCoverUrl = Column(Text, default="")
+    titleOverride = Column(Text, default="")
+    summaryOverride = Column(Text, default="")
+    coverUrlOverride = Column(Text, default="")
+
+    categories = Column(JSON, default=list)
+    views = Column(Integer, default=0)
+    status = Column(String, default="draft", index=True)
+    sortOrder = Column(Float, default=0.0, index=True)
+    lastFetchedAt = Column(BigInteger, nullable=True)
+    lastFetchError = Column(Text, default="")
+    createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000), index=True)
+    mountedAt = Column(BigInteger, nullable=True, index=True)
+    updatedAt = Column(BigInteger, default=lambda: int(time.time() * 1000), index=True)

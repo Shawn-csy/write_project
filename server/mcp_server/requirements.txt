@@ -1,0 +1,3 @@
+# Installed separately from the production API. This server is local-only and
+# uses stdio; it does not open a network port.
+mcp>=2.0.0,<3

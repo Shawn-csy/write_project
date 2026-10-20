@@ -29,6 +29,14 @@ function resolveMediaSrc(src: string): string {
   return src;
 }
 
+function resolvePublicMediaProxySrc(src: string): string {
+  const bytes = new TextEncoder().encode(src);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  const token = btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return `/api/public-media/${token}`;
+}
+
 interface Props {
   src: string;
   alt: string;
@@ -70,6 +78,34 @@ export function PublicImage({
   });
   const style = objectFit ? { ...presetStyle, objectFit } : presetStyle;
   const config = getPresetConfig(preset);
+  const isPublicMedia = cleanSrc.startsWith("/media/");
+  const isMediaProxy = cleanSrc.startsWith("/api/public-media/");
+  if (isMediaProxy) {
+    return (
+      <img
+        src={cleanSrc}
+        alt={alt}
+        loading={priority ? "eager" : "lazy"}
+        decoding="async"
+        referrerPolicy="no-referrer"
+        style={style}
+        className={`absolute inset-0 h-full w-full ${className ?? ""}`.trim()}
+      />
+    );
+  }
+  if (isPublicMedia) {
+    return (
+      <img
+        src={resolvePublicMediaProxySrc(cleanSrc)}
+        alt={alt}
+        loading={priority ? "eager" : "lazy"}
+        decoding="async"
+        referrerPolicy="no-referrer"
+        style={style}
+        className={`absolute inset-0 h-full w-full ${className ?? ""}`.trim()}
+      />
+    );
+  }
   const resolvedSrc = resolveMediaSrc(cleanSrc);
 
   if (!isNextImageOptimizableSrc(resolvedSrc, BACKEND_ORIGIN)) {

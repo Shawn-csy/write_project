@@ -1,4 +1,6 @@
-from fastapi import Header, HTTPException
+import hmac
+
+from fastapi import Depends, Header, HTTPException
 from typing import Optional
 import json
 import logging
@@ -209,3 +211,27 @@ def is_admin_user(db, user_id: str) -> bool:
         return False
 
     return False
+
+
+async def get_external_public_scripts_user_id(
+    authorization: Optional[str] = Header(None),
+    x_user_id: Optional[str] = Header(None),
+    x_mcp_key: Optional[str] = Header(None, alias="X-MCP-Key"),
+    db=Depends(get_db),
+) -> str:
+    """Authenticate the external-script admin routes via the normal login or local MCP.
+
+    The MCP path is intentionally scoped to the external-public-script router. It is
+    disabled unless both a local key and an explicitly configured admin owner exist.
+    The MCP server itself uses stdio, so it does not open a network listener.
+    """
+    if x_mcp_key is not None:
+        expected_key = str(os.getenv("MCP_LOCAL_API_KEY") or "")
+        owner_id = str(os.getenv("MCP_OWNER_ID") or "").strip()
+        if not expected_key or not owner_id or not hmac.compare_digest(x_mcp_key, expected_key):
+            raise HTTPException(status_code=401, detail="Invalid local MCP key")
+        if not is_admin_user(db, owner_id):
+            raise HTTPException(status_code=403, detail="Local MCP owner is not an administrator")
+        return owner_id
+
+    return await get_current_user_id(authorization=authorization, x_user_id=x_user_id)

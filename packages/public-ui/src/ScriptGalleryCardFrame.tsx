@@ -11,7 +11,7 @@
  */
 
 import React from "react";
-import { Eye, Heart, ChevronRight } from "lucide-react";
+import { Eye, ChevronRight } from "lucide-react";
 import { CoverPlaceholder } from "./cover/CoverPlaceholder";
 import type { CoverDesign } from "./cover/types";
 import type { MediaCropLike as CropRef } from "@write/media-crop";
@@ -37,7 +37,7 @@ export interface CardAuthorDisplay {
 export interface ScriptGalleryCardFrameProps {
   id: string;
   title?: string;
-  variant?: "standard" | "compact";
+  variant?: "standard" | "compact" | "list";
 
   // Cover
   coverUrl?: string | null;
@@ -52,6 +52,8 @@ export interface ScriptGalleryCardFrameProps {
   author?: CardAuthorDisplay | null;
   authorHref?: string;
   onAuthorClick?: () => void;
+  organization?: CardAuthorDisplay | null;
+  organizationHref?: string;
 
   // Series
   seriesName?: string;
@@ -74,10 +76,13 @@ export interface ScriptGalleryCardFrameProps {
   likeCount?: number;
   isLiked?: boolean;
   estDurationMinutes?: number | null;
+  dateLabel?: string;
+  dateTime?: string;
   onLikeClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
 
   // Navigation
   href?: string;
+  scriptTarget?: React.HTMLAttributeAnchorTarget;
   onArticleClick?: () => void;
   onViewTrack?: () => void;
 
@@ -94,10 +99,12 @@ function AuthorBadge({
   author,
   authorHref,
   onAuthorClick,
+  organization = false,
 }: {
   author?: CardAuthorDisplay | null;
   authorHref?: string;
   onAuthorClick?: () => void;
+  organization?: boolean;
 }) {
   const displayName = author?.displayName;
   const avatarUrl = author?.avatarUrl || "";
@@ -107,9 +114,9 @@ function AuthorBadge({
   );
 
   const avatarEl = avatarUrl ? (
-    <img src={cropAvatar.src} style={cropAvatar.style as React.CSSProperties} alt="" className="w-4 h-4 rounded-full object-cover" aria-hidden="true" />
+    <img src={cropAvatar.src} style={cropAvatar.style as React.CSSProperties} alt="" loading="lazy" referrerPolicy="no-referrer" className={`w-4 h-4 object-cover ${organization ? "rounded-[4px]" : "rounded-full"}`} aria-hidden="true" />
   ) : (
-    <span className="w-3.5 h-3.5 inline-block" aria-hidden />
+    <span className={`w-3.5 h-3.5 inline-block ${organization ? "rounded-[4px] bg-muted" : ""}`} aria-hidden />
   );
 
   const nameEl = <span className="font-medium">{displayName || "未知作者"}</span>;
@@ -290,7 +297,7 @@ function SeriesBadge({
 
 // ─── Age gate overlay ─────────────────────────────────────────────────────────
 
-function AgeGateOverlay({ variant }: { variant: "standard" | "compact" }) {
+function AgeGateOverlay({ variant }: { variant: "standard" | "compact" | "list" }) {
   const badgeClass = variant === "compact"
     ? "absolute top-0.5 left-0.5 z-10 rounded-[2px] bg-red-600 border border-red-400/60 px-1 py-px text-[8px] font-bold leading-none text-white pointer-events-none tracking-wide"
     : "absolute top-1.5 left-1.5 z-10 rounded border border-red-400/60 bg-red-600 px-1.5 py-0.5 text-[11px] font-bold leading-none text-white pointer-events-none tracking-wide";
@@ -321,6 +328,8 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
     author,
     authorHref,
     onAuthorClick,
+    organization,
+    organizationHref,
     seriesName,
     seriesOrderText = "",
     seriesHref,
@@ -332,16 +341,20 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
     onTagClick,
     cardSummary,
     views = 0,
-    likeCount = 0,
-    isLiked = false,
     estDurationMinutes,
-    onLikeClick,
+    dateLabel,
+    dateTime,
     href,
+    scriptTarget,
     onArticleClick,
     onViewTrack,
     articleProps,
     coverContainerProps,
   } = props;
+
+  const scriptAnchorProps = scriptTarget
+    ? { target: scriptTarget, rel: scriptTarget === "_blank" ? "noopener noreferrer" : undefined }
+    : {};
 
   const coverEl = (
     <CoverElement
@@ -355,7 +368,7 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
   );
 
   const coverLinkEl = href ? (
-    <a href={href} tabIndex={-1} aria-hidden className="block w-full h-full" onClick={() => onViewTrack?.()}>
+    <a href={href} {...scriptAnchorProps} tabIndex={-1} aria-hidden className="block w-full h-full" onClick={() => onViewTrack?.()}>
       {coverEl}
     </a>
   ) : coverEl;
@@ -377,19 +390,13 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
     />
   );
 
-  const likeEl = (
-    <button
-      type="button"
-      className={`flex items-center gap-1 bg-transparent border-none p-0 ${onLikeClick ? "cursor-pointer transition-colors" : "cursor-default"} ${isLiked ? "text-destructive" : "hover:text-foreground"}`}
-      onClick={onLikeClick}
-      disabled={!onLikeClick}
-      aria-label={isLiked ? `取消喜歡（${likeCount}）` : `喜歡（${likeCount}）`}
-      aria-pressed={isLiked}
-    >
-      <Heart className={`w-3.5 h-3.5 ${isLiked ? "fill-current" : ""}`} aria-hidden="true" />
-      <span aria-hidden="true">{likeCount.toLocaleString()}</span>
-    </button>
-  );
+  const organizationEl = organization?.displayName ? (
+    <AuthorBadge
+      author={organization}
+      authorHref={organizationHref}
+      organization
+    />
+  ) : null;
 
   // ── Compact variant ──
   if (variant === "compact") {
@@ -404,7 +411,7 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
           <div className="w-[40px] shrink-0 ml-3">
             <div className="relative aspect-[2/3] w-full overflow-hidden rounded-sm border border-border/40 bg-muted/25 shadow-sm transition-transform duration-300 group-hover:scale-105">
               {href ? (
-                <a href={href} tabIndex={-1} aria-hidden className="block w-full h-full" onClick={() => onViewTrack?.()}>
+                <a href={href} {...scriptAnchorProps} tabIndex={-1} aria-hidden className="block w-full h-full" onClick={() => onViewTrack?.()}>
                   {coverEl}
                 </a>
               ) : coverEl}
@@ -419,6 +426,7 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
                 {href ? (
                   <a
                     href={href}
+                    {...scriptAnchorProps}
                     className="text-inherit no-underline before:absolute before:inset-0 before:z-0"
                     onClick={() => onViewTrack?.()}
                   >
@@ -435,6 +443,7 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
             </div>
             <div className="relative z-10 min-w-0 flex items-center gap-2">
               {authorEl}
+              {organizationEl}
               {!seriesName && (
                 <Tags
                   primaryTags={primaryTags}
@@ -451,6 +460,87 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
               <p className="relative z-10 [font-size:var(--public-font-meta)] [line-height:var(--public-line-body)] text-muted-foreground line-clamp-2">
                 {cardSummary}
               </p>
+            )}
+            {dateLabel && (
+              <time className="relative z-10 [font-size:var(--public-font-caption)] text-muted-foreground" dateTime={dateTime}>
+                {dateLabel}
+              </time>
+            )}
+          </div>
+        </div>
+      </article>
+    );
+  }
+
+  // ── List variant ──
+  // Used by the full-page browse view: one readable card per row, with a
+  // larger cover than compact mode and enough horizontal space for metadata.
+  if (variant === "list") {
+    return (
+      <article
+        className={`${ARTICLE_CLASS} flex items-stretch gap-4 bg-card/45 p-3 sm:gap-5 sm:p-4 ${!href ? "cursor-pointer" : ""}`}
+        onClick={onArticleClick}
+        {...articleProps}
+      >
+        <div
+          className="relative aspect-[2/3] w-24 shrink-0 overflow-hidden rounded-md bg-muted sm:w-28"
+          style={{
+            boxShadow: "0 1px 4px hsl(var(--foreground)/0.12), 0 0 0 1px hsl(var(--border)/0.6)",
+            ...coverContainerProps?.style,
+          }}
+          {...(coverContainerProps ? { onPointerMove: coverContainerProps.onPointerMove, onPointerLeave: coverContainerProps.onPointerLeave } : {})}
+        >
+          {coverLinkEl}
+          <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-foreground/5 pointer-events-none" aria-hidden />
+          {showAgeGate && <AgeGateOverlay variant="list" />}
+          {seriesBadgeEl}
+        </div>
+
+        <div className="min-w-0 flex-1 py-0.5 sm:py-1">
+          <div className="flex items-start justify-between gap-3">
+            <h2 className="font-serif [font-size:var(--public-font-card-title)] font-semibold leading-snug line-clamp-2">
+              {href ? (
+                  <a href={href} {...scriptAnchorProps} className="text-foreground group-hover:text-primary transition-colors no-underline" onClick={() => onViewTrack?.()}>
+                  {title}
+                </a>
+              ) : (
+                <span className="text-foreground group-hover:text-primary transition-colors">{title}</span>
+              )}
+            </h2>
+            <div className="shrink-0 [font-size:var(--public-font-caption)] text-muted-foreground">
+              <span className="inline-flex items-center gap-1">
+                <Eye className="h-3 w-3" aria-hidden />
+                <span>{views.toLocaleString()}</span>
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+            {authorEl}
+            {organizationEl}
+          </div>
+
+          {cardSummary && (
+            <p className="mt-2 [font-size:var(--public-font-meta)] [line-height:var(--public-line-body)] text-muted-foreground line-clamp-3">
+              {cardSummary}
+            </p>
+          )}
+
+          <Tags
+            primaryTags={primaryTags}
+            secondaryTags={secondaryTags}
+            totalCount={totalTagCount}
+            tagHref={tagHref}
+            onTagClick={onTagClick}
+          />
+
+          <div
+            className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 [font-size:var(--public-font-caption)] text-muted-foreground"
+            style={{ borderTop: "1px solid hsl(var(--border) / 0.45)", paddingTop: "0.55rem" }}
+          >
+            {dateLabel && <time dateTime={dateTime}>{dateLabel}</time>}
+            {estDurationMinutes != null && estDurationMinutes > 0 && (
+              <span>{estDurationMinutes < 1 ? "< 1 分" : `${estDurationMinutes} 分`}</span>
             )}
           </div>
         </div>
@@ -486,7 +576,7 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
       <div className="pt-2.5 space-y-1">
         <h2 className="font-serif [font-size:var(--public-font-card-title)] font-semibold leading-snug line-clamp-2">
           {href ? (
-            <a href={href} className="text-foreground group-hover:text-primary transition-colors no-underline" onClick={() => onViewTrack?.()}>
+              <a href={href} {...scriptAnchorProps} className="text-foreground group-hover:text-primary transition-colors no-underline" onClick={() => onViewTrack?.()}>
               {title}
             </a>
           ) : (
@@ -494,7 +584,10 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
           )}
         </h2>
 
-        <div className="pt-1">{authorEl}</div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1">
+          {authorEl}
+          {organizationEl}
+        </div>
 
         {cardSummary && (
           <p className="[font-size:var(--public-font-meta)] [line-height:var(--public-line-body)] text-muted-foreground line-clamp-2">
@@ -519,13 +612,13 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
               <Eye className="w-3 h-3" aria-hidden />
               <span>{views.toLocaleString()}</span>
             </div>
-            {likeEl}
           </div>
-          {estDurationMinutes != null && estDurationMinutes > 0 && (
-            <span className="[font-size:var(--public-font-caption)] text-muted-foreground">
-              {estDurationMinutes < 1 ? "< 1 分" : `${estDurationMinutes} 分`}
-            </span>
-          )}
+          <div className="flex items-center gap-2 [font-size:var(--public-font-caption)] text-muted-foreground">
+            {dateLabel && <time dateTime={dateTime}>{dateLabel}</time>}
+            {estDurationMinutes != null && estDurationMinutes > 0 && (
+              <span>{estDurationMinutes < 1 ? "< 1 分" : `${estDurationMinutes} 分`}</span>
+            )}
+          </div>
         </div>
       </div>
     </article>

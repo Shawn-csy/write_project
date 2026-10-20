@@ -14,6 +14,7 @@ export {
   RESERVED_SEGMENT_TAGS,
   enrichScript,
   filterGalleryScripts,
+  getGalleryPublishedTimestamp,
   buildFeaturedSeries,
   deriveTags,
   deriveSimpleLicenseTags,

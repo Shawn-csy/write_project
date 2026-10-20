@@ -8,6 +8,7 @@ import models
 import schemas
 from dependencies import get_db
 from routers import public as public_router
+from routers.external_public_scripts import get_published_external_public_scripts
 from utils import normalize_homepage_banner_value
 
 router = APIRouter(prefix="/api", tags=["public"])
@@ -74,6 +75,7 @@ def _build_bundle(db: Session) -> dict:
         "organizations": orgs,
         "topTags": top_tags,
         "banner": _get_banner(db),
+        "externalPublicScripts": get_published_external_public_scripts(db),
     })
 
 

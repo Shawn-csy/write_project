@@ -1,13 +1,12 @@
 /**
  * Integration tests for ReadWorkHeader.
  * Verifies the component renders correctly from a ReadWorkHeaderModel,
- * including title, author/org/tag links, series position, like action, and
+ * including title, author/org/tag links, series position, and
  * license/rating metadata.
  */
 
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import React from "react";
 import { ReadWorkHeader } from "./ReadWorkHeader";
 import type { ReadWorkHeaderModel } from "@/lib/readWorkHeaderModel";
@@ -63,18 +62,10 @@ describe("ReadWorkHeader — route-local CTA removal", () => {
   });
 });
 
-describe("ReadWorkHeader — like action", () => {
-  it("like button calls onLike", async () => {
-    const onLike = vi.fn();
-    const user = userEvent.setup();
-    render(
-      <ReadWorkHeader
-        model={BASE_MODEL}
-        actions={{ onLike }}
-      />
-    );
-    await user.click(screen.getByRole("button", { name: "喜歡" }));
-    expect(onLike).toHaveBeenCalledTimes(1);
+describe("ReadWorkHeader — like control removal", () => {
+  it("does not render a like button", () => {
+    render(<ReadWorkHeader model={BASE_MODEL} actions={BASE_ACTIONS} />);
+    expect(screen.queryByRole("button", { name: /喜歡/ })).toBeNull();
   });
 });
 

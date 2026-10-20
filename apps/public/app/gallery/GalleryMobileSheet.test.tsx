@@ -45,6 +45,13 @@ describe("GalleryMobileSheet", () => {
     expect(screen.getByRole("dialog")).toBeTruthy();
   });
 
+  it("keeps the dialog visible at desktop widths", () => {
+    render(<GalleryMobileSheet {...BASE_PROPS} />);
+    const dialog = screen.getByRole("dialog");
+    expect(dialog.className).not.toContain("lg:hidden");
+    expect(dialog.className).toContain("sm:w-[min(92vw,720px)]");
+  });
+
   it("does not render when closed", () => {
     render(<GalleryMobileSheet {...BASE_PROPS} open={false} />);
     expect(screen.queryByRole("dialog")).toBeNull();

@@ -47,39 +47,53 @@ export function GallerySegmentBar({ segment, onSegmentChange }: GallerySegmentBa
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="overflow-x-auto scrollbar-none editorial-border-b">
-      <div ref={containerRef} className="relative flex items-end gap-0.5 min-w-max px-0.5 pb-0">
-        {SEGMENT_OPTIONS.map((opt) => {
-          const active = segment === opt.value;
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              ref={(el) => { buttonRefs.current[opt.value] = el; }}
-              onClick={() => onSegmentChange(opt.value)}
-              className={`relative h-10 shrink-0 px-3.5 text-[0.8125rem] rounded-t-md transition-colors duration-150 whitespace-nowrap ${
-                active
-                  ? "text-foreground font-semibold bg-muted/50"
-                  : "text-muted-foreground hover:text-foreground font-normal"
-              }`}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
-        {/* Sliding indicator */}
-        {ready && indicator && (
-          <span
-            aria-hidden
-            className="absolute bottom-0 rounded-t-[2px] pointer-events-none editorial-indicator"
-            style={{
-              left: indicator.left,
-              width: indicator.width,
-              transition: "left 0.22s cubic-bezier(0.4,0,0.2,1), width 0.22s cubic-bezier(0.4,0,0.2,1)",
-            }}
-          />
-        )}
+    <>
+      <div className="md:hidden">
+        <label className="sr-only" htmlFor="gallery-segment-select">作品分類</label>
+        <select
+          id="gallery-segment-select"
+          value={segment}
+          onChange={(event) => onSegmentChange(event.target.value)}
+          className="h-10 w-[5.5rem] rounded-lg border border-border/60 bg-background/70 px-2.5 text-[0.8125rem] font-medium text-foreground focus:outline-none focus:border-primary/50"
+        >
+          {SEGMENT_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+        </select>
       </div>
-    </div>
+
+      <div className="hidden overflow-x-auto scrollbar-none editorial-border-b md:block">
+        <div ref={containerRef} className="relative flex items-end gap-0.5 min-w-max px-0.5 pb-0">
+          {SEGMENT_OPTIONS.map((opt) => {
+            const active = segment === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                ref={(el) => { buttonRefs.current[opt.value] = el; }}
+                onClick={() => onSegmentChange(opt.value)}
+                className={`relative h-10 shrink-0 px-3.5 text-[0.8125rem] rounded-t-md transition-colors duration-150 whitespace-nowrap ${
+                  active
+                    ? "text-foreground font-semibold bg-muted/50"
+                    : "text-muted-foreground hover:text-foreground font-normal"
+                }`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+          {/* Sliding indicator */}
+          {ready && indicator && (
+            <span
+              aria-hidden
+              className="absolute bottom-0 rounded-t-[2px] pointer-events-none editorial-indicator"
+              style={{
+                left: indicator.left,
+                width: indicator.width,
+                transition: "left 0.22s cubic-bezier(0.4,0,0.2,1), width 0.22s cubic-bezier(0.4,0,0.2,1)",
+              }}
+            />
+          )}
+        </div>
+      </div>
+    </>
   );
 }

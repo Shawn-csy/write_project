@@ -5,10 +5,12 @@ import {
   parseBannerSlides,
   useGalleryFilterModel,
   buildPublicHomepageModel,
+  SEGMENT_KEYS,
+  SEGMENT_TAGS,
   type HeroSlide,
   type PublicHomepageModel,
 } from "@write/public-ui";
-import type { PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
+import type { ExternalPublicScript, PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
 import {
   publicOrgsFromResponse,
   publicPersonasFromResponse,
@@ -16,6 +18,8 @@ import {
   toAuthorLike,
   toGalleryInput,
   toOrgLike,
+  externalPersonasFromScripts,
+  externalOrgsFromScripts,
 } from "@/lib/galleryProjection";
 import { useGalleryUrlState } from "./useGalleryUrlState";
 import type { GalleryView, GalleryViewMode, GalleryLaneMode, PublicHomepageUrlState } from "./useGalleryUrlState";
@@ -25,12 +29,67 @@ export type { GalleryView, GalleryViewMode, GalleryLaneMode, PublicHomepageModel
 
 interface UseGalleryControllerOptions {
   initialScripts: PublicScript[];
+  initialExternalPublicScripts: ExternalPublicScript[];
   initialBannerSlides?: HeroSlide[];
   initialUrlState: PublicHomepageUrlState;
 }
 
+function externalCategories(item: ExternalPublicScript): string[] {
+  return Array.from(
+    new Set(
+      (item.categories ?? []).flatMap((category) =>
+        String(category || "")
+          .split(/[,，、]/)
+          .map((value) => value.trim())
+          .filter(Boolean)
+      )
+    )
+  );
+}
+
+function filterExternalPublicScripts(
+  items: ExternalPublicScript[],
+  searchNeedle: string,
+  selectedTags: string[],
+  segmentFilter: string,
+  usageFilter: string,
+): ExternalPublicScript[] {
+  return items
+    .filter((item) => {
+      const categories = externalCategories(item);
+      const haystack = [
+        item.title,
+        item.remoteTitle,
+        item.summary,
+        item.remoteSummary,
+        item.sourceName,
+        item.sourceDomain,
+        item.authorName,
+        item.organizationName,
+        ...categories,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      const matchesSearch = !searchNeedle || haystack.includes(searchNeedle);
+      const matchesTag = selectedTags.length === 0 || categories.some((category) => selectedTags.includes(category));
+      const segmentTags = (SEGMENT_TAGS[segmentFilter] ?? []).map((tag) => tag.toLowerCase());
+      const segmentAliases = segmentFilter === SEGMENT_KEYS.allAges ? ["全性向", "全年齡"] : [];
+      const matchesSegment = segmentFilter === SEGMENT_KEYS.all
+        || [...segmentTags, ...segmentAliases].some((tag) => categories.some((category) => category.toLowerCase() === tag));
+      // External sources do not carry a verified commercial-use license.
+      const matchesUsage = usageFilter !== "commercial";
+      return matchesSearch && matchesTag && matchesSegment && matchesUsage;
+    })
+    .sort((a, b) =>
+      (b.mountedAt || b.createdAt || b.updatedAt || 0) -
+      (a.mountedAt || a.createdAt || a.updatedAt || 0)
+    );
+}
+
 export function useGalleryController({
   initialScripts,
+  initialExternalPublicScripts,
   initialBannerSlides,
   initialUrlState,
 }: UseGalleryControllerOptions) {
@@ -38,6 +97,7 @@ export function useGalleryController({
 
   // ── Server data ────────────────────────────────────────────────────────────
   const [rawScripts, setRawScripts] = useState<PublicScript[]>(initialScripts);
+  const [externalPublicScripts, setExternalPublicScripts] = useState<ExternalPublicScript[]>(initialExternalPublicScripts);
   const [bannerSlides, setBannerSlides] = useState<HeroSlide[] | undefined>(initialBannerSlides);
   const [authors, setAuthors] = useState<PublicPersona[]>([]);
   const [orgs, setOrgs] = useState<PublicOrg[]>([]);
@@ -77,6 +137,10 @@ export function useGalleryController({
             areHeroSlidesEquivalent(prev, next) ? prev : next
           );
         }
+        if (data && typeof data === "object" && "externalPublicScripts" in data) {
+          const next = (data as { externalPublicScripts?: unknown }).externalPublicScripts;
+          setExternalPublicScripts(Array.isArray(next) ? next as ExternalPublicScript[] : []);
+        }
       })
       .catch(() => {});
   }, []);
@@ -102,8 +166,42 @@ export function useGalleryController({
 
   // ── Gallery model inputs ───────────────────────────────────────────────────
   const galleryScripts = useMemo(() => rawScripts.map(toGalleryInput), [rawScripts]);
-  const galleryAuthors = useMemo(() => authors.map(toAuthorLike), [authors]);
-  const galleryOrgs = useMemo(() => orgs.map(toOrgLike), [orgs]);
+  const publishedExternalPublicScripts = useMemo(
+    () => externalPublicScripts.filter((item) => item.status === "published"),
+    [externalPublicScripts]
+  );
+  const allAuthors = useMemo(() => {
+    const map = new Map(authors.map((author) => [author.displayName.trim().toLocaleLowerCase(), author]));
+    for (const externalAuthor of externalPersonasFromScripts(publishedExternalPublicScripts)) {
+      const key = externalAuthor.displayName.trim().toLocaleLowerCase();
+      if (!map.has(key)) map.set(key, externalAuthor);
+    }
+    return Array.from(map.values());
+  }, [authors, publishedExternalPublicScripts]);
+  const allOrgs = useMemo(() => {
+    const map = new Map(orgs.map((org) => [org.name.trim().toLocaleLowerCase(), org]));
+    for (const externalOrg of externalOrgsFromScripts(publishedExternalPublicScripts)) {
+      const key = externalOrg.name.trim().toLocaleLowerCase();
+      if (!map.has(key)) map.set(key, externalOrg);
+    }
+    return Array.from(map.values());
+  }, [orgs, publishedExternalPublicScripts]);
+  const galleryAuthors = useMemo(() => allAuthors.map(toAuthorLike), [allAuthors]);
+  const galleryOrgs = useMemo(() => allOrgs.map(toOrgLike), [allOrgs]);
+  const filteredExternalPublicScripts = useMemo(
+    () => filterExternalPublicScripts(
+      publishedExternalPublicScripts,
+      urlState.q.toLowerCase(),
+      urlState.tags,
+      urlState.segment,
+      urlState.usage,
+    ),
+    [publishedExternalPublicScripts, urlState.q, urlState.tags, urlState.segment, urlState.usage]
+  );
+  const externalTags = useMemo(
+    () => Array.from(new Set(publishedExternalPublicScripts.flatMap(externalCategories))),
+    [publishedExternalPublicScripts]
+  );
 
   const filterResult = useGalleryFilterModel({
     scripts: galleryScripts,
@@ -119,8 +217,8 @@ export function useGalleryController({
 
   // ── Homepage model (pure — all display semantics here) ────────────────────
   const homepageModel = useMemo(
-    () =>
-      buildPublicHomepageModel({
+    () => {
+      const baseModel = buildPublicHomepageModel({
         view: urlState.view,
         viewMode: urlState.mode,
         laneMode: urlState.lane,
@@ -128,7 +226,7 @@ export function useGalleryController({
         topViewedScripts: filterResult.topViewedScripts,
         latestScripts: filterResult.latestScripts,
         featuredSeries: filterResult.featuredSeries,
-        allTags: filterResult.allTags,
+        allTags: Array.from(new Set([...filterResult.allTags, ...externalTags])),
         licenseTagShortcuts: filterResult.licenseTagShortcuts,
         filteredAuthors: filterResult.filteredAuthors,
         filteredOrgs: filterResult.filteredOrgs,
@@ -138,11 +236,19 @@ export function useGalleryController({
         segment: urlState.segment,
         usage: urlState.usage,
         q: urlState.q,
-        totalScriptCount: galleryScripts.length,
-        totalAuthorCount: galleryAuthors.length,
-        totalOrgCount: galleryOrgs.length,
+        totalScriptCount: galleryScripts.length + publishedExternalPublicScripts.length,
+        totalAuthorCount: allAuthors.length,
+        totalOrgCount: allOrgs.length,
         termsRequired,
-      }),
+      });
+      if (urlState.view !== "scripts") return baseModel;
+      const externalResultCount = filteredExternalPublicScripts.length;
+      return {
+        ...baseModel,
+        resultCount: baseModel.resultCount + externalResultCount,
+        emptyState: baseModel.filteredScripts.length + externalResultCount > 0 ? "none" as const : baseModel.emptyState,
+      };
+    },
     [
       urlState.view,
       urlState.mode,
@@ -154,9 +260,12 @@ export function useGalleryController({
       urlState.usage,
       urlState.q,
       filterResult,
+      externalTags,
+      publishedExternalPublicScripts,
+      filteredExternalPublicScripts,
       galleryScripts.length,
-      galleryAuthors.length,
-      galleryOrgs.length,
+      allAuthors.length,
+      allOrgs.length,
       termsRequired,
     ]
   );
@@ -206,8 +315,10 @@ export function useGalleryController({
     laneMode: urlState.lane,
     setLaneMode: urlActions.setLane,
     bannerSlides,
-    authors,
-    orgs,
+    externalPublicScripts,
+    filteredExternalPublicScripts,
+    authors: allAuthors,
+    orgs: allOrgs,
     peopleStatus,
     retryPeople,
     mobileFilterOpen,

@@ -1,5 +1,5 @@
 import React from "react";
-import { Heart, Eye } from "lucide-react";
+import { Eye } from "lucide-react";
 import { AuthorBadge } from "./InlineAuthorBadge";
 import { Badge } from "../badge";
 import { CoverRenderer } from "../cover/CoverRenderer";
@@ -111,9 +111,6 @@ export function PublicScriptInfoOverlay({
   notifyOnModify = "",
   licenseSpecialTerms = [],
   views,
-  likes,
-  isLiked = false,
-  onLike,
   durationMinutes,
   dialogueChars,
   tagHref,
@@ -406,7 +403,7 @@ export function PublicScriptInfoOverlay({
         </div>
       )}
 
-      {(typeof views === "number" || typeof likes === "number" || onLike || typeof durationMinutes === "number" || typeof dialogueChars === "number") && (
+      {(typeof views === "number" || typeof durationMinutes === "number" || typeof dialogueChars === "number") && (
         <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-muted-foreground">
           {typeof durationMinutes === "number" && durationMinutes > 0 && (
             <span className="flex items-center gap-1.5 rounded-full border border-border/60 bg-background/50 px-3 py-1 text-xs font-medium backdrop-blur-sm">
@@ -424,19 +421,6 @@ export function PublicScriptInfoOverlay({
               {views.toLocaleString()}
             </span>
           )}
-          <button
-            type="button"
-            onClick={onLike}
-            className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full px-2 transition-colors ${
-              isLiked
-                ? "text-rose-500 hover:text-rose-400"
-                : "hover:text-rose-400"
-            }`}
-            aria-label={isLiked ? "取消喜歡" : "喜歡"}
-          >
-            <Heart className={`h-4 w-4 ${isLiked ? "fill-rose-500" : ""}`} />
-            {typeof likes === "number" && likes.toLocaleString()}
-          </button>
         </div>
       )}
 

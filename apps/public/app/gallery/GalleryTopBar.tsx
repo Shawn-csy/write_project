@@ -138,13 +138,13 @@ function MobileActionSheet({ onClose }: { onClose: () => void }) {
 interface GalleryTopBarProps {
   activeTab: GalleryView;
   onTabChange: (tab: GalleryView) => void;
-  onOpenMobileFilter: () => void;
+  /** @deprecated The filter action now lives beside the gallery search field. */
+  onOpenMobileFilter?: () => void;
 }
 
 export function GalleryTopBar({
   activeTab,
   onTabChange,
-  onOpenMobileFilter,
 }: GalleryTopBarProps) {
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -153,7 +153,6 @@ export function GalleryTopBar({
       <PublicGalleryTopBar
         activeTab={activeTab}
         onTabChange={onTabChange}
-        onOpenMobileFilter={onOpenMobileFilter}
         brandName="公開台本"
         brandSubtitle="泛用型產品作坊"
         trailing={<PublicShellActions />}

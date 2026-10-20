@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { apiFetch } from "@/lib/api";
 import type { PublicScript } from "@/lib/types";
+import type { ExternalPublicScript } from "@/lib/types";
 import { GalleryClient } from "./GalleryClient";
 import type { HeroSlide } from "@write/public-ui/server";
 import { parseBannerSlides, parseGalleryUrlState } from "@write/public-ui/server";
@@ -43,6 +44,7 @@ export const metadata: Metadata = {
 
 interface BundleResponse {
   scripts?: PublicScript[];
+  externalPublicScripts?: ExternalPublicScript[];
   banner?: unknown;
   homepageConfig?: {
     /** When false, suppresses the brand hero slide (e.g. if a full-bleed banner covers it). */
@@ -50,18 +52,19 @@ interface BundleResponse {
   };
 }
 
-async function fetchBundle(): Promise<{ scripts: PublicScript[]; bannerSlides: HeroSlide[] | undefined; showBrandHero: boolean }> {
+async function fetchBundle(): Promise<{ scripts: PublicScript[]; externalPublicScripts: ExternalPublicScript[]; bannerSlides: HeroSlide[] | undefined; showBrandHero: boolean }> {
   let bundle: BundleResponse;
   try {
     bundle = await apiFetch<BundleResponse>("/public-bundle");
   } catch {
     // Network/backend failure: scripts unavailable. Log for production diagnosis.
     console.error("[homepage] fetchBundle: /public-bundle request failed — serving empty homepage");
-    return { scripts: [], bannerSlides: undefined, showBrandHero: true };
+    return { scripts: [], externalPublicScripts: [], bannerSlides: undefined, showBrandHero: true };
   }
 
   // Parse each field independently so a malformed banner cannot erase the script list.
   const scripts = (bundle.scripts ?? []).filter((s): s is PublicScript => Boolean(s?.id));
+  const externalPublicScripts = (bundle.externalPublicScripts ?? []).filter((item): item is ExternalPublicScript => Boolean(item?.id && item?.sourceUrl));
 
   let bannerSlides: HeroSlide[] | undefined;
   try {
@@ -72,7 +75,7 @@ async function fetchBundle(): Promise<{ scripts: PublicScript[]; bannerSlides: H
 
   const showBrandHero = bundle.homepageConfig?.showBrandHero !== false;
 
-  return { scripts, bannerSlides, showBrandHero };
+  return { scripts, externalPublicScripts, bannerSlides, showBrandHero };
 }
 
 export default async function HomePage({
@@ -80,7 +83,7 @@ export default async function HomePage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const [{ scripts: initialScripts, bannerSlides, showBrandHero }, rawParams] = await Promise.all([
+  const [{ scripts: initialScripts, externalPublicScripts, bannerSlides, showBrandHero }, rawParams] = await Promise.all([
     fetchBundle(),
     searchParams,
   ]);
@@ -113,6 +116,7 @@ export default async function HomePage({
       <JsonLdScript data={structuredData} />
       <GalleryClient
         initialScripts={initialScripts}
+        initialExternalPublicScripts={externalPublicScripts}
         initialBannerSlides={bannerSlides}
         showBrandHero={showBrandHero}
         initialUrlState={initialUrlState}

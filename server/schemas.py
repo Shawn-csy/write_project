@@ -671,3 +671,110 @@ class HomepageBannerSetting(BaseModel):
     link: str = ""
     imageUrl: str = ""
     items: List[HomepageBannerItem] = []
+
+
+class ExternalPublicScriptPreviewRequest(BaseModel):
+    sourceUrl: str
+    authorUrl: Optional[str] = None
+    organizationUrl: Optional[str] = None
+
+
+class ExternalPublicScriptPayload(BaseModel):
+    sourceUrl: str
+    canonicalUrl: Optional[str] = None
+    sourceDomain: Optional[str] = None
+    sourceName: Optional[str] = None
+    authorName: Optional[str] = None
+    authorBio: Optional[str] = None
+    authorUrl: Optional[str] = None
+    authorAvatarUrl: Optional[str] = None
+    organizationName: Optional[str] = None
+    organizationUrl: Optional[str] = None
+    organizationAvatarUrl: Optional[str] = None
+    remoteTitle: Optional[str] = None
+    remoteSummary: Optional[str] = None
+    remoteCoverUrl: Optional[str] = None
+    titleOverride: str = ""
+    summaryOverride: str = ""
+    coverUrlOverride: str = ""
+    categories: List[str] = []
+    status: Literal["draft", "published", "hidden"] = "draft"
+    sortOrder: float = 0.0
+    mountedAt: Optional[int] = None
+    refreshMetadata: bool = False
+
+
+class ExternalPublicScriptUpdate(BaseModel):
+    sourceUrl: Optional[str] = None
+    canonicalUrl: Optional[str] = None
+    sourceDomain: Optional[str] = None
+    sourceName: Optional[str] = None
+    authorName: Optional[str] = None
+    authorBio: Optional[str] = None
+    authorUrl: Optional[str] = None
+    authorAvatarUrl: Optional[str] = None
+    organizationName: Optional[str] = None
+    organizationUrl: Optional[str] = None
+    organizationAvatarUrl: Optional[str] = None
+    remoteTitle: Optional[str] = None
+    remoteSummary: Optional[str] = None
+    remoteCoverUrl: Optional[str] = None
+    titleOverride: Optional[str] = None
+    summaryOverride: Optional[str] = None
+    coverUrlOverride: Optional[str] = None
+    categories: Optional[List[str]] = None
+    status: Optional[Literal["draft", "published", "hidden"]] = None
+    sortOrder: Optional[float] = None
+    mountedAt: Optional[int] = None
+    refreshMetadata: bool = False
+
+
+class ExternalPublicScriptResponse(BaseModel):
+    id: str
+    sourceUrl: str
+    canonicalUrl: str = ""
+    sourceDomain: str = ""
+    sourceName: str = ""
+    authorName: str = ""
+    authorBio: str = ""
+    authorUrl: str = ""
+    authorAvatarUrl: str = ""
+    organizationName: str = ""
+    organizationUrl: str = ""
+    organizationAvatarUrl: str = ""
+    remoteTitle: str = ""
+    remoteSummary: str = ""
+    remoteCoverUrl: str = ""
+    titleOverride: str = ""
+    summaryOverride: str = ""
+    coverUrlOverride: str = ""
+    title: str = ""
+    summary: str = ""
+    coverUrl: str = ""
+    categories: List[str] = []
+    views: int = 0
+    status: Literal["draft", "published", "hidden"] = "draft"
+    sortOrder: float = 0.0
+    lastFetchedAt: Optional[int] = None
+    lastFetchError: str = ""
+    createdAt: int
+    mountedAt: int = 0
+    updatedAt: int
+
+
+class ExternalPublicScriptPreview(BaseModel):
+    sourceUrl: str
+    canonicalUrl: str = ""
+    sourceDomain: str = ""
+    sourceName: str = ""
+    authorName: str = ""
+    authorBio: str = ""
+    authorUrl: str = ""
+    authorAvatarUrl: str = ""
+    organizationName: str = ""
+    organizationUrl: str = ""
+    organizationAvatarUrl: str = ""
+    remoteTitle: str = ""
+    remoteSummary: str = ""
+    remoteCoverUrl: str = ""
+    coverPreviewDataUrl: str = ""

@@ -3,9 +3,42 @@ import type {
   GalleryScriptInput,
   OrgLike,
 } from "@write/public-ui";
-import type { PublicOrg, PublicPersona, PublicScript } from "./types";
+import type { ExternalPublicScript, PublicOrg, PublicPersona, PublicScript } from "./types";
+import { externalEntityHref, socialAvatarUrl } from "./externalEntity";
+
+function toTimestamp(value?: number | string | null): number {
+  if (value == null || value === "") return 0;
+  if (typeof value === "number") return value;
+  const timestamp = Date.parse(String(value));
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+/** The date shown on a public card is the script's original publication date. */
+export function getPublicScriptPublishedTimestamp(script: Pick<PublicScript, "createdAt" | "draftDate" | "lastModified" | "updatedAt">): number {
+  return (
+    toTimestamp(script.createdAt) ||
+    toTimestamp(script.draftDate) ||
+    toTimestamp(script.lastModified) ||
+    toTimestamp(script.updatedAt)
+  );
+}
+
+function formatGalleryDate(value?: number | string | null): { label?: string; time?: string } {
+  if (value == null || value === "") return {};
+  const timestamp = typeof value === "number" ? value : Date.parse(String(value));
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return {};
+  const date = new Date(timestamp);
+  return {
+    label: new Intl.DateTimeFormat("zh-TW", { year: "numeric", month: "numeric", day: "numeric" }).format(date),
+    time: date.toISOString(),
+  };
+}
 
 export function toGalleryInput(script: PublicScript): GalleryScriptInput {
+  const displayDate = formatGalleryDate(getPublicScriptPublishedTimestamp(script));
+  const hasCustomAuthor =
+    String(script.authorDisplayMode || "").trim().toLowerCase() === "override" ||
+    Boolean(String(script.authorOverrideName || "").trim());
   return {
     id: script.id,
     title: script.title,
@@ -16,8 +49,12 @@ export function toGalleryInput(script: PublicScript): GalleryScriptInput {
     coverDesign: script.coverDesign ?? undefined,
     tags: (script.tags ?? []).map((tag) => ({ id: tag.id, name: tag.name })),
     views: script.views,
+    createdAt: script.createdAt,
+    draftDate: script.draftDate,
     lastModified: script.lastModified,
     updatedAt: script.updatedAt ?? undefined,
+    dateLabel: displayDate.label,
+    dateTime: displayDate.time,
     seriesOrder: script.seriesOrder ?? undefined,
     series: script.series ?? undefined,
     targetAudience: script.targetAudience ?? undefined,
@@ -40,6 +77,12 @@ export function toGalleryInput(script: PublicScript): GalleryScriptInput {
           id: script.owner.id,
           displayName: script.owner.displayName,
           avatarUrl: script.owner.avatar ?? script.owner.avatarUrl,
+        }
+      : null,
+    organization: !hasCustomAuthor && script.organization?.name
+      ? {
+          name: script.organization.name,
+          logoUrl: script.organization.logoUrl,
         }
       : null,
     persona: script.persona
@@ -68,6 +111,52 @@ export function toOrgLike(org: PublicOrg): OrgLike {
     name: org.name,
     tags: org.tags,
   };
+}
+
+/** Build author identities for published external-script entries. */
+export function externalPersonasFromScripts(items: ExternalPublicScript[]): PublicPersona[] {
+  const map = new Map<string, PublicPersona>();
+  for (const item of items) {
+    const displayName = item.authorName?.trim();
+    if (!displayName) continue;
+    const key = displayName.toLocaleLowerCase();
+    const current = map.get(key);
+    const tags = Array.from(new Set([...(current?.tags || []), ...(item.categories || [])]));
+    map.set(key, {
+      ...(current || {}),
+      id: current?.id || `external-author:${displayName}`,
+      displayName,
+      bio: current?.bio || item.authorBio || undefined,
+      website: current?.website || item.authorUrl || undefined,
+      avatar: current?.avatar || item.authorAvatarUrl || socialAvatarUrl(item.authorUrl),
+      links: current?.links || (item.authorUrl ? [{ url: item.authorUrl, label: "X / Twitter" }] : []),
+      tags,
+      externalHref: externalEntityHref("author", displayName),
+    });
+  }
+  return Array.from(map.values()).sort((a, b) => a.displayName.localeCompare(b.displayName, "zh-Hant"));
+}
+
+/** Build organization identities for published external-script entries. */
+export function externalOrgsFromScripts(items: ExternalPublicScript[]): PublicOrg[] {
+  const map = new Map<string, PublicOrg>();
+  for (const item of items) {
+    const name = item.organizationName?.trim();
+    if (!name) continue;
+    const key = name.toLocaleLowerCase();
+    const current = map.get(key);
+    const tags = Array.from(new Set([...(current?.tags || []), ...(item.categories || [])]));
+    map.set(key, {
+      ...(current || {}),
+      id: current?.id || `external-org:${name}`,
+      name,
+      website: current?.website || item.organizationUrl || undefined,
+      logoUrl: current?.logoUrl || item.organizationAvatarUrl || socialAvatarUrl(item.organizationUrl),
+      tags,
+      externalHref: externalEntityHref("org", name),
+    });
+  }
+  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
 }
 
 export function publicScriptsFromBundle(data: unknown): PublicScript[] {

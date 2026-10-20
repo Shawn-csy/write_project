@@ -85,7 +85,7 @@ export function GalleryFilterPanel({
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
             <input
-              type="search"
+              type="text"
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="搜尋台本..."

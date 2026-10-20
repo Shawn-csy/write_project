@@ -511,6 +511,59 @@ def _run_postgres_migrations():
         _backfill_content_fields(conn)
         _backfill_publish_state(conn)
 
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS external_public_scripts (
+                id TEXT PRIMARY KEY,
+                "sourceUrl" TEXT NOT NULL UNIQUE,
+                "canonicalUrl" TEXT DEFAULT '',
+                "sourceDomain" TEXT DEFAULT '',
+                "sourceName" TEXT DEFAULT '',
+                "authorName" TEXT DEFAULT '',
+                    "authorBio" TEXT DEFAULT '',
+                "authorUrl" TEXT DEFAULT '',
+                "authorAvatarUrl" TEXT DEFAULT '',
+                "organizationName" TEXT DEFAULT '',
+                "organizationUrl" TEXT DEFAULT '',
+                "organizationAvatarUrl" TEXT DEFAULT '',
+                "remoteTitle" TEXT DEFAULT '',
+                "remoteSummary" TEXT DEFAULT '',
+                "remoteCoverUrl" TEXT DEFAULT '',
+                "titleOverride" TEXT DEFAULT '',
+                "summaryOverride" TEXT DEFAULT '',
+                "coverUrlOverride" TEXT DEFAULT '',
+                categories JSONB NOT NULL DEFAULT '[]'::jsonb,
+                views INTEGER DEFAULT 0,
+                status TEXT DEFAULT 'draft',
+                "sortOrder" DOUBLE PRECISION DEFAULT 0,
+                "lastFetchedAt" BIGINT DEFAULT NULL,
+                "lastFetchError" TEXT DEFAULT '',
+                "createdAt" BIGINT NOT NULL,
+                "mountedAt" BIGINT DEFAULT NULL,
+                "updatedAt" BIGINT NOT NULL
+            )
+        """))
+        external_public_script_columns = [
+            ("authorName", "TEXT DEFAULT ''"),
+            ("authorBio", "TEXT DEFAULT ''"),
+            ("authorUrl", "TEXT DEFAULT ''"),
+            ("authorAvatarUrl", "TEXT DEFAULT ''"),
+            ("organizationName", "TEXT DEFAULT ''"),
+            ("organizationUrl", "TEXT DEFAULT ''"),
+            ("organizationAvatarUrl", "TEXT DEFAULT ''"),
+            ("mountedAt", "BIGINT DEFAULT NULL"),
+            ("views", "INTEGER DEFAULT 0"),
+        ]
+        for col, col_type in external_public_script_columns:
+            result = conn.execute(text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = 'external_public_scripts' AND column_name = :c"
+            ), {"c": col}).fetchone()
+            if not result:
+                conn.execute(text(f'ALTER TABLE external_public_scripts ADD COLUMN "{col}" {col_type}'))
+        conn.execute(text('UPDATE external_public_scripts SET "mountedAt" = "createdAt" WHERE "mountedAt" IS NULL'))
+        conn.execute(text('CREATE INDEX IF NOT EXISTS ix_external_public_scripts_status ON external_public_scripts(status)'))
+        conn.execute(text('CREATE INDEX IF NOT EXISTS ix_external_public_scripts_sortOrder ON external_public_scripts("sortOrder")'))
+
         canonical_metadata_columns = [
             ("targetAudience",      "TEXT"),
             ("contentRating",       "TEXT"),
@@ -892,6 +945,60 @@ def run_migrations():
                     )
                 """))
                 conn.execute(text("CREATE INDEX IF NOT EXISTS ix_site_settings_updatedAt ON site_settings(updatedAt)"))
+
+            # External public-script catalog.  The full source remains on the
+            # original site; this table stores a metadata snapshot and the
+            # administrator's classification/visibility choices.
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS external_public_scripts (
+                    id TEXT PRIMARY KEY,
+                    sourceUrl TEXT NOT NULL UNIQUE,
+                    canonicalUrl TEXT DEFAULT '',
+                    sourceDomain TEXT DEFAULT '',
+                    sourceName TEXT DEFAULT '',
+                    authorName TEXT DEFAULT '',
+                    authorBio TEXT DEFAULT '',
+                    authorUrl TEXT DEFAULT '',
+                    authorAvatarUrl TEXT DEFAULT '',
+                    organizationName TEXT DEFAULT '',
+                    organizationUrl TEXT DEFAULT '',
+                    organizationAvatarUrl TEXT DEFAULT '',
+                    remoteTitle TEXT DEFAULT '',
+                    remoteSummary TEXT DEFAULT '',
+                    remoteCoverUrl TEXT DEFAULT '',
+                    titleOverride TEXT DEFAULT '',
+                    summaryOverride TEXT DEFAULT '',
+                    coverUrlOverride TEXT DEFAULT '',
+                    categories TEXT DEFAULT '[]',
+                    views INTEGER DEFAULT 0,
+                    status TEXT DEFAULT 'draft',
+                    sortOrder REAL DEFAULT 0,
+                    lastFetchedAt INTEGER DEFAULT NULL,
+                    lastFetchError TEXT DEFAULT '',
+                    createdAt INTEGER NOT NULL,
+                    mountedAt INTEGER DEFAULT NULL,
+                    updatedAt INTEGER NOT NULL
+                )
+            """))
+            external_public_script_columns = [
+                ("authorName", "TEXT DEFAULT ''"),
+                ("authorBio", "TEXT DEFAULT ''"),
+                ("authorUrl", "TEXT DEFAULT ''"),
+                ("authorAvatarUrl", "TEXT DEFAULT ''"),
+                ("organizationName", "TEXT DEFAULT ''"),
+                ("organizationUrl", "TEXT DEFAULT ''"),
+                ("organizationAvatarUrl", "TEXT DEFAULT ''"),
+                ("mountedAt", "INTEGER DEFAULT NULL"),
+                ("views", "INTEGER DEFAULT 0"),
+            ]
+            result = conn.execute(text("PRAGMA table_info(external_public_scripts)"))
+            existing_external_columns = {row[1] for row in result.fetchall()}
+            for col, col_type in external_public_script_columns:
+                if col not in existing_external_columns:
+                    conn.execute(text(f'ALTER TABLE external_public_scripts ADD COLUMN "{col}" {col_type}'))
+            conn.execute(text('UPDATE external_public_scripts SET mountedAt = createdAt WHERE mountedAt IS NULL'))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_external_public_scripts_status ON external_public_scripts(status)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_external_public_scripts_sortOrder ON external_public_scripts(sortOrder)"))
 
             # Backfill user -> org memberships from legacy users.organizationId
             now_ms = int(time.time() * 1000)
