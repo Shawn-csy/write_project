@@ -1,4 +1,23 @@
-# MCP Server 規格文件
+# MCP Server 規格文件（歷史草案）
+
+> **注意：本文件不是現行介面規格。**
+> 目前實作是以本機 `stdio` 啟動、只負責外部公開台本匯入的 MCP，請先閱讀
+> [`local-external-script-mcp.md`](./local-external-script-mcp.md)。本文件以下內容保留
+> 早期「遠端 SSE、Personal API Key、讀寫一般劇本 metadata」的規劃，尚未依該規劃實作。
+
+## 現行實作
+
+| 項目 | 現況 |
+|---|---|
+| 傳輸 | 本機 `stdio`，由 MCP client 啟動子程序 |
+| 用途 | 預覽與加入外部公開台本 |
+| 後端認證 | 外部台本 admin router 的 `X-MCP-Key` |
+| 寫入保護 | 預覽與明確 `confirm=true` 分成兩步 |
+| 不開放 | 劇本本文、刪除資料、一般劇本 metadata 編輯、公開 SSE |
+
+完整設定與工具說明見 [`外部台本本機 MCP`](./local-external-script-mcp.md)。
+
+以下內容為歷史規劃，不能作為目前 API、MCP client 設定或資料庫結構的依據。
 
 ## 概覽
 

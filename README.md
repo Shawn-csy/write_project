@@ -1,6 +1,6 @@
 # 公開台本平台 (`write_project`)
 
-最後更新：2026-08-21（v0.7.0）
+最後更新：2026-10-20（v0.7.1）
 
 本專案是一個台本創作、發布與公開閱讀平台。現在的前端已拆成兩個 runtime：
 
@@ -12,6 +12,7 @@
 ## 目前產品面
 
 - 公開站：首頁 gallery、作者頁、組織頁、系列頁、標籤頁、公開閱讀器、靜態內容頁。
+- 外部公開台本：管理員可只匯入外部作品的標題、摘要、封面、作者與分類，完整內容仍由原網站提供。
 - 閱讀器：marker-driven presentation renderer，支援一般閱讀、系列章節導航、marker 顯示控制、閱讀偏好、分享與 PDF 匯出。
 - 工作室：作品管理、系列管理、作者/組織管理、metadata 編輯、marker/theme 設定、匯入與匯出。
 - 後端：FastAPI API、權限與資料持久化；正式資料庫以 PostgreSQL 為主。
@@ -64,6 +65,8 @@ scripts/                  development and maintenance scripts
 | `/read/[id]` | 公開閱讀器 | 24 hours |
 | `/author/[id]` | 作者頁 | 1 hour |
 | `/org/[id]` | 組織頁 | 1 hour |
+| `/author/external/[name]` | 外部作者頁 | 依公開資料快取 |
+| `/org/external/[name]` | 外部組織頁 | 依公開資料快取 |
 | `/series/[name]` | 系列頁 | 1 hour |
 | `/tag/[name]` | 標籤集合頁 | 1 hour |
 | `/about`, `/help`, `/license`, `/privacy`, `/terms` | 靜態內容頁 | static |
@@ -138,6 +141,8 @@ npm run test:e2e         # Playwright E2E
 - [Read Page Export Metadata Projection](./docs/architecture/read-page-export-metadata-projection.md)
 - [SEO Google Content Visibility Contract](./docs/architecture/seo-google-content-visibility-contract.md)
 - [Security Protection](./docs/architecture/security-protection.md)
+- [外部台本本機 MCP](./docs/architecture/local-external-script-mcp.md)
+- [外部公開台本匯入流程](./docs/product/external-public-script-import.md)
 
 ## 環境變數與認證
 

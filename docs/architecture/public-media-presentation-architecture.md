@@ -1,6 +1,6 @@
 # Public Media Presentation Architecture
 
-Last updated: 2026-06-25
+Last updated: 2026-10-20
 
 ## Phase Status
 
@@ -344,6 +344,18 @@ Reason:
   only for `next/image`.
 - `apps/public/lib/publicImageOrigins.ts` owns the allowlist for external origins
   that can use `next/image`.
+
+### External Public Script Media
+
+External public scripts use a separate media boundary:
+
+- `apps/public/components/ExternalPublicScriptCard.tsx` renders external covers
+  through `PublicImage` with the `script-cover` preset.
+- `/api/public-media/external/[id]` serves a browser-facing cover URL for an
+  imported external script instead of exposing backend storage details.
+- Author and organization avatars are materialized when an administrator refreshes
+  an external entry; public entity pages do not resolve social avatars live.
+- The original script link remains the source of truth and opens in a new tab.
 
 ## Phase 8 — Shared UI Image Renderer Slot
 

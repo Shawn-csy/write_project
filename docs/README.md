@@ -1,5 +1,5 @@
 # 文件索引
-最後更新：2026-08-21（v0.7.0）
+最後更新：2026-10-20（v0.7.1）
 
 ## 目錄分工
 
@@ -49,12 +49,14 @@
 - `architecture/seo-google-content-visibility-contract.md`：Google 搜尋與 AI 爬蟲可見性契約
 - `architecture/security-protection.md`：資安防護架構
 - `architecture/color-token-guide.md`：色彩 token 規範
-- `architecture/mcp-spec.md`：MCP 介面規格
+- `architecture/local-external-script-mcp.md`：現行本機外部台本 MCP
+- `architecture/mcp-spec.md`：MCP 歷史設計草案（非現行介面）
 
 ## 產品與功能
 
 - `product/marker-config-guide.md`：標記規則與主題設定
 - `product/script-import-pipeline.md`：匯入與解析流程
+- `product/external-public-script-import.md`：外部公開台本匯入與發布流程
 
 ## 進行中
 

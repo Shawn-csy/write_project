@@ -1,5 +1,8 @@
 # 腳本匯入流程（現況）
-最後更新：2026-03-11
+最後更新：2026-10-20
+
+> 本文件只描述「貼入／上傳文字」的本機匯入流程。外部公開台本的匯入、metadata
+> 快取與發布，請改看 [`external-public-script-import.md`](./external-public-script-import.md)。
 
 本文件描述目前實際上線的匯入流程（非規劃稿）。
 
