@@ -1,5 +1,5 @@
 # 操作手冊（開發 / 測試 / 部署）
-最後更新：2026-08-21
+最後更新：2026-10-20
 
 ## 1. 環境需求
 - Node.js：`20.19+`
@@ -26,6 +26,19 @@ python3 main.py
 預設常用位址：
 - Frontend：`http://localhost:5173`（或 Vite 指定埠）
 - Backend API：`http://localhost:1091/api`
+
+### 本機外部台本 MCP
+
+若要使用外部公開台本的本機 MCP，先在專案根目錄 `.env` 設定
+`MCP_OWNER_ID` 與至少 32 字元的 `MCP_LOCAL_API_KEY`，再安裝：
+
+```bash
+python3 -m pip install -r server/mcp_server/requirements.txt
+```
+
+MCP client 應執行 `scripts/run-local-external-script-mcp.sh`。它使用 `stdio`，
+不會開啟 HTTP port；完整工具、預覽／確認流程與安全邊界見
+`docs/architecture/local-external-script-mcp.md`。
 
 ## 3. Compose 檔案分工
 
