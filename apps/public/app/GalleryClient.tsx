@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, lazy, Suspense } from "react";
-import type { PublicScript } from "@/lib/types";
+import type { ExternalPublicScript, PublicScript } from "@/lib/types";
 import {
   PublicHeroMarquee,
   GalleryHoverPreviewProvider,
@@ -20,6 +20,8 @@ import { GalleryAuthorGrid, GalleryOrgGrid } from "./gallery/GalleryPeopleGrid";
 import { GalleryScriptResults } from "./gallery/GalleryScriptResults";
 import { GalleryTopBar } from "./gallery/GalleryTopBar";
 import { GalleryBrandHeroSlide } from "./gallery/GalleryBrandHeroSlide";
+import { GallerySearchField } from "./gallery/GallerySearchField";
+import { GalleryFilterSummary, type ActiveGalleryFilterChip } from "./gallery/GalleryFilterSummary";
 import { buildHomepageHeroSlides } from "./gallery/homepageHeroModel";
 import { useGalleryController } from "./gallery/useGalleryController";
 import { useGalleryLayoutState } from "./gallery/useGalleryLayoutState";
@@ -28,6 +30,7 @@ import { PublicFooter } from "@/components/PublicFooter";
 
 interface Props {
   initialScripts: PublicScript[];
+  initialExternalPublicScripts: ExternalPublicScript[];
   initialBannerSlides?: HeroSlide[];
   showBrandHero?: boolean;
   initialUrlState: PublicHomepageUrlState;
@@ -49,7 +52,7 @@ const heroSlideContentRenderer: HeroSlideContentRenderer = (slide, _index, defau
   return defaultContent;
 };
 
-export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHero = true, initialUrlState }: Props) {
+export function GalleryClient({ initialScripts, initialExternalPublicScripts, initialBannerSlides, showBrandHero = true, initialUrlState }: Props) {
   const {
     tab,
     setTab,
@@ -60,6 +63,7 @@ export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHe
     viewMode,
     setViewMode,
     bannerSlides,
+    filteredExternalPublicScripts,
     authors,
     orgs,
     peopleStatus,
@@ -77,13 +81,37 @@ export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHe
     onToggleOrgTag,
     onResetAuthorTags,
     onResetOrgTags,
-  } = useGalleryController({ initialScripts, initialBannerSlides, initialUrlState });
+  } = useGalleryController({ initialScripts, initialExternalPublicScripts, initialBannerSlides, initialUrlState });
 
-  const { view, resultCount, hasFilters } = homepageModel;
+  const { view } = homepageModel;
   const { sidebarCollapsed, setSidebarCollapsed } = useGalleryLayoutState();
   const [showList, setShowList] = useState(false);
+  const [allScriptsSort, setAllScriptsSort] = useState<"latest" | "top" | null>(null);
+  const openAllScripts = (sort?: "latest" | "top") => {
+    setAllScriptsSort(sort ?? "latest");
+  };
+  const closeAllScripts = () => setAllScriptsSort(null);
+  const handleTabChange = (nextTab: typeof tab) => {
+    if (nextTab !== "scripts") setAllScriptsSort(null);
+    setTab(nextTab);
+  };
 
   const activeFilterCount = homepageModel.filterChips.length;
+  const removeFilter = (chip: ActiveGalleryFilterChip) => {
+    if (chip.type === "q") {
+      filterPanelProps.onSearchChange("");
+    } else if (chip.type === "segment") {
+      setSegment("all");
+    } else if (chip.type === "usage") {
+      setUsage("all");
+    } else if (view === "authors") {
+      onToggleAuthorTag(chip.value);
+    } else if (view === "orgs") {
+      onToggleOrgTag(chip.value);
+    } else {
+      filterPanelProps.onToggleTag(chip.value);
+    }
+  };
   const heroSlides = useMemo(
     () => buildHomepageHeroSlides(bannerSlides ?? undefined, showBrandHero),
     [bannerSlides, showBrandHero]
@@ -93,8 +121,7 @@ export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHe
     <div className="min-h-screen bg-background flex flex-col">
       <GalleryTopBar
         activeTab={tab}
-        onTabChange={setTab}
-        onOpenMobileFilter={openMobileFilter}
+        onTabChange={handleTabChange}
       />
 
       <div className="flex flex-col flex-1">
@@ -133,9 +160,9 @@ export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHe
         <main className="flex-1 min-w-0">
           {/* Segment + controls bar — scripts view only */}
           {view === "scripts" && (
-            <div className="sticky top-24 sm:top-14 z-30 -mx-4 sm:-mx-5 lg:mx-0 mb-4 bg-background/97 backdrop-blur-md px-4 sm:px-5 lg:px-0">
+            <div className="sticky top-14 z-30 -mx-4 sm:-mx-5 lg:mx-0 mb-4 bg-background/97 backdrop-blur-md px-4 sm:px-5 lg:px-0">
               {/* Segment tabs row — with expand button inlined when collapsed */}
-              <div className="flex items-end gap-2">
+              <div className="flex flex-row items-center gap-2 md:flex-col md:items-stretch lg:flex-row lg:items-end">
                 {sidebarCollapsed && (
                   <div className="hidden lg:flex items-center gap-1 shrink-0 pb-0.5">
                     <button
@@ -159,13 +186,45 @@ export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHe
                     )}
                   </div>
                 )}
-                <div className="flex-1 min-w-0">
+                <div className="w-auto min-w-0 shrink-0 md:w-full lg:flex-1">
                   <GallerySegmentBar segment={segment} onSegmentChange={setSegment} />
                 </div>
+                <GallerySearchField
+                  value={filterPanelProps.searchTerm}
+                  onChange={filterPanelProps.onSearchChange}
+                  onOpenFilters={openMobileFilter}
+                  activeFilterCount={activeFilterCount}
+                  mobileActions={
+                    <button
+                      type="button"
+                      onClick={() => setShowList(true)}
+                      className="inline-flex h-10 w-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-transparent text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
+                      aria-label="開啟台本一覽表"
+                      title="一覽表"
+                    >
+                      <List className="h-3.5 w-3.5" aria-hidden />
+                    </button>
+                  }
+                />
               </div>
+
+              <GalleryFilterSummary
+                chips={homepageModel.filterChips}
+                onRemove={removeFilter}
+                onClear={filterPanelProps.onResetFilters}
+              />
 
               {/* ViewMode + list row — desktop only */}
               <div className="relative z-50 hidden md:flex items-center justify-end gap-3 py-2.5 pointer-events-auto">
+                <button
+                  type="button"
+                  onClick={() => allScriptsSort ? closeAllScripts() : openAllScripts()}
+                  className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-[5px] [font-size:var(--public-font-caption)] font-medium border transition-all duration-150 ${allScriptsSort ? "text-foreground border-primary/60 bg-primary/10" : "text-primary border-primary/35 bg-primary/5 hover:border-primary/60 hover:bg-primary/10"}`}
+                  aria-pressed={Boolean(allScriptsSort)}
+                  aria-label={allScriptsSort ? "返回分區瀏覽" : "查看更多公開台本"}
+                >
+                  {allScriptsSort ? "返回分區" : "查看更多"}
+                </button>
                 <button
                   type="button"
                   onClick={() => setShowList(true)}
@@ -179,39 +238,18 @@ export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHe
                 <GalleryViewModeToggle value={viewMode} onChange={setViewMode} compact />
               </div>
 
-              {/* Mobile list button row */}
-              <div className="flex md:hidden items-center justify-end py-1.5 pointer-events-auto">
-                <button
-                  type="button"
-                  onClick={() => setShowList(true)}
-                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[5px] [font-size:var(--public-font-caption)] font-medium text-muted-foreground border border-border/50 bg-transparent hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
-                  aria-label="開啟台本一覽表"
-                >
-                  <List className="w-3.5 h-3.5" />
-                  一覽表
-                </button>
-              </div>
             </div>
           )}
-
-          <p
-            className="mb-4 [font-size:var(--public-font-caption)] text-muted-foreground"
-            style={{ letterSpacing: "0.01em" }}
-          >
-            {filterPanelProps.searchTerm
-              ? `搜尋「${filterPanelProps.searchTerm}」— ${resultCount} 筆結果`
-              : view === "scripts"
-              ? `${resultCount} 部公開台本`
-              : view === "authors"
-              ? `${resultCount} 位作者`
-              : `${resultCount} 個組織`}
-          </p>
 
           {view === "scripts" && (
             <GalleryHoverPreviewProvider resetKey={[viewMode, segment, usage, filterPanelProps.searchTerm, filterPanelProps.selectedTags?.join(",")].join("|")}>
               <GalleryScriptResults
                 model={homepageModel}
                 onResetFilters={filterPanelProps.onResetFilters}
+                onTagClick={filterPanelProps.onToggleTag}
+                externalItems={filteredExternalPublicScripts}
+                onOpenAll={(sort) => openAllScripts(sort)}
+                allScriptsSort={allScriptsSort}
               />
             </GalleryHoverPreviewProvider>
           )}
@@ -250,6 +288,7 @@ export function GalleryClient({ initialScripts, initialBannerSlides, showBrandHe
         <Suspense fallback={null}>
           <GalleryListOverlay
             scripts={homepageModel.filteredScripts}
+            externalItems={filteredExternalPublicScripts}
             onClose={() => setShowList(false)}
           />
         </Suspense>

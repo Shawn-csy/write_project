@@ -60,26 +60,20 @@ describe("GalleryTopBar", () => {
     expect(screen.getAllByRole("button", { name: "組織" }).length).toBeGreaterThan(0);
   });
 
-  it("shows filter trigger only on scripts tab", () => {
-    const onOpenMobileFilter = vi.fn();
+  it("does not render a duplicate top-level filter trigger", () => {
     const { rerender } = render(
       <GalleryTopBar
         activeTab="scripts"
         onTabChange={() => {}}
-        onOpenMobileFilter={onOpenMobileFilter}
       />
     );
 
-    const filterTriggers = screen.getAllByRole("button", { name: "開啟篩選" });
-    expect(filterTriggers.length).toBeGreaterThan(0);
-    fireEvent.click(filterTriggers[0]);
-    expect(onOpenMobileFilter).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: "開啟篩選" })).toBeNull();
 
     rerender(
       <GalleryTopBar
         activeTab="authors"
         onTabChange={() => {}}
-        onOpenMobileFilter={onOpenMobileFilter}
       />
     );
     expect(screen.queryByRole("button", { name: "開啟篩選" })).toBeNull();
@@ -244,21 +238,15 @@ describe("GalleryTopBar", () => {
     expect(document.activeElement).toBe(last);
   });
 
-  it("filter buttons have 44px touch target (h-11 w-11)", () => {
+  it("does not include a top-level filter button", () => {
     render(
       <GalleryTopBar
         activeTab="scripts"
         onTabChange={() => {}}
-        onOpenMobileFilter={() => {}}
       />
     );
 
-    const filterButtons = screen.getAllByRole("button", { name: "開啟篩選" });
-    for (const btn of filterButtons) {
-      const classes = btn.className;
-      expect(classes).toMatch(/\bh-11\b/);
-      expect(classes).toMatch(/\bw-11\b/);
-    }
+    expect(screen.queryByRole("button", { name: "開啟篩選" })).toBeNull();
   });
 
   it("more button has 44px touch target (h-11 w-11)", () => {

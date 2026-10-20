@@ -9,6 +9,7 @@ import { ScriptMetadataDialog } from "../components/dashboard/ScriptMetadataDial
 import { AdminUserManagementCard } from "../components/admin/AdminUserManagementCard";
 import { TermsAcceptanceTable } from "../components/admin/TermsAcceptanceTable";
 import { HomepageBannerSection } from "../components/admin/HomepageBannerSection";
+import { ExternalPublicScriptSection } from "../components/admin/ExternalPublicScriptSection";
 import { AdminTransferModal } from "../components/admin/AdminTransferModal";
 import { useAdminPageState } from "../hooks/useAdminPageState";
 import { getMediaCropStyle } from "../lib/mediaCropRef";
@@ -97,17 +98,31 @@ export default function SuperAdminPage() {
         </Button>
       </div>
 
-      <CollapsibleSection title="超管帳號管理" description="新增或移除平台超管帳號">
-        <AdminUserManagementCard />
-      </CollapsibleSection>
-      <CollapsibleSection title="授權條款簽署紀錄" description="公開頁簽署紀錄查詢">
-        <TermsAcceptanceTable />
-      </CollapsibleSection>
-      <CollapsibleSection title="首頁 Banner 設定" description="管理首頁輪播 Banner 內容">
-        <HomepageBannerSection />
-      </CollapsibleSection>
+      <Tabs defaultValue="settings" className="space-y-6">
+        <TabsList className="grid w-full max-w-xl grid-cols-2 gap-1 h-auto sm:h-10">
+          <TabsTrigger value="catalog">資料管理</TabsTrigger>
+          <TabsTrigger value="settings">平台設定</TabsTrigger>
+        </TabsList>
 
-      <Tabs defaultValue="scripts" className="space-y-4 mt-6">
+        <TabsContent value="settings" className="space-y-4">
+          <div className="grid gap-4 xl:grid-cols-2">
+            <CollapsibleSection title="超管帳號管理" description="新增或移除平台超管帳號">
+              <AdminUserManagementCard />
+            </CollapsibleSection>
+            <CollapsibleSection title="授權條款簽署紀錄" description="公開頁簽署紀錄查詢">
+              <TermsAcceptanceTable />
+            </CollapsibleSection>
+            <CollapsibleSection title="首頁 Banner 設定" description="管理首頁輪播 Banner 內容">
+              <HomepageBannerSection />
+            </CollapsibleSection>
+          </div>
+          <CollapsibleSection title="外部公開台本" description="整合其他網站的公開台本，取得封面、標題、摘要、作者與掛載時間並設定分類" defaultOpen>
+            <ExternalPublicScriptSection />
+          </CollapsibleSection>
+        </TabsContent>
+
+        <TabsContent value="catalog" className="space-y-4">
+        <Tabs defaultValue="scripts" className="space-y-4">
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 max-w-2xl gap-1 h-auto sm:h-9">
           <TabsTrigger value="scripts">
             {s.t("transferAdmin.scriptTab")}
@@ -323,6 +338,8 @@ export default function SuperAdminPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+        </Tabs>
         </TabsContent>
       </Tabs>
 

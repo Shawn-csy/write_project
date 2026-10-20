@@ -42,6 +42,10 @@ export interface PublicScript {
   views?: number;
   likes?: number;
   contentLength?: number;
+  /** Original creation/publication timestamp. Do not replace with lastModified. */
+  createdAt?: number;
+  /** Original date entered with imported script metadata, when available. */
+  draftDate?: string;
   lastModified?: number;
   updatedAt?: number | string;
   seriesId?: string | null;
@@ -71,6 +75,39 @@ export interface PublicScript {
   [key: string]: unknown;
 }
 
+export interface ExternalPublicScript {
+  id: string;
+  sourceUrl: string;
+  canonicalUrl?: string;
+  sourceDomain?: string;
+  sourceName?: string;
+  authorName?: string;
+  authorBio?: string;
+  authorUrl?: string;
+  authorAvatarUrl?: string;
+  organizationName?: string;
+  organizationUrl?: string;
+  organizationAvatarUrl?: string;
+  remoteTitle?: string;
+  remoteSummary?: string;
+  remoteCoverUrl?: string;
+  titleOverride?: string;
+  summaryOverride?: string;
+  coverUrlOverride?: string;
+  title: string;
+  summary?: string;
+  coverUrl?: string;
+  categories?: string[];
+  views?: number;
+  status?: "draft" | "published" | "hidden";
+  sortOrder?: number;
+  lastFetchedAt?: number | null;
+  lastFetchError?: string;
+  createdAt?: number;
+  mountedAt?: number;
+  updatedAt?: number;
+}
+
 export interface PublicOrg {
   id: string;
   name: string;
@@ -80,6 +117,8 @@ export interface PublicOrg {
   bannerUrl?: string;
   tags?: string[];
   members?: PublicPersona[];
+  /** Synthetic route used for organizations imported from external scripts. */
+  externalHref?: string;
 }
 
 export interface PublicPersona {
@@ -94,4 +133,6 @@ export interface PublicPersona {
   tags?: string[];
   organizationIds?: string[];
   organizations?: PublicOrg[];
+  /** Synthetic route used for authors imported from external scripts. */
+  externalHref?: string;
 }

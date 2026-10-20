@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { metadata } from "./page";
+import { SITE_VERSION } from "@/lib/siteVersion";
 
 describe("/about page metadata", () => {
   it("has canonical href", () => {
@@ -17,5 +18,9 @@ describe("/about page metadata", () => {
   it("no /gallery link in metadata urls", () => {
     const canonical = (metadata.alternates as { canonical: string }).canonical;
     expect(canonical).not.toMatch(/\/gallery/);
+  });
+
+  it("exposes the current site version", () => {
+    expect(SITE_VERSION).toBe("0.7.1");
   });
 });

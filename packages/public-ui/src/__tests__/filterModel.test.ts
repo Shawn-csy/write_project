@@ -324,11 +324,11 @@ describe("filterGalleryScripts", () => {
     expect(ids).not.toContain("s4");
   });
 
-  it("sorts results by lastModified descending", () => {
+  it("sorts results by original publication date, not lastModified", () => {
     const scripts = [
-      enrich(makeScript({ id: "s1", lastModified: 100 })),
-      enrich(makeScript({ id: "s2", lastModified: 300 })),
-      enrich(makeScript({ id: "s3", lastModified: 200 })),
+      enrich(makeScript({ id: "s1", createdAt: 100, lastModified: 900 })),
+      enrich(makeScript({ id: "s2", createdAt: 300, lastModified: 100 })),
+      enrich(makeScript({ id: "s3", createdAt: 200, lastModified: 800 })),
     ];
     const result = filterGalleryScripts(scripts, {
       searchNeedle: "",

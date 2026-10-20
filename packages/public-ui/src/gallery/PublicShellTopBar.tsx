@@ -46,6 +46,8 @@ export interface PublicShellTopBarProps {
   mobileLeadingAction?: React.ReactNode;
   /** Mobile row 1 — trailing action slot (right side). Typically "more" button. */
   mobileTrailingAction?: React.ReactNode;
+  /** Compact mobile tab switcher rendered in row 1 instead of a second tab row. */
+  mobileTabSwitcher?: React.ReactNode;
 }
 
 function cn(...classes: (string | undefined | false | null)[]): string {
@@ -127,6 +129,7 @@ export function PublicShellTopBar({
   leadingTrailing,
   mobileLeadingAction,
   mobileTrailingAction,
+  mobileTabSwitcher,
 }: PublicShellTopBarProps): React.JSX.Element {
   const hasTabs = tabs.length > 0;
 
@@ -196,6 +199,12 @@ export function PublicShellTopBar({
           </div>
         )}
 
+        {mobileTabSwitcher && (
+          <div className="sm:hidden flex items-center shrink-0">
+            {mobileTabSwitcher}
+          </div>
+        )}
+
         {/* Mobile trailing action (e.g. more button) */}
         {mobileTrailingAction && (
           <div className={cn("sm:hidden flex items-center shrink-0", !mobileLeadingAction && "ml-auto")}>
@@ -210,7 +219,7 @@ export function PublicShellTopBar({
       </div>
 
       {/* Row 2: mobile inline tabs */}
-      {hasTabs && (
+      {hasTabs && !mobileTabSwitcher && (
         <nav
           className="sm:hidden flex items-center px-2 gap-0.5"
           aria-label="公開頁面導航"

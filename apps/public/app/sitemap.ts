@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { apiFetch } from "@/lib/api";
-import type { PublicScript } from "@/lib/types";
+import type { ExternalPublicScript, PublicScript } from "@/lib/types";
+import { externalEntityHref } from "@/lib/externalEntity";
 import {
   homeUrl,
   readUrl,
@@ -12,6 +13,7 @@ import {
   isPersonaSitemapEligible,
   toSitemapDate,
 } from "@/lib/publicSeoModel";
+import { BASE_URL } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 3600; // regenerate hourly
@@ -24,7 +26,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // a partial sitemap during a transient backend failure can be cached by
   // Next/nginx/crawlers and effectively hide every work page until the next
   // successful crawl.
-  const scripts = await apiFetch<PublicScript[]>("/public-scripts");
+  const [scripts, externalBundle] = await Promise.all([
+    apiFetch<PublicScript[]>("/public-scripts"),
+    apiFetch<{ externalPublicScripts?: ExternalPublicScript[] }>("/public-bundle"),
+  ]);
+  const externalScripts = Array.isArray(externalBundle?.externalPublicScripts)
+    ? externalBundle.externalPublicScripts.filter((item) => item.status === "published")
+    : [];
 
   const now = new Date().toISOString();
 
@@ -42,7 +50,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // ── Script read pages ────────────────────────────────────────────────────────
   const scriptEntries: MetadataRoute.Sitemap = scripts.map((s) => ({
     url: readUrl(s.id),
-    lastModified: toSitemapDate(s.updatedAt, now),
+    lastModified: toSitemapDate(s.updatedAt ?? s.lastModified, now),
     changeFrequency: "weekly" as const,
     priority: 0.9,
   }));
@@ -54,7 +62,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const ownerId = s.owner?.id;
     if (!personaId) continue;
     if (!isPersonaSitemapEligible(personaId, ownerId)) continue;
-    const ts = toSitemapDate(s.updatedAt, now);
+    const ts = toSitemapDate(s.updatedAt ?? s.lastModified, now);
     // Keep the most-recent timestamp for this persona.
     if (!personaMap.has(personaId) || ts > personaMap.get(personaId)!) {
       personaMap.set(personaId, ts);
@@ -72,7 +80,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const s of scripts) {
     const orgId = s.organization?.id;
     if (!orgId) continue;
-    const ts = toSitemapDate(s.updatedAt, now);
+    const ts = toSitemapDate(s.updatedAt ?? s.lastModified, now);
     if (!orgMap.has(orgId) || ts > orgMap.get(orgId)!) {
       orgMap.set(orgId, ts);
     }
@@ -89,13 +97,44 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const s of scripts) {
     const name = s.series?.name;
     if (!name) continue;
-    const ts = toSitemapDate(s.updatedAt, now);
+    const ts = toSitemapDate(s.updatedAt ?? s.lastModified, now);
     if (!seriesMap.has(name) || ts > seriesMap.get(name)!) {
       seriesMap.set(name, ts);
     }
   }
   const seriesEntries: MetadataRoute.Sitemap = Array.from(seriesMap.entries()).map(([name, ts]) => ({
     url: seriesUrl(name),
+    lastModified: ts,
+    changeFrequency: "weekly" as const,
+    priority: 0.6,
+  }));
+
+  // ── External author / organization pages ───────────────────────────────────
+  const externalAuthorMap = new Map<string, { name: string; ts: string }>();
+  const externalOrgMap = new Map<string, { name: string; ts: string }>();
+  for (const item of externalScripts) {
+    const ts = toSitemapDate(item.updatedAt ?? item.createdAt, now);
+    if (item.authorName?.trim()) {
+      const name = item.authorName.trim();
+      const key = name.toLocaleLowerCase();
+      const current = externalAuthorMap.get(key);
+      if (!current || ts > current.ts) externalAuthorMap.set(key, { name, ts });
+    }
+    if (item.organizationName?.trim()) {
+      const name = item.organizationName.trim();
+      const key = name.toLocaleLowerCase();
+      const current = externalOrgMap.get(key);
+      if (!current || ts > current.ts) externalOrgMap.set(key, { name, ts });
+    }
+  }
+  const externalAuthorEntries: MetadataRoute.Sitemap = Array.from(externalAuthorMap.values()).map(({ name, ts }) => ({
+    url: `${BASE_URL}${externalEntityHref("author", name)}`,
+    lastModified: ts,
+    changeFrequency: "weekly" as const,
+    priority: 0.6,
+  }));
+  const externalOrgEntries: MetadataRoute.Sitemap = Array.from(externalOrgMap.values()).map(({ name, ts }) => ({
+    url: `${BASE_URL}${externalEntityHref("org", name)}`,
     lastModified: ts,
     changeFrequency: "weekly" as const,
     priority: 0.6,
@@ -108,6 +147,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...scriptEntries,
     ...authorEntries,
     ...orgEntries,
+    ...externalAuthorEntries,
+    ...externalOrgEntries,
     ...seriesEntries,
   ];
 }

@@ -87,7 +87,7 @@ export function GalleryMobileSheet({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 lg:hidden">
+    <div className="fixed inset-0 z-50">
       {/* Backdrop */}
       <div
         className="absolute inset-0 backdrop-blur-[2px] editorial-scrim"
@@ -100,11 +100,10 @@ export function GalleryMobileSheet({
         role="dialog"
         aria-modal="true"
         aria-label="篩選與搜尋"
-        className="absolute bottom-0 left-0 right-0 flex flex-col max-h-[85vh] overflow-hidden"
+        className="absolute inset-x-0 bottom-0 flex max-h-[90vh] flex-col overflow-hidden rounded-t-2xl sm:left-1/2 sm:right-auto sm:top-1/2 sm:bottom-auto sm:w-[min(92vw,720px)] sm:max-h-[82vh] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl"
         style={{
-          borderRadius: "1rem 1rem 0 0",
           background: "hsl(var(--background))",
-          boxShadow: "0 -4px 32px hsl(var(--foreground) / 0.12), 0 -1px 0 hsl(var(--border) / 0.5)",
+          boxShadow: "0 12px 48px hsl(var(--foreground) / 0.2), 0 0 0 1px hsl(var(--border) / 0.45)",
         }}
       >
         {/* Drag handle */}
@@ -141,7 +140,7 @@ export function GalleryMobileSheet({
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
               <input
                 ref={searchInputRef}
-                type="search"
+                type="text"
                 value={filterProps.searchTerm}
                 onChange={(e) => filterProps.onSearchChange(e.target.value)}
                 placeholder="輸入作品、作者、標籤..."

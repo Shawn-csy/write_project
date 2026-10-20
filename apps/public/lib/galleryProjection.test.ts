@@ -76,6 +76,19 @@ describe("galleryProjection", () => {
     expect(input.persona).toBeNull();
   });
 
+  it("uses the original creation date instead of the last modified date", () => {
+    const input = toGalleryInput({
+      id: "s-date",
+      title: "Dated script",
+      createdAt: Date.parse("2026-01-19T00:00:00Z"),
+      draftDate: "2026-01-19",
+      lastModified: Date.parse("2026-10-19T00:00:00Z"),
+    });
+
+    expect(input.dateLabel).toBe("2026/1/19");
+    expect(input.dateTime).toBe("2026-01-19T00:00:00.000Z");
+  });
+
   it("normalizes author and org list items", () => {
     expect(
       toAuthorLike({ id: "p1", displayName: "Persona", avatar: "/a.jpg", tags: ["聲劇"] })

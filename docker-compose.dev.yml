@@ -18,6 +18,8 @@ services:
       - FIREBASE_CREDENTIALS_JSON=${FIREBASE_CREDENTIALS_JSON}
       - ADMIN_USER_IDS=${ADMIN_USER_IDS}
       - ADMIN_USER_EMAILS=${ADMIN_USER_EMAILS}
+      - MCP_LOCAL_API_KEY=${MCP_LOCAL_API_KEY:-}
+      - MCP_OWNER_ID=${MCP_OWNER_ID:-}
     volumes:
       - ./server/data:/data
       - ./server/secrets:/secrets:ro

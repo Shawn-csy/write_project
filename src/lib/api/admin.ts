@@ -10,6 +10,7 @@ import type {
   ScriptMetadataUpdatePayload,
   ScriptMutationResponse,
   SearchUser,
+  ExternalPublicScript,
 } from "../../types/api";
 import type { MarkerConfig } from "../../types/script";
 
@@ -167,4 +168,86 @@ export const updateHomepageBannerAdmin = async (payload: HomepageBanner = {}): P
       items: normalizedItems,
     }),
   }) as Promise<HomepageBanner>;
+};
+
+export interface ExternalPublicScriptPreview {
+  sourceUrl: string;
+  canonicalUrl?: string;
+  sourceDomain?: string;
+  sourceName?: string;
+  authorName?: string;
+  authorBio?: string;
+  authorUrl?: string;
+  authorAvatarUrl?: string;
+  organizationName?: string;
+  organizationUrl?: string;
+  organizationAvatarUrl?: string;
+  remoteTitle?: string;
+  remoteSummary?: string;
+  remoteCoverUrl?: string;
+  coverPreviewDataUrl?: string;
+}
+
+export interface ExternalPublicScriptPayload {
+  sourceUrl: string;
+  canonicalUrl?: string;
+  sourceDomain?: string;
+  sourceName?: string;
+  authorName?: string;
+  authorBio?: string;
+  authorUrl?: string;
+  authorAvatarUrl?: string;
+  organizationName?: string;
+  organizationUrl?: string;
+  organizationAvatarUrl?: string;
+  remoteTitle?: string;
+  remoteSummary?: string;
+  remoteCoverUrl?: string;
+  titleOverride?: string;
+  summaryOverride?: string;
+  coverUrlOverride?: string;
+  categories?: string[];
+  status?: "draft" | "published" | "hidden";
+  sortOrder?: number;
+  mountedAt?: number;
+  refreshMetadata?: boolean;
+}
+
+const externalPublicScriptPath = "/admin/external-public-scripts";
+
+export const getExternalPublicScriptsAdmin = async (): Promise<ExternalPublicScript[]> => {
+  return fetchApi(externalPublicScriptPath, { cache: "no-store" }) as Promise<ExternalPublicScript[]>;
+};
+
+export const previewExternalPublicScriptAdmin = async (
+  sourceUrl: string,
+  profileUrls?: { authorUrl?: string; organizationUrl?: string },
+): Promise<ExternalPublicScriptPreview> => {
+  return fetchApi(`${externalPublicScriptPath}/preview`, {
+    method: "POST",
+    body: JSON.stringify({ sourceUrl, ...(profileUrls || {}) }),
+  }) as Promise<ExternalPublicScriptPreview>;
+};
+
+export const createExternalPublicScriptAdmin = async (payload: ExternalPublicScriptPayload): Promise<ExternalPublicScript> => {
+  return fetchApi(externalPublicScriptPath, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }) as Promise<ExternalPublicScript>;
+};
+
+export const updateExternalPublicScriptAdmin = async (
+  id: string,
+  payload: Partial<ExternalPublicScriptPayload>,
+): Promise<ExternalPublicScript> => {
+  return fetchApi(`${externalPublicScriptPath}/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  }) as Promise<ExternalPublicScript>;
+};
+
+export const deleteExternalPublicScriptAdmin = async (id: string): Promise<{ success: boolean }> => {
+  return fetchApi(`${externalPublicScriptPath}/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  }) as Promise<{ success: boolean }>;
 };

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { AuthorLike, OrgLike } from "@write/public-ui";
 import type { PublicOrg, PublicPersona } from "@/lib/types";
 import { BuildingIcon, LinkIcon } from "./GalleryIcons";
@@ -20,6 +21,56 @@ function avatarColor(name: string | undefined): string {
   return AVATAR_COLORS[code];
 }
 
+const PEOPLE_TAG_VISIBLE_COUNT = 8;
+const CARD_TAG_VISIBLE_COUNT = 4;
+
+interface CollapsedTagButtonsProps {
+  tags: string[];
+  onTagClick: (tag: string) => void;
+  limit: number;
+  className?: string;
+}
+
+function CollapsedTagButtons({ tags, onTagClick, limit, className = "" }: CollapsedTagButtonsProps) {
+  const [expanded, setExpanded] = useState(false);
+  const isCollapsed = !expanded && tags.length > limit;
+  const visibleTags = isCollapsed ? tags.slice(0, limit) : tags;
+
+  return (
+    <div className={`flex flex-wrap gap-1.5 ${className}`}>
+      {visibleTags.map((tag) => (
+        <button
+          key={tag}
+          type="button"
+          onClick={() => onTagClick(tag)}
+          className="[font-size:var(--public-font-caption)] px-2 py-0.5 rounded-[4px] border border-border/40 bg-muted/40 text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
+        >
+          {tag}
+        </button>
+      ))}
+      {isCollapsed && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="[font-size:var(--public-font-caption)] px-2 py-0.5 rounded-[4px] border border-border/40 bg-transparent text-primary hover:border-primary/40 hover:bg-primary/5 transition-all duration-150"
+          aria-label={`展開更多標籤，尚有 ${tags.length - limit} 個`}
+        >
+          更多（{tags.length - limit}）
+        </button>
+      )}
+      {!isCollapsed && expanded && tags.length > limit && (
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="[font-size:var(--public-font-caption)] px-2 py-0.5 rounded-[4px] border border-border/40 bg-transparent text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
+        >
+          收合
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ── Tag filter chips ──────────────────────────────────────────────────────────
 
 interface TagFilterChipsProps {
@@ -30,10 +81,24 @@ interface TagFilterChipsProps {
 }
 
 function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: TagFilterChipsProps) {
+  const [expanded, setExpanded] = useState(false);
   if (allTags.length === 0) return null;
+  const isCollapsed = !expanded && allTags.length > PEOPLE_TAG_VISIBLE_COUNT;
+  const visibleTags = isCollapsed
+    ? (() => {
+        const firstTags = allTags.slice(0, PEOPLE_TAG_VISIBLE_COUNT);
+        const selectedHidden = allTags
+          .slice(PEOPLE_TAG_VISIBLE_COUNT)
+          .filter((tag) => selectedTags.includes(tag));
+        const firstTagSet = new Set(firstTags);
+        return [...firstTags, ...selectedHidden.filter((tag) => !firstTagSet.has(tag))];
+      })()
+    : allTags;
+  const hiddenCount = allTags.length - visibleTags.length;
+
   return (
     <div className="flex flex-wrap gap-1.5 mb-4">
-      {allTags.map((tag) => {
+      {visibleTags.map((tag) => {
         const active = selectedTags.includes(tag);
         return (
           <button
@@ -50,6 +115,24 @@ function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: 
           </button>
         );
       })}
+      {isCollapsed && hiddenCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="h-6 px-2.5 [font-size:var(--public-font-caption)] font-medium rounded-[5px] border border-primary/35 bg-primary/5 text-primary hover:border-primary/60 hover:bg-primary/10 transition-all duration-150"
+        >
+          更多標籤（{hiddenCount}）
+        </button>
+      )}
+      {!isCollapsed && expanded && allTags.length > PEOPLE_TAG_VISIBLE_COUNT && (
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="h-6 px-2.5 [font-size:var(--public-font-caption)] rounded-[5px] border border-border/50 bg-transparent text-muted-foreground hover:text-foreground hover:border-border transition-all duration-150"
+        >
+          收合標籤
+        </button>
+      )}
       {selectedTags.length > 0 && (
         <button
           type="button"
@@ -66,12 +149,14 @@ function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: 
 // ── Author card ───────────────────────────────────────────────────────────────
 
 function AuthorCard({ author, onTagClick }: { author: PublicPersona; onTagClick: (tag: string) => void }) {
+  const href = author.externalHref || `/author/${author.id}`;
+  const isExternal = Boolean(author.externalHref);
   return (
     <div className="rounded-xl border border-border/50 bg-card overflow-hidden hover:-translate-y-[3px] hover:shadow-[0_4px_16px_hsl(var(--foreground)/0.07),0_1px_3px_hsl(var(--foreground)/0.05)] transition-all duration-200">
-      <a href={`/author/${author.id}`} className="flex items-center gap-3 p-4">
+      <a href={href} className="flex items-center gap-3 p-4">
         <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0">
           {author.avatar ? (
-            <PublicImage src={author.avatar} alt={author.displayName} preset="avatar" sizes="48px" />
+            isExternal ? <img src={author.avatar} alt={author.displayName} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" /> : <PublicImage src={author.avatar} alt={author.displayName} preset="avatar" sizes="48px" />
           ) : (
             <div className={`w-full h-full flex items-center justify-center text-base font-bold ${avatarColor(author.displayName)}`}>
               {author.displayName?.[0]}
@@ -92,18 +177,12 @@ function AuthorCard({ author, onTagClick }: { author: PublicPersona; onTagClick:
         </div>
       </a>
       {author.tags && author.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 px-4 pb-3">
-          {author.tags.map((tag) => (
-            <button
-              key={tag}
-              type="button"
-              onClick={() => onTagClick(tag)}
-              className="[font-size:var(--public-font-caption)] px-2 py-0.5 rounded-[4px] border border-border/40 bg-muted/40 text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
-            >
-              {tag}
-            </button>
-          ))}
-        </div>
+        <CollapsedTagButtons
+          tags={author.tags}
+          onTagClick={onTagClick}
+          limit={CARD_TAG_VISIBLE_COUNT}
+          className="px-4 pb-3"
+        />
       )}
     </div>
   );
@@ -113,13 +192,15 @@ function AuthorCard({ author, onTagClick }: { author: PublicPersona; onTagClick:
 
 function OrgCard({ org, onTagClick }: { org: PublicOrg; onTagClick: (tag: string) => void }) {
   const memberCount = org.members?.length;
+  const href = org.externalHref || `/org/${org.id}`;
+  const isExternal = Boolean(org.externalHref);
   return (
     <div className="rounded-xl border border-border/50 bg-card overflow-hidden hover:-translate-y-[3px] hover:shadow-[0_4px_16px_hsl(var(--foreground)/0.07),0_1px_3px_hsl(var(--foreground)/0.05)] transition-all duration-200">
       {/* Main org link — no nested anchors inside */}
-      <a href={`/org/${org.id}`} className="flex items-center gap-3 p-4">
+      <a href={href} className="flex items-center gap-3 p-4">
         <div className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0">
           {org.logoUrl ? (
-            <PublicImage src={org.logoUrl} alt={org.name} preset="logo" sizes="48px" />
+            isExternal ? <img src={org.logoUrl} alt={org.name} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" /> : <PublicImage src={org.logoUrl} alt={org.name} preset="logo" sizes="48px" />
           ) : (
             <div className={`w-full h-full flex items-center justify-center text-base font-bold rounded-lg ${avatarColor(org.name)}`}>
               {org.name?.[0]}
@@ -152,18 +233,12 @@ function OrgCard({ org, onTagClick }: { org: PublicOrg; onTagClick: (tag: string
       )}
       {/* Tag chips — sibling buttons, not nested inside the org anchor */}
       {org.tags && org.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 px-4 pb-3">
-          {org.tags.map((tag) => (
-            <button
-              key={tag}
-              type="button"
-              onClick={() => onTagClick(tag)}
-              className="[font-size:var(--public-font-caption)] px-2 py-0.5 rounded-[4px] border border-border/40 bg-muted/40 text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
-            >
-              {tag}
-            </button>
-          ))}
-        </div>
+        <CollapsedTagButtons
+          tags={org.tags}
+          onTagClick={onTagClick}
+          limit={CARD_TAG_VISIBLE_COUNT}
+          className="px-4 pb-3"
+        />
       )}
     </div>
   );

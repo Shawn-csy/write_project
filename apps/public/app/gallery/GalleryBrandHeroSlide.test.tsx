@@ -38,6 +38,8 @@ describe("GalleryBrandHeroSlide", () => {
     expect(screen.getByText("公開台本平台")).toBeTruthy();
     expect(screen.getByText("配音、閱讀、創作")).toBeTruthy();
     expect(screen.getByText("公開台本")).toBeTruthy();
+    expect(screen.getByText("如果需要上架或下架作品請直接與我們聯繫。")).toBeTruthy();
+    expect(screen.queryByText("自由創作・開放分享")).toBeNull();
   });
 
   it("decorative script desk not mounted on mobile (matchMedia returns false)", () => {

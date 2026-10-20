@@ -249,7 +249,40 @@ export interface PublicBundleResponse {
   themes?: Array<Record<string, unknown>>;
   termsConfig?: PublicTermsConfig | null;
   banner?: HomepageBanner | null;
+  externalPublicScripts?: ExternalPublicScript[];
   [key: string]: unknown;
+}
+
+export interface ExternalPublicScript {
+  id: string;
+  sourceUrl: string;
+  canonicalUrl?: string;
+  sourceDomain?: string;
+  sourceName?: string;
+  authorName?: string;
+  authorBio?: string;
+  authorUrl?: string;
+  authorAvatarUrl?: string;
+  organizationName?: string;
+  organizationUrl?: string;
+  organizationAvatarUrl?: string;
+  remoteTitle?: string;
+  remoteSummary?: string;
+  remoteCoverUrl?: string;
+  titleOverride?: string;
+  summaryOverride?: string;
+  coverUrlOverride?: string;
+  title: string;
+  summary?: string;
+  coverUrl?: string;
+  categories?: string[];
+  status?: "draft" | "published" | "hidden";
+  sortOrder?: number;
+  lastFetchedAt?: number | null;
+  lastFetchError?: string;
+  createdAt?: number;
+  mountedAt?: number;
+  updatedAt?: number;
 }
 
 export interface TagApi {

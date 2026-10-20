@@ -61,6 +61,18 @@ describe("ScriptGalleryCard standard — href mode", () => {
     expect(titleLink.getAttribute("href")).toBe("/read/s1");
   });
 
+  it("applies a new-tab target and safe rel to script links", () => {
+    const { container } = render(
+      <ScriptGalleryCard script={SCRIPT} scriptHref="https://example.com/script" scriptTarget="_blank" />
+    );
+    const links = Array.from(container.querySelectorAll("a"));
+    expect(links.length).toBeGreaterThan(0);
+    links.forEach((link) => {
+      expect(link.getAttribute("target")).toBe("_blank");
+      expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+    });
+  });
+
   it("cover link is aria-hidden (decorative)", () => {
     const { container } = render(<ScriptGalleryCard script={SCRIPT} scriptHref="/read/s1" />);
     const coverLink = container.querySelector("a[aria-hidden='true']");
@@ -182,16 +194,9 @@ describe("ScriptGalleryCard standard — callback mode", () => {
     expect(onTagClick).toHaveBeenCalledWith("Drama");
   });
 
-  it("like button calls onLike with current id and liked state", async () => {
-    const onLike = vi.fn().mockResolvedValue({ liked: true, likes: 8 });
-    render(<ScriptGalleryCard script={SCRIPT} onLike={onLike} />);
-    await userEvent.click(screen.getByRole("button", { name: /喜歡/ }));
-    expect(onLike).toHaveBeenCalledWith("s1", false);
-  });
-
-  it("like button is disabled when no onLike", () => {
-    render(<ScriptGalleryCard script={SCRIPT} />);
-    expect(screen.getByRole("button", { name: /喜歡/ })).toBeDisabled();
+  it("does not render a like control", () => {
+    render(<ScriptGalleryCard script={SCRIPT} onLike={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: /喜歡/ })).toBeNull();
   });
 });
 

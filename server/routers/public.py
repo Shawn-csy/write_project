@@ -469,6 +469,34 @@ def public_script_stats(script_id: str, db: Session = Depends(get_db)):
     }
 
 
+@router.post("/public-external-scripts/{item_id}/view")
+@limiter.limit("60/minute")
+def public_external_script_view(request: Request, item_id: str, db: Session = Depends(get_db)):
+    """Count a click on an external source link, once the link is activated."""
+    item = (
+        db.query(models.ExternalPublicScript)
+        .filter(
+            models.ExternalPublicScript.id == item_id,
+            models.ExternalPublicScript.status == "published",
+        )
+        .with_for_update()
+        .first()
+    )
+    if not item:
+        raise HTTPException(status_code=404, detail="External public script not found")
+    item.views = int(item.views or 0) + 1
+    db.commit()
+
+    # Keep the short-lived homepage bundle in sync for the next page visit.
+    try:
+        import routers.public_bundle as public_bundle_router
+
+        public_bundle_router._bundle_cache = None
+    except Exception:
+        pass
+    return {"views": item.views}
+
+
 @router.get("/default-marker-configs", response_model=List[dict])
 def read_default_marker_configs(db: Session = Depends(get_db)):
     return crud.get_system_default_configs(db)

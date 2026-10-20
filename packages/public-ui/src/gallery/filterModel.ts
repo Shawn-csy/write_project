@@ -179,6 +179,7 @@ export interface GalleryScriptInput {
   outline?: string | null;
   persona?: Partial<PersonaLike> | null;
   author?: AuthorLike | string | null;
+  organization?: { name?: string; logoUrl?: string } | null;
   series?: { name?: string; coverUrl?: string } | null;
   seriesName?: string;
   seriesOrder?: number | null;
@@ -194,11 +195,25 @@ export interface GalleryScriptInput {
   coverUrl?: string;
   tags?: Array<string | TagLike>;
   views?: number;
+  /** Original creation/publication timestamp. */
+  createdAt?: number;
+  /** Original date entered with imported script metadata. */
+  draftDate?: string;
   lastModified?: number;
   updatedAt?: number | string;
   coverDesign?: CoverDesign | null;
   coverCrop?: MediaCropLike | null;
   [key: string]: unknown;
+}
+
+/** Return the stable publication date used by public gallery cards and sorting. */
+export function getGalleryPublishedTimestamp(script: Pick<GalleryScriptInput, "createdAt" | "draftDate" | "lastModified" | "updatedAt">): number {
+  return (
+    toTimestamp(script.createdAt) ||
+    toTimestamp(script.draftDate) ||
+    toTimestamp(script.lastModified) ||
+    toTimestamp(script.updatedAt)
+  );
 }
 
 export interface EnrichedGalleryScript extends GalleryScriptInput {
@@ -348,10 +363,7 @@ export function filterGalleryScripts(
           : true;
       return matchesSearch && matchesTag && matchesSegment && matchesUsage;
     })
-    .sort(
-      (a, b) =>
-        (b.lastModified ?? toTimestamp(b.updatedAt)) - (a.lastModified ?? toTimestamp(a.updatedAt))
-    );
+    .sort((a, b) => getGalleryPublishedTimestamp(b) - getGalleryPublishedTimestamp(a));
 }
 
 // ─── buildFeaturedSeries ──────────────────────────────────────────────────────
@@ -379,7 +391,7 @@ export function buildFeaturedSeries(
         const aOrder = (a.seriesOrder ?? a._seriesOrder) ?? Number.MAX_SAFE_INTEGER;
         const bOrder = (b.seriesOrder ?? b._seriesOrder) ?? Number.MAX_SAFE_INTEGER;
         if (aOrder !== bOrder) return (aOrder as number) - (bOrder as number);
-        return (b.lastModified ?? toTimestamp(b.updatedAt)) - (a.lastModified ?? toTimestamp(a.updatedAt));
+        return getGalleryPublishedTimestamp(b) - getGalleryPublishedTimestamp(a);
       });
       const coverUrl =
         sorted.find((item) =>

@@ -16,7 +16,7 @@ interface Props {
  * Renders from a stable ReadWorkHeaderModel, not from raw PublicScript props.
  * Delegates visual composition to PublicScriptInfoOverlay (transitional).
  */
-export function ReadWorkHeader({ model, actions }: Props) {
+export function ReadWorkHeader({ model }: Props) {
   return (
     <>
       <PublicScriptInfoOverlay
@@ -45,9 +45,6 @@ export function ReadWorkHeader({ model, actions }: Props) {
         tags={model.tags}
         tagHref={(tag) => `/tag/${encodeURIComponent(tag)}`}
         views={model.views}
-        likes={model.likes}
-        isLiked={model.isLiked}
-        onLike={actions.onLike}
         durationMinutes={model.durationMinutes}
         dialogueChars={model.dialogueChars}
         license={model.license}

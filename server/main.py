@@ -13,7 +13,7 @@ import models
 from dependencies import get_db
 from rate_limit import RATE_LIMIT_ENABLED, limiter
 from routers import analysis, scripts, users, orgs, personas, tags, themes, admin, public, seo, media, series, studio, health
-from routers import public_bundle, export
+from routers import public_bundle, export, external_public_scripts
 from services.route_contract import (
     is_legacy_public_html_path,
     is_workspace_spa_path,
@@ -167,6 +167,7 @@ def create_app() -> FastAPI:
     app.include_router(tags.router)
     app.include_router(themes.router)
     app.include_router(admin.router)
+    app.include_router(external_public_scripts.router)
     app.include_router(public.router)
     app.include_router(public_bundle.router)
     app.include_router(seo.router)

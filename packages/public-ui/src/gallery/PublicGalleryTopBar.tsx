@@ -6,7 +6,7 @@
  *   - Mobile "more" action via mobileTrailingAction slot
  */
 import React from "react";
-import { Search } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import type { GalleryView } from "./galleryUrlState";
 import { PublicShellTopBar } from "./PublicShellTopBar";
 import type { PublicShellTab } from "./PublicShellTopBar";
@@ -71,7 +71,7 @@ export function PublicGalleryTopBar({
       aria-label={mobileFilterLabel}
       className="flex items-center justify-center h-11 w-11 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-all duration-150"
     >
-      <Search className="h-[15px] w-[15px]" />
+      <SlidersHorizontal className="h-[15px] w-[15px]" />
     </button>
   ) : null;
 
@@ -83,8 +83,19 @@ export function PublicGalleryTopBar({
       aria-label={mobileFilterLabel}
       className="hidden sm:flex lg:hidden items-center justify-center h-11 w-11 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all duration-150"
     >
-      <Search className="h-[15px] w-[15px]" />
+      <SlidersHorizontal className="h-[15px] w-[15px]" />
     </button>
+  ) : null;
+
+  const mobileTabSwitcher = tabs.length > 0 ? (
+    <select
+      value={activeTab}
+      onChange={(event) => onTabChange(event.target.value as GalleryView)}
+      aria-label="公開頁面導航"
+      className="h-9 min-w-[4.5rem] max-w-[5.5rem] rounded-md border border-border/50 bg-background/55 px-2 text-[0.8125rem] font-medium text-foreground focus:outline-none focus:border-primary/50"
+    >
+      {tabs.map((tab) => <option key={tab.key} value={tab.key}>{tab.label}</option>)}
+    </select>
   ) : null;
 
   return (
@@ -95,6 +106,7 @@ export function PublicGalleryTopBar({
       brandSubtitle={brandSubtitle}
       mobileLeadingAction={filterButton}
       mobileTrailingAction={mobileTrailingAction}
+      mobileTabSwitcher={mobileTabSwitcher}
       trailing={
         <>
           {tabletFilterButton}

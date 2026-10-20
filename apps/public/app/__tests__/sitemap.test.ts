@@ -53,6 +53,26 @@ describe("sitemap", () => {
     expect(urls).toContain(`${BASE}/read/script-1`);
   });
 
+  it("falls back to lastModified when updatedAt is missing", async () => {
+    vi.mocked(apiFetch).mockResolvedValue([
+      makeScript({
+        updatedAt: undefined,
+        lastModified: Date.parse("2026-02-03T04:05:06Z"),
+      }),
+    ]);
+
+    const entries = await getSitemap();
+    const scriptEntry = entries.find((entry) => entry.url === `${BASE}/read/script-1`);
+    const authorEntry = entries.find((entry) => entry.url === `${BASE}/author/persona-1`);
+    const orgEntry = entries.find((entry) => entry.url === `${BASE}/org/org-1`);
+    const seriesEntry = entries.find((entry) => entry.url === `${BASE}/series/${encodeURIComponent("Epic Series")}`);
+
+    expect(scriptEntry?.lastModified).toBe("2026-02-03T04:05:06.000Z");
+    expect(authorEntry?.lastModified).toBe("2026-02-03T04:05:06.000Z");
+    expect(orgEntry?.lastModified).toBe("2026-02-03T04:05:06.000Z");
+    expect(seriesEntry?.lastModified).toBe("2026-02-03T04:05:06.000Z");
+  });
+
   it("includes canonical persona author pages", async () => {
     const urls = (await getSitemap()).map((e) => e.url);
     expect(urls).toContain(`${BASE}/author/persona-1`);

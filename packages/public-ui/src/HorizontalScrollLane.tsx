@@ -63,7 +63,7 @@ function HorizontalScrollLaneInner({ children, title, actionLabel, onAction }: H
             <button
               type="button"
               onClick={onAction}
-              className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground bg-transparent border-none cursor-pointer"
+              className="inline-flex h-8 shrink-0 items-center rounded-md border border-border/60 bg-background/40 px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               {actionLabel}
             </button>

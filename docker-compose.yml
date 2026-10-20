@@ -48,6 +48,8 @@ services:
       - FIREBASE_CREDENTIALS_JSON=${FIREBASE_CREDENTIALS_JSON}
       - ADMIN_USER_IDS=${ADMIN_USER_IDS}
       - ADMIN_USER_EMAILS=${ADMIN_USER_EMAILS}
+      - MCP_LOCAL_API_KEY=${MCP_LOCAL_API_KEY:-}
+      - MCP_OWNER_ID=${MCP_OWNER_ID:-}
       - VITE_API_URL=${VITE_API_URL}
     volumes:
       - ./server/data:/data

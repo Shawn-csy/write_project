@@ -23,12 +23,18 @@ export interface AuthorInfo {
   avatarCrop?: CropRef | null;
 }
 
+export interface OrganizationInfo {
+  name?: string;
+  logoUrl?: string;
+}
+
 export interface ScriptGalleryItem {
   id: string;
   title?: string;
   synopsis?: string | null;
   outline?: string | null;
   author?: string | AuthorInfo | null;
+  organization?: OrganizationInfo | null;
   coverUrl?: string | null;
   coverDesign?: CoverDesign | null;
   coverCrop?: CropRef | null;
@@ -45,11 +51,15 @@ export interface ScriptGalleryItem {
   _derivedLicenseTags?: Array<string | TagLike>;
   _cardSummary?: string;
   _hoverOutline?: string;
+  dateLabel?: string;
+  dateTime?: string;
 }
 
 export interface PublicLinkConfig {
   scriptHref?: string;
+  scriptTarget?: React.HTMLAttributeAnchorTarget;
   authorHref?: string;
+  organizationHref?: string;
   seriesHref?: string;
   tagHref?: (tag: string) => string;
   onNavigate?: (id: string) => void;
@@ -62,7 +72,7 @@ export interface PublicLinkConfig {
 
 export interface ScriptGalleryCardProps extends PublicLinkConfig {
   script: ScriptGalleryItem;
-  variant?: "standard" | "compact";
+  variant?: "standard" | "compact" | "list";
   showAgeGate?: boolean;
   coverImageRenderer?: CoverImageRenderer;
 }
@@ -111,7 +121,9 @@ function ScriptGalleryCardInner({
   onLike,
   onView,
   scriptHref: href,
+  scriptTarget,
   authorHref,
+  organizationHref,
   seriesHref,
   tagHref,
   showAgeGate = false,
@@ -208,6 +220,8 @@ function ScriptGalleryCardInner({
       author={authorDisplay}
       authorHref={resolvedAuthorHref}
       onAuthorClick={resolvedAuthorClick}
+      organization={script.organization ? { displayName: script.organization.name, avatarUrl: script.organization.logoUrl } : null}
+      organizationHref={organizationHref}
       seriesName={seriesName}
       seriesOrderText={seriesOrderText}
       seriesHref={seriesHref}
@@ -226,6 +240,9 @@ function ScriptGalleryCardInner({
       href={href}
       onArticleClick={handleArticleClick}
       onViewTrack={onView ? () => onView(id) : undefined}
+      scriptTarget={scriptTarget}
+      dateLabel={script.dateLabel}
+      dateTime={script.dateTime}
       articleProps={hoverPreviewProps}
       coverContainerProps={variant === "standard" ? { onPointerMove: handleCoverPointerMove as unknown as React.PointerEventHandler<HTMLDivElement>, onPointerLeave: handleCoverPointerLeave as unknown as React.PointerEventHandler<HTMLDivElement> } : undefined}
     />
