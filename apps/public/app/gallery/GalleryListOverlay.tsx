@@ -154,7 +154,7 @@ export function GalleryListOverlay({ scripts, externalItems = [], onClose }: Gal
                 const title = external ? (external.title || external.remoteTitle || "（無標題）") : (local?.title || "（無標題）");
                 const author = external ? (external.authorName || "—") : authorName(local?.author ?? null);
                 const authorHref = external
-                  ? (external.authorName ? externalEntityHref("author", external.authorName) : undefined)
+                  ? (external.authorName ? externalEntityHref("author", external.authorName, external.authorUrl) : undefined)
                   : (local && typeof local.author === "object" && local.author?.id ? `/author/${local.author.id}` : undefined);
                 const licenseSet = new Set(local?._derivedLicenseTags ?? []);
                 const contentTags: string[] = external
@@ -177,7 +177,7 @@ export function GalleryListOverlay({ scripts, externalItems = [], onClose }: Gal
                       <a
                         href={external ? external.sourceUrl : `/read/${local?.id || ""}`}
                         target={isExternal ? "_blank" : undefined}
-                        rel={isExternal ? "noopener noreferrer" : undefined}
+                        rel={isExternal ? "nofollow noopener noreferrer" : undefined}
                         className="font-medium text-foreground hover:text-primary transition-colors no-underline line-clamp-1 block"
                       >
                         <span className="inline-flex max-w-full items-center gap-1">
@@ -189,6 +189,11 @@ export function GalleryListOverlay({ scripts, externalItems = [], onClose }: Gal
                         <span className="text-[11px] text-muted-foreground/60 line-clamp-1">
                           {local.seriesName}
                         </span>
+                      )}
+                      {external?.seriesName && (
+                        <a href={`/series/${encodeURIComponent(external.seriesName)}`} className="text-[11px] text-muted-foreground/60 line-clamp-1 hover:text-primary hover:underline">
+                          {external.seriesName}
+                        </a>
                       )}
                       {external && <span className="text-[11px] text-muted-foreground/60 line-clamp-1">外部連結{external.sourceDomain ? ` · ${external.sourceDomain}` : ""}</span>}
                       {/* Tags shown inline on mobile (md: hidden via tag column) */}

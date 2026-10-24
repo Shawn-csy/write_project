@@ -1,4 +1,129 @@
+import { stripMediaExtension } from "./publicMediaUrl";
+import { fetchRemoteImage } from "./remoteImageFetch";
+
 const BACKEND_ORIGIN = (process.env.BACKEND_API_URL || "http://write_project-backend:1091").replace(/\/+$/, "");
+
+// Files under /media/ carry a content hash in their name, so a copy is valid
+// for a long time at the edge. Remote (external) covers can change at the
+// source, so they get a much shorter edge lifetime.
+const LOCAL_MEDIA_CACHE_CONTROL = "public, max-age=86400, s-maxage=2592000, stale-while-revalidate=86400";
+const REMOTE_MEDIA_CACHE_CONTROL = "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400";
+// Used when a requested resize could not be produced (overload, decoder error).
+// The full-size original must not be pinned at the edge under a thumbnail URL.
+const DEGRADED_CACHE_CONTROL = "public, max-age=60, s-maxage=60";
+
+const MEDIA_FETCH_REVALIDATE_SECONDS = 300;
+const UPSTREAM_TIMEOUT_MS = 10_000;
+// Resource ceilings — this route is public and unauthenticated.
+const MAX_RESIZE_SOURCE_BYTES = 12 * 1024 * 1024;
+const MAX_PROXIED_BYTES = 25 * 1024 * 1024;
+const MAX_RESIZE_INPUT_PIXELS = 50_000_000;
+const MAX_CONCURRENT_RESIZES = 3;
+const RESIZABLE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+let activeResizes = 0;
+
+// Image bytes only: nosniff stops content sniffing, and the CSP/sandbox keeps a
+// same-origin SVG (or anything mislabelled) from running script if opened directly.
+const SAFETY_HEADERS: Record<string, string> = {
+  "x-content-type-options": "nosniff",
+  "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+};
+
+function plain(message: string, status: number): Response {
+  return new Response(message, { status, headers: { "cache-control": "no-store", ...SAFETY_HEADERS } });
+}
+
+function baseHeaders(cacheControl: string): Headers {
+  const headers = new Headers(SAFETY_HEADERS);
+  headers.set("cache-control", cacheControl);
+  return headers;
+}
+
+/** Caps a body whose size the upstream did not declare. */
+function limitBody(body: ReadableStream<Uint8Array>, maxBytes: number): ReadableStream<Uint8Array> {
+  let seen = 0;
+  return body.pipeThrough(
+    new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, controller) {
+        seen += chunk.byteLength;
+        if (seen > maxBytes) controller.error(new Error("Media too large"));
+        else controller.enqueue(chunk);
+      },
+    }),
+  );
+}
+
+/**
+ * Streams the upstream image through, or — when a width is requested and the
+ * source is a still JPEG/PNG/WebP wider than that — returns a downscaled WebP.
+ * Anything that stops a resize (size, overload, decoder error) falls back to
+ * the original bytes with a short cache lifetime.
+ */
+async function imageResponse(
+  upstream: Response,
+  contentType: string | null,
+  cacheControl: string,
+  width: number | null,
+): Promise<Response> {
+  const type = (contentType || "").split(";")[0].trim().toLowerCase();
+  const declaredLength = Number(upstream.headers.get("content-length") || 0);
+  if (declaredLength > MAX_PROXIED_BYTES) {
+    await upstream.body?.cancel().catch(() => undefined);
+    return plain("Media too large", 413);
+  }
+
+  const passthrough = (control: string) => {
+    const headers = baseHeaders(control);
+    if (contentType) headers.set("content-type", contentType);
+    if (declaredLength > 0) headers.set("content-length", String(declaredLength));
+    const body = declaredLength > 0 || !upstream.body ? upstream.body : limitBody(upstream.body, MAX_PROXIED_BYTES);
+    return new Response(body, { status: 200, headers });
+  };
+
+  // Only resize when the size is known up front, so we never buffer an
+  // unbounded body in memory.
+  if (!width || !RESIZABLE_TYPES.has(type) || declaredLength <= 0 || declaredLength > MAX_RESIZE_SOURCE_BYTES) {
+    return passthrough(cacheControl);
+  }
+  if (activeResizes >= MAX_CONCURRENT_RESIZES) return passthrough(DEGRADED_CACHE_CONTROL);
+
+  activeResizes += 1;
+  try {
+    const source = Buffer.from(await upstream.arrayBuffer());
+    const original = (control: string) => {
+      const headers = baseHeaders(control);
+      headers.set("content-type", contentType || type);
+      headers.set("content-length", String(source.byteLength));
+      return new Response(new Uint8Array(source), { status: 200, headers });
+    };
+    if (source.byteLength > MAX_RESIZE_SOURCE_BYTES) return original(DEGRADED_CACHE_CONTROL);
+
+    try {
+      const sharp = (await import("sharp")).default;
+      const options = { limitInputPixels: MAX_RESIZE_INPUT_PIXELS, failOn: "error" as const };
+      const metadata = await sharp(source, options).metadata();
+      // Nothing to gain: already small enough, or animated (resizing would flatten it).
+      if ((metadata.pages ?? 1) > 1 || !metadata.width || metadata.width <= width) return original(cacheControl);
+      const resized = await sharp(source, options)
+        .rotate()
+        .resize({ width, withoutEnlargement: true })
+        .webp({ quality: 78 })
+        .toBuffer();
+      if (resized.byteLength >= source.byteLength) return original(cacheControl);
+      const headers = baseHeaders(cacheControl);
+      headers.set("content-type", "image/webp");
+      headers.set("content-length", String(resized.byteLength));
+      return new Response(new Uint8Array(resized), { status: 200, headers });
+    } catch {
+      return original(DEGRADED_CACHE_CONTROL);
+    }
+  } catch {
+    return plain("Media unavailable", 502);
+  } finally {
+    activeResizes -= 1;
+  }
+}
 
 function decodeMediaToken(token: string): string {
   const normalized = token.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(token.length / 4) * 4, "=");
@@ -7,21 +132,44 @@ function decodeMediaToken(token: string): string {
   return new TextDecoder().decode(bytes);
 }
 
-async function servePublicMediaPath(rawUrl: string): Promise<Response> {
-  if (!rawUrl.startsWith("/media/") || rawUrl.includes("..")) {
-    return new Response("Invalid media URL", { status: 400 });
+/**
+ * Resolves a decoded `/media/...` path against the backend and refuses
+ * anything that escapes the media directory. URL parsing normalizes encoded
+ * dot segments (`%2e%2e`), so the check must run on the parsed pathname, not
+ * on the raw string.
+ */
+export function resolveBackendMediaUrl(rawUrl: string): URL | null {
+  if (!rawUrl.startsWith("/media/") || rawUrl.includes("..") || rawUrl.includes("\\") || /[\x00-\x1f]/.test(rawUrl)) return null;
+  let target: URL;
+  try {
+    target = new URL(rawUrl, `${BACKEND_ORIGIN}/`);
+  } catch {
+    return null;
   }
+  if (target.origin !== new URL(BACKEND_ORIGIN).origin) return null;
+  if (!target.pathname.startsWith("/media/") || target.pathname.includes("//")) return null;
+  let decodedPath: string;
+  try {
+    decodedPath = decodeURIComponent(target.pathname);
+  } catch {
+    return null;
+  }
+  if (/[\x00-\x1f\\]/.test(decodedPath)) return null;
+  if (decodedPath.split("/").some((segment) => segment === "..")) return null;
+  return target;
+}
+
+async function servePublicMediaPath(rawUrl: string, width: number | null): Promise<Response> {
+  const target = resolveBackendMediaUrl(rawUrl);
+  if (!target) return plain("Invalid media URL", 400);
 
   try {
-    const target = new URL(rawUrl, `${BACKEND_ORIGIN}/`);
-    const upstream = await fetch(target, { cache: "no-store" });
+    const upstream = await fetch(target, { cache: "no-store", signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS) });
     if (!upstream.ok || !upstream.body) {
-      return new Response("Media not found", { status: upstream.status || 404 });
+      return plain("Media not found", upstream.status || 404);
     }
 
-    const headers = new Headers();
     const contentType = upstream.headers.get("content-type");
-    const contentLength = upstream.headers.get("content-length");
     const inferredType = /\.webp(?:$|\?)/i.test(target.pathname)
       ? "image/webp"
       : /\.jpe?g(?:$|\?)/i.test(target.pathname)
@@ -29,78 +177,66 @@ async function servePublicMediaPath(rawUrl: string): Promise<Response> {
         : /\.png(?:$|\?)/i.test(target.pathname)
           ? "image/png"
           : contentType;
-    if (inferredType) headers.set("content-type", inferredType);
-    if (contentLength) headers.set("content-length", contentLength);
-    headers.set("cache-control", "public, max-age=3600, stale-while-revalidate=86400");
-    return new Response(upstream.body, { status: 200, headers });
+    if (!inferredType || !inferredType.toLowerCase().startsWith("image/")) {
+      await upstream.body.cancel().catch(() => undefined);
+      return plain("Media is not an image", 415);
+    }
+    return imageResponse(upstream, inferredType, LOCAL_MEDIA_CACHE_CONTROL, width);
   } catch {
-    return new Response("Media unavailable", { status: 502 });
+    return plain("Media unavailable", 502);
   }
 }
 
-function isDisallowedRemoteHost(hostname: string): boolean {
-  const host = hostname.toLowerCase().replace(/\.$/, "");
-  if (!host || host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local")) return true;
-  if (host === "::1" || host === "0.0.0.0" || host === "169.254.169.254") return true;
-
-  const octets = host.split(".").map((part) => Number(part));
-  if (octets.length !== 4 || octets.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return false;
-  const [a, b] = octets;
-  return a === 10 || a === 127 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
-}
-
-async function serveRemoteImage(rawUrl: string): Promise<Response> {
+async function serveRemoteImage(rawUrl: string, width: number | null): Promise<Response> {
   let target: URL;
   try {
     target = new URL(rawUrl);
   } catch {
-    return new Response("Invalid media URL", { status: 400 });
-  }
-  if (!(target.protocol === "http:" || target.protocol === "https:") || target.username || target.password || isDisallowedRemoteHost(target.hostname)) {
-    return new Response("Invalid media URL", { status: 400 });
+    return plain("Invalid media URL", 400);
   }
 
   try {
-    const upstream = await fetch(target, { cache: "no-store" });
+    const upstream = await fetchRemoteImage(target);
+    if (!upstream) return plain("Invalid media URL", 400);
     if (!upstream.ok || !upstream.body) {
-      return new Response("Media not found", { status: upstream.status || 404 });
+      return plain("Media not found", upstream.status || 404);
     }
     const contentType = upstream.headers.get("content-type") || "";
     if (contentType && !contentType.toLowerCase().startsWith("image/")) {
-      return new Response("Media is not an image", { status: 415 });
+      await upstream.body.cancel().catch(() => undefined);
+      return plain("Media is not an image", 415);
     }
-    const headers = new Headers();
-    if (contentType) headers.set("content-type", contentType);
-    const contentLength = upstream.headers.get("content-length");
-    if (contentLength) headers.set("content-length", contentLength);
-    headers.set("cache-control", "public, max-age=3600, stale-while-revalidate=86400");
-    return new Response(upstream.body, { status: 200, headers });
+    return imageResponse(upstream, contentType || null, REMOTE_MEDIA_CACHE_CONTROL, width);
   } catch {
-    return new Response("Media unavailable", { status: 502 });
+    return plain("Media unavailable", 502);
   }
 }
 
-export async function servePublicMedia(token: string): Promise<Response> {
+export async function servePublicMedia(token: string, width: number | null = null): Promise<Response> {
   let rawUrl = "";
   try {
-    rawUrl = decodeMediaToken(token);
+    rawUrl = decodeMediaToken(stripMediaExtension(token));
   } catch {
-    return new Response("Invalid media token", { status: 400 });
+    return plain("Invalid media token", 400);
   }
-  return servePublicMediaPath(rawUrl);
+  return servePublicMediaPath(rawUrl, width);
 }
 
-export async function serveExternalPublicMedia(id: string): Promise<Response> {
+export async function serveExternalPublicMedia(rawId: string, width: number | null = null): Promise<Response> {
+  const id = stripMediaExtension(rawId);
   try {
-    const response = await fetch(`${BACKEND_ORIGIN}/api/public-bundle`, { cache: "no-store" });
-    if (!response.ok) return new Response("Media source unavailable", { status: 502 });
+    // Every external cover lookup used to refetch the whole bundle uncached.
+    const response = await fetch(`${BACKEND_ORIGIN}/api/public-bundle`, {
+      next: { revalidate: MEDIA_FETCH_REVALIDATE_SECONDS, tags: ["public-bundle"] },
+    });
+    if (!response.ok) return plain("Media source unavailable", 502);
     const bundle = await response.json() as { externalPublicScripts?: Array<{ id?: string; coverUrl?: string }> };
     const item = (bundle.externalPublicScripts || []).find((candidate) => candidate.id === id);
-    if (!item?.coverUrl) return new Response("Media not found", { status: 404 });
+    if (!item?.coverUrl) return plain("Media not found", 404);
     return item.coverUrl.startsWith("/media/")
-      ? servePublicMediaPath(item.coverUrl)
-      : serveRemoteImage(item.coverUrl);
+      ? servePublicMediaPath(item.coverUrl, width)
+      : serveRemoteImage(item.coverUrl, width);
   } catch {
-    return new Response("Media source unavailable", { status: 502 });
+    return plain("Media source unavailable", 502);
   }
 }

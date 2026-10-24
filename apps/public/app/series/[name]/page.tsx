@@ -2,7 +2,7 @@ import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { apiFetch } from "@/lib/api";
-import type { PublicScript } from "@/lib/types";
+import type { ExternalPublicScript, PublicScript } from "@/lib/types";
 import { toGalleryInput } from "@/lib/galleryProjection";
 import { enrichScript } from "@write/public-ui/server";
 import {
@@ -20,10 +20,12 @@ export const dynamicParams = true;
 
 interface BundleResponse {
   scripts?: PublicScript[];
+  externalPublicScripts?: ExternalPublicScript[];
 }
 
 interface SeriesData {
   scripts: PublicScript[];
+  externalItems: ExternalPublicScript[];
   summary?: string;
   coverUrl?: string;
   latestScriptId?: string;
@@ -36,15 +38,29 @@ const fetchSeriesData = cache(async (seriesName: string): Promise<SeriesData> =>
     const allEnriched = rawScripts.map((s) => enrichScript(toGalleryInput(s)));
     const entries = groupScriptsIntoGalleryEntries(allEnriched);
     const group = findSeriesGroupByName(entries, seriesName);
-    if (!group) return { scripts: [] };
+    const externalItems = (bundle.externalPublicScripts ?? [])
+      .filter((item) => item.status === "published" && item.seriesName?.trim().toLocaleLowerCase() === seriesName.trim().toLocaleLowerCase())
+      .sort((a, b) => {
+        const aOrder = a.seriesOrder == null ? Number.POSITIVE_INFINITY : a.seriesOrder;
+        const bOrder = b.seriesOrder == null ? Number.POSITIVE_INFINITY : b.seriesOrder;
+        return aOrder - bOrder || (a.mountedAt ?? a.createdAt ?? 0) - (b.mountedAt ?? b.createdAt ?? 0);
+      });
+    if (!group && externalItems.length === 0) return { scripts: [], externalItems: [] };
     // Map sorted chapters back to PublicScript by id (preserving model order)
     const byId = new Map(rawScripts.map((s) => [s.id, s]));
-    const scripts = group.scripts
+    const scripts = (group?.scripts ?? [])
       .map((s) => byId.get(s.id))
       .filter((s): s is PublicScript => s != null);
-    return { scripts, summary: group.summary, coverUrl: group.coverUrl, latestScriptId: group.latestScript.id };
+    const externalCoverItem = externalItems.find((item) => item.coverUrl);
+    return {
+      scripts,
+      externalItems,
+      summary: group?.summary || externalItems.find((item) => item.summary)?.summary,
+      coverUrl: group?.coverUrl || (externalCoverItem ? `/api/public-media/external/${externalCoverItem.id}` : undefined),
+      latestScriptId: group?.latestScript.id || externalItems.at(-1)?.id,
+    };
   } catch {
-    return { scripts: [] };
+    return { scripts: [], externalItems: [] };
   }
 });
 
@@ -55,14 +71,14 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { name } = await params;
   const seriesName = decodeURIComponent(name);
-  const { scripts, summary, coverUrl } = await fetchSeriesData(seriesName);
+  const { scripts, externalItems, summary, coverUrl } = await fetchSeriesData(seriesName);
 
-  if (scripts.length === 0) return { title: `找不到系列｜${TITLE_SUFFIX}` };
+  if (scripts.length === 0 && externalItems.length === 0) return { title: `找不到系列｜${TITLE_SUFFIX}` };
 
   const title = `${seriesName}｜${TITLE_SUFFIX}`;
   const description = summary
     ? summary.slice(0, 200)
-    : `${seriesName} 系列共 ${scripts.length} 部台本，免費線上閱讀。`;
+    : `${seriesName} 系列共 ${scripts.length + externalItems.length} 部台本，免費線上查看。`;
   const canonicalUrl = `${BASE_URL}/series/${name}`;
 
   const previewImage = pickPreviewImage(coverUrl);
@@ -95,9 +111,9 @@ export default async function SeriesPage({
 }) {
   const { name } = await params;
   const seriesName = decodeURIComponent(name);
-  const { scripts, summary, coverUrl, latestScriptId } = await fetchSeriesData(seriesName);
+  const { scripts, externalItems, summary, coverUrl, latestScriptId } = await fetchSeriesData(seriesName);
 
-  if (scripts.length === 0) notFound();
+  if (scripts.length === 0 && externalItems.length === 0) notFound();
 
   const canonicalUrl = `${BASE_URL}/series/${name}`;
   const structuredData = {
@@ -108,12 +124,20 @@ export default async function SeriesPage({
     inLanguage: "zh-Hant",
     ...(summary && { description: summary }),
     ...(coverUrl && { image: absoluteUrl(coverUrl) }),
-    hasPart: scripts.map((s) => ({
-      "@type": "CreativeWork",
-      name: s.title,
-      url: `${BASE_URL}/read/${s.id}`,
-      ...(s.seriesOrder != null && { position: s.seriesOrder }),
-    })),
+    hasPart: [
+      ...scripts.map((s) => ({
+        "@type": "CreativeWork",
+        name: s.title,
+        url: `${BASE_URL}/read/${s.id}`,
+        ...(s.seriesOrder != null && { position: s.seriesOrder }),
+      })),
+      ...externalItems.map((item) => ({
+        "@type": "CreativeWork",
+        name: item.title,
+        url: item.sourceUrl,
+        ...(item.seriesOrder != null && { position: item.seriesOrder }),
+      })),
+    ],
   };
 
   const seriesMeta = {
@@ -137,10 +161,13 @@ export default async function SeriesPage({
                 <a href={`/read/${s.id}`}>{s.title}</a>
               </li>
             ))}
+            {externalItems.map((item) => (
+              <li key={item.id}><a href={item.sourceUrl}>{item.title}</a></li>
+            ))}
           </ul>
         </article>
       </noscript>
-      <SeriesPageClient seriesName={seriesName} scripts={scripts} seriesMeta={seriesMeta} />
+      <SeriesPageClient seriesName={seriesName} scripts={scripts} externalItems={externalItems} seriesMeta={seriesMeta} />
     </>
   );
 }

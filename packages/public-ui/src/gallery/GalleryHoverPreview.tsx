@@ -6,6 +6,7 @@ export interface PreviewData {
   title?: string | null;
   author?: string | null;
   outline: string;
+  label?: string;
 }
 
 interface PreviewState {
@@ -208,7 +209,7 @@ function GalleryHoverPreviewLayer({ preview }: { preview: PreviewState }) {
         className="mb-1.5 [font-size:var(--public-font-caption)] font-semibold tracking-[0.14em] uppercase"
         style={{ color: "hsl(var(--primary) / 0.65)" }}
       >
-        大綱
+        {data.label || "大綱"}
       </p>
       <p className="[font-size:var(--public-font-body)] [line-height:var(--public-line-body)] whitespace-pre-wrap text-foreground/85">
         {displayedOutline}

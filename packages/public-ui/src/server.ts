@@ -18,6 +18,7 @@ export {
   buildFeaturedSeries,
   deriveTags,
   deriveSimpleLicenseTags,
+  normalizeSelectedGalleryTags,
   normalizeSeriesName,
   parseSeriesOrder,
 } from "./gallery/filterModel";

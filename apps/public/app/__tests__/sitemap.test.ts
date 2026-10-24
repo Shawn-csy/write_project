@@ -73,6 +73,20 @@ describe("sitemap", () => {
     expect(seriesEntry?.lastModified).toBe("2026-02-03T04:05:06.000Z");
   });
 
+  it("uses stable lastmod dates instead of the request time", async () => {
+    const entries = await getSitemap();
+    const home = entries.find((e) => e.url === `${BASE}/`);
+    const about = entries.find((e) => e.url === `${BASE}/about`);
+    expect(home?.lastModified).toBe("2026-01-01T00:00:00.000Z"); // newest content date
+    expect(about?.lastModified).toBe("2026-10-20T00:00:00.000Z");
+    expect(await getSitemap()).toEqual(entries);
+  });
+
+  it("omits changefreq/priority, which search engines ignore", async () => {
+    const entries = await getSitemap();
+    expect(entries.every((e) => e.changeFrequency === undefined && e.priority === undefined)).toBe(true);
+  });
+
   it("includes canonical persona author pages", async () => {
     const urls = (await getSitemap()).map((e) => e.url);
     expect(urls).toContain(`${BASE}/author/persona-1`);

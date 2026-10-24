@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 
 # Copy only workspace manifests first so dependency install stays cacheable when
@@ -32,7 +32,7 @@ ENV BACKEND_API_URL=${BACKEND_API_URL}
 # Build the Next.js public app via workspace script
 RUN npm run build:public
 
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs

@@ -1,9 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import type { ExternalEntityKind } from "@/lib/externalEntity";
 import { socialAvatarUrl } from "@/lib/externalEntity";
 import type { ExternalPublicScript } from "@/lib/types";
 import { ExternalPublicScriptCard } from "./ExternalPublicScriptSection";
+import { GalleryHoverPreviewProvider } from "@write/public-ui";
+import { LinkifiedText } from "./LinkifiedText";
 
 interface Props {
   kind: ExternalEntityKind;
@@ -19,7 +22,17 @@ export function ExternalEntityPage({ kind, name, bio, profileUrl, profileAvatarU
     || (items[0] && (kind === "author" ? items[0].authorAvatarUrl : items[0].organizationAvatarUrl))
     || socialAvatarUrl(profileUrl);
   const isAuthor = kind === "author";
-  const entityLabel = isAuthor ? "作者" : "組織";
+  const seriesGroups = Array.from(
+    items.reduce((groups, item) => {
+      const seriesName = item.seriesName?.trim();
+      if (!seriesName) return groups;
+      const key = seriesName.toLocaleLowerCase();
+      const group = groups.get(key) || { name: seriesName, items: [] as ExternalPublicScript[] };
+      group.items.push(item);
+      groups.set(key, group);
+      return groups;
+    }, new Map<string, { name: string; items: ExternalPublicScript[] }>()).values()
+  ).sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
 
   return (
     <main className="min-h-screen bg-background">
@@ -39,21 +52,47 @@ export function ExternalEntityPage({ kind, name, bio, profileUrl, profileAvatarU
               )}
             </div>
             <div className="min-w-0 flex-1 space-y-2">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">外部{entityLabel}</p>
               <h1 className="break-words font-serif text-3xl font-bold">{name}</h1>
-              {bio && <p className="whitespace-pre-line text-sm leading-6 text-muted-foreground">{bio}</p>}
-              <p className="text-sm text-muted-foreground">收錄於本站的外部公開台本作品</p>
+              <LinkifiedText
+                text={bio || "收錄於本站的外部公開台本作品"}
+                className="whitespace-pre-line text-sm leading-6 text-muted-foreground"
+              />
               <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                 <span>{items.length} 部作品</span>
                 {profileUrl && (
                   <a href={profileUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                    {socialAvatarUrl(profileUrl) ? "𝕏 / Twitter" : "外部連結"}
+                    {socialAvatarUrl(profileUrl) ? "𝕏 / Twitter" : "連結"}
                   </a>
                 )}
               </div>
             </div>
           </div>
         </section>
+
+        {seriesGroups.length > 0 && (
+          <section className="mb-8 rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-6">
+            <div className="mb-4 flex items-center justify-between border-b border-border/60 pb-3">
+              <h2 className="text-xl font-bold">系列作品</h2>
+              <span className="rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground">{seriesGroups.length}</span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {seriesGroups.map((series) => {
+                const cover = series.items.find((item) => item.coverUrl);
+                return (
+                  <Link key={series.name} href={`/series/${encodeURIComponent(series.name)}`} className="group flex items-center gap-3 rounded-lg border border-border/60 bg-background/60 p-3 no-underline transition-colors hover:border-primary/50 hover:bg-background">
+                    <div className="h-16 w-11 shrink-0 overflow-hidden rounded border bg-muted">
+                      {cover ? <img src={`/api/public-media/external/${cover.id}`} alt="" className="h-full w-full object-cover" loading="lazy" /> : <div className="flex h-full items-center justify-center p-1 text-center text-[9px] text-muted-foreground">{series.name}</div>}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="line-clamp-2 text-sm font-medium group-hover:text-primary">{series.name}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">{series.items.length} 部作品</div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         <section className="rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-6">
           <div className="mb-4 flex items-center justify-between border-b border-border/60 pb-3">
@@ -63,9 +102,11 @@ export function ExternalEntityPage({ kind, name, bio, profileUrl, profileAvatarU
           {items.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">目前沒有公開作品</p>
           ) : (
-            <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}>
-              {items.map((item) => <ExternalPublicScriptCard key={item.id} item={item} variant="standard" />)}
-            </div>
+            <GalleryHoverPreviewProvider>
+              <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}>
+                {items.map((item) => <ExternalPublicScriptCard key={item.id} item={item} variant="standard" />)}
+              </div>
+            </GalleryHoverPreviewProvider>
           )}
         </section>
       </div>

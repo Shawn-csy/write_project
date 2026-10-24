@@ -263,6 +263,26 @@ class PublicTermsAcceptance(Base):
     headerSnapshot = Column(JSON, default=dict)
 
 
+class PublicFeedback(Base):
+    """Unauthenticated messages submitted from the public site."""
+
+    __tablename__ = "public_feedback"
+
+    id = Column(String, primary_key=True, index=True)
+    kind = Column(String, default="bug", index=True)  # bug | listing
+    contactName = Column(String, default="")
+    contactEmail = Column(String, default="")
+    content = Column(Text, nullable=False)
+    pageUrl = Column(Text, default="")
+    status = Column(String, default="new", index=True)  # new | reviewed | closed
+    ipAddress = Column(String, default="")
+    forwardedFor = Column(String, default="")
+    userAgent = Column(Text, default="")
+    referer = Column(Text, default="")
+    createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000), index=True)
+    updatedAt = Column(BigInteger, default=lambda: int(time.time() * 1000), index=True)
+
+
 class AdminUser(Base):
     __tablename__ = "admin_users"
 
@@ -302,6 +322,7 @@ class ExternalPublicScript(Base):
     authorUrl = Column(Text, default="")
     authorAvatarUrl = Column(Text, default="")
     organizationName = Column(String, default="")
+    organizationBio = Column(Text, default="")
     organizationUrl = Column(Text, default="")
     organizationAvatarUrl = Column(Text, default="")
 
@@ -312,12 +333,20 @@ class ExternalPublicScript(Base):
     summaryOverride = Column(Text, default="")
     coverUrlOverride = Column(Text, default="")
 
+    # External series are metadata-only groupings.  Unlike internal series,
+    # they do not own or copy the source content; the series page simply links
+    # each chapter back to its original public URL.
+    seriesName = Column(String, default="", index=True)
+    seriesOrder = Column(Integer, nullable=True)
+
     categories = Column(JSON, default=list)
     views = Column(Integer, default=0)
     status = Column(String, default="draft", index=True)
     sortOrder = Column(Float, default=0.0, index=True)
     lastFetchedAt = Column(BigInteger, nullable=True)
     lastFetchError = Column(Text, default="")
+    sourceCreatedAt = Column(BigInteger, nullable=True, index=True)
+    sourceModifiedAt = Column(BigInteger, nullable=True)
     createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000), index=True)
     mountedAt = Column(BigInteger, nullable=True, index=True)
     updatedAt = Column(BigInteger, default=lambda: int(time.time() * 1000), index=True)

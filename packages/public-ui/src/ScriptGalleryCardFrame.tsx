@@ -353,7 +353,7 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
   } = props;
 
   const scriptAnchorProps = scriptTarget
-    ? { target: scriptTarget, rel: scriptTarget === "_blank" ? "noopener noreferrer" : undefined }
+    ? { target: scriptTarget, rel: scriptTarget === "_blank" ? "nofollow noopener noreferrer" : undefined }
     : {};
 
   const coverEl = (

@@ -5,6 +5,7 @@ import type {
   HomepageBanner,
   OrgData,
   PersonaLike,
+  PublicFeedbackListResponse,
   PublicTermsAcceptanceRecord,
   PublicTermsAcceptancesQuery,
   ScriptMetadataUpdatePayload,
@@ -28,6 +29,24 @@ export const getPublicTermsAcceptances = async ({
   params.set("limit", String(limit));
   params.set("offset", String(offset));
   return fetchApi(`/admin/public-terms-acceptances?${params.toString()}`) as Promise<PublicTermsAcceptanceRecord[]>;
+};
+
+export const getPublicFeedbackAdmin = async ({
+  q = "",
+  limit = 100,
+  offset = 0,
+}: AdminPaginationQuery = {}): Promise<PublicFeedbackListResponse> => {
+  const params = new URLSearchParams();
+  if (q) params.set("q", q);
+  params.set("limit", String(limit));
+  params.set("offset", String(offset));
+  return fetchApi(`/admin/public-feedback?${params.toString()}`) as Promise<PublicFeedbackListResponse>;
+};
+
+export const deletePublicFeedbackAdmin = async (feedbackId: string): Promise<ScriptMutationResponse> => {
+  return fetchApi(`/admin/public-feedback/${encodeURIComponent(feedbackId)}`, {
+    method: "DELETE",
+  }) as Promise<ScriptMutationResponse>;
 };
 
 export const getAdminUsers = async (): Promise<SearchUser[]> => {
@@ -180,11 +199,14 @@ export interface ExternalPublicScriptPreview {
   authorUrl?: string;
   authorAvatarUrl?: string;
   organizationName?: string;
+  organizationBio?: string;
   organizationUrl?: string;
   organizationAvatarUrl?: string;
   remoteTitle?: string;
   remoteSummary?: string;
   remoteCoverUrl?: string;
+  sourceCreatedAt?: number | null;
+  sourceModifiedAt?: number | null;
   coverPreviewDataUrl?: string;
 }
 
@@ -198,6 +220,7 @@ export interface ExternalPublicScriptPayload {
   authorUrl?: string;
   authorAvatarUrl?: string;
   organizationName?: string;
+  organizationBio?: string;
   organizationUrl?: string;
   organizationAvatarUrl?: string;
   remoteTitle?: string;
@@ -206,6 +229,8 @@ export interface ExternalPublicScriptPayload {
   titleOverride?: string;
   summaryOverride?: string;
   coverUrlOverride?: string;
+  seriesName?: string;
+  seriesOrder?: number | null;
   categories?: string[];
   status?: "draft" | "published" | "hidden";
   sortOrder?: number;

@@ -29,11 +29,19 @@ describe("robots", () => {
     expect(disallowed).toContain("/api/");
   });
 
-  it("disallows retired /gallery", () => {
+  it("does not block retired /gallery so crawlers can see its 410", () => {
     const r = robots();
     const rules = Array.isArray(r.rules) ? r.rules : [r.rules];
     const disallowed = rules.flatMap((rule) => (Array.isArray(rule.disallow) ? rule.disallow : rule.disallow ? [rule.disallow] : []));
-    expect(disallowed).toContain("/gallery");
+    expect(disallowed).not.toContain("/gallery");
+  });
+
+  it("allows the public media proxy for general crawlers even though /api/ is disallowed", () => {
+    const r = robots();
+    const rules = Array.isArray(r.rules) ? r.rules : [r.rules];
+    const generic = rules.find((rule) => rule.userAgent === "*");
+    const allowed = Array.isArray(generic!.allow) ? generic!.allow : generic!.allow ? [generic!.allow] : [];
+    expect(allowed).toContain("/api/public-media/");
   });
 
   it("includes AI-bot rules for GPTBot, ClaudeBot, PerplexityBot, Google-Extended", () => {

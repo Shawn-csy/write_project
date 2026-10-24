@@ -49,6 +49,12 @@ function normalizeCategories(categories: string[] | undefined): string[] {
   );
 }
 
+const ADULT_CATEGORY_TAGS = new Set(["成人向", "r-18", "r18", "18+", "18禁"]);
+
+function hasAdultCategory(categories: string[] | undefined): boolean {
+  return normalizeCategories(categories).some((category) => ADULT_CATEGORY_TAGS.has(category.toLocaleLowerCase()));
+}
+
 function trackExternalView(id: string): void {
   if (typeof window === "undefined" || !id) return;
   const url = `/api/public-external-scripts/${encodeURIComponent(id)}/view`;
@@ -85,13 +91,14 @@ export function ExternalPublicScriptCard({
   const date = formatDate(mountedAt);
   const authorName = item.authorName || item.organizationName || "";
   const authorHref = item.authorName
-    ? externalEntityHref("author", item.authorName)
+    ? externalEntityHref("author", item.authorName, item.authorUrl)
     : item.organizationName
-      ? externalEntityHref("org", item.organizationName)
+      ? externalEntityHref("org", item.organizationName, item.organizationUrl)
       : undefined;
   const avatarUrl = item.authorName
     ? item.authorAvatarUrl || socialAvatarUrl(item.authorUrl)
     : item.organizationAvatarUrl || socialAvatarUrl(item.organizationUrl);
+  const seriesName = item.seriesName?.trim() || "";
 
   return (
     <ScriptGalleryCard
@@ -101,6 +108,8 @@ export function ExternalPublicScriptCard({
         synopsis: summary,
         coverUrl: item.coverUrl ? `/api/public-media/external/${item.id}` : undefined,
         tags: normalizeCategories(item.categories),
+        seriesName,
+        seriesOrder: item.seriesOrder,
         author: authorName
           ? {
               displayName: authorName,
@@ -120,8 +129,10 @@ export function ExternalPublicScriptCard({
       variant={variant}
       scriptHref={item.sourceUrl}
       scriptTarget="_blank"
+      showAgeGate={hasAdultCategory(item.categories)}
       authorHref={authorHref}
-      organizationHref={item.organizationName ? externalEntityHref("org", item.organizationName) : undefined}
+      organizationHref={item.organizationName ? externalEntityHref("org", item.organizationName, item.organizationUrl) : undefined}
+      seriesHref={seriesName ? `/series/${encodeURIComponent(seriesName)}` : undefined}
       onView={() => trackExternalView(item.id)}
       onTagClick={onTagClick}
       coverImageRenderer={externalCoverImageRenderer}

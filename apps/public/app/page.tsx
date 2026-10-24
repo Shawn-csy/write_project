@@ -15,10 +15,18 @@ import {
   DEFAULT_OG_IMAGE_URL,
 } from "@/lib/seo";
 import { JsonLdScript } from "@/lib/jsonLd";
+import { slimExternalScriptForHomepage, slimScriptForHomepage } from "@/lib/galleryProjection";
 
 // Phase 2: force-dynamic prevents build-time empty homepage when backend is unavailable.
-// Switch to ISR (export const revalidate = N) only after deploy scripts revalidate / on backend health.
+// The page reads `searchParams` (server-parsed filter state), so it cannot be ISR.
+// Instead the bundle fetch below goes through Next's data cache, and next.config.ts
+// gives the HTML a short edge lifetime (s-maxage) so most hits never reach this render.
 export const dynamic = "force-dynamic";
+
+// Tagged so /api/revalidate can expire it explicitly (revalidatePath alone is not
+// guaranteed to reach a fetch shared with the sitemap and media routes).
+const BUNDLE_REVALIDATE_SECONDS = 300;
+const BUNDLE_FETCH_TAGS = ["public-bundle"];
 
 export const metadata: Metadata = {
   title: SITE_TITLE,
@@ -55,7 +63,7 @@ interface BundleResponse {
 async function fetchBundle(): Promise<{ scripts: PublicScript[]; externalPublicScripts: ExternalPublicScript[]; bannerSlides: HeroSlide[] | undefined; showBrandHero: boolean }> {
   let bundle: BundleResponse;
   try {
-    bundle = await apiFetch<BundleResponse>("/public-bundle");
+    bundle = await apiFetch<BundleResponse>("/public-bundle", { next: { revalidate: BUNDLE_REVALIDATE_SECONDS, tags: BUNDLE_FETCH_TAGS } });
   } catch {
     // Network/backend failure: scripts unavailable. Log for production diagnosis.
     console.error("[homepage] fetchBundle: /public-bundle request failed — serving empty homepage");
@@ -63,8 +71,11 @@ async function fetchBundle(): Promise<{ scripts: PublicScript[]; externalPublicS
   }
 
   // Parse each field independently so a malformed banner cannot erase the script list.
-  const scripts = (bundle.scripts ?? []).filter((s): s is PublicScript => Boolean(s?.id));
-  const externalPublicScripts = (bundle.externalPublicScripts ?? []).filter((item): item is ExternalPublicScript => Boolean(item?.id && item?.sourceUrl));
+  // Slim before handing to the client component: everything passed as a prop is serialized into the HTML.
+  const scripts = (bundle.scripts ?? []).filter((s): s is PublicScript => Boolean(s?.id)).map(slimScriptForHomepage);
+  const externalPublicScripts = (bundle.externalPublicScripts ?? [])
+    .filter((item): item is ExternalPublicScript => Boolean(item?.id && item?.sourceUrl))
+    .map(slimExternalScriptForHomepage);
 
   let bannerSlides: HeroSlide[] | undefined;
   try {
@@ -104,11 +115,8 @@ export default async function HomePage({
     url: `${BASE_URL}/`,
     description: SITE_DESCRIPTION,
     inLanguage: "zh-Hant",
-    potentialAction: {
-      "@type": "SearchAction",
-      target: `${BASE_URL}/?q={search_term_string}`,
-      "query-input": "required name=search_term_string",
-    },
+    // Google retired the sitelinks search box, so no SearchAction here.
+    publisher: { "@type": "Organization", name: SITE_NAME, url: `${BASE_URL}/` },
   };
 
   return (

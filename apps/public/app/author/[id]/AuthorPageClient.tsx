@@ -5,6 +5,7 @@ import type { PublicPersona, PublicScript } from "@/lib/types";
 import { buildAuthorEntityModel } from "@/lib/publicEntityPageModel";
 import { EntityScriptGrid } from "@/components/EntityScriptGrid";
 import { PublicImage } from "@/components/PublicImage";
+import { LinkifiedText } from "@/components/LinkifiedText";
 
 interface Props {
   persona: PublicPersona & {
@@ -29,18 +30,20 @@ function parseLinks(
   return [];
 }
 
-function getLinkIcon(url = ""): string {
-  const u = url.toLowerCase();
-  if (u.includes("twitter.com") || u.includes("x.com")) return "𝕏";
-  if (u.includes("instagram.com")) return "IG";
-  if (u.includes("youtube.com") || u.includes("youtu.be")) return "YT";
-  if (u.includes("github.com")) return "GH";
-  return "🔗";
-}
-
 export function AuthorPageClient({ persona, scripts }: Props) {
   const model = buildAuthorEntityModel(persona, scripts);
   const links = parseLinks(persona.links);
+  const contactItems = [
+    ...(persona.website
+      ? [{ label: "網站", value: persona.website }]
+      : []),
+    ...links
+      .filter((link) => String(link.url || "").trim())
+      .map((link) => ({
+        label: String(link.label || "聯絡方式").trim() || "聯絡方式",
+        value: String(link.url || "").trim(),
+      })),
+  ];
 
   // Derive series list from scripts
   const authorSeries = useMemo(() => {
@@ -105,9 +108,10 @@ export function AuthorPageClient({ persona, scripts }: Props) {
               )}
 
               {persona.bio && (
-                <p className="text-foreground/85 leading-relaxed max-w-2xl">
-                  {persona.bio}
-                </p>
+                <LinkifiedText
+                  text={persona.bio}
+                  className="text-foreground/85 leading-relaxed max-w-2xl"
+                />
               )}
 
               {model.profileTags.length > 0 && (
@@ -126,30 +130,13 @@ export function AuthorPageClient({ persona, scripts }: Props) {
                 </div>
               )}
 
-              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                {persona.website && (
-                  <a
-                    href={persona.website}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hover:text-foreground underline"
-                  >
-                    🔗 {persona.website}
-                  </a>
-                )}
-                {links
-                  .filter((l) => l.url)
-                  .map((link, i) => (
-                    <a
-                      key={i}
-                      href={link.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="hover:text-foreground underline"
-                    >
-                      {getLinkIcon(link.url)} {link.label || link.url}
-                    </a>
-                  ))}
+              <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                {contactItems.map((item, i) => (
+                  <span key={`${item.label}-${i}`} className="inline-flex items-baseline gap-1 break-all">
+                    <span className="font-medium text-foreground/80">{item.label}：</span>
+                    <span>{item.value}</span>
+                  </span>
+                ))}
               </div>
             </div>
           </div>

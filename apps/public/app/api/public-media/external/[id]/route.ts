@@ -1,9 +1,10 @@
 import { serveExternalPublicMedia } from "@/lib/publicMediaProxy";
+import { parseMediaWidth } from "@/lib/publicMediaUrl";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
-  return serveExternalPublicMedia(id);
+  return serveExternalPublicMedia(id, parseMediaWidth(new URL(request.url).searchParams.get("w")));
 }

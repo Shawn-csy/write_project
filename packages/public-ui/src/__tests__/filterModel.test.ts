@@ -324,6 +324,20 @@ describe("filterGalleryScripts", () => {
     expect(ids).not.toContain("s4");
   });
 
+  it("does not treat conflicting license shortcuts as a combined filter", () => {
+    const scripts = [
+      enrich(makeScript({ id: "commercial", licenseCommercial: "allow" })),
+      enrich(makeScript({ id: "non-commercial", licenseCommercial: "disallow" })),
+    ];
+    const result = filterGalleryScripts(scripts, {
+      searchNeedle: "",
+      selectedTags: ["授權:不可商用", "授權:可商用"],
+      segmentFilter: SEGMENT_KEYS.all,
+      usageFilter: "all",
+    });
+    expect(result.map((script) => script.id)).toEqual(["commercial"]);
+  });
+
   it("sorts results by original publication date, not lastModified", () => {
     const scripts = [
       enrich(makeScript({ id: "s1", createdAt: 100, lastModified: 900 })),

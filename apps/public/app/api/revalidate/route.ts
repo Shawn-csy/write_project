@@ -1,14 +1,17 @@
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 
 const REVALIDATE_SECRET = process.env.REVALIDATE_SECRET;
+
+// Tags attached to cached upstream fetches in app/page.tsx, app/sitemap.ts and lib/publicMediaProxy.ts.
+const DATA_CACHE_TAGS = ["public-bundle", "public-scripts"] as const;
 
 const MAX_PATHS = 50;
 const MAX_PATH_LENGTH = 300;
 
 // Allowed path patterns for public pages only.
 const ALLOWED_PATH_RE =
-  /^(\/|\/read\/[^/?#]+|\/author\/[^/?#]+|\/org\/[^/?#]+|\/series\/[^/?#]+|\/tag\/[^/?#]+|\/sitemap\.xml)$/;
+  /^(\/|\/read\/[^/?#]+|\/(?:author|org)\/external\/[^/?#]+|\/author\/[^/?#]+|\/org\/[^/?#]+|\/series\/[^/?#]+|\/tag\/[^/?#]+|\/sitemap\.xml)$/;
 
 function isAllowedPath(path: string): boolean {
   if (typeof path !== "string") return false;
@@ -68,6 +71,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     revalidatePath(path);
     revalidated.push(path);
   }
+  // The homepage, sitemap and media proxy read cached bundle/list fetches that
+  // path revalidation does not reliably reach. Mark them stale (stale-while-revalidate).
+  for (const tag of DATA_CACHE_TAGS) revalidateTag(tag, "max");
 
   return NextResponse.json({ revalidated, now: Date.now() });
 }

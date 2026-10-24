@@ -4,6 +4,9 @@ import {
   buildReadPageDescription,
   buildReadPageStructuredData,
   buildReadPageBreadcrumbData,
+  buildReadPageExcerpt,
+  buildReadPageRatingMeta,
+  isAdultScript,
 } from "./readPageSeo";
 import type { PublicScript } from "./types";
 
@@ -133,5 +136,44 @@ describe("buildReadPageBreadcrumbData", () => {
     expect(items).toHaveLength(3);
     expect(items[1].name).toBe("黑夜系列");
     expect(items[2].name).toBe("測試台本");
+  });
+});
+
+describe("indexable excerpt and rating", () => {
+  it("returns the full synopsis, and an outline only when it differs", () => {
+    const long = "長".repeat(500);
+    expect(buildReadPageExcerpt(baseScript({ synopsis: long })).synopsis).toBe(long);
+    expect(buildReadPageExcerpt(baseScript({ synopsis: "A", outline: "A" })).outline).toBe("");
+    expect(buildReadPageExcerpt(baseScript({ synopsis: "A", outline: "B" })).outline).toBe("B");
+    expect(buildReadPageExcerpt(baseScript())).toEqual({ synopsis: "", outline: "" });
+  });
+
+  it("flags adult works from adult segment tags and emits rating meta", () => {
+    const adult = baseScript({ tags: [{ id: "t", name: "R-18" }] });
+    expect(isAdultScript(adult)).toBe(true);
+    expect(buildReadPageRatingMeta(adult)).toContain("adult");
+    expect(buildReadPageStructuredData(adult, "s1")).toMatchObject({ isFamilyFriendly: false });
+  });
+
+  it("emits no rating meta for general works", () => {
+    const general = baseScript({ tags: [{ id: "t", name: "全年齡向" }] });
+    expect(isAdultScript(general)).toBe(false);
+    expect(buildReadPageRatingMeta(general)).toBeUndefined();
+    expect(buildReadPageStructuredData(general, "s1")).not.toHaveProperty("isFamilyFriendly");
+  });
+
+  it("adds abstract, datePublished, mainEntityOfPage and an author URL to JSON-LD", () => {
+    const data = buildReadPageStructuredData(
+      baseScript({
+        synopsis: "摘要",
+        createdAt: Date.parse("2026-01-02T00:00:00Z"),
+        persona: { id: "p 1", displayName: "作者" },
+      }),
+      "s1",
+    ) as Record<string, any>;
+    expect(data.abstract).toBe("摘要");
+    expect(data.datePublished).toBe("2026-01-02T00:00:00.000Z");
+    expect(data.mainEntityOfPage).toBe("https://open-scripts.shawnup.com/read/s1");
+    expect(data.author.url).toBe("https://open-scripts.shawnup.com/author/p%201");
   });
 });

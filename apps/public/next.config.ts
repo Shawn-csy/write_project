@@ -68,10 +68,37 @@ const nextConfig: NextConfig = {
       "/privacy",
       "/terms",
     ];
-    return publicRoutes.map((source) => ({
+    const discoveryHeaders = publicRoutes.map((source) => ({
       source,
       headers: [{ key: "Link", value: discoveryLinks }],
     }));
+
+    // Edge-cacheable responses for routes Next renders dynamically (and would
+    // otherwise send as `private, no-store`). Lifetimes are deliberately short:
+    // the homepage falls back to an empty list when the backend is down, and a
+    // CDN must never pin that state for long (see expireTime above).
+    const edgeCacheHeaders = [
+      {
+        source: "/",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=0, s-maxage=120, stale-while-revalidate=300" },
+        ],
+      },
+      {
+        source: "/sitemap.xml",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=0, s-maxage=3600, stale-while-revalidate=3600" },
+        ],
+      },
+      {
+        source: "/llms.txt",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400" },
+        ],
+      },
+    ];
+
+    return [...discoveryHeaders, ...edgeCacheHeaders];
   },
   images: {
     // Backend runs on Docker-internal network (private IP). next/image blocks

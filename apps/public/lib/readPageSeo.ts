@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { PublicScript } from "./types";
+import { SEGMENT_TAGS } from "@write/public-ui/server";
 import { getScriptDescription } from "./scriptDescription";
 import { BASE_URL, SITE_NAME, TITLE_SUFFIX, pickPreviewImage, absoluteUrl } from "./seo";
 
@@ -18,6 +19,43 @@ function parseDateModified(script: PublicScript): string | undefined {
     if (!Number.isNaN(parsed)) return new Date(parsed).toISOString();
   }
   return undefined;
+}
+
+const ADULT_TAGS_LOWER: ReadonlySet<string> = new Set(
+  (SEGMENT_TAGS["adult"] ?? []).map((tag) => String(tag).toLowerCase()),
+);
+
+/** Same rule the gallery uses for its age gate: any adult segment tag. */
+export function isAdultScript(script: PublicScript): boolean {
+  return (script.tags ?? []).some((tag) => ADULT_TAGS_LOWER.has(String(tag.name ?? "").toLowerCase()));
+}
+
+function parseDatePublished(script: PublicScript): string | undefined {
+  const raw = script.createdAt ?? script.draftDate;
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    try { return new Date(raw).toISOString(); } catch { /* noop */ }
+  } else if (typeof raw === "string" && raw.trim()) {
+    const parsed = Date.parse(raw);
+    if (!Number.isNaN(parsed)) return new Date(parsed).toISOString();
+  }
+  return undefined;
+}
+
+/**
+ * Server-rendered text for the work page. The reader body sits behind the
+ * consent gate and is client-rendered, so synopsis/outline are the indexable
+ * content. Returns the full synopsis (the meta description is clipped) and an
+ * outline only when it adds something beyond the synopsis.
+ */
+export function buildReadPageExcerpt(script: PublicScript): { synopsis: string; outline: string } {
+  const synopsis = (script.synopsis ?? "").trim();
+  const outline = (script.outline ?? "").trim();
+  return { synopsis, outline: outline && outline !== synopsis ? outline : "" };
+}
+
+/** `<meta name="rating">` values so SafeSearch classifies adult works correctly. */
+export function buildReadPageRatingMeta(script: PublicScript): string[] | undefined {
+  return isAdultScript(script) ? ["adult", "RTA-5042-1996-1400-1577-RTA"] : undefined;
 }
 
 // ── public API ─────────────────────────────────────────────────────────────
@@ -102,8 +140,18 @@ export function buildReadPageStructuredData(
     isAccessibleForFree: true,
     ...(tags.length > 0 && { genre: tags }),
     keywords,
+    mainEntityOfPage: canonicalUrl,
+    ...(script.synopsis?.trim() && { abstract: script.synopsis.trim() }),
+    ...(parseDatePublished(script) && { datePublished: parseDatePublished(script) }),
     ...(dateModified && { dateModified }),
-    ...(authorName && { author: { "@type": "Person", name: authorName } }),
+    ...(isAdultScript(script) && { isFamilyFriendly: false }),
+    ...(authorName && {
+      author: {
+        "@type": "Person",
+        name: authorName,
+        ...(script.persona?.id && { url: `${BASE_URL}/author/${encodeURIComponent(script.persona.id)}` }),
+      },
+    }),
     ...(script.organization?.name && {
       publisher: { "@type": "Organization", name: script.organization.name },
     }),

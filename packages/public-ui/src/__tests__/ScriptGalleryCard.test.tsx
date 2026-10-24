@@ -69,7 +69,7 @@ describe("ScriptGalleryCard standard — href mode", () => {
     expect(links.length).toBeGreaterThan(0);
     links.forEach((link) => {
       expect(link.getAttribute("target")).toBe("_blank");
-      expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+      expect(link.getAttribute("rel")).toBe("nofollow noopener noreferrer");
     });
   });
 
@@ -352,14 +352,30 @@ describe("ScriptGalleryCard — hover preview events (gallery-level layer)", () 
     expect(layer.style.pointerEvents).toBe("none");
   });
 
-  it("no preview emitted when outline absent", () => {
+  it("uses the card summary when outline is absent", () => {
+    const { container } = render(
+      <GalleryHoverPreviewProvider>
+        <ScriptGalleryCard script={{ ...SCRIPT, synopsis: "Summary fallback" }} scriptHref="/read/s1" />
+      </GalleryHoverPreviewProvider>
+    );
+    fireEvent.mouseEnter(container.querySelector("article")!, { clientX: 100, clientY: 50 });
+    const layer = document.querySelector("[data-testid='gallery-hover-preview']");
+    expect(layer).not.toBeNull();
+    expect(layer?.textContent).toContain("Summary fallback");
+    expect(layer?.textContent).toContain("作品簡介");
+  });
+
+  it("still shows a fallback preview when outline and summary are absent", () => {
     const { container } = render(
       <GalleryHoverPreviewProvider>
         <ScriptGalleryCard script={SCRIPT} scriptHref="/read/s1" />
       </GalleryHoverPreviewProvider>
     );
     fireEvent.mouseEnter(container.querySelector("article")!, { clientX: 100, clientY: 50 });
-    expect(document.querySelector("[data-testid='gallery-hover-preview']")).toBeNull();
+    const layer = document.querySelector("[data-testid='gallery-hover-preview']");
+    expect(layer).not.toBeNull();
+    expect(layer?.textContent).toContain("尚未提供大綱");
+    expect(layer?.textContent).toContain("作品資訊");
   });
 
   it("card works without provider (no preview, no crash)", () => {
