@@ -18,6 +18,26 @@ import { BASE_URL } from "@/lib/seo";
 export const dynamic = "force-dynamic";
 export const revalidate = 3600; // regenerate hourly
 
+function sitemapDateTimestamp(value: string | Date | undefined): number {
+  if (value instanceof Date) return value.getTime();
+  if (typeof value !== "string") return 0;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function dedupeSitemapEntries(entries: MetadataRoute.Sitemap): MetadataRoute.Sitemap {
+  const entriesByUrl = new Map<string, MetadataRoute.Sitemap[number]>();
+  for (const entry of entries) {
+    const url = new URL(entry.url, BASE_URL).href;
+    const normalizedEntry = { ...entry, url };
+    const current = entriesByUrl.get(url);
+    if (!current || sitemapDateTimestamp(entry.lastModified) >= sitemapDateTimestamp(current.lastModified)) {
+      entriesByUrl.set(url, normalizedEntry);
+    }
+  }
+  return Array.from(entriesByUrl.values());
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Fetch all public scripts — they drive every dynamic URL in the sitemap.
   //
@@ -142,7 +162,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Tags excluded by default (shouldIncludeTagsInSitemap() === false).
 
-  return [
+  return dedupeSitemapEntries([
     ...staticEntries,
     ...scriptEntries,
     ...authorEntries,
@@ -150,5 +170,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...externalAuthorEntries,
     ...externalOrgEntries,
     ...seriesEntries,
-  ];
+  ]);
 }

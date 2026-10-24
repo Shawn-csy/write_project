@@ -38,12 +38,13 @@ def _serialize_bundle_script(script):
         return script
 
     data = schemas.Script.model_validate(script).model_dump()
+    content = data.pop("content", None)
     owner = data.get("owner") or {}
     if owner:
         owner["email"] = None
         data["owner"] = owner
     # contentLength is not a DB column; compute from content so gallery cards can show duration estimate
-    data["contentLength"] = getattr(script, "contentLength", None) or len(getattr(script, "content", "") or "")
+    data["contentLength"] = getattr(script, "contentLength", None) or len(content or "")
     return data
 
 
