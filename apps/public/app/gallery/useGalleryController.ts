@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  parseBannerSlides,
   useGalleryFilterModel,
   buildPublicHomepageModel,
   SEGMENT_KEYS,
@@ -14,7 +13,6 @@ import type { ExternalPublicScript, PublicOrg, PublicPersona, PublicScript } fro
 import {
   publicOrgsFromResponse,
   publicPersonasFromResponse,
-  publicScriptsFromBundle,
   toAuthorLike,
   toGalleryInput,
   toOrgLike,
@@ -23,7 +21,6 @@ import {
 } from "@/lib/galleryProjection";
 import { useGalleryUrlState } from "./useGalleryUrlState";
 import type { GalleryView, GalleryViewMode, GalleryLaneMode, PublicHomepageUrlState } from "./useGalleryUrlState";
-import { arePublicScriptsEquivalent, areHeroSlidesEquivalent } from "@/lib/refreshDiff";
 
 export type { GalleryView, GalleryViewMode, GalleryLaneMode, PublicHomepageModel };
 
@@ -96,9 +93,9 @@ export function useGalleryController({
   const { state: urlState, actions: urlActions } = useGalleryUrlState(initialUrlState);
 
   // ── Server data ────────────────────────────────────────────────────────────
-  const [rawScripts, setRawScripts] = useState<PublicScript[]>(initialScripts);
-  const [externalPublicScripts, setExternalPublicScripts] = useState<ExternalPublicScript[]>(initialExternalPublicScripts);
-  const [bannerSlides, setBannerSlides] = useState<HeroSlide[] | undefined>(initialBannerSlides);
+  const rawScripts = initialScripts;
+  const externalPublicScripts = initialExternalPublicScripts;
+  const bannerSlides = initialBannerSlides;
   const [authors, setAuthors] = useState<PublicPersona[]>([]);
   const [orgs, setOrgs] = useState<PublicOrg[]>([]);
   const [peopleStatus, setPeopleStatus] = useState<"idle" | "loading" | "loaded" | "error">("idle");
@@ -115,31 +112,6 @@ export function useGalleryController({
       .then((cfg) => {
         if (cfg && typeof cfg === "object" && "version" in cfg) {
           setTermsRequired(true);
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  // ── Client-side refresh ───────────────────────────────────────────────────
-  useEffect(() => {
-    fetch("/api/public-bundle")
-      .then((response) => (response.ok ? response.json() : null))
-      .then((data) => {
-        if (data && typeof data === "object" && "scripts" in data) {
-          const next = publicScriptsFromBundle(data);
-          setRawScripts((prev) =>
-            arePublicScriptsEquivalent(prev, next) ? prev : next
-          );
-        }
-        if (data && typeof data === "object" && "banner" in data) {
-          const next = parseBannerSlides((data as { banner?: unknown }).banner);
-          setBannerSlides((prev) =>
-            areHeroSlidesEquivalent(prev, next) ? prev : next
-          );
-        }
-        if (data && typeof data === "object" && "externalPublicScripts" in data) {
-          const next = (data as { externalPublicScripts?: unknown }).externalPublicScripts;
-          setExternalPublicScripts(Array.isArray(next) ? next as ExternalPublicScript[] : []);
         }
       })
       .catch(() => {});

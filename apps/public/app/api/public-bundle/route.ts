@@ -1,15 +1,14 @@
 import { apiFetch } from "@/lib/api";
 import { NextResponse } from "next/server";
 
-// force-dynamic: client uses this for fresh hydration after page load
+// Client-side pages use this endpoint for current public bundle metadata.
 export const dynamic = "force-dynamic";
 export async function GET(): Promise<NextResponse> {
   try {
     const data = await apiFetch("/public-bundle");
     return NextResponse.json(data, {
       headers: {
-        // This endpoint hydrates the homepage after load. Keep it uncached so
-        // admin metadata edits (author/date) are visible immediately.
+        // Keep client-side reads uncached so metadata edits are visible immediately.
         "Cache-Control": "private, no-store",
       },
     });

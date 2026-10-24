@@ -36,15 +36,6 @@ interface Props {
   initialUrlState: PublicHomepageUrlState;
 }
 
-// Module-level stable references — no re-creation on render.
-const heroImageRenderer: HeroImageRenderer = (image, slide, index) => (
-  <HeroImage
-    image={image}
-    priority={index === 0}
-    slideTitle={slide.title}
-  />
-);
-
 const heroSlideContentRenderer: HeroSlideContentRenderer = (slide, _index, defaultContent) => {
   if ((slide as { type?: string }).type === "brand") {
     return <GalleryBrandHeroSlide />;
@@ -115,6 +106,20 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
   const heroSlides = useMemo(
     () => buildHomepageHeroSlides(bannerSlides ?? undefined, showBrandHero),
     [bannerSlides, showBrandHero]
+  );
+  const firstImageIndex = heroSlides.findIndex((slide) => {
+    if (slide.type === "brand") return false;
+    return Boolean(slide.image?.url || slide.imageUrl);
+  });
+  const heroImageRenderer = useMemo<HeroImageRenderer>(
+    () => (image, slide, index) => (
+      <HeroImage
+        image={image}
+        priority={index === firstImageIndex}
+        slideTitle={slide.title}
+      />
+    ),
+    [firstImageIndex]
   );
 
   return (

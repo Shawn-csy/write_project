@@ -86,6 +86,7 @@ export function PublicImage({
         src={cleanSrc}
         alt={alt}
         loading={priority ? "eager" : "lazy"}
+        fetchPriority={priority ? "high" : undefined}
         decoding="async"
         referrerPolicy="no-referrer"
         style={style}
@@ -99,6 +100,7 @@ export function PublicImage({
         src={resolvePublicMediaProxySrc(cleanSrc)}
         alt={alt}
         loading={priority ? "eager" : "lazy"}
+        fetchPriority={priority ? "high" : undefined}
         decoding="async"
         referrerPolicy="no-referrer"
         style={style}
@@ -114,6 +116,7 @@ export function PublicImage({
         src={resolvedSrc}
         alt={alt}
         loading={priority ? "eager" : "lazy"}
+        fetchPriority={priority ? "high" : undefined}
         decoding="async"
         referrerPolicy="no-referrer"
         style={style}
