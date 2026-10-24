@@ -211,6 +211,11 @@ Token 只從環境變數讀取，不會出現在指令參數或任何輸出中�
   Cloudflare 是否真的快取 HTML 取決於 zone 的 Cache Rule。若要讓首頁走邊緣快取，
   需在 Cloudflare 建立 Cache Rule（Eligible for cache、Edge TTL 選 *Use cache-control header if present*）。
   `cf-cache-status: DYNAMIC` 代表該請求沒有被快取。
+- `/about`、`/help`、`/license`、`/privacy`、`/terms` 是公開資訊頁，頁面每小時重新驗證。
+  若要讓這些 HTML 頁面也走邊緣快取，可在同一 Cache Rule 使用下列條件：
+  `http.host eq "open-scripts.shawnup.com" and http.request.uri.path in {"/" "/about" "/help" "/license" "/privacy" "/terms"}`。
+  設為 *Eligible for cache*，Edge TTL 選 *Use cache-control header if present*；保留預設 cache key，
+  讓首頁篩選用的 query string 仍分開快取。不要把 `/read/*`、API 或登入後頁面放進此規則。
 - 圖片 proxy `/api/public-media/*.webp` 帶 `s-maxage=2592000`（本站媒體）或 `s-maxage=86400`（外部封面）；
   因網址含 `.webp` 副檔名，Cloudflare 預設即會快取。`?w=` 只接受固定寬度，避免快取被任意參數打散。
 - 縮圖由 `sharp` 在 Next 容器內產生；若 `sharp` 載入失敗，proxy 會退回原圖。

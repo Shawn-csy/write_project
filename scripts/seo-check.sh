@@ -58,22 +58,20 @@ trap 'rm -f "$_FETCH_TMP_BODY" "$_FETCH_TMP_HEADERS"' EXIT
 
 fetch_page() {
   local url="$1"
-  local start_ms end_ms st
+  local metrics st ttfb_seconds
 
-  start_ms=$(python3 -c 'import time; print(int(time.time()*1000))')
-
-  st=$(curl -sL \
+  metrics=$(curl -sL \
     --max-time "$TIMEOUT" \
     --user-agent "$GOOGLEBOT_UA" \
     --dump-header "$_FETCH_TMP_HEADERS" \
     -o "$_FETCH_TMP_BODY" \
-    -w "%{http_code}" \
-    "$url" 2>/dev/null) || st="0"
+    -w "%{http_code} %{time_starttransfer}" \
+    "$url" 2>/dev/null) || metrics="0 0"
 
-  end_ms=$(python3 -c 'import time; print(int(time.time()*1000))')
-
+  st="${metrics%% *}"
+  ttfb_seconds="${metrics#* }"
   HTTP_STATUS="${st:-0}"
-  RESPONSE_TIME_MS=$(( end_ms - start_ms ))
+  RESPONSE_TIME_MS=$(awk -v seconds="$ttfb_seconds" 'BEGIN { printf "%d", seconds * 1000 }')
   CACHE_CONTROL=$(grep -i '^cache-control:' "$_FETCH_TMP_HEADERS" | tail -1 | sed 's/^[^:]*: *//' | tr -d '\r' 2>/dev/null || echo "")
   CONTENT_TYPE=$(grep -i '^content-type:' "$_FETCH_TMP_HEADERS" | tail -1 | sed 's/^[^:]*: *//' | tr -d '\r' 2>/dev/null || echo "")
   X_ROBOTS=$(grep -i '^x-robots-tag:' "$_FETCH_TMP_HEADERS" | tail -1 | sed 's/^[^:]*: *//' | tr -d '\r' 2>/dev/null || echo "")
@@ -425,11 +423,11 @@ check_infra
 # ── Page checks ──────────────────────────────────────────────────────────────
 header "Static Pages"
 check_page "Homepage (/)"          "${BASE_URL}/"          "WebSite"
-check_page "About (/about)"        "${BASE_URL}/about"     ""
-check_page "Help (/help)"          "${BASE_URL}/help"      ""
-check_page "License (/license)"    "${BASE_URL}/license"   ""
-check_page "Privacy (/privacy)"    "${BASE_URL}/privacy"   ""
-check_page "Terms (/terms)"        "${BASE_URL}/terms"     ""
+check_page "About (/about)"        "${BASE_URL}/about"     "WebPage"
+check_page "Help (/help)"          "${BASE_URL}/help"      "FAQPage"
+check_page "License (/license)"    "${BASE_URL}/license"   "WebPage"
+check_page "Privacy (/privacy)"    "${BASE_URL}/privacy"   "WebPage"
+check_page "Terms (/terms)"        "${BASE_URL}/terms"     "WebPage"
 
 # ── Dynamic page sample — fetch one real script ID from sitemap ──
 header "Dynamic Page Sample"
